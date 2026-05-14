@@ -138,7 +138,7 @@ Hooks.once('init', async () => {
     const cx = (dims.width ?? 2000) / 2;
     const cy = (dims.height ?? 2000) / 2;
     await pins.place(pin.id, { sceneId: canvas.scene.id, x: cx, y: cy });
-    await pins.reload();
+    // reload() not needed — place() updates the renderer automatically on the active scene
   }
 });
 ```
@@ -215,6 +215,8 @@ interface PinData {
   type?: string; // Pin category key (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default'. Used for coarse filtering and organization. Displayed in the Pins window as "Category".
   tags?: string[]; // User-facing classification tags. Supports registered and freeform values; normalized to lowercase kebab-case. Use tags for all fine-grained filtering — the old `group` field was removed (v4 schema auto-migrates group values into tags).
   allowDuplicatePins?: boolean; // If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing). Configurable in Configure Pin > Permissions.
+  imageFit?: 'fill' | 'contain' | 'cover' | 'none' | 'scale-down' | 'zoom'; // Controls how image URLs are sized inside the pin element (default: 'cover'). 'cover' fills the pin dimensions, cropping if needed. 'contain' letterboxes to preserve aspect ratio. 'none' renders at natural size. 'zoom' uses imageZoom to scale beyond cover. Ignored for Font Awesome icons.
+  imageZoom?: number; // Scale multiplier when imageFit is 'zoom' (default: 1, clamped 1–2). 1 = same as cover, 1.5 = 50% zoom in. Ignored for other imageFit values.
   config?: {
     blacksmithVisibility?: 'visible' | 'hidden' | 'owner'; // Map visibility for non-GMs: 'visible' (default), 'hidden' (players do not see the pin on the map), or 'owner' (only users who can edit the pin see it on the map). GM-only field. Separate from ownership. Editable in Configure Pin > Permissions or per-pin in Browse view.
     [key: string]: unknown;
@@ -286,7 +288,7 @@ await pins.whenReady();
 const pin = await pins.create({ id: crypto.randomUUID(), moduleId: 'my-module' });
 if (canvas?.scene) {
   await pins.place(pin.id, { sceneId: canvas.scene.id, x: 1000, y: 800 });
-  await pins.reload();
+  // reload() not needed — place() updates the renderer automatically on the active scene
 }
 ```
 
@@ -381,7 +383,7 @@ const placedPin = await pinsAPI.create({
   type: 'note',
   image: '<i class="fa-solid fa-star"></i>'
 }, { sceneId: canvas.scene?.id });
-await pins.reload();
+// reload() not needed — create() with sceneId updates the renderer automatically
 ```
 
 ```javascript
@@ -589,7 +591,7 @@ const updatedPin = await pinsAPI.update(pin.id, { text: 'Hot Forge' });
 
 // Place an unplaced pin via update
 await pinsAPI.update(pin.id, { sceneId: canvas.scene.id, x: 1200, y: 900 });
-await pins.reload();
+// reload() not needed — update() handles renderer automatically on the active scene
 
 // Unplace a pin (remove from canvas, keep data)
 await pinsAPI.update(pin.id, { unplace: true });
@@ -645,7 +647,7 @@ await pinsAPI.delete(pin.id, { sceneId: 'some-scene-id' });
 - `Error` if permission denied
 
 ### `pins.place(pinId, placement)`
-Place an unplaced pin on a scene at the given coordinates. The pin must currently be unplaced. After placing, call `pins.reload()` if you need the pin to appear on the canvas immediately.
+Place an unplaced pin on a scene at the given coordinates. The pin must currently be unplaced. When placing onto the currently active scene, the renderer updates automatically — `pins.reload()` is **not** required. `reload()` is only needed if the Blacksmith layer container hasn't been initialized yet (i.e., the layer was never activated since page load).
 
 **Returns**: `Promise<PinData | null>` - The updated pin data (with `sceneId`, `x`, `y` set), or `null` if the pin was not found or was not unplaced
 
@@ -663,7 +665,7 @@ const pin = await pins.create({
   image: '<i class="fa-solid fa-flag"></i>'
 });
 await pins.place(pin.id, { sceneId: canvas.scene.id, x: 1200, y: 900 });
-await pins.reload();
+// reload() not needed — the renderer updates automatically on the active scene
 ```
 
 **Throws**: 
@@ -956,6 +958,10 @@ if (results.errors.length > 0) {
 - Logs orphaned pins (pins that exist but aren't tracked by any item) for GM awareness
 
 **Use Case**: When modules store pin IDs in their own data structures (e.g., journal entry flags), this method helps repair broken links when pins are deleted or moved between scenes.
+
+**Important — reconcile does not persist**: `setPinId` and `setSceneId` mutate the items in the array you pass in, but do not write anything back to Foundry flags or any external store. After calling `reconcile()`, you must persist any changes yourself (e.g., `scene.setFlag(moduleId, 'nodes', items)`). If you skip this step, orphaned references reappear on the next page reload.
+
+**Intended pattern**: Call `reconcile()` at scene-load / sync time (e.g., inside `canvasReady`, `syncScenePins`, or `populateGatheringSpotsForScene`) to repair stale references before iterating your data. For real-time cleanup when a pin is deleted mid-session, listen to the deletion hooks instead (see [Deletion hooks](#deletion-hooks-blacksmithpinsdeleted-etc) below).
 
 ---
 
@@ -1619,7 +1625,11 @@ await pins.ping(pinId, {
 - Ripple creates a temporary DOM element that is removed after animation completes
 
 ### `pins.reload(options?)`
-Reload pins from scene flags and re-render on the canvas. Use when pins exist in data but don’t appear (e.g. after refresh or scene change). Calls via API only; no dynamic imports.
+Reload pins from scene flags and re-render on the canvas.
+
+**When you need it**: `create()` and `place()` automatically update the renderer when the target is the currently active scene and the Blacksmith layer container is already initialized. `reload()` is needed when: (1) the layer container doesn’t exist yet (layer never activated since page load — call `whenReady()` first to avoid this), or (2) pins exist in scene flags but don’t appear after a scene change or page refresh.
+
+**When you don’t need it**: Normal `create()`, `place()`, `update()`, and `delete()` calls on the active scene handle their own rendering. Don’t add `reload()` after every pin operation as a precaution — it’s a full re-render of all pins and has a cost.
 
 **Returns**: `Promise<{ reloaded: number; containerReady: boolean; pinsInData: number; layerActive: boolean }>`
 
@@ -1864,7 +1874,9 @@ Hooks.on('blacksmith.pins.updated', async ({ pinId, moduleId, pin, patch }) => {
 ```
 
 **`blacksmith.pins.deleted`**  
-Fired when a single pin is deleted: after `pins.delete()` returns successfully. Use this to clear module data tied to the pin (e.g. clear `pinId` / `sceneId` from a note, refresh UI). Fired for both API-driven deletes and the core **Delete Pin** context menu. Works for both placed and unplaced pins.
+Fired when a single pin is deleted: after `pins.delete()` returns successfully. Use this to clear module data tied to the pin (e.g. clear `pinId` / `sceneId` from a note, refresh UI). Fired for both API-driven deletes and the core **Delete Pin** context menu (right-click on canvas or Manage Pins single-delete). Works for both placed and unplaced pins.
+
+> **This hook does NOT fire for bulk deletions.** If a user deletes via `deleteAll()` or `deleteAllByType()` (including Manage Pins bulk-delete-by-type), `blacksmith.pins.deleted` is not called per pin — only `blacksmith.pins.deletedAll` or `blacksmith.pins.deletedAllByType` fires. To handle all deletion paths, listen to all three hooks. Because the bulk hooks do not carry per-pin IDs, the recommended pattern is to call `pins.reconcile()` inside the bulk-delete handlers to identify and clear orphaned references.
 
 **Payload**:
 ```js
@@ -1931,6 +1943,48 @@ Hooks.on('blacksmith.pins.deletedAllByType', ({ sceneId, type, moduleId, count }
   if (type === 'quest' && moduleId === 'my-module') {
     console.log(`Deleted ${count} quest pins on scene ${sceneId}`);
   }
+});
+```
+
+**Full-coverage pattern — handling all deletion paths**
+
+Because `blacksmith.pins.deleted` only fires for single-pin deletes, modules that track per-item pin references need to handle all three hooks. The bulk hooks don't include per-pin IDs, so the correct approach is to run a `reconcile()` pass after a bulk delete fires, then persist the result.
+
+```javascript
+const MODULE_ID = 'my-module';
+
+// Single-pin delete — pinId is available directly
+Hooks.on('blacksmith.pins.deleted', async ({ pinId, moduleId }) => {
+  if (moduleId !== MODULE_ID) return;
+  const scene = game.scenes.get(canvas.scene?.id);
+  const nodes = scene?.getFlag(MODULE_ID, 'nodes') ?? [];
+  const updated = nodes.map(n => n.pinId === pinId ? { ...n, pinId: null } : n);
+  await scene.setFlag(MODULE_ID, 'nodes', updated);
+});
+
+// Bulk deletes — no per-pin IDs, so reconcile instead
+async function reconcileAndPersist(sceneId) {
+  const scene = game.scenes.get(sceneId);
+  if (!scene) return;
+  const nodes = foundry.utils.deepClone(scene.getFlag(MODULE_ID, 'nodes') ?? []);
+  const results = await game.modules.get('coffee-pub-blacksmith')?.api?.pins?.reconcile({
+    sceneId,
+    moduleId: MODULE_ID,
+    items: nodes,
+    getPinId: (n) => n.pinId ?? null,
+    setPinId: (n, id) => { n.pinId = id; },
+  });
+  if (results?.unlinked > 0) {
+    await scene.setFlag(MODULE_ID, 'nodes', nodes);
+  }
+}
+
+Hooks.on('blacksmith.pins.deletedAll', ({ sceneId, moduleId }) => {
+  if (moduleId === MODULE_ID) reconcileAndPersist(sceneId);
+});
+
+Hooks.on('blacksmith.pins.deletedAllByType', ({ sceneId, moduleId }) => {
+  if (moduleId === MODULE_ID) reconcileAndPersist(sceneId);
 });
 ```
 
