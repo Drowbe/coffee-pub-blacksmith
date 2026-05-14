@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [13.7.4]
+
+### Documentation
+
+- **Pins API — `reconcile()` clarified** (`documentation/api/api-pins.md`): Added explicit callout that `reconcile()` mutates the items array in memory but does not persist to Foundry flags — callers must write back to scene flags after the call or orphaned references reappear on the next reload. Added intended-pattern note directing developers to call `reconcile()` at scene-load time and use deletion hooks for real-time cleanup.
+- **Pins API — deletion hook coverage gap documented** (`documentation/api/api-pins.md`): Clarified that `blacksmith.pins.deleted` does not fire for bulk deletions via `deleteAll()` or `deleteAllByType()` — only `blacksmith.pins.deletedAll` / `blacksmith.pins.deletedAllByType` fire in those cases. Added a full-coverage pattern showing all three hooks wired together with a `reconcile()` pass inside the bulk handlers.
+- **Pins API — `imageFit` and `imageZoom` added to PinData** (`documentation/api/api-pins.md`): Documented the `imageFit` (`'fill' | 'contain' | 'cover' | 'none' | 'scale-down' | 'zoom'`, default `'cover'`) and `imageZoom` (scale multiplier for `'zoom'` fit, default `1`, clamped `1–2`) fields that control how image URLs render inside the pin element. Both fields are ignored for Font Awesome icons.
+- **Pins API — `reload()` guidance corrected** (`documentation/api/api-pins.md`): Clarified that `pins.reload()` is not required after `create()`, `place()`, or `update()` on the currently active scene — those calls update the renderer automatically. `reload()` is only needed when the Blacksmith layer container has not yet been initialized (layer never activated since page load). Updated the `place()` description, the `reload()` method description, and five usage examples that incorrectly showed `await pins.reload()` after normal CRUD operations.
+
+
 ## [13.7.3]
 
 ### Added
