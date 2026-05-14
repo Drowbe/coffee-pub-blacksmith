@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.7.5]
+
+### Added
+
+- **Manage Pin Layers profile dropdown organization** (`scripts/window-pin-layers.js`): Reordered the profile dropdown into **+ New Profile**, **System**, and **Custom** sections. Creating profiles now starts from the dropdown, while custom profile updates/deletes remain contextual to the selected custom profile.
+- **Manage Pin Layers taxonomy labels** (`scripts/window-pin-layers.js`): Renamed taxonomy subsection labels from **Predefined** to **System** for consistency with the profile dropdown and built-in tag language.
+
 ## [13.7.4]
 
 ### Documentation

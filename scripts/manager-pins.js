@@ -451,10 +451,6 @@ export class PinManager {
             ? ow.users[userId]
             : (typeof ow.default === 'number' ? ow.default : NONE);
         if (level >= OWNER) return true;
-        // Non-owners cannot edit (pinsAllowPlayerWrites does not override ownership for edit)
-        if (game.modules.get(MODULE.ID)?.api?.pins && typeof console !== 'undefined' && console.debug) {
-            console.debug('BLACKSMITH | PINS _canEdit denied', { userId, level, required: OWNER, pinId: pin?.id });
-        }
         return false;
     }
 
