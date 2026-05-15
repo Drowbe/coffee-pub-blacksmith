@@ -6,8 +6,44 @@ import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
 
-/** Foundry ownership level for "View & Click" (observer). */
+/** Foundry ownership levels (align with Configure Pin). */
+const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
 const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
+const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+
+/** Client setting key for last-used journal pin toolbar choices. */
+const TOOLBAR_PREFS_KEY = 'clientJournalPinToolbarPrefs';
+
+const DEFAULT_TOOLBAR_PREFS = Object.freeze({
+    pinMode: 'single',
+    placementIcon: 'fa-solid fa-book-open',
+    selectedTags: ['narrative'],
+    accessMode: 'read',
+    visibilityMode: 'visible'
+});
+
+const ACCESS_CYCLE = ['read', 'pin', 'full', 'none'];
+const VISIBILITY_CYCLE = ['visible', 'hidden', 'owner'];
+
+/** Match Configure Pin access dropdown labels (window-pin-configuration.js). */
+const ACCESS_LABELS = Object.freeze({
+    none: 'None: GM Only',
+    read: 'Read Only: All open / GM Edit',
+    pin: 'Pin: All see pin / GM and Owner Edit',
+    full: 'Full: All view and edit'
+});
+
+/** Match Configure Pin visibility dropdown labels (window-pin-config.hbs). */
+const VISIBILITY_LABELS = Object.freeze({
+    visible: 'Visible',
+    hidden: 'Hidden',
+    owner: 'Owner'
+});
+
+const PLACEMENT_MODE_LABELS = Object.freeze({
+    single: 'Single',
+    multiple: 'Multiple'
+});
 
 /**
  * Default pin design and event animations for new journal page pins when no client default is set.
@@ -54,8 +90,8 @@ export class JournalPagePins {
 
     static _initialized = false;
     static _intervalId = null;
-    static _domObserver = null;
     static _hookManagerIds = [];
+    static _onPinDeleted = null;
     static _watchdogSheetHandler = null;
     static _watchdogPageHandler = null;
     /** Bound callbacks registered only via HookManager (single dispatch per hook; no duplicate Hooks.on). */
@@ -77,18 +113,18 @@ export class JournalPagePins {
     }
 
     /**
-     * Tear down interval, DOM observer, and HookManager entries (world exit / dev reload).
+     * Tear down hooks and HookManager entries (world exit / dev reload).
      */
     static dispose() {
         if (this._intervalId != null) {
             clearInterval(this._intervalId);
             this._intervalId = null;
         }
-        if (this._domObserver) {
+        if (this._onPinDeleted) {
             try {
-                this._domObserver.disconnect();
+                Hooks.off('blacksmith.pins.deleted', this._onPinDeleted);
             } catch (_e) { /* non-fatal */ }
-            this._domObserver = null;
+            this._onPinDeleted = null;
         }
         for (const id of this._hookManagerIds) {
             try {
@@ -208,6 +244,206 @@ export class JournalPagePins {
                 }
             }
         }, { moduleId: MODULE.ID });
+
+        this._onPinDeleted = (evt) => {
+            void this._onJournalPinDeleted(evt);
+        };
+        Hooks.on('blacksmith.pins.deleted', this._onPinDeleted);
+    }
+
+    /**
+     * Clear stale page flags when a journal pin is removed from the canvas.
+     * @param {{ pinId?: string }} evt
+     */
+    static async _onJournalPinDeleted(evt) {
+        const pinId = evt?.pinId;
+        if (!pinId || !game.journal?.contents) return;
+        for (const journal of game.journal.contents) {
+            if (!journal.pages) continue;
+            for (const page of journal.pages) {
+                if (page.getFlag(MODULE.ID, 'pinId') !== pinId) continue;
+                if (!page.isOwner && !game.user?.isGM) continue;
+                try {
+                    await page.unsetFlag(MODULE.ID, 'pinId');
+                    await page.unsetFlag(MODULE.ID, 'sceneId');
+                } catch (_e) { /* non-fatal */ }
+            }
+        }
+    }
+
+    static _getToolbarPrefs() {
+        const raw = game.settings.get(MODULE.ID, TOOLBAR_PREFS_KEY) ?? {};
+        const pinMode = raw.pinMode === 'multiple' ? 'multiple' : 'single';
+        const accessMode = ACCESS_CYCLE.includes(raw.accessMode) ? raw.accessMode : DEFAULT_TOOLBAR_PREFS.accessMode;
+        let visibilityMode = VISIBILITY_CYCLE.includes(raw.visibilityMode) ? raw.visibilityMode : DEFAULT_TOOLBAR_PREFS.visibilityMode;
+        if (accessMode === 'none') visibilityMode = 'hidden';
+        return {
+            pinMode,
+            placementIcon: typeof raw.placementIcon === 'string' && raw.placementIcon
+                ? raw.placementIcon
+                : DEFAULT_TOOLBAR_PREFS.placementIcon,
+            selectedTags: Array.isArray(raw.selectedTags) && raw.selectedTags.length
+                ? [...raw.selectedTags]
+                : [...DEFAULT_TOOLBAR_PREFS.selectedTags],
+            accessMode,
+            visibilityMode
+        };
+    }
+
+    static async _saveToolbarPrefs(partial) {
+        const cur = this._getToolbarPrefs();
+        const next = { ...cur, ...partial };
+        if (next.accessMode === 'none') next.visibilityMode = 'hidden';
+        await game.settings.set(MODULE.ID, TOOLBAR_PREFS_KEY, next);
+    }
+
+    static _readPlacementOptsFromBar(bar) {
+        const pinMode = bar?.getAttribute?.('data-pin-mode') === 'multiple' ? 'multiple' : 'single';
+        const accessMode = bar?.getAttribute?.('data-access-mode') || 'read';
+        const visibilityMode = bar?.getAttribute?.('data-visibility-mode') || 'visible';
+        const placementIcon = bar?.getAttribute?.('data-placement-icon') || null;
+        const selectedTags = [...(bar?.querySelectorAll?.('.journal-page-pin-tag-option.selected') ?? [])]
+            .map(el => el.dataset.tag).filter(Boolean);
+        return {
+            allowDuplicates: pinMode === 'multiple',
+            accessMode: ACCESS_CYCLE.includes(accessMode) ? accessMode : 'read',
+            visibilityMode: VISIBILITY_CYCLE.includes(visibilityMode) ? visibilityMode : 'visible',
+            placementIcon,
+            selectedTags
+        };
+    }
+
+    static _applyPlacementPermissions(pinData, accessMode, visibilityMode) {
+        if (!pinData || typeof pinData !== 'object') return;
+        const access = ACCESS_CYCLE.includes(accessMode) ? accessMode : 'read';
+        let vis = VISIBILITY_CYCLE.includes(visibilityMode) ? visibilityMode : 'visible';
+        if (access === 'none') vis = 'hidden';
+
+        let defaultLevel = OBSERVER;
+        if (access === 'none') defaultLevel = NONE;
+        else if (access === 'full') defaultLevel = OWNER;
+
+        pinData.ownership = {
+            ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
+            default: defaultLevel
+        };
+        const prevConfig = pinData.config && typeof pinData.config === 'object' ? pinData.config : {};
+        pinData.config = {
+            ...prevConfig,
+            blacksmithAccess: access === 'pin' ? 'pin' : (access === 'full' ? 'full' : 'read'),
+            blacksmithVisibility: vis
+        };
+    }
+
+    static _updateToggleButtonUI(bar) {
+        if (!bar) return;
+        const pinMode = bar.getAttribute('data-pin-mode') === 'multiple' ? 'multiple' : 'single';
+        const accessMode = bar.getAttribute('data-access-mode') || 'read';
+        const visibilityMode = bar.getAttribute('data-visibility-mode') || 'visible';
+
+        const modeBtn = bar.querySelector('.journal-page-pin-mode-toggle');
+        if (modeBtn) {
+            const isMultiple = pinMode === 'multiple';
+            modeBtn.classList.toggle('selected', isMultiple);
+            modeBtn.dataset.pinMode = pinMode;
+            const icon = modeBtn.querySelector('i');
+            if (icon) {
+                icon.className = isMultiple ? 'fa-solid fa-clone' : 'fa-solid fa-map-pin';
+            }
+            const modeKey = isMultiple ? 'multiple' : 'single';
+            modeBtn.title = `Placement: ${PLACEMENT_MODE_LABELS[modeKey]}`;
+        }
+
+        const accessBtn = bar.querySelector('.journal-page-pin-access-toggle');
+        if (accessBtn) {
+            accessBtn.dataset.accessMode = accessMode;
+            const icon = accessBtn.querySelector('i');
+            accessBtn.title = `Access: ${ACCESS_LABELS[accessMode] || ACCESS_LABELS.read}`;
+            if (icon) {
+                icon.className = accessMode === 'none'
+                    ? 'fa-solid fa-lock'
+                    : (accessMode === 'full' ? 'fa-solid fa-users' : (accessMode === 'pin' ? 'fa-solid fa-map-pin' : 'fa-solid fa-eye'));
+            }
+        }
+
+        const visBtn = bar.querySelector('.journal-page-pin-visibility-toggle');
+        if (visBtn) {
+            visBtn.dataset.visibilityMode = visibilityMode;
+            const icon = visBtn.querySelector('i');
+            visBtn.title = `Visibility: ${VISIBILITY_LABELS[visibilityMode] || VISIBILITY_LABELS.visible}`;
+            if (icon) {
+                icon.className = visibilityMode === 'hidden'
+                    ? 'fa-solid fa-eye-slash'
+                    : (visibilityMode === 'owner' ? 'fa-solid fa-user-shield' : 'fa-solid fa-map');
+            }
+            if (accessMode === 'none') {
+                visBtn.classList.add('is-locked');
+                visBtn.disabled = true;
+            } else {
+                visBtn.classList.remove('is-locked');
+                visBtn.disabled = false;
+            }
+        }
+    }
+
+    static _applyToolbarPrefsToBar(bar, prefs) {
+        if (!bar || !prefs) return;
+        bar.setAttribute('data-pin-mode', prefs.pinMode);
+        bar.setAttribute('data-access-mode', prefs.accessMode);
+        bar.setAttribute('data-visibility-mode', prefs.visibilityMode);
+        bar.setAttribute('data-placement-icon', prefs.placementIcon);
+        this._updateToggleButtonUI(bar);
+
+        bar.querySelectorAll('.journal-page-pin-icon-option').forEach(el => el.classList.remove('selected'));
+        const iconBtn = bar.querySelector(`.journal-page-pin-icon-option[data-placement-icon="${prefs.placementIcon}"]`);
+        if (iconBtn) iconBtn.classList.add('selected');
+
+        bar.querySelectorAll('.journal-page-pin-tag-option').forEach(el => {
+            el.classList.toggle('selected', prefs.selectedTags.includes(el.dataset.tag));
+        });
+    }
+
+    static _getTrackedPinForPage(page, pins) {
+        let pinId = page.getFlag(MODULE.ID, 'pinId') || null;
+        let pin = pinId ? pins.get(pinId) : null;
+        const isTargetPin = pin
+            && pin.moduleId === MODULE.ID
+            && pin.type === this.PIN_TYPE
+            && pin.config?.journalPageUuid === page.uuid;
+        if (!isTargetPin) return { pin: null, pinId: null, sceneId: null };
+        const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
+        return { pin, pinId, sceneId };
+    }
+
+    static async _confirmMovePinIfNeeded(page, pins, allowDuplicates) {
+        if (allowDuplicates || !page || !pins) return true;
+        const { pin, pinId, sceneId } = this._getTrackedPinForPage(page, pins);
+        if (!pin || !pinId || !sceneId) return true;
+        const targetSceneId = canvas?.scene?.id;
+        if (!targetSceneId || sceneId === targetSceneId) return true;
+        const sceneName = game.scenes.get(sceneId)?.name ?? 'another scene';
+        const currentName = canvas.scene?.name ?? 'this scene';
+        return foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Move journal pin?' },
+            content: `<p>This page already has a pin on <strong>${foundry.utils.escapeHTML(sceneName)}</strong>. Placing on <strong>${foundry.utils.escapeHTML(currentName)}</strong> will move that pin here.</p><p>Use the <strong>multiple pins</strong> toggle to add another pin without moving the existing one.</p>`,
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
+        });
+    }
+
+    static async _clearStalePagePinFlags(page) {
+        if (!page?.getFlag) return;
+        const pinId = page.getFlag(MODULE.ID, 'pinId');
+        if (!pinId) return;
+        const pins = this._getPinsApi();
+        if (pins?.get?.(pinId)) return;
+        if (!page.isOwner && !game.user?.isGM) return;
+        try {
+            await page.unsetFlag(MODULE.ID, 'pinId');
+            await page.unsetFlag(MODULE.ID, 'sceneId');
+        } catch (_e) { /* non-fatal */ }
     }
 
     static _getPagePinLabel(page) {
@@ -417,12 +653,22 @@ export class JournalPagePins {
                 }
                 journalHeader.insertAdjacentElement('afterend', bar);
                 bar.addEventListener('click', (event) => {
+                    const barEl = event.currentTarget;
+
                     // Tag chip toggle
                     const tagOption = event.target.closest?.('.journal-page-pin-tag-option');
                     if (tagOption) {
                         event.preventDefault();
                         event.stopPropagation();
                         tagOption.classList.toggle('selected');
+                        const prefs = this._readPlacementOptsFromBar(barEl);
+                        void this._saveToolbarPrefs({
+                            placementIcon: prefs.placementIcon,
+                            selectedTags: prefs.selectedTags,
+                            pinMode: barEl.getAttribute('data-pin-mode') === 'multiple' ? 'multiple' : 'single',
+                            accessMode: prefs.accessMode,
+                            visibilityMode: prefs.visibilityMode
+                        });
                         return;
                     }
 
@@ -433,10 +679,81 @@ export class JournalPagePins {
                         event.stopPropagation();
                         const icon = iconOption.getAttribute('data-placement-icon');
                         if (icon) {
-                            bar.setAttribute('data-placement-icon', icon);
-                            bar.querySelectorAll('.journal-page-pin-icon-option').forEach((el) => el.classList.remove('selected'));
+                            barEl.setAttribute('data-placement-icon', icon);
+                            barEl.querySelectorAll('.journal-page-pin-icon-option').forEach((el) => el.classList.remove('selected'));
                             iconOption.classList.add('selected');
+                            const prefs = this._readPlacementOptsFromBar(barEl);
+                            void this._saveToolbarPrefs({
+                                placementIcon: icon,
+                                selectedTags: prefs.selectedTags,
+                                pinMode: barEl.getAttribute('data-pin-mode') === 'multiple' ? 'multiple' : 'single',
+                                accessMode: prefs.accessMode,
+                                visibilityMode: prefs.visibilityMode
+                            });
                         }
+                        return;
+                    }
+
+                    // Single / multiple pin mode
+                    const modeToggle = event.target.closest?.('.journal-page-pin-mode-toggle');
+                    if (modeToggle) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const next = barEl.getAttribute('data-pin-mode') === 'multiple' ? 'single' : 'multiple';
+                        barEl.setAttribute('data-pin-mode', next);
+                        this._updateToggleButtonUI(barEl);
+                        const prefs = this._readPlacementOptsFromBar(barEl);
+                        void this._saveToolbarPrefs({
+                            pinMode: next,
+                            placementIcon: prefs.placementIcon,
+                            selectedTags: prefs.selectedTags,
+                            accessMode: prefs.accessMode,
+                            visibilityMode: prefs.visibilityMode
+                        });
+                        return;
+                    }
+
+                    // Access cycle
+                    const accessToggle = event.target.closest?.('.journal-page-pin-access-toggle');
+                    if (accessToggle) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const cur = barEl.getAttribute('data-access-mode') || 'read';
+                        const idx = ACCESS_CYCLE.indexOf(cur);
+                        const next = ACCESS_CYCLE[(idx + 1) % ACCESS_CYCLE.length];
+                        barEl.setAttribute('data-access-mode', next);
+                        if (next === 'none') barEl.setAttribute('data-visibility-mode', 'hidden');
+                        this._updateToggleButtonUI(barEl);
+                        const prefs = this._readPlacementOptsFromBar(barEl);
+                        void this._saveToolbarPrefs({
+                            accessMode: next,
+                            visibilityMode: barEl.getAttribute('data-visibility-mode'),
+                            pinMode: prefs.allowDuplicates ? 'multiple' : 'single',
+                            placementIcon: prefs.placementIcon,
+                            selectedTags: prefs.selectedTags
+                        });
+                        return;
+                    }
+
+                    // Map visibility cycle
+                    const visToggle = event.target.closest?.('.journal-page-pin-visibility-toggle');
+                    if (visToggle) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (barEl.getAttribute('data-access-mode') === 'none') return;
+                        const cur = barEl.getAttribute('data-visibility-mode') || 'visible';
+                        const idx = VISIBILITY_CYCLE.indexOf(cur);
+                        const next = VISIBILITY_CYCLE[(idx + 1) % VISIBILITY_CYCLE.length];
+                        barEl.setAttribute('data-visibility-mode', next);
+                        this._updateToggleButtonUI(barEl);
+                        const prefs = this._readPlacementOptsFromBar(barEl);
+                        void this._saveToolbarPrefs({
+                            visibilityMode: next,
+                            accessMode: prefs.accessMode,
+                            pinMode: prefs.allowDuplicates ? 'multiple' : 'single',
+                            placementIcon: prefs.placementIcon,
+                            selectedTags: prefs.selectedTags
+                        });
                         return;
                     }
 
@@ -445,26 +762,23 @@ export class JournalPagePins {
                     if (!target) return;
                     event.preventDefault();
                     event.stopPropagation();
-                    const barEl = event.currentTarget;
                     const sheet = (event.target.closest?.('.journal-sheet') || event.target.closest?.('.journal-entry')) ?? root;
                     const pinnedPageId = barEl?.getAttribute?.('data-page-id');
-                    const placementIcon = barEl?.getAttribute?.('data-placement-icon') || null;
-                    const selectedTags = [...barEl.querySelectorAll('.journal-page-pin-tag-option.selected')]
-                        .map(el => el.dataset.tag).filter(Boolean);
+                    const placementOpts = this._readPlacementOptsFromBar(barEl);
                     const j = pinnedPageId ? this._resolveJournalFromSheet(sheet, null) : null;
                     const page = j?.pages?.get(pinnedPageId) ?? null;
                     if (!page) {
                         ui.notifications.warn('Could not determine which page to pin. Switch to the page you want and try again.');
                         return;
                     }
-                    if (placementIcon === this.PAGE_IMAGE_OPTION) {
+                    if (placementOpts.placementIcon === this.PAGE_IMAGE_OPTION) {
                         const pageImage = this._getFirstImageFromPage(page);
                         if (!pageImage) {
                             ui.notifications.warn('No image found on this page. Add an image or choose an icon.');
                             return;
                         }
                     }
-                    this._beginPlacement(page, { placementIcon, selectedTags });
+                    void this._beginPlacement(page, placementOpts, barEl);
                 });
 
                 // Populate tag chips then restore saved icon/tag state for current page
@@ -509,50 +823,6 @@ export class JournalPagePins {
         }
     }
 
-    static _setupDomObserver() {
-        if (this._domObserver) {
-            return;
-        }
-        this._domObserver = new MutationObserver((mutations) => {
-            for (const m of mutations) {
-                for (const node of m.addedNodes) {
-                    this._processNode(node);
-                }
-                if (m.type === 'attributes' && m.target) {
-                    const target = m.target;
-                    if (target.tagName === 'ARTICLE' && target.classList?.contains('journal-entry-page')) {
-                        const sheet = target.closest('.journal-sheet, .journal-entry');
-                        if (sheet) {
-                            if (sheet._journalPagePinsDebounce) clearTimeout(sheet._journalPagePinsDebounce);
-                            sheet._journalPagePinsDebounce = setTimeout(() => {
-                                const journal = this._resolveJournalFromSheet(sheet, null);
-                                if (journal) this._injectPinBar(sheet, journal);
-                            }, 300);
-                        }
-                    }
-                }
-            }
-        });
-        this._domObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'data-page-id'] });
-    }
-
-    static _processNode(node) {
-        if (!(node instanceof HTMLElement)) return;
-        const sheet = node.closest?.('.journal-sheet, .journal-entry')
-            ?? (node.classList?.contains('journal-sheet') || node.classList?.contains('journal-entry') ? node : null)
-            ?? node.querySelector?.('.journal-sheet, .journal-entry');
-        if (!sheet) return;
-        const run = () => {
-            const journal = this._resolveJournalFromSheet(sheet, null);
-            if (journal) this._injectPinBar(sheet, journal);
-        };
-        if (sheet.querySelector?.('.journal-header') && sheet.querySelector?.('.journal-entry-pages')) {
-            run();
-        } else {
-            setTimeout(run, 200);
-        }
-    }
-
     static _normalizeHtml(html, app) {
         if (!html) {
             const el = app?.element;
@@ -573,7 +843,7 @@ export class JournalPagePins {
         return !!root.querySelector('.editor-container, .editor-edit');
     }
 
-    static async _beginPlacement(page, opts = {}) {
+    static async _beginPlacement(page, opts = {}, bar = null) {
         try {
             if (!page?.isOwner) {
                 ui.notifications.warn('You need owner permission on this page to place a pin.');
@@ -594,12 +864,15 @@ export class JournalPagePins {
                 ui.notifications.warn('Open a scene before placing a pin.');
                 return;
             }
+            const allowDuplicates = opts.allowDuplicates === true;
+            const confirmed = await this._confirmMovePinIfNeeded(page, pins, allowDuplicates);
+            if (!confirmed) return;
             const { pinId, pin, sceneId } = await this._ensurePin(page, pins, opts);
             if (!pinId || !pin) {
                 ui.notifications.error('Could not create a pin for this page.');
                 return;
             }
-            await this._enterPlacementMode({ pinId, page, pins, pin, currentSceneId: sceneId });
+            await this._enterPlacementMode({ pinId, page, pins, pin, currentSceneId: sceneId, bar, placementOpts: opts });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Journal Page Pins: Error starting placement', error?.message || error, false, true);
             ui.notifications.error(`Pin placement failed: ${error?.message || error}`);
@@ -631,44 +904,55 @@ export class JournalPagePins {
 
     static async _restoreBarState(bar, activePage) {
         const DEFAULT_TAG = 'narrative';
-        // Reset icon to default
-        const defaultIcon = 'fa-solid fa-book-open';
-        bar.querySelectorAll('.journal-page-pin-icon-option').forEach(el => el.classList.remove('selected'));
-        const defaultIconBtn = bar.querySelector(`.journal-page-pin-icon-option[data-placement-icon="${defaultIcon}"]`);
-        if (defaultIconBtn) {
-            defaultIconBtn.classList.add('selected');
-            bar.setAttribute('data-placement-icon', defaultIcon);
-        }
-        // Reset tag chips
-        bar.querySelectorAll('.journal-page-pin-tag-option').forEach(el => el.classList.remove('selected'));
+        await this._clearStalePagePinFlags(activePage);
 
+        const prefs = { ...this._getToolbarPrefs() };
         const pins = this._getPinsApi();
         const pinId = activePage?.getFlag?.(MODULE.ID, 'pinId') || null;
-        const pin = pinId ? pins?.get?.(pinId) : null;
+        let pin = pinId ? pins?.get?.(pinId) : null;
+        const isTargetPin = pin
+            && pin.moduleId === MODULE.ID
+            && pin.type === this.PIN_TYPE
+            && pin.config?.journalPageUuid === activePage?.uuid;
 
-        if (pin) {
+        if (isTargetPin) {
             const iconClass = this._normalizeImageToIcon(pin.image);
             if (iconClass) {
-                const iconBtn = bar.querySelector(`.journal-page-pin-icon-option[data-placement-icon="${iconClass}"]`);
-                if (iconBtn) {
-                    bar.querySelectorAll('.journal-page-pin-icon-option').forEach(el => el.classList.remove('selected'));
-                    iconBtn.classList.add('selected');
-                    bar.setAttribute('data-placement-icon', iconClass);
-                }
+                prefs.placementIcon = iconClass;
+            } else if (typeof pin.image === 'string' && pin.image.trim() && !pin.image.includes('fa-')) {
+                prefs.placementIcon = this.PAGE_IMAGE_OPTION;
             }
-            const savedTags = Array.isArray(pin.tags) ? pin.tags : [];
-            let anySelected = false;
-            bar.querySelectorAll('.journal-page-pin-tag-option').forEach(el => {
-                if (savedTags.includes(el.dataset.tag)) { el.classList.add('selected'); anySelected = true; }
-            });
-            if (!anySelected) {
-                const chip = bar.querySelector(`.journal-page-pin-tag-option[data-tag="${DEFAULT_TAG}"]`);
-                if (chip) chip.classList.add('selected');
+            if (Array.isArray(pin.tags) && pin.tags.length) {
+                prefs.selectedTags = [...pin.tags];
             }
-        } else {
+        }
+
+        this._applyToolbarPrefsToBar(bar, prefs);
+        const tagChips = bar.querySelectorAll('.journal-page-pin-tag-option');
+        if (tagChips.length && ![...tagChips].some(el => el.classList.contains('selected'))) {
             const chip = bar.querySelector(`.journal-page-pin-tag-option[data-tag="${DEFAULT_TAG}"]`);
             if (chip) chip.classList.add('selected');
         }
+    }
+
+    static _mergeJournalPinData(base, clientDefault, opts) {
+        const pinData = (clientDefault && typeof clientDefault === 'object')
+            ? {
+                ...base,
+                ...clientDefault,
+                id: base.id,
+                moduleId: base.moduleId,
+                type: base.type,
+                text: base.text,
+                config: {
+                    ...(base.config || {}),
+                    ...(clientDefault.config && typeof clientDefault.config === 'object' ? clientDefault.config : {})
+                }
+            }
+            : { ...base };
+        pinData.allowDuplicatePins = opts.allowDuplicates === true;
+        this._applyPlacementPermissions(pinData, opts.accessMode, opts.visibilityMode);
+        return pinData;
     }
 
     static async _ensurePin(page, pins, opts = {}) {
@@ -684,8 +968,7 @@ export class JournalPagePins {
         }
 
         const clientDefault = pins.getDefaultPinDesign?.(MODULE.ID, this.PIN_TYPE) ?? null;
-        const allowDuplicates = pin?.allowDuplicatePins === true
-            || (clientDefault && clientDefault.allowDuplicatePins === true);
+        const allowDuplicates = opts.allowDuplicates === true;
 
         const placementIcon = opts?.placementIcon || null;
         const resolvedPlacementImage = placementIcon === this.PAGE_IMAGE_OPTION
@@ -698,7 +981,6 @@ export class JournalPagePins {
             : await this._getPinClassificationDefaults();
 
         if (pin && allowDuplicates) {
-            // Allow duplicate pins: create a new pin for this placement instead of reusing
             const label = this._getPagePinLabel(page);
             const base = {
                 id: crypto.randomUUID(),
@@ -711,26 +993,13 @@ export class JournalPagePins {
                     journalId: page.parent?.id ?? '',
                     pageId: page.id ?? ''
                 },
-                allowDuplicatePins: true,
                 ...JOURNAL_PIN_DEFAULTS
             };
             if (resolvedPlacementImage) base.image = resolvedPlacementImage;
-            const pinData = (clientDefault && typeof clientDefault === 'object')
-                ? {
-                    ...base,
-                    ...clientDefault,
-                    id: base.id,
-                    moduleId: base.moduleId,
-                    type: base.type,
-                    text: base.text,
-                    config: base.config,
-                    allowDuplicatePins: true
-                }
-                : base;
+            const pinData = this._mergeJournalPinData(base, clientDefault, opts);
             if (resolvedPlacementImage) pinData.image = resolvedPlacementImage;
             pin = await pins.create(pinData);
             pinId = pin.id;
-            // Do not set page flag — page keeps pointing to first pin; this is a second instance
             const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
             return { pinId, pin, sceneId };
         }
@@ -751,37 +1020,32 @@ export class JournalPagePins {
                 ...JOURNAL_PIN_DEFAULTS
             };
             if (resolvedPlacementImage) base.image = resolvedPlacementImage;
-            const pinData = (clientDefault && typeof clientDefault === 'object')
-                ? {
-                    ...base,
-                    ...clientDefault,
-                    id: base.id,
-                    moduleId: base.moduleId,
-                    type: base.type,
-                    text: base.text,
-                    config: base.config
-                }
-                : base;
+            const pinData = this._mergeJournalPinData(base, clientDefault, opts);
             if (resolvedPlacementImage) pinData.image = resolvedPlacementImage;
             pin = await pins.create(pinData);
             pinId = pin.id;
             await page.setFlag(MODULE.ID, 'pinId', pinId);
         } else {
-            // Keep existing linked pins aligned with the current page title and any newly selected tags.
             const label = this._getPagePinLabel(page);
             const patch = {};
             if (pin.text !== label) patch.text = label;
             if (resolvedPlacementImage && pin.image !== resolvedPlacementImage) patch.image = resolvedPlacementImage;
             if (userSelectedTags !== null) patch.tags = userSelectedTags;
-            if (Object.keys(patch).length > 0) {
-                pin = await pins.update(pin.id, patch) || pin;
-            }
+            patch.allowDuplicatePins = false;
+            const permissionCarrier = {
+                ownership: foundry.utils.deepClone(pin.ownership ?? { default: OBSERVER }),
+                config: foundry.utils.deepClone(pin.config ?? {})
+            };
+            this._applyPlacementPermissions(permissionCarrier, opts.accessMode, opts.visibilityMode);
+            patch.ownership = permissionCarrier.ownership;
+            patch.config = permissionCarrier.config;
+            pin = await pins.update(pin.id, patch) || pin;
         }
         const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
         return { pinId, pin, sceneId };
     }
 
-    static async _enterPlacementMode({ pinId, page, pins, pin, currentSceneId }) {
+    static async _enterPlacementMode({ pinId, page, pins, pin, currentSceneId, bar = null, placementOpts = null }) {
         if (this._cleanupPlacement) {
             this._cleanupPlacement();
             this._cleanupPlacement = null;
@@ -841,9 +1105,20 @@ export class JournalPagePins {
                 } else {
                     placed = await pins.place(pinId, { sceneId: targetSceneId, x: snapped.x, y: snapped.y });
                 }
-                await page.setFlag(MODULE.ID, 'pinId', pinId);
+                if (!placementOpts?.allowDuplicates) {
+                    await page.setFlag(MODULE.ID, 'pinId', pinId);
+                }
                 await page.setFlag(MODULE.ID, 'sceneId', targetSceneId);
                 await pins.reload({ sceneId: targetSceneId });
+                if (bar && placementOpts) {
+                    await this._saveToolbarPrefs({
+                        pinMode: placementOpts.allowDuplicates ? 'multiple' : 'single',
+                        placementIcon: placementOpts.placementIcon || bar.getAttribute('data-placement-icon'),
+                        selectedTags: placementOpts.selectedTags ?? [],
+                        accessMode: placementOpts.accessMode,
+                        visibilityMode: placementOpts.visibilityMode
+                    });
+                }
             } catch (error) {
                 ui.notifications.error(`Could not place pin: ${error?.message || error}`);
             }

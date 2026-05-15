@@ -9,30 +9,73 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
     width: 100%;
     gap: 6px;
-    padding: 2px 0px;
+    padding: 2px 6px;
     background: var(--dnd5e-journal-header-background);
-    border-radius: 3px 3px 0 0;
     font-family: var(--font-primary);
 }
 
-.journal-page-pins-bar-left.toolbar-left,
-.journal-page-pins-bar-right.toolbar-right {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 2px 6px 2px 6px;
+.journal-page-pins-actions-row {
+    border-radius: 3px 3px 0 0;
 }
 
-.journal-page-pins-icon-options {
+.journal-page-pins-icons-row {
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.journal-page-pins-actions-row .journal-page-pin-button {
+    flex-shrink: 0;
+}
+
+.journal-page-pins-actions-row .journal-page-pins-placement-toggles {
+    flex: 1 1 auto;
+}
+
+.journal-page-pins-icon-options,
+.journal-page-pins-placement-toggles {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     max-width: 100%;
     gap: 2px;
+}
+
+.journal-page-pin-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0);
+    border-radius: 4px;
+    color: var(--color-text-light-heading);
+    cursor: pointer;
+}
+
+.journal-page-pin-toggle i {
+    font-size: 0.95rem;
+}
+
+.journal-page-pin-toggle:hover:not(:disabled) {
+    background-color: rgba(247, 133, 2, 0.9);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.2);
+}
+
+.journal-page-pin-toggle.selected {
+    background: rgba(185, 84, 61, 0.6);
+    border-color: rgba(185, 84, 61, 1);
+    color: var(--color-text-light-primary);
+}
+
+.journal-page-pin-toggle.is-locked,
+.journal-page-pin-toggle:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 
@@ -103,6 +146,7 @@
     background: var(--dnd5e-journal-header-background);
     border-top: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 0 0 3px 3px;
+    font-family: var(--font-primary);
 }
 
 .journal-page-pins-tag-row:empty {
@@ -137,7 +181,8 @@
 }
 
 @media (max-width: 900px) {
-    .journal-page-pins-bar-left.toolbar-left {
-        width: 100%;
+    .journal-page-pins-actions-row {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }

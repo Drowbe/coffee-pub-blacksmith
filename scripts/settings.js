@@ -3529,6 +3529,14 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// Last-used journal "Pin Page" toolbar choices (placement mode, access, visibility, icon, tags).
+	game.settings.register(MODULE.ID, 'clientJournalPinToolbarPrefs', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// Configure Pin window size and position (client scope so each player/device remembers their own).
 	game.settings.register(MODULE.ID, 'pinConfigWindowBounds', {
 		scope: 'client',
