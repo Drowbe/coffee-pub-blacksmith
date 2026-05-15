@@ -114,20 +114,35 @@
     color: var(--color-text-light-primary);
 }
 
+.journal-page-pins-bar .journal-entry-pin-button,
 .journal-page-pins-bar .journal-page-pin-button {
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
     padding: 0.25rem 0.5rem;
-    background: rgba(20, 90, 35, 0.75);
     border-radius: 4px;
-    color: rgba(190, 245, 200, 0.95);
-    border: 1px solid rgba(60, 160, 80, 0.4);
     text-transform: uppercase;
     text-decoration: none;
 }
+.journal-page-pins-bar .journal-entry-pin-button {
+    background: rgba(35, 55, 120, 0.75);
+    color: rgba(200, 215, 255, 0.95);
+    border: 1px solid rgba(80, 120, 200, 0.45);
+}
+.journal-page-pins-bar .journal-page-pin-button {
+    background: rgba(20, 90, 35, 0.75);
+    color: rgba(190, 245, 200, 0.95);
+    border: 1px solid rgba(60, 160, 80, 0.4);
+}
+.journal-page-pins-bar .journal-entry-pin-button i,
 .journal-page-pins-bar .journal-page-pin-button i {
     margin-right: 3px;
+}
+.journal-page-pins-bar .journal-entry-pin-button:hover {
+    background-color: rgba(50, 80, 160, 0.9);
+    color: #fff;
+    border: 1px solid rgba(120, 160, 230, 0.6);
+    box-shadow: 0 0 0 1.8px rgba(80, 120, 200, 0.25);
 }
 .journal-page-pins-bar .journal-page-pin-button:hover {
     background-color: rgba(30, 130, 50, 0.9);

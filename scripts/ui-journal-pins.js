@@ -45,6 +45,11 @@ const PLACEMENT_MODE_LABELS = Object.freeze({
     multiple: 'Multiple'
 });
 
+/** Pin links to a specific journal page (config.journalPageUuid). */
+const PIN_TARGET_PAGE = 'page';
+/** Pin links to the journal entry only — double-click opens the journal (first page). */
+const PIN_TARGET_JOURNAL = 'journal';
+
 /**
  * Default pin design and event animations for new journal page pins when no client default is set.
  * Matches the recommended Configure Pin defaults (size 100, right text, hover animations, etc.).
@@ -84,6 +89,7 @@ export class JournalPagePins {
         return firstType ?? 'journal-pin'; // fallback if taxonomy not yet loaded
     }
     static BUTTON_CLASS = 'journal-page-pin-button';
+    static JOURNAL_BUTTON_CLASS = 'journal-entry-pin-button';
     static PLACEMENT_CLASS = 'journal-page-pin-placement-mode';
     static PAGE_IMAGE_OPTION = '__journal-page-image__';
     static _cleanupPlacement = null;
@@ -222,14 +228,23 @@ export class JournalPagePins {
         // Register with PinManager directly so we don't depend on module.api.pins being set
         PinManager.registerHandler('doubleClick', async (evt) => {
             try {
-                // Only handle our journal-page pin type; ignore gather-spot and other types (avoids opening journals when another module's pin shares moduleId)
                 if ((evt?.pin?.type ?? '') !== this.PIN_TYPE) return;
-                const pageUuid = evt?.pin?.config?.journalPageUuid;
+                const config = evt?.pin?.config ?? {};
+                if (this._isJournalPin(evt.pin)) {
+                    const journal = await this._resolveJournalFromPinConfig(config);
+                    if (!journal) return;
+                    if (typeof journal.testUserPermission === 'function' && !journal.testUserPermission(game.user, 'LIMITED')) {
+                        postConsoleAndNotification(MODULE.NAME, 'Journal pin: You do not have permission to view that journal.', null, false, false);
+                        return;
+                    }
+                    await this._viewJournalEntry(journal);
+                    return;
+                }
+                const pageUuid = config.journalPageUuid;
                 if (!pageUuid) return;
                 const page = await fromUuid(pageUuid);
                 if (!page) return;
                 const journal = page.parent;
-                // Don't open if user cannot view the journal (avoids triggering Foundry's internal update that can require OWNER)
                 if (journal && typeof journal.testUserPermission === 'function' && !journal.testUserPermission(game.user, 'LIMITED')) {
                     postConsoleAndNotification(MODULE.NAME, 'Journal page pin: You do not have permission to view that journal.', null, false, false);
                     return;
@@ -259,6 +274,14 @@ export class JournalPagePins {
         const pinId = evt?.pinId;
         if (!pinId || !game.journal?.contents) return;
         for (const journal of game.journal.contents) {
+            if (journal.getFlag(MODULE.ID, 'pinId') === pinId) {
+                if (journal.isOwner || game.user?.isGM) {
+                    try {
+                        await journal.unsetFlag(MODULE.ID, 'pinId');
+                        await journal.unsetFlag(MODULE.ID, 'sceneId');
+                    } catch (_e) { /* non-fatal */ }
+                }
+            }
             if (!journal.pages) continue;
             for (const page of journal.pages) {
                 if (page.getFlag(MODULE.ID, 'pinId') !== pinId) continue;
@@ -269,6 +292,38 @@ export class JournalPagePins {
                 } catch (_e) { /* non-fatal */ }
             }
         }
+    }
+
+    static _isJournalPin(pin) {
+        return pin?.config?.pinTarget === PIN_TARGET_JOURNAL;
+    }
+
+    static _isPagePin(pin) {
+        if (!pin?.config || typeof pin.config !== 'object') return false;
+        if (pin.config.pinTarget === PIN_TARGET_PAGE) return true;
+        return !!pin.config.journalPageUuid;
+    }
+
+    /**
+     * Resolve a JournalEntry from pin config (never treat arbitrary dotted strings as UUIDs).
+     * @param {Record<string, unknown>} config
+     * @returns {Promise<JournalEntry | null>}
+     */
+    static async _resolveJournalFromPinConfig(config) {
+        if (!config || typeof config !== 'object') return null;
+        const journalId = typeof config.journalId === 'string' ? config.journalId.trim() : '';
+        if (journalId) {
+            const fromId = game.journal?.get(journalId) ?? null;
+            if (fromId?.documentName === 'JournalEntry') return fromId;
+        }
+        const journalUuid = typeof config.journalUuid === 'string' ? config.journalUuid.trim() : '';
+        if (journalUuid.startsWith('JournalEntry.')) {
+            try {
+                const doc = await fromUuid(journalUuid);
+                if (doc?.documentName === 'JournalEntry') return doc;
+            } catch (_e) { /* fall through */ }
+        }
+        return null;
     }
 
     static _getToolbarPrefs() {
@@ -344,7 +399,7 @@ export class JournalPagePins {
         const modeBtn = bar.querySelector('.journal-page-pin-mode-toggle');
         if (modeBtn) {
             const isMultiple = pinMode === 'multiple';
-            modeBtn.classList.toggle('selected', isMultiple);
+            modeBtn.classList.remove('selected');
             modeBtn.dataset.pinMode = pinMode;
             const icon = modeBtn.querySelector('i');
             if (icon) {
@@ -409,7 +464,21 @@ export class JournalPagePins {
         const isTargetPin = pin
             && pin.moduleId === MODULE.ID
             && pin.type === this.PIN_TYPE
+            && this._isPagePin(pin)
             && pin.config?.journalPageUuid === page.uuid;
+        if (!isTargetPin) return { pin: null, pinId: null, sceneId: null };
+        const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
+        return { pin, pinId, sceneId };
+    }
+
+    static _getTrackedPinForJournal(journal, pins) {
+        let pinId = journal.getFlag(MODULE.ID, 'pinId') || null;
+        let pin = pinId ? pins.get(pinId) : null;
+        const isTargetPin = pin
+            && pin.moduleId === MODULE.ID
+            && pin.type === this.PIN_TYPE
+            && this._isJournalPin(pin)
+            && pin.config?.journalId === journal.id;
         if (!isTargetPin) return { pin: null, pinId: null, sceneId: null };
         const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
         return { pin, pinId, sceneId };
@@ -433,6 +502,24 @@ export class JournalPagePins {
         });
     }
 
+    static async _confirmMoveJournalPinIfNeeded(journal, pins, allowDuplicates) {
+        if (allowDuplicates || !journal || !pins) return true;
+        const { pin, pinId, sceneId } = this._getTrackedPinForJournal(journal, pins);
+        if (!pin || !pinId || !sceneId) return true;
+        const targetSceneId = canvas?.scene?.id;
+        if (!targetSceneId || sceneId === targetSceneId) return true;
+        const sceneName = game.scenes.get(sceneId)?.name ?? 'another scene';
+        const currentName = canvas.scene?.name ?? 'this scene';
+        return foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Move journal pin?' },
+            content: `<p>This journal already has a pin on <strong>${foundry.utils.escapeHTML(sceneName)}</strong>. Placing on <strong>${foundry.utils.escapeHTML(currentName)}</strong> will move that pin here.</p><p>Use the <strong>multiple pins</strong> toggle to add another pin without moving the existing one.</p>`,
+            rejectClose: false,
+            modal: true,
+            yes: { default: false },
+            no: { default: true }
+        });
+    }
+
     static async _clearStalePagePinFlags(page) {
         if (!page?.getFlag) return;
         const pinId = page.getFlag(MODULE.ID, 'pinId');
@@ -446,9 +533,46 @@ export class JournalPagePins {
         } catch (_e) { /* non-fatal */ }
     }
 
+    static async _clearStaleJournalPinFlags(journal) {
+        if (!journal?.getFlag) return;
+        const pinId = journal.getFlag(MODULE.ID, 'pinId');
+        if (!pinId) return;
+        const pins = this._getPinsApi();
+        const pin = pins?.get?.(pinId);
+        if (pin && this._isJournalPin(pin)) return;
+        if (!journal.isOwner && !game.user?.isGM) return;
+        try {
+            await journal.unsetFlag(MODULE.ID, 'pinId');
+            await journal.unsetFlag(MODULE.ID, 'sceneId');
+        } catch (_e) { /* non-fatal */ }
+    }
+
     static _getPagePinLabel(page) {
         const label = String(page?.name ?? '').trim();
         return label || 'Journal Page';
+    }
+
+    static _getJournalPinLabel(journal) {
+        const label = String(journal?.name ?? '').trim();
+        return label || 'Journal';
+    }
+
+    static _getFirstPageId(journal) {
+        const pages = journal?.pages?.contents ?? [];
+        if (!pages.length) return null;
+        const sorted = [...pages].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+        return sorted[0]?.id ?? null;
+    }
+
+    static _getFirstImageFromJournal(journal) {
+        const pages = journal?.pages?.contents ?? [];
+        if (!pages.length) return '';
+        const sorted = [...pages].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0));
+        for (const page of sorted) {
+            const src = this._getFirstImageFromPage(page);
+            if (src) return src;
+        }
+        return '';
     }
 
     static _getFirstImageFromPage(page) {
@@ -467,8 +591,37 @@ export class JournalPagePins {
      * Ensures the page opens in view mode, not edit mode (clicks the sheet's toggle if it opened in edit).
      * Catches permission errors so viewing a journal the user cannot update does not break other handlers (e.g. gather-spot).
      */
-    static _viewJournalPage(journal, pageId) {
-        if (!journal || !pageId) return Promise.resolve();
+    /**
+     * Open the journal for the current user (sidebar-style). Shows the first page when pages exist.
+     */
+    static _viewJournalEntry(journal) {
+        if (!journal || journal.documentName !== 'JournalEntry') return Promise.resolve();
+        const pageId = this._getFirstPageId(journal);
+        if (pageId) return this._viewJournalPage(journal, pageId, { preferJournalSheet: true });
+        return this._openJournalSheet(journal);
+    }
+
+    /**
+     * Open the journal entry sheet for this user only (no journal.show() broadcast).
+     * @param {JournalEntry} journal
+     */
+    static _openJournalSheet(journal) {
+        if (!journal || journal.documentName !== 'JournalEntry') return Promise.resolve();
+        try {
+            const sheet = journal.sheet;
+            if (sheet?.render) {
+                sheet.render(true);
+                setTimeout(() => this._ensureJournalSheetViewMode(sheet), 200);
+            }
+        } catch (e) {
+            postConsoleAndNotification(MODULE.NAME, 'Journal pin: error opening journal', e?.message ?? e, false, true);
+        }
+        return Promise.resolve();
+    }
+
+    static _viewJournalPage(journal, pageId, options = {}) {
+        if (!journal || journal.documentName !== 'JournalEntry' || !pageId) return Promise.resolve();
+        const preferJournalSheet = options.preferJournalSheet === true;
         const sheet = journal.sheet;
         const openAndView = () => {
             // Open the sheet for the current user only; do not use journal.show() as that broadcasts "shown to all players"
@@ -486,10 +639,12 @@ export class JournalPagePins {
                     return;
                 } catch (e) { /* fall through */ }
             }
-            const page = journal.pages?.get(pageId);
-            if (page?.sheet) {
-                page.sheet.render(true);
-                return;
+            if (!preferJournalSheet) {
+                const page = journal.pages?.get(pageId);
+                if (page?.sheet) {
+                    page.sheet.render(true);
+                    return;
+                }
             }
             if (sheet?.render) sheet.render(true);
         };
@@ -639,11 +794,13 @@ export class JournalPagePins {
                 bar = root.querySelector('.journal-page-pins-bar');
                 if (bar) {
                     bar.setAttribute('data-page-id', pageId ?? '');
-                    bar.hidden = !activePage;
+                    const existingJournalBtn = bar.querySelector(`.${this.JOURNAL_BUTTON_CLASS}`);
+                    if (existingJournalBtn && journal?.id) existingJournalBtn.setAttribute('data-journal-id', journal.id);
+                    bar.hidden = false;
                     return;
                 }
                 root.querySelectorAll('.journal-page-pins-bar').forEach((existing) => existing.remove());
-                const html = template({ pageId: pageId ?? '' });
+                const html = template({ pageId: pageId ?? '', journalId: journal?.id ?? '' });
                 const wrapper = document.createElement('div');
                 wrapper.innerHTML = html;
                 bar = wrapper.firstElementChild;
@@ -757,7 +914,30 @@ export class JournalPagePins {
                         return;
                     }
 
-                    // Pin button
+                    // Pin journal (entry-level, not a specific page)
+                    const journalBtn = event.target.closest?.(`.${this.JOURNAL_BUTTON_CLASS}`);
+                    if (journalBtn) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const sheet = (event.target.closest?.('.journal-sheet') || event.target.closest?.('.journal-entry')) ?? root;
+                        const j = this._resolveJournalFromSheet(sheet, null) ?? journal;
+                        if (!j) {
+                            ui.notifications.warn('Could not determine which journal to pin.');
+                            return;
+                        }
+                        const placementOpts = this._readPlacementOptsFromBar(barEl);
+                        if (placementOpts.placementIcon === this.PAGE_IMAGE_OPTION) {
+                            const journalImage = this._getFirstImageFromJournal(j);
+                            if (!journalImage) {
+                                ui.notifications.warn('No image found in this journal. Add an image to a page or choose an icon.');
+                                return;
+                            }
+                        }
+                        void this._beginJournalPlacement(j, placementOpts, barEl);
+                        return;
+                    }
+
+                    // Pin page
                     const target = event.target.closest?.('.journal-page-pin-button');
                     if (!target) return;
                     event.preventDefault();
@@ -783,7 +963,7 @@ export class JournalPagePins {
 
                 // Populate tag chips then restore saved icon/tag state for current page
                 this._populateTagChips(bar)
-                    .then(() => this._restoreBarState(bar, activePage))
+                    .then(() => this._restoreBarState(bar, activePage, journal))
                     .catch(() => {});
             } catch (err) {
                 postConsoleAndNotification(MODULE.NAME, 'Journal page pins: failed to render toolbar', err?.message ?? err, false, true);
@@ -794,11 +974,13 @@ export class JournalPagePins {
         const prevPageId = bar.dataset.activePage ?? '';
         bar.setAttribute('data-page-id', pageId ?? '');
         bar.dataset.activePage = pageId ?? '';
-        bar.hidden = !activePage;
+        const journalBtn = bar.querySelector(`.${this.JOURNAL_BUTTON_CLASS}`);
+        if (journalBtn && journal?.id) journalBtn.setAttribute('data-journal-id', journal.id);
+        bar.hidden = false;
 
         // Restore state whenever the active page changes on an existing bar
         if (bar.querySelector('.journal-page-pins-tag-row')?.dataset.populated && pageId !== prevPageId) {
-            this._restoreBarState(bar, activePage).catch(() => {});
+            this._restoreBarState(bar, activePage, journal).catch(() => {});
         }
     }
 
@@ -872,9 +1054,65 @@ export class JournalPagePins {
                 ui.notifications.error('Could not create a pin for this page.');
                 return;
             }
-            await this._enterPlacementMode({ pinId, page, pins, pin, currentSceneId: sceneId, bar, placementOpts: opts });
+            await this._enterPlacementMode({
+                pinId,
+                pinTarget: PIN_TARGET_PAGE,
+                page,
+                journal: null,
+                pins,
+                pin,
+                currentSceneId: sceneId,
+                bar,
+                placementOpts: opts
+            });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Journal Page Pins: Error starting placement', error?.message || error, false, true);
+            ui.notifications.error(`Pin placement failed: ${error?.message || error}`);
+        }
+    }
+
+    static async _beginJournalPlacement(journal, opts = {}, bar = null) {
+        try {
+            if (!journal?.isOwner) {
+                ui.notifications.warn('You need owner permission on this journal to place a pin.');
+                return;
+            }
+            const pins = this._getPinsApi();
+            if (!pins?.isAvailable?.()) {
+                ui.notifications.warn('Blacksmith pins are not available yet.');
+                return;
+            }
+            const allowPlayerWrites = game.settings.get(MODULE.ID, PinManager.SETTING_ALLOW_PLAYER_WRITES) ?? false;
+            if (!game.user.isGM && !allowPlayerWrites) {
+                ui.notifications.warn('Only a GM can create pins (Pins setting).');
+                return;
+            }
+            await pins.whenReady?.();
+            if (!canvas?.scene) {
+                ui.notifications.warn('Open a scene before placing a pin.');
+                return;
+            }
+            const allowDuplicates = opts.allowDuplicates === true;
+            const confirmed = await this._confirmMoveJournalPinIfNeeded(journal, pins, allowDuplicates);
+            if (!confirmed) return;
+            const { pinId, pin, sceneId } = await this._ensureJournalPin(journal, pins, opts);
+            if (!pinId || !pin) {
+                ui.notifications.error('Could not create a pin for this journal.');
+                return;
+            }
+            await this._enterPlacementMode({
+                pinId,
+                pinTarget: PIN_TARGET_JOURNAL,
+                page: null,
+                journal,
+                pins,
+                pin,
+                currentSceneId: sceneId,
+                bar,
+                placementOpts: opts
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Journal Pins: Error starting journal placement', error?.message || error, false, true);
             ui.notifications.error(`Pin placement failed: ${error?.message || error}`);
         }
     }
@@ -902,20 +1140,35 @@ export class JournalPagePins {
         return match ? match[1].trim() : null;
     }
 
-    static async _restoreBarState(bar, activePage) {
+    static async _restoreBarState(bar, activePage, journal = null) {
         const DEFAULT_TAG = 'narrative';
         await this._clearStalePagePinFlags(activePage);
+        if (journal) await this._clearStaleJournalPinFlags(journal);
 
         const prefs = { ...this._getToolbarPrefs() };
         const pins = this._getPinsApi();
-        const pinId = activePage?.getFlag?.(MODULE.ID, 'pinId') || null;
-        let pin = pinId ? pins?.get?.(pinId) : null;
-        const isTargetPin = pin
-            && pin.moduleId === MODULE.ID
-            && pin.type === this.PIN_TYPE
-            && pin.config?.journalPageUuid === activePage?.uuid;
+        let pin = null;
 
-        if (isTargetPin) {
+        const pagePinId = activePage?.getFlag?.(MODULE.ID, 'pinId') || null;
+        const pagePin = pagePinId ? pins?.get?.(pagePinId) : null;
+        if (pagePin
+            && pagePin.moduleId === MODULE.ID
+            && pagePin.type === this.PIN_TYPE
+            && this._isPagePin(pagePin)
+            && pagePin.config?.journalPageUuid === activePage?.uuid) {
+            pin = pagePin;
+        } else if (journal) {
+            const journalPinId = journal.getFlag?.(MODULE.ID, 'pinId') || null;
+            const journalPin = journalPinId ? pins?.get?.(journalPinId) : null;
+            if (journalPin
+                && journalPin.moduleId === MODULE.ID
+                && journalPin.type === this.PIN_TYPE
+                && this._isJournalPin(journalPin)) {
+                pin = journalPin;
+            }
+        }
+
+        if (pin) {
             const iconClass = this._normalizeImageToIcon(pin.image);
             if (iconClass) {
                 prefs.placementIcon = iconClass;
@@ -961,6 +1214,7 @@ export class JournalPagePins {
         const isTargetPin = pin
             && pin.moduleId === MODULE.ID
             && pin.type === this.PIN_TYPE
+            && this._isPagePin(pin)
             && pin.config?.journalPageUuid === page.uuid;
         if (!isTargetPin) {
             pin = null;
@@ -989,6 +1243,7 @@ export class JournalPagePins {
                 tags: classification.tags,
                 text: label,
                 config: {
+                    pinTarget: PIN_TARGET_PAGE,
                     journalPageUuid: page.uuid,
                     journalId: page.parent?.id ?? '',
                     pageId: page.id ?? ''
@@ -1013,6 +1268,7 @@ export class JournalPagePins {
                 tags: classification.tags,
                 text: label,
                 config: {
+                    pinTarget: PIN_TARGET_PAGE,
                     journalPageUuid: page.uuid,
                     journalId: page.parent?.id ?? '',
                     pageId: page.id ?? ''
@@ -1045,7 +1301,106 @@ export class JournalPagePins {
         return { pinId, pin, sceneId };
     }
 
-    static async _enterPlacementMode({ pinId, page, pins, pin, currentSceneId, bar = null, placementOpts = null }) {
+    static async _ensureJournalPin(journal, pins, opts = {}) {
+        let pinId = journal.getFlag(MODULE.ID, 'pinId') || null;
+        let pin = pinId ? pins.get(pinId) : null;
+        const isTargetPin = pin
+            && pin.moduleId === MODULE.ID
+            && pin.type === this.PIN_TYPE
+            && this._isJournalPin(pin)
+            && pin.config?.journalId === journal.id;
+        if (!isTargetPin) {
+            pin = null;
+            pinId = null;
+        }
+
+        const clientDefault = pins.getDefaultPinDesign?.(MODULE.ID, this.PIN_TYPE) ?? null;
+        const allowDuplicates = opts.allowDuplicates === true;
+
+        const placementIcon = opts?.placementIcon || null;
+        const resolvedPlacementImage = placementIcon === this.PAGE_IMAGE_OPTION
+            ? this._getFirstImageFromJournal(journal)
+            : placementIcon;
+
+        const userSelectedTags = Array.isArray(opts?.selectedTags) ? opts.selectedTags : null;
+        const classification = userSelectedTags !== null
+            ? { tags: userSelectedTags }
+            : await this._getPinClassificationDefaults();
+
+        const journalConfig = {
+            pinTarget: PIN_TARGET_JOURNAL,
+            journalId: journal.id,
+            journalUuid: journal.uuid
+        };
+
+        if (pin && allowDuplicates) {
+            const label = this._getJournalPinLabel(journal);
+            const base = {
+                id: crypto.randomUUID(),
+                moduleId: MODULE.ID,
+                type: this.PIN_TYPE,
+                tags: classification.tags,
+                text: label,
+                config: { ...journalConfig },
+                ...JOURNAL_PIN_DEFAULTS
+            };
+            if (resolvedPlacementImage) base.image = resolvedPlacementImage;
+            const pinData = this._mergeJournalPinData(base, clientDefault, opts);
+            if (resolvedPlacementImage) pinData.image = resolvedPlacementImage;
+            pin = await pins.create(pinData);
+            pinId = pin.id;
+            const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
+            return { pinId, pin, sceneId };
+        }
+
+        if (!pin) {
+            const label = this._getJournalPinLabel(journal);
+            const base = {
+                id: pinId ?? crypto.randomUUID(),
+                moduleId: MODULE.ID,
+                type: this.PIN_TYPE,
+                tags: classification.tags,
+                text: label,
+                config: { ...journalConfig },
+                ...JOURNAL_PIN_DEFAULTS
+            };
+            if (resolvedPlacementImage) base.image = resolvedPlacementImage;
+            const pinData = this._mergeJournalPinData(base, clientDefault, opts);
+            if (resolvedPlacementImage) pinData.image = resolvedPlacementImage;
+            pin = await pins.create(pinData);
+            pinId = pin.id;
+            await journal.setFlag(MODULE.ID, 'pinId', pinId);
+        } else {
+            const label = this._getJournalPinLabel(journal);
+            const patch = {};
+            if (pin.text !== label) patch.text = label;
+            if (resolvedPlacementImage && pin.image !== resolvedPlacementImage) patch.image = resolvedPlacementImage;
+            if (userSelectedTags !== null) patch.tags = userSelectedTags;
+            patch.allowDuplicatePins = false;
+            const permissionCarrier = {
+                ownership: foundry.utils.deepClone(pin.ownership ?? { default: OBSERVER }),
+                config: foundry.utils.deepClone(pin.config ?? {})
+            };
+            this._applyPlacementPermissions(permissionCarrier, opts.accessMode, opts.visibilityMode);
+            patch.ownership = permissionCarrier.ownership;
+            patch.config = permissionCarrier.config;
+            pin = await pins.update(pin.id, patch) || pin;
+        }
+        const sceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
+        return { pinId, pin, sceneId };
+    }
+
+    static async _enterPlacementMode({
+        pinId,
+        pinTarget = PIN_TARGET_PAGE,
+        page = null,
+        journal = null,
+        pins,
+        pin,
+        currentSceneId,
+        bar = null,
+        placementOpts = null
+    }) {
         if (this._cleanupPlacement) {
             this._cleanupPlacement();
             this._cleanupPlacement = null;
@@ -1089,9 +1444,7 @@ export class JournalPagePins {
             const global = event.data?.global;
             if (!global) return;
             const local = canvas.stage.toLocal(global);
-            const snapped = canvas.grid?.getSnappedPosition
-                ? canvas.grid.getSnappedPosition(local.x, local.y, 1)
-                : local;
+            const snapped = this._snapCanvasPlacementPoint(local);
             cleanup();
             try {
                 let placed = null;
@@ -1105,10 +1458,13 @@ export class JournalPagePins {
                 } else {
                     placed = await pins.place(pinId, { sceneId: targetSceneId, x: snapped.x, y: snapped.y });
                 }
-                if (!placementOpts?.allowDuplicates) {
-                    await page.setFlag(MODULE.ID, 'pinId', pinId);
+                const flagDoc = pinTarget === PIN_TARGET_JOURNAL ? journal : page;
+                if (flagDoc) {
+                    if (!placementOpts?.allowDuplicates) {
+                        await flagDoc.setFlag(MODULE.ID, 'pinId', pinId);
+                    }
+                    await flagDoc.setFlag(MODULE.ID, 'sceneId', targetSceneId);
                 }
-                await page.setFlag(MODULE.ID, 'sceneId', targetSceneId);
                 await pins.reload({ sceneId: targetSceneId });
                 if (bar && placementOpts) {
                     await this._saveToolbarPrefs({
@@ -1137,6 +1493,26 @@ export class JournalPagePins {
         canvas.stage.on('pointermove', onPointerMove);
         document.addEventListener('keydown', onKeyDown);
         this._cleanupPlacement = cleanup;
+    }
+
+    /**
+     * Snap a canvas-local point to the scene grid (v13+ getSnappedPoint; legacy fallback).
+     * @param {{ x: number; y: number }} local
+     * @returns {{ x: number; y: number }}
+     */
+    static _snapCanvasPlacementPoint(local) {
+        const grid = canvas?.grid;
+        if (!grid || !local) return local;
+        if (typeof grid.getSnappedPoint === 'function') {
+            const modes = typeof CONST !== 'undefined' ? CONST.GRID_SNAPPING_MODES : null;
+            const behavior = { resolution: 1 };
+            if (modes?.CENTER) behavior.mode = modes.CENTER;
+            return grid.getSnappedPoint({ x: local.x, y: local.y }, behavior);
+        }
+        if (typeof grid.getSnappedPosition === 'function') {
+            return grid.getSnappedPosition(local.x, local.y, 1);
+        }
+        return local;
     }
 
     static _createPlacementPreview(pin) {

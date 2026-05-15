@@ -1,6 +1,9 @@
 {{! Journal page pins toolbar: Pin Page + placement toggles, then icons, then tags }}
 <div class="journal-page-pins-bar" data-page-id="{{pageId}}" data-placement-icon="fa-solid fa-book-open" data-pin-mode="single" data-access-mode="read" data-visibility-mode="visible">
     <div class="journal-page-pins-bar-row journal-page-pins-actions-row">
+        <a class="header-control icon journal-entry-pin-button" href="#" data-journal-id="{{journalId}}" title="Pin this journal on the current scene (opens like the sidebar; first page when opened)">
+            <i class="fa-solid fa-book"></i> Pin Journal
+        </a>
         <a class="header-control icon journal-page-pin-button" href="#" title="Pin this journal page to the current scene">
             <i class="fa-solid fa-map-pin"></i> Pin Page
         </a>
@@ -20,6 +23,10 @@
         <div class="journal-page-pins-icon-options">
             <button type="button" class="journal-page-pin-icon-option" data-placement-icon="__journal-page-image__" title="Use first image from page"><i class="fa-solid fa-image"></i></button>
             <button type="button" class="journal-page-pin-icon-option selected" data-placement-icon="fa-solid fa-book-open" title="Book (default)"><i class="fa-solid fa-book-open"></i></button>
+            <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-map" title="Map"><i class="fa-solid fa-map"></i></button>
+            <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-shield" title="Shield"><i class="fa-solid fa-shield"></i></button>
+            <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-store" title="Store"><i class="fa-solid fa-store"></i></button>
+            <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-basket-shopping" title="Shop"><i class="fa-solid fa-basket-shopping"></i></button>
             <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-skull" title="Skull"><i class="fa-solid fa-skull"></i></button>
             <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-bookmark" title="Bookmark"><i class="fa-solid fa-bookmark"></i></button>
             <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-solid fa-droplet" title="Droplet"><i class="fa-solid fa-droplet"></i></button>
@@ -36,7 +43,7 @@
             <button type="button" class="journal-page-pin-icon-option" data-placement-icon="fa-sharp fa-solid fa-helmet-battle" title="Helmet"><i class="fa-sharp fa-solid fa-helmet-battle"></i></button>
         </div>
     </div>
-<div class="journal-page-pins-tag-row">
+    <div class="journal-page-pins-tag-row">
         {{! Tag chips injected dynamically by _populateTagChips }}
-        </div>
     </div>
+</div>
