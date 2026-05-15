@@ -41,6 +41,18 @@ const BROWSE_ACCESS_TOOLTIP = Object.freeze({
     full: 'Access: Full — all view and edit'
 });
 
+/** Same cycle order as the journal pin toolbar (`ui-journal-pins.js`). */
+const BROWSE_ACCESS_CYCLE = ['read', 'pin', 'full', 'none'];
+
+/** Section title for browse “By category” — matches Manage Pin Layers taxonomy (`entry.label || type`). */
+function browseCategoryTitle(p) {
+    if (!p?.moduleId) return 'Uncategorized';
+    const visType = PinManager.getVisibilityPinType(p.moduleId, p.type);
+    const entry = PinManager.getPinTaxonomy(p.moduleId, p.type);
+    if (entry?.label) return entry.label;
+    return PinManager.getPinTypeLabel(p.moduleId, p.type) || visType || 'Uncategorized';
+}
+
 function getProfileDisplayName(value) {
     if (value === SYSTEM_PROFILE_ALL) return 'All Pins';
     if (value === SYSTEM_PROFILE_NONE) return 'No Pins';
@@ -739,7 +751,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         deleteAllPins:         () => _pinLayersWindowRef?._deleteAllPins(),
         configurePin:          (_event, target) => _pinLayersWindowRef?._configurePin(target),
         deleteBrowsePin:       (_event, target) => _pinLayersWindowRef?._deleteBrowsePin(target),
-        setBrowsePinVisibility:(_event, target) => _pinLayersWindowRef?._setBrowsePinVisibility(target)
+        setBrowsePinVisibility:(_event, target) => _pinLayersWindowRef?._setBrowsePinVisibility(target),
+        setBrowsePinAccess: (_event, target) => _pinLayersWindowRef?._setBrowsePinAccess(target),
+        cycleBrowseView: () => _pinLayersWindowRef?._cycleBrowseView()
     };
 
     constructor(options = {}) {
@@ -747,7 +761,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // Stable id so only one Pin Layers window exists (singleton).
         opts.id = opts.id ?? APP_ID;
         const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
-        const { lastProfile, lastTab, layersHideUnused, ...positionBounds } = bounds;
+        const { lastProfile, lastTab, layersHideUnused, browseViewMode: savedBrowseView, ...positionBounds } = bounds;
         opts.position = foundry.utils.mergeObject(
             foundry.utils.mergeObject({}, PinLayersWindow.DEFAULT_OPTIONS.position ?? {}),
             positionBounds
@@ -766,6 +780,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         this._lastBrowsePinIds = [];
         this._lastBrowsePinsById = new Map();
         this.layersHideUnused = !!layersHideUnused;
+        this.browseViewMode = savedBrowseView === 'category' ? 'category' : 'alphabetical';
     }
 
     static async open(options = {}) {
@@ -796,7 +811,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 height: pos.height,
                 lastProfile: this._selectedProfileValue ?? '',
                 lastTab: this.activeTab ?? 'layers',
-                layersHideUnused: !!this.layersHideUnused
+                layersHideUnused: !!this.layersHideUnused,
+                browseViewMode: this.browseViewMode === 'category' ? 'category' : 'alphabetical'
             });
         } catch (_err) {
             // Non-fatal UI preference write.
@@ -867,6 +883,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 : allPins;
             if (!this.browseIncludeHidden) {
                 browsePins = browsePins.filter(p => !this._isPinHiddenByFilter(p));
+            }
+            if (this.browseViewMode === 'alphabetical' && browsePins.length) {
+                browsePins = [...browsePins].sort((a, b) =>
+                    (a.text || '').localeCompare(b.text || '', undefined, { sensitivity: 'base' }));
             }
             this._lastBrowsePinIds = browsePins.map(p => p.id).filter(Boolean);
             this._lastBrowsePinsById = new Map(browsePins.filter(p => p?.id).map(p => [p.id, p]));
@@ -946,6 +966,11 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                             value="${esc(this.browseQuery)}" placeholder="Filter pins by name, category, or tag…">
                         ${this.browseQuery ? `<button type="button" class="blacksmith-pin-layers-search-clear" data-action="clearBrowse" title="Clear filter"><i class="fa-solid fa-xmark"></i></button>` : ''}
                     </div>
+                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-layers-btn-sm blacksmith-pin-layers-browse-view"
+                        data-action="cycleBrowseView" title="${this.browseViewMode === 'category' ? 'Switch to alphabetical (A–Z)' : 'Switch to categories (same titles as Manage Pin Layers)'}">
+                        <i class="fa-solid ${this.browseViewMode === 'category' ? 'fa-layer-group' : 'fa-arrow-down-a-z'}"></i>
+                        ${this.browseViewMode === 'category' ? 'By category' : 'Alphabetical'}
+                    </button>
                     <div class="blacksmith-toggle-row">
                         <span class="blacksmith-toggle-label">Show hidden</span>
                         <label class="blacksmith-toggle">
@@ -1208,33 +1233,36 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         </button>`;
     }
 
-    _buildBrowseBody(pins, totalPins) {
+    _buildBrowsePinRowHtml(p) {
         const isGM = !!game.user?.isGM;
         const selectMode = isGM && this._browseSelectMode;
-        const pinRows = pins.map((p) => {
-            const hidden = this._isPinHiddenByFilter(p);
-            const selected = this._selectedBrowsePinIds.has(p.id);
-            const typeLabel = PinManager.getPinTypeLabel(p.moduleId, p.type) || p.type || '';
-            const typeHidden = PinManager.isModuleTypeHidden(p.moduleId, p.type);
-            const tagChips = (p.tags || []).map(t => {
-                const tagHidden = PinManager.isTagHidden(t);
-                return `<span class="blacksmith-tag ${tagHidden ? 'is-hidden' : ''}">${esc(t)}</span>`;
-            }).join('');
-            const categoryChip = typeLabel
-                ? `<span class="blacksmith-tag blacksmith-tag-category ${typeHidden ? 'is-hidden' : ''}"><i class="fa-solid fa-layer-group"></i> ${esc(typeLabel)}</span>`
-                : '';
-            const hasMeta = typeLabel || (p.tags && p.tags.length);
-            const visStateRaw = String(p.config?.blacksmithVisibility || 'visible').toLowerCase();
-            const visState = ['visible', 'hidden', 'owner'].includes(visStateRaw) ? visStateRaw : 'visible';
-            const visIconClass = PIN_VISIBILITY_ICONS[visState] || PIN_VISIBILITY_ICONS.visible;
-            const visTitle = visState === 'hidden'
-                ? 'Visibility: Hidden — click for Owner'
-                : (visState === 'owner' ? 'Visibility: Owner — click for Visible' : 'Visibility: Visible — click for Hidden');
-            const accessMode = browsePinAccessMode(p);
-            const accessIconClass = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.read;
-            const accessTitle = esc(BROWSE_ACCESS_TOOLTIP[accessMode] || BROWSE_ACCESS_TOOLTIP.read);
-            const gmActions = isGM ? `
-                <span class="blacksmith-pin-layers-access-chip" title="${accessTitle}"><i class="${accessIconClass}"></i></span>
+        const hidden = this._isPinHiddenByFilter(p);
+        const selected = this._selectedBrowsePinIds.has(p.id);
+        const typeLabel = PinManager.getPinTypeLabel(p.moduleId, p.type) || p.type || '';
+        const typeHidden = PinManager.isModuleTypeHidden(p.moduleId, p.type);
+        const tagChips = (p.tags || []).map(t => {
+            const tagHidden = PinManager.isTagHidden(t);
+            return `<span class="blacksmith-tag ${tagHidden ? 'is-hidden' : ''}">${esc(t)}</span>`;
+        }).join('');
+        const categoryChip = typeLabel
+            ? `<span class="blacksmith-tag blacksmith-tag-category ${typeHidden ? 'is-hidden' : ''}"><i class="fa-solid fa-layer-group"></i> ${esc(typeLabel)}</span>`
+            : '';
+        const hasMeta = typeLabel || (p.tags && p.tags.length);
+        const visStateRaw = String(p.config?.blacksmithVisibility || 'visible').toLowerCase();
+        const visState = ['visible', 'hidden', 'owner'].includes(visStateRaw) ? visStateRaw : 'visible';
+        const visIconClass = PIN_VISIBILITY_ICONS[visState] || PIN_VISIBILITY_ICONS.visible;
+        const visTitle = visState === 'hidden'
+            ? 'Visibility: Hidden — click for Owner'
+            : (visState === 'owner' ? 'Visibility: Owner — click for Visible' : 'Visibility: Visible — click for Hidden');
+        const accessMode = browsePinAccessMode(p);
+        const accessIconClass = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.read;
+        const accessTip = `${BROWSE_ACCESS_TOOLTIP[accessMode] || BROWSE_ACCESS_TOOLTIP.read} — Click to cycle access`;
+        const gmActions = isGM ? `
+                <button type="button" class="blacksmith-icon-action"
+                    data-action="setBrowsePinAccess" data-pin-id="${esc(p.id)}" data-access-mode="${esc(accessMode)}"
+                    title="${esc(accessTip)}">
+                    <i class="${accessIconClass}"></i>
+                </button>
                 <button type="button" class="blacksmith-icon-action ${visState === 'hidden' ? '' : 'is-active'}"
                     data-action="setBrowsePinVisibility" data-pin-id="${esc(p.id)}" data-vis-state="${esc(visState)}" title="${visTitle}">
                     <i class="${visIconClass}"></i>
@@ -1247,7 +1275,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     data-action="deleteBrowsePin" data-pin-id="${esc(p.id)}" title="Delete pin">
                     <i class="fa-solid fa-trash"></i>
                 </button>` : '';
-            return `
+        return `
                 <div class="blacksmith-pin-layers-row ${hidden ? 'is-hidden' : ''} ${selected ? 'is-selected' : ''}">
                     ${selectMode ? `
                     <label class="blacksmith-pin-layers-select-cell" title="${selected ? 'Deselect' : 'Select'} pin">
@@ -1268,18 +1296,69 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                         </div>` : ''}
                     </div>
                 </div>`;
-        }).join('');
+    }
 
-        return `<div class="blacksmith-pin-layers-root">
+    _buildBrowseBody(pins, totalPins) {
+        const renderRow = (p) => this._buildBrowsePinRowHtml(p);
+        const summaryHeader = `
             <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
                 <i class="fa-solid fa-map-pin"></i>
                 <span>${this.browseQuery ? 'Filtered Pins' : 'All Pins'}</span>
                 <span class="blacksmith-pin-layers-tag-count">${pins.length}${pins.length < totalPins ? ` of ${totalPins}` : ''}</span>
-            </div>
+            </div>`;
+
+        if (!pins.length) {
+            if (this.browseViewMode === 'category') {
+                return `<div class="blacksmith-pin-layers-root">
+                <div class="blacksmith-pin-layers-empty">No pins matched.</div>
+            </div>`;
+            }
+            return `<div class="blacksmith-pin-layers-root">
+                ${summaryHeader}
+                <div class="blacksmith-pin-layers-empty">No pins matched.</div>
+            </div>`;
+        }
+
+        if (this.browseViewMode !== 'category') {
+            const pinRows = pins.map(renderRow).join('');
+            return `<div class="blacksmith-pin-layers-root">
+            ${summaryHeader}
             <div class="blacksmith-pin-layers-list">
-                ${pinRows || '<div class="blacksmith-pin-layers-empty">No pins matched.</div>'}
+                ${pinRows}
             </div>
         </div>`;
+        }
+
+        const groups = new Map();
+        for (const p of pins) {
+            const cat = browseCategoryTitle(p);
+            if (!groups.has(cat)) groups.set(cat, []);
+            groups.get(cat).push(p);
+        }
+        const keys = [...groups.keys()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+        const blocks = keys.map((key, idx) => {
+            const list = (groups.get(key) || []).sort((a, b) =>
+                (a.text || '').localeCompare(b.text || '', undefined, { sensitivity: 'base' }));
+            const rows = list.map(renderRow).join('');
+            const headerClasses = idx === 0
+                ? 'blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first blacksmith-pin-layers-browse-category-title'
+                : 'blacksmith-pin-layers-section-header blacksmith-pin-layers-browse-category-title';
+            return `
+            <div class="blacksmith-pin-layers-browse-category">
+                <div class="${headerClasses}">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>${esc(key)}</span>
+                    <span class="blacksmith-pin-layers-tag-count">${list.length}</span>
+                </div>
+                <div class="blacksmith-pin-layers-list">
+                    ${rows}
+                </div>
+            </div>`;
+        }).join('');
+
+        return `<div class="blacksmith-pin-layers-root">
+        ${blocks}
+    </div>`;
     }
 
     _isPinHiddenByFilter(p) {
@@ -1687,6 +1766,41 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const next = current === 'visible' ? 'hidden' : (current === 'hidden' ? 'owner' : 'visible');
         await PinManager.update(pinId, { config: { ...(pin.config || {}), blacksmithVisibility: next } });
         await this.render(true);
+    }
+
+    async _setBrowsePinAccess(target) {
+        if (!game.user?.isGM) return;
+        const pinId = target?.dataset?.pinId || '';
+        if (!pinId) return;
+        const pin = PinManager.get(pinId);
+        if (!pin) return;
+        const rawDataset = String(target?.dataset?.accessMode || '').toLowerCase();
+        const current = BROWSE_ACCESS_CYCLE.includes(rawDataset) ? rawDataset : browsePinAccessMode(pin);
+        const idx = BROWSE_ACCESS_CYCLE.indexOf(current);
+        const next = BROWSE_ACCESS_CYCLE[(idx + 1) % BROWSE_ACCESS_CYCLE.length];
+        const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+        const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
+        const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+        const ownership = { ...(pin.ownership && typeof pin.ownership === 'object' ? pin.ownership : {}), default: OBSERVER };
+        const config = { ...(pin.config && typeof pin.config === 'object' ? pin.config : {}) };
+        if (next === 'none') {
+            config.blacksmithAccess = 'read';
+            config.blacksmithVisibility = 'hidden';
+            ownership.default = NONE;
+        } else {
+            if (current === 'none') {
+                config.blacksmithVisibility = 'visible';
+            }
+            ownership.default = next === 'full' ? OWNER : OBSERVER;
+            config.blacksmithAccess = next === 'pin' ? 'pin' : (next === 'full' ? 'full' : 'read');
+        }
+        await PinManager.update(pinId, { ownership, config });
+        await this.render(true);
+    }
+
+    _cycleBrowseView() {
+        this.browseViewMode = this.browseViewMode === 'category' ? 'alphabetical' : 'category';
+        void this.render(true);
     }
 
     async _toggleType(target) {

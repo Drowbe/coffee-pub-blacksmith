@@ -339,20 +339,20 @@
     width: 100%;
 }
 
-/* Browse row: access affordance (same FA set as journal toolbar / pin-permission-icons.js) */
-.blacksmith-pin-layers-access-chip {
+/* Browse tab: view mode (alphabetical vs category) — to the right of search */
+.blacksmith-pin-layers-browse-view {
+    flex-shrink: 0;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    opacity: 0.92;
-    pointer-events: none;
+    gap: 6px;
 }
 
-.blacksmith-pin-layers-access-chip i {
-    font-size: 0.95em;
+/* Browse: category stack under “All Pins” summary */
+.blacksmith-pin-layers-browse-category {
+    display: flex;
+    flex-direction: column;
 }
-
 /* Used by layers/groups rows that have no submeta */
 .blacksmith-pin-layers-row-main {
     flex: 1;
