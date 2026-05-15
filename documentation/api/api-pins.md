@@ -1485,7 +1485,7 @@ await pins.seedTagRegistryIfEmpty();
 
 ### GM-Only Access Indicator
 
-When a pin uses **Access: None (GM Only)** (`ownership.default` is `NONE`), GMs see a small gold dot on the pin. This is independent of **Visibility**: faded opacity means players do not see the pin (`blacksmithVisibility: hidden`); the dot means GM-only access. A pin can be hidden from players without the dot (e.g. Read Only + Not Visible).
+When a pin uses **Access: None (GM Only)** (`ownership.default` is `NONE`), GMs see a small gold corner badge with the **GM-only access icon** (same as `PIN_ACCESS_ICONS.none` in `scripts/pin-permission-icons.js`: `fa-solid fa-user-shield`) at full pin opacity (no extra dim). For other access levels, when **Visibility** is **Not visible** (`blacksmithVisibility: hidden`), GMs see the pin at reduced opacity so it is obvious the pin is hidden from players without using the GM-only badge.
 
 ### `pins.panTo(pinId, options?)`
 Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin). Optionally ping the pin after panning to draw attention.

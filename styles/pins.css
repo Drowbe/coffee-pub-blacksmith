@@ -50,21 +50,30 @@
 
 
 
-/* GM-only access indicator (None: GM Only); independent of visibility opacity */
-.blacksmith-pin[data-gm-only-access="true"]::after {
-    content: "";
+/* GM-only access badge (Font Awesome from PIN_ACCESS_ICONS); span[hidden] when off */
+.blacksmith-pin-access-badge {
     position: absolute;
-    --gm-badge-size: calc(var(--pin-size-px, 53px) * 0.1);
-    top: calc(var(--gm-badge-size) * -0.5);
-    right: calc(var(--gm-badge-size) * -0.5);
+    --gm-badge-size: calc(var(--pin-size-px, 53px) * 0.26);
+    top: calc(var(--gm-badge-size) * -0.35);
+    right: calc(var(--gm-badge-size) * -0.35);
     width: var(--gm-badge-size);
     height: var(--gm-badge-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: #f4d06f;
-    border: 1px solid rgba(244, 208, 111, 0.8);
+    border: 1px solid rgba(244, 208, 111, 0.85);
     border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     pointer-events: none;
     z-index: 5;
+    box-sizing: border-box;
+}
+
+.blacksmith-pin-access-badge i {
+    font-size: calc(var(--gm-badge-size) * 0.55);
+    line-height: 1;
+    color: rgba(40, 35, 20, 0.95);
 }
 
 /* Placement preview: follows cursor during pin place, drawn on top of all UI (body child) */

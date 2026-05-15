@@ -7,6 +7,12 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { UIContextMenu } from './ui-context-menu.js';
+import {
+    PIN_ACCESS_ICONS,
+    PIN_ACCESS_SUBMENU_ICON,
+    PIN_VISIBILITY_ICONS,
+    pinIconTag
+} from './pin-permission-icons.js';
 
 /** @typedef {import('./manager-pins.js').PinData} PinData */
 
@@ -39,7 +45,8 @@ function _isPinGmOnlyAccess(pinData) {
 
 function _getPinDisplayOpacity(pinData) {
     const baseAlpha = _getPinBaseAlpha(pinData);
-    if (game.user?.isGM && _isPinHiddenFromPlayersByVisibility(pinData)) {
+    // Dim = "Not visible" to players; GM-only pins use the dot instead (full opacity for GM).
+    if (game.user?.isGM && _isPinHiddenFromPlayersByVisibility(pinData) && !_isPinGmOnlyAccess(pinData)) {
         return Math.max(0, Math.min(1, baseAlpha * 0.5));
     }
     return baseAlpha;
@@ -227,6 +234,21 @@ class PinDOMElement {
         return { left, top, width: pinWScreen, height: pinHScreen, iconSizeScreen, screen, scale };
     }
 
+    /** Corner badge for access affordance (GM-only phase 1); icon class set from `PIN_ACCESS_ICONS`. */
+    static _ensureAccessBadge(pinElement) {
+        let badge = pinElement.querySelector('.blacksmith-pin-access-badge');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'blacksmith-pin-access-badge';
+            badge.setAttribute('aria-hidden', 'true');
+            const i = document.createElement('i');
+            badge.appendChild(i);
+            pinElement.appendChild(badge);
+            badge.hidden = true;
+        }
+        return badge;
+    }
+
     /**
      * Create or update a pin DOM element
      * @param {string} pinId
@@ -410,7 +432,8 @@ class PinDOMElement {
         
         // Update text content and display
         this._updatePinText(pinElement, pinData);
-        
+        this._ensureAccessBadge(pinElement);
+
         // Always try to update position immediately using unified calculation
         if (canvas?.stage && canvas?.app) {
             this.updatePosition(pinId, pinData);
@@ -470,7 +493,7 @@ class PinDOMElement {
                 console.warn(`BLACKSMITH | PINS updatePosition: Invalid screen coordinates for ${pinId}`);
             }
             
-            // Set position and size (--pin-size-px used by GM-only access badge so it scales with pin)
+            // Set position and size (--pin-size-px scales corner access badge icon)
             pinElement.style.left = `${left}px`;
             pinElement.style.top = `${top}px`;
             pinElement.style.width = `${width}px`;
@@ -1052,11 +1075,11 @@ class PinDOMElement {
             const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
             coreItems.push({
                 name: 'Access',
-                icon: '<i class="fa-solid fa-user-lock"></i>',
+                icon: pinIconTag(PIN_ACCESS_SUBMENU_ICON),
                 submenu: [
                     {
                         name: 'None: GM Only',
-                        icon: '<i class="fa-solid fa-ban"></i>',
+                        icon: pinIconTag(PIN_ACCESS_ICONS.none),
                         callback: async () => {
                             try {
                                 const nextConfig = {
@@ -1076,7 +1099,7 @@ class PinDOMElement {
                     },
                     {
                         name: 'Read Only: All open / GM Edit',
-                        icon: '<i class="fa-solid fa-book-open-reader"></i>',
+                        icon: pinIconTag(PIN_ACCESS_ICONS.read),
                         callback: async () => {
                             try {
                                 const nextConfig = {
@@ -1095,7 +1118,7 @@ class PinDOMElement {
                     },
                     {
                         name: 'Pin: All see pin / GM and Owner Edit',
-                        icon: '<i class="fa-solid fa-map-pin"></i>',
+                        icon: pinIconTag(PIN_ACCESS_ICONS.pin),
                         callback: async () => {
                             try {
                                 const nextConfig = {
@@ -1114,7 +1137,7 @@ class PinDOMElement {
                     },
                     {
                         name: 'Full: All view and edit',
-                        icon: '<i class="fa-solid fa-pen-to-square"></i>',
+                        icon: pinIconTag(PIN_ACCESS_ICONS.full),
                         callback: async () => {
                             try {
                                 const nextConfig = {
@@ -1136,11 +1159,11 @@ class PinDOMElement {
 
             coreItems.push({
                 name: 'Player Visibility',
-                icon: '<i class="fa-solid fa-eye"></i>',
+                icon: pinIconTag(PIN_VISIBILITY_ICONS.visible),
                 submenu: [
                     {
                         name: 'Visible',
-                        icon: '<i class="fa-solid fa-eye"></i>',
+                        icon: pinIconTag(PIN_VISIBILITY_ICONS.visible),
                         callback: async () => {
                             try {
                                 const nextConfig = {
@@ -1155,7 +1178,7 @@ class PinDOMElement {
                     },
                     {
                         name: 'Owner',
-                        icon: '<i class="fa-solid fa-user-shield"></i>',
+                        icon: pinIconTag(PIN_VISIBILITY_ICONS.owner),
                         callback: async () => {
                             try {
                                 const nextConfig = {
@@ -1170,7 +1193,7 @@ class PinDOMElement {
                     },
                     {
                         name: 'Not Visible',
-                        icon: '<i class="fa-solid fa-eye-slash"></i>',
+                        icon: pinIconTag(PIN_VISIBILITY_ICONS.hidden),
                         callback: async () => {
                             try {
                                 const nextConfig = {
@@ -2149,10 +2172,15 @@ export class PinRenderer {
             }
         }
 
-        if (game.user?.isGM && _isPinGmOnlyAccess(pinData)) {
-            pinElement.dataset.gmOnlyAccess = 'true';
-        } else {
-            delete pinElement.dataset.gmOnlyAccess;
+        const badge = pinElement.querySelector('.blacksmith-pin-access-badge');
+        const badgeIcon = badge?.querySelector('i');
+        if (badge && badgeIcon) {
+            if (game.user?.isGM && _isPinGmOnlyAccess(pinData)) {
+                badgeIcon.className = PIN_ACCESS_ICONS.none;
+                badge.hidden = false;
+            } else {
+                badge.hidden = true;
+            }
         }
         pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
     }

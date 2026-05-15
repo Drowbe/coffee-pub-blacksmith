@@ -3,6 +3,7 @@ import { PinManager } from './manager-pins.js';
 import { normalizePinTags } from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { HookManager } from './manager-hooks.js';
+import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './pin-permission-icons.js';
 
 const APP_ID = 'blacksmith-pin-layers';
 const BULK_TAGS_APP_ID = 'blacksmith-bulk-pin-tags';
@@ -17,6 +18,28 @@ let _customPinTagsWindowRef = null;
 function esc(value) {
     return foundry.utils.escapeHTML(String(value ?? ''));
 }
+
+/** Access preset for a pin; matches Configure Pin (`window-pin-configuration.js`). */
+function browsePinAccessMode(p) {
+    const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+    const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
+    const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
+    const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+    const rawDefault = typeof p?.ownership?.default === 'number' ? p.ownership.default : NONE;
+    const ownershipDefault = rawDefault === LIMITED ? OBSERVER : rawDefault;
+    const rawAccessMode = String(p.config?.blacksmithAccess || '').trim().toLowerCase();
+    if (ownershipDefault <= NONE) return 'none';
+    if (ownershipDefault >= OWNER) return 'full';
+    if (rawAccessMode === 'pin') return 'pin';
+    return 'read';
+}
+
+const BROWSE_ACCESS_TOOLTIP = Object.freeze({
+    none: 'Access: None (GM only)',
+    read: 'Access: Read only — all open / GM edit',
+    pin: 'Access: Pin — all see pin / GM and owner edit',
+    full: 'Access: Full — all view and edit'
+});
 
 function getProfileDisplayName(value) {
     if (value === SYSTEM_PROFILE_ALL) return 'All Pins';
@@ -945,7 +968,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             headerRight: `
                 <div class="blacksmith-pin-layers-summary">
                     <span class="blacksmith-pin-layers-summary-profile">${activeProfileName ? esc(getProfileDisplayName(activeProfileName)) : 'Custom'}</span>
-                    <span class="blacksmith-pin-layers-summary-stat"><i class="fa-solid fa-eye"></i> ${visibleSummary.total}</span>
+                    <span class="blacksmith-pin-layers-summary-stat"><i class="${PIN_VISIBILITY_ICONS.visible}"></i> ${visibleSummary.total}</span>
                     <span class="blacksmith-pin-layers-summary-stat">${allSummary.total} total</span>
                 </div>
             `,
@@ -975,10 +998,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 </button>
             ` : `
                 <button type="button" class="blacksmith-window-btn-secondary" data-action="hideAll">
-                    <i class="fa-solid fa-eye-slash"></i> Hide All
+                    <i class="${PIN_VISIBILITY_ICONS.hidden}"></i> Hide All
                 </button>
                 <button type="button" class="blacksmith-window-btn-primary" data-action="showAll">
-                    <i class="fa-solid fa-eye"></i> Show All
+                    <i class="${PIN_VISIBILITY_ICONS.visible}"></i> Show All
                 </button>
             `
         };
@@ -1160,7 +1183,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     class="blacksmith-icon-action blacksmith-pin-layers-section-toggle ${hidden ? '' : 'is-active'} ${partial ? 'is-partial' : ''}"
                     data-action="toggleTaxonomyGroup" ${toggleAttrs}
                     title="${hidden ? 'Show' : 'Hide'} ${esc(label)}">
-                    <i class="fa-solid ${hidden ? 'fa-eye-slash' : (partial ? 'fa-eye-low-vision' : 'fa-eye')}"></i>
+                    <i class="${hidden ? PIN_VISIBILITY_ICONS.hidden : (partial ? 'fa-solid fa-eye-low-vision' : PIN_VISIBILITY_ICONS.visible)}"></i>
                 </button>` : '';
         return `<div class="blacksmith-pin-layers-taxonomy-group ${hidden ? 'is-hidden' : ''} ${partial ? 'is-partial' : ''}">
             <div class="blacksmith-pin-layers-taxonomy-group-label">
@@ -1203,14 +1226,18 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             const hasMeta = typeLabel || (p.tags && p.tags.length);
             const visStateRaw = String(p.config?.blacksmithVisibility || 'visible').toLowerCase();
             const visState = ['visible', 'hidden', 'owner'].includes(visStateRaw) ? visStateRaw : 'visible';
-            const visIcon = visState === 'hidden' ? 'fa-users-slash' : (visState === 'owner' ? 'fa-user-shield' : 'fa-users');
+            const visIconClass = PIN_VISIBILITY_ICONS[visState] || PIN_VISIBILITY_ICONS.visible;
             const visTitle = visState === 'hidden'
                 ? 'Visibility: Hidden — click for Owner'
                 : (visState === 'owner' ? 'Visibility: Owner — click for Visible' : 'Visibility: Visible — click for Hidden');
+            const accessMode = browsePinAccessMode(p);
+            const accessIconClass = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.read;
+            const accessTitle = esc(BROWSE_ACCESS_TOOLTIP[accessMode] || BROWSE_ACCESS_TOOLTIP.read);
             const gmActions = isGM ? `
+                <span class="blacksmith-pin-layers-access-chip" title="${accessTitle}"><i class="${accessIconClass}"></i></span>
                 <button type="button" class="blacksmith-icon-action ${visState === 'hidden' ? '' : 'is-active'}"
                     data-action="setBrowsePinVisibility" data-pin-id="${esc(p.id)}" data-vis-state="${esc(visState)}" title="${visTitle}">
-                    <i class="fa-solid ${visIcon}"></i>
+                    <i class="${visIconClass}"></i>
                 </button>
                 <button type="button" class="blacksmith-icon-action"
                     data-action="configurePin" data-pin-id="${esc(p.id)}" title="Configure pin">
@@ -1272,7 +1299,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 </div>
                 <button type="button" class="blacksmith-icon-action ${hidden ? '' : 'is-active'}"
                     data-action="${action}" title="${hidden ? 'Show' : 'Hide'}" ${attrString}>
-                    <i class="fa-solid fa-eye"></i>
+                    <i class="${hidden ? PIN_VISIBILITY_ICONS.hidden : PIN_VISIBILITY_ICONS.visible}"></i>
                 </button>
             </div>`;
     }
@@ -1288,7 +1315,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 </div>
                 <button type="button" class="blacksmith-icon-action ${hidden ? '' : 'is-active'}"
                     data-action="toggleType" title="${hidden ? 'Show' : 'Hide'}" ${attrs}>
-                    <i class="fa-solid fa-eye"></i>
+                    <i class="${hidden ? PIN_VISIBILITY_ICONS.hidden : PIN_VISIBILITY_ICONS.visible}"></i>
                 </button>
                 ${this._canBulkMutatePins ? `
                 <button type="button" class="blacksmith-icon-action"

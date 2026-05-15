@@ -5,6 +5,7 @@ import { getCachedTemplate } from './blacksmith.js';
 import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
+import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './pin-permission-icons.js';
 
 /** Foundry ownership levels (align with Configure Pin). */
 const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
@@ -415,9 +416,7 @@ export class JournalPagePins {
             const icon = accessBtn.querySelector('i');
             accessBtn.title = `Access: ${ACCESS_LABELS[accessMode] || ACCESS_LABELS.read}`;
             if (icon) {
-                icon.className = accessMode === 'none'
-                    ? 'fa-solid fa-lock'
-                    : (accessMode === 'full' ? 'fa-solid fa-users' : (accessMode === 'pin' ? 'fa-solid fa-map-pin' : 'fa-solid fa-eye'));
+                icon.className = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.read;
             }
         }
 
@@ -427,9 +426,7 @@ export class JournalPagePins {
             const icon = visBtn.querySelector('i');
             visBtn.title = `Visibility: ${VISIBILITY_LABELS[visibilityMode] || VISIBILITY_LABELS.visible}`;
             if (icon) {
-                icon.className = visibilityMode === 'hidden'
-                    ? 'fa-solid fa-eye-slash'
-                    : (visibilityMode === 'owner' ? 'fa-solid fa-user-shield' : 'fa-solid fa-map');
+                icon.className = PIN_VISIBILITY_ICONS[visibilityMode] || PIN_VISIBILITY_ICONS.visible;
             }
             if (accessMode === 'none') {
                 visBtn.classList.add('is-locked');
