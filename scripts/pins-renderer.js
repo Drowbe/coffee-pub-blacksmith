@@ -29,6 +29,14 @@ function _getPinAccessMode(pinData) {
     return (raw === 'pin' || raw === 'full') ? raw : 'read';
 }
 
+/** Access preset "None: GM Only" — ownership default NONE (matches Configure Pin). */
+function _isPinGmOnlyAccess(pinData) {
+    const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+    const rawDefault = pinData?.ownership?.default;
+    if (typeof rawDefault !== 'number') return false;
+    return rawDefault <= NONE;
+}
+
 function _getPinDisplayOpacity(pinData) {
     const baseAlpha = _getPinBaseAlpha(pinData);
     if (game.user?.isGM && _isPinHiddenFromPlayersByVisibility(pinData)) {
@@ -462,7 +470,7 @@ class PinDOMElement {
                 console.warn(`BLACKSMITH | PINS updatePosition: Invalid screen coordinates for ${pinId}`);
             }
             
-            // Set position and size (--pin-size-px used by GM badge so it scales with pin)
+            // Set position and size (--pin-size-px used by GM-only access badge so it scales with pin)
             pinElement.style.left = `${left}px`;
             pinElement.style.top = `${top}px`;
             pinElement.style.width = `${width}px`;
@@ -2141,10 +2149,10 @@ export class PinRenderer {
             }
         }
 
-        if (game.user?.isGM && hiddenByVisibilityToggle) {
-            pinElement.dataset.gmHidden = 'true';
+        if (game.user?.isGM && _isPinGmOnlyAccess(pinData)) {
+            pinElement.dataset.gmOnlyAccess = 'true';
         } else {
-            delete pinElement.dataset.gmHidden;
+            delete pinElement.dataset.gmOnlyAccess;
         }
         pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
     }

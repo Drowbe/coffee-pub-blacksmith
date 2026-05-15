@@ -790,7 +790,7 @@ Pins live on a custom canvas layer:
   <div class="blacksmith-pin"
        data-shape="circle"          <!-- circle | square | none -->
        data-icon-type="fa"          <!-- fa | text | image -->
-       data-gm-hidden="false"
+       data-gm-only-access="false"
        data-no-shadow="false">
     <div class="blacksmith-pin-icon">
       <i class="fas fa-skull"></i>

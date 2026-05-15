@@ -1483,9 +1483,9 @@ Merges taxonomy tags into the world registry unconditionally, then scans all sce
 await pins.seedTagRegistryIfEmpty();
 ```
 
-### GM-Only Hidden Indicator
+### GM-Only Access Indicator
 
-When a pin is **hidden from players** (ownership default is `NONE` and no user overrides grant visibility), GMs see a small crown badge on the pin. Players never see the pin at all. This is purely visual and does not affect ownership.
+When a pin uses **Access: None (GM Only)** (`ownership.default` is `NONE`), GMs see a small gold dot on the pin. This is independent of **Visibility**: faded opacity means players do not see the pin (`blacksmithVisibility: hidden`); the dot means GM-only access. A pin can be hidden from players without the dot (e.g. Read Only + Not Visible).
 
 ### `pins.panTo(pinId, options?)`
 Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin). Optionally ping the pin after panning to draw attention.
