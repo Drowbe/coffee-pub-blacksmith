@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.7.6]
+
+### Added
+
+- **Pin permission icon map** (`scripts/pin-permission-icons.js`): Single source of truth for Font Awesome classes used by **Access** (`user-shield`, `user-lock`, `user-pen`, `users`) and **Visibility** (`eye`, `eye-slash`, `binoculars`), plus `pinIconTag()` for menu HTML. The pin context menu **Access** parent row uses `shield-halved`.
+
+### Changed
+
+- **Canvas pin GM-only affordance** (`scripts/pins-renderer.js`, `styles/pins.css`): **Access: None (GM only)** is shown with a small corner **badge** containing the same **user-shield** icon as the rest of the UI (replacing a CSS-only dot). Visibility for GMs still uses reduced **opacity** when the pin is **Not visible** to players, but **GM-only** pins no longer get double-signaled with both dimming and the badge—dimming is skipped when access is GM-only so the badge carries that meaning independently.
+- **Journal pin toolbar** (`templates/toolbar-pins.hbs`, `scripts/ui-journal-pins.js`): Access and visibility toggles use the shared icon map (defaults: `user-lock` + `eye`).
+- **Pin context menu** (`scripts/pins-renderer.js`): Access and Player Visibility submenus use the same icons as the toolbar and Configure Pin semantics.
+- **Manage Pin Tags (browse) tab** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Unified icons for visibility actions, summary stats, and layer toggles; **read-only** access chip replaced with a **clickable control** that **cycles** access in the same order as the journal toolbar (`read` → `pin` → `full` → `none`), applying ownership/config updates to match Configure Pin. Added **Alphabetical (A–Z)** vs **By category** view toggle (next to the search field); **by category** groups pins under taxonomy titles aligned with Manage Pin Layers (`entry.label` / type), with **no** top **All Pins / Filtered Pins** row—only category sections—**A–Z** within each category and **A–Z** category order. **Browse view** preference is stored in `pinLayersWindowBounds.browseViewMode`.
+
+### Documentation
+
+- **Pins API & design system** (`documentation/api/api-pins.md`, `documentation/design-system/design-system.md`): GM-only access badge described as the **Font Awesome** affordance; design-system example updated for `blacksmith-pin-access-badge`.
+
 ## [13.7.5]
 
 ### Added
