@@ -794,7 +794,7 @@ Pins live on a custom canvas layer:
     <div class="blacksmith-pin-icon">
       <i class="fas fa-skull"></i>
     </div>
-    <span class="blacksmith-pin-access-badge" hidden aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
+    <span class="blacksmith-pin-gm-indicator" hidden aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
   </div>
 </div>
 ```

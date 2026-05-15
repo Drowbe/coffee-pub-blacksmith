@@ -10,6 +10,9 @@
     --blacksmith-pin-around-text-size-ratio: 0.22; /* 22% of pin size - used for "around" text layout sizing */
     --blacksmith-pin-square-border-radius: 15%; /* Border radius for square pins (rounded corners) */
     --blacksmith-pin-drop-shadow: drop-shadow(0 0px 5px rgba(0, 0, 0, 0.9)); /* Drop shadow for depth */
+    /* GM corner glyph: em portion of outward offset (circle = smaller; square = full em past stroke) */
+    --blacksmith-pin-gm-indicator-em-out-circle: 0.52;
+    --blacksmith-pin-gm-indicator-em-out-square: 1;
 }
 
 /* Container for all pins overlay */
@@ -50,30 +53,36 @@
 
 
 
-/* GM-only access badge (Font Awesome from PIN_ACCESS_ICONS); span[hidden] when off */
-.blacksmith-pin-access-badge {
+/* GM corner glyph: outside pin = scaled border (px) + em box × shape factor (FA ~square) */
+.blacksmith-pin-gm-indicator {
     position: absolute;
-    --gm-badge-size: calc(var(--pin-size-px, 53px) * 0.26);
-    top: calc(var(--gm-badge-size) * -0.35);
-    right: calc(var(--gm-badge-size) * -0.35);
-    width: var(--gm-badge-size);
-    height: var(--gm-badge-size);
+    /* 75% of prior 0.22×pin: 0.22 × 0.75 = 0.165 */
+    --gm-fs: calc(var(--pin-size-px, 53px) * 0.165);
+    z-index: 5;
+    line-height: 0;
+    pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f4d06f;
-    border: 1px solid rgba(244, 208, 111, 0.85);
-    border-radius: 50%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-    pointer-events: none;
-    z-index: 5;
-    box-sizing: border-box;
 }
 
-.blacksmith-pin-access-badge i {
-    font-size: calc(var(--gm-badge-size) * 0.55);
+/* Circle: painted disc does not reach bbox corners — smaller em term than square */
+.blacksmith-pin[data-shape="circle"] .blacksmith-pin-gm-indicator {
+    top: calc(-1 * (var(--pin-stroke-px, 0px) + var(--gm-fs) * var(--blacksmith-pin-gm-indicator-em-out-circle)));
+    right: calc(-1 * (var(--pin-stroke-px, 0px) + var(--gm-fs) * var(--blacksmith-pin-gm-indicator-em-out-circle)));
+}
+
+/* Square / none / unknown: stroke + full em clears rectangular outer edge (none: --pin-stroke-px is 0) */
+.blacksmith-pin:not([data-shape="circle"]) .blacksmith-pin-gm-indicator {
+    top: calc(-1 * (var(--pin-stroke-px, 0px) + var(--gm-fs) * var(--blacksmith-pin-gm-indicator-em-out-square)));
+    right: calc(-1 * (var(--pin-stroke-px, 0px) + var(--gm-fs) * var(--blacksmith-pin-gm-indicator-em-out-square)));
+}
+
+.blacksmith-pin-gm-indicator i {
+    font-size: var(--gm-fs);
     line-height: 1;
-    color: rgba(40, 35, 20, 0.95);
+    color: var(--pin-stroke-color, #ffffff);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 3px rgba(0, 0, 0, 0.65));
 }
 
 /* Placement preview: follows cursor during pin place, drawn on top of all UI (body child) */

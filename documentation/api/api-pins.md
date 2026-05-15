@@ -1483,9 +1483,17 @@ Merges taxonomy tags into the world registry unconditionally, then scans all sce
 await pins.seedTagRegistryIfEmpty();
 ```
 
-### GM-Only Access Indicator
+### GM canvas indicators (GMs only)
 
-When a pin uses **Access: None (GM Only)** (`ownership.default` is `NONE`), GMs see a small gold corner badge with the **GM-only access icon** (same as `PIN_ACCESS_ICONS.none` in `scripts/pin-permission-icons.js`: `fa-solid fa-user-shield`) at full pin opacity (no extra dim). For other access levels, when **Visibility** is **Not visible** (`blacksmithVisibility: hidden`), GMs see the pin at reduced opacity so it is obvious the pin is hidden from players without using the GM-only badge.
+GMs may see **at most one** small Font Awesome icon in the **upper-right** of a pin (`span.blacksmith-pin-gm-indicator`). **Players never see these icons.**
+
+**Which icon:** If **Access: None (GM only)** (`ownership.default` is `NONE`) — same as `PIN_ACCESS_ICONS.none` (`fa-solid fa-user-shield`). Else, if **Visibility** is **Owner** (`blacksmithVisibility: owner`) — same as `PIN_VISIBILITY_ICONS.owner` (`fa-solid fa-binoculars`). GM-only access wins when both would apply.
+
+The glyph is positioned **outside** the pin’s padding box. **`--pin-stroke-px`** is the **scaled border width in px** from layout (**`0px`** when `data-shape="none"`). **`--gm-fs`** is the icon em size (`0.165 × pin width`). Outward offset is **`--pin-stroke-px + --gm-fs × M`**, where **`M`** depends on shape: **`data-shape="circle"`** uses **`--blacksmith-pin-gm-indicator-em-out-circle`** (default `0.52`) because the painted disc does not reach the bbox corners; **square**, **none**, and other values use **`--blacksmith-pin-gm-indicator-em-out-square`** (`1`) so the full em clears corner artwork and the rectangular outer edge.
+
+The glyph uses the pin’s **stroke (border) color** (`--pin-stroke-color`) plus a **drop shadow** on the icon — no separate filled background.
+
+For access levels other than GM-only, when **Visibility** is **Not visible** (`blacksmithVisibility: hidden`), GMs still see the pin at **reduced opacity**; no corner icon is used for “hidden” alone.
 
 ### `pins.panTo(pinId, options?)`
 Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin). Optionally ping the pin after panning to draw attention.

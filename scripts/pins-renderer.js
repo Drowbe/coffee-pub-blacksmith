@@ -234,19 +234,19 @@ class PinDOMElement {
         return { left, top, width: pinWScreen, height: pinHScreen, iconSizeScreen, screen, scale };
     }
 
-    /** Corner badge for access affordance (GM-only phase 1); icon class set from `PIN_ACCESS_ICONS`. */
-    static _ensureAccessBadge(pinElement) {
-        let badge = pinElement.querySelector('.blacksmith-pin-access-badge');
-        if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'blacksmith-pin-access-badge';
-            badge.setAttribute('aria-hidden', 'true');
+    /** GM-only corner glyph (access or owner visibility); uses `--pin-stroke-color` from pin border. */
+    static _ensureGmIndicator(pinElement) {
+        let el = pinElement.querySelector('.blacksmith-pin-gm-indicator');
+        if (!el) {
+            el = document.createElement('span');
+            el.className = 'blacksmith-pin-gm-indicator';
+            el.setAttribute('aria-hidden', 'true');
             const i = document.createElement('i');
-            badge.appendChild(i);
-            pinElement.appendChild(badge);
-            badge.hidden = true;
+            el.appendChild(i);
+            pinElement.appendChild(el);
+            el.hidden = true;
         }
-        return badge;
+        return el;
     }
 
     /**
@@ -303,9 +303,11 @@ class PinDOMElement {
         if (shape !== 'none') {
             pinElement.style.backgroundColor = fillColor;
             pinElement.style.border = `${strokeWidth}px solid ${strokeColor}`;
+            pinElement.style.setProperty('--pin-stroke-color', strokeColor);
         } else {
             pinElement.style.backgroundColor = 'transparent';
             pinElement.style.border = 'none';
+            pinElement.style.setProperty('--pin-stroke-color', strokeColor);
         }
         
         // Add drop shadow via data attribute (default: true, controlled by CSS)
@@ -432,7 +434,7 @@ class PinDOMElement {
         
         // Update text content and display
         this._updatePinText(pinElement, pinData);
-        this._ensureAccessBadge(pinElement);
+        this._ensureGmIndicator(pinElement);
 
         // Always try to update position immediately using unified calculation
         if (canvas?.stage && canvas?.app) {
@@ -493,13 +495,18 @@ class PinDOMElement {
                 console.warn(`BLACKSMITH | PINS updatePosition: Invalid screen coordinates for ${pinId}`);
             }
             
-            // Set position and size (--pin-size-px scales corner access badge icon)
+            // Set position and size (--pin-size-px scales GM indicator; stroke color set in createOrUpdatePin)
             pinElement.style.left = `${left}px`;
             pinElement.style.top = `${top}px`;
             pinElement.style.width = `${width}px`;
             pinElement.style.height = `${height}px`;
             pinElement.style.setProperty('--pin-size-px', `${width}px`);
-            
+            pinElement.style.setProperty('--pin-stroke-color', strokeColor);
+            pinElement.style.setProperty(
+                '--pin-stroke-px',
+                shape === 'none' ? '0px' : `${Math.max(0, scaledStrokeWidth)}px`
+            );
+
             // Update icon size
             const iconElement = pinElement.querySelector('.blacksmith-pin-icon');
             if (iconElement) {
@@ -2172,11 +2179,16 @@ export class PinRenderer {
             }
         }
 
-        const badge = pinElement.querySelector('.blacksmith-pin-access-badge');
+        const badge = pinElement.querySelector('.blacksmith-pin-gm-indicator');
         const badgeIcon = badge?.querySelector('i');
         if (badge && badgeIcon) {
-            if (game.user?.isGM && _isPinGmOnlyAccess(pinData)) {
+            if (!game.user?.isGM) {
+                badge.hidden = true;
+            } else if (_isPinGmOnlyAccess(pinData)) {
                 badgeIcon.className = PIN_ACCESS_ICONS.none;
+                badge.hidden = false;
+            } else if (visibilityMode === 'owner') {
+                badgeIcon.className = PIN_VISIBILITY_ICONS.owner;
                 badge.hidden = false;
             } else {
                 badge.hidden = true;
