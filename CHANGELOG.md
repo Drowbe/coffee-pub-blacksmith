@@ -14,14 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Canvas pin GM indicators (GMs only)** (`scripts/pins-renderer.js`, `styles/pins.css`): **Access: None (GM only)** → **user-shield**; **Visibility: Owner** (when not GM-only) → **binoculars** — **one icon max**. Corner offset **`--pin-stroke-px + --gm-fs × M`**: **`data-shape="circle"`** uses **`M = --blacksmith-pin-gm-indicator-em-out-circle`** (default **0.52**); **square**, **none**, and other shapes use **`M = 1`**. **`--pin-stroke-px`** from scaled border (**`0`** for `none`). Tune **`--blacksmith-pin-gm-indicator-em-out-circle`** / **`--blacksmith-pin-gm-indicator-em-out-square`** on `:root` in `pins.css`. Stroke color + drop shadow; players never see glyphs. “Not visible” opacity for GMs unchanged except GM-only skips dim.
+- **Canvas pin GM indicators (GMs only)** (`scripts/pins-renderer.js`, `styles/pins.css`, `scripts/pin-permission-icons.js`): **Access-only** corner glyph — currently **None: GM only** → **`PIN_ACCESS_ICONS.none`** (`user-shield`). **Not** driven by Player Visibility. Corner offset **`--pin-stroke-px + --gm-fs × M`** (circle vs non-circle **`M`** on `:root`). **`_resolvePinStrokeColor`**: blank/missing stroke → **`#ffffff`**. **`--pin-stroke-px`** from scaled border (**`0`** for `none`). Stroke color + drop shadow; players never see the glyph. “Not visible” opacity for GMs unchanged except GM-only skips dim.
 - **Journal pin toolbar** (`templates/toolbar-pins.hbs`, `scripts/ui-journal-pins.js`): Access and visibility toggles use the shared icon map (defaults: `user-lock` + `eye`).
 - **Pin context menu** (`scripts/pins-renderer.js`): Access and Player Visibility submenus use the same icons as the toolbar and Configure Pin semantics.
 - **Manage Pin Tags (browse) tab** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Unified icons for visibility actions, summary stats, and layer toggles; **read-only** access chip replaced with a **clickable control** that **cycles** access in the same order as the journal toolbar (`read` → `pin` → `full` → `none`), applying ownership/config updates to match Configure Pin. Added **Alphabetical (A–Z)** vs **By category** view toggle (next to the search field); **by category** groups pins under taxonomy titles aligned with Manage Pin Layers (`entry.label` / type), with **no** top **All Pins / Filtered Pins** row—only category sections—**A–Z** within each category and **A–Z** category order. **Browse view** preference is stored in `pinLayersWindowBounds.browseViewMode`.
 
 ### Documentation
 
-- **Pins API & design system** (`documentation/api/api-pins.md`, `documentation/design-system/design-system.md`): GM-only / owner-visibility **corner glyph** (`blacksmith-pin-gm-indicator`) described; design-system example updated.
+- **Pins API & design system** (`documentation/api/api-pins.md`, `documentation/design-system/design-system.md`): GM **access-only** corner glyph (`blacksmith-pin-gm-indicator`) described; design-system example updated.
 
 ## [13.7.5]
 

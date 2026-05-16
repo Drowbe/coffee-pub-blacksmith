@@ -801,6 +801,8 @@ Pins live on a custom canvas layer:
 
 Pin size is controlled entirely via the `--pin-size-px` CSS variable set by JavaScript.
 
+The `.blacksmith-pin-gm-indicator` is **access-only** (shown when the pin is GM-only access); it is not driven by player visibility (e.g. owner / hidden). Non-GM users never see this glyph.
+
 ### 10.8 Combat Timer Bar
 
 ```html

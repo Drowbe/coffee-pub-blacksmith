@@ -10,7 +10,7 @@ export const PIN_ACCESS_ICONS = Object.freeze({
     full: 'fa-solid fa-users'
 });
 
-/** Visibility (`blacksmithVisibility`); keys match toolbar / Configure Pin. */
+/** Visibility (`blacksmithVisibility`); keys match toolbar / Configure Pin / browse row. */
 export const PIN_VISIBILITY_ICONS = Object.freeze({
     visible: 'fa-solid fa-eye',
     hidden: 'fa-solid fa-eye-slash',

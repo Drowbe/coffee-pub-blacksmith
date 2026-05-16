@@ -53,7 +53,7 @@
 
 
 
-/* GM corner glyph: outside pin = scaled border (px) + em box × shape factor (FA ~square) */
+/* GM **access** corner glyph (e.g. GM-only preset); not visibility — outside pin = stroke (px) + em × shape */
 .blacksmith-pin-gm-indicator {
     position: absolute;
     /* 75% of prior 0.22×pin: 0.22 × 0.75 = 0.165 */

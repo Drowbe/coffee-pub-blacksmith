@@ -1483,15 +1483,15 @@ Merges taxonomy tags into the world registry unconditionally, then scans all sce
 await pins.seedTagRegistryIfEmpty();
 ```
 
-### GM canvas indicators (GMs only)
+### GM canvas access indicator (GMs only)
 
 GMs may see **at most one** small Font Awesome icon in the **upper-right** of a pin (`span.blacksmith-pin-gm-indicator`). **Players never see these icons.**
 
-**Which icon:** If **Access: None (GM only)** (`ownership.default` is `NONE`) — same as `PIN_ACCESS_ICONS.none` (`fa-solid fa-user-shield`). Else, if **Visibility** is **Owner** (`blacksmithVisibility: owner`) — same as `PIN_VISIBILITY_ICONS.owner` (`fa-solid fa-binoculars`). GM-only access wins when both would apply.
+**Which icon (access only):** When **Access: None (GM only)** (`ownership.default` is `NONE`), GMs see `PIN_ACCESS_ICONS.none` (`fa-solid fa-user-shield`) on the pin. **Player Visibility** (`visible` / `hidden` / `owner`) does **not** change this glyph — visibility is conveyed separately (e.g. reduced opacity when hidden from players). Additional access presets on the canvas may be added later; they are not mixed with visibility icons.
 
-The glyph is positioned **outside** the pin’s padding box. **`--pin-stroke-px`** is the **scaled border width in px** from layout (**`0px`** when `data-shape="none"`). **`--gm-fs`** is the icon em size (`0.165 × pin width`). Outward offset is **`--pin-stroke-px + --gm-fs × M`**, where **`M`** depends on shape: **`data-shape="circle"`** uses **`--blacksmith-pin-gm-indicator-em-out-circle`** (default `0.52`) because the painted disc does not reach the bbox corners; **square**, **none**, and other values use **`--blacksmith-pin-gm-indicator-em-out-square`** (`1`) so the full em clears corner artwork and the rectangular outer edge.
+The glyph color follows the pin **stroke** (`--pin-stroke-color`); if stroke is unset or blank, **`#ffffff`** is used (`_resolvePinStrokeColor` in `pins-renderer.js`). It also uses a **drop shadow** on the icon — no separate filled background.
 
-The glyph uses the pin’s **stroke (border) color** (`--pin-stroke-color`) plus a **drop shadow** on the icon — no separate filled background.
+The glyph is positioned **outside** the pin’s padding box. **`--pin-stroke-px`** is the **scaled border width in px** from layout (**`0px`** when `data-shape="none"`). **`--gm-fs`** is the icon em size (`0.165 × pin width`). Outward offset is **`--pin-stroke-px + --gm-fs × M`**, where **`M`** depends on shape: **`data-shape="circle"`** uses **`--blacksmith-pin-gm-indicator-em-out-circle`** (default `0.52`); **square**, **none**, and other values use **`--blacksmith-pin-gm-indicator-em-out-square`** (`1`).
 
 For access levels other than GM-only, when **Visibility** is **Not visible** (`blacksmithVisibility: hidden`), GMs still see the pin at **reduced opacity**; no corner icon is used for “hidden” alone.
 

@@ -16,6 +16,14 @@ import {
 
 /** @typedef {import('./manager-pins.js').PinData} PinData */
 
+/** Border + GM-indicator stroke color; blank / missing uses white */
+function _resolvePinStrokeColor(style) {
+    const raw = style?.stroke;
+    if (raw == null) return '#ffffff';
+    const s = String(raw).trim();
+    return s === '' ? '#ffffff' : s;
+}
+
 function _getPinBaseAlpha(pinData) {
     return typeof pinData?.style?.alpha === 'number' ? pinData.style.alpha : 1;
 }
@@ -234,7 +242,7 @@ class PinDOMElement {
         return { left, top, width: pinWScreen, height: pinHScreen, iconSizeScreen, screen, scale };
     }
 
-    /** GM-only corner glyph (access or owner visibility); uses `--pin-stroke-color` from pin border. */
+    /** GM corner glyph for **access** (GM-only preset); not driven by visibility. Color from `--pin-stroke-color` (#fff if stroke unset). */
     static _ensureGmIndicator(pinElement) {
         let el = pinElement.querySelector('.blacksmith-pin-gm-indicator');
         if (!el) {
@@ -294,7 +302,7 @@ class PinDOMElement {
         // Support hex colors (#000000), RGBA (rgba(0, 0, 0, 0.5)), rgb, hsl, named colors, etc.
         // CSS natively accepts all these formats
         const fillColor = style?.fill || '#000000';
-        const strokeColor = style?.stroke || '#ffffff';
+        const strokeColor = _resolvePinStrokeColor(style);
         const strokeWidth = typeof style?.strokeWidth === 'number' ? style.strokeWidth : 2;
         const alpha = typeof style?.alpha === 'number' ? style.alpha : 1;
         
@@ -488,7 +496,7 @@ class PinDOMElement {
             const shape = pinData.shape || 'circle';
             const baseStrokeWidth = typeof pinData.style?.strokeWidth === 'number' ? pinData.style.strokeWidth : 2;
             const scaledStrokeWidth = baseStrokeWidth * scale;
-            const strokeColor = pinData.style?.stroke || '#ffffff';
+            const strokeColor = _resolvePinStrokeColor(pinData.style || {});
             
             // Check if screen coordinates are valid
             if (screen.x === 0 && screen.y === 0 && (pinData.x !== 0 || pinData.y !== 0)) {
@@ -2186,9 +2194,6 @@ export class PinRenderer {
                 badge.hidden = true;
             } else if (_isPinGmOnlyAccess(pinData)) {
                 badgeIcon.className = PIN_ACCESS_ICONS.none;
-                badge.hidden = false;
-            } else if (visibilityMode === 'owner') {
-                badgeIcon.className = PIN_VISIBILITY_ICONS.owner;
                 badge.hidden = false;
             } else {
                 badge.hidden = true;
