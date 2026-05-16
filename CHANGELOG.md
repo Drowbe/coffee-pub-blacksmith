@@ -10,17 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Pin permission icon map** (`scripts/pin-permission-icons.js`): Single source of truth for Font Awesome classes used by **Access** (`user-shield` → GM, `user-pen` → Private, `users` → Public) and **Visibility** (`eye`, `eye-slash`, `binoculars`), plus `pinIconTag()` for menu HTML. The pin context menu **Access** parent row uses `shield-halved`.
+- **Pin permission icon map** (`scripts/pin-permission-icons.js`): Single source of truth for Font Awesome classes used by **Pin editing** (`user-shield` → GM only, `user-pen` → Owner, `users` → Everyone) and **Pin visibility** (`eye`, `eye-slash`). `pinIconTag()` for context menu HTML. Context menu **Pin editing** parent row uses `shield-halved`.
+- **Canvas pin editing indicators (GMs only)** (`scripts/pins-renderer.js`): Corner glyph on pins when editing is GM-only (`user-shield`) or Owner (`user-pen`). Players never see these icons.
+- **`pinsNeedStorageUpdate()`** (`scripts/pins-schema.js`): Detects when migrated pin data should replace stored scene/unplaced flags (schema version, legacy `group`, `journal-page` type, `owner` visibility, or dropped invalid pins).
 
 ### Changed
 
-- **Pin editing + pin visibility (schema v7)** (`scripts/pins-schema.js`, `scripts/pins-renderer.js`, `scripts/window-pin-configuration.js`, `scripts/ui-journal-pins.js`, `scripts/window-pin-layers.js`, `templates/window-pin-config.hbs`, `templates/toolbar-pins.hbs`, `documentation/api/api-pins.md`, `documentation/architecture/architecture-pins.md`): UI labels **Pin editing** (GM only / Owner / Everyone) and **Pin visibility** (Visible / Hidden). **`hidden`** = marker **not drawn** for other players (not dimmed). **GM** always sees all pins; **pin owners** always see their pins when hidden. Removed **`owner`** visibility mode (migrated to `visible`). Pin visibility controls are **GM-only** (journal toolbar visibility toggle hidden for players). Schema v6 access migration unchanged.
-- **Pin schema migration persist (GM)** (`scripts/manager-pins.js`, `scripts/pins-schema.js`): Scene and unplaced pins are written back to storage when migration or repair changes stored data (not only when invalid pins are dropped). Once per scene/unplaced per session to avoid repeated `setFlag` calls.
-- **Canvas pin editing indicators (GMs only)** (`scripts/pins-renderer.js`, `scripts/pin-permission-icons.js`): Corner glyph for GM-only ownership (`user-shield`) or Owner pin editing (`user-pen`).
+- **Pin editing + pin visibility (schema v7)** (`scripts/pins-schema.js`, `scripts/pins-renderer.js`, `scripts/window-pin-configuration.js`, `scripts/ui-journal-pins.js`, `scripts/window-pin-layers.js`, `templates/window-pin-config.hbs`, `templates/toolbar-pins.hbs`, `styles/pins.css`): Renamed UI **Access** → **Pin editing** and **Player Visibility** → **Pin visibility**. Stored values: `config.blacksmithAccess` (`gm` | `private` | `public`) and `config.blacksmithVisibility` (`visible` | `hidden` only). **`hidden`** removes the marker from the map for other players who can view the pin; **GMs always see all pins**; **pin owners** always see their own pins when hidden. Removed **`owner`** visibility mode and withheld/dimmed player rendering (legacy `owner` migrates to `visible`). Pin visibility controls are **GM-only** (journal toolbar visibility toggle hidden for players; players force `visible` on place). **Owner** pin editing blocks mousedown for non-editors on the marker shell; **GM only** editing still delivers click events (calling modules must gate content). Solo-player markers: use `ownership.users`, not a visibility mode.
+- **Pin schema migration persist (GM)** (`scripts/manager-pins.js`): Scene and **unplaced** pins run `migrateAndValidatePins` on read; GMs persist upgraded data to scene flags or the unplaced world setting when storage is behind schema (not only when invalid pins are dropped). Once per scene/unplaced per session to avoid repeated writes.
+- **GM hidden-pin preview** (`scripts/pins-renderer.js`): Pins with `blacksmithVisibility: 'hidden'` render at **50% opacity** on the GM canvas (`data-gm-hidden`); players do not see the marker.
+
+### Fixed
+
+- **Hidden pin GM opacity** (`scripts/pins-renderer.js`): Restored half-opacity canvas preview for GMs after the visibility refactor had dropped dimming while keeping player markers off the map.
 
 ### Documentation
 
-- **Pins API** (`documentation/api/api-pins.md`): [Pin editing and pin visibility](#pin-editing-and-pin-visibility) section; module author contract (pin shell vs document behavior).
+- **Pins API** (`documentation/api/api-pins.md`): **Pin editing and pin visibility** section — marker vs document contract, behavior tables, GM indicator notes, wiki cross-link.
+- **Module author brief** (`documentation/guides/developer-note-pin-editing-visibility.md`): Self-contained integration note for other Coffee Pub modules (no Blacksmith repo required). Checklist, code patterns, legacy mapping, hooks, and testing scenarios. Pair with public wiki [API: Pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins).
+- **Pin migration guide** (`documentation/guides/guide-pin-migration.md`): 13.7.6 summary, checklist, and link to the module author brief + wiki.
+- **Architecture pins** (`documentation/architecture/architecture-pins.md`): Migration persist and unplaced migrate-on-read behavior.
+
+### For other Coffee Pub module authors
+
+- Read `documentation/guides/developer-note-pin-editing-visibility.md` and the wiki [API: Pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins).
+- Stop using `blacksmithVisibility: 'owner'`; do not assume hidden pins are dimmed for players.
+- Gate journal/quest/note opens in your **click** handlers; pin visibility controls the **marker** only.
 
 ## [13.7.5]
 

@@ -10,7 +10,7 @@
 > - **Classification**: Coarse `type` (displayed as "Category") + fine-grained `tags[]`. The old `group` field is removed (v4 schema auto-migrates existing values into tags).
 > - **Events**: `hover`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag*` — scoped by `pinId`, `moduleId`, or `sceneId`. Cleaned up via disposer or `AbortSignal`.
 > - **Animations**: `ping()` with 11 types, broadcast support, loop control. Optional per-pin event animations (hover, click, double-click, add, delete) with sound.
-> - **Pin visibility (per pin)**: **`config.blacksmithVisibility`** is `'visible'` or `'hidden'`. **`hidden`** means the marker is **not drawn** on the map for other players (who can otherwise view the pin). **GMs always see every pin.** **Pin owners always see their own pins** even when hidden. Only GMs set pin visibility in the UI. This is separate from **client filter profiles** (`setGlobalVisibility`, taxonomy/tag hides, etc.).
+> - **Pin visibility (per pin)**: **`config.blacksmithVisibility`** is `'visible'` or `'hidden'`. **`hidden`** means the marker is **not drawn** on the map for other players (who can otherwise view the pin). **GMs always see every pin** (canvas preview at **50% opacity**). **Pin owners always see their own pins** even when hidden. Only GMs set pin visibility in the UI. This is separate from **client filter profiles** (`setGlobalVisibility`, taxonomy/tag hides, etc.). **Module authors (share with other Coffee Pub modules):** [`developer-note-pin-editing-visibility.md`](../guides/developer-note-pin-editing-visibility.md) + public wiki [API: Pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins).
 > - **Pin editing (per pin)**: **`config.blacksmithAccess`** is `'gm'` | `'private'` | `'public'` — who may **edit the pin record** (move, Configure Pin, delete). Does **not** control what opens on click; the **calling module** owns click/double-click behavior and document edit rights.
 > - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). World-level tag registry tracks every tag ever used.
 > - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, **Manage Pins** window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
@@ -1502,7 +1502,9 @@ Blacksmith controls the **map marker** only (position, icon, label, Configure Pi
 | `visible` | Marker shown on the map |
 | `hidden` | Marker **not** shown on the map |
 
-**Always (not in the dropdown):** GMs see every pin. Pin owners always see pins they can edit, even when visibility is `hidden`. Only GMs set pin visibility in Configure Pin, context menu, and Manage Pins browse.
+**Always (not in the dropdown):** GMs see every pin (**50% opacity** on canvas when `hidden`). Pin owners always see pins they can edit, even when visibility is `hidden`. Only GMs set pin visibility in Configure Pin, context menu, and Manage Pins browse.
+
+**Integration brief for other Coffee Pub modules:** [`developer-note-pin-editing-visibility.md`](../guides/developer-note-pin-editing-visibility.md) (standalone; pair with public wiki [API: Pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins)).
 
 **Solo-player pins on the map** (only one player should see the marker): use `ownership.default: NONE` and `ownership.users[playerId]: OWNER` — not a separate visibility mode.
 

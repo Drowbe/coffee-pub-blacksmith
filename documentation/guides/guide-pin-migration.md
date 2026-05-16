@@ -8,15 +8,25 @@ For the full method reference see [`api-pins.md`](../api/api-pins.md).
 
 ## What changed in 13.7.6 (pin editing + pin visibility)
 
+> **Module authors (no repo access):** share **[Developer note — Pin editing & pin visibility](developer-note-pin-editing-visibility.md)** plus the public wiki **[API: Pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins)**. The note is self-contained; the wiki is the full API reference.
+
 | Area | Change |
 |------|--------|
 | UI labels | **Pin editing** (GM only / Owner / Everyone) replaces "Access". **Pin visibility** (Visible / Hidden) replaces "Player Visibility". |
 | `blacksmithAccess` | Still `gm` \| `private` \| `public` (schema v6). |
 | `blacksmithVisibility` | **`visible` \| `hidden` only** (schema v7). Legacy `owner` migrates to `visible`. |
-| Hidden behavior | **`hidden`** = marker **not drawn** for other players (not dimmed). |
+| Hidden behavior | **`hidden`** = marker **not drawn** for other players. **GM** sees a **50% opacity** canvas preview. Pin owners still see their hidden pins. |
 | Defaults | GM always sees all pins. Pin owners always see their own pins when hidden. |
 | Players | **Cannot** set pin visibility (journal toolbar toggle hidden). |
 | Module contract | Pin editing / pin visibility control the **marker only** — not journal, quest, or note behavior on click. |
+| World data | Pins auto-migrate to schema v7 on GM load (scene flags + unplaced); no module migration script required. |
+
+**Quick checklist**
+
+1. Stop using `blacksmithVisibility: 'owner'` — use `ownership.users` for solo markers.
+2. Do not assume hidden pins are dimmed for players — they are **off the map**.
+3. Gate **click** / document open in **your** handler; do not rely on pin visibility for journal/quest rights.
+4. For `blacksmithAccess: 'gm'`, still no-op clicks in your module when the linked content is GM-only.
 
 See [Pin editing and pin visibility](../api/api-pins.md#pin-editing-and-pin-visibility).
 
