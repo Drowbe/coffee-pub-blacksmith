@@ -1490,7 +1490,7 @@ await pins.seedTagRegistryIfEmpty();
 
 GMs may see **at most one** small Font Awesome icon in the **upper-right** of a pin (`span.blacksmith-pin-gm-indicator`). **Players never see these icons.**
 
-**Which icon (access only):** When the pin is **GM-only for viewers** (`ownership.default` is `NONE`, typical migrated “GM only” journal pins), GMs see **`PIN_ACCESS_ICONS.gm`** (`fa-solid fa-user-shield`) on the pin. **Visibility** does **not** change this glyph — withheld / owner visibility is conveyed separately (opacity, `data-visibility-player`, grayscale on withheld). **`private`** / **`public`** access do not add a corner glyph today.
+**Which icon (access only):** GMs see a small corner glyph — **`PIN_ACCESS_ICONS.gm`** (`fa-solid fa-user-shield`) when the pin is **GM-only for viewers** (`ownership.default` is `NONE`), **`PIN_ACCESS_ICONS.private`** (`fa-solid fa-user-pen`) when **Access** is **Private** (edit: owner + GM). **Public** access has **no** corner glyph. **Visibility** does **not** change the glyph — withheld / owner visibility is conveyed separately (opacity, `data-visibility-player`, grayscale on withheld).
 
 For **Visibility** **Not visible** (`blacksmithVisibility: 'hidden'`), GMs still see the pin at **reduced opacity** when the pin is not GM-only ownership; non-GMs who can view the pin see it **withheld** (dimmed + light grayscale) but the pin remains on the map.
 

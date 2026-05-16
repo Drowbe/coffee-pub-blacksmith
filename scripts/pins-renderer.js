@@ -246,7 +246,7 @@ class PinDOMElement {
         return { left, top, width: pinWScreen, height: pinHScreen, iconSizeScreen, screen, scale };
     }
 
-    /** GM corner glyph for **access** (GM-only preset); not driven by visibility. Color from `--pin-stroke-color` (#fff if stroke unset). */
+    /** Access corner glyph (GMs only): **GM-only** (`user-shield`) or **Private** (`user-pen`); not visibility. Color from `--pin-stroke-color` (#fff if stroke unset). */
     static _ensureGmIndicator(pinElement) {
         let el = pinElement.querySelector('.blacksmith-pin-gm-indicator');
         if (!el) {
@@ -2184,6 +2184,9 @@ export class PinRenderer {
                 badge.hidden = true;
             } else if (_isPinGmOnlyAccess(pinData)) {
                 badgeIcon.className = PIN_ACCESS_ICONS.gm;
+                badge.hidden = false;
+            } else if (_getPinAccessMode(pinData) === 'private') {
+                badgeIcon.className = PIN_ACCESS_ICONS.private;
                 badge.hidden = false;
             } else {
                 badge.hidden = true;
