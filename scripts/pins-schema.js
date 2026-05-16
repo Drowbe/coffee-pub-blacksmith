@@ -145,7 +145,24 @@ export function normalizePinTags(value) {
 // ------------------------------------------------------------------
 
 /** Current pin data schema version. Bump when format changes and add migration. */
-export const PIN_SCHEMA_VERSION = 5;
+export const PIN_SCHEMA_VERSION = 6;
+
+/** Canonical edit-access tokens stored in `config.blacksmithAccess` (v6+). Legacy `none`/`read`/`pin`/`full` are normalized on read and migrated once from v5. */
+export const PIN_ACCESS_CANONICAL = Object.freeze(['gm', 'private', 'public']);
+
+/**
+ * Normalize `config.blacksmithAccess` to canonical v6 values.
+ * @param {unknown} value
+ * @returns {'gm' | 'private' | 'public'}
+ */
+export function normalizeBlacksmithAccess(value) {
+    const raw = String(value ?? '').trim().toLowerCase();
+    if (raw === 'gm' || raw === 'private' || raw === 'public') return raw;
+    if (raw === 'none' || raw === 'read') return 'gm';
+    if (raw === 'pin') return 'private';
+    if (raw === 'full') return 'public';
+    return 'gm';
+}
 
 /** Default values per architecture (apply when creating/validating, not stored if omitted). */
 export const PIN_DEFAULTS = Object.freeze({
@@ -214,6 +231,45 @@ MIGRATION_MAP.set(5, (pin) => {
     return migrated;
 });
 
+// Migration from v5 to v6: Decouple legacy access presets from visibility — canonical `blacksmithAccess` + preserved `blacksmithVisibility`
+MIGRATION_MAP.set(6, (pin) => {
+    const migrated = foundry.utils.deepClone(pin);
+    const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+    const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
+    const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
+    const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+    const cfg = typeof migrated.config === 'object' && migrated.config && !Array.isArray(migrated.config)
+        ? { ...migrated.config }
+        : {};
+    const rawDefault = typeof migrated.ownership?.default === 'number' ? migrated.ownership.default : NONE;
+    const ownershipDefault = rawDefault === LIMITED ? OBSERVER : rawDefault;
+    const rawAccess = String(cfg.blacksmithAccess || '').trim().toLowerCase();
+    let legacyAccess = 'read';
+    if (ownershipDefault <= NONE) legacyAccess = 'none';
+    else if (ownershipDefault >= OWNER) legacyAccess = 'full';
+    else if (rawAccess === 'pin') legacyAccess = 'pin';
+
+    let vis = String(cfg.blacksmithVisibility || 'visible').trim().toLowerCase();
+    if (!['visible', 'hidden', 'owner'].includes(vis)) vis = 'visible';
+
+    if (legacyAccess === 'none') {
+        cfg.blacksmithAccess = 'gm';
+        cfg.blacksmithVisibility = 'hidden';
+    } else if (legacyAccess === 'read') {
+        cfg.blacksmithAccess = 'gm';
+        cfg.blacksmithVisibility = vis;
+    } else if (legacyAccess === 'pin') {
+        cfg.blacksmithAccess = 'private';
+        cfg.blacksmithVisibility = vis;
+    } else {
+        cfg.blacksmithAccess = 'public';
+        cfg.blacksmithVisibility = vis;
+    }
+
+    migrated.config = cfg;
+    return migrated;
+});
+
 // ------------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------------
@@ -268,7 +324,6 @@ export function applyDefaults(partial) {
         textColor: PIN_DEFAULTS.textColor,
         textSize: PIN_DEFAULTS.textSize,
         textMaxLength: PIN_DEFAULTS.textMaxLength,
-        textMaxWidth: PIN_DEFAULTS.textMaxWidth,
         textMaxWidth: PIN_DEFAULTS.textMaxWidth,
         textScaleWithPin: PIN_DEFAULTS.textScaleWithPin,
         imageFit: PIN_DEFAULTS.imageFit,
@@ -358,6 +413,9 @@ export function applyDefaults(partial) {
     if (typeof partial.allowDuplicatePins === 'boolean') base.allowDuplicatePins = partial.allowDuplicatePins;
     if (partial.config != null && typeof partial.config === 'object' && !Array.isArray(partial.config)) {
         base.config = foundry.utils.deepClone(partial.config);
+        if (Object.prototype.hasOwnProperty.call(base.config, 'blacksmithAccess')) {
+            base.config.blacksmithAccess = normalizeBlacksmithAccess(base.config.blacksmithAccess);
+        }
     }
     if (partial.moduleId != null) base.moduleId = String(partial.moduleId).trim();
     if (partial.ownership != null && typeof partial.ownership === 'object') {

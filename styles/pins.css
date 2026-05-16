@@ -50,6 +50,10 @@
     cursor: default;
 }
 
+/* Non-GM: map visibility `hidden` — pin stays on map, reads as withheld (opacity set in JS). */
+.blacksmith-pin[data-visibility-player="withheld"] {
+    filter: var(--blacksmith-pin-drop-shadow) grayscale(0.35);
+}
 
 
 

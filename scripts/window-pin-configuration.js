@@ -7,7 +7,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { normalizeTextLayout, normalizePinTags } from './pins-schema.js';
+import { normalizeTextLayout, normalizePinTags, normalizeBlacksmithAccess } from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 /**
@@ -475,20 +475,18 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this._pinOwnership = pin.ownership && typeof pin.ownership === 'object' && !Array.isArray(pin.ownership)
             ? { ...pin.ownership }
             : { default: NONE };
-        const rawAccessMode = String(pin.config?.blacksmithAccess || '').trim().toLowerCase();
-        let accessMode = 'read';
-        if (ownershipDefault <= NONE) accessMode = 'none';
-        else if (ownershipDefault >= OWNER) accessMode = 'full';
-        else if (rawAccessMode === 'pin') accessMode = 'pin';
+        const rawAccessMode = normalizeBlacksmithAccess(pin.config?.blacksmithAccess);
+        let accessMode = 'gm';
+        if (ownershipDefault >= OWNER) accessMode = 'public';
+        else if (rawAccessMode === 'private') accessMode = 'private';
+        else accessMode = 'gm';
         const accessOptions = [
-            { value: 'none', label: 'None: GM Only', selected: accessMode === 'none' },
-            { value: 'read', label: 'Read Only: All open / GM Edit', selected: accessMode === 'read' },
-            { value: 'pin', label: 'Pin: All see pin / GM and Owner Edit', selected: accessMode === 'pin' },
-            { value: 'full', label: 'Full: All view and edit', selected: accessMode === 'full' }
+            { value: 'gm', label: 'GM — GM can edit', selected: accessMode === 'gm' },
+            { value: 'private', label: 'Private — owner and GM can edit', selected: accessMode === 'private' },
+            { value: 'public', label: 'Public — anyone can edit', selected: accessMode === 'public' }
         ];
         const rawVisibilityMode = String(pin.config?.blacksmithVisibility || 'visible').trim().toLowerCase();
         let visibilityMode = ['visible', 'hidden', 'owner'].includes(rawVisibilityMode) ? rawVisibilityMode : 'visible';
-        if (accessMode === 'none') visibilityMode = 'hidden';
 
         // Load icon categories
         const categories = await PinConfigWindow.loadIconCategories();
@@ -599,7 +597,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             pinVisibilityVisible: visibilityMode === 'visible',
             pinVisibilityHidden: visibilityMode === 'hidden',
             pinVisibilityOwner: visibilityMode === 'owner',
-            pinVisibilityDisabled: accessMode === 'none'
+            pinVisibilityDisabled: false
         };
     }
 
@@ -737,11 +735,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         };
 
         const applyAccessVisibilityRules = () => {
-            if (!accessSelect || !visibilitySelect) return;
-            const access = String(accessSelect.value || 'read').toLowerCase();
-            const lockVisibility = access === 'none';
-            visibilitySelect.disabled = lockVisibility;
-            if (lockVisibility) visibilitySelect.value = 'hidden';
+            if (!visibilitySelect) return;
+            visibilitySelect.disabled = false;
         };
 
         const clampDimension = (value, fallback) => {
@@ -1065,21 +1060,24 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                     const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
                     const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
                     const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
-                    const selectedAccess = String(accessSelect?.value || 'read').toLowerCase();
+                    const selectedAccess = String(accessSelect?.value || 'gm').toLowerCase();
                     let defaultLevel = OBSERVER;
-                    if (selectedAccess === 'none') defaultLevel = NONE;
-                    else if (selectedAccess === 'full') defaultLevel = OWNER;
+                    if (selectedAccess === 'public') defaultLevel = OWNER;
+                    else if (selectedAccess === 'private') defaultLevel = OBSERVER;
+                    else {
+                        const prev = typeof this._pinOwnership?.default === 'number' ? this._pinOwnership.default : OBSERVER;
+                        defaultLevel = prev <= NONE ? NONE : OBSERVER;
+                    }
                     pinUpdateData.ownership = { ...this._pinOwnership, default: defaultLevel };
 
                     const selectedVisibility = String(visSelect?.value || 'visible').toLowerCase();
                     let visibilityMode = ['visible', 'hidden', 'owner'].includes(selectedVisibility) ? selectedVisibility : 'visible';
-                    if (selectedAccess === 'none') visibilityMode = 'hidden';
 
                     const { PinManager: PM } = await import('./manager-pins.js');
                     const currentPin = PM.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
                     pinUpdateData.config = {
                         ...(currentPin?.config && typeof currentPin.config === 'object' ? currentPin.config : {}),
-                        blacksmithAccess: selectedAccess === 'pin' ? 'pin' : (selectedAccess === 'full' ? 'full' : 'read'),
+                        blacksmithAccess: selectedAccess === 'public' ? 'public' : (selectedAccess === 'private' ? 'private' : 'gm'),
                         blacksmithVisibility: visibilityMode
                     };
                 }

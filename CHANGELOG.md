@@ -10,18 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Pin permission icon map** (`scripts/pin-permission-icons.js`): Single source of truth for Font Awesome classes used by **Access** (`user-shield`, `user-lock`, `user-pen`, `users`) and **Visibility** (`eye`, `eye-slash`, `binoculars`), plus `pinIconTag()` for menu HTML. The pin context menu **Access** parent row uses `shield-halved`.
+- **Pin permission icon map** (`scripts/pin-permission-icons.js`): Single source of truth for Font Awesome classes used by **Access** (`user-shield` → GM, `user-pen` → Private, `users` → Public) and **Visibility** (`eye`, `eye-slash`, `binoculars`), plus `pinIconTag()` for menu HTML. The pin context menu **Access** parent row uses `shield-halved`.
 
 ### Changed
 
-- **Canvas pin GM indicators (GMs only)** (`scripts/pins-renderer.js`, `styles/pins.css`, `scripts/pin-permission-icons.js`): **Access-only** corner glyph — currently **None: GM only** → **`PIN_ACCESS_ICONS.none`** (`user-shield`). **Not** driven by Player Visibility. Corner offset **`--pin-stroke-px + --gm-fs × M`** (circle vs non-circle **`M`** on `:root`). **`_resolvePinStrokeColor`**: blank/missing stroke → **`#ffffff`**. **`--pin-stroke-px`** from scaled border (**`0`** for `none`). Stroke color + drop shadow; players never see the glyph. “Not visible” opacity for GMs unchanged except GM-only skips dim.
-- **Journal pin toolbar** (`templates/toolbar-pins.hbs`, `scripts/ui-journal-pins.js`): Access and visibility toggles use the shared icon map (defaults: `user-lock` + `eye`).
-- **Pin context menu** (`scripts/pins-renderer.js`): Access and Player Visibility submenus use the same icons as the toolbar and Configure Pin semantics.
-- **Manage Pin Tags (browse) tab** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Unified icons for visibility actions, summary stats, and layer toggles; **read-only** access chip replaced with a **clickable control** that **cycles** access in the same order as the journal toolbar (`read` → `pin` → `full` → `none`), applying ownership/config updates to match Configure Pin. Added **Alphabetical (A–Z)** vs **By category** view toggle (next to the search field); **by category** groups pins under taxonomy titles aligned with Manage Pin Layers (`entry.label` / type), with **no** top **All Pins / Filtered Pins** row—only category sections—**A–Z** within each category and **A–Z** category order. **Browse view** preference is stored in `pinLayersWindowBounds.browseViewMode`.
+- **Pin access + visibility model (schema v6)** (`scripts/pins-schema.js`, `scripts/pins-renderer.js`, `scripts/window-pin-configuration.js`, `scripts/ui-journal-pins.js`, `scripts/window-pin-layers.js`, `templates/window-pin-config.hbs`, `templates/toolbar-pins.hbs`, `styles/pins.css`, `documentation/api/api-pins.md`): **Access** is stored as `config.blacksmithAccess`: **`gm` | `private` | `public`** (legacy `none`/`read`/`pin`/`full` normalized on read; **one-time migration** v5→v6 maps old presets to GM + visibility). **Visibility** stays `visible` / `hidden` / `owner`; **orthogonal** from access (no auto-locking visibility when access is GM). **`hidden`** for non-GMs: pin **stays on the map** as **withheld** (dimmed + `data-visibility-player` + light grayscale) instead of `display: none`. Configure Pin + journal toolbar + browse access cycle updated to three access tiers and new labels.
+- **Canvas pin GM indicators (GMs only)** (`scripts/pins-renderer.js`, `styles/pins.css`, `scripts/pin-permission-icons.js`): **Access-only** corner glyph when **`ownership.default` is `NONE`** → **`PIN_ACCESS_ICONS.gm`** (`user-shield`). **Not** driven by visibility. Corner offset **`--pin-stroke-px + --gm-fs × M`** (circle vs non-circle **`M`** on `:root`). **`_resolvePinStrokeColor`**: blank/missing stroke → **`#ffffff`**. **`--pin-stroke-px`** from scaled border (**`0`** for shape `none`). Stroke color + drop shadow; players never see the glyph.
+- **Journal pin toolbar** (`templates/toolbar-pins.hbs`, `scripts/ui-journal-pins.js`): Defaults **`gm`** + `user-shield`; client prefs migrate legacy access keys once on read.
+- **Pin context menu** (`scripts/pins-renderer.js`): Access and Player Visibility submenus match the new names and decoupled saves (GM access no longer forces hidden visibility).
+- **Manage Pin Tags (browse) tab** (`scripts/window-pin-layers.js`, `styles/window-pin-layers.css`): Access chip cycles **`gm` → `private` → `public`** without changing visibility. (Other browse features unchanged.)
 
 ### Documentation
 
-- **Pins API & design system** (`documentation/api/api-pins.md`, `documentation/design-system/design-system.md`): GM **access-only** corner glyph (`blacksmith-pin-gm-indicator`) described; design-system example updated.
+- **Pins API & design system** (`documentation/api/api-pins.md`, `documentation/design-system/design-system.md`): Schema v6, `blacksmithAccess`, withheld **`hidden`** behavior, GM corner glyph; design-system pin section updated for access vs visibility.
 
 ## [13.7.5]
 
@@ -108,7 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **GM-only access now enforces hidden visibility** (`scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`): Selecting `None: GM Only` now forces `Visibility=Hidden`, disables visibility editing in the form, and re-enforces `blacksmithVisibility='hidden'` on save to prevent invalid combinations.
-- **Pin interaction lock for non-editors in Pin mode** (`scripts/pins-renderer.js`, `styles/pins.css`): `blacksmithAccess='pin'` now allows players to see pins but blocks click/drag/context interactions unless they are GM or owner/editor. Locked pins also use a non-interactive cursor affordance.
+- **Pin interaction lock for non-editors in Private access** (`scripts/pins-renderer.js`, `styles/pins.css`): `blacksmithAccess='private'` allows players to see pins but blocks click/drag/context interactions unless they are GM or owner/editor. Locked pins also use a non-interactive cursor affordance.
 - **Pin config header portrait clipping regression (Application V2 migration)** (`styles/window-pin-config.css`): Restored header preview image to fill/crop inside the circular placeholder (`object-fit: cover`, circular clipping), matching pre-migration behavior.
 
 ## [13.7.0]

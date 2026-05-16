@@ -13,6 +13,7 @@ import {
     PIN_VISIBILITY_ICONS,
     pinIconTag
 } from './pin-permission-icons.js';
+import { normalizeBlacksmithAccess } from './pins-schema.js';
 
 /** @typedef {import('./manager-pins.js').PinData} PinData */
 
@@ -39,8 +40,7 @@ function _getPinVisibilityMode(pinData) {
 }
 
 function _getPinAccessMode(pinData) {
-    const raw = String(pinData?.config?.blacksmithAccess || '').trim().toLowerCase();
-    return (raw === 'pin' || raw === 'full') ? raw : 'read';
+    return normalizeBlacksmithAccess(pinData?.config?.blacksmithAccess);
 }
 
 /** Access preset "None: GM Only" — ownership default NONE (matches Configure Pin). */
@@ -53,7 +53,11 @@ function _isPinGmOnlyAccess(pinData) {
 
 function _getPinDisplayOpacity(pinData) {
     const baseAlpha = _getPinBaseAlpha(pinData);
-    // Dim = "Not visible" to players; GM-only pins use the dot instead (full opacity for GM).
+    const vis = _getPinVisibilityMode(pinData);
+    // Non-GMs: `hidden` = withheld on map (still rendered), dimmed so state is obvious.
+    if (!game.user?.isGM && vis === 'hidden') {
+        return Math.max(0, Math.min(1, baseAlpha * 0.42));
+    }
     if (game.user?.isGM && _isPinHiddenFromPlayersByVisibility(pinData) && !_isPinGmOnlyAccess(pinData)) {
         return Math.max(0, Math.min(1, baseAlpha * 0.5));
     }
@@ -709,7 +713,7 @@ class PinDOMElement {
             const freshPinData = PinManager.get(pinData.id) || pinData;
             const canEdit = PinManager._canEdit(freshPinData, userId);
             const accessMode = _getPinAccessMode(freshPinData);
-            if (accessMode === 'pin' && !canEdit) {
+            if (accessMode === 'private' && !canEdit) {
                 e.preventDefault();
                 e.stopPropagation();
                 return;
@@ -1093,52 +1097,34 @@ class PinDOMElement {
                 icon: pinIconTag(PIN_ACCESS_SUBMENU_ICON),
                 submenu: [
                     {
-                        name: 'None: GM Only',
-                        icon: pinIconTag(PIN_ACCESS_ICONS.none),
+                        name: 'GM — GM can edit',
+                        icon: pinIconTag(PIN_ACCESS_ICONS.gm),
                         callback: async () => {
                             try {
                                 const nextConfig = {
                                     ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
-                                    blacksmithAccess: 'read',
-                                    blacksmithVisibility: 'hidden'
+                                    blacksmithAccess: 'gm'
                                 };
+                                const prevDef = typeof pinData.ownership?.default === 'number' ? pinData.ownership.default : OBSERVER;
+                                const defaultLevel = prevDef <= NONE ? NONE : OBSERVER;
                                 const nextOwnership = {
                                     ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
-                                    default: NONE
+                                    default: defaultLevel
                                 };
                                 await PinManager.update(pinData.id, { ownership: nextOwnership, config: nextConfig });
                             } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (none)', err?.message || err, false, true);
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (GM)', err?.message || err, false, true);
                             }
                         }
                     },
                     {
-                        name: 'Read Only: All open / GM Edit',
-                        icon: pinIconTag(PIN_ACCESS_ICONS.read),
+                        name: 'Private — owner and GM can edit',
+                        icon: pinIconTag(PIN_ACCESS_ICONS.private),
                         callback: async () => {
                             try {
                                 const nextConfig = {
                                     ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
-                                    blacksmithAccess: 'read'
-                                };
-                                const nextOwnership = {
-                                    ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
-                                    default: OBSERVER
-                                };
-                                await PinManager.update(pinData.id, { ownership: nextOwnership, config: nextConfig });
-                            } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (read)', err?.message || err, false, true);
-                            }
-                        }
-                    },
-                    {
-                        name: 'Pin: All see pin / GM and Owner Edit',
-                        icon: pinIconTag(PIN_ACCESS_ICONS.pin),
-                        callback: async () => {
-                            try {
-                                const nextConfig = {
-                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
-                                    blacksmithAccess: 'pin'
+                                    blacksmithAccess: 'private'
                                 };
                                 const nextOwnership = {
                                     ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
@@ -1146,18 +1132,18 @@ class PinDOMElement {
                                 };
                                 await PinManager.update(pinData.id, { ownership: nextOwnership, config: nextConfig });
                             } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (pin)', err?.message || err, false, true);
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (private)', err?.message || err, false, true);
                             }
                         }
                     },
                     {
-                        name: 'Full: All view and edit',
-                        icon: pinIconTag(PIN_ACCESS_ICONS.full),
+                        name: 'Public — anyone can edit',
+                        icon: pinIconTag(PIN_ACCESS_ICONS.public),
                         callback: async () => {
                             try {
                                 const nextConfig = {
                                     ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
-                                    blacksmithAccess: 'full'
+                                    blacksmithAccess: 'public'
                                 };
                                 const nextOwnership = {
                                     ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
@@ -1165,7 +1151,7 @@ class PinDOMElement {
                                 };
                                 await PinManager.update(pinData.id, { ownership: nextOwnership, config: nextConfig });
                             } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (full)', err?.message || err, false, true);
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin access (public)', err?.message || err, false, true);
                             }
                         }
                     }
@@ -1177,7 +1163,7 @@ class PinDOMElement {
                 icon: pinIconTag(PIN_VISIBILITY_ICONS.visible),
                 submenu: [
                     {
-                        name: 'Visible',
+                        name: 'Visible — all can see',
                         icon: pinIconTag(PIN_VISIBILITY_ICONS.visible),
                         callback: async () => {
                             try {
@@ -1192,22 +1178,7 @@ class PinDOMElement {
                         }
                     },
                     {
-                        name: 'Owner',
-                        icon: pinIconTag(PIN_VISIBILITY_ICONS.owner),
-                        callback: async () => {
-                            try {
-                                const nextConfig = {
-                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
-                                    blacksmithVisibility: 'owner'
-                                };
-                                await PinManager.update(pinData.id, { config: nextConfig });
-                            } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (owner)', err?.message || err, false, true);
-                            }
-                        }
-                    },
-                    {
-                        name: 'Not Visible',
+                        name: 'Not visible — withheld on map',
                         icon: pinIconTag(PIN_VISIBILITY_ICONS.hidden),
                         callback: async () => {
                             try {
@@ -1218,6 +1189,21 @@ class PinDOMElement {
                                 await PinManager.update(pinData.id, { config: nextConfig });
                             } catch (err) {
                                 postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (hidden)', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Owner — owner and GM can see',
+                        icon: pinIconTag(PIN_VISIBILITY_ICONS.owner),
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithVisibility: 'owner'
+                                };
+                                await PinManager.update(pinData.id, { config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (owner)', err?.message || err, false, true);
                             }
                         }
                     }
@@ -2174,16 +2160,20 @@ export class PinRenderer {
         const hiddenForUserByOwnerMode = !game.user?.isGM && visibilityMode === 'owner' && !PinManager._canEdit(pinData, userId);
         const accessMode = _getPinAccessMode(pinData);
         const canEdit = PinManager._canEdit(pinData, userId);
-        pinElement.dataset.interaction = (accessMode === 'pin' && !canEdit) ? 'locked' : 'enabled';
+        pinElement.dataset.interaction = (accessMode === 'private' && !canEdit) ? 'locked' : 'enabled';
         if (hiddenByFilter) {
-            pinElement.dataset.hiddenByFilter = 'true';
             pinElement.style.display = 'none';
+            pinElement.dataset.hiddenByFilter = 'true';
         } else {
             delete pinElement.dataset.hiddenByFilter;
-            if (!game.user?.isGM && (hiddenByVisibilityToggle || hiddenForUserByOwnerMode)) {
+            pinElement.style.display = '';
+            if (!game.user?.isGM && hiddenForUserByOwnerMode) {
                 pinElement.style.display = 'none';
+            }
+            if (!game.user?.isGM && hiddenByVisibilityToggle) {
+                pinElement.dataset.visibilityPlayer = 'withheld';
             } else {
-                pinElement.style.display = '';
+                delete pinElement.dataset.visibilityPlayer;
             }
         }
 
@@ -2193,7 +2183,7 @@ export class PinRenderer {
             if (!game.user?.isGM) {
                 badge.hidden = true;
             } else if (_isPinGmOnlyAccess(pinData)) {
-                badgeIcon.className = PIN_ACCESS_ICONS.none;
+                badgeIcon.className = PIN_ACCESS_ICONS.gm;
                 badge.hidden = false;
             } else {
                 badge.hidden = true;
@@ -2214,7 +2204,6 @@ export class PinRenderer {
         if (!pinData || !PinManager?._canView(pinData, userId)) return false;
         if (game.user?.isGM) return true;
         const visibilityMode = _getPinVisibilityMode(pinData);
-        if (visibilityMode === 'hidden') return false;
         if (visibilityMode === 'owner') return PinManager._canEdit(pinData, userId);
         return true;
     }

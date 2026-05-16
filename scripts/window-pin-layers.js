@@ -1,6 +1,6 @@
 import { MODULE } from './const.js';
 import { PinManager } from './manager-pins.js';
-import { normalizePinTags } from './pins-schema.js';
+import { normalizePinTags, normalizeBlacksmithAccess } from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { HookManager } from './manager-hooks.js';
 import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './pin-permission-icons.js';
@@ -27,22 +27,19 @@ function browsePinAccessMode(p) {
     const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
     const rawDefault = typeof p?.ownership?.default === 'number' ? p.ownership.default : NONE;
     const ownershipDefault = rawDefault === LIMITED ? OBSERVER : rawDefault;
-    const rawAccessMode = String(p.config?.blacksmithAccess || '').trim().toLowerCase();
-    if (ownershipDefault <= NONE) return 'none';
-    if (ownershipDefault >= OWNER) return 'full';
-    if (rawAccessMode === 'pin') return 'pin';
-    return 'read';
+    if (ownershipDefault >= OWNER) return 'public';
+    if (normalizeBlacksmithAccess(p?.config?.blacksmithAccess) === 'private') return 'private';
+    return 'gm';
 }
 
 const BROWSE_ACCESS_TOOLTIP = Object.freeze({
-    none: 'Access: None (GM only)',
-    read: 'Access: Read only — all open / GM edit',
-    pin: 'Access: Pin — all see pin / GM and owner edit',
-    full: 'Access: Full — all view and edit'
+    gm: 'Access: GM — GM can edit',
+    private: 'Access: Private — owner and GM can edit',
+    public: 'Access: Public — anyone can edit'
 });
 
 /** Same cycle order as the journal pin toolbar (`ui-journal-pins.js`). */
-const BROWSE_ACCESS_CYCLE = ['read', 'pin', 'full', 'none'];
+const BROWSE_ACCESS_CYCLE = ['gm', 'private', 'public'];
 
 /** Section title for browse “By category” — matches Manage Pin Layers taxonomy (`entry.label || type`). */
 function browseCategoryTitle(p) {
@@ -1255,8 +1252,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             ? 'Visibility: Hidden — click for Owner'
             : (visState === 'owner' ? 'Visibility: Owner — click for Visible' : 'Visibility: Visible — click for Hidden');
         const accessMode = browsePinAccessMode(p);
-        const accessIconClass = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.read;
-        const accessTip = `${BROWSE_ACCESS_TOOLTIP[accessMode] || BROWSE_ACCESS_TOOLTIP.read} — Click to cycle access`;
+        const accessIconClass = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.gm;
+        const accessTip = `${BROWSE_ACCESS_TOOLTIP[accessMode] || BROWSE_ACCESS_TOOLTIP.gm} — Click to cycle access`;
         const gmActions = isGM ? `
                 <button type="button" class="blacksmith-icon-action"
                     data-action="setBrowsePinAccess" data-pin-id="${esc(p.id)}" data-access-mode="${esc(accessMode)}"
@@ -1783,16 +1780,16 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
         const ownership = { ...(pin.ownership && typeof pin.ownership === 'object' ? pin.ownership : {}), default: OBSERVER };
         const config = { ...(pin.config && typeof pin.config === 'object' ? pin.config : {}) };
-        if (next === 'none') {
-            config.blacksmithAccess = 'read';
-            config.blacksmithVisibility = 'hidden';
-            ownership.default = NONE;
+        if (next === 'gm') {
+            const prev = typeof pin.ownership?.default === 'number' ? pin.ownership.default : OBSERVER;
+            ownership.default = prev <= NONE ? NONE : OBSERVER;
+            config.blacksmithAccess = 'gm';
+        } else if (next === 'private') {
+            ownership.default = OBSERVER;
+            config.blacksmithAccess = 'private';
         } else {
-            if (current === 'none') {
-                config.blacksmithVisibility = 'visible';
-            }
-            ownership.default = next === 'full' ? OWNER : OBSERVER;
-            config.blacksmithAccess = next === 'pin' ? 'pin' : (next === 'full' ? 'full' : 'read');
+            ownership.default = OWNER;
+            config.blacksmithAccess = 'public';
         }
         await PinManager.update(pinId, { ownership, config });
         await this.render(true);

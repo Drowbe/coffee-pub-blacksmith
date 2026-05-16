@@ -19,26 +19,31 @@ const DEFAULT_TOOLBAR_PREFS = Object.freeze({
     pinMode: 'single',
     placementIcon: 'fa-solid fa-book-open',
     selectedTags: ['narrative'],
-    accessMode: 'read',
+    accessMode: 'gm',
     visibilityMode: 'visible'
 });
 
-const ACCESS_CYCLE = ['read', 'pin', 'full', 'none'];
+const ACCESS_CYCLE = ['gm', 'private', 'public'];
 const VISIBILITY_CYCLE = ['visible', 'hidden', 'owner'];
 
-/** Match Configure Pin access dropdown labels (window-pin-configuration.js). */
-const ACCESS_LABELS = Object.freeze({
-    none: 'None: GM Only',
-    read: 'Read Only: All open / GM Edit',
-    pin: 'Pin: All see pin / GM and Owner Edit',
-    full: 'Full: All view and edit'
+/** v6 toolbar keys; legacy client prefs map here once on read. */
+const LEGACY_TOOLBAR_ACCESS = Object.freeze({
+    none: 'gm',
+    read: 'gm',
+    pin: 'private',
+    full: 'public'
 });
 
-/** Match Configure Pin visibility dropdown labels (window-pin-config.hbs). */
+const ACCESS_LABELS = Object.freeze({
+    gm: 'GM — GM can edit',
+    private: 'Private — owner and GM can edit',
+    public: 'Public — anyone can edit'
+});
+
 const VISIBILITY_LABELS = Object.freeze({
-    visible: 'Visible',
-    hidden: 'Hidden',
-    owner: 'Owner'
+    visible: 'Visible — all can see',
+    hidden: 'Not visible — withheld on map',
+    owner: 'Owner — owner and GM can see'
 });
 
 const PLACEMENT_MODE_LABELS = Object.freeze({
@@ -330,9 +335,10 @@ export class JournalPagePins {
     static _getToolbarPrefs() {
         const raw = game.settings.get(MODULE.ID, TOOLBAR_PREFS_KEY) ?? {};
         const pinMode = raw.pinMode === 'multiple' ? 'multiple' : 'single';
-        const accessMode = ACCESS_CYCLE.includes(raw.accessMode) ? raw.accessMode : DEFAULT_TOOLBAR_PREFS.accessMode;
-        let visibilityMode = VISIBILITY_CYCLE.includes(raw.visibilityMode) ? raw.visibilityMode : DEFAULT_TOOLBAR_PREFS.visibilityMode;
-        if (accessMode === 'none') visibilityMode = 'hidden';
+        let accessRaw = typeof raw.accessMode === 'string' ? raw.accessMode : DEFAULT_TOOLBAR_PREFS.accessMode;
+        if (LEGACY_TOOLBAR_ACCESS[accessRaw]) accessRaw = LEGACY_TOOLBAR_ACCESS[accessRaw];
+        const accessMode = ACCESS_CYCLE.includes(accessRaw) ? accessRaw : DEFAULT_TOOLBAR_PREFS.accessMode;
+        const visibilityMode = VISIBILITY_CYCLE.includes(raw.visibilityMode) ? raw.visibilityMode : DEFAULT_TOOLBAR_PREFS.visibilityMode;
         return {
             pinMode,
             placementIcon: typeof raw.placementIcon === 'string' && raw.placementIcon
@@ -349,20 +355,19 @@ export class JournalPagePins {
     static async _saveToolbarPrefs(partial) {
         const cur = this._getToolbarPrefs();
         const next = { ...cur, ...partial };
-        if (next.accessMode === 'none') next.visibilityMode = 'hidden';
         await game.settings.set(MODULE.ID, TOOLBAR_PREFS_KEY, next);
     }
 
     static _readPlacementOptsFromBar(bar) {
         const pinMode = bar?.getAttribute?.('data-pin-mode') === 'multiple' ? 'multiple' : 'single';
-        const accessMode = bar?.getAttribute?.('data-access-mode') || 'read';
+        const accessMode = bar?.getAttribute?.('data-access-mode') || 'gm';
         const visibilityMode = bar?.getAttribute?.('data-visibility-mode') || 'visible';
         const placementIcon = bar?.getAttribute?.('data-placement-icon') || null;
         const selectedTags = [...(bar?.querySelectorAll?.('.journal-page-pin-tag-option.selected') ?? [])]
             .map(el => el.dataset.tag).filter(Boolean);
         return {
             allowDuplicates: pinMode === 'multiple',
-            accessMode: ACCESS_CYCLE.includes(accessMode) ? accessMode : 'read',
+            accessMode: ACCESS_CYCLE.includes(accessMode) ? accessMode : 'gm',
             visibilityMode: VISIBILITY_CYCLE.includes(visibilityMode) ? visibilityMode : 'visible',
             placementIcon,
             selectedTags
@@ -371,13 +376,15 @@ export class JournalPagePins {
 
     static _applyPlacementPermissions(pinData, accessMode, visibilityMode) {
         if (!pinData || typeof pinData !== 'object') return;
-        const access = ACCESS_CYCLE.includes(accessMode) ? accessMode : 'read';
-        let vis = VISIBILITY_CYCLE.includes(visibilityMode) ? visibilityMode : 'visible';
-        if (access === 'none') vis = 'hidden';
+        const access = ACCESS_CYCLE.includes(accessMode) ? accessMode : 'gm';
+        const vis = VISIBILITY_CYCLE.includes(visibilityMode) ? visibilityMode : 'visible';
 
         let defaultLevel = OBSERVER;
-        if (access === 'none') defaultLevel = NONE;
-        else if (access === 'full') defaultLevel = OWNER;
+        if (access === 'public') defaultLevel = OWNER;
+        else if (access === 'gm') {
+            const prev = typeof pinData.ownership?.default === 'number' ? pinData.ownership.default : OBSERVER;
+            defaultLevel = prev <= NONE ? NONE : OBSERVER;
+        }
 
         pinData.ownership = {
             ...(pinData.ownership && typeof pinData.ownership === 'object' ? pinData.ownership : {}),
@@ -386,7 +393,7 @@ export class JournalPagePins {
         const prevConfig = pinData.config && typeof pinData.config === 'object' ? pinData.config : {};
         pinData.config = {
             ...prevConfig,
-            blacksmithAccess: access === 'pin' ? 'pin' : (access === 'full' ? 'full' : 'read'),
+            blacksmithAccess: access === 'public' ? 'public' : (access === 'private' ? 'private' : 'gm'),
             blacksmithVisibility: vis
         };
     }
@@ -394,7 +401,7 @@ export class JournalPagePins {
     static _updateToggleButtonUI(bar) {
         if (!bar) return;
         const pinMode = bar.getAttribute('data-pin-mode') === 'multiple' ? 'multiple' : 'single';
-        const accessMode = bar.getAttribute('data-access-mode') || 'read';
+        const accessMode = bar.getAttribute('data-access-mode') || 'gm';
         const visibilityMode = bar.getAttribute('data-visibility-mode') || 'visible';
 
         const modeBtn = bar.querySelector('.journal-page-pin-mode-toggle');
@@ -414,9 +421,9 @@ export class JournalPagePins {
         if (accessBtn) {
             accessBtn.dataset.accessMode = accessMode;
             const icon = accessBtn.querySelector('i');
-            accessBtn.title = `Access: ${ACCESS_LABELS[accessMode] || ACCESS_LABELS.read}`;
+            accessBtn.title = `Access: ${ACCESS_LABELS[accessMode] || ACCESS_LABELS.gm}`;
             if (icon) {
-                icon.className = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.read;
+                icon.className = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.gm;
             }
         }
 
@@ -428,13 +435,8 @@ export class JournalPagePins {
             if (icon) {
                 icon.className = PIN_VISIBILITY_ICONS[visibilityMode] || PIN_VISIBILITY_ICONS.visible;
             }
-            if (accessMode === 'none') {
-                visBtn.classList.add('is-locked');
-                visBtn.disabled = true;
-            } else {
-                visBtn.classList.remove('is-locked');
-                visBtn.disabled = false;
-            }
+            visBtn.classList.remove('is-locked');
+            visBtn.disabled = false;
         }
     }
 
@@ -872,11 +874,11 @@ export class JournalPagePins {
                     if (accessToggle) {
                         event.preventDefault();
                         event.stopPropagation();
-                        const cur = barEl.getAttribute('data-access-mode') || 'read';
+                        const cur = barEl.getAttribute('data-access-mode') || 'gm';
                         const idx = ACCESS_CYCLE.indexOf(cur);
-                        const next = ACCESS_CYCLE[(idx + 1) % ACCESS_CYCLE.length];
+                        const safeIdx = idx >= 0 ? idx : 0;
+                        const next = ACCESS_CYCLE[(safeIdx + 1) % ACCESS_CYCLE.length];
                         barEl.setAttribute('data-access-mode', next);
-                        if (next === 'none') barEl.setAttribute('data-visibility-mode', 'hidden');
                         this._updateToggleButtonUI(barEl);
                         const prefs = this._readPlacementOptsFromBar(barEl);
                         void this._saveToolbarPrefs({
@@ -894,7 +896,6 @@ export class JournalPagePins {
                     if (visToggle) {
                         event.preventDefault();
                         event.stopPropagation();
-                        if (barEl.getAttribute('data-access-mode') === 'none') return;
                         const cur = barEl.getAttribute('data-visibility-mode') || 'visible';
                         const idx = VISIBILITY_CYCLE.indexOf(cur);
                         const next = VISIBILITY_CYCLE[(idx + 1) % VISIBILITY_CYCLE.length];

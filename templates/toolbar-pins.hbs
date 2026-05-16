@@ -1,5 +1,5 @@
 {{! Journal page pins toolbar: Pin Page + placement toggles, then icons, then tags }}
-<div class="journal-page-pins-bar" data-page-id="{{pageId}}" data-placement-icon="fa-solid fa-book-open" data-pin-mode="single" data-access-mode="read" data-visibility-mode="visible">
+<div class="journal-page-pins-bar" data-page-id="{{pageId}}" data-placement-icon="fa-solid fa-book-open" data-pin-mode="single" data-access-mode="gm" data-visibility-mode="visible">
     <div class="journal-page-pins-bar-row journal-page-pins-actions-row">
         <a class="header-control icon journal-entry-pin-button" href="#" data-journal-id="{{journalId}}" title="Pin this journal on the current scene (opens like the sidebar; first page when opened)">
             <i class="fa-solid fa-book"></i> Pin Journal
@@ -11,8 +11,8 @@
             <button type="button" class="journal-page-pin-toggle journal-page-pin-mode-toggle" data-pin-mode="single" title="Placement: Single">
                 <i class="fa-solid fa-map-pin"></i>
             </button>
-            <button type="button" class="journal-page-pin-toggle journal-page-pin-access-toggle" data-access-mode="read" title="Access: Read Only: All open / GM Edit">
-                <i class="fa-solid fa-user-lock"></i>
+            <button type="button" class="journal-page-pin-toggle journal-page-pin-access-toggle" data-access-mode="gm" title="Access: GM — GM can edit">
+                <i class="fa-solid fa-user-shield"></i>
             </button>
             <button type="button" class="journal-page-pin-toggle journal-page-pin-visibility-toggle" data-visibility-mode="visible" title="Visibility: Visible">
                 <i class="fa-solid fa-eye"></i>

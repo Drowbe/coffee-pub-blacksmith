@@ -10,10 +10,10 @@
 > - **Classification**: Coarse `type` (displayed as "Category") + fine-grained `tags[]`. The old `group` field is removed (v4 schema auto-migrates existing values into tags).
 > - **Events**: `hover`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag*` — scoped by `pinId`, `moduleId`, or `sceneId`. Cleaned up via disposer or `AbortSignal`.
 > - **Animations**: `ping()` with 11 types, broadcast support, loop control. Optional per-pin event animations (hover, click, double-click, add, delete) with sound.
-> - **Visibility**: Ownership-based rendering filter + per-user client-side filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) + named profiles (including built-in **All Pins** / **No Pins**). `config.blacksmithVisibility` (`'visible'` / `'hidden'` / `'owner'`) controls map visibility for non-GMs independently of ownership; GMs still see hidden pins with an affordance.
+> - **Visibility**: Ownership-based rendering filter + per-user client-side filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`) + named profiles (including built-in **All Pins** / **No Pins**). **`config.blacksmithVisibility`** (`'visible'` / `'hidden'` / `'owner'`) controls **who sees the pin on the map** for non-GMs, independently of **`config.blacksmithAccess`** (`'gm'` / `'private'` / `'public'`) which controls **who can edit**. `'hidden'` means **withheld**: players who can view the pin still see it on the map (dimmed) until a GM sets visibility to `visible` or `owner`. GMs see full-opacity pins except optional dim for withheld pins that are not GM-only ownership.
 > - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). World-level tag registry tracks every tag ever used.
 > - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, **Manage Pins** window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
-> - **Configure Pin window**: Full visual editor — Design, Text, Animations, Source, Permissions (ownership + Player Visibility + Allow Duplicates), Classification. "Update All [type] Pins" with tag-scoped filter. "Default for [type]" with per-section checkboxes.
+> - **Configure Pin window**: Full visual editor — Design, Text, Animations, Source, Permissions (**Access** + **Visibility** + Allow Duplicates), Classification. "Update All [type] Pins" with tag-scoped filter. "Default for [type]" with per-section checkboxes.
 
 ## Overview
 
@@ -37,7 +37,7 @@ Use whichever model fits your module's workflow. Map-centric modules (waypoints,
 ## Implementation Structure
 
 The pins API follows Blacksmith's standard pattern:
-- **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1)
+- **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1). **Schema v6** migrates legacy access + bundled visibility once: canonical `config.blacksmithAccess` is `'gm' | 'private' | 'public'` (legacy `none`/`read`/`pin`/`full` normalized on read). See [PinData](#pin-data-schema) `config`.
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
 - **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
 - **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `registerPinType()`, taxonomy helpers (`loadBuiltinTaxonomy()`, `registerPinTaxonomy()`, `getPinTaxonomy()`, `getPinTaxonomyChoices()`, `getModuleTaxonomy()`), `getPinTypeLabel()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `openLayers()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`), named profile helpers (`listVisibilityProfiles()`, `saveVisibilityProfile()`, `applyVisibilityProfile()`, `deleteVisibilityProfile()`, `getActiveVisibilityProfileName()`), `getSceneFilterSummary()`, tag registry helpers (`getTagRegistry()`, `addTagToRegistry()`, `stripTagFromScene()`, `stripTagFromAllScenes()`, `deleteTagGlobally()`, `renameTagGlobally()`, `seedTagRegistryIfEmpty()`), `isAvailable()`, `isReady()`, `whenReady()`. **Note**: `setGroupVisibility`/`getGroupVisibility` removed — groups have been replaced by tags.
@@ -218,7 +218,10 @@ interface PinData {
   imageFit?: 'fill' | 'contain' | 'cover' | 'none' | 'scale-down' | 'zoom'; // Controls how image URLs are sized inside the pin element (default: 'cover'). 'cover' fills the pin dimensions, cropping if needed. 'contain' letterboxes to preserve aspect ratio. 'none' renders at natural size. 'zoom' uses imageZoom to scale beyond cover. Ignored for Font Awesome icons.
   imageZoom?: number; // Scale multiplier when imageFit is 'zoom' (default: 1, clamped 1–2). 1 = same as cover, 1.5 = 50% zoom in. Ignored for other imageFit values.
   config?: {
-    blacksmithVisibility?: 'visible' | 'hidden' | 'owner'; // Map visibility for non-GMs: 'visible' (default), 'hidden' (players do not see the pin on the map), or 'owner' (only users who can edit the pin see it on the map). GM-only field. Separate from ownership. Editable in Configure Pin > Permissions or per-pin in Browse view.
+    /** Edit access (v6+): `'gm'` (only GM edits — paired with `ownership.default` NONE or OBSERVER), `'private'` (GM + owner edit), `'public'` (anyone with default OWNER can edit). Legacy `'none'|'read'|'pin'|'full'` are normalized on read and migrated once from schema v5 → v6. */
+    blacksmithAccess?: 'gm' | 'private' | 'public';
+    /** Map visibility for non-GMs, independent of edit access. `'visible'` (default), `'hidden'` (withheld: players who can view the pin still see it on the map dimmed until a GM reveals it), or `'owner'` (only users who can edit the pin see it on the map). */
+    blacksmithVisibility?: 'visible' | 'hidden' | 'owner';
     [key: string]: unknown;
   };
   moduleId: string; // consumer module id
@@ -1114,11 +1117,11 @@ await pinsAPI.configure(pinId, {
 **Behavior**:
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
-- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin); **Event Animations** (hover, click, double-click, add to canvas, delete — each with optional animation and sound). Pin **type** is not currently editable in the window; **ownership** is not changed by the save.
+- The window includes: **Appearance** (shape, size, fill, stroke, stroke width, icon color, opacity, drop shadow); **Icon/Image** (Font Awesome library + image URL with built-in FilePicker “Browse”); **Text** (layout, display mode, color, size, max characters, chars per line, scale-with-pin); **Event Animations** (hover, click, double-click, add to canvas, delete — each with optional animation and sound). Pin **type** is not currently editable in the window; **ownership** is updated only from the Permissions **Access** control (maps to Foundry `ownership.default`).
 - The window header shows **”[Category]: [Pin Title]”** (e.g. “Journal Pin: The Rusty Anchor”) using `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header includes a **”Default for [type]”** toggle (renamed from “Default” in v13.6.3); when enabled, each section shows an additional checkbox so the user can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the client default for that type.
-- **Permissions section** (v13.6.3+): Contains ownership dropdown, **Player Visibility** dropdown (`config.blacksmithVisibility`: `'visible'` / `'hidden'` / `'owner'` — owner-only on map for non-GMs), and **”Allow Duplicates of this Pin on the Canvas”** toggle (moved from header). Player Visibility is separate from ownership — a pin can be player-observable but hidden from the map (`'hidden'`) so the GM can reveal it later; `'owner'` limits map visibility to users who can edit the pin.
+- **Permissions section**: **Access** (`config.blacksmithAccess`: **GM** / **Private** / **Public**) and **Visibility** (`config.blacksmithVisibility`: **Visible** / **Not visible** / **Owner**). Access controls who may **edit** the pin (with `ownership.default`); visibility controls who **sees** it on the map for non-GMs. **Not visible** keeps the pin on the map for viewers who have document access but **withheld** (dimmed) until changed. **”Allow Duplicates of this Pin on the Canvas”** toggle (moved from header).
 - **Action bar left** (v13.6.3): **”Update All [type] Pins”** toggle (moved from header). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to matching pins with a confirmation dialog. The Permissions section includes ownership, player visibility, and allow-duplicates when checked. A **”Filter by tag:”** chip row appears below the toggle showing every tag used across all same-type pins on the scene; the current pin's own tags are pre-selected. Selecting chips (multiselect, OR logic) narrows the update target — type is always the first gate, tags narrow within it. An empty tag selection (all chips deselected) is not possible on initial open since the pin's tags are pre-seeded; if all chips are manually deselected the update applies to all pins of that type.
-- On submit, the pin is updated via `pins.update()` (ownership is preserved). If “Default for [type]” is toggled on, only the checked sections are written to `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If no section checkboxes are checked, a warning is shown. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
+- On submit, the pin is updated via `pins.update()` with the fields produced by the form (including **ownership** and **config** when Permissions are saved). If “Default for [type]” is toggled on, only the checked sections are written to `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If no section checkboxes are checked, a warning is shown. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
 - The window is also available from the pin’s right-click context menu (“Configure Pin”).
 
 **Styling**: Use the [stable selectors](#8-styling-hooks-stable-selectors) `div#blacksmith-pin-config`, `.blacksmith-pin-config`, and `div#blacksmith-pin-config .window-content` for theming.
@@ -1487,13 +1490,13 @@ await pins.seedTagRegistryIfEmpty();
 
 GMs may see **at most one** small Font Awesome icon in the **upper-right** of a pin (`span.blacksmith-pin-gm-indicator`). **Players never see these icons.**
 
-**Which icon (access only):** When **Access: None (GM only)** (`ownership.default` is `NONE`), GMs see `PIN_ACCESS_ICONS.none` (`fa-solid fa-user-shield`) on the pin. **Player Visibility** (`visible` / `hidden` / `owner`) does **not** change this glyph — visibility is conveyed separately (e.g. reduced opacity when hidden from players). Additional access presets on the canvas may be added later; they are not mixed with visibility icons.
+**Which icon (access only):** When the pin is **GM-only for viewers** (`ownership.default` is `NONE`, typical migrated “GM only” journal pins), GMs see **`PIN_ACCESS_ICONS.gm`** (`fa-solid fa-user-shield`) on the pin. **Visibility** does **not** change this glyph — withheld / owner visibility is conveyed separately (opacity, `data-visibility-player`, grayscale on withheld). **`private`** / **`public`** access do not add a corner glyph today.
+
+For **Visibility** **Not visible** (`blacksmithVisibility: 'hidden'`), GMs still see the pin at **reduced opacity** when the pin is not GM-only ownership; non-GMs who can view the pin see it **withheld** (dimmed + light grayscale) but the pin remains on the map.
 
 The glyph color follows the pin **stroke** (`--pin-stroke-color`); if stroke is unset or blank, **`#ffffff`** is used (`_resolvePinStrokeColor` in `pins-renderer.js`). It also uses a **drop shadow** on the icon — no separate filled background.
 
 The glyph is positioned **outside** the pin’s padding box. **`--pin-stroke-px`** is the **scaled border width in px** from layout (**`0px`** when `data-shape="none"`). **`--gm-fs`** is the icon em size (`0.165 × pin width`). Outward offset is **`--pin-stroke-px + --gm-fs × M`**, where **`M`** depends on shape: **`data-shape="circle"`** uses **`--blacksmith-pin-gm-indicator-em-out-circle`** (default `0.52`); **square**, **none**, and other values use **`--blacksmith-pin-gm-indicator-em-out-square`** (`1`).
-
-For access levels other than GM-only, when **Visibility** is **Not visible** (`blacksmithVisibility: hidden`), GMs still see the pin at **reduced opacity**; no corner icon is used for “hidden” alone.
 
 ### `pins.panTo(pinId, options?)`
 Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin). Optionally ping the pin after panning to draw attention.
@@ -2007,9 +2010,10 @@ Pins have a right-click context menu with the following options:
 **Available to Users with Edit Permissions:**
 - **Configure Pin**: Opens the Configure Pin window for visual and layout settings
 - **Delete Pin**: Deletes the individual pin
-- **Player Visibility**: Cycles or sets the pin’s map visibility (`config.blacksmithVisibility`: `visible` → `hidden` → `owner` → `visible` in browse tools where applicable). Renamed from "Visibility" in v13.6.3.
 
 **GM-Only Options** (appear below a separator):
+- **Access**: Sets edit access (`config.blacksmithAccess`): **GM** — GM can edit (preserves strict `ownership.default` NONE when already set); **Private** — owner and GM can edit; **Public** — anyone can edit. Does not change visibility unless you choose a visibility action separately.
+- **Player Visibility**: Sets map visibility (`config.blacksmithVisibility`): **Visible** — all can see; **Not visible** — withheld on map (dimmed for non-GMs who can still view the document); **Owner** — owner and GM can see on the map. Submenu order matches Configure Pin.
 - Bulk delete operations live in the **Manage Pins** window action bar. The context menu no longer shows "Delete All Pins" or "Delete All [Type] Pins".
 
 **Module-Registered Items:**

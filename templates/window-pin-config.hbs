@@ -48,9 +48,9 @@
                     <div class="blacksmith-field">
                         <span class="blacksmith-field-label">Visibility</span>
                         <select class="blacksmith-input blacksmith-pin-config-player-visibility" {{#if pinVisibilityDisabled}}disabled{{/if}}>
-                            <option value="visible" {{#if pinVisibilityVisible}}selected{{/if}}>Visible</option>
-                            <option value="hidden" {{#if pinVisibilityHidden}}selected{{/if}}>Hidden</option>
-                            <option value="owner" {{#if pinVisibilityOwner}}selected{{/if}}>Owner</option>
+                            <option value="visible" {{#if pinVisibilityVisible}}selected{{/if}}>Visible — all can see</option>
+                            <option value="hidden" {{#if pinVisibilityHidden}}selected{{/if}}>Not visible — withheld on map</option>
+                            <option value="owner" {{#if pinVisibilityOwner}}selected{{/if}}>Owner — owner and GM can see</option>
                         </select>
                     </div>
                 </div>
