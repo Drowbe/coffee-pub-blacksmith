@@ -14,6 +14,7 @@ import {
     applyDefaults,
     validatePinData,
     migrateAndValidatePins,
+    pinsNeedStorageUpdate,
     normalizePinImageForStorage,
     normalizeTextLayout,
     normalizePinGroup,
@@ -120,6 +121,11 @@ export class PinManager {
     // Context menu item storage: Map<itemId, menuItem>
     static _contextMenuItems = new Map();
     static _contextMenuItemCounter = 0;
+
+    /** Scene ids whose pins were persisted after migration this session (avoids repeat setFlag). */
+    static _scenePinsMigrationPersisted = new Set();
+    /** Unplaced pins migration persist attempted this session. */
+    static _unplacedPinsMigrationPersisted = false;
 
     /** In-memory registry: (moduleId|type) -> friendly name for UI. Modules register so we don't assume labels. */
     static _pinTypeLabels = new Map();
@@ -1250,19 +1256,33 @@ export class PinManager {
     }
 
     /**
-     * Read pins from scene flags, migrate & validate, optionally persist repaired list.
+     * Persist migrated scene pins when stored data is behind schema (GM only, once per scene per session).
+     * @param {Scene} scene
+     * @param {unknown} raw
+     * @param {PinData[]} pins
+     * @param {number} dropped
+     */
+    static _persistScenePinsAfterMigration(scene, raw, pins, dropped) {
+        if (!game.user?.isGM || !scene?.id) return;
+        if (this._scenePinsMigrationPersisted.has(scene.id)) return;
+        if (!pinsNeedStorageUpdate(raw, pins, dropped)) return;
+        this._scenePinsMigrationPersisted.add(scene.id);
+        const toStore = pins.map((p) => foundry.utils.deepClone(p));
+        scene.setFlag(MODULE.ID, this.FLAG_KEY, toStore).catch((err) => {
+            this._scenePinsMigrationPersisted.delete(scene.id);
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Failed to persist migrated scene pins', err?.message ?? err, false, true);
+        });
+    }
+
+    /**
+     * Read pins from scene flags, migrate & validate, persist when stored data needs upgrade (GM).
      * @param {Scene} scene
      * @returns {PinData[]}
      */
     static _getScenePins(scene) {
         const raw = scene.getFlag(MODULE.ID, this.FLAG_KEY);
-        const { pins, dropped, errors } = migrateAndValidatePins(raw);
-        if (dropped > 0 && game.user?.isGM) {
-            const toStore = pins.map(p => foundry.utils.deepClone(p));
-            scene.setFlag(MODULE.ID, this.FLAG_KEY, toStore).catch((err) => {
-                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Failed to persist repaired pins', err?.message ?? err, false, true);
-            });
-        }
+        const { pins, dropped } = migrateAndValidatePins(raw);
+        this._persistScenePinsAfterMigration(scene, raw, pins, dropped);
         return pins;
     }
 
@@ -1293,11 +1313,31 @@ export class PinManager {
         });
     }
 
+    /**
+     * Persist migrated unplaced pins when stored data is behind schema (GM only, once per session).
+     * @param {unknown} raw
+     * @param {PinData[]} pins
+     * @param {number} dropped
+     */
+    static _persistUnplacedPinsAfterMigration(raw, pins, dropped) {
+        if (!game.user?.isGM) return;
+        if (this._unplacedPinsMigrationPersisted) return;
+        if (!pinsNeedStorageUpdate(raw, pins, dropped)) return;
+        this._unplacedPinsMigrationPersisted = true;
+        this._setUnplacedPins(pins).catch((err) => {
+            this._unplacedPinsMigrationPersisted = false;
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Failed to persist migrated unplaced pins', err?.message ?? err, false, true);
+        });
+    }
+
     /** @returns {PinData[]} */
     static _getUnplacedPins() {
         try {
             const data = game.settings?.get(MODULE.ID, UNPLACED_SETTING_KEY);
-            return Array.isArray(data?.pins) ? data.pins : [];
+            const raw = Array.isArray(data?.pins) ? data.pins : [];
+            const { pins, dropped } = migrateAndValidatePins(raw);
+            this._persistUnplacedPinsAfterMigration(raw, pins, dropped);
+            return pins;
         } catch {
             return [];
         }

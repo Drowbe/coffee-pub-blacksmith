@@ -24,7 +24,7 @@ const DEFAULT_TOOLBAR_PREFS = Object.freeze({
 });
 
 const ACCESS_CYCLE = ['gm', 'private', 'public'];
-const VISIBILITY_CYCLE = ['visible', 'hidden', 'owner'];
+const VISIBILITY_CYCLE = ['visible', 'hidden'];
 
 /** v6 toolbar keys; legacy client prefs map here once on read. */
 const LEGACY_TOOLBAR_ACCESS = Object.freeze({
@@ -34,16 +34,15 @@ const LEGACY_TOOLBAR_ACCESS = Object.freeze({
     full: 'public'
 });
 
-const ACCESS_LABELS = Object.freeze({
-    gm: 'GM — GM can edit',
-    private: 'Private — owner and GM can edit',
-    public: 'Public — anyone can edit'
+const PIN_EDITING_LABELS = Object.freeze({
+    gm: 'Pin editing: GM only',
+    private: 'Pin editing: Owner',
+    public: 'Pin editing: Everyone'
 });
 
-const VISIBILITY_LABELS = Object.freeze({
-    visible: 'Visible — all can see',
-    hidden: 'Not visible — withheld on map',
-    owner: 'Owner — owner and GM can see'
+const PIN_VISIBILITY_LABELS = Object.freeze({
+    visible: 'Pin visibility: Visible',
+    hidden: 'Pin visibility: Hidden'
 });
 
 const PLACEMENT_MODE_LABELS = Object.freeze({
@@ -377,7 +376,8 @@ export class JournalPagePins {
     static _applyPlacementPermissions(pinData, accessMode, visibilityMode) {
         if (!pinData || typeof pinData !== 'object') return;
         const access = ACCESS_CYCLE.includes(accessMode) ? accessMode : 'gm';
-        const vis = VISIBILITY_CYCLE.includes(visibilityMode) ? visibilityMode : 'visible';
+        let vis = VISIBILITY_CYCLE.includes(visibilityMode) ? visibilityMode : 'visible';
+        if (!game.user?.isGM) vis = 'visible';
 
         let defaultLevel = OBSERVER;
         if (access === 'public') defaultLevel = OWNER;
@@ -421,7 +421,7 @@ export class JournalPagePins {
         if (accessBtn) {
             accessBtn.dataset.accessMode = accessMode;
             const icon = accessBtn.querySelector('i');
-            accessBtn.title = `Access: ${ACCESS_LABELS[accessMode] || ACCESS_LABELS.gm}`;
+            accessBtn.title = PIN_EDITING_LABELS[accessMode] || PIN_EDITING_LABELS.gm;
             if (icon) {
                 icon.className = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.gm;
             }
@@ -429,14 +429,20 @@ export class JournalPagePins {
 
         const visBtn = bar.querySelector('.journal-page-pin-visibility-toggle');
         if (visBtn) {
-            visBtn.dataset.visibilityMode = visibilityMode;
-            const icon = visBtn.querySelector('i');
-            visBtn.title = `Visibility: ${VISIBILITY_LABELS[visibilityMode] || VISIBILITY_LABELS.visible}`;
-            if (icon) {
-                icon.className = PIN_VISIBILITY_ICONS[visibilityMode] || PIN_VISIBILITY_ICONS.visible;
+            if (!game.user?.isGM) {
+                visBtn.hidden = true;
+                visBtn.style.display = 'none';
+            } else {
+                visBtn.hidden = false;
+                visBtn.style.display = '';
+                visBtn.dataset.visibilityMode = visibilityMode;
+                const icon = visBtn.querySelector('i');
+                visBtn.title = PIN_VISIBILITY_LABELS[visibilityMode] || PIN_VISIBILITY_LABELS.visible;
+                if (icon) {
+                    icon.className = PIN_VISIBILITY_ICONS[visibilityMode] || PIN_VISIBILITY_ICONS.visible;
+                }
+                visBtn.disabled = false;
             }
-            visBtn.classList.remove('is-locked');
-            visBtn.disabled = false;
         }
     }
 

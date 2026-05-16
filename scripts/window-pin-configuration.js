@@ -7,7 +7,12 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { normalizeTextLayout, normalizePinTags, normalizeBlacksmithAccess } from './pins-schema.js';
+import {
+    normalizeTextLayout,
+    normalizePinTags,
+    normalizeBlacksmithAccess,
+    normalizeBlacksmithVisibility
+} from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 /**
@@ -481,12 +486,11 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         else if (rawAccessMode === 'private') accessMode = 'private';
         else accessMode = 'gm';
         const accessOptions = [
-            { value: 'gm', label: 'GM — GM can edit', selected: accessMode === 'gm' },
-            { value: 'private', label: 'Private — owner and GM can edit', selected: accessMode === 'private' },
-            { value: 'public', label: 'Public — anyone can edit', selected: accessMode === 'public' }
+            { value: 'gm', label: 'GM only', selected: accessMode === 'gm' },
+            { value: 'private', label: 'Owner', selected: accessMode === 'private' },
+            { value: 'public', label: 'Everyone', selected: accessMode === 'public' }
         ];
-        const rawVisibilityMode = String(pin.config?.blacksmithVisibility || 'visible').trim().toLowerCase();
-        let visibilityMode = ['visible', 'hidden', 'owner'].includes(rawVisibilityMode) ? rawVisibilityMode : 'visible';
+        const visibilityMode = normalizeBlacksmithVisibility(pin.config?.blacksmithVisibility);
 
         // Load icon categories
         const categories = await PinConfigWindow.loadIconCategories();
@@ -595,9 +599,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             })(),
             defaultMode: this._defaultMode,
             pinVisibilityVisible: visibilityMode === 'visible',
-            pinVisibilityHidden: visibilityMode === 'hidden',
-            pinVisibilityOwner: visibilityMode === 'owner',
-            pinVisibilityDisabled: false
+            pinVisibilityHidden: visibilityMode === 'hidden'
         };
     }
 
@@ -732,11 +734,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 applyIconFilter();
             }
             applyIconModeState();
-        };
-
-        const applyAccessVisibilityRules = () => {
-            if (!visibilitySelect) return;
-            visibilitySelect.disabled = false;
         };
 
         const clampDimension = (value, fallback) => {
@@ -971,8 +968,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         sourceToggle?.addEventListener('change', () => {
             updateMode(sourceToggle.checked ? 'icon' : 'image');
         });
-        accessSelect?.addEventListener('change', applyAccessVisibilityRules);
-
         // Tag chips — click to toggle a suggested tag on/off in the input
         const getTagsArray = () => (tagsInput?.value || '').split(',').map(t => t.trim()).filter(Boolean);
         const updateTagChips = () => {
@@ -1070,8 +1065,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                     }
                     pinUpdateData.ownership = { ...this._pinOwnership, default: defaultLevel };
 
-                    const selectedVisibility = String(visSelect?.value || 'visible').toLowerCase();
-                    let visibilityMode = ['visible', 'hidden', 'owner'].includes(selectedVisibility) ? selectedVisibility : 'visible';
+                    const visibilityMode = normalizeBlacksmithVisibility(visSelect?.value || 'visible');
 
                     const { PinManager: PM } = await import('./manager-pins.js');
                     const currentPin = PM.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
@@ -1177,7 +1171,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         updatePreview();
         updateMode(this.iconMode);
-        applyAccessVisibilityRules();
     }
 
     /**

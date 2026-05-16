@@ -145,13 +145,16 @@ export function normalizePinTags(value) {
 // ------------------------------------------------------------------
 
 /** Current pin data schema version. Bump when format changes and add migration. */
-export const PIN_SCHEMA_VERSION = 6;
+export const PIN_SCHEMA_VERSION = 7;
 
-/** Canonical edit-access tokens stored in `config.blacksmithAccess` (v6+). Legacy `none`/`read`/`pin`/`full` are normalized on read and migrated once from v5. */
+/** Canonical pin-editing tokens in `config.blacksmithAccess`. */
 export const PIN_ACCESS_CANONICAL = Object.freeze(['gm', 'private', 'public']);
 
+/** Canonical pin-visibility tokens in `config.blacksmithVisibility`. */
+export const PIN_VISIBILITY_CANONICAL = Object.freeze(['visible', 'hidden']);
+
 /**
- * Normalize `config.blacksmithAccess` to canonical v6 values.
+ * Normalize `config.blacksmithAccess` (pin editing).
  * @param {unknown} value
  * @returns {'gm' | 'private' | 'public'}
  */
@@ -162,6 +165,18 @@ export function normalizeBlacksmithAccess(value) {
     if (raw === 'pin') return 'private';
     if (raw === 'full') return 'public';
     return 'gm';
+}
+
+/**
+ * Normalize `config.blacksmithVisibility` (pin visibility).
+ * @param {unknown} value
+ * @returns {'visible' | 'hidden'}
+ */
+export function normalizeBlacksmithVisibility(value) {
+    const raw = String(value ?? '').trim().toLowerCase();
+    if (raw === 'visible' || raw === 'hidden') return raw;
+    if (raw === 'owner') return 'visible';
+    return 'visible';
 }
 
 /** Default values per architecture (apply when creating/validating, not stored if omitted). */
@@ -266,6 +281,17 @@ MIGRATION_MAP.set(6, (pin) => {
         cfg.blacksmithVisibility = vis;
     }
 
+    migrated.config = cfg;
+    return migrated;
+});
+
+// Migration from v6 to v7: Drop `owner` visibility — map to `visible` (solo pins use ownership instead)
+MIGRATION_MAP.set(7, (pin) => {
+    const migrated = foundry.utils.deepClone(pin);
+    const cfg = typeof migrated.config === 'object' && migrated.config && !Array.isArray(migrated.config)
+        ? { ...migrated.config }
+        : {};
+    cfg.blacksmithVisibility = normalizeBlacksmithVisibility(cfg.blacksmithVisibility);
     migrated.config = cfg;
     return migrated;
 });
@@ -416,6 +442,9 @@ export function applyDefaults(partial) {
         if (Object.prototype.hasOwnProperty.call(base.config, 'blacksmithAccess')) {
             base.config.blacksmithAccess = normalizeBlacksmithAccess(base.config.blacksmithAccess);
         }
+        if (Object.prototype.hasOwnProperty.call(base.config, 'blacksmithVisibility')) {
+            base.config.blacksmithVisibility = normalizeBlacksmithVisibility(base.config.blacksmithVisibility);
+        }
     }
     if (partial.moduleId != null) base.moduleId = String(partial.moduleId).trim();
     if (partial.ownership != null && typeof partial.ownership === 'object') {
@@ -558,4 +587,33 @@ export function migrateAndValidatePins(rawArray) {
         _log(`Dropped ${dropped} invalid pin(s).`, errors.join('; '));
     }
     return { pins, dropped, errors };
+}
+
+/**
+ * Whether migrated pins should replace stored scene/unplaced data (GM persist on load).
+ * Avoids deep-comparing full defaulted pins; keys off schema version and known legacy fields.
+ * @param {unknown} raw
+ * @param {PinData[]} pins
+ * @param {number} [dropped]
+ * @returns {boolean}
+ */
+export function pinsNeedStorageUpdate(raw, pins, dropped = 0) {
+    if (dropped > 0) return true;
+    if (!Array.isArray(raw)) return raw != null && raw !== undefined;
+    if (raw.length !== pins.length) return true;
+    for (let i = 0; i < raw.length; i++) {
+        const r = raw[i];
+        if (typeof r !== 'object' || r == null || Array.isArray(r)) return true;
+        const ro = /** @type {Record<string, unknown>} */ (r);
+        const v = typeof ro.version === 'number' ? ro.version : 0;
+        if (v < PIN_SCHEMA_VERSION) return true;
+        if (Object.prototype.hasOwnProperty.call(ro, 'group')) return true;
+        if (ro.type === 'journal-page') return true;
+        const cfg = ro.config;
+        if (cfg && typeof cfg === 'object' && !Array.isArray(cfg)) {
+            const vis = String(/** @type {Record<string, unknown>} */ (cfg).blacksmithVisibility ?? '').toLowerCase();
+            if (vis === 'owner') return true;
+        }
+    }
+    return false;
 }

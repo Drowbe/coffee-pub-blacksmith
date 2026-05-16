@@ -50,14 +50,9 @@
     cursor: default;
 }
 
-/* Non-GM: map visibility `hidden` — pin stays on map, reads as withheld (opacity set in JS). */
-.blacksmith-pin[data-visibility-player="withheld"] {
-    filter: var(--blacksmith-pin-drop-shadow) grayscale(0.35);
-}
 
 
-
-/* GM **access** corner glyph (GM-only or Private access for GMs); not visibility — outside pin = stroke (px) + em × shape */
+/* Pin-editing corner glyph (GM-only or Owner editing); not pin visibility */
 .blacksmith-pin-gm-indicator {
     position: absolute;
     /* 75% of prior 0.22×pin: 0.22 × 0.75 = 0.165 */

@@ -38,7 +38,7 @@
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <div class="blacksmith-field">
-                        <span class="blacksmith-field-label">Access</span>
+                        <span class="blacksmith-field-label">Pin editing</span>
                         <select class="blacksmith-input blacksmith-pin-config-access-default">
                             {{#each accessOptions}}
                             <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
@@ -46,11 +46,10 @@
                         </select>
                     </div>
                     <div class="blacksmith-field">
-                        <span class="blacksmith-field-label">Visibility</span>
-                        <select class="blacksmith-input blacksmith-pin-config-player-visibility" {{#if pinVisibilityDisabled}}disabled{{/if}}>
-                            <option value="visible" {{#if pinVisibilityVisible}}selected{{/if}}>Visible — all can see</option>
-                            <option value="hidden" {{#if pinVisibilityHidden}}selected{{/if}}>Not visible — withheld on map</option>
-                            <option value="owner" {{#if pinVisibilityOwner}}selected{{/if}}>Owner — owner and GM can see</option>
+                        <span class="blacksmith-field-label">Pin visibility</span>
+                        <select class="blacksmith-input blacksmith-pin-config-player-visibility">
+                            <option value="visible" {{#if pinVisibilityVisible}}selected{{/if}}>Visible</option>
+                            <option value="hidden" {{#if pinVisibilityHidden}}selected{{/if}}>Hidden</option>
                         </select>
                     </div>
                 </div>

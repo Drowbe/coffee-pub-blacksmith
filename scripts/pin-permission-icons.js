@@ -1,22 +1,21 @@
 // ==================================================================
-// Canonical Font Awesome classes for pin Access + Visibility UI
+// Canonical Font Awesome classes for pin editing + pin visibility UI
 // ==================================================================
 
-/** Edit access (`config.blacksmithAccess`): `gm` | `private` | `public` (v6+). Legacy keys normalized on read. */
+/** Pin editing (`config.blacksmithAccess`): `gm` | `private` | `public`. */
 export const PIN_ACCESS_ICONS = Object.freeze({
     gm: 'fa-solid fa-user-shield',
     private: 'fa-solid fa-user-pen',
     public: 'fa-solid fa-users'
 });
 
-/** Visibility (`blacksmithVisibility`); keys match toolbar / Configure Pin / browse row. */
+/** Pin visibility (`config.blacksmithVisibility`): `visible` | `hidden`. */
 export const PIN_VISIBILITY_ICONS = Object.freeze({
     visible: 'fa-solid fa-eye',
-    hidden: 'fa-solid fa-eye-slash',
-    owner: 'fa-solid fa-binoculars'
+    hidden: 'fa-solid fa-eye-slash'
 });
 
-/** Parent row icon for the pin context menu "Access" submenu (not a specific mode). */
+/** Parent row icon for the pin context menu "Pin editing" submenu. */
 export const PIN_ACCESS_SUBMENU_ICON = 'fa-solid fa-shield-halved';
 
 /** @param {string} classString Space-separated FA classes (e.g. `PIN_ACCESS_ICONS.gm`) */

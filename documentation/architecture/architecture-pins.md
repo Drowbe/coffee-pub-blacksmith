@@ -67,7 +67,7 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 - **Version**: `PIN_SCHEMA_VERSION`; each pin has a `version` field.
 - **Defaults**: Applied on create/validation (e.g. size, style, shape, ownership). Not necessarily stored to keep payloads small.
 - **Validation**: `validatePinData(pin, opts)` — e.g. `allowUnplaced` omits x/y requirement. Invalid pins are dropped or repaired on load; scene load never fails due to a bad pin.
-- **Migration**: Migration map keyed by version; runs on scene load before validation. Migrates in place and logs; on failure for a pin, drop that pin and log.
+- **Migration**: Migration map keyed by version; runs on scene/unplaced read before validation. GMs persist upgraded pins to scene flags or the unplaced world setting when stored data is behind schema (once per scene/unplaced per session). On failure for a pin, drop that pin and log.
 
 ### API layer (`scripts/api-pins.js`)
 
@@ -81,10 +81,11 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 - **Resolve pin**: `getData()` calls `PinManager.get(this.pinId, ...)` — unplaced store checked first when `sceneId` is omitted.
 - **Permission**: `PinManager._canEdit(pin, userId)` in `getData()`; window refuses to open without edit permission.
 - **Sections**: Permissions, Classification, Pin Design, Text Format, Event Animations, Pin Source.
-- **Save**: Builds a full patch and calls `pinsAPI.update(this.pinId, patch, { sceneId })`. GM-only fields (tags, ownership, player visibility, allow duplicates) are applied separately.
-- **Player Visibility** (`config.blacksmithVisibility`): Shown in the Permissions section alongside the ownership dropdown. `'visible'` (default) or `'hidden'`. Separate from ownership — a pin can have player-viewable ownership but be hidden from the map.
+- **Save**: Builds a full patch and calls `pinsAPI.update(this.pinId, patch, { sceneId })`. GM-only fields (tags, pin editing, pin visibility, allow duplicates) are applied separately.
+- **Pin visibility** (`config.blacksmithVisibility`): `'visible'` | `'hidden'` in Permissions (GM only). Hidden = marker not drawn for other players; GM and pin owner always see the pin.
+- **Pin editing** (`config.blacksmithAccess`): `'gm'` | `'private'` | `'public'` — who may edit the pin record; maps to `ownership.default`.
 - **Allow Duplicates**: Moved from header toggle into the Permissions section body.
-- **Update All mode** (`_updateAllMode`): Toggle in action bar left (“Update All [type] Pins”). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to same-type peer pins after confirmation. Permissions section includes ownership, player visibility, and allow-duplicates when checked.
+- **Update All mode** (`_updateAllMode`): Toggle in action bar left (“Update All [type] Pins”). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to same-type peer pins after confirmation. Permissions section includes pin editing, pin visibility, and allow-duplicates when checked.
 - **Use as Default mode** (`_defaultMode`): “Default for [type]” toggle in the window header. When enabled, each section header shows a separate checkbox; on save, only checked sections are written to `clientPinDefaultDesigns` (client-scope setting keyed `moduleId|type`). Warns if no sections selected.
 - **Icon label**: `formatIconLabel(iconClass)` extracts the icon name from a FA class string (e.g. `fa-solid fa-skull` → `skull`), skipping style prefix classes (`fa-solid`, `fa-regular`, etc.).
 - **Class**: `PinConfigWindow`; static `open(pinId, options)`. Constructor params: `pinId`, `options.sceneId`, `options.onSelect`, `options.moduleId`.
@@ -113,7 +114,10 @@ No canvas “layer” is used for pins; the overlay is a sibling of the canvas a
 
 ## Permissions model
 
-- **Visibility**: Who can see a pin is determined by ownership (default + per-user overrides). GM sees all.
+- **Foundry ownership** (`ownership.default` / `users`): Gates `_canView` (level > NONE) and `_canEdit` (level ≥ OWNER for non-GMs). GM sees all.
+- **Pin visibility** (`config.blacksmithVisibility`): `'visible'` or `'hidden'` — whether others see the marker on the map (hidden = not drawn). GM-only in UI.
+- **Pin editing** (`config.blacksmithAccess`): Who may edit the pin shell; independent of what the module does on click.
+- **Module behavior**: Click/double-click and document edit rights are **not** implied by pin editing or pin visibility.
 - **Create**: Allowed only if `pinsAllowPlayerWrites` is true or user is GM.
 - **Edit / Configure / Delete**: Any user with OWNER (or higher) on the pin can edit, configure, or delete that pin, regardless of `pinsAllowPlayerWrites`. GM can always do everything.
 - **Write path**: Scene flags and world setting `pinsUnplaced` are written only by the GM client; non-GM editors go through requestGM/socket so the GM performs the write.

@@ -1,6 +1,6 @@
 import { MODULE } from './const.js';
 import { PinManager } from './manager-pins.js';
-import { normalizePinTags, normalizeBlacksmithAccess } from './pins-schema.js';
+import { normalizePinTags, normalizeBlacksmithAccess, normalizeBlacksmithVisibility } from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { HookManager } from './manager-hooks.js';
 import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './pin-permission-icons.js';
@@ -32,10 +32,15 @@ function browsePinAccessMode(p) {
     return 'gm';
 }
 
-const BROWSE_ACCESS_TOOLTIP = Object.freeze({
-    gm: 'Access: GM — GM can edit',
-    private: 'Access: Private — owner and GM can edit',
-    public: 'Access: Public — anyone can edit'
+const BROWSE_PIN_EDITING_TOOLTIP = Object.freeze({
+    gm: 'Pin editing: GM only',
+    private: 'Pin editing: Owner',
+    public: 'Pin editing: Everyone'
+});
+
+const BROWSE_PIN_VISIBILITY_TOOLTIP = Object.freeze({
+    visible: 'Pin visibility: Visible',
+    hidden: 'Pin visibility: Hidden'
 });
 
 /** Same cycle order as the journal pin toolbar (`ui-journal-pins.js`). */
@@ -1245,15 +1250,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             ? `<span class="blacksmith-tag blacksmith-tag-category ${typeHidden ? 'is-hidden' : ''}"><i class="fa-solid fa-layer-group"></i> ${esc(typeLabel)}</span>`
             : '';
         const hasMeta = typeLabel || (p.tags && p.tags.length);
-        const visStateRaw = String(p.config?.blacksmithVisibility || 'visible').toLowerCase();
-        const visState = ['visible', 'hidden', 'owner'].includes(visStateRaw) ? visStateRaw : 'visible';
+        const visState = normalizeBlacksmithVisibility(p.config?.blacksmithVisibility);
         const visIconClass = PIN_VISIBILITY_ICONS[visState] || PIN_VISIBILITY_ICONS.visible;
-        const visTitle = visState === 'hidden'
-            ? 'Visibility: Hidden — click for Owner'
-            : (visState === 'owner' ? 'Visibility: Owner — click for Visible' : 'Visibility: Visible — click for Hidden');
+        const visTitle = `${BROWSE_PIN_VISIBILITY_TOOLTIP[visState] || BROWSE_PIN_VISIBILITY_TOOLTIP.visible} — Click to toggle`;
         const accessMode = browsePinAccessMode(p);
         const accessIconClass = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.gm;
-        const accessTip = `${BROWSE_ACCESS_TOOLTIP[accessMode] || BROWSE_ACCESS_TOOLTIP.gm} — Click to cycle access`;
+        const accessTip = `${BROWSE_PIN_EDITING_TOOLTIP[accessMode] || BROWSE_PIN_EDITING_TOOLTIP.gm} — Click to cycle`;
         const gmActions = isGM ? `
                 <button type="button" class="blacksmith-icon-action"
                     data-action="setBrowsePinAccess" data-pin-id="${esc(p.id)}" data-access-mode="${esc(accessMode)}"
@@ -1754,13 +1756,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _setBrowsePinVisibility(target) {
+        if (!game.user?.isGM) return;
         const pinId = target?.dataset?.pinId || '';
-        const currentRaw = String(target?.dataset?.visState || 'visible').toLowerCase();
-        const current = ['visible', 'hidden', 'owner'].includes(currentRaw) ? currentRaw : 'visible';
+        const current = normalizeBlacksmithVisibility(target?.dataset?.visState || 'visible');
         if (!pinId) return;
         const pin = PinManager.get(pinId);
         if (!pin) return;
-        const next = current === 'visible' ? 'hidden' : (current === 'hidden' ? 'owner' : 'visible');
+        const next = current === 'visible' ? 'hidden' : 'visible';
         await PinManager.update(pinId, { config: { ...(pin.config || {}), blacksmithVisibility: next } });
         await this.render(true);
     }
