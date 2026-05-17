@@ -2,6 +2,11 @@
 // Item JSON import — prompt registry (core + partial + profile)
 // ==================================================================
 
+import { MODULE } from './const.js';
+import { postConsoleAndNotification } from './api-core.js';
+import { copyToClipboard } from './utility-common.js';
+import { registerJsonImportKind } from './registry-json-import.js';
+import { parseFlatItemToFoundry } from './parsers/parse-item.js';
 import {
     fetchPromptText,
     composePrompt,
@@ -55,3 +60,40 @@ export async function buildItemImportPrompt(templateKey) {
     const composed = composePrompt(parts);
     return applyCampaignPlaceholders(composed);
 }
+
+export const ITEM_JSON_IMPORT_KIND_ID = 'item';
+
+const itemJsonImportKind = {
+    id: ITEM_JSON_IMPORT_KIND_ID,
+    gmOnly: true,
+    buttonHtml: '<i class="fa-solid fa-briefcase"></i> Import',
+    idSuffix: 'item',
+    windowTitle: 'Import JSON',
+    headerTitle: 'Import Item',
+    windowIcon: 'fa-solid fa-briefcase',
+    position: { width: 920, height: 680 },
+    templateOptions: ITEM_TEMPLATE_OPTIONS,
+    onCopyTemplate: async (type) => {
+        const prompt = await buildItemImportPrompt(type);
+        copyToClipboard(prompt);
+    },
+    onImport: async (entries) => {
+        const itemsToImport = await Promise.all(entries.map(parseFlatItemToFoundry));
+        const created = await Item.createDocuments(itemsToImport, { keepId: false });
+        postConsoleAndNotification(
+            MODULE.NAME,
+            `Imported ${created.length} item(s) successfully.`,
+            '',
+            false,
+            true
+        );
+        return true;
+    },
+    onImportError: (e) => {
+        postConsoleAndNotification(MODULE.NAME, 'Failed to import items', e, false, true);
+        ui.notifications.error(`Failed to import items: ${e.message}`);
+        return false;
+    }
+};
+
+registerJsonImportKind(itemJsonImportKind);
