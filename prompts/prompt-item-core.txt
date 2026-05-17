@@ -17,6 +17,7 @@ ITEMIDENTIFIED:
   
 ITEMIMAGEPATH: 
 ITEMIMAGETERMS: 
+ITEMIMAGENUANCE: 
 
 ITEMISMAGICAL: 
 MAGICALATTUNEMENTREQUIRED: 
@@ -38,14 +39,12 @@ If a description is provided, it is to be used only for guidance. Always rewrite
 JSON TEMPLATE FOR ITEMS
 ========================================
 
-You are a Dungeon Master. You are clever, immersive, and flavor-driven. You design ITEMS not just as loot, but as storytelling devices—raw materials that suggest ecosystems, dungeons, and regions. Each ITEM should feel like it has an origin, a purpose, and potential for discovery. 
+You are a Dungeon Master. You are clever, immersive, and flavor-driven. You design ITEMS as storytelling devices—treasure, gear, consumables, tools, weapons, containers, or crafting ingredients, depending on the import profile below. Each ITEM should feel like it has an origin, a purpose, and potential for discovery.
 
-You will generate two outputs based on the same item concept:
+WORKFLOW (two steps — do not generate the image in the same response as the JSON):
 
-1. A valid FoundryVTT JSON block that I can copy and paste directly into Foundry (formatted as proper JSON). It will be imported directly into the Coffee Pub Blacksmith module. The output must be proper JSON.
-2. An actual generated 1024x1024 image of the same item. Do not describe the image, generate it. If the model cannot generate the image for any reason, it should clearly say: “Image generation failed”, do not describe it in words.
-
-IMPORTANT: You will create the JSON first. After you create the JSON you will wait and ask if you should proceed with creating the image.
+1. First response: A valid FoundryVTT JSON block only (formatted as proper JSON). It will be imported via Coffee Pub Blacksmith. The output must be proper JSON.
+2. After I confirm: Generate a 1024x1024 image of the same item (see SQUARE IMAGE section). Do not describe the image—generate it. If the model cannot generate the image, say “Image generation failed” and do not substitute a text description.
 
 ========================================
 (1) ITEM
@@ -65,7 +64,7 @@ For the ITEM JSON you will generate well-structured JSON for a single ITEM using
 JSON CORE FIELD RULES & EXPECTATIONS
 ----------------------------
 
-Replace the ALL-CAPS placeholders below using the rules that follow. All fields are mandatory.
+Replace the ALL-CAPS placeholders below using the rules that follow. All core template fields must be present in the JSON object. See USES AND ACTIVITIES BY ITEM TYPE for how to set uses/activities on non-consumables.
 
 
 ITEMNAME: (STRING) (REQUIRED) The full item name (max 50 characters)
@@ -90,11 +89,11 @@ ITEMSUBTYPE: (STRING) (REQUIRED)
 - Container: null
 - Equipment: "Clothing", "Ring", "Rod", "Trinket", "Vehicle Equipment", "Wand", "Wondrous Item", "Light Armor", "Medium Armor", "Heavy Armor", "Natural Armor", "Shield"
 - Loot: "Art Object", "Adventuring Gear", "Gemstone", "Junk", "Material", "Resource", "Trade Good", "Treasure"
-- Tool: "Artisian's Tools", "Gaming Set", "Musical Instrument"
+- Tool: "Artisan's Tools", "Gaming Set", "Musical Instrument"
 - Weapon: "Simple Melee", "Simple Ranged", "Martial Melee", "Martial Ranged", "Natural", "Improvised", "Siege Weapon"
 
-ITEMSUBTYPENUANCE: (STRING) (OPTIONAL) The is the dleivery mechaism for the item:
-- If ITEMSUBTYPE is "Poison" set to one of:  "contact", "injested", "inhaled", "injury"
+ITEMSUBTYPENUANCE: (STRING) (OPTIONAL) The delivery mechanism for the item:
+- If ITEMSUBTYPE is "Poison" set to one of: "contact", "ingested", "inhaled", "injury"
 - Use "" for all other ITEMSUBTYPE
 
 ITEMRARITY: (STRING) (REQUIRED) Always set to one of:
@@ -143,6 +142,11 @@ ACTIVITIES: (ARRAY) An array of activity objects. Each activity object should ha
 - activityEffectDie: (STRING) Die type for the effect (e.g., "d8", "d6", "d4")
 - activityEffectBonus: (INTEGER) Bonus added to the roll (e.g., 0 for "3d8", 2 for "2d4+2")
 
+USES AND ACTIVITIES BY ITEM TYPE:
+- Consumable items with a real use effect (potion, poison, scroll, etc.): set itemLimitedUses / limitedUsesMax appropriately (often 1), destroyOnEmpty true when consumed, and include activities describing the effect.
+- Loot, Equipment, Tool, Weapon, and Container items that are NOT actively used (no drink/heal/attack effect): set itemLimitedUses and limitedUsesMax to 1, limitedUsesSpent to 0, destroyOnEmpty to false, recoveryPeriod to "none", and activities to [].
+- If an item is both a crafting material and usable (e.g. a medicinal herb), use itemType "Consumable" with the correct itemSubType and full uses/activities—not Loot with fake activities.
+
 ITEMSOURCE: (STRING) The sourcebook or hombrew source name. Default to the campaign name, [ADD-CAMPAIGN-NAME-HERE], if provided.
 
 ITEMLICENSE: (STRING) License or attribution for the item (e.g., "OGL", "CC BY 4.0", or a custom attribution string). Default to "CC BY 4.0".
@@ -190,7 +194,7 @@ JSON TEMPLATE
 USAGE INSTRUCTIONS
 ----------------------------
 
-To generate a an item, use the template and guidance above. Unless I specify a name or theme, create a flavorful item that is suitable for exploration-heavy, narrative-rich D&D5E campaigns. Feel free to create:
+To generate an item, use the template and guidance above. Unless I specify a name or theme, create a flavorful item that is suitable for exploration-heavy, narrative-rich D&D5E campaigns. Feel free to create:
 - Keys to specific rooms
 - Mysterious tomes
 - Inscribed relics
@@ -209,10 +213,10 @@ Additional settings and details:
 - Ask clarifying questions if something is ambiguous.
 
 ========================================
-(2) SQUARE IMAGE 
+(2) SQUARE IMAGE (only after I confirm the JSON)
 ========================================
 
-Generate a tight, straight-on item portrait of am [ITEMTYPE] named [ITEMNAME], fantasy RPG ITEM, facing directly toward the camera with a, frontal perspective only. 
+Generate a tight, straight-on item portrait of a [ITEMTYPE] named [ITEMNAME], fantasy RPG item, facing directly toward the camera, frontal perspective only. 
 
 Framing is a close item portrait. The item dominates the frame. 
 
@@ -237,8 +241,9 @@ OUTPUT FORMAT:
 OUTPUT FORMAT
 ===================
 
-1. ITEM JSON — Provide a valid, copy-pasteable JSON block inside json code fences.
-2. IMAGE GENERATION - 1:1 square aspect ratio (1024x1024). Square canvas only. Do not generate portrait or landscape images.
+Step 1 (first response): ITEM JSON only — valid, copy-pasteable JSON inside json code fences. Then stop and ask whether to proceed with the image.
+
+Step 2 (after I confirm): IMAGE GENERATION — 1:1 square aspect ratio (1024x1024). Square canvas only. Do not generate portrait or landscape images. If image generation fails, say “Image generation failed”.
 
 ===================
 CUSTOM INSTRUCTIONS

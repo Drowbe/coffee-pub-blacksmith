@@ -14,9 +14,9 @@ If a description is provided, it is to be used only for guidance. Always rewrite
 SPECIFICS FOR ARTIFICER ITEMS
 ========================================
 
-These are items for the Artificer crafting system: herbs, ores, crystals, creature parts, and environmental substances, potions, posions, etc.
+These are items for the Artificer crafting system: herbs, ores, crystals, creature parts, and environmental substances, potions, poisons, etc.
 
-IMPORTANT: An ITEM can be BOTH a crafting material AND a usable D&D 5e item. Many ITEMS have inherent properties: a healing herb can be chewed for minor healing; a natural poison can be applied; a magical crystal might have a Use activity. Do NOT reduce items to simple trinkets. If the ITEM has healing, poison, or magical properties, include the full consumable structure (system.consumableType, system.uses, system.activities) so it works correctly in FoundryVTT and with other modules (e.g., Blacksmith). Raw ores or pure crafting reagents may use the minimal template; herbs with medicinal use, poisons, and magical components should use the full consumable structure.
+IMPORTANT: An ITEM can be BOTH a crafting material AND a usable D&D 5e item. Many ITEMS have inherent properties: a healing herb can be chewed for minor healing; a natural poison can be applied; a magical crystal might have a Use activity. Do NOT reduce items to simple trinkets. If the ITEM has healing, poison, or magical use properties, set itemType to "Consumable" with the correct itemSubType and fill itemLimitedUses, limitedUsesMax, destroyOnEmpty, and activities per the CORE template (flat JSON fields—not Foundry system.* nesting). Raw ores or pure crafting reagents with no use effect may stay Loot or Material with minimal uses (destroyOnEmpty false, activities []).
 
 
 ========================================
@@ -47,14 +47,14 @@ If ARTIFICERTYPE is "Component" the ARTIFICERFAMILY are:
 - Essence (Life, Fire, Shadow, etc.)
 
 If ARTIFICERTYPE is "Creation" the ARTIFICERFAMILY are: 
-- "Food": it can be grown or eaten.
-- "Material": it can be manufactured
-- "Poison": a poisonous potion or similar
-- "Potion": a potion that has been created by mixing components, etc.
+- Food: it can be grown or eaten.
+- Material: it can be manufactured.
+- Poison: a poisonous potion or similar.
+- Potion: a potion that has been created by mixing components, etc.
 
 If ARTIFICERTYPE is "Tool" the ARTIFICERFAMILY are: 
-- "Apparatus": These are "beakers", "mortar and pestle", "crucible", "mixing bowl", etc. — items used to process things with heat, grind, blend, etc.
-- "Container": "vial", "herb bag", "ampoule", "bottle", "box", etc.  — items that hold or carry items
+- Apparatus: beakers, mortar and pestle, crucible, mixing bowl, etc. — items used to process things with heat, grind, blend, etc.
+- Container: vial, herb bag, ampoule, bottle, box, etc. — items that hold or carry items
 
 ARTIFICERTRAITS:  (ARRAY) (STRING) (REQUIRED) Traits drive what can be crafted with the item (e.g. Herb+Medicinal+Life → Healing Potion). These depend on the tool type.  Several of:
 - COMPONENT Traits: "Herb", "Floral", "Medicinal", "Toxic", "Metal", "Ore", "Crystal", "Resonant", "Arcane", "Bone", "Venom", "Creature", "Water", "Fire", "Earth", "Air", "Corrupted", "Pure", etc. Choose 2–5 that describe the component.
@@ -137,12 +137,14 @@ When asked to generate an Artificer ITEM, create a flavorful raw material suitab
 - Environmental: Spring Water, Volcanic Ash, Frost Essence, Shadow Residue
 - Poisonous substances
 - Potions and Herbal concoctions
-- Tools like Beakers, Crucibles, Mixing Bowls, or Mortar and Pestles for Apparatus, and bottles, herb bags, lidded clay jars, puches, or vials for Containers. 
+- Tools like Beakers, Crucibles, Mixing Bowls, or Mortar and Pestles for Apparatus, and bottles, herb bags, lidded clay jars, pouches, or vials for Containers.
 
 ========================================
 CUSTOM INSTRUCTIONS FOR ARTIFICER ITEMS
 ========================================
 
-- Use namespaced flags only: flags["coffee-pub-artificer"] must have artificerType (Component|Creation|Tool), artificerFamily (from schema), and artificerTraits (non-empty array). 
-
+- Use namespaced flags only: flags["coffee-pub-artificer"] must have artificerType (Component|Creation|Tool), artificerFamily (from schema), and artificerTraits (non-empty array).
+- Use flat CORE JSON for all item fields; do not output Foundry document system.* blocks.
+- Use rarity strings from CORE (e.g. "very rare", not "Epic"). No primaryTag, secondaryTags, or item type "ITEM".
+- artificerType values are exactly: Component, Creation, or Tool (not itemType).
 
