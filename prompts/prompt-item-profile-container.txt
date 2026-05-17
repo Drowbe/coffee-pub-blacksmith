@@ -1,0 +1,11 @@
+========================================
+IMPORT PROFILE: CONTAINER
+========================================
+
+For this generation, set itemType to "Container".
+
+Set itemSubType to null unless I specify a container category.
+
+Containers hold other items (bags, chests, pouches). Default: destroyOnEmpty false, activities [].
+
+Focus descriptions on capacity, craftsmanship, and history—not drinkable or edible effects.

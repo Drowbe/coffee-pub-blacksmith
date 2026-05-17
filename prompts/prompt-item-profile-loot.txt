@@ -1,0 +1,13 @@
+========================================
+IMPORT PROFILE: LOOT
+========================================
+
+For this generation, set itemType to "Loot" unless I specify otherwise.
+
+Choose an appropriate itemSubType from the Loot list (Art Object, Adventuring Gear, Gemstone, Junk, Material, Resource, Trade Good, Treasure).
+
+This is narrative treasure or exploration loot—not a weapon, worn equipment, or active consumable unless I ask for one.
+
+Apply USES AND ACTIVITIES BY ITEM TYPE for non-usable loot (destroyOnEmpty false, activities []).
+
+Examples: keys, signet rings, odd books, puzzle objects, inscribed relics, mundane trinkets with story weight.

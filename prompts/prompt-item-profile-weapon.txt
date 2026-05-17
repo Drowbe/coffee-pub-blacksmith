@@ -1,0 +1,11 @@
+========================================
+IMPORT PROFILE: WEAPON
+========================================
+
+For this generation, set itemType to "Weapon".
+
+Choose itemSubType from: Simple Melee, Simple Ranged, Martial Melee, Martial Ranged, Natural, Improvised, or Siege Weapon.
+
+Weapons are not consumables: set destroyOnEmpty to false, activities to [] unless the weapon has an unusual activated power (then use Consumable instead).
+
+Set weight, price, and rarity appropriate to the weapon. itemIsMagical and magicalAttunementRequired only if the weapon is clearly magical.

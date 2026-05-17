@@ -67,6 +67,8 @@ import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { JsonImportWindow } from './window-json-import.js';
+import { normalizeStraightQuotesForJson } from './utility-json-import-prompts.js';
+import { buildItemImportPrompt, ITEM_TEMPLATE_OPTIONS } from './registry-json-import-items.js';
 import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
@@ -2686,26 +2688,6 @@ export async function handleSkillRollUpdate(data) {
     }
 }
 
-// Helper to replace placeholders in the item prompt with settings values
-async function getItemPromptWithDefaults(itemPrompt) {
-  const context = CampaignManager.getPromptContext();
-  const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
-    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
-    { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: context.campaignName }
-  ];
-
-  let result = itemPrompt;
-  for (const setting of settings) {
-    const value = setting.value || '';
-    if (value) {
-      result = result.split(setting.placeholder).join(value);
-    }
-  }
-  return result;
-}
-
 // Helper to replace placeholders in the table prompt with settings values
 async function getTablePromptWithDefaults(tablePrompt) {
   const context = CampaignManager.getPromptContext();
@@ -3263,20 +3245,7 @@ function _sharedItemSystem(flat) {
 }
 
 /**
- * Replace curly/typographic apostrophes and quotes with straight ASCII so JSON parsing and storage work.
- * Call on pasted or loaded JSON string before JSON.parse.
- * @param {string} str - Raw JSON or text string.
- * @returns {string} String with only straight apostrophe (') and straight double quote (").
- */
-function normalizeStraightQuotesForJson(str) {
-    if (typeof str !== 'string') return str;
-    return str
-        .replace(/\u2018|\u2019|\u201A|\u201B|\u2032/g, "'")   // curly/smart single quotes, prime -> straight '
-        .replace(/\u201C|\u201D|\u201E|\u201F/g, '"');          // curly/smart double quotes -> straight "
-}
-
-/**
- * Parse a flat item JSON (Artificer prompt template) into FoundryVTT D&D 5e item data.
+ * Parse a flat item JSON (flat import prompt template) into FoundryVTT D&D 5e item data.
  * Uses only canonical keys: itemType, itemSubType, itemSubTypeNuance, itemName, itemPrice, itemIsMagical, destroyOnEmpty, etc.
  * @param {object} flat - The flat item JSON from the prompt.
  * @returns {object} The FoundryVTT item data object.
@@ -3613,11 +3582,6 @@ const renderItemDirectoryHookId = HookManager.registerHook({
         return;
     }
     
-    // Fetch the item prompt templates at runtime
-    const lootPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-loot.txt')).text();
-    const consumablePrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-items-consumables.txt')).text();
-    const artificerPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-artificer-item.txt')).text();
-
     const button = document.createElement('button');
     button.innerHTML = '<i class="fa-solid fa-briefcase"></i> Import';
     button.addEventListener('click', () => {
@@ -3627,22 +3591,10 @@ const renderItemDirectoryHookId = HookManager.registerHook({
             headerTitle: 'Import Item',
             windowIcon: 'fa-solid fa-briefcase',
             position: { width: 920, height: 680 },
-            templateOptions: [
-                { value: 'loot', label: 'Loot' },
-                { value: 'consumable', label: 'Consumables' },
-                { value: 'artificer', label: 'Artificer' }
-            ],
+            templateOptions: ITEM_TEMPLATE_OPTIONS,
             onCopyTemplate: async (type) => {
-                if (type === 'loot') {
-                    const promptWithDefaults = await getItemPromptWithDefaults(lootPrompt);
-                    copyToClipboard(promptWithDefaults);
-                } else if (type === 'consumable') {
-                    const promptWithDefaults = await getItemPromptWithDefaults(consumablePrompt);
-                    copyToClipboard(promptWithDefaults);
-                } else if (type === 'artificer') {
-                    const promptWithDefaults = await getItemPromptWithDefaults(artificerPrompt);
-                    copyToClipboard(promptWithDefaults);
-                }
+                const prompt = await buildItemImportPrompt(type);
+                copyToClipboard(prompt);
             },
             onImport: async (jsonDataRaw) => {
                 let jsonData = normalizeStraightQuotesForJson(jsonDataRaw);

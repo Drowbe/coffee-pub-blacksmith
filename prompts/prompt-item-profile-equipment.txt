@@ -1,0 +1,11 @@
+========================================
+IMPORT PROFILE: EQUIPMENT
+========================================
+
+For this generation, set itemType to "Equipment".
+
+Choose itemSubType from: Clothing, Ring, Rod, Trinket, Vehicle Equipment, Wand, Wondrous Item, Light Armor, Medium Armor, Heavy Armor, Natural Armor, or Shield.
+
+Worn or carried gear—not a consumable unless I ask for a usable potion-like item (use Consumable profile instead).
+
+Default: destroyOnEmpty false, activities [] for passive gear. Rings and wondrous items may be magical (itemIsMagical true) with attunement when appropriate.

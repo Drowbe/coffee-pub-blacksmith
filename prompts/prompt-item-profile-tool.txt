@@ -1,0 +1,11 @@
+========================================
+IMPORT PROFILE: TOOL
+========================================
+
+For this generation, set itemType to "Tool".
+
+Choose itemSubType from: Artisan's Tools, Gaming Set, or Musical Instrument.
+
+Tools are kits or instruments, not consumables. Default: destroyOnEmpty false, activities [].
+
+Set sensible weight and price for the kit. itemIsMagical only if the tool set has clear magical properties.

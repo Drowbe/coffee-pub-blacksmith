@@ -1,0 +1,15 @@
+========================================
+IMPORT PROFILE: ARTIFICER
+========================================
+
+This item is for the Coffee Pub Artificer crafting system. You MUST include flags["coffee-pub-artificer"] with artificerType, artificerFamily, artificerTraits (non-empty array), and artificerSkillLevel.
+
+Prefer crafting ingredients and apparatus: herbs, ores, crystals, creature parts, environmental samples, potions, poisons, vials, crucibles.
+
+Components need artificerBiomes (array) when artificerType is Component. Essence family components need artificerAffinity.
+
+If the item can be chewed, applied, or drunk for an effect, use itemType "Consumable" with full uses/activities—not Loot with empty activities.
+
+Raw ore with no use effect may use itemType "Loot" and itemSubType "Material" with minimal uses.
+
+Do not put Component, Creation, or Tool in itemType—that belongs only in flags.artificerType.

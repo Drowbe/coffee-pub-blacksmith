@@ -1,0 +1,15 @@
+========================================
+IMPORT PROFILE: CONSUMABLE
+========================================
+
+For this generation, set itemType to "Consumable".
+
+Choose itemSubType from: Ammunition, Food, Poison, Potion, Rod, Scroll, Trinket, Wand, or Wondrous Item.
+
+If itemSubType is Poison, set itemSubTypeNuance to contact, ingested, inhaled, or injury.
+
+Include itemLimitedUses, limitedUsesMax, and destroyOnEmpty appropriate to the effect (usually 1 use, destroy when spent).
+
+When the item has a mechanical effect (healing, damage, spell-like use), include a full activities array with at least one activity (Heal, Attack, Use, etc.).
+
+itemIsMagical should be true for clearly magical consumables; set magicalAttunementRequired when relevant.
