@@ -55,8 +55,7 @@
 /* Pin-editing corner glyph (GM-only or Owner editing); not pin visibility */
 .blacksmith-pin-gm-indicator {
     position: absolute;
-    /* 75% of prior 0.22×pin: 0.22 × 0.75 = 0.165 */
-    --gm-fs: calc(var(--pin-size-px, 53px) * 0.165);
+    --gm-fs: var(--gm-indicator-size-px, 14px);
     z-index: 5;
     line-height: 0;
     pointer-events: none;
@@ -112,11 +111,13 @@
     border-radius: 50%; /* Match pin shape for icon clipping */
 }
 
-.blacksmith-pin[data-shape="square"] {
+.blacksmith-pin[data-shape="square"],
+.blacksmith-pin[data-shape="rectangle"] {
     border-radius: var(--blacksmith-pin-square-border-radius);
 }
 
-.blacksmith-pin[data-shape="square"] .blacksmith-pin-icon {
+.blacksmith-pin[data-shape="square"] .blacksmith-pin-icon,
+.blacksmith-pin[data-shape="rectangle"] .blacksmith-pin-icon {
     border-radius: var(--blacksmith-pin-square-border-radius); /* Match pin shape for icon clipping */
 }
 

@@ -73,7 +73,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.iconMode = 'icon'; // 'icon' or 'image'
         this.lastIconSelection = null;
         this.pinSize = { w: 32, h: 32 };
-        this.lockProportions = true;
+        this.lockProportions = true; // kept for backward-compat with saved designs; no longer shown in UI
         this.pinShape = 'circle';
         this.pinStyle = { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, iconColor: '#ffffff' };
         this.dropShadow = true;
@@ -92,7 +92,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this._defaultMode = false;
     }
 
-    _buildPinUpdateData({ widthInput, heightInput, lockInput, shapeInput, strokeWidthInput,
+    _buildPinUpdateData({ sizeInput, imagePreview, shapeInput, strokeWidthInput,
         fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput, textDisplayInput,
         textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput, textScaleInput,
         imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, nativeHtml }) {
@@ -110,8 +110,15 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const rawLayout = textLayoutInput?.value ?? this.pinTextLayout ?? 'under';
         const savedTextLayout = (() => { const n = normalizeTextLayout(rawLayout); return (n && allowedLayouts.includes(n)) ? n : 'under'; })();
 
-        const w = clampDim(widthInput?.value, this.pinSize.w);
-        const h = lockInput?.checked ? w : clampDim(heightInput?.value, this.pinSize.h);
+        const w = clampDim(sizeInput?.value, this.pinSize.w);
+        // For shape:none/rectangle + image URL, honor the image's natural aspect ratio against the chosen width.
+        // For circle/square (or none/rectangle + FA icon), height always equals width.
+        let h = w;
+        if ((this.pinShape === 'none' || this.pinShape === 'rectangle') && finalSelection.type === 'img' && imagePreview) {
+            const nw = imagePreview.naturalWidth;
+            const nh = imagePreview.naturalHeight;
+            if (nw > 0 && nh > 0) h = Math.max(8, Math.round(w * nh / nw));
+        }
 
         return {
             size: { w, h },
@@ -175,7 +182,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const partial = {};
         if (checked.has('design')) {
             partial.size = fullUpdateData.size;
-            partial.lockProportions = fullUpdateData.lockProportions;
             partial.shape = fullUpdateData.shape;
             partial.style = fullUpdateData.style;
             partial.dropShadow = fullUpdateData.dropShadow;
@@ -386,11 +392,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.iconMode = this.selected?.type === 'img' ? 'image' : 'icon';
         this.lastIconSelection = this.selected?.type === 'fa' ? this.selected : null;
         this.pinSize = pin.size || { w: 32, h: 32 };
-        // Derive lock state: check saved design first, fall back to dimension equality
-        const _savedDesigns = game.settings.get(MODULE.ID, 'clientPinDefaultDesigns') || {};
-        const _designKey = `${this.moduleId}|${this.pinType || 'default'}`;
-        const _savedLock = _savedDesigns[_designKey]?.lockProportions;
-        this.lockProportions = _savedLock !== undefined ? _savedLock : (this.pinSize.w === this.pinSize.h);
         this.pinShape = pin.shape || 'circle';
         this.pinStyle = {
             fill: pin.style?.fill || '#000000',
@@ -408,7 +409,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.pinTextMaxLength = pin.textMaxLength ?? 0;
         this.pinTextMaxWidth = pin.textMaxWidth ?? 0;
         this.pinTextScaleWithPin = pin.textScaleWithPin !== false;
-        this._pinRatio = this.pinSize.h ? this.pinSize.w / this.pinSize.h : 1;
 
         const validImageFit = ['fill', 'contain', 'cover', 'none', 'scale-down', 'zoom'];
         this.pinImageFit = (pin.imageFit && validImageFit.includes(pin.imageFit)) ? pin.imageFit : 'cover';
@@ -549,9 +549,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             imageValue,
             iconCategories,
             iconCategoryOptions,
-            pinWidth: this.pinSize.w,
-            pinHeight: this.pinSize.h,
-            lockProportions: this.lockProportions,
+            pinSize: this.pinSize.w,
             pinShape: this.pinShape,
             pinStroke: this.pinStyle.stroke,
             pinStrokeWidth: this.pinStyle.strokeWidth,
@@ -623,9 +621,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const imagePreview = nativeHtml.querySelector('.blacksmith-pin-config-image-preview');
         const iconSearchInput = nativeHtml.querySelector('.blacksmith-pin-config-icon-search');
         const iconCategoryFilter = nativeHtml.querySelector('.blacksmith-pin-config-icon-category-filter');
-        const widthInput = nativeHtml.querySelector('.blacksmith-pin-config-width');
-        const heightInput = nativeHtml.querySelector('.blacksmith-pin-config-height');
-        const lockInput = nativeHtml.querySelector('.blacksmith-pin-config-lock');
+        const sizeInput = nativeHtml.querySelector('.blacksmith-pin-config-size');
         const shapeInput = nativeHtml.querySelector('.blacksmith-pin-config-shape');
         const strokeInput = nativeHtml.querySelector('.blacksmith-pin-config-stroke');
         const strokeTextInput = nativeHtml.querySelector('.blacksmith-pin-config-stroke-text');
@@ -768,20 +764,10 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             return Math.max(0, Math.round(parsed));
         };
 
-        const syncPinSize = (source) => {
-            if (!widthInput || !heightInput) return;
-            let width = clampDimension(widthInput.value, this.pinSize.w);
-            let height;
-
-            if (lockInput?.checked) {
-                // Constrain proportions = square: height always mirrors width
-                height = width;
-                heightInput.value = height;
-            } else {
-                height = clampDimension(heightInput.value, this.pinSize.h);
-            }
-
-            this.pinSize = { w: width, h: height };
+        const syncPinSize = () => {
+            if (!sizeInput) return;
+            const s = clampDimension(sizeInput.value, this.pinSize.w);
+            this.pinSize = { w: s, h: s };
         };
 
         nativeHtml.querySelectorAll('.blacksmith-pin-config-icon-option').forEach(button => {
@@ -825,23 +811,11 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             }
         });
 
-        widthInput?.addEventListener('input', () => syncPinSize('width'));
-        widthInput?.addEventListener('change', () => syncPinSize('width'));
-        heightInput?.addEventListener('input', () => syncPinSize('height'));
-        heightInput?.addEventListener('change', () => syncPinSize('height'));
-        lockInput?.addEventListener('change', () => {
-            this.lockProportions = !!lockInput.checked;
-            if (this.lockProportions) {
-                // Snap height to width and disable the field
-                syncPinSize('width');
-                if (heightInput) heightInput.disabled = true;
-            } else {
-                if (heightInput) heightInput.disabled = false;
-            }
-        });
+        sizeInput?.addEventListener('input', () => syncPinSize());
+        sizeInput?.addEventListener('change', () => syncPinSize());
         shapeInput?.addEventListener('change', () => {
             const shape = shapeInput.value;
-            if (shape === 'circle' || shape === 'square' || shape === 'none') {
+            if (shape === 'circle' || shape === 'square' || shape === 'rectangle' || shape === 'none') {
                 this.pinShape = shape;
             }
             applyShapeState();
@@ -1041,7 +1015,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 return;
             }
 
-            const pinUpdateData = this._buildPinUpdateData({ widthInput, heightInput, lockInput, shapeInput,
+            const pinUpdateData = this._buildPinUpdateData({ sizeInput, imagePreview, shapeInput,
                 strokeWidthInput, fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput,
                 textDisplayInput, textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput,
                 textScaleInput, imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, nativeHtml });
@@ -1119,7 +1093,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
                         const design = {
                             ...(has('source') ? { image: pinUpdateData.image, imageFit: pinUpdateData.imageFit, imageZoom: pinUpdateData.imageZoom } : {}),
-                            ...(has('design') ? { size: configData.pinSize, lockProportions: this.lockProportions, shape: configData.pinShape, style: configData.pinStyle, dropShadow: configData.pinDropShadow } : {}),
+                            ...(has('design') ? { size: configData.pinSize, shape: configData.pinShape, style: configData.pinStyle, dropShadow: configData.pinDropShadow } : {}),
                             ...(has('text') ? configData.pinTextConfig : {}),
                             ...(has('animations') ? { eventAnimations: pinUpdateData.eventAnimations } : {}),
                             ...(has('classification') ? { tags: pinUpdateData.tags } : {}),

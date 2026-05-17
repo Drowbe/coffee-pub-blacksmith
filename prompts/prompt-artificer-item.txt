@@ -154,6 +154,7 @@ ACTIVITIES: (ARRAY) An array of activity objects. Each activity object should ha
 - activityEffectBonus: (INTEGER) Bonus added to the roll (e.g., 0 for "3d8", 2 for "2d4+2")
 
 ITEMSOURCE: (STRING) The sourcebook or hombrew source name. Default to "Artificer"
+
 ITEMLICENSE: (STRING) License or attribution for the item (e.g., "OGL", "CC BY 4.0", or a custom attribution string). Default to "CC BY 4.0".
 
 ----------------------------

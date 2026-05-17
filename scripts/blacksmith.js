@@ -753,7 +753,14 @@ function initializeSettingsDependentFeatures() {
                         moduleId: data.moduleId || 'unknown',
                         text: data.text,
                         image: data.image || '<i class="fa-solid fa-star"></i>',
-                        size: data.size,
+                        size: (() => {
+                            const s = data.size;
+                            if (!s || typeof s.w !== 'number') return undefined;
+                            const shape = data.shape || 'circle';
+                            // circle and square must be square; rectangle and none may have free aspect ratio
+                            const freeAspect = shape === 'rectangle' || shape === 'none';
+                            return { w: s.w, h: freeAspect ? (s.h ?? s.w) : s.w };
+                        })(),
                         style: data.style,
                         config: data.config || {},
                         ownership: data.ownership || { default: 0 }

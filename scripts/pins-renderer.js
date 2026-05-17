@@ -501,12 +501,14 @@ class PinDOMElement {
                 console.warn(`BLACKSMITH | PINS updatePosition: Invalid screen coordinates for ${pinId}`);
             }
             
-            // Set position and size (--pin-size-px scales GM indicator; stroke color set in createOrUpdatePin)
+            // Set position and size
             pinElement.style.left = `${left}px`;
             pinElement.style.top = `${top}px`;
             pinElement.style.width = `${width}px`;
             pinElement.style.height = `${height}px`;
             pinElement.style.setProperty('--pin-size-px', `${width}px`);
+            // GM indicator: fixed 16 scene-units converted to screen pixels — scales with zoom, not pin size
+            pinElement.style.setProperty('--gm-indicator-size-px', `${Math.round(16 * scale)}px`);
             pinElement.style.setProperty('--pin-stroke-color', strokeColor);
             pinElement.style.setProperty(
                 '--pin-stroke-px',
@@ -540,7 +542,7 @@ class PinDOMElement {
                     // Prevent clipping artifacts: image radius should match inner border radius.
                     if (shape === 'circle') {
                         iconElement.style.borderRadius = '50%';
-                    } else if (shape === 'square') {
+                    } else if (shape === 'square' || shape === 'rectangle') {
                         const squareRadiusPercentRaw = typeof document !== 'undefined'
                             ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-square-border-radius').trim()
                             : '';

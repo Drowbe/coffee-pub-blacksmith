@@ -1469,7 +1469,7 @@ export class JournalPagePins {
                     }
                     await flagDoc.setFlag(MODULE.ID, 'sceneId', targetSceneId);
                 }
-                await pins.reload({ sceneId: targetSceneId });
+                // reload() not needed — create/place updates the renderer automatically on the active scene
                 if (bar && placementOpts) {
                     await this._saveToolbarPrefs({
                         pinMode: placementOpts.allowDuplicates ? 'multiple' : 'single',

@@ -23,7 +23,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {string} [text] - Text content to display
  * @property {string} [image] - Font Awesome class string, image URL, or (when iconText is not set) used for pin center
  * @property {string} [iconText] - Text to display in pin center instead of icon/image; inherits icon styling (iconColor, scaling)
- * @property {'circle' | 'square' | 'none'} [shape] - Pin shape: 'circle' (default), 'square', or 'none' (icon only, no background)
+ * @property {'circle' | 'square' | 'none' | 'rectangle'} [shape] - Pin shape: 'circle' (default), 'square' (rounded corners, forced square), 'rectangle' (rounded corners, free aspect ratio), or 'none' (icon only, no background)
  * @property {boolean} [dropShadow] - Whether to show drop shadow (default: true)
  * @property {'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'} [textLayout] - Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is treated as 'arc-below'.
  * @property {'always' | 'hover' | 'never' | 'gm'} [textDisplay] - Text display mode: 'always' (default), 'hover', 'never', or 'gm' (GM only)
@@ -183,7 +183,7 @@ export function normalizeBlacksmithVisibility(value) {
 export const PIN_DEFAULTS = Object.freeze({
     size: { w: 32, h: 32 },
     style: { fill: '#000000', stroke: '#ffffff', strokeWidth: 2, alpha: 1, iconColor: '#ffffff' },
-    shape: 'circle', // 'circle' | 'square' | 'none'
+    shape: 'circle', // 'circle' | 'square' | 'rectangle' | 'none'
     dropShadow: true,
     textLayout: 'under', // 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'
     textDisplay: 'hover', // 'always' | 'hover' | 'never' | 'gm'

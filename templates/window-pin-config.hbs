@@ -118,20 +118,9 @@
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-field-row">
                     <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Width</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-width" min="8" step="1" value="{{pinWidth}}">
+                        <span class="blacksmith-field-label">Size</span>
+                        <input type="number" class="blacksmith-input blacksmith-pin-config-size" min="8" step="1" value="{{pinSize}}">
                     </label>
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Height</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-height" min="8" step="1" value="{{#if lockProportions}}{{pinWidth}}{{else}}{{pinHeight}}{{/if}}" {{#if lockProportions}}disabled{{/if}}>
-                    </label>
-                </div>
-                <div class="blacksmith-toggle-row">
-                    <label class="blacksmith-toggle">
-                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-lock" {{#if lockProportions}}checked{{/if}}>
-                        <span class="blacksmith-toggle-slider"></span>
-                    </label>
-                    <span class="blacksmith-toggle-label">Constrain proportions</span>
                 </div>
                 <div class="blacksmith-field-row">
                     <label class="blacksmith-field">
@@ -139,6 +128,7 @@
                         <select class="blacksmith-input blacksmith-pin-config-shape">
                             <option value="circle" {{#if (eq pinShape "circle")}}selected{{/if}}>Circle</option>
                             <option value="square" {{#if (eq pinShape "square")}}selected{{/if}}>Square</option>
+                            <option value="rectangle" {{#if (eq pinShape "rectangle")}}selected{{/if}}>Rectangle</option>
                             <option value="none" {{#if (eq pinShape "none")}}selected{{/if}}>None</option>
                         </select>
                     </label>
