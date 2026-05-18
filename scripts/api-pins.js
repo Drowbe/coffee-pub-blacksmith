@@ -74,7 +74,7 @@ export class PinsAPI {
      * Create a pin. Omit sceneId and x/y to create an unplaced pin (not on canvas).
      * @param {Partial<import('./manager-pins.js').PinData> & { id: string; moduleId: string } & { x?: number; y?: number }} pinData
      * @param {import('./manager-pins.js').PinCreateOptions} [options]
-     * @returns {Promise<import('./manager-pins.js').PinData>}
+     * @returns {Promise<import('./manager-pins.js').ApiPinData>}
      */
     static create(pinData, options) {
         return PinManager.create(pinData, options);
@@ -85,7 +85,7 @@ export class PinsAPI {
      * @param {string} pinId
      * @param {Partial<import('./manager-pins.js').PinData>} patch
      * @param {import('./manager-pins.js').PinUpdateOptions} [options]
-     * @returns {Promise<import('./manager-pins.js').PinData | null>} Returns null if pin not found
+     * @returns {Promise<import('./manager-pins.js').ApiPinData | null>} Returns null if pin not found
      */
     static update(pinId, patch, options) {
         return PinManager.update(pinId, patch, options);
@@ -95,7 +95,7 @@ export class PinsAPI {
      * Place an unplaced pin on a scene.
      * @param {string} pinId
      * @param {{ sceneId: string; x: number; y: number }} placement
-     * @returns {Promise<import('./manager-pins.js').PinData | null>} The placed pin or null if not found / not unplaced
+     * @returns {Promise<import('./manager-pins.js').ApiPinData | null>} The placed pin or null if not found / not unplaced
      */
     static place(pinId, placement) {
         return PinManager.place(pinId, placement);
@@ -104,7 +104,7 @@ export class PinsAPI {
     /**
      * Unplace a pin (remove from canvas but keep pin data).
      * @param {string} pinId
-     * @returns {Promise<import('./manager-pins.js').PinData | null>} The unplaced pin data or null
+     * @returns {Promise<import('./manager-pins.js').ApiPinData | null>} The unplaced pin data or null
      */
     static unplace(pinId) {
         return PinManager.unplace(pinId);
@@ -151,7 +151,7 @@ export class PinsAPI {
      * @param {string} sceneId - Target scene
      * @param {Partial<import('./manager-pins.js').PinData> & { id: string; x: number; y: number; moduleId: string }} pinData - Pin data
      * @param {import('./manager-pins.js').PinCreateOptions} [options] - Additional options
-     * @returns {Promise<import('./manager-pins.js').PinData>} - Created pin data
+     * @returns {Promise<import('./manager-pins.js').ApiPinData>} - Created pin data
      */
     static createAsGM(sceneId, pinData, options) {
         return PinManager.createAsGM(sceneId, pinData, options);
@@ -163,7 +163,7 @@ export class PinsAPI {
      * @param {string} pinId - Pin ID to update
      * @param {Partial<import('./manager-pins.js').PinData>} patch - Update patch
      * @param {import('./manager-pins.js').PinUpdateOptions} [options] - Additional options
-     * @returns {Promise<import('./manager-pins.js').PinData | null>} - Updated pin data or null if not found
+     * @returns {Promise<import('./manager-pins.js').ApiPinData | null>} - Updated pin data or null if not found
      */
     static updateAsGM(sceneId, pinId, patch, options) {
         return PinManager.updateAsGM(sceneId, pinId, patch, options);
@@ -190,7 +190,7 @@ export class PinsAPI {
      * @param {Object} [params.payload] - Pin data (for create)
      * @param {Object} [params.patch] - Update patch (for update)
      * @param {Object} [params.options] - Additional options
-     * @returns {Promise<import('./manager-pins.js').PinData | number | void>} - Result depends on action type
+     * @returns {Promise<import('./manager-pins.js').ApiPinData | number | void>} - Result depends on action type
      */
     static requestGM(action, params) {
         return PinManager.requestGM(action, params);
@@ -271,7 +271,7 @@ export class PinsAPI {
      * Get a single pin by id.
      * @param {string} pinId
      * @param {import('./manager-pins.js').PinGetOptions} [options]
-     * @returns {import('./manager-pins.js').PinData | null}
+     * @returns {import('./manager-pins.js').ApiPinData | null}
      */
     static get(pinId, options) {
         return PinManager.get(pinId, options);
@@ -280,7 +280,7 @@ export class PinsAPI {
     /**
      * List pins with filters.
      * @param {import('./manager-pins.js').PinListOptions} [options]
-     * @returns {import('./manager-pins.js').PinData[]}
+     * @returns {import('./manager-pins.js').ApiPinData[]}
      */
     static list(options) {
         return PinManager.list(options);

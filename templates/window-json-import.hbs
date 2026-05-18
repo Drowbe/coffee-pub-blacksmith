@@ -39,6 +39,16 @@
                         <i class="fa-solid fa-clipboard"></i> {{copyTemplateLabel}}
                     </button>
                 </div>
+                {{#if hasPromptCheckboxes}}
+                <div class="blacksmith-json-import-prompt-options">
+                    {{#each promptCheckboxes}}
+                    <label class="blacksmith-json-import-prompt-checkbox">
+                        <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{id}}" {{#if checked}}checked{{/if}}>
+                        <span>{{label}}</span>
+                    </label>
+                    {{/each}}
+                </div>
+                {{/if}}
             </div>
         </section>
 

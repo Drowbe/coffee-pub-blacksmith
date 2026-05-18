@@ -19,7 +19,7 @@ The Canvas Pins system provides configurable, interactive markers on the Foundry
 ### Placed pins
 
 - **Where**: `scene.flags[MODULE.ID].pins` (array of pin objects).
-- **When**: Pins that have `sceneId`, `x`, and `y` are “placed” and appear on the canvas for that scene.
+- **When**: Pins stored in a scene flag array with `x` and `y` are “placed” and appear on the canvas for that scene. Storage is container-based; API reads may enrich returned objects with `sceneId`.
 - **Shape**: Each pin has `id`, `x`, `y`, `size`, `style`, `shape`, `text`, `image`, `config`, `moduleId`, `ownership`, `version`, etc. See `pins-schema.js` and the schema section below.
 
 ### Unplaced pins

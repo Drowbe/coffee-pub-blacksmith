@@ -187,18 +187,17 @@ if (pins?.isReady()) {
 
 ## Data Types
 
-### PinData
+### StoredPinData
 
-The pin data structure includes all configurable properties for a pin:
+Internal storage shape used inside Blacksmith scene flags and the unplaced world setting.
 
-`x`, `y`, and `sceneId` are optional. Omit them for unplaced pins.
+`x` and `y` are optional. Omit them for unplaced pins. Stored pins do not rely on persisted `sceneId`; placement is determined by which scene flag array contains the pin.
 
 ```typescript
-interface PinData {
+interface StoredPinData {
   id: string; // UUID
   x?: number;   // Omit for unplaced pins
   y?: number;   // Omit for unplaced pins
-  sceneId?: string;  // Not persisted on stored pins; use findScene() to resolve placement (used only in placement patches)
   size?: { w: number; h: number };
   style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string }; // Supports hex, rgb, rgba, hsl, hsla, named colors. iconColor applies to Font Awesome icons (default '#ffffff').
   text?: string; // Text label content
@@ -238,12 +237,28 @@ interface PinData {
 }
 ```
 
+### ApiPinData
+
+Public API return shape. This is what `pins.get()`, `pins.list()`, `pins.create()`, `pins.update()`, `pins.place()`, and related GM variants return.
+
+```typescript
+interface ApiPinData extends StoredPinData {
+  sceneId?: string; // Present when the returned pin is placed on a scene; omitted for unplaced pins
+}
+```
+
+**Contract**:
+
+- Treat **`ApiPinData`** as the stable integration contract.
+- Use **`pin.sceneId`** on API-returned pins to determine whether a pin is placed.
+- Do not assume `sceneId` is persisted in raw scene flag storage; Blacksmith enriches API-returned placed pins on read.
+
 ### PinEvent
 
 ```typescript
 interface PinEvent {
   type: 'hoverIn' | 'hoverOut' | 'click' | 'doubleClick' | 'rightClick' | 'middleClick' | 'dragStart' | 'dragMove' | 'dragEnd';
-  pin: PinData;
+  pin: ApiPinData;
   sceneId: string;
   userId: string;
   modifiers: { shift: boolean; ctrl: boolean; alt: boolean; meta: boolean };
@@ -346,7 +361,7 @@ const existsOnOtherScene = pins.exists('my-pin-id', { sceneId: 'other-scene-id' 
 ### `pins.create(pinData, options?)`
 Create a pin. **Normal case: create unplaced** by omitting `sceneId`, `x`, and `y`. Optionally place at creation by passing `options.sceneId` and `x`/`y` in `pinData`.
 
-**Returns**: `Promise<PinData>` - The created pin data with defaults applied
+**Returns**: `Promise<ApiPinData>` - The created pin data with defaults applied
 
 **Before creating**: Use `pins.exists(pinId)` to check if a pin with that ID already exists (searches unplaced then all scenes). If it does, use `pins.update()` instead, or generate a new unique ID (e.g., `crypto.randomUUID()`).
 
@@ -585,7 +600,7 @@ try {
 ### `pins.update(pinId, patch, options?)`
 Update properties for an existing pin (placed or unplaced). When `sceneId` is omitted, lookup is unplaced then all scenes. Automatically detects and handles icon/image type changes (e.g., switching from Font Awesome icon to image URL, or vice versa) by rebuilding the icon element when needed.
 
-**Returns**: `Promise<PinData | null>` - The updated pin data, or `null` if pin not found
+**Returns**: `Promise<ApiPinData | null>` - The updated pin data, or `null` if pin not found
 
 **Placement via patch**: To place an unplaced pin, include `{ sceneId, x, y }` in `patch`. To unplace a pin (remove from canvas but keep data), pass `patch.unplace === true`.
 
@@ -653,7 +668,7 @@ await pinsAPI.delete(pin.id, { sceneId: 'some-scene-id' });
 ### `pins.place(pinId, placement)`
 Place an unplaced pin on a scene at the given coordinates. The pin must currently be unplaced. When placing onto the currently active scene, the renderer updates automatically — `pins.reload()` is **not** required. `reload()` is only needed if the Blacksmith layer container hasn't been initialized yet (i.e., the layer was never activated since page load).
 
-**Returns**: `Promise<PinData | null>` - The updated pin data (with `sceneId`, `x`, `y` set), or `null` if the pin was not found or was not unplaced
+**Returns**: `Promise<ApiPinData | null>` - The updated pin data (with `sceneId`, `x`, `y` set for a placed pin), or `null` if the pin was not found or was not unplaced
 
 **Parameters**:
 - `pinId` (string, required): Pin ID to place
@@ -680,7 +695,7 @@ await pins.place(pin.id, { sceneId: canvas.scene.id, x: 1200, y: 900 });
 ### `pins.unplace(pinId)`
 Remove a pin from the canvas but keep its data. The pin becomes unplaced (no `sceneId`, and typically no `x`/`y`). The pin must currently be on a scene.
 
-**Returns**: `Promise<PinData | null>` - The pin data after unplacing (no longer on a scene), or `null` if the pin was not found or was not placed
+**Returns**: `Promise<ApiPinData | null>` - The pin data after unplacing (no longer on a scene), or `null` if the pin was not found or was not placed
 
 ```javascript
 // Unplace a pin (e.g. user removes it from map but keeps the note/quest)
@@ -776,7 +791,7 @@ await pinsAPI.deleteAllByType('default', { sceneId: 'some-scene-id', moduleId: '
 ### `pins.createAsGM(sceneId, pinData, options?)`
 Create a pin as GM, bypassing permission checks. Only GMs can call this method directly.
 
-**Returns**: `Promise<PinData>` - Created pin data
+**Returns**: `Promise<ApiPinData>` - Created pin data
 
 ```javascript
 // GM creates a pin directly
@@ -804,7 +819,7 @@ const pin = await pinsAPI.createAsGM(sceneId, {
 ### `pins.updateAsGM(sceneId, pinId, patch, options?)`
 Update a pin as GM, bypassing permission checks. Only GMs can call this method directly.
 
-**Returns**: `Promise<PinData | null>` - Updated pin data or null if not found
+**Returns**: `Promise<ApiPinData | null>` - Updated pin data or null if not found
 
 ```javascript
 // GM updates a pin directly
@@ -849,7 +864,7 @@ await pinsAPI.deleteAsGM(sceneId, pinId);
 ### `pins.requestGM(action, params)`
 Request a GM to perform a pin action (for non-GM users). Uses socket system to forward request to GM. If the caller is already a GM, executes directly without socket overhead.
 
-**Returns**: `Promise<PinData | number | void>` - Result depends on action type
+**Returns**: `Promise<ApiPinData | number | void>` - Result depends on action type
 
 ```javascript
 // Non-GM requests pin creation
@@ -1042,7 +1057,7 @@ When “Default for [type]” is toggled on, the window uses the pin’s **modul
 }
 ```
 
-When creating new pins, call **`pins.getDefaultPinDesign(moduleId, type)`** to get the current user’s saved default for that (module, type) (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [PinData](#pin-data-schema)). Pass the **pin type** (e.g. `'journal-pin'`, `'encounter'`) so each type has its own default.
+When creating new pins, call **`pins.getDefaultPinDesign(moduleId, type)`** to get the current user’s saved default for that (module, type) (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [ApiPinData](#apipindata)). Pass the **pin type** (e.g. `'journal-pin'`, `'encounter'`) so each type has its own default.
 
 #### 4. Pin type handling
 
@@ -1167,7 +1182,7 @@ if (sceneId) {
 ### `pins.get(pinId, options?)`
 Get a single pin by id. When `sceneId` is omitted, lookup checks the unplaced store first, then all scenes. Use this when you have a pin ID (e.g. from a note or quest) and may not know whether it is placed.
 
-**Returns**: `PinData | null` - Pin data if found, `null` if not found
+**Returns**: `ApiPinData | null` - Pin data if found, `null` if not found
 
 ```javascript
 // Resolve by ID — works for unplaced or placed
@@ -1192,7 +1207,7 @@ if (pins.exists('my-pin-id')) {
 ### `pins.list(options?)`
 List pins with filters. Use `unplacedOnly: true` to list only unplaced pins (no `sceneId` required). Without `unplacedOnly`, `sceneId` defaults to the active scene and only placed pins on that scene are returned.
 
-**Returns**: `PinData[]` - Array of pin data matching filters
+**Returns**: `ApiPinData[]` - Array of pin data matching filters
 
 ```javascript
 // List unplaced pins only (no sceneId needed)
@@ -1836,7 +1851,7 @@ Fired when a pin is created: after `pins.create()` returns successfully. Payload
 
 **Payload**:
 ```js
-{ pinId: string, moduleId: string, placement: 'unplaced' | 'placed', pin: PinData [, sceneId: string ] }
+{ pinId: string, moduleId: string, placement: 'unplaced' | 'placed', pin: ApiPinData [, sceneId: string ] }
 ```
 - `pinId`: Pin ID that was created
 - `moduleId`: Pin's `moduleId`
@@ -1849,7 +1864,7 @@ Fired when an unplaced pin is placed on a scene: after `pins.place()` or `pins.u
 
 **Payload**:
 ```js
-{ pinId: string, sceneId: string, moduleId: string, type?: string, pin: PinData }
+{ pinId: string, sceneId: string, moduleId: string, type?: string, pin: ApiPinData }
 ```
 - `pinId`: Pin ID that was placed
 - `sceneId`: Scene where the pin was placed
@@ -1862,7 +1877,7 @@ Fired when a placed pin is removed from the canvas but its data is kept: after `
 
 **Payload**:
 ```js
-{ pinId: string, sceneId: string, moduleId: string, type?: string, pin: PinData }
+{ pinId: string, sceneId: string, moduleId: string, type?: string, pin: ApiPinData }
 ```
 - `pinId`: Pin ID that was unplaced
 - `sceneId`: Scene the pin was removed from
@@ -1875,7 +1890,7 @@ Fired when a pin is updated: after `pins.update()` returns successfully, and whe
 
 **Payload**:
 ```js
-{ pinId: string, sceneId: string | null, moduleId: string, type?: string, patch: object, pin: PinData }
+{ pinId: string, sceneId: string | null, moduleId: string, type?: string, patch: object, pin: ApiPinData }
 ```
 - `pinId`: Pin ID that was updated
 - `sceneId`: Scene where the pin lives, or `null` if the pin is unplaced
@@ -1909,7 +1924,7 @@ Fired when a single pin is deleted: after `pins.delete()` returns successfully. 
 
 **Payload**:
 ```js
-{ pinId: string, sceneId: string | null, moduleId?: string, type?: string, pin?: PinData, config?: object }
+{ pinId: string, sceneId: string | null, moduleId?: string, type?: string, pin?: ApiPinData, config?: object }
 ```
 - `pinId`: Pin ID that was deleted
 - `sceneId`: Scene where the pin lived, or `null` if the pin was unplaced

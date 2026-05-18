@@ -30,6 +30,7 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
     : 0;
 
 /** @typedef {{ id: string; x: number; y: number; size: { w: number; h: number }; style: object; text?: string; image?: string; iconText?: string; config: object; moduleId: string; type?: string; tags?: string[]; ownership: { default: number; users?: Record<string, number> }; version: number }} PinData */
+/** @typedef {PinData & { sceneId?: string }} ApiPinData */
 
 /**
  * @typedef {Object} PinCreateOptions
@@ -1372,6 +1373,20 @@ export class PinManager {
     }
 
     /**
+     * Clone pin data for API consumers and attach resolved sceneId for placed pins.
+     * Storage remains container-based: scene flags determine placement.
+     * @param {PinData} pin
+     * @param {string | null} [sceneId]
+     * @returns {ApiPinData}
+     */
+    static _clonePinForApi(pin, sceneId = null) {
+        const clone = foundry.utils.deepClone(pin);
+        if (sceneId != null && sceneId !== '') clone.sceneId = sceneId;
+        else delete clone.sceneId;
+        return clone;
+    }
+
+    /**
      * Cleanup on module unload
      */
     static cleanup() {
@@ -1701,7 +1716,7 @@ export class PinManager {
      * Create a pin. Omit sceneId and x/y to create an unplaced pin (not on canvas).
      * @param {Partial<PinData> & { id: string; moduleId: string } & { x?: number; y?: number }} pinData
      * @param {PinCreateOptions} [options]
-     * @returns {Promise<PinData>}
+     * @returns {Promise<ApiPinData>}
      */
     static async create(pinData, options = {}) {
         if (!this._canCreate()) {
@@ -1731,7 +1746,7 @@ export class PinManager {
             if (typeof Hooks !== 'undefined') {
                 Hooks.callAll('blacksmith.pins.created', { pinId: pin.id, moduleId: pin.moduleId, placement: 'unplaced', pin: foundry.utils.deepClone(pin) });
             }
-            return foundry.utils.deepClone(pin);
+            return this._clonePinForApi(pin);
         }
 
         const scene = this._getScene(options.sceneId);
@@ -1759,7 +1774,7 @@ export class PinManager {
                 console.error('BLACKSMITH | PINS Error updating renderer after create:', err);
             });
         }
-        return foundry.utils.deepClone(pin);
+        return this._clonePinForApi(pin, scene.id);
     }
 
     /**
@@ -1768,7 +1783,7 @@ export class PinManager {
      * @param {string} pinId
      * @param {Partial<PinData>} patch
      * @param {PinUpdateOptions} [options]
-     * @returns {Promise<PinData | null>} Returns null if pin not found
+     * @returns {Promise<ApiPinData | null>} Returns null if pin not found
      */
     static async update(pinId, patch, options = {}) {
         const loc = this._findPinLocation(pinId);
@@ -1814,7 +1829,7 @@ export class PinManager {
                         }
                     }).catch(() => {});
                 }
-                return foundry.utils.deepClone(placed);
+                return this._clonePinForApi(placed, scene.id);
             }
             const validated = validatePinData(merged, { allowUnplaced: true });
             if (!validated.ok) throw new Error(validated.error);
@@ -1826,7 +1841,7 @@ export class PinManager {
             if (typeof Hooks !== 'undefined') {
                 Hooks.callAll('blacksmith.pins.updated', { pinId, sceneId: null, moduleId: updated.moduleId, type: updated.type ?? 'default', patch, pin: foundry.utils.deepClone(updated) });
             }
-            return foundry.utils.deepClone(updated);
+            return this._clonePinForApi(updated);
         }
 
         const scene = loc.scene;
@@ -1878,7 +1893,7 @@ export class PinManager {
                 console.error('BLACKSMITH | PINS Error updating renderer after update:', err);
             });
         }
-        return foundry.utils.deepClone(updated);
+        return this._clonePinForApi(updated, scene.id);
     }
 
     /**
@@ -1990,7 +2005,7 @@ export class PinManager {
      * Place an unplaced pin on a scene. No-op if pin is already on a scene.
      * @param {string} pinId
      * @param {{ sceneId: string; x: number; y: number }} placement
-     * @returns {Promise<PinData | null>} The placed pin or null if not found (e.g. not unplaced)
+     * @returns {Promise<ApiPinData | null>} The placed pin or null if not found (e.g. not unplaced)
      */
     static async place(pinId, placement) {
         const loc = this._findPinLocation(pinId);
@@ -2044,13 +2059,13 @@ export class PinManager {
                 console.error('BLACKSMITH | PINS Error updating renderer after place:', err);
             });
         }
-        return foundry.utils.deepClone(placed);
+        return this._clonePinForApi(placed, scene.id);
     }
 
     /**
      * Unplace a pin (remove from canvas but keep pin data). Moves pin to unplaced store.
      * @param {string} pinId
-     * @returns {Promise<PinData | null>} The unplaced pin data or null if not found
+     * @returns {Promise<ApiPinData | null>} The unplaced pin data or null if not found
      */
     static async unplace(pinId) {
         const loc = this._findPinLocation(pinId);
@@ -2092,7 +2107,7 @@ export class PinManager {
                 console.error('BLACKSMITH | PINS Error removing pin from renderer:', err);
             });
         }
-        return foundry.utils.deepClone(pin);
+        return this._clonePinForApi(pin);
     }
 
     /**
@@ -2161,7 +2176,7 @@ export class PinManager {
      * Get a pin by id. If options.sceneId is omitted, looks in unplaced then on any scene.
      * @param {string} pinId
      * @param {PinGetOptions} [options]
-     * @returns {PinData | null}
+     * @returns {ApiPinData | null}
      */
     static get(pinId, options = {}) {
         if (options.sceneId != null) {
@@ -2171,7 +2186,7 @@ export class PinManager {
                 if (!pin) return null;
                 const userId = game.user?.id ?? '';
                 if (!this._canView(pin, userId)) return null;
-                return foundry.utils.deepClone(pin);
+                return this._clonePinForApi(pin, scene.id);
             } catch {
                 return null;
             }
@@ -2180,13 +2195,13 @@ export class PinManager {
         if (!loc) return null;
         const userId = game.user?.id ?? '';
         if (!this._canView(loc.pin, userId)) return null;
-        return foundry.utils.deepClone(loc.pin);
+        return this._clonePinForApi(loc.pin, loc.location === 'scene' ? loc.sceneId : null);
     }
 
     /**
      * List pins. Use unplacedOnly: true for unplaced pins; otherwise use sceneId for a scene.
      * @param {PinListOptions} [options]
-     * @returns {PinData[]}
+     * @returns {ApiPinData[]}
      */
     static list(options = {}) {
         if (options.unplacedOnly) {
@@ -2194,14 +2209,14 @@ export class PinManager {
             const userId = game.user?.id ?? '';
             pins = pins.filter((p) => this._canView(p, userId));
             pins = pins.filter((p) => this._matchesListFilters(p, options));
-            return pins.map((p) => foundry.utils.deepClone(p));
+            return pins.map((p) => this._clonePinForApi(p));
         }
         const scene = this._getScene(options.sceneId);
         let pins = this._getScenePins(scene);
         const userId = game.user?.id ?? '';
         pins = pins.filter((p) => this._canView(p, userId));
         pins = pins.filter((p) => this._matchesListFilters(p, options));
-        return pins.map((p) => foundry.utils.deepClone(p));
+        return pins.map((p) => this._clonePinForApi(p, scene.id));
     }
 
     /**
@@ -2316,7 +2331,7 @@ export class PinManager {
      * @param {string} sceneId - Target scene
      * @param {Partial<PinData> & { id: string; x: number; y: number; moduleId: string }} pinData - Pin data
      * @param {PinCreateOptions} [options] - Additional options
-     * @returns {Promise<PinData>} - Created pin data
+     * @returns {Promise<ApiPinData>} - Created pin data
      */
     static async createAsGM(sceneId, pinData, options = {}) {
         if (!game.user?.isGM) {
@@ -2331,7 +2346,7 @@ export class PinManager {
      * @param {string} pinId - Pin ID to update
      * @param {Partial<PinData>} patch - Update patch
      * @param {PinUpdateOptions} [options] - Additional options
-     * @returns {Promise<PinData | null>} - Updated pin data or null if not found
+     * @returns {Promise<ApiPinData | null>} - Updated pin data or null if not found
      */
     static async updateAsGM(sceneId, pinId, patch, options = {}) {
         if (!game.user?.isGM) {
@@ -2406,7 +2421,7 @@ export class PinManager {
      * @param {Object} [params.patch] - Update patch (update, updateUnplaced)
      * @param {Object} [params.options] - Options (update, updateUnplaced)
      * @param {Object} [params.payload] - Pin data (create)
-     * @returns {Promise<PinData | number | void>} - Result depends on action type
+     * @returns {Promise<ApiPinData | number | void>} - Result depends on action type
      */
     static async requestGM(action, params) {
         if (game.user?.isGM) {

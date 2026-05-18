@@ -1,0 +1,12 @@
+================================
+IMPORT PROFILE: SIMPLE TEXT
+================================
+
+PROFILE DEFAULTS (every result):
+- resultType: "text"
+- resultDocumentType: " "
+- resultCompendium: " "
+- displayRollFormula on the table: false
+
+PROFILE INSTRUCTIONS:
+- Text-only results; do not link to world documents or compendiums.

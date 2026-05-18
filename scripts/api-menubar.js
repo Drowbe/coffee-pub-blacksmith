@@ -72,6 +72,8 @@ class MenuBar {
     static _clickHandlerContainer = null;
     static _contextMenuHandler = null;
     static _contextMenuHandlerContainer = null;
+    static _clickHandlerSecondaryContainer = null;
+    static _contextMenuHandlerSecondaryContainer = null;
     static _middleZoneOverflowItems = [];  // Items moved to overflow menu when middle zone overflows
     static _middleZoneResizeObserver = null;  // ResizeObserver for overflow detection
 
@@ -3155,6 +3157,7 @@ class MenuBar {
         // Store the handler reference and container for cleanup
         this._clickHandler = clickHandler;
         this._clickHandlerContainer = menubarContainer;
+        this._clickHandlerSecondaryContainer = null;
 
         // Add the event listener to both menubar and secondary bar
         menubarContainer.addEventListener('click', clickHandler);
@@ -3211,6 +3214,7 @@ class MenuBar {
 
         this._contextMenuHandler = contextMenuHandler;
         this._contextMenuHandlerContainer = menubarContainer;
+        this._contextMenuHandlerSecondaryContainer = null;
         menubarContainer.addEventListener('contextmenu', contextMenuHandler);
         
         // Also attach click and contextmenu to secondary bar when it exists
@@ -3218,6 +3222,8 @@ class MenuBar {
         if (secondaryBar) {
             secondaryBar.addEventListener('click', clickHandler);
             secondaryBar.addEventListener('contextmenu', contextMenuHandler);
+            this._clickHandlerSecondaryContainer = secondaryBar;
+            this._contextMenuHandlerSecondaryContainer = secondaryBar;
         }
 
         // Note: Right zone tools (leader-section, movement, timer-section) are now handled
@@ -3235,14 +3241,22 @@ class MenuBar {
         this._middleZoneOverflowItems = [];
         if (this._clickHandler && this._clickHandlerContainer) {
             this._clickHandlerContainer.removeEventListener('click', this._clickHandler);
-            this._clickHandler = null;
             this._clickHandlerContainer = null;
+        }
+        if (this._clickHandler && this._clickHandlerSecondaryContainer) {
+            this._clickHandlerSecondaryContainer.removeEventListener('click', this._clickHandler);
+            this._clickHandlerSecondaryContainer = null;
         }
         if (this._contextMenuHandler && this._contextMenuHandlerContainer) {
             this._contextMenuHandlerContainer.removeEventListener('contextmenu', this._contextMenuHandler);
-            this._contextMenuHandler = null;
             this._contextMenuHandlerContainer = null;
         }
+        if (this._contextMenuHandler && this._contextMenuHandlerSecondaryContainer) {
+            this._contextMenuHandlerSecondaryContainer.removeEventListener('contextmenu', this._contextMenuHandler);
+            this._contextMenuHandlerSecondaryContainer = null;
+        }
+        this._clickHandler = null;
+        this._contextMenuHandler = null;
         this._closeMenubarContextMenu();
     }
 
@@ -3252,6 +3266,9 @@ class MenuBar {
      */
     static _closeMenubarContextMenu() {
         UIContextMenu.close('blacksmith-menubar-context-menu');
+        UIContextMenu.close('blacksmith-menubar-leader-menu');
+        UIContextMenu.close('blacksmith-menubar-movement-menu');
+        UIContextMenu.close('blacksmith-menubar-timer-menu');
     }
 
     /**
@@ -3723,6 +3740,7 @@ class MenuBar {
             this.showLeaderDialog();
             return;
         }
+        this._closeMenubarContextMenu();
 
         const characterEntries = this._getLeaderEntries();
         const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
@@ -3766,6 +3784,7 @@ class MenuBar {
     }
 
     static async showMovementMenu(event) {
+        this._closeMenubarContextMenu();
         const config = new MovementConfig();
         const movementTypes = config.getData().MovementTypes || [];
         const currentMovement = game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
@@ -4134,6 +4153,7 @@ class MenuBar {
     }
 
     static async showTimerMenu(event) {
+        this._closeMenubarContextMenu();
         const defaultMinutes = game.settings.get(MODULE.ID, 'sessionTimerDefault') || 0;
         const defaultHours = Math.floor(defaultMinutes / 60);
         const defaultMins = defaultMinutes % 60;

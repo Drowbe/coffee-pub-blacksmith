@@ -1,0 +1,11 @@
+================================
+IMPORT PROFILE: DOCUMENT (CUSTOM COLLECTION)
+================================
+
+PROFILE DEFAULTS (every result):
+- resultType: "document"
+- resultCompendium: " "
+
+PROFILE INSTRUCTIONS:
+- Set resultDocumentType per row to one of: actor, adventure, card stack, item, journal entry, macro, playlist, rollable table, scene.
+- resultText must exactly match a world document name for that row's collection type.

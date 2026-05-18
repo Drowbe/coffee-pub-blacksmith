@@ -1,0 +1,21 @@
+================================
+IMPORT PROFILE: COMPENDIUM ACTORS
+================================
+
+PROFILE DEFAULTS (every result):
+- resultType: "Compendium"
+- resultDocumentType: "actor"
+- resultCompendium: required — must be one of the configured actor compendiums below
+
+PROFILE BUILD NOTES:
+- Actor table source: "[ADD-ACTORS-SOURCE-HERE]".
+- For each result, set resultCompendium to the pack that actually contains that actor.
+- Valid actor compendiums: [ADD-COMPENDIUMS-HERE]
+- Do not cluster all entries in one compendium unless I ask.
+
+PROFILE INSTRUCTIONS:
+- Optional filters I may specify: CR [CR] to [CR], habitat [HABITAT].
+
+COMPENDIUM ACTORS (grouped by pack, then CR — use resultCompendium + resultText):
+
+[ADD-COMPENDIUM-ACTORS-HERE]

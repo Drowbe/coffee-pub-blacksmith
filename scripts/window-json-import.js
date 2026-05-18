@@ -54,6 +54,20 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.importLabel = opts.importLabel || 'Import JSON';
         this.onCopyTemplate = typeof opts.onCopyTemplate === 'function' ? opts.onCopyTemplate : null;
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
+        this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
+    }
+
+    _getPromptCheckboxState() {
+        const state = {};
+        const root = this.element;
+        if (!root) return state;
+        for (const cb of this.promptCheckboxes) {
+            const id = String(cb?.id || '').trim();
+            if (!id) continue;
+            const input = root.querySelector(`[data-prompt-checkbox="${id}"]`);
+            state[id] = !!input?.checked;
+        }
+        return state;
     }
 
     getData() {
@@ -77,7 +91,13 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             initialJson: this.initialJson,
             copyTemplateLabel: this.copyTemplateLabel,
             selectFileLabel: this.selectFileLabel,
-            importLabel: this.importLabel
+            importLabel: this.importLabel,
+            promptCheckboxes: this.promptCheckboxes.map((cb) => ({
+                id: cb.id,
+                label: cb.label,
+                checked: !!cb.checked
+            })),
+            hasPromptCheckboxes: this.promptCheckboxes.length > 0
         };
     }
 
@@ -115,7 +135,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
 
         copyButton?.addEventListener('click', async () => {
             if (!this.onCopyTemplate) return;
-            await this.onCopyTemplate(this.selectedTemplate);
+            await this.onCopyTemplate(this.selectedTemplate, this._getPromptCheckboxState());
         });
 
         importButton?.addEventListener('click', async () => {

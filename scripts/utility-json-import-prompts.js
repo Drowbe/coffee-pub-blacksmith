@@ -49,11 +49,14 @@ export async function applyCampaignPlaceholders(prompt, extra = {}) {
     const rulebooks = extra.rulebooks ?? context.rulebooks ?? '';
     const itemSource = extra.itemSource ?? campaignName;
 
+    const actorsSource = extra.actorsSource ?? campaignName;
+
     const replacements = [
         { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: campaignName },
         { placeholder: '[ADD-RULES-VERSION-HERE]', value: rulesVersion },
         { placeholder: '[ADD-RULEBOOKS-HERE]', value: rulebooks },
-        { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: itemSource }
+        { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: itemSource },
+        { placeholder: '[ADD-ACTORS-SOURCE-HERE]', value: actorsSource }
     ];
 
     let result = String(prompt ?? '');

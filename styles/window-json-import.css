@@ -42,6 +42,27 @@
     flex: 0 0 auto;
 }
 
+.blacksmith-json-import-prompt-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    flex: 0 0 auto;
+}
+
+.blacksmith-json-import-prompt-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: var(--font-size-14, 0.875rem);
+}
+
+.blacksmith-json-import-prompt-checkbox-input {
+    margin: 0;
+}
+
 .blacksmith-json-import-copy-template {
     width: auto;
     white-space: nowrap;

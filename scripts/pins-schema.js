@@ -17,7 +17,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {string} id
  * @property {number} [x] - Omit for unplaced pins
  * @property {number} [y] - Omit for unplaced pins
- * @property {string} [sceneId] - Set when placed on a scene (or implicit from storage)
+ * @property {string} [sceneId] - Returned by API for placed pins; storage remains implicit via containing scene flags
  * @property {{ w: number; h: number }} size
  * @property {{ fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string }} style
  * @property {string} [text] - Text content to display

@@ -1,0 +1,21 @@
+================================
+IMPORT PROFILE: COMPENDIUM ITEMS
+================================
+
+PROFILE DEFAULTS (every result):
+- resultType: "Compendium"
+- resultDocumentType: "Item"
+- resultCompendium: required — must be one of the configured item compendiums below
+
+PROFILE BUILD NOTES:
+- For each result, set resultCompendium to the pack that actually contains that item.
+- Valid item compendiums: [ADD-COMPENDIUMS-HERE]
+- Do not cluster all entries in one compendium unless I ask.
+
+PROFILE INSTRUCTIONS:
+- Only items that verifiably exist in the listed compendiums (max 200 entries unless I cap lower).
+- Optional filters I may specify: item type [ITEM-TYPE], rarity [RARITY].
+
+COMPENDIUM ITEMS (grouped by pack, then rarity — use resultCompendium + resultText):
+
+[ADD-COMPENDIUM-ITEMS-HERE]

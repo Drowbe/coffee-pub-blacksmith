@@ -1,0 +1,11 @@
+================================
+IMPORT PROFILE: DOCUMENT (WORLD ITEMS)
+================================
+
+PROFILE DEFAULTS (every result):
+- resultType: "document"
+- resultDocumentType: "item"
+- resultCompendium: " "
+
+PROFILE INSTRUCTIONS:
+- resultText must exactly match a world item name from this list: [ADD-ITEMS-HERE]

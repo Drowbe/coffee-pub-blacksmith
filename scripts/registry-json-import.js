@@ -20,7 +20,8 @@ const kinds = new Map();
  * @property {string} windowIcon
  * @property {object} [position]
  * @property {Array<{value: string, label: string}>} [templateOptions]
- * @property {(templateKey: string) => Promise<void>} [onCopyTemplate]
+ * @property {Array<{id: string, label: string, checked?: boolean}>} [promptCheckboxes]
+ * @property {(templateKey: string, promptOptions?: Record<string, boolean>) => Promise<void>} [onCopyTemplate]
  * @property {(entries: object[]) => Promise<boolean>} onImport
  * @property {(error: Error) => boolean} [onImportError]
  */
@@ -97,6 +98,7 @@ export function openJsonImportWindow(kindId) {
         windowIcon: kind.windowIcon ?? 'fa-solid fa-file-import',
         position: kind.position ?? { width: 920, height: 680 },
         templateOptions: kind.templateOptions ?? [],
+        promptCheckboxes: kind.promptCheckboxes ?? [],
         onCopyTemplate: kind.onCopyTemplate,
         onImport: async (jsonDataRaw) => {
             try {
