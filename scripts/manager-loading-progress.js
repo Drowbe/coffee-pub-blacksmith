@@ -1,26 +1,29 @@
 import { MODULE } from './const.js';
 
 /**
- * Manages the loading progress indicator during FoundryVTT world loading
- * Tracks overall FoundryVTT loading phases, not just module initialization
+ * Manages the loading progress indicator during FoundryVTT world loading.
+ * This manager is intentionally event-driven: callers advance phases and log
+ * activities explicitly, rather than polling Foundry state or repainting on timers.
  */
 export class LoadingProgressManager {
     static _overlay = null;
+    static _refs = null;
     static _currentPhase = 0;
     static _totalPhases = 5;
     static _isVisible = false;
-    static _pollInterval = null;
-    static _activityUpdateInterval = null;
-    static _currentActivity = "Starting...";
+    static _currentActivity = 'Starting...';
     static _activityHistory = [];
-    static _maxHistoryItems = 5;
+    static _maxHistoryItems = 3;
     static _phaseNames = [
-        "Loading modules...",
-        "Initializing systems...",
-        "Setting up game data...",
-        "Preparing canvas...",
-        "Finalizing..."
+        'Loading modules...',
+        'Initializing systems...',
+        'Setting up game data...',
+        'Preparing canvas...',
+        'Finalizing...'
     ];
+
+    static SETTING_KEY = 'coreLoadingProgress';
+    static BOOTSTRAP_STORAGE_KEY = `${MODULE.ID}.coreLoadingProgress.bootstrap`;
 
     /**
      * Check if Stream View is active
@@ -28,56 +31,115 @@ export class LoadingProgressManager {
      * @returns {boolean} True if Stream View is active
      */
     static isStreamView() {
-        if (typeof document === 'undefined' || !document.body) {
-            return false;
-        }
-        return document.body.classList.contains("stream") ||
-               document.body.classList.contains("no-ui");
+        if (typeof document === 'undefined' || !document.body) return false;
+        return document.body.classList.contains('stream') || document.body.classList.contains('no-ui');
     }
 
     /**
-     * Show the loading progress indicator
-     * Should be called as early as possible (in init hook)
-     * Checks the coreLoadingProgress setting - defaults to showing if setting unavailable
-     * Does not show if Stream View is active
+     * Persist a small bootstrap mirror of the loader preference so it can be read
+     * before Foundry's settings registry is ready.
+     * @param {boolean} value
+     */
+    static writeBootstrapPreference(value) {
+        try {
+            if (typeof localStorage === 'undefined') return;
+            localStorage.setItem(this.BOOTSTRAP_STORAGE_KEY, value === false ? 'false' : 'true');
+        } catch {
+            // Non-fatal.
+        }
+    }
+
+    /**
+     * Read the explicit bootstrap mirror. Returns null when absent/invalid.
+     * @returns {boolean | null}
+     * @private
+     */
+    static _readBootstrapPreference() {
+        try {
+            if (typeof localStorage === 'undefined') return null;
+            const raw = localStorage.getItem(this.BOOTSTRAP_STORAGE_KEY);
+            if (raw === 'false') return false;
+            if (raw === 'true') return true;
+        } catch {
+            // Non-fatal.
+        }
+        return null;
+    }
+
+    /**
+     * Normalize a persisted Foundry/local storage setting payload into a boolean.
+     * Returns null when no explicit boolean can be determined.
+     * @param {unknown} value
+     * @returns {boolean | null}
+     * @private
+     */
+    static _coerceStoredBoolean(value) {
+        if (typeof value === 'boolean') return value;
+        if (value && typeof value === 'object' && 'value' in value) {
+            return this._coerceStoredBoolean(value.value);
+        }
+        if (typeof value === 'string') {
+            if (value === 'false') return false;
+            if (value === 'true') return true;
+            try {
+                return this._coerceStoredBoolean(JSON.parse(value));
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Try to read the persisted client setting directly from Foundry's client
+     * storage without trusting `game.settings.get()` to be hydrated yet.
+     * Returns null when no explicit persisted value is found.
+     * @returns {boolean | null}
+     * @private
+     */
+    static _readPersistedClientSetting() {
+        try {
+            const fullKey = `${MODULE.ID}.${this.SETTING_KEY}`;
+            const clientStore = game?.settings?.storage?.get?.('client');
+            const raw = clientStore?.get?.(fullKey);
+            return this._coerceStoredBoolean(raw);
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Show the loading progress indicator.
+     * Should be called as early as possible (in init hook).
+     * Checks the coreLoadingProgress setting - defaults to showing if setting unavailable.
+     * Does not show if Stream View is active.
      */
     static show() {
-        if (this._isVisible) {
-            return; // Already showing
+        if (this._isVisible) return;
+        if (this.isStreamView()) return;
+
+        const bootstrapPreference = this._readBootstrapPreference();
+        if (bootstrapPreference === false) return;
+        if (bootstrapPreference == null) {
+            const persistedPreference = this._readPersistedClientSetting();
+            if (persistedPreference === false) return;
+            if (persistedPreference === true) this.writeBootstrapPreference(true);
         }
 
-        // Don't show if Stream View is active
-        if (this.isStreamView()) {
-            return;
-        }
-
-        // Check setting value - safe check that handles unregistered settings
-        let shouldShow = true; // Default to showing
         try {
-            if (typeof game !== 'undefined' && game.settings) {
-                // Try to get the setting value
-                const settingValue = game.settings.get(MODULE.ID, 'coreLoadingProgress');
-                shouldShow = settingValue !== false; // Only hide if explicitly false
+            const fullKey = `${MODULE.ID}.${this.SETTING_KEY}`;
+            if (game?.settings?.settings?.has?.(fullKey) && game.settings.get(MODULE.ID, this.SETTING_KEY) === false) {
+                return;
             }
-        } catch (error) {
-            // Setting not registered yet or game.settings not available
-            // Default to showing the indicator
-            shouldShow = true;
+        } catch {
+            // Bootstrap/persisted read above is authoritative for early startup.
         }
 
-        // Don't show if setting is disabled
-        if (!shouldShow) {
-            return;
-        }
-
-        this._currentPhase = 0;
         this._isVisible = true;
 
-        // Create overlay element
         const overlay = document.createElement('div');
         overlay.id = 'cpb-loading-progress-overlay';
         overlay.className = 'cpb-loading-progress-overlay';
-
         overlay.innerHTML = `
             <div class="cpb-loading-progress-card">
                 <button class="cpb-loading-progress-close" title="Close progress indicator">
@@ -106,314 +168,160 @@ export class LoadingProgressManager {
             </div>
         `;
 
-        // Add click handler for close button
         const closeButton = overlay.querySelector('.cpb-loading-progress-close');
-        if (closeButton) {
-            closeButton.addEventListener('click', () => {
-                this.hide();
-            });
-        }
+        if (closeButton) closeButton.addEventListener('click', () => this.hide());
 
         document.body.appendChild(overlay);
         this._overlay = overlay;
+        this._refs = {
+            fillBar: overlay.querySelector('.cpb-loading-progress-bar-fill'),
+            stepText: overlay.querySelector('.cpb-loading-progress-step'),
+            percentText: overlay.querySelector('.cpb-loading-progress-percent'),
+            activityCurrent: overlay.querySelector('.cpb-loading-progress-activity-text'),
+            activityHistory: overlay.querySelector('.cpb-loading-progress-activity-history')
+        };
 
-        // Trigger fade-in animation
+        this._renderAll();
+
         requestAnimationFrame(() => {
             overlay.classList.add('visible');
         });
-
-        // Start polling for loading state
-        this._startPolling();
-        
-        // Start activity updates
-        this._startActivityUpdates();
     }
 
     /**
-     * Start polling to detect FoundryVTT loading phases
+     * Reconcile current visibility against the real registered setting once
+     * settings are available.
      */
-    static _startPolling() {
-        if (this._pollInterval) {
-            return;
-        }
-
-        let lastPhase = 0;
-
-        this._pollInterval = setInterval(() => {
-            if (!this._isVisible || !this._overlay) {
-                this._stopPolling();
-                return;
+    static reconcileVisibilityFromSetting() {
+        try {
+            const fullKey = `${MODULE.ID}.${this.SETTING_KEY}`;
+            if (!game?.settings?.settings?.has?.(fullKey)) return;
+            const shouldShow = game.settings.get(MODULE.ID, this.SETTING_KEY) !== false;
+            this.writeBootstrapPreference(shouldShow);
+            if (!shouldShow && this._isVisible) {
+                this.forceHide();
             }
-
-            // Detect current loading phase and activities
-            let currentPhase = 0;
-            let message = "Starting...";
-            let activity = "Initializing...";
-
-            // Phase 1: Modules loading (init hook)
-            if (typeof Hooks !== 'undefined' && typeof game !== 'undefined') {
-                currentPhase = 1;
-                message = this._phaseNames[0];
-                
-                // Detect module loading activities
-                if (game.modules) {
-                    const moduleCount = game.modules.size;
-                    const activeCount = Array.from(game.modules.values()).filter(m => m.active).length;
-                    activity = `Loading modules (${activeCount}/${moduleCount})...`;
-                    this.logActivity(activity);
-                } else {
-                    activity = "Loading module system...";
-                    this.logActivity(activity);
-                }
-
-                // Phase 2: Systems initialized (after init, before setup)
-                if (game.modules && game.modules.size > 0) {
-                    currentPhase = 2;
-                    message = this._phaseNames[1];
-                    
-                    // Detect system initialization
-                    if (game.system) {
-                        activity = `Initializing ${game.system.id} system...`;
-                        this.logActivity(activity);
-                    } else {
-                        activity = "Preparing game systems...";
-                        this.logActivity(activity);
-                    }
-
-                    // Phase 3: Game data setup (setup hook)
-                    if (game.actors && game.actors.size >= 0) {
-                        currentPhase = 3;
-                        message = this._phaseNames[2];
-                        
-                        // Detect data loading
-                        const actorCount = game.actors.size;
-                        const itemCount = game.items?.size || 0;
-                        const sceneCount = game.scenes?.size || 0;
-                        activity = `Loading data (${actorCount} actors, ${itemCount} items, ${sceneCount} scenes)...`;
-                        this.logActivity(activity);
-
-                        // Phase 4: Canvas ready (canvasReady hook)
-                        if (canvas && canvas.ready) {
-                            currentPhase = 4;
-                            message = this._phaseNames[3];
-                            
-                            activity = "Rendering canvas...";
-                            this.logActivity(activity);
-
-                            // Phase 5: Ready (ready hook fired)
-                            if (game.ready) {
-                                currentPhase = 5;
-                                message = this._phaseNames[4];
-                                
-                                activity = "Finalizing initialization...";
-                                this.logActivity(activity);
-                            }
-                        } else if (canvas) {
-                            activity = "Preparing canvas layers...";
-                            this.logActivity(activity);
-                        }
-                    } else {
-                        activity = "Loading game data...";
-                        this.logActivity(activity);
-                    }
-                }
-            } else {
-                activity = "Starting FoundryVTT...";
-                this.logActivity(activity);
-            }
-
-            // Update if phase changed
-            if (currentPhase !== lastPhase) {
-                lastPhase = currentPhase;
-                this._currentPhase = currentPhase;
-                this._updateDisplay(currentPhase, message);
-            }
-        }, 100); // Poll every 100ms
-    }
-
-    /**
-     * Stop polling
-     */
-    static _stopPolling() {
-        if (this._pollInterval) {
-            clearInterval(this._pollInterval);
-            this._pollInterval = null;
+        } catch {
+            // Non-fatal; leave current state unchanged.
         }
     }
 
     /**
-     * Start activity updates to show what's happening
+     * Render the full loading state once.
+     * @private
      */
-    static _startActivityUpdates() {
-        if (this._activityUpdateInterval) {
-            return;
-        }
-
-        // Update activity display periodically
-        this._activityUpdateInterval = setInterval(() => {
-            if (!this._isVisible || !this._overlay) {
-                this._stopActivityUpdates();
-                return;
-            }
-
-            this._updateActivityDisplay();
-        }, 50); // Update every 50ms for smooth activity feed
+    static _renderAll() {
+        this._renderPhase();
+        this._renderActivity();
     }
 
     /**
-     * Stop activity updates
+     * Render phase/progress UI from current state.
+     * @private
      */
-    static _stopActivityUpdates() {
-        if (this._activityUpdateInterval) {
-            clearInterval(this._activityUpdateInterval);
-            this._activityUpdateInterval = null;
+    static _renderPhase() {
+        if (!this._overlay || !this._refs) return;
+        const percentage = Math.round((this._currentPhase / this._totalPhases) * 100);
+        const message = this._phaseNames[Math.max(0, this._currentPhase - 1)] || 'Loading...';
+
+        if (this._refs.fillBar) this._refs.fillBar.style.width = `${percentage}%`;
+        if (this._refs.stepText) this._refs.stepText.textContent = message;
+        if (this._refs.percentText) this._refs.percentText.textContent = `${percentage}%`;
+    }
+
+    /**
+     * Render activity UI from current state.
+     * @private
+     */
+    static _renderActivity() {
+        if (!this._overlay || !this._refs) return;
+
+        if (this._refs.activityCurrent) {
+            this._refs.activityCurrent.textContent = this._currentActivity;
+        }
+
+        if (!this._refs.activityHistory) return;
+        const recentActivities = this._activityHistory.slice(0, this._maxHistoryItems);
+        const html = recentActivities
+            .map((item, index) => {
+                const opacity = 1 - (index * 0.25);
+                return `<div class="cpb-loading-progress-activity-item" style="opacity: ${opacity}">${item.text}</div>`;
+            })
+            .join('');
+
+        if (this._refs.activityHistory.innerHTML !== html) {
+            this._refs.activityHistory.innerHTML = html;
         }
     }
 
     /**
-     * Log an activity (what's currently happening)
+     * Log an activity (what's currently happening).
      * @param {string} activity - Activity description
      */
     static logActivity(activity) {
-        if (!activity || activity === this._currentActivity) {
-            return; // Don't duplicate
-        }
+        if (!activity || activity === this._currentActivity) return;
 
-        // Add to history
-        const timestamp = Date.now();
         this._activityHistory.unshift({
             text: activity,
-            timestamp: timestamp
+            timestamp: Date.now()
         });
-
-        // Keep only recent items
         if (this._activityHistory.length > this._maxHistoryItems) {
             this._activityHistory = this._activityHistory.slice(0, this._maxHistoryItems);
         }
 
         this._currentActivity = activity;
+        this._renderActivity();
     }
 
     /**
-     * Update the activity display
-     */
-    static _updateActivityDisplay() {
-        if (!this._overlay) {
-            return;
-        }
-
-        const activityCurrent = this._overlay.querySelector('.cpb-loading-progress-activity-text');
-        const activityHistory = this._overlay.querySelector('.cpb-loading-progress-activity-history');
-
-        // Update current activity
-        if (activityCurrent) {
-            activityCurrent.textContent = this._currentActivity;
-        }
-
-        // Update history (show recent activities)
-        if (activityHistory && this._activityHistory.length > 0) {
-            // Show up to 3 most recent activities (excluding current)
-            const recentActivities = this._activityHistory.slice(0, 3);
-            activityHistory.innerHTML = recentActivities
-                .map((item, index) => {
-                    const opacity = 1 - (index * 0.25); // Fade older items
-                    return `<div class="cpb-loading-progress-activity-item" style="opacity: ${opacity}">${item.text}</div>`;
-                })
-                .join('');
-        }
-    }
-
-    /**
-     * Update the display
-     * @param {number} phase - Current phase (0-5)
-     * @param {string} message - Status message
-     */
-    static _updateDisplay(phase, message) {
-        if (!this._overlay) {
-            return;
-        }
-
-        // Calculate percentage (0-100%)
-        const percentage = Math.round((phase / this._totalPhases) * 100);
-
-        const fillBar = this._overlay.querySelector('.cpb-loading-progress-bar-fill');
-        const stepText = this._overlay.querySelector('.cpb-loading-progress-step');
-        const percentText = this._overlay.querySelector('.cpb-loading-progress-percent');
-
-        if (fillBar) {
-            fillBar.style.width = `${percentage}%`;
-        }
-
-        if (stepText) {
-            stepText.textContent = message;
-        }
-
-        if (percentText) {
-            percentText.textContent = `${percentage}%`;
-        }
-    }
-
-    /**
-     * Manually set phase (for explicit phase tracking)
+     * Manually set phase (for explicit phase tracking).
      * @param {number} phase - Phase number (1-5)
-     * @param {string} message - Optional custom message
+     * @param {string} [message] - Optional custom message
      */
     static setPhase(phase, message) {
-        if (!this._isVisible || !this._overlay) {
-            return;
-        }
-
         this._currentPhase = Math.min(Math.max(phase, 0), this._totalPhases);
-        const displayMessage = message || this._phaseNames[phase - 1] || "Loading...";
-        this._updateDisplay(this._currentPhase, displayMessage);
+        if (message) {
+            const idx = this._currentPhase - 1;
+            if (idx >= 0 && idx < this._phaseNames.length) this._phaseNames[idx] = message;
+        }
+        this._renderPhase();
     }
 
     /**
-     * Hide the loading progress indicator
-     * Should be called when ready hook completes
+     * Hide the loading progress indicator.
+     * Should be called when ready hook completes.
      */
     static hide() {
-        if (!this._isVisible || !this._overlay) {
-            return;
-        }
+        if (!this._isVisible || !this._overlay) return;
 
-        // Stop polling and activity updates
-        this._stopPolling();
-        this._stopActivityUpdates();
-
-        // Log completion
-        this.logActivity("Complete!");
-
-        // Update to 100% before hiding
-        this._updateDisplay(this._totalPhases, 'Complete!');
-
-        // Fade out animation
+        this.logActivity('Complete!');
+        this.setPhase(this._totalPhases, 'Complete!');
         this._overlay.classList.remove('visible');
 
-        // Remove from DOM after animation
         setTimeout(() => {
-            if (this._overlay && this._overlay.parentNode) {
-                this._overlay.parentNode.removeChild(this._overlay);
-            }
-            this._overlay = null;
-            this._isVisible = false;
-            this._activityHistory = [];
-            this._currentActivity = "Starting...";
-        }, 400); // Match CSS transition duration
+            if (this._overlay?.parentNode) this._overlay.parentNode.removeChild(this._overlay);
+            this._reset();
+        }, 250);
     }
 
     /**
      * Force hide (for error cases)
      */
     static forceHide() {
-        this._stopPolling();
-        this._stopActivityUpdates();
-        if (this._overlay && this._overlay.parentNode) {
-            this._overlay.parentNode.removeChild(this._overlay);
-        }
+        if (this._overlay?.parentNode) this._overlay.parentNode.removeChild(this._overlay);
+        this._reset();
+    }
+
+    /**
+     * Reset in-memory state after hide/forceHide.
+     * @private
+     */
+    static _reset() {
         this._overlay = null;
+        this._refs = null;
         this._isVisible = false;
         this._activityHistory = [];
-        this._currentActivity = "Starting...";
+        this._currentActivity = 'Starting...';
+        this._currentPhase = 0;
     }
 }

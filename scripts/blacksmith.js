@@ -38,7 +38,7 @@ import {
     copyToClipboard 
 } from './utility-common.js';
 // -- Import special page variables --
-import { registerSettings, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices, primeCoreChoiceCaches } from './settings.js';
+import { registerSettings, ensureCoreLoadingProgressSettingRegistered, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices, primeCoreChoiceCaches } from './settings.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './timer-combat.js';
@@ -398,6 +398,7 @@ Hooks.once('ready', async () => {
     // Must not throw: this runs before the main init try/catch, so a throw would stall loading at "Finalizing...".
     try {
         registerSettings();
+        LoadingProgressManager.reconcileVisibilityFromSetting();
     } catch (e) {
         console.error(`${MODULE.ID}: registerSettings failed (early ready)`, e);
         LoadingProgressManager.forceHide();
@@ -457,15 +458,12 @@ Hooks.once('ready', async () => {
         LoadingProgressManager.logActivity("Registering hooks...");
         registerBlacksmithUpdatedHook();
         
-        // Wait a bit to ensure settings are fully processed
-        LoadingProgressManager.logActivity("Verifying settings...");
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
         // Double-check that settings are ready
+        LoadingProgressManager.logActivity("Verifying settings...");
         let retries = 0;
-        while (!game.settings.settings.has(`${MODULE.ID}.trackCombatStats`) && retries < 10) {
-            console.warn(`Blacksmith: Settings not fully ready, waiting... (attempt ${retries + 1}/10)`);
-            await new Promise(resolve => setTimeout(resolve, 500));
+        while (!game.settings.settings.has(`${MODULE.ID}.trackCombatStats`) && retries < 3) {
+            console.warn(`Blacksmith: Settings not fully ready, waiting... (attempt ${retries + 1}/3)`);
+            await new Promise(resolve => setTimeout(resolve, 100));
             retries++;
         }
         
@@ -566,9 +564,6 @@ Hooks.once('ready', async () => {
         SidebarPin.initialize();
 
         // SIDEBAR STYLE
-        SidebarStyle.initialize();
-
-        // SIDEBAR STYLE (duplicate call - keeping for compatibility)
         SidebarStyle.initialize();
         
         LoadingProgressManager.logActivity("Almost ready...");
@@ -852,6 +847,8 @@ async function _registerUnifiedHeaderPartial() {
 
 // Call the hookCanvas function during the initialization phase
 Hooks.once('init', async function() {
+    ensureCoreLoadingProgressSettingRegistered();
+
     // Show loading progress indicator as early as possible
     LoadingProgressManager.show();
     LoadingProgressManager.setPhase(1, "Loading modules...");

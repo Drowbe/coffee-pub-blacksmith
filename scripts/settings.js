@@ -52,6 +52,28 @@ const WORKFLOW_GROUPS = {
 	DEVELOPER_TOOLS: 'developer-tools'
 };
 
+export function ensureCoreLoadingProgressSettingRegistered() {
+    const fullKey = `${MODULE.ID}.coreLoadingProgress`;
+    if (game?.settings?.settings?.has?.(fullKey)) return;
+    game.settings.register(MODULE.ID, 'coreLoadingProgress', {
+        name: MODULE.ID + '.coreLoadingProgress-Label',
+        hint: MODULE.ID + '.coreLoadingProgress-Hint',
+        type: Boolean,
+        config: true,
+        requiresReload: false,
+        scope: 'user',
+        default: true,
+        onChange: (value) => {
+            try {
+                localStorage.setItem(`${MODULE.ID}.coreLoadingProgress.bootstrap`, value === false ? 'false' : 'true');
+            } catch {
+                // Non-fatal.
+            }
+        },
+        group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+    });
+}
+
 // ================================================================== 
 // ===== HELPER FUNCTIONS ===========================================
 // ================================================================== 
@@ -1401,16 +1423,7 @@ export const registerSettings = () => {
 
 
 	// -- Foundry Loading Progress--
-	game.settings.register(MODULE.ID, 'coreLoadingProgress', {
-		name: MODULE.ID + '.coreLoadingProgress-Label',
-		hint: MODULE.ID + '.coreLoadingProgress-Hint',
-		type: Boolean,
-		config: true,
-		requiresReload: false,
-		scope: 'user',
-		default: true,
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
+	ensureCoreLoadingProgressSettingRegistered();
 
 
 	// -- Object Link Style --
