@@ -46,7 +46,7 @@ export const MODULE = {
 
 export const BLACKSMITH = {
     FANCY_DATE_TIME: "",
-    JOURNAL_NARRATIVE_TEMPLATE: `modules/${MODULE.ID}/templates/journal-narrative.hbs`,
+    JOURNAL_AREA_TEMPLATE: `modules/${MODULE.ID}/templates/journal-area.hbs`,
     JOURNAL_ENCOUNTER_TEMPLATE: `modules/${MODULE.ID}/templates/journal-encounter.hbs`,
     JOURNAL_INJURY_TEMPLATE: `modules/${MODULE.ID}/templates/journal-injury.hbs`,
     JOURNAL_LOCATION_TEMPLATE: `modules/${MODULE.ID}/templates/journal-location.hbs`,

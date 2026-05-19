@@ -39,11 +39,28 @@
                         <i class="fa-solid fa-clipboard"></i> {{copyTemplateLabel}}
                     </button>
                 </div>
+                {{#if hasPromptFields}}
+                <div class="blacksmith-json-import-prompt-fields">
+                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <span>Location path (Area template)</span>
+                    </div>
+                    <div class="blacksmith-json-import-prompt-fields-grid">
+                        {{#each promptFields}}
+                        <label class="blacksmith-json-import-prompt-field-row" data-for-template="{{showForTemplate}}">
+                            <span class="blacksmith-json-import-prompt-field-label">{{label}}</span>
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}" value="{{value}}" autocomplete="off">
+                        </label>
+                        {{/each}}
+                    </div>
+                </div>
+                {{/if}}
                 {{#if hasPromptCheckboxes}}
                 <div class="blacksmith-json-import-prompt-options">
+                    <span class="blacksmith-json-import-prompt-options-hint">Append to copied prompt:</span>
                     {{#each promptCheckboxes}}
                     <label class="blacksmith-json-import-prompt-checkbox">
-                        <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{id}}" {{#if checked}}checked{{/if}}>
+                        <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{id}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>
                         <span>{{label}}</span>
                     </label>
                     {{/each}}

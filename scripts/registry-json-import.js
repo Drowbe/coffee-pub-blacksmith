@@ -3,7 +3,7 @@
 // ==================================================================
 
 import { JsonImportWindow } from './window-json-import.js';
-import { normalizeStraightQuotesForJson } from './utility-json-import-prompts.js';
+import { prepareJsonImportText } from './utility-json-import-prompts.js';
 
 /** @type {Map<string, object>} */
 const kinds = new Map();
@@ -20,9 +20,10 @@ const kinds = new Map();
  * @property {string} windowIcon
  * @property {object} [position]
  * @property {Array<{value: string, label: string}>} [templateOptions]
- * @property {Array<{id: string, label: string, checked?: boolean}>} [promptCheckboxes]
- * @property {(templateKey: string, promptOptions?: Record<string, boolean>) => Promise<void>} [onCopyTemplate]
- * @property {(entries: object[]) => Promise<boolean>} onImport
+ * @property {Array<{id: string, label: string, checked?: boolean, disabled?: boolean}>} [promptCheckboxes]
+ * @property {Array<{id: string, label: string, value?: string, showForTemplate?: string}>} [promptFields]
+ * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<void>} [onCopyTemplate]
+ * @property {(entries: object[]) => Promise<boolean>} onImport - Parsed entries from {@link parseJsonImportPayload} (via runJsonImport)
  * @property {(error: Error) => boolean} [onImportError]
  */
 
@@ -52,8 +53,23 @@ export function getJsonImportKind(kindId) {
  * @returns {object[]}
  */
 export function parseJsonImportPayload(jsonDataRaw) {
-    const jsonData = normalizeStraightQuotesForJson(jsonDataRaw);
-    const parsed = JSON.parse(jsonData);
+    if (Array.isArray(jsonDataRaw)) {
+        return jsonDataRaw;
+    }
+    if (typeof jsonDataRaw === 'object' && jsonDataRaw !== null) {
+        return [jsonDataRaw];
+    }
+
+    const jsonData = prepareJsonImportText(jsonDataRaw);
+    let parsed;
+    try {
+        parsed = JSON.parse(jsonData);
+    } catch (e) {
+        const hint = jsonData.includes('```')
+            ? ' Remove markdown code fences (```) and paste raw JSON only.'
+            : '';
+        throw new Error(`Invalid JSON: ${e.message}.${hint}`);
+    }
     if (Array.isArray(parsed)) {
         if (!parsed.length) {
             throw new Error('JSON array is empty');
@@ -99,6 +115,7 @@ export function openJsonImportWindow(kindId) {
         position: kind.position ?? { width: 920, height: 680 },
         templateOptions: kind.templateOptions ?? [],
         promptCheckboxes: kind.promptCheckboxes ?? [],
+        promptFields: kind.promptFields ?? [],
         onCopyTemplate: kind.onCopyTemplate,
         onImport: async (jsonDataRaw) => {
             try {

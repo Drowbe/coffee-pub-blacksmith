@@ -289,8 +289,8 @@ export class PinsAPI {
     /**
      * Register an event handler. Returns a disposer function.
      * 
-     * @param {string} eventType - Event type: 'hoverIn', 'hoverOut', 'click', 'doubleClick', 'rightClick', 'middleClick', 'dragStart', 'dragMove', 'dragEnd'
-     * @param {Function} handler - Callback function that receives PinEvent
+     * @param {string} eventType - Event type: interaction ('hoverIn', 'hoverOut', 'click', 'doubleClick', 'rightClick', 'middleClick', 'dragStart', 'dragMove', 'dragEnd') or lifecycle ('created', 'placed', 'unplaced', 'updated', 'deleted', 'deletedAll', 'deletedAllByType')
+     * @param {Function} handler - Callback function that receives an interaction or lifecycle pin event payload
      * @param {import('./manager-pins.js').PinEventHandlerOptions} [options]
      * @returns {() => void} - Disposer function to unregister the handler
      */

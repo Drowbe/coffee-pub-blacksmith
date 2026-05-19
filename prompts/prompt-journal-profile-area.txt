@@ -1,0 +1,218 @@
+========================================
+IMPORT PROFILE: AREA
+========================================
+
+journaltype: always "area".
+
+You are generating structured JSON for Coffee Pub Blacksmith import—not a prose handout.
+The importer links actors and items by exact name, renders Foundry journal HTML, and displays narrative cards.
+
+Each area is one playable scene: a shop, room, chamber, clearing, district block, wilderness node, dungeon space, or similar.
+
+Other journal profiles (same universal envelope, different blocks):
+- location — encyclopedia (realm, site, region); not this profile
+- encounter, injury, character — future profiles
+
+Outputs:
+1. AREA JSON (envelope + blocks) — required
+2. AREA IMAGE — only when the user asks after accepting the JSON
+
+
+--------------------------------
+IMPORTER SEMANTICS (CRITICAL)
+--------------------------------
+
+Two field classes:
+
+LINKER FIELDS (machine-consumed — exact names from catalogs below):
+- blocks.preparation.threats[] — actor names only: "Exact Actor Name — tactical blurb"
+- blocks.preparation.rewards[] — prefer item names: "Item Name — note" or plain loot text (gp, clues)
+- blocks.area.interactivedetails[] — "Item Name — detail" for gear; "Trap — detail", "Lever — detail" for non-items
+- blocks.conversations[].name — exact actor/world name when the NPC exists in world or compendium
+
+PROSE FIELDS (write for the table):
+- blocks.preparation.purpose[], gmnotes[]
+- blocks.area.narrative.description, layout, atmosphere
+- blocks.area.discoverablefacts[]
+- blocks.encounter.* (except use exact actor names inside tactics if referencing creatures)
+- narrativecard description HTML (player-facing prose)
+
+Anti-examples (threats[] — will NOT link):
+- "Corrupt Caravan Escorts — …" (use Guard, Veteran, Bandit, etc.)
+- "Fearful Townsfolk — …" (use Commoner, Noble, or a named NPC)
+
+Good examples (threats[]):
+- "Veteran — watches the door, blows whistle at first spell"
+- "Dellik — hides behind crates; surrenders if surrounded"
+
+Anti-examples (rewards / interactives):
+- "hanging maps", "stacked crates" (use Map, Crowbar, Crate when linkable)
+
+Good examples:
+- "Crowbar — wedged in the warped floorboard"
+- "Spy — leans on the counter, feigning indifference"
+
+
+--------------------------------
+CONTEXT FOR THIS AREA
+--------------------------------
+
+[ADD-AREA-CONTEXT-HERE]
+
+LOCATION PATH FOR THIS IMPORT (fill envelope + breadcrumb to match):
+[ADD-LOCATION-PATH-HERE]
+
+Campaign defaults (replaced on copy when set):
+
+- FOLDERNAME: "[ADD-FOLDER-NAME-HERE]"
+- REALM: "[ADD-REALM-HERE]"
+- REGION: "[ADD-REGION-HERE]"
+- SITE: "[ADD-SITE-HERE]"
+- AREA: "[ADD-AREA-HERE]"
+- DEFAULT CARD IMAGE: "[ADD-IMAGE-PATH-HERE]" (use "" in JSON for blocks.*.narrativecard.image to apply this default)
+
+breadcrumb: realm > region > site > area > scenetitle (omit empty levels; must match envelope)
+
+
+--------------------------------
+NARRATIVE CARDS (DEFAULT: INCLUDE)
+--------------------------------
+
+"Optional" means omit only when the scene has no entrance beat and no NPC presence.
+
+ALWAYS include:
+- blocks.area.narrativecard — entrance / first impression (title, description HTML, image "" or path)
+- blocks.conversations[].narrativecard for each key NPC (set keycharacter: true when they matter to the scene)
+
+Card description: brief, no secrets; HTML allowed (p, strong, em, br).
+Use image: "" to apply DEFAULT CARD IMAGE above.
+
+
+--------------------------------
+CONTENT FORMAT
+--------------------------------
+
+Default: plain text in JSON strings. Importer builds Foundry HTML lists as <li><p>…</p></li>.
+
+Optional HTML only on narrativecard description fields (and dialogue in cards if used).
+Allowed tags: p, strong, em, br, ul, li, h6. Escape internal double quotes as \\\".
+
+
+--------------------------------
+OMIT BLOCKS
+--------------------------------
+
+Omit entire block keys when not used. blocks.area is required (must include blocks.area.narrative).
+
+Do not duplicate the same fact in blocks.preparation.gmnotes and blocks.area.discoverablefacts unless audiences differ.
+
+
+--------------------------------
+BLOCKS FOR THIS PROFILE
+--------------------------------
+
+blocks.preparation
+- purpose[]: session goals (prose)
+- threats[]: LINKER — "Actor Name — blurb" per entry; official monster/NPC names
+- rewards[]: LINKER when gear/loot items; plain text for gp or non-item rewards
+- gmnotes[]: GM-only (prose)
+
+blocks.area
+- narrative (required): description, layout, atmosphere
+- narrativecard (default include): title, description, image
+- interactivedetails[]: LINKER or labeled entries — see semantics
+- discoverablefacts[]: objective truths (prose)
+
+blocks.encounter (omit if no encounter to run)
+- overview, tactics[], triggers[], specialconditions[]
+
+blocks.conversations (omit if no NPCs)
+- name (LINKER when world/compendium actor exists), keycharacter, snapshot[], theyknow[], theyveheard[], theywant[]
+- narrativecard (default for keycharacter)
+
+
+-----------------
+blocks SHAPE (reference)
+-----------------
+
+"blocks": {
+  "preparation": {
+    "purpose": ["PURPOSE"],
+    "threats": ["Actor Name — blurb"],
+    "rewards": ["Item Name — note"],
+    "gmnotes": ["GMNOTE"]
+  },
+  "area": {
+    "narrative": {
+      "description": "DESCRIPTION",
+      "layout": "LAYOUT",
+      "atmosphere": "ATMOSPHERE"
+    },
+    "narrativecard": {
+      "title": "TITLE",
+      "description": "<p>HTML OK</p>",
+      "imagetitle": "IMAGE TITLE",
+      "image": ""
+    },
+    "interactivedetails": ["Trap — detail", "Crowbar — detail"],
+    "discoverablefacts": ["FACT"]
+  },
+  "encounter": { "overview": "", "tactics": [], "triggers": [], "specialconditions": [] },
+  "conversations": [
+    {
+      "name": "NPCNAME",
+      "keycharacter": true,
+      "narrativecard": { "title": "", "description": "", "image": "" },
+      "snapshot": [],
+      "theyknow": [],
+      "theyveheard": [],
+      "theywant": []
+    }
+  ]
+}
+
+
+--- COMPENDIUM ACTORS (threats[] and linkable NPC names — exact spelling only) ---
+[ADD-COMPENDIUM-ACTORS-HERE]
+--- END COMPENDIUM ACTORS ---
+
+--- COMPENDIUM ITEMS (rewards[] and item-like interactivedetails[] — exact spelling only) ---
+[ADD-COMPENDIUM-ITEMS-HERE]
+--- END COMPENDIUM ITEMS ---
+
+--- WORLD ACTORS (named NPCs in this world — exact spelling for conversations[].name) ---
+[ADD-WORLD-ACTORS-HERE]
+--- END WORLD ACTORS ---
+
+--- WORLD ITEMS (homebrew/world items — exact spelling) ---
+[ADD-WORLD-ITEMS-HERE]
+--- END WORLD ITEMS ---
+
+
+-----------------
+USAGE
+-----------------
+
+When generating an area journal:
+- match LOCATION PATH and envelope geography fields
+- use linker rules for threats, rewards, and item interactives
+- include area and key NPC narrativecards by default
+- prioritize fast GM retrieval at the table
+
+
+========================================
+AREA IMAGE (THIS PROFILE)
+========================================
+
+Generate only when the user asks, after the JSON is accepted.
+
+Subject may be scene, environment, character, or object. Subject must dominate the frame.
+
+Aspect ratio: scene/environment 16:9 landscape; character or object 1:1 square.
+
+Framing: eye-level, natural composition; no bird's-eye, extreme tilt, or empty panoramas.
+
+Style: painterly ink-and-wash; hand-drawn linework; cross-hatching; warm rim light; muted earthy palette; fantasy tabletop RPG concept art; single cohesive image; no collages or panels.
+
+If image generation fails, output exactly:
+Image generation failed

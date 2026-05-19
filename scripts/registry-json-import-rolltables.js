@@ -89,7 +89,7 @@ const rolltableJsonImportKind = {
     templateOptions: ROLLTABLE_TEMPLATE_OPTIONS,
     onCopyTemplate: async (type) => {
         const prompt = await buildRollTableImportPrompt(type);
-        copyToClipboard(prompt);
+        return copyToClipboard(prompt, { notify: false });
     },
     onImport: async (entries) => {
         const tablesToImport = await Promise.all(entries.map(parseTableToFoundry));

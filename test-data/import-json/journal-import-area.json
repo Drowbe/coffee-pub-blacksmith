@@ -1,0 +1,86 @@
+{
+  "journaltype": "area",
+  "foldername": "Blacksmith Test Imports",
+  "realm": "Test Realm",
+  "region": "Test Region",
+  "site": "Test Site",
+  "area": "Test Area",
+  "breadcrumb": "Test Realm > Test Region > Test Site > Test Area > Area Import Test",
+  "scenetitle": "Area Import Test",
+  "blocks": {
+    "preparation": {
+      "purpose": [
+        "Verify area JSON import creates a journal page with ProseMirror-friendly lists.",
+        "Confirm preparation, area, encounter, and conversation blocks render."
+      ],
+      "threats": [
+        "Goblin - Hides behind crates and throws rocks when approached."
+      ],
+      "rewards": [
+        "10 gp in a locked strongbox",
+        "Clue: a torn map fragment"
+      ],
+      "gmnotes": [
+        "Alarm bell rings if the strongbox is opened without disarming the wire."
+      ]
+    },
+    "area": {
+      "narrative": {
+        "description": "A cramped storeroom stacked with barrels and cobwebs.",
+        "layout": "Narrow aisles between barrel stacks; one clear path to the back wall.",
+        "atmosphere": "Dusty, dim, and faintly sour from old ale."
+      },
+      "narrativecard": {
+        "title": "Storeroom Entrance",
+        "description": "<p>Barrels loom in the gloom; something skitters behind the stacks.</p>",
+        "imagetitle": "Storeroom",
+        "image": "icons/svg/book.svg"
+      },
+      "interactivedetails": [
+        "Trap - Tripwire on the third aisle from the left",
+        "Object - Locked strongbox against the back wall"
+      ],
+      "discoverablefacts": [
+        "Scratches on the floor show something heavy was dragged toward the cellar door."
+      ]
+    },
+    "encounter": {
+      "overview": "Goblins harass from cover until reduced to half, then flee through the cellar hatch.",
+      "tactics": [
+        "Focus fire on the nearest PC",
+        "Use barrels for half cover"
+      ],
+      "triggers": [
+        "Opening the strongbox without disarming the wire"
+      ],
+      "specialconditions": [
+        "Cellar hatch is difficult terrain until cleared"
+      ]
+    },
+    "conversations": [
+      {
+        "name": "Mira Vex",
+        "keycharacter": true,
+        "narrativecard": {
+          "title": "Mira Vex",
+          "description": "<p>A nervous clerk peeks out from behind a barrel.</p>",
+          "imagetitle": "Mira",
+          "image": "icons/svg/mystery-man.svg",
+          "dialogue": "\"Please—don't touch the strongbox!\""
+        },
+        "snapshot": [
+          "Warehouse clerk, shaken but observant"
+        ],
+        "theyknow": [
+          "The goblins came through the cellar hatch an hour ago"
+        ],
+        "theyveheard": [
+          "Rumors of missing shipments from the dock ward"
+        ],
+        "theywant": [
+          "Someone to clear the storeroom so she can finish inventory"
+        ]
+      }
+    ]
+  }
+}

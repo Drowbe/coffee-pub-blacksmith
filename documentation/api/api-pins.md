@@ -5,7 +5,7 @@
 > **Remaining work** (tests, deeper profile/search UX, and follow-on phases) is tracked in `architecture-pins.md`, `TODO.md`, and `plan-pins.md`.
 >
 > **Feature summary:**
-> - **Rendering**: Pure DOM overlay (no PIXI). Shapes: `circle`, `square`, `none`. Icons: Font Awesome class strings or image URLs. Text labels with 7 layout modes and 4 display modes.
+> - **Rendering**: Pure DOM overlay (no PIXI). Shapes: `circle`, `square`, `rectangle`, `none`. Icons: Font Awesome class strings or image URLs. Text labels with 7 layout modes and 4 display modes.
 > - **Placement model**: Pins exist in two stores — *placed* (on a scene, stored in scene flags) or *unplaced* (data-only, stored in a world setting). Create without `sceneId`/x/y to keep unplaced; use `place()` / `unplace()` to move between stores.
 > - **Classification**: Coarse `type` (displayed as "Category") + fine-grained `tags[]`. The old `group` field is removed (v4 schema auto-migrates existing values into tags).
 > - **Events**: `hover`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag*` — scoped by `pinId`, `moduleId`, or `sceneId`. Cleaned up via disposer or `AbortSignal`.
@@ -40,7 +40,7 @@ Use whichever model fits your module's workflow. Map-centric modules (waypoints,
 The pins API follows Blacksmith's standard pattern:
 - **`scripts/pins-schema.js`** - Data model, validation, migration (Phase 1.1). **Schema v7**: `blacksmithVisibility` is `'visible' | 'hidden'` only (legacy `'owner'` → `'visible'`). **Schema v6**: canonical `blacksmithAccess` (`gm` | `private` | `public`). See [Pin editing and pin visibility](#pin-editing-and-pin-visibility).
 - **`scripts/manager-pins.js`** - Internal manager with CRUD, permissions, event handler registration, and context menu item registration (Phase 1.2, 1.3)
-- **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
+- **`scripts/pins-renderer.js`** - Pure DOM pin rendering (circle/square/rectangle/none + Font Awesome icons or image URLs), DOM events, context menu (Phase 2, 3)
 - **`scripts/api-pins.js`** - Public API wrapper (`PinsAPI`) exposing CRUD, `place()`, `unplace()`, `on()`, `registerContextMenuItem()`, `registerPinType()`, taxonomy helpers (`loadBuiltinTaxonomy()`, `registerPinTaxonomy()`, `getPinTaxonomy()`, `getPinTaxonomyChoices()`, `getModuleTaxonomy()`), `getPinTypeLabel()`, `reload()`, `refreshPin()`, `deleteAll()`, `deleteAllByType()`, `createAsGM()`, `updateAsGM()`, `deleteAsGM()`, `requestGM()`, `reconcile()`, `openLayers()`, visibility filters (`setGlobalVisibility`, `setModuleVisibility`, `setTagVisibility`), named profile helpers (`listVisibilityProfiles()`, `saveVisibilityProfile()`, `applyVisibilityProfile()`, `deleteVisibilityProfile()`, `getActiveVisibilityProfileName()`), `getSceneFilterSummary()`, tag registry helpers (`getTagRegistry()`, `addTagToRegistry()`, `stripTagFromScene()`, `stripTagFromAllScenes()`, `deleteTagGlobally()`, `renameTagGlobally()`, `seedTagRegistryIfEmpty()`), `isAvailable()`, `isReady()`, `whenReady()`. **Note**: `setGroupVisibility`/`getGroupVisibility` removed — groups have been replaced by tags.
 - **`scripts/blacksmith.js`** - Exposes `module.api.pins = PinsAPI`; hooks for `canvasReady` / `updateScene` pin loading
 - **`styles/pins.css`** - All pin styling (CSS variables for configuration)
@@ -198,12 +198,12 @@ interface StoredPinData {
   id: string; // UUID
   x?: number;   // Omit for unplaced pins
   y?: number;   // Omit for unplaced pins
-  size?: { w: number; h: number };
+  size?: { w: number; h: number }; // Scene units (canvas pixels at 1× zoom). For circle/square, w always equals h. For rectangle/none, w and h may differ — when an image URL is used, h is derived from the image's natural aspect ratio against the chosen w by the Configure Pin window.
   style?: { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string }; // Supports hex, rgb, rgba, hsl, hsla, named colors. iconColor applies to Font Awesome icons (default '#ffffff').
   text?: string; // Text label content
   image?: string;  // Font Awesome HTML (e.g. '<i class="fa-solid fa-star"></i>'), Font Awesome class string (e.g. 'fa-solid fa-star'), or image URL (e.g. 'icons/svg/star.svg' or '<img src="path/to/image.webp">')
   iconText?: string; // Text to display in pin center instead of icon/image; inherits icon styling (iconColor, scaling). Takes precedence over image when set.
-  shape?: 'circle' | 'square' | 'none'; // Pin shape: 'circle' (default), 'square' (rounded corners), or 'none' (icon only, no background)
+  shape?: 'circle' | 'square' | 'rectangle' | 'none'; // Pin shape: 'circle' (default, round), 'square' (rounded corners, forced square), 'rectangle' (rounded corners, free aspect ratio — w/h set independently), or 'none' (icon only, no background, free aspect ratio)
   dropShadow?: boolean; // Whether to show drop shadow (default: true) - controlled via CSS variable --blacksmith-pin-drop-shadow
   textLayout?: 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'; // Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is accepted and treated as 'arc-below'.
   textDisplay?: 'always' | 'hover' | 'never' | 'gm'; // Text display mode: 'always' (default), 'hover' (show on hover), 'never', or 'gm' (GM only)
@@ -259,10 +259,33 @@ interface ApiPinData extends StoredPinData {
 interface PinEvent {
   type: 'hoverIn' | 'hoverOut' | 'click' | 'doubleClick' | 'rightClick' | 'middleClick' | 'dragStart' | 'dragMove' | 'dragEnd';
   pin: ApiPinData;
+  pinId: string;
+  moduleId: string;
+  pinType: string;
   sceneId: string;
   userId: string;
   modifiers: { shift: boolean; ctrl: boolean; alt: boolean; meta: boolean };
   originalEvent: MouseEvent; // DOM MouseEvent (pure DOM approach)
+}
+```
+
+### PinLifecycleEvent
+
+`pins.on()` also supports lifecycle events. Single-pin lifecycle payloads include `pinId`, `moduleId`, `pinType`, `sceneId`, and `pin`. Bulk lifecycle payloads omit `pin` and include summary data such as `count`.
+
+```typescript
+interface PinLifecycleEvent {
+  type: 'created' | 'placed' | 'unplaced' | 'updated' | 'deleted' | 'deletedAll' | 'deletedAllByType';
+  pinId?: string;
+  moduleId?: string | null;
+  pinType?: string | null;
+  sceneId: string | null;
+  pin?: ApiPinData;
+  placement?: 'placed' | 'unplaced';
+  patch?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+  count?: number;
+  typeKey?: string; // used by deletedAllByType
 }
 ```
 
@@ -373,7 +396,7 @@ const pin = await pinsAPI.create({
   moduleId: 'my-module',
   type: 'note',  // optional; pin type/category (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified
   image: '<i class="fa-solid fa-star"></i>',  // optional; Font Awesome HTML, Font Awesome class string, or image URL
-  shape: 'circle',  // optional; 'circle' (default), 'square', or 'none' (icon only)
+  shape: 'circle',  // optional; 'circle' (default), 'square', 'rectangle' (free aspect ratio), or 'none' (icon only, free aspect ratio)
   dropShadow: true,  // optional; adds subtle drop shadow (default: true)
   textLayout: 'under',  // optional; 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'
   textDisplay: 'always',  // optional; 'always' (default), 'hover', 'never', or 'gm' (GM only)
@@ -436,13 +459,26 @@ const squarePin = await pinsAPI.create({
   image: '<i class="fa-solid fa-flag"></i>'
 });
 
+// Rectangle pin — rounded corners, free aspect ratio (w/h set independently)
+// Use with an image URL: Configure Pin derives h from the image's natural aspect ratio against the chosen size.
+// When creating via API, set w and h explicitly.
+const rectPin = await pinsAPI.create({
+  id: 'rect-pin',
+  x: 1150,
+  y: 1000,
+  moduleId: 'my-module',
+  shape: 'rectangle',
+  image: 'modules/my-module/images/banner.webp',
+  size: { w: 120, h: 60 }  // 2:1 aspect ratio — set explicitly when creating via API
+});
+
 // Icon-only pin (no background shape)
 const iconPin = await pinsAPI.create({
   id: 'icon-pin',
   x: 1200,
   y: 1000,
   moduleId: 'my-module',
-  shape: 'none',  // Icon only, no background circle/square
+  shape: 'none',  // Icon only, no background; also supports free aspect ratio with image URLs
   image: '<i class="fa-solid fa-star"></i>'
 });
 
@@ -997,7 +1033,7 @@ The callback receives a **stable** object. This is the current contract (matches
 {
   icon:       { type: 'fa' | 'img'; value: string };
   pinSize:    { w: number; h: number };
-  pinShape:   'circle' | 'square' | 'none';
+  pinShape:   'circle' | 'square' | 'rectangle' | 'none';
   pinStyle:   { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string };
   pinDropShadow: boolean;
   pinTextConfig: {
@@ -1042,8 +1078,8 @@ When “Default for [type]” is toggled on, the window uses the pin’s **modul
 ```ts
 {
   size:           { w: number; h: number };
-  lockProportions: boolean;
-  shape:          'circle' | 'square' | 'none';
+  lockProportions?: boolean; // Legacy — no longer written by the Configure Pin window; may appear in designs saved before v13.7.4. Ignore when reading; omit when writing.
+  shape:          'circle' | 'square' | 'rectangle' | 'none';
   style:          { fill?: string; stroke?: string; strokeWidth?: number; alpha?: number; iconColor?: string };
   dropShadow:     boolean;
   textLayout:     'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below';
@@ -1145,7 +1181,7 @@ await pinsAPI.configure(pinId, {
 ### `pins.getDefaultPinDesign(moduleId, type?)`
 Get the current user’s default pin design for a **module and pin type** (saved via Configure Pin “Use as Default”). Stored in client scope so each player can have their own default. The key is **`moduleId|type`**, so the same module can have different defaults per type (e.g. Journal Page vs Encounter vs Map Annotation).
 
-**Returns**: `Object | null` — Default design object (size, shape, style, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin, lockProportions, **allowDuplicatePins**) or `null` if none saved for that (moduleId, type).
+**Returns**: `Object | null` — Default design object (size, shape, style, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin, **allowDuplicatePins**) or `null` if none saved for that (moduleId, type). `lockProportions` may be present in designs saved before v13.7.4 but is no longer written — ignore it.
 
 **Parameters**:
 - `moduleId` (string): Module ID (e.g. `'coffee-pub-blacksmith'`).
@@ -1240,7 +1276,7 @@ const tagged = pinsAPI.list({ sceneId: canvas.scene.id, tag: 'quest' });
 - `Error` if scene not found (when sceneId required and invalid)
 
 ### `pins.on(eventType, handler, options?)`
-Register an event handler. Returns a disposer function. Events are dispatched when users interact with pins (hover, click, double-click, right-click, middle-click, drag, etc.).
+Register an event handler. Returns a disposer function. Events are dispatched for both user interactions and pin lifecycle changes.
 
 **Returns**: `() => void` - Disposer function to unregister the handler
 
@@ -1256,6 +1292,10 @@ off();
 const controller = new AbortController();
 pinsAPI.on('click', handler, { signal: controller.signal });
 // Later: controller.abort() automatically removes the handler
+
+pinsAPI.on('deleted', ({ pinId, moduleId }) => {
+  console.log(`Pin ${pinId} from ${moduleId} was deleted`);
+}, { moduleId: 'my-module' });
 ```
 
 **Event Types**:
@@ -1268,13 +1308,25 @@ pinsAPI.on('click', handler, { signal: controller.signal });
 - `'dragStart'` - Drag operation starts (requires `dragEvents: true`)
 - `'dragMove'` - Drag operation continues (requires `dragEvents: true`)
 - `'dragEnd'` - Drag operation ends (requires `dragEvents: true`)
+- `'created'` - Pin was created
+- `'placed'` - Unplaced pin was placed onto a scene
+- `'unplaced'` - Placed pin was removed from a scene but kept in storage
+- `'updated'` - Pin properties changed
+- `'deleted'` - Single pin was deleted
+- `'deletedAll'` - Bulk delete removed pins from a scene
+- `'deletedAllByType'` - Bulk delete removed pins of a specific type from a scene
 
 **Options**:
 - `pinId` (string, optional): handle events for a specific pin only
 - `moduleId` (string, optional): handle events for pins created by this module
 - `sceneId` (string, optional): scope to a specific scene
+- `type` (string, optional): scope to a specific pin type; also matches `deletedAllByType` events
 - `signal` (AbortSignal, optional): auto-remove handler on abort
 - `dragEvents` (boolean, optional): opt in to `dragStart`/`dragMove`/`dragEnd` if you need them
+
+For interaction events, the handler receives a `PinEvent`. For lifecycle events, the handler receives a `PinLifecycleEvent`. Single-pin lifecycle events include `pin`, while bulk delete events include summary fields such as `count` and `typeKey`.
+
+The legacy `blacksmith.pins.*` Foundry hooks remain available. Use `pins.on()` when you want module scoping, AbortSignal cleanup, and one consistent registration surface.
 
 **Throws**: 
 - `Error` if eventType is invalid
@@ -2074,8 +2126,8 @@ Pin appearance can be customized globally via CSS variables in `styles/pins.css`
   /* Icon size relative to pin size (default: 0.60 = 60% of pin diameter) */
   --blacksmith-pin-icon-size-ratio: 0.60;
   
-  /* "Around" text size relative to pin size (default: 0.24 = 24% of pin diameter) */
-  --blacksmith-pin-around-text-size-ratio: 0.24;
+  /* "Around" text size relative to pin size (default: 0.22 = 22% of pin diameter) */
+  --blacksmith-pin-around-text-size-ratio: 0.22;
   
   /* Border radius for square pins (default: 15%) */
   --blacksmith-pin-square-border-radius: 15%;
@@ -2120,7 +2172,8 @@ Pins can be created by dropping data onto the canvas using FoundryVTT's `dropCan
   moduleId: string,           // Required: consumer module ID
   text: string,               // Optional: pin label
   image: string,              // Optional: Font Awesome HTML (defaults to star)
-  size: { w: number, h: number }, // Optional: defaults to 32x32
+  shape: string,              // Optional: 'circle' (default), 'square', 'rectangle', or 'none'
+  size: { w: number, h: number }, // Optional: defaults to 32x32. For circle/square, h is normalized to equal w. For rectangle/none, h is preserved.
   style: { fill?, stroke?, strokeWidth?, alpha?, iconColor? },  // Optional: style overrides (iconColor = Font Awesome icon color)
   config: object,             // Optional: module-specific config
   ownership: { ... }          // Optional: ownership settings

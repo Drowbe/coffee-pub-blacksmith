@@ -1453,17 +1453,24 @@ export class JournalPagePins {
             try {
                 let placed = null;
                 const targetSceneId = canvas.scene.id;
-                if (currentSceneId && currentSceneId !== targetSceneId) {
-                    await pins.unplace(pinId);
-                    currentSceneId = null;
-                }
-                if (currentSceneId === targetSceneId) {
+                // Fresh lookup at click time — currentSceneId from _ensurePin may be stale
+                // if the pin's state changed between entering placement mode and the click.
+                const liveSceneId = typeof pins.findScene === 'function' ? pins.findScene(pinId) : null;
+                if (liveSceneId && liveSceneId !== targetSceneId) {
+                    const unplaced = await pins.unplace(pinId);
+                    if (unplaced) {
+                        placed = await pins.place(pinId, { sceneId: targetSceneId, x: snapped.x, y: snapped.y });
+                    } else {
+                        // unplace failed — pin is still on liveSceneId; move it within its scene as fallback
+                        placed = await pins.update(pinId, { x: snapped.x, y: snapped.y }, { sceneId: liveSceneId });
+                    }
+                } else if (liveSceneId === targetSceneId) {
                     placed = await pins.update(pinId, { x: snapped.x, y: snapped.y }, { sceneId: targetSceneId });
                 } else {
                     placed = await pins.place(pinId, { sceneId: targetSceneId, x: snapped.x, y: snapped.y });
                 }
                 const flagDoc = pinTarget === PIN_TARGET_JOURNAL ? journal : page;
-                if (flagDoc) {
+                if (flagDoc && placed) {
                     if (!placementOpts?.allowDuplicates) {
                         await flagDoc.setFlag(MODULE.ID, 'pinId', pinId);
                     }

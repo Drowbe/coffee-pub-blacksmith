@@ -28,6 +28,11 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, getTokenImage, getPortraitImage, getTokenId, objectToString, stringToObject,trimString, generateFormattedDate, toSentenceCase, convertSecondsToRounds} from './api-core.js';
 // Import template caching function
 import { getCachedTemplate } from './blacksmith.js';
+import {
+    buildFoundryBulletList,
+    normalizeFoundryJournalHtml
+} from './utility-journal-html.js';
+import { buildAreaJournalTemplateData } from './parsers/parse-journal-area.js';
 
 
 // ================================================================== 
@@ -36,10 +41,10 @@ import { getCachedTemplate } from './blacksmith.js';
 
 
 // ***************************************************
-// ** UTILITY Build ENCOUNTER or NARRATIVE Journal
+// ** UTILITY Build area / encounter / location journals
 // ***************************************************
 /**
- * Build and create a JournalEntry from structured data (Blacksmith narrative / encounter / location JSON shape).
+ * Build and create a JournalEntry from structured JSON (area, encounter, or location).
  * Exposed on `game.modules.get('coffee-pub-blacksmith').api.createJournalEntry` — do not import this file from other modules.
  * @param {Object} journalData - Payload; see `documentation/api-create-journal-entry.md`.
  * @returns {Promise<JournalEntry|void>}
@@ -70,11 +75,23 @@ export async function createJournalEntry(journalData) {
         return await createLocationJournalEntry(journalData, folder);
     }
 
-    // Build the encounter data as appropriate.
-    var templatePath = journalData.journaltype.toUpperCase() === "ENCOUNTER" ? 
-        BLACKSMITH.JOURNAL_ENCOUNTER_TEMPLATE : 
-        BLACKSMITH.JOURNAL_NARRATIVE_TEMPLATE;
-    var template = await getCachedTemplate(templatePath);
+    if (journalType === 'AREA') {
+        return await createAreaJournalEntry(journalData, folder);
+    }
+
+    if (journalType === 'NARRATIVE') {
+        throw new Error(
+            'Legacy narrative journals are not supported. Use journaltype "area" with the blocks envelope (prompt-journal-profile-area.txt).'
+        );
+    }
+
+    if (journalType !== 'ENCOUNTER') {
+        throw new Error(
+            `Unsupported journaltype "${journalData.journaltype}". Supported: area, encounter, location.`
+        );
+    }
+
+    const template = await getCachedTemplate(BLACKSMITH.JOURNAL_ENCOUNTER_TEMPLATE);
 
     // Convert any object fields to HTML
     const convertObjectToHtml = async (obj) => {
@@ -98,20 +115,18 @@ export async function createJournalEntry(journalData) {
                 if (!item || item.toLowerCase() === 'none') return item;
                 return await buildCompendiumLinkItem(item);
             }));
-            // Return as HTML list
-            return `<ul>${linkedItems.map(i => `<li>${i}</li>`).join('')}</ul>`;
+            return buildFoundryBulletList(linkedItems, (item) => item);
         }
         if (typeof obj === 'object' && obj !== null) {
-            let html = '<ul>';
+            const items = [];
             for (const [key, value] of Object.entries(obj)) {
                 let linked = value;
                 if (typeof value === 'string') {
                     linked = await buildCompendiumLinkItem(value);
                 }
-                html += `<li><b>${key}:</b> ${linked}</li>`;
+                items.push(`<b>${key}:</b> ${linked}`);
             }
-            html += '</ul>';
-            return html;
+            return buildFoundryBulletList(items, (item) => item);
         }
         return '';
     };
@@ -269,8 +284,8 @@ export async function createJournalEntry(journalData) {
     // Play a victory sound. lol
             playSound(window.COFFEEPUB?.SOUNDEFFECTBOOK02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
-    // Set the content
-    compiledHtml = template(CARDDATA);
+  // Set the content
+    compiledHtml = normalizeFoundryJournalHtml(template(CARDDATA));
 
     // Add metadata at the top of the journal entry for programmatic access
     // This will make it easier to identify and manipulate journal entries
@@ -418,6 +433,64 @@ export async function createJournalEntry(journalData) {
     }
 }
 
+async function createAreaJournalEntry(journalData, folder) {
+    const blocks = journalData?.blocks;
+    if (!blocks || typeof blocks !== 'object' || (!blocks.area && !blocks.preparation)) {
+        throw new Error('Area journals require a "blocks" object with at least blocks.area or blocks.preparation.');
+    }
+
+    const omitIfNone = (s) => (s == null || String(s).trim() === '' || String(s).trim().toLowerCase() === 'none')
+        ? ''
+        : String(s).trim();
+    const strArea = omitIfNone(journalData.area);
+    const rawSceneTitle = journalData.scenetitle;
+    const strSceneTitle = omitIfNone(rawSceneTitle) ? toSentenceCase(String(rawSceneTitle).trim()) : '';
+
+    let template;
+    let templateData;
+    let compiledHtml;
+    try {
+        template = await getCachedTemplate(BLACKSMITH.JOURNAL_AREA_TEMPLATE);
+        templateData = await buildAreaJournalTemplateData(journalData);
+        compiledHtml = normalizeFoundryJournalHtml(template(templateData));
+    } catch (error) {
+        const detail = error?.message || String(error);
+        throw new Error(`Area journal HTML build failed: ${detail}`);
+    }
+
+    playSound(window.COFFEEPUB?.SOUNDEFFECTBOOK02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+
+    const existingEntry = game.journal.find((entry) => {
+        const entryName = strArea || strSceneTitle || 'Unnamed Entry';
+        return entry.name === entryName && entry.folder?.id === folder?.id;
+    });
+
+    const pagePayload = {
+        name: strSceneTitle || strArea || 'Area',
+        type: 'text',
+        text: {
+            content: compiledHtml,
+            format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+        }
+    };
+
+    if (existingEntry) {
+        const existingPage = existingEntry.pages.find((page) => page.name === pagePayload.name);
+        if (existingPage) {
+            await existingPage.update(pagePayload);
+        } else {
+            await existingEntry.createEmbeddedDocuments('JournalEntryPage', [pagePayload]);
+        }
+        return;
+    }
+
+    await JournalEntry.create({
+        name: strArea || strSceneTitle || 'Unnamed Entry',
+        pages: [pagePayload],
+        folder: folder ? folder.id : undefined
+    });
+}
+
 async function createLocationJournalEntry(journalData, folder) {
     const normalize = (value) => {
         if (value == null) return '';
@@ -478,7 +551,7 @@ async function createLocationJournalEntry(journalData, folder) {
         if (items.length <= 1) {
             items = [out];
         }
-        return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+        return buildFoundryBulletList(items);
     };
 
     const template = await getCachedTemplate(BLACKSMITH.JOURNAL_LOCATION_TEMPLATE);
@@ -505,7 +578,7 @@ async function createLocationJournalEntry(journalData, folder) {
     };
 
     playSound(window.COFFEEPUB?.SOUNDEFFECTBOOK02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
-    const compiledHtml = template(CARDDATA);
+    const compiledHtml = normalizeFoundryJournalHtml(template(CARDDATA));
     const pageData = {
         name: strTitle,
         type: "text",
@@ -585,21 +658,13 @@ async function findMonsterUUID(monsterData) {
 }
 
 export async function createHTMLList(monsterString) {
-    // Split the string by comma to get an array of monsters
-    let monsters = monsterString.split(", ");
-
-    // Begin the list
-    let listHTML = "<ul>";
-    
-    // Iterate over the monsters, adding each one to the list
-    for (let monster of monsters) {
-        monster = await buildCompendiumLinkActor(monster);
-        listHTML += `<li>${monster}</li>`;
+    const monsters = monsterString.split(', ');
+    const items = [];
+    for (const raw of monsters) {
+        const linked = await buildCompendiumLinkActor(raw);
+        items.push(linked);
     }
-    
-    //close the list
-    listHTML += "</ul>";
-    return listHTML;
+    return buildFoundryBulletList(items, (item) => item);
 }
 
 // ***************************************************
@@ -631,8 +696,8 @@ export async function buildCompendiumLinkActor(monsterData) {
                 foundActor = null;
             }
             if (foundActor) {
-                strActorID = foundActor.system._id;
-                return formatLink(`Actor.${strActorID}`, strActorName);
+                const actorId = foundActor.id ?? foundActor._id;
+                return formatLink(`Actor.${actorId}`, strActorName);
             }
         }
         // Check compendium settings in order (up to configured number)
@@ -721,17 +786,112 @@ export async function buildCompendiumLinkItem(itemData) {
     return buildCompendiumLinkItem(itemData.itemName || itemData.name);
 }
 
+// ***************************************************
+// ** UTILITY Build Injury Journal
+// ***************************************************
+
+export async function buildInjuryJournalEntry(journalData) {
+    let blnImage = true;
+    let folder;
+    const strJournalType = journalData.journaltype;
+    const strCategory = journalData.category;
+    const intOdds = journalData.odds;
+    const strFolderName = toSentenceCase(journalData.foldername);
+    const strTitle = toSentenceCase(journalData.title);
+    const strImageTitle = toSentenceCase(journalData.imagetitle);
+    let strImage = journalData.image;
+    if (strImage === 'none') {
+        blnImage = false;
+    }
+    const strDescription = journalData.description;
+    const strTreatment = journalData.treatment;
+    const strSeverity = journalData.severity;
+    const intDamage = journalData.damage;
+    const strCardDamage = `${intDamage} Hit Points`;
+    const intDuration = journalData.duration;
+    const strCardDuration = convertSecondsToRounds(journalData.duration);
+    const strAction = journalData.action;
+    const strStatusEffect = journalData.statuseffect;
+
+    if (strFolderName) {
+        const existingFolder = game.folders.find((x) => x.name === strFolderName && x.type === 'JournalEntry');
+        if (existingFolder) {
+            folder = existingFolder;
+        } else {
+            folder = await Folder.create({
+                name: strFolderName,
+                type: 'JournalEntry',
+                parent: null
+            });
+        }
+    }
+
+    const template = await getCachedTemplate(BLACKSMITH.JOURNAL_INJURY_TEMPLATE);
+    const CARDDATA = {
+        strJournalType,
+        strCategory: toSentenceCase(strCategory),
+        intOdds,
+        strFolderName,
+        strTitle,
+        blnImage,
+        strImageTitle,
+        strImage,
+        strDescription,
+        strTreatment,
+        strSeverity: toSentenceCase(strSeverity),
+        intDamage,
+        strCardDamage,
+        intDuration,
+        strCardDuration,
+        strAction,
+        strStatusEffect
+    };
+
+    playSound(window.COFFEEPUB?.SOUNDEFFECTBOOK02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+    const compiledHtml = template(CARDDATA);
+    const newPage = { type: 'text', name: strTitle, text: { content: compiledHtml } };
+    const existingEntry = game.journal.contents.find((x) => x.name === toSentenceCase(strCategory));
+    if (existingEntry) {
+        const existingPages = Array.isArray(existingEntry.pages) ? existingEntry.pages : [];
+        existingPages.push(newPage);
+        await existingEntry.update({
+            pages: existingPages,
+            type: 'html',
+            img: '',
+            folder: folder ? folder.id : undefined
+        });
+    } else {
+        await JournalEntry.create({
+            name: toSentenceCase(strCategory),
+            pages: [newPage],
+            type: 'html',
+            img: '',
+            folder: folder ? folder.id : undefined
+        });
+    }
+}
+
 /**
  * Copy text to clipboard with multiple fallback methods
  * @param {string} text - The text to copy
+ * @param {{ notify?: boolean, successMessage?: string }} [options]
  * @returns {Promise<boolean>} - True if successful, false otherwise
  */
-export async function copyToClipboard(text) {
+export async function copyToClipboard(text, options = {}) {
+    const notify = options.notify !== false;
+    const successMessage = options.successMessage ?? 'Copied to clipboard!';
+
+    const notifySuccess = () => {
+        if (notify) {
+            ui.notifications.info(successMessage);
+        }
+    };
+
     // Method 1: Try modern clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
         try {
             await navigator.clipboard.writeText(text);
-            ui.notifications.info('Copied to clipboard!');
+            notifySuccess();
             return true;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Modern clipboard API failed', error, false, false);
@@ -750,7 +910,7 @@ export async function copyToClipboard(text) {
         const successful = document.execCommand('copy');
         document.body.removeChild(textArea);
         if (successful) {
-            ui.notifications.info('Copied to clipboard!');
+            notifySuccess();
             return true;
         }
     } catch (error) {

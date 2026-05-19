@@ -70,6 +70,7 @@ const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
  * @property {string} [pinId] - Handle events for a specific pin only
  * @property {string} [moduleId] - Handle events for pins created by this module
  * @property {string} [sceneId] - Scope to a specific scene
+ * @property {string} [type] - Scope to a specific pin type key
  * @property {AbortSignal} [signal] - Auto-remove handler on abort
  * @property {boolean} [dragEvents] - Opt in to dragStart/dragMove/dragEnd if you need them
  */
@@ -116,7 +117,8 @@ export class PinManager {
     // Valid event types
     static VALID_EVENT_TYPES = Object.freeze([
         'hoverIn', 'hoverOut', 'click', 'doubleClick', 'rightClick', 'middleClick',
-        'dragStart', 'dragMove', 'dragEnd'
+        'dragStart', 'dragMove', 'dragEnd',
+        'created', 'placed', 'unplaced', 'updated', 'deleted', 'deletedAll', 'deletedAllByType'
     ]);
     
     // Context menu item storage: Map<itemId, menuItem>
@@ -1386,6 +1388,72 @@ export class PinManager {
         return clone;
     }
 
+    static _getEventPinType(eventData) {
+        if (eventData.typeKey != null && eventData.typeKey !== '') return String(eventData.typeKey);
+        if (eventData.pinType != null && eventData.pinType !== '') return String(eventData.pinType);
+        if (eventData.pin?.type != null && eventData.pin.type !== '') return String(eventData.pin.type);
+        return null;
+    }
+
+    static _callLifecycleHook(hookName, payload = {}) {
+        if (typeof Hooks === 'undefined') return;
+        try {
+            Hooks.callAll(hookName, foundry.utils.deepClone(payload));
+        } catch (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            postConsoleAndNotification(
+                MODULE.NAME,
+                `BLACKSMITH | PINS Error in lifecycle hook ${hookName}`,
+                errMsg,
+                false,
+                true
+            );
+            console.error(`BLACKSMITH | PINS Error in lifecycle hook ${hookName}:`, error);
+        }
+    }
+
+    static _invokeRegisteredHandlers(eventType, eventData = {}) {
+        const handlers = this._eventHandlers.get(eventType);
+        if (!handlers || handlers.size === 0) return;
+
+        const pinId = eventData.pinId ?? eventData.pin?.id ?? null;
+        const moduleId = eventData.moduleId ?? eventData.pin?.moduleId ?? null;
+        const sceneId = eventData.sceneId ?? null;
+        const pinType = this._getEventPinType(eventData);
+        const toRemove = [];
+
+        for (const h of handlers) {
+            if (h.options.pinId && h.options.pinId !== pinId) continue;
+            if (h.options.moduleId && h.options.moduleId !== moduleId) continue;
+            if (h.options.sceneId && h.options.sceneId !== sceneId) continue;
+            if (h.options.type && h.options.type !== pinType) continue;
+            if (['dragStart', 'dragMove', 'dragEnd'].includes(eventType) && !h.options.dragEvents) continue;
+
+            if (h.options.signal?.aborted) {
+                toRemove.push(h.handlerId);
+                continue;
+            }
+
+            try {
+                h.handler(foundry.utils.deepClone(eventData));
+            } catch (error) {
+                const errMsg = error instanceof Error ? error.message : String(error);
+                postConsoleAndNotification(
+                    MODULE.NAME,
+                    `BLACKSMITH | PINS Error in event handler for ${eventType}`,
+                    errMsg,
+                    false,
+                    true
+                );
+                console.error(`BLACKSMITH | PINS Error in event handler ${h.handlerId} for ${eventType}:`, error);
+            }
+        }
+
+        for (const id of toRemove) {
+            this._removeHandler(eventType, id);
+        }
+    }
+
     /**
      * Cleanup on module unload
      */
@@ -1479,55 +1547,17 @@ export class PinManager {
      * @private
      */
     static _invokeHandlers(eventType, pin, sceneId, userId, modifiers, originalEvent) {
-        const handlers = this._eventHandlers.get(eventType);
-        if (!handlers || handlers.size === 0) return;
-
-        const eventData = {
+        this._invokeRegisteredHandlers(eventType, {
             type: eventType,
-            pin: foundry.utils.deepClone(pin),
+            pinId: pin.id,
+            moduleId: pin.moduleId,
+            pinType: pin.type ?? 'default',
+            pin: this._clonePinForApi(pin, sceneId),
             sceneId,
             userId,
             modifiers: { ...modifiers },
             originalEvent
-        };
-
-        const toRemove = [];
-        for (const h of handlers) {
-            // Check filters
-            if (h.options.pinId && h.options.pinId !== pin.id) continue;
-            if (h.options.moduleId && h.options.moduleId !== pin.moduleId) continue;
-            if (h.options.sceneId && h.options.sceneId !== sceneId) continue;
-
-            // Check if handler wants drag events
-            if (['dragStart', 'dragMove', 'dragEnd'].includes(eventType) && !h.options.dragEvents) {
-                continue;
-            }
-
-            // Check AbortSignal
-            if (h.options.signal?.aborted) {
-                toRemove.push(h.handlerId);
-                continue;
-            }
-
-            try {
-                h.handler(eventData);
-            } catch (error) {
-                const errMsg = error instanceof Error ? error.message : String(error);
-                postConsoleAndNotification(
-                    MODULE.NAME,
-                    `BLACKSMITH | PINS Error in event handler for ${eventType}`,
-                    errMsg,
-                    false,
-                    true
-                );
-                console.error(`BLACKSMITH | PINS Error in event handler ${h.handlerId} for ${eventType}:`, error);
-            }
-        }
-
-        // Clean up aborted handlers
-        for (const id of toRemove) {
-            this._removeHandler(eventType, id);
-        }
+        });
     }
 
     /**
@@ -1743,10 +1773,18 @@ export class PinManager {
             const next = [...unplaced, foundry.utils.deepClone(pin)];
             await this._setUnplacedPins(next);
             this._mirrorTagsForPin(pin);
-            if (typeof Hooks !== 'undefined') {
-                Hooks.callAll('blacksmith.pins.created', { pinId: pin.id, moduleId: pin.moduleId, placement: 'unplaced', pin: foundry.utils.deepClone(pin) });
-            }
-            return this._clonePinForApi(pin);
+            const apiPin = this._clonePinForApi(pin);
+            this._callLifecycleHook('blacksmith.pins.created', { pinId: pin.id, moduleId: pin.moduleId, placement: 'unplaced', pin: apiPin });
+            this._invokeRegisteredHandlers('created', {
+                type: 'created',
+                pinId: pin.id,
+                moduleId: pin.moduleId,
+                pinType: pin.type ?? 'default',
+                placement: 'unplaced',
+                sceneId: null,
+                pin: apiPin
+            });
+            return apiPin;
         }
 
         const scene = this._getScene(options.sceneId);
@@ -1760,9 +1798,17 @@ export class PinManager {
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
         this._addTagsToRegistry(pin.tags).catch(() => {});
         this._mirrorTagsForPin(pin);
-        if (typeof Hooks !== 'undefined') {
-            Hooks.callAll('blacksmith.pins.created', { pinId: pin.id, sceneId: scene.id, moduleId: pin.moduleId, placement: 'placed', pin: foundry.utils.deepClone(pin) });
-        }
+        const apiPin = this._clonePinForApi(pin, scene.id);
+        this._callLifecycleHook('blacksmith.pins.created', { pinId: pin.id, sceneId: scene.id, moduleId: pin.moduleId, placement: 'placed', pin: apiPin });
+        this._invokeRegisteredHandlers('created', {
+            type: 'created',
+            pinId: pin.id,
+            sceneId: scene.id,
+            moduleId: pin.moduleId,
+            pinType: pin.type ?? 'default',
+            placement: 'placed',
+            pin: apiPin
+        });
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
@@ -1774,7 +1820,7 @@ export class PinManager {
                 console.error('BLACKSMITH | PINS Error updating renderer after create:', err);
             });
         }
-        return this._clonePinForApi(pin, scene.id);
+        return apiPin;
     }
 
     /**
@@ -1788,7 +1834,7 @@ export class PinManager {
     static async update(pinId, patch, options = {}) {
         const loc = this._findPinLocation(pinId);
         if (!loc) {
-            console.warn(`BLACKSMITH | PINS Pin not found: ${pinId}. Returning null.`);
+            postConsoleAndNotification(MODULE.NAME, 'Pin not found — it may have been deleted externally.', pinId, false, false);
             return null;
         }
         const userId = game.user?.id ?? '';
@@ -1817,9 +1863,16 @@ export class PinManager {
                 const next = [...scenePins, foundry.utils.deepClone(placed)];
                 await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
                 this._mirrorTagsForPin(placed);
-                if (typeof Hooks !== 'undefined') {
-                    Hooks.callAll('blacksmith.pins.placed', { pinId, sceneId: scene.id, moduleId: placed.moduleId, type: placed.type ?? 'default', pin: foundry.utils.deepClone(placed) });
-                }
+                const apiPin = this._clonePinForApi(placed, scene.id);
+                this._callLifecycleHook('blacksmith.pins.placed', { pinId, sceneId: scene.id, moduleId: placed.moduleId, type: placed.type ?? 'default', pin: apiPin });
+                this._invokeRegisteredHandlers('placed', {
+                    type: 'placed',
+                    pinId,
+                    sceneId: scene.id,
+                    moduleId: placed.moduleId,
+                    pinType: placed.type ?? 'default',
+                    pin: apiPin
+                });
                 if (scene.id === canvas?.scene?.id) {
                     import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                         if (!PinRenderer.getContainer()) return;
@@ -1829,7 +1882,7 @@ export class PinManager {
                         }
                     }).catch(() => {});
                 }
-                return this._clonePinForApi(placed, scene.id);
+                return apiPin;
             }
             const validated = validatePinData(merged, { allowUnplaced: true });
             if (!validated.ok) throw new Error(validated.error);
@@ -1838,10 +1891,18 @@ export class PinManager {
             const next = unplaced.map((p) => (p.id === pinId ? foundry.utils.deepClone(updated) : p));
             await this._setUnplacedPins(next);
             this._mirrorTagsForPin(updated);
-            if (typeof Hooks !== 'undefined') {
-                Hooks.callAll('blacksmith.pins.updated', { pinId, sceneId: null, moduleId: updated.moduleId, type: updated.type ?? 'default', patch, pin: foundry.utils.deepClone(updated) });
-            }
-            return this._clonePinForApi(updated);
+            const apiPin = this._clonePinForApi(updated);
+            this._callLifecycleHook('blacksmith.pins.updated', { pinId, sceneId: null, moduleId: updated.moduleId, type: updated.type ?? 'default', patch, pin: apiPin });
+            this._invokeRegisteredHandlers('updated', {
+                type: 'updated',
+                pinId,
+                sceneId: null,
+                moduleId: updated.moduleId,
+                pinType: updated.type ?? 'default',
+                patch: foundry.utils.deepClone(patch),
+                pin: apiPin
+            });
+            return apiPin;
         }
 
         const scene = loc.scene;
@@ -1882,9 +1943,17 @@ export class PinManager {
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
         this._addTagsToRegistry(updated.tags).catch(() => {});
         this._mirrorTagsForPin(updated);
-        if (typeof Hooks !== 'undefined') {
-            Hooks.callAll('blacksmith.pins.updated', { pinId, sceneId: scene.id, moduleId: updated.moduleId ?? existing.moduleId, type: updated.type ?? existing.type, patch, pin: foundry.utils.deepClone(updated) });
-        }
+        const apiPin = this._clonePinForApi(updated, scene.id);
+        this._callLifecycleHook('blacksmith.pins.updated', { pinId, sceneId: scene.id, moduleId: updated.moduleId ?? existing.moduleId, type: updated.type ?? existing.type, patch, pin: apiPin });
+        this._invokeRegisteredHandlers('updated', {
+            type: 'updated',
+            pinId,
+            sceneId: scene.id,
+            moduleId: updated.moduleId ?? existing.moduleId,
+            pinType: updated.type ?? existing.type ?? 'default',
+            patch: foundry.utils.deepClone(patch),
+            pin: apiPin
+        });
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
@@ -1893,7 +1962,7 @@ export class PinManager {
                 console.error('BLACKSMITH | PINS Error updating renderer after update:', err);
             });
         }
-        return this._clonePinForApi(updated, scene.id);
+        return apiPin;
     }
 
     /**
@@ -2010,7 +2079,8 @@ export class PinManager {
     static async place(pinId, placement) {
         const loc = this._findPinLocation(pinId);
         if (!loc || loc.location !== 'unplaced') {
-            console.warn(`BLACKSMITH | PINS Pin ${pinId} not found or not unplaced. Cannot place.`);
+            const detail = loc ? `Pin is already placed on scene ${loc.sceneId ?? '(unknown)'}` : 'Pin not found';
+            postConsoleAndNotification(MODULE.NAME, `Pin placement failed — ${detail}. Try closing and reopening the journal, then place again.`, pinId, false, true);
             return null;
         }
         const userId = game.user?.id ?? '';
@@ -2045,9 +2115,16 @@ export class PinManager {
         const pins = this._getScenePins(scene);
         const next = [...pins, foundry.utils.deepClone(placed)];
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
-        if (typeof Hooks !== 'undefined') {
-            Hooks.callAll('blacksmith.pins.placed', { pinId, sceneId: scene.id, moduleId: placed.moduleId, type: placed.type ?? 'default', pin: foundry.utils.deepClone(placed) });
-        }
+        const apiPin = this._clonePinForApi(placed, scene.id);
+        this._callLifecycleHook('blacksmith.pins.placed', { pinId, sceneId: scene.id, moduleId: placed.moduleId, type: placed.type ?? 'default', pin: apiPin });
+        this._invokeRegisteredHandlers('placed', {
+            type: 'placed',
+            pinId,
+            sceneId: scene.id,
+            moduleId: placed.moduleId,
+            pinType: placed.type ?? 'default',
+            pin: apiPin
+        });
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
@@ -2059,7 +2136,7 @@ export class PinManager {
                 console.error('BLACKSMITH | PINS Error updating renderer after place:', err);
             });
         }
-        return this._clonePinForApi(placed, scene.id);
+        return apiPin;
     }
 
     /**
@@ -2097,9 +2174,16 @@ export class PinManager {
         await this._setUnplacedPins(next);
         const pins = this._getScenePins(loc.scene).filter((p) => p.id !== pinId);
         await loc.scene.setFlag(MODULE.ID, this.FLAG_KEY, pins);
-        if (typeof Hooks !== 'undefined') {
-            Hooks.callAll('blacksmith.pins.unplaced', { pinId, sceneId: loc.sceneId, moduleId: pin.moduleId, type: pin.type ?? 'default', pin: foundry.utils.deepClone(pin) });
-        }
+        const apiPin = this._clonePinForApi(pin);
+        this._callLifecycleHook('blacksmith.pins.unplaced', { pinId, sceneId: loc.sceneId, moduleId: pin.moduleId, type: pin.type ?? 'default', pin: apiPin });
+        this._invokeRegisteredHandlers('unplaced', {
+            type: 'unplaced',
+            pinId,
+            sceneId: loc.sceneId,
+            moduleId: pin.moduleId,
+            pinType: pin.type ?? 'default',
+            pin: apiPin
+        });
         if (loc.scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(({ PinRenderer }) => {
                 PinRenderer.removePin(pinId);
@@ -2107,7 +2191,7 @@ export class PinManager {
                 console.error('BLACKSMITH | PINS Error removing pin from renderer:', err);
             });
         }
-        return this._clonePinForApi(pin);
+        return apiPin;
     }
 
     /**
@@ -2160,16 +2244,24 @@ export class PinManager {
                 }).catch(() => {});
             }
         }
-        if (typeof Hooks !== 'undefined') {
-            Hooks.callAll('blacksmith.pins.deleted', {
-                pinId,
-                sceneId: loc.location === 'scene' ? loc.sceneId : null,
-                moduleId: existing.moduleId ?? undefined,
-                type: existing.type ?? undefined,
-                pin: foundry.utils.deepClone(existing),
-                config: existing.config ?? undefined
-            });
-        }
+        const apiPin = this._clonePinForApi(existing, loc.location === 'scene' ? loc.sceneId : null);
+        this._callLifecycleHook('blacksmith.pins.deleted', {
+            pinId,
+            sceneId: loc.location === 'scene' ? loc.sceneId : null,
+            moduleId: existing.moduleId ?? undefined,
+            type: existing.type ?? undefined,
+            pin: apiPin,
+            config: existing.config ?? undefined
+        });
+        this._invokeRegisteredHandlers('deleted', {
+            type: 'deleted',
+            pinId,
+            sceneId: loc.location === 'scene' ? loc.sceneId : null,
+            moduleId: existing.moduleId ?? undefined,
+            pinType: existing.type ?? 'default',
+            pin: apiPin,
+            config: existing.config != null ? foundry.utils.deepClone(existing.config) : undefined
+        });
     }
 
     /**
@@ -2264,7 +2356,13 @@ export class PinManager {
 
         // Emit event if not silent
         if (!options.silent) {
-            Hooks.callAll('blacksmith.pins.deletedAll', { sceneId: scene.id, moduleId: options.moduleId, count });
+            this._callLifecycleHook('blacksmith.pins.deletedAll', { sceneId: scene.id, moduleId: options.moduleId, count });
+            this._invokeRegisteredHandlers('deletedAll', {
+                type: 'deletedAll',
+                sceneId: scene.id,
+                moduleId: options.moduleId ?? null,
+                count
+            });
         }
 
         return count;
@@ -2320,7 +2418,14 @@ export class PinManager {
 
         // Emit event if not silent
         if (!options.silent) {
-            Hooks.callAll('blacksmith.pins.deletedAllByType', { sceneId: scene.id, type, moduleId: options.moduleId, count });
+            this._callLifecycleHook('blacksmith.pins.deletedAllByType', { sceneId: scene.id, type, moduleId: options.moduleId, count });
+            this._invokeRegisteredHandlers('deletedAllByType', {
+                type: 'deletedAllByType',
+                sceneId: scene.id,
+                moduleId: options.moduleId ?? null,
+                typeKey: type,
+                count
+            });
         }
 
         return count;

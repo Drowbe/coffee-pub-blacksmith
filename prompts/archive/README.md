@@ -24,3 +24,25 @@ Superseded by `prompt-rolltable-core.txt` and `prompt-rolltable-profile-*.txt`.
 | `prompt-rolltable-compendium-actors.txt` | core + `prompt-rolltable-profile-compendium-actor.txt` |
 
 The roll table directory Import UI loads only the core + profile files.
+
+## Archived area/narrative journal (legacy schema)
+
+| File | Replaced by |
+|------|-------------|
+| `prompt-narratives.txt` (sections/cards schema) | `prompt-journal-core.txt` + `prompt-journal-profile-area.txt` |
+| `templates/archive/journal-narrative.hbs` | `templates/journal-area.hbs` + `scripts/parsers/parse-journal-area.js` |
+
+Import supports **`journaltype`: `"area"`** with `blocks` only. Legacy **`NARRATIVE`** JSON is rejected.
+
+Example envelope:
+
+```json
+{
+  "journaltype": "area",
+  "foldername": "...",
+  "realm": "", "region": "", "site": "", "area": "",
+  "breadcrumb": "...",
+  "scenetitle": "...",
+  "blocks": { "preparation": {}, "area": {} }
+}
+```

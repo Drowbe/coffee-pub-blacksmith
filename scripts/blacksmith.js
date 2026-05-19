@@ -70,6 +70,8 @@ import { JsonImportWindow } from './window-json-import.js';
 import { attachJsonImportButton } from './registry-json-import.js';
 import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';
+import './registry-json-import-journals.js';
+import { JOURNAL_JSON_IMPORT_KIND_ID } from './registry-json-import-journals.js';
 import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
@@ -2031,279 +2033,19 @@ const coffeePubDefaultThemeHookId = HookManager.registerHook({
 
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-default-card-theme", true, false);
 
-// ***************************************************
-// ** RENDER Import Journal Entries
-// ***************************************************
-// This will add the import button to the journal directory
-// and wait for clicks to import the JSON
-
-// Helper to replace placeholders in the narrative template with settings values
-async function getNarrativeTemplateWithDefaults(narrativeTemplate) {
-  const context = CampaignManager.getPromptContext();
-  const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
-    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
-    { placeholder: '[ADD-PARTY-NAME-HERE]', value: context.partyName },
-    { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
-    { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
-    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
-    { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses },
-    { placeholder: '[ADD-FOLDER-NAME-HERE]', value: context.narrativeFolder },
-    { placeholder: '[ADD-REGION-HERE]', value: context.region },
-    { placeholder: '[ADD-AREA-HERE]', value: context.area },
-    { placeholder: '[ADD-SITE-HERE]', value: context.site },
-    { placeholder: '[ADD-REALM-HERE]', value: context.realm },
-    { placeholder: '[ADD-IMAGE-PATH-HERE]', value: context.narrativeCardImage }
-  ];
-  let result = narrativeTemplate;
-  for (const { placeholder, value: initialValue } of settings) {
-    let value = initialValue;
-    // Special logic for image path
-    if (placeholder === '[ADD-IMAGE-PATH-HERE]') {
-      if (value === 'custom') {
-          value = context.narrativeImagePath;
-      }
-    }
-    if (!value) continue; // leave placeholder if not set
-    result = result.split(placeholder).join(value);
-  }
-  return result;
-}
-
-async function getEncounterTemplateWithDefaults(encounterTemplate) {
-  const context = CampaignManager.getPromptContext();
-  const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
-    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
-    { placeholder: '[ADD-PARTY-NAME-HERE]', value: context.partyName },
-    { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
-    { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
-    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
-    { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses },
-    { placeholder: '[ADD-FOLDER-NAME-HERE]', value: context.encounterFolder },
-    { placeholder: '[ADD-REGION-HERE]', value: context.region },
-    { placeholder: '[ADD-AREA-HERE]', value: context.area },
-    { placeholder: '[ADD-SITE-HERE]', value: context.site },
-    { placeholder: '[ADD-REALM-HERE]', value: context.realm },
-    { placeholder: '[ADD-IMAGE-PATH-HERE]', value: context.encounterCardImage }
-  ];
-  let result = encounterTemplate;
-  for (const { placeholder, value: initialValue } of settings) {
-    let value = initialValue;
-    // Special logic for image path
-    if (placeholder === '[ADD-IMAGE-PATH-HERE]') {
-      if (value === 'custom') {
-          value = context.encounterImagePath;
-      }
-    }
-    if (!value) continue; // leave placeholder if not set
-    result = result.split(placeholder).join(value);
-  }
-  return result;
-}
-
-async function getLocationTemplateWithDefaults(locationTemplate) {
-  const context = CampaignManager.getPromptContext();
-  const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
-    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
-    { placeholder: '[ADD-REALM-HERE]', value: context.realm },
-    { placeholder: '[ADD-REGION-HERE]', value: context.region },
-    { placeholder: '[ADD-SITE-HERE]', value: context.site },
-    { placeholder: '[ADD-AREA-HERE]', value: context.area }
-  ];
-
-  let result = locationTemplate;
-  for (const setting of settings) {
-    const value = setting.value || '';
-    if (value) {
-      result = result.split(setting.placeholder).join(value);
-    }
-  }
-  return result;
-}
-
 // Register renderJournalDirectory hook
 const renderJournalDirectoryHookId = HookManager.registerHook({
     name: 'renderJournalDirectory',
     description: 'Blacksmith: Add JSON import functionality to journal directory',
     context: 'blacksmith-journal-directory',
-    priority: 3, // Normal priority - UI enhancement
+    priority: 3,
     callback: async (app, html, data) => {
-        //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-        
-        // Fetch template files at runtime
-        const narrativeTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-narratives.txt')).text();
-        const injuryTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-injuries.txt')).text();
-        const encounterTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-encounter.txt')).text();
-        const locationTemplate = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-location.txt')).text();
-
-        const button = document.createElement('button');
-        button.innerHTML = '<i class="fa-solid fa-masks-theater"></i> Import';
-        button.addEventListener('click', () => {
-            void JsonImportWindow.open({
-                idSuffix: 'journal',
-                windowTitle: 'Import JSON',
-                headerTitle: 'Import Journal',
-                windowIcon: 'fa-solid fa-masks-theater',
-                position: { width: 920, height: 680 },
-                templateOptions: [
-                    { value: 'narrative', label: 'Narrative' },
-                    { value: 'encounter', label: 'Encounter' },
-                    { value: 'injury', label: 'Injury' },
-                    { value: 'location', label: 'Location' }
-                ],
-                onCopyTemplate: async (type) => {
-                    if (type === 'injury') {
-                        copyToClipboard(injuryTemplate);
-                    } else if (type === 'encounter') {
-                        const templateWithDefaults = await getEncounterTemplateWithDefaults(encounterTemplate);
-                        copyToClipboard(templateWithDefaults);
-                    } else if (type === 'location') {
-                        const templateWithDefaults = await getLocationTemplateWithDefaults(locationTemplate);
-                        copyToClipboard(templateWithDefaults);
-                    } else {
-                        const templateWithDefaults = await getNarrativeTemplateWithDefaults(narrativeTemplate);
-                        copyToClipboard(templateWithDefaults);
-                    }
-                },
-                onImport: async (jsonData) => {
-                    try {
-                        const journalData = JSON.parse(jsonData);
-                        const strJournalType = journalData.journaltype;
-                        if (!strJournalType) {
-                            throw new Error("Missing 'journaltype' field in JSON data");
-                        }
-                        switch (strJournalType.toUpperCase()) {
-                            case 'NARRATIVE':
-                            case 'ENCOUNTER':
-                            case 'LOCATION':
-                                await createJournalEntry(journalData);
-                                break;
-                            case 'INJURY':
-                                await buildInjuryJournalEntry(journalData);
-                                break;
-                            default:
-                                postConsoleAndNotification(
-                                    MODULE.NAME,
-                                    "Can't create the journal entry. The journal type was not found.",
-                                    strJournalType,
-                                    false,
-                                    true
-                                );
-                        }
-                        return true;
-                    } catch (e) {
-                        postConsoleAndNotification(MODULE.NAME, 'Failed to parse JSON', e, false, true);
-                        return false;
-                    }
-                }
-            });
-        });
-        const headerActions = html.querySelector(".header-actions.action-buttons");
-        if (headerActions) {
-            headerActions.insertBefore(button, headerActions.firstChild);
-        }
-        
-        //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
+        attachJsonImportButton(html, JOURNAL_JSON_IMPORT_KIND_ID);
     }
 });
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalDirectory", "blacksmith-journal-directory", true, false);
-
-// ***************************************************
-// ** UTILITY Build Injury Journal
-// ***************************************************
-
-async function buildInjuryJournalEntry(journalData) {
-    var blnImage = true;
-    var compiledHtml = "";
-    let folder;
-    var strJournalType = journalData.journaltype;
-    var strCategory = journalData.category;
-    var intOdds = journalData.odds;
-    var strFolderName = toSentenceCase(journalData.foldername);
-    var strTitle = toSentenceCase(journalData.title);
-    var strImageTitle = toSentenceCase(journalData.imagetitle);
-    var strImage = journalData.image;
-    if (strImage == "none"){
-        blnImage = false;
-    }
-    var strDescription = journalData.description;
-    var strTreatment = journalData.treatment;
-    var strSeverity = journalData.severity;
-    var intDamage = journalData.damage;
-    var strCardDamage = intDamage + " Hit Points"
-    var intDuration = journalData.duration;
-    var strCardDuration = convertSecondsToRounds(journalData.duration);
-    var strAction = journalData.action;
-    var strStatusEffect = journalData.statuseffect;
-    // Injury journal data processed silently
-    if(strFolderName) {
-        let existingFolder = game.folders.find(x => x.name === strFolderName && x.type === "JournalEntry");
-        if (existingFolder) {
-            folder = existingFolder;
-        } else {
-            folder = await Folder.create({
-                name: strFolderName,
-                type: "JournalEntry",
-                parent: null,
-            });
-        }
-    }
-    var templatePath = BLACKSMITH.JOURNAL_INJURY_TEMPLATE;
-    var template = await getCachedTemplate(templatePath);
-    var CARDDATA = {
-        strJournalType: strJournalType,
-        strCategory: toSentenceCase(strCategory),
-        intOdds: intOdds,
-        strFolderName: strFolderName,
-        strTitle: strTitle,
-        blnImage: blnImage,
-        strImageTitle: strImageTitle,
-        strImage: strImage,
-        strDescription: strDescription,
-        strTreatment: strTreatment,
-        strSeverity: toSentenceCase(strSeverity),
-        intDamage: intDamage,
-        strCardDamage: strCardDamage,
-        intDuration: intDuration,
-        strCardDuration, strCardDuration,
-        strAction: strAction,
-        strStatusEffect: strStatusEffect,
-    };
-    playSound(COFFEEPUB.SOUNDEFFECTBOOK02,COFFEEPUB.SOUNDVOLUMENORMAL);
-    compiledHtml = template(CARDDATA);
-    // Create the new page
-    let newPage = { type: "text", name: strTitle, text: {content: compiledHtml} };
-    // See if the journal already exists.
-    let existingEntry = game.journal.contents.find(x => x.name === toSentenceCase(strCategory));
-    if (existingEntry) {
-        // It does exist, add a page to it.
-        let existingPages = Array.isArray(existingEntry.pages) ? existingEntry.pages : [];
-        existingPages.push(newPage);
-        await existingEntry.update({
-            pages: existingPages,
-            type: "html",
-            img: "",
-            folder: folder ? folder.id : undefined,
-        });
-    } else {
-        // It does not exist, create it.
-        await JournalEntry.create({
-            name: toSentenceCase(strCategory),
-            pages: [newPage],
-            type: "html",
-            img: "",
-            folder: folder ? folder.id : undefined,
-        });
-    }
-    return;
-}
 
 /**
  * Scroll the Foundry chat log to the bottom
@@ -2824,7 +2566,7 @@ const renderActorDirectoryHookId = HookManager.registerHook({
             templateOptions: [{ value: 'npc', label: 'NPC/Monster' }],
             onCopyTemplate: async () => {
                 const promptWithDefaults = await getActorPromptWithDefaults(characterPrompt);
-                copyToClipboard(promptWithDefaults);
+                return copyToClipboard(promptWithDefaults, { notify: false });
             },
             onImport: async (jsonData) => {
                 try {

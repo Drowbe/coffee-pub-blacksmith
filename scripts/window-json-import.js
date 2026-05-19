@@ -55,6 +55,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.onCopyTemplate = typeof opts.onCopyTemplate === 'function' ? opts.onCopyTemplate : null;
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
         this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
+        this.promptFields = Array.isArray(opts.promptFields) ? opts.promptFields : [];
     }
 
     _getPromptCheckboxState() {
@@ -68,6 +69,42 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             state[id] = !!input?.checked;
         }
         return state;
+    }
+
+    _getPromptFieldState() {
+        const state = {};
+        const root = this.element;
+        if (!root) return state;
+        for (const field of this.promptFields) {
+            const id = String(field?.id || '').trim();
+            if (!id) continue;
+            const input = root.querySelector(`[data-prompt-field="${id}"]`);
+            state[id] = input ? String(input.value ?? '').trim() : String(field.value ?? '').trim();
+        }
+        return state;
+    }
+
+    _getPromptOptions() {
+        return {
+            ...this._getPromptCheckboxState(),
+            ...this._getPromptFieldState()
+        };
+    }
+
+    _updatePromptFieldVisibility() {
+        const root = this.element;
+        if (!root || !this.promptFields.length) return;
+        const template = this.selectedTemplate || '';
+        for (const row of root.querySelectorAll('.blacksmith-json-import-prompt-field-row')) {
+            const forTemplate = row.getAttribute('data-for-template') || '';
+            const show = !forTemplate || forTemplate === template;
+            row.hidden = !show;
+        }
+        const block = root.querySelector('.blacksmith-json-import-prompt-fields');
+        if (block) {
+            const anyVisible = !!root.querySelector('.blacksmith-json-import-prompt-field-row:not([hidden])');
+            block.hidden = !anyVisible;
+        }
     }
 
     getData() {
@@ -95,9 +132,17 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             promptCheckboxes: this.promptCheckboxes.map((cb) => ({
                 id: cb.id,
                 label: cb.label,
-                checked: !!cb.checked
+                checked: !!cb.checked,
+                disabled: !!cb.disabled
             })),
-            hasPromptCheckboxes: this.promptCheckboxes.length > 0
+            hasPromptCheckboxes: this.promptCheckboxes.length > 0,
+            promptFields: this.promptFields.map((field) => ({
+                id: field.id,
+                label: field.label,
+                value: field.value ?? '',
+                showForTemplate: field.showForTemplate ?? ''
+            })),
+            hasPromptFields: this.promptFields.length > 0
         };
     }
 
@@ -131,12 +176,27 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
 
         templateSelect?.addEventListener('change', () => {
             this.selectedTemplate = templateSelect.value || '';
+            this._updatePromptFieldVisibility();
         });
 
         copyButton?.addEventListener('click', async () => {
             if (!this.onCopyTemplate) return;
-            await this.onCopyTemplate(this.selectedTemplate, this._getPromptCheckboxState());
+            ui.notifications.info('Gathering data to put on the clipboard, please wait...');
+            copyButton.disabled = true;
+            try {
+                const copied = await this.onCopyTemplate(this.selectedTemplate, this._getPromptOptions());
+                if (copied !== false) {
+                    ui.notifications.info('Prompt copied to the clipboard');
+                }
+            } catch (error) {
+                const message = error?.message || String(error);
+                ui.notifications.error(`Failed to copy prompt: ${message}`);
+            } finally {
+                copyButton.disabled = false;
+            }
         });
+
+        this._updatePromptFieldVisibility();
 
         importButton?.addEventListener('click', async () => {
             if (!this.onImport) {

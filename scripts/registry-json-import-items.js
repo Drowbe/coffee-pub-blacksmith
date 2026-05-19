@@ -93,7 +93,7 @@ const itemJsonImportKind = {
         const prompt = await buildItemImportPrompt(type, {
             includeArtificer: !!promptOptions.artificerItem
         });
-        copyToClipboard(prompt);
+        return copyToClipboard(prompt, { notify: false });
     },
     onImport: async (entries) => {
         const itemsToImport = await Promise.all(entries.map(parseFlatItemToFoundry));

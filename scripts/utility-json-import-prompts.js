@@ -76,8 +76,31 @@ export async function applyCampaignPlaceholders(prompt, extra = {}) {
 export function normalizeStraightQuotesForJson(str) {
     if (typeof str !== 'string') return str;
     return str
+        .replace(/\uFEFF/g, '')
         .replace(/\u2018|\u2019|\u201A|\u201B|\u2032/g, "'")
         .replace(/\u201C|\u201D|\u201E|\u201F/g, '"');
+}
+
+/**
+ * Strip markdown code fences and trim before JSON.parse (common when pasting from chat).
+ * @param {string} str
+ * @returns {string}
+ */
+export function stripJsonMarkdownFences(str) {
+    let s = String(str ?? '').trim();
+    if (!s.startsWith('```')) return s;
+    s = s.replace(/^```[a-zA-Z]*\s*\r?\n?/, '');
+    s = s.replace(/\r?\n?```\s*$/, '');
+    return s.trim();
+}
+
+/**
+ * Normalize pasted import JSON text for parsing.
+ * @param {string} str
+ * @returns {string}
+ */
+export function prepareJsonImportText(str) {
+    return stripJsonMarkdownFences(normalizeStraightQuotesForJson(str));
 }
 
 /** @deprecated Use applyCampaignPlaceholders */
