@@ -6,11 +6,14 @@
 {{{preparationHtml}}}
 {{/if}}
 {{#if areaSectionHtml}}
+{{#if preparationHtml}}<p></p>{{/if}}
 {{{areaSectionHtml}}}
 {{/if}}
 {{#if encounterHtml}}
+{{#if preparationHtml}}<p></p>{{else}}{{#if areaSectionHtml}}<p></p>{{/if}}{{/if}}
 {{{encounterHtml}}}
 {{/if}}
 {{#if conversationsHtml}}
+{{#if preparationHtml}}<p></p>{{else}}{{#if areaSectionHtml}}<p></p>{{else}}{{#if encounterHtml}}<p></p>{{/if}}{{/if}}{{/if}}
 {{{conversationsHtml}}}
 {{/if}}

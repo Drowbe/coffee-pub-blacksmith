@@ -22,6 +22,8 @@ import {
 } from './utility-json-import-compendium-lists.js';
 
 export const JOURNAL_PROMPT_CORE = 'prompt-journal-core.txt';
+/** Shared illustration + portrait rules; composed after core, before any import profile. */
+export const JOURNAL_PROMPT_VISUAL_STYLES = 'prompt-journal-visual-styles.txt';
 export const JOURNAL_JSON_IMPORT_KIND_ID = 'journal';
 
 /** @type {Record<string, string>} */
@@ -262,7 +264,8 @@ async function applyAreaCatalogSections(prompt, catalogOptions) {
 export async function buildJournalImportPrompt(profileKey, options = {}) {
     const key = String(profileKey || 'area').toLowerCase();
     const core = await fetchPromptText(JOURNAL_PROMPT_CORE);
-    const parts = [core];
+    const visualStyles = await fetchPromptText(JOURNAL_PROMPT_VISUAL_STYLES);
+    const parts = [core, visualStyles];
 
     const profileFile = JOURNAL_PROMPT_PROFILES[key];
     if (profileFile) {

@@ -7,6 +7,11 @@ journaltype: always "area".
 You are generating structured JSON for Coffee Pub Blacksmith import—not a prose handout.
 The importer links actors and items by exact name, renders Foundry journal HTML, and displays narrative cards.
 
+PORTING EXISTING CONTENT (same rules as authoring from scratch)
+If the user asks you to adapt, reuse, or recreate material from existing notes, chats, wikis, or prior exports, treat the IMPORT PROFILE as a fixed contract. The failure mode to avoid: reconstructing the scene's narrative in a self-invented JSON shape that "preserves the writing" but does not match the importer.
+- Map every idea into the allowed keys only (see SCHEMA LOCK below). Rumors, hooks, connections, cast lists, or stat-like blobs must land in preparation, area.narrative, discoverablefacts, conversations, or string-array linkers — never as new top-level or sibling keys under blocks.
+- Use "exact importer JSON" logic, not "good JSON" or generic worldbuilding-export logic.
+
 Each area is one playable scene: a shop, room, chamber, clearing, district block, wilderness node, dungeon space, or similar.
 
 Other journal profiles (same universal envelope, different blocks):
@@ -14,8 +19,51 @@ Other journal profiles (same universal envelope, different blocks):
 - encounter, injury, character — future profiles
 
 Outputs:
-1. AREA JSON (envelope + blocks) — required
-2. AREA IMAGE — only when the user asks after accepting the JSON
+1. AREA JSON (envelope + blocks) — required first response for a new scene
+2. Optional images — follow POST-JSON IMAGE WORKFLOW in journal core: ask before each illustration or portrait; compose **generation prompts** using JOURNAL VISUAL STYLES + card text. JSON `imagetitle` is **not** the generation prompt (see IMAGETITLE below).
+
+
+--------------------------------
+SCHEMA LOCK (AREA — wrong shape breaks Blacksmith import)
+--------------------------------
+
+Under "blocks", ONLY these keys are valid for this profile: "preparation", "area", "encounter", "conversations". Do not add any other sibling keys (no rumors, connections, keynpcs, npcs, cast, interactives, scene, metadata, hooks, or custom wrappers).
+
+blocks.area MUST include "narrative" as an object with exactly three STRING fields: "description", "layout", "atmosphere". Do not put a scene description as a bare string on blocks.area. Do not use "atmosphere" as an object with sight/sound/smell keys — fold sensory detail into those three strings (usually atmosphere carries mood in one paragraph).
+
+blocks.area.narrativecard MUST use exactly: "title", "description", "imagetitle", "image". Player-facing card prose goes in "description" (HTML allowed). Never use "text", "body", or "content" instead of "description". See IMAGETITLE section for imagetitle — it is a short UI caption above the image, not a generation prompt.
+
+blocks.preparation (include whenever the scene has threats, rewards, purpose, or GM notes): "threats" and "rewards" are ARRAYS OF STRINGS only, each string one line in the form "Actor or Item Name — short blurb". Never an array of objects with name/type/details.
+
+blocks.area uses "interactivedetails" (ARRAY OF STRINGS), never "interactives" and never objects per line.
+
+NPCs go ONLY in "blocks.conversations" (array of objects with name, keycharacter, narrativecard, snapshot, theyknow, theyveheard, theywant). Never "keynpcs", never a staff array nested under blocks.area.
+
+Common wrong → correct:
+- narrativecard.text → narrativecard.description
+- long / prompt-like imagetitle → short UI caption (IMAGETITLE section)
+- conversations name "Commoner" / "Scout" / bare role token → personal name or diegetic handle (CONVERSATIONS.NAME)
+- blocks.area.threats / blocks.area.rewards → blocks.preparation.threats / blocks.preparation.rewards
+- [{ "name": "...", "details": "..." }] in threats → "Name — details" strings
+- keynpcs: [...] → conversations: [ { "name": "...", "keycharacter": true, ... } ]
+
+
+--------------------------------
+IMAGETITLE (UI CAPTION ABOVE THE IMAGE — NOT A PROMPT)
+--------------------------------
+
+The importer renders `narrativecard.imagetitle` as a **short heading displayed above** the card image in Foundry (figure-style caption). It is **not** an image-generation prompt, **not** latent metadata for tools, and **not** a stand-in for a missing `imageprompt` field (that key does not exist in this schema).
+
+Rules:
+- **Short human-readable display text** — typically about **3 to 7 words** (stay under ~60 characters if you must go slightly longer).
+- Evocative or poetic is fine; **brevity** beats visual specification.
+- **Never** use comma-separated trait lists, lighting/camera/composition/mood/style instructions, aspect ratios, or generic "prompt speak".
+- **Never** pack race, class, hair, skin, expression, or rendering directions into `imagetitle` — those live in `description` (and, when the user later approves image generation, in the **follow-up chat prompt** built with JOURNAL VISUAL STYLES — not in JSON).
+
+Good examples: "Harlowe Behind the Bar", "Words Beneath the Noise", "Ash-Stained Laborer", "Night Cargo Rumors", "The River Never Sleeps"
+Bad (reads like an image model prompt): "Crowded river tavern interior warm rim light ink wash patrons at oak bar 16:9 cinematic"
+
+Use `imagetitle: ""` when no caption is needed.
 
 
 --------------------------------
@@ -28,14 +76,21 @@ LINKER FIELDS (machine-consumed — exact names from catalogs below):
 - blocks.preparation.threats[] — actor names only: "Exact Actor Name — tactical blurb"
 - blocks.preparation.rewards[] — prefer item names: "Item Name — note" or plain loot text (gp, clues)
 - blocks.area.interactivedetails[] — "Item Name — detail" for gear; "Trap — detail", "Lever — detail" for non-items
-- blocks.conversations[].name — exact actor/world name when the NPC exists in world or compendium
+- blocks.conversations[].name — see CONVERSATIONS.NAME below (must be a person’s name for cast entries, not a bare role token)
+
+CONVERSATIONS.NAME (persons, not role labels)
+If you include someone in `blocks.conversations`, they are part of the **cast** for the scene. `name` must be a **specific personal name** (given name, nickname, or an exact catalog/world name that is already a proper name — e.g. matching [ADD-WORLD-ACTORS-HERE]).
+
+Do **not** use bare stat-block role words as `name` for those entries: **never** `"Commoner"`, `"Scout"`, `"Guard"`, `"Bandit"`, `"Noble"`, `"Spy"`, `"Merchant"`, `"Veteran"`, or similar alone. Those strings belong in **threats[]** / encounter tactics when you mean generic creatures — not as the `conversations[].name` for a character the scene treats as an individual.
+
+If you need a minor figure without a full name, give a short **diegetic handle** that is still a name-like label (e.g. "Rope-Call Marta", "Third-shift Porter") — not the creature type. If someone is only anonymous crowd dressing with no lines, **omit** them from `conversations` instead of using a role token as `name`.
 
 PROSE FIELDS (write for the table):
 - blocks.preparation.purpose[], gmnotes[]
 - blocks.area.narrative.description, layout, atmosphere
 - blocks.area.discoverablefacts[]
 - blocks.encounter.* (except use exact actor names inside tactics if referencing creatures)
-- narrativecard description HTML (player-facing prose)
+- narrativecard description HTML (player-facing prose); narrativecard.imagetitle is a short UI caption above the image only — see IMAGETITLE section, not a generation prompt
 
 Anti-examples (threats[] — will NOT link):
 - "Corrupt Caravan Escorts — …" (use Guard, Veteran, Bandit, etc.)
@@ -51,6 +106,10 @@ Anti-examples (rewards / interactives):
 Good examples:
 - "Crowbar — wedged in the warped floorboard"
 - "Spy — leans on the counter, feigning indifference"
+
+Anti-examples (conversations[].name — wrong for cast rows):
+- "Commoner", "Scout", "Guard", "Merchant" as the sole `name` value
+Good: "Dellik Marr", "Marda Vexley", "Rope-Call Marta" (handle), or an exact match from world actors list when importing a known NPC
 
 
 --------------------------------
@@ -86,8 +145,10 @@ NARRATIVE CARDS (DEFAULT: INCLUDE)
 "Optional" means omit only when the scene has no entrance beat and no NPC presence.
 
 ALWAYS include:
-- blocks.area.narrativecard — entrance / first impression (title, description HTML, image "" or path)
-- blocks.conversations[].narrativecard for each key NPC (set keycharacter: true when they matter to the scene)
+- blocks.area.narrativecard — entrance / first impression (title, description HTML, imagetitle as short UI caption per IMAGETITLE section, image "" or path)
+- blocks.conversations[].narrativecard for each key NPC (set keycharacter: true when they matter to the scene); same imagetitle rules
+
+Order within "blocks.conversations": list every key character (keycharacter: true) before any non-key characters (keycharacter: false). Same roster may appear in another order in source notes — reorder for this preference (importer preserves array order in the journal HTML).
 
 Card description: brief, no secrets; HTML allowed (p, strong, em, br).
 Use image: "" only when no default image path was provided for that card type; otherwise use the default path verbatim.
@@ -124,7 +185,7 @@ blocks.preparation
 
 blocks.area
 - narrative (required): description, layout, atmosphere
-- narrativecard (default include): title, description, image
+- narrativecard (default include): title, description, imagetitle (short caption only — see IMAGETITLE section), image
 - interactivedetails[]: LINKER or labeled entries — see semantics
 - discoverablefacts[]: objective truths (prose)
 
@@ -132,6 +193,8 @@ blocks.encounter (omit if no encounter to run)
 - overview, tactics[], triggers[], specialconditions[]
 
 blocks.conversations (omit if no NPCs)
+- Prefer array order: every key character (keycharacter: true) first, then non-key characters (keycharacter: false) — see NARRATIVE CARDS above
+- Each row represents an individual at the scene: `name` must be a personal name or diegetic handle — never a bare role token like Commoner or Scout (see CONVERSATIONS.NAME above)
 - name (LINKER when world/compendium actor exists), keycharacter, snapshot[], theyknow[], theyveheard[], theywant[]
 - narrativecard (default for keycharacter)
 
@@ -156,7 +219,7 @@ blocks SHAPE (reference)
     "narrativecard": {
       "title": "TITLE",
       "description": "<p>HTML OK</p>",
-      "imagetitle": "IMAGE TITLE",
+      "imagetitle": "Short Caption Above Image",
       "image": ""
     },
     "interactivedetails": ["Trap — detail", "Crowbar — detail"],
@@ -165,9 +228,17 @@ blocks SHAPE (reference)
   "encounter": { "overview": "", "tactics": [], "triggers": [], "specialconditions": [] },
   "conversations": [
     {
-      "name": "NPCNAME",
+      "name": "KEY_NPC_NAME",
       "keycharacter": true,
-      "narrativecard": { "title": "", "description": "", "image": "" },
+      "narrativecard": { "title": "", "description": "", "imagetitle": "", "image": "" },
+      "snapshot": [],
+      "theyknow": [],
+      "theyveheard": [],
+      "theywant": []
+    },
+    {
+      "name": "Third-Shift Dockhand",
+      "keycharacter": false,
       "snapshot": [],
       "theyknow": [],
       "theyveheard": [],
@@ -202,22 +273,5 @@ When generating an area journal:
 - match LOCATION PATH and envelope geography fields
 - use linker rules for threats, rewards, and item interactives
 - include area and key NPC narrativecards by default
+- give every `conversations` cast member a personal name or diegetic handle — never bare Commoner/Scout/Guard-style role tokens as `name`
 - prioritize fast GM retrieval at the table
-
-
-========================================
-AREA IMAGE (THIS PROFILE)
-========================================
-
-Generate only when the user asks, after the JSON is accepted.
-
-Subject may be scene, environment, character, or object. Subject must dominate the frame.
-
-Aspect ratio: scene/environment 16:9 landscape; character or object 1:1 square.
-
-Framing: eye-level, natural composition; no bird's-eye, extreme tilt, or empty panoramas.
-
-Style: painterly ink-and-wash; hand-drawn linework; cross-hatching; warm rim light; muted earthy palette; fantasy tabletop RPG concept art; single cohesive image; no collages or panels.
-
-If image generation fails, output exactly:
-Image generation failed
