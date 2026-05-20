@@ -763,7 +763,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         // Stable id so only one Pin Layers window exists (singleton).
         opts.id = opts.id ?? APP_ID;
         const bounds = game.settings.get(MODULE.ID, 'pinLayersWindowBounds') || {};
-        const { lastProfile, lastTab, layersHideUnused, browseViewMode: savedBrowseView, ...positionBounds } = bounds;
+        const { lastProfile, lastTab, layersHideUnused, layersDimHidden, browseViewMode: savedBrowseView, ...positionBounds } = bounds;
         opts.position = foundry.utils.mergeObject(
             foundry.utils.mergeObject({}, PinLayersWindow.DEFAULT_OPTIONS.position ?? {}),
             positionBounds
@@ -782,6 +782,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         this._lastBrowsePinIds = [];
         this._lastBrowsePinsById = new Map();
         this.layersHideUnused = !!layersHideUnused;
+        this.layersDimHidden = layersDimHidden !== false; // default true (dim, current behavior)
         this.browseViewMode = savedBrowseView === 'category' ? 'category' : 'alphabetical';
     }
 
@@ -814,6 +815,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 lastProfile: this._selectedProfileValue ?? '',
                 lastTab: this.activeTab ?? 'layers',
                 layersHideUnused: !!this.layersHideUnused,
+                layersDimHidden: !!this.layersDimHidden,
                 browseViewMode: this.browseViewMode === 'category' ? 'category' : 'alphabetical'
             });
         } catch (_err) {
@@ -941,6 +943,13 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                         <span class="blacksmith-toggle-label" data-tooltip="Hide tag chips with no pins on this scene. Taxonomy groups always stay visible.">Hide unused</span>
                         <label class="blacksmith-toggle">
                             <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-layers-hide-unused" ${this.layersHideUnused ? 'checked' : ''}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="blacksmith-toggle-row">
+                        <span class="blacksmith-toggle-label" data-tooltip="When on, hidden pins stay on the canvas at reduced opacity. When off, hidden pins are removed from view entirely.">Dim hidden</span>
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-layers-dim-hidden" ${this.layersDimHidden ? 'checked' : ''}>
                             <span class="blacksmith-toggle-slider"></span>
                         </label>
                     </div>
@@ -1088,14 +1097,16 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     const count = globalTagSceneCounts.get(tag) ?? 0;
                     return this._buildTagChip({ tag, hidden: tagHidden, count, isGlobal: true });
                 }).join('');
-            sections.push(this._buildTaxonomyGroup({
-                label: 'Global',
-                predefinedChips,
-                customChips,
-                hidden,
-                partial,
-                toggleScope: 'global'
-            }));
+            if (!hidden || this.layersDimHidden) {
+                sections.push(this._buildTaxonomyGroup({
+                    label: 'Global',
+                    predefinedChips,
+                    customChips,
+                    hidden,
+                    partial,
+                    toggleScope: 'global'
+                }));
+            }
         }
 
         // Track which moduleId|visType combos are covered by a registered taxonomy
@@ -1141,17 +1152,19 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                         return this._buildTagChip({ tag, count, hidden: tagHidden, isGlobal: false, moduleId, type });
                     }).join('');
 
-                sections.push(this._buildTaxonomyGroup({
-                    label: entry.label || type,
-                    count: typeCount,
-                    predefinedChips,
-                    customChips,
-                    hidden: typeRowHidden,
-                    partial,
-                    toggleScope: 'type',
-                    moduleId,
-                    type
-                }));
+                if (!typeRowHidden || this.layersDimHidden) {
+                    sections.push(this._buildTaxonomyGroup({
+                        label: entry.label || type,
+                        count: typeCount,
+                        predefinedChips,
+                        customChips,
+                        hidden: typeRowHidden,
+                        partial,
+                        toggleScope: 'type',
+                        moduleId,
+                        type
+                    }));
+                }
             }
         }
 
@@ -1186,16 +1199,18 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     return this._buildTagChip({ tag, count, hidden: tagHidden, isGlobal: false, moduleId, type });
                 }).join('');
 
-            sections.push(this._buildTaxonomyGroup({
-                label: PinManager.getPinTypeLabel(moduleId, type) || type,
-                count: typeCount,
-                chips,
-                hidden: typeRowHidden,
-                partial: false,
-                toggleScope: 'type',
-                moduleId,
-                type
-            }));
+            if (!typeRowHidden || this.layersDimHidden) {
+                sections.push(this._buildTaxonomyGroup({
+                    label: PinManager.getPinTypeLabel(moduleId, type) || type,
+                    count: typeCount,
+                    chips,
+                    hidden: typeRowHidden,
+                    partial: false,
+                    toggleScope: 'type',
+                    moduleId,
+                    type
+                }));
+            }
         }
 
         return `<div class="blacksmith-pin-layers-root">
@@ -1496,6 +1511,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         root?.querySelector('.blacksmith-pin-layers-hide-unused')
             ?.addEventListener('change', (e) => {
                 this.layersHideUnused = !!e.target.checked;
+                void this.render(true);
+            });
+
+        root?.querySelector('.blacksmith-pin-layers-dim-hidden')
+            ?.addEventListener('change', (e) => {
+                this.layersDimHidden = !!e.target.checked;
                 void this.render(true);
             });
 

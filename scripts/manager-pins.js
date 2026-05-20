@@ -1837,7 +1837,11 @@ export class PinManager {
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
-                await PinRenderer.updatePin(pin);
+                if (pin.moduleId && this.isModuleTypeHidden(pin.moduleId, pin.type)) {
+                    await this.setModuleTypeHidden(pin.moduleId, pin.type, false);
+                } else {
+                    await PinRenderer.updatePin(pin);
+                }
                 if (pin.eventAnimations?.add?.animation) {
                     await PinRenderer.playAddAnimation(pin.id, pin.eventAnimations.add);
                 }
@@ -2153,7 +2157,11 @@ export class PinManager {
         if (scene.id === canvas?.scene?.id) {
             import('./pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
-                await PinRenderer.updatePin(placed);
+                if (placed.moduleId && this.isModuleTypeHidden(placed.moduleId, placed.type)) {
+                    await this.setModuleTypeHidden(placed.moduleId, placed.type, false);
+                } else {
+                    await PinRenderer.updatePin(placed);
+                }
                 if (placed.eventAnimations?.add?.animation) {
                     await PinRenderer.playAddAnimation(placed.id, placed.eventAnimations.add);
                 }
