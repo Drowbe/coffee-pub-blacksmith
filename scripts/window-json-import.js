@@ -143,6 +143,12 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         };
     }
 
+    _templateMatchesForAttribute(forTemplateAttr, template) {
+        const tokens = String(forTemplateAttr ?? '').trim().split(/\s+/).filter(Boolean);
+        if (!tokens.length) return true;
+        return tokens.includes(template);
+    }
+
     _updatePromptFieldVisibility() {
         const root = this.element;
         if (!root) return;
@@ -153,7 +159,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 '.blacksmith-json-import-prompt-field-row, .blacksmith-json-import-prompt-fields-header[data-for-template]'
             )) {
                 const forTemplate = row.getAttribute('data-for-template') || '';
-                const show = !forTemplate || forTemplate === template;
+                const show = this._templateMatchesForAttribute(forTemplate, template);
                 row.hidden = !show;
             }
             const block = root.querySelector('.blacksmith-json-import-prompt-fields');

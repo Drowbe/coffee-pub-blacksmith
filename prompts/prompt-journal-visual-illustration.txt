@@ -1,87 +1,48 @@
 ========================================
-ILLUSTRATION IMAGE (SCENE / PLACE / OBJECT)
+NARRATIVE ILLUSTRATION IMAGE
 ========================================
 
-Composed with **JOURNAL IMAGE — CORE** above (expectations only). **All style rules for this image type are in this profile.**
+Generate an image of the described subject for a tabletop RPG campaign. Do not describe the image, generate it.
 
-Use for a **place, crowd, interior, street, landscape, landmark**, or a **non-portrait object in context**. **Not** an NPC portrait — use **Portrait Image** for character busts.
+Image only. Does not produce JSON.
 
-Context: Dungeons & Dragons (or compatible fantasy RPG) scene illustration for a tabletop campaign.
-
-PREFILLED SCENE FACETS (edit in Foundry Import JSON before copy, or change after paste)
+--------------------------------------------------
+DESCRIBED SUBJECT (use this brief)
+--------------------------------------------------
 
 [TITLE]: [ADD-ILLUSTRATION-TITLE-HERE]
 
 [SUBJECT TYPE]: [ADD-ILLUSTRATION-SUBJECT-TYPE-HERE]
-(Interior, Exterior, Landscape, Street, Landmark, Room, Object, Artifact, etc.)
-
-[ASPECT RATIO]: [ADD-ILLUSTRATION-ASPECT-NOTE-HERE]
 
 [DESCRIPTION]: [ADD-ILLUSTRATION-DESCRIPTION-HERE]
 
 [TIME OF DAY]: [ADD-ILLUSTRATION-TIME-OF-DAY-HERE]
 [WEATHER / SKY]: [ADD-ILLUSTRATION-WEATHER-HERE]
 [SEASON]: [ADD-ILLUSTRATION-SEASON-HERE]
-
 [MOOD / ATMOSPHERE]: [ADD-ILLUSTRATION-MOOD-HERE]
 [CROWD / OCCUPANCY]: [ADD-ILLUSTRATION-OCCUPANCY-HERE]
 [FOCAL ANCHOR]: [ADD-ILLUSTRATION-FOCAL-HERE]
-(key structure or visual anchor — e.g. central bar, bridge, altar, market stall)
 
-Apply prefilled facets to the image. The user may paste additional `narrativecard` prose below; do not contradict prefilled facets unless asked to revise.
+[ADD-ILLUSTRATION-FIGURE-POLICY-HERE]
 
-
---------------------------------
-STYLE RULES (ILLUSTRATION — FULL)
---------------------------------
-
-**Visual target:** grounded **cinematic fantasy realism** — painterly but **restrained**, atmospheric, believable — closer to a still from a **grounded historical / fantasy drama** than to epic splash art, glossy game key art, or heavy graphic-novel linework. When in doubt, **quiet tension and lived-in believability** over spectacle.
-
-Rendering:
-- **Painterly realism** with **subtle** brush texture; **minimal** visible graphic linework — avoid exaggerated strokes, noisy surfaces, and over-illustrated "concept art clutter."
-- **Selective detail** and **clear focal hierarchy**: one primary read; support the focal subject with quieter surroundings. **Readability over density** — do not fill every inch with competing ornament.
-- Avoid **visual clutter**, overcrowding, and ornamental noise outside the focal area; **restrained environmental detail** where the eye should rest.
-- **No photoreal** hyper-sharp DSLR snapshot look; also **no** hyper-polished cinematic **fantasy-poster** sheen or heroic "splash art" drift.
-
-Figures (when any appear):
-- **Naturalistic staging**: people **embedded** in the space with believable posture and weight — not a posed lineup, not fashion-catalog heroes.
-- Prefer **believable social behavior**: small clusters, isolated conversations, averted or wary glances, exhaustion, hands busy with ordinary tasks — **behavioral storytelling**, not mannequins.
-
-Lighting:
-- **Practical or motivated light** where it makes sense; **atmospheric** falloff and **softened contrast** — restrained value range, not high-contrast "concept art grading."
-- Gentle warm rim or edge read only when motivated.
-
-Palette:
-- Muted earthy tones with warm ochres, browns, and desaturated neutrals unless a specific color is narratively driven.
-
-Art direction:
-- Fantasy setting, **dramatic but grounded**; **believable materials** and wear.
-- **Single cohesive image**; one clear story beat.
-- No grids, panels, sheets, or collages.
-
-
---------------------------------
-SUBJECT & COMPOSITION
---------------------------------
+Use every field above. Do not invent a different scene, cast, or location than described.
 
 The subject may be:
-- A scene or environment
+- A scene or environment (including inns, shops, markets, churches, harbors, ships, boats)
+- A single character in a setting — use Subject type **Character (in scene)** for bar, deck, camp, etc. (not a portrait bust; use **Portrait Image** for tight NPC headshots)
 - A single object or artifact
 
 The subject must dominate the frame and be the clear focal point of the composition.
 
-ASPECT RATIO
+--------------------------------------------------
+ASPECT RATIO RULES
+--------------------------------------------------
 
-If the subject is a SCENE or ENVIRONMENT:
-- Landscape aspect ratio (16x9)
-- Landscape canvas only
-- The environment must fill the entire frame
+[ADD-ILLUSTRATION-ASPECT-RULES-HERE]
 
-If the subject is an OBJECT or ARTIFACT:
-- Use square (1:1) unless otherwise specified
-- Object must dominate the frame
-
-FRAMING
+--------------------------------------------------
+FRAMING RULES
+--------------------------------------------------
 
 - Eye-level perspective
 - Naturalistic frontal or forward-facing composition appropriate to the subject
@@ -90,21 +51,38 @@ FRAMING
 - No dramatic tilt
 - Avoid unnecessary zoom-out or distant pull-back
 - The image must feel intentional and composed
-
-Scene-specific composition:
 - Allow environmental depth
 - Avoid panoramic emptiness
 - Anchor composition around a strong central structural element
 
-Human behavior (when the scene includes people — not a pure empty exterior):
-- **Naturalistic social staging**: patrons leaning in for a private word, distracted glances, isolated pairs, someone turned away, guarded posture, tired hands on a tankard — **quiet behavioral storytelling**, not a posed cast grid.
-- Avoid "everyone looking at camera" or synchronized heroic gestures.
+--------------------------------------------------
+STYLE RULES (ALWAYS ENFORCED)
+--------------------------------------------------
 
-Object-specific composition:
-- Tight framing
-- Object centered and clearly visible
-- Minimal background distraction
+Painterly ink-and-wash illustration style.
+Visible hand-drawn linework.
+Sketch-like outlines and textured brush strokes.
+Strong pen lines define edges and structural details.
+Subtle cross-hatching and loose ink strokes remain visible.
+No smooth airbrushing.
+No photorealism.
+No hyper-polished cinematic realism.
 
-Do not put text or UI in the frame.
+Lighting:
+Warm directional rim lighting with golden highlights along metal edges where appropriate.
+Soft ambient fill.
+Cinematic contrast but painterly execution.
+Muted earthy palette with warm ochres, browns, and desaturated tones unless color is narratively driven.
 
-Apply this profile's STYLE RULES and composition using **[DESCRIPTION]** and the other prefilled facets above (not JSON `imagetitle` alone).
+Art direction:
+Fantasy concept art for a tabletop RPG campaign.
+Dramatic but grounded.
+Hand-illustrated look.
+High detail.
+Sharp focus.
+Single cohesive image.
+No grids, panels, sheets, or collages.
+
+If image generation fails, output exactly:
+Image generation failed
+If the model cannot generate the image for any reason, it should clearly say: "Image generation failed", not describe it.

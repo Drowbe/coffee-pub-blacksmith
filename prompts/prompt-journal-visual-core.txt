@@ -1,26 +1,22 @@
 ========================================
-JOURNAL IMAGE — CORE (ALL IMAGE PROMPTS)
+JOURNAL IMAGE — CORE (PORTRAIT COPY)
 ========================================
 
-Shared expectations for **Illustration Image** and **Portrait Image** copy prompts. **No rendering or style rules here** — each profile below defines style fully.
+Shared expectations for **Portrait Image** copy (composed with the portrait profile below). Illustration Image uses its own self-contained prompt.
+
+ACTIVE TASK
+Generate **one** portrait image now. Apply PREFILLED FACETS and STYLE RULES in the portrait profile.
+
+- **Do not** render prompt text inside the image.
+- **Do not** ask "what image?" when facets are present.
 
 SCOPE
-- **Image-only.** Use after journal JSON exists (or with pasted card text). Does **not** produce JSON.
-- JSON `imagetitle` is a short **UI caption** in Foundry only — never the generation prompt.
-- There is **no** `imageprompt` key in the import schema.
+- **Image-only.** Does **not** produce JSON.
 
 OUTPUT
-- Generate **one** image per copy/paste unless the user explicitly asks for more.
+- Generate **one** image now unless the user explicitly asks for more.
 - Use your **image-generation tool** when available.
-- Do **not** stop at a text-only "prompt for another model" unless the user explicitly asks for prompt text only.
-- Do **not** attach JSON, schema discussion, or meta-commentary about these instructions.
-
-SUBJECT
-- The user supplies title, description, and context in the same chat (below the profile block, or via prefilled facet fields in the Portrait profile).
-- The described subject must dominate the frame and be the clear focal point.
 
 FAILURE
 If image generation fails, output exactly:
 Image generation failed
-
-If the model cannot generate the image for any reason, say "Image generation failed" — do not describe the image in words.

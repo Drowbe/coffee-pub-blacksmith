@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Illustration subject types** (`registry-json-import-journals.js`): **Character (in scene)** for character-in-environment (16:9, not bust); nautical types **Boat**, **Ship**, **Harbor / dock**, **Waterfront**; place types **Inn**, **Shop**, **Market**, **Church**. Aspect and figure-policy rules follow subject type.
+
+- **Illustration copy — proven prompt restored** (`prompt-journal-visual-illustration.txt`, `registry-json-import-journals.js`): Illustration copy is the working **NARRATIVE ILLUSTRATION IMAGE** contract (ink-and-wash, aspect/framing/style) plus Foundry **DESCRIBED SUBJECT** facets. Removed cinematic style profile, visual-core on illustration compose, and conflicting clipboard lead paragraph. Subject types include scene, character, and object.
+
+- **Illustration / portrait copy (single button)** (`window-json-import.hbs`): One **Copy to Clipboard** only; portrait still uses visual core + portrait profile.
+
 - **Illustration Image prefills** (`prompt-journal-visual-illustration.txt`, `registry-json-import-journals.js`, `window-json-import.hbs`): Scene facet fields with subject type, season, and time of day **dropdowns**, full-width **description** textarea, and `[ADD-ILLUSTRATION-*]` substitution; aspect-ratio note from subject type (16:9 vs 1:1 for object/artifact).
 
 - **Journal Import JSON — compendium checkboxes** (`registry-json-import-journals.js`, `window-json-import.js`): "Append to copied prompt" actor/item options show only for **Area Narrative** (they inject lists into the area profile, not illustration/portrait prompts).

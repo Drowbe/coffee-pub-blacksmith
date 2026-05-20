@@ -40,6 +40,7 @@
 .blacksmith-json-import-template-row {
     align-items: end;
     flex: 0 0 auto;
+    flex-wrap: wrap;
 }
 
 .blacksmith-json-import-prompt-options {

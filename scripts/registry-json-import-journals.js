@@ -29,7 +29,7 @@ export const JOURNAL_JSON_IMPORT_KIND_ID = 'journal';
 
 /** @type {Record<string, string[]>} */
 export const JOURNAL_VISUAL_PROMPT_COMPOSE = {
-    illustration: [JOURNAL_PROMPT_VISUAL_CORE, JOURNAL_PROMPT_VISUAL_ILLUSTRATION],
+    illustration: [JOURNAL_PROMPT_VISUAL_ILLUSTRATION],
     portrait: [JOURNAL_PROMPT_VISUAL_CORE, JOURNAL_PROMPT_VISUAL_PORTRAIT]
 };
 
@@ -37,22 +37,80 @@ export const JOURNAL_VISUAL_PROMPT_COMPOSE = {
  * @param {string} subjectType
  * @returns {string}
  */
-function illustrationAspectNote(subjectType) {
+/**
+ * @param {string} subjectType
+ * @returns {boolean}
+ */
+function isIllustrationCharacterScene(subjectType) {
+    const s = String(subjectType ?? '').trim().toLowerCase();
+    return s.includes('character');
+}
+
+/**
+ * @param {string} subjectType
+ * @returns {boolean}
+ */
+function isIllustrationNauticalScene(subjectType) {
+    const s = String(subjectType ?? '').trim().toLowerCase();
+    return (
+        s.includes('boat')
+        || s.includes('ship')
+        || s.includes('harbor')
+        || s.includes('dock')
+        || s.includes('waterfront')
+        || s.includes('pier')
+        || s.includes('nautical')
+    );
+}
+
+function illustrationAspectRulesBlock(subjectType) {
     const s = String(subjectType ?? '').trim().toLowerCase();
     if (s.includes('object') || s.includes('artifact')) {
-        return 'Square (1:1) canvas — object or artifact focal.';
+        return (
+            '- Square aspect ratio (1:1)\n'
+            + '- The object or artifact must dominate the frame\n'
+            + '- Minimal background distraction'
+        );
     }
-    return 'Landscape (16:9) canvas — scene or environment.';
+    if (isIllustrationCharacterScene(subjectType)) {
+        return (
+            '- Landscape aspect ratio (16x9)\n'
+            + '- One character as the clear focal point\n'
+            + '- Show enough of the setting for context (tavern, deck, camp, street, etc.)\n'
+            + '- Not a tight portrait bust — use Portrait Image for headshots'
+        );
+    }
+    if (isIllustrationNauticalScene(subjectType)) {
+        return (
+            '- Landscape aspect ratio (16x9)\n'
+            + '- Maritime setting must read clearly (water, hull, rigging, pier, harbor, etc.)\n'
+            + '- The vessel or waterfront environment must fill the frame'
+        );
+    }
+    return (
+        '- Landscape aspect ratio (16x9)\n'
+        + '- Landscape canvas only\n'
+        + '- The environment must fill the entire frame'
+    );
 }
 
 /** @type {string[]} */
 const ILLUSTRATION_SUBJECT_TYPES = [
+    'Character (in scene)',
     'Interior',
     'Exterior',
     'Landscape',
     'Street',
     'Landmark',
     'Room',
+    'Inn',
+    'Shop',
+    'Market',
+    'Church',
+    'Boat',
+    'Ship',
+    'Harbor / dock',
+    'Waterfront',
     'Object',
     'Artifact'
 ];
@@ -72,6 +130,47 @@ const ILLUSTRATION_TIMES_OF_DAY = [
 
 /** @type {string[]} */
 const ILLUSTRATION_SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter', 'Timeless / not specified'];
+
+/** @type {string[]} */
+const ILLUSTRATION_OCCUPANCY = ['Empty (no people)', 'Sparse', 'Moderate', 'Crowded'];
+
+/**
+ * @param {string} occupancy
+ * @returns {boolean}
+ */
+function isIllustrationOccupancyEmpty(occupancy) {
+    const o = String(occupancy ?? '').trim().toLowerCase();
+    if (!o) return false;
+    return (
+        o.includes('empty')
+        || o.includes('no people')
+        || o.includes('no figures')
+        || o === 'none'
+        || o.includes('unoccupied')
+        || o.includes('deserted')
+    );
+}
+
+/**
+ * @param {string} occupancy
+ * @returns {string}
+ */
+function illustrationFigurePolicyBlock(occupancy, subjectType = '') {
+    if (isIllustrationCharacterScene(subjectType)) {
+        return (
+            'One primary character from the description as focal point, embedded in the setting. '
+            + 'Additional figures only if [CROWD / OCCUPANCY] allows; not a posed party lineup.'
+        );
+    }
+    if (isIllustrationOccupancyEmpty(occupancy)) {
+        return 'No people or humanoid figures — uninhabited scene only.';
+    }
+    const o = String(occupancy ?? '').trim().toLowerCase();
+    if (o.includes('sparse')) {
+        return 'Sparse occupancy — at most a few small, distant incidental figures; no party lineup.';
+    }
+    return '';
+}
 
 /**
  * @param {string[]} values
@@ -127,7 +226,14 @@ export function getJournalIllustrationPromptFields() {
             showForTemplate: 'illustration'
         },
         { id: 'illustrationMood', label: 'Mood / atmosphere', value: '', showForTemplate: 'illustration' },
-        { id: 'illustrationOccupancy', label: 'Crowd / occupancy', value: '', showForTemplate: 'illustration' },
+        {
+            id: 'illustrationOccupancy',
+            label: 'Crowd / occupancy',
+            inputType: 'select',
+            value: 'Empty (no people)',
+            options: promptSelectOptions(ILLUSTRATION_OCCUPANCY, 'Empty (no people)'),
+            showForTemplate: 'illustration'
+        },
         { id: 'illustrationFocal', label: 'Focal anchor', value: '', showForTemplate: 'illustration' }
     ];
 }
@@ -188,12 +294,17 @@ export function applyPortraitPromptPlaceholders(prompt, options = {}) {
  * @returns {string}
  */
 export function applyIllustrationPromptPlaceholders(prompt, options = {}) {
+    const focalRaw = String(options.illustrationFocal ?? '').trim();
+    const description = String(options.illustrationDescription ?? '').trim();
+    const focalDisplay = focalRaw
+        || (description ? '(from description — environmental anchor only, not characters)' : '');
+
     const replacements = [
         { placeholder: '[ADD-ILLUSTRATION-TITLE-HERE]', value: options.illustrationTitle },
         { placeholder: '[ADD-ILLUSTRATION-SUBJECT-TYPE-HERE]', value: options.illustrationSubjectType },
         {
-            placeholder: '[ADD-ILLUSTRATION-ASPECT-NOTE-HERE]',
-            value: illustrationAspectNote(options.illustrationSubjectType)
+            placeholder: '[ADD-ILLUSTRATION-ASPECT-RULES-HERE]',
+            value: illustrationAspectRulesBlock(options.illustrationSubjectType)
         },
         { placeholder: '[ADD-ILLUSTRATION-DESCRIPTION-HERE]', value: options.illustrationDescription },
         { placeholder: '[ADD-ILLUSTRATION-TIME-OF-DAY-HERE]', value: options.illustrationTimeOfDay },
@@ -201,7 +312,14 @@ export function applyIllustrationPromptPlaceholders(prompt, options = {}) {
         { placeholder: '[ADD-ILLUSTRATION-SEASON-HERE]', value: options.illustrationSeason },
         { placeholder: '[ADD-ILLUSTRATION-MOOD-HERE]', value: options.illustrationMood },
         { placeholder: '[ADD-ILLUSTRATION-OCCUPANCY-HERE]', value: options.illustrationOccupancy },
-        { placeholder: '[ADD-ILLUSTRATION-FOCAL-HERE]', value: options.illustrationFocal }
+        { placeholder: '[ADD-ILLUSTRATION-FOCAL-HERE]', value: focalDisplay },
+        {
+            placeholder: '[ADD-ILLUSTRATION-FIGURE-POLICY-HERE]',
+            value: illustrationFigurePolicyBlock(
+                options.illustrationOccupancy,
+                options.illustrationSubjectType
+            )
+        }
     ];
 
     let result = String(prompt ?? '');
@@ -477,6 +595,16 @@ export async function buildJournalVisualPrompt(bucket, promptOptions = {}) {
         composed = applyIllustrationPromptPlaceholders(composed, promptOptions);
     } else if (key === 'portrait') {
         composed = applyPortraitPromptPlaceholders(composed, promptOptions);
+        composed = (
+            '========================================\n'
+            + 'GENERATE ONE NPC PORTRAIT NOW\n'
+            + '========================================\n\n'
+            + 'Use your image-generation tool. Apply PREFILLED FACETS and STYLE RULES below. '
+            + 'Do not render prompt text inside the image.\n\n'
+            + '--------------------------------\n'
+            + 'PORTRAIT REFERENCE (below)\n'
+            + '--------------------------------\n\n'
+        ) + composed;
     }
     return composed;
 }
