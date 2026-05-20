@@ -8,9 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.7.7]
 
+### Fixed
+
+- **Illustration Image prefills** (`prompt-journal-visual-illustration.txt`, `registry-json-import-journals.js`, `window-json-import.hbs`): Scene facet fields with subject type, season, and time of day **dropdowns**, full-width **description** textarea, and `[ADD-ILLUSTRATION-*]` substitution; aspect-ratio note from subject type (16:9 vs 1:1 for object/artifact).
+
+- **Journal Import JSON — compendium checkboxes** (`registry-json-import-journals.js`, `window-json-import.js`): "Append to copied prompt" actor/item options show only for **Area Narrative** (they inject lists into the area profile, not illustration/portrait prompts).
+
+- **Journal illustration/portrait prompts** (`prompt-journal-visual-illustration.txt`, `prompt-journal-visual-portrait.txt`): Closing instructions now tell the model to **generate the image** (not merely "build a generation prompt"), reducing replies that only output prompt text.
+- **Journal image prompt architecture** (`prompt-journal-visual-core.txt`, illustration/portrait profiles, `registry-json-import-journals.js`): Visual **core** is expectations only (output, failure, no JSON); **full style** lives in each profile. Portrait profile restores proven **ink-and-wash** portrait contract; Import JSON shows **Portrait facets** fields that prefill `[ADD-PORTRAIT-*]` placeholders before copy.
+
 ### Added
 
-- **Journal import: shared visual styles prompt** (`prompts/prompt-journal-visual-styles.txt`, `scripts/registry-json-import-journals.js`): Illustration (scene / place / object) and portrait (NPC) rules are composed between journal core and import profiles so all profiles share one house style; area profile no longer duplicates image-generation prose.
+- **Journal image prompts (split from narrative import)** (`prompts/prompt-journal-visual-core.txt`, `prompt-journal-visual-illustration.txt`, `prompt-journal-visual-portrait.txt`, `scripts/registry-json-import-journals.js`): **Illustration Image** and **Portrait Image** are separate Import JSON copy targets (core + bucket composed on copy). **Area Narrative** is JSON-only (`core` + area profile). Replaces merged `prompt-journal-visual-styles.txt` (archived).
 
 - **Manage Pin Layers: "Dim hidden" toggle** (`scripts/window-pin-layers.js`): New toggle in the Layers tab profile bar (next to "Hide unused"). Controls how hidden sections are displayed **in the window** — no canvas effect. When **on** (default), hidden sections show at reduced opacity so you can still see and re-enable them. When **off**, hidden sections are removed from the window entirely, leaving only active sections visible for a cleaner layout. Preference persists in the window bounds setting.
 - **Auto-unhide layer on pin place/create** (`scripts/manager-pins.js`): When a pin is placed or created directly on the active scene and its layer type is currently hidden by the layer filter, the type is automatically unhidden so the placed pin is immediately visible. Prevents the confusing state where a pin is placed but invisible.
@@ -24,9 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Area journal layout** (`templates/journal-area.hbs`, `styles/overrides-foundry.css`): Insert an empty paragraph between major blocks (preparation, area, encounter, conversations) when both neighbors render, so lists and narrative cards no longer run into the next heading. Journal CSS adds top margin after lists/blockquotes before the following `h2`/`h3`, and after `h2` before the first `h3` (e.g. Conversations → first NPC).
 
-- **Journal prompts** (`prompts/prompt-journal-core.txt`, `prompts/prompt-journal-profile-area.txt`, `prompts/prompt-journal-visual-styles.txt`): POST-JSON image workflow; first-reply JSON-only discipline; SERIALIZATION CONTRACT and porting rules; SCHEMA LOCK; conversations order (key before non-key). `imagetitle` as short UI caption (not generation prompt). `blocks.conversations[].name` must be a personal name or diegetic handle — forbid bare role tokens (Commoner, Scout, Guard, etc.) for cast rows; blocks SHAPE minor example uses a handle not a stat label.
+- **Journal prompts** (`prompts/prompt-journal-core.txt`, `prompts/prompt-journal-profile-area.txt`): Images out of scope for narrative copy; first-reply JSON-only discipline; SERIALIZATION CONTRACT and porting rules; SCHEMA LOCK; conversations order (key before non-key). `imagetitle` as short UI caption (not generation prompt). `blocks.conversations[].name` must be a personal name or diegetic handle — forbid bare role tokens (Commoner, Scout, Guard, etc.) for cast rows; blocks SHAPE minor example uses a handle not a stat label.
 
-- **Journal visual styles prompt** (`prompts/prompt-journal-visual-styles.txt`): Shared style pivoted from heavy ink-and-wash / high-contrast concept-art bias to **grounded cinematic painterly realism** (selective detail, anti-clutter, softer lighting, practical sources, behavioral staging for crowd scenes). Illustration section adds human-behavior staging; portrait rendering softened to match. Aspect/framing blocks from the legacy narrative spec retained where they still apply.
+- **Journal visual prompts** (`prompts/prompt-journal-visual-*.txt`): Grounded cinematic painterly realism in shared core; illustration bucket adds scene/object framing and human-behavior staging; portrait bucket adds tight headshot contract. Copied separately from area JSON workflow.
 
 - **GM indicator badge: fixed canvas-relative size** (`scripts/pins-renderer.js`, `styles/pins.css`): The GM-only editing indicator badge now scales with canvas zoom (fixed at 16 scene units × the current canvas scale factor) instead of proportionally to pin size. Large image pins no longer have oversized badges.
 - **`pins.place()` failure: user-facing notification** (`scripts/manager-pins.js`): Replaced `console.warn` with `postConsoleAndNotification` (user-visible toast) when placement fails. Message now distinguishes "pin is already placed on scene X" from "pin not found" and suggests closing and reopening the journal.

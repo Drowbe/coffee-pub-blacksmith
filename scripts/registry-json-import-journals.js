@@ -22,9 +22,202 @@ import {
 } from './utility-json-import-compendium-lists.js';
 
 export const JOURNAL_PROMPT_CORE = 'prompt-journal-core.txt';
-/** Shared illustration + portrait rules; composed after core, before any import profile. */
-export const JOURNAL_PROMPT_VISUAL_STYLES = 'prompt-journal-visual-styles.txt';
+export const JOURNAL_PROMPT_VISUAL_CORE = 'prompt-journal-visual-core.txt';
+export const JOURNAL_PROMPT_VISUAL_ILLUSTRATION = 'prompt-journal-visual-illustration.txt';
+export const JOURNAL_PROMPT_VISUAL_PORTRAIT = 'prompt-journal-visual-portrait.txt';
 export const JOURNAL_JSON_IMPORT_KIND_ID = 'journal';
+
+/** @type {Record<string, string[]>} */
+export const JOURNAL_VISUAL_PROMPT_COMPOSE = {
+    illustration: [JOURNAL_PROMPT_VISUAL_CORE, JOURNAL_PROMPT_VISUAL_ILLUSTRATION],
+    portrait: [JOURNAL_PROMPT_VISUAL_CORE, JOURNAL_PROMPT_VISUAL_PORTRAIT]
+};
+
+/**
+ * @param {string} subjectType
+ * @returns {string}
+ */
+function illustrationAspectNote(subjectType) {
+    const s = String(subjectType ?? '').trim().toLowerCase();
+    if (s.includes('object') || s.includes('artifact')) {
+        return 'Square (1:1) canvas — object or artifact focal.';
+    }
+    return 'Landscape (16:9) canvas — scene or environment.';
+}
+
+/** @type {string[]} */
+const ILLUSTRATION_SUBJECT_TYPES = [
+    'Interior',
+    'Exterior',
+    'Landscape',
+    'Street',
+    'Landmark',
+    'Room',
+    'Object',
+    'Artifact'
+];
+
+/** @type {string[]} */
+const ILLUSTRATION_TIMES_OF_DAY = [
+    'Pre-dawn',
+    'Dawn',
+    'Morning',
+    'Midday',
+    'Afternoon',
+    'Dusk',
+    'Evening',
+    'Night',
+    'Deep night'
+];
+
+/** @type {string[]} */
+const ILLUSTRATION_SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter', 'Timeless / not specified'];
+
+/**
+ * @param {string[]} values
+ * @param {string} [selected]
+ * @returns {Array<{value: string, label: string}>}
+ */
+function promptSelectOptions(values, selected = '') {
+    const opts = [{ value: '', label: '—' }];
+    for (const v of values) {
+        opts.push({ value: v, label: v });
+    }
+    return opts;
+}
+
+/**
+ * Illustration facet fields for Import JSON (prefill before copy).
+ * @returns {Array<{id: string, label: string, value?: string, showForTemplate: string, inputType?: string, fullWidth?: boolean, options?: Array<{value: string, label: string}>}>}
+ */
+export function getJournalIllustrationPromptFields() {
+    return [
+        { id: 'illustrationTitle', label: 'Title', value: '', showForTemplate: 'illustration' },
+        {
+            id: 'illustrationSubjectType',
+            label: 'Subject type',
+            inputType: 'select',
+            value: 'Interior',
+            options: promptSelectOptions(ILLUSTRATION_SUBJECT_TYPES),
+            showForTemplate: 'illustration'
+        },
+        {
+            id: 'illustrationDescription',
+            label: 'Description',
+            inputType: 'textarea',
+            fullWidth: true,
+            value: '',
+            showForTemplate: 'illustration'
+        },
+        {
+            id: 'illustrationTimeOfDay',
+            label: 'Time of day',
+            inputType: 'select',
+            value: '',
+            options: promptSelectOptions(ILLUSTRATION_TIMES_OF_DAY),
+            showForTemplate: 'illustration'
+        },
+        { id: 'illustrationWeather', label: 'Weather / sky', value: '', showForTemplate: 'illustration' },
+        {
+            id: 'illustrationSeason',
+            label: 'Season',
+            inputType: 'select',
+            value: '',
+            options: promptSelectOptions(ILLUSTRATION_SEASONS),
+            showForTemplate: 'illustration'
+        },
+        { id: 'illustrationMood', label: 'Mood / atmosphere', value: '', showForTemplate: 'illustration' },
+        { id: 'illustrationOccupancy', label: 'Crowd / occupancy', value: '', showForTemplate: 'illustration' },
+        { id: 'illustrationFocal', label: 'Focal anchor', value: '', showForTemplate: 'illustration' }
+    ];
+}
+
+/**
+ * Portrait facet fields for Import JSON (prefill before copy).
+ * @returns {Array<{id: string, label: string, value?: string, showForTemplate: string}>}
+ */
+export function getJournalPortraitPromptFields() {
+    return [
+        { id: 'portraitName', label: 'Name', value: '', showForTemplate: 'portrait' },
+        { id: 'portraitRace', label: 'Creature race', value: '', showForTemplate: 'portrait' },
+        { id: 'portraitClass', label: 'Creature class', value: '', showForTemplate: 'portrait' },
+        { id: 'portraitGender', label: 'Gender', value: '', showForTemplate: 'portrait' },
+        { id: 'portraitExpression', label: 'Expression', value: '', showForTemplate: 'portrait' },
+        { id: 'portraitProp', label: 'Prop', value: 'None', showForTemplate: 'portrait' },
+        { id: 'portraitHair', label: 'Hair', value: '', showForTemplate: 'portrait' },
+        { id: 'portraitAge', label: 'Age', value: '', showForTemplate: 'portrait' },
+        { id: 'portraitSkin', label: 'Skin', value: '', showForTemplate: 'portrait' },
+        { id: 'portraitPhysique', label: 'Physique', value: '', showForTemplate: 'portrait' }
+    ];
+}
+
+/**
+ * @param {string} prompt
+ * @param {Record<string, string|boolean>} [options]
+ * @returns {string}
+ */
+export function applyPortraitPromptPlaceholders(prompt, options = {}) {
+    const race = String(options.portraitRace ?? '').trim();
+    const cls = String(options.portraitClass ?? '').trim();
+    const raceClass = [race, cls].filter(Boolean).join(' ');
+
+    const replacements = [
+        { placeholder: '[ADD-PORTRAIT-NAME-HERE]', value: options.portraitName },
+        { placeholder: '[ADD-PORTRAIT-RACE-HERE]', value: options.portraitRace },
+        { placeholder: '[ADD-PORTRAIT-CLASS-HERE]', value: options.portraitClass },
+        { placeholder: '[ADD-PORTRAIT-GENDER-HERE]', value: options.portraitGender },
+        { placeholder: '[ADD-PORTRAIT-EXPRESSION-HERE]', value: options.portraitExpression },
+        { placeholder: '[ADD-PORTRAIT-PROP-HERE]', value: options.portraitProp ?? 'None' },
+        { placeholder: '[ADD-PORTRAIT-HAIR-HERE]', value: options.portraitHair },
+        { placeholder: '[ADD-PORTRAIT-AGE-HERE]', value: options.portraitAge },
+        { placeholder: '[ADD-PORTRAIT-SKIN-HERE]', value: options.portraitSkin },
+        { placeholder: '[ADD-PORTRAIT-PHYSIQUE-HERE]', value: options.portraitPhysique },
+        { placeholder: '[ADD-PORTRAIT-RACE-CLASS-HERE]', value: raceClass }
+    ];
+
+    let result = String(prompt ?? '');
+    for (const { placeholder, value } of replacements) {
+        result = result.split(placeholder).join(String(value ?? '').trim());
+    }
+    return result;
+}
+
+/**
+ * @param {string} prompt
+ * @param {Record<string, string|boolean>} [options]
+ * @returns {string}
+ */
+export function applyIllustrationPromptPlaceholders(prompt, options = {}) {
+    const replacements = [
+        { placeholder: '[ADD-ILLUSTRATION-TITLE-HERE]', value: options.illustrationTitle },
+        { placeholder: '[ADD-ILLUSTRATION-SUBJECT-TYPE-HERE]', value: options.illustrationSubjectType },
+        {
+            placeholder: '[ADD-ILLUSTRATION-ASPECT-NOTE-HERE]',
+            value: illustrationAspectNote(options.illustrationSubjectType)
+        },
+        { placeholder: '[ADD-ILLUSTRATION-DESCRIPTION-HERE]', value: options.illustrationDescription },
+        { placeholder: '[ADD-ILLUSTRATION-TIME-OF-DAY-HERE]', value: options.illustrationTimeOfDay },
+        { placeholder: '[ADD-ILLUSTRATION-WEATHER-HERE]', value: options.illustrationWeather },
+        { placeholder: '[ADD-ILLUSTRATION-SEASON-HERE]', value: options.illustrationSeason },
+        { placeholder: '[ADD-ILLUSTRATION-MOOD-HERE]', value: options.illustrationMood },
+        { placeholder: '[ADD-ILLUSTRATION-OCCUPANCY-HERE]', value: options.illustrationOccupancy },
+        { placeholder: '[ADD-ILLUSTRATION-FOCAL-HERE]', value: options.illustrationFocal }
+    ];
+
+    let result = String(prompt ?? '');
+    for (const { placeholder, value } of replacements) {
+        result = result.split(placeholder).join(String(value ?? '').trim());
+    }
+    return result;
+}
+
+/**
+ * Illustration + portrait facet fields for Import JSON.
+ * @returns {Array<{id: string, label: string, value?: string, showForTemplate: string}>}
+ */
+export function getJournalImagePromptFields() {
+    return [...getJournalIllustrationPromptFields(), ...getJournalPortraitPromptFields()];
+}
 
 /** @type {Record<string, string>} */
 export const JOURNAL_PROMPT_PROFILES = {
@@ -37,7 +230,8 @@ const CATALOG_SECTION_WORLD_ACTORS = /---\s*WORLD ACTORS[\s\S]*?---\s*END WORLD 
 const CATALOG_SECTION_WORLD_ITEMS = /---\s*WORLD ITEMS[\s\S]*?---\s*END WORLD ITEMS\s*---/i;
 
 /**
- * @returns {Array<{id: string, label: string, checked?: boolean, disabled?: boolean}>}
+ * Catalog append options — **Area Narrative** copy only (profile embeds compendium lists).
+ * @returns {Array<{id: string, label: string, checked?: boolean, disabled?: boolean, showForTemplate: string}>}
  */
 export function getJournalPromptCheckboxes() {
     const hasActors = hasConfiguredActorCompendiums();
@@ -47,23 +241,27 @@ export function getJournalPromptCheckboxes() {
             id: 'compendiumActors',
             label: 'Include compendium actors',
             checked: hasActors,
-            disabled: !hasActors
+            disabled: !hasActors,
+            showForTemplate: 'area'
         },
         {
             id: 'compendiumItems',
             label: 'Include compendium items',
             checked: hasItems,
-            disabled: !hasItems
+            disabled: !hasItems,
+            showForTemplate: 'area'
         },
         {
             id: 'worldActors',
             label: 'Include world actors',
-            checked: false
+            checked: false,
+            showForTemplate: 'area'
         },
         {
             id: 'worldItems',
             label: 'Include world items',
-            checked: false
+            checked: false,
+            showForTemplate: 'area'
         }
     ];
 }
@@ -261,11 +459,38 @@ async function applyAreaCatalogSections(prompt, catalogOptions) {
  * @param {object} [options.geography]
  * @returns {Promise<string>}
  */
+/**
+ * Image-only prompt (shared visual core + illustration or portrait profile).
+ * @param {'illustration'|'portrait'} bucket
+ * @param {Record<string, string|boolean>} [promptOptions] — portrait facet values when bucket is portrait
+ * @returns {Promise<string>}
+ */
+export async function buildJournalVisualPrompt(bucket, promptOptions = {}) {
+    const key = String(bucket || '').toLowerCase();
+    const files = JOURNAL_VISUAL_PROMPT_COMPOSE[key];
+    if (!files?.length) {
+        throw new Error(`Unknown journal visual prompt bucket: ${bucket}`);
+    }
+    const parts = await Promise.all(files.map((f) => fetchPromptText(f)));
+    let composed = composePrompt(parts);
+    if (key === 'illustration') {
+        composed = applyIllustrationPromptPlaceholders(composed, promptOptions);
+    } else if (key === 'portrait') {
+        composed = applyPortraitPromptPlaceholders(composed, promptOptions);
+    }
+    return composed;
+}
+
+/**
+ * Narrative JSON prompt (core + import profile). Does not include image-generation rules.
+ * @param {string} profileKey
+ * @param {object} [options]
+ * @returns {Promise<string>}
+ */
 export async function buildJournalImportPrompt(profileKey, options = {}) {
     const key = String(profileKey || 'area').toLowerCase();
     const core = await fetchPromptText(JOURNAL_PROMPT_CORE);
-    const visualStyles = await fetchPromptText(JOURNAL_PROMPT_VISUAL_STYLES);
-    const parts = [core, visualStyles];
+    const parts = [core];
 
     const profileFile = JOURNAL_PROMPT_PROFILES[key];
     if (profileFile) {
@@ -379,6 +604,15 @@ async function getLocationTemplateWithDefaults(locationTemplate) {
 async function copyJournalTemplate(templateKey, promptOptions = {}) {
     const type = String(templateKey || 'area').toLowerCase();
 
+    if (type === 'illustration') {
+        const prompt = await buildJournalVisualPrompt('illustration', promptOptions);
+        return copyToClipboard(prompt, { notify: false });
+    }
+    if (type === 'portrait') {
+        const prompt = await buildJournalVisualPrompt('portrait', promptOptions);
+        return copyToClipboard(prompt, { notify: false });
+    }
+
     if (type === 'injury') {
         return copyToClipboard(await fetchLegacyPromptText('prompt-injuries.txt'), { notify: false });
     }
@@ -462,13 +696,18 @@ const journalJsonImportKind = {
     windowIcon: 'fa-solid fa-masks-theater',
     position: { width: 920, height: 720 },
     templateOptions: [
-        { value: 'area', label: 'Area' },
+        { value: 'area', label: 'Area Narrative' },
+        { value: 'illustration', label: 'Illustration Image' },
+        { value: 'portrait', label: 'Portrait Image' },
         { value: 'location', label: 'Location' },
         { value: 'encounter', label: 'Encounter' },
         { value: 'injury', label: 'Injury' }
     ],
     get promptCheckboxes() {
         return getJournalPromptCheckboxes();
+    },
+    get promptFields() {
+        return getJournalImagePromptFields();
     },
     get journalAreaUi() {
         return getJournalAreaImportUi();

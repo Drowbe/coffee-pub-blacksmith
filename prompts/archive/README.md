@@ -30,6 +30,7 @@ The roll table directory Import UI loads only the core + profile files.
 | File | Replaced by |
 |------|-------------|
 | `prompt-narratives.txt` (sections/cards schema) | `prompt-journal-core.txt` + `prompt-journal-profile-area.txt` |
+| `prompt-journal-visual-styles.txt` (monolith) | Core (no style) + `prompt-journal-visual-illustration.txt` or `prompt-journal-visual-portrait.txt` (full style per type; portrait facets prefilled in Import JSON) |
 | `templates/archive/journal-narrative.hbs` | `templates/journal-area.hbs` + `scripts/parsers/parse-journal-area.js` |
 
 Import supports **`journaltype`: `"area"`** with `blocks` only. Legacy **`NARRATIVE`** JSON is rejected.

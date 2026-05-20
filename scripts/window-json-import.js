@@ -149,7 +149,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const template = this.selectedTemplate || '';
 
         if (this.promptFields.length) {
-            for (const row of root.querySelectorAll('.blacksmith-json-import-prompt-field-row')) {
+            for (const row of root.querySelectorAll(
+                '.blacksmith-json-import-prompt-field-row, .blacksmith-json-import-prompt-fields-header[data-for-template]'
+            )) {
                 const forTemplate = row.getAttribute('data-for-template') || '';
                 const show = !forTemplate || forTemplate === template;
                 row.hidden = !show;
@@ -158,6 +160,21 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             if (block) {
                 const anyVisible = !!root.querySelector('.blacksmith-json-import-prompt-field-row:not([hidden])');
                 block.hidden = !anyVisible;
+            }
+        }
+
+        if (this.promptCheckboxes.length) {
+            for (const row of root.querySelectorAll(
+                '.blacksmith-json-import-prompt-checkbox, .blacksmith-json-import-prompt-options-hint'
+            )) {
+                const forTemplate = row.getAttribute('data-for-template') || '';
+                const show = !forTemplate || forTemplate === template;
+                row.hidden = !show;
+            }
+            const optionsBlock = root.querySelector('.blacksmith-json-import-prompt-options');
+            if (optionsBlock) {
+                const anyVisible = !!root.querySelector('.blacksmith-json-import-prompt-checkbox:not([hidden])');
+                optionsBlock.hidden = !anyVisible;
             }
         }
 
@@ -194,17 +211,39 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 id: cb.id,
                 label: cb.label,
                 checked: !!cb.checked,
-                disabled: !!cb.disabled
+                disabled: !!cb.disabled,
+                showForTemplate: cb.showForTemplate ?? ''
             })),
             hasPromptCheckboxes: this.promptCheckboxes.length > 0,
-            promptFields: this.promptFields.map((field) => ({
-                id: field.id,
-                label: field.label,
-                value: field.value ?? '',
-                showForTemplate: field.showForTemplate ?? ''
-            })),
+            promptFields: this.promptFields.map((field) => this._formatPromptFieldForTemplate(field)),
             hasPromptFields: this.promptFields.length > 0,
             journalAreaUi: this._formatJournalAreaUiData()
+        };
+    }
+
+    /**
+     * @param {object} field
+     * @returns {object}
+     */
+    _formatPromptFieldForTemplate(field) {
+        const inputType = field.inputType || 'text';
+        const value = String(field.value ?? '');
+        const options = (field.options ?? []).map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+            selected: String(opt.value) === value
+        }));
+        return {
+            id: field.id,
+            label: field.label,
+            value,
+            showForTemplate: field.showForTemplate ?? '',
+            inputType,
+            isSelect: inputType === 'select',
+            isTextarea: inputType === 'textarea',
+            isText: inputType !== 'select' && inputType !== 'textarea',
+            fullWidth: !!field.fullWidth,
+            options
         };
     }
 

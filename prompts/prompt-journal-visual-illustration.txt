@@ -1,0 +1,110 @@
+========================================
+ILLUSTRATION IMAGE (SCENE / PLACE / OBJECT)
+========================================
+
+Composed with **JOURNAL IMAGE — CORE** above (expectations only). **All style rules for this image type are in this profile.**
+
+Use for a **place, crowd, interior, street, landscape, landmark**, or a **non-portrait object in context**. **Not** an NPC portrait — use **Portrait Image** for character busts.
+
+Context: Dungeons & Dragons (or compatible fantasy RPG) scene illustration for a tabletop campaign.
+
+PREFILLED SCENE FACETS (edit in Foundry Import JSON before copy, or change after paste)
+
+[TITLE]: [ADD-ILLUSTRATION-TITLE-HERE]
+
+[SUBJECT TYPE]: [ADD-ILLUSTRATION-SUBJECT-TYPE-HERE]
+(Interior, Exterior, Landscape, Street, Landmark, Room, Object, Artifact, etc.)
+
+[ASPECT RATIO]: [ADD-ILLUSTRATION-ASPECT-NOTE-HERE]
+
+[DESCRIPTION]: [ADD-ILLUSTRATION-DESCRIPTION-HERE]
+
+[TIME OF DAY]: [ADD-ILLUSTRATION-TIME-OF-DAY-HERE]
+[WEATHER / SKY]: [ADD-ILLUSTRATION-WEATHER-HERE]
+[SEASON]: [ADD-ILLUSTRATION-SEASON-HERE]
+
+[MOOD / ATMOSPHERE]: [ADD-ILLUSTRATION-MOOD-HERE]
+[CROWD / OCCUPANCY]: [ADD-ILLUSTRATION-OCCUPANCY-HERE]
+[FOCAL ANCHOR]: [ADD-ILLUSTRATION-FOCAL-HERE]
+(key structure or visual anchor — e.g. central bar, bridge, altar, market stall)
+
+Apply prefilled facets to the image. The user may paste additional `narrativecard` prose below; do not contradict prefilled facets unless asked to revise.
+
+
+--------------------------------
+STYLE RULES (ILLUSTRATION — FULL)
+--------------------------------
+
+**Visual target:** grounded **cinematic fantasy realism** — painterly but **restrained**, atmospheric, believable — closer to a still from a **grounded historical / fantasy drama** than to epic splash art, glossy game key art, or heavy graphic-novel linework. When in doubt, **quiet tension and lived-in believability** over spectacle.
+
+Rendering:
+- **Painterly realism** with **subtle** brush texture; **minimal** visible graphic linework — avoid exaggerated strokes, noisy surfaces, and over-illustrated "concept art clutter."
+- **Selective detail** and **clear focal hierarchy**: one primary read; support the focal subject with quieter surroundings. **Readability over density** — do not fill every inch with competing ornament.
+- Avoid **visual clutter**, overcrowding, and ornamental noise outside the focal area; **restrained environmental detail** where the eye should rest.
+- **No photoreal** hyper-sharp DSLR snapshot look; also **no** hyper-polished cinematic **fantasy-poster** sheen or heroic "splash art" drift.
+
+Figures (when any appear):
+- **Naturalistic staging**: people **embedded** in the space with believable posture and weight — not a posed lineup, not fashion-catalog heroes.
+- Prefer **believable social behavior**: small clusters, isolated conversations, averted or wary glances, exhaustion, hands busy with ordinary tasks — **behavioral storytelling**, not mannequins.
+
+Lighting:
+- **Practical or motivated light** where it makes sense; **atmospheric** falloff and **softened contrast** — restrained value range, not high-contrast "concept art grading."
+- Gentle warm rim or edge read only when motivated.
+
+Palette:
+- Muted earthy tones with warm ochres, browns, and desaturated neutrals unless a specific color is narratively driven.
+
+Art direction:
+- Fantasy setting, **dramatic but grounded**; **believable materials** and wear.
+- **Single cohesive image**; one clear story beat.
+- No grids, panels, sheets, or collages.
+
+
+--------------------------------
+SUBJECT & COMPOSITION
+--------------------------------
+
+The subject may be:
+- A scene or environment
+- A single object or artifact
+
+The subject must dominate the frame and be the clear focal point of the composition.
+
+ASPECT RATIO
+
+If the subject is a SCENE or ENVIRONMENT:
+- Landscape aspect ratio (16x9)
+- Landscape canvas only
+- The environment must fill the entire frame
+
+If the subject is an OBJECT or ARTIFACT:
+- Use square (1:1) unless otherwise specified
+- Object must dominate the frame
+
+FRAMING
+
+- Eye-level perspective
+- Naturalistic frontal or forward-facing composition appropriate to the subject
+- No extreme angles
+- No top-down or bird's-eye views
+- No dramatic tilt
+- Avoid unnecessary zoom-out or distant pull-back
+- The image must feel intentional and composed
+
+Scene-specific composition:
+- Allow environmental depth
+- Avoid panoramic emptiness
+- Anchor composition around a strong central structural element
+
+Human behavior (when the scene includes people — not a pure empty exterior):
+- **Naturalistic social staging**: patrons leaning in for a private word, distracted glances, isolated pairs, someone turned away, guarded posture, tired hands on a tankard — **quiet behavioral storytelling**, not a posed cast grid.
+- Avoid "everyone looking at camera" or synchronized heroic gestures.
+
+Object-specific composition:
+- Tight framing
+- Object centered and clearly visible
+- Minimal background distraction
+
+Do not put text or UI in the frame.
+
+Apply this profile's STYLE RULES and composition using **[DESCRIPTION]** and the other prefilled facets above (not JSON `imagetitle` alone).

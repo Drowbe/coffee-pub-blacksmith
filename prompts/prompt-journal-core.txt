@@ -10,13 +10,15 @@ When the user asks you to produce or fill in this journal, your first substantiv
 - Do not produce an image whose subject is the JSON text, schema, code blocks, prompts, or instructions (no screenshots, no "pretty print" art of the data, no infographics of the payload).
 - Do not include meta-commentary: no feedback on this prompt, no discussion of rules or system instructions, no quality commentary on the task. Brief optional one-line context before the fence is acceptable; long preamble is not.
 
-An IMPORT PROFILE is appended after this core (preceded by shared VISUAL STYLES). It defines:
+An IMPORT PROFILE is appended after this core. It defines:
 - journaltype for this import
 - which keys belong inside "blocks"
-- block-specific field rules and optional image workflow
+- block-specific field rules (including `narrativecard.imagetitle` as a short UI caption only)
 
-VISUAL STYLES (shared across all journal import profiles)
-- The section titled "JOURNAL VISUAL STYLES" governs **optional post-JSON image generation** in chat (after the user confirms). It does **not** define how to fill `narrativecard.imagetitle` in JSON — see the IMPORT PROFILE for imagetitle (short UI caption only).
+IMAGES (out of scope for this prompt)
+- This prompt is **JSON only**. Do not generate or attach images in the same reply as the JSON.
+- Scene illustrations and NPC portraits use **separate** copy prompts in Foundry: **Illustration Image** and **Portrait Image** (each includes shared visual core + bucket rules). Paste card title/description after copying the image prompt.
+- `narrativecard.imagetitle` in JSON is **not** an image-generation prompt — see the IMPORT PROFILE.
 
 SERIALIZATION CONTRACT (all profiles)
 This pipeline consumes JSON as a rigid technical specification for import, not as a flexible creative export format.
@@ -33,15 +35,6 @@ You must:
 - Do not use curly or smart quotes
 - Avoid trailing commas and duplicate keys
 - Put the JSON block inside json code fences when responding
-
-POST-JSON IMAGE WORKFLOW (conversation — match legacy narrative behavior)
-After you deliver valid JSON and the user indicates they are done with it (or asks for next steps), treat images as separate steps. Do not batch-generate every image without asking.
-
-Order and prompts:
-1. Area / scene illustration — Ask once, clearly, before generating anything visual for the location beat. Example: "Should I create the illustration for [scenetitle or area narrativecard title]?" Wait for an affirmative; then compose the **image-generation prompt** from `blocks.area.narrativecard` (title, description, optional short imagetitle as flavor only) plus **ILLUSTRATION** rules in JOURNAL VISUAL STYLES. Do not treat JSON `imagetitle` as the generation prompt.
-2. Key NPC portraits — For each conversation with keycharacter: true and a narrativecard, ask separately before that portrait. Example: "Should I create the portrait for [NPC name]?" Wait for an affirmative; then compose the **image-generation prompt** from that card and conversation context plus **PORTRAIT** rules in JOURNAL VISUAL STYLES. Do not treat JSON `imagetitle` as the generation prompt. One NPC per question unless the user explicitly asks you to do all remaining portraits in one go.
-
-If the user declines or ignores an offer, skip that image and move on or stop. Never substitute a different subject than the one you asked about.
 
 GENERAL RULES
 - Prioritize scanability of prose inside allowed string and array fields — not scanability of the JSON object tree. Never sacrifice schema compliance for a "nicer" or more intuitive object layout.

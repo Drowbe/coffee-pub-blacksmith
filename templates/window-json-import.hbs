@@ -90,11 +90,31 @@
                 {{/if}}
                 {{#if hasPromptFields}}
                 <div class="blacksmith-json-import-prompt-fields">
+                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header blacksmith-json-import-illustration-fields-header" data-for-template="illustration">
+                        <i class="fa-solid fa-image"></i>
+                        <span>Scene facets (prefill before copy)</span>
+                    </div>
+                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header blacksmith-json-import-portrait-fields-header" data-for-template="portrait">
+                        <i class="fa-solid fa-user"></i>
+                        <span>Portrait facets (prefill before copy)</span>
+                    </div>
                     <div class="blacksmith-json-import-prompt-fields-grid">
                         {{#each promptFields}}
-                        <label class="blacksmith-json-import-prompt-field-row" data-for-template="{{showForTemplate}}">
+                        <label class="blacksmith-json-import-prompt-field-row{{#if fullWidth}} blacksmith-json-import-prompt-field-row-full{{/if}}" data-for-template="{{showForTemplate}}">
                             <span class="blacksmith-json-import-prompt-field-label">{{label}}</span>
+                            {{#if isSelect}}
+                            <select class="blacksmith-select blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}">
+                                {{#each options}}
+                                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                {{/each}}
+                            </select>
+                            {{/if}}
+                            {{#if isTextarea}}
+                            <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{id}}" rows="5" autocomplete="off">{{value}}</textarea>
+                            {{/if}}
+                            {{#if isText}}
                             <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}" value="{{value}}" autocomplete="off">
+                            {{/if}}
                         </label>
                         {{/each}}
                     </div>
@@ -102,9 +122,9 @@
                 {{/if}}
                 {{#if hasPromptCheckboxes}}
                 <div class="blacksmith-json-import-prompt-options">
-                    <span class="blacksmith-json-import-prompt-options-hint">Append to copied prompt:</span>
+                    <span class="blacksmith-json-import-prompt-options-hint" data-for-template="area">Append to Area Narrative prompt:</span>
                     {{#each promptCheckboxes}}
-                    <label class="blacksmith-json-import-prompt-checkbox">
+                    <label class="blacksmith-json-import-prompt-checkbox" data-for-template="{{showForTemplate}}">
                         <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{id}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>
                         <span>{{label}}</span>
                     </label>

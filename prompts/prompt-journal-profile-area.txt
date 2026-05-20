@@ -20,7 +20,7 @@ Other journal profiles (same universal envelope, different blocks):
 
 Outputs:
 1. AREA JSON (envelope + blocks) — required first response for a new scene
-2. Optional images — follow POST-JSON IMAGE WORKFLOW in journal core: ask before each illustration or portrait; compose **generation prompts** using JOURNAL VISUAL STYLES + card text. JSON `imagetitle` is **not** the generation prompt (see IMAGETITLE below).
+2. Images — **not** part of this prompt. After import, use Foundry **Illustration Image** / **Portrait Image** copy prompts with card text. JSON `imagetitle` is **not** the generation prompt (see IMAGETITLE below).
 
 
 --------------------------------
@@ -58,7 +58,7 @@ Rules:
 - **Short human-readable display text** — typically about **3 to 7 words** (stay under ~60 characters if you must go slightly longer).
 - Evocative or poetic is fine; **brevity** beats visual specification.
 - **Never** use comma-separated trait lists, lighting/camera/composition/mood/style instructions, aspect ratios, or generic "prompt speak".
-- **Never** pack race, class, hair, skin, expression, or rendering directions into `imagetitle` — those live in `description` (and, when the user later approves image generation, in the **follow-up chat prompt** built with JOURNAL VISUAL STYLES — not in JSON).
+- **Never** pack race, class, hair, skin, expression, or rendering directions into `imagetitle` — those live in `description` (and in the separate **Portrait Image** / **Illustration Image** prompts when generating art — not in JSON).
 
 Good examples: "Harlowe Behind the Bar", "Words Beneath the Noise", "Ash-Stained Laborer", "Night Cargo Rumors", "The River Never Sleeps"
 Bad (reads like an image model prompt): "Crowded river tavern interior warm rim light ink wash patrons at oak bar 16:9 cinematic"

@@ -1,0 +1,1 @@
+# Archived — split into prompt-journal-visual-core.txt, prompt-journal-visual-illustration.txt, prompt-journal-visual-portrait.txt (v13.7.7+). Use Import JSON → Illustration Image / Portrait Image instead of merging with Area Narrative.

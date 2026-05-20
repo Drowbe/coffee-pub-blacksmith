@@ -1,0 +1,70 @@
+========================================
+PORTRAIT IMAGE (CHARACTER / NPC)
+========================================
+
+Composed with **JOURNAL IMAGE — CORE** above (expectations only). **All style rules for this image type are in this profile.**
+
+This is for a Dungeons and Dragons campaign.
+
+PREFILLED FACETS (edit in Foundry Import JSON before copy, or change after paste)
+
+[NAME]: [ADD-PORTRAIT-NAME-HERE]
+
+[CREATURE RACE]: [ADD-PORTRAIT-RACE-HERE]
+[CREATURE CLASS]: [ADD-PORTRAIT-CLASS-HERE]
+[GENDER]: [ADD-PORTRAIT-GENDER-HERE]
+
+[EXPRESSION]: [ADD-PORTRAIT-EXPRESSION-HERE]
+[PROP]: [ADD-PORTRAIT-PROP-HERE]
+[HAIR]: [ADD-PORTRAIT-HAIR-HERE]
+[AGE]: [ADD-PORTRAIT-AGE-HERE]
+[SKIN]: [ADD-PORTRAIT-SKIN-HERE]
+[PHYSIQUE]: [ADD-PORTRAIT-PHYSIQUE-HERE]
+
+Generate a tight, straight-on character portrait of a [ADD-PORTRAIT-RACE-CLASS-HERE], [ADD-PORTRAIT-GENDER-HERE], fantasy RPG NPC, facing directly toward the camera with a [ADD-PORTRAIT-EXPRESSION-HERE] expression. Eye-level view, frontal perspective only.
+
+IMPORTANT COMPOSITION RULES:
+
+* Extreme close portrait framing.
+* The face must dominate the frame.
+* Crop at the shoulders only.
+* Top of head may approach the upper frame edge.
+* No torso visible below upper chest.
+* No waist, hips, or full arms.
+* No dynamic pose.
+* Character centered in frame.
+* Looking directly toward camera.
+* Portrait should feel intimate and confrontational, not cinematic or environmental.
+
+If [ADD-PORTRAIT-PROP-HERE] is specified and is not "None", include it only as a cropped partial element near the edge of frame.
+
+* Prop must never dominate composition.
+* Prop must never obscure the face.
+* Hands may appear only partially and cropped tightly.
+
+Apply [ADD-PORTRAIT-HAIR-HERE], [ADD-PORTRAIT-AGE-HERE], [ADD-PORTRAIT-SKIN-HERE], and [ADD-PORTRAIT-PHYSIQUE-HERE] as subtle controlled adjustments only.
+Do not alter framing or camera angle.
+
+
+--------------------------------
+STYLE RULES (PORTRAIT — FULL)
+--------------------------------
+
+Painterly ink-and-wash illustration style with visible hand-drawn linework, sketch-like outlines, and textured brush strokes. Strong pen lines define facial structure, wrinkles, scars, and anatomy. Subtle cross-hatching and loose ink strokes remain visible.
+
+Warm directional rim lighting with golden highlights along the edges of the face and hair, soft ambient fill, cinematic contrast.
+
+Muted earthy color palette with warm ochres, browns, desaturated reds, and smoky neutrals.
+
+Slightly weathered gritty texture. Semi-realistic proportions with stylized exaggeration. Expressive eyes are a focal point. Facial asymmetry and imperfections emphasized. No smooth airbrushing. No photorealism.
+
+Simple unobtrusive background with soft gradients and faint atmospheric particles only. Background must not contain scenery, architecture, props, or storytelling elements.
+
+Fantasy concept art, tabletop RPG portrait, dramatic mood, hand-illustrated look, high detail, sharp focus, square composition.
+
+ASPECT RATIO
+- Square aspect ratio (1:1)
+- Square canvas only
+- Single character only
+
+Optional: the user may paste narrativecard **description** or conversation context below for additional character detail — do not contradict prefilled facets unless the user asks to revise them.

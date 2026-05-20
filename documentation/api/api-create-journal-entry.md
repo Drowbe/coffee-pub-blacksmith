@@ -17,7 +17,7 @@ await api.createJournalEntry(journalData);
 **Parameters**
 
 - `journalData` (`Object`): Structured payload. Required: a **`journaltype`** string (case-insensitive) that selects the code path:
-  - **`AREA`** — playable scene journal (`blocks` envelope; see `prompt-journal-profile-area.txt`). LLM copy prompts also include `prompt-journal-core.txt`, then **`prompt-journal-visual-styles.txt`** (grounded cinematic illustration + portrait post-JSON rules), then the profile.
+  - **`AREA`** — playable scene journal (`blocks` envelope; see `prompt-journal-profile-area.txt`). **Area Narrative** copy prompt: `prompt-journal-core.txt` + profile (JSON only). Images: **Illustration Image** and **Portrait Image** (`prompt-journal-visual-core.txt` expectations + profile-specific style). Import JSON prefills: illustration scene facets (`[ADD-ILLUSTRATION-*]`), portrait facets (`[ADD-PORTRAIT-*]`).
   - **`ENCOUNTER`** — encounter journal (Blacksmith encounter template / legacy encounter JSON).
   - **`LOCATION`** — location encyclopedia journal (dedicated location template / folder rules).
 
