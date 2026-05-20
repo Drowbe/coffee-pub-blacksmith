@@ -1098,11 +1098,15 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
             }));
         }
 
-        // Per-type groups
+        // Track which moduleId|visType combos are covered by a registered taxonomy
+        const coveredTypeKeys = new Set();
+
+        // Per-type groups (taxonomy-registered)
         for (const [moduleId, types] of Object.entries(allTaxonomies)) {
             for (const [type, entry] of Object.entries(types)) {
                 const taxonomyTagSet = new Set(entry.tags || []);
                 const typeKey = `${moduleId}|${type}`;
+                coveredTypeKeys.add(typeKey);
                 const typeCount = typeCounts.get(typeKey) ?? null;
 
                 // Seed custom tags from orphan registry (count=0) so stripped tags stay visible
@@ -1149,6 +1153,49 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     type
                 }));
             }
+        }
+
+        // Unregistered types — modules/types with scene pins but no taxonomy entry.
+        // They get global + custom tags only (no predefined system chips).
+        const orphanGroups = new Map(); // 'moduleId|visType' → { moduleId, type, pins[] }
+        for (const p of scenePins) {
+            if (!p.moduleId) continue;
+            const visType = PinManager.getVisibilityPinType(p.moduleId, p.type);
+            const key = `${p.moduleId}|${visType}`;
+            if (coveredTypeKeys.has(key)) continue;
+            if (!orphanGroups.has(key)) orphanGroups.set(key, { moduleId: p.moduleId, type: visType, pins: [] });
+            orphanGroups.get(key).pins.push(p);
+        }
+        for (const { moduleId, type, pins } of orphanGroups.values()) {
+            const typeKey = `${moduleId}|${type}`;
+            const typeCount = pins.length;
+            const typeRowHidden = PinManager.isModuleTypeHidden(moduleId, type);
+
+            // Collect tags from actual pins + orphan registry tags
+            const pinTagCounts = new Map();
+            for (const tag of orphanRegistryTags) pinTagCounts.set(tag, 0);
+            for (const p of pins) {
+                for (const tag of (p.tags || [])) {
+                    pinTagCounts.set(tag, (pinTagCounts.get(tag) || 0) + 1);
+                }
+            }
+            const chips = [...pinTagCounts.entries()].sort(([a], [b]) => a.localeCompare(b))
+                .filter(([, count]) => chipVisible(count))
+                .map(([tag, count]) => {
+                    const tagHidden = PinManager.isTypeTagHidden(moduleId, type, tag);
+                    return this._buildTagChip({ tag, count, hidden: tagHidden, isGlobal: false, moduleId, type });
+                }).join('');
+
+            sections.push(this._buildTaxonomyGroup({
+                label: PinManager.getPinTypeLabel(moduleId, type) || type,
+                count: typeCount,
+                chips,
+                hidden: typeRowHidden,
+                partial: false,
+                toggleScope: 'type',
+                moduleId,
+                type
+            }));
         }
 
         return `<div class="blacksmith-pin-layers-root">
