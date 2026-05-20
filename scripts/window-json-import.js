@@ -56,6 +56,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
         this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
         this.promptFields = Array.isArray(opts.promptFields) ? opts.promptFields : [];
+        this.journalAreaUi = opts.journalAreaUi && typeof opts.journalAreaUi === 'object'
+            ? opts.journalAreaUi
+            : null;
     }
 
     _getPromptCheckboxState() {
@@ -84,26 +87,84 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         return state;
     }
 
+    _getJournalAreaFieldState() {
+        const state = {};
+        const ui = this.journalAreaUi;
+        const root = this.element;
+        if (!ui || !root) return state;
+
+        const folderId = String(ui.folder?.id || '').trim();
+        if (folderId) {
+            const folderInput = root.querySelector(`[data-prompt-field="${folderId}"]`);
+            state[folderId] = folderInput
+                ? String(folderInput.value ?? '').trim()
+                : String(ui.folder?.value ?? '').trim();
+        }
+
+        for (const field of ui.geography ?? []) {
+            const id = String(field?.id || '').trim();
+            if (!id) continue;
+            const input = root.querySelector(`[data-prompt-field="${id}"]`);
+            state[id] = input ? String(input.value ?? '').trim() : String(field.value ?? '').trim();
+        }
+
+        for (const row of ui.images ?? []) {
+            const fieldId = String(row?.fieldId || '').trim();
+            if (!fieldId) continue;
+            const input = root.querySelector(`[data-prompt-field="${fieldId}"]`);
+            state[fieldId] = input ? String(input.value ?? '').trim() : String(row.value ?? '').trim();
+        }
+
+        const defaultId = String(ui.geographyDefault?.id || 'geographyDefault').trim();
+        const defaultInput = root.querySelector(`[data-prompt-checkbox="${defaultId}"]`);
+        state[defaultId] = !!defaultInput?.checked;
+
+        for (const row of ui.images ?? []) {
+            const checkboxId = String(row?.checkboxId || '').trim();
+            if (checkboxId) {
+                const input = root.querySelector(`[data-prompt-checkbox="${checkboxId}"]`);
+                state[checkboxId] = !!input?.checked;
+            }
+            const defaultCheckboxId = String(row?.defaultCheckboxId || '').trim();
+            if (defaultCheckboxId) {
+                const defaultInput = root.querySelector(`[data-prompt-checkbox="${defaultCheckboxId}"]`);
+                state[defaultCheckboxId] = !!defaultInput?.checked;
+            }
+        }
+
+        return state;
+    }
+
     _getPromptOptions() {
         return {
             ...this._getPromptCheckboxState(),
-            ...this._getPromptFieldState()
+            ...this._getPromptFieldState(),
+            ...this._getJournalAreaFieldState()
         };
     }
 
     _updatePromptFieldVisibility() {
         const root = this.element;
-        if (!root || !this.promptFields.length) return;
+        if (!root) return;
         const template = this.selectedTemplate || '';
-        for (const row of root.querySelectorAll('.blacksmith-json-import-prompt-field-row')) {
-            const forTemplate = row.getAttribute('data-for-template') || '';
-            const show = !forTemplate || forTemplate === template;
-            row.hidden = !show;
+
+        if (this.promptFields.length) {
+            for (const row of root.querySelectorAll('.blacksmith-json-import-prompt-field-row')) {
+                const forTemplate = row.getAttribute('data-for-template') || '';
+                const show = !forTemplate || forTemplate === template;
+                row.hidden = !show;
+            }
+            const block = root.querySelector('.blacksmith-json-import-prompt-fields');
+            if (block) {
+                const anyVisible = !!root.querySelector('.blacksmith-json-import-prompt-field-row:not([hidden])');
+                block.hidden = !anyVisible;
+            }
         }
-        const block = root.querySelector('.blacksmith-json-import-prompt-fields');
-        if (block) {
-            const anyVisible = !!root.querySelector('.blacksmith-json-import-prompt-field-row:not([hidden])');
-            block.hidden = !anyVisible;
+
+        const journalBlock = root.querySelector('.blacksmith-json-import-journal-area');
+        if (journalBlock) {
+            const forTemplate = journalBlock.getAttribute('data-for-template') || 'area';
+            journalBlock.hidden = forTemplate !== template;
         }
     }
 
@@ -142,7 +203,43 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 value: field.value ?? '',
                 showForTemplate: field.showForTemplate ?? ''
             })),
-            hasPromptFields: this.promptFields.length > 0
+            hasPromptFields: this.promptFields.length > 0,
+            journalAreaUi: this._formatJournalAreaUiData()
+        };
+    }
+
+    _formatJournalAreaUiData() {
+        const ui = this.journalAreaUi;
+        if (!ui) {
+            return { hasJournalAreaUi: false };
+        }
+        return {
+            hasJournalAreaUi: true,
+            showForTemplate: ui.showForTemplate ?? 'area',
+            folder: {
+                id: ui.folder?.id ?? 'foldername',
+                label: ui.folder?.label ?? 'Narrative Folder',
+                value: ui.folder?.value ?? ''
+            },
+            geography: (ui.geography ?? []).map((field) => ({
+                id: field.id,
+                label: field.label,
+                value: field.value ?? ''
+            })),
+            geographyDefault: {
+                id: ui.geographyDefault?.id ?? 'geographyDefault',
+                label: ui.geographyDefault?.label ?? 'Default'
+            },
+            images: (ui.images ?? []).map((row) => ({
+                fieldId: row.fieldId,
+                checkboxId: row.checkboxId,
+                defaultCheckboxId: row.defaultCheckboxId,
+                fieldLabel: row.fieldLabel,
+                checkboxLabel: row.checkboxLabel,
+                defaultLabel: row.defaultLabel ?? 'Default',
+                value: row.value ?? '',
+                checked: !!row.checked
+            }))
         };
     }
 
@@ -197,6 +294,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         });
 
         this._updatePromptFieldVisibility();
+        this._attachImageBrowseListeners(root);
 
         importButton?.addEventListener('click', async () => {
             if (!this.onImport) {
@@ -209,6 +307,26 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 this.close();
             }
         });
+    }
+
+    _attachImageBrowseListeners(root) {
+        if (!root) return;
+        const FilePicker = foundry.applications.apps.FilePicker.implementation;
+        for (const button of root.querySelectorAll('.blacksmith-json-import-image-browse')) {
+            button.addEventListener('click', async () => {
+                const fieldId = button.dataset.promptFieldTarget;
+                if (!fieldId) return;
+                const input = root.querySelector(`[data-prompt-field="${fieldId}"]`);
+                const picker = new FilePicker({
+                    type: 'image',
+                    current: input?.value?.trim() || '',
+                    callback: (path) => {
+                        if (input) input.value = path;
+                    }
+                });
+                await picker.browse();
+            });
+        }
     }
 
     static async open(options = {}) {

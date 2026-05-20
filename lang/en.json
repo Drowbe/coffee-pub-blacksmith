@@ -656,11 +656,11 @@
 				"defaultNarrativeFolder-Label": "Narrative Folder",
 				"defaultNarrativeFolder-Hint": "Folder that should be used when creating new narratives. (optional)",
 
-				"narrativeDefaultCardImage-Label": "Card Image",
-				"narrativeDefaultCardImage-Hint": "",
+				"narrativeDefaultImagePath-Label": "Default Narrative Image",
+				"narrativeDefaultImagePath-Hint": "Optional image path for area / location narrative cards (import and prompts).",
 
-				"narrativeDefaultImagePath-Label": "Custom Image",
-				"narrativeDefaultImagePath-Hint": "Used if 'custom' is selected above. (optional)",
+				"narrativeDefaultCharacterImagePath-Label": "Default Character Image",
+				"narrativeDefaultCharacterImagePath-Hint": "Optional image path for key NPC narrative cards (import and prompts).",
 
 		"headingH2EncounterGenerator-Label": "Encounter",
 		"headingH2EncounterGenerator-Hint": "",

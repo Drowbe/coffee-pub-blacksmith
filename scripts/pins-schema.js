@@ -380,11 +380,9 @@ export function applyDefaults(partial) {
     }
     if (partial.shape != null) {
         const shape = String(partial.shape).toLowerCase();
-        // Validate shape - only allow supported shapes
-        if (shape === 'circle' || shape === 'square' || shape === 'none') {
+        if (shape === 'circle' || shape === 'square' || shape === 'rectangle' || shape === 'none') {
             base.shape = shape;
         } else {
-            // Invalid shape, use default
             base.shape = PIN_DEFAULTS.shape;
         }
     }
@@ -547,7 +545,9 @@ export function migrateAndValidatePin(pin) {
         }
     }
 
-    return validatePinData(current);
+    // Detect unplaced pins (no x/y) so validation doesn't reject them for missing coordinates.
+    const isUnplaced = (current.x == null) && (current.y == null);
+    return validatePinData(current, { allowUnplaced: isUnplaced });
 }
 
 /**

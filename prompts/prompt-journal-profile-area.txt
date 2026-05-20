@@ -69,9 +69,14 @@ Campaign defaults (replaced on copy when set):
 - REGION: "[ADD-REGION-HERE]"
 - SITE: "[ADD-SITE-HERE]"
 - AREA: "[ADD-AREA-HERE]"
-- DEFAULT CARD IMAGE: "[ADD-IMAGE-PATH-HERE]" (use "" in JSON for blocks.*.narrativecard.image to apply this default)
+- DEFAULT NARRATIVE CARD IMAGE: "[ADD-NARRATIVE-IMAGE-PATH-HERE]" (legacy token: "[ADD-IMAGE-PATH-HERE]")
+- DEFAULT CHARACTER CARD IMAGE: "[ADD-CHARACTER-IMAGE-PATH-HERE]"
 
-breadcrumb: realm > region > site > area > scenetitle (omit empty levels; must match envelope)
+When DEFAULT NARRATIVE CARD IMAGE is non-empty, set blocks.area.narrativecard.image to that exact path (not "").
+When DEFAULT CHARACTER CARD IMAGE is non-empty, set blocks.conversations[].narrativecard.image to that path for each key NPC (keycharacter: true).
+When a default image path is empty, leave image as "" on that card type.
+
+breadcrumb: realm > region > site > area > scenetitle (omit empty levels; must match envelope and LOCATION PATH)
 
 
 --------------------------------
@@ -85,7 +90,7 @@ ALWAYS include:
 - blocks.conversations[].narrativecard for each key NPC (set keycharacter: true when they matter to the scene)
 
 Card description: brief, no secrets; HTML allowed (p, strong, em, br).
-Use image: "" to apply DEFAULT CARD IMAGE above.
+Use image: "" only when no default image path was provided for that card type; otherwise use the default path verbatim.
 
 
 --------------------------------

@@ -124,12 +124,20 @@ export class CampaignManager {
         };
     }
 
+    static resolveNarrativeImagePath() {
+        const path = getSettingSafely(MODULE.ID, 'narrativeDefaultImagePath', '') || '';
+        if (path) return path;
+        const legacy = getSettingSafely(MODULE.ID, 'narrativeDefaultCardImage', 'none') || 'none';
+        if (legacy && legacy !== 'none' && legacy !== 'custom') return legacy;
+        return '';
+    }
+
     static getJournalDefaults() {
         return {
             narrative: {
                 folder: getSettingSafely(MODULE.ID, 'defaultNarrativeFolder', 'New Narratives') || 'New Narratives',
-                cardImage: getSettingSafely(MODULE.ID, 'narrativeDefaultCardImage', 'none') || 'none',
-                imagePath: getSettingSafely(MODULE.ID, 'narrativeDefaultImagePath', '') || ''
+                imagePath: this.resolveNarrativeImagePath(),
+                characterImagePath: getSettingSafely(MODULE.ID, 'narrativeDefaultCharacterImagePath', '') || ''
             },
             encounter: {
                 folder: getSettingSafely(MODULE.ID, 'encounterFolder', 'Encounters') || 'Encounters',
@@ -193,8 +201,8 @@ export class CampaignManager {
             site: campaign.geography.site,
             area: campaign.geography.area,
             narrativeFolder: campaign.journal.narrative.folder,
-            narrativeCardImage: campaign.journal.narrative.cardImage,
             narrativeImagePath: campaign.journal.narrative.imagePath,
+            narrativeCharacterImagePath: campaign.journal.narrative.characterImagePath,
             encounterFolder: campaign.journal.encounter.folder,
             encounterCardImage: campaign.journal.encounter.cardImage,
             encounterImagePath: campaign.journal.encounter.imagePath

@@ -1212,11 +1212,21 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                     title="${hidden ? 'Show' : 'Hide'} ${esc(label)}">
                     <i class="${hidden ? PIN_VISIBILITY_ICONS.hidden : (partial ? 'fa-solid fa-eye-low-vision' : PIN_VISIBILITY_ICONS.visible)}"></i>
                 </button>` : '';
+        const deleteButton = (toggleScope === 'type' && moduleId && this._canBulkMutatePins) ? `
+                <button type="button"
+                    class="blacksmith-icon-action blacksmith-icon-action-danger"
+                    data-action="deleteType"
+                    data-module-id="${esc(moduleId)}"
+                    data-type="${esc(type)}"
+                    title="Delete all ${esc(label)} pins on this scene">
+                    <i class="fa-solid fa-trash"></i>
+                </button>` : '';
         return `<div class="blacksmith-pin-layers-taxonomy-group ${hidden ? 'is-hidden' : ''} ${partial ? 'is-partial' : ''}">
             <div class="blacksmith-pin-layers-taxonomy-group-label">
                 <span>${esc(label)}</span>
                 ${count != null ? `<span class="blacksmith-pin-layers-tag-count">${count}</span>` : ''}
                 ${toggleButton}
+                ${deleteButton}
             </div>
             ${body}
         </div>`;

@@ -56,7 +56,7 @@ export function getJournalPromptCheckboxes() {
         {
             id: 'worldActors',
             label: 'Include world actors',
-            checked: true
+            checked: false
         },
         {
             id: 'worldItems',
@@ -67,18 +67,93 @@ export function getJournalPromptCheckboxes() {
 }
 
 /**
- * Geography fields for area prompt copy (prefilled from campaign).
- * @returns {Array<{id: string, label: string, value: string, showForTemplate?: string}>}
+ * Area journal import UI (folder, geography, image placeholders).
+ * @returns {object}
  */
-export function getJournalPromptFields() {
+export function getJournalAreaImportUi() {
     const ctx = CampaignManager.getPromptContext();
-    return [
-        { id: 'realm', label: 'Realm', value: ctx.realm || '', showForTemplate: 'area' },
-        { id: 'region', label: 'Region', value: ctx.region || '', showForTemplate: 'area' },
-        { id: 'site', label: 'Site', value: ctx.site || '', showForTemplate: 'area' },
-        { id: 'area', label: 'Area', value: ctx.area || '', showForTemplate: 'area' },
-        { id: 'scenetitle', label: 'Scene title', value: '', showForTemplate: 'area' }
-    ];
+    return {
+        showForTemplate: 'area',
+        folder: {
+            id: 'foldername',
+            label: 'Narrative Folder',
+            value: ctx.narrativeFolder || ''
+        },
+        geography: [
+            { id: 'realm', label: 'Realm', value: ctx.realm || '' },
+            { id: 'region', label: 'Region', value: ctx.region || '' },
+            { id: 'site', label: 'Site', value: ctx.site || '' },
+            { id: 'area', label: 'Area', value: ctx.area || '' },
+            { id: 'scenetitle', label: 'Scene title', value: '' }
+        ],
+        geographyDefault: { id: 'geographyDefault', label: 'Default' },
+        images: [
+            {
+                fieldId: 'narrativeImage',
+                checkboxId: 'narrativeImagePlaceholder',
+                defaultCheckboxId: 'narrativeImageDefault',
+                fieldLabel: 'Default Narrative Image',
+                checkboxLabel: 'Narrative Image Placeholder',
+                defaultLabel: 'Default',
+                value: ctx.narrativeImagePath || '',
+                checked: !!(ctx.narrativeImagePath || '')
+            },
+            {
+                fieldId: 'characterImage',
+                checkboxId: 'characterImagePlaceholder',
+                defaultCheckboxId: 'characterImageDefault',
+                fieldLabel: 'Default Character Image',
+                checkboxLabel: 'Character Image Placeholder',
+                defaultLabel: 'Default',
+                value: ctx.narrativeCharacterImagePath || '',
+                checked: !!(ctx.narrativeCharacterImagePath || '')
+            }
+        ]
+    };
+}
+
+const GEOGRAPHY_SETTING_KEYS = {
+    realm: 'defaultCampaignRealm',
+    region: 'defaultCampaignRegion',
+    site: 'defaultCampaignSite',
+    area: 'defaultCampaignArea'
+};
+
+/**
+ * Persist folder and geography from import UI when "Default" is checked.
+ * @param {Record<string, string|boolean>} promptOptions
+ */
+async function saveCampaignGeographyDefaultsIfRequested(promptOptions = {}) {
+    if (!promptOptions.geographyDefault) return;
+    if (promptOptions.foldername != null) {
+        await game.settings.set(MODULE.ID, 'defaultNarrativeFolder', String(promptOptions.foldername ?? ''));
+    }
+    for (const [field, settingKey] of Object.entries(GEOGRAPHY_SETTING_KEYS)) {
+        if (promptOptions[field] != null) {
+            await game.settings.set(MODULE.ID, settingKey, String(promptOptions[field] ?? ''));
+        }
+    }
+}
+
+/**
+ * Persist narrative/character image paths from import UI when "Default" is checked.
+ * @param {Record<string, string|boolean>} promptOptions
+ */
+async function saveCampaignImageDefaultsIfRequested(promptOptions = {}) {
+    if (promptOptions.narrativeImageDefault) {
+        await game.settings.set(
+            MODULE.ID,
+            'narrativeDefaultImagePath',
+            String(promptOptions.narrativeImage ?? '')
+        );
+    }
+    if (promptOptions.characterImageDefault) {
+        await game.settings.set(
+            MODULE.ID,
+            'narrativeDefaultCharacterImagePath',
+            String(promptOptions.characterImage ?? '')
+        );
+    }
 }
 
 /**
@@ -97,16 +172,22 @@ function buildLocationPathHint(geography = {}) {
  * @param {object} [options]
  * @param {object} [options.geography]
  * @param {string} [options.foldername]
- * @param {string} [options.cardImage]
+ * @param {string} [options.foldername]
+ * @param {boolean} [options.includeNarrativeImage]
+ * @param {boolean} [options.includeCharacterImage]
+ * @param {string} [options.narrativeImage]
+ * @param {string} [options.characterImage]
  * @returns {string}
  */
 export function applyAreaJournalGeography(prompt, options = {}) {
     const geography = options.geography ?? {};
     const context = CampaignManager.getPromptContext();
-    let cardImage = options.cardImage ?? context.narrativeCardImage ?? '';
-    if (cardImage === 'custom') {
-        cardImage = context.narrativeImagePath || '';
-    }
+    const narrativeImage = options.includeNarrativeImage
+        ? String(options.narrativeImage ?? context.narrativeImagePath ?? '')
+        : '';
+    const characterImage = options.includeCharacterImage
+        ? String(options.characterImage ?? context.narrativeCharacterImagePath ?? '')
+        : '';
 
     const replacements = [
         { placeholder: '[ADD-FOLDER-NAME-HERE]', value: options.foldername ?? context.narrativeFolder },
@@ -114,14 +195,16 @@ export function applyAreaJournalGeography(prompt, options = {}) {
         { placeholder: '[ADD-REGION-HERE]', value: geography.region ?? context.region },
         { placeholder: '[ADD-SITE-HERE]', value: geography.site ?? context.site },
         { placeholder: '[ADD-AREA-HERE]', value: geography.area ?? context.area },
-        { placeholder: '[ADD-IMAGE-PATH-HERE]', value: cardImage },
-        { placeholder: '[ADD-LOCATION-PATH-HERE]', value: buildLocationPathHint(geography) }
+        { placeholder: '[ADD-LOCATION-PATH-HERE]', value: buildLocationPathHint(geography) },
+        { placeholder: '[ADD-IMAGE-PATH-HERE]', value: narrativeImage, allowEmpty: true },
+        { placeholder: '[ADD-NARRATIVE-IMAGE-PATH-HERE]', value: narrativeImage, allowEmpty: true },
+        { placeholder: '[ADD-CHARACTER-IMAGE-PATH-HERE]', value: characterImage, allowEmpty: true }
     ];
 
     let result = prompt;
-    for (const { placeholder, value } of replacements) {
-        if (value) {
-            result = result.split(placeholder).join(value);
+    for (const { placeholder, value, allowEmpty } of replacements) {
+        if (value || allowEmpty) {
+            result = result.split(placeholder).join(value ?? '');
         }
     }
     return result;
@@ -193,11 +276,18 @@ export async function buildJournalImportPrompt(profileKey, options = {}) {
         return composed;
     }
 
-    composed = applyAreaJournalGeography(composed, { geography: options.geography ?? {} });
+    composed = applyAreaJournalGeography(composed, {
+        geography: options.geography ?? {},
+        foldername: options.foldername,
+        includeNarrativeImage: options.includeNarrativeImage,
+        includeCharacterImage: options.includeCharacterImage,
+        narrativeImage: options.narrativeImage,
+        characterImage: options.characterImage
+    });
     const catalogDefaults = {
         includeCompendiumActors: hasConfiguredActorCompendiums(),
         includeCompendiumItems: hasConfiguredItemCompendiums(),
-        includeWorldActors: true,
+        includeWorldActors: false,
         includeWorldItems: false
     };
     composed = await applyAreaCatalogSections(composed, {
@@ -298,11 +388,19 @@ async function copyJournalTemplate(templateKey, promptOptions = {}) {
         return copyToClipboard(await getLocationTemplateWithDefaults(raw), { notify: false });
     }
 
+    await saveCampaignGeographyDefaultsIfRequested(promptOptions);
+    await saveCampaignImageDefaultsIfRequested(promptOptions);
+
     const prompt = await buildJournalImportPrompt('area', {
         includeCompendiumActors: !!promptOptions.compendiumActors,
         includeCompendiumItems: !!promptOptions.compendiumItems,
         includeWorldActors: !!promptOptions.worldActors,
         includeWorldItems: !!promptOptions.worldItems,
+        foldername: promptOptions.foldername ?? '',
+        includeNarrativeImage: !!promptOptions.narrativeImagePlaceholder,
+        includeCharacterImage: !!promptOptions.characterImagePlaceholder,
+        narrativeImage: promptOptions.narrativeImage ?? '',
+        characterImage: promptOptions.characterImage ?? '',
         geography: {
             realm: promptOptions.realm ?? '',
             region: promptOptions.region ?? '',
@@ -369,8 +467,8 @@ const journalJsonImportKind = {
     get promptCheckboxes() {
         return getJournalPromptCheckboxes();
     },
-    get promptFields() {
-        return getJournalPromptFields();
+    get journalAreaUi() {
+        return getJournalAreaImportUi();
     },
     onCopyTemplate: copyJournalTemplate,
     onImport: async (entries) => importJournalEntries(entries),

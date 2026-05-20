@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.7.7]
+
+### Added
+
+- **Delete-by-type button in Manage Pin Layers** (`scripts/window-pin-layers.js`): Each taxonomy group header in the Layers tab now shows a trash icon button (GM only) next to the visibility toggle. Clicking it opens a "Delete Pin Type" confirmation dialog and removes all pins of that module+type from the current scene. Restores the deletion capability that was removed with the edit/pencil mode in v13.7.3.
+- **Rectangle pin shape** (`scripts/pins-schema.js`, `scripts/pins-renderer.js`, `scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`, `styles/pins.css`): New `'rectangle'` shape — rounded corners (same border-radius as `square`) with a free aspect ratio (same sizing rules as `none`). Has background fill, stroke, and drop shadow like `square`; width and height are set independently.
+- **Pin size: single input with aspect-ratio support** (`scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`): Replaced separate Width / Height inputs and the "Constrain proportions" toggle with a single **Size** input. For `circle` and `square`, height always equals width. For `rectangle` and `none` with an image URL, the Configure Pin window derives height automatically from the image's natural aspect ratio against the chosen width. API callers pass `size: { w, h }` directly as before; the constraint only applies in the UI. `lockProportions` is no longer written to saved designs (legacy values in existing designs are ignored).
+
+### Changed
+
+- **GM indicator badge: fixed canvas-relative size** (`scripts/pins-renderer.js`, `styles/pins.css`): The GM-only editing indicator badge now scales with canvas zoom (fixed at 16 scene units × the current canvas scale factor) instead of proportionally to pin size. Large image pins no longer have oversized badges.
+- **`pins.place()` failure: user-facing notification** (`scripts/manager-pins.js`): Replaced `console.warn` with `postConsoleAndNotification` (user-visible toast) when placement fails. Message now distinguishes "pin is already placed on scene X" from "pin not found" and suggests closing and reopening the journal.
+- **`pins.update()` not-found: consistent logging** (`scripts/manager-pins.js`): Replaced `console.warn` with `postConsoleAndNotification` (console only, no toast) for consistency with the no-generic-console-logging rule.
+- **Journal pin placement: live pin-state lookup at click time** (`scripts/ui-journal-pins.js`): `_enterPlacementMode` now calls `findScene()` at the moment the user clicks rather than relying on the `currentSceneId` captured when `_ensurePin` ran. Eliminates "Pin not found" errors caused by stale placement state. Flags (`pinId`, `sceneId`) are now only written to the journal/page document when placement actually succeeds; a failed `place()` no longer corrupts the page's scene tracking.
+- **Journal pin placement: unplace fallback** (`scripts/ui-journal-pins.js`): If `pins.unplace()` returns null (fails silently when moving a pin to a different scene), the code now falls back to `pins.update()` on the original scene rather than calling `pins.place()` on a pin that is still placed.
+- **Drop handler: size normalization by shape** (`scripts/blacksmith.js`): `dropCanvasData` pin handler now normalizes the dropped `size` based on the pin's `shape` — circle and square force `h = w`; rectangle and none preserve `h` from the drop payload.
+
+### Fixed
+
+- **Unplaced pins always dropped on read-back** (`scripts/pins-schema.js`): `migrateAndValidatePin` called `validatePinData` without `{ allowUnplaced: true }`, causing every unplaced pin (no `x`/`y`) to fail the finite-coordinate check and be silently dropped. This made it impossible to place any pin created via the unplaced store — the root cause of "Pin placement failed — Pin not found" on all first-time journal pin placements.
+- **`rectangle` shape silently coerced to `circle`** (`scripts/pins-schema.js`): `applyDefaults` did not include `'rectangle'` in its valid-shapes list, so any pin with `shape: 'rectangle'` was silently converted to `'circle'` on every schema pass.
+- **Migration write race overwrites newly created pins** (`scripts/manager-pins.js`): `_persistUnplacedPinsAfterMigration` fired a write-and-forget (`_setUnplacedPins`) that could be processed by the Foundry server after `create()`'s write, overwriting the unplaced store with the pre-create snapshot and making the new pin invisible to `_findPinLocation`. Fixed by tracking the migration write as `_pendingMigrationWrite` and having `_setUnplacedPins` wait for it before writing, ensuring all writes are ordered.
+- **Stray `reload()` after journal pin placement** (`scripts/ui-journal-pins.js`): Removed unnecessary `await pins.reload()` after `create()` / `place()` on the active scene — the renderer updates automatically.
+- **`_canEdit` denied debug log flooding console** (`scripts/manager-pins.js`): Removed a `console.debug` call inside `_canEdit` that fired on every mousedown for non-owner players, producing a constant stream of log entries when OBSERVER-level players interacted with module pins (e.g., Artificer gathering spots).
+
+### Documentation
+
+- **Pins API** (`documentation/api/api-pins.md`): Added `rectangle` shape throughout (feature summary, `StoredPinData` typedef, `create()` examples, `onSelect` payload, default design schema); added `size` field note explaining circle/square vs rectangle/none aspect-ratio semantics; corrected CSS example value (`0.24` → `0.22`); added `shape` field and size-normalization note to the drop-data format; marked `lockProportions` as legacy in the default design schema and `getDefaultPinDesign` return description.
+
 ## [13.7.6]
 
 ### Added

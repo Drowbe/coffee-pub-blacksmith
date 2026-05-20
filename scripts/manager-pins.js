@@ -129,6 +129,8 @@ export class PinManager {
     static _scenePinsMigrationPersisted = new Set();
     /** Unplaced pins migration persist attempted this session. */
     static _unplacedPinsMigrationPersisted = false;
+    /** In-flight migration write promise — subsequent writes must wait for this to avoid overwrite races. */
+    static _pendingMigrationWrite = null;
 
     /** In-memory registry: (moduleId|type) -> friendly name for UI. Modules register so we don't assume labels. */
     static _pinTypeLabels = new Map();
@@ -211,6 +213,17 @@ export class PinManager {
     }
 
     static registerPinTaxonomy(moduleId, type, taxonomy = {}) {
+        // Support bulk format: registerPinTaxonomy(moduleId, { pinCategories: { type: {…} } })
+        // or the flat form: registerPinTaxonomy(moduleId, { type: { label, tags } })
+        if (type !== null && typeof type === 'object') {
+            const categories = (type.pinCategories && typeof type.pinCategories === 'object')
+                ? type.pinCategories
+                : type;
+            for (const [t, entry] of Object.entries(categories)) {
+                if (t && entry && typeof entry === 'object') this.registerPinTaxonomy(moduleId, t, entry);
+            }
+            return;
+        }
         const normalized = this._normalizeTaxonomyEntry(moduleId, type, taxonomy);
         if (!normalized) return;
         const key = this._taxonomyTypeKey(moduleId, normalized.type);
@@ -1327,7 +1340,13 @@ export class PinManager {
         if (this._unplacedPinsMigrationPersisted) return;
         if (!pinsNeedStorageUpdate(raw, pins, dropped)) return;
         this._unplacedPinsMigrationPersisted = true;
-        this._setUnplacedPins(pins).catch((err) => {
+        // Store the promise so _setUnplacedPins can wait for it and avoid the overwrite race.
+        const writePromise = game.settings.set(MODULE.ID, UNPLACED_SETTING_KEY, { version: 1, pins });
+        this._pendingMigrationWrite = writePromise;
+        writePromise.then(() => {
+            if (this._pendingMigrationWrite === writePromise) this._pendingMigrationWrite = null;
+        }).catch((err) => {
+            if (this._pendingMigrationWrite === writePromise) this._pendingMigrationWrite = null;
             this._unplacedPinsMigrationPersisted = false;
             postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Failed to persist migrated unplaced pins', err?.message ?? err, false, true);
         });
@@ -1348,6 +1367,12 @@ export class PinManager {
 
     /** @param {PinData[]} pins - Only call from GM context; world setting write requires GM. Non-GM updates to unplaced pins are routed through requestGM('updateUnplaced'). */
     static async _setUnplacedPins(pins) {
+        // Wait for any in-flight migration write before writing, so we never overwrite a newer value
+        // with the pre-create snapshot that _persistUnplacedPinsAfterMigration produced.
+        if (this._pendingMigrationWrite) {
+            try { await this._pendingMigrationWrite; } catch { /* migration error already logged */ }
+            this._pendingMigrationWrite = null;
+        }
         await game.settings.set(MODULE.ID, UNPLACED_SETTING_KEY, { version: 1, pins });
     }
 

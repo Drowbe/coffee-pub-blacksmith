@@ -39,12 +39,57 @@
                         <i class="fa-solid fa-clipboard"></i> {{copyTemplateLabel}}
                     </button>
                 </div>
-                {{#if hasPromptFields}}
-                <div class="blacksmith-json-import-prompt-fields">
+                {{#if journalAreaUi.hasJournalAreaUi}}
+                <div class="blacksmith-json-import-journal-area" data-for-template="{{journalAreaUi.showForTemplate}}">
                     <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header">
                         <i class="fa-solid fa-location-dot"></i>
                         <span>Location path (Area template)</span>
                     </div>
+                    <div class="blacksmith-json-import-journal-location-row">
+                        <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-folder">
+                            <span class="blacksmith-json-import-prompt-field-label">{{journalAreaUi.folder.label}}</span>
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{journalAreaUi.folder.id}}" value="{{journalAreaUi.folder.value}}" autocomplete="off">
+                        </label>
+                        <span class="blacksmith-json-import-location-sep blacksmith-json-import-location-sep-pipe" aria-hidden="true">|</span>
+                        {{#each journalAreaUi.geography}}
+                        <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-geo-field">
+                            <span class="blacksmith-json-import-prompt-field-label">{{label}}</span>
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}" value="{{value}}" autocomplete="off">
+                        </label>
+                        {{#unless @last}}<span class="blacksmith-json-import-location-sep blacksmith-json-import-location-sep-chevron" aria-hidden="true">&gt;</span>{{/unless}}
+                        {{/each}}
+                        <label class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-geography-default">
+                            <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{journalAreaUi.geographyDefault.id}}">
+                            <span>{{journalAreaUi.geographyDefault.label}}</span>
+                        </label>
+                    </div>
+                    <div class="blacksmith-json-import-journal-image-rows">
+                        {{#each journalAreaUi.images}}
+                        <div class="blacksmith-json-import-journal-image-row">
+                            <div class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-image-field">
+                                <span class="blacksmith-json-import-prompt-field-label">{{fieldLabel}}</span>
+                                <div class="blacksmith-json-import-image-path-row">
+                                    <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{fieldId}}" value="{{value}}" autocomplete="off" placeholder="modules/...">
+                                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-image-browse" data-prompt-field-target="{{fieldId}}" title="Browse for image">
+                                        <i class="fa-solid fa-folder-open"></i> Browse
+                                    </button>
+                                </div>
+                            </div>
+                            <label class="blacksmith-json-import-prompt-checkbox">
+                                <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{checkboxId}}" {{#if checked}}checked{{/if}}>
+                                <span>{{checkboxLabel}}</span>
+                            </label>
+                            <label class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-image-default">
+                                <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{defaultCheckboxId}}">
+                                <span>{{defaultLabel}}</span>
+                            </label>
+                        </div>
+                        {{/each}}
+                    </div>
+                </div>
+                {{/if}}
+                {{#if hasPromptFields}}
+                <div class="blacksmith-json-import-prompt-fields">
                     <div class="blacksmith-json-import-prompt-fields-grid">
                         {{#each promptFields}}
                         <label class="blacksmith-json-import-prompt-field-row" data-for-template="{{showForTemplate}}">

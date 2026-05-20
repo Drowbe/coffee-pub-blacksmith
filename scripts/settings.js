@@ -1207,45 +1207,7 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
-	// -- Default Card Image Selection --
-	game.settings.register(MODULE.ID, 'narrativeDefaultCardImage', {
-		name: MODULE.ID + '.narrativeDefaultCardImage-Label',
-		hint: MODULE.ID + '.narrativeDefaultCardImage-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: 'none',
-		choices: {
-			'none': 'No Image',
-			'custom': 'Custom: Paste the Path Below',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-1.webp': 'Heroes 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-2.webp': 'Heroes 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-heros-3.webp': 'Heroes 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-1.webp': 'Location:Crypt 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-crypt-2.webp': 'Location:Crypt 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-1.webp': 'Landscape: Forest 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-2.webp': 'Landscape: Forest 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-3.webp': 'Landscape: Forest 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-forest-4.webp': 'Landscape: Forest 4',
-			'modules/coffee-pub-blacksmith/images/banners/banners-narration-jungle-1.webp': 'Landscape: Jungle 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mountains-1.webp': 'Landscape: Mountains 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-1.webp': 'Landscape: Mushrooms 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-mushrooms-2.webp': 'Landscape: Mushrooms 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-path-1.webp': 'Landscape: Path 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-path-2.webp': 'Landscape: Path 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-1.webp': 'Landscape: Winter 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-2.webp': 'Landscape: Winter 2',
-			'modules/coffee-pub-blacksmith/images/banners/banners-landscape-winter-3.webp': 'Landscape: Winter 3',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-dragon-1.webp': 'Monster: Dragon 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-minotour-1.webp': 'Monster: Minotaur 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-1.webp': 'Monster: Wraith 1',
-			'modules/coffee-pub-blacksmith/images/banners/banners-monsters-wraith-2.webp': 'Monster: Wraith 2'
-		},
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-
-	// -- Default Image Path (with FilePicker) --
+	// -- Default Narrative Image (optional path) --
 	game.settings.register(MODULE.ID, 'narrativeDefaultImagePath', {
 		name: MODULE.ID + '.narrativeDefaultImagePath-Label',
 		hint: MODULE.ID + '.narrativeDefaultImagePath-Hint',
@@ -1254,7 +1216,20 @@ export const registerSettings = () => {
 		requiresReload: false,
 		type: String,
 		default: '',
-		filePicker: true,  // Enable FilePicker for image file selection
+		filePicker: true,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
+	// -- Default Character Image (optional path) --
+	game.settings.register(MODULE.ID, 'narrativeDefaultCharacterImagePath', {
+		name: MODULE.ID + '.narrativeDefaultCharacterImagePath-Label',
+		hint: MODULE.ID + '.narrativeDefaultCharacterImagePath-Hint',
+		scope: "world",
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		filePicker: true,
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 

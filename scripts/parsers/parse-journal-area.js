@@ -13,6 +13,7 @@ import {
     normalizeFoundryJournalHtml
 } from '../utility-journal-html.js';
 import { toSentenceCase } from '../api-core.js';
+import { CampaignManager } from '../manager-campaign.js';
 
 function omitIfNone(value) {
     if (value == null) return '';
@@ -174,12 +175,22 @@ async function linkThreatLines(threats) {
     return out;
 }
 
-function buildNarrativeCardHtml(card) {
+function resolveNarrativeCardImage(card, kind = 'narrative') {
+    const image = omitIfNone(card?.image);
+    if (image) return image;
+    const defaults = CampaignManager.getJournalDefaults().narrative;
+    const fallback = kind === 'character'
+        ? defaults.characterImagePath
+        : defaults.imagePath;
+    return omitIfNone(fallback);
+}
+
+function buildNarrativeCardHtml(card, imageKind = 'narrative') {
     if (!card || typeof card !== 'object') return '';
     const title = omitIfNone(card.title);
     const description = unescapeQuotes(omitIfNone(card.description));
     const imageTitle = omitIfNone(card.imagetitle);
-    const image = omitIfNone(card.image);
+    const image = resolveNarrativeCardImage(card, imageKind);
     const secondary = unescapeQuotes(omitIfNone(card.descriptionsecondary));
     const dialogue = unescapeQuotes(omitIfNone(card.dialogue ?? card.carddialogue));
 
@@ -229,7 +240,7 @@ export async function buildAreaJournalTemplateData(journalData) {
 
     const breadcrumbFromJson = omitIfNone(journalData.breadcrumb);
     const breadcrumbHtml = breadcrumbFromJson
-        ? `<p><strong>${escapeJournalHtml(breadcrumbFromJson).replace(/\s*>\s*/g, ' &gt; ')}</strong></p>`
+        ? `<p><strong>${escapeJournalHtml(breadcrumbFromJson).replace(/\s*>\s*/g, ' &gt; ').replace(/\s*\|\s*/g, ' | ')}</strong></p>`
         : buildFoundryBreadcrumb([realm, region, site, area, sceneTitle].filter(Boolean));
 
     let preparationHtml = '';
@@ -262,7 +273,7 @@ export async function buildAreaJournalTemplateData(journalData) {
     const areaHeading = sceneTitle || area || 'Area';
     if (areaBlock && typeof areaBlock === 'object') {
         const parts = [`<h2>${escapeJournalHtml(areaHeading)}</h2>`];
-        const card = buildNarrativeCardHtml(areaBlock.narrativecard);
+        const card = buildNarrativeCardHtml(areaBlock.narrativecard, 'narrative');
         if (card) parts.push(card);
 
         const narrative = areaBlock.narrative;
@@ -330,7 +341,7 @@ export async function buildAreaJournalTemplateData(journalData) {
                 const card = buildNarrativeCardHtml({
                     title: npc.narrativecard.title ?? name,
                     ...npc.narrativecard
-                });
+                }, 'character');
                 if (card) parts.push(card);
             }
             const snapshot = buildFoundryLabeledSection('Snapshot', asStringArray(npc.snapshot));
