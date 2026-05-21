@@ -113,10 +113,10 @@ Good: "Dellik Marr", "Marda Vexley", "Rope-Call Marta" (handle), or an exact mat
 
 
 --------------------------------
-CONTEXT FOR THIS AREA
+ADDITIONAL CONTEXT
 --------------------------------
 
-[ADD-AREA-CONTEXT-HERE]
+[ADD-AREA-ADDITIONAL-CONTEXT-HERE]
 
 LOCATION PATH FOR THIS IMPORT (fill envelope + breadcrumb to match):
 [ADD-LOCATION-PATH-HERE]

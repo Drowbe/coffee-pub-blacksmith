@@ -19,7 +19,7 @@ await api.createJournalEntry(journalData);
 - `journalData` (`Object`): Structured payload. Required: a **`journaltype`** string (case-insensitive) that selects the code path:
   - **`AREA`** — playable scene journal (`blocks` envelope; see `prompt-journal-profile-area.txt`). **Area Narrative** copy prompt: `prompt-journal-core.txt` + profile (JSON only). Images: **Illustration Image** (`prompt-journal-visual-illustration.txt` — proven ink-and-wash contract + `[ADD-ILLUSTRATION-*]` facets); **Portrait Image** (`prompt-journal-visual-core.txt` + `prompt-journal-visual-portrait.txt` + `[ADD-PORTRAIT-*]`).
   - **`ENCOUNTER`** — encounter journal (Blacksmith encounter template / legacy encounter JSON).
-  - **`LOCATION`** — location encyclopedia journal (dedicated location template / folder rules).
+  - **`LOCATION`** — location encyclopedia journal (dedicated location template / folder rules). **Location** Import JSON copy is JSON-only (`prompt-location.txt`); generate card art with **Illustration Image**, then set `locationimage` on import.
 
 Legacy **`NARRATIVE`** import is **not supported** (use **`AREA`** with `blocks.*`).
 

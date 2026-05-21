@@ -1,12 +1,82 @@
 .blacksmith-json-import-window {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.blacksmith-json-import-window .blacksmith-window-template-tools {
+    padding: 0;
+}
+
+.blacksmith-json-import-tools-stack {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.blacksmith-json-import-tools-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 12px;
+}
+
+.blacksmith-json-import-tabs-row {
+    justify-content: flex-start;
 }
 
 .blacksmith-json-import-window .blacksmith-window-template-body {
+    padding: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.blacksmith-json-import-window .blacksmith-window-template-body > .blacksmith-json-import-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+}
+
+.blacksmith-json-import-window .blacksmith-json-import-body {
     padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 0;
+    overflow: hidden;
+}
+
+.blacksmith-json-import-tab-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+}
+
+.blacksmith-json-import-tab-panel-import {
+    overflow: hidden;
+}
+
+.blacksmith-json-import-tab-panel[hidden] {
+    display: none !important;
+}
+
+.blacksmith-json-import-tab-panel .blacksmith-json-import-section {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.blacksmith-json-import-tab-panel .blacksmith-window-section-body {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .blacksmith-json-import-window .blacksmith-json-import-section {
@@ -25,22 +95,23 @@
 }
 
 .blacksmith-json-import-section-copy {
-    flex: 0 0 auto;
-}
-
-.blacksmith-json-import-section-import {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-height: 0;
-}
-
-.blacksmith-json-import-section-import .blacksmith-window-section-body {
-    height: 100%;
 }
 
 .blacksmith-json-import-template-row {
     align-items: end;
     flex: 0 0 auto;
     flex-wrap: wrap;
+}
+
+.blacksmith-json-import-template-field {
+    flex: 1 1 280px;
+    min-width: 200px;
+}
+
+.blacksmith-json-import-template-field .blacksmith-select {
+    width: 100%;
 }
 
 .blacksmith-json-import-prompt-options {
@@ -117,25 +188,64 @@
     width: 100%;
 }
 
-.blacksmith-json-import-journal-area {
+.blacksmith-json-import-journal-area,
+.blacksmith-json-import-journal-location {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     flex: 0 0 auto;
+    width: 100%;
+}
+
+.blacksmith-json-import-journal-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px 12px;
+    width: 100%;
+}
+
+.blacksmith-json-import-journal-fields-row-full {
+    grid-column: 1 / -1;
+}
+
+.blacksmith-json-import-journal-location-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px 12px;
+    align-items: end;
+}
+
+.blacksmith-json-import-journal-location-meta .blacksmith-json-import-prompt-field-row {
+    min-width: 0;
+    max-width: none;
+}
+
+.blacksmith-json-import-additional-context {
+    width: 100%;
+    min-width: 0;
 }
 
 .blacksmith-json-import-journal-location-row {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: 6px 8px;
+    gap: 10px 16px;
 }
 
-.blacksmith-json-import-journal-folder,
+.blacksmith-json-import-journal-fields-row-full.blacksmith-json-import-journal-location-row {
+    display: flex;
+}
+
+.blacksmith-json-import-journal-folder {
+    flex: 1 1 200px;
+    min-width: 160px;
+    max-width: none;
+}
+
 .blacksmith-json-import-journal-geo-field {
-    flex: 1 1 120px;
-    min-width: 100px;
-    max-width: 180px;
+    flex: 1 1 140px;
+    min-width: 120px;
+    max-width: none;
 }
 
 .blacksmith-json-import-location-sep {
@@ -162,6 +272,8 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    width: 100%;
+    min-width: 0;
 }
 
 .blacksmith-json-import-journal-image-row {
@@ -202,38 +314,20 @@
     white-space: nowrap;
 }
 
-.blacksmith-json-import-content-grid {
-    display: flex;
-    flex-direction: column;
+.blacksmith-json-import-tab-panel-import .blacksmith-json-import-textarea {
     flex: 1 1 auto;
-    height: 100%;
     min-height: 0;
-}
-
-.blacksmith-json-import-editor {
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+    width: 100%;
     height: 100%;
-}
-
-.blacksmith-json-import-editor {
-    flex: 1 1 auto;
+    resize: none;
+    font-family: monospace;
+    box-sizing: border-box;
 }
 
 .blacksmith-json-import-select-file {
     width: auto;
     min-width: 220px;
     align-self: flex-start;
-}
-
-.blacksmith-json-import-textarea {
-    flex: 1 1 auto;
-    min-height: 0;
-    height: 100%;
-    width: 100%;
-    resize: none;
-    font-family: monospace;
 }
 
 .blacksmith-json-import-window .blacksmith-window-template-buttons {
@@ -251,13 +345,8 @@
     gap: 8px;
 }
 
+.blacksmith-json-import-window .blacksmith-json-import-copy-template,
 .blacksmith-json-import-window .blacksmith-json-import-submit {
     width: auto;
     min-width: 220px;
-}
-
-.blacksmith-json-import-window .blacksmith-window-template-action-right .blacksmith-json-import-submit {
-    background: rgba(41, 94, 47, 0.9);
-    color: rgba(255, 255, 255, 0.9);
-    border-color: var(--blacksmith-window-border-color);
 }

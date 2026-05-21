@@ -1,14 +1,16 @@
 import { MODULE } from './const.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
+const BODY_TEMPLATE = `modules/${MODULE.ID}/templates/window-json-import-body.hbs`;
+
 export class JsonImportWindow extends BlacksmithWindowBaseV2 {
-    static ROOT_CLASS = 'blacksmith-json-import-window';
+    static ROOT_CLASS = 'blacksmith-window-template-root';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
         {
             id: 'blacksmith-json-import-window',
-            classes: ['coffee-pub-blacksmith', 'blacksmith-json-import-window-app'],
+            classes: ['coffee-pub-blacksmith', 'blacksmith-json-import-window-app', 'blacksmith-json-import-window'],
             position: { width: 920, height: 680 },
             window: { title: 'Import JSON', resizable: true, minimizable: true },
             windowSizeConstraints: { minWidth: 760, minHeight: 520 }
@@ -17,11 +19,16 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
 
     static PARTS = {
         body: {
-            template: `modules/${MODULE.ID}/templates/window-json-import.hbs`
+            template: `modules/${MODULE.ID}/templates/window-template.hbs`
         }
     };
 
-    static ACTION_HANDLERS = null;
+    static ACTION_HANDLERS = {
+        selectTab: (_event, target) => JsonImportWindow._ref?._selectTab(target),
+        copyTemplate: () => JsonImportWindow._ref?._copyTemplate(),
+        selectFile: () => JsonImportWindow._ref?._selectFile(),
+        importJson: () => JsonImportWindow._ref?._importJson()
+    };
 
     constructor(options = {}) {
         const opts = foundry.utils.mergeObject({}, options);
@@ -46,7 +53,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.windowIcon = opts.windowIcon || 'fa-solid fa-file-import';
         this.templateOptions = Array.isArray(opts.templateOptions) ? opts.templateOptions : [];
         this.selectedTemplate = opts.selectedTemplate || this.templateOptions[0]?.value || '';
-        this.textareaPlaceholder = opts.textareaPlaceholder || 'Paste JSON here or select a file above...';
+        this.textareaPlaceholder = opts.textareaPlaceholder || 'Paste JSON here, or use Select JSON File below.';
         this.fileInputAccept = opts.fileInputAccept || '.json,application/json';
         this.initialJson = opts.initialJson || '';
         this.copyTemplateLabel = opts.copyTemplateLabel || 'Copy to Clipboard';
@@ -59,6 +66,167 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.journalAreaUi = opts.journalAreaUi && typeof opts.journalAreaUi === 'object'
             ? opts.journalAreaUi
             : null;
+        this.journalLocationUi = opts.journalLocationUi && typeof opts.journalLocationUi === 'object'
+            ? opts.journalLocationUi
+            : null;
+        this.activeTab = opts.activeTab === 'import' ? 'import' : 'copy';
+    }
+
+    _buildToolsContent(isCopyTab) {
+        return `
+            <div class="blacksmith-json-import-tools-stack">
+                <div class="blacksmith-json-import-tools-row blacksmith-json-import-tabs-row">
+                    <nav class="blacksmith-tabs" role="tablist">
+                        <button type="button" class="blacksmith-tab ${isCopyTab ? 'is-active' : ''}" data-action="selectTab" data-value="copy" role="tab" aria-selected="${isCopyTab}">
+                            <i class="fa-solid fa-clipboard"></i><span>Copy Prompt</span>
+                        </button>
+                        <button type="button" class="blacksmith-tab ${!isCopyTab ? 'is-active' : ''}" data-action="selectTab" data-value="import" role="tab" aria-selected="${!isCopyTab}">
+                            <i class="fa-solid fa-file-import"></i><span>Import JSON</span>
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        `;
+    }
+
+    _buildActionBarLeft(isCopyTab) {
+        if (isCopyTab) return '';
+        const accept = String(this.fileInputAccept || '.json,application/json')
+            .replace(/"/g, '&quot;');
+        return `
+            <input class="blacksmith-json-import-file-input" type="file" accept="${accept}" hidden>
+            <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-select-file" data-action="selectFile">
+                <i class="fa-solid fa-folder-open"></i> ${this.selectFileLabel}
+            </button>
+        `;
+    }
+
+    _buildActionBarRight(isCopyTab) {
+        if (isCopyTab) {
+            const disabled = this.templateOptions.length === 0 ? ' disabled' : '';
+            return `
+                <button type="button" class="blacksmith-window-btn-primary blacksmith-json-import-copy-template" data-action="copyTemplate"${disabled}>
+                    <i class="fa-solid fa-clipboard"></i> ${this.copyTemplateLabel}
+                </button>
+            `;
+        }
+        return `
+            <button type="button" class="blacksmith-window-btn-primary blacksmith-json-import-submit" data-action="importJson">
+                <i class="fa-solid fa-file-import"></i> ${this.importLabel}
+            </button>
+        `;
+    }
+
+    _persistFormStateFromDom() {
+        const root = this.element;
+        if (!root) return;
+
+        const textarea = root.querySelector('.blacksmith-json-import-textarea');
+        if (textarea) this.initialJson = String(textarea.value ?? '');
+
+        const templateSelect = root.querySelector('.blacksmith-json-import-template-select');
+        if (templateSelect) this.selectedTemplate = templateSelect.value || this.selectedTemplate;
+
+        for (const field of this.promptFields) {
+            const id = String(field?.id || '').trim();
+            if (!id) continue;
+            const input = root.querySelector(`[data-prompt-field="${id}"]`);
+            if (input) field.value = String(input.value ?? '').trim();
+        }
+
+        for (const cb of this.promptCheckboxes) {
+            const id = String(cb?.id || '').trim();
+            if (!id) continue;
+            const input = root.querySelector(`[data-prompt-checkbox="${id}"]`);
+            if (input) cb.checked = !!input.checked;
+        }
+
+        this._persistJournalUiFromDom(this.journalAreaUi);
+        this._persistJournalUiFromDom(this.journalLocationUi);
+    }
+
+    /**
+     * @param {object|null} ui
+     */
+    _persistJournalUiFromDom(ui) {
+        if (!ui) return;
+        const state = this._getJournalTemplateUiFieldState(ui);
+        if (ui.folder?.id && state[ui.folder.id] !== undefined) {
+            ui.folder.value = state[ui.folder.id];
+        }
+        if (ui.journal?.id && state[ui.journal.id] !== undefined) {
+            ui.journal.value = state[ui.journal.id];
+        }
+        if (ui.title?.id && state[ui.title.id] !== undefined) {
+            ui.title.value = state[ui.title.id];
+        }
+        if (ui.additionalContext?.id && state[ui.additionalContext.id] !== undefined) {
+            ui.additionalContext.value = state[ui.additionalContext.id];
+        }
+        for (const field of ui.geography ?? []) {
+            if (field.id && state[field.id] !== undefined) field.value = state[field.id];
+        }
+        const defaultId = String(ui.geographyDefault?.id || 'geographyDefault').trim();
+        if (ui.geographyDefault && defaultId in state) {
+            ui.geographyDefault.checked = !!state[defaultId];
+        }
+        if (ui.locationImage?.fieldId && state[ui.locationImage.fieldId] !== undefined) {
+            ui.locationImage.value = state[ui.locationImage.fieldId];
+        }
+        for (const row of ui.images ?? []) {
+            if (row.fieldId && state[row.fieldId] !== undefined) row.value = state[row.fieldId];
+            const checkboxId = String(row?.checkboxId || '').trim();
+            if (checkboxId && checkboxId in state) row.checked = !!state[checkboxId];
+        }
+    }
+
+    /**
+     * @param {HTMLElement|null} target
+     */
+    _selectTab(target) {
+        this._persistFormStateFromDom();
+        const tab = target?.dataset?.value === 'import' ? 'import' : 'copy';
+        this.activeTab = tab;
+        void this.render(true);
+    }
+
+    _selectFile() {
+        const root = this.element;
+        const fileInput = root?.querySelector('.blacksmith-json-import-file-input');
+        fileInput?.click();
+    }
+
+    async _copyTemplate() {
+        if (!this.onCopyTemplate) return;
+        const root = this.element;
+        const copyButton = root?.querySelector('.blacksmith-json-import-copy-template');
+        ui.notifications.info('Gathering data to put on the clipboard, please wait...');
+        if (copyButton) copyButton.disabled = true;
+        try {
+            const copied = await this.onCopyTemplate(this.selectedTemplate, this._getPromptOptions());
+            if (copied !== false) {
+                ui.notifications.info('Prompt copied to the clipboard');
+            }
+        } catch (error) {
+            const message = error?.message || String(error);
+            ui.notifications.error(`Failed to copy prompt: ${message}`);
+        } finally {
+            if (copyButton) copyButton.disabled = false;
+        }
+    }
+
+    async _importJson() {
+        if (!this.onImport) {
+            this.close();
+            return;
+        }
+        const root = this.element;
+        const textarea = root?.querySelector('.blacksmith-json-import-textarea');
+        const payload = textarea?.value || '';
+        const ok = await this.onImport(payload);
+        if (ok !== false) {
+            this.close();
+        }
     }
 
     _getPromptCheckboxState() {
@@ -87,48 +255,58 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         return state;
     }
 
-    _getJournalAreaFieldState() {
+    /**
+     * @param {object|null} ui
+     * @returns {Record<string, string|boolean>}
+     */
+    _getJournalTemplateUiFieldState(ui) {
         const state = {};
-        const ui = this.journalAreaUi;
         const root = this.element;
         if (!ui || !root) return state;
 
-        const folderId = String(ui.folder?.id || '').trim();
-        if (folderId) {
-            const folderInput = root.querySelector(`[data-prompt-field="${folderId}"]`);
-            state[folderId] = folderInput
-                ? String(folderInput.value ?? '').trim()
-                : String(ui.folder?.value ?? '').trim();
-        }
+        const templateKey = String(ui.showForTemplate || '').trim();
+        const container = templateKey
+            ? root.querySelector(`[data-for-template="${templateKey}"]`)
+            : root;
+        if (!container) return state;
+
+        const readField = (id, fallback = '') => {
+            const key = String(id || '').trim();
+            if (!key) return;
+            const input = container.querySelector(`[data-prompt-field="${key}"]`);
+            state[key] = input ? String(input.value ?? '').trim() : String(fallback).trim();
+        };
+
+        readField(ui.folder?.id, ui.folder?.value);
+        readField(ui.journal?.id, ui.journal?.value);
+        readField(ui.title?.id, ui.title?.value);
+        readField(ui.additionalContext?.id, ui.additionalContext?.value);
 
         for (const field of ui.geography ?? []) {
-            const id = String(field?.id || '').trim();
-            if (!id) continue;
-            const input = root.querySelector(`[data-prompt-field="${id}"]`);
-            state[id] = input ? String(input.value ?? '').trim() : String(field.value ?? '').trim();
-        }
-
-        for (const row of ui.images ?? []) {
-            const fieldId = String(row?.fieldId || '').trim();
-            if (!fieldId) continue;
-            const input = root.querySelector(`[data-prompt-field="${fieldId}"]`);
-            state[fieldId] = input ? String(input.value ?? '').trim() : String(row.value ?? '').trim();
+            readField(field.id, field.value);
         }
 
         const defaultId = String(ui.geographyDefault?.id || 'geographyDefault').trim();
-        const defaultInput = root.querySelector(`[data-prompt-checkbox="${defaultId}"]`);
+        const defaultInput = container.querySelector(`[data-prompt-checkbox="${defaultId}"]`);
         state[defaultId] = !!defaultInput?.checked;
 
+        if (ui.locationImage?.fieldId) {
+            readField(ui.locationImage.fieldId, ui.locationImage.value);
+        }
+
         for (const row of ui.images ?? []) {
+            readField(row.fieldId, row.value);
             const checkboxId = String(row?.checkboxId || '').trim();
             if (checkboxId) {
-                const input = root.querySelector(`[data-prompt-checkbox="${checkboxId}"]`);
+                const input = container.querySelector(`[data-prompt-checkbox="${checkboxId}"]`);
                 state[checkboxId] = !!input?.checked;
             }
             const defaultCheckboxId = String(row?.defaultCheckboxId || '').trim();
             if (defaultCheckboxId) {
-                const defaultInput = root.querySelector(`[data-prompt-checkbox="${defaultCheckboxId}"]`);
-                state[defaultCheckboxId] = !!defaultInput?.checked;
+                const imageDefaultInput = container.querySelector(
+                    `[data-prompt-checkbox="${defaultCheckboxId}"]`
+                );
+                state[defaultCheckboxId] = !!imageDefaultInput?.checked;
             }
         }
 
@@ -139,7 +317,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         return {
             ...this._getPromptCheckboxState(),
             ...this._getPromptFieldState(),
-            ...this._getJournalAreaFieldState()
+            ...this._getJournalTemplateUiFieldState(this.journalAreaUi),
+            ...this._getJournalTemplateUiFieldState(this.journalLocationUi)
         };
     }
 
@@ -184,23 +363,19 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             }
         }
 
-        const journalBlock = root.querySelector('.blacksmith-json-import-journal-area');
-        if (journalBlock) {
-            const forTemplate = journalBlock.getAttribute('data-for-template') || 'area';
+        for (const journalBlock of root.querySelectorAll(
+            '.blacksmith-json-import-journal-area, .blacksmith-json-import-journal-location'
+        )) {
+            const forTemplate = journalBlock.getAttribute('data-for-template') || '';
             journalBlock.hidden = forTemplate !== template;
         }
     }
 
-    getData() {
+    _buildBodyContext() {
+        const isCopyTab = this.activeTab !== 'import';
         return {
-            appId: this.id,
-            showOptionBar: false,
-            showHeader: true,
-            showTools: false,
-            showActionBar: true,
-            windowTitle: this.headerTitle,
-            subtitle: this.windowSubtitle,
-            headerIcon: this.windowIcon,
+            isCopyTab,
+            isImportTab: !isCopyTab,
             templateOptions: this.templateOptions.map((opt) => ({
                 value: opt.value,
                 label: opt.label,
@@ -208,11 +383,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             })),
             hasTemplates: this.templateOptions.length > 0,
             textareaPlaceholder: this.textareaPlaceholder,
-            fileInputAccept: this.fileInputAccept,
             initialJson: this.initialJson,
-            copyTemplateLabel: this.copyTemplateLabel,
-            selectFileLabel: this.selectFileLabel,
-            importLabel: this.importLabel,
             promptCheckboxes: this.promptCheckboxes.map((cb) => ({
                 id: cb.id,
                 label: cb.label,
@@ -223,7 +394,30 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             hasPromptCheckboxes: this.promptCheckboxes.length > 0,
             promptFields: this.promptFields.map((field) => this._formatPromptFieldForTemplate(field)),
             hasPromptFields: this.promptFields.length > 0,
-            journalAreaUi: this._formatJournalAreaUiData()
+            journalAreaUi: this._formatJournalAreaUiData(),
+            journalLocationUi: this._formatJournalLocationUiData()
+        };
+    }
+
+    async getData() {
+        const isCopyTab = this.activeTab !== 'import';
+        const bodyContent = await foundry.applications.handlebars.renderTemplate(
+            BODY_TEMPLATE,
+            this._buildBodyContext()
+        );
+        return {
+            appId: this.id,
+            showOptionBar: false,
+            showHeader: true,
+            showTools: true,
+            showActionBar: true,
+            windowTitle: this.headerTitle,
+            subtitle: this.windowSubtitle,
+            headerIcon: this.windowIcon,
+            toolsContent: this._buildToolsContent(isCopyTab),
+            bodyContent,
+            actionBarLeft: this._buildActionBarLeft(isCopyTab),
+            actionBarRight: this._buildActionBarRight(isCopyTab)
         };
     }
 
@@ -284,7 +478,57 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 defaultLabel: row.defaultLabel ?? 'Default',
                 value: row.value ?? '',
                 checked: !!row.checked
-            }))
+            })),
+            additionalContext: {
+                id: ui.additionalContext?.id ?? 'additionalContext',
+                label: ui.additionalContext?.label ?? 'Additional context',
+                value: ui.additionalContext?.value ?? ''
+            }
+        };
+    }
+
+    _formatJournalLocationUiData() {
+        const ui = this.journalLocationUi;
+        if (!ui) {
+            return { hasJournalLocationUi: false };
+        }
+        return {
+            hasJournalLocationUi: true,
+            showForTemplate: ui.showForTemplate ?? 'location',
+            folder: {
+                id: ui.folder?.id ?? 'locationFoldername',
+                label: ui.folder?.label ?? 'Journal folder',
+                value: ui.folder?.value ?? 'Libraries'
+            },
+            journal: {
+                id: ui.journal?.id ?? 'locationJournalname',
+                label: ui.journal?.label ?? 'Journal name',
+                value: ui.journal?.value ?? 'Locations'
+            },
+            title: {
+                id: ui.title?.id ?? 'locationTitle',
+                label: ui.title?.label ?? 'Location title',
+                value: ui.title?.value ?? ''
+            },
+            geography: (ui.geography ?? []).map((field) => ({
+                id: field.id,
+                label: field.label,
+                value: field.value ?? ''
+            })),
+            geographyDefault: {
+                id: ui.geographyDefault?.id ?? 'geographyDefault',
+                label: ui.geographyDefault?.label ?? 'Default'
+            },
+            locationImage: {
+                fieldId: ui.locationImage?.fieldId ?? 'locationimage',
+                fieldLabel: ui.locationImage?.fieldLabel ?? 'Location image path',
+                value: ui.locationImage?.value ?? ''
+            },
+            additionalContext: {
+                id: ui.additionalContext?.id ?? 'additionalContext',
+                label: ui.additionalContext?.label ?? 'Additional context',
+                value: ui.additionalContext?.value ?? ''
+            }
         };
     }
 
@@ -297,20 +541,17 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const root = this.element;
         if (!root) return;
 
-        const selectButton = root.querySelector('.blacksmith-json-import-select-file');
         const fileInput = root.querySelector('.blacksmith-json-import-file-input');
         const textarea = root.querySelector('.blacksmith-json-import-textarea');
-        const copyButton = root.querySelector('.blacksmith-json-import-copy-template');
         const templateSelect = root.querySelector('.blacksmith-json-import-template-select');
-        const importButton = root.querySelector('.blacksmith-json-import-submit');
 
-        selectButton?.addEventListener('click', () => fileInput?.click());
         fileInput?.addEventListener('change', (event) => {
             const file = event.target.files?.[0];
             if (!file || !textarea) return;
             const reader = new FileReader();
             reader.onload = (ev) => {
                 textarea.value = String(ev.target?.result || '');
+                this.initialJson = textarea.value;
                 fileInput.value = '';
             };
             reader.readAsText(file);
@@ -321,37 +562,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             this._updatePromptFieldVisibility();
         });
 
-        copyButton?.addEventListener('click', async () => {
-            if (!this.onCopyTemplate) return;
-            ui.notifications.info('Gathering data to put on the clipboard, please wait...');
-            copyButton.disabled = true;
-            try {
-                const copied = await this.onCopyTemplate(this.selectedTemplate, this._getPromptOptions());
-                if (copied !== false) {
-                    ui.notifications.info('Prompt copied to the clipboard');
-                }
-            } catch (error) {
-                const message = error?.message || String(error);
-                ui.notifications.error(`Failed to copy prompt: ${message}`);
-            } finally {
-                copyButton.disabled = false;
-            }
-        });
-
         this._updatePromptFieldVisibility();
         this._attachImageBrowseListeners(root);
-
-        importButton?.addEventListener('click', async () => {
-            if (!this.onImport) {
-                this.close();
-                return;
-            }
-            const payload = textarea?.value || '';
-            const ok = await this.onImport(payload);
-            if (ok !== false) {
-                this.close();
-            }
-        });
     }
 
     _attachImageBrowseListeners(root) {

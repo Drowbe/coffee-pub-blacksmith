@@ -117,6 +117,7 @@ export function openJsonImportWindow(kindId) {
         promptCheckboxes: kind.promptCheckboxes ?? [],
         promptFields: kind.promptFields ?? [],
         journalAreaUi: kind.journalAreaUi ?? null,
+        journalLocationUi: kind.journalLocationUi ?? null,
         onCopyTemplate: kind.onCopyTemplate,
         onImport: async (jsonDataRaw) => {
             try {

@@ -25,6 +25,7 @@ export const JOURNAL_PROMPT_CORE = 'prompt-journal-core.txt';
 export const JOURNAL_PROMPT_VISUAL_CORE = 'prompt-journal-visual-core.txt';
 export const JOURNAL_PROMPT_VISUAL_ILLUSTRATION = 'prompt-journal-visual-illustration.txt';
 export const JOURNAL_PROMPT_VISUAL_PORTRAIT = 'prompt-journal-visual-portrait.txt';
+export const JOURNAL_PROMPT_LOCATION = 'prompt-location.txt';
 export const JOURNAL_JSON_IMPORT_KIND_ID = 'journal';
 
 /** @type {Record<string, string[]>} */
@@ -388,6 +389,49 @@ export function getJournalPromptCheckboxes() {
  * Area journal import UI (folder, geography, image placeholders).
  * @returns {object}
  */
+/**
+ * Location journal import UI (folder, journal container, title, geography, image path).
+ * @returns {object}
+ */
+export function getJournalLocationImportUi() {
+    const ctx = CampaignManager.getPromptContext();
+    return {
+        showForTemplate: 'location',
+        folder: {
+            id: 'locationFoldername',
+            label: 'Journal folder',
+            value: 'Libraries'
+        },
+        journal: {
+            id: 'locationJournalname',
+            label: 'Journal name',
+            value: 'Locations'
+        },
+        title: {
+            id: 'locationTitle',
+            label: 'Location title',
+            value: ''
+        },
+        additionalContext: {
+            id: 'additionalContext',
+            label: 'Additional context',
+            value: ''
+        },
+        geography: [
+            { id: 'realm', label: 'Realm', value: ctx.realm || '' },
+            { id: 'region', label: 'Region', value: ctx.region || '' },
+            { id: 'site', label: 'Site', value: ctx.site || '' },
+            { id: 'area', label: 'Area', value: ctx.area || '' }
+        ],
+        geographyDefault: { id: 'geographyDefault', label: 'Default' },
+        locationImage: {
+            fieldId: 'locationimage',
+            fieldLabel: 'Location image path',
+            value: ''
+        }
+    };
+}
+
 export function getJournalAreaImportUi() {
     const ctx = CampaignManager.getPromptContext();
     return {
@@ -405,6 +449,11 @@ export function getJournalAreaImportUi() {
             { id: 'scenetitle', label: 'Scene title', value: '' }
         ],
         geographyDefault: { id: 'geographyDefault', label: 'Default' },
+        additionalContext: {
+            id: 'additionalContext',
+            label: 'Additional context',
+            value: ''
+        },
         images: [
             {
                 fieldId: 'narrativeImage',
@@ -516,7 +565,17 @@ export function applyAreaJournalGeography(prompt, options = {}) {
         { placeholder: '[ADD-LOCATION-PATH-HERE]', value: buildLocationPathHint(geography) },
         { placeholder: '[ADD-IMAGE-PATH-HERE]', value: narrativeImage, allowEmpty: true },
         { placeholder: '[ADD-NARRATIVE-IMAGE-PATH-HERE]', value: narrativeImage, allowEmpty: true },
-        { placeholder: '[ADD-CHARACTER-IMAGE-PATH-HERE]', value: characterImage, allowEmpty: true }
+        { placeholder: '[ADD-CHARACTER-IMAGE-PATH-HERE]', value: characterImage, allowEmpty: true },
+        {
+            placeholder: '[ADD-AREA-ADDITIONAL-CONTEXT-HERE]',
+            value: options.additionalContext,
+            allowEmpty: true
+        },
+        {
+            placeholder: '[ADD-AREA-CONTEXT-HERE]',
+            value: options.additionalContext,
+            allowEmpty: true
+        }
     ];
 
     let result = prompt;
@@ -634,6 +693,7 @@ export async function buildJournalImportPrompt(profileKey, options = {}) {
 
     composed = applyAreaJournalGeography(composed, {
         geography: options.geography ?? {},
+        additionalContext: options.additionalContext ?? '',
         foldername: options.foldername,
         includeNarrativeImage: options.includeNarrativeImage,
         includeCharacterImage: options.includeCharacterImage,
@@ -704,25 +764,64 @@ async function getEncounterTemplateWithDefaults(encounterTemplate) {
     return result;
 }
 
-async function getLocationTemplateWithDefaults(locationTemplate) {
-    const context = CampaignManager.getPromptContext();
-    const settings = [
-        { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
-        { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
-        { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
-        { placeholder: '[ADD-REALM-HERE]', value: context.realm },
-        { placeholder: '[ADD-REGION-HERE]', value: context.region },
-        { placeholder: '[ADD-SITE-HERE]', value: context.site },
-        { placeholder: '[ADD-AREA-HERE]', value: context.area }
+/**
+ * @param {string} prompt
+ * @param {Record<string, string|boolean>} [options]
+ * @returns {string}
+ */
+export function applyLocationPromptPlaceholders(prompt, options = {}) {
+    const ctx = CampaignManager.getPromptContext();
+    const pick = (key, fallbackKey) => {
+        const v = String(options[key] ?? '').trim();
+        if (v) return v;
+        if (fallbackKey) return String(ctx[fallbackKey] ?? '').trim();
+        return '';
+    };
+
+    const replacements = [
+        { placeholder: '[ADD-LOCATION-FOLDER-HERE]', value: options.locationFoldername ?? 'Libraries' },
+        { placeholder: '[ADD-LOCATION-JOURNAL-HERE]', value: options.locationJournalname ?? 'Locations' },
+        { placeholder: '[ADD-LOCATION-TITLE-HERE]', value: options.locationTitle },
+        { placeholder: '[ADD-LOCATION-REALM-HERE]', value: pick('realm', 'realm') },
+        { placeholder: '[ADD-LOCATION-REGION-HERE]', value: pick('region', 'region') },
+        { placeholder: '[ADD-LOCATION-SITE-HERE]', value: pick('site', 'site') },
+        { placeholder: '[ADD-LOCATION-AREA-HERE]', value: pick('area', 'area') },
+        {
+            placeholder: '[ADD-LOCATION-IMAGE-HERE]',
+            value: options.locationimage || 'None (generate with Illustration Image, then paste path)'
+        },
+        {
+            placeholder: '[ADD-LOCATION-ADDITIONAL-CONTEXT-HERE]',
+            value: options.additionalContext,
+            allowEmpty: true
+        },
+        {
+            placeholder: '[ADD-LOCATION-CONTEXT-HERE]',
+            value: options.additionalContext,
+            allowEmpty: true
+        }
     ];
-    let result = locationTemplate;
-    for (const setting of settings) {
-        const value = setting.value || '';
-        if (value) {
-            result = result.split(setting.placeholder).join(value);
+
+    let result = String(prompt ?? '');
+    for (const { placeholder, value, allowEmpty } of replacements) {
+        const text = String(value ?? '').trim();
+        if (text || allowEmpty) {
+            result = result.split(placeholder).join(text);
+        } else {
+            result = result.split(placeholder).join('(not specified)');
         }
     }
     return result;
+}
+
+/**
+ * @param {Record<string, string|boolean>} [promptOptions]
+ * @returns {Promise<string>}
+ */
+export async function buildLocationImportPrompt(promptOptions = {}) {
+    let composed = await fetchPromptText(JOURNAL_PROMPT_LOCATION);
+    composed = applyLocationPromptPlaceholders(composed, promptOptions);
+    return applyCampaignPlaceholders(composed);
 }
 
 /**
@@ -749,8 +848,9 @@ async function copyJournalTemplate(templateKey, promptOptions = {}) {
         return copyToClipboard(await getEncounterTemplateWithDefaults(raw), { notify: false });
     }
     if (type === 'location') {
-        const raw = await fetchLegacyPromptText('prompt-location.txt');
-        return copyToClipboard(await getLocationTemplateWithDefaults(raw), { notify: false });
+        await saveCampaignGeographyDefaultsIfRequested(promptOptions);
+        const prompt = await buildLocationImportPrompt(promptOptions);
+        return copyToClipboard(prompt, { notify: false });
     }
 
     await saveCampaignGeographyDefaultsIfRequested(promptOptions);
@@ -772,7 +872,8 @@ async function copyJournalTemplate(templateKey, promptOptions = {}) {
             site: promptOptions.site ?? '',
             area: promptOptions.area ?? '',
             scenetitle: promptOptions.scenetitle ?? ''
-        }
+        },
+        additionalContext: promptOptions.additionalContext ?? ''
     });
     return copyToClipboard(prompt, { notify: false });
 }
@@ -827,9 +928,9 @@ const journalJsonImportKind = {
         { value: 'area', label: 'Area Narrative' },
         { value: 'illustration', label: 'Illustration Image' },
         { value: 'portrait', label: 'Portrait Image' },
-        { value: 'location', label: 'Location' },
-        { value: 'encounter', label: 'Encounter' },
-        { value: 'injury', label: 'Injury' }
+        { value: 'location', label: 'Location Narrative' },
+        { value: 'encounter', label: 'Encounter (Legacy)' },
+        { value: 'injury', label: 'Injury (Legacy)' }
     ],
     get promptCheckboxes() {
         return getJournalPromptCheckboxes();
@@ -839,6 +940,9 @@ const journalJsonImportKind = {
     },
     get journalAreaUi() {
         return getJournalAreaImportUi();
+    },
+    get journalLocationUi() {
+        return getJournalLocationImportUi();
     },
     onCopyTemplate: copyJournalTemplate,
     onImport: async (entries) => importJournalEntries(entries),

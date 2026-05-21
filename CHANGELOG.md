@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Location import (JSON only)** (`prompt-location.txt`, `registry-json-import-journals.js`, `window-json-import.hbs`): Location copy is encyclopedia JSON only; card art uses **Illustration Image**. Import JSON shows **Location Narrative** prefills (folder, journal, title, geography, image path, **Additional context**). Removed bundled image section from location prompt.
+
+- **Import JSON window tabs** (`window-json-import-body.hbs`, `window-json-import.js`, `window-json-import.css`): **Copy Prompt** / **Import JSON** in the canonical **tools** zone (`window-template.hbs`, same tab pattern as Manage Pins); footer actions per tab via `data-action` delegation (**Copy to Clipboard** primary vs **Select JSON File** + **Import JSON**). Removed location card-art helper text; relaxed location-path field min widths.
+
+- **Additional context (Area + Location)** (`prompt-journal-profile-area.txt`, `prompt-location.txt`, Import JSON UI): Shared **Additional context** textarea prefills copy prompts (not a JSON field). Renamed from “GM context”.
+
 - **Illustration subject types** (`registry-json-import-journals.js`): **Character (in scene)** for character-in-environment (16:9, not bust); nautical types **Boat**, **Ship**, **Harbor / dock**, **Waterfront**; place types **Inn**, **Shop**, **Market**, **Church**. Aspect and figure-policy rules follow subject type.
 
 - **Illustration copy — proven prompt restored** (`prompt-journal-visual-illustration.txt`, `registry-json-import-journals.js`): Illustration copy is the working **NARRATIVE ILLUSTRATION IMAGE** contract (ink-and-wash, aspect/framing/style) plus Foundry **DESCRIBED SUBJECT** facets. Removed cinematic style profile, visual-core on illustration compose, and conflicting clipboard lead paragraph. Subject types include scene, character, and object.

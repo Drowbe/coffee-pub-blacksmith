@@ -1,30 +1,13 @@
-<div class="blacksmith-window-template-root blacksmith-json-import-window" id="{{appId}}">
-    {{#if showHeader}}
-    <header class="blacksmith-window-template-header">
-        <div class="blacksmith-window-template-header-content">
-            <div class="blacksmith-window-template-header-icon">
-                {{#if headerIcon}}<i class="{{headerIcon}}"></i>{{else}}<i class="fa-solid fa-hammer"></i>{{/if}}
-            </div>
-            <div class="blacksmith-window-template-header-title-block">
-                <div class="blacksmith-window-template-header-title">{{windowTitle}}</div>
-                <div class="blacksmith-window-template-header-subtitle">{{subtitle}}</div>
-            </div>
-            <div class="blacksmith-window-template-header-right">
-                {{#if headerRight}}{{{headerRight}}}{{/if}}
-            </div>
-        </div>
-    </header>
-    {{/if}}
-
-    <div class="blacksmith-window-template-body">
+<div class="blacksmith-json-import-body">
+    <div class="blacksmith-json-import-tab-panel" data-json-import-panel="copy" {{#unless isCopyTab}}hidden{{/unless}}>
         <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-section-copy">
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-window-section-header">
-                    <i class="fa-solid fa-clipboard"></i>
+                    <i class="fa-solid fa-list"></i>
                     <span>Select Prompt Template</span>
                 </div>
                 <div class="blacksmith-field-row blacksmith-json-import-template-row">
-                    <div class="blacksmith-field">
+                    <div class="blacksmith-field blacksmith-json-import-template-field">
                         <select class="blacksmith-select blacksmith-json-import-template-select" {{#unless hasTemplates}}disabled{{/unless}}>
                             {{#if hasTemplates}}
                                 {{#each templateOptions}}
@@ -35,9 +18,6 @@
                             {{/if}}
                         </select>
                     </div>
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-copy-template" {{#unless hasTemplates}}disabled{{/unless}}>
-                        <i class="fa-solid fa-clipboard"></i> {{copyTemplateLabel}}
-                    </button>
                 </div>
                 {{#if journalAreaUi.hasJournalAreaUi}}
                 <div class="blacksmith-json-import-journal-area" data-for-template="{{journalAreaUi.showForTemplate}}">
@@ -45,7 +25,8 @@
                         <i class="fa-solid fa-location-dot"></i>
                         <span>Location path (Area template)</span>
                     </div>
-                    <div class="blacksmith-json-import-journal-location-row">
+                    <div class="blacksmith-json-import-journal-fields-grid">
+                    <div class="blacksmith-json-import-journal-location-row blacksmith-json-import-journal-fields-row-full">
                         <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-folder">
                             <span class="blacksmith-json-import-prompt-field-label">{{journalAreaUi.folder.label}}</span>
                             <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{journalAreaUi.folder.id}}" value="{{journalAreaUi.folder.value}}" autocomplete="off">
@@ -63,7 +44,7 @@
                             <span>{{journalAreaUi.geographyDefault.label}}</span>
                         </label>
                     </div>
-                    <div class="blacksmith-json-import-journal-image-rows">
+                    <div class="blacksmith-json-import-journal-image-rows blacksmith-json-import-journal-fields-row-full">
                         {{#each journalAreaUi.images}}
                         <div class="blacksmith-json-import-journal-image-row">
                             <div class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-image-field">
@@ -85,6 +66,65 @@
                             </label>
                         </div>
                         {{/each}}
+                    </div>
+                    <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-fields-row-full blacksmith-json-import-additional-context">
+                        <span class="blacksmith-json-import-prompt-field-label">{{journalAreaUi.additionalContext.label}}</span>
+                        <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{journalAreaUi.additionalContext.id}}" rows="3" autocomplete="off">{{journalAreaUi.additionalContext.value}}</textarea>
+                    </label>
+                    </div>
+                </div>
+                {{/if}}
+                {{#if journalLocationUi.hasJournalLocationUi}}
+                <div class="blacksmith-json-import-journal-location" data-for-template="{{journalLocationUi.showForTemplate}}">
+                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        <span>Location Narrative (prefill before copy)</span>
+                    </div>
+                    <div class="blacksmith-json-import-journal-fields-grid">
+                    <div class="blacksmith-json-import-journal-location-row blacksmith-json-import-journal-location-meta blacksmith-json-import-journal-fields-row-full">
+                        <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-folder">
+                            <span class="blacksmith-json-import-prompt-field-label">{{journalLocationUi.folder.label}}</span>
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{journalLocationUi.folder.id}}" value="{{journalLocationUi.folder.value}}" autocomplete="off">
+                        </label>
+                        <label class="blacksmith-json-import-prompt-field-row">
+                            <span class="blacksmith-json-import-prompt-field-label">{{journalLocationUi.journal.label}}</span>
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{journalLocationUi.journal.id}}" value="{{journalLocationUi.journal.value}}" autocomplete="off">
+                        </label>
+                        <label class="blacksmith-json-import-prompt-field-row">
+                            <span class="blacksmith-json-import-prompt-field-label">{{journalLocationUi.title.label}}</span>
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{journalLocationUi.title.id}}" value="{{journalLocationUi.title.value}}" autocomplete="off">
+                        </label>
+                    </div>
+                    <div class="blacksmith-json-import-journal-location-row blacksmith-json-import-journal-fields-row-full">
+                        {{#each journalLocationUi.geography}}
+                        <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-geo-field">
+                            <span class="blacksmith-json-import-prompt-field-label">{{label}}</span>
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}" value="{{value}}" autocomplete="off">
+                        </label>
+                        {{#unless @last}}<span class="blacksmith-json-import-location-sep blacksmith-json-import-location-sep-chevron" aria-hidden="true">&gt;</span>{{/unless}}
+                        {{/each}}
+                        <label class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-geography-default">
+                            <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{journalLocationUi.geographyDefault.id}}">
+                            <span>{{journalLocationUi.geographyDefault.label}}</span>
+                        </label>
+                    </div>
+                    <div class="blacksmith-json-import-journal-image-rows blacksmith-json-import-journal-fields-row-full">
+                        <div class="blacksmith-json-import-journal-image-row">
+                            <div class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-image-field">
+                                <span class="blacksmith-json-import-prompt-field-label">{{journalLocationUi.locationImage.fieldLabel}}</span>
+                                <div class="blacksmith-json-import-image-path-row">
+                                    <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{journalLocationUi.locationImage.fieldId}}" value="{{journalLocationUi.locationImage.value}}" autocomplete="off" placeholder="modules/... or None">
+                                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-image-browse" data-prompt-field-target="{{journalLocationUi.locationImage.fieldId}}" title="Browse for image">
+                                        <i class="fa-solid fa-folder-open"></i> Browse
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-fields-row-full blacksmith-json-import-additional-context">
+                        <span class="blacksmith-json-import-prompt-field-label">{{journalLocationUi.additionalContext.label}}</span>
+                        <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{journalLocationUi.additionalContext.id}}" rows="3" autocomplete="off">{{journalLocationUi.additionalContext.value}}</textarea>
+                    </label>
                     </div>
                 </div>
                 {{/if}}
@@ -133,35 +173,9 @@
                 {{/if}}
             </div>
         </section>
-
-        <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-section-import">
-            <div class="blacksmith-window-section-body">
-                <div class="blacksmith-window-section-header">
-                    <i class="fa-solid fa-file-import"></i>
-                    <span>Import JSON</span>
-                </div>
-                <div class="blacksmith-json-import-content-grid">
-                    <div class="blacksmith-json-import-editor">
-                        <textarea class="blacksmith-textarea blacksmith-json-import-textarea" placeholder="{{textareaPlaceholder}}">{{initialJson}}</textarea>
-                    </div>
-                </div>
-            </div>
-        </section>
     </div>
 
-    <section class="blacksmith-window-template-buttons">
-        <div class="blacksmith-window-template-action-bar">
-            <div class="blacksmith-window-template-action-left">
-                <input class="blacksmith-json-import-file-input" type="file" accept="{{fileInputAccept}}" hidden>
-                <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-select-file">
-                    <i class="fa-solid fa-folder-open"></i> {{selectFileLabel}}
-                </button>
-            </div>
-            <div class="blacksmith-window-template-action-right">
-                <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-submit">
-                    <i class="fa-solid fa-file-import"></i> {{importLabel}}
-                </button>
-            </div>
-        </div>
-    </section>
+    <div class="blacksmith-json-import-tab-panel blacksmith-json-import-tab-panel-import" data-json-import-panel="import" {{#unless isImportTab}}hidden{{/unless}}>
+        <textarea class="blacksmith-textarea blacksmith-json-import-textarea" placeholder="{{textareaPlaceholder}}">{{initialJson}}</textarea>
+    </div>
 </div>
