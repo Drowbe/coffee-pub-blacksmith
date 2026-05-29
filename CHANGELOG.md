@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.7.8]
+
+### Fixed
+
+- **Cinematic roll — players see hourglass instead of dice buttons** (`scripts/window-skillcheck.js`): `createActorCardHtml` now falls back to `game.actors.get(actor.actorId)` when the canvas token lookup fails. Previously, if a token was not found on the canvas, `actorDocument` was `null`, causing `actor.isOwner` to return `undefined` and every player to see the waiting hourglass instead of their roll dice. The fallback also restores correct portrait images for actors without a canvas token.
+
 ## [13.7.7]
 
 ### Added

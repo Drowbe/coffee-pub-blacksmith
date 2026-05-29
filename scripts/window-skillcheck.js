@@ -2276,7 +2276,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
         const createActorCardHtml = (actor, index) => {
             const token = canvas.tokens.get(actor.id) || canvas.tokens.placeables.find(t => t.actor?.id === actor.actorId);
-            const actorDocument = token?.actor;
+            const actorDocument = token?.actor || game.actors.get(actor.actorId);
             const actorImg = actorDocument?.img || 'icons/svg/mystery-man.svg';
             const actorName = actor.name;
             const result = actor.result;
