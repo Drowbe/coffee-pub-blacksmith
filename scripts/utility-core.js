@@ -230,21 +230,25 @@ export class CoreUIUtility {
         const items = [];
         const L = (key) => (game.i18n?.localize?.(`${MODULE.ID}.${key}`) ?? key);
 
-        items.push({
-            name: "Refresh",
-            icon: "fa-solid fa-rotate",
-            onClick: () => {
-                window.location.reload();
-            }
-        });
+        if (getSettingSafely(MODULE.ID, 'menubarShowRefresh', true)) {
+            items.push({
+                name: "Refresh",
+                icon: "fa-solid fa-rotate",
+                onClick: () => {
+                    window.location.reload();
+                }
+            });
+        }
 
-        items.push({
-            name: "Settings",
-            icon: "fa-solid fa-gear",
-            onClick: () => {
-                game.settings.sheet.render(true);
-            }
-        });
+        if (getSettingSafely(MODULE.ID, 'menubarShowSettings', true)) {
+            items.push({
+                name: "Settings",
+                icon: "fa-solid fa-gear",
+                onClick: () => {
+                    game.settings.sheet.render(true);
+                }
+            });
+        }
 
         if (getSettingSafely(MODULE.ID, 'enablePerformanceMonitor', true)) {
             try {
