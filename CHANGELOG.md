@@ -8,23 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.7.10]
 
-### Added
-
-- **Pin layer ordering — Bring to Front / Bring Forward / Send Backward / Send to Back** (`scripts/pins-renderer.js`, `scripts/manager-pins.js`, `scripts/pins-schema.js`): Right-click a pin to access the new **Layer** flyout (same `canEdit` guard as Configure Pin). Four actions control z-order stacking: **Bring to Front** jumps to the highest order across all scene pins; **Bring Forward** nudges up by one step; **Send Backward** nudges down by one step; **Send to Back** jumps to the lowest order. Order is stored as a numeric `order` field on each pin (default `0`) and applied as CSS `z-index` on every render, so stacking persists across reloads and syncs to all connected clients.
-
 ### Changed
 
-- **Pin context menu order** (`scripts/pins-renderer.js`): Core items reordered to: Bring Players Here → Configure Pin → Animate → Layer → Pin Visibility → Pin Editing → Delete Pin. Removed **Ping Pin** item.
-
-### Fixed
+- **Clarity / Quickview mode** (`scripts/utility-quickview.js`): GM-only local vision aid that boosts scene brightness (via the core illumination shader `gmVision` uniform and darkness layer alpha), makes fog of war nearly transparent, and outlines tokens outside the current vision polygon or hidden from players with a configurable sight-highlight ring. Toggle via the menubar hamburger menu or `Ctrl+Q` keybinding. GM-only — player clients see no change. Deactivates automatically on scene change and restores all original values on toggle-off.
 
 - **Compatibility shims removed** (`scripts/common.js`, `scripts/journal-page-pins.js`, `scripts/window-base-v2.js`): All three post-rename shim files have been deleted after confirming no external consumers. `coffee-pub-minstrel` `window-minstrel.js` was the sole remaining consumer of `window-base-v2.js` and has been updated to import from the canonical `window-base.js` path.
+
+- **Dead token-to-loot scaffold removed** (`scripts/manager-canvas.js`): Removed `_initializeTokenConversion()` stub and its call from `CanvasTools.initialize()`. The full dead-to-loot implementation lives in `coffee-pub-curator` (`token-image-utilities.js`), where it was moved; the empty Blacksmith stub was leftover scaffolding.
 
 ## [13.7.9]
 
 ### Added
-
-- **Clarity / Quickview mode** (`scripts/utility-quickview.js`): GM-only local vision aid that boosts scene brightness (via the core illumination shader `gmVision` uniform and darkness layer alpha), makes fog of war nearly transparent, and outlines tokens outside the current vision polygon or hidden from players with a configurable sight-highlight ring. Toggle via the menubar hamburger menu or `Ctrl+Q` keybinding. GM-only — player clients see no change. Deactivates automatically on scene change and restores all original values on toggle-off.
 
 - **Pin layer ordering — Bring to Front / Bring Forward / Send Backward / Send to Back** (`scripts/pins-renderer.js`, `scripts/manager-pins.js`, `scripts/pins-schema.js`): Right-click a pin to access the new **Layer** flyout (same `canEdit` guard as Configure Pin). Four actions control z-order stacking: **Bring to Front** jumps to the highest order across all scene pins; **Bring Forward** nudges up by one step; **Send Backward** nudges down by one step; **Send to Back** jumps to the lowest order. Order is stored as a numeric `order` field on each pin (default `0`) and applied as CSS `z-index` on every render, so stacking persists across reloads and syncs to all connected clients.
 

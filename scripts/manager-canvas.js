@@ -27,9 +27,7 @@ export class CanvasTools {
     static initialize() {
         // Initialize token naming functionality
         this._initializeTokenNaming();
-        // Initialize token conversion functionality (dead to loot)
-        this._initializeTokenConversion();
-        
+
         // Register cleanup hook for module unload
         Hooks.once('ready', () => {
             HookManager.registerHook({
@@ -486,14 +484,6 @@ export class CanvasTools {
     }
 
     // *** TOKEN CONVERSION ***
-    static _initializeTokenConversion() {
-        // Check if Item Piles is installed
-        if (!game.modules.get("item-piles")?.active) {
-            postConsoleAndNotification(MODULE.NAME, "Item Piles module not installed. Token conversion disabled.", "", true, false);
-            return;
-        }
-    }
-
     /**
      * Clean up all hooks and resources
      */

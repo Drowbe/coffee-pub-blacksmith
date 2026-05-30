@@ -35,14 +35,12 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
   - Remove V1 `Application` / `FormApplication` usage for this window; audit other Blacksmith windows still on V1 for the same migration.
 - **Priority**: CRITICAL – Required before v16 removes V1 support.
 
-### Chat Card API (first-class CRUD + docs)
-- **Issue**: Theme helpers exist (`module.api.chatCards` → `scripts/api-chat-cards.js`: `getThemes`, `getThemeClassName`, etc.), but there is no first-class API for **creating/updating/deleting** chat messages/cards the way pins expose CRUD.
-- **Status**: PENDING – narrow the gap vs pins/chat integration expectations
-- **Location**: `scripts/api-chat-cards.js`, `scripts/blacksmith.js` (`module.api.chatCards`), consumers in roll/skill-check flows
-- **Need**:
-  - Decide contract: `chatCards.createMessage` / `updateMessage` / helpers that wrap `ChatMessage.create` + Blacksmith card HTML, or document "use Foundry chat + these theme helpers only."
-  - Document in `documentation/guides/` or `api-chat-cards` wiki once contract is fixed
-- **Priority**: CRITICAL – if external modules must post themed cards programmatically
+### Chat Card API (first-class posting + docs)
+- **Issue**: Theme helpers exist (`module.api.chatCards` → `scripts/api-chat-cards.js`: `getThemes`, `getThemeClassName`, etc.), but there is no first-class API for **posting** themed chat cards. Every coffee-pub module (Squire, Minstrel, Curator, etc.) has built its own card templating system, each reusing Blacksmith's CSS but independently constructing HTML and calling `ChatMessage.create()` directly. This is the same problem that was solved for windows with `BlacksmithWindowBaseV2` — duplicate templating logic scattered across modules means bugs get fixed in some but not others and styling drifts.
+- **Status**: PENDING – not current priority; tackle after bugs/performance
+- **Contract decision**: Add `chatCards.post(content, options)` / `chatCards.postAnnouncement(content, options)` helpers that wrap `ChatMessage.create` + canonical Blacksmith card HTML, so modules call one API and get a correctly-structured themed card without knowing the HTML internals. Mirror the window API normalization pattern.
+- **Location**: `scripts/api-chat-cards.js`, `scripts/blacksmith.js` (`module.api.chatCards`); consumers to migrate: all coffee-pub-* modules that post chat cards
+- **Priority**: High – same class of problem as window normalization; do after current bug/performance pass
 
 ### Memory Leak Investigation
 - **Issue**: Historical tab runaway (non-heap growth / crash) was tracked; **current builds are not reproducing** the old browser-tab growth pattern.
@@ -63,12 +61,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Status**: PENDING – Workaround: play once per move in `handleMovementSounds`; proper fix not yet done.
 - **Location**: `scripts/token-movement.js` – `handleMovementSounds`, `ensureMovementSoundWatcher`, `clearMovementSoundWatcher`, `stopMovementSoundForToken`, `movementSoundByTokenId`, `movementSoundStopTimers`
 - **Need**: Fix the logic so that (1) sound starts/loops when token moves, (2) sound stops when token has not moved for the configured interval. Ensure stop timers and watcher correctly stop the sound on all clients; investigate why the current implementation never stops (e.g. watcher not firing, stop not broadcast, key mismatch).
-
-### Verify Loot Token Restoration
-- **Issue**: Ensure tokens converted to loot piles reliably restore their original images after revival
-- **Status**: PENDING – needs validation pass
-- **Location**: `scripts/manager-canvas.js` (`CanvasTools` token conversion / dead-to-loot paths); related helpers may live in `scripts/api-tokens.js` – confirm when testing
-- **Need**: Regression testing across scenarios (various token types, scene reloads, Item Piles enabled/disabled). Reconcile any world settings names with current `settings.js` (older names like `tokenConvertDeadToLoot` may have changed).
 
 
 ## ENHANCEMENTS
