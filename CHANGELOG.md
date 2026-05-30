@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.7.9]
+
+### Added
+
+- **Pin layer ordering — Bring to Front / Bring Forward / Send Backward / Send to Back** (`scripts/pins-renderer.js`, `scripts/manager-pins.js`, `scripts/pins-schema.js`): Right-click a pin to access the new **Layer** flyout (same `canEdit` guard as Configure Pin). Four actions control z-order stacking: **Bring to Front** jumps to the highest order across all scene pins; **Bring Forward** nudges up by one step; **Send Backward** nudges down by one step; **Send to Back** jumps to the lowest order. Order is stored as a numeric `order` field on each pin (default `0`) and applied as CSS `z-index` on every render, so stacking persists across reloads and syncs to all connected clients.
+
+### Changed
+
+- **Pin context menu order** (`scripts/pins-renderer.js`): Core items reordered to: Bring Players Here → Configure Pin → Animate → Layer → Pin Visibility → Pin Editing → Delete Pin. Removed **Ping Pin** item.
+
+
 ## [13.7.8]
 
 ### Fixed
