@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dead token-to-loot scaffold removed** (`scripts/manager-canvas.js`): Removed `_initializeTokenConversion()` stub and its call from `CanvasTools.initialize()`. The full dead-to-loot implementation lives in `coffee-pub-curator` (`token-image-utilities.js`), where it was moved; the empty Blacksmith stub was leftover scaffolding.
 
+- **Movement sound: continuous loop infrastructure removed** (`scripts/token-movement.js`): Removed the unused watcher/looping system (`movementSoundByTokenId`, `movementSoundStopTimers`, `movementSoundWatchers`, `movementSoundWatcherState`, `movementSoundLastUpdateAt`, five constants, `ensureMovementSoundWatcher`, `clearMovementSoundWatcher`, `stopMovementSoundForToken`). The working behavior — play one sound per token position update — is intentional; continuous looping was tried and discarded as disruptive to gameplay.
+
 ## [13.7.9]
 
 ### Added

@@ -24,16 +24,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 ## CRITICAL BUGS
 
-### Application V1 deprecation (CSSEditor / FormApplication)
-- **Issue**: Core logs compatibility warning: *The V1 Application framework is deprecated; use Application V2 (`foundry.applications.api.ApplicationV2`).* Backwards-compatible support will be removed in Foundry v16.
-- **Stack trace (example)**: `new FormApplication` → `new CSSEditor` (`window-gmtools.js`) → `blacksmith.js` (init path).
-- **Status**: PENDING – Migrate to Application V2.
-- **Location**: `scripts/window-gmtools.js` (`CSSEditor` extends `FormApplication`), callers in `scripts/blacksmith.js` and any other references.
-- **Need**:
-  - Replace `CSSEditor` with an `ApplicationV2` + `HandlebarsApplicationMixin` (or equivalent) implementation per project rules (Foundry v13+).
-  - Follow `documentation/applicationv2-window/guidance-applicationv2.md` and `documentation/api-window.md`.
-  - Remove V1 `Application` / `FormApplication` usage for this window; audit other Blacksmith windows still on V1 for the same migration.
-- **Priority**: CRITICAL – Required before v16 removes V1 support.
 
 ### Chat Card API (first-class posting + docs)
 - **Issue**: Theme helpers exist (`module.api.chatCards` → `scripts/api-chat-cards.js`: `getThemes`, `getThemeClassName`, etc.), but there is no first-class API for **posting** themed chat cards. Every coffee-pub module (Squire, Minstrel, Curator, etc.) has built its own card templating system, each reusing Blacksmith's CSS but independently constructing HTML and calling `ChatMessage.create()` directly. This is the same problem that was solved for windows with `BlacksmithWindowBaseV2` — duplicate templating logic scattered across modules means bugs get fixed in some but not others and styling drifts.
@@ -50,17 +40,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 ## MEDIUM BUGS
 
-### Timed sound (duration) when broadcast does not stop for other players
-- **Issue**: When `playSound(sound, volume, loop, true, duration)` is called with broadcast and a duration, the sound is supposed to loop for N seconds then stop on all clients. Currently it does not stop for other players—only the initiating client stops after the duration.
-- **Status**: PENDING
-- **Location**: `scripts/api-core.js` (playSound, playSoundLocalWithDuration), `scripts/manager-sockets.js` (playSoundWithDuration handler)
-- **Need**: Ensure each client that receives the `playSoundWithDuration` socket event both plays the sound locally and stops it after `duration` seconds (e.g. verify handler is invoked on all clients, that each client gets the same payload, and that the returned Sound from `AudioHelper.play` is the one being stopped in the setTimeout). If SocketLib's `executeForAll` does not run on the initiating client, consider having the initiator also call `playSoundLocalWithDuration` locally so all clients behave the same.
-
-### Movement sound start/stop (loop and stop when token stops)
-- **Issue**: Walking/movement sound was implemented to start when a token moves and stop when movement ends (loop while moving, stop when idle). The start/stop events are broken and the sound never stops. Workaround in place: movement sound now plays once per movement update (no loop, no watcher).
-- **Status**: PENDING – Workaround: play once per move in `handleMovementSounds`; proper fix not yet done.
-- **Location**: `scripts/token-movement.js` – `handleMovementSounds`, `ensureMovementSoundWatcher`, `clearMovementSoundWatcher`, `stopMovementSoundForToken`, `movementSoundByTokenId`, `movementSoundStopTimers`
-- **Need**: Fix the logic so that (1) sound starts/loops when token moves, (2) sound stops when token has not moved for the configured interval. Ensure stop timers and watcher correctly stop the sound on all clients; investigate why the current implementation never stops (e.g. watcher not firing, stop not broadcast, key mismatch).
 
 
 ## ENHANCEMENTS

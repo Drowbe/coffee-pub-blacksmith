@@ -53,17 +53,6 @@ let _playerRequestMoveDialogOpen = false;
 // Track scheduled timeouts so they can be cancelled during cleanup
 const scheduledTimeouts = new Set();
 
-// Movement sound: multiple tokens can play at once. "Movement stopped" = no updateToken for N ms (same pattern as marching order).
-const movementSoundByTokenId = new Map(); // tokenId -> soundPath
-const movementSoundStopTimers = new Map(); // tokenId -> timeoutId
-const movementSoundWatchers = new Map(); // tokenId -> intervalId
-const movementSoundWatcherState = new Map(); // tokenId -> { lastX, lastY, lastMovedAt, startedAt }
-const movementSoundLastUpdateAt = new Map(); // tokenId -> timestamp
-const MOVEMENT_SOUND_WATCH_INTERVAL_MS = 75;
-const MOVEMENT_SOUND_STILLNESS_MS = 220;
-const MOVEMENT_SOUND_POST_UPDATE_GRACE_MS = 400;
-const MOVEMENT_SOUND_MAX_WATCH_MS = 30000;
-const MOVEMENT_SOUND_POSITION_EPSILON_PX = 0.5;
 
 // Constants for status tracking
 const STATUS = {
@@ -272,71 +261,6 @@ function clearScheduledTimeouts() {
 // ===== SHARED MOVEMENT FUNCTIONS ==================================
 // ================================================================== 
 
-function clearMovementSoundWatcher(tokenId) {
-    const intervalId = movementSoundWatchers.get(tokenId);
-    if (intervalId != null) {
-        clearInterval(intervalId);
-        movementSoundWatchers.delete(tokenId);
-    }
-    movementSoundWatcherState.delete(tokenId);
-    movementSoundLastUpdateAt.delete(tokenId);
-}
-
-function ensureMovementSoundWatcher(tokenId) {
-    if (movementSoundWatchers.has(tokenId)) return;
-    const token = canvas.tokens.get(tokenId);
-    if (!token) return;
-    
-    movementSoundWatcherState.set(tokenId, {
-        lastX: token.x ?? token.document?.x ?? 0,
-        lastY: token.y ?? token.document?.y ?? 0,
-        lastMovedAt: Date.now(),
-        startedAt: Date.now()
-    });
-    
-    const intervalId = globalThis.setInterval(() => {
-        if (!movementSoundByTokenId.has(tokenId)) {
-            clearMovementSoundWatcher(tokenId);
-            return;
-        }
-        
-        const watchedToken = canvas.tokens.get(tokenId);
-        const state = movementSoundWatcherState.get(tokenId);
-        if (!watchedToken || !state) {
-            stopMovementSoundForToken(tokenId);
-            return;
-        }
-        
-        const currentX = watchedToken.x ?? watchedToken.document?.x ?? 0;
-        const currentY = watchedToken.y ?? watchedToken.document?.y ?? 0;
-        const movedX = Math.abs(currentX - state.lastX) > MOVEMENT_SOUND_POSITION_EPSILON_PX;
-        const movedY = Math.abs(currentY - state.lastY) > MOVEMENT_SOUND_POSITION_EPSILON_PX;
-        if (movedX || movedY) {
-            state.lastX = currentX;
-            state.lastY = currentY;
-            state.lastMovedAt = Date.now();
-        }
-        
-        const now = Date.now();
-        const lastUpdateAt = movementSoundLastUpdateAt.get(tokenId) ?? 0;
-        if (now - lastUpdateAt < MOVEMENT_SOUND_POST_UPDATE_GRACE_MS) return;
-        
-        const quietSince = Math.max(state.lastMovedAt, lastUpdateAt);
-        if (now - quietSince >= MOVEMENT_SOUND_STILLNESS_MS) {
-            stopMovementSoundForToken(tokenId);
-            return;
-        }
-        
-        if (now - state.startedAt >= MOVEMENT_SOUND_MAX_WATCH_MS) {
-            stopMovementSoundForToken(tokenId);
-        }
-    }, MOVEMENT_SOUND_WATCH_INTERVAL_MS);
-    
-    movementSoundWatchers.set(tokenId, intervalId);
-}
-
-// Handle movement sounds for token movement
-// TEMPORARY: Play once per movement update; start/stop looping is broken and never stops (see TODO.md).
 function handleMovementSounds(tokenDocument, changes, userId, options = {}) {
     try {
     // Only run on GM client to avoid permission issues
@@ -384,7 +308,6 @@ function handleMovementSounds(tokenDocument, changes, userId, options = {}) {
 
     if (!soundPath) return;
 
-    // Play once (no loop). Start/stop looping is broken — see TODO.md.
     playSound(soundPath, volume, false, true);
     } catch (err) {
         postConsoleAndNotification(MODULE.NAME, 'Movement sound: error', err?.message ?? err, false, false);
@@ -967,21 +890,6 @@ const updateTokenHookId = HookManager.registerHook({
 
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateToken", "token-movement-updates", true, false);
-
-// Stop movement sound for one token (called when debounce timer fires: no updateToken for N ms = movement stopped).
-function stopMovementSoundForToken(tokenDocumentId) {
-    if (!game.user.isGM) return;
-    if (!movementSoundByTokenId.has(tokenDocumentId)) return;
-    const existingTimer = movementSoundStopTimers.get(tokenDocumentId);
-    if (existingTimer != null) {
-        clearTimeout(existingTimer);
-        scheduledTimeouts.delete(existingTimer);
-        movementSoundStopTimers.delete(tokenDocumentId);
-    }
-    clearMovementSoundWatcher(tokenDocumentId);
-    movementSoundByTokenId.delete(tokenDocumentId);
-    stopSoundByKey(tokenDocumentId, true);
-}
 
 // Utility functions for grid conversion
 function worldToGrid(x, y) {
