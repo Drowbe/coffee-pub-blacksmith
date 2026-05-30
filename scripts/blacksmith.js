@@ -1009,7 +1009,27 @@ Hooks.once('init', async function() {
     }
     
     // Socket initialization moved to 'ready' hook for proper SocketLib integration
-    
+
+    // Compatibility shim: add jQuery-like .find() to native DOM elements passed by renderChatMessageHTML.
+    // Item-piles v3.3.1 (and other modules not yet updated for v13) call html.find() expecting jQuery.
+    // Blacksmith's HookManager registers its Foundry hook during 'init', before item-piles registers
+    // its hook during 'ready', so this priority-1 callback always runs first and patches the element.
+    HookManager.registerHook({
+        name: 'renderChatMessageHTML',
+        description: 'Blacksmith: jQuery .find() compatibility shim for v13 native DOM',
+        context: 'blacksmith-compat',
+        priority: 1,
+        callback: (_message, html) => {
+            if (html && typeof html.find !== 'function' && typeof html.querySelectorAll === 'function') {
+                html.find = (selector) => {
+                    const nodes = Array.from(html.querySelectorAll(selector));
+                    nodes.click = (fn) => nodes.forEach(el => el.addEventListener('click', fn));
+                    return nodes;
+                };
+            }
+        }
+    });
+
     // Register chat message click handler for skill rolls
     // v13: renderChatMessage is deprecated, use renderChatMessageHTML instead
     const skillCheckChatHookId = HookManager.registerHook({
@@ -1050,7 +1070,40 @@ Hooks.once('init', async function() {
     
     // Log hook registration
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-skill-check", true, false);
-    
+
+    // Hide initiative roll chat cards without blocking the dice animation.
+    // DSN hooks createChatMessage to trigger its animation, so we must let the message be created.
+    // We hide the DOM element immediately on render, then delete the document once DSN finishes
+    // (or immediately if DSN is not active).
+    HookManager.registerHook({
+        name: 'renderChatMessageHTML',
+        description: 'Blacksmith: Hide initiative roll chat cards',
+        context: 'blacksmith-hide-initiative-roll',
+        priority: 3,
+        callback: (message, html) => {
+            if (!getSettingSafely(MODULE.ID, 'combatTrackerHideInitiativeRoll', false)) return;
+            const isInitiative = message.flags?.core?.initiativeRoll === true
+                || message.flags?.dnd5e?.roll?.type === 'initiative';
+            if (!isInitiative) return;
+
+            // Hide immediately so the card never visually appears in chat
+            const el = html instanceof HTMLElement ? html : html?.[0];
+            if (el) el.style.display = 'none';
+
+            const doDelete = () => {
+                if (game.messages.has(message.id)) message.delete().catch(() => {});
+            };
+
+            if (game.modules.get('dice-so-nice')?.active) {
+                // Wait for DSN to finish its animation before deleting
+                Hooks.once('diceSoNiceRollComplete', doDelete);
+            } else {
+                doDelete();
+            }
+        }
+    });
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML (initiative hide)", "blacksmith-hide-initiative-roll", true, false);
+
     // Register settingChange hook for cache management
     const settingChangeHookId = HookManager.registerHook({
         name: 'settingChange',

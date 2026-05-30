@@ -2177,7 +2177,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	
+	// -- Hide Initiative Roll Chat Cards --
+	game.settings.register(MODULE.ID, 'combatTrackerHideInitiativeRoll', {
+		name: MODULE.ID + '.combatTrackerHideInitiativeRoll-Label',
+		hint: MODULE.ID + '.combatTrackerHideInitiativeRoll-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+
 	// -- Clear Targets After Turn --
 	game.settings.register(MODULE.ID, 'clearTargetsAfterTurn', {
 		name: MODULE.ID + '.clearTargetsAfterTurn-Label',

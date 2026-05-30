@@ -24,7 +24,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 ## CRITICAL BUGS
 
-
 ### Chat Card API (first-class posting + docs)
 - **Issue**: Theme helpers exist (`module.api.chatCards` → `scripts/api-chat-cards.js`: `getThemes`, `getThemeClassName`, etc.), but there is no first-class API for **posting** themed chat cards. Every coffee-pub module (Squire, Minstrel, Curator, etc.) has built its own card templating system, each reusing Blacksmith's CSS but independently constructing HTML and calling `ChatMessage.create()` directly. This is the same problem that was solved for windows with `BlacksmithWindowBaseV2` — duplicate templating logic scattered across modules means bugs get fixed in some but not others and styling drifts.
 - **Status**: PENDING – not current priority; tackle after bugs/performance
@@ -37,10 +36,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Status**: ACTIVE (fresh baseline) — see `documentation/PERFORMANCE.md` for current stack rank, findings, and plan (lifecycle teardown for observers/timers, journal monitor consolidation, menubar/timer hotspots, legacy cleanup).
 - **Next Step**: Execute plan in `documentation/PERFORMANCE.md` § "Plan (Next Review Cycle)"; align with **`documentation/plan-settings.md`** for timer gating (#6–7); re-profile after targeted fixes; downgrade to MONITORING if stable.
 - **Location**: `documentation/PERFORMANCE.md` (canonical).
-
-## MEDIUM BUGS
-
-
 
 ## ENHANCEMENTS
 
@@ -125,12 +120,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Status**: PENDING - Needs implementation
 - **Location**: `scripts/api-menubar.js`, `scripts/combat-tracker.js`
 - **Need**: Settings for `menubarHideDead`, `menubarSkipDead`, `combatTrackerHideDead` with filtering logic
-
-#### Hide Initiative Roll Chat Cards
-- **Issue**: Initiative roll chat cards clutter the chat log
-- **Status**: PENDING - Needs implementation
-- **Location**: Initiative roll handling (combat-tracker.js or combat-tools.js)
-- **Need**: Setting to hide initiative roll cards (for all users or players only), while maintaining functionality
 
 #### Query Tool Review and Improvements
 - **Issue**: Query tool needs comprehensive review and fixes for functionality and UX

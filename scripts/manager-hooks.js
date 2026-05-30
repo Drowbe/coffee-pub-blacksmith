@@ -76,8 +76,8 @@ export class HookManager {
                         if (cb.options?.once) {
                             toRemove.push(cb.callbackId);
                         }
-                        // For preUpdateToken hooks, if any callback returns false, block the action
-                        if (name === 'preUpdateToken' && result === false) {
+                        // For any pre* hook, returning false cancels the action (Foundry convention)
+                        if (name.startsWith('pre') && result === false) {
                             return false;
                         }
                     } catch (error) {

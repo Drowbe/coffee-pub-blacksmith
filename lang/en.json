@@ -293,6 +293,9 @@
 				"combatTrackerRollInitiativePlayer-Label": "Roll Player Initiative",
 				"combatTrackerRollInitiativePlayer-Hint": "Roll initiative for player characters automatically each round.",
 
+				"combatTrackerHideInitiativeRoll-Label": "Hide Initiative Roll Cards",
+				"combatTrackerHideInitiativeRoll-Hint": "Suppress the chat card created when initiative is rolled. The roll still happens and the result appears in the combat tracker — it just won't clutter the chat log.",
+
 				"clearTargetsAfterTurn-Label": "Clear Targets After Turn",
 				"clearTargetsAfterTurn-Hint": "Automatically clear all targets when the turn changes in combat.",
 

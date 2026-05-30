@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dead token-to-loot scaffold removed** (`scripts/manager-canvas.js`): Removed `_initializeTokenConversion()` stub and its call from `CanvasTools.initialize()`. The full dead-to-loot implementation lives in `coffee-pub-curator` (`token-image-utilities.js`), where it was moved; the empty Blacksmith stub was leftover scaffolding.
 
+- **Hide Initiative Roll Chat Cards** (`scripts/blacksmith.js`, `scripts/settings.js`, `scripts/manager-hooks.js`): New world setting **Hide Initiative Roll Cards** (Run the Game group). When enabled, initiative roll cards are hidden immediately on render and deleted after the Dice So Nice animation completes (or immediately if DSN is not active) — 3D dice still animate, initiative still resolves and appears in the combat tracker, the card just never clutters the chat log. Also fixed `HookManager` to propagate `false` returns for all `pre*` hooks, not only `preUpdateToken`.
+
 - **Movement sound: continuous loop infrastructure removed** (`scripts/token-movement.js`): Removed the unused watcher/looping system (`movementSoundByTokenId`, `movementSoundStopTimers`, `movementSoundWatchers`, `movementSoundWatcherState`, `movementSoundLastUpdateAt`, five constants, `ensureMovementSoundWatcher`, `clearMovementSoundWatcher`, `stopMovementSoundForToken`). The working behavior — play one sound per token position update — is intentional; continuous looping was tried and discarded as disruptive to gameplay.
 
 ## [13.7.9]
