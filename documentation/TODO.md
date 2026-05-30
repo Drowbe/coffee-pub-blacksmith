@@ -8,13 +8,8 @@ Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; updat
 
 | Rank | Severity | Area | Status | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | High | Encounter toolbar global observer/polling lifecycle | Done | `dispose` + `closeGame`; full checklist in `PERFORMANCE.md` |
-| 2 | High | Journal page pins observer/polling lifecycle | Done | Duplicate `Hooks.on` removed (HookManager-only); see `PERFORMANCE.md` |
-| 3 | High | Duplicate journal monitoring pipelines | Done | Phase C: shared `JournalDomWatchdog` |
-| 4 | Medium | Menubar full rerenders on frequent update paths | Mitigated | Fingerprint + leader-only full render; see `PERFORMANCE.md` §4 |
-| 5 | Medium | Timer loops: global DOM queries/rerenders | Mitigated | Cached DOM in `timer-round.js`, `timer-planning.js`, `timer-combat.js`; see `PERFORMANCE.md` §5 |
-| 6 | Medium | Socket native fallback listener lifecycle | Done | See `PERFORMANCE.md` §6 |
-| 7 | Low | Legacy/no-op hooks and stale cleanup | Done | Pass 1; see `PERFORMANCE.md` §7 |
+| 1 | Medium | Menubar full rerenders on frequent update paths | Mitigated | Fingerprint + leader-only full render; see `PERFORMANCE.md` §4 |
+| 2 | Medium | Timer loops: global DOM queries/rerenders | Mitigated | Cached DOM in `timer-round.js`, `timer-planning.js`, `timer-combat.js`; see `PERFORMANCE.md` §5 |
 
 ## Settings & feature gating
 
@@ -27,12 +22,10 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 | Medium | **Combat / player stats** — optional dynamic import when tracking off | Not started | `plan-settings.md` #8–9; shrinks cold path |
 | Low | **Menubar toggles** — `menubarShowSettings` / `menubarShowRefresh` exist in settings but tools use `visible: false` without reading them | Not started | Wire `visible` + `onChange` → `MenuBar.renderMenubar` (same pattern as former pins toggle) |
 
-**Done (recorded in `CHANGELOG.md` / `plan-settings.md`):** Developer Tools **→ System** layout; performance monitor + latency settings hierarchy; **Pins** hamburger-only + **Layout → Pins**; latency **ping/pong/latencyUpdate** handlers always registered (processing gated on `enableLatency`).
-
 ## CRITICAL BUGS
 
 ### Post-rename compatibility shims — verify consumers, then remove (#1)
-- **Issue**: After script renames, **thin shims** remain so stale URLs do not 404: `scripts/common.js` → `utility-common.js`, `scripts/journal-page-pins.js` → `ui-journal-pins.js`, `scripts/window-base-v2.js` → `window-base.js`. Blacksmith’s **canonical** imports are already correct; passing in-game tests does **not** prove nothing external still hits the old paths.
+- **Issue**: After script renames, **thin shims** remain so stale URLs do not 404: `scripts/common.js` → `utility-common.js`, `scripts/journal-page-pins.js` → `ui-journal-pins.js`, `scripts/window-base-v2.js` → `window-base.js`. Blacksmith's **canonical** imports are already correct; passing in-game tests does **not** prove nothing external still hits the old paths.
 - **Status**: PENDING — keep shims until verified.
 - **Need**:
   1. **Search** other modules you ship or depend on (and any published `module.json` / dynamic `import()` strings) for: `coffee-pub-blacksmith/scripts/common.js`, `journal-page-pins.js`, `window-base-v2.js` (and path fragments that imply those files).
@@ -56,14 +49,14 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Status**: PENDING – narrow the gap vs pins/chat integration expectations
 - **Location**: `scripts/api-chat-cards.js`, `scripts/blacksmith.js` (`module.api.chatCards`), consumers in roll/skill-check flows
 - **Need**:
-  - Decide contract: `chatCards.createMessage` / `updateMessage` / helpers that wrap `ChatMessage.create` + Blacksmith card HTML, or document “use Foundry chat + these theme helpers only.”
+  - Decide contract: `chatCards.createMessage` / `updateMessage` / helpers that wrap `ChatMessage.create` + Blacksmith card HTML, or document "use Foundry chat + these theme helpers only."
   - Document in `documentation/guides/` or `api-chat-cards` wiki once contract is fixed
 - **Priority**: CRITICAL – if external modules must post themed cards programmatically
 
 ### Memory Leak Investigation
 - **Issue**: Historical tab runaway (non-heap growth / crash) was tracked; **current builds are not reproducing** the old browser-tab growth pattern.
 - **Status**: ACTIVE (fresh baseline) — see `documentation/PERFORMANCE.md` for current stack rank, findings, and plan (lifecycle teardown for observers/timers, journal monitor consolidation, menubar/timer hotspots, legacy cleanup).
-- **Next Step**: Execute plan in `documentation/PERFORMANCE.md` § “Plan (Next Review Cycle)”; align with **`documentation/plan-settings.md`** for timer gating (#6–7); re-profile after targeted fixes; downgrade to MONITORING if stable.
+- **Next Step**: Execute plan in `documentation/PERFORMANCE.md` § "Plan (Next Review Cycle)"; align with **`documentation/plan-settings.md`** for timer gating (#6–7); re-profile after targeted fixes; downgrade to MONITORING if stable.
 - **Location**: `documentation/PERFORMANCE.md` (canonical).
 
 ## MEDIUM BUGS
@@ -72,7 +65,7 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Issue**: When `playSound(sound, volume, loop, true, duration)` is called with broadcast and a duration, the sound is supposed to loop for N seconds then stop on all clients. Currently it does not stop for other players—only the initiating client stops after the duration.
 - **Status**: PENDING
 - **Location**: `scripts/api-core.js` (playSound, playSoundLocalWithDuration), `scripts/manager-sockets.js` (playSoundWithDuration handler)
-- **Need**: Ensure each client that receives the `playSoundWithDuration` socket event both plays the sound locally and stops it after `duration` seconds (e.g. verify handler is invoked on all clients, that each client gets the same payload, and that the returned Sound from `AudioHelper.play` is the one being stopped in the setTimeout). If SocketLib’s `executeForAll` does not run on the initiating client, consider having the initiator also call `playSoundLocalWithDuration` locally so all clients behave the same.
+- **Need**: Ensure each client that receives the `playSoundWithDuration` socket event both plays the sound locally and stops it after `duration` seconds (e.g. verify handler is invoked on all clients, that each client gets the same payload, and that the returned Sound from `AudioHelper.play` is the one being stopped in the setTimeout). If SocketLib's `executeForAll` does not run on the initiating client, consider having the initiator also call `playSoundLocalWithDuration` locally so all clients behave the same.
 
 ### Movement sound start/stop (loop and stop when token stops)
 - **Issue**: Walking/movement sound was implemented to start when a token moves and stop when movement ends (loop while moving, stop when idle). The start/stop events are broken and the sound never stops. Workaround in place: movement sound now plays once per movement update (no loop, no watcher).
@@ -94,7 +87,7 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 #### Card CSS migration to theme system
 - **Issue**: Card-type CSS files (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.css`) still use hardcoded colors; they should use the CSS variable theme system for consistency and themeability.
 - **Status**: PENDING – Checklist and strategy documented
-- **Location**: `documentation/architecture-chatcards.md` → “Migration (internal)” → “Card CSS migration checklist (detailed)”; `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css`
+- **Location**: `documentation/architecture-chatcards.md` → "Migration (internal)" → "Card CSS migration checklist (detailed)"; `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css`
 - **Need**: Replace hardcoded colors with `var(--blacksmith-card-*)`; add XP/skill-check/stats-specific or semantic variables where needed; define new variables in `cards-common-layout.css` / `cards-common-themes.css`; test all card types with all themes.
 - **Priority**: High – Improves theme consistency and maintainability
 
@@ -131,13 +124,13 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
   - `game.modules.get('coffee-pub-blacksmith').api.flags` live on init
   - One-time migration shim: seeds `flagRegistry` from `pinTagRegistry` on first GM load
   - Journal pins taxonomy/registry lookups redirected to FlagsAPI (`ui-journal-pins.js`, `window-pin-configuration.js`) — **verified working**
+  - `_mirrorFlagsForPin()` called at all 5 write sites in `manager-pins.js`
+  - `_clearFlagsForPin()` called at both delete sites
 - **Remaining (pins storage migration)**:
   1. `manager-pins.js` `deleteTagGlobally` / `renameTagGlobally` — also update `flagAssignments` for pin context
   2. `api-pins.js` tag methods — wrap to delegate to FlagsAPI (keep existing signatures)
-  3. ~~On pin create/update: mirror `pin.tags[]` into `flagAssignments` via `flags.setFlags()`~~ **DONE** — `_mirrorFlagsForPin()` called at all 5 write sites in `manager-pins.js`
-  4. ~~On pin delete: call `flags.deleteRecordFlags()` to clean up assignments~~ **DONE** — `_clearFlagsForPin()` called at both delete sites
-  5. After one release: drop `pin.tags[]` from schema; read only from `flagAssignments`
-  6. Migrate `pinTagRegistry` world setting → `flagRegistry` (shim already seeds on first run)
+  3. After one release: drop `pin.tags[]` from schema; read only from `flagAssignments`
+  4. Migrate `pinTagRegistry` world setting → `flagRegistry` (shim already seeds on first run)
 - **Priority**: Medium – Core system working; remaining work is pins storage migration
 
 #### Menubar API: Move party tool code out of api-menubar.js
@@ -165,39 +158,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Location**: `documentation/architecture-pins.md`, `scripts/manager-pins.js`, `scripts/pins-renderer.js`
 - **Need**: Full automated tests; complete Phase 4–5 documentation and validation items. TODO.md is the master list; remove items when completed and added to CHANGELOG.
 
-#### Pin Text Display System
-- **Issue**: Pin text property exists but is not displayed. Need to implement text display system similar to Foundry's note/token text.
-- **Status**: PENDING - Needs implementation
-- **Location**: `scripts/pins-schema.js`, `scripts/pins-renderer.js`, `styles/pins.css`
-- **Need**: 
-  - **Text Layout Options:**
-    - Text under icon (default/standard)
-    - Text around icon (wrapping around circular/square pin)
-  - **Text Display Options:**
-    - Text always on
-    - Text on hover
-    - Never show text
-    - Only GM sees text
-  - **Text Format Options:**
-    - Color (configurable)
-    - Size (configurable)
-    - Length before ellipsis (truncation with "...")
-    - Drop shadow (honor pin's `dropShadow` setting)
-  - Add text display properties to `PinData` schema
-  - Render text element in pin DOM structure
-  - CSS styling for text positioning and formatting
-  - Permission checks for GM-only text visibility
-
-#### Configure Pin
-- **Issue**: Add pin configuration functionality accessible both programmatically (via API) and via right-click context menu
-- **Status**: PENDING - Needs implementation
-- **Location**: `scripts/api-pins.js`, `scripts/pins-renderer.js` (context menu)
-- **Need**: 
-  - API method: `pins.configure(pinId, options?)` - Opens configuration dialog for a pin
-  - Context menu item: "Configure Pin" - Opens configuration dialog from right-click menu
-  - Configuration dialog should allow editing all pin properties (text, image, shape, style, size, ownership, text display options, etc.)
-  - Should respect permissions (only users who can edit the pin can configure it)
-
 #### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
 - **Issue**: Need options to hide and skip dead combatants in menubar and combat tracker
 - **Status**: PENDING - Needs implementation
@@ -217,7 +177,7 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Need**: Verify all tabs work, review/fix drop functionality design, fix JSON generation
 
 #### Expand Rulebook Selection Phase 2
-- **Issue**: phase 1 now uses `Number of Rulebooks`, rulebook compendium dropdowns, and `Custom Rulebooks`; phase 2 may still want curated/common-book shortcuts
+- **Issue**: Phase 1 now uses `Number of Rulebooks`, rulebook compendium dropdowns, and `Custom Rulebooks`; phase 2 may still want curated/common-book shortcuts
 - **Status**: PENDING
 - **Location**: `scripts/settings.js`, `scripts/manager-campaign.js`
 - **Need**: Decide whether to add common-rulebook presets/checkboxes on top of the current compendium-driven model
@@ -275,42 +235,16 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Priority**: MEDIUM – Reduce over time as call sites are proven native-DOM-only
 - **Location**: Multiple files using jQuery detection pattern
 
-**Why This Pattern is Problematic**
+In FoundryVTT v13, jQuery is removed from the core UI stack. `html` parameters should be native DOM elements. The jQuery detection pattern is defensive for legacy callers; prefer fixing at the source.
 
-In FoundryVTT v13, jQuery is removed from the core UI stack. `html` parameters should be native DOM elements.
-
-The jQuery detection pattern is defensive for legacy callers; prefer fixing at the source.
-
-**What We Should Do Instead**
-
-**Long-term:**
-- Ensure call sites pass native DOM elements consistently
-- Remove jQuery detection where the source is guaranteed native DOM
-- TypeScript or explicit checks at call sites can enforce this
-
-**Short-term:**
-- Keep only where a hook still occasionally passes jQuery-shaped objects
-- Track which methods use this pattern and why
-
-**The Real Question**
-
-**Where is `html` coming from that might be a jQuery object?**
-- If it's from FoundryVTT's Application classes: they should return native DOM in v13, so the check isn't needed
-- If it's from our code: fix the call sites to pass native DOM
-- If it's unknown: keep the check temporarily, but track and fix the sources
-
-**Bottom Line**
-
-Keep jQuery detection during migration, but treat it as technical debt. Once all call sites are confirmed to pass native DOM elements (especially when elements come from `querySelector()` which always returns native DOM), remove the detection code.
-
-**Action Item:** After migration, audit all jQuery detection patterns and remove those where the source is guaranteed to be native DOM (e.g., `querySelector()` results).
+**Action Item:** Audit all jQuery detection patterns and remove those where the source is guaranteed to be native DOM (e.g., `querySelector()` results).
 
 **Migration Task:**
 - [ ] Identify which detections are unnecessary (source is guaranteed native DOM) - **IN PROGRESS** - Testing required
 - [ ] Remove unnecessary jQuery detection code - **PENDING** - Awaiting test results
 - [ ] Create test cases to verify native DOM is always passed - **PENDING** - See audit report testing plan
 
-**Audit Status:** Initial audit complete. Found 74 instances across 5 categories. Key finding: Inconsistency in `activateListeners(html)` and `this.element` handling suggests some detections may be unnecessary. Testing plan created to verify necessity. See `documentation/jquery-detection-audit.md` for full report.
+**Audit Status:** Initial audit complete. Found 74 instances across 5 categories. Key finding: Inconsistency in `activateListeners(html)` and `this.element` handling suggests some detections may be unnecessary. See `documentation/jquery-detection-audit.md` for full report.
 
 ### Socketmanager Becoming Monolithic
 - **Issue**: Socketmanager is evolving into a "god class" that both manages hooks AND contains business logic
