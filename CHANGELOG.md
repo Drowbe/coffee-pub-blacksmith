@@ -8,17 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.7.10]
 
-### Changed
+### Added
 
 - **Clarity / Quickview mode** (`scripts/utility-quickview.js`): GM-only local vision aid that boosts scene brightness (via the core illumination shader `gmVision` uniform and darkness layer alpha), makes fog of war nearly transparent, and outlines tokens outside the current vision polygon or hidden from players with a configurable sight-highlight ring. Toggle via the menubar hamburger menu or `Ctrl+Q` keybinding. GM-only — player clients see no change. Deactivates automatically on scene change and restores all original values on toggle-off.
 
-- **Compatibility shims removed** (`scripts/common.js`, `scripts/journal-page-pins.js`, `scripts/window-base-v2.js`): All three post-rename shim files have been deleted after confirming no external consumers. `coffee-pub-minstrel` `window-minstrel.js` was the sole remaining consumer of `window-base-v2.js` and has been updated to import from the canonical `window-base.js` path.
+- **Hide Initiative Roll Chat Cards** (`scripts/blacksmith.js`, `scripts/settings.js`): New world setting **Hide Initiative Roll Cards** (Run the Game group). When enabled, initiative roll cards are hidden immediately on render and deleted after the Dice So Nice animation completes (or immediately if DSN is not active) — 3D dice still animate, initiative still resolves and appears in the combat tracker, the card just never clutters the chat log.
 
-- **Dead token-to-loot scaffold removed** (`scripts/manager-canvas.js`): Removed `_initializeTokenConversion()` stub and its call from `CanvasTools.initialize()`. The full dead-to-loot implementation lives in `coffee-pub-curator` (`token-image-utilities.js`), where it was moved; the empty Blacksmith stub was leftover scaffolding.
+### Fixed
 
-- **Hide Initiative Roll Chat Cards** (`scripts/blacksmith.js`, `scripts/settings.js`, `scripts/manager-hooks.js`): New world setting **Hide Initiative Roll Cards** (Run the Game group). When enabled, initiative roll cards are hidden immediately on render and deleted after the Dice So Nice animation completes (or immediately if DSN is not active) — 3D dice still animate, initiative still resolves and appears in the combat tracker, the card just never clutters the chat log. Also fixed `HookManager` to propagate `false` returns for all `pre*` hooks, not only `preUpdateToken`.
+- **HookManager `pre*` hook cancellation** (`scripts/manager-hooks.js`): Returning `false` from a callback now correctly cancels the action for any `pre*` hook (e.g. `preCreateChatMessage`, `preCreateToken`), not only `preUpdateToken` as before.
 
-- **Movement sound: continuous loop infrastructure removed** (`scripts/token-movement.js`): Removed the unused watcher/looping system (`movementSoundByTokenId`, `movementSoundStopTimers`, `movementSoundWatchers`, `movementSoundWatcherState`, `movementSoundLastUpdateAt`, five constants, `ensureMovementSoundWatcher`, `clearMovementSoundWatcher`, `stopMovementSoundForToken`). The working behavior — play one sound per token position update — is intentional; continuous looping was tried and discarded as disruptive to gameplay.
+- **Compatibility shims removed** (`scripts/common.js`, `scripts/journal-page-pins.js`, `scripts/window-base-v2.js`): All three post-rename shim files deleted after confirming no external consumers. `coffee-pub-minstrel` `window-minstrel.js` was the sole remaining consumer of `window-base-v2.js` and has been updated to import from the canonical `window-base.js` path.
+
+- **Dead token-to-loot scaffold removed** (`scripts/manager-canvas.js`): Removed `_initializeTokenConversion()` stub and its call from `CanvasTools.initialize()`. Full implementation lives in `coffee-pub-curator`; the Blacksmith stub was leftover scaffolding.
+
+- **Movement sound loop infrastructure removed** (`scripts/token-movement.js`): Removed unused watcher/looping system (5 Maps, 5 constants, `ensureMovementSoundWatcher`, `clearMovementSoundWatcher`, `stopMovementSoundForToken`). Play-once-per-update behavior is intentional — continuous looping was tried and discarded as disruptive.
 
 ## [13.7.9]
 
