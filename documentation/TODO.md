@@ -185,12 +185,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Location**: `scripts/stats-combat.js`, potentially `scripts/stats-player.js`
 - **Need**: Review implementation, identify unused code/duplicates, check performance, review UI/UX
 
-#### Clarity / Quickview (GM-only vision aid)
-- **Issue**: GM-only local brightness filter and token vision override feature needs verification and finalization
-- **Status**: IN PROGRESS
-- **Location**: `scripts/utility-quickview.js`
-- **Remaining**: Verify player client sees no change, decide overlay behavior, confirm fog opacity, lifecycle sanity checks, remove debug logging, add changelog entry
-
 ### Low Priority
 
 #### Configure Pin — Section Checkbox Label Size Inheritance Bug

@@ -248,7 +248,6 @@ export class QuickViewUtility {
         dFilter.alpha = this._darknessAlphaTarget();
       }
     } catch (error) {
-      console.error('Clarity debug — error applying lighting boost:', error);
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error applying lighting boost', error, false, false);
     }
   }
@@ -272,7 +271,6 @@ export class QuickViewUtility {
         dFilter.alpha = this._originalDarknessFilterAlpha;
       }
     } catch (error) {
-      console.error('Clarity debug — error restoring lighting boost:', error);
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error restoring lighting boost', error, false, false);
     } finally {
       this._priorIlluminationUniformValue = undefined;
@@ -301,8 +299,8 @@ export class QuickViewUtility {
       g.endFill();
       g.eventMode = 'none';
       g.visible = this._isActive;
-    } catch (error) {
-      console.error('Clarity debug — drawCanvasVisibility reveal:', error);
+    } catch {
+      /* ignore */
     }
   }
 
@@ -318,8 +316,8 @@ export class QuickViewUtility {
       const keepAlpha = typeof prev?.alpha === 'number' ? prev.alpha : 1;
       layer.filter = new PIXI.AlphaFilter(keepAlpha);
       if (idx >= 0 && layer.filters) layer.filters[idx] = layer.filter;
-    } catch (error) {
-      console.error('Clarity debug — drawCanvasDarknessEffects:', error);
+    } catch {
+      /* ignore */
     }
   }
 
@@ -357,11 +355,9 @@ export class QuickViewUtility {
         }
         // Make fog nearly transparent
         canvas.fog.layer.alpha = 0.1;
-        console.log('Clarity debug — fog opacity set to 0.1 (original:', this._originalFogOpacity, ')');
       }
-    } catch (error) {
-      console.error('Clarity debug — error applying fog transparency:', error);
-      // Don't block activation if fog manipulation fails
+    } catch {
+      /* ignore — don't block activation if fog manipulation fails */
     }
   }
 
@@ -373,10 +369,9 @@ export class QuickViewUtility {
 
     try {
       canvas.fog.layer.alpha = this._originalFogOpacity;
-      console.log('Clarity debug — fog opacity restored to:', this._originalFogOpacity);
       this._originalFogOpacity = undefined;
-    } catch (error) {
-      console.error('Clarity debug — error restoring fog transparency:', error);
+    } catch {
+      /* ignore */
     }
   }
 
@@ -396,8 +391,8 @@ export class QuickViewUtility {
         this._originalTokenVision = sight.tokenVision;
       }
       sight.tokenVision = false;
-    } catch (error) {
-      console.error('Clarity debug — error applying token vision override:', error);
+    } catch {
+      /* ignore */
     }
   }
 
@@ -415,8 +410,8 @@ export class QuickViewUtility {
         sight.tokenVision = this._originalTokenVision;
       }
       this._originalTokenVision = null;
-    } catch (error) {
-      console.error('Clarity debug — error restoring token vision override:', error);
+    } catch {
+      /* ignore */
     }
   }
 
