@@ -35,6 +35,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {string} [type] - Pin category key (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
  * @property {string[]} [tags] - User-facing classification tags. Supports registered and freeform values. Defaults to [].
  * @property {boolean} [allowDuplicatePins] - If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing).
+ * @property {number} [order] - Stack order for CSS z-index. Higher values render on top. Default 0. Adjusted via Bring to Front / Send to Back.
  * @property {{ hover?: { animation?: string | null; sound?: string | null }; click?: { animation?: string | null; sound?: string | null }; doubleClick?: { animation?: string | null; sound?: string | null }; delete?: { animation?: string | null; sound?: string | null }; add?: { animation?: string | null; sound?: string | null } }} [eventAnimations] - Optional animations and sounds for hover, click, double-click, delete, and add (when pin is placed on canvas). Default: all none.
  * @property {Record<string, unknown>} config
  * @property {string} moduleId
@@ -195,6 +196,7 @@ export const PIN_DEFAULTS = Object.freeze({
     type: 'default', // Pin category key - defaults to 'default' if not specified
     tags: [], // User-facing classification tags
     allowDuplicatePins: false, // If true, same source (e.g. journal page) can have multiple pins on the map
+    order: 0, // Stack order: higher values render on top; adjusted via Bring to Front / Send to Back
     version: PIN_SCHEMA_VERSION,
     ownership: { default: 0 },
     imageFit: 'cover', // 'fill' | 'contain' | 'cover' | 'none' | 'scale-down' | 'zoom'
@@ -354,7 +356,8 @@ export function applyDefaults(partial) {
         textScaleWithPin: PIN_DEFAULTS.textScaleWithPin,
         imageFit: PIN_DEFAULTS.imageFit,
         imageZoom: PIN_DEFAULTS.imageZoom,
-        allowDuplicatePins: PIN_DEFAULTS.allowDuplicatePins
+        allowDuplicatePins: PIN_DEFAULTS.allowDuplicatePins,
+        order: PIN_DEFAULTS.order
     };
     if (partial.imageFit != null && ['fill', 'contain', 'cover', 'none', 'scale-down', 'zoom'].includes(String(partial.imageFit).toLowerCase())) {
         base.imageFit = String(partial.imageFit).toLowerCase();
@@ -435,6 +438,7 @@ export function applyDefaults(partial) {
         base.tags = normalizePinTags(partial.tags);
     }
     if (typeof partial.allowDuplicatePins === 'boolean') base.allowDuplicatePins = partial.allowDuplicatePins;
+    if (typeof partial.order === 'number' && Number.isFinite(partial.order)) base.order = partial.order;
     if (partial.config != null && typeof partial.config === 'object' && !Array.isArray(partial.config)) {
         base.config = foundry.utils.deepClone(partial.config);
         if (Object.prototype.hasOwnProperty.call(base.config, 'blacksmithAccess')) {

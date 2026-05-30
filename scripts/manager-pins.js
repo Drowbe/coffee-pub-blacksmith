@@ -2074,6 +2074,7 @@ export class PinManager {
             merged.tags = normalizePinTags(patch.tags);
         }
         if (typeof patch.allowDuplicatePins === 'boolean') merged.allowDuplicatePins = patch.allowDuplicatePins;
+        if (typeof patch.order === 'number' && Number.isFinite(patch.order)) merged.order = patch.order;
         if (patch.config != null && typeof patch.config === 'object' && !Array.isArray(patch.config)) {
             merged.config = { ...merged.config, ...patch.config };
         }

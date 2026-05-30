@@ -283,6 +283,9 @@ class PinDOMElement {
             // Existing pin - keep visible, will update position smoothly
         }
 
+        // Apply stack order (z-index); existing pins without order field default to 0
+        pinElement.style.zIndex = String(typeof pinData.order === 'number' ? pinData.order : 0);
+
         // Update pin shape
         const shape = pinData.shape || 'circle';
         pinElement.dataset.shape = shape;
@@ -1259,8 +1262,45 @@ class PinDOMElement {
                     }
                 }
             });
+
+            coreItems.push({
+                name: 'Layer',
+                icon: '<i class="fa-solid fa-layer-group"></i>',
+                submenu: [
+                    {
+                        name: 'Bring to Front',
+                        icon: '<i class="fa-solid fa-angles-up"></i>',
+                        callback: async () => {
+                            try {
+                                const scene = canvas?.scene;
+                                if (!scene) return;
+                                const allPins = PinManager._getScenePins(scene);
+                                const maxOrder = allPins.reduce((max, p) => Math.max(max, typeof p.order === 'number' ? p.order : 0), 0);
+                                await PinManager.update(pinData.id, { order: maxOrder + 1 });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing pin to front', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Send to Back',
+                        icon: '<i class="fa-solid fa-angles-down"></i>',
+                        callback: async () => {
+                            try {
+                                const scene = canvas?.scene;
+                                if (!scene) return;
+                                const allPins = PinManager._getScenePins(scene);
+                                const minOrder = allPins.reduce((min, p) => Math.min(min, typeof p.order === 'number' ? p.order : 0), 0);
+                                await PinManager.update(pinData.id, { order: minOrder - 1 });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error sending pin to back', err?.message || err, false, true);
+                            }
+                        }
+                    }
+                ]
+            });
         }
-        
+
         if (canDelete) {
             coreItems.push({
                 name: 'Delete Pin',
