@@ -1050,24 +1050,9 @@ class PinDOMElement {
             });
         }
 
-        // Core zone: Ping Pin, Bring Players Here, Animate, Configure Pin, Delete Pin
-        coreItems.push({
-            name: 'Ping Pin',
-            icon: '<i class="fa-solid fa-signal-stream"></i>',
-            callback: async () => {
-                try {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) {
-                        await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1, broadcast: true });
-                    } else {
-                        console.warn('BLACKSMITH | PINS API not available');
-                    }
-                } catch (err) {
-                    postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pinging pin', err?.message || err, false, true);
-                }
-            }
-        });
+        // Core zone: Bring Players Here, Configure Pin, Animate, Layer, Pin Visibility, Pin Editing, Delete Pin
 
+        // 1. Bring Players Here
         coreItems.push({
             name: 'Bring Players Here',
             icon: '<i class="fa-solid fa-location-crosshairs"></i>',
@@ -1086,10 +1071,185 @@ class PinDOMElement {
             }
         });
 
+        // 2. Configure Pin (canEdit)
+        if (canEdit) {
+            coreItems.push({
+                name: 'Configure Pin',
+                icon: '<i class="fa-solid fa-cog"></i>',
+                callback: async () => {
+                    try {
+                        const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                        if (pinsAPI) {
+                            await pinsAPI.configure(pinData.id, { sceneId: canvas?.scene?.id });
+                        } else {
+                            console.warn('BLACKSMITH | PINS API not available');
+                        }
+                    } catch (err) {
+                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error opening pin configuration', err?.message || err, false, true);
+                    }
+                }
+            });
+        }
+
+        // 3. Animate
+        coreItems.push({
+            name: 'Animate',
+            icon: '<i class="fa-solid fa-wand-sparkles"></i>',
+            submenu: [
+                { name: 'Ping', icon: '<i class="fa-solid fa-bullseye"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1, broadcast: true });
+                }},
+                { name: 'Pulse', icon: '<i class="fa-solid fa-circle-dot"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'pulse', loops: 1, broadcast: true });
+                }},
+                { name: 'Ripple', icon: '<i class="fa-solid fa-water"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'ripple', loops: 1, broadcast: true });
+                }},
+                { name: 'Flash', icon: '<i class="fa-solid fa-bolt-lightning"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'flash', loops: 1, broadcast: true });
+                }},
+                { name: 'Glow', icon: '<i class="fa-solid fa-sun"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'glow', loops: 1, broadcast: true });
+                }},
+                { name: 'Bounce', icon: '<i class="fa-solid fa-arrow-up-from-line"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'bounce', loops: 1, broadcast: true });
+                }},
+                { name: 'Scale (Small)', icon: '<i class="fa-solid fa-down-left-and-up-right-to-center"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-small', loops: 1, broadcast: true });
+                }},
+                { name: 'Scale (Medium)', icon: '<i class="fa-solid fa-up-right-and-down-left-from-center"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-medium', loops: 1, broadcast: true });
+                }},
+                { name: 'Scale (Large)', icon: '<i class="fa-solid fa-up-right-and-down-left-from-center"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-large', loops: 1, broadcast: true });
+                }},
+                { name: 'Rotate', icon: '<i class="fa-solid fa-rotate-right"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'rotate', loops: 1, broadcast: true });
+                }},
+                { name: 'Shake', icon: '<i class="fa-solid fa-hand"></i>', callback: async () => {
+                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'shake', loops: 1, broadcast: true });
+                }}
+            ]
+        });
+
+        // 4. Layer (canEdit)
+        if (canEdit) {
+            coreItems.push({
+                name: 'Layer',
+                icon: '<i class="fa-solid fa-layer-group"></i>',
+                submenu: [
+                    {
+                        name: 'Bring to Front',
+                        icon: '<i class="fa-solid fa-angles-up"></i>',
+                        callback: async () => {
+                            try {
+                                const scene = canvas?.scene;
+                                if (!scene) return;
+                                const allPins = PinManager._getScenePins(scene);
+                                const maxOrder = allPins.reduce((max, p) => Math.max(max, typeof p.order === 'number' ? p.order : 0), 0);
+                                await PinManager.update(pinData.id, { order: maxOrder + 1 });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing pin to front', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Bring Forward',
+                        icon: '<i class="fa-solid fa-chevron-up"></i>',
+                        callback: async () => {
+                            try {
+                                const currentOrder = typeof pinData.order === 'number' ? pinData.order : 0;
+                                await PinManager.update(pinData.id, { order: currentOrder + 1 });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing pin forward', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Send Backward',
+                        icon: '<i class="fa-solid fa-chevron-down"></i>',
+                        callback: async () => {
+                            try {
+                                const currentOrder = typeof pinData.order === 'number' ? pinData.order : 0;
+                                await PinManager.update(pinData.id, { order: currentOrder - 1 });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error sending pin backward', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Send to Back',
+                        icon: '<i class="fa-solid fa-angles-down"></i>',
+                        callback: async () => {
+                            try {
+                                const scene = canvas?.scene;
+                                if (!scene) return;
+                                const allPins = PinManager._getScenePins(scene);
+                                const minOrder = allPins.reduce((min, p) => Math.min(min, typeof p.order === 'number' ? p.order : 0), 0);
+                                await PinManager.update(pinData.id, { order: minOrder - 1 });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error sending pin to back', err?.message || err, false, true);
+                            }
+                        }
+                    }
+                ]
+            });
+        }
+
+        // 5. Pin Visibility, 6. Pin Editing (GM only)
         if (game.user?.isGM) {
             const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
             const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
             const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+
+            coreItems.push({
+                name: 'Pin visibility',
+                icon: pinIconTag(PIN_VISIBILITY_ICONS.visible),
+                submenu: [
+                    {
+                        name: 'Visible',
+                        icon: pinIconTag(PIN_VISIBILITY_ICONS.visible),
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithVisibility: 'visible'
+                                };
+                                await PinManager.update(pinData.id, { config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (visible)', err?.message || err, false, true);
+                            }
+                        }
+                    },
+                    {
+                        name: 'Hidden',
+                        icon: pinIconTag(PIN_VISIBILITY_ICONS.hidden),
+                        callback: async () => {
+                            try {
+                                const nextConfig = {
+                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
+                                    blacksmithVisibility: 'hidden'
+                                };
+                                await PinManager.update(pinData.id, { config: nextConfig });
+                            } catch (err) {
+                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (hidden)', err?.message || err, false, true);
+                            }
+                        }
+                    }
+                ]
+            });
+
             coreItems.push({
                 name: 'Pin editing',
                 icon: pinIconTag(PIN_ACCESS_SUBMENU_ICON),
@@ -1155,152 +1315,9 @@ class PinDOMElement {
                     }
                 ]
             });
-
-            coreItems.push({
-                name: 'Pin visibility',
-                icon: pinIconTag(PIN_VISIBILITY_ICONS.visible),
-                submenu: [
-                    {
-                        name: 'Visible',
-                        icon: pinIconTag(PIN_VISIBILITY_ICONS.visible),
-                        callback: async () => {
-                            try {
-                                const nextConfig = {
-                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
-                                    blacksmithVisibility: 'visible'
-                                };
-                                await PinManager.update(pinData.id, { config: nextConfig });
-                            } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (visible)', err?.message || err, false, true);
-                            }
-                        }
-                    },
-                    {
-                        name: 'Hidden',
-                        icon: pinIconTag(PIN_VISIBILITY_ICONS.hidden),
-                        callback: async () => {
-                            try {
-                                const nextConfig = {
-                                    ...(pinData.config && typeof pinData.config === 'object' ? pinData.config : {}),
-                                    blacksmithVisibility: 'hidden'
-                                };
-                                await PinManager.update(pinData.id, { config: nextConfig });
-                            } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error setting pin visibility (hidden)', err?.message || err, false, true);
-                            }
-                        }
-                    }
-                ]
-            });
         }
 
-        coreItems.push({
-            name: 'Animate',
-            icon: '<i class="fa-solid fa-wand-sparkles"></i>',
-            submenu: [
-                { name: 'Ping', icon: '<i class="fa-solid fa-bullseye"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'ping', loops: 1, broadcast: true });
-                }},
-                { name: 'Pulse', icon: '<i class="fa-solid fa-circle-dot"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'pulse', loops: 1, broadcast: true });
-                }},
-                { name: 'Ripple', icon: '<i class="fa-solid fa-water"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'ripple', loops: 1, broadcast: true });
-                }},
-                { name: 'Flash', icon: '<i class="fa-solid fa-bolt-lightning"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'flash', loops: 1, broadcast: true });
-                }},
-                { name: 'Glow', icon: '<i class="fa-solid fa-sun"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'glow', loops: 1, broadcast: true });
-                }},
-                { name: 'Bounce', icon: '<i class="fa-solid fa-arrow-up-from-line"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'bounce', loops: 1, broadcast: true });
-                }},
-                { name: 'Scale (Small)', icon: '<i class="fa-solid fa-down-left-and-up-right-to-center"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-small', loops: 1, broadcast: true });
-                }},
-                { name: 'Scale (Medium)', icon: '<i class="fa-solid fa-up-right-and-down-left-from-center"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-medium', loops: 1, broadcast: true });
-                }},
-                { name: 'Scale (Large)', icon: '<i class="fa-solid fa-up-right-and-down-left-from-center"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'scale-large', loops: 1, broadcast: true });
-                }},
-                { name: 'Rotate', icon: '<i class="fa-solid fa-rotate-right"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'rotate', loops: 1, broadcast: true });
-                }},
-                { name: 'Shake', icon: '<i class="fa-solid fa-hand"></i>', callback: async () => {
-                    const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                    if (pinsAPI) await pinsAPI.ping(pinData.id, { animation: 'shake', loops: 1, broadcast: true });
-                }}
-            ]
-        });
-        
-        if (canEdit) {
-            coreItems.push({
-                name: 'Configure Pin',
-                icon: '<i class="fa-solid fa-cog"></i>',
-                callback: async () => {
-                    try {
-                        const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                        if (pinsAPI) {
-                            await pinsAPI.configure(pinData.id, { sceneId: canvas?.scene?.id });
-                        } else {
-                            console.warn('BLACKSMITH | PINS API not available');
-                        }
-                    } catch (err) {
-                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error opening pin configuration', err?.message || err, false, true);
-                    }
-                }
-            });
-
-            coreItems.push({
-                name: 'Layer',
-                icon: '<i class="fa-solid fa-layer-group"></i>',
-                submenu: [
-                    {
-                        name: 'Bring to Front',
-                        icon: '<i class="fa-solid fa-angles-up"></i>',
-                        callback: async () => {
-                            try {
-                                const scene = canvas?.scene;
-                                if (!scene) return;
-                                const allPins = PinManager._getScenePins(scene);
-                                const maxOrder = allPins.reduce((max, p) => Math.max(max, typeof p.order === 'number' ? p.order : 0), 0);
-                                await PinManager.update(pinData.id, { order: maxOrder + 1 });
-                            } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error bringing pin to front', err?.message || err, false, true);
-                            }
-                        }
-                    },
-                    {
-                        name: 'Send to Back',
-                        icon: '<i class="fa-solid fa-angles-down"></i>',
-                        callback: async () => {
-                            try {
-                                const scene = canvas?.scene;
-                                if (!scene) return;
-                                const allPins = PinManager._getScenePins(scene);
-                                const minOrder = allPins.reduce((min, p) => Math.min(min, typeof p.order === 'number' ? p.order : 0), 0);
-                                await PinManager.update(pinData.id, { order: minOrder - 1 });
-                            } catch (err) {
-                                postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error sending pin to back', err?.message || err, false, true);
-                            }
-                        }
-                    }
-                ]
-            });
-        }
-
+        // 7. Delete Pin (canDelete)
         if (canDelete) {
             coreItems.push({
                 name: 'Delete Pin',
