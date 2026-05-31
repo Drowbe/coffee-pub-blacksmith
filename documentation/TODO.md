@@ -17,10 +17,9 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 | Priority | Item | Status | Notes |
 | --- | --- | --- | --- |
-| High | **Round timer** — register hooks + `setInterval(1000)` only when the feature is enabled | Not started | Same pattern as combat timer; see `plan-settings.md` #6 and `PERFORMANCE.md` (round timer registration row) |
-| Medium | **Planning timer** — defer `HookManager` registration until enabled, or keep early-return | Not started | `plan-settings.md` #7 |
+| High | **Round timer** — register hooks + `setInterval(1000)` only when the feature is enabled | Not started | Same pattern as combat timer; see `plan-settings.md` #6 and `PERFORMANCE.md` (round timer registration row). Note: `Hooks.once('ready', ...)` fires before settings are registered — gate must use `getSettingSafely` with fallback `true`, placed inside the ready callback only. |
+| Medium | **Planning timer** — defer `HookManager` registration until enabled | Not started | `plan-settings.md` #7. The planning timer registers hooks during `init` before settings exist; gating requires deferring hook registration itself, not just the ready-phase state init. Non-trivial — do not attempt without full understanding of init/ready ordering. |
 | Medium | **Combat / player stats** — optional dynamic import when tracking off | Not started | `plan-settings.md` #8–9; shrinks cold path |
-| Low | **Menubar toggles** — `menubarShowSettings` / `menubarShowRefresh` exist in settings but tools use `visible: false` without reading them | Not started | Wire `visible` + `onChange` → `MenuBar.renderMenubar` (same pattern as former pins toggle) |
 
 ## CRITICAL BUGS
 

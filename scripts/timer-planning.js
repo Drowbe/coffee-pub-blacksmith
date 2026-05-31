@@ -76,7 +76,7 @@ export class PlanningTimer {
 
     static initialize() {
         postConsoleAndNotification(MODULE.NAME, "Planning Timer | Initializing", "", false, false);
-        
+
         // Initialize state
         this.state = foundry.utils.deepClone(this.DEFAULTS.state);
         this.timer = null;

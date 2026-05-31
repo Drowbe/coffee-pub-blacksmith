@@ -4,7 +4,7 @@
 
 // -- Import MODULE variables --
 import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification, playSound, trimString } from './api-core.js';
+import { postConsoleAndNotification, playSound, trimString, getSettingSafely } from './api-core.js';
 import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
@@ -73,14 +73,14 @@ class CombatTimer {
         Hooks.once('ready', () => {
             try {
                 
-                if (!game.settings.get(MODULE.ID, 'combatTimerEnabled')) {
+                if (!getSettingSafely(MODULE.ID, 'combatTimerEnabled', true)) {
                     return;
                 }
 
                 
                 // Initialize state — keep duration and remaining aligned with configured turn length (fixes progress bar %)
                 this.state = foundry.utils.deepClone(this.DEFAULTS.state);
-                const combatDur = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? 60;
+                const combatDur = getSettingSafely(MODULE.ID, 'combatTimerDuration', 60);
                 this.state.remaining = combatDur;
                 this.state.duration = combatDur;
                 

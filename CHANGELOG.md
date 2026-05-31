@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.7.11]
+
 
 ## [13.7.10]
 
@@ -13,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clarity / Quickview mode** (`scripts/utility-quickview.js`): GM-only local vision aid that boosts scene brightness (via the core illumination shader `gmVision` uniform and darkness layer alpha), makes fog of war nearly transparent, and outlines tokens outside the current vision polygon or hidden from players with a configurable sight-highlight ring. Toggle via the menubar hamburger menu or `Ctrl+Q` keybinding. GM-only — player clients see no change. Deactivates automatically on scene change and restores all original values on toggle-off.
 
 - **Hide Initiative Roll Chat Cards** (`scripts/blacksmith.js`, `scripts/settings.js`): New world setting **Hide Initiative Roll Cards** (Run the Game group). When enabled, initiative roll cards are hidden immediately on render and deleted after the Dice So Nice animation completes (or immediately if DSN is not active) — 3D dice still animate, initiative still resolves and appears in the combat tracker, the card just never clutters the chat log.
+
+
+
+- **Menubar Settings / Refresh visibility** (`scripts/utility-core.js`): The Settings and Refresh items in the hamburger context menu now respect `menubarShowSettings` and `menubarShowRefresh` — toggling either setting hides or shows the item immediately on next menu open.
 
 ### Fixed
 
