@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.7.11]
 
+### Added
+
+- **Menubar Settings / Refresh visibility** (`scripts/utility-core.js`): The Settings and Refresh items in the hamburger context menu now respect `menubarShowSettings` and `menubarShowRefresh` — toggling either setting hides or shows the item on next menu open.
+
+### Fixed
+
+- **Combat timer silent initialization crash** (`scripts/timer-combat.js`): `combatTimerEnabled` and `combatTimerDuration` were read with `game.settings.get()` inside a `Hooks.once('ready', ...)` callback that fires before settings are registered. The call threw, was caught silently, and aborted initialization — leaving all combat timer hooks (including the token-movement-ends-planning trigger) unregistered. Switched to `getSettingSafely` with fallback `true` / `60`. Also added `getSettingSafely` to the import from `api-core.js`.
+
+- **HookManager `pre*` hook cancellation** (`scripts/manager-hooks.js`): Returning `false` from a callback now correctly cancels the action for any `pre*` hook, not only `preUpdateToken` as before.
 
 ## [13.7.10]
 
