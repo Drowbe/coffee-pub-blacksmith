@@ -3167,6 +3167,7 @@ export const registerSettings = () => {
 		config: true,
 		type: Boolean,
 		default: true,
+		requiresReload: true,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
@@ -3183,6 +3184,7 @@ export const registerSettings = () => {
 		config: true,
 		type: Boolean,
 		default: true,
+		requiresReload: true,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
@@ -3334,6 +3336,7 @@ export const registerSettings = () => {
 		config: true,
 		type: Boolean,
 		default: true,
+		requiresReload: true,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 

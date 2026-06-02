@@ -77,112 +77,91 @@ export class PlanningTimer {
     static initialize() {
         postConsoleAndNotification(MODULE.NAME, "Planning Timer | Initializing", "", false, false);
 
-        // Initialize state
+        // Initialize state immediately so socket handlers and early callers have a valid object
         this.state = foundry.utils.deepClone(this.DEFAULTS.state);
         this.timer = null;
         this.isInitialized = false;
 
-        // Register hooks
-        const renderCombatTrackerHookId = HookManager.registerHook({
-			name: 'renderCombatTracker',
-			description: 'Planning Timer: Handle combat tracker rendering for planning phase UI',
-			context: 'timer-planning-combat-tracker',
-			priority: 3,
-			callback: this._onRenderCombatTracker.bind(this)
-		});
-		
-		// Add hook for ending the planning timer from combat timer
-		const endPlanningTimerHookId = HookManager.registerHook({
-			name: 'endPlanningTimer',
-			description: 'Planning Timer: Handle forced planning timer end',
-			context: 'timer-planning-force-end',
-			priority: 3,
-			callback: this.forceEnd.bind(this)
-		});
-		
-		// Register cleanup hook for combat deletion
-		const deleteCombatHookId = HookManager.registerHook({
-			name: 'deleteCombat',
-			description: 'Planning Timer: Cleanup when combat is deleted',
-			context: 'timer-planning-cleanup',
-			priority: 3,
-			callback: () => {
-				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				this.cleanupTimer();
-				// --- END - HOOKMANAGER CALLBACK ---
-			}
-		});
-
-		// Register cleanup hook for module unload
-		Hooks.once('ready', () => {
-			const unloadHookId = HookManager.registerHook({
-				name: 'unloadModule',
-				description: 'Planning Timer: Cleanup on module unload',
-				context: 'timer-planning-cleanup',
-				priority: 3,
-				callback: (moduleId) => {
-					if (moduleId === MODULE.ID) {
-						this.cleanupTimer();
-						postConsoleAndNotification(MODULE.NAME, "Planning Timer | Cleaned up on module unload", "", true, false);
-					}
-				}
-			});
-		});
-
-        // Wait for game to be ready before checking initial state
         Hooks.once('ready', () => {
+            if (!getSettingSafely(MODULE.ID, 'planningTimerEnabled', true)) {
+                postConsoleAndNotification(MODULE.NAME, "Planning Timer | Disabled, skipping initialization", "", true, false);
+                return;
+            }
+
             this.isInitialized = true;
-            
-            // Check if we're loading into an active combat with planning phase
-            if (game.combat?.started && game.combat.turn === 0) {
-                // Defer planning restoration until CombatStats is ready to prevent race condition
-                if (CombatStats.currentStats) {
-                    this._tryStartWhenPlanningReady();
-                    if (this.state.isActive) {
-                        ui.combat.render(true);
-                    }
-                } else {
-                    // Wait for CombatStats to be ready before restoring planning state
-                    Hooks.once('blacksmithUpdated', () => {
-                        if (game.combat?.started && game.combat.turn === 0) {
-                            this._tryStartWhenPlanningReady();
-                            if (this.state.isActive) {
-                                ui.combat.render(true);
-                            }
-                        }
-                    });
+
+            // Register hooks
+            HookManager.registerHook({
+                name: 'renderCombatTracker',
+                description: 'Planning Timer: Handle combat tracker rendering for planning phase UI',
+                context: 'timer-planning-combat-tracker',
+                priority: 3,
+                callback: this._onRenderCombatTracker.bind(this)
+            });
+
+            HookManager.registerHook({
+                name: 'endPlanningTimer',
+                description: 'Planning Timer: Handle forced planning timer end',
+                context: 'timer-planning-force-end',
+                priority: 3,
+                callback: this.forceEnd.bind(this)
+            });
+
+            HookManager.registerHook({
+                name: 'deleteCombat',
+                description: 'Planning Timer: Cleanup when combat is deleted',
+                context: 'timer-planning-cleanup',
+                priority: 3,
+                callback: () => {
+                    this.cleanupTimer();
                 }
+            });
+
+            HookManager.registerHook({
+                name: 'unloadModule',
+                description: 'Planning Timer: Cleanup on module unload',
+                context: 'timer-planning-cleanup',
+                priority: 3,
+                callback: (moduleId) => {
+                    if (moduleId === MODULE.ID) {
+                        this.cleanupTimer();
+                        postConsoleAndNotification(MODULE.NAME, "Planning Timer | Cleaned up on module unload", "", true, false);
+                    }
+                }
+            });
+
+            HookManager.registerHook({
+                name: 'updateCombat',
+                description: 'Planning Timer: Handle combat updates for planning phase management',
+                context: 'timer-planning',
+                priority: 3,
+                callback: this.handleCombatUpdate.bind(this)
+            });
+
+            HookManager.registerHook({
+                name: 'updateCombatant',
+                description: 'Planning Timer: Start timer only after initiative values are set (turn 0)',
+                context: 'timer-planning-initiative',
+                priority: 3,
+                callback: (combatant, data, _options, _userId) => {
+                    if (!game.user.isGM || !('initiative' in data)) return;
+                    if (!combatant?.combat || !game.combats.has(combatant.combat.id)) return;
+                    this._tryStartWhenPlanningReady();
+                }
+            });
+
+            postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "timer-planning", true, false);
+
+            // Restore planning state on reload — defer slightly so combat data is fully hydrated
+            if (game.combat?.started && game.combat.turn === 0) {
+                setTimeout(() => {
+                    if (game.combat?.started && game.combat.turn === 0) {
+                        this._tryStartWhenPlanningReady();
+                        if (this.state.isActive) ui.combat.render(true);
+                    }
+                }, 300);
             }
         });
-
-        // Add socket ready check
-        Hooks.once('blacksmith.socketReady', () => {
-    
-        });
-
-        // Handle combat updates
-        const updateCombatHookId = HookManager.registerHook({
-            name: 'updateCombat',
-            description: 'Planning Timer: Handle combat updates for planning phase management',
-            context: 'timer-planning',
-            priority: 3, // Normal priority - timer management
-            callback: this.handleCombatUpdate.bind(this)
-        });
-
-        const updateCombatantHookId = HookManager.registerHook({
-            name: 'updateCombatant',
-            description: 'Planning Timer: Start timer only after initiative values are set (turn 0)',
-            context: 'timer-planning-initiative',
-            priority: 3,
-            callback: (combatant, data, options, userId) => {
-                if (!game.user.isGM || !('initiative' in data)) return;
-                if (!combatant?.combat || !game.combats.has(combatant.combat.id)) return;
-                this._tryStartWhenPlanningReady();
-            }
-        });
-        
-        // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "timer-planning", true, false);
     }
 
     static async syncState() {
@@ -776,7 +755,7 @@ export class PlanningTimer {
 
     static verifyTimerConditions() {
         // Use getSettingSafely to avoid errors if settings aren't registered yet
-        if (!getSettingSafely(MODULE.ID, 'planningTimerEnabled', false)) return false;
+        if (!getSettingSafely(MODULE.ID, 'planningTimerEnabled', true)) return false;
 
         if (!game.combat?.started) return false;
         if (game.combat.turn !== 0) return false;

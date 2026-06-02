@@ -320,8 +320,8 @@ class CombatTimer {
                 return;
             }
 
-            const isEnabled = game.settings.get(MODULE.ID, 'combatTimerEnabled');
-            const isGMOnly = game.settings.get(MODULE.ID, 'combatTimerGMOnly');
+            const isEnabled = getSettingSafely(MODULE.ID, 'combatTimerEnabled', true);
+            const isGMOnly = getSettingSafely(MODULE.ID, 'combatTimerGMOnly', false);
 
 
             if (isGMOnly && !game.user.isGM) {

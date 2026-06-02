@@ -53,6 +53,11 @@ export class RoundTimer {
         
         // Wait for ready to ensure settings are registered
         Hooks.once('ready', () => {
+            if (!getSettingSafely(MODULE.ID, 'showRoundTimer', true)) {
+                postConsoleAndNotification(MODULE.NAME, "Round Timer | Disabled, skipping initialization", "", true, false);
+                return;
+            }
+
                     // Register hooks
         // Migrate updateCombat hook to HookManager for centralized control
         const hookId = HookManager.registerHook({
