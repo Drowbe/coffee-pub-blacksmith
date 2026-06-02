@@ -74,6 +74,41 @@ export class PlanningTimer {
         return Math.max(configuredLimit, this.state.duration || 0);
     }
 
+    static _initializeFreshPlanningState() {
+        const duration = getSettingSafely(MODULE.ID, 'planningTimerDuration', this.DEFAULTS.timeLimit);
+        const autoStart = getSettingSafely(MODULE.ID, 'planningTimerAutoStart', true);
+
+        this.state.duration = duration;
+        this.state.remaining = duration;
+        this.state.isActive = true;
+        this.state.isPaused = !autoStart;
+        this.state.showingMessage = false;
+        this.state.isExpired = false;
+        this.state.hasHandledWarning = false;
+        this.previousPercentRemaining = undefined;
+
+        return duration;
+    }
+
+    static _restoreFreshPlanningTimerForCurrentCombat() {
+        if (!this.isInitialized) return false;
+        if (!this.verifyTimerConditions()) return false;
+
+        const duration = this._initializeFreshPlanningState();
+
+        if (game.user.isGM) {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+            this.startTimer(duration, { skipStartEffects: true });
+        } else {
+            this.updateUI();
+        }
+
+        return true;
+    }
+
     static initialize() {
         postConsoleAndNotification(MODULE.NAME, "Planning Timer | Initializing", "", false, false);
 
@@ -152,12 +187,12 @@ export class PlanningTimer {
 
             postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat", "timer-planning", true, false);
 
-            // Restore planning state on reload — defer slightly so combat data is fully hydrated
+            // Restore planning state on reload as a fresh planning timer from settings.
             if (game.combat?.started && game.combat.turn === 0) {
                 setTimeout(() => {
                     if (game.combat?.started && game.combat.turn === 0) {
-                        this._tryStartWhenPlanningReady();
-                        if (this.state.isActive) ui.combat.render(true);
+                        const restored = this._restoreFreshPlanningTimerForCurrentCombat();
+                        if (restored) ui.combat.render(true);
                     }
                 }, 300);
             }
@@ -419,6 +454,15 @@ export class PlanningTimer {
             return;
         }
 
+        if (!this.state.isActive && !this.state.isExpired) {
+            const restored = this._restoreFreshPlanningTimerForCurrentCombat();
+            nativeHtml?.querySelectorAll?.('.planning-timer-item, .planning-timer-container, .planning-phase')?.forEach((el) => el.remove());
+            if (restored && this.state.isActive) {
+                requestAnimationFrame(() => ui.combat?.render?.(true));
+            }
+            return;
+        }
+
         // Get label from settings
         const label = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
         
@@ -590,6 +634,10 @@ export class PlanningTimer {
     }
 
     static resumeTimer() {
+        if (this.state.remaining <= 0 && !this.state.isExpired) {
+            this.state.remaining = this.state.duration || getSettingSafely(MODULE.ID, 'planningTimerDuration', this.DEFAULTS.timeLimit);
+            this.state.isActive = true;
+        }
 
         this.state.isPaused = false;
         this.state.showingMessage = false;
@@ -796,38 +844,39 @@ export class PlanningTimer {
         if (this.state.isActive || this.state.isExpired) return;
         if (!this.verifyTimerConditions()) return;
 
-        const duration = game.settings.get(MODULE.ID, 'planningTimerDuration') ?? this.DEFAULTS.timeLimit;
+        const duration = getSettingSafely(MODULE.ID, 'planningTimerDuration', this.DEFAULTS.timeLimit);
         this.startTimer(duration);
         if (this.state.isActive) {
             requestAnimationFrame(() => ui.combat.render(true));
         }
     }
 
-    static startTimer(duration = null) {
+    static startTimer(duration = null, options = {}) {
         if (!this.verifyTimerConditions()) return;
+        const skipStartEffects = options?.skipStartEffects === true;
 
-        // Record planning start for stats - only if CombatStats is ready
-        if (game.user.isGM && CombatStats.currentStats) {
+        // Record planning start for stats only for a real planning start, not a reload rebuild.
+        if (!skipStartEffects && game.user.isGM && CombatStats.currentStats) {
             CombatStats.recordPlanningStart();
         }
 
         // If no duration provided, get from settings
         if (duration === null) {
-            duration = game.settings.get(MODULE.ID, 'planningTimerDuration') ?? this.DEFAULTS.timeLimit;
+            duration = getSettingSafely(MODULE.ID, 'planningTimerDuration', this.DEFAULTS.timeLimit);
         }
 
         this.state.remaining = duration;
         this.state.duration = duration;  // Store duration in state
         this.state.isActive = true;
-        this.state.isPaused = !game.settings.get(MODULE.ID, 'planningTimerAutoStart');
+        this.state.isPaused = !getSettingSafely(MODULE.ID, 'planningTimerAutoStart', true);
         this.state.showingMessage = false;
         this.state.isExpired = false;
         this.state.hasHandledWarning = false;
 
         // Send chat message for planning start if GM and timer is at full duration
-        if (game.user.isGM && duration === game.settings.get(MODULE.ID, 'planningTimerDuration')) {
+        if (!skipStartEffects && game.user.isGM && duration === getSettingSafely(MODULE.ID, 'planningTimerDuration', this.DEFAULTS.timeLimit)) {
             // Check if the setting is enabled before sending the message
-            if (game.settings.get(MODULE.ID, 'timerChatPlanningStart')) {
+            if (getSettingSafely(MODULE.ID, 'timerChatPlanningStart', false)) {
                 this.sendChatMessage({
                     isPlanningStart: true,
                     duration: Math.floor(duration / 60)
@@ -1172,5 +1221,3 @@ export class PlanningTimer {
 // Remove the API exposure at the end of the file and replace with a comment
 // explaining that we're using Hooks for communication instead
 // This replaces the Hooks.once('init') block at the end of the file
-
-
