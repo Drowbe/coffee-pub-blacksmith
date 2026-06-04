@@ -456,15 +456,15 @@ export class PlanningTimer {
 
         if (!this.state.isActive && !this.state.isExpired) {
             const restored = this._restoreFreshPlanningTimerForCurrentCombat();
-            nativeHtml?.querySelectorAll?.('.planning-timer-item, .planning-timer-container, .planning-phase')?.forEach((el) => el.remove());
-            if (restored && this.state.isActive) {
-                requestAnimationFrame(() => ui.combat?.render?.(true));
+            if (!restored || !this.state.isActive) {
+                nativeHtml?.querySelectorAll?.('.planning-timer-item, .planning-timer-container, .planning-phase')?.forEach((el) => el.remove());
+                return;
             }
-            return;
         }
 
         // Get label from settings
         const label = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
+        const expiredMessage = getSettingSafely(MODULE.ID, 'planningTimerExpiredMessage', 'Planning Timer Expired');
         
         // Ensure state has valid duration
         if (!this.state.duration || this.state.duration === 0) {
@@ -481,15 +481,34 @@ export class PlanningTimer {
         if (this.state.remaining === 0 && this.state.isActive && !this.state.isExpired && this.state.duration) {
             this.state.remaining = this.state.duration;
         }
+
+        const timeLimit = this._planningBarDenominatorSeconds();
+        const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
+        let barClass = 'high';
+        if (this.state.remaining <= 0) {
+            barClass = 'expired';
+        } else if (percentage <= 25) {
+            barClass = 'low';
+        } else if (percentage <= 50) {
+            barClass = 'medium';
+        }
+
+        let textContent;
+        if (this.state.remaining <= 0) {
+            textContent = expiredMessage;
+        } else if (this.state.isPaused) {
+            textContent = `${label} TIMER PAUSED`;
+        } else {
+            textContent = `${this.formatTime(this.state.remaining)} ${label}`;
+        }
         
         const timerHtml = await foundry.applications.handlebars.renderTemplate(
             'modules/coffee-pub-blacksmith/templates/timer-planning.hbs',
             {
-                label,
-                isPaused: this.state.isPaused,
-                remaining: this.state.remaining,
-                timeLimit: this.state.duration || this.DEFAULTS.timeLimit,
-                isExpired: this.state.isExpired
+                textContent,
+                barClass,
+                barWidth: Math.max(0, Math.min(100, percentage)),
+                isExpired: this.state.remaining <= 0
             }
         );
         

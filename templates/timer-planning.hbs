@@ -1,18 +1,8 @@
 <li class="planning-timer-item">
     <div class="planning-timer-container">
-        <div class="planning-timer-progress">
-            <div class="planning-timer-bar"></div>
-            <div class="planning-timer-text">
-                {{#if isPaused}}
-                    {{label}} TIMER PAUSED
-                {{else}}
-                    {{#if remaining}}
-                        {{formatTime remaining}} {{label}}
-                    {{else}}
-                        {{label}} HAS ENDED
-                    {{/if}}
-                {{/if}}
-            </div>
+        <div class="planning-timer-progress{{#if isExpired}} expired{{/if}}">
+            <div class="planning-timer-bar {{barClass}}" style="width: {{barWidth}}%;"></div>
+            <div class="planning-timer-text">{{textContent}}</div>
         </div>
     </div>
 </li> 
