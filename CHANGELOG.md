@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.7.12]
+
+### Changed
+
+- **Timer feature gating** (`scripts/timer-round.js`, `scripts/timer-planning.js`, `scripts/timer-combat.js`): All three timers now skip hook registration and interval startup entirely when disabled. Round and combat timers gate inside `Hooks.once('ready', ...)` using `getSettingSafely` with fallback `true` (matching the setting defaults). Planning timer restructured so all `HookManager` registrations are inside the gated `ready` callback — no hooks fire at all when the feature is off.
+
+- **Timer enable/disable requires reload** (`scripts/settings.js`): `showRoundTimer`, `planningTimerEnabled`, and `combatTimerEnabled` now have `requiresReload: true` so Foundry prompts for a reload when any of them are toggled, since hooks only register at startup.
+
+### Fixed
+
+- **Planning timer reload / first-paint state** (`scripts/timer-planning.js`, `templates/timer-planning.hbs`): Refreshing the client during round-top planning could render a broken planning row with `0S PLANNING`, an empty bar, and paused/zero state that ignored `planningTimerAutoStart` until the window repainted or focus changed. Reload during valid planning now rebuilds a fresh planning timer from settings, uses safe setting reads during early lifecycle timing, avoids duplicate planning-start side effects on reload, and renders the initial planning text/bar directly from current timer state so the first paint is correct.
+
+- **Combat timer silent init crash** (`scripts/timer-combat.js`): `combatTimerEnabled` and `combatTimerDuration` used `game.settings.get()` inside a `Hooks.once('ready', ...)` that fired before settings were registered, crashing silently and leaving all combat timer hooks (including the token-movement-ends-planning trigger) unregistered. Switched to `getSettingSafely`. Also added `getSettingSafely` to the import from `api-core.js`.
+
+- **Combat timer render crash** (`scripts/timer-combat.js`): `combatTimerEnabled` and `combatTimerGMOnly` in `_onRenderCombatTracker` also used raw `game.settings.get()` which could throw before settings were registered. Switched to `getSettingSafely`.
+
+- **Planning timer `verifyTimerConditions` fallback** (`scripts/timer-planning.js`): The `getSettingSafely` call for `planningTimerEnabled` inside `verifyTimerConditions` used fallback `false`, which silently blocked `startTimer()` when settings were not yet registered (e.g., on the first render after ready). Changed fallback to `true` to match the setting default.
+
+
 ## [13.7.11]
 
 ### Added
