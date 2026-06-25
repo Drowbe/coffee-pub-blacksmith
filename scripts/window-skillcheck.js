@@ -2282,8 +2282,11 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             const result = actor.result;
             const animationDelay = (index * 0.1) + 0.3; // Staggered delay
 
-            // Check for ownership to apply disabled style and correct icon
-            const hasPermission = game.user.isGM || actorDocument?.isOwner;
+            // Always check ownership on the base actor. An unlinked token's synthetic actor
+            // evaluates token-document ownership, not base-actor ownership — causing a false
+            // negative (hourglass) for players who own the base actor but not the token doc.
+            const baseActor = game.actors.get(actor.actorId) ?? actorDocument;
+            const hasPermission = game.user.isGM || baseActor?.isOwner;
 
             let rollAreaHtml;
             if (hasPermission && !result) {
@@ -2550,17 +2553,13 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
      * @param {object} html - The jQuery-wrapped HTML of the chat card.
      */
     static handleChatMessageClick(message, html) {
-        // renderChatMessage hook may still pass jQuery in v13 — normalize to native DOM
-        const htmlElement = (html?.jquery || typeof html?.find === 'function')
+        // Only treat as jQuery if html.jquery is set — the compat shim in blacksmith.js adds
+        // .find() to plain HTMLElements, so checking typeof html.find is not a reliable test.
+        const htmlElement = html?.jquery
             ? (html[0] ?? html.get?.(0))
             : html;
         if (!htmlElement?.querySelectorAll) return;
-        
-        if (!htmlElement) {
-            console.warn('SkillCheckDialog.handleChatMessageClick: Could not extract DOM element');
-            return;
-        }
-        
+
         // Use the native DOM element
         htmlElement.querySelectorAll('.cpb-skill-roll').forEach((btn) => {
             btn.addEventListener('click', async (event) => {
@@ -2580,7 +2579,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     ui.notifications.error(`Could not find actor data for ID ${actorId} and token ID ${tokenId} in the chat message.`);
                     return;
                 }
-                
+
                 // Check ownership - only allow GM or character owner to roll
                 const actor = game.actors.get(actorId);
                 if (!game.user.isGM && !actor?.isOwner) {
