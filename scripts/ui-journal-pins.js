@@ -745,7 +745,8 @@ export class JournalPagePins {
                 if (el === root || el?.contains?.(root) || root?.contains?.(el)) return journal;
             }
             // Fallback 2: resolve by active page id (which journal has a page with this id?)
-            const activeArticle = root?.querySelector?.('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
+            const activeArticle = root?.querySelector?.('article.journal-entry-page.active')
+                ?? root?.querySelector?.('article.journal-entry-page:not([style*="display: none"])');
             const pageId = activeArticle?.getAttribute?.('data-page-id') ?? activeArticle?.dataset?.pageId ?? null;
             if (pageId) {
                 for (const journal of game.journal.contents) {
@@ -775,7 +776,11 @@ export class JournalPagePins {
      */
     static _getActivePageIdFromSheet(sheetRoot) {
         if (!sheetRoot) return null;
-        const journalPage = sheetRoot.querySelector('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
+        // Prioritize .active explicitly — querySelector with a comma selector returns the first
+        // DOM-order match of ANY alternative, so page 1 (visible, not active) would be returned
+        // instead of page 2 (.active) when multiple pages exist in the DOM.
+        const journalPage = sheetRoot.querySelector('article.journal-entry-page.active')
+            ?? sheetRoot.querySelector('article.journal-entry-page:not([style*="display: none"])');
         return journalPage ? journalPage.getAttribute('data-page-id') : null;
     }
 
@@ -947,7 +952,9 @@ export class JournalPagePins {
                     event.preventDefault();
                     event.stopPropagation();
                     const sheet = (event.target.closest?.('.journal-sheet') || event.target.closest?.('.journal-entry')) ?? root;
-                    const pinnedPageId = barEl?.getAttribute?.('data-page-id');
+                    // Read the active page from the live DOM at click time so a stale data-page-id
+                    // attribute (e.g. if the watchdog hasn't fired yet) cannot pin the wrong page.
+                    const pinnedPageId = this._getActivePageIdFromSheet(sheet) ?? barEl?.getAttribute?.('data-page-id');
                     const placementOpts = this._readPlacementOptsFromBar(barEl);
                     const j = pinnedPageId ? this._resolveJournalFromSheet(sheet, null) : null;
                     const page = j?.pages?.get(pinnedPageId) ?? null;

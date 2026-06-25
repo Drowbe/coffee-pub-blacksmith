@@ -210,7 +210,11 @@ export class JournalDomWatchdog {
 
     static _getActivePageIdFromSheet(sheetRoot) {
         if (!sheetRoot?.querySelector) return null;
-        const journalPage = sheetRoot.querySelector('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
+        // Prioritize .active explicitly — a comma-joined querySelector returns the first DOM-order
+        // match of ANY alternative, so combining both into one call would return page 1 (visible,
+        // not active) instead of page 2 (.active) when multiple pages are present in the DOM.
+        const journalPage = sheetRoot.querySelector('article.journal-entry-page.active')
+            ?? sheetRoot.querySelector('article.journal-entry-page:not([style*="display: none"])');
         if (!journalPage) return null;
         return journalPage.getAttribute('data-page-id') ?? journalPage.dataset?.pageId ?? null;
     }

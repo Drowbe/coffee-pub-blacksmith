@@ -531,8 +531,10 @@ export class EncounterToolbar {
                 const sheetElement = sheet.element?.jquery ? sheet.element[0] : sheet.element;
                 if (!sheetElement) continue;
                 
-                // Find the currently active/visible page
-                const activePage = sheetElement.querySelector('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
+                // Find the currently active/visible page (split queries: comma querySelector returns
+                // first DOM-order match of any alternative, not first alternative that matches)
+                const activePage = sheetElement.querySelector('article.journal-entry-page.active')
+                    ?? sheetElement.querySelector('article.journal-entry-page:not([style*="display: none"])');
                 if (activePage) {
                     const pageId = activePage.getAttribute('data-page-id');
                     const sheetKey = sheetElement.id || sheet.document?.id || 'unknown';
@@ -869,9 +871,10 @@ export class EncounterToolbar {
             nativeHtml = html[0] || html.get?.(0) || html;
         }
 
-        // Get the ACTIVE page ID to scope the toolbar
-        // Find the active/visible page (not just any page)
-        const journalPage = nativeHtml.querySelector('article.journal-entry-page.active, article.journal-entry-page:not([style*="display: none"])');
+        // Get the ACTIVE page ID to scope the toolbar (split queries: comma querySelector returns
+        // first DOM-order match of any alternative, not first alternative that matches)
+        const journalPage = nativeHtml.querySelector('article.journal-entry-page.active')
+            ?? nativeHtml.querySelector('article.journal-entry-page:not([style*="display: none"])');
         const pageId = journalPage ? journalPage.getAttribute('data-page-id') : null;
         
         if (!pageId) {
