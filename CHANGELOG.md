@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [13.7.13]
+
+### Fixed
+
+- **Journal page pin targets wrong page** (`scripts/ui-journal-pins.js`, `scripts/manager-journal-dom.js`, `scripts/ui-journal-encounter.js`): Pinning page 2 of a multi-page journal would instead pin page 1 — and appear to move the existing page 1 pin — because `querySelector` with a comma-separated selector returns the first **DOM-order** match of any alternative, not the first alternative that matches. `article.journal-entry-page:not([style*="display: none"])` matched page 1 before page 2 could match `.active`, so every call to `_getActivePageIdFromSheet` returned page 1 regardless of which page was actually selected. Fixed all five call sites by splitting the combined selector into two sequential queries: `.active` is checked first, and only if no active page is found does it fall back to the first visible page. The pin button click handler in `ui-journal-pins.js` was also hardened to read the live active page from the DOM at click time rather than relying on the `data-page-id` attribute cached on the toolbar, which could be stale if the watchdog interval had not yet fired since the last page navigation.
+
 ## [13.7.12]
 
 ### Changed
