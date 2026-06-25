@@ -3797,6 +3797,21 @@ class MenuBar {
 
         const items = [
             {
+                name: 'Vote for Leader',
+                description: 'Vote for a party leader from among the active players.',
+                icon: 'fa-solid fa-check-to-slot',
+                callback: async () => {
+                    try {
+                        const { VoteManager } = await import('./manager-vote.js');
+                        await VoteManager.startVote('leader');
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Menubar: Error starting leader vote:', error, false, false);
+                        ui.notifications.error('Error starting leader vote. Check the console for details.');
+                    }
+                }
+            },
+            { separator: true },
+            {
                 name: 'None',
                 icon: currentActorId ? 'fa-regular fa-circle-xmark' : 'fa-solid fa-check',
                 disabled: !currentActorId,
@@ -3815,7 +3830,7 @@ class MenuBar {
             const isCurrent = entry.actor.id === currentActorId;
             items.push({
                 name: label,
-                icon: isCurrent ? 'fa-solid fa-check' : 'fa-solid fa-crown',
+                icon: isCurrent ? 'fa-solid fa-crown' : 'fa-solid fa-user',
                 disabled: isCurrent,
                 callback: async () => {
                     await MenuBar.setNewLeader({ userId: entry.owner.id, actorId: entry.actor.id }, true);

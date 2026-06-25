@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Session timer — Default Time modes** (`scripts/settings.js`, `scripts/api-menubar.js`, `scripts/utility-session-timer.js`, `lang/en.json`): New **Default Time** world setting with **None**, **Fixed Duration**, or **Specific Time**. Renamed the duration slider to **Fixed Duration**; added **Specific Time** dropdown (half-hour increments, shared with the menubar). On load, the GM client applies the configured default when the previous timer is from another day or expired (`getSettingSafely` for timing-safe reads). Saving Default Time settings updates the menubar immediately when no session timer is already running (`settingChange` hook). Menubar **Set Time** presets and end-time dialog now include half-hour slots (e.g. 8:00 PM, 8:30 PM).
 
+- **Leader menubar menu — Vote for Leader** (`scripts/api-menubar.js`): GM leader dropdown now includes **Vote for Leader** at the top to start the same leader vote as **Start a Vote → Select a Leader**, without opening the vote window.
+
+### Changed
+
+- **Leader menubar menu icons** (`scripts/api-menubar.js`): Party leader dropdown now shows a **crown** on the current leader and a **user** icon on all other player entries (replacing crown-on-everyone with a checkmark on the leader).
+
 ### Fixed
 
 - **Chat card roll buttons unclickable** (`scripts/window-skillcheck.js`): Clicking a `.cpb-skill-roll` button in a skill check chat card did nothing for all users. The compat shim in `blacksmith.js` adds a `.find()` method to the raw `HTMLElement` passed by the v13 `renderChatMessageHTML` hook so that legacy code expecting jQuery can still call it. The jQuery-normalization check in `handleChatMessageClick` tested `typeof html.find === 'function'`, which was `true` for the shimmed element, causing it to take the jQuery unwrap branch (`html[0]`), receive `undefined`, and silently return before attaching any click handlers. Fixed by checking only `html?.jquery` — the property jQuery itself sets — which the compat shim never touches.
