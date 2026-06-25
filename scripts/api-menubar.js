@@ -18,6 +18,13 @@ import { ReputationManager } from './manager-reputation.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
 import { CombatBarManager } from './manager-combatbar.js';
+import {
+    SESSION_TIMER_DEFAULT_MODES,
+    getSessionEndTimeOptions,
+    formatSessionEndTimeValue,
+    parseSessionEndTimeValue,
+    endTimestampFromTimeValue
+} from './utility-session-timer.js';
 
 class MenuBar {
     static ID = 'menubar';
@@ -135,6 +142,7 @@ class MenuBar {
         
         // Register setting change hook to refresh menubar when party leader changes
         this._registerLeaderChangeHook();
+        this._registerSessionTimerSettingsHook();
 
         // When the canvas becomes ready (including after scene switch), refresh menubar so tool visibility
         // (e.g. combat bar when combat is active) and party bar data (reputation, health) reflect the new scene.
@@ -210,6 +218,47 @@ class MenuBar {
         });
         
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Leader change hook registered", "", true, false);
+    }
+
+    static _registerSessionTimerSettingsHook() {
+        const defaultSettingKeys = new Set([
+            'sessionTimerDefaultMode',
+            'sessionTimerDefault',
+            'sessionTimerSpecificTime'
+        ]);
+
+        HookManager.registerHook({
+            name: 'settingChange',
+            description: 'MenuBar: Apply session Default Time settings when saved',
+            context: 'menubar-session-timer-settings',
+            priority: 3,
+            callback: async (moduleId, key) => {
+                if (moduleId !== MODULE.ID || !defaultSettingKeys.has(key)) return;
+                if (!game.user.isGM || this.isLoading) return;
+
+                const previousEnd = this.sessionEndTime;
+                await this.loadTimer();
+
+                if (this.sessionEndTime !== previousEnd) {
+                    if (this.sessionEndTime) {
+                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, false);
+                    } else {
+                        const socket = SocketManager.getSocket();
+                        if (socket) {
+                            await socket.executeForOthers('updateTimer', {
+                                endTime: null,
+                                startTime: null
+                            });
+                        }
+                    }
+                }
+
+                this.updateTimerDisplay();
+                this.startTimerUpdates();
+            }
+        });
+
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: Session timer settings hook registered", "", true, false);
     }
 
     /**
@@ -3918,25 +3967,50 @@ class MenuBar {
 
     static async loadTimer() {
         try {
-            const endTime = await game.settings.get(MODULE.ID, 'sessionEndTime');
-            const startTime = await game.settings.get(MODULE.ID, 'sessionStartTime');
-            const timerDate = await game.settings.get(MODULE.ID, 'sessionTimerDate');
+            const endTime = getSettingSafely(MODULE.ID, 'sessionEndTime', 0);
+            const startTime = getSettingSafely(MODULE.ID, 'sessionStartTime', 0);
+            const timerDate = getSettingSafely(MODULE.ID, 'sessionTimerDate', '');
             const today = new Date().toDateString();
 
             if (timerDate === today && endTime > Date.now()) {
-                // Use existing timer if it's from today and hasn't expired
                 this.sessionEndTime = endTime;
                 this.sessionStartTime = startTime;
-            } else {
-                // Use default time if timer is from a different day or expired
-                this.sessionEndTime = null;
-                this.sessionStartTime = null;
+                return;
             }
-    
+
+            this.sessionEndTime = null;
+            this.sessionStartTime = null;
+
+            if (!game.user.isGM) return;
+
+            await this._applyConfiguredDefaultTimer();
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Menubar: Error loading timer:", error, false, false);
             this.sessionEndTime = null;
             this.sessionStartTime = null;
+        }
+    }
+
+    /**
+     * Apply world Default Time settings when no valid timer exists for today.
+     * @private
+     */
+    static async _applyConfiguredDefaultTimer() {
+        const mode = getSettingSafely(MODULE.ID, 'sessionTimerDefaultMode', SESSION_TIMER_DEFAULT_MODES.DURATION);
+        if (mode === SESSION_TIMER_DEFAULT_MODES.NONE) return;
+
+        if (mode === SESSION_TIMER_DEFAULT_MODES.DURATION) {
+            const defaultMinutes = getSettingSafely(MODULE.ID, 'sessionTimerDefault', 60);
+            if (!defaultMinutes || defaultMinutes <= 0) return;
+            const hours = Math.floor(defaultMinutes / 60);
+            const mins = defaultMinutes % 60;
+            await this._applyTimerDuration(hours, mins, false, false);
+            return;
+        }
+
+        if (mode === SESSION_TIMER_DEFAULT_MODES.SPECIFIC_TIME) {
+            const endTimeValue = getSettingSafely(MODULE.ID, 'sessionTimerSpecificTime', '20:00');
+            await this._applyTimerEndTime(endTimeValue, false, false);
         }
     }
 
@@ -4130,7 +4204,7 @@ class MenuBar {
         }
     }
 
-    static async _applyTimerDuration(hours, minutes, setAsDefault = false) {
+    static async _applyTimerDuration(hours, minutes, setAsDefault = false, sendMessage = true) {
         const duration = (hours * 60 + minutes) * 60 * 1000;
         this.sessionStartTime = Date.now();
         this.sessionEndTime = this.sessionStartTime + duration;
@@ -4141,6 +4215,7 @@ class MenuBar {
 
         if (setAsDefault) {
             await game.settings.set(MODULE.ID, 'sessionTimerDefault', hours * 60 + minutes);
+            await game.settings.set(MODULE.ID, 'sessionTimerDefaultMode', SESSION_TIMER_DEFAULT_MODES.DURATION);
         }
         await game.settings.set(MODULE.ID, 'sessionTimerLastUsed', {
             mode: 'duration',
@@ -4148,18 +4223,79 @@ class MenuBar {
             endTime: ''
         });
 
-        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
+        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, sendMessage);
         this.updateTimerDisplay();
+    }
+
+    static async _applyTimerEndTime(endTimeValue, setAsDefault = false, sendMessage = true) {
+        const endTs = endTimestampFromTimeValue(endTimeValue);
+        if (!endTs) return;
+
+        const parsed = parseSessionEndTimeValue(endTimeValue);
+        const normalizedValue = parsed
+            ? `${parsed.hour24.toString().padStart(2, '0')}:${parsed.minute.toString().padStart(2, '0')}`
+            : endTimeValue;
+
+        this.sessionStartTime = Date.now();
+        this.sessionEndTime = endTs;
+
+        await game.settings.set(MODULE.ID, 'sessionEndTime', this.sessionEndTime);
+        await game.settings.set(MODULE.ID, 'sessionStartTime', this.sessionStartTime);
+        await game.settings.set(MODULE.ID, 'sessionTimerDate', new Date().toDateString());
+        await game.settings.set(MODULE.ID, 'sessionTimerLastUsed', {
+            mode: 'end',
+            minutes: 0,
+            endTime: normalizedValue
+        });
+
+        if (setAsDefault) {
+            await game.settings.set(MODULE.ID, 'sessionTimerDefaultMode', SESSION_TIMER_DEFAULT_MODES.SPECIFIC_TIME);
+            await game.settings.set(MODULE.ID, 'sessionTimerSpecificTime', normalizedValue);
+        }
+
+        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, sendMessage);
+        this.updateTimerDisplay();
+    }
+
+    static _getSessionDefaultTimeDescription() {
+        const mode = getSettingSafely(MODULE.ID, 'sessionTimerDefaultMode', SESSION_TIMER_DEFAULT_MODES.DURATION);
+        if (mode === SESSION_TIMER_DEFAULT_MODES.NONE) {
+            return 'None';
+        }
+        if (mode === SESSION_TIMER_DEFAULT_MODES.SPECIFIC_TIME) {
+            const endTimeValue = getSettingSafely(MODULE.ID, 'sessionTimerSpecificTime', '20:00');
+            return formatSessionEndTimeValue(endTimeValue);
+        }
+        const defaultMinutes = getSettingSafely(MODULE.ID, 'sessionTimerDefault', 60) || 0;
+        const defaultHours = Math.floor(defaultMinutes / 60);
+        const defaultMins = defaultMinutes % 60;
+        return `${defaultHours}h ${defaultMins.toString().padStart(2, '0')}m`;
+    }
+
+    static async _applySessionDefaultTimeFromSettings() {
+        const mode = getSettingSafely(MODULE.ID, 'sessionTimerDefaultMode', SESSION_TIMER_DEFAULT_MODES.DURATION);
+        if (mode === SESSION_TIMER_DEFAULT_MODES.NONE) return;
+
+        if (mode === SESSION_TIMER_DEFAULT_MODES.DURATION) {
+            const defaultMinutes = getSettingSafely(MODULE.ID, 'sessionTimerDefault', 60) || 0;
+            const defaultHours = Math.floor(defaultMinutes / 60);
+            const defaultMins = defaultMinutes % 60;
+            await this._applyTimerDuration(defaultHours, defaultMins, false);
+            return;
+        }
+
+        if (mode === SESSION_TIMER_DEFAULT_MODES.SPECIFIC_TIME) {
+            const endTimeValue = getSettingSafely(MODULE.ID, 'sessionTimerSpecificTime', '20:00');
+            await this._applyTimerEndTime(endTimeValue, false);
+        }
     }
 
     static async showTimerMenu(event) {
         this._closeMenubarContextMenu();
-        const defaultMinutes = game.settings.get(MODULE.ID, 'sessionTimerDefault') || 0;
-        const defaultHours = Math.floor(defaultMinutes / 60);
-        const defaultMins = defaultMinutes % 60;
-        const defaultLabel = `${defaultHours}h ${defaultMins.toString().padStart(2, '0')}m`;
+        const defaultMode = getSettingSafely(MODULE.ID, 'sessionTimerDefaultMode', SESSION_TIMER_DEFAULT_MODES.DURATION);
+        const defaultLabel = this._getSessionDefaultTimeDescription();
 
-        const lastUsed = game.settings.get(MODULE.ID, 'sessionTimerLastUsed') || { mode: '', minutes: 0, endTime: '' };
+        const lastUsed = getSettingSafely(MODULE.ID, 'sessionTimerLastUsed', { mode: '', minutes: 0, endTime: '' });
         const hasLastUsed = !!(lastUsed?.mode === 'duration' && lastUsed?.minutes) || !!(lastUsed?.mode === 'end' && lastUsed?.endTime);
         let lastUsedLabel = 'Not set';
         if (lastUsed?.mode === 'duration') {
@@ -4167,12 +4303,7 @@ class MenuBar {
             const lm = (lastUsed.minutes || 0) % 60;
             lastUsedLabel = `${lh}h ${lm.toString().padStart(2, '0')}m`;
         } else if (lastUsed?.mode === 'end' && lastUsed.endTime) {
-            const [hh, mm] = lastUsed.endTime.split(':').map(n => parseInt(n, 10));
-            const hour24 = Number.isFinite(hh) ? hh : 0;
-            const hour12 = ((hour24 + 11) % 12) + 1;
-            const ampm = hour24 >= 12 ? 'PM' : 'AM';
-            const minutes = Number.isFinite(mm) ? mm : 0;
-            lastUsedLabel = `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+            lastUsedLabel = formatSessionEndTimeValue(lastUsed.endTime);
         }
 
         const durationPresets = [
@@ -4191,37 +4322,11 @@ class MenuBar {
 
         const endTimePresets = [
             { name: 'Custom…', icon: 'fa-solid fa-sliders', callback: () => this.showTimerEndTimeDialog() },
-            ...Array.from({ length: 24 }, (_, i) => {
-                const h = i;
-                const m = 0;
-                const hour12 = ((h + 11) % 12) + 1;
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                const label = `${hour12} ${ampm}`;
-                const endTimeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                return {
-                    name: label,
-                    icon: 'fa-solid fa-clock',
-                    callback: async () => {
-                        const end = new Date();
-                        end.setHours(h, m, 0, 0);
-                        if (end.getTime() <= Date.now()) {
-                            end.setDate(end.getDate() + 1);
-                        }
-                        this.sessionStartTime = Date.now();
-                        this.sessionEndTime = end.getTime();
-                        await game.settings.set(MODULE.ID, 'sessionEndTime', this.sessionEndTime);
-                        await game.settings.set(MODULE.ID, 'sessionStartTime', this.sessionStartTime);
-                        await game.settings.set(MODULE.ID, 'sessionTimerDate', new Date().toDateString());
-                        await game.settings.set(MODULE.ID, 'sessionTimerLastUsed', {
-                            mode: 'end',
-                            minutes: 0,
-                            endTime: endTimeValue
-                        });
-                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
-                        this.updateTimerDisplay();
-                    }
-                };
-            })
+            ...getSessionEndTimeOptions().map(({ value, label }) => ({
+                name: label,
+                icon: 'fa-solid fa-clock',
+                callback: async () => this._applyTimerEndTime(value, false)
+            }))
         ];
 
         const items = [
@@ -4229,8 +4334,9 @@ class MenuBar {
                 name: 'Default Time',
                 description: defaultLabel,
                 icon: 'fa-solid fa-clock-rotate-left',
+                disabled: defaultMode === SESSION_TIMER_DEFAULT_MODES.NONE,
                 callback: async () => {
-                    await this._applyTimerDuration(defaultHours, defaultMins, false);
+                    await this._applySessionDefaultTimeFromSettings();
                 }
             },
             {
@@ -4246,20 +4352,8 @@ class MenuBar {
                         await this._applyTimerDuration(lh, lm, false);
                         return;
                     }
-                        if (lastUsed.mode === 'end' && lastUsed.endTime) {
-                            const [hh, mm] = lastUsed.endTime.split(':').map(n => parseInt(n, 10));
-                            const end = new Date();
-                            end.setHours(hh || 0, mm || 0, 0, 0);
-                            if (end.getTime() <= Date.now()) {
-                                end.setDate(end.getDate() + 1);
-                            }
-                        this.sessionStartTime = Date.now();
-                        this.sessionEndTime = end.getTime();
-                        await game.settings.set(MODULE.ID, 'sessionEndTime', this.sessionEndTime);
-                        await game.settings.set(MODULE.ID, 'sessionStartTime', this.sessionStartTime);
-                        await game.settings.set(MODULE.ID, 'sessionTimerDate', new Date().toDateString());
-                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
-                        this.updateTimerDisplay();
+                    if (lastUsed.mode === 'end' && lastUsed.endTime) {
+                        await this._applyTimerEndTime(lastUsed.endTime, false);
                     }
                 }
             },
@@ -4272,7 +4366,7 @@ class MenuBar {
             },
             {
                 name: 'Set Time',
-                description: 'Hour-based end time (AM/PM).',
+                description: 'End time in half-hour increments (AM/PM).',
                 icon: 'fa-solid fa-clock',
                 submenu: endTimePresets
             }
@@ -4398,18 +4492,11 @@ class MenuBar {
         const hours24 = now.getHours();
         const hour12Default = ((hours24 + 11) % 12) + 1;
         const ampmDefault = hours24 >= 12 ? 'PM' : 'AM';
+        const minuteDefault = now.getMinutes() >= 30 ? 30 : 0;
 
         const timeOptions = [
             { value: 'custom', label: 'Custom' },
-            ...Array.from({ length: 24 }, (_, i) => {
-                const h = i;
-                const hour12 = ((h + 11) % 12) + 1;
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                return {
-                    value: `${h.toString().padStart(2, '0')}:00`,
-                    label: `${hour12} ${ampm}`
-                };
-            })
+            ...getSessionEndTimeOptions().map(({ value, label }) => ({ value, label }))
         ];
 
         const DialogV2 = foundry.applications.api.DialogV2;
@@ -4428,6 +4515,11 @@ class MenuBar {
                                 const h = i + 1;
                                 return `<option value="${h}" ${h === hour12Default ? 'selected' : ''}>${h}</option>`;
                             }).join('')}
+                        </select>
+                        <select name="end-minute" id="end-minute">
+                            ${[0, 30].map((m) =>
+                                `<option value="${m}" ${m === minuteDefault ? 'selected' : ''}>${m.toString().padStart(2, '0')}</option>`
+                            ).join('')}
                         </select>
                         <select name="end-ampm" id="end-ampm">
                             <option value="AM" ${ampmDefault === 'AM' ? 'selected' : ''}>AM</option>
@@ -4468,47 +4560,23 @@ class MenuBar {
                         const presetSelect = root?.querySelector('#end-time-preset');
                         const presetValue = presetSelect?.value ?? 'custom';
                         const hourSelect = root?.querySelector('#end-hour');
+                        const minuteSelect = root?.querySelector('#end-minute');
                         const ampmSelect = root?.querySelector('#end-ampm');
                         const setDefaultCheckbox = root?.querySelector('#set-default-endtime');
                         const setAsDefault = setDefaultCheckbox?.checked ?? false;
-                        let hour24 = 0;
-                        let m = 0;
+                        let endTimeValue = '';
                         if (presetValue !== 'custom') {
-                            const [ph, pm] = presetValue.split(':').map(n => parseInt(n, 10));
-                            hour24 = ph || 0;
-                            m = pm || 0;
+                            endTimeValue = presetValue;
                         } else {
                             const h12 = parseInt(hourSelect?.value ?? '12', 10);
                             const ampm = ampmSelect?.value ?? 'AM';
-                            hour24 = h12 % 12;
+                            const minute = parseInt(minuteSelect?.value ?? '0', 10);
+                            let hour24 = h12 % 12;
                             if (ampm === 'PM') hour24 += 12;
+                            endTimeValue = `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
                         }
 
-                        const end = new Date();
-                        end.setHours(hour24, m, 0, 0);
-                        if (end.getTime() <= Date.now()) {
-                            end.setDate(end.getDate() + 1);
-                        }
-
-                        this.sessionStartTime = Date.now();
-                        this.sessionEndTime = end.getTime();
-
-                        await game.settings.set(MODULE.ID, 'sessionEndTime', this.sessionEndTime);
-                        await game.settings.set(MODULE.ID, 'sessionStartTime', this.sessionStartTime);
-                        await game.settings.set(MODULE.ID, 'sessionTimerDate', new Date().toDateString());
-
-                        await game.settings.set(MODULE.ID, 'sessionTimerLastUsed', {
-                            mode: 'end',
-                            minutes: 0,
-                            endTime: `${hour24.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
-                        });
-                        if (setAsDefault) {
-                            const totalMinutes = Math.max(0, Math.round((this.sessionEndTime - this.sessionStartTime) / 60000));
-                            await game.settings.set(MODULE.ID, 'sessionTimerDefault', totalMinutes);
-                        }
-
-                        await this.updateTimer(this.sessionEndTime, this.sessionStartTime, true);
-                        this.updateTimerDisplay();
+                        await this._applyTimerEndTime(endTimeValue, setAsDefault);
                         void dialog.close();
                     }
                 }

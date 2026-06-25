@@ -10,6 +10,11 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
 import { assetLookup } from './asset-lookup.js';
+import {
+	SESSION_TIMER_DEFAULT_MODES,
+	getSessionEndTimeChoicesObject,
+	getSessionTimerDefaultModeChoices
+} from './utility-session-timer.js';
 
 const _emptyArr = [];
 
@@ -3074,7 +3079,17 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// Menubar Settings
+	game.settings.register(MODULE.ID, 'sessionTimerDefaultMode', {
+		name: MODULE.ID + '.sessionTimerDefaultMode-Label',
+		hint: MODULE.ID + '.sessionTimerDefaultMode-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: SESSION_TIMER_DEFAULT_MODES.DURATION,
+		choices: getSessionTimerDefaultModeChoices,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	game.settings.register(MODULE.ID, 'sessionTimerDefault', {
 		name: MODULE.ID + '.sessionTimerDefault-Label',
 		hint: MODULE.ID + '.sessionTimerDefault-Hint',
@@ -3087,6 +3102,17 @@ export const registerSettings = () => {
 			max: 600,
 			step: 1
 		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'sessionTimerSpecificTime', {
+		name: MODULE.ID + '.sessionTimerSpecificTime-Label',
+		hint: MODULE.ID + '.sessionTimerSpecificTime-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: '20:00',
+		choices: getSessionEndTimeChoicesObject,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 

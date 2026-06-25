@@ -517,8 +517,17 @@
 		"headingH3SessionTimers-Label": "Session Timer",
 		"headingH3SessionTimers-Hint": "",
 
-			"sessionTimerDefault-Label": "Default Duration",
-			"sessionTimerDefault-Hint": "The default duration of the session. (Up to 10 hours, for you maniacs.)",
+			"sessionTimerDefaultMode-Label": "Default Time",
+			"sessionTimerDefaultMode-Hint": "When a new game day starts or the previous session timer has expired, the GM client applies this default automatically. Saving this setting also updates the menubar immediately when no session timer is currently running.",
+			"sessionTimerDefaultMode-none": "None",
+			"sessionTimerDefaultMode-duration": "Fixed Duration",
+			"sessionTimerDefaultMode-specificTime": "Specific Time",
+
+			"sessionTimerDefault-Label": "Fixed Duration",
+			"sessionTimerDefault-Hint": "Session length in minutes when Default Time is set to Fixed Duration. (Up to 10 hours, for you maniacs.)",
+
+			"sessionTimerSpecificTime-Label": "Specific Time",
+			"sessionTimerSpecificTime-Hint": "End time when Default Time is set to Specific Time. Uses half-hour increments.",
 
 			"sessionTimerWarningThreshold-Label": " Warning Threshold",
 			"sessionTimerWarningThreshold-Hint": "",
