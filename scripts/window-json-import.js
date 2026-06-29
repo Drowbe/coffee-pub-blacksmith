@@ -1,5 +1,6 @@
 import { MODULE } from './const.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { copyToClipboard } from './utility-common.js';
 
 const BODY_TEMPLATE = `modules/${MODULE.ID}/templates/window-json-import-body.hbs`;
 
@@ -26,6 +27,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
     static ACTION_HANDLERS = {
         selectTab: (_event, target) => JsonImportWindow._ref?._selectTab(target),
         copyTemplate: () => JsonImportWindow._ref?._copyTemplate(),
+        saveTemplate: () => JsonImportWindow._ref?._saveTemplate(),
         selectFile: () => JsonImportWindow._ref?._selectFile(),
         importJson: () => JsonImportWindow._ref?._importJson()
     };
@@ -37,6 +39,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '');
         if (idSuffix) opts.id = `blacksmith-json-import-window-${idSuffix}`;
+        opts.promptFilePrefix = opts.promptFilePrefix || idSuffix || 'prompt';
         opts.window = foundry.utils.mergeObject(
             foundry.utils.mergeObject({}, JsonImportWindow.DEFAULT_OPTIONS.window ?? {}),
             { title: opts.windowTitle || 'Import JSON' }
@@ -57,9 +60,11 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.fileInputAccept = opts.fileInputAccept || '.json,application/json';
         this.initialJson = opts.initialJson || '';
         this.copyTemplateLabel = opts.copyTemplateLabel || 'Copy to Clipboard';
+        this.saveTemplateLabel = opts.saveTemplateLabel || 'Save as Text File';
         this.selectFileLabel = opts.selectFileLabel || 'Select JSON File';
         this.importLabel = opts.importLabel || 'Import JSON';
-        this.onCopyTemplate = typeof opts.onCopyTemplate === 'function' ? opts.onCopyTemplate : null;
+        this.promptFilePrefix = opts.promptFilePrefix || 'prompt';
+        this.onBuildPrompt = typeof opts.onBuildPrompt === 'function' ? opts.onBuildPrompt : null;
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
         this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
         this.promptFields = Array.isArray(opts.promptFields) ? opts.promptFields : [];
@@ -105,6 +110,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         if (isCopyTab) {
             const disabled = this.templateOptions.length === 0 ? ' disabled' : '';
             return `
+                <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-save-template" data-action="saveTemplate"${disabled}>
+                    <i class="fa-solid fa-file-arrow-down"></i> ${this.saveTemplateLabel}
+                </button>
                 <button type="button" class="blacksmith-window-btn-primary blacksmith-json-import-copy-template" data-action="copyTemplate"${disabled}>
                     <i class="fa-solid fa-clipboard"></i> ${this.copyTemplateLabel}
                 </button>
@@ -197,13 +205,14 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _copyTemplate() {
-        if (!this.onCopyTemplate) return;
+        if (!this.onBuildPrompt) return;
         const root = this.element;
         const copyButton = root?.querySelector('.blacksmith-json-import-copy-template');
         ui.notifications.info('Gathering data to put on the clipboard, please wait...');
         if (copyButton) copyButton.disabled = true;
         try {
-            const copied = await this.onCopyTemplate(this.selectedTemplate, this._getPromptOptions());
+            const prompt = await this.onBuildPrompt(this.selectedTemplate, this._getPromptOptions());
+            const copied = await copyToClipboard(String(prompt ?? ''), { notify: false });
             if (copied !== false) {
                 ui.notifications.info('Prompt copied to the clipboard');
             }
@@ -213,6 +222,40 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         } finally {
             if (copyButton) copyButton.disabled = false;
         }
+    }
+
+    async _saveTemplate() {
+        if (!this.onBuildPrompt) return;
+        const root = this.element;
+        const saveButton = root?.querySelector('.blacksmith-json-import-save-template');
+        ui.notifications.info('Gathering data to save, please wait...');
+        if (saveButton) saveButton.disabled = true;
+        try {
+            const prompt = String((await this.onBuildPrompt(this.selectedTemplate, this._getPromptOptions())) ?? '');
+            const template = String(this.selectedTemplate || 'prompt')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+            const filename = `blacksmith-${this.promptFilePrefix}-${template || 'prompt'}.txt`;
+            this._downloadTextFile(filename, prompt);
+            ui.notifications.info(`Prompt saved as ${filename}`);
+        } catch (error) {
+            const message = error?.message || String(error);
+            ui.notifications.error(`Failed to save prompt: ${message}`);
+        } finally {
+            if (saveButton) saveButton.disabled = false;
+        }
+    }
+
+    /**
+     * Trigger a download of plain text content. Uses Foundry's saveDataToFile,
+     * which sets the dataset.downloadurl hint and defers revoking the object URL
+     * so the download works inside Foundry's Electron shell.
+     * @param {string} filename
+     * @param {string} text
+     */
+    _downloadTextFile(filename, text) {
+        foundry.utils.saveDataToFile(text, 'text/plain', filename);
     }
 
     async _importJson() {

@@ -31,11 +31,10 @@ import {
     getSettingSafely
 } from './api-core.js';
 // -- Common Imports --
-import { 
-    createJournalEntry, 
-    createHTMLList, 
-    buildCompendiumLinkActor, 
-    copyToClipboard 
+import {
+    createJournalEntry,
+    createHTMLList,
+    buildCompendiumLinkActor
 } from './utility-common.js';
 // -- Import special page variables --
 import { registerSettings, ensureCoreLoadingProgressSettingRegistered, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices, primeCoreChoiceCaches } from './settings.js';
@@ -2617,10 +2616,7 @@ const renderActorDirectoryHookId = HookManager.registerHook({
             windowIcon: 'fa-solid fa-user-plus',
             position: { width: 920, height: 680 },
             templateOptions: [{ value: 'npc', label: 'NPC/Monster' }],
-            onCopyTemplate: async () => {
-                const promptWithDefaults = await getActorPromptWithDefaults(characterPrompt);
-                return copyToClipboard(promptWithDefaults, { notify: false });
-            },
+            onBuildPrompt: async () => getActorPromptWithDefaults(characterPrompt),
             onImport: async (jsonData) => {
                 try {
                     const parsed = JSON.parse(jsonData);

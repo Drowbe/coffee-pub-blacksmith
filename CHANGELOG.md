@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+
+## [13.7.15]
+
+
+## [13.7.14]
+
+### Changed
+
+- **module.json**: Added upload flag to allow uploads to the module folder.
+
 ## [13.7.13]
 
 ### Added

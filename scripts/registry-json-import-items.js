@@ -4,7 +4,6 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { copyToClipboard } from './utility-common.js';
 import { registerJsonImportKind } from './registry-json-import.js';
 import { parseFlatItemToFoundry } from './parsers/parse-item.js';
 import {
@@ -89,12 +88,9 @@ const itemJsonImportKind = {
         if (!isArtificerModuleActive()) return [];
         return [{ id: 'artificerItem', label: 'Artificer Item', checked: false }];
     },
-    onCopyTemplate: async (type, promptOptions = {}) => {
-        const prompt = await buildItemImportPrompt(type, {
-            includeArtificer: !!promptOptions.artificerItem
-        });
-        return copyToClipboard(prompt, { notify: false });
-    },
+    onBuildPrompt: async (type, promptOptions = {}) => buildItemImportPrompt(type, {
+        includeArtificer: !!promptOptions.artificerItem
+    }),
     onImport: async (entries) => {
         const itemsToImport = await Promise.all(entries.map(parseFlatItemToFoundry));
         const created = await Item.createDocuments(itemsToImport, { keepId: false });

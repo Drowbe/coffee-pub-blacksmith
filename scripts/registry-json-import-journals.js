@@ -5,7 +5,7 @@
 import { MODULE } from './const.js';
 import { CampaignManager } from './manager-campaign.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { copyToClipboard, createJournalEntry, buildInjuryJournalEntry } from './utility-common.js';
+import { createJournalEntry, buildInjuryJournalEntry } from './utility-common.js';
 import { registerJsonImportKind } from './registry-json-import.js';
 import {
     fetchPromptText,
@@ -825,32 +825,32 @@ export async function buildLocationImportPrompt(promptOptions = {}) {
 }
 
 /**
+ * Build the prompt text for a journal import template. The window decides how to
+ * deliver it (copy to clipboard or save as a text file).
  * @param {string} templateKey
  * @param {Record<string, string|boolean>} [promptOptions]
+ * @returns {Promise<string>}
  */
-async function copyJournalTemplate(templateKey, promptOptions = {}) {
+async function buildJournalPrompt(templateKey, promptOptions = {}) {
     const type = String(templateKey || 'area').toLowerCase();
 
     if (type === 'illustration') {
-        const prompt = await buildJournalVisualPrompt('illustration', promptOptions);
-        return copyToClipboard(prompt, { notify: false });
+        return buildJournalVisualPrompt('illustration', promptOptions);
     }
     if (type === 'portrait') {
-        const prompt = await buildJournalVisualPrompt('portrait', promptOptions);
-        return copyToClipboard(prompt, { notify: false });
+        return buildJournalVisualPrompt('portrait', promptOptions);
     }
 
     if (type === 'injury') {
-        return copyToClipboard(await fetchLegacyPromptText('prompt-injuries.txt'), { notify: false });
+        return fetchLegacyPromptText('prompt-injuries.txt');
     }
     if (type === 'encounter') {
         const raw = await fetchLegacyPromptText('prompt-encounter.txt');
-        return copyToClipboard(await getEncounterTemplateWithDefaults(raw), { notify: false });
+        return getEncounterTemplateWithDefaults(raw);
     }
     if (type === 'location') {
         await saveCampaignGeographyDefaultsIfRequested(promptOptions);
-        const prompt = await buildLocationImportPrompt(promptOptions);
-        return copyToClipboard(prompt, { notify: false });
+        return buildLocationImportPrompt(promptOptions);
     }
 
     await saveCampaignGeographyDefaultsIfRequested(promptOptions);
@@ -875,7 +875,7 @@ async function copyJournalTemplate(templateKey, promptOptions = {}) {
         },
         additionalContext: promptOptions.additionalContext ?? ''
     });
-    return copyToClipboard(prompt, { notify: false });
+    return prompt;
 }
 
 /**
@@ -944,7 +944,7 @@ const journalJsonImportKind = {
     get journalLocationUi() {
         return getJournalLocationImportUi();
     },
-    onCopyTemplate: copyJournalTemplate,
+    onBuildPrompt: buildJournalPrompt,
     onImport: async (entries) => importJournalEntries(entries),
     onImportError(e) {
         const message = e?.message || String(e);

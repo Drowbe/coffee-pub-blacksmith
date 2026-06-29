@@ -22,7 +22,7 @@ const kinds = new Map();
  * @property {Array<{value: string, label: string}>} [templateOptions]
  * @property {Array<{id: string, label: string, checked?: boolean, disabled?: boolean, showForTemplate?: string}>} [promptCheckboxes]
  * @property {Array<{id: string, label: string, value?: string, showForTemplate?: string, inputType?: 'text'|'select'|'textarea', fullWidth?: boolean, options?: Array<{value: string, label: string}>}>} [promptFields]
- * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<void>} [onCopyTemplate]
+ * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildPrompt] - Build and return the prompt text; the window delivers it (clipboard or text file).
  * @property {(entries: object[]) => Promise<boolean>} onImport - Parsed entries from {@link parseJsonImportPayload} (via runJsonImport)
  * @property {(error: Error) => boolean} [onImportError]
  */
@@ -118,7 +118,7 @@ export function openJsonImportWindow(kindId) {
         promptFields: kind.promptFields ?? [],
         journalAreaUi: kind.journalAreaUi ?? null,
         journalLocationUi: kind.journalLocationUi ?? null,
-        onCopyTemplate: kind.onCopyTemplate,
+        onBuildPrompt: kind.onBuildPrompt,
         onImport: async (jsonDataRaw) => {
             try {
                 return await runJsonImport(kind, jsonDataRaw);

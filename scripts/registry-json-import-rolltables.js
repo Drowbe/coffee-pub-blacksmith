@@ -4,7 +4,6 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { copyToClipboard } from './utility-common.js';
 import { registerJsonImportKind } from './registry-json-import.js';
 import { parseTableToFoundry } from './parsers/parse-rolltable.js';
 import {
@@ -87,10 +86,7 @@ const rolltableJsonImportKind = {
     windowIcon: 'fa-solid fa-dice-d20',
     position: { width: 920, height: 680 },
     templateOptions: ROLLTABLE_TEMPLATE_OPTIONS,
-    onCopyTemplate: async (type) => {
-        const prompt = await buildRollTableImportPrompt(type);
-        return copyToClipboard(prompt, { notify: false });
-    },
+    onBuildPrompt: async (type) => buildRollTableImportPrompt(type),
     onImport: async (entries) => {
         const tablesToImport = await Promise.all(entries.map(parseTableToFoundry));
         const created = await RollTable.createDocuments(tablesToImport, { keepId: false });
