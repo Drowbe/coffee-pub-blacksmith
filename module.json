@@ -20,6 +20,10 @@
   "socket": true,
   "library": true,
 
+  "flags": {
+    "canUpload": true
+  },
+
   "authors": [
     {
       "name": "COFFEE PUB",
