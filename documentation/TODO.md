@@ -146,6 +146,15 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 ### Low Priority
 
+#### Party Stats Export — fragile blob download + no UI entry point
+- **Issue**: Two problems. (1) The combat/player stats export uses a hand-rolled blob+anchor download that calls `URL.revokeObjectURL(url)` synchronously right after `anchor.click()`. The click is async, so the object URL can be revoked before the download starts — in Foundry's Electron shell this surfaces as the "Get an app to open this 'blob' link" dialog (same bug that was just fixed in `window-json-import.js`). (2) There appears to be no reachable UI control that actually invokes this export — the handler may be orphaned.
+- **Status**: PENDING — investigate reachability, then fix the download
+- **Location**: `scripts/window-stats-party.js` (export handler ~lines 478–497, `anchor.download` / `URL.revokeObjectURL`)
+- **Need**:
+  - Confirm whether/how the export is invokable from the UI; if orphaned, either wire up a button or remove the dead handler.
+  - Replace the blob+anchor pattern with `foundry.utils.saveDataToFile(jsonString, 'application/json', filename)` (the canonical v13 helper; sets `dataset.downloadurl` and defers the revoke). Mirrors the fix in `window-json-import.js` `_downloadTextFile`.
+- **Priority**: Low — pre-existing; impact limited if the export isn't currently reachable
+
 #### Configure Pin — Section Checkbox Label Size Inheritance Bug
 - **Issue**: The "Update All" / "Default" checkbox labels in section headers render too small. `font-size` overrides in `.blacksmith-pin-config-section-check-label` (including absolute `px` values) have no visible effect, suggesting the label text is controlled by an ancestor rule or Foundry's CSS reset that overrides the element styles.
 - **Status**: PENDING — `font-size: 11px`, `text-transform: none`, and `line-height: 1.4` are set on the label but not applying. Needs investigation into Foundry's CSS cascade for Application V2 windows.
