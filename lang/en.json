@@ -915,6 +915,9 @@
 				"tokenNameTable-Label": "Random Name Table",
 				"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
 
+			"headingH3TokenNamesByType-Label": "Names by Creature Type",
+			"headingH3TokenNamesByType-Hint": "Optional: pick a random-name table per creature type or subtype. Unset entries fall back to the type's table, then to the Random Name Table above.",
+
 
 
 

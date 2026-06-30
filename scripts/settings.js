@@ -9,6 +9,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
+import { getNamingKeyList, tokenNameTableSettingId } from './utility-token-naming.js';
 import { assetLookup } from './asset-lookup.js';
 import {
 	SESSION_TIMER_DEFAULT_MODES,
@@ -4268,6 +4269,30 @@ export const registerSettings = () => {
 		choices: BLACKSMITH.arrTableChoices,
 		group: WORKFLOW_GROUPS.AUTOMATION
 	});
+
+	// --------------------------------------
+	// -- H3: Names by Creature Type
+	// --------------------------------------
+	// One optional RollTable per creature type / distinct subtype (generated from
+	// resources/naming-taxonomy.json). Unset entries cascade: subtype → type →
+	// the global Random Name Table above. See utility-token-naming.js.
+	const namingKeys = getNamingKeyList();
+	if (namingKeys.length) {
+		registerHeader('TokenNamesByType', 'headingH3TokenNamesByType-Label', 'headingH3TokenNamesByType-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
+		for (const { key, label } of namingKeys) {
+			game.settings.register(MODULE.ID, tokenNameTableSettingId(key), {
+				name: `${label} Names`,
+				hint: '',
+				scope: 'world',
+				config: true,
+				requiresReload: false,
+				type: String,
+				default: 'none',
+				choices: BLACKSMITH.arrTableChoices,
+				group: WORKFLOW_GROUPS.AUTOMATION
+			});
+		}
+	}
 
 
 	// --------------------------------------

@@ -51,9 +51,9 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 #### Creature-type / subtype token naming
 - **Issue**: Token auto-renaming uses a single global random-name table (`tokenNameTable`); names aren't appropriate to a creature's type/subtype (e.g. orcs vs. elves vs. dragons).
-- **Status**: PLANNED — design locked; not started. Full design in `documentation/plans/plan-token-naming.md`.
-- **Location**: `scripts/manager-canvas.js` (`_onCreateToken` name source), `scripts/settings.js` (token-renaming group), new `resources/naming-taxonomy.json`, new resolver helper (e.g. `scripts/utility-token-naming.js`).
-- **Need**: Per-key RollTable dropdowns (14 types + 4 subtypes: elf/dwarf/gnome/goblinoid), alias JSON as source of truth + canonicalization, cascade `subtype → type → global tokenNameTable`, design-system-styled settings block after the existing token-renaming options. Existing single table stays as failover. World tables first; compendium source later.
+- **Status**: IMPLEMENTED (Phases 1–2) — pending in-Foundry verification + Phase 3–4 polish. Design/status in `documentation/plans/plan-token-naming.md`.
+- **Location**: `resources/naming-taxonomy.json`, `scripts/utility-token-naming.js`, `scripts/manager-canvas.js` (`_onCreateToken`), `scripts/settings.js` (generated per-key settings), `scripts/blacksmith.js` (taxonomy load), `lang/en.json`.
+- **Remaining**: (1) Verify in Foundry: per-type dropdowns appear, type/subtype tokens resolve to the right table, unset entries cascade to the global table. (2) Refresh the canonical-key/alias index on table create/delete (currently built once at load; new *tables* resolve live, but new *keys* need a reload). (3) Grow alias coverage. (4) Later: compendium table source (switch to UUID refs).
 - **Priority**: Medium
 
 #### Roll system: Query window integration (architecture-rolls Phase 1.3)

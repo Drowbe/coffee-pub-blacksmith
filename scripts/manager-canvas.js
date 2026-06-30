@@ -9,6 +9,7 @@ import { MODULE } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { resolveTokenNameTableName } from './utility-token-naming.js';
 
 // ================================================================== 
 // ===== CLASS DEFINITION ===========================================
@@ -313,8 +314,9 @@ export class CanvasTools {
         // Only modify tokens if not a linked actor. e.g a player
         if (!actorLink) {
             if (strTokenNameFormat == "name-replace" || strTokenNameFormat == "name-append-end" || strTokenNameFormat == "name-append-start" || strTokenNameFormat == "name-append-end-parenthesis" || strTokenNameFormat == "name-append-start-parenthesis" || strTokenNameFormat == "name-append-end-dash" || strTokenNameFormat == "name-append-start-dash" ) {
-                // Append a name from a roll table to the token
-                let strTableName = game.settings.get(MODULE.ID, 'tokenNameTable');
+                // Append a name from a roll table to the token. Resolve the table by the
+                // token's creature type/subtype (cascade), falling back to the global table.
+                let strTableName = resolveTokenNameTableName(document.actor);
                 if (strTableName) {
                     const table = game.tables.getName(strTableName);
                     if (!table) {

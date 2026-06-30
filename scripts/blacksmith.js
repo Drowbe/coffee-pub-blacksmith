@@ -77,6 +77,7 @@ import { HookManager } from './manager-hooks.js';
 import { ConstantsGenerator } from './constants-generator.js';
 import { assetLookup, initializeAssetLookupInstance } from './asset-lookup.js';
 import { loadAssetBundlesWithOverrides, loadDefaultAssetBundlesFromJson } from './asset-loader.js';
+import { loadNamingTaxonomy } from './utility-token-naming.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { SidebarPin } from './ui-sidebar-pin.js';
 import { SidebarStyle } from './ui-sidebar-style.js';
@@ -393,6 +394,14 @@ Hooks.once('ready', async () => {
         console.error(`${MODULE.ID}: initializeAssetLookupInstance failed (early ready)`, e);
         LoadingProgressManager.forceHide();
         return;
+    }
+
+    // Load the creature-type naming taxonomy before registerSettings() so the per-type
+    // token-name table settings can be generated from it. Non-fatal on failure.
+    try {
+        await loadNamingTaxonomy();
+    } catch (e) {
+        console.error(`${MODULE.ID}: loadNamingTaxonomy failed (early ready)`, e);
     }
 
     // Register settings so Asset Mapping paths exist before we fetch optional JSON overrides.

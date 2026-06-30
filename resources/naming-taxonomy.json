@@ -1,0 +1,21 @@
+{
+  "aberration":  { "label": "Aberration",  "aliases": ["aberrations", "aberrant"] },
+  "beast":       { "label": "Beast",        "aliases": ["beasts", "animal", "animals", "critter", "critters", "wildlife"] },
+  "celestial":   { "label": "Celestial",    "aliases": ["celestials", "angel", "angels", "archon", "deva", "empyrean"] },
+  "construct":   { "label": "Construct",    "aliases": ["constructs", "golem", "golems", "automaton", "automatons", "animated object", "animated objects"] },
+  "dragon":      { "label": "Dragon",       "aliases": ["dragons", "wyrm", "wyrms", "drake", "drakes", "wyrmling", "wyrmlings", "dragonkin"] },
+  "elemental":   { "label": "Elemental",    "aliases": ["elementals", "genie", "genies", "djinni", "efreeti", "elemental spirit"] },
+  "fey":         { "label": "Fey",          "aliases": ["fae", "faerie", "faeries", "fairy", "fairies", "sprite", "sprites", "pixie"] },
+  "fiend":       { "label": "Fiend",        "aliases": ["fiends", "demon", "demons", "devil", "devils", "yugoloth", "yugoloths", "daemon", "infernal"] },
+  "giant":       { "label": "Giant",        "aliases": ["giants", "titan", "titans", "ogre", "ogres", "troll", "trolls", "jotun"] },
+  "humanoid":    { "label": "Humanoid",     "aliases": ["humanoids", "people", "folk", "person", "mortal", "mortals"] },
+  "monstrosity": { "label": "Monstrosity",  "aliases": ["monstrosities", "monster", "monsters"] },
+  "ooze":        { "label": "Ooze",         "aliases": ["oozes", "slime", "slimes", "jelly", "jellies", "pudding", "blob", "blobs"] },
+  "plant":       { "label": "Plant",        "aliases": ["plants", "fungus", "fungi", "flora", "shambling mound", "vegepygmy"] },
+  "undead":      { "label": "Undead",       "aliases": ["undeads", "zombie", "zombies", "skeleton", "skeletons", "ghost", "ghosts", "ghoul", "ghouls", "vampire", "vampires", "lich", "liches", "wraith", "wraiths", "specter", "spectre", "wight", "wights", "revenant", "mummy", "mummies"] },
+
+  "elf":         { "label": "Elves",        "aliases": ["elves", "elven", "drow", "eladrin", "half-elf", "half elf", "shadar-kai", "high elf", "wood elf", "sea elf"] },
+  "dwarf":       { "label": "Dwarves",      "aliases": ["dwarves", "dwarven", "duergar", "hill dwarf", "mountain dwarf", "deep dwarf"] },
+  "gnome":       { "label": "Gnomes",       "aliases": ["gnomes", "gnomish", "svirfneblin", "rock gnome", "forest gnome", "deep gnome"] },
+  "goblinoid":   { "label": "Goblinoids",   "aliases": ["goblinoids", "goblin", "goblins", "hobgoblin", "hobgoblins", "bugbear", "bugbears", "kobold", "kobolds", "orc", "orcs", "orcish", "half-orc", "half orc"] }
+}

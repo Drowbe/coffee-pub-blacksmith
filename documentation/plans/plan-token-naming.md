@@ -4,7 +4,11 @@ Purpose: give token auto-renaming a name source appropriate to the creature's **
 **subtype**, instead of a single global random-name table. Keep the existing single table as a
 failover so current behavior is unchanged until the new mapping is configured.
 
-Status: **Planned** — design locked, not yet implemented. No code changes made for this plan.
+Status: **Implemented (Phases 1–2)** — data, resolver, wiring, and per-key settings are in.
+In-Foundry verification and Phase 3–4 polish (index invalidation on table CRUD; compendium
+source) remain. Files: `resources/naming-taxonomy.json`, `scripts/utility-token-naming.js`,
+`scripts/blacksmith.js` (load before registerSettings), `scripts/settings.js` (generated per-key
+settings), `scripts/manager-canvas.js` (`_onCreateToken` resolver), `lang/en.json` (header).
 
 ---
 
@@ -193,12 +197,16 @@ lands on `tokenNameTable` — identical to today.
 
 ## Rollout phases
 
-1. **Data + resolver** — add the JSON, the canonicalize/cascade helper, unit-confirm resolution
-   (no UI yet); wire resolver into `_onCreateToken` behind the existing global as fallback.
-2. **Settings UI** — generate per-key dropdowns from the JSON, styled with the design system, placed
-   after the existing token-renaming settings.
-3. **Polish** — caching/index invalidation on table CRUD; docs; seed alias coverage.
-4. **Later** — allow the table source to be a **compendium** of RollTables (no cascade change).
+1. ~~**Data + resolver**~~ — **Done.** `resources/naming-taxonomy.json`, `scripts/utility-token-naming.js`
+   (load/canonicalize/cascade), wired into `_onCreateToken` with the global table as fallback.
+2. ~~**Settings UI**~~ — **Done.** Per-key dropdowns generated from the taxonomy under an H3
+   "Names by Creature Type" header, after the existing token-renaming settings; each defaults to
+   `none` (cascade). Taxonomy loaded in `blacksmith.js` early-ready before `registerSettings()`.
+3. **Polish (TODO)** — cache invalidation on table create/delete (alias index is built once at load;
+   the resolver re-checks `game.tables.getName` live, so new tables resolve, but the key/alias index
+   only refreshes on reload); in-Foundry verification; grow alias coverage.
+4. **Later (TODO)** — allow the table source to be a **compendium** of RollTables (no cascade change;
+   switch to UUID refs there).
 
 ---
 
