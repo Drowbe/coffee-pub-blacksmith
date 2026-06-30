@@ -49,6 +49,13 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 ### Medium Priority
 
+#### Creature-type / subtype token naming
+- **Issue**: Token auto-renaming uses a single global random-name table (`tokenNameTable`); names aren't appropriate to a creature's type/subtype (e.g. orcs vs. elves vs. dragons).
+- **Status**: PLANNED — design locked; not started. Full design in `documentation/plans/plan-token-naming.md`.
+- **Location**: `scripts/manager-canvas.js` (`_onCreateToken` name source), `scripts/settings.js` (token-renaming group), new `resources/naming-taxonomy.json`, new resolver helper (e.g. `scripts/utility-token-naming.js`).
+- **Need**: Per-key RollTable dropdowns (14 types + 4 subtypes: elf/dwarf/gnome/goblinoid), alias JSON as source of truth + canonicalization, cascade `subtype → type → global tokenNameTable`, design-system-styled settings block after the existing token-renaming options. Existing single table stays as failover. World tables first; compendium source later.
+- **Priority**: Medium
+
 #### Roll system: Query window integration (architecture-rolls Phase 1.3)
 - **Issue**: Query window does not use `orchestrateRoll()`; needs to use unified 4-function flow for cross-client sync.
 - **Status**: PENDING
