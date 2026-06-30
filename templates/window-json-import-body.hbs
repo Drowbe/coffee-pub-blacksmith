@@ -138,8 +138,15 @@
                         <i class="fa-solid fa-user"></i>
                         <span>Portrait facets (prefill before copy)</span>
                     </div>
+                    {{#each promptFieldGroups}}
+                    {{#if hasGroup}}
+                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-field-group-header" data-for-template="{{showForTemplate}}">
+                        <i class="{{groupIcon}}"></i>
+                        <span>{{group}}</span>
+                    </div>
+                    {{/if}}
                     <div class="blacksmith-json-import-prompt-fields-grid">
-                        {{#each promptFields}}
+                        {{#each items}}
                         <label class="blacksmith-json-import-prompt-field-row{{#if fullWidth}} blacksmith-json-import-prompt-field-row-full{{/if}}" data-for-template="{{showForTemplate}}">
                             <span class="blacksmith-json-import-prompt-field-label">{{label}}</span>
                             {{#if isSelect}}
@@ -150,7 +157,7 @@
                             </select>
                             {{/if}}
                             {{#if isTextarea}}
-                            <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{id}}" rows="5" autocomplete="off">{{value}}</textarea>
+                            <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{id}}" rows="{{rows}}" autocomplete="off">{{value}}</textarea>
                             {{/if}}
                             {{#if isText}}
                             <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}" value="{{value}}" autocomplete="off">
@@ -158,6 +165,7 @@
                         </label>
                         {{/each}}
                     </div>
+                    {{/each}}
                 </div>
                 {{/if}}
                 {{#if hasPromptCheckboxes}}

@@ -239,22 +239,75 @@ export function getJournalIllustrationPromptFields() {
     ];
 }
 
+/** @type {string[]} */
+const PORTRAIT_GENDERS = ['Male', 'Female', 'Androgynous', 'Nonbinary'];
+
+/** @type {string[]} */
+const PORTRAIT_RACES = [
+    'Human', 'Elf', 'Half-Elf', 'Drow', 'Dwarf', 'Halfling', 'Gnome', 'Half-Orc', 'Orc',
+    'Dragonborn', 'Tiefling', 'Aasimar', 'Genasi', 'Goliath', 'Firbolg', 'Tabaxi', 'Kenku',
+    'Aarakocra', 'Tortle', 'Triton', 'Goblin', 'Hobgoblin', 'Bugbear', 'Kobold', 'Lizardfolk',
+    'Yuan-ti', 'Gnoll', 'Minotaur', 'Centaur', 'Satyr', 'Changeling', 'Shifter', 'Warforged',
+    'Giant', 'Ogre', 'Troll', 'Hag', 'Vampire', 'Undead / Skeleton', 'Construct', 'Demon / Devil',
+    'Celestial', 'Fey', 'Elemental', 'Beast / Animal', 'Other'
+];
+
+/** @type {string[]} */
+const PORTRAIT_CLASSES = [
+    'Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 'Monk', 'Paladin', 'Ranger', 'Rogue',
+    'Sorcerer', 'Warlock', 'Wizard', 'Artificer',
+    'Commoner', 'Merchant', 'Innkeeper', 'Noble', 'Guard', 'Soldier', 'Knight', 'Mercenary',
+    'Bandit', 'Pirate', 'Sailor', 'Assassin', 'Spy', 'Cultist', 'Priest', 'Acolyte', 'Mage',
+    'Scholar', 'Hunter', 'Scout', 'Blacksmith', 'Farmer', 'Beggar', 'Entertainer', 'Monarch',
+    'None / Other'
+];
+
+/** @type {string[]} */
+const PORTRAIT_EXPRESSIONS = [
+    'Neutral', 'Calm', 'Confident', 'Stern', 'Angry', 'Fierce', 'Smiling', 'Joyful', 'Smug',
+    'Sad', 'Melancholic', 'Fearful', 'Surprised', 'Suspicious', 'Determined', 'Weary', 'Pained',
+    'Cruel', 'Kind', 'Curious', 'Bored', 'Haughty'
+];
+
+/** @type {string[]} */
+const PORTRAIT_PROPS = [
+    'None', 'Sword', 'Dagger', 'Bow', 'Staff', 'Wand', 'Spellbook', 'Shield', 'Torch', 'Lantern',
+    'Tankard', 'Coin purse', 'Holy symbol', 'Musical instrument', 'Tools', 'Scroll', 'Potion',
+    'Animal companion', 'Walking stick', 'Crown'
+];
+
+/** @type {string[]} */
+const PORTRAIT_AGES = [
+    'Child', 'Adolescent', 'Young adult', 'Adult', 'Middle-aged', 'Elderly', 'Ancient'
+];
+
+/** @type {string[]} */
+const PORTRAIT_PHYSIQUES = [
+    'Slim', 'Average', 'Athletic', 'Muscular', 'Stocky', 'Heavyset', 'Gaunt', 'Frail',
+    'Towering', 'Diminutive'
+];
+
 /**
- * Portrait facet fields for Import JSON (prefill before copy).
- * @returns {Array<{id: string, label: string, value?: string, showForTemplate: string}>}
+ * Portrait facet fields for Import JSON (prefill before copy). Categorical facets use
+ * dropdowns; free-form facets (name, hair, skin) stay text. Grouped into sections via `group`.
+ * @returns {Array<{id: string, label: string, value?: string, showForTemplate: string, inputType?: string, options?: Array<{value: string, label: string}>, group?: string, groupIcon?: string}>}
  */
 export function getJournalPortraitPromptFields() {
+    const IDENTITY = { group: 'Identity', groupIcon: 'fa-solid fa-id-badge' };
+    const SPECIES = { group: 'Species & Role', groupIcon: 'fa-solid fa-dna' };
+    const APPEARANCE = { group: 'Appearance', groupIcon: 'fa-solid fa-palette' };
+    const select = (values, value = '') => ({ inputType: 'select', options: promptSelectOptions(values), value });
     return [
-        { id: 'portraitName', label: 'Name', value: '', showForTemplate: 'portrait' },
-        { id: 'portraitRace', label: 'Creature race', value: '', showForTemplate: 'portrait' },
-        { id: 'portraitClass', label: 'Creature class', value: '', showForTemplate: 'portrait' },
-        { id: 'portraitGender', label: 'Gender', value: '', showForTemplate: 'portrait' },
-        { id: 'portraitExpression', label: 'Expression', value: '', showForTemplate: 'portrait' },
-        { id: 'portraitProp', label: 'Prop', value: 'None', showForTemplate: 'portrait' },
-        { id: 'portraitHair', label: 'Hair', value: '', showForTemplate: 'portrait' },
-        { id: 'portraitAge', label: 'Age', value: '', showForTemplate: 'portrait' },
-        { id: 'portraitSkin', label: 'Skin', value: '', showForTemplate: 'portrait' },
-        { id: 'portraitPhysique', label: 'Physique', value: '', showForTemplate: 'portrait' }
+        { id: 'portraitName', label: 'Name', value: '', showForTemplate: 'portrait', ...IDENTITY },
+        { id: 'portraitGender', label: 'Gender', showForTemplate: 'portrait', ...select(PORTRAIT_GENDERS), ...IDENTITY },
+        { id: 'portraitAge', label: 'Age', showForTemplate: 'portrait', ...select(PORTRAIT_AGES), ...IDENTITY },
+        { id: 'portraitRace', label: 'Creature race', showForTemplate: 'portrait', ...select(PORTRAIT_RACES), ...SPECIES },
+        { id: 'portraitClass', label: 'Creature class', showForTemplate: 'portrait', ...select(PORTRAIT_CLASSES), ...SPECIES },
+        { id: 'portraitPhysique', label: 'Physique', showForTemplate: 'portrait', ...select(PORTRAIT_PHYSIQUES), ...APPEARANCE },
+        { id: 'portraitExpression', label: 'Expression', showForTemplate: 'portrait', ...select(PORTRAIT_EXPRESSIONS), ...APPEARANCE },
+        { id: 'portraitHair', label: 'Hair', value: '', showForTemplate: 'portrait', ...APPEARANCE },
+        { id: 'portraitSkin', label: 'Skin', value: '', showForTemplate: 'portrait', ...APPEARANCE },
+        { id: 'portraitProp', label: 'Prop', value: '', inputType: 'textarea', rows: 3, fullWidth: true, showForTemplate: 'portrait', ...APPEARANCE }
     ];
 }
 

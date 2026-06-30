@@ -378,7 +378,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
 
         if (this.promptFields.length) {
             for (const row of root.querySelectorAll(
-                '.blacksmith-json-import-prompt-field-row, .blacksmith-json-import-prompt-fields-header[data-for-template]'
+                '.blacksmith-json-import-prompt-field-row, .blacksmith-json-import-prompt-fields-header[data-for-template], .blacksmith-json-import-prompt-field-group-header'
             )) {
                 const forTemplate = row.getAttribute('data-for-template') || '';
                 const show = this._templateMatchesForAttribute(forTemplate, template);
@@ -463,7 +463,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             initialJson: this.initialJson,
             promptCheckboxGroups: this._buildPromptCheckboxGroups(),
             hasPromptCheckboxes: this.promptCheckboxes.length > 0,
-            promptFields: this.promptFields.map((field) => this._formatPromptFieldForTemplate(field)),
+            promptFieldGroups: this._buildPromptFieldGroups(),
             hasPromptFields: this.promptFields.length > 0,
             journalAreaUi: this._formatJournalAreaUiData(),
             journalLocationUi: this._formatJournalLocationUiData()
@@ -514,8 +514,39 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             isTextarea: inputType === 'textarea',
             isText: inputType !== 'select' && inputType !== 'textarea',
             fullWidth: !!field.fullWidth,
+            rows: field.rows || 5,
+            group: field.group ?? '',
+            groupIcon: field.groupIcon || 'fa-solid fa-list',
             options
         };
+    }
+
+    /**
+     * Group formatted prompt fields into ordered display sections. Consecutive fields
+     * sharing a (group, template) render under one sub-header; fields with no group
+     * render headerless. Keeps illustration and portrait groups from merging.
+     * @returns {Array<object>}
+     */
+    _buildPromptFieldGroups() {
+        const groups = [];
+        let current = null;
+        for (const field of this.promptFields) {
+            const formatted = this._formatPromptFieldForTemplate(field);
+            const groupKey = `${formatted.showForTemplate}::${formatted.group}`;
+            if (!current || current.groupKey !== groupKey) {
+                current = {
+                    groupKey,
+                    group: formatted.group,
+                    hasGroup: !!formatted.group,
+                    groupIcon: formatted.groupIcon,
+                    showForTemplate: formatted.showForTemplate,
+                    items: []
+                };
+                groups.push(current);
+            }
+            current.items.push(formatted);
+        }
+        return groups;
     }
 
     _formatJournalAreaUiData() {
