@@ -112,6 +112,47 @@ export function buildFoundryBreadcrumb(parts) {
     return `<p><strong>${text}</strong></p>`;
 }
 
+/**
+ * Insert spacer markup before top-level headings so section breaks survive Foundry's
+ * editor. Foundry's TinyMCE strips empty `<p></p>`, so we emit `<p>&nbsp;</p>` (a real
+ * non-breaking space), which it preserves.
+ * - Major break before each top-level H1/H2: `<p>&nbsp;</p><hr><p>&nbsp;</p>`
+ * - One spacer before each top-level H3–H6 (normal section breaks)
+ * Headings nested inside other blocks (e.g. <h4> inside a narrative-card <blockquote>) are
+ * left untouched, and the very first element gets no leading spacers.
+ * @param {string} html
+ * @returns {string}
+ */
+export function applyJournalHeadingSpacing(html) {
+    const input = String(html ?? '').trim();
+    if (!input || typeof DOMParser === 'undefined') return input;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div id="journal-root">${input}</div>`, 'text/html');
+    const root = doc.getElementById('journal-root');
+    if (!root) return input;
+
+    const spacer = () => {
+        const p = doc.createElement('p');
+        p.innerHTML = '&nbsp;';
+        return p;
+    };
+
+    for (const el of Array.from(root.children)) {
+        if (!/^H[1-6]$/.test(el.tagName)) continue;
+        // No leading blank lines at the very top of the page.
+        if (!el.previousElementSibling) continue;
+        const nodes = (el.tagName === 'H1' || el.tagName === 'H2')
+            ? [spacer(), doc.createElement('hr'), spacer()]
+            : [spacer()];
+        for (const node of nodes) {
+            root.insertBefore(node, el);
+        }
+    }
+
+    return root.innerHTML;
+}
+
 const BLOCK_IN_LI = new Set([
     'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
     'BLOCKQUOTE', 'UL', 'OL', 'DIV', 'TABLE', 'HR', 'IMG'

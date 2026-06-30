@@ -27,7 +27,7 @@ This pipeline consumes JSON as a rigid technical specification for import, not a
 
 You must:
 - Obey FIRST OUTPUT (non-negotiable) above for the first reply to a new journal generation request
-- Match the IMPORT PROFILE blocks shape exactly: use only keys and nesting shown in that profile's blocks reference; do not rename fields (narrativecard uses "description", never "text" or "body") and do not substitute alternate schemas (e.g. keynpcs, rumors arrays, object-shaped threats)
+- Match the IMPORT PROFILE blocks shape exactly: use only keys and nesting shown in that profile's blocks reference; do not rename fields (narrativecard uses "description", never "text" or "body") and do not substitute alternate schemas (e.g. keynpcs, rumors arrays, object-shaped actors)
 - Use the universal JSON envelope below; put profile content only inside "blocks"
 - Include only block keys listed in the IMPORT PROFILE (omit entire block keys when not used)
 - Output valid JSON first; do not generate or attach image files in the same response as the JSON unless the user already asked for images in that message

@@ -30,7 +30,8 @@ import { postConsoleAndNotification, rollCoffeePubDice, playSound, getActorId, g
 import { getCachedTemplate } from './blacksmith.js';
 import {
     buildFoundryBulletList,
-    normalizeFoundryJournalHtml
+    normalizeFoundryJournalHtml,
+    applyJournalHeadingSpacing
 } from './utility-journal-html.js';
 import { buildAreaJournalTemplateData } from './parsers/parse-journal-area.js';
 
@@ -452,7 +453,7 @@ async function createAreaJournalEntry(journalData, folder) {
     try {
         template = await getCachedTemplate(BLACKSMITH.JOURNAL_AREA_TEMPLATE);
         templateData = await buildAreaJournalTemplateData(journalData);
-        compiledHtml = normalizeFoundryJournalHtml(template(templateData));
+        compiledHtml = applyJournalHeadingSpacing(normalizeFoundryJournalHtml(template(templateData)));
     } catch (error) {
         const detail = error?.message || String(error);
         throw new Error(`Area journal HTML build failed: ${detail}`);

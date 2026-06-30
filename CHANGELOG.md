@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.7.15]
 
+### Added
+
+- **JSON import — Save as Text File** (`scripts/window-json-import.js`, `scripts/registry-json-import.js`, `scripts/registry-json-import-journals.js`, `scripts/registry-json-import-items.js`, `scripts/registry-json-import-rolltables.js`, `scripts/blacksmith.js`): The Copy Prompt tab now has a **Save as Text File** button next to Copy to Clipboard, for prompts too large to reliably round-trip through the clipboard. Refactored the import-kind contract from `onCopyTemplate` (build + copy) to `onBuildPrompt` (build + return), so the window owns delivery and both Copy and Save reuse the same prompt-building path across all import kinds (journal, item, roll table, actor). Download uses `foundry.utils.saveDataToFile` so it works inside Foundry's Electron shell.
+
+### Changed
+
+- **Area Narrative prompt — per-compendium sourcing** (`scripts/registry-json-import-journals.js`, `scripts/utility-json-import-compendium-lists.js`, `scripts/utility-rolltable-import-lists.js`, `scripts/window-json-import.js`, `templates/window-json-import-body.hbs`, `styles/window-json-import.css`): Replaced the single **Include compendium actors** / **Include compendium items** checkboxes with **Compendium Actors** and **Compendium Items** sections, each listing one checkbox per configured compendium so the GM chooses exactly which compendiums to source from. Only selected compendiums' catalogs are injected into the prompt. Checkbox labels include the source package (e.g. `dnd5e: Monsters (SRD)`), matching the settings format. The **world actors / items** checkboxes moved into their own **World** section, stacked one per line. `getCompendiumActorsList` / `getCompendiumItemsList` now accept an optional pack-id subset (defaulting to all configured, so the roll table importer is unaffected).
+
+- **Portrait facets — categorized layout and dropdowns** (`scripts/registry-json-import-journals.js`, `scripts/window-json-import.js`, `templates/window-json-import-body.hbs`, `styles/window-json-import.css`): Portrait Image facets are now grouped under **Identity**, **Species & Role**, and **Appearance** sub-headers. Categorical facets (Gender, Age, Creature race, Creature class, Physique, Expression) use dropdowns with curated option lists; Name, Hair, and Skin stay free-text; **Prop** is a 3-line text area. Prompt fields gained optional `group`/`rows` support; the Illustration template is unchanged.
 
 ## [13.7.14]
 

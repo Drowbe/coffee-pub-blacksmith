@@ -33,7 +33,7 @@ blocks.area MUST include "narrative" as an object with exactly three STRING fiel
 
 blocks.area.narrativecard MUST use exactly: "title", "description", "imagetitle", "image". Player-facing card prose goes in "description" (HTML allowed). Never use "text", "body", or "content" instead of "description". See IMAGETITLE section for imagetitle — it is a short UI caption above the image, not a generation prompt.
 
-blocks.preparation (include whenever the scene has threats, rewards, purpose, or GM notes): "threats" and "rewards" are ARRAYS OF STRINGS only, each string one line in the form "Actor or Item Name — short blurb". Never an array of objects with name/type/details.
+blocks.preparation (include whenever the scene has actors, rewards, purpose, or GM notes): "actors" and "rewards" are ARRAYS OF STRINGS only, each string one line in the form "Actor or Item Name — short blurb". Never an array of objects with name/type/details.
 
 blocks.area uses "interactivedetails" (ARRAY OF STRINGS), never "interactives" and never objects per line.
 
@@ -43,8 +43,9 @@ Common wrong → correct:
 - narrativecard.text → narrativecard.description
 - long / prompt-like imagetitle → short UI caption (IMAGETITLE section)
 - conversations name "Commoner" / "Scout" / bare role token → personal name or diegetic handle (CONVERSATIONS.NAME)
-- blocks.area.threats / blocks.area.rewards → blocks.preparation.threats / blocks.preparation.rewards
-- [{ "name": "...", "details": "..." }] in threats → "Name — details" strings
+- blocks.area.threats / blocks.area.rewards → blocks.preparation.actors / blocks.preparation.rewards
+- legacy "threats" key → "actors"
+- [{ "name": "...", "details": "..." }] in actors → "Name — details" strings
 - keynpcs: [...] → conversations: [ { "name": "...", "keycharacter": true, ... } ]
 
 
@@ -73,7 +74,10 @@ IMPORTER SEMANTICS (CRITICAL)
 Two field classes:
 
 LINKER FIELDS (machine-consumed — exact names from catalogs below):
-- blocks.preparation.threats[] — actor names only: "Exact Actor Name — tactical blurb"
+- blocks.preparation.actors[] — every creature or NPC of note in the scene, one per line as "Name — short blurb". Include BOTH:
+  - generic types using the exact stat-block / catalog name so they link: "Goblin — …", "Commoner — …", "Veteran — …"
+  - named individuals worth calling out in the narrative, by their proper name: "Bob the Barber — …", "Phil the Terrible — a named goblin, …". A named entry links when the name matches a world/compendium actor; otherwise it still renders (bold name + blurb), so always name the individual rather than collapsing them into the bare type.
+  Generic types and named individuals can coexist (e.g. list "Goblin" for the rank-and-file AND "Phil the Terrible" for their named leader).
 - blocks.preparation.rewards[] — prefer item names: "Item Name — note" or plain loot text (gp, clues)
 - blocks.area.interactivedetails[] — "Item Name — detail" for gear; "Trap — detail", "Lever — detail" for non-items
 - blocks.conversations[].name — see CONVERSATIONS.NAME below (must be a person’s name for cast entries, not a bare role token)
@@ -81,7 +85,7 @@ LINKER FIELDS (machine-consumed — exact names from catalogs below):
 CONVERSATIONS.NAME (persons, not role labels)
 If you include someone in `blocks.conversations`, they are part of the **cast** for the scene. `name` must be a **specific personal name** (given name, nickname, or an exact catalog/world name that is already a proper name — e.g. matching [ADD-WORLD-ACTORS-HERE]).
 
-Do **not** use bare stat-block role words as `name` for those entries: **never** `"Commoner"`, `"Scout"`, `"Guard"`, `"Bandit"`, `"Noble"`, `"Spy"`, `"Merchant"`, `"Veteran"`, or similar alone. Those strings belong in **threats[]** / encounter tactics when you mean generic creatures — not as the `conversations[].name` for a character the scene treats as an individual.
+Do **not** use bare stat-block role words as `name` for those entries: **never** `"Commoner"`, `"Scout"`, `"Guard"`, `"Bandit"`, `"Noble"`, `"Spy"`, `"Merchant"`, `"Veteran"`, or similar alone. Those strings belong in **actors[]** / encounter tactics when you mean generic creatures — not as the `conversations[].name` for a character the scene treats as an individual. (A genuinely named individual — "Bob the Barber" — may appear in BOTH actors[] and conversations[]: the roster line and the full cast entry serve different purposes.)
 
 If you need a minor figure without a full name, give a short **diegetic handle** that is still a name-like label (e.g. "Rope-Call Marta", "Third-shift Porter") — not the creature type. If someone is only anonymous crowd dressing with no lines, **omit** them from `conversations` instead of using a role token as `name`.
 
@@ -92,13 +96,15 @@ PROSE FIELDS (write for the table):
 - blocks.encounter.* (except use exact actor names inside tactics if referencing creatures)
 - narrativecard description HTML (player-facing prose); narrativecard.imagetitle is a short UI caption above the image only — see IMAGETITLE section, not a generation prompt
 
-Anti-examples (threats[] — will NOT link):
-- "Corrupt Caravan Escorts — …" (use Guard, Veteran, Bandit, etc.)
-- "Fearful Townsfolk — …" (use Commoner, Noble, or a named NPC)
+Anti-examples (actors[] — invented group descriptors will NOT link and are not individuals):
+- "Corrupt Caravan Escorts — …" (use the stat-block type: Guard, Veteran, Bandit, etc. — or name the individual if one stands out)
+- "Fearful Townsfolk — …" (use Commoner, Noble — or name the individual, e.g. "Bob the Barber")
 
-Good examples (threats[]):
-- "Veteran — watches the door, blows whistle at first spell"
-- "Dellik — hides behind crates; surrenders if surrounded"
+Good examples (actors[]):
+- "Veteran — watches the door, blows whistle at first spell"  (generic type → links)
+- "Goblin — rank-and-file, throws rocks from cover"  (generic type → links)
+- "Phil the Terrible — a named goblin; barks orders from the back"  (named individual)
+- "Dellik — hides behind crates; surrenders if surrounded"  (named individual)
 
 Anti-examples (rewards / interactives):
 - "hanging maps", "stacked crates" (use Map, Crowbar, Crate when linkable)
@@ -179,7 +185,7 @@ BLOCKS FOR THIS PROFILE
 
 blocks.preparation
 - purpose[]: session goals (prose)
-- threats[]: LINKER — "Actor Name — blurb" per entry; official monster/NPC names
+- actors[]: LINKER — "Name — blurb" per entry; the scene roster of monsters, generic NPCs, and named NPCs/monsters worth calling out (generic types use exact catalog names; named individuals use their proper name)
 - rewards[]: LINKER when gear/loot items; plain text for gp or non-item rewards
 - gmnotes[]: GM-only (prose)
 
@@ -206,7 +212,7 @@ blocks SHAPE (reference)
 "blocks": {
   "preparation": {
     "purpose": ["PURPOSE"],
-    "threats": ["Actor Name — blurb"],
+    "actors": ["Goblin — blurb", "Phil the Terrible — named goblin, blurb"],
     "rewards": ["Item Name — note"],
     "gmnotes": ["GMNOTE"]
   },
@@ -248,7 +254,7 @@ blocks SHAPE (reference)
 }
 
 
---- COMPENDIUM ACTORS (threats[] and linkable NPC names — exact spelling only) ---
+--- COMPENDIUM ACTORS (actors[] and linkable NPC names — exact spelling only) ---
 [ADD-COMPENDIUM-ACTORS-HERE]
 --- END COMPENDIUM ACTORS ---
 
@@ -271,7 +277,7 @@ USAGE
 
 When generating an area journal:
 - match LOCATION PATH and envelope geography fields
-- use linker rules for threats, rewards, and item interactives
+- use linker rules for actors, rewards, and item interactives
 - include area and key NPC narrativecards by default
 - give every `conversations` cast member a personal name or diegetic handle — never bare Commoner/Scout/Guard-style role tokens as `name`
 - prioritize fast GM retrieval at the table

@@ -35,11 +35,6 @@ function asStringArray(value) {
     return s ? [s] : [];
 }
 
-/**
- * Link threat lines that look like "Name — blurb" or "Name - blurb".
- * @param {string[]} threats
- * @returns {Promise<string[]>}
- */
 const NON_ITEM_INTERACTIVE_LABELS = new Set([
     'trap', 'hazard', 'lever', 'puzzle', 'environment', 'door', 'container',
     'object', 'interaction', 'secret', 'mechanism', 'alarm', 'hidden'
@@ -139,10 +134,17 @@ function actorLinkWithDisplayLabel(linked, lookupName, displayName) {
     return linked.replace(`{${lookupName}}`, `{${displayName}}`);
 }
 
-async function linkThreatLines(threats) {
+/**
+ * Link actor lines that look like "Name — blurb" or "Name - blurb". Names that match a
+ * compendium/world actor become @UUID links; named individuals with no match render as
+ * bold text. Covers generic types (Goblin, Commoner) and named NPCs/monsters alike.
+ * @param {string[]} actors
+ * @returns {Promise<string[]>}
+ */
+async function linkActorLines(actors) {
     const { buildCompendiumLinkActor } = await import('../utility-common.js');
     const out = [];
-    for (const line of threats) {
+    for (const line of actors) {
         const raw = String(line ?? '').trim();
         if (!raw) continue;
         if (isJournalHtmlFragment(raw)) {
@@ -251,10 +253,11 @@ export async function buildAreaJournalTemplateData(journalData) {
         if (purpose.length) {
             parts.push('<h3>Purpose</h3>', buildFoundryBulletList(purpose));
         }
-        const threats = asStringArray(prep.threats);
-        if (threats.length) {
-            const linked = await linkThreatLines(threats);
-            parts.push('<h3>Threats</h3>', buildFoundryBulletList(linked));
+        // "actors" is the current field; "threats" is the legacy alias.
+        const actors = asStringArray(prep.actors ?? prep.threats);
+        if (actors.length) {
+            const linked = await linkActorLines(actors);
+            parts.push('<h3>Actors</h3>', buildFoundryBulletList(linked));
         }
         const rewards = asStringArray(prep.rewards);
         if (rewards.length) {

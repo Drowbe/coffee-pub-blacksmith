@@ -13,8 +13,10 @@
         "Verify area JSON import creates a journal page with ProseMirror-friendly lists.",
         "Confirm preparation, area, encounter, and conversation blocks render."
       ],
-      "threats": [
-        "Goblin - Hides behind crates and throws rocks when approached."
+      "actors": [
+        "Goblin - Hides behind crates and throws rocks when approached.",
+        "Phil the Terrible - A named goblin ringleader; barks orders from the back.",
+        "Bob the Barber - Townsfolk hiding in the corner; knows who tipped off the raiders."
       ],
       "rewards": [
         "10 gp in a locked strongbox",
