@@ -112,17 +112,36 @@ export function getActorCompendiumsList() {
     }
 }
 
-export async function getCompendiumItemsList() {
+/**
+ * Resolve which configured pack ids to use for a settings group.
+ * @param {string} countKey
+ * @param {string} prefix
+ * @param {string[]} [packIds] - explicit subset; when provided, used as-is
+ * @returns {string[]}
+ */
+function resolveConfiguredPackIds(countKey, prefix, packIds) {
+    if (Array.isArray(packIds)) {
+        return packIds.filter((id) => id && id !== 'none');
+    }
+    const ids = [];
+    const numCompendiums = game.settings.get(MODULE.ID, countKey) ?? 1;
+    for (let i = 1; i <= numCompendiums; i++) {
+        const id = game.settings.get(MODULE.ID, `${prefix}${i}`);
+        if (id && id !== 'none') ids.push(id);
+    }
+    return ids;
+}
+
+/**
+ * @param {string[]} [packIds] - optional subset of item-compendium pack ids; defaults to all configured
+ * @returns {Promise<string>}
+ */
+export async function getCompendiumItemsList(packIds) {
     try {
-        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') ?? 1;
+        const compendiumIds = resolveConfiguredPackIds('numCompendiumsItem', 'itemCompendium', packIds);
         const compendiumBlocks = [];
 
-        for (let i = 1; i <= numCompendiums; i++) {
-            const compendiumId = game.settings.get(MODULE.ID, `itemCompendium${i}`);
-            if (!compendiumId || compendiumId === 'none') {
-                continue;
-            }
-
+        for (const compendiumId of compendiumIds) {
             try {
                 const compendium = game.packs.get(compendiumId);
                 if (!compendium) {
@@ -169,17 +188,16 @@ export async function getCompendiumItemsList() {
     }
 }
 
-export async function getCompendiumActorsList() {
+/**
+ * @param {string[]} [packIds] - optional subset of actor-compendium pack ids; defaults to all configured
+ * @returns {Promise<string>}
+ */
+export async function getCompendiumActorsList(packIds) {
     try {
-        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1;
+        const compendiumIds = resolveConfiguredPackIds('numCompendiumsActor', 'monsterCompendium', packIds);
         const compendiumBlocks = [];
 
-        for (let i = 1; i <= numCompendiums; i++) {
-            const compendiumId = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
-            if (!compendiumId || compendiumId === 'none') {
-                continue;
-            }
-
+        for (const compendiumId of compendiumIds) {
             try {
                 const compendium = game.packs.get(compendiumId);
                 if (!compendium) {

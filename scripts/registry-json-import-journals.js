@@ -17,8 +17,8 @@ import {
     getCompendiumItemsList,
     getWorldActorsList,
     getWorldItemsList,
-    hasConfiguredActorCompendiums,
-    hasConfiguredItemCompendiums
+    getConfiguredActorCompendiums,
+    getConfiguredItemCompendiums
 } from './utility-json-import-compendium-lists.js';
 
 export const JOURNAL_PROMPT_CORE = 'prompt-journal-core.txt';
@@ -348,41 +348,95 @@ const CATALOG_SECTION_ITEMS = /---\s*COMPENDIUM ITEMS[\s\S]*?---\s*END COMPENDIU
 const CATALOG_SECTION_WORLD_ACTORS = /---\s*WORLD ACTORS[\s\S]*?---\s*END WORLD ACTORS\s*---/i;
 const CATALOG_SECTION_WORLD_ITEMS = /---\s*WORLD ITEMS[\s\S]*?---\s*END WORLD ITEMS\s*---/i;
 
+// Per-compendium checkbox ids encode their pack id after the prefix, e.g.
+// "compendiumActor:dnd5e.monsters". collectSelectedCompendiumIds() reverses this.
+const COMPENDIUM_ACTOR_CHECKBOX_PREFIX = 'compendiumActor:';
+const COMPENDIUM_ITEM_CHECKBOX_PREFIX = 'compendiumItem:';
+
+/**
+ * Pack ids whose per-compendium checkbox is selected in the prompt options.
+ * @param {Record<string, string|boolean>} promptOptions
+ * @param {string} prefix
+ * @returns {string[]}
+ */
+function collectSelectedCompendiumIds(promptOptions, prefix) {
+    return Object.keys(promptOptions ?? {})
+        .filter((key) => key.startsWith(prefix) && promptOptions[key])
+        .map((key) => key.slice(prefix.length));
+}
+
 /**
  * Catalog append options — **Area Narrative** copy only (profile embeds compendium lists).
- * @returns {Array<{id: string, label: string, checked?: boolean, disabled?: boolean, showForTemplate: string}>}
+ * Compendium actors/items render as one checkbox per configured compendium, grouped into
+ * sections so the GM can choose which compendiums to source from. World options stay global.
+ * @returns {Array<{id: string, label: string, checked?: boolean, disabled?: boolean, showForTemplate: string, section?: string, sectionIcon?: string, isNote?: boolean, stacked?: boolean}>}
  */
 export function getJournalPromptCheckboxes() {
-    const hasActors = hasConfiguredActorCompendiums();
-    const hasItems = hasConfiguredItemCompendiums();
-    return [
-        {
-            id: 'compendiumActors',
-            label: 'Include compendium actors',
-            checked: hasActors,
-            disabled: !hasActors,
-            showForTemplate: 'area'
-        },
-        {
-            id: 'compendiumItems',
-            label: 'Include compendium items',
-            checked: hasItems,
-            disabled: !hasItems,
-            showForTemplate: 'area'
-        },
+    const checkboxes = [];
+
+    const addCompendiumSection = (compendiums, prefix, section, sectionIcon, emptyNote) => {
+        if (!compendiums.length) {
+            checkboxes.push({
+                id: `${prefix}__none`,
+                label: emptyNote,
+                checked: false,
+                disabled: true,
+                showForTemplate: 'area',
+                section,
+                sectionIcon,
+                isNote: true
+            });
+            return;
+        }
+        for (const comp of compendiums) {
+            checkboxes.push({
+                id: `${prefix}${comp.id}`,
+                label: comp.label,
+                checked: true,
+                showForTemplate: 'area',
+                section,
+                sectionIcon
+            });
+        }
+    };
+
+    addCompendiumSection(
+        getConfiguredActorCompendiums(),
+        COMPENDIUM_ACTOR_CHECKBOX_PREFIX,
+        'Compendium Actors',
+        'fa-solid fa-dragon',
+        'No actor compendiums configured (see module settings).'
+    );
+    addCompendiumSection(
+        getConfiguredItemCompendiums(),
+        COMPENDIUM_ITEM_CHECKBOX_PREFIX,
+        'Compendium Items',
+        'fa-solid fa-wand-sparkles',
+        'No item compendiums configured (see module settings).'
+    );
+
+    checkboxes.push(
         {
             id: 'worldActors',
             label: 'Include world actors',
             checked: false,
-            showForTemplate: 'area'
+            showForTemplate: 'area',
+            section: 'World',
+            sectionIcon: 'fa-solid fa-globe',
+            stacked: true
         },
         {
             id: 'worldItems',
             label: 'Include world items',
             checked: false,
-            showForTemplate: 'area'
+            showForTemplate: 'area',
+            section: 'World',
+            sectionIcon: 'fa-solid fa-globe',
+            stacked: true
         }
-    ];
+    );
+
+    return checkboxes;
 }
 
 /**
@@ -595,15 +649,15 @@ export function applyAreaJournalGeography(prompt, options = {}) {
 async function applyAreaCatalogSections(prompt, catalogOptions) {
     let result = prompt;
 
-    if (catalogOptions.includeCompendiumActors) {
-        const list = await getCompendiumActorsList();
+    if (catalogOptions.actorCompendiumIds?.length) {
+        const list = await getCompendiumActorsList(catalogOptions.actorCompendiumIds);
         result = result.replace('[ADD-COMPENDIUM-ACTORS-HERE]', list);
     } else {
         result = result.replace(CATALOG_SECTION_ACTORS, '');
     }
 
-    if (catalogOptions.includeCompendiumItems) {
-        const list = await getCompendiumItemsList();
+    if (catalogOptions.itemCompendiumIds?.length) {
+        const list = await getCompendiumItemsList(catalogOptions.itemCompendiumIds);
         result = result.replace('[ADD-COMPENDIUM-ITEMS-HERE]', list);
     } else {
         result = result.replace(CATALOG_SECTION_ITEMS, '');
@@ -629,8 +683,8 @@ async function applyAreaCatalogSections(prompt, catalogOptions) {
 /**
  * @param {string} profileKey
  * @param {object} [options]
- * @param {boolean} [options.includeCompendiumActors]
- * @param {boolean} [options.includeCompendiumItems]
+ * @param {string[]} [options.actorCompendiumIds] - actor pack ids to embed; omit for all configured
+ * @param {string[]} [options.itemCompendiumIds] - item pack ids to embed; omit for all configured
  * @param {boolean} [options.includeWorldActors]
  * @param {boolean} [options.includeWorldItems]
  * @param {object} [options.geography]
@@ -700,17 +754,19 @@ export async function buildJournalImportPrompt(profileKey, options = {}) {
         narrativeImage: options.narrativeImage,
         characterImage: options.characterImage
     });
-    const catalogDefaults = {
-        includeCompendiumActors: hasConfiguredActorCompendiums(),
-        includeCompendiumItems: hasConfiguredItemCompendiums(),
-        includeWorldActors: false,
-        includeWorldItems: false
-    };
+    // Default to all configured compendiums when the caller doesn't specify a subset,
+    // preserving the prior "include everything" behavior.
+    const actorCompendiumIds = Array.isArray(options.actorCompendiumIds)
+        ? options.actorCompendiumIds
+        : getConfiguredActorCompendiums().map((comp) => comp.id);
+    const itemCompendiumIds = Array.isArray(options.itemCompendiumIds)
+        ? options.itemCompendiumIds
+        : getConfiguredItemCompendiums().map((comp) => comp.id);
     composed = await applyAreaCatalogSections(composed, {
-        includeCompendiumActors: options.includeCompendiumActors ?? catalogDefaults.includeCompendiumActors,
-        includeCompendiumItems: options.includeCompendiumItems ?? catalogDefaults.includeCompendiumItems,
-        includeWorldActors: options.includeWorldActors ?? catalogDefaults.includeWorldActors,
-        includeWorldItems: options.includeWorldItems ?? catalogDefaults.includeWorldItems
+        actorCompendiumIds,
+        itemCompendiumIds,
+        includeWorldActors: options.includeWorldActors ?? false,
+        includeWorldItems: options.includeWorldItems ?? false
     });
 
     for (const placeholder of [
@@ -857,8 +913,8 @@ async function buildJournalPrompt(templateKey, promptOptions = {}) {
     await saveCampaignImageDefaultsIfRequested(promptOptions);
 
     const prompt = await buildJournalImportPrompt('area', {
-        includeCompendiumActors: !!promptOptions.compendiumActors,
-        includeCompendiumItems: !!promptOptions.compendiumItems,
+        actorCompendiumIds: collectSelectedCompendiumIds(promptOptions, COMPENDIUM_ACTOR_CHECKBOX_PREFIX),
+        itemCompendiumIds: collectSelectedCompendiumIds(promptOptions, COMPENDIUM_ITEM_CHECKBOX_PREFIX),
         includeWorldActors: !!promptOptions.worldActors,
         includeWorldItems: !!promptOptions.worldItems,
         foldername: promptOptions.foldername ?? '',

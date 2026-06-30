@@ -163,11 +163,29 @@
                 {{#if hasPromptCheckboxes}}
                 <div class="blacksmith-json-import-prompt-options">
                     <span class="blacksmith-json-import-prompt-options-hint" data-for-template="area">Append to Area Narrative prompt:</span>
-                    {{#each promptCheckboxes}}
-                    <label class="blacksmith-json-import-prompt-checkbox" data-for-template="{{showForTemplate}}">
-                        <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{id}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>
-                        <span>{{label}}</span>
-                    </label>
+                    {{#each promptCheckboxGroups}}
+                    <div class="blacksmith-json-import-prompt-group{{#if hasSection}} blacksmith-json-import-prompt-group-sectioned{{/if}}">
+                        {{#if hasSection}}
+                        <div class="blacksmith-json-import-prompt-section-header" data-for-template="{{showForTemplate}}">
+                            <i class="{{sectionIcon}}"></i>
+                            <span>{{section}}</span>
+                        </div>
+                        {{/if}}
+                        <div class="blacksmith-json-import-prompt-group-items{{#if stacked}} blacksmith-json-import-prompt-group-items-stacked{{/if}}">
+                            {{#each items}}
+                            {{#if isNote}}
+                            <div class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-prompt-note" data-for-template="{{showForTemplate}}">
+                                <span>{{label}}</span>
+                            </div>
+                            {{else}}
+                            <label class="blacksmith-json-import-prompt-checkbox" data-for-template="{{showForTemplate}}">
+                                <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{id}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>
+                                <span>{{label}}</span>
+                            </label>
+                            {{/if}}
+                            {{/each}}
+                        </div>
+                    </div>
                     {{/each}}
                 </div>
                 {{/if}}

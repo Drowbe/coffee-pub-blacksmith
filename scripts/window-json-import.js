@@ -393,7 +393,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
 
         if (this.promptCheckboxes.length) {
             for (const row of root.querySelectorAll(
-                '.blacksmith-json-import-prompt-checkbox, .blacksmith-json-import-prompt-options-hint'
+                '.blacksmith-json-import-prompt-checkbox, .blacksmith-json-import-prompt-options-hint, .blacksmith-json-import-prompt-section-header'
             )) {
                 const forTemplate = row.getAttribute('data-for-template') || '';
                 const show = !forTemplate || forTemplate === template;
@@ -414,6 +414,40 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         }
     }
 
+    /**
+     * Group the flat prompt-checkbox list into ordered display sections. Consecutive
+     * checkboxes sharing a `section` label render under one header; checkboxes with no
+     * section (e.g. the world options) render headerless after the sections.
+     * @returns {Array<object>}
+     */
+    _buildPromptCheckboxGroups() {
+        const groups = [];
+        let current = null;
+        for (const cb of this.promptCheckboxes) {
+            const section = String(cb.section || '');
+            if (!current || current.section !== section) {
+                current = {
+                    section,
+                    hasSection: !!section,
+                    sectionIcon: cb.sectionIcon || 'fa-solid fa-book',
+                    stacked: !!cb.stacked,
+                    showForTemplate: cb.showForTemplate ?? '',
+                    items: []
+                };
+                groups.push(current);
+            }
+            current.items.push({
+                id: cb.id,
+                label: cb.label,
+                checked: !!cb.checked,
+                disabled: !!cb.disabled,
+                isNote: !!cb.isNote,
+                showForTemplate: cb.showForTemplate ?? ''
+            });
+        }
+        return groups;
+    }
+
     _buildBodyContext() {
         const isCopyTab = this.activeTab !== 'import';
         return {
@@ -427,13 +461,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             hasTemplates: this.templateOptions.length > 0,
             textareaPlaceholder: this.textareaPlaceholder,
             initialJson: this.initialJson,
-            promptCheckboxes: this.promptCheckboxes.map((cb) => ({
-                id: cb.id,
-                label: cb.label,
-                checked: !!cb.checked,
-                disabled: !!cb.disabled,
-                showForTemplate: cb.showForTemplate ?? ''
-            })),
+            promptCheckboxGroups: this._buildPromptCheckboxGroups(),
             hasPromptCheckboxes: this.promptCheckboxes.length > 0,
             promptFields: this.promptFields.map((field) => this._formatPromptFieldForTemplate(field)),
             hasPromptFields: this.promptFields.length > 0,
