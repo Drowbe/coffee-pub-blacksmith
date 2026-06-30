@@ -27,6 +27,7 @@
       ]
     },
     "area": {
+      "title": "The Back Storeroom",
       "narrative": {
         "description": "A cramped storeroom stacked with barrels and cobwebs.",
         "layout": "Narrow aisles between barrel stacks; one clear path to the back wall.",

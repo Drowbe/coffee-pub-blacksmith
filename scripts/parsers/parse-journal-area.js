@@ -273,7 +273,11 @@ export async function buildAreaJournalTemplateData(journalData) {
 
     let areaSectionHtml = '';
     const areaBlock = blocks.area;
-    const areaHeading = sceneTitle || area || 'Area';
+    // Optional blocks.area.title lets the on-page heading differ from the page/scene name.
+    const areaTitle = (areaBlock && typeof areaBlock === 'object' && omitIfNone(areaBlock.title))
+        ? toSentenceCase(String(areaBlock.title).trim())
+        : '';
+    const areaHeading = areaTitle || sceneTitle || area || 'Area';
     if (areaBlock && typeof areaBlock === 'object') {
         const parts = [`<h2>${escapeJournalHtml(areaHeading)}</h2>`];
         const card = buildNarrativeCardHtml(areaBlock.narrativecard, 'narrative');

@@ -29,7 +29,9 @@ SCHEMA LOCK (AREA — wrong shape breaks Blacksmith import)
 
 Under "blocks", ONLY these keys are valid for this profile: "preparation", "area", "encounter", "conversations". Do not add any other sibling keys (no rumors, connections, keynpcs, npcs, cast, interactives, scene, metadata, hooks, or custom wrappers).
 
-blocks.area MUST include "narrative" as an object with exactly three STRING fields: "description", "layout", "atmosphere". Do not put a scene description as a bare string on blocks.area. Do not use "atmosphere" as an object with sight/sound/smell keys — fold sensory detail into those three strings (usually atmosphere carries mood in one paragraph).
+blocks.area MAY include an optional "title" STRING — the heading shown above the area section in the journal. Use it when the section heading should read differently from the scene/page name; omit it to default to the scene title. It is a sibling of "narrative"/"narrativecard", never a field inside "narrative".
+
+blocks.area MUST include "narrative" as an object with exactly three STRING fields: "description", "layout", "atmosphere". Do not put a scene description as a bare string on blocks.area. Do not add a "title" inside "narrative". Do not use "atmosphere" as an object with sight/sound/smell keys — fold sensory detail into those three strings (usually atmosphere carries mood in one paragraph).
 
 blocks.area.narrativecard MUST use exactly: "title", "description", "imagetitle", "image". Player-facing card prose goes in "description" (HTML allowed). Never use "text", "body", or "content" instead of "description". See IMAGETITLE section for imagetitle — it is a short UI caption above the image, not a generation prompt.
 
@@ -40,6 +42,7 @@ blocks.area uses "interactivedetails" (ARRAY OF STRINGS), never "interactives" a
 NPCs go ONLY in "blocks.conversations" (array of objects with name, keycharacter, narrativecard, snapshot, theyknow, theyveheard, theywant). Never "keynpcs", never a staff array nested under blocks.area.
 
 Common wrong → correct:
+- narrative.title → blocks.area.title (section heading is a sibling of narrative, not inside it)
 - narrativecard.text → narrativecard.description
 - long / prompt-like imagetitle → short UI caption (IMAGETITLE section)
 - conversations name "Commoner" / "Scout" / bare role token → personal name or diegetic handle (CONVERSATIONS.NAME)
@@ -190,6 +193,7 @@ blocks.preparation
 - gmnotes[]: GM-only (prose)
 
 blocks.area
+- title (optional): area section heading; omit to default to the scene title (then area, then "Area")
 - narrative (required): description, layout, atmosphere
 - narrativecard (default include): title, description, imagetitle (short caption only — see IMAGETITLE section), image
 - interactivedetails[]: LINKER or labeled entries — see semantics
@@ -217,6 +221,7 @@ blocks SHAPE (reference)
     "gmnotes": ["GMNOTE"]
   },
   "area": {
+    "title": "AREATITLE",
     "narrative": {
       "description": "DESCRIPTION",
       "layout": "LAYOUT",
