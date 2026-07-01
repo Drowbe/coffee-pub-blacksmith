@@ -2,10 +2,11 @@ VARIABLES FOR THE ITEM
 
 ITEMNAME: 
 ITEMDESCRIPTION: 
-ITEMDESCRIPTIONUNIDENTIFIED: 
-ITEMDESCRIPTIONCHAT: 
-  
-ITEMTYPE: 
+ITEMDESCRIPTIONUNIDENTIFIED:
+ITEMDESCRIPTIONCHAT:
+ITEMGMNOTES:
+
+ITEMTYPE:
 ITEMSUBTYPE: 
 ITEMSUBTYPENUANCE: 
   
@@ -75,6 +76,8 @@ ITEMDESCRIPTION: (STRING) (REQUIRED) An HTML-flavored narrative describing the i
 ITEMDESCRIPTIONUNIDENTIFIED: (STRING) (REQUIRED)  An HTML-flavored narrative describing the item with vague details.
 
 ITEMDESCRIPTIONCHAT: (STRING) (REQUIRED) A simple sentence describing the item that can be sent to the chat.
+
+ITEMGMNOTES: (STRING) (OPTIONAL) Private GM-only notes about this item — secrets, plot hooks, intended use, ties to NPCs or quests, or "reveal after..." guidance. Never shown to players; stored privately for the GM. Use HTML (paragraphs, bulleted lists, bold) like the description. Do NOT restate the public description. Omit the field or set it to "" when there is nothing worth noting.
 
 ITEMTYPE: (STRING) (REQUIRED) Item type. The D&D 5e item document type only. One of: 
 -"Consumable", 
@@ -161,7 +164,8 @@ JSON TEMPLATE
   "itemDescription": "ITEMDESCRIPTION",
   "itemDescriptionUnidentified": "ITEMDESCRIPTIONUNIDENTIFIED",
   "itemDescriptionChat": "ITEMDESCRIPTIONCHAT",
-  
+  "itemGMNotes": "ITEMGMNOTES",
+
   "itemType": "ITEMTYPE",
   "itemSubType": "ITEMSUBTYPE",
   "itemSubTypeNuance": "ITEMSUBTYPENUANCE",

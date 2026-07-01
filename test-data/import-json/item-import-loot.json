@@ -3,6 +3,7 @@
   "itemSubType": "trinket",
   "itemName": "Blacksmith Test Trinket",
   "itemDescription": "A harmless test trinket used to validate item import dialog migration.",
+  "itemGMNotes": "<p>GM-only: this trinket validates that <strong>GM Notes</strong> import correctly.</p><ul><li>Reveal after Session 3.</li><li>Tied to the NPC <em>Nik Melok</em>.</li></ul>",
   "itemPrice": "5 gp",
   "itemWeight": 1,
   "itemQuantity": 1,

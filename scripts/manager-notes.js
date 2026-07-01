@@ -85,6 +85,24 @@ export class NotesManager {
         return (div.textContent || '').replace(/\s+/g, ' ').trim();
     }
 
+    /**
+     * Build a note envelope from raw HTML without touching a document.
+     * For importers that bake GM notes into document creation data
+     * (keeps the envelope shape — schemaVersion, text mirror — single-sourced).
+     * @param {{html?: string, pinned?: boolean}} [data]
+     * @returns {object}
+     */
+    static buildEnvelope({ html = '', pinned = false } = {}) {
+        const clean = typeof html === 'string' ? html : '';
+        return {
+            schemaVersion: SCHEMA_VERSION,
+            html: clean,
+            text: this._stripHtml(clean),
+            pinned: !!pinned,
+            updatedAt: Date.now()
+        };
+    }
+
     // ============================================================
     // Read
     // ============================================================

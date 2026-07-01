@@ -3,6 +3,7 @@
 // ==================================================================
 
 import { MODULE } from '../const.js';
+import { NotesManager } from '../manager-notes.js';
 
 let iconPathsCache = null;
 
@@ -385,5 +386,15 @@ export async function parseFlatItemToFoundry(flat) {
             }
         }
     }
+
+    // Optional GM Notes → Blacksmith gmNotes flag (UI-gated, never required).
+    const gmNotesHtml = typeof flat.itemGMNotes === 'string' ? flat.itemGMNotes
+        : (typeof flat.gmNotes === 'string' ? flat.gmNotes : '');
+    if (gmNotesHtml.trim()) {
+        data.flags = data.flags || {};
+        data.flags[MODULE.ID] = data.flags[MODULE.ID] || {};
+        data.flags[MODULE.ID].gmNotes = NotesManager.buildEnvelope({ html: gmNotesHtml });
+    }
+
     return data;
 }
