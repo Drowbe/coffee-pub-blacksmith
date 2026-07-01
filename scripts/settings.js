@@ -9,7 +9,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
-import { getNamingKeyList, tokenNameTableSettingId } from './utility-token-naming.js';
+import { getNamingKeyList, tokenNameTableSettingId, NAMING_TAXONOMY_SETTING, DEFAULT_TAXONOMY_PATH } from './utility-token-naming.js';
 import { assetLookup } from './asset-lookup.js';
 import {
 	SESSION_TIMER_DEFAULT_MODES,
@@ -4277,8 +4277,20 @@ export const registerSettings = () => {
 	// resources/naming-taxonomy.json). Unset entries cascade: subtype → type →
 	// the global Random Name Table above. See utility-token-naming.js.
 	const namingKeys = getNamingKeyList();
+	registerHeader('TokenNamesByType', 'headingH3TokenNamesByType-Label', 'headingH3TokenNamesByType-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
+	// -- Custom taxonomy source (defaults to the bundled JSON; browse to use your own) --
+	game.settings.register(MODULE.ID, NAMING_TAXONOMY_SETTING, {
+		name: MODULE.ID + '.namingTaxonomyJson-Label',
+		hint: MODULE.ID + '.namingTaxonomyJson-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: DEFAULT_TAXONOMY_PATH,
+		filePicker: true,
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.AUTOMATION
+	});
 	if (namingKeys.length) {
-		registerHeader('TokenNamesByType', 'headingH3TokenNamesByType-Label', 'headingH3TokenNamesByType-Hint', 'H3', WORKFLOW_GROUPS.AUTOMATION, 'world');
 		for (const { key, label } of namingKeys) {
 			game.settings.register(MODULE.ID, tokenNameTableSettingId(key), {
 				name: `${label} Names`,

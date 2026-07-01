@@ -915,8 +915,11 @@
 				"tokenNameTable-Label": "Random Name Table",
 				"tokenNameTable-Hint": "If using a random name from a table, select the table that should be used to rename the token.",
 
-			"headingH3TokenNamesByType-Label": "Names by Creature Type",
-			"headingH3TokenNamesByType-Hint": "Optional: pick a random-name table per creature type or subtype. Unset entries fall back to the type's table, then to the Random Name Table above.",
+			"headingH3TokenNamesByType-Label": "Names by Type & Role",
+			"headingH3TokenNamesByType-Hint": "Optional: pick a random-name table per creature type, subtype, or role. Type/subtype come from the creature; role categories (Cultist, Thug) match the token's name. Unset entries cascade: subtype → name → type → the Random Name Table above.",
+
+			"namingTaxonomyJson-Label": "Naming Taxonomy (JSON)",
+			"namingTaxonomyJson-Hint": "Path to the JSON that defines the creature-type / subtype / role categories and their aliases. Defaults to the module's bundled taxonomy; browse to use your own. Changing this reloads Foundry so the category list below rebuilds.",
 
 
 

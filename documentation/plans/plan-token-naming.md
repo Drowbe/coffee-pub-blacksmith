@@ -37,10 +37,19 @@ settings), `scripts/manager-canvas.js` (`_onCreateToken` resolver), `lang/en.jso
 2. **Alias JSON** (`resources/`) maps any incoming type/subtype spelling/variation → a canonical key.
    The JSON is also the **single source of truth for the key list**, so the per-key settings are
    generated from it (no duplicated key list in code).
-3. **Cascade per token** (stop at first table that resolves):
-   1. `subtype` → canonical key → assigned table (if not `none`)
-   2. `type` → canonical key → assigned table (if not `none`)
-   3. **global fallback** = existing `tokenNameTable`
+3. **Cascade per token** (specific beats broad; stop at first table that resolves):
+   1. `subtype` field → canonical key → assigned table (structured data, strongest signal)
+   2. **specific name keyword** → canonical key → assigned table. Only *specific* keys (subtypes +
+      roles) match here; *broad* keys (the 14 creature types, incl. generic aliases like
+      `human`/`commoner`) are skipped so they can't beat a role/subtype word in the name. Lets
+      "Cultist", "Goblin Boss", "Human Cultist" (→ cultist) resolve correctly.
+   3. `type` field → canonical key → assigned table (the broad bucket, e.g. `humanoid`)
+   4. **global fallback** = existing `tokenNameTable`
+
+   Broad vs. specific is **derived from the JSON**: each key carries `"kind"` — `"type"` (broad),
+   `"subtype"`, or `"role"` (both specific). No hardcoded key lists. Tiebreaks: the structured
+   `subtype` field beats a role in the name; within the name, first specific word wins (species
+   usually leads, e.g. "Goblin Cultist" → goblinoid).
 4. **Reuse is free:** point several keys at the same table by selecting it in multiple dropdowns.
 5. **Source:** world RollTables now; the resolver should be written so the table lookup can later
    target a **compendium** of RollTables without changing the cascade.
@@ -83,10 +92,17 @@ in via aliases or rides the type-level table:
 
 ## Alias JSON (`resources/naming-taxonomy.json`)
 
-Each entry = a canonical key + display label + aliases. Both the token's type/subtype string **and**
-the keys are normalized (lowercase, trim) and compared, so `orc`/`Orcs`/`orcish` all resolve to
-`goblinoid`. `canonicalize()` matches the key itself **or** any alias. The key list here is the source
-of truth that the per-key settings are generated from.
+Each entry = a canonical key + display label + `kind` (`"type"` = broad, `"subtype"`/`"role"` =
+specific) + aliases. Both the token's type/subtype string **and** the keys are normalized (lowercase,
+trim) and compared, so `orc`/`Orcs`/`orcish` all resolve to `goblinoid`. `canonicalize()` matches the
+key itself **or** any alias. This JSON is the single source of truth: the per-key settings, the
+broad/specific tiers, and the alias map are all derived from it — no hardcoded lists in code.
+
+A GM can point at their **own** taxonomy via the `namingTaxonomyJson` setting (a file path with a
+browse button; defaults to this bundled file). Because the file defines which per-key dropdowns
+exist, the setting is `requiresReload: true`, and the path is read (raw, pre-registration) before
+`registerSettings()` so the dropdowns rebuild from the chosen file. Invalid/missing custom file →
+falls back to the bundled default.
 
 First-pass seed (grow over time):
 
