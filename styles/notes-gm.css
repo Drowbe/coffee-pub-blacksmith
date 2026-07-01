@@ -1,0 +1,88 @@
+/* ==================================================================
+   GM NOTES — injected item-sheet panel
+   Collapsible, GM-only. Mirrors the dark collapsible-panel look used
+   by the Artificer properties block. Kept self-contained for the spike.
+   ================================================================== */
+
+.blacksmith-gm-notes {
+    margin: 8px 4px 4px;
+    border: 1px solid rgba(0, 0, 0, 0.45);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+}
+
+.blacksmith-gm-notes-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+    user-select: none;
+    background: rgba(0, 0, 0, 0.35);
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+}
+
+.blacksmith-gm-notes-header:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.blacksmith-gm-notes-title {
+    flex: 1;
+    font-weight: 600;
+}
+
+.blacksmith-gm-notes-icon {
+    opacity: 0.75;
+}
+
+/* Amber accent when the item actually has notes stored. */
+.blacksmith-gm-notes.has-notes .blacksmith-gm-notes-icon,
+.blacksmith-gm-notes.has-notes .blacksmith-gm-notes-title {
+    color: #d9a441;
+}
+
+.blacksmith-gm-notes-status {
+    font-size: 0.75em;
+    opacity: 0.6;
+    min-width: 3.5em;
+    text-align: right;
+}
+
+.blacksmith-gm-notes-caret {
+    transition: transform 0.15s ease;
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.blacksmith-gm-notes.collapsed .blacksmith-gm-notes-caret {
+    transform: rotate(-90deg);
+}
+
+.blacksmith-gm-notes-body {
+    padding: 8px;
+}
+
+.blacksmith-gm-notes.collapsed .blacksmith-gm-notes-body {
+    display: none;
+}
+
+.blacksmith-gm-notes-input {
+    width: 100%;
+    min-height: 96px;
+    resize: vertical;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    color: inherit;
+    padding: 6px 8px;
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+.blacksmith-gm-notes-input:focus {
+    outline: none;
+    border-color: #d9a441;
+    box-shadow: 0 0 4px rgba(217, 164, 65, 0.4);
+}

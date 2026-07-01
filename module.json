@@ -59,7 +59,8 @@
     }
   ],
   "styles": [
-    "styles/default.css"
+    "styles/default.css",
+    "styles/notes-gm.css"
   ],
   "files": [
     "resources/config-volumes.json",
