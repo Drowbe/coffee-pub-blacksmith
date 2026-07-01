@@ -83,7 +83,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 <div class="blacksmith-json-import-tools-row blacksmith-json-import-tabs-row">
                     <nav class="blacksmith-tabs" role="tablist">
                         <button type="button" class="blacksmith-tab ${isCopyTab ? 'is-active' : ''}" data-action="selectTab" data-value="copy" role="tab" aria-selected="${isCopyTab}">
-                            <i class="fa-solid fa-clipboard"></i><span>Copy Prompt</span>
+                            <i class="fa-solid fa-wand-magic-sparkles"></i><span>Generate JSON Template</span>
                         </button>
                         <button type="button" class="blacksmith-tab ${!isCopyTab ? 'is-active' : ''}" data-action="selectTab" data-value="import" role="tab" aria-selected="${!isCopyTab}">
                             <i class="fa-solid fa-file-import"></i><span>Import JSON</span>
@@ -204,11 +204,39 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         fileInput?.click();
     }
 
+    /**
+     * Show/hide a "working" overlay over the window. Building a prompt can be slow when it
+     * pulls large compendium actor/item catalogs, so give the user visible feedback.
+     * @param {boolean} busy
+     * @param {string} [message]
+     */
+    _setBusy(busy, message = 'Working…') {
+        const root = this.element;
+        if (!root) return;
+        let overlay = root.querySelector('.blacksmith-json-import-busy');
+        if (busy) {
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'blacksmith-json-import-busy';
+                overlay.innerHTML = '<div class="blacksmith-json-import-busy-inner">'
+                    + '<i class="fa-solid fa-spinner fa-spin"></i>'
+                    + '<span class="blacksmith-json-import-busy-text"></span>'
+                    + '</div>';
+                root.appendChild(overlay);
+            }
+            const text = overlay.querySelector('.blacksmith-json-import-busy-text');
+            if (text) text.textContent = message;
+            overlay.hidden = false;
+        } else if (overlay) {
+            overlay.hidden = true;
+        }
+    }
+
     async _copyTemplate() {
         if (!this.onBuildPrompt) return;
         const root = this.element;
         const copyButton = root?.querySelector('.blacksmith-json-import-copy-template');
-        ui.notifications.info('Gathering data to put on the clipboard, please wait...');
+        this._setBusy(true, 'Building prompt — gathering actors & items…');
         if (copyButton) copyButton.disabled = true;
         try {
             const prompt = await this.onBuildPrompt(this.selectedTemplate, this._getPromptOptions());
@@ -221,6 +249,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             ui.notifications.error(`Failed to copy prompt: ${message}`);
         } finally {
             if (copyButton) copyButton.disabled = false;
+            this._setBusy(false);
         }
     }
 
@@ -228,7 +257,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         if (!this.onBuildPrompt) return;
         const root = this.element;
         const saveButton = root?.querySelector('.blacksmith-json-import-save-template');
-        ui.notifications.info('Gathering data to save, please wait...');
+        this._setBusy(true, 'Building prompt — gathering actors & items…');
         if (saveButton) saveButton.disabled = true;
         try {
             const prompt = String((await this.onBuildPrompt(this.selectedTemplate, this._getPromptOptions())) ?? '');
@@ -244,6 +273,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             ui.notifications.error(`Failed to save prompt: ${message}`);
         } finally {
             if (saveButton) saveButton.disabled = false;
+            this._setBusy(false);
         }
     }
 
@@ -266,7 +296,13 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const root = this.element;
         const textarea = root?.querySelector('.blacksmith-json-import-textarea');
         const payload = textarea?.value || '';
-        const ok = await this.onImport(payload);
+        this._setBusy(true, 'Importing…');
+        let ok;
+        try {
+            ok = await this.onImport(payload);
+        } finally {
+            this._setBusy(false);
+        }
         if (ok !== false) {
             this.close();
         }
