@@ -948,7 +948,7 @@ Hooks.once('init', async function() {
         getCanvasLayer: null,
         pins: PinsAPI,
         tags: TagsAPI,
-        notes: NotesAPI,
+        gmNotes: NotesAPI,
         chatCards: ChatCardsAPI,
         campaign: CampaignAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),

@@ -2,12 +2,12 @@
 
 **Audience:** Module developers consuming Blacksmith's GM Notes system.
 
-GM Notes attaches GM-authored metadata to any Foundry document. Notes are the first field of a broader metadata envelope; future fields (reveal timing, quest links, associated NPCs) live under the same flag and schema without breaking this API.
+**GM Notes** attaches GM-authored, GM-only notes to **existing Foundry documents** (Items, Actors, etc.) — a private annotation layer on the documents you already have. This is distinct from note utilities in other coffee-pub modules (e.g. Squire's sticky notes, which are standalone journal-backed notes): GM Notes does not create documents, it annotates existing Foundry functionality. Notes are the first field of a broader metadata envelope; future fields (reveal timing, quest links, associated NPCs) live under the same flag and schema without breaking this API.
 
 Access it via:
 
 ```js
-const notes = game.modules.get('coffee-pub-blacksmith')?.api?.notes;
+const gmNotes = game.modules.get('coffee-pub-blacksmith')?.api?.gmNotes;
 ```
 
 ## Storage & privacy
@@ -49,28 +49,28 @@ Notes are stored on the **target document's own flags** (`flags["coffee-pub-blac
 Every `set` / `clear` fires a global hook so consumers (a future search index, sheet badges) can react:
 
 ```js
-Hooks.on(game.modules.get('coffee-pub-blacksmith').api.notes.CHANGE_HOOK, ({ uuid, note, document }) => {
+Hooks.on(game.modules.get('coffee-pub-blacksmith').api.gmNotes.CHANGE_HOOK, ({ uuid, note, document }) => {
     // note is the new envelope, or null on clear
 });
 ```
 
-The hook name is `blacksmith.notesChanged`.
+The hook name is `blacksmith.gmNotesChanged`.
 
 ## Examples
 
 ```js
-const notes = game.modules.get('coffee-pub-blacksmith').api.notes;
+const gmNotes = game.modules.get('coffee-pub-blacksmith').api.gmNotes;
 
 // Read
-const body = notes.getHtml(item.uuid);
-const forSearch = notes.getText(item.uuid);
+const body = gmNotes.getHtml(item.uuid);
+const forSearch = gmNotes.getText(item.uuid);
 
 // Write
-await notes.set(item.uuid, { html: '<p>Tied to Quest: Broken Orders.</p>' });
+await gmNotes.set(item.uuid, { html: '<p>Tied to Quest: Broken Orders.</p>' });
 
 // Existence check (e.g. to badge a list row)
-if (notes.has(actor.uuid)) markRow(actor);
+if (gmNotes.has(actor.uuid)) markRow(actor);
 
 // Remove
-await notes.clear(item.uuid);
+await gmNotes.clear(item.uuid);
 ```

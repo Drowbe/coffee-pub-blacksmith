@@ -7,7 +7,7 @@
 // fields (reveal, links, ...) live under the same flag and schema.
 //
 // Storage is intentionally on document flags (UI-gated, not encrypted).
-// See documentation/api/api-notes.md for the public contract.
+// See documentation/api/api-gmnotes.md for the public contract.
 // ==================================================================
 
 import { MODULE } from './const.js';
@@ -25,7 +25,7 @@ const SCHEMA_VERSION = 1;
 
 // Public event fired after every write. Consumers (future search index,
 // sheet "has notes" badges) subscribe via Hooks.on(NotesManager.CHANGE_HOOK, ...).
-const CHANGE_HOOK = 'blacksmith.notesChanged';
+const CHANGE_HOOK = 'blacksmith.gmNotesChanged';
 
 // ----------------------------------------------------------------
 // NotesManager

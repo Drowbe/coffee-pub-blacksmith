@@ -2,8 +2,8 @@
 // ===== API-NOTES – Public interface for the GM Notes system =======
 // ==================================================================
 // Thin wrapper over NotesManager. Consumed via:
-//   game.modules.get('coffee-pub-blacksmith')?.api?.notes
-// See documentation/api/api-notes.md for full method contracts.
+//   game.modules.get('coffee-pub-blacksmith')?.api?.gmNotes
+// See documentation/api/api-gmnotes.md for full method contracts.
 // ==================================================================
 
 import { NotesManager } from './manager-notes.js';
