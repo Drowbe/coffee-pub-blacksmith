@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.8.1]
+
+### Changed
+
+- **Area journal — `blocks.area.title` now required** (`prompts/prompt-journal-profile-area.txt`): The area import prompt now **requires** generators to set `blocks.area.title` explicitly instead of reusing `scenetitle`. `scenetitle` is the page/tab label and often carries an ordering prefix (e.g. "02 Main Room"); `blocks.area.title` is the clean on-page heading with that prefix stripped ("Main Room"). SCHEMA LOCK, the BLOCKS reference, the wrong→correct hints, and the USAGE checklist were updated to mark it REQUIRED and to show the prefix-stripping example. The parser's `blocks.area.title → scenetitle → area → "Area"` fallback is unchanged, so JSON without the field still imports gracefully.
+
 
 ## [13.8.0]
 
@@ -36,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Area journal — `preparation.threats` renamed to `preparation.actors`** (`prompts/prompt-journal-profile-area.txt`, `prompts/prompt-journal-core.txt`, `scripts/parsers/parse-journal-area.js`, `test-data/import-json/journal-import-area.json`): The preparation `threats` field is now `actors` and renders under an **Actors** heading. Its meaning broadened from "threats only" to the full scene roster — generic monster/NPC types (exact catalog names, e.g. `Goblin`, `Commoner`, for linking) **and** named individuals worth calling out in the narrative (e.g. `Bob the Barber`, `Phil the Terrible — a named goblin`), which may also appear in `conversations`. The prompt guidance and examples were updated accordingly. The parser still accepts the legacy `threats` key as an alias so previously generated JSON imports unchanged.
 
-- **Area journal — optional `blocks.area.title`** (`prompts/prompt-journal-profile-area.txt`, `scripts/parsers/parse-journal-area.js`, `test-data/import-json/journal-import-area.json`): Added an optional `blocks.area.title` string so the on-page area heading can differ from the scene/page name. The area section `<h2>` now resolves as `blocks.area.title` → `scenetitle` → `area` → `"Area"`; omitting it preserves existing behavior. The field is a sibling of `narrative`/`narrativecard` (the prompt's SCHEMA LOCK keeps `narrative` as exactly three strings and forbids a `title` inside it).
+- **Area journal — optional `blocks.area.title`** (`prompts/prompt-journal-profile-area.txt`, `scripts/parsers/parse-journal-area.js`, `test-data/import-json/journal-import-area.json`): Added an optional `blocks.area.title` string so the on-page area heading can differ from the scene/page name. The area section `<h2>` resolves `blocks.area.title` → `scenetitle` → `area` → `"Area"`; omitting it preserves existing behavior. It is a sibling of `narrative`/`narrativecard` (the prompt's SCHEMA LOCK keeps `narrative` as exactly three strings and forbids a `title` inside it). *(Made required in 13.8.1.)*
 
 - **Area journal — section spacing preserved in the editor** (`scripts/utility-journal-html.js`, `scripts/utility-common.js`, `templates/journal-area.hbs`): Foundry's editor strips empty `<p></p>` separators, collapsing section spacing. New `applyJournalHeadingSpacing` inserts spacers that survive — `<p>&nbsp;</p><hr><p>&nbsp;</p>` before each top-level H1/H2 and a single `<p>&nbsp;</p>` before each top-level H3–H6 (headings nested in blockquotes and the first element on the page are left alone). The area template no longer emits the manual `<p></p>` separators.
 
