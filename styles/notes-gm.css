@@ -1,9 +1,10 @@
 /* ==================================================================
-   GM NOTES — injected item-sheet card
-   Rides dnd5e's .card.description styling so read/edit, collapse, and
-   the feather toggle match the native description editors. This file
-   only adds the GM accent and sizes the injected <prose-mirror>.
+   GM NOTES
+   1) Read card injected into item sheets (rides dnd5e .card.description)
+   2) The canonical editor window (window-notes.js)
    ================================================================== */
+
+/* ---- Read card (item sheet) ------------------------------------ */
 
 /* Amber "this is GM-only" accent on the card title + glyph. */
 .blacksmith-gm-notes .blacksmith-gm-notes-glyph {
@@ -24,36 +25,65 @@
     font-style: italic;
 }
 
-.blacksmith-gm-notes.editing .editor-content::before {
-    content: none;
-}
+/* ---- Editor window --------------------------------------------- */
 
-/* Give the editor — and crucially its inner contenteditable — real height.
-   Without height on .editor-content/.ProseMirror the edit area collapses to
-   0px and reads as "toolbar shows but I can't type." Mirrors Squire's note
-   window editor CSS. */
-.blacksmith-gm-notes.editing prose-mirror,
-.blacksmith-gm-notes prose-mirror.editor {
+.blacksmith-gm-notes-window .blacksmith-notes-window {
     display: flex;
     flex-direction: column;
-    min-height: 160px;
+    height: 100%;
+    gap: 8px;
 }
 
-.blacksmith-gm-notes prose-mirror .editor-container {
+.blacksmith-gm-notes-window .blacksmith-notes-editor-host {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+}
+
+.blacksmith-gm-notes-window .blacksmith-notes-editor.editor {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.blacksmith-gm-notes-window .blacksmith-notes-editor .editor-container {
     flex: 1 1 auto;
     min-height: 0;
 }
 
-.blacksmith-gm-notes prose-mirror .editor-content,
-.blacksmith-gm-notes prose-mirror .ProseMirror,
-.blacksmith-gm-notes prose-mirror .prosemirror {
-    min-height: 140px;
+.blacksmith-gm-notes-window .blacksmith-notes-editor .editor-content,
+.blacksmith-gm-notes-window .blacksmith-notes-editor .ProseMirror {
+    min-height: 220px;
     padding: 8px;
     cursor: text;
-    background: rgba(0, 0, 0, 0.15);
 }
 
-.blacksmith-gm-notes prose-mirror .editor-content:focus,
-.blacksmith-gm-notes prose-mirror .ProseMirror:focus {
+.blacksmith-gm-notes-window .blacksmith-notes-editor .editor-content:focus,
+.blacksmith-gm-notes-window .blacksmith-notes-editor .ProseMirror:focus {
     outline: none;
+}
+
+.blacksmith-gm-notes-window .blacksmith-notes-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding-top: 4px;
+}
+
+.blacksmith-gm-notes-window .blacksmith-notes-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.blacksmith-gm-notes-window .blacksmith-notes-btn.primary {
+    background: #d9a441;
+    color: #1a1206;
+    font-weight: 600;
+    border: 1px solid #b9862c;
 }
