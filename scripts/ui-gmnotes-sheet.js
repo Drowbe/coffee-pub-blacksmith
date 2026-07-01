@@ -1,14 +1,14 @@
 // ==================================================================
-// ===== UI-NOTES-SHEET – GM Notes read card (Items) ================
+// ===== UI-GMNOTES-SHEET – GM Notes read card (Items) ==============
 // ==================================================================
 // Injects a GM-only, read-only "GM Notes" card into dnd5e item sheets.
 // The card is an at-a-glance enriched view; clicking the feather opens
-// the canonical editor window (window-notes.js) — editing never happens
+// the canonical editor window (window-gmnotes.js) — editing never happens
 // inside the host sheet, which is what kept breaking.
 //
 // The card is intentionally read-only here: no embedded editor means no
 // interaction conflict with dnd5e's form. It live-refreshes when a note
-// changes via the NotesAPI change hook.
+// changes via the GMNotesAPI change hook.
 //
 // v1 scope: Items. Actors/journals reuse the SAME window; only this thin
 // read-card injection is item-specific.
@@ -17,14 +17,14 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { NotesAPI } from './api-notes.js';
-import { NotesWindow } from './window-notes.js';
+import { GMNotesAPI } from './api-gmnotes.js';
+import { GMNotesWindow } from './window-gmnotes.js';
 
 // Item sheet render hooks in dnd5e 5.x (AppV2). ItemSheet5e is the
 // default for all item types; ContainerSheet handles containers.
 const ITEM_SHEET_HOOKS = ['renderItemSheet5e', 'renderContainerSheet'];
 
-export class NotesSheetUI {
+export class GMNotesSheetUI {
 
     static initialize() {
         for (const name of ITEM_SHEET_HOOKS) {
@@ -33,11 +33,11 @@ export class NotesSheetUI {
                 description: 'Blacksmith: Inject GM Notes read card into item sheets',
                 context: 'blacksmith-gm-notes-item',
                 priority: 3,
-                callback: NotesSheetUI._onRenderItemSheet
+                callback: GMNotesSheetUI._onRenderItemSheet
             });
         }
         // Live-refresh any open cards when a note is saved/cleared.
-        Hooks.on(NotesAPI.CHANGE_HOOK, ({ uuid }) => NotesSheetUI._refreshCards(uuid));
+        Hooks.on(GMNotesAPI.CHANGE_HOOK, ({ uuid }) => GMNotesSheetUI._refreshCards(uuid));
         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | NOTES GM Notes item-sheet UI initialized', '', false, false);
     }
 
@@ -63,9 +63,9 @@ export class NotesSheetUI {
             || root.querySelector('.window-content')
             || root;
 
-        const card = NotesSheetUI._buildCard(doc);
+        const card = GMNotesSheetUI._buildCard(doc);
         host.appendChild(card);
-        NotesSheetUI._renderRead(card, doc);
+        GMNotesSheetUI._renderRead(card, doc);
     }
 
     // ------------------------------------------------------------
@@ -90,10 +90,10 @@ export class NotesSheetUI {
         `;
 
         // Initial collapse: a remembered preference wins; otherwise collapse
-        // when the note is empty. NotesAPI.get is synchronous (reads a flag).
-        const note = NotesAPI.get(doc.uuid);
+        // when the note is empty. GMNotesAPI.get is synchronous (reads a flag).
+        const note = GMNotesAPI.get(doc.uuid);
         const hasContent = !!(note && note.text && note.text.trim());
-        const pref = NotesSheetUI._getCollapseState(doc.uuid);
+        const pref = GMNotesSheetUI._getCollapseState(doc.uuid);
         card.classList.toggle('collapsed', pref === undefined ? !hasContent : pref);
 
         // Collapse when the header (but not the feather) is clicked; remember it.
@@ -101,18 +101,18 @@ export class NotesSheetUI {
         header.addEventListener('click', (ev) => {
             if (ev.target.closest('.blacksmith-gm-notes-edit')) return;
             const collapsed = card.classList.toggle('collapsed');
-            NotesSheetUI._setCollapseState(doc.uuid, collapsed);
+            GMNotesSheetUI._setCollapseState(doc.uuid, collapsed);
         });
 
         // Feather → open the canonical editor window.
         card.querySelector('.blacksmith-gm-notes-edit')
-            .addEventListener('click', () => NotesSheetUI._openEditor(doc));
+            .addEventListener('click', () => GMNotesSheetUI._openEditor(doc));
 
         return card;
     }
 
     static _openEditor(doc) {
-        new NotesWindow({ uuid: doc.uuid, title: doc.name }).render(true);
+        new GMNotesWindow({ uuid: doc.uuid, title: doc.name }).render(true);
     }
 
     // Per-user collapse memory (stored on the User document flag).
@@ -131,12 +131,12 @@ export class NotesSheetUI {
     // ------------------------------------------------------------
 
     static async _renderRead(card, doc) {
-        const note = NotesAPI.get(doc.uuid);
+        const note = GMNotesAPI.get(doc.uuid);
         // Use the stripped text mirror to decide emptiness — an "emptied"
         // note is stored as "<p></p>", which is non-empty HTML but no text.
         const hasContent = !!(note && note.text && note.text.trim());
         const wrapper = card.querySelector('.editor.editor-content');
-        const enriched = hasContent ? await NotesSheetUI._enrich(note.html, doc) : '';
+        const enriched = hasContent ? await GMNotesSheetUI._enrich(note.html, doc) : '';
         wrapper.innerHTML = enriched || '';
         card.classList.toggle('empty', !hasContent);
         card.classList.toggle('has-notes', hasContent);
@@ -145,14 +145,14 @@ export class NotesSheetUI {
     static _refreshCards(uuid) {
         const doc = fromUuidSync(uuid);
         if (!doc) return;
-        const note = NotesAPI.get(uuid);
+        const note = GMNotesAPI.get(uuid);
         const hasContent = !!(note && note.text && note.text.trim());
         for (const card of document.querySelectorAll('.blacksmith-gm-notes')) {
             if (card.dataset.docUuid !== uuid) continue;
-            NotesSheetUI._renderRead(card, doc);
+            GMNotesSheetUI._renderRead(card, doc);
             // After a save: adding content expands and reveals it; clearing collapses.
             card.classList.toggle('collapsed', !hasContent);
-            NotesSheetUI._setCollapseState(uuid, !hasContent);
+            GMNotesSheetUI._setCollapseState(uuid, !hasContent);
         }
     }
 

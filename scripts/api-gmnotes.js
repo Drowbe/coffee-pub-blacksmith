@@ -1,22 +1,22 @@
 // ==================================================================
-// ===== API-NOTES – Public interface for the GM Notes system =======
+// ===== API-GMNOTES – Public interface for the GM Notes system =====
 // ==================================================================
-// Thin wrapper over NotesManager. Consumed via:
+// Thin wrapper over GMNotesManager. Consumed via:
 //   game.modules.get('coffee-pub-blacksmith')?.api?.gmNotes
 // See documentation/api/api-gmnotes.md for full method contracts.
 // ==================================================================
 
-import { NotesManager } from './manager-notes.js';
+import { GMNotesManager } from './manager-gmnotes.js';
 
-export class NotesAPI {
+export class GMNotesAPI {
 
     static isAvailable() {
-        return NotesManager.isAvailable();
+        return GMNotesManager.isAvailable();
     }
 
     /** Hook name fired after every note write/clear. */
     static get CHANGE_HOOK() {
-        return NotesManager.CHANGE_HOOK;
+        return GMNotesManager.CHANGE_HOOK;
     }
 
     // ============================================================
@@ -25,22 +25,22 @@ export class NotesAPI {
 
     /** Full envelope { schemaVersion, html, text, pinned, updatedAt } or null. */
     static get(uuid) {
-        return NotesManager.getNote(uuid);
+        return GMNotesManager.getNote(uuid);
     }
 
     /** Rich HTML (empty string if none). */
     static getHtml(uuid) {
-        return NotesManager.getHtml(uuid);
+        return GMNotesManager.getHtml(uuid);
     }
 
     /** Plain-text mirror — indexable for gm: search. */
     static getText(uuid) {
-        return NotesManager.getText(uuid);
+        return GMNotesManager.getText(uuid);
     }
 
     /** True if the document has a non-empty note. */
     static has(uuid) {
-        return NotesManager.hasNote(uuid);
+        return GMNotesManager.hasNote(uuid);
     }
 
     // ============================================================
@@ -49,11 +49,11 @@ export class NotesAPI {
 
     /** Replace the note. data: { html?, pinned? }. Returns the envelope or null. */
     static set(uuid, data) {
-        return NotesManager.setNote(uuid, data);
+        return GMNotesManager.setNote(uuid, data);
     }
 
     /** Remove all note data from the document. */
     static clear(uuid) {
-        return NotesManager.clearNote(uuid);
+        return GMNotesManager.clearNote(uuid);
     }
 }

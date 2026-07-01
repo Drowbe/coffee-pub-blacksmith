@@ -1,23 +1,23 @@
 // ==================================================================
-// ===== WINDOW-NOTES – GM Notes editor window ======================
+// ===== WINDOW-GMNOTES – GM Notes editor window ====================
 // ==================================================================
 // The canonical GM Notes editor. Built on Blacksmith's OWN window base
 // (BlacksmithWindowBaseV2) + zone template — the same foundation Squire's
 // note window uses, so the editor behaves exactly like it does there.
 //
 // Opened with a target document UUID; mounts a ProseMirror editor and
-// saves via NotesAPI. Action names are prefixed (gm-notes-*) so they do
+// saves via GMNotesAPI. Action names are prefixed (gm-notes-*) so they do
 // NOT collide with the editor toolbar's own data-action="save"/"bold".
 // ==================================================================
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { NotesAPI } from './api-notes.js';
+import { GMNotesAPI } from './api-gmnotes.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 const APP_ID = 'blacksmith-gm-notes-window';
 
-export class NotesWindow extends BlacksmithWindowBaseV2 {
+export class GMNotesWindow extends BlacksmithWindowBaseV2 {
 
     static ROOT_CLASS = 'blacksmith-window-template-root';
 
@@ -38,8 +38,8 @@ export class NotesWindow extends BlacksmithWindowBaseV2 {
     // Prefixed so the base's data-action delegation never intercepts the
     // ProseMirror toolbar's own data-action="save"/"bold"/... buttons.
     static ACTION_HANDLERS = {
-        'gm-notes-save': () => NotesWindow._ref?._save(),
-        'gm-notes-cancel': () => NotesWindow._ref?.close()
+        'gm-notes-save': () => GMNotesWindow._ref?._save(),
+        'gm-notes-cancel': () => GMNotesWindow._ref?.close()
     };
 
     constructor(options = {}) {
@@ -86,7 +86,7 @@ export class NotesWindow extends BlacksmithWindowBaseV2 {
         // Config mirrors Squire's verified-working note editor.
         const config = {
             name: 'content',
-            value: NotesAPI.getHtml(this.targetUuid) || '',
+            value: GMNotesAPI.getHtml(this.targetUuid) || '',
             compact: true
         };
         if (this.targetUuid) config.documentUUID = this.targetUuid;
@@ -108,7 +108,7 @@ export class NotesWindow extends BlacksmithWindowBaseV2 {
         // The editor toolbar's own Save (floppy) autosaves without closing.
         editor.addEventListener('change', async (ev) => {
             ev.stopPropagation();
-            await NotesAPI.set(this.targetUuid, { html: editor.value ?? '' });
+            await GMNotesAPI.set(this.targetUuid, { html: editor.value ?? '' });
         });
 
         host.replaceChildren(editor);
@@ -116,7 +116,7 @@ export class NotesWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _save() {
-        await NotesAPI.set(this.targetUuid, { html: this._editor?.value ?? '' });
+        await GMNotesAPI.set(this.targetUuid, { html: this._editor?.value ?? '' });
         this.close();
     }
 }

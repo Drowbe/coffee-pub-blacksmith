@@ -87,8 +87,8 @@ import { PinsAPI } from './api-pins.js';
 import { TagsAPI } from './api-tags.js';
 import { TagManager } from './manager-tags.js';
 import { TagWidget } from './widget-tags.js';
-import { NotesAPI } from './api-notes.js';
-import { NotesSheetUI } from './ui-notes-sheet.js';
+import { GMNotesAPI } from './api-gmnotes.js';
+import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
@@ -529,7 +529,7 @@ Hooks.once('ready', async () => {
         PinManager.initialize();
 
         // Initialize GM Notes item-sheet UI (notes API is document-flag backed)
-        NotesSheetUI.initialize();
+        GMNotesSheetUI.initialize();
         
         // Image replacement / dead tokens – provided by Coffee Pub Curator when installed
 
@@ -948,7 +948,7 @@ Hooks.once('init', async function() {
         getCanvasLayer: null,
         pins: PinsAPI,
         tags: TagsAPI,
-        gmNotes: NotesAPI,
+        gmNotes: GMNotesAPI,
         chatCards: ChatCardsAPI,
         campaign: CampaignAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),

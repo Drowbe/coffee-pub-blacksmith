@@ -3,7 +3,7 @@
 // ==================================================================
 
 import { MODULE } from '../const.js';
-import { NotesManager } from '../manager-notes.js';
+import { GMNotesManager } from '../manager-gmnotes.js';
 
 let iconPathsCache = null;
 
@@ -393,7 +393,7 @@ export async function parseFlatItemToFoundry(flat) {
     if (gmNotesHtml.trim()) {
         data.flags = data.flags || {};
         data.flags[MODULE.ID] = data.flags[MODULE.ID] || {};
-        data.flags[MODULE.ID].gmNotes = NotesManager.buildEnvelope({ html: gmNotesHtml });
+        data.flags[MODULE.ID].gmNotes = GMNotesManager.buildEnvelope({ html: gmNotesHtml });
     }
 
     return data;

@@ -1,5 +1,5 @@
 // ==================================================================
-// ===== MANAGER-NOTES – GM notes / metadata store per document =====
+// ===== MANAGER-GMNOTES – GM notes store per document ==============
 // ==================================================================
 // Central GM metadata store. Notes attach to any Foundry document via
 // that document's own flags, addressed by UUID at the API boundary.
@@ -24,14 +24,14 @@ const NOTES_FLAG = 'gmNotes';
 const SCHEMA_VERSION = 1;
 
 // Public event fired after every write. Consumers (future search index,
-// sheet "has notes" badges) subscribe via Hooks.on(NotesManager.CHANGE_HOOK, ...).
+// sheet "has notes" badges) subscribe via Hooks.on(GMNotesManager.CHANGE_HOOK, ...).
 const CHANGE_HOOK = 'blacksmith.gmNotesChanged';
 
 // ----------------------------------------------------------------
-// NotesManager
+// GMNotesManager
 // ----------------------------------------------------------------
 
-export class NotesManager {
+export class GMNotesManager {
 
     static get CHANGE_HOOK() { return CHANGE_HOOK; }
 
