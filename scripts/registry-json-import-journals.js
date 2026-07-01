@@ -703,14 +703,14 @@ async function applyAreaCatalogSections(prompt, catalogOptions) {
     let result = prompt;
 
     if (catalogOptions.actorCompendiumIds?.length) {
-        const list = await getCompendiumActorsList(catalogOptions.actorCompendiumIds);
+        const list = await getCompendiumActorsList(catalogOptions.actorCompendiumIds, catalogOptions.onProgress);
         result = result.replace('[ADD-COMPENDIUM-ACTORS-HERE]', list);
     } else {
         result = result.replace(CATALOG_SECTION_ACTORS, '');
     }
 
     if (catalogOptions.itemCompendiumIds?.length) {
-        const list = await getCompendiumItemsList(catalogOptions.itemCompendiumIds);
+        const list = await getCompendiumItemsList(catalogOptions.itemCompendiumIds, catalogOptions.onProgress);
         result = result.replace('[ADD-COMPENDIUM-ITEMS-HERE]', list);
     } else {
         result = result.replace(CATALOG_SECTION_ITEMS, '');
@@ -819,7 +819,8 @@ export async function buildJournalImportPrompt(profileKey, options = {}) {
         actorCompendiumIds,
         itemCompendiumIds,
         includeWorldActors: options.includeWorldActors ?? false,
-        includeWorldItems: options.includeWorldItems ?? false
+        includeWorldItems: options.includeWorldItems ?? false,
+        onProgress: options.onProgress
     });
 
     for (const placeholder of [
@@ -938,9 +939,10 @@ export async function buildLocationImportPrompt(promptOptions = {}) {
  * deliver it (copy to clipboard or save as a text file).
  * @param {string} templateKey
  * @param {Record<string, string|boolean>} [promptOptions]
+ * @param {(message: string) => void} [onProgress] - status callback while scanning compendiums
  * @returns {Promise<string>}
  */
-async function buildJournalPrompt(templateKey, promptOptions = {}) {
+async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
     const type = String(templateKey || 'area').toLowerCase();
 
     if (type === 'illustration') {
@@ -982,7 +984,8 @@ async function buildJournalPrompt(templateKey, promptOptions = {}) {
             area: promptOptions.area ?? '',
             scenetitle: promptOptions.scenetitle ?? ''
         },
-        additionalContext: promptOptions.additionalContext ?? ''
+        additionalContext: promptOptions.additionalContext ?? '',
+        onProgress
     });
     return prompt;
 }

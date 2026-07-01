@@ -119,6 +119,33 @@ export function getActorCompendiumsList() {
  * @param {string[]} [packIds] - explicit subset; when provided, used as-is
  * @returns {string[]}
  */
+/**
+ * Yield to the browser so the "working" overlay can repaint (spinner + status) before we run
+ * the next chunk of synchronous catalog processing.
+ * @returns {Promise<void>}
+ */
+function yieldToUI() {
+    return new Promise((resolve) => {
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => resolve());
+        else setTimeout(resolve, 0);
+    });
+}
+
+/**
+ * Report the compendium currently being scanned and yield a frame.
+ * @param {((message: string) => void)|undefined} onProgress
+ * @param {string} category - "actors" | "items"
+ * @param {string} label - human compendium label
+ * @param {number} index - 1-based
+ * @param {number} total
+ * @returns {Promise<void>}
+ */
+async function reportScan(onProgress, category, label, index, total) {
+    if (typeof onProgress !== 'function') return;
+    onProgress(`Scanning ${category} — ${label} (${index}/${total})…`);
+    await yieldToUI();
+}
+
 function resolveConfiguredPackIds(countKey, prefix, packIds) {
     if (Array.isArray(packIds)) {
         return packIds.filter((id) => id && id !== 'none');
@@ -134,13 +161,15 @@ function resolveConfiguredPackIds(countKey, prefix, packIds) {
 
 /**
  * @param {string[]} [packIds] - optional subset of item-compendium pack ids; defaults to all configured
+ * @param {(message: string) => void} [onProgress] - per-compendium status callback
  * @returns {Promise<string>}
  */
-export async function getCompendiumItemsList(packIds) {
+export async function getCompendiumItemsList(packIds, onProgress) {
     try {
         const compendiumIds = resolveConfiguredPackIds('numCompendiumsItem', 'itemCompendium', packIds);
         const compendiumBlocks = [];
 
+        let scanIndex = 0;
         for (const compendiumId of compendiumIds) {
             try {
                 const compendium = game.packs.get(compendiumId);
@@ -149,6 +178,8 @@ export async function getCompendiumItemsList(packIds) {
                     continue;
                 }
 
+                scanIndex += 1;
+                await reportScan(onProgress, 'items', compendium.metadata?.label ?? compendiumId, scanIndex, compendiumIds.length);
                 const documents = await compendium.getDocuments();
                 if (!documents?.length) {
                     continue;
@@ -190,13 +221,15 @@ export async function getCompendiumItemsList(packIds) {
 
 /**
  * @param {string[]} [packIds] - optional subset of actor-compendium pack ids; defaults to all configured
+ * @param {(message: string) => void} [onProgress] - per-compendium status callback
  * @returns {Promise<string>}
  */
-export async function getCompendiumActorsList(packIds) {
+export async function getCompendiumActorsList(packIds, onProgress) {
     try {
         const compendiumIds = resolveConfiguredPackIds('numCompendiumsActor', 'monsterCompendium', packIds);
         const compendiumBlocks = [];
 
+        let scanIndex = 0;
         for (const compendiumId of compendiumIds) {
             try {
                 const compendium = game.packs.get(compendiumId);
@@ -205,6 +238,8 @@ export async function getCompendiumActorsList(packIds) {
                     continue;
                 }
 
+                scanIndex += 1;
+                await reportScan(onProgress, 'actors', compendium.metadata?.label ?? compendiumId, scanIndex, compendiumIds.length);
                 const documents = await compendium.getDocuments();
                 if (!documents?.length) {
                     continue;

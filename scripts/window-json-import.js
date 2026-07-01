@@ -239,7 +239,11 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this._setBusy(true, 'Building prompt — gathering actors & items…');
         if (copyButton) copyButton.disabled = true;
         try {
-            const prompt = await this.onBuildPrompt(this.selectedTemplate, this._getPromptOptions());
+            const prompt = await this.onBuildPrompt(
+                this.selectedTemplate,
+                this._getPromptOptions(),
+                (msg) => this._setBusy(true, msg)
+            );
             const copied = await copyToClipboard(String(prompt ?? ''), { notify: false });
             if (copied !== false) {
                 ui.notifications.info('Prompt copied to the clipboard');
@@ -260,7 +264,11 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this._setBusy(true, 'Building prompt — gathering actors & items…');
         if (saveButton) saveButton.disabled = true;
         try {
-            const prompt = String((await this.onBuildPrompt(this.selectedTemplate, this._getPromptOptions())) ?? '');
+            const prompt = String((await this.onBuildPrompt(
+                this.selectedTemplate,
+                this._getPromptOptions(),
+                (msg) => this._setBusy(true, msg)
+            )) ?? '');
             const template = String(this.selectedTemplate || 'prompt')
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **JSON import — "Generate JSON Template" tab + progress overlay** (`scripts/window-json-import.js`, `scripts/registry-json-import-journals.js`, `scripts/utility-rolltable-import-lists.js`, `styles/window-json-import.css`): Renamed the **Copy Prompt** tab to **Generate JSON Template**. Building an Area Narrative prompt with compendium catalogs can be slow, so the window now shows a dimmed "working" overlay with a spinner during Copy / Save / Import. An `onProgress` callback is threaded from the window through `buildJournalPrompt` → `applyAreaCatalogSections` → `getCompendiumActorsList`/`getCompendiumItemsList`, updating the overlay per compendium (e.g. "Scanning actors — dnd5e: Monsters (SRD) (1/2)…") and yielding a frame so the UI repaints instead of appearing frozen. The spinner uses a module-owned CSS keyframe so it doesn't depend on `fa-spin`.
+
 - **Area journal — `blocks.area.title` now required** (`prompts/prompt-journal-profile-area.txt`): The area import prompt now **requires** generators to set `blocks.area.title` explicitly instead of reusing `scenetitle`. `scenetitle` is the page/tab label and often carries an ordering prefix (e.g. "02 Main Room"); `blocks.area.title` is the clean on-page heading with that prefix stripped ("Main Room"). SCHEMA LOCK, the BLOCKS reference, the wrong→correct hints, and the USAGE checklist were updated to mark it REQUIRED and to show the prefix-stripping example. The parser's `blocks.area.title → scenetitle → area → "Area"` fallback is unchanged, so JSON without the field still imports gracefully.
 
 

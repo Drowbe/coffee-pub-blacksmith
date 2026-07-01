@@ -142,6 +142,17 @@
 
 .blacksmith-json-import-busy-inner i {
     font-size: 2rem;
+    animation: blacksmith-json-import-spin 0.9s linear infinite;
+}
+
+@keyframes blacksmith-json-import-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.blacksmith-json-import-busy-text {
+    max-width: 32ch;
+    line-height: 1.4;
 }
 
 .blacksmith-json-import-prompt-options {
