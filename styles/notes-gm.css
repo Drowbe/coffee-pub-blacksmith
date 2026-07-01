@@ -16,65 +16,61 @@
     color: #d9a441;
 }
 
-/* ---- Editor window --------------------------------------------- */
+/* ---- Editor window (on BlacksmithWindowBaseV2 + zone template) --- */
+/* Layout mirrors Squire's proven note editor: a flex column that lets
+   the <prose-mirror> and its inner ProseMirror content fill the height. */
 
-.blacksmith-gm-notes-window .blacksmith-notes-window {
+.blacksmith-gm-notes-window .blacksmith-window-template-body {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    gap: 8px;
+    min-height: 0;
+    padding: 12px;
 }
 
 .blacksmith-gm-notes-window .blacksmith-notes-editor-host {
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
+    flex-direction: column;
 }
 
-.blacksmith-gm-notes-window .blacksmith-notes-editor.editor {
-    flex: 1 1 auto;
+.blacksmith-gm-notes-window prose-mirror.editor,
+.blacksmith-gm-notes-window .blacksmith-notes-editor {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    height: 100%;
     min-height: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.28);
+    overflow: visible;
 }
 
-.blacksmith-gm-notes-window .blacksmith-notes-editor .editor-container {
+.blacksmith-gm-notes-window prose-mirror .editor-container {
     flex: 1 1 auto;
     min-height: 0;
 }
 
-.blacksmith-gm-notes-window .blacksmith-notes-editor .editor-content,
-.blacksmith-gm-notes-window .blacksmith-notes-editor .ProseMirror {
-    min-height: 220px;
-    padding: 8px;
-    cursor: text;
+.blacksmith-gm-notes-window prose-mirror .editor-content,
+.blacksmith-gm-notes-window prose-mirror .ProseMirror,
+.blacksmith-gm-notes-window prose-mirror .prosemirror {
+    min-height: 100%;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.08);
+    color: rgba(240, 236, 226, 0.96);
+    line-height: 1.55;
+    /* Foundry window chrome sets user-select:none; editors must opt back in. */
+    user-select: text;
+    -webkit-user-select: text;
 }
 
-.blacksmith-gm-notes-window .blacksmith-notes-editor .editor-content:focus,
-.blacksmith-gm-notes-window .blacksmith-notes-editor .ProseMirror:focus {
+.blacksmith-gm-notes-window prose-mirror .editor-content:focus,
+.blacksmith-gm-notes-window prose-mirror .ProseMirror:focus,
+.blacksmith-gm-notes-window prose-mirror .prosemirror:focus {
     outline: none;
 }
 
-.blacksmith-gm-notes-window .blacksmith-notes-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    flex: 0 0 auto;
-    padding-top: 4px;
-}
-
-.blacksmith-gm-notes-window .blacksmith-notes-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.blacksmith-gm-notes-window .blacksmith-notes-btn.primary {
-    background: #d9a441;
-    color: #1a1206;
-    font-weight: 600;
-    border: 1px solid #b9862c;
+.blacksmith-gm-notes-window prose-mirror .ProseMirror p:last-child {
+    min-height: 1.5em;
 }

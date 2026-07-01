@@ -1,43 +1,49 @@
 // ==================================================================
-// ===== WINDOW-NOTES – GM Notes editor window (AppV2) ==============
+// ===== WINDOW-NOTES – GM Notes editor window ======================
 // ==================================================================
-// The single canonical edit surface for GM Notes on ANY document.
-// Opened with a target document UUID; mounts a real ProseMirror editor
-// in a clean context (no host sheet to fight), saves via NotesAPI.
+// The canonical GM Notes editor. Built on Blacksmith's OWN window base
+// (BlacksmithWindowBaseV2) + zone template — the same foundation Squire's
+// note window uses, so the editor behaves exactly like it does there.
 //
-// Deliberately does NOT use AppV2 `actions`: the ProseMirror toolbar
-// uses data-action="save"/"bold"/... which would collide. Buttons wire
-// up with explicit listeners instead (same reason Squire's note window
-// avoids AppV2 actions).
+// Opened with a target document UUID; mounts a ProseMirror editor and
+// saves via NotesAPI. Action names are prefixed (gm-notes-*) so they do
+// NOT collide with the editor toolbar's own data-action="save"/"bold".
 // ==================================================================
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { NotesAPI } from './api-notes.js';
-
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 const APP_ID = 'blacksmith-gm-notes-window';
 
-export class NotesWindow extends HandlebarsApplicationMixin(ApplicationV2) {
+export class NotesWindow extends BlacksmithWindowBaseV2 {
+
+    static ROOT_CLASS = 'blacksmith-window-template-root';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
         {
             id: APP_ID,
             classes: ['blacksmith-gm-notes-window'],
-            position: { width: 540, height: 460 },
+            position: { width: 560, height: 480 },
             window: { title: 'GM Notes', resizable: true, minimizable: true, icon: 'fas fa-feather' }
         }
     );
 
     static PARTS = {
-        body: { template: `modules/${MODULE.ID}/templates/window-notes.hbs` }
+        body: { template: `modules/${MODULE.ID}/templates/window-template.hbs` }
+    };
+
+    // Prefixed so the base's data-action delegation never intercepts the
+    // ProseMirror toolbar's own data-action="save"/"bold"/... buttons.
+    static ACTION_HANDLERS = {
+        'gm-notes-save': () => NotesWindow._ref?._save(),
+        'gm-notes-cancel': () => NotesWindow._ref?.close()
     };
 
     constructor(options = {}) {
         const opts = foundry.utils.mergeObject({}, options);
-        // Unique instance id so multiple notes can be open at once.
         opts.id = `${APP_ID}-${foundry.utils.randomID().slice(0, 8)}`;
         if (options.title) {
             opts.window = foundry.utils.mergeObject({ title: `GM Notes — ${options.title}` }, opts.window ?? {});
@@ -47,23 +53,29 @@ export class NotesWindow extends HandlebarsApplicationMixin(ApplicationV2) {
         this._editor = null;
     }
 
-    async _prepareContext(options = {}) {
-        const base = await super._prepareContext?.(options) ?? {};
-        return foundry.utils.mergeObject(base, { appId: this.id });
+    async getData() {
+        return {
+            appId: this.id,
+            showOptionBar: false,
+            showHeader: false,
+            showTools: false,
+            showActionBar: true,
+            bodyContent: '<div class="blacksmith-notes-editor-host"></div>',
+            actionBarLeft: '<button type="button" class="blacksmith-window-btn-secondary" data-action="gm-notes-cancel"><i class="fas fa-xmark"></i> Cancel</button>',
+            actionBarRight: '<button type="button" class="blacksmith-window-btn-primary" data-action="gm-notes-save"><i class="fas fa-floppy-disk"></i> Save &amp; Close</button>'
+        };
     }
 
-    _onRender(context, options) {
-        super._onRender?.(context, options);
-        const root = this.element;
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        const root = this._getRoot();
         if (!root || !this.targetUuid) return;
         this._mountEditor(root);
-        root.querySelector('.blacksmith-notes-save')?.addEventListener('click', () => this._save());
-        root.querySelector('.blacksmith-notes-cancel')?.addEventListener('click', () => this.close());
     }
 
     _mountEditor(root) {
         const host = root.querySelector('.blacksmith-notes-editor-host');
-        if (!host) return;
+        if (!host || host.querySelector('prose-mirror')) return;
 
         const Cls = foundry?.applications?.elements?.HTMLProseMirrorElement;
         if (!Cls?.create) {
@@ -71,15 +83,16 @@ export class NotesWindow extends HandlebarsApplicationMixin(ApplicationV2) {
             return;
         }
 
-        const editor = Cls.create({
+        // Config mirrors Squire's verified-working note editor.
+        const config = {
+            name: 'content',
             value: NotesAPI.getHtml(this.targetUuid) || '',
-            documentUUID: this.targetUuid,
-            compact: false
-        });
-        editor.classList.add('blacksmith-notes-editor');
+            compact: true
+        };
+        if (this.targetUuid) config.documentUUID = this.targetUuid;
 
-        // Force editable (the element otherwise mounts read-only) — the fix
-        // proven in Squire's note window. Belt-and-suspenders on `open`.
+        const editor = Cls.create(config);
+        editor.classList.add('blacksmith-notes-editor');
         editor.disabled = false;
         editor.removeAttribute('readonly');
         editor.addEventListener('open', () => {
