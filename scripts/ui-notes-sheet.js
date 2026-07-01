@@ -1,14 +1,17 @@
 // ==================================================================
 // ===== UI-NOTES-SHEET – GM Notes panel injection (Items) ==========
 // ==================================================================
-// Injects a GM-only, collapsible "GM Notes" panel into dnd5e item
-// sheets (ItemSheet5e + ContainerSheet), mirroring the way the
-// Artificer module appends its properties panel. The panel is just
-// another consumer of NotesAPI — no storage logic lives here.
+// Injects a GM-only "GM Notes" card into dnd5e item sheets, matching
+// the native description-editor idiom: an enriched read view with a
+// feather toggle that swaps in Foundry's <prose-mirror> editor
+// (real formatting — bold, bullets, headings). The panel is just
+// another consumer of NotesAPI; no storage logic lives here.
 //
-// v1 scope: Items only. Actors are a fast-follow using the same panel.
-// Editor is a textarea for the spike; the data model already stores
-// { html, text } so a ProseMirror upgrade is a drop-in, no API change.
+// Placement: appended into .item-descriptions so GM Notes reads as a
+// sibling of Description / Chat Description and sits above the property
+// pills and any Artificer Properties block.
+//
+// v1 scope: Items only. Actors are a fast-follow using the same idiom.
 // ==================================================================
 
 import { MODULE } from './const.js';
@@ -20,19 +23,13 @@ import { NotesAPI } from './api-notes.js';
 // default for all item types; ContainerSheet handles containers.
 const ITEM_SHEET_HOOKS = ['renderItemSheet5e', 'renderContainerSheet'];
 
-// Debounce window for autosave-while-typing (ms).
-const AUTOSAVE_DELAY = 600;
-
 export class NotesSheetUI {
-
-    // textarea element -> pending save timer
-    static _timers = new WeakMap();
 
     static initialize() {
         for (const name of ITEM_SHEET_HOOKS) {
             HookManager.registerHook({
                 name,
-                description: 'Blacksmith: Inject GM Notes panel into item sheets',
+                description: 'Blacksmith: Inject GM Notes card into item sheets',
                 context: 'blacksmith-gm-notes-item',
                 priority: 3,
                 callback: NotesSheetUI._onRenderItemSheet
@@ -45,8 +42,8 @@ export class NotesSheetUI {
     // Render hook
     // ------------------------------------------------------------
 
-    static _onRenderItemSheet(app, html, _data) {
-        // UI-gated: players never see the tab (per project decision).
+    static async _onRenderItemSheet(app, html, _data) {
+        // UI-gated: players never see the card (per project decision).
         if (!game.user?.isGM) return;
 
         // AppV2 passes a native element; tolerate jQuery / app.element too.
@@ -55,72 +52,141 @@ export class NotesSheetUI {
         const doc = app?.document ?? app?.object;
         if (!root || !doc) return;
 
-        // Idempotent: a single sheet render injects one panel.
+        // Idempotent: one card per render.
         if (root.querySelector('.blacksmith-gm-notes')) return;
 
-        const panel = NotesSheetUI._buildPanel(doc);
-        const host = root.querySelector('.window-content') || root;
-        host.appendChild(panel);
+        // Prefer sitting with the other description cards; fall back
+        // outward so we still appear on single-description / odd sheets.
+        const host = root.querySelector('.tab.description .item-descriptions')
+            || root.querySelector('.tab.description')
+            || root.querySelector('.window-content')
+            || root;
+
+        // Build + insert synchronously (marker present before any await
+        // so a re-render mid-enrich cannot double-inject), then fill.
+        const card = NotesSheetUI._buildCard(doc);
+        host.appendChild(card);
+        NotesSheetUI._renderRead(card, doc);
     }
 
     // ------------------------------------------------------------
-    // Panel construction
+    // Card shell (reuses dnd5e card/description classes for native look)
     // ------------------------------------------------------------
 
-    static _buildPanel(doc) {
-        const note = NotesAPI.get(doc.uuid);
-        const hasNote = !!(note && (note.html || note.text));
-
-        const panel = document.createElement('section');
-        panel.className = `blacksmith-gm-notes${hasNote ? ' has-notes' : ''}`;
-
-        const header = document.createElement('header');
-        header.className = 'blacksmith-gm-notes-header';
-        header.innerHTML = `
-            <i class="fas fa-chevron-down blacksmith-gm-notes-caret"></i>
-            <i class="fas fa-feather blacksmith-gm-notes-icon"></i>
-            <span class="blacksmith-gm-notes-title">GM Notes</span>
-            <span class="blacksmith-gm-notes-status" aria-live="polite"></span>
+    static _buildCard(doc) {
+        const card = document.createElement('div');
+        card.className = 'card description collapsible blacksmith-gm-notes';
+        card.dataset.target = `flags.${MODULE.ID}.gmNotes`;
+        card.innerHTML = `
+            <div class="header">
+                <span><i class="fas fa-feather-pointed blacksmith-gm-notes-glyph"></i> GM Notes</span>
+                <button type="button" class="unbutton control-button always-interactive blacksmith-gm-notes-edit"
+                        aria-label="Edit GM Notes">
+                    <i class="fas fa-feather" inert></i>
+                </button>
+            </div>
+            <div class="details collapsible-content">
+                <div class="editor editor-content wrapper"></div>
+            </div>
         `;
 
-        const body = document.createElement('div');
-        body.className = 'blacksmith-gm-notes-body';
+        // Collapse when the header (but not the feather) is clicked.
+        const header = card.querySelector('.header');
+        header.addEventListener('click', (ev) => {
+            if (ev.target.closest('.blacksmith-gm-notes-edit')) return;
+            card.classList.toggle('collapsed');
+        });
 
-        const textarea = document.createElement('textarea');
-        textarea.className = 'blacksmith-gm-notes-input';
-        textarea.rows = 6;
-        textarea.placeholder = 'GM-only notes for this item — plot hooks, reveals, associations…';
-        textarea.value = note?.html ?? '';
+        // Feather → enter edit mode.
+        card.querySelector('.blacksmith-gm-notes-edit')
+            .addEventListener('click', () => NotesSheetUI._enterEdit(card, doc));
 
-        body.appendChild(textarea);
-        panel.appendChild(header);
-        panel.appendChild(body);
-
-        // Collapse / expand.
-        header.addEventListener('click', () => panel.classList.toggle('collapsed'));
-
-        // Autosave (debounced). Stop propagation so keystrokes don't bubble
-        // into sheet-level handlers.
-        const status = header.querySelector('.blacksmith-gm-notes-status');
-        textarea.addEventListener('keydown', (ev) => ev.stopPropagation());
-        textarea.addEventListener('input', () => NotesSheetUI._scheduleSave(doc, textarea, status, panel));
-
-        return panel;
+        return card;
     }
 
-    static _scheduleSave(doc, textarea, status, panel) {
-        clearTimeout(NotesSheetUI._timers.get(textarea));
-        status.textContent = '…';
-        const timer = setTimeout(async () => {
-            const envelope = await NotesAPI.set(doc.uuid, { html: textarea.value });
-            if (envelope) {
-                status.textContent = 'Saved';
-                panel.classList.toggle('has-notes', !!(envelope.html || envelope.text));
-                setTimeout(() => { if (status.textContent === 'Saved') status.textContent = ''; }, 1500);
-            } else {
-                status.textContent = 'Save failed';
-            }
-        }, AUTOSAVE_DELAY);
-        NotesSheetUI._timers.set(textarea, timer);
+    // ------------------------------------------------------------
+    // Read mode (enriched HTML)
+    // ------------------------------------------------------------
+
+    static async _renderRead(card, doc) {
+        card.classList.remove('editing');
+        const html = NotesAPI.getHtml(doc.uuid);
+        const wrapper = card.querySelector('.editor.editor-content');
+        const enriched = await NotesSheetUI._enrich(html, doc);
+        wrapper.innerHTML = enriched || '';
+        card.classList.toggle('empty', !enriched);
+        card.classList.toggle('has-notes', !!enriched);
+    }
+
+    // ------------------------------------------------------------
+    // Edit mode (Foundry <prose-mirror> — full formatting toolbar)
+    // ------------------------------------------------------------
+
+    static _enterEdit(card, doc) {
+        if (card.classList.contains('editing')) return;
+
+        const Cls = foundry?.applications?.elements?.HTMLProseMirrorElement;
+        if (!Cls?.create) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | NOTES ProseMirror element unavailable', '', false, true);
+            return;
+        }
+
+        card.classList.add('editing');
+        card.classList.remove('collapsed'); // editing implies expanded
+
+        const wrapper = card.querySelector('.editor.editor-content');
+        // Non-toggled editor: auto-activates on connect, seeded from `value`
+        // (set as a property by the factory — a bare attribute is NOT read).
+        // documentUUID mirrors the native element and gives core a real
+        // document for enrichment instead of fromUuid(undefined). No `name`
+        // → the sheet's submit-on-change ignores it, so our envelope write
+        // stays the sole authority (text mirror + updatedAt + change hook).
+        const editor = Cls.create({
+            value: NotesAPI.getHtml(doc.uuid) || '',
+            documentUUID: doc.uuid,
+            compact: true
+        });
+        editor.classList.add('blacksmith-gm-notes-editor');
+
+        // The editor otherwise mounts non-editable (it inherits a disabled
+        // state). Force it editable before activation, and again on `open`
+        // once ProseMirror's .editor-content exists — same fix Squire's
+        // note window uses. Without this the toolbar shows but you can't type.
+        editor.disabled = false;
+        editor.removeAttribute('readonly');
+        editor.addEventListener('open', () => {
+            editor.disabled = false;
+            editor.removeAttribute('readonly');
+            requestAnimationFrame(() => {
+                const content = editor.querySelector('.editor-content');
+                content?.setAttribute('contenteditable', 'true');
+                content?.focus();
+            });
+        }, { once: true });
+
+        // <prose-mirror> fires `change` when its save control is used.
+        // stopPropagation keeps it out of the dnd5e form-submit pipeline.
+        editor.addEventListener('change', async (ev) => {
+            ev.stopPropagation();
+            await NotesAPI.set(doc.uuid, { html: editor.value ?? '' });
+            await NotesSheetUI._renderRead(card, doc);
+        });
+
+        wrapper.replaceChildren(editor);
+    }
+
+    // ------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------
+
+    static async _enrich(html, doc) {
+        if (!html) return '';
+        const ns = foundry?.applications?.ux?.TextEditor;
+        const TE = ns?.implementation ?? ns ?? globalThis.TextEditor;
+        try {
+            return await TE.enrichHTML(html, { relativeTo: doc, secrets: true });
+        } catch (_err) {
+            return html;
+        }
     }
 }
