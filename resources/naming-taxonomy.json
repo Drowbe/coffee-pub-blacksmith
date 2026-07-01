@@ -20,5 +20,5 @@
   "goblinoid":   { "label": "Goblinoids",   "kind": "subtype", "aliases": ["goblinoids", "goblin", "goblins", "hobgoblin", "hobgoblins", "bugbear", "bugbears", "kobold", "kobolds", "orc", "orcs", "orcish", "half-orc", "half orc"] },
 
   "cultist":     { "label": "Cultist",        "kind": "role", "aliases": ["cultist", "cultists", "cult", "fanatic"] },
-  "thug":        { "label": "Thug / Bandit",  "kind": "role", "aliases": ["thug", "thugs", "bandit", "bandits", "brigand", "ruffian"] }
+  "thug":        { "label": "Thug / Bandit",  "kind": "role", "aliases": ["thug", "thugs", "bandit", "bandits", "brigand", "ruffian", "pirate"] }
 }
