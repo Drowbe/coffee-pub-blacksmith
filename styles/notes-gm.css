@@ -6,23 +6,14 @@
 
 /* ---- Read card (item sheet) ------------------------------------ */
 
-/* Amber "this is GM-only" accent on the card title + glyph. */
-.blacksmith-gm-notes .blacksmith-gm-notes-glyph {
-    margin-right: 4px;
-    color: #d9a441;
-    opacity: 0.85;
+/* Guarantee collapse regardless of dnd5e's own collapse CSS. */
+.blacksmith-gm-notes.collapsed .collapsible-content {
+    display: none;
 }
 
+/* Amber accent on the title only when the note actually has text. */
 .blacksmith-gm-notes.has-notes > .header > span {
     color: #d9a441;
-}
-
-/* Faint placeholder when there is no note yet. */
-.blacksmith-gm-notes.empty .editor-content::before {
-    content: "No GM notes yet — click the feather to add some.";
-    display: block;
-    opacity: 0.5;
-    font-style: italic;
 }
 
 /* ---- Editor window --------------------------------------------- */

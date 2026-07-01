@@ -78,7 +78,7 @@ export class NotesSheetUI {
         card.dataset.docUuid = doc.uuid;
         card.innerHTML = `
             <div class="header">
-                <span><i class="fas fa-feather-pointed blacksmith-gm-notes-glyph"></i> GM Notes</span>
+                <span>GM Notes</span>
                 <button type="button" class="unbutton control-button always-interactive blacksmith-gm-notes-edit"
                         aria-label="Edit GM Notes">
                     <i class="fas fa-feather" inert></i>
@@ -89,11 +89,19 @@ export class NotesSheetUI {
             </div>
         `;
 
-        // Collapse when the header (but not the feather) is clicked.
+        // Initial collapse: a remembered preference wins; otherwise collapse
+        // when the note is empty. NotesAPI.get is synchronous (reads a flag).
+        const note = NotesAPI.get(doc.uuid);
+        const hasContent = !!(note && note.text && note.text.trim());
+        const pref = NotesSheetUI._getCollapseState(doc.uuid);
+        card.classList.toggle('collapsed', pref === undefined ? !hasContent : pref);
+
+        // Collapse when the header (but not the feather) is clicked; remember it.
         const header = card.querySelector('.header');
         header.addEventListener('click', (ev) => {
             if (ev.target.closest('.blacksmith-gm-notes-edit')) return;
-            card.classList.toggle('collapsed');
+            const collapsed = card.classList.toggle('collapsed');
+            NotesSheetUI._setCollapseState(doc.uuid, collapsed);
         });
 
         // Feather → open the canonical editor window.
@@ -107,24 +115,44 @@ export class NotesSheetUI {
         new NotesWindow({ uuid: doc.uuid, title: doc.name }).render(true);
     }
 
+    // Per-user collapse memory (stored on the User document flag).
+    static _getCollapseState(uuid) {
+        const map = game.user?.getFlag(MODULE.ID, 'gmNotesCollapse');
+        return map ? map[uuid] : undefined;
+    }
+
+    static _setCollapseState(uuid, collapsed) {
+        const current = game.user?.getFlag(MODULE.ID, 'gmNotesCollapse') || {};
+        game.user?.setFlag(MODULE.ID, 'gmNotesCollapse', { ...current, [uuid]: collapsed }).catch(() => {});
+    }
+
     // ------------------------------------------------------------
     // Read rendering + live refresh
     // ------------------------------------------------------------
 
     static async _renderRead(card, doc) {
-        const html = NotesAPI.getHtml(doc.uuid);
+        const note = NotesAPI.get(doc.uuid);
+        // Use the stripped text mirror to decide emptiness — an "emptied"
+        // note is stored as "<p></p>", which is non-empty HTML but no text.
+        const hasContent = !!(note && note.text && note.text.trim());
         const wrapper = card.querySelector('.editor.editor-content');
-        const enriched = await NotesSheetUI._enrich(html, doc);
+        const enriched = hasContent ? await NotesSheetUI._enrich(note.html, doc) : '';
         wrapper.innerHTML = enriched || '';
-        card.classList.toggle('empty', !enriched);
-        card.classList.toggle('has-notes', !!enriched);
+        card.classList.toggle('empty', !hasContent);
+        card.classList.toggle('has-notes', hasContent);
     }
 
     static _refreshCards(uuid) {
         const doc = fromUuidSync(uuid);
         if (!doc) return;
+        const note = NotesAPI.get(uuid);
+        const hasContent = !!(note && note.text && note.text.trim());
         for (const card of document.querySelectorAll('.blacksmith-gm-notes')) {
-            if (card.dataset.docUuid === uuid) NotesSheetUI._renderRead(card, doc);
+            if (card.dataset.docUuid !== uuid) continue;
+            NotesSheetUI._renderRead(card, doc);
+            // After a save: adding content expands and reveals it; clearing collapses.
+            card.classList.toggle('collapsed', !hasContent);
+            NotesSheetUI._setCollapseState(uuid, !hasContent);
         }
     }
 
