@@ -197,6 +197,13 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 
 ## TECHNICAL DEBT
 
+### Journal Tools — de-clunk refactor
+- **Issue**: `JournalToolsWindow` is ApplicationV2 (extends `BlacksmithWindowBaseV2`) but opts out of V2 idioms: `ACTION_HANDLERS = null` with hand-wired `_attachLocalListeners()` (silent no-attach on selector miss), runtime partial `fetch()`+`registerPartial()`, `setTimeout` timing hacks (200ms render wait, 0ms reflow poke, 10ms throttles), manual DOM state mutation, `isProcessing`/`shouldStop` flags instead of `AbortController`, and 600/287/180-line mega-methods.
+- **Status**: PLANNED — assessment done; phased plan in `documentation/plans/plan-journal-tools-refactor.md`.
+- **Location**: `scripts/manager-journal-tools.js` (3569 lines), `templates/journal-tools-window.hbs` (+ partials).
+- **Need**: Phase 1 (no behavior change) — `data-action`/`ACTION_HANDLERS`, `loadTemplates()` for partials, remove `setTimeout` hacks, add `_onClose` teardown. Phase 2 — extract scan/collect/apply into a testable core module, `AbortController` cancellation. Verify `_renderSearchResults` escaping (XSS) first.
+- **Priority**: Medium
+
 ### jQuery Detection Pattern is Technical Debt
 - **Status**: TECHNICAL DEBT – cleanup target now that **v13+ is the supported platform**
 - **Priority**: MEDIUM – Reduce over time as call sites are proven native-DOM-only
