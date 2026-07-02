@@ -352,12 +352,6 @@
     user-select: none;
 }
 
-.blacksmith-json-import-geography-default {
-    flex: 0 0 auto;
-    margin-left: 4px;
-    padding-bottom: 6px;
-}
-
 .blacksmith-json-import-journal-image-rows {
     display: flex;
     flex-direction: column;
@@ -371,11 +365,6 @@
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 12px 16px;
-}
-
-.blacksmith-json-import-image-default {
-    flex: 0 0 auto;
-    padding-bottom: 6px;
 }
 
 .blacksmith-json-import-journal-image-field {

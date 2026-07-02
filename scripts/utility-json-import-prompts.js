@@ -56,7 +56,13 @@ export async function applyCampaignPlaceholders(prompt, extra = {}) {
         { placeholder: '[ADD-RULES-VERSION-HERE]', value: rulesVersion },
         { placeholder: '[ADD-RULEBOOKS-HERE]', value: rulebooks },
         { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: itemSource },
-        { placeholder: '[ADD-ACTORS-SOURCE-HERE]', value: actorsSource }
+        { placeholder: '[ADD-ACTORS-SOURCE-HERE]', value: actorsSource },
+        // Party context — derived from the configured party actors (see CampaignManager).
+        { placeholder: '[ADD-PARTY-NAME-HERE]', value: context.partyName },
+        { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
+        { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
+        { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
+        { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses }
     ];
 
     let result = String(prompt ?? '');

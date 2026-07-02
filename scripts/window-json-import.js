@@ -174,10 +174,6 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         for (const field of ui.geography ?? []) {
             if (field.id && state[field.id] !== undefined) field.value = state[field.id];
         }
-        const defaultId = String(ui.geographyDefault?.id || 'geographyDefault').trim();
-        if (ui.geographyDefault && defaultId in state) {
-            ui.geographyDefault.checked = !!state[defaultId];
-        }
         if (ui.locationImage?.fieldId && state[ui.locationImage.fieldId] !== undefined) {
             ui.locationImage.value = state[ui.locationImage.fieldId];
         }
@@ -352,6 +348,10 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         if (!ui || !root) return state;
 
         const templateKey = String(ui.showForTemplate || '').trim();
+        // Only read the block for the currently selected template. The area and location blocks
+        // share field ids (realm/region/…), and both are always in the DOM; reading the inactive
+        // (hidden) block would let its stale values override the active one when options merge.
+        if (templateKey && templateKey !== this.selectedTemplate) return state;
         const container = templateKey
             ? root.querySelector(`[data-for-template="${templateKey}"]`)
             : root;
@@ -373,10 +373,6 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             readField(field.id, field.value);
         }
 
-        const defaultId = String(ui.geographyDefault?.id || 'geographyDefault').trim();
-        const defaultInput = container.querySelector(`[data-prompt-checkbox="${defaultId}"]`);
-        state[defaultId] = !!defaultInput?.checked;
-
         if (ui.locationImage?.fieldId) {
             readField(ui.locationImage.fieldId, ui.locationImage.value);
         }
@@ -387,13 +383,6 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             if (checkboxId) {
                 const input = container.querySelector(`[data-prompt-checkbox="${checkboxId}"]`);
                 state[checkboxId] = !!input?.checked;
-            }
-            const defaultCheckboxId = String(row?.defaultCheckboxId || '').trim();
-            if (defaultCheckboxId) {
-                const imageDefaultInput = container.querySelector(
-                    `[data-prompt-checkbox="${defaultCheckboxId}"]`
-                );
-                state[defaultCheckboxId] = !!imageDefaultInput?.checked;
             }
         }
 
@@ -611,17 +600,11 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 label: field.label,
                 value: field.value ?? ''
             })),
-            geographyDefault: {
-                id: ui.geographyDefault?.id ?? 'geographyDefault',
-                label: ui.geographyDefault?.label ?? 'Default'
-            },
             images: (ui.images ?? []).map((row) => ({
                 fieldId: row.fieldId,
                 checkboxId: row.checkboxId,
-                defaultCheckboxId: row.defaultCheckboxId,
                 fieldLabel: row.fieldLabel,
                 checkboxLabel: row.checkboxLabel,
-                defaultLabel: row.defaultLabel ?? 'Default',
                 value: row.value ?? '',
                 checked: !!row.checked
             })),
@@ -661,10 +644,6 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 label: field.label,
                 value: field.value ?? ''
             })),
-            geographyDefault: {
-                id: ui.geographyDefault?.id ?? 'geographyDefault',
-                label: ui.geographyDefault?.label ?? 'Default'
-            },
             locationImage: {
                 fieldId: ui.locationImage?.fieldId ?? 'locationimage',
                 fieldLabel: ui.locationImage?.fieldLabel ?? 'Location image path',

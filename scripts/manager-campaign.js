@@ -1,7 +1,26 @@
 import { MODULE } from './const.js';
 import { getSettingSafely } from './api-core.js';
 
+/**
+ * Embedded class Items are the canonical source of a character's classes/levels in modern
+ * dnd5e (the derived `system.classes` shape varies by version). Returns [] for actors with
+ * no class items (e.g. NPCs).
+ * @param {object} actor
+ * @returns {object[]}
+ */
+function getClassItems(actor) {
+    const items = actor?.items;
+    if (!items) return [];
+    const list = typeof items.filter === 'function' ? items.filter(i => i?.type === 'class') : [];
+    return Array.isArray(list) ? list : [];
+}
+
 function getActorLevel(actor) {
+    const classItems = getClassItems(actor);
+    if (classItems.length > 0) {
+        const total = classItems.reduce((sum, item) => sum + Number(item?.system?.levels ?? 0), 0);
+        if (total > 0) return total;
+    }
     const system = actor?.system ?? {};
     const classEntries = Object.values(system.classes ?? {});
     if (classEntries.length > 0) {
@@ -13,6 +32,10 @@ function getActorLevel(actor) {
 }
 
 function getActorClasses(actor) {
+    const classItems = getClassItems(actor);
+    if (classItems.length > 0) {
+        return classItems.map(item => item?.name || '').filter(Boolean);
+    }
     const system = actor?.system ?? {};
     const classEntries = Object.values(system.classes ?? {});
     if (classEntries.length > 0) {

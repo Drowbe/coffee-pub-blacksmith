@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Area journal — `blocks.area.title` now required** (`prompts/prompt-journal-profile-area.txt`): The area import prompt now **requires** generators to set `blocks.area.title` explicitly instead of reusing `scenetitle`. `scenetitle` is the page/tab label and often carries an ordering prefix (e.g. "02 Main Room"); `blocks.area.title` is the clean on-page heading with that prefix stripped ("Main Room"). SCHEMA LOCK, the BLOCKS reference, the wrong→correct hints, and the USAGE checklist were updated to mark it REQUIRED and to show the prefix-stripping example. The parser's `blocks.area.title → scenetitle → area → "Area"` fallback is unchanged, so JSON without the field still imports gracefully.
 
+- **JSON import — "Default" checkboxes removed; entered values always remembered** (`scripts/registry-json-import-journals.js`, `scripts/window-json-import.js`, `templates/window-json-import-body.hbs`, `styles/window-json-import.css`): Dropped the three opt-in **Default** checkboxes (geography + narrative/character image). The Generate tab now always mirrors what the GM enters — narrative folder, realm/region/site/area, and image paths — to the campaign settings on Copy/Save, so they pre-fill next time. The functional **Image Placeholder** toggles are kept. Field reads are now scoped to the currently selected template so the area and location blocks (which share `realm`/`region`/… ids and are both always in the DOM) no longer overwrite each other's values.
+
+### Fixed
+
+- **Party context missing from Area/journal prompts** (`scripts/utility-json-import-prompts.js`): `applyCampaignPlaceholders` substituted campaign tokens but not the party tokens, so `[ADD-PARTY-NAME-HERE]`, `-SIZE-`, `-LEVEL-`, `-MAKEUP-`, `-CLASSES-` passed through unfilled in the Area prompt (location/character prompts substituted them in their own helpers). Party substitution is now centralized in `applyCampaignPlaceholders`, pulling from `CampaignManager.getPromptContext()` (derived from the configured party actors).
+
+- **Party class/level detection** (`scripts/manager-campaign.js`): `getActorClasses`/`getActorLevel` read `system.classes` (a version-dependent derived shape) and missed classes on modern dnd5e characters, leaving Primary Classes (and the class parentheses in Party Makeup) blank. They now read embedded **class Items** first (`actor.items` of type `class`), with the previous paths as fallback. NPC-type party members legitimately contribute no class.
+
 
 ## [13.8.0]
 

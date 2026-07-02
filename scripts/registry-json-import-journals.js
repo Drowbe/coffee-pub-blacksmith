@@ -530,7 +530,6 @@ export function getJournalLocationImportUi() {
             { id: 'site', label: 'Site', value: ctx.site || '' },
             { id: 'area', label: 'Area', value: ctx.area || '' }
         ],
-        geographyDefault: { id: 'geographyDefault', label: 'Default' },
         locationImage: {
             fieldId: 'locationimage',
             fieldLabel: 'Location image path',
@@ -555,7 +554,6 @@ export function getJournalAreaImportUi() {
             { id: 'area', label: 'Area', value: ctx.area || '' },
             { id: 'scenetitle', label: 'Scene title', value: '' }
         ],
-        geographyDefault: { id: 'geographyDefault', label: 'Default' },
         additionalContext: {
             id: 'additionalContext',
             label: 'Additional context',
@@ -565,20 +563,16 @@ export function getJournalAreaImportUi() {
             {
                 fieldId: 'narrativeImage',
                 checkboxId: 'narrativeImagePlaceholder',
-                defaultCheckboxId: 'narrativeImageDefault',
                 fieldLabel: 'Default Narrative Image',
                 checkboxLabel: 'Narrative Image Placeholder',
-                defaultLabel: 'Default',
                 value: ctx.narrativeImagePath || '',
                 checked: !!(ctx.narrativeImagePath || '')
             },
             {
                 fieldId: 'characterImage',
                 checkboxId: 'characterImagePlaceholder',
-                defaultCheckboxId: 'characterImageDefault',
                 fieldLabel: 'Default Character Image',
                 checkboxLabel: 'Character Image Placeholder',
-                defaultLabel: 'Default',
                 value: ctx.narrativeCharacterImagePath || '',
                 checked: !!(ctx.narrativeCharacterImagePath || '')
             }
@@ -594,11 +588,12 @@ const GEOGRAPHY_SETTING_KEYS = {
 };
 
 /**
- * Persist folder and geography from import UI when "Default" is checked.
+ * Persist folder and geography from the import UI. Always mirrors whatever the GM entered
+ * (no opt-in checkbox) so those fields pre-fill next time. Only fields present in the options
+ * are written.
  * @param {Record<string, string|boolean>} promptOptions
  */
-async function saveCampaignGeographyDefaultsIfRequested(promptOptions = {}) {
-    if (!promptOptions.geographyDefault) return;
+async function saveCampaignGeography(promptOptions = {}) {
     if (promptOptions.foldername != null) {
         await game.settings.set(MODULE.ID, 'defaultNarrativeFolder', String(promptOptions.foldername ?? ''));
     }
@@ -610,18 +605,19 @@ async function saveCampaignGeographyDefaultsIfRequested(promptOptions = {}) {
 }
 
 /**
- * Persist narrative/character image paths from import UI when "Default" is checked.
+ * Persist narrative/character image paths from the import UI. Always mirrors whatever the GM
+ * entered (no opt-in checkbox). Only writes a path when its field is present in the options.
  * @param {Record<string, string|boolean>} promptOptions
  */
-async function saveCampaignImageDefaultsIfRequested(promptOptions = {}) {
-    if (promptOptions.narrativeImageDefault) {
+async function saveCampaignImagePaths(promptOptions = {}) {
+    if (promptOptions.narrativeImage != null) {
         await game.settings.set(
             MODULE.ID,
             'narrativeDefaultImagePath',
             String(promptOptions.narrativeImage ?? '')
         );
     }
-    if (promptOptions.characterImageDefault) {
+    if (promptOptions.characterImage != null) {
         await game.settings.set(
             MODULE.ID,
             'narrativeDefaultCharacterImagePath',
@@ -960,12 +956,12 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
         return getEncounterTemplateWithDefaults(raw);
     }
     if (type === 'location') {
-        await saveCampaignGeographyDefaultsIfRequested(promptOptions);
+        await saveCampaignGeography(promptOptions);
         return buildLocationImportPrompt(promptOptions);
     }
 
-    await saveCampaignGeographyDefaultsIfRequested(promptOptions);
-    await saveCampaignImageDefaultsIfRequested(promptOptions);
+    await saveCampaignGeography(promptOptions);
+    await saveCampaignImagePaths(promptOptions);
 
     const prompt = await buildJournalImportPrompt('area', {
         actorCompendiumIds: collectSelectedCompendiumIds(promptOptions, COMPENDIUM_ACTOR_CHECKBOX_PREFIX),

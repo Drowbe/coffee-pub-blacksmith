@@ -39,10 +39,6 @@
                         </label>
                         {{#unless @last}}<span class="blacksmith-json-import-location-sep blacksmith-json-import-location-sep-chevron" aria-hidden="true">&gt;</span>{{/unless}}
                         {{/each}}
-                        <label class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-geography-default">
-                            <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{journalAreaUi.geographyDefault.id}}">
-                            <span>{{journalAreaUi.geographyDefault.label}}</span>
-                        </label>
                     </div>
                     <div class="blacksmith-json-import-journal-image-rows blacksmith-json-import-journal-fields-row-full">
                         {{#each journalAreaUi.images}}
@@ -59,10 +55,6 @@
                             <label class="blacksmith-json-import-prompt-checkbox">
                                 <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{checkboxId}}" {{#if checked}}checked{{/if}}>
                                 <span>{{checkboxLabel}}</span>
-                            </label>
-                            <label class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-image-default">
-                                <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{defaultCheckboxId}}">
-                                <span>{{defaultLabel}}</span>
                             </label>
                         </div>
                         {{/each}}
@@ -103,10 +95,6 @@
                         </label>
                         {{#unless @last}}<span class="blacksmith-json-import-location-sep blacksmith-json-import-location-sep-chevron" aria-hidden="true">&gt;</span>{{/unless}}
                         {{/each}}
-                        <label class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-geography-default">
-                            <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{journalLocationUi.geographyDefault.id}}">
-                            <span>{{journalLocationUi.geographyDefault.label}}</span>
-                        </label>
                     </div>
                     <div class="blacksmith-json-import-journal-image-rows blacksmith-json-import-journal-fields-row-full">
                         <div class="blacksmith-json-import-journal-image-row">
