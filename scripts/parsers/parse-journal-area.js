@@ -240,10 +240,19 @@ export async function buildAreaJournalTemplateData(journalData) {
         ? toSentenceCase(String(journalData.scenetitle).trim())
         : '';
 
+    const areaBlock = blocks.area;
+    // Optional blocks.area.title lets the on-page heading differ from the page/scene name.
+    const areaTitle = (areaBlock && typeof areaBlock === 'object' && omitIfNone(areaBlock.title))
+        ? toSentenceCase(String(areaBlock.title).trim())
+        : '';
+
     const breadcrumbFromJson = omitIfNone(journalData.breadcrumb);
+    // Single clean leaf: envelope `area` (falls back to the clean area.title, then scenetitle).
+    // Never both area and area.title — they normally match and would duplicate the leaf.
+    const breadcrumbLeaf = area || areaTitle || sceneTitle;
     const breadcrumbHtml = breadcrumbFromJson
         ? `<p><strong>${escapeJournalHtml(breadcrumbFromJson).replace(/\s*>\s*/g, ' &gt; ').replace(/\s*\|\s*/g, ' | ')}</strong></p>`
-        : buildFoundryBreadcrumb([realm, region, site, area, sceneTitle].filter(Boolean));
+        : buildFoundryBreadcrumb([realm, region, site, breadcrumbLeaf].filter(Boolean));
 
     let preparationHtml = '';
     const prep = blocks.preparation;
@@ -272,11 +281,6 @@ export async function buildAreaJournalTemplateData(journalData) {
     }
 
     let areaSectionHtml = '';
-    const areaBlock = blocks.area;
-    // Optional blocks.area.title lets the on-page heading differ from the page/scene name.
-    const areaTitle = (areaBlock && typeof areaBlock === 'object' && omitIfNone(areaBlock.title))
-        ? toSentenceCase(String(areaBlock.title).trim())
-        : '';
     const areaHeading = areaTitle || sceneTitle || area || 'Area';
     if (areaBlock && typeof areaBlock === 'object') {
         const parts = [`<h2>${escapeJournalHtml(areaHeading)}</h2>`];

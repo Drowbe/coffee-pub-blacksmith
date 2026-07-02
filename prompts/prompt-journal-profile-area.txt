@@ -29,7 +29,7 @@ SCHEMA LOCK (AREA — wrong shape breaks Blacksmith import)
 
 Under "blocks", ONLY these keys are valid for this profile: "preparation", "area", "encounter", "conversations". Do not add any other sibling keys (no rumors, connections, keynpcs, npcs, cast, interactives, scene, metadata, hooks, or custom wrappers).
 
-blocks.area MUST include a "title" STRING — the clean on-page heading for the area section (a sibling of "narrative"/"narrativecard", never a field inside "narrative"). ALWAYS set it explicitly; do NOT reuse scenetitle verbatim. scenetitle is the page/tab label and often carries an ordering prefix or code for sorting pages (e.g. "02 Main Room"); blocks.area.title is the human heading with that stripped (e.g. "Main Room").
+blocks.area MUST include a "title" STRING — the clean on-page heading for the area section (a sibling of "narrative"/"narrativecard", never a field inside "narrative"). ALWAYS set it explicitly; do NOT reuse scenetitle verbatim. scenetitle is the page/tab label and often carries an ordering prefix or code for sorting pages (e.g. "02 Main Room"); blocks.area.title is the human heading with that stripped (e.g. "Main Room"). Relationship: the envelope `area` is the clean geographic area name, `blocks.area.title` normally matches it, and `scenetitle` is that name plus any ordering prefix/code. The prefix comes from the user/context — do not invent one.
 
 blocks.area MUST include "narrative" as an object with exactly three STRING fields: "description", "layout", "atmosphere". Do not put a scene description as a bare string on blocks.area. Do not add a "title" inside "narrative". Do not use "atmosphere" as an object with sight/sound/smell keys — fold sensory detail into those three strings (usually atmosphere carries mood in one paragraph).
 
@@ -78,7 +78,7 @@ IMPORTER SEMANTICS (CRITICAL)
 
 Two field classes:
 
-LINKER FIELDS (machine-consumed — exact names from catalogs below):
+LINKER FIELDS (machine-consumed — use exact official names so the importer can link them on import; name catalogs may be appended below, and when they are, choose from those):
 - blocks.preparation.actors[] — every creature or NPC of note in the scene, one per line as "Name — short blurb". Include BOTH:
   - generic types using the exact stat-block / catalog name so they link: "Goblin — …", "Commoner — …", "Veteran — …"
   - named individuals worth calling out in the narrative, by their proper name: "Bob the Barber — …", "Phil the Terrible — a named goblin, …". A named entry links when the name matches a world/compendium actor; otherwise it still renders (bold name + blurb), so always name the individual rather than collapsing them into the bare type.
@@ -88,7 +88,7 @@ LINKER FIELDS (machine-consumed — exact names from catalogs below):
 - blocks.conversations[].name — see CONVERSATIONS.NAME below (must be a person’s name for cast entries, not a bare role token)
 
 CONVERSATIONS.NAME (persons, not role labels)
-If you include someone in `blocks.conversations`, they are part of the **cast** for the scene. `name` must be a **specific personal name** (given name, nickname, or an exact catalog/world name that is already a proper name — e.g. matching [ADD-WORLD-ACTORS-HERE]).
+If you include someone in `blocks.conversations`, they are part of the **cast** for the scene. `name` must be a **specific personal name** (given name, nickname, or an exact world/compendium actor name that is already a proper name — choose from the catalogs below when they are provided).
 
 Do **not** use bare stat-block role words as `name` for those entries: **never** `"Commoner"`, `"Scout"`, `"Guard"`, `"Bandit"`, `"Noble"`, `"Spy"`, `"Merchant"`, `"Veteran"`, or similar alone. Those strings belong in **actors[]** / encounter tactics when you mean generic creatures — not as the `conversations[].name` for a character the scene treats as an individual. (A genuinely named individual — "Bob the Barber" — may appear in BOTH actors[] and conversations[]: the roster line and the full cast entry serve different purposes.)
 
@@ -142,7 +142,7 @@ When DEFAULT NARRATIVE CARD IMAGE is non-empty, set blocks.area.narrativecard.im
 When DEFAULT CHARACTER CARD IMAGE is non-empty, set blocks.conversations[].narrativecard.image to that path for each key NPC (keycharacter: true).
 When a default image path is empty, leave image as "" on that card type.
 
-breadcrumb: realm > region > site > area > scenetitle (omit empty levels; must match envelope and LOCATION PATH)
+breadcrumb: realm > region > site > area (envelope `area` is the clean leaf — do NOT append blocks.area.title on top of it, and never use scenetitle's ordering prefix; omit empty levels; must match envelope and LOCATION PATH)
 
 
 --------------------------------
@@ -175,7 +175,7 @@ Allowed tags: p, strong, em, br, ul, li, h6. Escape internal double quotes as \\
 OMIT BLOCKS
 --------------------------------
 
-Omit entire block keys when not used. blocks.area is required (must include blocks.area.narrative).
+Omit entire block keys when not used. blocks.area is required (must include blocks.area.title and blocks.area.narrative).
 
 Do not duplicate the same fact in blocks.preparation.gmnotes and blocks.area.discoverablefacts unless audiences differ.
 
