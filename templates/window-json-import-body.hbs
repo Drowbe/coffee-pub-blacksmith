@@ -46,16 +46,13 @@
                             <div class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-image-field">
                                 <span class="blacksmith-json-import-prompt-field-label">{{fieldLabel}}</span>
                                 <div class="blacksmith-json-import-image-path-row">
+                                    <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input blacksmith-json-import-image-toggle" data-prompt-checkbox="{{checkboxId}}" {{#if checked}}checked{{/if}} title="Use this image in generated cards; unchecked leaves the card image empty." aria-label="Use this image in generated cards">
                                     <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{fieldId}}" value="{{value}}" autocomplete="off" placeholder="modules/...">
                                     <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-image-browse" data-prompt-field-target="{{fieldId}}" title="Browse for image">
                                         <i class="fa-solid fa-folder-open"></i> Browse
                                     </button>
                                 </div>
                             </div>
-                            <label class="blacksmith-json-import-prompt-checkbox">
-                                <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{checkboxId}}" {{#if checked}}checked{{/if}}>
-                                <span>{{checkboxLabel}}</span>
-                            </label>
                         </div>
                         {{/each}}
                     </div>

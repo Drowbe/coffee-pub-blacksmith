@@ -33,7 +33,7 @@ blocks.area MUST include a "title" STRING — the clean on-page heading for the 
 
 blocks.area MUST include "narrative" as an object with exactly three STRING fields: "description", "layout", "atmosphere". Do not put a scene description as a bare string on blocks.area. Do not add a "title" inside "narrative". Do not use "atmosphere" as an object with sight/sound/smell keys — fold sensory detail into those three strings (usually atmosphere carries mood in one paragraph).
 
-blocks.area.narrativecard MUST use exactly: "title", "description", "imagetitle", "image". Player-facing card prose goes in "description" (HTML allowed). Never use "text", "body", or "content" instead of "description". See IMAGETITLE section for imagetitle — it is a short UI caption above the image, not a generation prompt.
+blocks.area.narrativecard MUST use exactly: "title", "description", "imagetitle", "image". Player-facing card prose goes in "description" (HTML allowed). Never use "text", "body", or "content" instead of "description". (imagetitle: short UI caption — see IMAGETITLE section.)
 
 blocks.preparation (include whenever the scene has actors, rewards, purpose, or GM notes): "actors" and "rewards" are ARRAYS OF STRINGS only, each string one line in the form "Actor or Item Name — short blurb". Never an array of objects with name/type/details.
 
@@ -99,7 +99,7 @@ PROSE FIELDS (write for the table):
 - blocks.area.narrative.description, layout, atmosphere
 - blocks.area.discoverablefacts[]
 - blocks.encounter.* (except use exact actor names inside tactics if referencing creatures)
-- narrativecard description HTML (player-facing prose); narrativecard.imagetitle is a short UI caption above the image only — see IMAGETITLE section, not a generation prompt
+- narrativecard description HTML (player-facing prose)
 
 Anti-examples (actors[] — invented group descriptors will NOT link and are not individuals):
 - "Corrupt Caravan Escorts — …" (use the stat-block type: Guard, Veteran, Bandit, etc. — or name the individual if one stands out)
@@ -118,10 +118,6 @@ Good examples:
 - "Crowbar — wedged in the warped floorboard"
 - "Spy — leans on the counter, feigning indifference"
 
-Anti-examples (conversations[].name — wrong for cast rows):
-- "Commoner", "Scout", "Guard", "Merchant" as the sole `name` value
-Good: "Dellik Marr", "Marda Vexley", "Rope-Call Marta" (handle), or an exact match from world actors list when importing a known NPC
-
 
 --------------------------------
 ADDITIONAL CONTEXT
@@ -139,7 +135,7 @@ Campaign defaults (replaced on copy when set):
 - REGION: "[ADD-REGION-HERE]"
 - SITE: "[ADD-SITE-HERE]"
 - AREA: "[ADD-AREA-HERE]"
-- DEFAULT NARRATIVE CARD IMAGE: "[ADD-NARRATIVE-IMAGE-PATH-HERE]" (legacy token: "[ADD-IMAGE-PATH-HERE]")
+- DEFAULT NARRATIVE CARD IMAGE: "[ADD-NARRATIVE-IMAGE-PATH-HERE]"
 - DEFAULT CHARACTER CARD IMAGE: "[ADD-CHARACTER-IMAGE-PATH-HERE]"
 
 When DEFAULT NARRATIVE CARD IMAGE is non-empty, set blocks.area.narrativecard.image to that exact path (not "").
@@ -287,5 +283,5 @@ When generating an area journal:
 - always set a clean blocks.area.title (strip any scenetitle ordering prefix — "02 Main Room" → "Main Room")
 - use linker rules for actors, rewards, and item interactives
 - include area and key NPC narrativecards by default
-- give every `conversations` cast member a personal name or diegetic handle — never bare Commoner/Scout/Guard-style role tokens as `name`
+- give every `conversations` cast member a personal name or diegetic handle (see CONVERSATIONS.NAME)
 - prioritize fast GM retrieval at the table

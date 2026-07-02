@@ -604,7 +604,6 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 fieldId: row.fieldId,
                 checkboxId: row.checkboxId,
                 fieldLabel: row.fieldLabel,
-                checkboxLabel: row.checkboxLabel,
                 value: row.value ?? '',
                 checked: !!row.checked
             })),

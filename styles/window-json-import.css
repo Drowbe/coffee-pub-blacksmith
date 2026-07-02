@@ -383,6 +383,12 @@
     min-width: 0;
 }
 
+.blacksmith-json-import-image-toggle {
+    flex: 0 0 auto;
+    margin: 0;
+    cursor: pointer;
+}
+
 .blacksmith-json-import-image-browse {
     flex: 0 0 auto;
     white-space: nowrap;

@@ -418,6 +418,43 @@ function collectSelectedCompendiumIds(promptOptions, prefix) {
         .map((key) => key.slice(prefix.length));
 }
 
+const PROMPT_SELECTIONS_SETTING = 'journalPromptCompendiumSelections';
+
+/**
+ * Remembered checkbox states for the journal Generate tab (compendium + world), keyed by
+ * checkbox id. Empty object when nothing has been saved yet.
+ * @returns {Record<string, boolean>}
+ */
+function getSavedPromptSelections() {
+    try {
+        const raw = game.settings.get(MODULE.ID, PROMPT_SELECTIONS_SETTING);
+        return raw && typeof raw === 'object' ? raw : {};
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * Persist the current compendium/world checkbox states so they pre-select next time.
+ * @param {Record<string, string|boolean>} promptOptions
+ */
+async function saveJournalPromptSelections(promptOptions = {}) {
+    const map = {};
+    for (const key of Object.keys(promptOptions)) {
+        if (key.endsWith('__none')) continue;
+        if (key.startsWith(COMPENDIUM_ACTOR_CHECKBOX_PREFIX) || key.startsWith(COMPENDIUM_ITEM_CHECKBOX_PREFIX)) {
+            map[key] = !!promptOptions[key];
+        }
+    }
+    map.worldActors = !!promptOptions.worldActors;
+    map.worldItems = !!promptOptions.worldItems;
+    try {
+        await game.settings.set(MODULE.ID, PROMPT_SELECTIONS_SETTING, map);
+    } catch (e) {
+        postConsoleAndNotification(MODULE.NAME, 'Failed to save journal prompt selections', e, false, false);
+    }
+}
+
 /**
  * Catalog append options — **Area Narrative** copy only (profile embeds compendium lists).
  * Compendium actors/items render as one checkbox per configured compendium, grouped into
@@ -426,6 +463,9 @@ function collectSelectedCompendiumIds(promptOptions, prefix) {
  */
 export function getJournalPromptCheckboxes() {
     const checkboxes = [];
+    const saved = getSavedPromptSelections();
+    // Remembered state wins; otherwise default per checkbox (compendiums on, world off).
+    const isChecked = (id, fallback) => (id in saved ? !!saved[id] : fallback);
 
     const addCompendiumSection = (compendiums, prefix, section, sectionIcon, emptyNote) => {
         if (!compendiums.length) {
@@ -442,10 +482,11 @@ export function getJournalPromptCheckboxes() {
             return;
         }
         for (const comp of compendiums) {
+            const id = `${prefix}${comp.id}`;
             checkboxes.push({
-                id: `${prefix}${comp.id}`,
+                id,
                 label: comp.label,
-                checked: true,
+                checked: isChecked(id, true),
                 showForTemplate: 'area',
                 section,
                 sectionIcon
@@ -472,7 +513,7 @@ export function getJournalPromptCheckboxes() {
         {
             id: 'worldActors',
             label: 'Include world actors',
-            checked: false,
+            checked: isChecked('worldActors', false),
             showForTemplate: 'area',
             section: 'World',
             sectionIcon: 'fa-solid fa-globe',
@@ -481,7 +522,7 @@ export function getJournalPromptCheckboxes() {
         {
             id: 'worldItems',
             label: 'Include world items',
-            checked: false,
+            checked: isChecked('worldItems', false),
             showForTemplate: 'area',
             section: 'World',
             sectionIcon: 'fa-solid fa-globe',
@@ -563,16 +604,14 @@ export function getJournalAreaImportUi() {
             {
                 fieldId: 'narrativeImage',
                 checkboxId: 'narrativeImagePlaceholder',
-                fieldLabel: 'Default Narrative Image',
-                checkboxLabel: 'Narrative Image Placeholder',
+                fieldLabel: 'Narrative Image',
                 value: ctx.narrativeImagePath || '',
                 checked: !!(ctx.narrativeImagePath || '')
             },
             {
                 fieldId: 'characterImage',
                 checkboxId: 'characterImagePlaceholder',
-                fieldLabel: 'Default Character Image',
-                checkboxLabel: 'Character Image Placeholder',
+                fieldLabel: 'Character Image',
                 value: ctx.narrativeCharacterImagePath || '',
                 checked: !!(ctx.narrativeCharacterImagePath || '')
             }
@@ -666,7 +705,6 @@ export function applyAreaJournalGeography(prompt, options = {}) {
         { placeholder: '[ADD-SITE-HERE]', value: geography.site ?? context.site },
         { placeholder: '[ADD-AREA-HERE]', value: geography.area ?? context.area },
         { placeholder: '[ADD-LOCATION-PATH-HERE]', value: buildLocationPathHint(geography) },
-        { placeholder: '[ADD-IMAGE-PATH-HERE]', value: narrativeImage, allowEmpty: true },
         { placeholder: '[ADD-NARRATIVE-IMAGE-PATH-HERE]', value: narrativeImage, allowEmpty: true },
         { placeholder: '[ADD-CHARACTER-IMAGE-PATH-HERE]', value: characterImage, allowEmpty: true },
         {
@@ -962,6 +1000,7 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
 
     await saveCampaignGeography(promptOptions);
     await saveCampaignImagePaths(promptOptions);
+    await saveJournalPromptSelections(promptOptions);
 
     const prompt = await buildJournalImportPrompt('area', {
         actorCompendiumIds: collectSelectedCompendiumIds(promptOptions, COMPENDIUM_ACTOR_CHECKBOX_PREFIX),

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.8.2]
+
+### Changed
+
+- **JSON import — remember compendium/world selections** (`scripts/settings.js`, `scripts/registry-json-import-journals.js`): The per-compendium (Compendium Actors / Items) and World checkboxes on the Generate tab now persist. Selections are saved to a hidden world setting (`journalPromptCompendiumSelections`) on Copy/Save and re-applied when the window reopens — a newly configured compendium still defaults to checked, but anything you unchecked stays unchecked. Previously the checkboxes reset to defaults on every open.
+
+- **JSON import — image row layout + labels** (`templates/window-json-import-body.hbs`, `scripts/registry-json-import-journals.js`, `scripts/window-json-import.js`, `styles/window-json-import.css`): The narrative/character image "use this image" toggle moved inline to the **left of the path input** with no visible label (tooltip + aria-label only); the field labels dropped "Default" (now **"Narrative Image"** / **"Character Image"**). Removed the now-unused `checkboxLabel`. The checkbox still carries `data-prompt-checkbox`, so its state is read/persisted unchanged.
+
+- **Area prompt — cleanup** (`prompts/prompt-journal-profile-area.txt`, `scripts/registry-json-import-journals.js`): Removed the legacy `[ADD-IMAGE-PATH-HERE]` token from the area path (prompt mention + the duplicate replacement in `applyAreaJournalGeography`; the encounter prompt's separate use is untouched). Tightened repeated guidance so each rule has one canonical home: the conversation-name rule (CONVERSATIONS.NAME) and the "imagetitle is not a generation prompt" warning (IMAGETITLE section) now keep short pointers elsewhere instead of full restatements; dropped a redundant anti-example block.
+
+
 ## [13.8.1]
 
 ### Changed

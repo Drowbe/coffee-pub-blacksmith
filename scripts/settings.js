@@ -1202,6 +1202,14 @@ export const registerSettings = () => {
 	registerHeader('NarrativeConfiguration', 'headingH3NarrativeConfiguration-Label', 'headingH3NarrativeConfiguration-Hint', 'H4', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 	
 	// -- Default Narrative Folder --
+	// -- Remembered per-compendium / world selections for the journal Generate tab (hidden) --
+	game.settings.register(MODULE.ID, 'journalPromptCompendiumSelections', {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
 		name: MODULE.ID + '.defaultNarrativeFolder-Label',
 		hint: MODULE.ID + '.defaultNarrativeFolder-Hint',
