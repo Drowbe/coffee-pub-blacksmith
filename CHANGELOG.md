@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.8.3]
+
+### Fixed
+
+- **Menubar tool labels went stale after a dynamic `title()` change** (`scripts/api-menubar.js`, `_toolbarIconsLayoutSignature`): `renderMenubar` compares a structure fingerprint and, when unchanged, takes the lightweight-refresh path (`_applyMenubarLightweightRefresh`), which only re-patches leader / movement / timer / vote — **not** tool labels. The fingerprint's per-tool signature was `toolId:visible:zone:group:active:order` and **did not include the resolved `title`**, so a tool whose only change was its dynamic label (e.g. Herald's View Mode tool switching modes) kept the same fingerprint → lightweight refresh → the button showed a stale label until some unrelated structure change (opening the secondary bar, a leader/movement/notification change) forced a full rebuild. The signature now also includes each visible tool's resolved `title` (guarded with try/catch), so a label-only change alters the fingerprint and triggers a full re-render. Full rebuilds still only occur when a title actually changes, so there is no added render churn and no loop (the new title is captured in the stored fingerprint, returning subsequent renders to the lightweight path).
+
+
 ## [13.8.2]
 
 ### Changed
