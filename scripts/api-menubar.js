@@ -2798,7 +2798,17 @@ class MenuBar {
             } catch {
                 activeState = false;
             }
-            parts.push(`${toolId}:1:${tool.zone || 'left'}:${tool.group || 'general'}:${activeState ? 1 : 0}:${tool.order ?? 999}`);
+            // Include the resolved title so a dynamic label change (e.g. Herald's view-mode
+            // tool switching modes) changes the fingerprint and forces a full re-render.
+            // Without this, a title-only change takes the lightweight-refresh path, which
+            // does not update tool labels, and the button shows a stale label.
+            let title = '';
+            try {
+                title = typeof tool.title === 'function' ? String(tool.title() ?? '') : String(tool.title ?? '');
+            } catch {
+                title = '';
+            }
+            parts.push(`${toolId}:1:${tool.zone || 'left'}:${tool.group || 'general'}:${activeState ? 1 : 0}:${tool.order ?? 999}:${title}`);
         });
         parts.sort();
         return parts.join('|');
