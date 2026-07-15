@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [13.8.4]
+## [13.8.5]
+
+### Fixed
+
+- **Sockets API — `emit()` targeting options were silently ignored; every "targeted" message broadcast to all clients** (`scripts/manager-sockets.js`, `scripts/blacksmith.js`, `documentation/api/api-sockets.md`): `api-sockets.md` documented `sockets.emit(eventName, data, {userId})` ("send to specific user only") and `{recipients: [...]}`, but neither transport honored them — reported by the Bibliuosoph module. On the SocketLib path, `emit()` always sent via `executeForOthers` (a broadcast); the justifying comment claimed SocketLib has no targeted methods, which is false (`executeAsUser` / `executeForUsers` exist). Worse, the generic receive-side router never checked `payload.options` against `game.user.id` and didn't pass `options` to handlers, so receivers couldn't even self-filter. On the native fallback path, `options` wasn't copied into the payload at all. Consequence: code written against the docs misbehaved silently — "open this dialog for user X" opened it for everyone — and every targeted payload fired every client's registered handler. Now: `options.userId` routes through `executeAsUser` (rejects if the target user doesn't exist or isn't connected; fires the local handler if you target yourself), `options.recipients` routes through `executeForUsers` (passed a copy, since SocketLib mutates the array; disconnected users are silently skipped; your own ID in the list fires your local handler), and only untargeted emits broadcast. The native fallback carries `options` in the payload and enforces targeting on receipt — the same strategy SocketLib itself uses, since Foundry's relay always broadcasts module socket events — and dispatches locally when the sender is among the explicit recipients, matching SocketLib semantics. Both receive paths share a `_isLocalRecipient()` check, so even a broadcast from an older Blacksmith version is filtered correctly on updated clients. Verified live with a GM + player client: broadcast excludes sender, `userId`/`recipients` deliver to exactly the addressed clients, self-targeting fires locally only, and a bogus target rejects loudly. **Privacy caveat now documented**: targeting controls which clients *dispatch* the event to handlers — under both transports the payload still travels over a broadcast socket and is visible to anyone inspecting traffic, so `emit()` must never carry secrets.
+
+### Changed
+
+- **Sockets API — `emit()` propagates delivery failures** (`scripts/blacksmith.js`): The `api.sockets.emit` wrapper fired the underlying emit and resolved `true` without awaiting it, which would have turned an `executeAsUser` rejection (target user offline) into an unhandled promise rejection. It now awaits the transport call, so targeted-delivery failures reject the caller's promise (and are logged). Note one behavior change for `userId` emits on SocketLib: they return SocketLib's request promise, which resolves after the remote client's handler runs — callers who don't await are unaffected.
 
 ### Added
 

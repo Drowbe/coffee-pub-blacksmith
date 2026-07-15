@@ -1368,11 +1368,19 @@ Hooks.once('init', async function() {
                     }
                     // SocketLib emit signature: emit(eventName, data, options)
                     // Native fallback also uses emit(eventName, data, options)
+                    // Await the result so targeted-delivery failures (e.g. options.userId
+                    // naming a disconnected user) reject the caller's promise
                     try {
-                        socket.emit(eventName, data, options);
-                        return true;
+                        return Promise.resolve(socket.emit(eventName, data, options)).then(
+                            () => true,
+                            (error) => {
+                                postConsoleAndNotification(MODULE.NAME, "Socket API: Error calling socket.emit",
+                                    `eventName: ${eventName}, error: ${error.message}`, false, true);
+                                throw error;
+                            }
+                        );
                     } catch (error) {
-                        postConsoleAndNotification(MODULE.NAME, "Socket API: Error calling socket.emit", 
+                        postConsoleAndNotification(MODULE.NAME, "Socket API: Error calling socket.emit",
                             `eventName: ${eventName}, error: ${error.message}`, false, true);
                         throw error;
                     }

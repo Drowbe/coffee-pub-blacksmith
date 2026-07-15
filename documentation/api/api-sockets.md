@@ -114,12 +114,15 @@ Emit a socket message to other clients.
 **Parameters:**
 - `eventName` (string, required): The event name to emit
 - `data` (any, required): The data to send (can be any serializable JavaScript object)
-- `options` (object, optional): SocketLib options
-  - `userId` (string, optional): Send to specific user only
-  - `recipients` (array, optional): Array of user IDs to send to
-  - Other SocketLib options (see SocketLib documentation)
+- `options` (object, optional): Delivery targeting options
+  - `userId` (string, optional): Deliver to one specific user only. Rejects if that user does not exist or is not connected. If it is your own user ID, your local handler fires.
+  - `recipients` (array, optional): Array of user IDs to deliver to. Disconnected users are silently skipped; if your own user ID is included, your local handler fires.
 
-**Returns:** `Promise<boolean>` - Resolves to `true` if emit succeeded
+With no targeting options, the event is delivered to all other connected clients (never the sender).
+
+**Returns:** `Promise<boolean>` - Resolves to `true` if emit succeeded. Rejects if delivery fails (e.g., `userId` targets a user who is not connected).
+
+> **Privacy note:** Targeting controls which clients *dispatch* the event to their registered handlers — it is not wire-level privacy. Under both transports (SocketLib and the native fallback) the payload is broadcast to every connected client and filtered on receipt, so anyone inspecting socket traffic (e.g., via the browser console) can see it. Never send secrets through `sockets.emit()`.
 
 **Example:**
 ```javascript

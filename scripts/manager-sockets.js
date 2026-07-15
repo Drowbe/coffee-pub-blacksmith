@@ -115,6 +115,20 @@ class SocketManager {
         return null;
     }
 
+    /**
+     * Check whether a message emitted with the given options is addressed to the local user.
+     * Targeting (`options.userId` / `options.recipients`) controls which clients dispatch the
+     * event to their handlers; the transport may still broadcast, so this is enforced on receipt.
+     * @param {object|undefined} options - The options the sender passed to emit()
+     * @returns {boolean} True if the local client should dispatch this event
+     */
+    static _isLocalRecipient(options) {
+        if (!options) return true;
+        if (options.userId) return options.userId === game.user.id;
+        if (Array.isArray(options.recipients)) return options.recipients.includes(game.user.id);
+        return true;
+    }
+
     static _tryInitializeImmediately() {
         try {
             const sl = this._getSocketLib();
@@ -166,6 +180,9 @@ class SocketManager {
                 // payload contains: { eventName, data, userId, options }
                 // Route the event to the appropriate handler registered by external modules
                 if (payload && this._externalEventHandlers && this._externalEventHandlers.has(payload.eventName)) {
+                    // Drop events targeted at other users even if the transport delivered
+                    // them here (e.g. a broadcast from an older sender)
+                    if (!this._isLocalRecipient(payload.options)) return;
                     const handler = this._externalEventHandlers.get(payload.eventName);
                     try {
                         // Call handler with data and userId (matching the expected signature)
@@ -180,20 +197,26 @@ class SocketManager {
             this.socket = {
                 register: socketlibSocket.register.bind(socketlibSocket),
                 emit: (eventName, data, options = {}) => {
-                    // Use SocketLib's execute methods to send events
-                    // SocketLib has: executeForOthers, executeForAll (also called executeForEveryone)
-                    // Note: SocketLib doesn't have executeForUser/executeForUsers, so we use executeForOthers for all cases
-                    // and rely on the handler to filter based on options if needed
+                    // Targeted options route through SocketLib's targeted methods
+                    // (executeAsUser / executeForUsers); otherwise broadcast via executeForOthers.
+                    // SocketLib targeting filters dispatch on the receiving client — payloads
+                    // still travel over a broadcast socket, so emit() must never carry secrets.
                     const payload = {
                         eventName: eventName,
                         data: data,
                         userId: game.user.id,
                         options: options
                     };
-                    
-                    // SocketLib only supports executeForOthers (broadcast to all other clients)
-                    // For targeted messaging (options.userId or options.recipients), we broadcast to all
-                    // and the receiving modules can filter if needed
+
+                    if (options.userId) {
+                        // Rejects if the target user does not exist or is not connected;
+                        // executes locally if the target is this client
+                        return socketlibSocket.executeAsUser(eventHandlerName, options.userId, payload);
+                    }
+                    if (Array.isArray(options.recipients)) {
+                        // Copy the array — SocketLib mutates the recipients list it receives
+                        return socketlibSocket.executeForUsers(eventHandlerName, [...options.recipients], payload);
+                    }
                     return socketlibSocket.executeForOthers(eventHandlerName, payload);
                 },
                 executeForOthers: socketlibSocket.executeForOthers.bind(socketlibSocket),
@@ -243,8 +266,11 @@ class SocketManager {
             
             // Set up native socket listener for incoming messages
             this._nativeInboundHandler = (payload) => {
-                // payload should have: { eventName, data, userId }
+                // payload should have: { eventName, data, userId, options }
                 if (payload && payload.eventName && this._nativeHandlers.has(payload.eventName)) {
+                    // Native module sockets always broadcast, so targeting is enforced here:
+                    // drop events addressed to other users (same strategy SocketLib uses)
+                    if (!this._isLocalRecipient(payload.options)) return;
                     const handler = this._nativeHandlers.get(payload.eventName);
                     try {
                         handler(payload.data, payload.userId);
@@ -270,11 +296,29 @@ class SocketManager {
                     const payload = {
                         eventName: eventName,
                         data: data,
-                        userId: game.user.id
+                        userId: game.user.id,
+                        options: options
                     };
-                    
-                    // Emit to all other clients (native sockets don't support targeted messaging)
+
+                    // Native module sockets always broadcast to all other clients; targeting
+                    // (options.userId / options.recipients) is enforced on receipt — each client
+                    // drops events not addressed to it. Payloads still reach every client's
+                    // socket listener, so emit() must never carry secrets.
                     game.socket.emit(socketEventName, payload);
+
+                    // Match SocketLib's targeted semantics: the server only relays to other
+                    // clients, so if the sender is among the explicit recipients, dispatch locally
+                    const isTargeted = !!(options.userId || Array.isArray(options.recipients));
+                    if (isTargeted && this._isLocalRecipient(options)) {
+                        const handler = this._nativeHandlers.get(eventName);
+                        if (handler) {
+                            try {
+                                handler(data, game.user.id);
+                            } catch (error) {
+                                postConsoleAndNotification(MODULE.NAME, `SocketManager: Error in native socket handler for ${eventName}`, error.message, false, true);
+                            }
+                        }
+                    }
                     postConsoleAndNotification(MODULE.NAME, `SocketManager: Native fallback - emitted ${eventName}`, "", true, false);
                 },
                 
