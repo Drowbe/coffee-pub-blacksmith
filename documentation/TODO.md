@@ -146,12 +146,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Location**: `scripts/settings.js`, `scripts/manager-campaign.js`
 - **Need**: Decide whether to add common-rulebook presets/checkboxes on top of the current compendium-driven model
 
-#### Refactor Compendium Settings into Reusable Function
-- **Issue**: Compendium settings have repeated code patterns that could be consolidated
-- **Status**: PENDING - Needs implementation
-- **Location**: `scripts/settings.js`
-- **Need**: Create `registerCompendiumSettings(type, displayName, numCompendiums, group)` function to replace repeated loops
-
 #### Combat Stats - Review and Refactor
 - **Issue**: Combat stats system needs review and potential refactoring
 - **Status**: PENDING - Needs investigation and planning
@@ -168,6 +162,20 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
   - Confirm whether/how the export is invokable from the UI; if orphaned, either wire up a button or remove the dead handler.
   - Replace the blob+anchor pattern with `foundry.utils.saveDataToFile(jsonString, 'application/json', filename)` (the canonical v13 helper; sets `dataset.downloadurl` and defers the revoke). Mirrors the fix in `window-json-import.js` `_downloadTextFile`.
 - **Priority**: Low — pre-existing; impact limited if the export isn't currently reachable
+
+#### Actor import — currency `value: 0` is silently skipped
+- **Issue**: `setActorCurrency` guards with `if (!currency?.type || !currency?.value) continue;`, so a legitimate `{ "type": "gp", "value": 0 }` entry is treated as absent and never written. You cannot explicitly zero a denomination on import. Same `undefined`-vs-falsy class of bug as the `toSentenceCase` crash fixed in 13.8.4 — a falsy check standing in for a presence check.
+- **Status**: PENDING — pre-existing; surfaced while building the Compendiums API (13.8.4), intentionally left out of scope
+- **Location**: `scripts/manager-compendiums.js` (`setActorCurrency`, the `!currency?.value` guard)
+- **Need**: Guard on presence rather than truthiness (`currency.value == null`), and coerce to Number so `"0"` and `0` behave the same. Confirm no caller relies on 0 meaning "leave untouched".
+- **Priority**: Low — 0 is the default for every denomination, so the visible impact is limited to explicitly zeroing a value the actor doesn't have anyway
+
+#### Encounter journal — monster list resolved twice per import
+- **Issue**: Importing a `journaltype: "encounter"` JSON resolves every name in `prepencounter` **twice**. Console shows one `createJournalEntry` call but two complete passes of `Resolved Actor ...` lines for the same list. `importJournalEntries` calls `createJournalEntry` once per entry, and there is exactly one `formatMonsterList` call (`utility-common.js:174`), so something in the encounter path evaluates the list a second time — not yet identified.
+- **Status**: PENDING — pre-existing (not introduced by the 13.8.4 resolver work; call-site count is unchanged). Now largely masked: pack indexes are cached after the first pass, so the second pass no longer re-hits `getIndex()`.
+- **Location**: `scripts/utility-common.js` (`createJournalEntry` encounter path, `formatMonsterList` line ~174, `createHTMLList`), `scripts/registry-json-import-journals.js` (`importJournalEntries`)
+- **Need**: Breakpoint `createHTMLList` during an encounter import to find the second caller; likely a duplicated page/template build. Remove the redundant pass.
+- **Priority**: Low — cosmetic since the index cache absorbs the cost; worth resolving so the debug log isn't misleading
 
 #### Configure Pin — Section Checkbox Label Size Inheritance Bug
 - **Issue**: The "Update All" / "Default" checkbox labels in section headers render too small. `font-size` overrides in `.blacksmith-pin-config-section-check-label` (including absolute `px` values) have no visible effect, suggesting the label text is controlled by an ancestor rule or Foundry's CSS reset that overrides the element styles.

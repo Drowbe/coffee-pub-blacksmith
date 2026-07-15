@@ -44,7 +44,8 @@ const utils = BlacksmithUtils;
 - **Asset Lookup Tool**: Tag-based asset searching and filtering
 - **Data Structure**: `id`/`value`/`path` separation for enhanced asset management
 - **Menubar API**: Register tools and send notifications to the global menubar
-- **Compendium Configuration**: Access configured compendium arrays for all document types (v12.1.19+)
+- **Compendiums API**: Read the GM's compendium mapping and resolve plain text to well-formed UUIDs (see `api-compendiums.md`)
+- **Campaign API**: Normalized campaign context, party roster, and party leader (see `api-campaign.md`)
 - **Canvas Layer API**: Access to BlacksmithLayer for canvas drawing and UI overlays (available after canvasReady)
 - **Socket API**: Unified socket management with SocketLib integration and native fallback (see `api-sockets.md`)
 
@@ -718,16 +719,49 @@ This will test:
 
 # **📚 Compendium Configuration API (v12.1.19+)**
 
+> ## ⚠️ **Superseded by the Compendiums API — see [api-compendiums.md](api-compendiums.md)**
+>
+> The `arrSelected*Compendiums` arrays documented below still exist and still work, but they are
+> **raw configuration data only**. They tell you *which* packs the GM chose; they do not tell you
+> the world-first/world-last search rules, and every consumer that iterates them is re-implementing
+> lookup logic that Blacksmith already owns. That is exactly how every Coffee Pub module ended up
+> with its own subtly different version.
+>
+> **Use `api.compendiums` instead:**
+>
+> ```js
+> const c = game.modules.get('coffee-pub-blacksmith').api.compendiums;
+>
+> // Read the mapping (replaces the arrays below — and includes the world rules)
+> c.getMapping('actor');      // { packIds, searchWorldFirst, searchWorldLast, searchOrder, ... }
+> c.getSelected('actor');     // pack ids in priority order
+> c.getSearchOrder('actor');  // 'world' and/or pack ids, in the order they'll be searched
+>
+> // Resolve plain text to a UUID (replaces hand-rolled search loops entirely)
+> await c.resolve('Goblin', 'actor');       // structured result + match confidence
+> await c.resolveLink('Goblin', 'actor');   // "@UUID[...]{Goblin}"
+> await c.resolveDocument('Goblin', 'actor');
+> ```
+>
+> `getMapping()` also accepts any type alias (`'actor'`, `'monster'`, `'feat'`, …), so you never
+> need to know that Actor is stored under `monsterCompendium{i}` and Feature under
+> `featuresCompendium{i}`.
+>
+> **Do not hand-roll the search loop.** The "Iterate Efficiently" and "Search All Configured
+> Compendiums" examples further down ignore `searchWorldFirst` / `searchWorldLast`, so they will
+> silently disagree with the GM's configuration. `resolve()` honors them, applies exact-first tiered
+> matching across all sources, filters Spell/Feature by document subtype, and caches pack indexes.
+
 ## **Overview**
 
 Blacksmith provides a centralized compendium management system that allows modules to access configured compendiums for all document types. This eliminates the need for each module to implement its own compendium selection logic.
 
 ### **Key Benefits:**
 - **🎯 Centralized Configuration**: Users configure compendiums once in Blacksmith settings
-- **🔄 Dynamic Support**: Automatically supports all compendium types (Actor, Item, JournalEntry, RollTable, Scene, Macro, Playlist, Adventure, Card, Stack, etc.)
+- **🔄 Dynamic Support**: Automatically supports all compendium types (Actor, Item, JournalEntry, RollTable, Scene, Macro, Playlist, Cards, etc.)
 - **📊 Priority Ordering**: Arrays contain compendiums in user-configured priority order
 - **⚡ Easy Integration**: Simple array iteration for search functions
-- **🔧 Configurable Count**: Each type can have 1-20 priority slots (default: 1)
+- **🔧 Configurable Count**: Each type can have 0-15 priority slots (default: 1)
 
 ## **Available Arrays**
 
@@ -750,14 +784,27 @@ const featureCompendiums = BLACKSMITH.arrSelectedFeatureCompendiums || [];
 
 ### **All Document Types:**
 Arrays are automatically created for any compendium type found in the system:
-- `arrSelectedActorCompendiums` / `arrSelectedMonsterCompendiums` (synonyms)
+- `arrSelectedMonsterCompendiums` — Actor packs. **Note the name**: there is no
+  `arrSelectedActorCompendiums`; Actor has always been stored under the `monster` token for
+  backward compatibility. Prefer `api.compendiums.getSelected('actor')`, which accepts either token.
 - `arrSelectedItemCompendiums`
+- `arrSelectedSpellCompendiums` — Item packs, filtered to `type: 'spell'` at resolution time
+- `arrSelectedFeatureCompendiums` — Item packs, filtered to `type: 'feat'` at resolution time
 - `arrSelectedJournalEntryCompendiums`
 - `arrSelectedRollTableCompendiums`
 - `arrSelectedSceneCompendiums`
 - `arrSelectedMacroCompendiums`
 - `arrSelectedPlaylistCompendiums`
 - `arrSelectedAdventureCompendiums`
+- `arrSelectedCardsCompendiums`
+
+The definitive list for the current world is `api.compendiums.getTypes()` — new pack types are
+picked up automatically without a code change.
+
+Note that `arrSelectedSpellCompendiums` and `arrSelectedFeatureCompendiums` both draw from Item
+packs. The subtype filtering that makes them distinct happens **inside `resolve()`** — it is not
+encoded in the arrays. Iterating those arrays yourself will match spells and feats
+interchangeably, which is one more reason to prefer the API.
 - `arrSelectedCardCompendiums`
 - `arrSelectedStackCompendiums`
 - Any other compendium types found in the system
@@ -948,11 +995,16 @@ If you're using AI to help with Blacksmith integration, here are the key points:
 - "All methods return Promises that wait for Blacksmith to be ready"
 - "Import from `/modules/coffee-pub-blacksmith/api/blacksmith-api.js`"
 - "Use global objects like `BlacksmithHookManager` for direct access"
+- "Use `api.compendiums.resolve(name, type)` to turn a name into a UUID — never write your own compendium search loop"
+- "Use `api.campaign` for campaign, party, and party-leader context"
 
 ### **What NOT to Tell AI:**
 - "Access HookManager directly" (this is internal API)
 - "Use game.modules.get() directly" (use the bridge instead)
 - "Import from scripts/manager-hooks.js" (this is internal)
+- "Read `monsterCompendium1` / `numCompendiumsActor` from settings" (use `api.compendiums.getMapping()`)
+- "Iterate `BLACKSMITH.arrSelected*Compendiums` to find a document" (this skips the world-first/last rules — use `api.compendiums.resolve()`)
+- "Build `@UUID[...]` strings by hand" (use `api.compendiums.resolveLink()`)
 
 ### **Example AI Prompt:**
 ```
@@ -2210,10 +2262,18 @@ When `position` is not provided, the user is prompted to click on the canvas to 
 
 - **[Hook Manager API Documentation](api-hookmanager.md)** - Hook registration, priority, performance, and debugging
 - **OpenAI API:** AI-powered functionality is provided by the optional module **Coffee Pub Regent**. See **[Coffee Pub Regent — OpenAI API](../../coffee-pub-regent/documentation/api-openai.md)**.
+- **[Compendiums API Documentation](api-compendiums.md)** - Compendium mapping + plain text to UUID resolution
+- **[Campaign API Documentation](api-campaign.md)** - Campaign context, party roster, party leader, rulebooks
 - **[Toolbar API Documentation](api-toolbar.md)** - Dynamic toolbar system for external modules
 - **[Menubar API Documentation](api-menubar.md)** - Global menubar and secondary bars for external modules
 - **[Socket API Documentation](api-sockets.md)** - Unified socket management with SocketLib integration
 - **[Canvas Layer API Documentation](api-canvas.md)** - Access to BlacksmithLayer for canvas drawing
+- **[Pins API Documentation](api-pins.md)** - Canvas pins: lifecycle, taxonomy, tags, visibility
+- **[Tags API Documentation](api-tags.md)** - Unified tag registry and visibility
+- **[GM Notes API Documentation](api-gmnotes.md)** - GM-only annotations on existing documents
+- **[Chat Cards API Documentation](api-chatcards.md)** - Chat card themes
+- **[Stats API Documentation](api-stats.md)** - Player and combat statistics
+- **[Window API Documentation](api-window.md)** - BlacksmithWindowBaseV2 and the window registry
 - **[Cartographer Module Guide](cartographer.md)** - Drawing on BlacksmithLayer guide
 
 ---
