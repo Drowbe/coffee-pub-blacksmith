@@ -93,6 +93,7 @@ import { ChatCardsAPI } from './api-chat-cards.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
+import { CompendiumsAPI } from './api-compendiums.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import './sidebar-combat.js';
 import './ui-combat-tools.js';
@@ -951,6 +952,7 @@ Hooks.once('init', async function() {
         gmNotes: GMNotesAPI,
         chatCards: ChatCardsAPI,
         campaign: CampaignAPI,
+        compendiums: CompendiumsAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),
         getMonsterCR: EncounterManager.getMonsterCR.bind(EncounterManager),
         calculateEncounterDifficulty: EncounterManager.calculateEncounterDifficulty.bind(EncounterManager),
@@ -1138,7 +1140,7 @@ Hooks.once('init', async function() {
                 
                 // Rebuild selected compendium arrays if compendium settings changed
                 // Match any numCompendiums* setting, any *Compendium{number} setting, or searchWorld*First/Last settings
-                const compendiumSettingPattern = /^(numCompendiums|.+Compendium\d+|searchWorld.+First|searchWorld.+Last)$/;
+                const compendiumSettingPattern = /^(numCompendiums.+|.+Compendium\d+|searchWorld.+First|searchWorld.+Last)$/;
                 if (compendiumSettingPattern.test(settingKey)) {
                     // If this is a compendium priority setting (e.g., "actorCompendium1"), trigger reordering
                     const type = settingKey.startsWith('rulebookCompendium')

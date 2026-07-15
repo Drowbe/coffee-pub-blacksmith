@@ -5,6 +5,7 @@ export const CampaignAPI = {
     getCore: () => CampaignManager.getCore(),
     getGeography: () => CampaignManager.getGeography(),
     getParty: () => CampaignManager.getParty(),
+    getPartyLeader: () => CampaignManager.getPartyLeader(),
     getRulebooks: () => CampaignManager.getCore().rulebooks,
     getJournalDefaults: () => CampaignManager.getJournalDefaults(),
     getPromptContext: () => CampaignManager.getPromptContext()

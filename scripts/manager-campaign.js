@@ -170,6 +170,28 @@ export class CampaignManager {
         };
     }
 
+    /**
+     * The configured party leader, with the user and actor resolved.
+     * @returns {{userId: string, actorId: string, user: User|null, actor: Actor|null,
+     *            name: string|null, isCurrentUser: boolean}}
+     */
+    static getPartyLeader() {
+        const leader = getSettingSafely(MODULE.ID, 'partyLeader', null) || {};
+        const user = leader.userId ? (game.users.get(leader.userId) ?? null) : null;
+        const actor = leader.actorId ? (game.actors.get(leader.actorId) ?? null) : null;
+
+        return {
+            userId: leader.userId || '',
+            actorId: leader.actorId || '',
+            user,
+            actor,
+            name: actor?.name ?? user?.name ?? null,
+            // Mirrors isCurrentUserPartyLeader(): legacy data sometimes stored the
+            // GM's userId, so ownership of the leader's actor also counts.
+            isCurrentUser: !!leader.actorId && (leader.userId === game.user?.id || !!actor?.isOwner)
+        };
+    }
+
     static getCampaign() {
         return {
             core: this.getCore(),

@@ -142,6 +142,29 @@ export class BlacksmithAPI {
     }
 
     /**
+     * Get the Compendiums API -- compendium mapping + name-to-UUID resolution.
+     *
+     * Use this instead of reading `monsterCompendium1` / `numCompendiumsActor`
+     * yourself or hand-building `@UUID[...]` strings. It honors the GM's
+     * configured priority order and world-first/world-last rules.
+     *
+     * @returns {Promise<Object>} Compendiums API instance
+     * @example
+     * const compendiums = await BlacksmithAPI.getCompendiums();
+     * const link = await compendiums.resolveLink('Goblin', 'actor');
+     * // "@UUID[Compendium.dnd5e.monsters.Actor.xyz]{Goblin}"
+     */
+    static getCompendiums() {
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().compendiums;
+            } catch (error) {
+                throw new Error(`Failed to get Compendiums API: ${error.message}`);
+            }
+        });
+    }
+
+    /**
      * Get the BlacksmithCanvasLayer (available after canvasReady)
      * @returns {Promise<Object|null>} BlacksmithLayer instance or null if not available
      */
@@ -367,6 +390,7 @@ export class BlacksmithAPI {
                 window.BlacksmithModuleManager = api.ModuleManager;
                 window.BlacksmithStats = api.stats;
                 window.BlacksmithConstants = api.BLACKSMITH;
+                window.BlacksmithCompendiums = api.compendiums;
                 if (!window.Blacksmith) window.Blacksmith = {};
                 if (api.sockets) window.Blacksmith.socket = api.sockets;
                 if (api.CanvasLayer) window.BlacksmithCanvasLayer = api.CanvasLayer;

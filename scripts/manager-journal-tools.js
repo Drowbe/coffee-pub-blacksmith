@@ -3,9 +3,11 @@
 // ================================================================== 
 
 import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { compendiumManager } from './manager-compendiums.js';
+import { getCompendiumSettingPrefix, getNumCompendiumsSettingName } from './compendium-types.js';
 
 export class JournalTools {
     static async init() {
@@ -68,11 +70,9 @@ export class JournalTools {
      * @returns {string[]} Array of setting keys like ['monsterCompendium1', 'monsterCompendium2', ...]
      */
     static getCompendiumSettingKeys(type) {
-        const numCompendiums = type === 'actor' 
-            ? (game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1)
-            : (game.settings.get(MODULE.ID, 'numCompendiumsItem') ?? 1);
-        
-        const prefix = type === 'actor' ? 'monsterCompendium' : 'itemCompendium';
+        const prefix = getCompendiumSettingPrefix(type);
+        const numCompendiums = getSettingSafely(MODULE.ID, getNumCompendiumsSettingName(type), 1) ?? 1;
+
         const keys = [];
         for (let i = 1; i <= numCompendiums; i++) {
             keys.push(`${prefix}${i}`);
@@ -2234,15 +2234,14 @@ export class JournalTools {
             }
             
             const existingCompendium = compendiumMatch[1];
-            
+
             // Check if this compendium is first in the stack for this entity type
             const entityType = existingUuid.includes('.Actor.') ? 'actor' : 'item';
-            const compendiumSetting = entityType === 'actor' ? 'actorCompendium' : 'itemCompendium';
-            
-            // Get the first compendium in the stack
-            const firstCompendium = game.settings.get('coffee-pub-blacksmith', compendiumSetting);
-            
-            return existingCompendium === firstCompendium;
+
+            // Get the first compendium in the stack (Priority 1)
+            const firstCompendium = compendiumManager.getSelected(entityType)[0];
+
+            return !!firstCompendium && existingCompendium === firstCompendium;
             
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error checking if link is optimal`, 

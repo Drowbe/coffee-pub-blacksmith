@@ -19,6 +19,7 @@ console.log('Full Campaign:', api?.campaign?.getCampaign?.());
 console.log('Core:', api?.campaign?.getCore?.());
 console.log('Geography:', api?.campaign?.getGeography?.());
 console.log('Party:', api?.campaign?.getParty?.());
+console.log('Party Leader:', api?.campaign?.getPartyLeader?.());
 console.log('Rulebooks:', api?.campaign?.getRulebooks?.());
 console.log('Journal Defaults:', api?.campaign?.getJournalDefaults?.());
 console.log('Prompt Context:', api?.campaign?.getPromptContext?.());
@@ -319,6 +320,27 @@ Returns the `geography` block only.
 
 Returns the normalized `party` block only.
 
+### `campaign.getPartyLeader()`
+
+Returns the configured party leader with the user and actor already resolved:
+
+```js
+{
+  userId: string,        // '' if unset
+  actorId: string,       // '' if unset
+  user: User | null,     // resolved from userId
+  actor: Actor | null,   // resolved from actorId
+  name: string | null,   // actor name, falling back to user name
+  isCurrentUser: boolean // true if the current user is the leader
+}
+```
+
+- Source setting: `partyLeader` (hidden; set via the Blacksmith menubar, not the settings sheet).
+- `isCurrentUser` is the field most consumers want for permission checks such as "may this user start a vote?".
+  It is true when the stored `userId` matches the current user, **or** when the current user owns the leader's
+  actor. The ownership fallback matters because legacy worlds sometimes stored the GM's `userId` here.
+- Returns the same shape with empty/null fields when no leader is configured; it never throws.
+
 ### `campaign.getRulebooks()`
 
 Returns `campaign.getCore().rulebooks`.
@@ -389,3 +411,4 @@ Returns a flattened helper object for prompt/template replacement:
 - Rulebooks are built from selected rulebook compendiums plus the freeform `Custom Rulebooks` setting.
 - Modules should prefer this API over direct `game.settings.get('coffee-pub-blacksmith', ...)` reads for campaign and party context.
 - `partyLevel` and `partyMakeup` still include a legacy fallback path for existing worlds while the new party-member settings are adopted.
+- Rulebook compendiums are a separate mapping from the main Compendium Mapping. For monsters, items, spells, features, and other content lookups — including turning plain text into a UUID — see [api-compendiums.md](api-compendiums.md).

@@ -34,6 +34,7 @@ import {
     applyJournalHeadingSpacing
 } from './utility-journal-html.js';
 import { buildAreaJournalTemplateData } from './parsers/parse-journal-area.js';
+import { compendiumManager, parseQuantity, formatLink } from './manager-compendiums.js';
 
 
 // ================================================================== 
@@ -614,48 +615,16 @@ async function createLocationJournalEntry(journalData, folder) {
 // ***************************************************
 // ** UTILITY Build Compendium Links
 // ***************************************************
+//
+// These are thin wrappers over CompendiumManager (scripts/manager-compendiums.js),
+// which owns the one implementation of name -> UUID resolution. Do not add
+// setting-reading loops here; extend the manager instead.
 
-// Helper function to find monster UUID (extracted from buildCompendiumLinkActor)
+// Helper function to find monster UUID
 async function findMonsterUUID(monsterData) {
-    // If we're passed a string, use the same logic as buildCompendiumLinkActor
-    if (typeof monsterData === 'string') {
-        const searchWorldFirst = game.settings.get(MODULE.ID, 'searchWorldActorsFirst');
-        // Clean up the monster name by removing parentheses containing numbers, CR values, or symbols
-        const strActorName = monsterData.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)|\s*\(CR\s*[0-9/]+\)/g, '').trim();
-        
-        // Only check world actors if the setting is enabled
-        if (searchWorldFirst) {
-            let foundActor;
-            try {
-                foundActor = game.actors.getName(strActorName);
-            } catch (error) {
-                foundActor = null;
-            }
-            if (foundActor) {
-                return `Actor.${foundActor.system._id}`;
-            }
-        }
-        
-        // Check compendium settings in order (up to configured number)
-        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1;
-        for (let i = 1; i <= numCompendiums; i++) {
-            const compendiumSetting = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
-            if (!compendiumSetting || compendiumSetting === 'none') continue;
-            
-            const compendium = game.packs.get(compendiumSetting);
-            if (compendium) {
-                let index = await compendium.getIndex();
-                let entry = index.find(e => e.name === strActorName);
-                if (entry) {
-                    return `Compendium.${compendiumSetting}.Actor.${entry._id}`;
-                }
-            }
-        }
-        
-        return null; // Not found
-    }
-    
-    return null;
+    if (typeof monsterData !== 'string') return null;
+    const result = await compendiumManager.resolve(monsterData, 'Actor', { exact: true, parseCount: true });
+    return result.found ? result.uuid : null;
 }
 
 export async function createHTMLList(monsterString) {
@@ -673,62 +642,18 @@ export async function createHTMLList(monsterString) {
 // ***************************************************
 
 export async function buildCompendiumLinkActor(monsterData) {
-    // If we're passed a string, use the legacy behavior
+    // Plain name, possibly annotated with a count ("Goblin (3)") or CR ("Goblin (CR 1/4)")
     if (typeof monsterData === 'string') {
-        const searchWorldFirst = game.settings.get(MODULE.ID, 'searchWorldActorsFirst');
-        // Extract the count if it exists (matches the last parenthetical number)
-        const countMatch = monsterData.match(/\((\d+)\)[^(]*$/);
-        const count = countMatch ? countMatch[1] : null;
-        // Clean up the monster name by removing parentheses containing numbers, CR values, or symbols
-        const originalName = monsterData;
-        const strActorName = monsterData.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)|\s*\(CR\s*[0-9/]+\)/g, '').trim();
-        let strActorID;
-        // Function to format the final link with count
-        const formatLink = (uuid, name) => {
-            const baseLink = `@UUID[${uuid}]{${name}}`;
-            return count ? `${baseLink} x ${count}` : baseLink;
-        };
-        // Only check world actors if the setting is enabled
-        if (searchWorldFirst) {
-            let foundActor;
-            try {
-                foundActor = game.actors.getName(strActorName);
-            } catch (error) {
-                foundActor = null;
-            }
-            if (foundActor) {
-                const actorId = foundActor.id ?? foundActor._id;
-                return formatLink(`Actor.${actorId}`, strActorName);
-            }
-        }
-        // Check compendium settings in order (up to configured number)
-        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1;
-        let found = false;
-        for (let i = 1; i <= numCompendiums; i++) {
-            const compendiumSetting = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
-            if (!compendiumSetting || compendiumSetting === 'none') continue;
-            const compendium = game.packs.get(compendiumSetting);
-            if (compendium) {
-                let index = await compendium.getIndex();
-                let entry = index.find(e => e.name === strActorName);
-                if (entry) {
-                    strActorID = entry._id;
-                    return formatLink(`Compendium.${compendiumSetting}.Actor.${strActorID}`, strActorName);
-                }
-            }
-        }
-        // If not found in any compendium, return unlinked name
-        return `${strActorName}${count ? ` x ${count}` : ''}`;
+        // Actors stay exact-match only so "Goblin" can't resolve to "Goblin Boss".
+        return compendiumManager.resolveLink(monsterData, 'Actor', { exact: true, parseCount: true });
     }
-    // If we have UUID data, use that
-    if (monsterData.actorUuid) {
-        const countMatch = monsterData.name.match(/\((\d+)\)[^(]*$/);
-        const count = countMatch ? ` x ${countMatch[1]}` : '';
-        const cleanName = monsterData.name.replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)/g, '').trim();
-        return `@UUID[${monsterData.actorUuid}]{${cleanName}}${count}`;
+    // If we already have a UUID, use it directly
+    if (monsterData?.actorUuid) {
+        const { name, count } = parseQuantity(monsterData.name);
+        return formatLink(monsterData.actorUuid, name, count);
     }
-    // If we have the actor name but no UUID, fall back to the legacy behavior
-    return buildCompendiumLinkActor(monsterData.actorName || monsterData.name);
+    // Name but no UUID: resolve it
+    return buildCompendiumLinkActor(monsterData?.actorName || monsterData?.name || '');
 }
 
 // ***************************************************
@@ -736,55 +661,17 @@ export async function buildCompendiumLinkActor(monsterData) {
 // ***************************************************
 
 export async function buildCompendiumLinkItem(itemData) {
+    // Plain name. Items allow the startsWith tier (the resolver's default), which
+    // preserves the prefix-match behavior this function has always had.
     if (typeof itemData === 'string') {
-        const searchWorldFirst = game.settings.get(MODULE.ID, 'searchWorldItemsFirst');
-        const originalName = itemData;
-        const strItemName = itemData.trim();
-        let strItemID;
-        const formatLink = (uuid, name) => `@UUID[${uuid}]{${name}}`;
-        // Only check world items if the setting is enabled
-        if (searchWorldFirst) {
-            let foundItem;
-            try {
-                foundItem = game.items.getName(strItemName);
-            } catch (error) {
-                foundItem = null;
-            }
-            if (foundItem) {
-                strItemID = foundItem.id;
-                return formatLink(`Item.${strItemID}`, strItemName);
-            }
-        }
-        // Check compendium settings in order (up to configured number)
-        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') ?? 1;
-        for (let i = 1; i <= numCompendiums; i++) {
-            const compendiumSetting = game.settings.get(MODULE.ID, `itemCompendium${i}`);
-            if (!compendiumSetting || compendiumSetting === 'none') continue;
-            const compendium = game.packs.get(compendiumSetting);
-            if (compendium) {
-                let index = await compendium.getIndex();
-                // First try for exact match
-                let entry = index.find(e => e.name.toLowerCase() === strItemName.toLowerCase());
-                // If no exact match, try startsWith
-                if (!entry) {
-                    entry = index.find(e => e.name.toLowerCase().startsWith(strItemName.toLowerCase()));
-                }
-                if (entry) {
-                    strItemID = entry._id;
-                    return formatLink(`Compendium.${compendiumSetting}.Item.${strItemID}`, strItemName);
-                }
-            }
-        }
-        // If not found in any compendium, return unlinked name
-        return `${strItemName}`;
+        return compendiumManager.resolveLink(itemData, 'Item');
     }
-    // If we have UUID data, use that
-    if (itemData.itemUuid) {
-        const cleanName = itemData.name.trim();
-        return `@UUID[${itemData.itemUuid}]{${cleanName}}`;
+    // If we already have a UUID, use it directly
+    if (itemData?.itemUuid) {
+        return formatLink(itemData.itemUuid, String(itemData.name ?? '').trim());
     }
-    // If we have the item name but no UUID, fall back to the legacy behavior
-    return buildCompendiumLinkItem(itemData.itemName || itemData.name);
+    // Name but no UUID: resolve it
+    return buildCompendiumLinkItem(itemData?.itemName || itemData?.name || '');
 }
 
 // ***************************************************

@@ -1,605 +1,662 @@
 /**
  * Manager Compendiums - Unified Compendium Lookup System
- * 
- * This module provides a centralized system for searching and linking items, spells, features, and actors
- * across multiple compendiums based on user-configured settings. It consolidates the existing patterns
- * from utility-common.js and manager-journal-tools.js into a reusable system.
- * 
- * Features:
- * - Unified search across multiple compendiums
- * - Configurable search order via settings
- * - Support for world items/actors/features first/last
- * - Automatic UUID generation for found items
- * - Fallback handling for missing compendiums
- * - Debug logging for troubleshooting
+ *
+ * Centralized name -> UUID resolution across world collections and compendiums,
+ * honoring the priority order and world-first/world-last rules the GM configured
+ * in Campaign Settings > Compendium Mapping.
+ *
+ * This is the single implementation of "plain text in, well-formed UUID out".
+ * Everything else in Blacksmith (JSON import autolinking, journal tools, the
+ * link builders in utility-common.js) delegates here, and other Coffee Pub
+ * modules reach it through `api.compendiums` -- see documentation/api/api-compendiums.md.
+ *
+ * Matching is TIERED and exact-first: an exact match in ANY configured source
+ * beats a loose match in a higher-priority source. Tiers run in this order:
+ *   1. exact      - case-insensitive full name equality
+ *   2. startsWith - candidate name begins with the query  (skip with {exact: true})
+ *   3. includes   - candidate name contains the query     (opt in with {fuzzy: true})
+ *
+ * Every result reports which tier matched so callers can flag low-confidence links.
  */
 
-import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { MODULE, BLACKSMITH } from './const.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import {
+    normalizeType,
+    getCompendiumSettingPrefix,
+    getNumCompendiumsSettingName,
+    getSearchWorldFirstKey,
+    getSearchWorldLastKey,
+    getDocumentClass,
+    getDocumentSubtype,
+    getPackType,
+    getTypeLabel,
+    getWorldCollection,
+    getMappedTypes,
+    isSyntheticType
+} from './compendium-types.js';
+
+/** Match tiers in priority order. */
+const MATCH_TIERS = ['exact', 'startsWith', 'includes'];
 
 /**
  * Compendium Manager Class
- * Handles all compendium lookups and provides a unified interface
+ * Handles all compendium lookups and provides a unified interface.
  */
 export class CompendiumManager {
     constructor() {
-        // No initialization needed
+        /**
+         * packId -> Promise<{ entries: Array, byName: Map<string, Array> }>
+         * Only pack indexes are cached; world collections are already in memory
+         * and are read live so they never go stale.
+         * @private
+         */
+        this._indexCache = new Map();
+        this._cacheHooksBound = false;
     }
 
-    /**
-     * Get compendium settings for a specific type
-     * @param {string} type - The type of compendium (item, spell, features, monster/actor)
-     * @returns {Object} Object containing compendium settings
-     */
-    getCompendiumSettings(type) {
-        const settings = {};
-        
-        // Map type to setting name format
-        // Compendium settings use singular: itemCompendium1, spellCompendium1, featuresCompendium1, monsterCompendium1
-        // Search world settings use plural: searchWorldItemsFirst, searchWorldSpellsFirst, searchWorldFeaturesFirst, searchWorldActorsFirst
-        const typeMap = {
-            'item': { compendium: 'item', searchWorld: 'Items' },
-            'spell': { compendium: 'spell', searchWorld: 'Spells' },
-            'feature': { compendium: 'features', searchWorld: 'Features' },
-            'actor': { compendium: 'monster', searchWorld: 'Actors' }
-        };
-        
-        const mappedType = typeMap[type];
-        if (!mappedType) {
-            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Unknown type: ${type}`, "", false, false);
-            return settings;
-        }
-        
-        // Get compendium mappings (up to configured number for each type)
-        // Map type to the numCompendiums setting name
-        const numSettingMap = {
-            'item': 'numCompendiumsItem',
-            'spell': 'numCompendiumsSpell',
-            'feature': 'numCompendiumsFeature',
-            'actor': 'numCompendiumsActor'
-        };
-        const numCompendiums = game.settings.get(MODULE.ID, numSettingMap[type]) ?? 1;
+    // ==============================================================
+    // ===== CONFIGURATION ==========================================
+    // ==============================================================
 
+    /**
+     * The full compendium mapping for a type, as configured by the GM.
+     * @param {string} type - Any accepted type token ("actor", "Actor", "monster", "feat", ...)
+     * @returns {{type: string, label: string, packIds: string[], searchWorldFirst: boolean,
+     *            searchWorldLast: boolean, searchOrder: string[], numCompendiums: number,
+     *            documentClass: string, subtype: string|null}}
+     */
+    getMapping(type) {
+        const canonical = normalizeType(type);
+        const numSetting = getNumCompendiumsSettingName(canonical);
+        const prefix = getCompendiumSettingPrefix(canonical);
+        const numCompendiums = getSettingSafely(MODULE.ID, numSetting, 1) ?? 1;
+
+        const packIds = [];
         for (let i = 1; i <= numCompendiums; i++) {
-            const settingKey = `${mappedType.compendium}Compendium${i}`;
-            try {
-                const compendiumName = game.settings.get(MODULE.ID, settingKey);
-                if (compendiumName && compendiumName !== '') {
-                    settings[`compendium${i}`] = compendiumName;
-                }
-            } catch (e) {
-                // Setting doesn't exist, skip
-            }
+            const packId = getSettingSafely(MODULE.ID, `${prefix}${i}`, null);
+            if (packId && packId !== 'none' && packId !== '') packIds.push(packId);
         }
-        
-        // Get search order settings
-        try {
-            settings.searchWorldFirst = game.settings.get(MODULE.ID, `searchWorld${mappedType.searchWorld}First`);
-        } catch (e) {
-            settings.searchWorldFirst = false;
-        }
-        
-        try {
-            settings.searchWorldLast = game.settings.get(MODULE.ID, `searchWorld${mappedType.searchWorld}Last`);
-        } catch (e) {
-            settings.searchWorldLast = false;
-        }
-        
-        return settings;
-    }
 
-    /**
-     * Search for an item across compendiums
-     * @param {string} itemName - The name of the item to search for
-     * @param {string} itemType - The type of item (weapon, armor, etc.)
-     * @returns {Promise<string|null>} UUID of the found item or null
-     */
-    async searchItem(itemName, itemType = null) {
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Searching for item: ${itemName}`, `type: ${itemType}`, true, false);
-        
-        const settings = this.getCompendiumSettings('item');
-        const searchOrder = this.getSearchOrder(settings, 'item');
-        
-        for (const source of searchOrder) {
-            const result = await this.searchInSource(source, itemName, 'item', itemType);
-            if (result) {
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Found item ${itemName}`, source, true, false);
-                return result;
-            }
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Item not found: ${itemName}`, "", true, false);
-        return null;
-    }
+        const searchWorldFirst = !!getSettingSafely(MODULE.ID, getSearchWorldFirstKey(canonical), false);
+        const searchWorldLast = !!getSettingSafely(MODULE.ID, getSearchWorldLastKey(canonical), false);
 
-    /**
-     * Search for a spell across compendiums
-     * @param {string} spellName - The name of the spell to search for
-     * @returns {Promise<string|null>} UUID of the found spell or null
-     */
-    async searchSpell(spellName) {
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Searching for spell: ${spellName}`, "", true, false);
-        
-        const settings = this.getCompendiumSettings('spell');
-        const searchOrder = this.getSearchOrder(settings, 'spell');
-        
-        for (const source of searchOrder) {
-            const result = await this.searchInSource(source, spellName, 'spell');
-            if (result) {
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Found spell ${spellName}`, source, true, false);
-                return result;
-            }
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Spell not found: ${spellName}`, "", true, false);
-        return null;
-    }
-
-    /**
-     * Search for a feature across compendiums
-     * @param {string} featureName - The name of the feature to search for
-     * @returns {Promise<string|null>} UUID of the found feature or null
-     */
-    async searchFeature(featureName) {
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Searching for feature: ${featureName}`, "", true, false);
-        
-        const settings = this.getCompendiumSettings('feature');
-        const searchOrder = this.getSearchOrder(settings, 'feature');
-        
-        for (const source of searchOrder) {
-            const result = await this.searchInSource(source, featureName, 'feature');
-            if (result) {
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Found feature ${featureName}`, source, true, false);
-                return result;
-            }
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Feature not found: ${featureName}`, "", true, false);
-        return null;
-    }
-
-    /**
-     * Search for an actor across compendiums
-     * @param {string} actorName - The name of the actor to search for
-     * @returns {Promise<string|null>} UUID of the found actor or null
-     */
-    async searchActor(actorName) {
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Searching for actor: ${actorName}`, "", true, false);
-        
-        const settings = this.getCompendiumSettings('actor');
-        const searchOrder = this.getSearchOrder(settings, 'actor');
-        
-        for (const source of searchOrder) {
-            const result = await this.searchInSource(source, actorName, 'actor');
-            if (result) {
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Found actor ${actorName}`, source, true, false);
-                return result;
-            }
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Actor not found: ${actorName}`, "", true, false);
-        return null;
-    }
-
-    /**
-     * Get the search order based on settings
-     * @param {Object} settings - The compendium settings
-     * @param {string} type - The type of compendium
-     * @returns {Array} Array of sources to search in order
-     */
-    getSearchOrder(settings, type) {
         const searchOrder = [];
-        
-        // Add world search if enabled
-        if (settings.searchWorldFirst) {
-            searchOrder.push('world');
-        }
-        
-        // Add compendiums in order (settings object already filtered to configured number)
-        // Find the highest compendium number in settings
-        let maxNum = 0;
-        for (const key in settings) {
-            if (key.startsWith('compendium')) {
-                const num = parseInt(key.replace('compendium', ''));
-                if (num > maxNum) maxNum = num;
-            }
-        }
-        for (let i = 1; i <= maxNum; i++) {
-            const compendiumKey = `compendium${i}`;
-            if (settings[compendiumKey]) {
-                searchOrder.push(settings[compendiumKey]);
-            }
-        }
-        
-        // Add world search if enabled for last
-        if (settings.searchWorldLast) {
-            searchOrder.push('world');
-        }
-        
-        return searchOrder;
+        if (searchWorldFirst) searchOrder.push('world');
+        searchOrder.push(...packIds);
+        if (searchWorldLast && !searchWorldFirst) searchOrder.push('world');
+
+        return {
+            type: canonical,
+            label: getTypeLabel(canonical),
+            packIds,
+            searchWorldFirst,
+            searchWorldLast,
+            searchOrder,
+            numCompendiums,
+            documentClass: getDocumentClass(canonical),
+            subtype: getDocumentSubtype(canonical)
+        };
     }
 
     /**
-     * Search in a specific source (world or compendium)
-     * @param {string} source - The source to search in
-     * @param {string} name - The name to search for
-     * @param {string} type - The type of item to search for
-     * @param {string} itemType - Optional item type for items
-     * @returns {Promise<string|null>} UUID of the found item or null
+     * Configured pack IDs for a type, in priority order (index 0 = Priority 1).
+     * @param {string} type
+     * @returns {string[]}
      */
-    async searchInSource(source, name, type, itemType = null) {
-        try {
-            if (source === 'world') {
-                return await this.searchInWorld(name, type, itemType);
-            } else {
-                return await this.searchInCompendium(source, name, type, itemType);
-            }
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error searching in ${source}`, error, false, false);
-            return null;
-        }
+    getSelected(type) {
+        return this.getMapping(type).packIds;
     }
 
     /**
-     * Search in the world collection
-     * @param {string} name - The name to search for
-     * @param {string} type - The type of item to search for
-     * @param {string} itemType - Optional item type for items
-     * @returns {Promise<string|null>} UUID of the found item or null
+     * Sources to search, in order: 'world' and/or pack IDs.
+     * @param {string} type
+     * @returns {string[]}
      */
-    async searchInWorld(name, type, itemType = null) {
-        let collection;
-        
-        switch (type) {
-            case 'item':
-                collection = game.items;
-                break;
-            case 'spell':
-                collection = game.items.filter(item => item.type === 'spell');
-                break;
-            case 'feature':
-                collection = game.items.filter(item => item.type === 'feat');
-                break;
-            case 'actor':
-                collection = game.actors;
-                break;
-            default:
-                return null;
-        }
-        
-        // Search for exact match first
-        let found = collection.find(item => item.name.toLowerCase() === name.toLowerCase());
-        
-        // If not found and it's an item, search by type
-        if (!found && type === 'item' && itemType) {
-            found = collection.find(item => 
-                item.name.toLowerCase() === name.toLowerCase() && 
-                item.type === itemType
-            );
-        }
-        
-        // If still not found, try partial match
-        if (!found) {
-            found = collection.find(item => 
-                item.name.toLowerCase().includes(name.toLowerCase())
-            );
-        }
-        
-        return found ? found.uuid : null;
+    getSearchOrderForType(type) {
+        return this.getMapping(type).searchOrder;
     }
 
     /**
-     * Search in a specific compendium
-     * @param {string} compendiumName - The name of the compendium
-     * @param {string} name - The name to search for
-     * @param {string} type - The type of item to search for
-     * @param {string} itemType - Optional item type for items
-     * @returns {Promise<string|null>} UUID of the found item or null
+     * Every type that has compendium mappings registered in this world.
+     * @returns {string[]}
      */
-    async searchInCompendium(compendiumName, name, type, itemType = null) {
-        try {
-            const compendium = game.packs.get(compendiumName);
-            if (!compendium) {
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Compendium not found: ${compendiumName}`, "", true, false);
-                return null;
-            }
-            
-            const index = await compendium.getIndex();
-            
-            // Search for exact match first
-            let found = index.find(item => item.name.toLowerCase() === name.toLowerCase());
-            
-            // If not found and it's an item, search by type
-            if (!found && type === 'item' && itemType) {
-                found = index.find(item => 
-                    item.name.toLowerCase() === name.toLowerCase() && 
-                    item.type === itemType
-                );
-            }
-            
-            // If still not found, try partial match
-            if (!found) {
-                found = index.find(item => 
-                    item.name.toLowerCase().includes(name.toLowerCase())
-                );
-            }
-            
-            if (found) {
-                return `@Compendium[${compendiumName}.${found._id}]`;
-            }
-            
-            return null;
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error searching in compendium ${compendiumName}`, error, false, false);
-            return null;
+    getTypes() {
+        return getMappedTypes(BLACKSMITH.arrCompendiumChoicesData ?? []);
+    }
+
+    // ==============================================================
+    // ===== RESOLUTION =============================================
+    // ==============================================================
+
+    /**
+     * Resolve plain text to a well-formed UUID using the configured mapping.
+     *
+     * @param {string} name - Plain text name, e.g. "Goblin" or "Goblin (3)"
+     * @param {string} type - Type token: "actor", "item", "spell", "feature", "JournalEntry", ...
+     * @param {object} [options]
+     * @param {boolean} [options.exact=false]      - Only accept exact matches
+     * @param {boolean} [options.fuzzy=false]      - Also allow the loose "includes" tier
+     * @param {string}  [options.itemType=null]    - Prefer entries with this document subtype
+     * @param {boolean} [options.parseCount=false] - Strip a trailing "(3)" / "(CR 1/2)" and report the count
+     * @returns {Promise<{found: boolean, uuid: string|null, name: string, matchedName: string|null,
+     *                    packId: string|null, source: string|null, matchType: string|null,
+     *                    confidence: string, documentClass: string, count: number|null, link: string|null}>}
+     */
+    async resolve(name, type, options = {}) {
+        const {
+            exact = false,
+            fuzzy = false,
+            itemType = null,
+            parseCount = false
+        } = options;
+
+        const canonical = normalizeType(type);
+        const parsed = parseCount ? parseQuantity(name) : { name: String(name ?? '').trim(), count: null };
+        const query = parsed.name;
+
+        const miss = {
+            found: false, uuid: null, name: query, matchedName: null,
+            packId: null, source: null, matchType: null, confidence: 'none',
+            documentClass: getDocumentClass(canonical), count: parsed.count, link: null
+        };
+
+        if (!query) return miss;
+
+        const { searchOrder } = this.getMapping(canonical);
+        if (!searchOrder.length) {
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | No sources configured for type`, canonical, true, false);
+            return miss;
         }
+
+        const tiers = exact ? ['exact'] : (fuzzy ? MATCH_TIERS : ['exact', 'startsWith']);
+
+        // Exact-first ACROSS sources: finish tier 1 everywhere before trying tier 2
+        // anywhere, so an exact hit in Priority 3 beats a prefix hit in Priority 1.
+        for (const tier of tiers) {
+            for (const source of searchOrder) {
+                const hit = await this._matchInSource(source, canonical, query, tier, itemType);
+                if (!hit) continue;
+
+                const result = {
+                    found: true,
+                    uuid: hit.uuid,
+                    name: query,
+                    matchedName: hit.name,
+                    packId: source === 'world' ? null : source,
+                    source,
+                    matchType: tier,
+                    confidence: tier === 'exact' ? 'high' : (tier === 'startsWith' ? 'medium' : 'low'),
+                    documentClass: getDocumentClass(canonical),
+                    count: parsed.count,
+                    link: null
+                };
+                result.link = formatLink(result.uuid, query, parsed.count);
+
+                postConsoleAndNotification(MODULE.NAME,
+                    `Compendium Manager | Resolved ${canonical} "${query}"`,
+                    `${hit.uuid} (${tier} in ${source})`, true, false);
+                return result;
+            }
+        }
+
+        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Not found: ${canonical} "${query}"`, "", true, false);
+        return miss;
     }
 
     /**
-     * Process a list of items and return their UUIDs
-     * @param {Array} items - Array of item names/objects
-     * @param {string} type - The type of items (item, spell, feature)
-     * @returns {Promise<Array>} Array of UUIDs for found items
+     * Resolve many names of the same type. Pack indexes are loaded once and
+     * shared across the whole batch.
+     * @param {Array<string|{name: string, type?: string}>} names
+     * @param {string} type
+     * @param {object} [options] - Same options as resolve()
+     * @returns {Promise<Array<object>>} One result per input, in order
      */
-    async processItemList(items, type) {
-        if (!Array.isArray(items) || items.length === 0) {
-            return [];
-        }
-        
+    async resolveMany(names, type, options = {}) {
+        if (!Array.isArray(names) || names.length === 0) return [];
+
+        const canonical = normalizeType(type);
+
+        // Warm every source's index once, concurrently, before resolving.
+        const { searchOrder } = this.getMapping(canonical);
+        await Promise.all(
+            searchOrder
+                .filter(source => source !== 'world')
+                .map(packId => this._getPackIndex(packId).catch(() => null))
+        );
+
         const results = [];
-        
-        for (const item of items) {
-            let itemName;
-            let itemType = null;
-            
-            if (typeof item === 'string') {
-                itemName = item;
-            } else if (item.name) {
-                itemName = item.name;
-                itemType = item.type || null;
-            } else {
-                continue;
-            }
-            
-            let uuid = null;
-            
-            switch (type) {
-                case 'item':
-                    uuid = await this.searchItem(itemName, itemType);
-                    break;
-                case 'spell':
-                    uuid = await this.searchSpell(itemName);
-                    break;
-                case 'feature':
-                    uuid = await this.searchFeature(itemName);
-                    break;
-            }
-            
-            if (uuid) {
-                results.push(uuid);
-            }
+        for (const entry of names) {
+            const isObject = entry && typeof entry === 'object';
+            const rawName = isObject ? entry.name : entry;
+            if (!rawName) continue;
+            const perItemOptions = isObject && entry.type
+                ? { ...options, itemType: entry.type }
+                : options;
+            results.push(await this.resolve(rawName, canonical, perItemOptions));
         }
-        
         return results;
     }
 
     /**
-     * Process character data and prepare for actor creation
-     * @param {Object} characterData - The character data object
-     * @returns {Promise<Object>} Updated character data without items (items will be added after creation)
+     * Resolve to a ready-to-embed enricher link.
+     * @param {string} name
+     * @param {string} type
+     * @param {object} [options]
+     * @param {string} [options.fallback] - Returned when nothing matches (default: the plain name)
+     * @returns {Promise<string>} e.g. `@UUID[Compendium.dnd5e.monsters.Actor.abc]{Goblin} x 3`
+     */
+    async resolveLink(name, type, options = {}) {
+        const result = await this.resolve(name, type, options);
+        if (result.found) return result.link;
+        if (options.fallback !== undefined) return options.fallback;
+        return result.count ? `${result.name} x ${result.count}` : result.name;
+    }
+
+    /**
+     * Resolve and load the actual Document.
+     * @param {string} name
+     * @param {string} type
+     * @param {object} [options]
+     * @returns {Promise<Document|null>}
+     */
+    async resolveDocument(name, type, options = {}) {
+        const result = await this.resolve(name, type, options);
+        if (!result.found) return null;
+        try {
+            return await fromUuid(result.uuid);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Could not load ${result.uuid}`, error, false, false);
+            return null;
+        }
+    }
+
+    // ==============================================================
+    // ===== INTERNAL: MATCHING =====================================
+    // ==============================================================
+
+    /**
+     * Try to match a query within one source at one tier.
+     * @private
+     * @returns {Promise<{name: string, uuid: string}|null>}
+     */
+    async _matchInSource(source, type, query, tier, itemType) {
+        try {
+            const entries = source === 'world'
+                ? this._getWorldEntries(type)
+                : await this._getPackEntries(source, type);
+
+            if (!entries?.length) return null;
+
+            // When a subtype was requested, prefer entries matching it, then fall
+            // back to the unfiltered set within this same tier.
+            if (itemType) {
+                const narrowed = entries.filter(e => e.type === itemType);
+                const hit = matchEntries(narrowed, query, tier);
+                if (hit) return hit;
+            }
+            return matchEntries(entries, query, tier);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error searching ${source}`, error, false, false);
+            return null;
+        }
+    }
+
+    /**
+     * World-side candidates. Read live -- game.actors / game.items are already
+     * in memory, so caching them would only risk staleness.
+     * @private
+     */
+    _getWorldEntries(type) {
+        const docs = getWorldCollection(type);
+        if (!docs) return [];
+        return docs.map(d => ({ name: d.name, uuid: d.uuid, type: d.type }));
+    }
+
+    /**
+     * Pack-side candidates, filtered to the type's subtype if it has one.
+     * @private
+     */
+    async _getPackEntries(packId, type) {
+        const index = await this._getPackIndex(packId);
+        if (!index) return [];
+
+        const subtype = getDocumentSubtype(type);
+        return subtype ? index.filter(e => e.type === subtype) : index;
+    }
+
+    /**
+     * Load and cache a pack's index as normalized entries with UUIDs attached.
+     * Concurrent callers share one in-flight promise.
+     * @private
+     * @returns {Promise<Array<{name: string, uuid: string, type: string}>|null>}
+     */
+    _getPackIndex(packId) {
+        this._ensureCacheHooks();
+
+        if (this._indexCache.has(packId)) return this._indexCache.get(packId);
+
+        const promise = (async () => {
+            const pack = game.packs.get(packId);
+            if (!pack) {
+                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Compendium not found: ${packId}`, "", true, false);
+                return null;
+            }
+
+            const docClass = pack.metadata.type;
+            const index = await pack.getIndex();
+            return Array.from(index).map(e => ({
+                name: e.name,
+                type: e.type,
+                uuid: e.uuid ?? `Compendium.${packId}.${docClass}.${e._id}`
+            }));
+        })();
+
+        // Don't cache failures -- a transient error shouldn't poison the pack forever.
+        promise.catch(() => this._indexCache.delete(packId));
+
+        this._indexCache.set(packId, promise);
+        return promise;
+    }
+
+    /**
+     * Drop cached indexes when pack contents change.
+     * @private
+     */
+    _ensureCacheHooks() {
+        if (this._cacheHooksBound) return;
+        this._cacheHooksBound = true;
+
+        Hooks.on('updateCompendium', (pack) => {
+            const id = pack?.collection ?? pack?.metadata?.id;
+            if (id) this._indexCache.delete(id);
+        });
+    }
+
+    /** Drop all cached pack indexes. Call after bulk compendium edits. */
+    clearCache() {
+        this._indexCache.clear();
+    }
+
+    // ==============================================================
+    // ===== LEGACY SURFACE =========================================
+    // ==============================================================
+    // Signatures preserved. These now share the resolver above, so the
+    // world-vs-compendium return-format split that used to break
+    // fetchItemDocuments is gone: every one of these returns a bare UUID.
+
+    /**
+     * Get compendium settings for a type.
+     * @deprecated Use getMapping(type) -- richer and type-token agnostic.
+     */
+    getCompendiumSettings(type) {
+        const mapping = this.getMapping(type);
+        const settings = {
+            searchWorldFirst: mapping.searchWorldFirst,
+            searchWorldLast: mapping.searchWorldLast
+        };
+        mapping.packIds.forEach((packId, i) => { settings[`compendium${i + 1}`] = packId; });
+        return settings;
+    }
+
+    /**
+     * Search order from a settings object.
+     * @deprecated Use getSearchOrderForType(type).
+     */
+    getSearchOrder(settings, type) {
+        const order = [];
+        if (settings?.searchWorldFirst) order.push('world');
+        Object.keys(settings ?? {})
+            .filter(k => /^compendium\d+$/.test(k))
+            .sort((a, b) => parseInt(a.slice(10)) - parseInt(b.slice(10)))
+            .forEach(k => { if (settings[k]) order.push(settings[k]); });
+        if (settings?.searchWorldLast && !settings?.searchWorldFirst) order.push('world');
+        return order;
+    }
+
+    /** @returns {Promise<string|null>} UUID of the found item, or null */
+    async searchItem(itemName, itemType = null) {
+        const result = await this.resolve(itemName, 'Item', { itemType });
+        return result.found ? result.uuid : null;
+    }
+
+    /** @returns {Promise<string|null>} UUID of the found spell, or null */
+    async searchSpell(spellName) {
+        const result = await this.resolve(spellName, 'Spell');
+        return result.found ? result.uuid : null;
+    }
+
+    /** @returns {Promise<string|null>} UUID of the found feature, or null */
+    async searchFeature(featureName) {
+        const result = await this.resolve(featureName, 'Feature');
+        return result.found ? result.uuid : null;
+    }
+
+    /** @returns {Promise<string|null>} UUID of the found actor, or null */
+    async searchActor(actorName) {
+        const result = await this.resolve(actorName, 'Actor');
+        return result.found ? result.uuid : null;
+    }
+
+    /** @returns {Promise<string|null>} UUID, or null */
+    async searchInSource(source, name, type, itemType = null) {
+        const hit = await this._matchInSource(source, normalizeType(type), String(name ?? '').trim(), 'exact', itemType);
+        return hit ? hit.uuid : null;
+    }
+
+    /** @returns {Promise<string|null>} UUID, or null */
+    async searchInWorld(name, type, itemType = null) {
+        return this.searchInSource('world', name, type, itemType);
+    }
+
+    /** @returns {Promise<string|null>} UUID, or null */
+    async searchInCompendium(compendiumName, name, type, itemType = null) {
+        return this.searchInSource(compendiumName, name, type, itemType);
+    }
+
+    /**
+     * Resolve a list of names to UUIDs, dropping any that don't match.
+     * @param {Array} items
+     * @param {string} type
+     * @returns {Promise<string[]>}
+     */
+    async processItemList(items, type) {
+        const results = await this.resolveMany(items, type);
+        return results.filter(r => r.found).map(r => r.uuid);
+    }
+
+    // ==============================================================
+    // ===== ACTOR BUILDING =========================================
+    // ==============================================================
+
+    /**
+     * Process character data and prepare for actor creation.
+     * Items are stripped out here and re-added after creation by addItemsToActor().
      */
     async processCharacterData(characterData) {
         postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Processing character data', 'items, spells, features', false, false);
-        
+
         const processedData = { ...characterData };
-        
-        // Store the original item lists for later processing
+
         processedData._originalItems = characterData.items || [];
         processedData._originalSpells = characterData.spells || [];
         processedData._originalFeatures = characterData.features || [];
         processedData._originalCurrency = characterData.currency || [];
-        
-        // Remove items array for initial actor creation
+
         delete processedData.items;
         delete processedData.spells;
         delete processedData.features;
         delete processedData.currency;
-        
+
         return processedData;
     }
-    
+
     /**
-     * Add items, spells, and features to an existing actor
-     * @param {Actor} actor - The actor to add items to
-     * @param {Object} characterData - The original character data with item lists
-     * @returns {Promise<void>}
+     * Add items, spells, and features to an existing actor.
      */
     async addItemsToActor(actor, characterData) {
         if (!actor) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | No actor provided for item addition', "", false, false);
             return;
         }
-        
+
         postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Adding items to actor', actor.name, false, false);
-        postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Original data check', {
-            items: characterData._originalItems?.length || 0,
-            spells: characterData._originalSpells?.length || 0,
-            features: characterData._originalFeatures?.length || 0,
-            currency: characterData._originalCurrency?.length || 0
-        }, true, false);
-        
+
         const allItems = [];
-        
-        // Process items
-        if (characterData._originalItems && Array.isArray(characterData._originalItems)) {
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Processing items', characterData._originalItems, true, false);
-            const items = await this.fetchItemDocuments(characterData._originalItems, 'item');
-            allItems.push(...items);
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Items fetched', items.length, true, false);
+        const groups = [
+            [characterData._originalItems, 'Item'],
+            [characterData._originalSpells, 'Spell'],
+            [characterData._originalFeatures, 'Feature']
+        ];
+
+        for (const [list, type] of groups) {
+            if (!Array.isArray(list) || !list.length) continue;
+            const documents = await this.fetchItemDocuments(list, type);
+            allItems.push(...documents);
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | ${type} documents fetched`, `${documents.length}/${list.length}`, true, false);
         }
-        
-        // Process spells
-        if (characterData._originalSpells && Array.isArray(characterData._originalSpells)) {
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Processing spells', characterData._originalSpells, true, false);
-            const spells = await this.fetchItemDocuments(characterData._originalSpells, 'spell');
-            allItems.push(...spells);
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Spells fetched', spells.length, true, false);
-        }
-        
-        // Process features
-        if (characterData._originalFeatures && Array.isArray(characterData._originalFeatures)) {
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Processing features', characterData._originalFeatures, true, false);
-            const features = await this.fetchItemDocuments(characterData._originalFeatures, 'feature');
-            allItems.push(...features);
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Features fetched', features.length, true, false);
-        }
-        
-        // Process currency (set directly on actor, not as items)
-        if (characterData._originalCurrency && Array.isArray(characterData._originalCurrency)) {
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Processing currency', characterData._originalCurrency, true, false);
+
+        if (Array.isArray(characterData._originalCurrency) && characterData._originalCurrency.length) {
             await this.setActorCurrency(actor, characterData._originalCurrency);
-            postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Currency set on actor', "", true, false);
         }
-        
-        postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Total items to add', allItems.length, false, false);
-        
-        // Add all items to the actor
-        if (allItems.length > 0) {
-            try {
-                await actor.createEmbeddedDocuments('Item', allItems);
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Added ${allItems.length} items to ${actor.name}`, "", false, false);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error adding items to ${actor.name}`, error, false, false);
-            }
-        } else {
+
+        if (!allItems.length) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | No items to add', "", false, false);
-        }
-    }
-    
-    /**
-     * Fetch actual item documents from UUIDs
-     * @param {Array} itemNames - Array of item names
-     * @param {string} type - The type of items
-     * @returns {Promise<Array>} Array of item data objects
-     */
-    async fetchItemDocuments(itemNames, type) {
-        if (!Array.isArray(itemNames) || itemNames.length === 0) {
-            return [];
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | fetchItemDocuments called`, {type, count: itemNames.length}, true, false);
-        
-        const items = [];
-        
-        for (const itemName of itemNames) {
-            let name = itemName;
-            let itemType = null;
-            
-            if (typeof itemName === 'object') {
-                name = itemName.name;
-                itemType = itemName.type || null;
-            }
-            
-            let uuid = null;
-            
-            switch (type) {
-                case 'item':
-                    uuid = await this.searchItem(name, itemType);
-                    break;
-                case 'spell':
-                    uuid = await this.searchSpell(name);
-                    break;
-                case 'feature':
-                    uuid = await this.searchFeature(name);
-                    break;
-            }
-            
-            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | UUID for ${name}`, uuid, true, false);
-            
-            if (uuid) {
-                try {
-                    // Extract compendium and ID from UUID format @Compendium[pack.id]
-                    const match = uuid.match(/@Compendium\[([^\]]+)\]/);
-                    if (match) {
-                        const fullPath = match[1];
-                        const lastDotIndex = fullPath.lastIndexOf('.');
-                        const packName = fullPath.substring(0, lastDotIndex);
-                        const itemId = fullPath.substring(lastDotIndex + 1);
-                        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Parsed UUID`, {packName, itemId}, true, false);
-                        
-                        const pack = game.packs.get(packName);
-                        if (pack) {
-                            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Found pack`, packName, true, false);
-                            const document = await pack.getDocument(itemId);
-                            if (document) {
-                                // Get the item data without the _id to allow Foundry to create new embedded items
-                                const itemData = document.toObject();
-                                delete itemData._id;
-                                items.push(itemData);
-                                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Fetched document: ${name}`, packName, true, false);
-                            } else {
-                                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Document not found`, {packName, itemId}, true, false);
-                            }
-                        } else {
-                            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Pack not found`, packName, true, false);
-                        }
-                    } else {
-                        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | UUID format invalid`, uuid, true, false);
-                    }
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error fetching document: ${name}`, error, false, false);
-                }
-            }
-        }
-        
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | fetchItemDocuments returning`, items.length, true, false);
-        return items;
-    }
-    
-    /**
-     * Set currency directly on the actor
-     * @param {Actor} actor - The actor to set currency on
-     * @param {Array} currencyData - Array of currency objects
-     * @returns {Promise<void>}
-     */
-    async setActorCurrency(actor, currencyData) {
-        if (!Array.isArray(currencyData) || currencyData.length === 0) {
             return;
         }
-        
-        postConsoleAndNotification(MODULE.NAME, `Compendium Manager | setActorCurrency called`, {count: currencyData.length}, true, false);
-        
-        const currencyUpdate = {};
-        
-        for (const currency of currencyData) {
-            if (currency && typeof currency === 'object' && currency.type && currency.value) {
-                // Map currency types to FoundryVTT currency fields
-                const currencyType = currency.type.toLowerCase();
-                if (['gp', 'gold', 'gold piece', 'gold pieces'].includes(currencyType)) {
-                    currencyUpdate['system.currency.gp'] = currency.value;
-                } else if (['sp', 'silver', 'silver piece', 'silver pieces'].includes(currencyType)) {
-                    currencyUpdate['system.currency.sp'] = currency.value;
-                } else if (['cp', 'copper', 'copper piece', 'copper pieces'].includes(currencyType)) {
-                    currencyUpdate['system.currency.cp'] = currency.value;
-                } else if (['ep', 'electrum', 'electrum piece', 'electrum pieces'].includes(currencyType)) {
-                    currencyUpdate['system.currency.ep'] = currency.value;
-                } else if (['pp', 'platinum', 'platinum piece', 'platinum pieces'].includes(currencyType)) {
-                    currencyUpdate['system.currency.pp'] = currency.value;
-                }
-                
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Setting currency`, `${currency.value} ${currency.type}`, true, false);
-            }
-        }
-        
-        if (Object.keys(currencyUpdate).length > 0) {
-            try {
-                await actor.update(currencyUpdate);
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Currency updated on ${actor.name}`, currencyUpdate, true, false);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error updating currency on ${actor.name}`, error, false, false);
-            }
+
+        try {
+            await actor.createEmbeddedDocuments('Item', allItems);
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Added ${allItems.length} items to ${actor.name}`, "", false, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error adding items to ${actor.name}`, error, false, false);
         }
     }
+
+    /**
+     * Resolve names to item data objects ready for createEmbeddedDocuments.
+     * @param {Array} itemNames
+     * @param {string} type
+     * @returns {Promise<Array<object>>}
+     */
+    async fetchItemDocuments(itemNames, type) {
+        const results = await this.resolveMany(itemNames, type);
+        const items = [];
+
+        for (const result of results) {
+            if (!result.found) {
+                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Unresolved ${type}: ${result.name}`, "", true, false);
+                continue;
+            }
+            try {
+                // fromUuid handles both world and compendium UUIDs, so world hits
+                // no longer fall through the way the old @Compendium[...] regex did.
+                const document = await fromUuid(result.uuid);
+                if (!document) {
+                    postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Document not found`, result.uuid, true, false);
+                    continue;
+                }
+                const itemData = document.toObject();
+                delete itemData._id;
+                items.push(itemData);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error fetching ${result.name}`, error, false, false);
+            }
+        }
+
+        return items;
+    }
+
+    /**
+     * Set currency directly on the actor.
+     */
+    async setActorCurrency(actor, currencyData) {
+        if (!Array.isArray(currencyData) || currencyData.length === 0) return;
+
+        const denominations = {
+            gp: ['gp', 'gold', 'gold piece', 'gold pieces'],
+            sp: ['sp', 'silver', 'silver piece', 'silver pieces'],
+            cp: ['cp', 'copper', 'copper piece', 'copper pieces'],
+            ep: ['ep', 'electrum', 'electrum piece', 'electrum pieces'],
+            pp: ['pp', 'platinum', 'platinum piece', 'platinum pieces']
+        };
+
+        const currencyUpdate = {};
+        for (const currency of currencyData) {
+            if (!currency?.type || !currency?.value) continue;
+            const token = String(currency.type).toLowerCase();
+            const field = Object.keys(denominations).find(k => denominations[k].includes(token));
+            if (field) currencyUpdate[`system.currency.${field}`] = currency.value;
+        }
+
+        if (!Object.keys(currencyUpdate).length) return;
+
+        try {
+            await actor.update(currencyUpdate);
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Currency updated on ${actor.name}`, currencyUpdate, true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error updating currency on ${actor.name}`, error, false, false);
+        }
+    }
+}
+
+// ==============================================================
+// ===== HELPERS ================================================
+// ==============================================================
+
+/**
+ * Find the first entry matching a query at a given tier.
+ * @param {Array<{name: string, uuid: string}>} entries
+ * @param {string} query
+ * @param {string} tier - 'exact' | 'startsWith' | 'includes'
+ * @returns {{name: string, uuid: string}|null}
+ */
+function matchEntries(entries, query, tier) {
+    const needle = query.toLowerCase();
+    switch (tier) {
+        case 'exact':
+            return entries.find(e => e.name?.toLowerCase() === needle) ?? null;
+        case 'startsWith':
+            return entries.find(e => e.name?.toLowerCase().startsWith(needle)) ?? null;
+        case 'includes':
+            return entries.find(e => e.name?.toLowerCase().includes(needle)) ?? null;
+        default:
+            return null;
+    }
+}
+
+/**
+ * Split a trailing quantity or CR annotation off a name.
+ * "Goblin (3)" -> { name: "Goblin", count: 3 }
+ * "Goblin (CR 1/4)" -> { name: "Goblin", count: null }
+ * @param {string} text
+ * @returns {{name: string, count: number|null}}
+ */
+export function parseQuantity(text) {
+    const raw = String(text ?? '').trim();
+    if (!raw) return { name: '', count: null };
+
+    // A trailing "(3)" is a count; "(CR 1/2)" and similar are not.
+    const countMatch = raw.match(/\((\d+)\)[^(]*$/);
+    const count = countMatch ? parseInt(countMatch[1], 10) : null;
+
+    const name = raw
+        .replace(/\s*\([^a-zA-Z]*[0-9]+[^)]*\)|\s*\(CR\s*[0-9/]+\)/g, '')
+        .trim();
+
+    return { name: name || raw, count };
+}
+
+/**
+ * Build a Foundry enricher link.
+ * @param {string} uuid
+ * @param {string} label
+ * @param {number|null} [count]
+ * @returns {string}
+ */
+export function formatLink(uuid, label, count = null) {
+    const link = `@UUID[${uuid}]{${label}}`;
+    return count ? `${link} x ${count}` : link;
 }
 
 // Create a singleton instance

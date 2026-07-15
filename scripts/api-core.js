@@ -281,13 +281,18 @@ export function stringToObject(str) {
 // ************************************
 // ** UTILITY Convert string to Sentence Case
 // ************************************ 
+/**
+ * Convert a string to Sentence Case.
+ * Nullish or empty input returns '' -- callers pass optional JSON fields straight
+ * in, so an omitted title must render as nothing rather than throw or emit "false".
+ * @param {*} str
+ * @returns {string}
+ */
 export function toSentenceCase(str) {
-    if ((str === null) || (str === ''))
-        return false;
-    else
-        str = str.toString();
- 
-    return str.replace(/\w\S*/g,
+    // == null catches both null and undefined; `undefined.toString()` used to throw.
+    if (str == null || str === '') return '';
+
+    return String(str).replace(/\w\S*/g,
         function (txt) {
             return txt.charAt(0).toUpperCase() +
                 txt.substr(1).toLowerCase();

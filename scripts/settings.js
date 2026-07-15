@@ -16,6 +16,22 @@ import {
 	getSessionEndTimeChoicesObject,
 	getSessionTimerDefaultModeChoices
 } from './utility-session-timer.js';
+// -- Canonical compendium type taxonomy (single source of truth for type -> setting key) --
+import {
+	getCompendiumSettingPrefix,
+	getSelectedArrayName,
+	getNumCompendiumsSettingName,
+	getChoicesArrayKey,
+	getSearchWorldFirstKey,
+	getSearchWorldLastKey,
+	getTypeLabel,
+	getMappedTypes,
+	formatPackLabel,
+	extractTypeFromCompendiumSetting
+} from './compendium-types.js';
+
+// Re-exported for consumers that historically imported it from settings.js.
+export { extractTypeFromCompendiumSetting };
 
 const _emptyArr = [];
 
@@ -169,19 +185,11 @@ function checkInstalledModules() {
 function getCompendiumChoices() {
     postConsoleAndNotification(MODULE.NAME, "Building Compendium List...", "", false, false);
 
-    const choicesArray = Array.from(game.packs.values()).map(compendium => {
-        // Try to get a human-readable package label, fallback to package name
-        let packageLabel = compendium.metadata.packageLabel || compendium.metadata.package || compendium.metadata.packageName || compendium.metadata.system || compendium.metadata.id.split('.')[0] || "Unknown Source";
-        // If the label is the system id, try to make it more readable
-        if (packageLabel === "world") packageLabel = "World";
-        // Compose the label
-        const label = `${packageLabel}: ${compendium.metadata.label}`;
-        return {
-            id: compendium.metadata.id,
-            label: label,
-            type: compendium.metadata.type
-        };
-    });
+    const choicesArray = Array.from(game.packs.values()).map(compendium => ({
+        id: compendium.metadata.id,
+        label: formatPackLabel(compendium, compendium.metadata.id),
+        type: compendium.metadata.type
+    }));
 
     // Sort array alphabetically by label
     choicesArray.sort((a, b) => a.label.localeCompare(b.label));
@@ -199,26 +207,7 @@ function getCompendiumChoices() {
     
     // Store the main choices (backward compatible)
     BLACKSMITH.updateValue('arrCompendiumChoices', choices);
-    
-    // Helper function to capitalize and pluralize type names
-    const getTypeLabel = (type) => {
-        const typeMap = {
-            'Actor': 'Actors',
-            'Item': 'Items',
-            'JournalEntry': 'Journal Entries',
-            'RollTable': 'Roll Tables',
-            'Scene': 'Scenes',
-            'Macro': 'Macros',
-            'Playlist': 'Playlists',
-            'Adventure': 'Adventures',
-            'Card': 'Cards',
-            'Stack': 'Stacks',
-            'Spell': 'Spells',
-            'Feature': 'Features'
-        };
-        return typeMap[type] || type;
-    };
-    
+
     // Create and store filtered arrays for each type
     const types = [...new Set(choicesArray.map(c => c.type))];
     types.forEach(type => {
@@ -232,123 +221,25 @@ function getCompendiumChoices() {
         BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, filteredChoices);
     });
     
-    // Spell and Feature now use type-based filtering (all Item compendiums)
-    // Same approach as Actor - simpler and works synchronously
-    const spellChoices = choicesArray
+    // Spell and Feature are content-based types: both draw from every Item pack.
+    const itemPackChoices = choicesArray
         .filter(compendium => compendium.type === 'Item')
         .reduce((choices, compendium) => {
             choices[compendium.id] = compendium.label;
             return choices;
         }, {"none": "-- None --"});
-    BLACKSMITH.updateValue('arrSpellChoices', spellChoices);
-    
-    const featureChoices = choicesArray
-        .filter(compendium => compendium.type === 'Item')
-        .reduce((choices, compendium) => {
-            choices[compendium.id] = compendium.label;
-            return choices;
-        }, {"none": "-- None --"});
-    BLACKSMITH.updateValue('arrFeatureChoices', featureChoices);
-    
+    BLACKSMITH.updateValue('arrSpellChoices', { ...itemPackChoices });
+    BLACKSMITH.updateValue('arrFeatureChoices', { ...itemPackChoices });
+
     // Make the array available to these settings.
     return choices;
 }
 
-/**
- * Convert Foundry compendium type to setting-friendly prefix
- * @param {string} type - Foundry compendium type (e.g., "Actor", "JournalEntry")
- * @returns {string} Setting prefix (e.g., "monsterCompendium", "journalEntryCompendium")
- */
-function getCompendiumSettingPrefix(type) {
-    // Special cases for backward compatibility
-    const specialCases = {
-        'Actor': 'monsterCompendium',
-        'Item': 'itemCompendium',
-        'Spell': 'spellCompendium',
-        'Feature': 'featuresCompendium'
-    };
-    
-    if (specialCases[type]) {
-        return specialCases[type];
-    }
-    
-    // Convert Foundry type to camelCase setting prefix
-    // "JournalEntry" → "journalEntryCompendium", "RollTable" → "rollTableCompendium"
-    const firstChar = type.charAt(0).toLowerCase();
-    const rest = type.slice(1);
-    return `${firstChar}${rest}Compendium`;
-}
-
-/**
- * Convert Foundry compendium type to array name
- * @param {string} type - Foundry compendium type
- * @returns {string} Array name (e.g., "arrSelectedMonsterCompendiums")
- */
-function getSelectedArrayName(type) {
-    // Special cases for backward compatibility
-    const specialCases = {
-        'Actor': 'arrSelectedMonsterCompendiums',
-        'Item': 'arrSelectedItemCompendiums',
-        'Spell': 'arrSelectedSpellCompendiums',
-        'Feature': 'arrSelectedFeatureCompendiums'
-    };
-    
-    if (specialCases[type]) {
-        return specialCases[type];
-    }
-    
-    // Convert to array name: "JournalEntry" → "arrSelectedJournalEntryCompendiums"
-    const firstChar = type.charAt(0);
-    const rest = type.slice(1);
-    return `arrSelected${firstChar}${rest}Compendiums`;
-}
-
-/**
- * Convert Foundry compendium type to numCompendiums setting name
- * @param {string} type - Foundry compendium type
- * @returns {string} Setting name (e.g., "numCompendiumsActor")
- */
-function getNumCompendiumsSettingName(type) {
-    // Special cases for backward compatibility
-    const specialCases = {
-        'Actor': 'numCompendiumsActor',
-        'Item': 'numCompendiumsItem',
-        'Spell': 'numCompendiumsSpell',
-        'Feature': 'numCompendiumsFeature'
-    };
-    
-    if (specialCases[type]) {
-        return specialCases[type];
-    }
-    
-    // Convert: "JournalEntry" → "numCompendiumsJournalEntry"
-    return `numCompendiums${type}`;
-}
+// Type -> setting-key mapping now lives in compendium-types.js (imported above),
+// so the forward and reverse mappings can't drift apart.
 
 // Track reordering in progress to prevent recursive calls
 const _reorderingInProgress = new Set();
-
-/**
- * Extract compendium type from a setting key (e.g., "actorCompendium1" → "Actor")
- * @param {string} settingKey - Setting key like "actorCompendium1" or "itemCompendium2"
- * @returns {string|null} Foundry compendium type or null if not a compendium setting
- */
-export function extractTypeFromCompendiumSetting(settingKey) {
-    // Match pattern: {type}Compendium{number}
-    const match = settingKey.match(/^(.+?)Compendium\d+$/);
-    if (!match) {
-        return null;
-    }
-    
-    const typeLower = match[1];
-    // Convert to proper case: "actor" → "Actor", "journalEntry" → "JournalEntry"
-    const firstChar = typeLower.charAt(0).toUpperCase();
-    const rest = typeLower.slice(1);
-    const type = firstChar + rest;
-    
-    // Return the type - validation will happen in reorderCompendiumsForType
-    return type;
-}
 
 /**
  * Reorder compendiums for a type so configured ones come first, "none" ones last
@@ -441,88 +332,18 @@ export async function reorderCompendiumsForType(type) {
 }
 
 /**
- * Get choices array key for a compendium type
- * @param {string} type - Foundry compendium type
- * @returns {string} Key name in BLACKSMITH (e.g., "arrMonsterChoices")
- */
-function getChoicesArrayKey(type) {
-    // Special cases for content-based filtering (Spell, Feature - not direct Foundry types)
-    // Actor now uses unified system: arrCompendiumChoicesActor
-    // Item now uses unified system: arrCompendiumChoicesItem
-    const specialCases = {
-        'Spell': 'arrSpellChoices',
-        'Feature': 'arrFeatureChoices'
-    };
-    
-    if (specialCases[type]) {
-        return specialCases[type];
-    }
-    
-    // Convert: "JournalEntry" → "arrCompendiumChoicesJournalEntry"
-    return `arrCompendiumChoices${type}`;
-}
-
-/**
- * Convert Foundry type to plural form for searchWorld setting names
- * @param {string} type - Foundry compendium type
- * @returns {string} Plural form for searchWorld setting (e.g., "Actors", "Items", "JournalEntries")
- */
-function getSearchWorldPlural(type) {
-    const pluralMap = {
-        'Actor': 'Actors',
-        'Item': 'Items',
-        'Spell': 'Spells',
-        'Feature': 'Features',
-        'JournalEntry': 'JournalEntries',
-        'RollTable': 'RollTables',
-        'Scene': 'Scenes',
-        'Macro': 'Macros',
-        'Playlist': 'Playlists',
-        'Adventure': 'Adventures',
-        'Card': 'Cards',
-        'Stack': 'Stacks'
-    };
-    return pluralMap[type] || `${type}s`;
-}
-
-/**
  * Dynamically register compendium settings for ALL types found in the system
  * This replaces all hardcoded compendium registrations
  */
 function registerDynamicCompendiumTypes() {
-    // Get all types from compendium data
-    const compendiumData = BLACKSMITH.arrCompendiumChoicesData || [];
-    const foundTypes = [...new Set(compendiumData.map(c => c.type))];
-    
-    // Add special content-based types (Spell, Feature) that aren't direct Foundry types
-    const allTypes = [...new Set([...foundTypes, 'Spell', 'Feature'])];
-    
-    // Helper function to get human-readable label (using getTypeLabel from getCompendiumChoices)
-    const getTypeLabel = (type) => {
-        const typeMap = {
-            'Actor': 'Actors',
-            'Item': 'Items',
-            'JournalEntry': 'Journal Entries',
-            'RollTable': 'Roll Tables',
-            'Scene': 'Scenes',
-            'Macro': 'Macros',
-            'Playlist': 'Playlists',
-            'Adventure': 'Adventures',
-            'Card': 'Cards',
-            'Stack': 'Stacks',
-            'Spell': 'Spells',
-            'Feature': 'Features'
-        };
-        return typeMap[type] || type;
-    };
-    
+    const allTypes = getMappedTypes(BLACKSMITH.arrCompendiumChoicesData || []);
+
     // Register settings for each type
     for (const type of allTypes) {
         const settingPrefix = getCompendiumSettingPrefix(type);
         const numSetting = getNumCompendiumsSettingName(type);
         const choicesKey = getChoicesArrayKey(type);
-        const searchWorldPlural = getSearchWorldPlural(type);
-        
+
         // Register header (skip if already exists)
         const headerKey = `headingH3${type}Compendiums`;
         if (!game.settings.settings.has(`${MODULE.ID}.${headerKey}`)) {
@@ -550,7 +371,7 @@ function registerDynamicCompendiumTypes() {
         }
         
         // Register Search World First setting (skip if already exists)
-        const searchFirstKey = `searchWorld${searchWorldPlural}First`;
+        const searchFirstKey = getSearchWorldFirstKey(type);
         if (!game.settings.settings.has(`${MODULE.ID}.${searchFirstKey}`)) {
             game.settings.register(MODULE.ID, searchFirstKey, {
                 name: MODULE.ID + '.searchWorldFirst-Label',
@@ -564,7 +385,7 @@ function registerDynamicCompendiumTypes() {
         }
         
         // Register Search World Last setting (skip if already exists)
-        const searchLastKey = `searchWorld${searchWorldPlural}Last`;
+        const searchLastKey = getSearchWorldLastKey(type);
         if (!game.settings.settings.has(`${MODULE.ID}.${searchLastKey}`)) {
             game.settings.register(MODULE.ID, searchLastKey, {
                 name: MODULE.ID + '.searchWorldLast-Label',
@@ -617,13 +438,8 @@ function registerDynamicCompendiumTypes() {
  * Array position = Priority (index 0 = Priority 1, etc.)
  */
 export function buildSelectedCompendiumArrays() {
-    // Get all types from compendium data
-    const compendiumData = BLACKSMITH.arrCompendiumChoicesData || [];
-    const foundTypes = [...new Set(compendiumData.map(c => c.type))];
-    
-    // Add special content-based types (Spell, Feature) that aren't direct Foundry types
-    const allTypes = [...new Set([...foundTypes, 'Spell', 'Feature'])];
-    
+    const allTypes = getMappedTypes(BLACKSMITH.arrCompendiumChoicesData || []);
+
     // Build arrays for each type
     for (const type of allTypes) {
         const numSetting = getNumCompendiumsSettingName(type);
