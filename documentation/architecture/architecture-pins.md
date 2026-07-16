@@ -10,7 +10,11 @@ The Canvas Pins system provides configurable, interactive markers on the Foundry
 
 **Target**: FoundryVTT v13+ only. Application V2 is used for the pin configuration window.
 
-**Implementation**: Pins render as **pure DOM** (no PIXI graphics) in a fixed overlay. Storage is split: placed pins in scene flags, unplaced pins in a world setting. CRUD, permissions, events, and context menu registration are centralized in PinManager; rendering and coordinate conversion live in the pins renderer.
+**Implementation**: Pins render as **pure DOM** (no PIXI graphics) in a fixed overlay. Storage is split: placed pins in scene flags, unplaced pins in a world setting. CRUD, permissions, classification, view state, events, and context menu registration are centralized in PinManager; rendering and coordinate conversion live in the pins renderer.
+
+**Read [Design rationale](#design-rationale) first.** The system has three deliberately separate concerns —
+**permission** (may you see it), **classification** (what kind of thing is it), and **view state** (do you
+want to see it right now). Most pin bugs come from conflating two of them.
 
 ---
 
@@ -52,6 +56,8 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 - **Events**: Registers handlers via `pins.on(eventType, handler, options)`. Valid types: `hoverIn`, `hoverOut`, `click`, `doubleClick`, `rightClick`, `middleClick`, `dragStart`, `dragMove`, `dragEnd`. Options can scope by `pinId`, `moduleId`, `sceneId` and support `AbortSignal` and `dragEvents`.
 - **Context menu**: `registerContextMenuItem(id, item)` / `unregisterContextMenuItem(id)`. Modules add custom items; default items (e.g. Delete Pin, Configure Pin) are always shown when applicable. Items filtered by `moduleId` and `visible` function.
 - **Schema**: Uses `pins-schema.js` for defaults, validation, and migration before persisting.
+- **Taxonomy registry**: Owns the type/tag vocabulary (see [Classification](#classification-types-tags-and-taxonomy)).
+- **Filter state**: Owns per-user view state and named profiles (see [View state](#view-state-filters-and-profiles)).
 
 ### Pins renderer (`scripts/pins-renderer.js`)
 
@@ -71,8 +77,9 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 
 ### API layer (`scripts/api-pins.js`)
 
-- **Responsibility**: Public interface for other modules. Thin wrapper over PinManager and PinConfigWindow.
-- **Methods**: create, update, delete, get, list, place, unplace, on, registerContextMenuItem, unregisterContextMenuItem, configure, reload. See `api-pins.md` for contracts.
+- **Responsibility**: Public interface for other modules. Thin wrapper over PinManager and the windows.
+- **Surface**: CRUD (`create`, `update`, `delete`, `get`, `list`), placement (`place`, `unplace`), events (`on`), context menu (`registerContextMenuItem` / `unregisterContextMenuItem`), UI (`configure`, `openLayers`), classification (`registerPinType`, `registerPinTaxonomy`, `getModuleTaxonomy`, `getPinTaxonomyChoices`), view state (module visibility, filter profiles, `getSceneFilterSummary`), and `reload`.
+- **`api-pins.md` is the authoritative contract** and is accurate — prefer it over this list, which only exists to show the shape.
 
 ### Pin configuration window (`scripts/window-pin-configuration.js`)
 
@@ -91,14 +98,74 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 - **Class**: `PinConfigWindow`; static `open(pinId, options)`. Constructor params: `pinId`, `options.sceneId`, `options.onSelect`, `options.moduleId`.
 - **Files**: `scripts/window-pin-configuration.js`, `templates/window-pin-config.hbs`, `styles/window-pin-config.css`.
 
+### Pin Layers window (`scripts/window-pin-layers.js`)
+
+- **Responsibility**: The user-facing view-state UI — what *this* user currently wants to see. It never edits pins.
+- **Class**: `PinLayersWindow extends BlacksmithWindowBaseV2`.
+- **Surface**: Per type/tag show-hide, a hide-all toggle, search, per-scene counts via `PinManager.getSceneFilterSummary(sceneId)`, and named profiles.
+- **Hidden pins remain addressable**: list/search paths take `includeHiddenByFilter` so the window can show and act on pins that the active filter is hiding. A filtered-out pin is not gone — see the three-concerns table below.
+
+### Journal page pins (`scripts/ui-journal-pins.js`)
+
+- **Responsibility**: Surfaces pins inside journal sheets. Uses **`JournalDomWatchdog`** (`manager-journal-dom.js`) for DOM observation and **HookManager only** for journal render hooks — see `architecture-blacksmith.md` §9B.1. Do not add a per-feature body `MutationObserver` here.
+
+---
+
+## Classification: types, tags, and taxonomy
+
+Two axes, deliberately (see [Design rationale](#deliberate-choices)):
+
+- **`type`** — coarse and technical, set by the creating module (e.g. `quest-pin`, `journal-pin`).
+- **`tags[]`** — open-ended and user-facing. Free-form strings *and* registered vocabulary both allowed.
+
+The **taxonomy** is the registered vocabulary: per-type labels and suggested tags, plus a set of global tags
+that apply everywhere. It is merged from **three tiers**, later winning, in `getPinTaxonomy()`:
+
+| Tier | Source |
+|---|---|
+| **builtin** | `resources/pin-taxonomy.json`, loaded by `ensureBuiltinTaxonomyLoaded()` |
+| **override** | a GM-supplied JSON at the `pinTaxonomyOverrideJson` setting path (skipped if it points at the builtin) |
+| **runtime** | `registerPinTaxonomy(moduleId, type, taxonomy)` — how consuming modules contribute |
+
+`getPinTaxonomy(moduleId, type)` returns the merged entry; `getPinTaxonomyChoices()` unions its tags with the
+global tags. Taxonomy is **advisory** — it drives labels and suggestions, not validation. An unregistered tag
+on a pin is legal.
+
+---
+
+## View state: filters and profiles
+
+**Per-user, never persisted to the pin.** This is a preference, not a permission — a filtered-out pin is
+still there, still visible to everyone else, and still editable.
+
+Backed by client settings on `PinManager`: `pinsHiddenTypeTags`, `pinsHideAll`, `pinsFilterProfiles`,
+`pinsActiveFilterProfile`, plus `pinTagRegistry`.
+
+- `_isHiddenByFilter(pin)` is the single predicate the renderer consults.
+- Named profiles: `listVisibilityProfiles()`, `getVisibilityProfile(name)`, `getActiveFilterProfileName()`,
+  `visibilityStateMatchesProfile()`, plus system profiles (`isSystemVisibilityProfileName`).
+- `getSceneFilterSummary(sceneId, options)` backs the Layers window's counts.
+- `_matchesListFilters(pin, options)` powers filtered list queries.
+
 ---
 
 ## Rendering pipeline
 
 1. **Scene load / change**: `canvasReady` or `updateScene` → renderer schedules load → `PinManager.list({ sceneId: canvas.scene.id })` → only placed pins for that scene.
 2. **Pin list**: PinManager returns array from `scene.flags[MODULE.ID].pins`.
-3. **DOM**: For each pin, PinDOMElement creates or updates a div (position, size, shape, icon, text from pin data). Coordinates converted from scene to screen; overlay is fixed, so pins are positioned in screen space.
-4. **Pan / zoom / resize**: Throttled update runs `_sceneToScreen` for each pin and updates div position/size. Pins can be hidden during pan/zoom for performance, then shown again after.
+3. **Pre-filter — before any DOM is created** (`pins-renderer.js`):
+   ```js
+   const visiblePins = pins.filter((pin) =>
+       this._canUserSeePin(pin, userId, PinManager) && !PinManager._isHiddenByFilter(pin));
+   ```
+   **Both gates run up front, not per-frame and not after render.** `_canUserSeePin` is the *permission*
+   gate (ownership + `blacksmithVisibility`); `_isHiddenByFilter` is the *view-state* gate. A pin failing
+   either never becomes a DOM node. This is the system's main performance lever — see
+   [Design rationale](#deliberate-choices).
+4. **DOM**: For each surviving pin, PinDOMElement creates or updates a div (position, size, shape, icon, text from pin data). Coordinates converted from scene to screen; overlay is fixed, so pins are positioned in screen space.
+5. **Pan / zoom / resize**: Throttled update runs `_sceneToScreen` for each pin and updates div position/size. Pins can be hidden during pan/zoom for performance, then shown again after.
+
+Changing filter state re-runs the load path — that is what makes a filter change add or remove DOM nodes.
 
 No canvas “layer” is used for pins; the overlay is a sibling of the canvas app element in the DOM.
 
@@ -133,11 +200,30 @@ Applied during create/validation when not provided:
 - **shape**: `'circle'`
 - **version**: `PIN_SCHEMA_VERSION`
 - **ownership**: `{ default: 0 }`
+- **tags**: `[]`
 - **text**: undefined
 - **image**: undefined (or Font Awesome class string / image URL)
 - **config**: `{}`
 
 Image supports Font Awesome class strings and image URLs (no HTML in stored value). Full schema and validation rules are in `pins-schema.js`.
+
+### Migrations
+
+`PIN_SCHEMA_VERSION` is currently **7**. Migrations are keyed by version and run on read, before validation.
+Read them in `pins-schema.js` rather than trusting this list to stay current — but the shape of the history
+matters, because two of them are why the model looks the way it does:
+
+| → | What it did |
+|---|---|
+| v2 | added `type`, defaulting to `'default'` |
+| v3 | added `group` and `tags` |
+| **v4** | **removed `group`**, promoting non-empty values into `tags` |
+| v5 | renamed type `journal-page` → `journal-pin` |
+| v6 | decoupled legacy access presets from visibility |
+| **v7** | **dropped `owner` visibility**, mapping it to `visible` |
+
+v3 introducing `group` and v4 deleting it is the whole argument for the two-axis model. v7 is why no
+consumer writes `'owner'` anymore.
 
 ---
 
@@ -151,8 +237,13 @@ Image supports Font Awesome class strings and image URLs (no HTML in stored valu
 | Coordinate conversion | `PinDOMElement._sceneToScreen()` using canvas.stage.toGlobal (PIXI.Point reused) |
 | CRUD & permissions | PinManager (`manager-pins.js`) |
 | Schema & migration | `pins-schema.js` |
+| Classification vocabulary | `resources/pin-taxonomy.json` + `pinTaxonomyOverrideJson` setting + `registerPinTaxonomy()` |
+| View state         | Client settings `pinsHiddenTypeTags`, `pinsHideAll`, `pinsFilterProfiles`, `pinsActiveFilterProfile`, `pinTagRegistry` |
+| Render pre-filter  | `pins-renderer.js` — `_canUserSeePin()` && `!PinManager._isHiddenByFilter()` before DOM creation |
 | Public API         | `api-pins.js` → `game.modules.get('coffee-pub-blacksmith')?.api?.pins` |
 | Config UI          | `window-pin-configuration.js` (PinConfigWindow); opened via `pinsAPI.configure()`; context menu “Configure Pin” in `pins-renderer.js` |
+| Layers / filter UI | `window-pin-layers.js` (PinLayersWindow); counts via `getSceneFilterSummary()` |
+| Journal pins       | `ui-journal-pins.js` — via `JournalDomWatchdog`, HookManager-only |
 | Hooks              | `blacksmith.js`: canvasReady / updateScene trigger pin load; dropCanvasData for dropping pins onto canvas |
 
 ---

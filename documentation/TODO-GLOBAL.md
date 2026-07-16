@@ -36,47 +36,21 @@ file. Same rule as `TODO.md`.
 
 ## Phase 1 — Documentation cleanup (do first)
 
-### Inventory — DONE (2026-07-16)
-
-Swept all 30 docs mentioning a sibling (~280 real references) plus a behavior-word sweep for stale content
-that names no sibling. **Finding: sibling contamination is mostly a non-problem.** The large majority of
-references are siblings used as example *callers* — the KEEP case. Real coupling is ~30 lines plus two
-misplaced files. The bigger problems are **factual errors** and **stale naming**.
-
-Counts inflated by a bad grep: `scribe` matches `subscribe`/`describe`. **`api-stats.md`,
-`api-campaign.md`, and `architecture-chatcards.md` have ZERO real sibling references.** Use `\b` word
-boundaries next time — `vault`, `crier`, `monarch`, `herald` have the same trap.
-
-#### Whole-file decisions
-
-- [x] **`design-system/pattern-inventory.md` — DELETED.** Its own line 2: *"Audit of coffee-pub-minstrel and
-      coffee-pub-artificer vs coffee-pub-blacksmith"*; titled "Cross-Module Pattern Inventory". A suite-wide
-      CSS audit **of two siblings**, not a Blacksmith doc — 52 sibling mentions in 165 lines, §§1A–1I/2/3A–3F
-      entirely sibling internals. Its conclusions already landed in `design-system.md` §10.11–10.20.
-- [x] **`request-registerapi.md` — DELETE.** A feature *request* asking Blacksmith to proxy Curator's API
-      via `registerModule`. Answered "no", three ways: `manager-modules.js` has no `api` branch;
-      `BlacksmithAPI.curator` doesn't exist; the inverse pattern shipped instead
-      (`manager-combatbar.js:1458` reads Curator's api directly; Curator registers inward via
-      toolbar/menubar). Bottom two-thirds is a Curator API spec. Not parked in `plans/` — keeping it would
-      imply the registry is still roadmap.
-
-Line-level coupling, the 4 factual errors, and all 5 broken links are **fixed** (see Done). What remains:
-
-#### Open
+The doc inventory, the line-level coupling, the 4 factual errors, all broken links, and 4 of 7 plans are
+**done** — see Done at the bottom. What's left:
 
 **Plans are scaffolding** (see CLAUDE.md): transitional, dismantled into TODO/architecture/API/CHANGELOG,
 deleted when complete. Three rules — a plan declares its status; a plan is never a source of truth; complete
-means delete. Four of seven have been dismantled; **3 remain**:
+means delete. **One plan needs dismantling; two are legitimately live** (`migration-v14.md`,
+`plan-journal-tools-refactor.md` — both Planned, both keep).
 
-- [ ] **`plan-assets.md` (1,569 lines, no status)** — the big one. Trim the Vault feature spec (~1502–1515)
+- [ ] **`plan-assets.md` (1,569 lines, no status)** — the last one. Trim the Vault feature spec (~1502–1515)
       to the one sentence stating a rule about *Blacksmith's* API contract; keep §3 and "Working role of
       Blacksmith core", which are legitimate boundary decisions. Then decide whether the rest folds into
-      architecture. Needs the same code-verification pass that `plan-pins.md` got.
-- [x] **`migration-v14.md`** — **Planned**, v14 move not started. Legitimate live scaffolding; status line
-      added. Deliberately written for the whole suite, not just Blacksmith.
-- [x] **`plan-journal-tools-refactor.md`** — **Planned**, no code changed. Legitimate live scaffolding. Keep.
+      architecture. **Needs the same code-verification pass `plan-pins.md` got** — that one turned out to be
+      not just stale but actively misleading, and this is six times the size.
 - [ ] **Rename the three docs whose names lie.** They're named "migration" or version-stamped while
-      documenting current, shipped behavior; at 13.8.5 the stamps make correct docs read as obsolete.
+      documenting current, shipped behavior; the stamps make correct docs read as obsolete.
       - `guides/guide-pin-migration.md` → `guide-pins-integration.md`; cut the three "What changed in 13.x"
         tables and §3 as history. **Safe to cut — verified:** no sibling writes the legacy `'owner'` value or
         a pin `group:` field. The only pins consumers are Squire and Artificer (`manager-pins.js` each) and
@@ -87,6 +61,12 @@ means delete. Four of seven have been dismantled; **3 remain**:
         the pins guide, which it overlaps heavily.
 - [ ] **Delete `guides/blacksmith-apis.md`** once the wiki sidebar is generated — it's a hand-maintained
       index of wiki links doing the same job, and it was carrying stale paths.
+- [ ] **Audit the rest of `architecture/architecture-blacksmith.md`.** §4.3/§5/§7, its doc links, and the
+      new §9A/§9B were verified against the filesystem; the other sections were never checked.
+- [ ] **Verify doc-claimed filenames across the remaining architecture docs.** §4.3 alone carried 8
+      pre-rename names, and `architecture-toolbarmanager.md` credited Blacksmith with six of Regent's tools.
+      The `manager-*`/`ui-*`/`window-*` rename left drift that nobody swept. `architecture-pins.md` and
+      `architecture-blacksmith.md` are now verified; the other ~10 are not.
 
 #### Clean — no action
 
@@ -94,16 +74,22 @@ means delete. Four of seven have been dismantled; **3 remain**:
 `architecture/architecture-tags.md` (8 refs, all clean), `TODO.md` (image-replacement backlog items are
 correctly hedged as out-of-scope), `guides/guide-registering-with-blacksmith.md`, plus `api-stats.md`,
 `api-campaign.md`, and `architecture-chatcards.md` (zero real sibling references — the `scribe` grep lied).
-- [ ] **Audit the rest of `architecture/architecture-blacksmith.md`.** §4.3/§5/§7 and its doc links were
-      corrected against the filesystem; the other sections were never verified.
-- [ ] **Verify doc-claimed filenames across all architecture docs.** §4.3 alone had 8 pre-rename names.
-      The rename to `manager-*`/`ui-*`/`window-*` left drift elsewhere.
+
+---
+
 ### Wiki
 
 **Decided:** the wiki is the official doc hub for consumers and is a **pure mirror** of the Blacksmith repo
 docs. **The repo is law.** Nothing is authored wiki-first.
 
-**Reality check (audited):** of 25 wiki pages, only **13 are exact mirrors**. The rest have drifted.
+**Reality check:** the wiki is not a mirror today — most pages have drifted from their repo source, several
+have no repo source at all, and one is a duplicate published to the wrong filename.
+
+> **Don't trust a count written here — re-measure.** Any snapshot of "how many pages match" is stale the
+> moment anyone edits a doc. It was audited as 13-of-25 exact on 2026-07-16; a few hours of doc cleanup that
+> same day dropped it to 8, because **editing a repo doc silently drifts its wiki page.** That decay *is*
+> the argument for automating the mirror: a manual mirror can't track a repo that changes. To re-measure,
+> hash each wiki page (`git clone --bare` + `git show HEAD:<page>`) against every `documentation/**/*.md`.
 
 - [ ] **Write a mapping manifest** (repo path → wiki page) and check it into the repo, so the mapping is
       law rather than guesswork. **The mapping is NOT derivable from filenames** — `API:-Core-Blacksmith`
@@ -113,9 +99,12 @@ docs. **The repo is law.** Nothing is authored wiki-first.
 - [ ] **Delete `API-OpenAI-DEPRECATED.md`.** It is **byte-identical to `api-toolbar.md`** — a duplicate of
       the Toolbar page published to the wrong filename, not a stale OpenAI page.
 - [ ] **Delete `Image-Replacement-Architecture.md`** — Curator's domain (Ground Rule 2).
-- [ ] **Resolve 6 drifted pages** (repo counterpart exists, wiki content differs): `API:-Request-Roll`,
-      `API:-Window`, `Architecture:-Core`, `Architecture:-Hook-Manager`, `Socket-Manager`, `Todo`.
-      Repo is law → republish from repo. Confirm nothing valuable exists only on the wiki copy first.
+- [ ] **Republish every drifted page from the repo.** Repo is law, so this is mechanical once the manifest
+      and publish path exist — don't hand-fix pages. Long-drifted as of the audit: `API:-Request-Roll`,
+      `API:-Window`, `Architecture:-Core`, `Architecture:-Hook-Manager`, `Socket-Manager`, `Todo`. Newly
+      drifted by the 2026-07-16 doc cleanup: `API:-Canvas`, `API:-Core-Blacksmith`, `API:-GM-Notes`,
+      `API:-Hook-Manager`, `API:-Menubar`, `API:-Pins`. Expect this list to grow with every doc change until
+      publishing is automated — re-measure rather than trusting it.
 - [ ] **Delete `API:-Migration-Supplement.md` from the wiki.** Traced: it was `documentation/migration-api.md`
       (added 2025-08-30), later `bestpractices-api.md`, **deleted 2026-01-16** in a commit explicitly
       described as *"eliminating obsolete content that is no longer relevant."* The wiki copy is a stale
@@ -133,9 +122,14 @@ docs. **The repo is law.** Nothing is authored wiki-first.
       ships.
 - [ ] **Decide `_Sidebar.md`.** GitHub wiki navigation with no natural repo source. Either generate it from
       the manifest or accept it as the one sanctioned wiki-only exception.
-- [ ] **Decide mirror scope.** 48 docs live under `documentation/`; only ~19 have wiki pages. Guides,
-      plans, design-system and most architecture docs are unmirrored. Mirror everything,
-      or only the consumer-facing API surface?
+- [ ] **Decide mirror scope — the one decision blocking everything else here.** Most repo docs have no wiki
+      page; guides, plans, design-system, and most architecture docs are unmirrored. Folder is a **bad proxy
+      for audience**: `api/` is all consumer, but so are `guides/guide-registering-with-blacksmith.md`
+      (the integration tutorial), the pins/chat-card guides, `applicationv2-window/`, and
+      `design-system.md` (§12 is literally "How Child Modules Extend Blacksmith") — while `architecture/`,
+      `plans/`, and `TODO*.md` are contributor-only. So "mirror `api/`" would drop the best consumer docs,
+      and "mirror everything" publishes the task list. That's what the manifest is for.
+      Note `architecture/architecture-token-naming.md` is new (2026-07-16) and has no wiki page.
 - [ ] **Build the publish path.** The wiki **cannot be checked out on Windows** — pages are named
       `API:-Pins.md` and `:` is illegal in NTFS. Clone succeeds, checkout fails. Must go through bare-repo
       git plumbing (verified working: `git clone --bare` + `git show HEAD:<page>` reads fine).
@@ -145,95 +139,48 @@ docs. **The repo is law.** Nothing is authored wiki-first.
       old snapshot. Repo is law, so it's either republished or dropped from the mirror. (A consumer-facing
       doc hub arguably shouldn't carry an internal task list.) **`TODO-GLOBAL.md` must never be mirrored.**
 
-## Phase 2 — Packs / compendiums
-
-**DECIDED: Blacksmith stops bundling compendiums. For now, it bundles none.**
+## Phase 2 — Packs / compendiums — **DONE, shipped in 13.9.0**
 
 **A compendium is not part of a module.** It's a pack of documents that exists on its own; a module *may*
-ship one, but that's a packaging choice, never ownership. Compendiums don't need to be "moved" or "rehomed"
-when we unbundle — they simply stop riding along in Blacksmith's zip. If we later choose to provide content,
-we bundle it deliberately, from wherever we decide — and it won't be part of Blacksmith unless we choose that.
+ship one, but that's a packaging choice, never ownership. Blacksmith now bundles none — not in `module.json`,
+not in the release zip, and `packs/` is gitignored. Users already select their own in settings. If we ever
+provide content again, we bundle it deliberately, and it isn't part of Blacksmith unless we choose that.
 
-Users already select their compendiums and roll tables in Blacksmith's settings, so the module has no reason
-to carry a payload.
+Kept here because it's the rule, not because it's outstanding. Details in `CHANGELOG.md` [13.9.0].
 
-**Evidence this is safe:**
+**Open, for Artificer — not Blacksmith:**
 
-- `settings.js:188` builds compendium choices from **`game.packs.values()`** — every pack the user has.
-  `manager-compendiums.js:77` resolves the chosen pack from user settings (`${prefix}${i}`), never from a
-  bundled pack. Settings exist for Actor, Item, Spell, Feature, JournalEntry, **RollTable**, and Cards.
-- No Blacksmith code references `blacksmith-tables`, `blacksmith-injuries`, `treatments`, or `user-manual`.
-- No sibling module references them either. Verified by grep across all 13 repos.
-
-**Tasks:**
-
-- [ ] Remove the `packs` array from `module.json`.
-- [ ] Drop `packs/` from the release zip allowlist in `.github/workflows/release.yml`.
-- [ ] Remove `packs/` from the repo. (Also kills the LevelDB churn, the `lost/` repair detritus, and the
-      undeclared `packs/injuries` in one move.)
-- [x] **Data is safe.** The compendium contents were imported into the world from the production site.
-      Nothing needs rescuing from `packs/` before it goes. (The 154 files also remain on disk, ignored by
-      git, and in git history.)
-- [ ] **Release note — this is the one user-visible consequence.** A module compendium exists *only*
-      because `module.json` declares it. Removing the declaration makes the pack vanish from Foundry even
-      though the files are still on disk. So on update, users simply lose `blacksmith-injuries`,
-      `blacksmith-tables`, `treatments`, and `user-manual` — and unlike us, they can't import the content
-      afterward. Anyone who wants to keep it must import to a **world** compendium *before* updating.
-      Decide: changelog line, or a deprecation release that still ships the packs but announces removal?
-      (Weakened by the fact that injuries are being rebuilt in Bibliosoph anyway — see below.)
-
-**Note for later, if we ever bundle content again:** Artificer declares 8 packs but has 17 directories on
-disk (`beverages`, `blueprints`, `containers`, `food`, `ingredients`, `objects`, `poisons`, `potions`,
-`recipies` — typo'd, alongside the declared `recipes-blueprints`). Whatever pattern we adopt should prevent
-that drift. Also revisit the "add more and more pack info to make builds pass" habit — believed to be
-5-year-old cargo cult.
+- [ ] **Artificer declares 8 packs but has 17 directories on disk** — `beverages`, `blueprints`,
+      `containers`, `food`, `ingredients`, `objects`, `poisons`, `potions`, and `recipies` (typo'd, next to
+      the declared `recipes-blueprints`) are all undeclared. Whatever pack pattern the suite adopts should
+      make that drift impossible. Also revisit the "add more and more pack info to make builds pass" habit —
+      believed to be 5-year-old cargo cult.
 
 ## Phase 3 — Roll tables
 
-**Key finding: `blacksmith-tables` is loot/merchant content, not injuries/fumbles/crits.** Table names:
-`Loot Tables`, `Loot: Treasure`, `Merchant: Crafted Potions`, `Potion of Poison`, `Burnt Othur Fumes`,
-`Serpent Venom`, `Fine Clothes`.
+**Resolved for Blacksmith by Phase 2.** The injury/fumble/crit/investigation tables live in
+`burden-of-knowledge`'s `bok-roll-tables` (`Fumbles`, `Critical Carnage`, `Investigation: *`), which is the
+author's live campaign — and modules point at them through Blacksmith's compendium settings. That's the
+intended model working: compendiums exist independently, modules select them. Nothing to migrate.
 
-**All 30 results are `type: "document"` — zero text results.** These tables are already pure shells. They
-point at:
+The cautionary tale, kept because it's the reason Ground Rule 4 exists: the old `blacksmith-tables` pack was
+loot/merchant content whose **30 of 30 results were document references** — pointers into the paid D&D DMG
+module and into the author's own campaign. It only ever resolved on one machine. A shell is only as good as
+the compendium it points into.
 
-- `Compendium.dnd-dungeon-masters-guide.equipment.Item.*` — **official licensed D&D content.** Users
-  without the DMG module get broken UUIDs.
-- `Compendium.burden-of-knowledge.bok-roll-tables.RollTable.*` — **a module treated as a backup**, likely
-  never published.
-
-Blacksmith currently ships a compendium that only resolves if the user owns a paid module *and* has a
-retired one. **Phase 2 makes this moot for Blacksmith** — unbundling removes the broken shipment entirely.
-What remains is the rule for any future bundling, and the open question of where the injury/fumble/crit
-content actually is.
-
-- [x] **ANSWERED: the injury/fumble/crit/investigation tables live in `burden-of-knowledge`**, in its
-      `bok-roll-tables` pack (199 roll tables). Found by name: `Fumbles`, `Critical Carnage`,
-      `Investigation: Common`, `Investigation: Very Rare`, `Purple Worm Poison (Injury)`. This is the same
-      compendium the old `blacksmith-tables` pack pointed into
-      (`Compendium.burden-of-knowledge.bok-roll-tables.RollTable.*`), which is why those pointers only ever
-      resolved on the author's own machine.
-      **Resolved by design, not by migration.** The tables live in the author's Burden of Knowledge
-      campaign, and modules point at them through Blacksmith's compendium settings — exactly the intended
-      model (compendiums exist independently; modules select them). Nothing for Blacksmith to do.
-      `burden-of-knowledge` is the author's live campaign data — a real 1.4 GB module with 27 declared
-      packs, not a backup (the *GitHub repo* is the stale backup).
+- [ ] **Write down the shell rule** (Ground Rule 4) as a documented, checkable convention, so that *if* we
+      ever bundle tables again we don't ship pointers into content we don't control.
 
 ### Bibliosoph — injuries rebuild (IN PROGRESS as of 2026-07-16)
 
-Being redesigned now. The injuries content is **not** being ported as-is from the old compendium; it's
-being rebuilt. The old pack data is reference material at most.
+Being rebuilt, not ported — the old pack data is reference material at most.
 
 - [ ] **Migrate injuries to flags** rather than compendium documents.
 - [ ] **Add a creation form** for authoring injuries.
-- [ ] Bibliosoph currently declares **zero packs** and has no `packs/` directory. Decide whether the
-      rebuilt system needs a bundled compendium at all, or whether flags + a form make one unnecessary —
-      which would be the cleanest outcome and consistent with Ground Rule 3.
-- [ ] **Write down the shell rule** (Ground Rule 4) as a documented, checkable convention, so that *if* we
-      ever bundle tables again we don't ship pointers into content we don't control. `blacksmith-tables` is
-      the cautionary example: 30/30 results are document references, aimed at the DMG and a backup module.
-
----
+- [ ] Bibliosoph declares **zero packs** and has no `packs/` directory. Decide whether the rebuilt system
+      needs a bundled compendium at all, or whether flags + a form make one unnecessary — which would be the
+      cleanest outcome and would make Bibliosoph the first module to satisfy Ground Rule 3 by construction
+      rather than by cleanup.
 
 ---
 
@@ -241,10 +188,8 @@ being rebuilt. The old pack data is reference material at most.
 
 1. **Mirror scope** — all 48 docs, or only the consumer-facing API surface + README-as-Home?
 2. **`Get-Started-AI-Prompt`** — recover into the repo, or delete? (It never existed in the repo.)
-3. **Does unbundling warrant a deprecation release**, or just a changelog line? Users lose four
-   compendiums and cannot recover them post-update.
-4. **Do the injury/fumble/crit tables exist anywhere we still control?** Not in `blacksmith-tables`;
-   possibly only in `burden-of-knowledge` (a backup). Matters for Bibliosoph, not for Blacksmith.
+3. **`plan-assets.md`** — trim the Vault spec and keep it, or fold the whole 1,569 lines into architecture
+   and delete it?
 
 ---
 
@@ -254,7 +199,11 @@ being rebuilt. The old pack data is reference material at most.
       from `window.COFFEEPUB.MODULES` — a key nothing has ever assigned — so it returned `false` for all
       nine sibling modules that call it, silently (the error is debug-gated). Detection now reads
       `game.modules` directly by `coffee-pub-` prefix, and `registerModule()` self-registers on demand.
-      `manager-modules.js`. **Not yet verified in a running Foundry — no test suite exists.**
+      `manager-modules.js`. **Shipped in 13.9.0 and verified in a running Foundry.**
+- [x] **Unbundled the compendiums — shipped in 13.9.0** with a changelog entry rather than a deprecation
+      release (injuries are being rebuilt in Bibliosoph anyway, so the old pack was on its way out).
+- [x] **Found the injury/fumble/crit tables** — `burden-of-knowledge`'s `bok-roll-tables`. Resolved by
+      design rather than migration: modules point at them through Blacksmith's compendium settings.
 - [x] Corrected `architecture-blacksmith.md` §4.3/§5 filenames and rewrote §7's CSS list from the actual 48
       `@import`s; all doc links now resolve. Removed the Curator image-replacement cross-reference per
       Ground Rule 2.
@@ -296,6 +245,16 @@ being rebuilt. The old pack data is reference material at most.
         that schema **v4 deleted**; anyone following it would be led backwards. Every plan-vs-doc
         contradiction went to the docs. Migrated 3 rationale items (three-concerns model,
         pre-filter-over-culling, why `group` died) → `architecture-pins.md`; filed 3 TODOs. Deleted.
+- [x] **Rewrote `architecture-pins.md`** (127 → 294 lines). It predated the whole layers/tags/filtering
+      system — a contributor would have concluded none of it was built and might have rebuilt it.
+      `api-pins.md` was accurate throughout, so this was contributor-facing drift only. Added the Layers
+      window and journal pins to Components, a Classification section (three-tier taxonomy merge; taxonomy
+      is advisory, so unregistered tags are legal), a View state section, the render **pre-filter** step
+      that was previously invisible, `tags: []` in defaults, and the schema migration history. Every symbol
+      verified against source; the doc defers to `api-pins.md` and `pin-taxonomy.json` rather than
+      duplicating them.
+- [x] **Shipped 13.9.0** and verified in a running Foundry — the `registerModule` fix works. That was the
+      one thing with no test coverage (the repo has no test framework).
 - [x] **Deleted the public `Drowbe/Burden-of-Knowledge` GitHub repo** (2026-07-16). It was **PUBLIC and
       1.29 GB**, republishing the campaign's raw assets — 2,616 `.webp`, 519 `.mp3`, 82 `.png`/`.jpg`.
       Provenance was fine (homebrew and illustrations are the author's; tokens via a Forgotten Adventures

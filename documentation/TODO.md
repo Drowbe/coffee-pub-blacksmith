@@ -139,11 +139,6 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 - **Status**: PENDING
 - **Location**: `scripts/manager-pins.js`, `scripts/pins-renderer.js`
 
-#### Pins: architecture doc is stale vs. the shipped layers/filter system
-- **Issue**: `architecture/architecture-pins.md` predates the pin layers work and would lead a reader to think none of it exists. Missing: `window-pin-layers.js` and `ui-journal-pins.js` in Components; the permission + filter pre-pass in the Rendering pipeline section (`pins-renderer.js:2135`); tags/taxonomy registry plus `resources/pin-taxonomy.json` and the `pinTaxonomyOverrideJson` override loading (`manager-pins.js:297-319`); named filter profiles (`manager-pins.js:1135-1206`); `tags: []` in the defaults list (`pins-schema.js:197`).
-- **Status**: PENDING
-- **Priority**: Medium — `api-pins.md` is accurate, so this is contributor-facing drift only.
-
 #### Pins: measure render/load pressure on dense scenes
 - **Issue**: Classification-based pre-filtering shipped (`pins-renderer.js:2135`), but the performance hypothesis behind it was never measured. Suspected pressure points: pin DOM node count, per-pin `_sceneToScreen` work on pan/zoom, icon rendering, event overhead. Establish a baseline on a many-pin scene **before** deciding whether viewport culling is warranted — culling was deliberately deferred (see `architecture-pins.md` → Design rationale).
 - **Status**: PENDING

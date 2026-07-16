@@ -57,7 +57,7 @@ add to a category by inventing a parallel file.
 |---|---|---|---|
 | **Overview** | `README.md` (users), Home (devs) | README: someone deciding whether to *use* the module. Overview: a developer building *against* it. | Neither mentions architecture or internals. |
 | **TODO** | `documentation/TODO.md` | us | **Single source of truth for what we will do.** When it's done, it is **deleted** from here and lives only in `CHANGELOG.md`. Never keep a done item "for reference". |
-| **CHANGELOG** | `CHANGELOG.md` | everyone | What we did and fixed. Keep-a-Changelog + SemVer; long prose entries citing file paths. Match the existing style. |
+| **CHANGELOG** | `CHANGELOG.md` | everyone | What we did and fixed. Keep-a-Changelog + SemVer; long prose entries citing file paths. Match the existing style. **Code changes are the priority — be rigorous there.** Doc changes are nice to note but not the point: the docs themselves are what matter, and a reader can just go read them. A one-line mention beats a paragraph reconstructing the doc. |
 | **Architecture** | `documentation/architecture/` | us, and the other Coffee Pub modules | How the module is built and why. **This is the anti-crawl artifact** — the place for things you can only learn by reading code. `architecture-blacksmith.md` is the map. |
 | **API** | `documentation/api/` | anyone leveraging Blacksmith — mostly the other Coffee Pub modules, and Blacksmith itself | The public surface. Authoritative. Update it when you change the surface. |
 
@@ -149,3 +149,12 @@ Personal Claude Code settings belong in `.claude/settings.local.json` (gitignore
 `.claude/settings.json` should stay empty, since permissions there would apply to anyone who clones the repo.
 
 Do not commit or push unless asked. The author reviews diffs in Cursor and commits himself.
+
+**Never bump the version in `module.json`.** The author does it deliberately, as a lone `BUILD x.y.z` commit,
+so the history carries a clean single-change build marker. Bumping it as part of another change destroys
+that signal — it happened once: a helpful bump got folded into a 20-file doc commit, and the author's
+`BUILD 13.9.0` commit ended up containing only a description edit. Write the `CHANGELOG.md` entry when asked;
+leave the version and the tag alone.
+
+**Releases are the author's.** Tagging (`v*` fires `.github/workflows/release.yml`), pushing, and anything
+that publishes are his to run. Note the workflow runs no lint, tests, or build — the tag is the only gate.
