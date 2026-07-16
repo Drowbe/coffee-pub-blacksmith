@@ -886,7 +886,7 @@ Place buttons in `actionBarLeft` (secondary) and `actionBarRight` (primary/criti
 
 ### 10.12 Toggle Switch
 
-Canonical pill toggle for boolean settings. Defined in `window-form-controls.css`. Replaces `blacksmith-pin-config-toggle` and `artificer-toggle`.
+Canonical pill toggle for boolean settings. Defined in `window-form-controls.css`. Supersedes the older `blacksmith-pin-config-toggle`.
 
 ```html
 <!-- Standalone -->
@@ -964,7 +964,7 @@ The icon and `<span>` are optional. Track: `rgba(148,140,123,0.3)`. Thumb: dark 
 
 ### 10.16 List Row
 
-Thumbnail + title + meta + action row. Defined in `window-list.css`. Replaces `minstrel-list-row`, `crafting-ingredient-row`, and `gather-result-item`.
+Thumbnail + title + meta + action row. Defined in `window-list.css`. Use this instead of a per-window list-row class.
 
 ```html
 <div class="blacksmith-list">
@@ -1053,7 +1053,7 @@ Tiles flex-grow equally; min-width `3rem`. Label: `0.65em` uppercase accent. Val
 
 ### 10.19 Multi-Column Body Layout
 
-CSS grid wrapper for multi-panel windows. Defined in `window-template.css`. Replaces ad-hoc workspace grids in Minstrel and Artificer.
+CSS grid wrapper for multi-panel windows. Defined in `window-template.css`. Use this instead of an ad-hoc per-window workspace grid.
 
 ```html
 <div class="blacksmith-body-columns blacksmith-body-columns-3"

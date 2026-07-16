@@ -13,7 +13,16 @@ artificer, bibliosoph, cartographer, crier, curator, herald, minstrel, monarch, 
 All are public repos under `github.com/Drowbe`.
 
 - `coffee-pub-lib` and `coffee-pub-bubo` exist on GitHub but are **retired** — ignore them.
-- `coffee-pub-campaigns` and `burden-of-knowledge` are **backups**, not live code. Never edit them.
+- `coffee-pub-campaigns` is a **backup**, not live code. Never edit it.
+- `burden-of-knowledge` is **live campaign data, not code, and not ours to touch.** The folder here is the
+  author's actual campaign narrative (1.4 GB: 27 declared packs — scenes, actors, items, playlists, and
+  199 roll tables). It is a real Foundry module that loads every launch. Never edit it, and don't treat it
+  as a code dependency. Its GitHub repo is a stale backup of the same data (last pushed 2026-02, ~350
+  uncommitted local changes since) — the author moves data over the network now, not via git.
+  - Note: `bok-roll-tables` holds `Fumbles`, `Critical Carnage`, and the `Investigation:*` tables. Modules
+    point at them through Blacksmith's compendium settings — the intended model. This is also why the old
+    `blacksmith-tables` pack pointed into this module, and why shipping that pack was broken for everyone
+    but the author.
 
 **Direction of travel:** features are being pulled *out* of Blacksmith into their own modules to keep the
 hub fast. Don't add feature code here that belongs in a sibling.

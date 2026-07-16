@@ -329,7 +329,7 @@ await drawing.delete(); // Not just drawing.visible = false
 
 ## Related Documentation
 
-- **[Cartographer Module Guide](./cartographer.md)** - Complete guide for drawing on BlacksmithLayer
+- **[Core API](./api-core.md)** - Blacksmith's shared utilities and constants
 - **[Canvas Layer Implementation](../scripts/canvas-layer.js)** - Internal layer implementation
 - **[Blacksmith API Core](./api-core.md)** - Main API documentation
 
@@ -557,7 +557,7 @@ Use this checklist to verify your Canvas Layer integration:
 ## Support
 
 For issues or questions:
-- Check the [Cartographer Module Guide](./cartographer.md) for detailed examples
+- See the examples earlier in this document for detailed usage
 - Review the [Blacksmith API Core](./api-core.md) documentation
 - Check browser console for error messages
 - Report issues on GitHub

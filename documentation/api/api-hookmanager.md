@@ -463,4 +463,4 @@ console.log('Hook registration result:', hookResult);
 # **Related Documentation**
 
 - **[API Core](api-core.md)** - General integration setup, module registration, and other APIs
-- **[Architecture Hook Manager](architecture-hookmanager.md)** - Internal architecture (for Blacksmith developers)
+- **[Architecture Hook Manager](../architecture/architecture-hookmanager.md)** - Internal architecture (for Blacksmith developers)

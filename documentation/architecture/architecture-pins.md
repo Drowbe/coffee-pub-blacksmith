@@ -157,15 +157,15 @@ Image supports Font Awesome class strings and image URLs (no HTML in stored valu
 
 ---
 
-## Lessons learned (from Squire implementation)
+## Design rationale
 
-### What worked well
+### What works well
 
 - Scene flags for placed pins: reliable and persistent.
 - State-driven appearance: visuals update from pin data.
 - Drop canvas data hook: clean integration with Foundry drag-and-drop.
 
-### What we do differently
+### Deliberate choices
 
 - **No PIXI for pin graphics**: Pins are DOM elements in a fixed overlay; only coordinate conversion uses the canvas/PIXI stack.
 - **Single init**: Pin overlay and hooks initialized once (e.g. on first use); no duplicate creation across hooks.

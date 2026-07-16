@@ -1252,7 +1252,7 @@ utils.setSettingSafely('my-module-id', 'setting-key', 'newValue');
 const formattedTime = utils.formatTime(ms, 'colon');
 const formattedDate = utils.generateFormattedDate('YYYY-MM-DD');
 
-// Newly exposed functions for Scribe and other modules:
+// Additional exposed functions:
 const actorId = utils.getActorId("My Character");
 const tokenId = utils.getTokenId("My Token");
 const tokenImage = utils.getTokenImage(tokenDoc);
@@ -2261,7 +2261,7 @@ When `position` is not provided, the user is prompted to click on the canvas to 
 ## **Related Documentation**
 
 - **[Hook Manager API Documentation](api-hookmanager.md)** - Hook registration, priority, performance, and debugging
-- **OpenAI API:** AI-powered functionality is provided by the optional module **Coffee Pub Regent**. See **[Coffee Pub Regent — OpenAI API](../../coffee-pub-regent/documentation/api-openai.md)**.
+- **AI / OpenAI:** Not part of Blacksmith. Blacksmith core ships no AI surface; that functionality is provided by a separate optional module, documented in its own repo.
 - **[Compendiums API Documentation](api-compendiums.md)** - Compendium mapping + plain text to UUID resolution
 - **[Campaign API Documentation](api-campaign.md)** - Campaign context, party roster, party leader, rulebooks
 - **[Toolbar API Documentation](api-toolbar.md)** - Dynamic toolbar system for external modules
@@ -2274,7 +2274,7 @@ When `position` is not provided, the user is prompted to click on the canvas to 
 - **[Chat Cards API Documentation](api-chatcards.md)** - Chat card themes
 - **[Stats API Documentation](api-stats.md)** - Player and combat statistics
 - **[Window API Documentation](api-window.md)** - BlacksmithWindowBaseV2 and the window registry
-- **[Cartographer Module Guide](cartographer.md)** - Drawing on BlacksmithLayer guide
+- **[Canvas API](api-canvas.md)** - Drawing on BlacksmithLayer
 
 ---
 

@@ -92,7 +92,7 @@ The base class sets `showOptionBar`, `showHeader`, `showTools`, and `showActionB
 
 When extending `BlacksmithWindowBaseV2`, set **`DEFAULT_OPTIONS`** (or pass options at construction) so the window frame behaves as needed:
 
-- **`window.resizable`** (boolean) — Whether the window can be resized by the user. Default is up to the module (e.g. `true` for Regent).
+- **`window.resizable`** (boolean) — Whether the window can be resized by the user. Default is up to the module.
 - **`window.minimizable`** (boolean) — Whether the window can be minimized.
 - **`position.width`** / **`position.height`** — Initial size (numbers or `"auto"` per Foundry). Do **not** add `minWidth`/`maxWidth`/`minHeight`/`maxHeight` to `position` — Foundry's position object is not extensible.
 - **`windowSizeConstraints`** (object, optional) — Min/max size applied by the base class to the window element after render: `{ minWidth, minHeight, maxWidth, maxHeight }` (numbers in pixels). Omit to leave unconstrained.
@@ -182,7 +182,7 @@ Registers a window type with Blacksmith. Only one window per `windowId`; re-regi
 
 **Parameters:**
 
-- `windowId` (string): Unique identifier for the window type (e.g. `'regent'`, `'my-module-window'`).
+- `windowId` (string): Unique identifier for the window type (e.g. `'my-module-window'`).
 - `descriptor` (Object): Descriptor object.
 
 **Returns:** `boolean` — Success status.
@@ -196,14 +196,14 @@ Registers a window type with Blacksmith. Only one window per `windowId`; re-regi
 **Example:**
 
 ```javascript
-blacksmith.registerWindow('consult-regent', {
+blacksmith.registerWindow('my-module-query', {
     open: async (options) => {
-        const { BlacksmithWindowQuery } = await import('/modules/coffee-pub-regent/scripts/window-query.js');
-        const w = new BlacksmithWindowQuery(options);
+        const { MyQueryWindow } = await import('/modules/my-module-id/scripts/window-query.js');
+        const w = new MyQueryWindow(options);
         return w.render(true);
     },
-    title: 'Consult the Regent',
-    moduleId: 'coffee-pub-regent'
+    title: 'My Query Window',
+    moduleId: 'my-module-id'
 });
 ```
 
@@ -238,10 +238,10 @@ Opens the window registered under `windowId`. The registered `open` function is 
 
 ```javascript
 // From a toolbar tool
-blacksmith.api.registerToolbarTool('regent', {
+blacksmith.api.registerToolbarTool('my-module-query', {
     icon: 'fa-solid fa-crystal-ball',
-    title: 'Consult the Regent',
-    onClick: () => blacksmith.api.openWindow('consult-regent')
+    title: 'My Query Window',
+    onClick: () => blacksmith.api.openWindow('my-module-query')
 });
 ```
 
@@ -268,7 +268,7 @@ Both are exposed on `module.api`.
 
 ## Best Practices
 
-1. **Unique window ids** — Use a prefix (e.g. module id) to avoid collisions: `'my-module-settings'`, `'regent'`.
+1. **Unique window ids** — Use a prefix (e.g. module id) to avoid collisions: `'my-module-settings'`, `'my-module-query'`.
 2. **Unregister on disable** — In `disableModule`, call `unregisterWindow` for every window id your module registered.
 3. **Zone contract** — Follow the five-zone contract (option bar, header, body, action bar optional; body required) so windows look consistent and any future shared behavior (e.g. base class) applies. See **guidance-applicationv2.md** and the example template.
 4. **Own your content** — Your template and `getData` define header and body; Blacksmith does not inject content into your window.
@@ -278,7 +278,7 @@ Both are exposed on `module.api`.
 
 - **Scripts in body/partials do not run.** When Application V2 injects the body part (e.g. from Handlebars), it does **not** execute `<script>` tags inside the injected HTML. Any logic you put in a `<script>` block in a partial will never run. Do not rely on inline `onclick="someFunction()"` unless that function is already defined on `window` by a **module script that runs at load** (e.g. a separate `.js` file in your module’s `esmodules` that assigns `window.someFunction = ...`). Prefer **document-level delegation** and `data-action` so handlers are attached in JS and work regardless of when the body is injected.
 - **Body controls (buttons, drop zones)** — If your body contains buttons, drop zones, or other interactive elements, attach their behavior via **document-level** (or stable-wrapper) delegation (e.g. in `_attachDelegationOnce()`), not by querying the body in `activateListeners(html)`. Application V2 may call `activateListeners` with a wrapper element that does not contain the body part, or the body may be injected later; delegation on `document` (with a check that the event target is inside your app root or a known wrapper) ensures clicks are handled regardless.
-- **Legacy inline onclick** — If you have many existing inline `onclick` handlers (e.g. a complex worksheet), you can either: (1) **Migrate** to `data-action` and document-level delegation (recommended long term), or (2) **Keep inline onclick** by moving the handler implementations into a module script that runs at load and assigns them to `window`, so the same attribute strings resolve when the body is injected. Option 2 is used by the Regent encounter worksheet (`regent-encounter-worksheet.js` registers globals on `window`; `window.addTokensToContainer` delegates to the app instance via a ref).
+- **Legacy inline onclick** — If you have many existing inline `onclick` handlers (e.g. a complex worksheet), you can either: (1) **Migrate** to `data-action` and document-level delegation (recommended long term), or (2) **Keep inline onclick** by moving the handler implementations into a module script that runs at load and assigns them to `window`, so the same attribute strings resolve when the body is injected. With option 2, a module script registers the globals at load and each global delegates to the app instance via a ref.
 
 ---
 

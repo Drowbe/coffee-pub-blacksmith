@@ -1,6 +1,6 @@
 # Application V2 Window Guidance (Foundry VTT v13+)
 
-This document describes how to build Application V2 windows that modules (e.g. Blacksmith consumers) can use or replicate. It is based on the Artificer Skills Window pattern and the **Blacksmith window zone contract**. The goal is a reusable window API pattern and a plug-in example framework that supports a wide variety of window layouts.
+This document describes how to build Application V2 windows that modules (e.g. Blacksmith consumers) can use or replicate. It is based on the **Blacksmith window zone contract**. The goal is a reusable window API pattern and a plug-in example framework that supports a wide variety of window layouts.
 
 **Audience:** Module authors (e.g. Blacksmith) implementing a window API for other modules to open consistent, well-behaved windows.
 

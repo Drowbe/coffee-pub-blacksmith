@@ -1961,11 +1961,11 @@ Hooks.on('blacksmith.pins.updated', async ({ pinId, moduleId, pin, patch }) => {
   if (!page) return;
 
   // Sync note flags from updated pin
-  await page.setFlag('coffee-pub-squire', 'notePinSize', pin?.size);
-  await page.setFlag('coffee-pub-squire', 'notePinShape', pin?.shape);
+  await page.setFlag('my-module-id', 'notePinSize', pin?.size);
+  await page.setFlag('my-module-id', 'notePinShape', pin?.shape);
   // ... other flags ...
 
-  game.modules.get('coffee-pub-squire')?.api?.PanelManager?.instance?.notesPanel?._refreshData?.();
+  // Refresh your own UI here.
 });
 ```
 

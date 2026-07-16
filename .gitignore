@@ -1,6 +1,9 @@
 # Node modules
 node_modules/
 
+# Google Drive sync artifacts. This repo lives on a Drive path, which litters these.
+_gsdata_/
+
 # Development files
 .git/
 .vscode/

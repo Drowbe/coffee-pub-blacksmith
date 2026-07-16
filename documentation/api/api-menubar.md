@@ -235,7 +235,7 @@ Registers a new tool with the Blacksmith menubar system.
 - `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color.
 - `buttonNormalTint` (string, optional): Background color for the button in normal state. Can be any valid CSS color (e.g., `'rgba(255, 107, 53, 0.2)'`, `'#ff6b35'`, `'red'`). If omitted, uses default button background color.
 - `buttonSelectedTint` (string, optional): Background color for the button when active/selected (for toggleable tools). Can be any valid CSS color (e.g., `'rgba(255, 107, 53, 0.4)'`, `'#ff6b35'`, `'red'`). If omitted, uses default active button background color.
-- `contextMenuItems` (Array | Function, optional): Right-click context menu. If provided, right-clicking the tool shows a menu instead of the browser default. Can be an array of `{ name, icon, description?, onClick, submenu? }`, or a function `(toolId, tool) => array` for dynamic items (e.g. list that depends on current state). Icon can be a Font Awesome class string (e.g. `'fa-solid fa-hand'`) or HTML (e.g. `'<i class="fa-solid fa-hand"></i>'`). `submenu` is an array of `{ name, icon, description?, onClick }` to render a flyout. Example: Broadcast View Mode tool uses this for mode selection (Manual, GM View, Combat, Spectator, Map View, Mirror/Follow).
+- `contextMenuItems` (Array | Function, optional): Right-click context menu. If provided, right-clicking the tool shows a menu instead of the browser default. Can be an array of `{ name, icon, description?, onClick, submenu? }`, or a function `(toolId, tool) => array` for dynamic items (e.g. list that depends on current state). Icon can be a Font Awesome class string (e.g. `'fa-solid fa-hand'`) or HTML (e.g. `'<i class="fa-solid fa-hand"></i>'`). `submenu` is an array of `{ name, icon, description?, onClick }` to render a flyout. Typical use: a tool that selects between several modes.
 
 #### `updateMenubarToolActive(toolId, active)`
 
@@ -353,7 +353,7 @@ if (blacksmith?.renderMenubar) {
 
 ### `registerMenubarVisibilityOverride(moduleId, callback)`
 
-Register a callback that can hide the menubar for specific users. Used by modules (e.g. Herald) that designate a "broadcast/cameraman" user who should see a clean, UI-free view.
+Register a callback that can hide the menubar for specific users — for example, when a module wants a designated user to see a clean, UI-free view.
 
 **Parameters:**
 - `moduleId` (string): Your module identifier (e.g. `'coffee-pub-herald'`)

@@ -2,7 +2,7 @@
 
 **Audience:** Module developers consuming Blacksmith's GM Notes system.
 
-**GM Notes** attaches GM-authored, GM-only notes to **existing Foundry documents** (Items, Actors, etc.) — a private annotation layer on the documents you already have. This is distinct from note utilities in other coffee-pub modules (e.g. Squire's sticky notes, which are standalone journal-backed notes): GM Notes does not create documents, it annotates existing Foundry functionality. Notes are the first field of a broader metadata envelope; future fields (reveal timing, quest links, associated NPCs) live under the same flag and schema without breaking this API.
+**GM Notes** attaches GM-authored, GM-only notes to **existing Foundry documents** (Items, Actors, etc.) — a private annotation layer on the documents you already have. GM Notes does not create documents — it annotates existing Foundry ones. Notes are the first field of a broader metadata envelope; future fields (reveal timing, quest links, associated NPCs) live under the same flag and schema without breaking this API.
 
 Access it via:
 

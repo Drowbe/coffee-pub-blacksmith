@@ -11,8 +11,8 @@ This document outlines the architecture for extending Blacksmith's toolbar syste
 ### 1. **Blacksmith Toolbar System** (Current Implementation)
 - **Location**: `scripts/manager-toolbar.js`
 - **Hook Used**: `getSceneControlButtons` 
-- **Structure**: Creates a "Blacksmith Utilities" toolbar with predefined tools (regent, lookup, character, assistant, encounter, narrative, css, journal-tools, refresh)
-- **Tools are hardcoded** in the `addToolbarButton()` function as individual tool objects with `icon`, `name`, `title`, `button`, `visible`, and `onClick` properties
+- **Structure**: Creates a "Blacksmith Utilities" toolbar. Blacksmith's own default tools are `css`, `journal-tools`, and `refresh`; everything else on the toolbar is registered by consuming modules via the toolbar API.
+- **Blacksmith's default tools are hardcoded** in the `addToolbarButton()` function as individual tool objects with `icon`, `name`, `title`, `button`, `visible`, and `onClick` properties. Externally registered tools arrive through `registerToolbarTool()` instead.
 
 ### 2. **Menubar Toolbar System** (Current Implementation)
 - **Location**: `scripts/menubar.js` 

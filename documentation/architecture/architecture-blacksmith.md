@@ -10,7 +10,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 
 ## 1. Overview
 
-**Blacksmith** is a FoundryVTT module that provides quality-of-life and aesthetic improvements for D&D 5e (5.5+) on **FoundryVTT v13+**. It acts as a central hub for the Coffee Pub module ecosystem: shared infrastructure (hooks, sockets, module registration), UI (menubar, toolbars, windows, pins, chat cards), and feature systems (combat timers, stats, rolls, etc.). Token and portrait image replacement is provided by **Coffee Pub Curator** when that module is installed. Streaming/broadcast view is provided by **Coffee Pub Herald**.
+**Blacksmith** is a FoundryVTT module that provides quality-of-life and aesthetic improvements for D&D 5e (5.5+) on **FoundryVTT v13+**. It acts as a central hub for the Coffee Pub module ecosystem: shared infrastructure (hooks, sockets, module registration), UI (menubar, toolbars, windows, pins, chat cards), and feature systems (combat timers, stats, rolls, etc.). Features that are not listed here are not Blacksmith's — the hub deliberately stays lean, and optional modules build on its public API to provide their own.
 
 **Platform constraints:**
 
@@ -127,12 +127,10 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 
 ### 4.3 Feature Domains
 
-- **Broadcast** â€” Now provided by **Coffee Pub Herald** (`coffee-pub-herald`). See Herald module documentation.
 - **Rolls** â€” **manager-rolls.js**: 4-function roll system; `executeRoll` exposed as `BLACKSMITH.rolls.execute`; used by skill check dialog and socket handlers. See **documentation/architecture/architecture-rolls.md**.
 - **Stats** â€” **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture/architecture-stats.md**, **documentation/api/api-stats.md**.
 - **Timers** â€” **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`).
 - **Chat cards** â€” **ChatCardsAPI** (`api-chat-cards.js`): themes and rendering contract. See **documentation/architecture/architecture-chatcards.md**, **documentation/api/api-chatcards.md**.
-- **Token/portrait image replacement** â€” Not a Blacksmith subsystem. Provided by **Coffee Pub Curator**, which consumes Blacksmithâ€™s public API like any other module. Its architecture is documented in Curatorâ€™s own repo.
 - **XP** â€” **XpManager** (`xp-manager.js`). See **documentation/architecture/architecture-xp.md**.
 - **Voting** â€” **VoteManager** (`manager-vote.js`), **VoteConfig** (`window-vote-config.js`).
 - **Combat** â€” **CombatTracker** (`ui-combat-tracker.js`), **sidebar-combat.js**, **ui-combat-tools.js**.
@@ -147,7 +145,6 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 - **SidebarPin** (`ui-sidebar-pin.js`), **SidebarStyle** (`ui-sidebar-style.js`) â€” Sidebar behavior and styling.
 - **CompendiumManager** (`manager-compendiums.js`) â€” Compendium usage and ordering.
 - **ConstantsGenerator** (`constants-generator.js`), **AssetLookup** (`asset-lookup.js`) â€” Constants and asset taxonomy (sounds, images, etc.).
-- **OpenAI/Regent:** AI tools (Consult the Regent, worksheets, OpenAI integration) are provided by the optional module **coffee-pub-regent**. See that moduleâ€™s documentation (e.g. `coffee-pub-regent/documentation/api-openai.md`).
 - **Settings** (`settings.js`) â€” All module settings; **registerSettings()** called in ready; **getCachedSetting** and settings cache in blacksmith.js.
 
 ---
@@ -155,12 +152,11 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 ## 5. Windows and Applications
 
 - **Application V2 window system** â€” Zone contract (title bar, option bar, header, body, action bar), window registry (`registerWindow` / `openWindow`), and optional base class for consistent windows. See **documentation/architecture/architecture-window.md** and **documentation/api/api-window.md**. Implementation guidance and examples: **documentation/applicationv2-window/guidance-applicationv2.md**, **documentation/applicationv2-window/README.md**.
-- **BlacksmithWindowQuery** (`window-query.js`) â€” Generic query/assistant window; partials registered via **window-query-registration.js**. (Lives in **coffee-pub-regent**; Regent owns the window.)
 - **PinConfigWindow** (`window-pin-configuration.js`) — Pin configuration (Application).
 - **SkillCheckDialog** (`window-skillcheck.js`) â€” Skill check dialog; uses manager-rolls for orchestration and delivery.
 - **CSSEditor** (`window-gmtools.js`) â€” GM custom CSS.
 - **StatsWindow** (`window-stats-party.js`), **PlayerStatsWindow** (`window-stats-player.js`).
-- **TokenImageReplacementWindow** removed; see **Coffee Pub Curator**. **MovementConfig** (`token-movement.js`), **VoteConfig** (`window-vote-config.js`).
+- **MovementConfig** (`token-movement.js`), **VoteConfig** (`window-vote-config.js`).
 
 All new windows should use Application V2 patterns per project rules; existing windows are being migrated (see architecture-window.md).
 
@@ -192,8 +188,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 - **Timers:** timer-combat, timer-planning, timer-round.
 - **Other:** vote, latency, combat-tools, utility-quickview, sidebar-pin, sidebar-style, sidebar-combat.
 
-> A new stylesheet is **silently unstyled** unless it is added to `default.css`. Note there is no
-> `window-query.css` here â€” that window lives in **coffee-pub-regent**, which owns its styles.
+> A new stylesheet is **silently unstyled** unless it is added to `default.css`.
 
 Theming is CSS-variable based; chat card theming is documented in **documentation/architecture/architecture-chatcards.md**.
 
@@ -227,13 +222,11 @@ Debug helpers on `window` (e.g. **BlacksmithAPIDetails**, **BlacksmithAPIHooks**
 | Topic | Document |
 |-------|----------|
 | Pins (storage, renderer, schema, API) | **architecture-pins.md** |
-| Token/portrait image replacement | **Coffee Pub Curator** (optional); **architecture-imagereplacement.md** |
 | SocketManager (SocketLib, API, migration) | **architecture-socketmanager.md** |
 | Chat cards (themes, layout, migration) | **architecture-chatcards.md** |
 | Roll system (4-function, execute, cinema) | **architecture-rolls.md** |
 | Stats (combat, player, API) | **architecture-stats.md** |
 | Toolbar manager | **architecture-toolbarmanager.md** |
-| Broadcast / streaming | **Coffee Pub Herald** (separate module) |
 | XP system | **architecture-xp.md** |
 | HookManager | **architecture-hookmanager.md** |
 | Core utilities | **architecture-core.md** |
@@ -273,7 +266,6 @@ Blacksmith is intended to remain the **central hub** for Coffee Pub modules, pro
 
 **Planned extraction to separate modules (future):**
 
-- **service-regent.js** â†’ `coffee-pub-regent` (AI tools)
 - **service-combat.js** â†’ `coffee-pub-combat` (Combat tools)
 - **service-rolling.js** â†’ `coffee-pub-rolling` (Rolling tools)
 - **service-encounters.js** â†’ `coffee-pub-encounters` (Encounter tools)
@@ -318,7 +310,7 @@ scripts/
 1. **Phase 1: Current state analysis** â€” Analyze blacksmith.js, document architecture, identify working vs. broken areas, map dependencies (this document and related architecture docs support that).
 2. **Phase 2: Complete existing work** â€” Fix rolls system and hooks migration; ensure all current functionality works before structural refactors.
 3. **Phase 3: Service architecture** â€” Introduce service classes, move business logic into services, have HookManager route to services, keep flat structure.
-4. **Phase 4: Module extraction** â€” Extract services to separate modules (regent, combat, rolling, encounters, journal); implement/refine module registration, inter-module communication, and shared infrastructure coordination.
+4. **Phase 4: Module extraction** â€” Extract remaining services to separate modules (combat, rolling, encounters, journal); implement/refine module registration, inter-module communication, and shared infrastructure coordination. AI tools have already been extracted.
 
 ### 11.6 Key Questions and Next Steps
 
