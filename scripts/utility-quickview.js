@@ -17,13 +17,19 @@ export class QuickViewUtility {
   static _moduleInitialized = false;
 
   static _isActive = false;
-  static _originalFogExplored = null;
-  static _originalFogOpacity = undefined;
-  static _originalTokenVision = null;
-  /** Prior value of the core illumination shader reveal flag (see `uniforms` on the illumination effects filter) */
-  static _priorIlluminationUniformValue = undefined;
   /** Captured darkness filter alpha before Quick View */
   static _originalDarknessFilterAlpha = undefined;
+
+  /** True while the GM-local darkness-level override is in force (see the `configureCanvasEnvironment` hook in `initialize`). */
+  static _environmentOverrideEnabled = false;
+
+  /**
+   * The scene's true darkness level, captured before the override. Core's
+   * `EnvironmentCanvasGroup#initialize` writes the effective level back onto the scene document
+   * in memory, so once the override is applied the document no longer holds the true value.
+   */
+  static _sceneDarknessBaseline = undefined;
+  static _sceneDarknessBaselineSceneId = null;
 
   static _REVEAL_CHILD_NAME = 'coffee-pub-blacksmith-quickview-reveal';
 
@@ -46,6 +52,38 @@ export class QuickViewUtility {
     const v = getSettingSafely(MODULE.ID, 'quickViewDarknessAlpha', 0.5);
     if (typeof v !== 'number' || Number.isNaN(v)) return 0.5;
     return Math.min(1, Math.max(0.2, v));
+  }
+
+  /**
+   * The scene darkness level as it was before Quick View overrode it. Captured per scene on first
+   * use; when the tracked scene changes (Quick View persists across scene switches), the previous
+   * scene's true value is written back before capturing the new baseline, so a mutated in-memory
+   * value is never mistaken for a baseline.
+   */
+  static _sceneDarknessBaselineValue() {
+    const scene = canvas?.scene;
+    if (!scene) return undefined;
+    if (this._sceneDarknessBaselineSceneId !== scene.id) {
+      if (this._sceneDarknessBaselineSceneId && this._sceneDarknessBaseline !== undefined) {
+        const prev = game.scenes?.get?.(this._sceneDarknessBaselineSceneId);
+        if (prev?.environment) prev.environment.darknessLevel = this._sceneDarknessBaseline;
+      }
+      this._sceneDarknessBaseline = scene.environment?.darknessLevel ?? 0;
+      this._sceneDarknessBaselineSceneId = scene.id;
+    }
+    return this._sceneDarknessBaseline;
+  }
+
+  /**
+   * Map the Darkness overlay strength slider (0.2–1, mirroring the setting's range) onto the
+   * scene's darkness level: 0.2 → 0 (daylight), 1 → the scene's normal darkness. Scales the
+   * captured baseline, never the live scene value (which holds the override once applied).
+   */
+  static _quickViewEffectiveDarknessLevel() {
+    const baseline = this._sceneDarknessBaselineValue();
+    if (baseline === undefined) return undefined;
+    const scale = (this._darknessAlphaTarget() - 0.2) / 0.8;
+    return Math.min(1, Math.max(0, baseline * scale));
   }
 
   /** Hex string (e.g. #ffcc33) to packed RGB for PIXI lineStyle. */
@@ -133,16 +171,9 @@ export class QuickViewUtility {
 
     try {
       // Fresh baseline + slider: user may have changed Darkness overlay strength while Quickview was off.
-      this._priorIlluminationUniformValue = undefined;
       this._originalDarknessFilterAlpha = undefined;
 
       this._applyLightingBoost();
-
-      // Allow GM to see the whole scene (disable token-only vision)
-      this._applyTokenVisionOverride();
-
-      // Make fog more transparent
-      this._applyFogTransparency();
 
       this._isActive = true;
       this._syncVisibilityReveal();
@@ -172,12 +203,6 @@ export class QuickViewUtility {
 
     try {
       this._restoreLightingBoost();
-
-      // Restore token vision requirement
-      this._restoreTokenVisionOverride();
-
-      // Restore fog opacity
-      this._restoreFogTransparency();
 
       // Remove token overlays
       this._hideAllTokens();
@@ -222,30 +247,40 @@ export class QuickViewUtility {
   // ==================================================================
 
   /**
-   * Boost local GM view using the core lighting pipeline (illumination shader + darkness layer).
-   * Requires `drawCanvasDarknessEffects` to swap in an alpha filter so darkness strength applies.
-   * Does not change scene data.
+   * Boost local GM view: re-initialize the canvas environment at a scaled darkness level
+   * (0.2 on the slider → daylight, 1 → the scene's normal darkness), and fade darkness
+   * sources via the darkness layer's filter alpha (requires `drawCanvasDarknessEffects`
+   * to swap in an alpha filter). Render-only — the scene document is never updated and
+   * players are unaffected.
    */
   static _applyLightingBoost() {
     if (!canvas?.ready) return;
 
     try {
-      const illumination = canvas.effects?.illumination;
-      const uniforms = illumination?.filter?.uniforms;
-      if (uniforms && 'gmVision' in uniforms) {
-        if (this._priorIlluminationUniformValue === undefined) {
-          this._priorIlluminationUniformValue = uniforms.gmVision;
-        }
-        uniforms.gmVision = true;
-      }
-
+      // Darkness sources (dark regions / negative lights): fade via the layer filter alpha.
       const darknessFx = canvas.effects?.darkness;
-      const dFilter = darknessFx?.filter;
+      let dFilter = darknessFx?.filter;
+      if (dFilter && !('alpha' in dFilter)) {
+        // Layer drawn before our `drawCanvasDarknessEffects` hook registered (first canvas after
+        // load): core's VoidFilter has no alpha, so swap in the AlphaFilter now.
+        this._onDrawCanvasDarknessEffects(darknessFx);
+        dFilter = darknessFx.filter;
+      }
       if (dFilter && 'alpha' in dFilter) {
         if (this._originalDarknessFilterAlpha === undefined) {
           this._originalDarknessFilterAlpha = dFilter.alpha;
         }
         dFilter.alpha = this._darknessAlphaTarget();
+      }
+
+      // Global scene darkness: the `configureCanvasEnvironment` hook injects the override into
+      // this (and every other) environment re-initialization while the flag is on. Only
+      // re-initialize on an actual change — `initialize()` triggers a vision refresh, which fires
+      // `sightRefresh`, which calls back into this method.
+      this._environmentOverrideEnabled = true;
+      const target = this._quickViewEffectiveDarknessLevel();
+      if (target !== undefined && canvas.environment && canvas.environment.darknessLevel !== target) {
+        canvas.environment.initialize();
       }
     } catch (error) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error applying lighting boost', error, false, false);
@@ -253,27 +288,36 @@ export class QuickViewUtility {
   }
 
   /**
-   * Restore illumination/darkness effects to pre–Quick View values.
+   * Restore darkness effects and the scene's true darkness level to pre–Quick View values.
    */
   static _restoreLightingBoost() {
-    if (!canvas?.ready) return;
+    this._environmentOverrideEnabled = false;
 
     try {
-      const illumination = canvas.effects?.illumination;
-      const uniforms = illumination?.filter?.uniforms;
-      if (uniforms && this._priorIlluminationUniformValue !== undefined && 'gmVision' in uniforms) {
-        uniforms.gmVision = this._priorIlluminationUniformValue;
+      if (canvas?.ready) {
+        const darknessFx = canvas.effects?.darkness;
+        const dFilter = darknessFx?.filter;
+        if (dFilter && this._originalDarknessFilterAlpha !== undefined && 'alpha' in dFilter) {
+          dFilter.alpha = this._originalDarknessFilterAlpha;
+        }
       }
 
-      const darknessFx = canvas.effects?.darkness;
-      const dFilter = darknessFx?.filter;
-      if (dFilter && this._originalDarknessFilterAlpha !== undefined && 'alpha' in dFilter) {
-        dFilter.alpha = this._originalDarknessFilterAlpha;
+      // Write the true darkness level back — core `initialize()` wrote our override onto the
+      // scene document in memory (see `_sceneDarknessBaseline`).
+      const sceneId = this._sceneDarknessBaselineSceneId;
+      const baseline = this._sceneDarknessBaseline;
+      if (sceneId && baseline !== undefined) {
+        const scene = game.scenes?.get?.(sceneId);
+        if (scene?.environment) scene.environment.darknessLevel = baseline;
+        if (canvas?.ready && canvas.scene?.id === sceneId) {
+          canvas.environment?.initialize?.({ environment: { darknessLevel: baseline } });
+        }
       }
     } catch (error) {
       postConsoleAndNotification(MODULE.NAME, 'Quick View: Error restoring lighting boost', error, false, false);
     } finally {
-      this._priorIlluminationUniformValue = undefined;
+      this._sceneDarknessBaseline = undefined;
+      this._sceneDarknessBaselineSceneId = null;
       this._originalDarknessFilterAlpha = undefined;
     }
   }
@@ -335,84 +379,6 @@ export class QuickViewUtility {
       g = v.getChildByName?.(this._REVEAL_CHILD_NAME);
     }
     if (g) g.visible = this._isActive;
-  }
-
-  // ==================================================================
-  // ===== FOG MANAGEMENT ============================================
-  // ==================================================================
-
-  /**
-   * Make fog of war more transparent (10% opacity)
-   */
-  static _applyFogTransparency() {
-    if (!canvas.fog) return;
-
-    try {
-      if (canvas.fog.layer && canvas.fog.layer.alpha !== undefined) {
-        // Store original opacity if not already stored
-        if (this._originalFogOpacity === undefined) {
-          this._originalFogOpacity = canvas.fog.layer.alpha;
-        }
-        // Make fog nearly transparent
-        canvas.fog.layer.alpha = 0.1;
-      }
-    } catch {
-      /* ignore — don't block activation if fog manipulation fails */
-    }
-  }
-
-  /**
-   * Restore original fog opacity
-   */
-  static _restoreFogTransparency() {
-    if (this._originalFogOpacity === undefined || !canvas.fog || !canvas.fog.layer) return;
-
-    try {
-      canvas.fog.layer.alpha = this._originalFogOpacity;
-      this._originalFogOpacity = undefined;
-    } catch {
-      /* ignore */
-    }
-  }
-
-  // ==================================================================
-  // ===== TOKEN VISION OVERRIDE =====================================
-  // ==================================================================
-
-  /**
-   * Let GM see the whole scene by disabling token-only vision when the legacy sight layer exists.
-   * v13+ often has no `canvas.sight`; token hiding is undone in `_syncQuickViewHatchAfterRestrict` instead.
-   */
-  static _applyTokenVisionOverride() {
-    try {
-      const sight = canvas.sight;
-      if (!sight || typeof sight.tokenVision !== 'boolean') return;
-      if (this._originalTokenVision === null) {
-        this._originalTokenVision = sight.tokenVision;
-      }
-      sight.tokenVision = false;
-    } catch {
-      /* ignore */
-    }
-  }
-
-  /**
-   * Restore original token-only vision behavior
-   */
-  static _restoreTokenVisionOverride() {
-    try {
-      const sight = canvas.sight;
-      if (!sight || typeof sight.tokenVision !== 'boolean') {
-        this._originalTokenVision = null;
-        return;
-      }
-      if (this._originalTokenVision !== null) {
-        sight.tokenVision = this._originalTokenVision;
-      }
-      this._originalTokenVision = null;
-    } catch {
-      /* ignore */
-    }
   }
 
   // ==================================================================
@@ -711,15 +677,10 @@ export class QuickViewUtility {
   static _resyncAfterCanvasReady() {
     if (!this._isActive || !game?.user?.isGM) return;
 
-    this._originalFogOpacity = undefined;
-    this._originalTokenVision = null;
-    this._priorIlluminationUniformValue = undefined;
     this._originalDarknessFilterAlpha = undefined;
     this._hideAllTokens();
 
     this._applyLightingBoost();
-    this._applyTokenVisionOverride();
-    this._applyFogTransparency();
     if (canvas.visibility) this._onDrawCanvasVisibility(canvas.visibility);
     this._syncVisibilityReveal();
     try {
@@ -773,6 +734,28 @@ export class QuickViewUtility {
       this._onDrawCanvasDarknessEffects(layer);
     });
 
+    // Inject the GM-local darkness override into every environment re-initialization (scene
+    // darkness edits, `animateDarkness` ticks, canvas draws) while Quick View is active, so core
+    // never snaps the view back to the scene's real darkness level.
+    Hooks.on('configureCanvasEnvironment', (config) => {
+      if (!this._environmentOverrideEnabled || !game.user?.isGM) return;
+      const target = this._quickViewEffectiveDarknessLevel();
+      if (target === undefined) return;
+      const env = (config.environment ??= {});
+      env.darknessLevel = target;
+    });
+
+    // GM changed the real scene darkness while Quick View is on: rebase the override on the new
+    // value so deactivating restores it (and the scaled view tracks it).
+    Hooks.on('updateScene', (scene, changed) => {
+      if (!this._isActive || !game.user?.isGM || scene.id !== canvas?.scene?.id) return;
+      const dl = changed?.environment?.darknessLevel;
+      if (dl === undefined) return;
+      this._sceneDarknessBaseline = dl;
+      this._sceneDarknessBaselineSceneId = scene.id;
+      this._applyLightingBoost();
+    });
+
     Hooks.on('sightRefresh', (visibility) => {
       if (this._isActive) this._applyLightingBoost();
       this._sightRefreshReveal(visibility);
@@ -816,7 +799,6 @@ export class QuickViewUtility {
     Hooks.on('controlToken', () => {
       if (!this._isActive) return;
       this._applyLightingBoost();
-      this._applyTokenVisionOverride();
       this._sightRefreshReveal(canvas?.visibility);
       try {
         canvas.visibility?.restrictVisibility?.();
