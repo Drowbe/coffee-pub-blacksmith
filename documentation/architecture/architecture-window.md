@@ -94,8 +94,8 @@ These points affect how consumers implement interactive body content (e.g. works
 | **documentation/applicationv2-window/example-window.js** | Example Application V2 class (delegation, scroll save/restore, static actions). |
 | **templates/window-template.hbs** | **Canonical core template** — maintained reference for the Application V2 zone contract. Uses blacksmith-window-v2-* classes. New windows extending BlacksmithWindowBaseV2 copy from here or the doc example. |
 | **documentation/applicationv2-window/README.md** | Quick start for the example. |
-| **documentation/architecture-window.md** | This document — internal architecture. |
-| **documentation/api-window.md** | Public API for registering and opening windows. |
+| **documentation/architecture/architecture-window.md** | This document — internal architecture. |
+| **documentation/api/api-window.md** | Public API for registering and opening windows. |
 
 ---
 

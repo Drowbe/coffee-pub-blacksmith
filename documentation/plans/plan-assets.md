@@ -223,7 +223,7 @@ Before implementation, we should know:
 
 Any internal asset refactor has to respect the current external API story already published in:
 
-- `documentation/api-core.md`
+- `documentation/api/api-core.md`
 - the GitHub wiki page `API: Core Blacksmith`
 
 Those docs currently teach downstream modules to rely on:

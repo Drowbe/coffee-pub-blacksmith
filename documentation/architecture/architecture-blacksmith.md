@@ -33,7 +33,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 - **`module.json`**
   - `esmodules` load order: `const.js` â†’ `api-core.js` â†’ `settings.js` â†’ `manager-compendiums.js` â†’ **`blacksmith.js`** â†’ `sidebar-combat.js` â†’ **`api/blacksmith-api.js`**.
   - Single style entry: `styles/default.css` (which `@import`s all other CSS).
-  - `socket: true`, `library: true`; compendium packs (user manual, treatments, tables, injuries).
+  - `socket: true`, `library: true`. **No `packs`** â€” Blacksmith bundles no compendiums; users select their own in settings.
 
 - **`scripts/blacksmith.js`** is the main bootstrap: it imports managers, APIs, windows, timers, and sidebars, then registers Foundry hooks and exposes `module.api`.
 
@@ -165,7 +165,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 ## 6. Data and Resources
 
 - **Templates** â€” Handlebars under `templates/` (e.g. `window-query.hbs`, `vote-card.hbs`, timer and stats templates). **getCachedTemplate()** in blacksmith.js caches compiled templates with TTL.
-- **Packs** â€” User manual, treatments, blacksmith-tables, blacksmith-injuries (see `module.json`).
+- **Packs** â€” None. Blacksmith ships no compendiums. Users point at their own via the compendium settings (`settings.js` builds choices from `game.packs.values()`; `manager-compendiums.js` resolves the selection).
 - **Resources** — `resources/asset-defaults/*.json` (asset manifests), `dictionary.js`, `monster-mapping.json`, `schema-rolls.json`, `taxonomy.json` used by asset lookup, rolls, and related systems.
 - **Lang** â€” `lang/en.json` for localization.
 
@@ -198,6 +198,18 @@ Theming is CSS-variable based; chat card theming is documented in **documentatio
 
 - **Hooks** â€” Foundry hooks drive most behavior. HookManager registers them with priorities and contexts; many subsystems (pins, canvas layer, scene updates, settings cache, chat message clicks) are wired in blacksmith.js or in their own files via HookManager.
 - **Settings** â€” `game.settings.get/set(MODULE.ID, key)`. Settings cache in blacksmith.js with TTL; cleared on `settingChange` for the module. **registerSettings()** runs in ready.
+- **Feature gating â€” two levels.** Be explicit about which one a setting is:
+
+  | Level | Meaning |
+  |---|---|
+  | **Enable (load gate)** | The feature **does not load**: no hooks, wrappers, or menubar registration. Ideally a dynamic `import()` only when on. |
+  | **On/Off** | The feature loads; the setting only toggles runtime behavior. |
+
+  A load gate is the only one that removes cost. An "enable" setting that still registers hooks and
+  early-returns inside the handler is an On/Off in disguise â€” it keeps the dispatch cost. Example of the
+  real thing: Quick View (`blacksmith.js` â€” `getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)`
+  guards the dynamic import). Gating work that runs in `init` is harder than it looks, because settings
+  aren't registered until `ready` â€” see Â§3 and `getSettingSafely`.
 - **Sockets** â€” External modules use `module.api.sockets` (or BlacksmithAPI.getSockets()) to register handlers and emit events; SocketManager routes to SocketLib or native sockets.
 - **Pins** â€” Stored in scene flags (placed) and world setting (unplaced). PinManager CRUD and permissions; PinRenderer renders on BlacksmithLayer; canvasReady and updateScene trigger load. See **documentation/architecture/architecture-pins.md**.
 - **Rolls** â€” Skill checks and other flows use **manager-rolls.js** (orchestrateRoll, processRoll, deliverRollResults, executeRoll); cinema overlay updates are triggered via sockets. See **documentation/architecture/architecture-rolls.md**.
@@ -217,6 +229,97 @@ Debug helpers on `window` (e.g. **BlacksmithAPIDetails**, **BlacksmithAPIHooks**
 
 ---
 
+## 9A. Traps
+
+Things that cost someone an hour of grep to discover. Written down so nobody pays twice.
+
+- **`api.version` is `MODULE.APIVERSION`** (`const.js` — currently `"13.0.0"`), **not** `module.json`'s
+  version. They are unrelated and drift on purpose.
+- **`window.COFFEEPUB` is not a config object.** It holds *generated asset constants* only, assigned in
+  `asset-lookup.js`. The exported `COFFEEPUB` in `api-core.js` is a **different object** with just
+  `blnDebugOn` and `strDEFAULTCARDTHEME`. Don't assume a key exists on either.
+  - This bit us: `ModuleManager` read a `COFFEEPUB.MODULES` that nothing ever assigned, so
+    `registerModule()` returned `false` for every sibling module — silently, because the error was
+    debug-gated. Fixed by detecting from `game.modules` directly.
+- **The `features` half of `ModuleManager` is vestigial.** Every caller passes only `{name, version}`, so
+  `getFeaturesByType('menubarIcon')` (`api-menubar.js`) always returns `[]`. Tool contributions go through
+  `registerMenubarTool` / `registerToolbarTool`. The mechanism works if you pass `features` — it's just unused.
+- **The menubar API is bound in three places** in `blacksmith.js` (init assign, start of `ready`, and after
+  the dynamic `api-menubar` import), then **re-bound again** after `CombatBarManager.initialize()` replaces
+  MenuBar statics. Change one site and they silently diverge.
+- **`HookManager` remaps `renderChatMessage` → `renderChatMessageHTML`** (warns once per session).
+- **`scripts/const.js` does a top-level `await fetch(module.json)`.** The entire module graph waits on it.
+- **`HookManager.removeCallback` parses the hook name out of the callback id** via `split('_')[0]`. A hook
+  name containing `_` would break it.
+- **`canvasReady` layer/pin setup is nested inside `if (blnCustomClicks)`**, i.e. gated on the
+  `enableSceneClickBehaviors` setting. `BlacksmithAPI.getCanvasLayer()` carries a raw-canvas fallback,
+  which suggests the API path is known to be unreliable.
+- **Blacksmith does not consume its own public API** — internal code imports managers directly, which is
+  correct for plumbing. But note the pattern: the **menubar** API is exercised every launch because
+  Blacksmith registers its own tools through `registerMenubarTool`, and it works. `registerToolbarTool` and
+  `registerModule` are *not* self-used — and `registerModule` was broken for a year without anyone noticing.
+  **If an API isn't used by Blacksmith itself, nothing tests it.**
+
+---
+
+## 9B. Performance-Critical Design
+
+Non-obvious design decisions that came out of a memory/performance investigation. **Read this before
+"optimising" or "fixing" any of it — several of these look like bugs and are not.** Open performance work
+lives in `TODO.md`; what was already fixed is in `CHANGELOG.md`.
+
+### 9B.1 One shared journal DOM observer
+
+**`JournalDomWatchdog` (`manager-journal-dom.js`) is the single journal sheet/page DOM observer**, with a
+1s interval fallback. `EncounterToolbar`, `JournalPagePins`, and the `blacksmith.js` journal double-click
+all route through it. This replaced three per-feature body `MutationObserver`s that duplicated each other's
+work on every render.
+
+> **Do not add a per-feature body `MutationObserver`.** Use the watchdog.
+
+It prunes detached sheets each tick via `_pruneDetachedSheets()` — without that, `_knownSheets` retained
+every journal ever opened.
+
+### 9B.2 Dead code that looks live
+
+These exist in the source and are **never called**. They are legacy, not wiring you can trust or need to fix:
+
+| Symbol | File | Reality |
+|---|---|---|
+| `_setupGlobalObserver` | `ui-journal-encounter.js` | Contains a body `MutationObserver`, a `setInterval(500)`, and a capture-phase click handler. **`init()` never calls it.** |
+| `_setupActivePageChecker`, `_setupPageNavigationListener` | `ui-journal-encounter.js` | Same — dead. |
+| `_setupDomObserver` | `ui-journal-pins.js` | Defines a body `MutationObserver`. **Nothing calls it.** `dispose()` still clears it defensively. |
+
+### 9B.3 Render paths that deliberately skip work
+
+- **Menubar fingerprinting** — `renderMenubar` compares `_computeMenubarStructureFingerprint(templateData)`
+  against `_menubarStructureFingerprint`. If unchanged, it calls **`_applyMenubarLightweightRefresh`**
+  (updates leader/movement/timer labels only) instead of tearing down and re-inserting the DOM.
+  `updateLeaderDisplay` forces a full render **only** when leader-only visibility flips.
+  - The fingerprint must include `_secondaryBarLiveContentSignature()` and `secondaryBarActiveStates`.
+    Without them, `updateSecondaryBarItemInfo` / `updateSecondaryBar` hit the skip path and leave secondary
+    bar DOM stale. **If you add live secondary-bar state, add it to the fingerprint.**
+- **Timer DOM caching** — round / planning / combat timers cache their node lists rather than calling
+  `document.querySelectorAll` on every tick. Caches refresh when a cached node disconnects, or after
+  `renderCombatTracker` injects markup. The menubar session timer is label-only by design.
+- **Socket native fallback** — `_initializeNativeSockets` calls `game.socket.off(moduleChannel)` before
+  `on`, so re-init cannot stack inbound listeners.
+
+### 9B.4 How to validate a performance change
+
+The pass these findings came from, worth repeating rather than reinventing:
+
+1. **Performance monitor** — DevTools (F12) → ⋮ → More tools → Performance monitor. Enable **JS heap size**
+   and **DOM Nodes**; look for sustained upward trend vs. normal GC sawtooth.
+2. **Heap snapshots** — DevTools → Memory → Heap snapshot. Baseline, stress (open/close journals many
+   times), second snapshot, then the **Comparison** view for retained growth.
+3. **Tab memory** — Shift+Esc → browser Task Manager → Foundry tab's Memory column over time.
+
+After a stress segment, closing journals should let **DOM nodes** drop. A flatline at a new high is the
+signal to take a comparison snapshot. A real validation pass is a 90–180 minute GM session.
+
+---
+
 ## 10. References to Detailed Architecture Docs
 
 | Topic | Document |
@@ -227,6 +330,7 @@ Debug helpers on `window` (e.g. **BlacksmithAPIDetails**, **BlacksmithAPIHooks**
 | Roll system (4-function, execute, cinema) | **architecture-rolls.md** |
 | Stats (combat, player, API) | **architecture-stats.md** |
 | Toolbar manager | **architecture-toolbarmanager.md** |
+| Token naming (type/subtype cascade, taxonomy) | **architecture-token-naming.md** |
 | XP system | **architecture-xp.md** |
 | HookManager | **architecture-hookmanager.md** |
 | Core utilities | **architecture-core.md** |

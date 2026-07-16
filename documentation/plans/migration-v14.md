@@ -1,6 +1,13 @@
 # Migrating modules from Foundry VTT v13 → v14
 
-This document collects **official sources**, **notable breaking changes**, a **practical migration workflow**, and **project-specific notes** for Coffee Pub Blacksmith. It is a living guide: extend it as you discover edge cases.
+**Status: Planned — the v14 move has not started.** Live scaffolding; extend it as you discover edge cases.
+This is deliberately written for **any** Coffee Pub module, not just Blacksmith, so the whole suite learns
+the same lessons once. It lives here because Blacksmith is the hub — same reason as `TODO-GLOBAL.md`.
+
+**On completion:** the durable lessons fold into the relevant module's architecture docs, the work items
+become TODOs, and this file is deleted. It is not an archive.
+
+This document collects **official sources**, **notable breaking changes**, a **practical migration workflow**, and **project-specific notes** for Coffee Pub Blacksmith.
 
 ---
 

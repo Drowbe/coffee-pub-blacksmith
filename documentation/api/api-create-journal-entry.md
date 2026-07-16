@@ -38,7 +38,7 @@ Legacy **`NARRATIVE`** import is **not supported** (use **`AREA`** with `blocks.
 
 ## Related
 
-- **Window / UI:** Use **`api.registerWindow` / `api.openWindow`** for Application V2 windows; see **documentation/api-window.md**.
+- **Window / UI:** Use **`api.registerWindow` / `api.openWindow`** for Application V2 windows; see **documentation/api/api-window.md**.
 - **Wiki:** Mirror this page under the Blacksmith wiki (e.g. **API: Journal** or a subsection of **API: Supplement**) so it sits beside other public APIs.
 
 ---

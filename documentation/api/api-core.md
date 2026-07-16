@@ -1344,7 +1344,7 @@ console.log('My module features:', myFeatures);
 
 
 ## **Stats API - Statistics and Analytics**
-Blacksmith exposes a global `BlacksmithStats` helper (installed by the API bridge) with `player`, `combat`, `utils`, and `CombatStats` namespaces for reading combat, round, and lifetime data. The stats system only activates for GMs when the tracking settings are enabled. For the complete method list, data retention rules, and integration patterns, see `documentation/api-stats.md`.
+Blacksmith exposes a global `BlacksmithStats` helper (installed by the API bridge) with `player`, `combat`, `utils`, and `CombatStats` namespaces for reading combat, round, and lifetime data. The stats system only activates for GMs when the tracking settings are enabled. For the complete method list, data retention rules, and integration patterns, see `documentation/api/api-stats.md`.
 
 ***
 
@@ -2134,9 +2134,9 @@ const persistentId = menubarAPI.addNotification(
 
 ## **Complete Documentation**
 
-For full menubar API documentation, see: **`documentation/api-menubar.md`**
+For full menubar API documentation, see: **`documentation/api/api-menubar.md`**
 
-For full canvas layer API documentation, see: **`documentation/api-canvas.md`**
+For full canvas layer API documentation, see: **`documentation/api/api-canvas.md`**
 
 ---
 

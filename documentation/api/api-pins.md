@@ -2,7 +2,7 @@
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
-> **Remaining work** (tests, deeper profile/search UX, and follow-on phases) is tracked in `architecture-pins.md`, `TODO.md`, and `plan-pins.md`.
+> **Remaining work** is tracked in `documentation/TODO.md`.
 >
 > **Feature summary:**
 > - **Rendering**: Pure DOM overlay (no PIXI). Shapes: `circle`, `square`, `rectangle`, `none`. Icons: Font Awesome class strings or image URLs. Text labels with 7 layout modes and 4 display modes.

@@ -47,23 +47,41 @@ vendor entry, rebuild and commit the bundle yourself.
 `utilities/` and `test-data/` are manual console scripts and fixtures, not an automated suite.
 CI (`.github/workflows/release.yml`) only zips and releases on `v*` tags; it runs no checks.
 
-## Where the docs already are
+## Documentation — there are only five kinds
 
-Prefer these over re-deriving from source. Point at them; don't duplicate them.
+This repo has repeatedly accumulated plans, migration guides, inventories, and "lessons learned" that
+nobody deletes. **Everything that isn't one of these five is noise.** Don't create a sixth kind, and don't
+add to a category by inventing a parallel file.
 
-- `documentation/api/` — **authoritative public API reference** (16 files: `api-core.md`, `api-pins.md`,
-  `api-menubar.md`, `api-hookmanager.md`, …). Update these when you change the surface.
-- `documentation/architecture/` — contributor-facing internals (`architecture-blacksmith.md` is the map).
-- `documentation/guides/guide-registering-with-blacksmith.md` — how siblings integrate. **See the warning below.**
-- `documentation/TODO.md` — Blacksmith's task list. Process: when a task is done, add it to `CHANGELOG.md`,
-  then remove it from TODO.
-- `documentation/TODO-GLOBAL.md` — **cross-module** cleanup spanning the suite (doc/pack/table ownership,
-  extracting features out of Blacksmith). Read this before touching docs, packs, or compendiums: it carries
-  the ground rules and several unresolved findings. Suite-wide work goes here, not in `TODO.md`.
-- `CHANGELOG.md` — Keep-a-Changelog + SemVer, long prose entries that cite file paths. Match that style.
+| Kind | Where | Audience | Rule |
+|---|---|---|---|
+| **Overview** | `README.md` (users), Home (devs) | README: someone deciding whether to *use* the module. Overview: a developer building *against* it. | Neither mentions architecture or internals. |
+| **TODO** | `documentation/TODO.md` | us | **Single source of truth for what we will do.** When it's done, it is **deleted** from here and lives only in `CHANGELOG.md`. Never keep a done item "for reference". |
+| **CHANGELOG** | `CHANGELOG.md` | everyone | What we did and fixed. Keep-a-Changelog + SemVer; long prose entries citing file paths. Match the existing style. |
+| **Architecture** | `documentation/architecture/` | us, and the other Coffee Pub modules | How the module is built and why. **This is the anti-crawl artifact** — the place for things you can only learn by reading code. `architecture-blacksmith.md` is the map. |
+| **API** | `documentation/api/` | anyone leveraging Blacksmith — mostly the other Coffee Pub modules, and Blacksmith itself | The public surface. Authoritative. Update it when you change the surface. |
 
-`architecture-blacksmith.md` §4.3/§5/§7 and its doc links were corrected against the filesystem. The rest of
-that document has **not** been audited — if a claim there contradicts the code, trust the code.
+Cross-module work spanning the suite goes in `documentation/TODO-GLOBAL.md`, not `TODO.md`.
+
+**Migration guides and inventories are not a category.** If such a doc has content worth keeping, fold it
+into **architecture** and delete the original. If a "migration" is complete, it's history — it belongs in
+`CHANGELOG.md`, not in a guide named after a version that shipped two releases ago.
+
+### Plans are scaffolding, not documents
+
+`documentation/plans/` is the one exception, and it is **transitional by definition**. A plan exists to be
+dismantled into the five kinds above: work → `TODO.md`, design → architecture, surface → API, history →
+`CHANGELOG.md`. It exists until it doesn't. Three rules keep scaffolding from becoming ruins:
+
+1. **A plan must declare its status** at the top (Planned / In progress / Implemented (phase N) / Complete).
+   Without it nobody can tell live scaffolding from debris without reading the whole thing.
+2. **A plan is never a source of truth.** The moment another doc cites a plan as canonical, the plan has
+   overstayed — move that content to its real home.
+3. **Complete means delete.** Not archive, not "keep for reference". Distribute the content, then remove the
+   file. Anything already landed in a TODO or an architecture doc must be *removed from the plan*.
+
+Prefer these docs over re-deriving from source. Point at them; don't duplicate them. **If a doc contradicts
+the code, trust the code — then fix the doc.**
 
 ## Conventions
 
@@ -98,66 +116,31 @@ from `scripts/api-core.js`. It **throws if `message` is falsy**. Debug output is
 **CSS** — `styles/default.css` is the only real entry; ~50 other files are `@import`ed from it. **A new CSS
 file without an `@import` is silently unstyled.**
 
-## Init flow — the fragile part
+## Before you crawl the code — read the architecture doc
 
-Entry point is `scripts/blacksmith.js` (2690 lines, self-described god module in
-`architecture-blacksmith.md` §11.1).
+The recurring failure mode in this repo is re-discovering by grep what a doc should have told you. If you
+learn something non-obvious by reading code, **write it into the architecture doc** so the next person
+doesn't pay for it again. That is what those docs are for.
 
-1. **Module eval** — `api.BlacksmithWindowBaseV2` is exposed before any hook, because Regent resolves a
-   superclass at load time.
-2. **`init`** — `module.api` is assigned **synchronously, before any `await`** (`blacksmith.js:891`) so
-   consumers' `ready` hooks never see a null api. ~20 keys are deliberately `null` placeholders (toolbar,
-   window, sockets, CanvasLayer), filled later by dynamic import.
-3. **`ready`** — order is load-bearing and commented as such: `primeCoreChoiceCaches()` before any await →
-   assets loaded → `registerSettings()` (dropdowns read assetLookup, so assets must exist first) →
-   `MenuBar.runReadySetup()` → **`BlacksmithAPI.markReadyForConsumers()`** (`blacksmith.js:445`) → the rest.
+`architecture/architecture-blacksmith.md` in particular:
 
-**Settings are registered in `ready`, not `init`.** Anything running in `init` must use
-`getSettingSafely`/`setSettingSafely` (`scripts/api-core.js`).
+- **§3** — bootstrap and lifecycle. The `init`/`ready` ordering is **load-bearing and fragile**:
+  `module.api` is assigned synchronously before any `await`; settings register in `ready`, not `init` (so
+  anything in `init` must use `getSettingSafely`); every early-return in `ready` must call
+  `LoadingProgressManager.forceHide()` or the UI stalls at "Finalizing…".
+- **§9B** — performance-critical design. Shared journal watchdog, menubar fingerprinting, timer DOM
+  caching, and **dead observer paths that look live**. Read before "fixing" any of it.
+- **§9A** — traps. `api.version` ≠ `module.json` version; `window.COFFEEPUB` isn't a config object; the
+  menubar API is bound in three places; `HookManager` remaps `renderChatMessage`; and more.
+- **§7** — the CSS `@import` chain.
+- **§11** — the god-module cleanup plan. `blacksmith.js` is ~2,700 lines and self-described as such.
 
-Every early-return path in `ready` must call `LoadingProgressManager.forceHide()` — miss one and the UI
-stalls forever at "Finalizing…".
+## Packs
 
-## Gotchas
-
-- **`api.version` is `MODULE.APIVERSION` (`"13.0.0"`), not `module.json`'s version.** Different things.
-- **`window.COFFEEPUB` is not a config object.** It holds *generated asset constants* only
-  (`asset-lookup.js:79`). The exported `COFFEEPUB` (`api-core.js:111`) is a different thing again, with just
-  `blnDebugOn` and `strDEFAULTCARDTHEME`. Don't assume a key exists on it — `ModuleManager` used to read a
-  `COFFEEPUB.MODULES` that never existed, which silently broke `registerModule()` for every sibling module.
-- **The `features` half of `ModuleManager` is vestigial.** All nine sibling callers pass only
-  `{name, version}`; no module declares a feature. So `getFeaturesByType('menubarIcon')`
-  (`api-menubar.js:185`) returns `[]` in practice. Menubar/toolbar contributions go through
-  `registerMenubarTool` / `registerToolbarTool` instead. The mechanism works if you pass `features` — it's
-  just unused.
-- **Menubar API is bound in three places** (`blacksmith.js:333`, `:987`, `:1238`) and then **re-bound** at
-  `:449-456` after `CombatBarManager.initialize()` replaces MenuBar statics. Edit one site and they diverge.
-- **`HookManager` silently remaps `renderChatMessage` → `renderChatMessageHTML`** (`manager-hooks.js:40-49`).
-- **`scripts/const.js` does a top-level `await fetch(module.json)`** — the whole module graph waits on it.
-- **`HookManager.removeCallback` parses the hook name out of the callback id** via `split('_')[0]`
-  (`manager-hooks.js:194`). A hook name containing `_` would break it.
-- **`canvasReady` layer/pin setup is nested inside `if (blnCustomClicks)`** (`blacksmith.js:633`), gated on
-  the `enableSceneClickBehaviors` setting. `BlacksmithAPI.getCanvasLayer()` has a raw-canvas fallback, which
-  suggests the API path is known to be unreliable.
-- **Running Foundry dirties the working tree.** This repo lives inside a live `Data/modules/` install, so
-  LevelDB rewrites `packs/*/CURRENT` and rotates `MANIFEST-*` on every run. `LOCK`/`LOG`/`LOG.old` and
-  `lost/` are now gitignored, but CURRENT and MANIFEST **cannot** be — a pack won't open without them.
-- **Packs are all-or-nothing.** `CURRENT` names the `MANIFEST-*` that must accompany it. Committing a
-  modified `CURRENT` without its new `MANIFEST` ships a pack that won't open. **Never blind-`git add .`
-  here** — stage `packs/` deliberately, as a whole directory, or not at all.
-- The repo also sits on a Google Drive path, so `_gsdata_/` artifacts appear.
-
-## Known pack oddities (unresolved)
-
-- **`packs/treatments` is empty** — declared in `module.json` as an Item pack, but has zero `.ldb` data at
-  HEAD and on disk. It ships with no content.
-- **`packs/injuries` is undeclared legacy.** Committed 2025-04-05, never touched since, absent from
-  `module.json`, referenced by no code. Superseded by `packs/blacksmith-injuries` (added 2026-04-22). It
-  may still hold ~6 injuries not present in the new pack (Impaled Appendage, Pummeling Painscape, Stabbed
-  Flesh, Thump and Tumble, Necrotic, Piercing) — unverified, so it has not been deleted. Compare the two in
-  Foundry before removing.
-- Every pack has a `lost/` directory (LevelDB repair detritus), which means these packs have had corruption
-  events. 72 orphaned `lost/MANIFEST-*` files were committed and have now been untracked.
+**Blacksmith bundles no compendiums.** None are declared in `module.json`, none ship in the release zip,
+and `packs/` is gitignored. A compendium is not part of a module — users select their own in settings
+(`settings.js` builds the choices from `game.packs.values()`; `manager-compendiums.js` resolves them). If
+you are tempted to add a `packs` array, that's a decision to re-litigate, not a routine change.
 
 ## Git
 

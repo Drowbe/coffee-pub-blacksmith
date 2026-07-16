@@ -20,7 +20,7 @@ API Pins: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins (canvas
 
 API Chat Cards: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Chat-Cards (chat card themes/helpers)
 
-API Window: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Window (Window registry **and** public `BlacksmithWindowBaseV2` / `getWindowBaseV2()` for subclassing — see **documentation/api-window.md**)
+API Window: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Window (Window registry **and** public `BlacksmithWindowBaseV2` / `getWindowBaseV2()` for subclassing — see **documentation/api/api-window.md**)
 
 API Request Roll: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Request-Roll (open roll dialog)
 
@@ -34,14 +34,14 @@ API Supplement: https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Supple
 
 1. Get the API safely:
    `const api = game.modules.get('coffee-pub-blacksmith')?.api; if (!api) return;`  
-   Blacksmith assigns **`api`** synchronously at the start of its **`init`** (before any **`await`** there), so in **`ready`** it should not be null. For **asset-backed constants**, **`assetLookup`**, or **`window.Blacksmith*`** globals, also **`await BlacksmithAPI.waitForReady()`** (see **documentation/architecture-blacksmith.md** §3.3).
+   Blacksmith assigns **`api`** synchronously at the start of its **`init`** (before any **`await`** there), so in **`ready`** it should not be null. For **asset-backed constants**, **`assetLookup`**, or **`window.Blacksmith*`** globals, also **`await BlacksmithAPI.waitForReady()`** (see **documentation/architecture/architecture-blacksmith.md** §3.3).
 
 2. `postConsoleAndNotification` (debug + console + optional UI toast):
    use `api.utils.postConsoleAndNotification(moduleId, message, data?, blnDebug, blnNotification)`
    - `blnDebug=true` logs only when Blacksmith debug is enabled (keeps noise down for normal users).
    - `blnNotification=true` shows a user-facing notification (use for actionable errors/warnings).
 
-3. Windows: use **`api.registerWindow` / `api.openWindow`** (after **`ready`**) so others can open your app by id. For **subclassing**, **`api.BlacksmithWindowBaseV2`** / **`getWindowBaseV2()`** is available as soon as Blacksmith’s script has loaded if your module runs after it in the graph — see **documentation/api-window.md** (do not import `scripts/window-base.js` / legacy shim from another module; use **`module.api`**).
+3. Windows: use **`api.registerWindow` / `api.openWindow`** (after **`ready`**) so others can open your app by id. For **subclassing**, **`api.BlacksmithWindowBaseV2`** / **`getWindowBaseV2()`** is available as soon as Blacksmith’s script has loaded if your module runs after it in the graph — see **documentation/api/api-window.md** (do not import `scripts/window-base.js` / legacy shim from another module; use **`module.api`**).
 
 4. Sockets: use `api.sockets` for sync instead of custom socket globals:
    `api.sockets?.register(eventName, handler)` and `api.sockets?.emit(eventName, data)` (optionally `executeAsGM` for GM-only actions).

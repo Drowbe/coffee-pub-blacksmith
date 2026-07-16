@@ -4,24 +4,38 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
-## Performance & memory (stack rank)
+## Performance & memory
 
-Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; update both when status changes.
+Open items only. Completed work lives in `CHANGELOG.md`; the *design* that came out of this work (shared
+journal watchdog, menubar fingerprint, timer DOM caching, dead observer paths) is documented in
+**`architecture/architecture-blacksmith.md` §9B**.
 
-| Rank | Severity | Area | Status | Notes |
-| --- | --- | --- | --- | --- |
-| 1 | Medium | Menubar full rerenders on frequent update paths | Mitigated | Fingerprint + leader-only full render; see `PERFORMANCE.md` §4 |
-| 2 | Medium | Timer loops: global DOM queries/rerenders | Mitigated | Cached DOM in `timer-round.js`, `timer-planning.js`, `timer-combat.js`; see `PERFORMANCE.md` §5 |
+**Status:** not reproducing the old runaway tab-memory pattern. Remaining session cost drivers are menubar
+churn and Quick View token hooks. Last validated 2026-03-28 — **stale, needs a re-run (see below).**
+
+| Priority | Item | Files | Notes |
+| --- | --- | --- | --- |
+| Medium | **`QuickViewUtility` hook lifecycle** | `utility-quickview.js` | `initialize()` calls `Hooks.on` ×5 (`canvasReady` ×2, `createToken`, `updateToken`, `controlToken`) with **no stored hook IDs and no `Hooks.off`**. Handlers would stack if it ever ran twice. Also: `updateToken` while clarity mode is active forces `_hideAllTokens` + `_showAllTokens` — noisy in token-heavy scenes. Fix: store IDs, guard with `_initialized`, tear down on `closeGame`. |
+| Medium | **Pin DOM cleanup not wired to world exit** | `pins-renderer.js`, `manager-pins.js` | `PinRenderer.cleanup()` is never called from `PinManager.cleanup()` or the `closeGame` path. Low risk for a single session (init is idempotent) but inconsistent with the journal `dispose` story; wire for parity and hot reload. |
+| Low | **Remove dead observer paths** | `ui-journal-encounter.js`, `ui-journal-pins.js` | `_setupGlobalObserver` / `_setupActivePageChecker` / `_setupPageNavigationListener` and `_setupDomObserver` are uncalled legacy. Delete or gate behind a debug flag so they can't be accidentally re-enabled. |
+| Low | **Audit for redundant direct `Hooks.on`** | suite-wide | Phase D: find features still calling `Hooks.on` directly where HookManager already wraps the same hook name. |
+| Low | **Menubar: dynamic tool title changes** | `api-menubar.js` | A tool's **title** changing without a zone/active/visibility change may not refresh until something else invalidates the structure fingerprint. |
+| Low | **Journal double-click observer retention** | `blacksmith.js` | `_onRenderJournalDoubleClick` may attach a per-sheet `MutationObserver` (`editModeObserver`) that lives until edit mode activates. If the sheet is closed in view mode first, confirm it's disconnected — otherwise a retained observer + DOM ref per opened journal. |
+| Low | **Socket fallback teardown** | `manager-sockets.js` | Optional explicit teardown on `closeGame`. Verify no edge case leaves `_fallbackTimer` running when SocketLib never connects. |
+| Low | **High-volume sidebar hook** | `sidebar-combat.js` | `Hooks.on('renderApplication')` fires on every sidebar render; the filter is cheap but call volume is high. |
+| — | **Re-run the validation pass** | — | 90–180 minute GM session; compare DOM node trend, listener counts, combat responsiveness. **How to measure: `architecture/architecture-blacksmith.md` §9B.4.** If stable, downgrade status to MONITORING. |
 
 ## Settings & feature gating
 
-Canonical tracking table, load-gate vs on/off notes, and file references: **`documentation/plan-settings.md`**.
+The **load gate vs on/off** model is documented in `architecture/architecture-blacksmith.md` §8. Quick View,
+the performance monitor, latency, and pins menubar are done — see `CHANGELOG.md`. Open:
 
 | Priority | Item | Status | Notes |
 | --- | --- | --- | --- |
-| High | **Round timer** — register hooks + `setInterval(1000)` only when the feature is enabled | Not started | Same pattern as combat timer; see `plan-settings.md` #6 and `PERFORMANCE.md` (round timer registration row). Note: `Hooks.once('ready', ...)` fires before settings are registered — gate must use `getSettingSafely` with fallback `true`, placed inside the ready callback only. |
-| Medium | **Planning timer** — defer `HookManager` registration until enabled | Not started | `plan-settings.md` #7. The planning timer registers hooks during `init` before settings exist; gating requires deferring hook registration itself, not just the ready-phase state init. Non-trivial — do not attempt without full understanding of init/ready ordering. |
-| Medium | **Combat / player stats** — optional dynamic import when tracking off | Not started | `plan-settings.md` #8–9; shrinks cold path |
+| High | **Round timer** — register hooks + `setInterval(1000)` only when the feature is enabled | Not started | Same pattern as combat timer. `RoundTimer.initialize()` always registers hooks, `setInterval(1000)`, and focus/blur; `showRoundTimer` only affects the template, not registration. Note: `Hooks.once('ready', ...)` fires before settings are registered — gate must use `getSettingSafely` with fallback `true`, placed inside the ready callback only. |
+| Medium | **Planning timer** — defer `HookManager` registration until enabled | Not started | All hooks register in `initialize()`; `planningTimerEnabled` is checked *inside* the handlers, so the dispatch cost remains. Gating requires deferring hook registration itself, not just the ready-phase state init. The planning timer registers during `init`, before settings exist. Non-trivial — do not attempt without full understanding of init/ready ordering. |
+| Medium | **Combat / player stats** — optional dynamic import when tracking off | Not started | `CombatStats.initialize()` / `CPBPlayerStats.initialize()` already return before `_registerHooks()` when disabled, but `stats-combat.js` stays in the bundle via static imports (`blacksmith.js`, timers). Dynamic import would shrink the cold path. |
+| Low | **Combat timer** — optional dynamic import | Not started | Already correctly gated (`combatTimerEnabled` false → `initialize()` returns before registering hooks). Only the static import remains. |
 
 ## CRITICAL BUGS
 
@@ -32,12 +46,6 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Location**: `scripts/api-chat-cards.js`, `scripts/blacksmith.js` (`module.api.chatCards`); consumers to migrate: all coffee-pub-* modules that post chat cards
 - **Priority**: High – same class of problem as window normalization; do after current bug/performance pass
 
-### Memory Leak Investigation
-- **Issue**: Historical tab runaway (non-heap growth / crash) was tracked; **current builds are not reproducing** the old browser-tab growth pattern.
-- **Status**: ACTIVE (fresh baseline) — see `documentation/PERFORMANCE.md` for current stack rank, findings, and plan (lifecycle teardown for observers/timers, journal monitor consolidation, menubar/timer hotspots, legacy cleanup).
-- **Next Step**: Execute plan in `documentation/PERFORMANCE.md` § "Plan (Next Review Cycle)"; align with **`documentation/plan-settings.md`** for timer gating (#6–7); re-profile after targeted fixes; downgrade to MONITORING if stable.
-- **Location**: `documentation/PERFORMANCE.md` (canonical).
-
 ## ENHANCEMENTS
 
 ### High Priority
@@ -45,17 +53,19 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 #### Card CSS migration to theme system
 - **Issue**: Card-type CSS files (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.css`) still use hardcoded colors; they should use the CSS variable theme system for consistency and themeability.
 - **Status**: PENDING – Checklist and strategy documented
-- **Location**: `documentation/architecture-chatcards.md` → "Migration (internal)" → "Card CSS migration checklist (detailed)"; `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css`
+- **Location**: `documentation/architecture/architecture-chatcards.md` → "Migration (internal)" → "Card CSS migration checklist (detailed)"; `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css`
 - **Need**: Replace hardcoded colors with `var(--blacksmith-card-*)`; add XP/skill-check/stats-specific or semantic variables where needed; define new variables in `cards-common-layout.css` / `cards-common-themes.css`; test all card types with all themes.
 - **Priority**: High – Improves theme consistency and maintainability
 
 ### Medium Priority
 
-#### Creature-type / subtype token naming
-- **Issue**: Token auto-renaming uses a single global random-name table (`tokenNameTable`); names aren't appropriate to a creature's type/subtype (e.g. orcs vs. elves vs. dragons).
-- **Status**: IMPLEMENTED (Phases 1–2) — pending in-Foundry verification + Phase 3–4 polish. Design/status in `documentation/plans/plan-token-naming.md`.
-- **Location**: `resources/naming-taxonomy.json`, `scripts/utility-token-naming.js`, `scripts/manager-canvas.js` (`_onCreateToken`), `scripts/settings.js` (generated per-key settings), `scripts/blacksmith.js` (taxonomy load), `lang/en.json`.
-- **Remaining**: (1) Verify in Foundry: per-type dropdowns appear, type/subtype tokens resolve to the right table, unset entries cascade to the global table. (2) Refresh the canonical-key/alias index on table create/delete (currently built once at load; new *tables* resolve live, but new *keys* need a reload). (3) Grow alias coverage. (4) Later: compendium table source (switch to UUID refs).
+#### Creature-type / subtype token naming — polish
+- **Status**: Data, resolver, wiring, and per-key settings are **shipped**. Design is documented in `documentation/architecture/architecture-token-naming.md`.
+- **Remaining**:
+  1. **Verify in Foundry** — per-key dropdowns appear; type/subtype tokens resolve to the right table; unset entries cascade to the global table.
+  2. **Refresh the key/alias index on table create/delete.** The index is built once at load. New *tables* resolve live (the resolver re-checks `game.tables.getName`), but new *keys* need a reload.
+  3. **Grow alias coverage** — expands with real-world use; not blocking.
+  4. **Later:** allow the table source to be a **compendium** of RollTables. No cascade change, but switch to UUID refs there (cross-pack refs need them).
 - **Priority**: Medium
 
 #### GM Notes — expand beyond items
@@ -68,13 +78,13 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 #### Roll system: Query window integration (architecture-rolls Phase 1.3)
 - **Issue**: Query window does not use `orchestrateRoll()`; needs to use unified 4-function flow for cross-client sync.
 - **Status**: PENDING
-- **Location**: `documentation/architecture-rolls.md`, `scripts/window-query.js`
+- **Location**: `documentation/architecture/architecture-rolls.md`, `scripts/window-query.js`
 - **Need**: Modify `window-query.js` to use `orchestrateRoll()`; replace direct `SkillCheckDialog` creation; test cross-client sync. Then Phase 2–4 (architecture unification, validation, production readiness) per architecture-rolls.md.
 
 #### Roll system: System selection respect
 - **Issue**: `processRoll()` does not respect `diceRollToolSystem`; hardcoded to Blacksmith roll path.
 - **Status**: PENDING
-- **Location**: `scripts/manager-rolls.js`, `documentation/architecture-rolls.md`
+- **Location**: `scripts/manager-rolls.js`, `documentation/architecture/architecture-rolls.md`
 - **Need**: `processRoll()` respects `diceRollToolSystem`; implement Foundry roll path when selected; document in api-rolls when that doc exists.
 
 #### Rolls API as first-class surface
@@ -115,7 +125,7 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 #### Toolbar Phase 4: Testing & Validation (architecture-toolbarmanager)
 - **Issue**: Toolbar Phases 1–3 are done; Phase 4 (testing and validation) remains.
 - **Status**: PENDING
-- **Location**: `documentation/architecture-toolbarmanager.md`, `scripts/manager-toolbar.js`
+- **Location**: `documentation/architecture/architecture-toolbarmanager.md`, `scripts/manager-toolbar.js`
 - **Need**: Test tool registration/unregistration; verify compatibility with existing modules; **Foundry v13+ only** (per project target); validate API stability.
 
 #### Embedded other-module variables (Squire / panel-notes)
@@ -124,11 +134,20 @@ Canonical tracking table, load-gate vs on/off notes, and file references: **`doc
 - **Location**: `_Migration/panel-notes.js` (e.g. lines 40–45: `NOTE_PIN_ICON`, `NOTE_PIN_CURSOR_CLASS` / `squire-notes-pin-placement`, `NOTE_PIN_TYPE` / `coffee-pub-squire-sticky-notes`).
 - **Need**: Understand why these are hardcoded in Blacksmith; consider moving to Squire, consuming via a Squire/Blacksmith API, or documenting the coupling and any migration path.
 
-#### Pins: Full automated tests and Phase 4–5 (architecture-pins)
-- **Issue**: Pins API and rendering are in place; full automated tests and Phase 4–5 (documentation, validation) remain.
+#### Pins: Full automated tests
+- **Issue**: Pins API and rendering are in place; automated tests remain. (Note: the repo has no test framework at all — see CLAUDE.md.)
 - **Status**: PENDING
-- **Location**: `documentation/architecture-pins.md`, `scripts/manager-pins.js`, `scripts/pins-renderer.js`
-- **Need**: Full automated tests; complete Phase 4–5 documentation and validation items. TODO.md is the master list; remove items when completed and added to CHANGELOG.
+- **Location**: `scripts/manager-pins.js`, `scripts/pins-renderer.js`
+
+#### Pins: architecture doc is stale vs. the shipped layers/filter system
+- **Issue**: `architecture/architecture-pins.md` predates the pin layers work and would lead a reader to think none of it exists. Missing: `window-pin-layers.js` and `ui-journal-pins.js` in Components; the permission + filter pre-pass in the Rendering pipeline section (`pins-renderer.js:2135`); tags/taxonomy registry plus `resources/pin-taxonomy.json` and the `pinTaxonomyOverrideJson` override loading (`manager-pins.js:297-319`); named filter profiles (`manager-pins.js:1135-1206`); `tags: []` in the defaults list (`pins-schema.js:197`).
+- **Status**: PENDING
+- **Priority**: Medium — `api-pins.md` is accurate, so this is contributor-facing drift only.
+
+#### Pins: measure render/load pressure on dense scenes
+- **Issue**: Classification-based pre-filtering shipped (`pins-renderer.js:2135`), but the performance hypothesis behind it was never measured. Suspected pressure points: pin DOM node count, per-pin `_sceneToScreen` work on pan/zoom, icon rendering, event overhead. Establish a baseline on a many-pin scene **before** deciding whether viewport culling is warranted — culling was deliberately deferred (see `architecture-pins.md` → Design rationale).
+- **Status**: PENDING
+- **Priority**: Low — no reported symptom. Do not build culling without a measurement.
 
 #### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
 - **Issue**: Need options to hide and skip dead combatants in menubar and combat tracker

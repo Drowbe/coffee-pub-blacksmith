@@ -49,12 +49,10 @@ boundaries next time — `vault`, `crier`, `monarch`, `herald` have the same tra
 
 #### Whole-file decisions
 
-- [ ] **`design-system/pattern-inventory.md` — remove from Blacksmith.** Its own line 2: *"Audit of
-      coffee-pub-minstrel and coffee-pub-artificer vs coffee-pub-blacksmith"*; titled "Cross-Module Pattern
-      Inventory". It is a suite-wide CSS audit **of two siblings**, not a Blacksmith doc — 52 sibling
-      mentions in 165 lines, and §§1A–1I/2/3A–3F are *entirely* sibling internals. Line-by-line triage
-      would delete the document. Its conclusions already landed in `design-system.md` §10.11–10.20
-      (verified). **Needs a destination decision — there is no suite-level repo today.**
+- [x] **`design-system/pattern-inventory.md` — DELETED.** Its own line 2: *"Audit of coffee-pub-minstrel and
+      coffee-pub-artificer vs coffee-pub-blacksmith"*; titled "Cross-Module Pattern Inventory". A suite-wide
+      CSS audit **of two siblings**, not a Blacksmith doc — 52 sibling mentions in 165 lines, §§1A–1I/2/3A–3F
+      entirely sibling internals. Its conclusions already landed in `design-system.md` §10.11–10.20.
 - [x] **`request-registerapi.md` — DELETE.** A feature *request* asking Blacksmith to proxy Curator's API
       via `registerModule`. Answered "no", three ways: `manager-modules.js` has no `api` branch;
       `BlacksmithAPI.curator` doesn't exist; the inverse pattern shipped instead
@@ -62,83 +60,40 @@ boundaries next time — `vault`, `crier`, `monarch`, `herald` have the same tra
       toolbar/menubar). Bottom two-thirds is a Curator API spec. Not parked in `plans/` — keeping it would
       imply the registry is still roadmap.
 
-#### Factual errors (higher priority than coupling — wrong docs cost more than coupled docs)
+Line-level coupling, the 4 factual errors, and all 5 broken links are **fixed** (see Done). What remains:
 
-- [ ] **`architecture/architecture-toolbarmanager.md:14`** claims Blacksmith's toolbar has predefined tools
-      `regent, lookup, character, assistant, encounter, narrative, css, journal-tools, refresh`. **Six of
-      nine moved to Regent** — `manager-toolbar.js:229`: *"Regent/lookup/character/assistant/encounter/
-      narrative are in coffee-pub-regent"*. Only `css`, `journal-tools`, `refresh` are accurate.
-- [ ] **`architecture/architecture-blacksmith.md` contradicts itself.** §4.4/§5/§7 document the Regent
-      extraction as **done**; §11.3 (line 276) and §11.4 (line 321) list it as **planned future work**.
-      Reconcile §11 — don't just strip names.
-- [ ] **`api/api-menubar.md:238`** presents "Broadcast View Mode tool" as a Blacksmith tool. It's Herald's.
-      **Names no sibling, so a name-based grep will never find it** — found only via a behavior-word sweep.
-- [ ] **`architecture/architecture-window.md:63`** still lists `TokenImageReplacementWindow` as a Blacksmith
-      window pending ApplicationV2 migration. It moved to Curator.
+#### Open
 
-#### Broken links (5 real markdown links; verified)
+**Plans are scaffolding** (see CLAUDE.md): transitional, dismantled into TODO/architecture/API/CHANGELOG,
+deleted when complete. Three rules — a plan declares its status; a plan is never a source of truth; complete
+means delete. Four of seven have been dismantled; **3 remain**:
 
-- [ ] `api/api-canvas.md` → `./cartographer.md` — target does not exist (2 places: 332, 560)
-- [ ] `api/api-core.md` → `cartographer.md` (2277) — does not exist
-- [ ] `api/api-core.md` → `../../coffee-pub-regent/documentation/api-openai.md` (2264) — wrong depth **and**
-      cross-module; deletes under Ground Rule 2
-- [ ] `api/api-hookmanager.md` → `architecture-hookmanager.md` — flat path, needs `../architecture/`
-- [ ] `guides/blacksmith-apis.md:23,44` — prose references to `documentation/api-window.md`. **The file
-      exists** at `documentation/api/api-window.md`; the path is stale. (Not markdown links, so not
-      "broken" — just wrong.)
+- [ ] **`plan-assets.md` (1,569 lines, no status)** — the big one. Trim the Vault feature spec (~1502–1515)
+      to the one sentence stating a rule about *Blacksmith's* API contract; keep §3 and "Working role of
+      Blacksmith core", which are legitimate boundary decisions. Then decide whether the rest folds into
+      architecture. Needs the same code-verification pass that `plan-pins.md` got.
+- [x] **`migration-v14.md`** — **Planned**, v14 move not started. Legitimate live scaffolding; status line
+      added. Deliberately written for the whole suite, not just Blacksmith.
+- [x] **`plan-journal-tools-refactor.md`** — **Planned**, no code changed. Legitimate live scaffolding. Keep.
+- [ ] **Rename the three docs whose names lie.** They're named "migration" or version-stamped while
+      documenting current, shipped behavior; at 13.8.5 the stamps make correct docs read as obsolete.
+      - `guides/guide-pin-migration.md` → `guide-pins-integration.md`; cut the three "What changed in 13.x"
+        tables and §3 as history. **Safe to cut — verified:** no sibling writes the legacy `'owner'` value or
+        a pin `group:` field. The only pins consumers are Squire and Artificer (`manager-pins.js` each) and
+        Curator (`curator.js`, `tile-image-window.js`); Squire writes the v7 values.
+      - `guides/guide-chat-card-migration.md` — this migration is *ongoing*, not done. Drop the Crier lessons
+        section (4 of its 5 bullets duplicate Best Practices), rename away from "migration".
+      - `guides/developer-note-pin-editing-visibility.md` — drop the "13.7.6" framing; consider merging into
+        the pins guide, which it overlaps heavily.
+- [ ] **Delete `guides/blacksmith-apis.md`** once the wiki sidebar is generated — it's a hand-maintained
+      index of wiki links doing the same job, and it was carrying stale paths.
 
-#### Line-level deletions (sibling internals)
-
-- [ ] `api/api-window.md` — 95 (Regent's config value), 201 (hardcodes Regent's file path), 281 (describes
-      Regent's implementation strategy). Lines 185/199/205/206/241/243/244/271 are KEEP.
-- [ ] `api/api-core.md` — 1255 ("Newly exposed functions for Scribe"), 2264, 2277.
-- [ ] `api/api-canvas.md` — 332, 560 (Cartographer doc links).
-- [ ] `api/api-gmnotes.md:5` — explains Squire's sticky-notes architecture to draw a contrast.
-- [ ] `api/api-pins.md:1968` — reaches into Squire's internals
-      (`PanelManager.instance.notesPanel._refreshData()`). `1489` — genericize the Artificer taxonomy payload.
-- [ ] `api/api-menubar.md:356` — describes Herald's broadcast/cameraman feature. (359 is KEEP — caller id.)
-- [ ] `architecture/architecture-blacksmith.md` — 13, 130, 135, 150, 158, 163, 196, 230, 236. **Careful at
-      163**: `MovementConfig`/`VoteConfig` share the line and must survive.
-- [ ] `design-system/design-system.md` — 889, 967, 1056. Mechanical: drop the trailing "Replaces `...`"
-      clause naming sibling CSS classes. §12 is clean (generic `my-module` placeholders).
-- [ ] `applicationv2-window/guidance-applicationv2.md:3` — grounds Blacksmith's zone contract in
-      Artificer's Skills Window as the source of authority.
-
-#### Handle with care — real content wrapped in sibling framing
-
-- [ ] **`architecture/architecture-pins.md:160`** — "Lessons learned (from Squire implementation)". The body
-      (162–175) is genuine Blacksmith rationale: why pins are DOM not PIXI, why two stores, why AbortSignal
-      cleanup. **Retitle to "Design rationale"; keep the body.** A naive delete destroys good docs.
-- [ ] **`architecture/architecture-window.md:43`** — only the final sentence citing Regent's
-      `regent-encounter-worksheet.js` goes. The surrounding two-patterns guidance is valuable and stays.
-- [ ] **`plans/plan-assets.md`** — deciding what Blacksmith core ships vs. what moves out is a legitimate
-      Blacksmith question; you can't define a boundary without naming the other side. Keep §3 and "Working
-      role of Blacksmith core". Trim "Working role of Vault" (1502–1515) — a feature spec for a sibling —
-      down to line 1515, which states a rule about *Blacksmith's* API contract.
-
-#### Rename — stale framing on substantively correct docs
-
-These are named "migration" or version-stamped when they document current, shipped behavior. At 13.8.5 the
-stamps make correct docs read as obsolete.
-
-- [ ] `guides/guide-pin-migration.md` — cut the three "What changed in 13.x" tables (9–61) and §3 (127–141)
-      as completed history; rename to `guide-pins-integration.md`. Header says "as of v13.6.3".
-      **Caveat RESOLVED — safe to cut.** Checked every sibling repo: **no module writes the legacy
-      `'owner'` value or a pin `group:` field.** The only pins consumers are Squire
-      (`scripts/manager-pins.js`), Artificer (`scripts/manager-pins.js`), and Curator (`scripts/curator.js`,
-      `scripts/tile-image-window.js`), and Squire writes the v7 values (`blacksmithAccess: 'gm'`,
-      `blacksmithVisibility: 'visible'`). The "stop using" tables are pure history.
-- [ ] `guides/guide-chat-card-migration.md` — this migration is *ongoing*, not done (`TODO.md:29`). Drop the
-      Crier lessons section (581–590; 4 of 5 bullets duplicate Best Practices), rename away from "migration".
-- [ ] `guides/developer-note-pin-editing-visibility.md` — drop the "13.7.6" framing. Overlaps heavily with
-      the pins guide; consider merging.
-
-#### No action needed
+#### Clean — no action
 
 `api/api-tags.md` (22 refs, all textbook), `api/api-sockets.md`, `api/api-create-journal-entry.md`,
 `architecture/architecture-tags.md` (8 refs, all clean), `TODO.md` (image-replacement backlog items are
-correctly hedged as out-of-scope), `guides/guide-registering-with-blacksmith.md`, plus the three
-zero-reference files above.
+correctly hedged as out-of-scope), `guides/guide-registering-with-blacksmith.md`, plus `api-stats.md`,
+`api-campaign.md`, and `architecture-chatcards.md` (zero real sibling references — the `scribe` grep lied).
 - [ ] **Audit the rest of `architecture/architecture-blacksmith.md`.** §4.3/§5/§7 and its doc links were
       corrected against the filesystem; the other sections were never verified.
 - [ ] **Verify doc-claimed filenames across all architecture docs.** §4.3 alone had 8 pre-rename names.
@@ -179,7 +134,7 @@ docs. **The repo is law.** Nothing is authored wiki-first.
 - [ ] **Decide `_Sidebar.md`.** GitHub wiki navigation with no natural repo source. Either generate it from
       the manifest or accept it as the one sanctioned wiki-only exception.
 - [ ] **Decide mirror scope.** 48 docs live under `documentation/`; only ~19 have wiki pages. Guides,
-      plans, design-system, PERFORMANCE.md and most architecture docs are unmirrored. Mirror everything,
+      plans, design-system and most architecture docs are unmirrored. Mirror everything,
       or only the consumer-facing API surface?
 - [ ] **Build the publish path.** The wiki **cannot be checked out on Windows** — pages are named
       `API:-Pins.md` and `:` is illegal in NTFS. Clone succeeds, checkout fails. Must go through bare-repo
@@ -308,6 +263,39 @@ being rebuilt. The old pack data is reference material at most.
 - [x] Scoped the `*.log` gitignore rule so it no longer swallows LevelDB write-ahead logs — a latent
       data-loss bug (harmless today only because every WAL happens to be 0 bytes).
 - [x] Added `CLAUDE.md`.
+- [x] **Phase 1 doc cleanup executed** (2026-07-16). Removed the ~30 lines of real sibling coupling
+      (Regent's file paths and config values in `api-window.md`, Squire's `PanelManager` internals in
+      `api-pins.md`, Herald's broadcast feature in `api-menubar.md`, Curator/Herald/Regent subsystem entries
+      throughout `architecture-blacksmith.md`, sibling CSS class names in `design-system.md`, Artificer as
+      the authority for the zone contract in `guidance-applicationv2.md`). Fixed 4 factual errors and all 5
+      broken links; deleted `request-registerapi.md`. Kept the ~250 legitimate references — siblings as
+      example *callers*. Retitled `architecture-pins.md` §160 to "Design rationale" rather than deleting the
+      body, which is real Blacksmith reasoning.
+- [x] **Rescued 18 KB of lost performance documentation.** `documentation/performance.md` had been
+      overwritten by a 459-char stub that pointed at *itself* — the classic Windows case-insensitivity trap
+      (`PERFORMANCE.md` and `performance.md` are the same file on NTFS, so "renaming" it destroyed the
+      content). Recovered from `7d88618f` and split per the five-kind taxonomy: open items → `TODO.md`,
+      design + measurement method → `architecture-blacksmith.md` §9A/§9B, history → dropped. File deleted.
+- [x] **Fixed 17 stale flat doc paths** across 8 files (`documentation/api-x.md` →
+      `documentation/api/api-x.md`, etc.). `CHANGELOG.md` deliberately untouched — it's history.
+- [x] **Thinned `CLAUDE.md`.** It had grown into a sixth document type duplicating architecture's job. The
+      hard-won facts moved into `architecture-blacksmith.md` §9A (Traps) and §9B (Performance-critical
+      design); CLAUDE.md keeps conventions, boundaries, the five-kind taxonomy, and pointers.
+- [x] **Dismantled 4 of 7 plans** (2026-07-16), each verified against code first, not just deleted:
+      - `plan-rename.md` — said `Status: Complete` since 2026-04-17. Its one live item was removing the
+        `window-base-v2.js` shim — **which no longer exists**. But two live docs still described it, and
+        `design-system.md` told module authors to `import { WindowBase } from './window-base-v2.js'` — a
+        file that isn't there. **A completed plan nobody deleted kept a broken instruction alive in the
+        API docs.** Fixed both, deleted the plan.
+      - `plan-settings.md` — items 1–4 verified done in code. The load-gate vs on/off model → architecture
+        §8; open items (incl. one only the plan had) → `TODO.md` with their detail. Deleted.
+      - `plan-token-naming.md` — design → new `architecture/architecture-token-naming.md`; phases 3–4 →
+        `TODO.md`. The plan hardcoded "18 keys"; `resources/naming-taxonomy.json` has **20** — so the new
+        doc points at the file instead of copying it.
+      - `plan-pins.md` — **dead and actively harmful.** Its "Locked Decisions" locked in a `group` field
+        that schema **v4 deleted**; anyone following it would be led backwards. Every plan-vs-doc
+        contradiction went to the docs. Migrated 3 rationale items (three-concerns model,
+        pre-filter-over-culling, why `group` died) → `architecture-pins.md`; filed 3 TODOs. Deleted.
 - [x] **Deleted the public `Drowbe/Burden-of-Knowledge` GitHub repo** (2026-07-16). It was **PUBLIC and
       1.29 GB**, republishing the campaign's raw assets — 2,616 `.webp`, 519 `.mp3`, 82 `.png`/`.jpg`.
       Provenance was fine (homebrew and illustrations are the author's; tokens via a Forgotten Adventures

@@ -165,6 +165,19 @@ Image supports Font Awesome class strings and image URLs (no HTML in stored valu
 - State-driven appearance: visuals update from pin data.
 - Drop canvas data hook: clean integration with Foundry drag-and-drop.
 
+### Three separable concerns
+
+The design spine. These are **independent axes** and conflating them is the main way pin work goes wrong:
+
+| Concern | Question it answers | Mechanism |
+|---|---|---|
+| **Permission** | *May* this user see or edit the pin? | Hard gate — `blacksmithAccess` / `blacksmithVisibility`, ownership |
+| **Classification** | *What kind of thing* is this pin? | `type` (coarse, technical) + `tags[]` (user-facing, open-ended) |
+| **View state** | Does this user *want* to see it right now? | Per-user filters + named profiles; never persists to the pin |
+
+Permission is a gate; view state is a preference. A filtered-out pin is not a hidden pin. Never express a
+permission decision as a filter, or vice versa.
+
 ### Deliberate choices
 
 - **No PIXI for pin graphics**: Pins are DOM elements in a fixed overlay; only coordinate conversion uses the canvas/PIXI stack.
@@ -173,9 +186,18 @@ Image supports Font Awesome class strings and image URLs (no HTML in stored valu
 - **Event cleanup**: Handlers can be unregistered via AbortSignal or explicit API.
 - **Validation and migration**: Schema version and migration map; invalid pins dropped without failing scene load.
 - **Context menu**: Registration API so modules add items without editing core renderer code.
+- **`type` + `tags[]`, not `type` + `group` + `tags[]`.** The model originally had a third `group` field.
+  Schema **v4 removed it** and promoted its values into `tags` (`pins-schema.js` — the v3→v4 migration
+  deletes `group`). Two axes were enough: one coarse and technical (`type`), one open-ended and user-facing
+  (`tags`). A middle tier was a third thing to name, keep consistent, and explain. **Don't reintroduce it.**
+- **Pre-filter over viewport culling.** The renderer excludes pins by permission and active filter
+  **before DOM creation**, rather than culling off-screen pins. The suspected pressure points are DOM node
+  count, per-pin coordinate work on pan/zoom, icon rendering, and event overhead — not raw memory.
+  Pre-filtering attacks node count directly and is far simpler than a viewport system. Culling was
+  deliberately deferred, and **should not be built without a measurement first**.
 
 ---
 
 ## Remaining work
 
-See **`TODO.md`** for the master list of work. Examples: full automated tests, Phase 4–5 items. Architecture drives API development; pins-specific todos are in TODO.md. Optional: Foundry’s context menu system, documentation and test updates.
+See **`documentation/TODO.md`**. Architecture drives API development; pins-specific todos live there.

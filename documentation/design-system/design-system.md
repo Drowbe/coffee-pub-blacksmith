@@ -1389,11 +1389,12 @@ export class ManagerFeature {
 
 ### 14.4 ApplicationV2 Window Pattern
 
-New windows extend `window-base-v2.js`:
+New windows extend Blacksmith's window base. **Get it from `module.api`** — do not deep-link
+`scripts/window-base.js` from another module; the file path is not the stable contract.
 
 ```javascript
 // window-myfeature.js
-import { WindowBase } from './window-base-v2.js';
+const WindowBase = game.modules.get('coffee-pub-blacksmith')?.api?.BlacksmithWindowBaseV2;
 
 export class MyFeatureWindow extends WindowBase {
     static get defaultOptions() {

@@ -7,7 +7,7 @@ This document describes the **Window API**: how to register a window type with B
 **Status:** The Window API is exposed on `game.modules.get('coffee-pub-blacksmith').api`. Use this document as the contract for integration.
 
 **Related docs:**
-- **documentation/architecture-window.md** — Internal architecture (zone contract, registry, base class).
+- **documentation/architecture/architecture-window.md** — Internal architecture (zone contract, registry, base class).
 - **documentation/applicationv2-window/guidance-applicationv2.md** — How to build an Application V2 window (Handlebars, PARTS, delegation, scroll).
 - **documentation/applicationv2-window/README.md** and **example-window.hbs** / **example-window.js** — Copy-paste example.
 
@@ -35,13 +35,13 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 | **Base class** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith’s Application V2 base when you build a window that uses the zone template and shared behavior (scroll save/restore, optional `data-action` delegation, window size constraints). |
 
 - Use the **registry** when something else (Blacksmith toolbar, another module, a macro) should call `openWindow('your-id')`.
-- Use **`api.BlacksmithWindowBaseV2`** (recommended) or **`api.getWindowBaseV2()`** when your module defines `class MyWindow extends BlacksmithWindowBaseV2`. **Do not** deep-link `scripts/window-base.js` or the legacy shim `scripts/window-base-v2.js` from another module’s manifest — use **`module.api`**; file paths are not the stable contract.
+- Use **`api.BlacksmithWindowBaseV2`** (recommended) or **`api.getWindowBaseV2()`** when your module defines `class MyWindow extends BlacksmithWindowBaseV2`. **Do not** deep-link `scripts/window-base.js` from another module’s manifest — use **`module.api`**; file paths are not the stable contract.
 
 **Availability timing**
 
 - **`BlacksmithWindowBaseV2` / `getWindowBaseV2()`** — Also patched on `module.api` **as soon as Blacksmith’s module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level** (e.g. `class X extends resolveBase()`).
 - **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith’s **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
-- **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith’s `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith’s **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture-blacksmith.md** §3.2–3.3.
+- **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith’s `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith’s **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture/architecture-blacksmith.md** §3.2–3.3.
 
 ---
 
@@ -295,8 +295,8 @@ Both are exposed on `module.api`.
 
 - **Implemented** — Window API (`api-windows.js`), core template (`window-template.hbs`), base class (`window-base.js`). Template data contract documented above.
 - **Public API** — `BlacksmithWindowBaseV2` and `getWindowBaseV2()` exposed on `module.api` so consumers do not import Blacksmith base scripts directly.
-- **Rename** — Canonical file `window-base.js`; `window-base-v2.js` is a one-release re-export shim for stale deep links.
+- **Canonical file** — `scripts/window-base.js`. The old `window-base-v2.js` re-export shim has been removed; use `module.api`, not a file path.
 
 ---
 
-*For internal architecture and implementation details, see **documentation/architecture-window.md**. For step-by-step window implementation, see **documentation/applicationv2-window/guidance-applicationv2.md**.*
+*For internal architecture and implementation details, see **documentation/architecture/architecture-window.md**. For step-by-step window implementation, see **documentation/applicationv2-window/guidance-applicationv2.md**.*
