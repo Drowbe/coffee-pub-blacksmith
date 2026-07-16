@@ -31,6 +31,12 @@ logs
 *.log
 npm-debug.log*
 
+# Compendiums are not part of this module. Blacksmith bundles no packs: they are not
+# declared in module.json and are not in the release zip. Users select their own
+# compendiums in settings. This repo lives inside a live Foundry install, so the
+# folder still exists on disk and Foundry churns it every run — git just ignores it.
+packs/
+
 # Optional npm cache directory
 .npm
 

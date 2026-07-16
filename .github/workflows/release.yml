@@ -46,7 +46,6 @@ jobs:
             lang/ \
             images/ \
             sounds/ \
-            packs/ \
             prompts/ \
             resources/ \
             api/ \

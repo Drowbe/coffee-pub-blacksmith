@@ -87,7 +87,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 | **HookManager** | Central hook registration. |
 | **ConstantsGenerator**, **assetLookup** | Constants generator always; **assetLookup** is `null` until **`initializeAssetLookupInstance`** runs in **`ready`**, then **`module.api.assetLookup`** is updated to the live instance. |
 | **Toolbar API** | Placeholders cleared when **manager-toolbar** loads (`init`, after `await addToolbarButton`). |
-| **Window API** | Placeholders cleared when **api-windows** loads (`init`). See **documentation/api-window.md**. |
+| **Window API** | Placeholders cleared when **api-windows** loads (`init`). See **documentation/api/api-window.md**. |
 | **Menubar API** | Bound at **`init`** (early assign); may be rebound when dynamic **api-menubar** import completes. |
 | **sockets** | SocketManager facade: waitForReady, register, emit (attached when SocketManager wiring runs in **`init`**). |
 | **CanvasLayer**, **getCanvasLayer** | Set on canvasReady. |
@@ -112,39 +112,39 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 ### 4.1 Infrastructure
 
 - **HookManager** (`manager-hooks.js`) â€” Central registration for Foundry hooks; priority and context; used throughout blacksmith.js and other scripts.
-- **SocketManager** (`manager-sockets.js`) â€” SocketLib with native fallback; `waitForReady()`, `register()`, `emit()`; used for cross-client and GMâ€“client messaging. See **documentation/architecture-socketmanager.md**.
+- **SocketManager** (`manager-sockets.js`) â€” SocketLib with native fallback; `waitForReady()`, `register()`, `emit()`; used for cross-client and GMâ€“client messaging. See **documentation/architecture/architecture-socketmanager.md**.
 - **ModuleManager** (`manager-modules.js`) â€” Registration and activation of â€œCoffee Pubâ€ modules and their features.
 - **UtilsManager** (`manager-utilities.js`) â€” Wraps shared utilities (from api-core and elsewhere) for consistent access.
 - **LoadingProgressManager** (`manager-loading-progress.js`) â€” Loading progress phases and messages during bootstrap.
 
 ### 4.2 UI and Canvas
 
-- **MenuBar** (`api-menubar.js`) â€” Global menubar: tools, notifications, secondary bar, combat bar. External modules register tools via `module.api.registerMenubarTool` etc. See **documentation/api-menubar.md**.
-- **Toolbar** (`manager-toolbar.js`) â€” Encounter toolbar tools; `registerToolbarTool`, etc. See **documentation/architecture-toolbarmanager.md**, **documentation/api-toolbar.md**.
+- **MenuBar** (`api-menubar.js`) â€” Global menubar: tools, notifications, secondary bar, combat bar. External modules register tools via `module.api.registerMenubarTool` etc. See **documentation/api/api-menubar.md**.
+- **Toolbar** (`manager-toolbar.js`) â€” Encounter toolbar tools; `registerToolbarTool`, etc. See **documentation/architecture/architecture-toolbarmanager.md**, **documentation/api/api-toolbar.md**.
 - **BlacksmithLayer** (`canvas-layer.js`) â€” Custom canvas layer (`blacksmith-utilities-layer`) for pins and other canvas UI.
-- **CanvasTools** (`manager-canvas.js`) â€” Canvas-related helpers. See **documentation/api-canvas.md**.
-- **Pins** â€” **PinManager** (`manager-pins.js`) and **PinRenderer** (`pins-renderer.js`) handle lifecycle and DOM rendering; **pins-schema.js** for validation/defaults; **PinsAPI** (`api-pins.js`) is the public API; **PinConfigWindow** (`window-pin-configuration.js`) for config UI. See **documentation/architecture-pins.md**, **documentation/api-pins.md**.
+- **CanvasTools** (`manager-canvas.js`) â€” Canvas-related helpers. See **documentation/api/api-canvas.md**.
+- **Pins** â€” **PinManager** (`manager-pins.js`) and **PinRenderer** (`pins-renderer.js`) handle lifecycle and DOM rendering; **pins-schema.js** for validation/defaults; **PinsAPI** (`api-pins.js`) is the public API; **PinConfigWindow** (`window-pin-configuration.js`) for config UI. See **documentation/architecture/architecture-pins.md**, **documentation/api/api-pins.md**.
 
 ### 4.3 Feature Domains
 
 - **Broadcast** â€” Now provided by **Coffee Pub Herald** (`coffee-pub-herald`). See Herald module documentation.
-- **Rolls** â€” **manager-rolls.js**: 4-function roll system; `executeRoll` exposed as `BLACKSMITH.rolls.execute`; used by skill check dialog and socket handlers. See **documentation/architecture-rolls.md**.
-- **Stats** â€” **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture-stats.md**, **documentation/api-stats.md**.
+- **Rolls** â€” **manager-rolls.js**: 4-function roll system; `executeRoll` exposed as `BLACKSMITH.rolls.execute`; used by skill check dialog and socket handlers. See **documentation/architecture/architecture-rolls.md**.
+- **Stats** â€” **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture/architecture-stats.md**, **documentation/api/api-stats.md**.
 - **Timers** â€” **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`).
-- **Chat cards** â€” **ChatCardsAPI** (`api-chat-cards.js`): themes and rendering contract. See **documentation/architecture-chatcards.md**, **documentation/api-chatcards.md**.
-- **Token/portrait image replacement** â€” Provided by the optional module **Coffee Pub Curator** when installed. Curator registers menubar/toolbar tools and combat context menu items via Blacksmithâ€™s API; architecture is documented in **documentation/architecture-imagereplacement.md** (Curator-focused).
-- **XP** â€” **XpManager** (`xp-manager.js`). See **documentation/architecture-xp.md**.
-- **Voting** â€” **VoteManager** (`vote-manager.js`), **VoteConfig**.
-- **Combat** â€” **CombatTracker** (`combat-tracker.js`), **sidebar-combat.js**, **combat-tools.js**.
-- **Journal** â€” **JournalTools** (`journal-tools.js`), **JournalToolsWindow**.
-- **Encounter** â€” **EncounterToolbar** (`encounter-toolbar.js`).
+- **Chat cards** â€” **ChatCardsAPI** (`api-chat-cards.js`): themes and rendering contract. See **documentation/architecture/architecture-chatcards.md**, **documentation/api/api-chatcards.md**.
+- **Token/portrait image replacement** â€” Not a Blacksmith subsystem. Provided by **Coffee Pub Curator**, which consumes Blacksmithâ€™s public API like any other module. Its architecture is documented in Curatorâ€™s own repo.
+- **XP** â€” **XpManager** (`xp-manager.js`). See **documentation/architecture/architecture-xp.md**.
+- **Voting** â€” **VoteManager** (`manager-vote.js`), **VoteConfig** (`window-vote-config.js`).
+- **Combat** â€” **CombatTracker** (`ui-combat-tracker.js`), **sidebar-combat.js**, **ui-combat-tools.js**.
+- **Journal** â€” **JournalTools** (`manager-journal-tools.js`), **JournalToolsWindow**.
+- **Encounter** â€” **EncounterToolbar** (`ui-journal-encounter.js`).
 
 ### 4.4 Supporting
 
 - **WrapperManager** (`manager-libwrapper.js`) â€” libWrapper integration.
 - **NavigationManager** (`manager-navigation.js`) â€” Scene navigation and scene icon updates.
 - **LatencyChecker** (`manager-latency-checker.js`) — Latency display.
-- **SidebarPin** (`sidebar-pin.js`), **SidebarStyle** (`sidebar-style.js`) â€” Sidebar behavior and styling.
+- **SidebarPin** (`ui-sidebar-pin.js`), **SidebarStyle** (`ui-sidebar-style.js`) â€” Sidebar behavior and styling.
 - **CompendiumManager** (`manager-compendiums.js`) â€” Compendium usage and ordering.
 - **ConstantsGenerator** (`constants-generator.js`), **AssetLookup** (`asset-lookup.js`) â€” Constants and asset taxonomy (sounds, images, etc.).
 - **OpenAI/Regent:** AI tools (Consult the Regent, worksheets, OpenAI integration) are provided by the optional module **coffee-pub-regent**. See that moduleâ€™s documentation (e.g. `coffee-pub-regent/documentation/api-openai.md`).
@@ -154,13 +154,13 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 
 ## 5. Windows and Applications
 
-- **Application V2 window system** â€” Zone contract (title bar, option bar, header, body, action bar), window registry (`registerWindow` / `openWindow`), and optional base class for consistent windows. See **documentation/architecture-window.md** and **documentation/api-window.md**. Implementation guidance and examples: **documentation/applicationv2-window/guidance-applicationv2.md**, **documentation/applicationv2-window/README.md**.
+- **Application V2 window system** â€” Zone contract (title bar, option bar, header, body, action bar), window registry (`registerWindow` / `openWindow`), and optional base class for consistent windows. See **documentation/architecture/architecture-window.md** and **documentation/api/api-window.md**. Implementation guidance and examples: **documentation/applicationv2-window/guidance-applicationv2.md**, **documentation/applicationv2-window/README.md**.
 - **BlacksmithWindowQuery** (`window-query.js`) â€” Generic query/assistant window; partials registered via **window-query-registration.js**. (Lives in **coffee-pub-regent**; Regent owns the window.)
 - **PinConfigWindow** (`window-pin-configuration.js`) — Pin configuration (Application).
 - **SkillCheckDialog** (`window-skillcheck.js`) â€” Skill check dialog; uses manager-rolls for orchestration and delivery.
 - **CSSEditor** (`window-gmtools.js`) â€” GM custom CSS.
 - **StatsWindow** (`window-stats-party.js`), **PlayerStatsWindow** (`window-stats-player.js`).
-- **TokenImageReplacementWindow** removed; see **Coffee Pub Curator**. **MovementConfig** (`token-movement.js`), **VoteConfig** (`vote-config.js`).
+- **TokenImageReplacementWindow** removed; see **Coffee Pub Curator**. **MovementConfig** (`token-movement.js`), **VoteConfig** (`window-vote-config.js`).
 
 All new windows should use Application V2 patterns per project rules; existing windows are being migrated (see architecture-window.md).
 
@@ -177,18 +177,25 @@ All new windows should use Application V2 patterns per project rules; existing w
 
 ## 7. Styles
 
-**`styles/default.css`** is the single entry; it imports (in order):
+**`styles/default.css`** is the single entry; it `@import`s all 48 other stylesheets (in order):
 
-- Shared: common, settings, loading-progress.
-- Overrides: overrides-foundry, overrides-modules.
-- Windows: window-common, window-gmtools, window-query, window-skillcheck, token-movement, window-xp, window-stats, window-roll-*, window-pin-configuration.
-- Tabs: tabs-scenes.
-- Toolbars: toolbars, toolbar-zones, toolbar-encounter, journal-tools.
-- Cards: cards-layout-legacy, cards-themes-legacy, cards-layout, cards-themes, cards-xp, cards-stats, cards-skill-check.
-- Menubar, context menus, pins, links-themes.
-- Timers, vote, latency, combat-tools, utility-quickview, sidebar-*.
+- **Design tokens (first):** vars.
+- **Shared:** common, settings, loading-progress.
+- **Overrides:** overrides-foundry, overrides-modules.
+- **Windows:** window-common, window-gmtools, window-skillcheck, token-movement, window-xp, window-stats, window-roll-normal, window-roll-cinematic, window-pin-config, window-pin-layers, window-template, window-json-import, window-form-controls, window-tabs, window-list, window-panels.
+- **Tabs:** tabs-scenes.
+- **Toolbars:** toolbars, toolbar-zones, toolbar-encounter, journal-tools, journal-pins.
+- **Cards:** cards-common-layout, cards-common-themes, cards-xp, cards-stats, cards-skill-check.
+- **Menubar:** menubar, menubar-combatbar.
+- **Context menus:** menu-context-global.
+- **Pins:** pins. **Links:** links-themes.
+- **Timers:** timer-combat, timer-planning, timer-round.
+- **Other:** vote, latency, combat-tools, utility-quickview, sidebar-pin, sidebar-style, sidebar-combat.
 
-Theming is CSS-variable based; chat card theming is documented in **documentation/architecture-chatcards.md**.
+> A new stylesheet is **silently unstyled** unless it is added to `default.css`. Note there is no
+> `window-query.css` here â€” that window lives in **coffee-pub-regent**, which owns its styles.
+
+Theming is CSS-variable based; chat card theming is documented in **documentation/architecture/architecture-chatcards.md**.
 
 ---
 
@@ -197,8 +204,8 @@ Theming is CSS-variable based; chat card theming is documented in **documentatio
 - **Hooks** â€” Foundry hooks drive most behavior. HookManager registers them with priorities and contexts; many subsystems (pins, canvas layer, scene updates, settings cache, chat message clicks) are wired in blacksmith.js or in their own files via HookManager.
 - **Settings** â€” `game.settings.get/set(MODULE.ID, key)`. Settings cache in blacksmith.js with TTL; cleared on `settingChange` for the module. **registerSettings()** runs in ready.
 - **Sockets** â€” External modules use `module.api.sockets` (or BlacksmithAPI.getSockets()) to register handlers and emit events; SocketManager routes to SocketLib or native sockets.
-- **Pins** â€” Stored in scene flags (placed) and world setting (unplaced). PinManager CRUD and permissions; PinRenderer renders on BlacksmithLayer; canvasReady and updateScene trigger load. See **documentation/architecture-pins.md**.
-- **Rolls** â€” Skill checks and other flows use **manager-rolls.js** (orchestrateRoll, processRoll, deliverRollResults, executeRoll); cinema overlay updates are triggered via sockets. See **documentation/architecture-rolls.md**.
+- **Pins** â€” Stored in scene flags (placed) and world setting (unplaced). PinManager CRUD and permissions; PinRenderer renders on BlacksmithLayer; canvasReady and updateScene trigger load. See **documentation/architecture/architecture-pins.md**.
+- **Rolls** â€” Skill checks and other flows use **manager-rolls.js** (orchestrateRoll, processRoll, deliverRollResults, executeRoll); cinema overlay updates are triggered via sockets. See **documentation/architecture/architecture-rolls.md**.
 
 ---
 

@@ -2,6 +2,8 @@
 
 **Master list:** This file contains all todos referenced in architecture and API documentation. **Process:** When a task is completed, add it to **`CHANGELOG.md`**, then remove it from this file and from any completed-task language in API/architecture docs.
 
+**Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
+
 ## Performance & memory (stack rank)
 
 Mirrors **`documentation/PERFORMANCE.md`** — active investigation items; update both when status changes.

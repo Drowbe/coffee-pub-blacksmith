@@ -1,6 +1,8 @@
 import { MODULE } from './const.js';
-// COFFEEPUB now available globally via window.COFFEEPUB
 import { postConsoleAndNotification } from './api-core.js';
+
+// Coffee Pub modules are identified by their id prefix.
+const MODULE_PREFIX = 'coffee-pub-';
 
 export class ModuleManager {
     static registeredModules = new Map();
@@ -12,19 +14,33 @@ export class ModuleManager {
     }
 
     static _detectInstalledModules() {
-        // Check for each Coffee Pub module
-        Object.entries(window.COFFEEPUB?.MODULES || {}).forEach(([key, moduleId]) => {
-            const module = game.modules.get(moduleId);
-            if (module?.active) {
-                postConsoleAndNotification(MODULE.NAME, `Detected active module: ${moduleId}`, "", true, false);
-                this.registeredModules.set(moduleId, {
-                    id: moduleId,
-                    name: module.title,
-                    version: module.version,
-                    features: new Set()
-                });
-            }
-        });
+        // Discover active Coffee Pub modules straight from Foundry's registry.
+        // This previously read `window.COFFEEPUB.MODULES`, which nothing ever populated, so the
+        // registry stayed empty and every registerModule() call failed its lookup and returned false.
+        for (const module of game.modules) {
+            if (!module.active || !module.id.startsWith(MODULE_PREFIX)) continue;
+            postConsoleAndNotification(MODULE.NAME, `Detected active module: ${module.id}`, "", true, false);
+            this._addModuleInfo(module);
+        }
+    }
+
+    /**
+     * Create (or return) the registry entry for an active Foundry module.
+     * @param {Module} module - A Foundry module from game.modules
+     * @returns {Object} The registry entry
+     */
+    static _addModuleInfo(module) {
+        const existing = this.registeredModules.get(module.id);
+        if (existing) return existing;
+
+        const moduleInfo = {
+            id: module.id,
+            name: module.title,
+            version: module.version,
+            features: new Set()
+        };
+        this.registeredModules.set(module.id, moduleInfo);
+        return moduleInfo;
     }
 
     /**
@@ -34,15 +50,24 @@ export class ModuleManager {
      * @param {string} config.name - Display name of the module
      * @param {string} config.version - Module version
      * @param {Array} config.features - Array of feature objects the module provides
+     * @returns {boolean} True if the module is active and now registered
      */
-    static registerModule(moduleId, config) {
-        if (!this.registeredModules.has(moduleId)) {
-            postConsoleAndNotification(MODULE.NAME, `Error: Module ${moduleId} not found or not active`, "", true, false);
-            return false;
+    static registerModule(moduleId, config = {}) {
+        // Self-register on demand: a caller must not depend on having been auto-detected first.
+        let moduleInfo = this.registeredModules.get(moduleId);
+        if (!moduleInfo) {
+            const module = game.modules.get(moduleId);
+            if (!module?.active) {
+                postConsoleAndNotification(MODULE.NAME, `Error: Module ${moduleId} not found or not active`, "", true, false);
+                return false;
+            }
+            moduleInfo = this._addModuleInfo(module);
         }
 
-        const moduleInfo = this.registeredModules.get(moduleId);
-        
+        // Caller-supplied identity wins over what Foundry reports.
+        if (config.name) moduleInfo.name = config.name;
+        if (config.version) moduleInfo.version = config.version;
+
         // Register each feature
         config.features?.forEach(feature => {
             if (feature.type && feature.data) {
