@@ -415,6 +415,28 @@
     outline: none;
     box-shadow: none;
 }
+/* Actionable notification (has an onClick) */
+.menu-notification-item.notification-actionable {
+    cursor: pointer;
+}
+.menu-notification-item.notification-actionable:hover i,
+.menu-notification-item.notification-actionable:hover .notification-content {
+    color: rgba(255, 100, 0, 0.9);
+}
+/* Attention pulse (options.pulse) */
+.menu-notification-item.notification-pulse i {
+    animation: notificationPulse 1.6s ease-in-out infinite;
+}
+@keyframes notificationPulse {
+    0%, 100% {
+        color: rgba(240, 240, 224, 0.6);
+        text-shadow: 0 0 2px rgba(255, 100, 0, 0.2);
+    }
+    50% {
+        color: rgba(255, 100, 0, 1);
+        text-shadow: 0 0 4px rgba(255, 100, 0, 0.7);
+    }
+}
 
 /* ------------------------------------ */
 

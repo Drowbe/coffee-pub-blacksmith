@@ -482,6 +482,17 @@ export class PlanningTimer {
             this.state.remaining = this.state.duration;
         }
 
+        // Self-heal: state says the timer is running but the GM has no live interval. A race between
+        // the render / updateCombat / initiative-completeness start paths can leave it active+unpaused
+        // with no interval — the "shows the time but never ticks" bug. resumeTimer never had this gap
+        // (it always creates the interval), which is why pause+resume was the workaround. Recreate the
+        // tick here so it self-corrects.
+        if (game.user.isGM && this.state.isActive && !this.state.isPaused
+            && !this.state.isExpired && this.state.remaining > 0
+            && !this.timer && this.verifyTimerConditions()) {
+            this._beginCountdown();
+        }
+
         const timeLimit = this._planningBarDenominatorSeconds();
         const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
         let barClass = 'high';
@@ -652,6 +663,56 @@ export class PlanningTimer {
         this.syncState();
     }
 
+    /**
+     * GM-only: (re)start the 1-second countdown interval. Single source of truth for the tick loop —
+     * previously duplicated verbatim in startTimer, resumeTimer, and setTime. Clears any existing
+     * interval first, so it is safe to call repeatedly (used by the render-hook self-heal).
+     */
+    static _beginCountdown() {
+        if (!game.user.isGM) return;
+        if (this.timer) clearInterval(this.timer);
+        this.timer = setInterval(() => {
+            if (this.state.isPaused) return;
+
+            this.state.remaining--;
+            this.syncState();
+
+            const timeLimit = PlanningTimer._planningBarDenominatorSeconds();
+            const percentRemaining = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
+
+            const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
+            const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
+            const justEnteredWarning = previousPercentRemaining > endingSoonThreshold &&
+                                     percentRemaining <= endingSoonThreshold;
+
+            if (percentRemaining <= endingSoonThreshold) {
+                if (justEnteredWarning) {
+                    const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
+                    if (endingSoonSound !== 'none') {
+                        playSound(endingSoonSound, this.getTimerVolume());
+                    }
+                    if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
+                        this.state.hasHandledWarning = true;
+                        const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
+                        ui.notifications.warn(message);
+                        this.sendChatMessage({
+                            isTimerWarning: true,
+                            warningMessage: message
+                        });
+                    }
+                }
+            } else {
+                this.state.hasHandledWarning = false;
+            }
+
+            this.previousPercentRemaining = percentRemaining;
+
+            if (this.state.remaining <= 0) {
+                this.timeExpired();
+            }
+        }, 1000);
+    }
+
     static resumeTimer() {
         if (this.state.remaining <= 0 && !this.state.isExpired) {
             this.state.remaining = this.state.duration || getSettingSafely(MODULE.ID, 'planningTimerDuration', this.DEFAULTS.timeLimit);
@@ -664,56 +725,7 @@ export class PlanningTimer {
 
         // Only GM should handle the interval
         if (game.user.isGM) {
-            if (this.timer) clearInterval(this.timer);
-            this.timer = setInterval(() => {
-                if (this.state.isPaused) return;
-                
-                this.state.remaining--;
-                this.syncState();
-
-                // Calculate percentage of time remaining (same denominator as updateUI bar width)
-                const timeLimit = PlanningTimer._planningBarDenominatorSeconds();
-                const percentRemaining = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
-
-                // Check ending soon threshold
-                const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
-                const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
-                
-                // Detect when we first cross into the warning threshold
-                const justEnteredWarning = previousPercentRemaining > endingSoonThreshold && 
-                                         percentRemaining <= endingSoonThreshold;
-                
-                if (percentRemaining <= endingSoonThreshold) {
-                    // Play ending soon sound (for all clients) - only once when first entering
-                    if (justEnteredWarning) {
-                        const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
-                        if (endingSoonSound !== 'none') {
-                            playSound(endingSoonSound, this.getTimerVolume());
-                        }
-                        
-                        // Show ending soon notification and send chat message (GM only) - only once
-                        if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
-                            this.state.hasHandledWarning = true;
-                            const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
-                            ui.notifications.warn(message);
-                            this.sendChatMessage({
-                                isTimerWarning: true,
-                                warningMessage: message
-                            });
-                        }
-                    }
-                } else {
-                    // Reset warning flag when we're outside the warning zone
-                    this.state.hasHandledWarning = false;
-                }
-                
-                // Store current percentage for next comparison
-                this.previousPercentRemaining = percentRemaining;
-
-                if (this.state.remaining <= 0) {
-                    this.timeExpired();
-                }
-            }, 1000);
+            this._beginCountdown();
 
             // Record resume for stats
             CombatStats.recordTimerUnpause();
@@ -752,56 +764,7 @@ export class PlanningTimer {
         }
 
         if (!this.state.isPaused && game.user.isGM) {
-            if (this.timer) clearInterval(this.timer);
-            this.timer = setInterval(() => {
-                if (this.state.isPaused) return;
-                
-                this.state.remaining--;
-                this.syncState();
-
-                // Calculate percentage of time remaining (same denominator as updateUI bar width)
-                const timeLimit = PlanningTimer._planningBarDenominatorSeconds();
-                const percentRemaining = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
-
-                // Check ending soon threshold
-                const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
-                const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
-                
-                // Detect when we first cross into the warning threshold
-                const justEnteredWarning = previousPercentRemaining > endingSoonThreshold && 
-                                         percentRemaining <= endingSoonThreshold;
-                
-                if (percentRemaining <= endingSoonThreshold) {
-                    // Play ending soon sound (for all clients) - only once when first entering
-                    if (justEnteredWarning) {
-                        const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
-                        if (endingSoonSound !== 'none') {
-                            playSound(endingSoonSound, this.getTimerVolume());
-                        }
-                        
-                        // Show ending soon notification and send chat message (GM only) - only once
-                        if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
-                            this.state.hasHandledWarning = true;
-                            const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
-                            ui.notifications.warn(message);
-                            this.sendChatMessage({
-                                isTimerWarning: true,
-                                warningMessage: message
-                            });
-                        }
-                    }
-                } else {
-                    // Reset warning flag when we're outside the warning zone
-                    this.state.hasHandledWarning = false;
-                }
-                
-                // Store current percentage for next comparison
-                this.previousPercentRemaining = percentRemaining;
-
-                if (this.state.remaining <= 0) {
-                    this.timeExpired();
-                }
-            }, 1000);
+            this._beginCountdown();
         }
         
         this.updateUI();
@@ -906,56 +869,7 @@ export class PlanningTimer {
         // If auto-start is enabled, start the timer interval
         if (!this.state.isPaused && game.user.isGM) {
     
-            if (this.timer) clearInterval(this.timer);
-            this.timer = setInterval(() => {
-                if (this.state.isPaused) return;
-                
-                this.state.remaining--;
-                this.syncState();
-
-                // Calculate percentage of time remaining (same denominator as updateUI bar width)
-                const timeLimit = PlanningTimer._planningBarDenominatorSeconds();
-                const percentRemaining = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
-
-                // Check ending soon threshold
-                const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
-                const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
-                
-                // Detect when we first cross into the warning threshold
-                const justEnteredWarning = previousPercentRemaining > endingSoonThreshold && 
-                                         percentRemaining <= endingSoonThreshold;
-                
-                if (percentRemaining <= endingSoonThreshold) {
-                    // Play ending soon sound (for all clients) - only once when first entering
-                    if (justEnteredWarning) {
-                        const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
-                        if (endingSoonSound !== 'none') {
-                            playSound(endingSoonSound, this.getTimerVolume());
-                        }
-                        
-                        // Show ending soon notification and send chat message (GM only) - only once
-                        if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
-                            this.state.hasHandledWarning = true;
-                            const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
-                            ui.notifications.warn(message);
-                            this.sendChatMessage({
-                                isTimerWarning: true,
-                                warningMessage: message
-                            });
-                        }
-                    }
-                } else {
-                    // Reset warning flag when we're outside the warning zone
-                    this.state.hasHandledWarning = false;
-                }
-                
-                // Store current percentage for next comparison
-                this.previousPercentRemaining = percentRemaining;
-
-                if (this.state.remaining <= 0) {
-                    this.timeExpired();
-                }
-            }, 1000);
+            this._beginCountdown();
         }
 
         this.updateUI();

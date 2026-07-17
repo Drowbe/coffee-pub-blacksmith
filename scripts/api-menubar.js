@@ -1101,28 +1101,36 @@ class MenuBar {
      * @param {string} icon - FontAwesome icon class (default: "fas fa-info-circle")
      * @param {number} duration - Duration in seconds, 0 = until manually removed (default: 5)
      * @param {string} moduleId - The module ID adding the notification (default: "blacksmith-core")
+     * @param {Object} options - Optional behaviors
+     * @param {Function} options.onClick - Called when the user clicks the notification body; the notification is then removed (onDismiss does NOT fire)
+     * @param {Function} options.onDismiss - Called only when the notification goes away without being acted on: auto-timeout or the close button. Never fires after onClick, on programmatic removeNotification, or on the bulk clears.
+     * @param {boolean} options.pulse - Render with an attention pulse animation
      * @returns {string} - The notification ID for later removal
      */
-    static addNotification(text, icon = "fas fa-info-circle", duration = 5, moduleId = "blacksmith-core") {
+    static addNotification(text, icon = "fas fa-info-circle", duration = 5, moduleId = "blacksmith-core", options = {}) {
         try {
             const notificationId = `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            
+
+            // Callbacks are safe to store: notifications live in a per-client Map and never cross the socket.
             const notification = {
                 id: notificationId,
                 text: text,
                 icon: icon,
                 duration: duration,
                 moduleId: moduleId,
+                onClick: typeof options.onClick === 'function' ? options.onClick : null,
+                onDismiss: typeof options.onDismiss === 'function' ? options.onDismiss : null,
+                pulse: !!options.pulse,
                 createdAt: Date.now()
             };
-            
+
             // Store the notification
             this.notifications.set(notificationId, notification);
-            
+
             // Set up auto-removal if duration is specified
             if (duration > 0) {
                 notification.timeoutId = setTimeout(() => {
-                    this.removeNotification(notificationId);
+                    this._dismissNotification(notificationId);
                 }, duration * 1000);
             }
             
@@ -1145,6 +1153,9 @@ class MenuBar {
      * @param {string} updates.text - New notification text
      * @param {string} updates.icon - New FontAwesome icon class
      * @param {number} updates.duration - New duration in seconds (0 = persistent)
+     * @param {Function|null} updates.onClick - New click handler; pass null to strip it (notification becomes display-only)
+     * @param {Function|null} updates.onDismiss - New dismiss handler; pass null to strip it
+     * @param {boolean} updates.pulse - Toggle the attention pulse animation
      * @returns {boolean} - True if notification was updated, false if not found
      */
     static updateNotification(notificationId, updates) {
@@ -1155,10 +1166,13 @@ class MenuBar {
             }
 
             const notification = this.notifications.get(notificationId);
-            
+
             // Update fields if provided
             if (updates.text !== undefined) notification.text = updates.text;
             if (updates.icon !== undefined) notification.icon = updates.icon;
+            if (updates.onClick !== undefined) notification.onClick = typeof updates.onClick === 'function' ? updates.onClick : null;
+            if (updates.onDismiss !== undefined) notification.onDismiss = typeof updates.onDismiss === 'function' ? updates.onDismiss : null;
+            if (updates.pulse !== undefined) notification.pulse = !!updates.pulse;
             if (updates.duration !== undefined) {
                 notification.duration = updates.duration;
                 // Clear existing timeout if duration changed
@@ -1169,7 +1183,7 @@ class MenuBar {
                 // Set new timeout if duration > 0
                 if (updates.duration > 0) {
                     notification.timeoutId = setTimeout(() => {
-                        this.removeNotification(notificationId);
+                        this._dismissNotification(notificationId);
                     }, updates.duration * 1000);
                 }
             }
@@ -1183,6 +1197,28 @@ class MenuBar {
             postConsoleAndNotification(MODULE.NAME, "Error updating notification", error, false, false);
             return false;
         }
+    }
+
+    /**
+     * Remove a notification because it went away WITHOUT being acted on — auto-timeout
+     * or the close button. Fires onDismiss (if any), then removes. Every other removal
+     * path is silent by design: removal after onClick has run, programmatic
+     * removeNotification() by the consumer, and the bulk clears (which bypass
+     * removeNotification and delete straight from the Map).
+     * @private
+     * @param {string} notificationId - The notification ID to dismiss
+     * @returns {boolean} - True if the notification existed and was removed
+     */
+    static _dismissNotification(notificationId) {
+        const notification = this.notifications.get(notificationId);
+        if (notification && typeof notification.onDismiss === 'function') {
+            try {
+                notification.onDismiss();
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Error in notification onDismiss for ${notificationId}:`, error, false, false);
+            }
+        }
+        return this.removeNotification(notificationId);
     }
 
     /**
@@ -2920,7 +2956,7 @@ class MenuBar {
      * @private
      */
     static _computeMenubarStructureFingerprint(templateData) {
-        const notifParts = (templateData.notifications || []).map((n) => `${n.id}\x1d${String(n.text ?? '')}\x1d${String(n.icon ?? '')}`);
+        const notifParts = (templateData.notifications || []).map((n) => `${n.id}\x1d${String(n.text ?? '')}\x1d${String(n.icon ?? '')}\x1d${n.actionable ? 1 : 0}\x1d${n.pulse ? 1 : 0}`);
         notifParts.sort();
         const mov = templateData.currentMovement || {};
         return [
@@ -3039,7 +3075,14 @@ class MenuBar {
                 timerProgress: this.getTimerProgress(),
                 currentMovement: currentMovementData,
                 toolsByZone: toolsByZone,
-                notifications: Array.from(this.notifications.values()),
+                // Handlebars can't act on stored callbacks — surface them as booleans for the partial
+                notifications: Array.from(this.notifications.values()).map(n => ({
+                    id: n.id,
+                    text: n.text,
+                    icon: n.icon,
+                    actionable: typeof n.onClick === 'function',
+                    pulse: !!n.pulse
+                })),
                 secondaryBar: secondaryBarData,
                 isInterfaceHidden: (() => { try { return CoreUIUtility.isInterfaceHidden(); } catch (_) { return false; } })()
             };
@@ -3116,16 +3159,36 @@ class MenuBar {
 
         // Create the click handler function
         const clickHandler = (event) => {
-            // Check if this is a notification close button click
+            // Check if this is a notification close button click. This branch MUST stay
+            // ahead of the body-click branch so the × dismisses without firing onClick.
             const closeButton = event.target.closest('.notification-close');
             if (closeButton) {
                 const notificationId = closeButton.getAttribute('data-notification-id');
                 if (notificationId) {
-                    this.removeNotification(notificationId);
+                    this._dismissNotification(notificationId);
                     return;
                 }
             }
-            
+
+            // Check if this is an actionable notification body click
+            const notificationItem = event.target.closest('.menu-notification-item[data-notification-id]');
+            if (notificationItem) {
+                const notificationId = notificationItem.getAttribute('data-notification-id');
+                const notification = this.notifications.get(notificationId);
+                if (notification && typeof notification.onClick === 'function') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    try {
+                        notification.onClick(event);
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, `Error executing notification onClick for ${notificationId}:`, error, false, false);
+                    }
+                    // Acted on — remove silently, onDismiss does not fire
+                    this.removeNotification(notificationId);
+                }
+                return;
+            }
+
             // Check if this is a secondary bar item click (default template)
             const secondaryBarItem = event.target.closest('.secondary-bar-item[data-item-id]');
             if (secondaryBarItem && this.secondaryBar && !this.secondaryBar.hasCustomTemplate) {

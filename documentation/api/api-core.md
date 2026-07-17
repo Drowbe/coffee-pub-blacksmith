@@ -2152,6 +2152,16 @@ const persistentId = menubarAPI.addNotification(
     0, // 0 = until manually removed
     "my-module"
 );
+
+// Actionable notification — optional fifth argument; see api-menubar.md for
+// full semantics (onClick, onDismiss, pulse)
+const unreadId = menubarAPI.addNotification(
+    "5 Unread Messages",
+    "fas fa-envelope",
+    30,
+    "my-module",
+    { onClick: () => openMessagesWindow(), pulse: true }
+);
 ```
 
 ## **Complete Documentation**

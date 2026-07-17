@@ -47,7 +47,7 @@
             <div class="menu-divider line"></div>
             <div class="menu-notifications">
                 {{#each notifications}}
-                <div class="menu-notification-item" data-notification-id="{{id}}">
+                <div class="menu-notification-item{{#if actionable}} notification-actionable{{/if}}{{#if pulse}} notification-pulse{{/if}}" data-notification-id="{{id}}">
                     <i class="{{icon}}"></i>
                     <span class="notification-content" data-tooltip="{{text}}">{{text}}</span>
                     <button class="notification-close" data-notification-id="{{id}}">&times;</button>

@@ -51,19 +51,6 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 > `registerModule`, never checked `removeHook`'s return, never used `BLACKSMITH.rolls.execute` — and all
 > four were silently broken. **If an API isn't dogfooded, nothing tests it.**
 
-### Leader selection errors with no canvas tokens — should use each player's assigned character
-- **Found**: 2026-07-17 build testing.
-- **Issue**: selecting a party leader throws an error when there are no tokens on the canvas. That is not the intended rule.
-- **Correct behavior**: a candidate is a **logged-in player's assigned character** (`user.character`), regardless of how many actors they own and regardless of canvas tokens. E.g. Alicia logs in owning Favia and Cyrus but is *assigned* Favia → only Favia appears.
-- **Likely site**: `scripts/manager-vote.js` — the leader path builds candidates via `_getUserCharacter(u.id)` (~:240); confirm whether that, or the character-source selection (~:373–445, which gates on `canvas.tokens.controlled/placeables`), is deriving the character from canvas tokens instead of `game.users.get(id)?.character`. Fix: source from the assigned character; do not require canvas tokens.
-- **How to verify**: with zero tokens on the canvas, open the leader vote → no error; candidate list = the assigned character of each logged-in player (one per player, their assigned actor only).
-
-### Planning timer stops counting down in combat until paused/restarted (suspected regression)
-- **Found**: 2026-07-17 build testing. Author recalls a prior fix for this — likely a regression.
-- **Issue**: during combat the planning timer does not tick down on its own; pausing and restarting it makes it resume.
-- **Likely site**: `scripts/timer-planning.js` — the countdown/tick loop and its combat-state gating (what starts/resumes the tick on combat start). Check `git log`/blame for the earlier fix to see what regressed.
-- **How to verify**: start combat → the planning-phase timer counts down without a manual pause/restart.
-
 ### XP window marks non-combatants eligible after combat — should be only active combatants
 - **Found**: 2026-07-17 build testing.
 - **Issue**: after a combat ends, the XP distribution window defaults to the **whole party** as eligible recipients. It should include only the players who were **actually in the combat**.
@@ -316,17 +303,9 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 
 ### Medium Priority
 
-#### Actionable menubar notifications
-- **Issue**: `MenuBar.addNotification(text, icon, duration, moduleId)` (`scripts/api-menubar.js:1106`) is display-only. The stored notification object carries `text`/`icon`/`duration`/`moduleId`/`timeoutId` and nothing else, so a message like "Alicia sent you a message" just shows and auto-dismisses — there is nothing to click.
-- **Need**: add an optional `onClick` (and likely `onDismiss`) to `addNotification` / `updateNotification`; store it on the notification object; render actionable notifications with a pointer cursor / click affordance in the menubar partial; invoke `onClick` on click and then clear the notification. Keep it optional so existing display-only notifications are unchanged.
-- **Consumer value**: the producing module routes the click — open the message, focus the sender, jump to the relevant UI.
-- **Location**: `scripts/api-menubar.js` (`addNotification` :1106, `updateNotification` :1150, `removeNotification`, the `notifications` Map :43, `renderMenubar`); the menubar template/partial; document the new option in `api-menubar.md` once shipped.
-- **How to verify**: register a notification with an `onClick` → it shows with a clickable affordance, clicking runs the handler and dismisses it; a notification with no `onClick` behaves exactly as it does today.
-- **Priority**: Medium (user-requested UX).
-
 #### Player-facing toast system (cross-client, actionable)
 - **Need**: a transient on-screen "toast" that pops up on player screens — as a passive notification and/or with actions (e.g. "roll for crit", "read message", "acknowledge"). Distinct from the menubar notification (which lives in the menubar); a toast appears over the play area and can target specific players.
-- **Relationship**: shares the "actionable notification" mechanism with **Actionable menubar notifications** above — build the action/handler layer once, use it for both. Cross-client delivery rides on `api.sockets`, so it depends on the socket system being solid — another reason the socket rewrite is #1.
+- **Relationship**: builds on the actionable-notification mechanism shipped in 13.9.3 (`api-menubar.js` `addNotification` — `onClick`/`onDismiss`/`pulse`; see `api-menubar.md`); reuse that action/handler layer rather than rebuilding it. Cross-client delivery rides on `api.sockets`, so it depends on the socket system being solid — another reason the socket rewrite is #1.
 - **Sketch**: `blacksmith.toast({ text, icon, recipients, actions: [{ label, onClick }], duration })`; GM or a module pushes it; targeted clients render it; actions route back (roll / open / ack). Respect the socket privacy rule — targeting is receipt-side; never send secrets in the payload.
 - **How to verify**: GM pushes a toast to one player → only that player sees it; an action button runs its handler on click; a passive toast auto-dismisses.
 - **Priority**: Medium (feature); gated on the socket system.

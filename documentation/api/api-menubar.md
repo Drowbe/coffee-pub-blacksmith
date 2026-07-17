@@ -78,7 +78,7 @@ Notifications appear in a dedicated notification area within the middle zone of 
 [LEFT ZONE TOOLS] [MIDDLE ZONE TOOLS] [NOTIFICATION AREA] [RIGHT ZONE TOOLS]
 ```
 
-#### `addNotification(text, icon, duration, moduleId)`
+#### `addNotification(text, icon, duration, moduleId, options)`
 Add a notification to the menubar.
 
 **Parameters:**
@@ -86,10 +86,26 @@ Add a notification to the menubar.
 - `icon` (string, optional): FontAwesome icon class (default: "fas fa-info-circle")
 - `duration` (number, optional): Duration in seconds, 0 = until manually removed (default: 5)
 - `moduleId` (string, optional): The module ID adding the notification (default: "blacksmith-core")
+- `options` (Object, optional): Behavior options
+  - `onClick` (Function, optional): Makes the notification clickable (pointer cursor + hover affordance). Called with the click event when the user clicks the notification body; the notification is then removed. `onDismiss` does **not** fire after `onClick`.
+  - `onDismiss` (Function, optional): Called only when the notification goes away *without being acted on* — see the dismiss semantics table below.
+  - `pulse` (boolean, optional): Animate the notification icon with an attention pulse — for "You have 5 unread messages"-style alerts.
 
 **Returns:** `string` - The notification ID for later removal
 
 **Note:** Notifications do not use zones. They appear in a dedicated notification area within the middle zone of the menubar, separate from the zone-based tool system.
+
+**Note:** Notifications are per-client and never cross the socket, which is why `onClick`/`onDismiss` can be plain function references.
+
+**Dismiss semantics** — `onDismiss` fires only when the notification goes away *unacted-on*:
+
+| Removal path | `onDismiss` fires? |
+|---|---|
+| Auto-timeout (`duration` elapses) | **Yes** |
+| User clicks the × close button | **Yes** |
+| User clicks the body (`onClick` ran) | No — the click already told you |
+| Consumer calls `removeNotification(id)` | No — you initiated it |
+| `clearNotificationsByModule` / `clearAllNotifications` | No — bulk teardown |
 
 **Example:**
 ```javascript
@@ -108,6 +124,20 @@ const persistentId = game.modules.get('coffee-pub-blacksmith').api.addNotificati
     0, // 0 = until manually removed
     "my-module"
 );
+
+// Actionable notification: click opens the messages window, pulses for attention
+// ⚠️ onClick runs in Blacksmith's context — keep it self-contained (same rule as tool onClick)
+const unreadId = game.modules.get('coffee-pub-blacksmith').api.addNotification(
+    "5 Unread Messages",
+    "fas fa-envelope",
+    30,
+    "my-module",
+    {
+        onClick: () => openMessagesWindow(),
+        onDismiss: () => console.log("Expired or closed without being read"),
+        pulse: true
+    }
+);
 ```
 
 #### `updateNotification(notificationId, updates)`
@@ -119,6 +149,9 @@ Update an existing notification.
   - `text` (string, optional): New notification text
   - `icon` (string, optional): New FontAwesome icon class
   - `duration` (number, optional): New duration in seconds (0 = persistent)
+  - `onClick` (Function|null, optional): New click handler; pass `null` to strip it (the notification becomes display-only again)
+  - `onDismiss` (Function|null, optional): New dismiss handler; pass `null` to strip it
+  - `pulse` (boolean, optional): Toggle the attention pulse animation
 
 **Returns:** `boolean` - True if notification was updated, false if not found
 
