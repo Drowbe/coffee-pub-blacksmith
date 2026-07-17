@@ -80,8 +80,20 @@ dismantled into the five kinds above: work → `TODO.md`, design → architectur
 3. **Complete means delete.** Not archive, not "keep for reference". Distribute the content, then remove the
    file. Anything already landed in a TODO or an architecture doc must be *removed from the plan*.
 
-Prefer these docs over re-deriving from source. Point at them; don't duplicate them. **If a doc contradicts
-the code, trust the code — then fix the doc.**
+Prefer these docs over re-deriving from source. Point at them; don't duplicate them.
+
+> ⚠️ **The docs in this repo are not trustworthy yet.** Where accuracy has been checked against code, most
+> were substantially wrong — one architecture doc had **zero** real symbols across 24 code blocks. See the
+> verification table in `documentation/TODO-GLOBAL.md` for what has actually been checked. **Verify before
+> you rely on a doc claim, and fix it when you find it wrong.**
+>
+> **When a doc and the code disagree, do not assume the doc is wrong.** Decide which is right. Real example:
+> `api-sockets.md` correctly specified `emit(..., {userId})` targeting and the *code* silently ignored it
+> until a consuming module hit it in production — the doc was the spec, the code was the bug.
+>
+> **A doc that copies code drifts; a doc that points at code doesn't.** Every wrong doc found so far failed
+> the same way — it pasted a class, a constant list, a key set, or a signature table instead of naming where
+> to look. Describe the mechanism; point at the source.
 
 ## Conventions
 

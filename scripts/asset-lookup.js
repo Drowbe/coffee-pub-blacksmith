@@ -46,19 +46,48 @@ export class AssetLookup {
     }
     
     /**
+     * Which field carries a constant's payload, per collection.
+     *
+     * This is NOT derivable from `item.type` — banners and backgroundImages are both `type: 'image'`
+     * yet resolve differently. Most entries carry BOTH a `path` and a `value` (141 of 171 at time of
+     * writing), so the field must be chosen deliberately, not by falling back through them.
+     *
+     *   path  → the asset is a file to load       (sounds, banners)
+     *   value → the asset is a literal to pass on (volumes: "0.5"; backgroundImages: the CSS class
+     *           "brick"; icons: "none")
+     *
+     * Getting this wrong is silent: `SOUNDVOLUMENORMAL` resolved to the id `"volume-normal"` instead of
+     * `"0.5"` for a long time, so every `playSound(sound, SOUNDVOLUMENORMAL)` clamped to NaN volume with
+     * no error. See CHANGELOG 13.9.x.
+     */
+    static CONSTANT_SOURCE_FIELD = {
+        sounds: 'path',
+        banners: 'path',
+        volumes: 'value',
+        backgroundImages: 'value',
+        icons: 'value',
+        nameplates: 'value',
+        themes: 'value'
+    };
+
+    /**
      * Generate constants from data collections
      * This maintains backward compatibility
      */
     generateConstants() {
-        try {           
+        try {
             // Generate constants for each collection
             Object.keys(this.dataCollections).forEach(collectionKey => {
                 const collection = this.dataCollections[collectionKey];
                 if (Array.isArray(collection)) {
                     let constantsGenerated = 0;
+                    const field = AssetLookup.CONSTANT_SOURCE_FIELD[collectionKey] ?? 'path';
                     collection.forEach(item => {
                         if (item.constantname) {
-                            const value = item.path || item.id;
+                            // Fall back to the other field, then the id, so an entry that only carries
+                            // one of the two still resolves to something usable.
+                            const other = field === 'path' ? item.value : item.path;
+                            const value = item[field] || other || item.id;
                             this.generatedConstants[item.constantname] = value;
                             constantsGenerated++;
                         }

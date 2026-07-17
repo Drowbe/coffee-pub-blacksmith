@@ -192,13 +192,28 @@ export class HookManager {
      * @returns {boolean} Success status
      */
     static removeCallback(callbackId) {
-        const hookName = callbackId.split('_')[0];
-        const entry = this.hooks.get(hookName);
+        // Find the hook that owns this callback by searching the registry.
+        //
+        // Do NOT parse the hook name out of the id. Ids are `${name}_${Date.now()}_${rand}`
+        // (_makeCallbackId), and this used to do `callbackId.split('_')[0]` — which silently returned the
+        // wrong name for any hook containing an underscore (module-defined hooks commonly do, e.g.
+        // `myModule_dataReady`). The lookup missed, this returned false, and the callback leaked forever.
+        // Worse, disposeByContext() delegates here, so context cleanup silently failed too — the exact
+        // thing `context` exists to guarantee. The id format is not a contract; don't make it one.
+        let hookName = null;
+        let entry = null;
+        let idx = -1;
+        for (const [name, candidate] of this.hooks) {
+            const found = candidate.callbacks.findIndex(cb => cb.callbackId === callbackId);
+            if (found !== -1) {
+                hookName = name;
+                entry = candidate;
+                idx = found;
+                break;
+            }
+        }
         if (!entry) return false;
-        
-        const idx = entry.callbacks.findIndex(cb => cb.callbackId === callbackId);
-        if (idx === -1) return false;
-        
+
         const cb = entry.callbacks[idx];
         
         // Call teardown to cancel pending timers

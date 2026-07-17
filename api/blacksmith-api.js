@@ -663,41 +663,6 @@ window.BlacksmithAPIConstants = () => {
     }
 };
 
-// BlacksmithAPIGenerateConstants - Test the new constants generation system
-window.BlacksmithAPIGenerateConstants = async () => {
-    try {
-        const module = game.modules.get('coffee-pub-blacksmith');
-        if (!module?.api?.ConstantsGenerator) {
-            console.error('❌ ConstantsGenerator not available');
-            return null;
-        }
-        
-        console.log('🔧 Testing Constants Generation System...');
-        
-        // Generate all constants
-        const constants = module.api.ConstantsGenerator.generateAllConstants();
-        console.log('🔧 Generated Constants:', constants);
-        
-        // Generate all constants
-        const choices = module.api.ConstantsGenerator.generateAllChoices();
-        console.log('🔧 Generated Choices:', choices);
-        
-        // Get constant names
-        const constantnames = module.api.ConstantsGenerator.getAllconstantnames();
-        console.log('🔧 Available Constant Names:', constantnames);
-        
-        // Validate constants
-        const validation = module.api.ConstantsGenerator.validateConstants();
-        console.log('🔧 Constants Validation:', validation);
-        
-        return { constants, choices, constantnames, validation };
-        
-    } catch (error) {
-        console.error('❌ Failed to test constants generation:', error);
-        return null;
-    }
-};
-
 // BlacksmithAPIAssetLookup - Test the new Asset Lookup Tool
 window.BlacksmithAPIAssetLookup = async () => {
     try {

@@ -124,10 +124,18 @@ if (actor) {
 - `getParticipantStats(participantId: string) -> object | null` provides per-participant round information when available.
 - `getNotableMoments() -> object | null` surfaces current-round highlights.
 - `getRoundSummary(round?: number) -> object | null` returns an aggregate entry from `combatStats.rounds`, defaulting to the live combat round.
-- `subscribeToUpdates(callback: Function) -> string` registers a callback with the internal subscriber set. The current implementation issues a synthetic ID but does not track IDs individually; `unsubscribeFromUpdates` clears the entire set.
-- `unsubscribeFromUpdates(subscriptionId: string)` clears all subscribers. Future refactors may support per-ID removal, so integrations should handle that change gracefully.
 - `getCombatSummary() -> object | null` returns the newest persisted combat summary.
-- `getCombatHistory(limit = 20) -> Array<object>` returns a newest-first slice of stored summaries. The history is bounded to twenty entries when written.
+- `getCombatHistory(limit = 20) -> Array<object>` returns a newest-first slice of stored summaries. **`limit` is a read-time cap only** — pass `null` to get everything.
+- `clearHistory() -> Promise<void>` deletes all stored combat summaries.
+- `removeCombat(combatId: string) -> Promise<void>` deletes a single summary.
+
+> **Combat history is unbounded.** Every combat is kept, deliberately, so lifetime stats stay verifiable —
+> see `_storeCombatSummary()`. It lives in a **world setting**, so it grows forever and syncs to every
+> client. Use `clearHistory()` / `removeCombat()` to prune. You do **not** need to keep your own archive.
+
+> **To observe stats, listen for the `blacksmith.combatSummaryReady` hook** (fired at combat end with
+> `(summary, combat)`). A `subscribeToUpdates()` / `unsubscribeFromUpdates()` pair used to be documented
+> here; it never worked — callbacks were collected and never invoked — and was removed in 13.9.x.
 
 Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `totals.attacks` (attempts, hits, misses, crits, fumbles) plus `participants[]` entries that mirror those counts per actor. Consumers no longer receive the raw hit/miss arrays; use the aggregate fields for analytics and the `notableMoments` block for highlights. The `notableMoments` bundle now includes `mvpRankings`—a descending list of per-actor MVP scores (same formula used in the Party Breakdown)—alongside the top MVP entry.
 
@@ -177,14 +185,10 @@ console.log('Round 3 summary', roundSummary);
 ```
 
 ```javascript
-// Subscribe to updates and capture the subscription key
-const Stats = game.modules.get('coffee-pub-blacksmith')?.api?.stats;
-const subId = Stats?.combat.subscribeToUpdates(payload => {
-    console.log('Combat stats updated', payload);
+// Observe combat results as they land
+Hooks.on('blacksmith.combatSummaryReady', (summary, combat) => {
+    console.log('Combat finished', summary.totals);
 });
-
-// Later in the same console session, remove the subscription
-Stats?.combat.unsubscribeFromUpdates(subId);
 ```
 
 ```javascript
@@ -268,7 +272,7 @@ console.log('Current combat totals', CombatStatsClass.combatStats?.totals);
 - Combat aggregates reset as soon as the summary is generated: `combatStats.totals` and `combatStats.participantStats` are reinitialized for the next combat, so no combat-level flags remain in the world data.
 - Guard checks (`game.combats.has(combat.id)`) prevent operations on deleted combats.
 - `_boundedPush` limits hit, miss, and turn arrays to safeguard against unbounded growth.
-- The `combatHistory` world setting stores only the newest twenty combat summaries; modules needing long-term archives should persist their own copies.
+- The `combatHistory` world setting keeps **every** combat summary — deliberately unpruned, so lifetime stats stay verifiable. It grows without bound and syncs to every client; prune with `clearHistory()` / `removeCombat()`. Modules do **not** need their own archive.
 - Attack/damage correlation is now handled via chat message resolution (`createChatMessage` hook) using stable keying (attacker actor, item UUID, activity UUID, sorted target UUIDs). Lifetime counters update when `blacksmith.combatSummaryReady` fires.
 
 ---

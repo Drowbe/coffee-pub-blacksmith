@@ -481,10 +481,12 @@ TagWidget is a Blacksmith UI component for selecting and managing flags. Embed i
 
 | Mode | Supports |
 |---|---|
-| **Full** (default) | Display existing flags as removable chips, input with live search against suggestions, add custom flags, remove flags |
-| **Filter** | Display flags as visibility toggles only — no add/remove. Use for sidebar filter panels. |
+| **Full** (default) | Display existing tags as removable chips, input with live search against suggestions, add custom tags, remove tags |
+| **Filter** | **Not implemented.** `prepareData({mode:'filter'})` and the template render the toggles, but nothing listens to them — there is no change handler, so toggling never calls `setVisibility`. Don't use it. |
 
 ### Embed pattern
+
+**Four steps, and step 3 is not optional** — without `activate()` the widget renders and does nothing.
 
 **1. In `prepareContext()` — build widget data:**
 
@@ -492,12 +494,12 @@ TagWidget is a Blacksmith UI component for selecting and managing flags. Embed i
 async prepareContext(options) {
   const context = await super.prepareContext(options);
   const tags = game.modules.get('coffee-pub-blacksmith')?.api?.tags;
-  const currentFlags = tags.getTags('coffee-pub-squire.quests', this.questId);
+  const currentTags = tags.getTags('coffee-pub-squire.quest', this.questId);
 
   context.TagWidget = TagWidget.prepareData({
-    contextKey: 'coffee-pub-squire.quests',
+    contextKey: 'coffee-pub-squire.quest',
     currentTags,
-    mode: 'full'            // 'full' or 'filter'
+    mode: 'full'
   });
 
   return context;
@@ -507,18 +509,34 @@ async prepareContext(options) {
 **2. In your Handlebars template — include the partial:**
 
 ```handlebars
-<div class="quest-flags-section">
-  {{> blacksmith-tag-widget tags=TagWidget}}
+<div class="quest-tags-section">
+  {{> blacksmith-tag-widget TagWidget}}
 </div>
 ```
 
-**3. On save — read the widget value and persist:**
+> **Pass the context positionally, not as a hash.** `{{> blacksmith-tag-widget tags=TagWidget}}` does
+> **not** work: a hash argument adds `tags` to your context rather than replacing it, and the partial reads
+> `contextKey` / `isFullMode` / `chips` off the **root** context. You get a silent empty div.
+
+**3. After render — wire up interactivity:**
+
+```javascript
+_onRender(context, options) {
+  super._onRender(context, options);
+  TagWidget.activate(this.element, 'coffee-pub-squire.quest');
+}
+```
+
+> **Without this the widget is inert.** `activate()` is the entire event layer — suggestion clicks,
+> Enter-to-add, chip removal, live search. Rendering the partial alone gives you a display-only div.
+
+**4. On save — read the widget value and persist:**
 
 ```javascript
 async _onSubmit(event, form, formData) {
   const tags = game.modules.get('coffee-pub-blacksmith')?.api?.tags;
-  const newTags = TagWidget.readValue(this.element, 'coffee-pub-squire.quests');
-  await tags.setTags('coffee-pub-squire.quests', this.questId, newFlags);
+  const newTags = TagWidget.readValue(this.element, 'coffee-pub-squire.quest');
+  await tags.setTags('coffee-pub-squire.quest', this.questId, newTags);
   // ... rest of save
 }
 ```
@@ -538,11 +556,26 @@ Prepare the template data object for the widget partial.
 | Name | Type | Description |
 |---|---|---|
 | `options.contextKey` | `string` | Context identifier |
-| `options.currentFlags` | `string[]` | Flags currently on the record |
-| `options.mode` | `'full' \| 'filter'` | Widget mode (default: `'full'`) |
+| `options.currentTags` | `string[]` | Tags currently on the record |
+| `options.mode` | `'full' \| 'filter'` | Widget mode (default: `'full'`). **`'filter'` is not implemented** — see Capabilities. |
 | `options.placeholder` | `string?` | Input placeholder text (full mode only) |
 
-**Returns:** `object` — template data, pass directly to the `{{> blacksmith-tag-widget}}` partial
+**Returns:** `object` — template data. Pass it **positionally**: `{{> blacksmith-tag-widget TagWidget}}`.
+
+---
+
+### `TagWidget.activate(element, contextKey, onChange?)`
+
+**Required.** Wires the widget's event handlers — suggestion clicks, Enter-to-add, chip removal, live
+search. Call it after every render (e.g. in `_onRender`). Without it the widget renders but does nothing.
+
+**Parameters:**
+
+| Name | Type | Description |
+|---|---|---|
+| `element` | `HTMLElement` | The window's root element (e.g. `this.element`) |
+| `contextKey` | `string` | Context identifier (must match `prepareData`) |
+| `onChange` | `Function?` | Optional callback fired when the selection changes |
 
 ---
 

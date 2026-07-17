@@ -74,7 +74,6 @@ import { JOURNAL_JSON_IMPORT_KIND_ID } from './registry-json-import-journals.js'
 import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
-import { ConstantsGenerator } from './constants-generator.js';
 import { assetLookup, initializeAssetLookupInstance } from './asset-lookup.js';
 import { loadAssetBundlesWithOverrides, loadDefaultAssetBundlesFromJson } from './asset-loader.js';
 import { loadNamingTaxonomy } from './utility-token-naming.js';
@@ -896,7 +895,6 @@ Hooks.once('init', async function() {
         BLACKSMITH: BLACKSMITH,
         stats: StatsAPI,
         HookManager,
-        ConstantsGenerator,
         assetLookup,
         uiContextMenu: UIContextMenu,
         registerToolbarTool: null,

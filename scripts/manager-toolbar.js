@@ -180,13 +180,38 @@ function registerTool(toolId, toolData) {
     try {
         // Basic validation
         if (!toolId || typeof toolId !== 'string') {
+            postConsoleAndNotification(MODULE.NAME, 'Toolbar | registerTool: toolId must be a non-empty string', toolId, false, false);
             return false;
         }
-        
+
         if (!toolData || typeof toolData !== 'object') {
+            postConsoleAndNotification(MODULE.NAME, `Toolbar | registerTool: toolData must be an object (tool: ${toolId})`, toolData, false, false);
             return false;
         }
-        
+
+        // Reject a DIFFERENT module claiming an id that is already taken.
+        //
+        // Previously any registration blindly overwrote the existing entry and returned true, so two
+        // modules picking the same id (e.g. 'lookup') meant the second silently evicted the first — the
+        // victim's button vanished, its onClick became unreachable, and it had no way to detect that,
+        // because it got `true` back.
+        //
+        // Re-registration by the SAME module is allowed on purpose: at least one consumer
+        // (coffee-pub-cartographer) re-registers its own tools to refresh button state. Rejecting that
+        // would just trade one silent failure for another.
+        const existing = registeredTools.get(toolId);
+        const incomingModuleId = toolData.moduleId || 'blacksmith-core';
+        if (existing && existing.moduleId !== incomingModuleId) {
+            postConsoleAndNotification(
+                MODULE.NAME,
+                `Toolbar | Tool id "${toolId}" is already registered by "${existing.moduleId}" — refusing to overwrite it for "${incomingModuleId}". Tool ids must be unique; prefix yours with your module id.`,
+                { toolId, owner: existing.moduleId, rejected: incomingModuleId },
+                false,
+                false
+            );
+            return false;
+        }
+
         // Store the tool with defaults
         // CRITICAL: Default name to toolId if not provided - external modules may forget to set it
         // CRITICAL: Default button to true - v13 requires explicit button: true for button tools
@@ -199,7 +224,7 @@ function registerTool(toolId, toolData) {
             toggle: toolData.toggle ?? false, // Explicitly set toggle to false
             moduleId: toolData.moduleId || 'blacksmith-core',
             zone: toolData.zone || 'general',
-            order: toolData.order || 999,
+            order: toolData.order ?? 999, // ?? not || — `order: 0` is a valid "first" and must not fall through to 999
             gmOnly: toolData.gmOnly || false,
             leaderOnly: toolData.leaderOnly || false,
             visible: toolData.visible !== undefined ? toolData.visible : true, // Default to true if not provided

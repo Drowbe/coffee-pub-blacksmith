@@ -756,6 +756,10 @@ class MenuBar {
             
             // Set defaults (contextMenuItems optional: array or function(toolId, tool) => array of { name, icon, onClick })
             const tool = {
+                // The registry key, carried on the object so the template and the click handler can
+                // dispatch on it. `name` is NOT unique — it's a CSS class and a label — and dispatching
+                // on it let two modules' tools cross-fire. Only toolId is enforced unique (see above).
+                toolId: toolId,
                 icon: toolData.icon,
                 name: toolData.name,
                 title: toolData.title !== undefined ? toolData.title : (toolData.name || ''),
@@ -1216,6 +1220,13 @@ class MenuBar {
             let removedCount = 0;
             for (const [id, notification] of this.notifications.entries()) {
                 if (notification.moduleId === moduleId) {
+                    // Clear the auto-dismiss timer before dropping the notification, exactly as
+                    // removeNotification() and clearAllNotifications() do. Without this, a module that
+                    // cleans up on disable left live timers holding a closure over MenuBar until each
+                    // notification's duration elapsed.
+                    if (notification.timeoutId) {
+                        clearTimeout(notification.timeoutId);
+                    }
                     this.notifications.delete(id);
                     removedCount++;
                 }
@@ -3016,10 +3027,6 @@ class MenuBar {
 
             // Get tools organized by zone using our API
             const toolsByZone = this.getMenubarToolsByZone();
-            
-            // Debug: Log leader data during menubar rendering
-            const renderLeaderData = game.settings.get(MODULE.ID, 'partyLeader');
-            const middleGroups = Object.keys(toolsByZone.middle || {});
 
             // Prepare secondary bar data
             const secondaryBarData = this._prepareSecondaryBarData();
@@ -3179,15 +3186,23 @@ class MenuBar {
                 return;
             }
 
-            // Find the tool in our registered tools
-            let tool = null;
-            let toolId = null;
-            this.toolbarIcons.forEach((registeredTool, id) => {
-                if (registeredTool.name === toolName) {
-                    tool = registeredTool;
-                    toolId = id;
-                }
-            });
+            // Find the tool. Dispatch on toolId — it is the registry key and the only field enforced
+            // unique. `name` is a CSS class / label and is NOT unique, so matching on it let two modules
+            // registering the same name cross-fire: the forEach kept the LAST match, so one module's
+            // button silently invoked another module's onClick. Falls back to the name scan for any
+            // element rendered without data-tool-id.
+            let toolId = toolElement.getAttribute('data-tool-id') || null;
+            let tool = toolId ? (this.toolbarIcons.get(toolId) || null) : null;
+
+            if (!tool) {
+                toolId = null;
+                this.toolbarIcons.forEach((registeredTool, id) => {
+                    if (registeredTool.name === toolName) {
+                        tool = registeredTool;
+                        toolId = id;
+                    }
+                });
+            }
 
             if (!tool) return;
 

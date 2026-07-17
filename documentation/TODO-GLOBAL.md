@@ -36,8 +36,31 @@ file. Same rule as `TODO.md`.
 
 ## Phase 1 — Documentation cleanup (do first)
 
-The doc inventory, the line-level coupling, the 4 factual errors, all broken links, and 4 of 7 plans are
-**done** — see Done at the bottom. What's left:
+### Verification status — read this before trusting any doc
+
+**Verified against code: 2 of 13 architecture docs, 1 of 16 API docs.** Everything else is assumption.
+
+The 2026-07-16 sweep audited docs for **sibling coupling** — is another module's architecture leaking in.
+That is *not* an accuracy audit, and the two were conflated for most of that session. Where accuracy has
+actually been checked, the hit rate is dire: **both architecture docs checked were wrong** — one credited
+Blacksmith with six tools that had moved to Regent, the other was missing an entire shipped subsystem.
+Two more were then found to be fiction (`architecture-socketmanager.md`: 30 of 30 documented symbols do not
+exist) or 64% pasted source and dead planning (`architecture-hookmanager.md`).
+
+**Do not assume the API docs are the accurate baseline.** Counter-evidence is in this repo's own history:
+`api-sockets.md` correctly specified `emit(..., {userId})` targeting and **the code silently ignored it**
+until a consuming module hit it in production (CHANGELOG 13.8.5). So when a doc and the code disagree here,
+**decide which is right** — the doc is sometimes the spec and the code is sometimes the bug.
+
+| Doc | Verified? |
+|---|---|
+| `architecture-pins.md`, `architecture-blacksmith.md` (§3/§4/§5/§7/§9A/§9B/§10) | yes, 2026-07-16 |
+| `architecture-token-naming.md` | yes — written from code |
+| `api-pins.md` | partially — checked as a baseline for the pins rewrite, not audited end-to-end |
+| all other architecture docs | **audited, all substantially wrong — not yet fixed** |
+| all other API docs | **audit in progress** |
+
+### Remaining
 
 **Plans are scaffolding** (see CLAUDE.md): transitional, dismantled into TODO/architecture/API/CHANGELOG,
 deleted when complete. Three rules — a plan declares its status; a plan is never a source of truth; complete

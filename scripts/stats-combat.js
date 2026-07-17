@@ -1479,19 +1479,6 @@ class CombatStats {
         return this.combatStats.rounds.find(r => r.round === targetRound) || null;
     }
 
-    static subscribeToUpdates(callback) {
-        // Simple subscription system - in a real implementation, you'd want a proper event system
-        if (!this._subscribers) this._subscribers = new Set();
-        this._subscribers.add(callback);
-        return `sub_${Date.now()}_${Math.random()}`;
-    }
-
-    static unsubscribeFromUpdates(subscriptionId) {
-        if (!this._subscribers) return;
-        // In a real implementation, you'd track subscription IDs properly
-        this._subscribers.clear();
-    }
-
     // Register Handlebars helpers
     static registerHelpers() {
         // Helper to round numbers

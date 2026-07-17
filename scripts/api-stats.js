@@ -107,23 +107,6 @@ export class StatsAPI {
         },
 
         /**
-         * Subscribe to combat stat updates
-         * @param {Function} callback - Function to call when stats update
-         * @returns {string} Subscription ID
-         */
-        subscribeToUpdates: (callback) => {
-            return CombatStats.subscribeToUpdates(callback);
-        },
-
-        /**
-         * Unsubscribe from combat stat updates
-         * @param {string} subscriptionId - The ID returned from subscribeToUpdates
-         */
-        unsubscribeFromUpdates: (subscriptionId) => {
-            CombatStats.unsubscribeFromUpdates(subscriptionId);
-        },
-
-        /**
          * Get the most recent combat summary
          * @returns {Object|null} Most recent combat summary or null
          */

@@ -229,10 +229,13 @@ export class CompendiumManager {
         for (const entry of names) {
             const isObject = entry && typeof entry === 'object';
             const rawName = isObject ? entry.name : entry;
-            if (!rawName) continue;
             const perItemOptions = isObject && entry.type
                 ? { ...options, itemType: entry.type }
                 : options;
+            // Always push, one result per input, in order — an empty/blank entry must still yield a
+            // structured miss. `resolve()` handles falsy input and returns one. Previously this
+            // `continue`d past blanks, silently shortening the array and shifting every later index, so
+            // callers doing `names.map((n, i) => results[i])` attached wrong UUIDs to wrong names.
             results.push(await this.resolve(rawName, canonical, perItemOptions));
         }
         return results;
