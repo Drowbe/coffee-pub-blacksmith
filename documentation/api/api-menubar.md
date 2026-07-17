@@ -95,6 +95,8 @@ Add a notification to the menubar.
 
 **Note:** Notifications do not use zones. They appear in a dedicated notification area within the middle zone of the menubar, separate from the zone-based tool system.
 
+**Note:** The notification strip is right-aligned and ordered: temporary notifications (`duration > 0`) sit to the left of persistent ones (`duration = 0`), and within each group the newest appears leftmost. Changing a notification's `duration` via `updateNotification` moves it between groups.
+
 **Note:** Notifications are per-client and never cross the socket, which is why `onClick`/`onDismiss` can be plain function references.
 
 **Dismiss semantics** — `onDismiss` fires only when the notification goes away *unacted-on*:

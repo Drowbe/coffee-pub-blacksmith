@@ -2956,8 +2956,10 @@ class MenuBar {
      * @private
      */
     static _computeMenubarStructureFingerprint(templateData) {
+        // Deliberately NOT sorted: notification display order is semantic (temp group before
+        // persistent, newest first), so a reorder — e.g. updateNotification flipping duration —
+        // must change the fingerprint and force a rebuild.
         const notifParts = (templateData.notifications || []).map((n) => `${n.id}\x1d${String(n.text ?? '')}\x1d${String(n.icon ?? '')}\x1d${n.actionable ? 1 : 0}\x1d${n.pulse ? 1 : 0}`);
-        notifParts.sort();
         const mov = templateData.currentMovement || {};
         return [
             templateData.isGM ? '1' : '0',
@@ -3075,14 +3077,23 @@ class MenuBar {
                 timerProgress: this.getTimerProgress(),
                 currentMovement: currentMovementData,
                 toolsByZone: toolsByZone,
-                // Handlebars can't act on stored callbacks — surface them as booleans for the partial
-                notifications: Array.from(this.notifications.values()).map(n => ({
-                    id: n.id,
-                    text: n.text,
-                    icon: n.icon,
-                    actionable: typeof n.onClick === 'function',
-                    pulse: !!n.pulse
-                })),
+                // Handlebars can't act on stored callbacks — surface them as booleans for the partial.
+                // Display order (the strip is right-aligned, so index 0 is leftmost): temporary
+                // notifications sit left of persistent ones, newest first within each group.
+                notifications: Array.from(this.notifications.values())
+                    .sort((a, b) => {
+                        const aPersistent = a.duration > 0 ? 0 : 1;
+                        const bPersistent = b.duration > 0 ? 0 : 1;
+                        if (aPersistent !== bPersistent) return aPersistent - bPersistent;
+                        return b.createdAt - a.createdAt;
+                    })
+                    .map(n => ({
+                        id: n.id,
+                        text: n.text,
+                        icon: n.icon,
+                        actionable: typeof n.onClick === 'function',
+                        pulse: !!n.pulse
+                    })),
                 secondaryBar: secondaryBarData,
                 isInterfaceHidden: (() => { try { return CoreUIUtility.isInterfaceHidden(); } catch (_) { return false; } })()
             };
