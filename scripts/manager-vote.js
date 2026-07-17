@@ -215,11 +215,11 @@ export class VoteManager {
             return;
         }
 
-        const eligibleVoters = getUsersWithOwnedTokenOnCanvas();
+        // Eligibility: logged-in (active) non-GM players. No canvas-token requirement —
+        // a player's identity for a vote is their assigned character, not a placed token.
+        const eligibleVoters = game.users.filter((u) => u.active && !u.isGM);
         if (!eligibleVoters.length) {
-            ui.notifications.warn(
-                'No eligible voters: players must be logged in and have an owned token on the current scene.'
-            );
+            ui.notifications.warn('No eligible voters: players must be logged in.');
             return;
         }
 
@@ -909,14 +909,10 @@ export class VoteManager {
     static _getUserCharacter(userId) {
         const user = game.users.get(userId);
         if (!user) return null;
-        const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
-            ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-            : 3;
-        const userCharacters = game.actors.filter(
-            (actor) => actor.type === 'character' && actor.testUserPermission(user, OWNER)
-        );
-
-        return userCharacters[0] || null;
+        // Use the player's ASSIGNED character (set in User Configuration), regardless of how many
+        // actors they own. This previously returned the first OWNED character, so a player who owns
+        // several got an arbitrary one instead of the character they actually play.
+        return user.character || null;
     }
 }
 
