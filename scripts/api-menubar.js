@@ -3178,6 +3178,7 @@ class MenuBar {
                 if (notification && typeof notification.onClick === 'function') {
                     event.preventDefault();
                     event.stopPropagation();
+                    playMenubarButtonSound();
                     try {
                         notification.onClick(event);
                     } catch (error) {
