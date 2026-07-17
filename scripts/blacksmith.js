@@ -550,9 +550,6 @@ Hooks.once('ready', async () => {
         TagManager.runMigration().catch(() => {});
         PinManager.backfillFlagAssignments().catch(() => {});
 
-        const { executeRoll } = await import('./manager-rolls.js');
-        BLACKSMITH.rolls.execute = executeRoll;
-
         // JOURNAL TOOLS
         LoadingProgressManager.logActivity("Initializing journal tools...");
         JournalTools.init();

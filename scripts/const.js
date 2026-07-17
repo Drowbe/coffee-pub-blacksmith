@@ -53,11 +53,6 @@ export const BLACKSMITH = {
     JOURNAL_TOOLS_ENTITY_REPLACEMENT_PARTIAL: `modules/${MODULE.ID}/templates/partials/entity-replacement.hbs`,
     JOURNAL_TOOLS_SEARCH_REPLACE_PARTIAL: `modules/${MODULE.ID}/templates/partials/search-replace.hbs`,
     // These get overriden as soon as the settings and everything else loads.
-    blnDebugOn: false, // Display debug messages
-    
-    // Unified Roll System API
-    rolls: {
-        execute: null // Will be set during initialization
-    }
+    blnDebugOn: false // Display debug messages
 }
 

@@ -39,6 +39,17 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 
 ## CRITICAL BUGS
 
+### Combat flag `'stats'` has three subsystems and no owner
+- **Issue**: `stats-combat.js` (`:118`, `:142`, `:727`) writes `this.currentStats` **wholesale** to `combat.setFlag(MODULE.ID, 'stats')`. `timer-round.js` (`:116`, `:128`, `:233`) read-modify-writes the **same key** and owns `accumulatedTime` — a field that appears **4 times in `timer-round.js` and zero times in `stats-combat.js`**, so the wholesale write silently drops it. `manager-combatbar.js:639` reads the flag as well. Both files also write `roundStartTimestamp`, so a naive merge just moves the conflict.
+- **Impact**: `timer-round.js:256` computes `(stats.accumulatedTime || 0) + currentSessionTime` — losing the field means round duration under-reports after a stats write. Ordering-dependent, so it may be intermittent.
+- **Status**: PENDING — **needs a decision about who owns the key, not a patch.** Options: namespace the timer's data under its own flag (needs a migration for in-flight combats), or make `stats-combat` merge and define precedence for `roundStartTimestamp`. Validate in a real session; there is no test suite.
+- **Location**: `scripts/stats-combat.js`, `scripts/timer-round.js`, `scripts/manager-combatbar.js`
+
+### Curator ships its own fork of HookManager
+- **Issue**: `coffee-pub-curator/scripts/manager-hooks.js` is a 520-line copy of Blacksmith's `HookManager` — identical static surface, all 18 methods, none added — and Curator never touches `module.api.HookManager`. Blacksmith exposes HookManager precisely so nobody does this. The fork inherited the `removeHook` return bug (fixed in Blacksmith 13.9.x, still present in the copy).
+- **Status**: PENDING — Curator's call, not Blacksmith's. Tracked here because it defeats the hub pattern.
+- **Location**: `coffee-pub-curator/scripts/manager-hooks.js`
+
 ### Chat Card API (first-class posting + docs)
 - **Issue**: Theme helpers exist (`module.api.chatCards` → `scripts/api-chat-cards.js`: `getThemes`, `getThemeClassName`, etc.), but there is no first-class API for **posting** themed chat cards. Every coffee-pub module (Squire, Minstrel, Curator, etc.) has built its own card templating system, each reusing Blacksmith's CSS but independently constructing HTML and calling `ChatMessage.create()` directly. This is the same problem that was solved for windows with `BlacksmithWindowBaseV2` — duplicate templating logic scattered across modules means bugs get fixed in some but not others and styling drifts.
 - **Status**: PENDING – not current priority; tackle after bugs/performance

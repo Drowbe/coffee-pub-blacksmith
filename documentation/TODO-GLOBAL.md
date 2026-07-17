@@ -49,16 +49,12 @@ means delete. **One plan needs dismantling; two are legitimately live** (`migrat
       Blacksmith core", which are legitimate boundary decisions. Then decide whether the rest folds into
       architecture. **Needs the same code-verification pass `plan-pins.md` got** — that one turned out to be
       not just stale but actively misleading, and this is six times the size.
-- [ ] **Rename the three docs whose names lie.** They're named "migration" or version-stamped while
+- [ ] **Rename the two remaining docs whose names lie.** They're named "migration" or version-stamped while
       documenting current, shipped behavior; the stamps make correct docs read as obsolete.
-      - `guides/guide-pin-migration.md` → `guide-pins-integration.md`; cut the three "What changed in 13.x"
-        tables and §3 as history. **Safe to cut — verified:** no sibling writes the legacy `'owner'` value or
-        a pin `group:` field. The only pins consumers are Squire and Artificer (`manager-pins.js` each) and
-        Curator (`curator.js`, `tile-image-window.js`); Squire writes the v7 values.
       - `guides/guide-chat-card-migration.md` — this migration is *ongoing*, not done. Drop the Crier lessons
         section (4 of its 5 bullets duplicate Best Practices), rename away from "migration".
       - `guides/developer-note-pin-editing-visibility.md` — drop the "13.7.6" framing; consider merging into
-        the pins guide, which it overlaps heavily.
+        `guide-pins-integration.md`, which it overlaps heavily.
 - [ ] **Delete `guides/blacksmith-apis.md`** once the wiki sidebar is generated — it's a hand-maintained
       index of wiki links doing the same job, and it was carrying stale paths.
 - [ ] **Audit the rest of `architecture/architecture-blacksmith.md`.** §4.3/§5/§7, its doc links, and the

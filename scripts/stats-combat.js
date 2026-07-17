@@ -723,7 +723,10 @@ class CombatStats {
             this.currentStats.roundStartTimestamp = Date.now();  // Set the wall-clock start time
             this.currentStats.planningStartTime = Date.now();
 
-            // Save the stats to combat flags
+            // Save the stats to combat flags.
+            // ⚠️ SHARED KEY: `timer-round.js` also read-modify-writes this same flag and owns
+            // `accumulatedTime`, which is NOT part of currentStats — this wholesale write drops it.
+            // `manager-combatbar.js` reads the flag too. See documentation/TODO.md before changing.
             game.combat.setFlag(MODULE.ID, 'stats', this.currentStats);
             this._schedulePersistCombatStats('roundStart');
 
@@ -1266,7 +1269,8 @@ class CombatStats {
         // Fire hook to expose combat summary (for stats-player.js and other consumers)
         Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat);
 
-        // Optionally store combat summary in world flags (bounded array, keep last 20)
+        // Store the combat summary in the 'combatHistory' world setting. Deliberately unbounded —
+        // every combat is kept so lifetime stats stay verifiable. See _storeCombatSummary().
         // Note: Fire-and-forget async operation, don't await
         this._storeCombatSummary(combatSummary).catch(error => {
             postConsoleAndNotification(MODULE.NAME, "Error storing combat summary", error, false, false);

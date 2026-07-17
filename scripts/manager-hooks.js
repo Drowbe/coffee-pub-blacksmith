@@ -173,8 +173,7 @@ export class HookManager {
         
         Hooks.off(hookName, hook.hookId);
         this.hooks.delete(hookName);
-        
-        
+
         postConsoleAndNotification(
             MODULE.NAME,
             `Hook removed: ${hookName}`,
@@ -182,6 +181,8 @@ export class HookManager {
             true,
             false
         );
+
+        return true;
     }
 
 

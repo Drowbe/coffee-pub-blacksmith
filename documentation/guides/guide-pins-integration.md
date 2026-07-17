@@ -1,63 +1,8 @@
-# Pin API — Integration & Migration Guide
+# Pin API — Integration Guide
 
-**Audience:** Developers of Coffee Pub modules (Squire, Artificer, Minstrel, etc.) integrating with the Blacksmith Pins API as of **v13.6.3**.
+**Audience:** Developers of Coffee Pub modules (Squire, Artificer, Minstrel, etc.) integrating with the Blacksmith Pins API.
 
-For the full method reference see [`api-pins.md`](../api/api-pins.md).
-
----
-
-## What changed in 13.7.6 (pin editing + pin visibility)
-
-> **Module authors (no repo access):** share **[Developer note — Pin editing & pin visibility](developer-note-pin-editing-visibility.md)** plus the public wiki **[API: Pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins)**. The note is self-contained; the wiki is the full API reference.
-
-| Area | Change |
-|------|--------|
-| UI labels | **Pin editing** (GM only / Owner / Everyone) replaces "Access". **Pin visibility** (Visible / Hidden) replaces "Player Visibility". |
-| `blacksmithAccess` | Still `gm` \| `private` \| `public` (schema v6). |
-| `blacksmithVisibility` | **`visible` \| `hidden` only** (schema v7). Legacy `owner` migrates to `visible`. |
-| Hidden behavior | **`hidden`** = marker **not drawn** for other players. **GM** sees a **50% opacity** canvas preview. Pin owners still see their hidden pins. |
-| Defaults | GM always sees all pins. Pin owners always see their own pins when hidden. |
-| Players | **Cannot** set pin visibility (journal toolbar toggle hidden). |
-| Module contract | Pin editing / pin visibility control the **marker only** — not journal, quest, or note behavior on click. |
-| World data | Pins auto-migrate to schema v7 on GM load (scene flags + unplaced); no module migration script required. |
-
-**Quick checklist**
-
-1. Stop using `blacksmithVisibility: 'owner'` — use `ownership.users` for solo markers.
-2. Do not assume hidden pins are dimmed for players — they are **off the map**.
-3. Gate **click** / document open in **your** handler; do not rely on pin visibility for journal/quest rights.
-4. For `blacksmithAccess: 'gm'`, still no-op clicks in your module when the linked content is GM-only.
-
-See [Pin editing and pin visibility](../api/api-pins.md#pin-editing-and-pin-visibility).
-
----
-
-## What changed in 13.6.3
-
-| Area | Change |
-|------|--------|
-| Journal toolbar | Tag chip row added below icon row. Tags are sourced from `getPinTaxonomy` (registered type tags only). State (selected icon + tags) is restored on open. Default tag "narrative" selected when no saved pin state exists. |
-| `getPinTaxonomy` vs `getPinTaxonomyChoices` | **Breaking for UI**: `getPinTaxonomyChoices` merges registered tags with every global tag ever used (all modules). Use `getPinTaxonomy` when populating a tag picker for a specific pin type so only that type's tags appear. |
-| Player Visibility | New field (`config.blacksmithVisibility`) separate from ownership. `'visible'` (default) or `'hidden'`. Editable in Configure Pin > Permissions. Exposed in Browse view with a per-pin toggle. |
-| Context menu | "Delete All Pins" and "Delete All [Type] Pins" removed. "Visibility" renamed to "Player Visibility". Bulk delete is now in the Pin Layers action bar. |
-| Configure Pin — Permissions | "Allow Duplicates" moved from header into the Permissions section. Player Visibility dropdown added alongside ownership. Both are included in "Update All" (permissions section) and "Use as Default" (if Permissions section is checked). |
-| Configure Pin — action bar | "Update All [type] Pins" toggle moved to action bar left (was a header toggle). When active, a "Filter by tag:" chip row appears showing all tags used by same-type pins on the scene. Current pin's tags are pre-selected. Multiselect OR logic — type is always the first gate, tags narrow within it. |
-| Configure Pin — Use as Default | "Default for [type]" toggle now shows per-section checkboxes so you can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the default. |
-| Browse view — Player Visibility icon | Per-pin Player Visibility button now uses `fa-users` / `fa-users-slash` instead of `fa-eye` / `fa-eye-slash` to avoid confusion with layer-level visibility controls. |
-| Window position persistence | All `BlacksmithWindowBaseV2` windows now save and restore their position and size via `localStorage`. No code changes needed in subclasses. |
-
----
-
-## What changed in 13.6.2
-
-| Area | Change |
-|------|--------|
-| Groups | **Removed.** Any `group` values on existing pins are auto-migrated into `tags` on schema load (v4). Remove all `group` references from your module. |
-| Tags | Now the primary user-facing classification. Always supply at least one tag when creating a pin. |
-| Taxonomy JSON | **v3 format** — structured by `moduleId` under a `modules` key, with a top-level `globalTags` array. Single `tags` array per category (no `defaultTags` / `suggestedTags`). |
-| Tag registry | New world-level registry (`getTagRegistry`, `deleteTagGlobally`, `renameTagGlobally`). Seeded automatically from taxonomy + existing pins on `ready`. |
-| Non-square pins | Rendering fixed — `size.w` and `size.h` are now applied independently. You can safely use non-square dimensions. |
-| Configure Pin window | Header shows `Category: Pin Title`. "Update All" toggle lets GMs bulk-apply selected sections to same-type pins. |
+For the full method reference see [`api-pins.md`](../api/api-pins.md). For how the system is built, see [`architecture-pins.md`](../architecture/architecture-pins.md).
 
 ---
 
@@ -122,23 +67,16 @@ await pins.create({
 
 ---
 
-## 3. Remove all `group` references
+## 3. There is no `group` field
 
-The `group` field no longer exists. Replace any usage with `tags`.
+Classification is two axes only: `type` (coarse, technical) and `tags[]` (open-ended, user-facing). If you
+find a `group` on a pin, it's pre-v4 data — the schema migrates it into `tags` on load, and you don't need
+to migrate stored data yourself.
 
 ```javascript
-// BEFORE
-await pins.create({ ..., group: 'tavern' });
-await pins.update(pinId, { group: 'inn' });
-const byGroup = pinList.filter(p => p.group === 'tavern');
-
-// AFTER
 await pins.create({ ..., tags: ['tavern'] });
-await pins.update(pinId, { tags: ['inn'] });
 const byTag = pinList.filter(p => p.tags?.includes('tavern'));
 ```
-
-Existing pin data with `group` values will be auto-migrated to `tags` by the schema (v4 migration). You do not need to manually migrate stored data.
 
 ---
 

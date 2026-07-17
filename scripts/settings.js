@@ -2140,7 +2140,7 @@ export const registerSettings = () => {
 	// -- Combat History (Internal Storage) --
 	game.settings.register(MODULE.ID, 'combatHistory', {
 		name: 'Combat History',
-		hint: 'Internal storage for combat summaries (last 20 combats)',
+		hint: 'Internal storage for combat summaries. Every combat is kept — not pruned — so lifetime stats stay verifiable. Grows without bound; see StatsAPI.clearHistory() / removeCombat().',
 		scope: 'world',
 		config: false,  // Hidden setting - internal use only
 		type: Object,

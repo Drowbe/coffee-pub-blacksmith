@@ -43,7 +43,7 @@ This document describes the high-level architecture of the **Coffee Pub Blacksmi
 
 - **`scripts/const.js`**
   - **`MODULE`**: `ID`, `NAME`, `TITLE`, `VERSION`, `APIVERSION`, etc. (derived from `module.json`).
-  - **`BLACKSMITH`**: app-wide constants (templates, roll API placeholder `BLACKSMITH.rolls.execute`, debug flag, etc.). Updated at runtime via `BLACKSMITH.updateValue()` which fires `Hooks.callAll("blacksmithUpdated", this)`.
+  - **`BLACKSMITH`**: app-wide constants (templates, debug flag, etc.). Updated at runtime via `BLACKSMITH.updateValue()` which fires `Hooks.callAll("blacksmithUpdated", this)`.
 
 ---
 
@@ -127,7 +127,7 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 
 ### 4.3 Feature Domains
 
-- **Rolls** â€” **manager-rolls.js**: 4-function roll system; `executeRoll` exposed as `BLACKSMITH.rolls.execute`; used by skill check dialog and socket handlers. See **documentation/architecture/architecture-rolls.md**.
+- **Rolls** â€” **manager-rolls.js**: exports `orchestrateRoll`, `processRoll`, `deliverRollResults`, `updateCinemaOverlay`; used by the skill check dialog and socket handlers. **There is no public roll API** â€” `BLACKSMITH.rolls.execute` was removed in 13.9.x after being `undefined` since 2025-08-26 (it imported an `executeRoll` export that no longer existed; nothing consumed it). See **documentation/architecture/architecture-rolls.md**, but note that document is substantially inaccurate â€” see `TODO.md`.
 - **Stats** â€” **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture/architecture-stats.md**, **documentation/api/api-stats.md**.
 - **Timers** â€” **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`).
 - **Chat cards** â€” **ChatCardsAPI** (`api-chat-cards.js`): themes and rendering contract. See **documentation/architecture/architecture-chatcards.md**, **documentation/api/api-chatcards.md**.
@@ -259,6 +259,18 @@ Things that cost someone an hour of grep to discover. Written down so nobody pay
   Blacksmith registers its own tools through `registerMenubarTool`, and it works. `registerToolbarTool` and
   `registerModule` are *not* self-used — and `registerModule` was broken for a year without anyone noticing.
   **If an API isn't used by Blacksmith itself, nothing tests it.**
+- **Quick View's brightness is a GM-local darkness-level override**, not a shader tweak
+  (`utility-quickview.js`). Three v11-era levers turned out to be silent no-ops on v13 and were removed:
+  the `gmVision` illumination uniform (zero occurrences in core v13.351 — it was a Perfect Vision-ism),
+  `canvas.fog.layer` (v13 has `canvas.fog.sprite`), and `canvas.sight` (gone). The working mechanism
+  injects a scaled `environment.darknessLevel` via the `configureCanvasEnvironment` hook so every core
+  re-initialization (scene darkness edits, `animateDarkness` ticks, canvas draws) keeps the override.
+  Two gotchas if you touch it: **core's `EnvironmentCanvasGroup#initialize` writes the effective level
+  back onto the scene document in memory**, so the true value must be held in `_sceneDarknessBaseline`
+  (restored on deactivate and on scene switch) — never read "the scene's darkness" live while active;
+  and `initialize()` triggers a vision refresh that fires `sightRefresh`, which calls
+  `_applyLightingBoost` again — the no-change guard on `canvas.environment.darknessLevel` is what
+  prevents an infinite loop.
 
 ---
 
