@@ -40,220 +40,43 @@ Every roll formula is validated to ensure:
 - Correct ability type identification (str, dex, con, int, wis, cha)
 - Accurate total calculation matching displayed breakdown
 
-## Schema-Driven Roll System
 
-### Overview
-
-The system uses a **schema-driven approach** with pure JavaScript implementation, leveraging Foundry's native roll data for maximum accuracy and compatibility.
-
-### Core Files
-
-#### **`dnd5e-roll-rules.js`**
-- **Purpose**: Exports D&D 5e roll mechanics as pure JavaScript constants
-- **Content**: Complete rules schema including roll types, formulas, advantage/disadvantage, proficiency rules
-- **Usage**: Single source of truth for all roll mechanics
-
-#### **`rules-service.js`**
-- **Purpose**: Singleton service for feature detection, caching, and rule management
-- **Features**:
-  - Feature detection from actor items and active effects
-  - Automatic cache invalidation on item/effect changes
-  - Advantage/disadvantage resolution
-  - Proficiency multiplier detection from Foundry roll data
-- **Integration**: Exposed via `game.modules.get("coffee-pub-blacksmith").api.rules`
-
-#### **`resolve-check-pipeline.js`**
-- **Purpose**: Complete roll resolution pipeline for ability checks
-- **Features**:
-  - JOAT (Jack of All Trades) - half proficiency, round down
-  - Remarkable Athlete - half proficiency, round up (STR/DEX/CON only)
-  - Reliable Talent - clamp d20 to 10 minimum (skills only)
-  - System roll data integration
-  - Advantage/disadvantage normalization
-- **Output**: Normalized roll package with formula, modifiers, and labels
-
-#### **`resolve-save-pipeline.js`**
-- **Purpose**: Complete saving throw resolution pipeline
-- **Features**:
-  - Exhaustion effects (level 3+ = disadvantage)
-  - Condition auto-fails (STR/DEX when paralyzed/petrified/stunned/unconscious)
-  - Cover bonuses (+2/+5 for DEX saves)
-  - Concentration DC calculation (max(10, floor(damage/2)))
-  - System proficiency integration
-- **Output**: Normalized save package with auto-fail detection and DC handling
-
-#### **`resolve-attack-pipeline.js`**
-- **Purpose**: Complete attack roll and damage resolution pipeline
-- **Features**:
-  - Critical hit detection (nat 20)
-  - Fumble detection (nat 1 = auto miss)
-  - Auto-crit on hit (melee within 5ft vs paralyzed/unconscious)
-  - Cover penalties (-2/-5 to hit)
-  - Condition effects (invisible, blinded, poisoned, restrained, prone)
-  - Exhaustion effects (level 3+ = disadvantage)
-  - Damage dice doubling on crit
-  - Magic bonus integration
-- **Output**: Complete attack package with hit/crit detection and damage formulas
-
-### Roll Resolution Pipeline
-
-#### **1. Feature Detection**
-```javascript
-// Scans actor items and active effects for class features
-const features = api.getFeaturesIndex(actor);
-const hasJOAT = features.has("jack-of-all-trades");
-const hasRemarkableAthlete = features.has("remarkable-athlete");
-```
-
-#### **2. Proficiency Resolution**
-```javascript
-// Uses Foundry's computed roll data
-const profMult = rd.skills[skillId].prof.multiplier; // 0, 0.5, 1, 2
-const profValue = profMult === 2 ? profBonus * 2 : 
-                  profMult === 1 ? profBonus :
-                  profMult === 0.5 ? Math.floor(profBonus / 2) : 0;
-```
-
-#### **3. Advantage/Disadvantage Resolution**
-```javascript
-// Proper D&D 5e cancellation rules
-const advState = resolveAdvantage(advSources, disSources);
-const formula = advState === "advantage" ? "2d20kh1" : 
-                advState === "disadvantage" ? "2d20kl1" : "1d20";
-```
-
-#### **4. Roll Assembly**
-```javascript
-// Complete roll package
-return {
-  advantageState: "normal"|"advantage"|"disadvantage",
-  parts: [abilityMod, profValue, flatBonus],
-  labels: ["STR Mod", "Proficiency", "Bonuses"],
-  formula: "1d20 + 4 + 2 + 1"
-};
-```
-
-### Integration Points
-
-#### **Bootstrap in `blacksmith.js`:**
-```javascript
-import { RulesService } from "./rules/rules-service.js";
-
-Hooks.once("ready", () => {
-  const api = RulesService.init("coffee-pub-blacksmith");
-  game.modules.get("coffee-pub-blacksmith").api.rules = api;
-});
-```
-
-#### **Usage in Roll Processing:**
-
-**Ability Checks:**
-```javascript
-import { resolveCheckPipeline } from "./rules/resolve-check-pipeline.js";
-
-const rollPackage = resolveCheckPipeline(actor, {
-  abilityId: "str",
-  skillId: "ath",
-  advSources: 0,
-  disSources: 0,
-  flatBonus: 3
-});
-```
-
-**Saving Throws:**
-```javascript
-import { resolveSavePipeline } from "./rules/resolve-save-pipeline.js";
-
-const savePackage = resolveSavePipeline(actor, {
-  abilityId: "dex",
-  cover: "half",         // +2 bonus
-  dc: 16,
-  advSources: 0,
-  disSources: 0
-});
-```
-
-**Attack Rolls:**
-```javascript
-import { resolveAttackPipeline } from "./rules/resolve-attack-pipeline.js";
-
-const attackPackage = resolveAttackPipeline(attacker, {
-  abilityId: "str",
-  proficient: true,
-  magicBonus: 1,
-  target: { 
-    conditions: targetActor, 
-    isWithin5ft: true, 
-    cover: "none" 
-  },
-  damageParts: [{ formula: "1d8" }],
-  critExtraDice: "1d8"
-});
-```
-
-### Performance Optimizations
-
-- **Cached feature detection** - Only scans on item/effect changes
-- **System roll data integration** - Uses Foundry's pre-computed values
-- **Singleton service** - Single instance per module
-- **Efficient lookups** - Set-based feature storage
-
-### Complete File Structure
-
-```
-scripts/
-├── rules/
-│   ├── dnd5e-roll-rules.js          // Schema export (JS)
-│   ├── rules-service.js             // Singleton service + caching
-│   ├── resolve-check-pipeline.js    // Ability checks pipeline
-│   ├── resolve-save-pipeline.js     // Saving throws pipeline
-│   └── resolve-attack-pipeline.js   // Attack rolls pipeline
-├── manager-rolls.js                 // Updated to use new system
-└── blacksmith.js                    // Bootstrap integration
-```
-
-### Implementation Details
-
-#### **Condition Detection:**
-- **Auto-reads** from `actor.allApplicableEffects`
-- **Supports custom** condition sets for full control
-- **Normalized slugs** for consistent detection
-
-#### **Cover System:**
-- **DEX saves**: +2 (half), +5 (three-quarters)
-- **Attack rolls**: -2 (half), -5 (three-quarters)
-- **Total cover**: Blocks targeting entirely
-
-#### **Critical Hit System:**
-- **Natural 20**: Always critical
-- **Auto-crit**: Melee within 5ft vs paralyzed/unconscious
-- **Damage doubling**: Dice only, modifiers once
-- **Extra dice**: Support for Savage Attacks, etc.
-
-#### **Proficiency Integration:**
-- **System roll data**: Uses Foundry's computed multipliers
-- **Feature detection**: JOAT, Remarkable Athlete, Reliable Talent
-- **Proper precedence**: System proficiency overrides features
-
-### Future Extensions
-
-- **Tool proficiency** - Custom tool detection
-- **Spell attacks** - Spell-specific critical handling
-- **libWrapper integration** - Seamless system replacement
-- **Condition effects** - Expanded condition support
+> **A "Schema-Driven Roll System" section was removed here on 2026-07-17 — it was fiction.**
+>
+> It described `scripts/rules/` (`dnd5e-roll-rules.js`, `rules-service.js`, and three resolve-pipelines),
+> a `RulesService`, an `api.rules` surface, and D&D 5e feature handling for Jack of All Trades,
+> Remarkable Athlete, Reliable Talent, cover, auto-crit and exhaustion. **None of it has ever existed.**
+> `git log --all -- scripts/rules` returns no commits: that directory has never been created, in any
+> revision. All 19 named symbols are at zero occurrences repo-wide.
+>
+> It was the largest section in this document and the most dangerous kind of wrong — plausible,
+> specific, and confidently describing feature resolution this module does not implement.
+> Recoverable from git history if it is ever wanted as a design sketch; it does not belong in
+> an architecture doc. Real roll calculation is documented above and in `scripts/manager-rolls.js`.
 
 ## Core Architecture
 
-### 4-Function Roll Flow
+### Roll Flow — three functions, not four
 
-The system is built around four core functions that handle the complete roll lifecycle:
-
-```
-1. requestRoll()     → Setup and validation
-2. orchestrateRoll() → Chat card creation and cinema setup
-3. processRoll()     → Actual roll execution
-4. deliverRollResults() → Results delivery and updates
-```
+> ### ⚠️ Corrections (2026-07-17) — read before trusting the diagrams below
+>
+> The rest of this section still describes a **"4-Function Architecture"**. It is wrong in three load-bearing ways, and the ASCII diagrams below encode all three. They are left in place only because rewriting them properly needs a session with the code; **the text below is the authority, not the art.**
+>
+> **1. `requestRoll()` does not exist.** It is commented out in `manager-rolls.js:26`, under a banner the code wrote itself: *"THIS IS A LEGACY FUNCTION AND IS NO LONGER USED. IT IS KEPT HERE FOR REFERENCE ONLY. Step 1 happens in the skillcheck dialog."* Every reference to it below — the flow list, both diagrams, the "Public Functions" entry, the usage examples — describes a function that cannot be called. **The real flow is three functions:**
+>
+> ```
+> 1. orchestrateRoll()    → packages data, selects system, chooses mode
+> 2. processRoll()        → executes the roll
+> 3. deliverRollResults() → delivers results, updates cards/overlays
+> ```
+>
+> Chat-card creation happens **upstream in `window-skillcheck.js`**, which calls `orchestrateRoll` (`window-skillcheck.js:2598`).
+>
+> **2. `orchestrateRoll()` cannot create chat cards — it throws without one.** The doc calls `existingMessageId` an optional duplicate-guard. It is mandatory: `manager-rolls.js:156-159` throws *"No existing message ID provided - chat card must be created first by skillcheck dialog."* `orchestrateRoll` also contains **no socket calls at all**.
+>
+> **3. The socket direction is inverted.** The doc says *"GM executes roll → emitRollUpdate → socket to all clients."* Reality is **roller → broadcast → GM acts**: any user rolls, `deliverRollResults` emits *to* the GM (`:349-355`), `emitRollUpdate` is `executeForOthers` (`:1713`), and GM-side authority lives in `handleSkillRollUpdate` (`blacksmith.js:2364`). The GM is authoritative for **group calculations only**, not execution. The roller also updates its own overlay locally first and is deliberately excluded from the broadcast, to avoid double timers (`:360-373`) — real architecture this doc omits.
+>
+> Also: the "Public/Internal" split further down is **exactly inverted** — `updateCinemaOverlay` *is* exported (`:1408`); `showCinemaOverlay` (`:1343`), `showRollWindow` (`:1030`) and `emitRollUpdate` (`:1707`) are module-private. None are on `module.api`; the real public surface is `openRequestRollDialog` (see `api-requestroll.md`).
 
 #### 4-Function Architecture Visual Flow
 ```
@@ -584,107 +407,20 @@ const useBlacksmithSystem = game.settings.get(MODULE.ID, 'diceRollToolSystem') =
 
 ---
 
-## Migration Plan (Roll System)
 
-This section is the roll system migration plan: current status, root cause analysis, phased implementation, and progress tracking. It was merged from the standalone migration plan document.
-
-### Current Status
-
-The roll system is in a transitional state: new 4-function architecture is implemented and working for window, cinema, and chat cards; query window and system selection remain (see Pending Tasks and TODO.md).
-
-**What's working:** Socket system operational (SocketLib); cross-client communication; new 4-function architecture in `manager-rolls.js`; roll execution logic; chat card system and chat card click integration.
-
-**Partially working:** Cinema mode (overlay shows, roll execution complete but some polish pending); Roll Window class (exists, integration improved).
-
-**Broken / incomplete:** Query window integration still uses old system; system selection (`diceRollToolSystem`) not respected in `processRoll()` (hardcoded to Blacksmith).
-
-**Summary:** Socket system production ready; cross-client sync functional; new architecture implemented; chat card integration working; window mode fixed; cinema mode implemented; query integration and system selection remain.
-
-### Detailed Technical Analysis
-
-**Architecture:** Target is a unified flow (Request → Route → Presentation → Unified Execution → Unified Resolution). Window, cinema, and chat cards use `orchestrateRoll()` → `processRoll()` → `deliverRollResults()`; query window still needs updating (see TODO.md).
-
-**Function status:**
-
-| Function | Integration |
-|----------|-------------|
-| `requestRoll()` | Used by chat cards |
-| `orchestrateRoll()` | Used by chat cards, window, cinema |
-| `processRoll()` | Used by chat cards, window, cinema; system selection not yet respected |
-| `deliverRollResults()` | Used by chat cards, window, cinema |
-| `showRollWindow()` | Uses new flow |
-| `showCinemaOverlay()` | Roll execution connected |
-
-**Socket integration:** New system uses `emitRollUpdate()` and `deliverRollResults()`; old direct socket calls should be removed from any remaining code paths (e.g. query window when updated).
-
-### Root Cause Analysis
-
-**Primary:** Query window integration and system selection respect remain (see Pending Tasks and TODO.md).
-
-**Secondary:** Architectural inconsistency—two competing paths—addressed for window and cinema; query window and system selection still to do.
-
-**Critical issues addressed:** (1) Window mode broken → fixed. (2) Cinema mode incomplete → implemented. (3) Query window integration missing → pending. (4) Socket pattern inconsistency → reduced; query and any legacy paths to be unified.
-
-### Phased Implementation Plan
-
-#### Phase 1: Critical Fixes
-
-- **1.3 Update Query Window Integration** (pending — see TODO.md)  
-  - Modify `window-query.js` to use `orchestrateRoll()`; replace direct `SkillCheckDialog` creation; test and verify cross-client sync.
-
-#### Phase 2: Architecture Unification
-
-- **2.1 Unify Execution Paths**  
-  - Audit all entry points; ensure each uses `orchestrateRoll()` → `processRoll()` → `deliverRollResults()`; remove old socket patterns; document unified path.
-- **2.2 Complete Migration**  
-  - Fix system selection: `processRoll()` respects `diceRollToolSystem`, implement `_executeFoundryRoll()` if needed, add selection logic. Remove old roll execution code; clean legacy patterns; ensure single source of truth in `manager-rolls.js`.
-
-#### Phase 3: Validation and Cleanup
-
-- **3.1 End-to-End Testing**  
-  - Test all entry points (dialog, cinema, query, chat cards); verify cross-client sync; validate window and cinema use same execution path.
-- **3.2 Legacy Code Removal**  
-  - Remove `utils-rolls-OLD.js` if present; clean remaining old functions; optimize and document final system.
-
-#### Phase 4: Production Readiness
-
-- **4.1 Performance Optimization** – Roll execution and memory usage.
-- **4.2 Error Handling and Resilience** – Comprehensive error handling, network resilience.
-- **4.3 User Experience Polish** – Chat card tooltips/sounds, cinema crit/fumble effects, window polish, accessibility.
-- **4.4 Documentation and Maintenance** – API docs, roll guide, troubleshooting, code quality and tests.
-
-### Function Specifications (Current Status)
-
-**Implemented and working:** `requestRoll()`, `orchestrateRoll()`, `processRoll()`, `deliverRollResults()` — used by chat cards, window mode, and cinema mode.
-
-**Helper functions:** `_executeBuiltInRoll()`, `prepareRollData()`, `emitRollUpdate()`.
-
-**Pending:** Query window to use `orchestrateRoll()`; `processRoll()` to respect `diceRollToolSystem` and support Foundry roll path when selected.
-
-### Success Metrics
-
-- **Technical:** Query window integration and system selection respect pending (see TODO.md).
-- **User experience:** Rolls complete and display correctly for window and cinema; query to be aligned; error handling in place.
-- **Development:** Code maintainable; functions separated; extension points clear; performance to be validated after query and system-selection work.
-
-### Risk Assessment
-
-- **Remaining:** Query window integration; system selection respect.
-- **Remaining:** Query window integration; system selection respect.
-- **Low risk:** Socket communication; cross-client sync; chat card integration.
-
-**Mitigation:** Incremental fixes, test each change, keep fallbacks until new path proven, user feedback after fixes.
-
-### Progress Tracking
-
-- **Phase 1.3:** Query window integration (see TODO.md).
-- **Phase 2–4:** Architecture unification, validation, production readiness (see TODO.md).
-
-**Success criteria (summary):** Phase 1 complete when window, cinema, and query all use the new flow and cross-client sync works. Phase 2 when all entry points use the same path and old patterns are removed. Phase 3 when tested and legacy removed. Phase 4 when performance, error handling, UX polish, and docs are complete.
-
-**Next milestone:** Phase 1.3 Query window integration; then system selection and Phase 2–4 (see TODO.md).
-
----
+> **A 99-line "Migration Plan (Roll System)" was removed here on 2026-07-17.**
+>
+> Repo rule: plans are scaffolding and must not masquerade as architecture. It carried Phases 1-4,
+> a risk assessment (with a duplicated line — a tell that it was merged in and never reread),
+> progress checkboxes, and success metrics. It referenced `TODO.md` eight times **from this
+> directory, where no such file exists**, and named two phantom files (`window-query.js`,
+> `utils-rolls-OLD.js`) that appear in zero commits.
+>
+> **One real finding was rescued from it before deletion** and is now tracked in
+> `documentation/TODO.md`: `processRoll()` ignores the `diceRollToolSystem` setting.
+> `orchestrateRoll` reads and stores it (`manager-rolls.js:178,191`), `processRoll` destructures
+> `system` (`:263`) and then unconditionally calls `_executeBuiltInRoll` (`:271`).
+> `_executeFoundryRoll` is unimplemented. That is a live bug, not architecture.
 
 ## File Structure
 

@@ -39,7 +39,7 @@ Notes are stored on the **target document's own flags** (`flags["coffee-pub-blac
 | `getHtml(uuid)` | `string` | Authored HTML (empty string if none). |
 | `getText(uuid)` | `string` | Plain-text mirror — index this for `gm:` search. |
 | `has(uuid)` | `boolean` | True if a non-empty note exists. Cheap; drives sheet badges. |
-| `set(uuid, data)` | `Promise<object \| null>` | Replace the note. `data`: `{ html?, pinned? }`. Regenerates `text`, stamps `updatedAt`, writes with `render:false`, fires the change hook. Resolves to the stored envelope, or `null` on failure. |
+| `set(uuid, data)` | `Promise<object \| null>` | **Update** the note — a partial merge, not a replace. `data`: `{ html?, pinned? }`; **any field you omit keeps its current value**, so `set(uuid, { pinned: true })` preserves the existing `html` rather than clearing it. Regenerates `text`, stamps `updatedAt`, writes with `render:false`, fires the change hook. Resolves to the stored envelope, or `null` on failure. To actually empty a note, pass `{ html: '' }` — or use `clear()` to remove the note data entirely. |
 | `clear(uuid)` | `Promise<boolean>` | Remove all note data from the document. |
 
 `uuid` may be a UUID string **or** a live Document.

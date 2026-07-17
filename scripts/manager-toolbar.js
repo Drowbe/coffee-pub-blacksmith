@@ -189,6 +189,22 @@ function registerTool(toolId, toolData) {
             return false;
         }
 
+        // onClick is required, and api-toolbar.md has always said so ("Missing required properties:
+        // Returns false and logs error"). Nothing enforced it, so a tool registered without one was
+        // stored, returned true, and rendered a button that does nothing: _wireToolClicks skips any
+        // tool whose onClick isn't a function, so such a tool is dead by definition. Failing here is
+        // not a new restriction — it just makes an already-broken registration say so.
+        if (typeof toolData.onClick !== 'function') {
+            postConsoleAndNotification(
+                MODULE.NAME,
+                `Toolbar | registerTool: onClick must be a function (tool: ${toolId}) — the tool would render a button that does nothing, so it is rejected.`,
+                { toolId, received: typeof toolData.onClick },
+                false,
+                false
+            );
+            return false;
+        }
+
         // Reject a DIFFERENT module claiming an id that is already taken.
         //
         // Previously any registration blindly overwrote the existing entry and returned true, so two
@@ -217,6 +233,9 @@ function registerTool(toolId, toolData) {
         // CRITICAL: Default button to true - v13 requires explicit button: true for button tools
         const storedTool = {
             ...toolData,
+            toolId, // The registry key. Without this, getToolsByModule() returned objects whose
+                    // registry key was unrecoverable when `name` differed from `toolId`, so the
+                    // cleanup pattern in api-toolbar.md (unregister by tool.name) silently failed.
             name: toolData.name || toolId, // Default name to toolId for external modules
             title: toolData.title || toolData.name || toolId, // Add fallback for title
             icon: toolData.icon || "fa-solid fa-square-question", // Add fallback for icon

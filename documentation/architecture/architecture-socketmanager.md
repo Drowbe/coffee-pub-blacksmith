@@ -1,5 +1,27 @@
 # SocketManager - Internal Architecture
 
+# ⛔ DO NOT TRUST THIS DOCUMENT — 81% OF IT IS FICTION
+
+> **Audited 2026-07-17. Of 83 checkable symbols, 67 (81%) do not exist and never have.**
+>
+> **This document has never described this codebase.** It was not a doc that drifted — it was born wrong. `git log -S` proves it: `_handleIncomingMessage`, `performanceMetrics`, `_initializeLocal`, and `_detectSocketLib` have **only ever appeared in this file, in any commit, ever** — never in a single `.js` file. The doc was added whole (2025-08-28), and on that same day `manager-sockets.js` already looked essentially as it does now. It is plausible-sounding architecture prose that was never checked against the file it claims to document.
+>
+> **Invented wholesale:** a `transport`/`eventHandlers`/`performanceMetrics` class shape; a **third "Local Mode" transport** (there are two: SocketLib and a native `game.socket` fallback); message **batching**; **reconnection** with backoff; **replay-attack validation** (`_validateMessage`, `maxMessageAge`); **latency metrics**; a `configure()` config system; and the debug globals `socketStatus` / `socketMetrics` / `socketEvents` / `socketTest`. None of it exists.
+>
+> Even `emit`, whose *name* is real, is documented with an invented envelope: the doc says `{event, data, timestamp, source, target, priority}`; the code sends `{eventName, data, userId, options}` (`manager-sockets.js:204-209`).
+>
+> **What is actually true**, if you need the socket layer today — read `scripts/manager-sockets.js` (~650 lines) and note these anchors:
+> - **Two transports only.** SocketLib (`_initializeSocket`, `:146`) and a native fallback (`_initializeNativeSockets`, `:256`). Init: `Hooks.once('socketlib.ready')` → a 500ms×20 fallback poll → native on exhaustion. Both paths end by firing `blacksmith.socketReady` (`:247`).
+> - **The SocketLib adapter multiplexes.** Blacksmith registers *one* SocketLib handler, `__blacksmithGenericEvent` (`:172`), and routes every event through it via `_externalEventHandlers`.
+> - **⚠️ Targeting is enforced on receipt, not on the wire.** `_isLocalRecipient()` (`:125`). **Both transports broadcast to every client and filter on arrival.** The source says it plainly: *"emit() must never carry secrets"* (`:306`). The fiction below invents a security model this code does not have — that inversion is the most dangerous thing in this file.
+> - **The latency-handler ordering is deliberate**: `ensureLatencySocketHandlers()` runs before `registerSocketFunctions()` (`:230-234`) because a ping arriving during `Game.setupGame` would otherwise throw `SocketlibUnregisteredHandlerError`.
+>
+> **Disposition: REWRITE from source.** Not deleted, for two reasons: the socket layer is genuinely non-trivial and has no other contributor-facing doc (`api/api-sockets.md` is consumer-facing by design), and the **"Migration Plan" section near the end is real** — it correctly identifies a live god-module problem (SocketManager imports CombatTimer, PlanningTimer, MenuBar, VoteManager, CSSEditor, and LatencyChecker at `:14-19`). That analysis is worth keeping; its status tracking is stale (`module.api` exposure is listed as future work but shipped at `blacksmith.js:1298`).
+>
+> Tracked in `documentation/TODO.md`. Everything below this line is retained only so the rewrite has something to diff against.
+
+---
+
 **Audience:** Contributors to the Blacksmith codebase.
 
 ## **Overview**

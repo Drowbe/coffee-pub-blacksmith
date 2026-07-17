@@ -56,8 +56,24 @@ if (layer) {
 
 ```javascript
 const blacksmith = await BlacksmithAPI.get();
-const layer = blacksmith.CanvasLayer; // Available after canvasReady
+const layer = blacksmith.CanvasLayer; // ⚠️ null on initial load — see below
 ```
+
+> ### ⚠️ Prefer `BlacksmithAPI.getCanvasLayer()` — `blacksmith.CanvasLayer` is unreliable
+>
+> **`blacksmith.CanvasLayer` is `null` on the initial canvas draw**, and only becomes populated after you switch scenes. It is assigned from a `canvasReady` handler that Blacksmith registers during `ready` — but Foundry fires `canvasReady` *before* `ready` (`game.mjs`: `await this.canvas.initializing` precedes `Hooks.callAll("ready")`), so the handler is always registered too late for the first scene.
+>
+> **It is also gated on an unrelated setting.** The assignment sits inside the `enableSceneClickBehaviors` branch. That setting defaults to **on**, but a GM who turns *scene-click behaviours* off loses `blacksmith.CanvasLayer` **permanently** — scene switches won't help — even though the layer itself is registered unconditionally and works fine.
+>
+> **`window.BlacksmithCanvasLayer` is worse**: it is assigned by a sync step guarded on `if (api.CanvasLayer)`, which runs at API-ready time when the value is still `null`. Nothing re-syncs it later, so in practice it is **never set**.
+>
+> **Use this instead — it works in every case**, because it falls back to reading the layer straight off the canvas:
+>
+> ```javascript
+> const layer = await BlacksmithAPI.getCanvasLayer();
+> ```
+>
+> The layer is registered unconditionally at `init`, so the fallback path is always available. Tracked in `documentation/TODO.md`.
 
 #### Direct Canvas Access
 
@@ -71,6 +87,8 @@ Hooks.once('canvasReady', () => {
 ```
 
 #### Global Access (after canvasReady)
+
+> **This global is effectively never set** — see the warning above. The guard below means the block is a silent no-op rather than an error, which is why this went unnoticed. Use `BlacksmithAPI.getCanvasLayer()` or read `canvas['blacksmith-utilities-layer']` directly.
 
 ```javascript
 if (window.BlacksmithCanvasLayer) {

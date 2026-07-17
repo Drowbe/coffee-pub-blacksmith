@@ -38,7 +38,28 @@ file. Same rule as `TODO.md`.
 
 ### Verification status — read this before trusting any doc
 
-**Verified against code: 2 of 13 architecture docs, 1 of 16 API docs.** Everything else is assumption.
+**Verified against code: 2 of 13 architecture docs, 16 of 16 API docs.** The architecture docs are
+still assumption.
+
+**All 16 API docs were audited against source on 2026-07-17** and corrected. **Every single one
+contained at least one thing that could not work.** Not one was clean. See CHANGELOG `[Unreleased]`
+for the full list; `documentation/TODO.md` holds what was found but deliberately *not* fixed.
+
+Two things worth carrying forward:
+
+1. **The dogfooding rule held again, without exception.** Every API surface Blacksmith does not call
+   on itself was broken: `list({includeHiddenByFilter})` (every internal caller passes the flag
+   explicitly, so only the documented call hits the inverted default), `registerToolbarTool`'s
+   `onClick` contract, hook `context` stats, `createJournalEntry`'s return, native socket `emit`.
+   Meanwhile the menubar API — which Blacksmith self-registers through — was fine.
+2. **"The doc is wrong" is a bad default.** `ICONSHIELD` was dismissed as a phantom; the icon was
+   real and the *data* was missing a field — the only such gap in 183 asset records. The volume
+   constants were the same shape. **When a doc and the code disagree, find out which one is lying.**
+
+**Coverage is not uniform.** `api-pins.md` (2,200 lines) had ~100 symbols checked but real gaps —
+`reconcile()` internals, the GM tag mutators, the schema migration chain, and most Manage Pins UI
+claims are **unverified**. Recorded in `documentation/TODO.md` so silence isn't mistaken for a
+clean bill of health.
 
 The 2026-07-16 sweep audited docs for **sibling coupling** — is another module's architecture leaking in.
 That is *not* an accuracy audit, and the two were conflated for most of that session. Where accuracy has

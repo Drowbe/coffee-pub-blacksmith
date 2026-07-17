@@ -603,7 +603,10 @@ class MyModule {
 }
 
 // Register cleanup when module is disabled
-Hooks.once('disableModule', (moduleId) => {
+// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
+// Foundry has no module-unload event; disabling a module reloads the world anyway.
+// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
+Hooks.on('unloadModule', (moduleId) => {
     if (moduleId === 'my-module') {
         myModuleInstance.cleanup();
     }
@@ -857,7 +860,10 @@ blacksmith.registerMenubarTool('my-custom-tool', {
 
 ```javascript
 // Unregister all tools when module is disabled
-Hooks.once('disableModule', (moduleId) => {
+// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
+// Foundry has no module-unload event; disabling a module reloads the world anyway.
+// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
+Hooks.on('unloadModule', (moduleId) => {
     if (moduleId === 'my-module') {
         const tools = blacksmith.getMenubarToolsByModule('my-module');
         tools.forEach(tool => {
@@ -876,105 +882,36 @@ The API includes robust error handling:
 - **Missing required properties**: Returns `false` and logs error
 - **API not available**: Check for API availability before use
 
-## ⚠️ Critical: Function Dependencies and Scope
+## `onClick` and `this`
 
-### **The Problem: Module Scope Isolation**
+Your `onClick` is stored and invoked as a plain function call (`tool.onClick(event)`). Two consequences:
 
-When you register a tool with the menubar, the `onClick` function gets executed in the **Blacksmith menubar's context**, not your module's context. This means your function loses access to your module's imports and variables.
-
-### **❌ Common Error Pattern:**
+- **Your closures work normally.** The function keeps its lexical scope, so module-level imports and
+  variables captured at definition time are available when it runs. Blacksmith's own menubar tools rely
+  on this — e.g. `onClick: () => new MovementConfig().render(true)`, closing over an import.
+- **`this` is not bound.** Because the call is unbound, `this` inside a non-arrow `onClick` is
+  `undefined`. If you need instance context, use an arrow function or bind it yourself:
 
 ```javascript
-// In your-module.js
 import { MyManager } from './manager-my.js';
 
-const myFunction = () => {
-    MyManager.doSomething(); // ❌ ReferenceError: MyManager is not defined
-};
+blacksmith.registerMenubarTool('my-module-tool', {
+    icon: 'fa-solid fa-star',
+    name: 'my-module-tool',
+    moduleId: 'my-module-id',
+    onClick: () => MyManager.doSomething()   // arrow: closure intact, no `this` needed
+});
 
-// Register with menubar
-blacksmith.registerMenubarTool('my-tool', {
-    onClick: myFunction // ❌ Function loses access to MyManager
+// If you must use a method as the handler, bind it:
+blacksmith.registerMenubarTool('my-module-other', {
+    /* ... */
+    onClick: this.handleClick.bind(this)
 });
 ```
 
-**Error:** `ReferenceError: MyManager is not defined`
-
-### **✅ Solution: Self-Contained Functions**
-
-Make your `onClick` functions completely self-contained by importing all dependencies:
-
-```javascript
-// In your-module.js
-import { MyManager } from './manager-my.js';
-
-// ✅ Self-contained function with all dependencies
-const myFunction = () => {
-    try {
-        if (!MyManager) {
-            throw new Error('MyManager not available');
-        }
-        MyManager.doSomething();
-    } catch (error) {
-        console.error('My Module | Error in tool:', error);
-    }
-};
-
-// Register with menubar
-blacksmith.registerMenubarTool('my-tool', {
-    onClick: myFunction // ✅ Function has access to all its dependencies
-});
-```
-
-### **Alternative Solutions:**
-
-#### **1. Bound Context Functions**
-```javascript
-// Bind the function to maintain its original context
-blacksmith.registerMenubarTool('my-tool', {
-    onClick: myFunction.bind(this) // Maintains original context
-});
-```
-
-#### **2. Module API Access**
-```javascript
-// Access your module's API instead of direct imports
-const myFunction = () => {
-    const myAPI = game.modules.get('my-module')?.api;
-    myAPI.MyManager?.doSomething();
-};
-```
-
-#### **3. Wrapper Function**
-```javascript
-// Create a wrapper that handles the context
-const createMyHandler = () => {
-    return () => {
-        // This closure maintains access to your module's scope
-        MyManager.doSomething();
-    };
-};
-
-blacksmith.registerMenubarTool('my-tool', {
-    onClick: createMyHandler()
-});
-```
-
-### **🎯 Recommended Approach:**
-
-**Use self-contained functions** (Solution 1) because they:
-- Are explicit about dependencies
-- Work regardless of execution context
-- Are easier to debug
-- Are more reusable
-
-### **📋 Checklist for onClick Functions:**
-
-- [ ] All required imports are included in the same file
-- [ ] Function is self-contained (no external dependencies)
-- [ ] Error handling is included
-- [ ] Function works when called from any context
-- [ ] All variables and functions are properly scoped
+> Errors thrown inside `onClick` are caught and logged by Blacksmith so one bad tool cannot break the
+> menubar — which also means a thrown error will not surface as an uncaught exception. Handle your own
+> failures if you need the user to see them.
 
 ## Best Practices
 
@@ -1061,11 +998,14 @@ blacksmith.registerMenubarTool('my-tool', {
 - Check zone spelling (must match "left", "middle", or "right" exactly)
 - Default zone is "left" if not specified
 
-### Tool Click Errors (ReferenceError)
-- **Error**: `ReferenceError: SomeClass is not defined`
-- **Cause**: onClick function loses access to module's imports when executed
-- **Solution**: Make onClick function self-contained with all dependencies imported
-- **Check**: Ensure all required classes/functions are imported in the same file as the onClick function
+### Tool Click Errors
+- **`TypeError: Cannot read properties of undefined`** on `this` — your `onClick` is invoked unbound, so
+  `this` is `undefined` in a non-arrow function. Use an arrow function or `.bind(this)`. See
+  [`onClick` and `this`](#onclick-and-this).
+- **Nothing happens on click** — errors thrown inside `onClick` are caught and logged by Blacksmith rather
+  than surfacing as uncaught exceptions. Check the console for the logged error.
+- **A different module's tool fires** — two tools registered with the same `name`. Dispatch keys on
+  `toolId`; make sure yours is unique and prefixed with your module id.
 
 ### Tool Not Clickable
 - Verify `onClick` function is provided and valid

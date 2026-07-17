@@ -27,7 +27,7 @@ Use whichever model fits your module's workflow. Map-centric modules (waypoints,
 
 ### Placement API
 
-- **Create placed**: Pass `sceneId`, `x`, and `y` in `pinData`.
+- **Create placed**: `create(pinData, { sceneId })` with `x`/`y` in `pinData`. **`sceneId` goes in the `options` argument, not in `pinData`** — `create()` reads it from `options` only. Putting it in `pinData` (as this line previously said) makes the pin count as "placed" but resolves the scene to `undefined`, which **falls back to the currently active scene** — so the pin silently lands somewhere other than the scene you named, with no error. The Options section and the worked example below are correct.
 - **Create unplaced**: Omit `sceneId`, `x`, and `y`. The pin is stored in the world setting.
 - **Place an unplaced pin**: `place(pinId, { sceneId, x, y })` moves it onto a scene.
 - **Unplace a pin**: `unplace(pinId)` removes it from the canvas but keeps its data.
@@ -80,7 +80,7 @@ Use these **before** calling create/update/delete/reload from another module or 
 Blacksmith does **not** create a default or test pin. To exercise the pins API:
 
 1. **Another module** – Use `whenReady()` (or a `canvasReady` hook), then create a pin. See [Usage patterns](#usage-patterns) below.
-2. **Browser console** – Use `game.modules.get('coffee-pub-blacksmith')?.api?.pins`, then `create()` and `reload()` if needed. See `utilities/test-pins-debug.js` and `utilities/test-pins-rendering.js`.
+2. **Browser console** – Use `game.modules.get('coffee-pub-blacksmith')?.api?.pins`, then `create()` and `reload()` if needed.
 3. **Drop on canvas** – Implement a draggable UI element that drops `{ type: 'blacksmith-pin', moduleId: 'your-module', ... }`; the `dropCanvasData` handler creates the pin.
 
 ### Usage Patterns
@@ -166,6 +166,9 @@ Hooks.once('canvasReady', () => {
   }, { moduleId: MODULE_ID, signal: controller.signal });
 });
 
+// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
+// Foundry has no module-unload event; disabling a module reloads the world anyway.
+// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
 Hooks.on('unloadModule', (id) => {
   if (id !== MODULE_ID) return;
   controller.abort();
@@ -597,7 +600,7 @@ const defaultPin = await pinsAPI.create({
 
 **Options**:
 - `sceneId` (string, optional): if provided with x/y in pinData, the pin is placed on this scene at creation; if omitted (and no x/y), the pin is created unplaced
-- `silent` (boolean, optional): skip event emission
+- `silent` (boolean, optional): **Not implemented on this method — it is ignored.** The JSDoc declares it and the intent exists, but only `deleteAll()` / `deleteAllByType()` actually check it; this method always fires its hooks and handlers. Tracked in `documentation/TODO.md`.
 
 **Throws**: 
 - `Error` if pin data is invalid
@@ -667,7 +670,7 @@ await pinsAPI.update(pin.id, { style: { iconColor: '#ffd700' } });
 
 **Options**:
 - `sceneId` (string, optional): target scene when you know where the pin is; if omitted, lookup is unplaced then all scenes
-- `silent` (boolean, optional): skip event emission
+- `silent` (boolean, optional): **Not implemented on this method — it is ignored.** The JSDoc declares it and the intent exists, but only `deleteAll()` / `deleteAllByType()` actually check it; this method always fires its hooks and handlers. Tracked in `documentation/TODO.md`.
 
 **Throws**: 
 - `Error` if patch data is invalid
@@ -694,7 +697,7 @@ await pinsAPI.delete(pin.id, { sceneId: 'some-scene-id' });
 
 **Options**:
 - `sceneId` (string, optional): if provided, only that scene is searched; if omitted, search is unplaced then all scenes
-- `silent` (boolean, optional): skip event emission
+- `silent` (boolean, optional): **Not implemented on this method — it is ignored.** The JSDoc declares it and the intent exists, but only `deleteAll()` / `deleteAllByType()` actually check it; this method always fires its hooks and handlers. Tracked in `documentation/TODO.md`.
 
 **Throws**: 
 - `Error` if pin not found (unplaced or on any scene)
@@ -724,9 +727,14 @@ await pins.place(pin.id, { sceneId: canvas.scene.id, x: 1200, y: 900 });
 ```
 
 **Throws**: 
-- `Error` if pin not found or pin is already placed
 - `Error` if scene not found
 - `Error` if permission denied
+
+**Does NOT throw** — returns `null` instead (matching the documented return above):
+- pin not found
+- pin is already placed
+
+> Earlier versions listed "pin not found or already placed" under **Throws**, contradicting this method's own documented `null` return. Those two cases notify the user and return `null`, so a `try/catch` around them never fires — **check the return value**.
 
 ### `pins.unplace(pinId)`
 Remove a pin from the canvas but keep its data. The pin becomes unplaced (no `sceneId`, and typically no `x`/`y`). The pin must currently be on a scene.
@@ -742,8 +750,13 @@ if (unplaced) {
 ```
 
 **Throws**: 
-- `Error` if pin not found or pin is already unplaced
 - `Error` if permission denied
+
+**Does NOT throw** — returns `null` instead:
+- pin not found
+- pin is already unplaced
+
+> Same correction as `place()` above: these two cases return `null` rather than throwing.
 
 ### `pins.deleteAll(options?)`
 Delete all pins from a scene (GM only). Useful for cleaning up scenes or resetting pin data.
@@ -1451,11 +1464,15 @@ const on = pins.getTagVisibility('quest');
 
 Saved profiles capture the current **client** hide state: global hide-all, hidden modules, hidden pin types/categories, hidden global tags, and hidden type-scoped tags. They do **not** include per-pin `config.blacksmithVisibility` or ownership.
 
-Built-in profiles **`All Pins`** and **`No Pins`** appear in the UI like custom names; they cannot be overwritten or deleted via the API. Reserved **custom** profile names (case-insensitive) **All Pins** and **No Pins** are rejected when saving.
+Built-in profiles **`All Pins`** and **`No Pins`** appear in the UI like custom names.
+
+> ⚠️ **The reserved-name protection is UI-only — the API does not enforce it.** This page previously said the names "All Pins" and "No Pins" are rejected when saving. They are not: the check lives in the Manage Pins window, and `saveVisibilityProfile()` throws **only** on an empty name. Internally the built-ins are keyed `__blacksmith_all_pins__` / `__blacksmith_no_pins__`, and name normalisation only trims — so `'All Pins'` is not recognised as reserved at all, and saving under that name creates an ordinary custom profile that shadows the built-in in the list.
+>
+> The flip side: **`applyVisibilityProfile('All Pins')` throws** `Profile not found: All Pins`. The built-ins are only reachable by their internal keys, so the display names shown in the UI are **not** usable through the API.
 
 - **`pins.listVisibilityProfiles()`** — `{ name, state }[]` sorted by name. `state` is a deep clone suitable for inspection.
-- **`pins.saveVisibilityProfile(name)`** — Persists the current filter state under `name` and sets it active. Throws if the name is reserved or invalid.
-- **`pins.applyVisibilityProfile(name, options?)`** — Applies a saved or built-in profile. **`options.sceneId`** (optional): when applying a custom profile, pass the scene whose pin population should be used for repair logic (e.g. clearing hide-all when the profile still shows pins on that scene). Defaults to the active canvas scene.
+- **`pins.saveVisibilityProfile(name)`** — Persists the current filter state under `name` and sets it active. **Throws only if the name is empty** — see the warning above.
+- **`pins.applyVisibilityProfile(name, options?)`** — Applies a **saved** profile. Throws `Profile not found` for anything not in the saved set, including the built-in display names. **`options.sceneId`** (optional): when applying a custom profile, pass the scene whose pin population should be used for repair logic (e.g. clearing hide-all when the profile still shows pins on that scene). Defaults to the active canvas scene.
 - **`pins.deleteVisibilityProfile(name)`** — Removes a saved profile. Built-in names are not stored and are not deleted here.
 - **`pins.getActiveVisibilityProfileName()`** — Returns the active profile key, or `''` if the user is in ad-hoc “custom / current view” mode.
 
@@ -1475,9 +1492,11 @@ The registry is used to populate tag suggestion chips in the Configure Pin windo
 > **`getPinTaxonomy` vs `getPinTaxonomyChoices`** — critical distinction for UI:
 >
 > - **`getPinTaxonomy(moduleId, type)`** — returns only the tags registered for that specific pin type. Use this for type-scoped tag chip pickers (journal toolbar, Configure Pin tag row) so the user only sees relevant tags.
-> - **`getPinTaxonomyChoices(moduleId, type)`** — merges the registered tags with every tag in the global registry (i.e. every tag ever used across all modules). Use this for global autocomplete inputs where showing all known tags is helpful. **Do not** use it to populate a chip picker scoped to a specific type — it will show unrelated tags from other modules.
+> - **`getPinTaxonomyChoices(moduleId, type)`** — returns `{ tags, label }` (an **object**, not an array — `.length` on the result is `undefined`). It merges that type's registered tags with the **taxonomy's declared `globalTags`** — the `globalTags` array in `pin-taxonomy.json` / registered taxonomy payloads. Use it for autocomplete inputs where showing the declared cross-module tags is helpful. **Do not** use it for a chip picker scoped to one type — it will show unrelated tags.
 >
-> Rule of thumb: **`getPinTaxonomy` for type-scoped pickers; `getPinTaxonomyChoices` for global autocomplete.**
+> ⚠️ **It does *not* include "every tag ever used".** This page used to say it merged "every tag in the global registry". It does not touch the world tag registry (the `pinTagRegistry` setting) at all — that is read by a separate path. So tags added via `addTagToRegistry()`, or created freeform on a pin, **never appear** in `getPinTaxonomyChoices()`. Only tags *declared* as `globalTags` in a taxonomy do.
+>
+> Rule of thumb: **`getPinTaxonomy` for type-scoped pickers; `getPinTaxonomyChoices` for declared-tag autocomplete.**
 
 #### `pins.getModuleTaxonomy(moduleId)`
 Returns **all registered taxonomy entries** for a module in one call — every pin type registered via the built-in JSON, an override JSON, or `registerPinTaxonomy()`. Merges all three sources the same way `getPinTaxonomy` does for each individual type.
@@ -1680,7 +1699,8 @@ await pins.ping(pinId, {
 // Scale animation
 await pins.ping(pinId, { animation: 'scale-large', loops: 3 });
 
-// Broadcast to all users (not yet implemented - logs warning)
+// Broadcast to all users who can see the pin — this IS implemented and works.
+// (This comment used to say "not yet implemented"; it shipped, via the 'pingPin' socket event.)
 await pins.ping(pinId, { 
     animation: 'glow', 
     loops: 1,
@@ -2075,12 +2095,16 @@ async function reconcileAndPersist(sceneId) {
   }
 }
 
+// `moduleId` is undefined for an UNFILTERED bulk delete — which is the main path:
+// the Manage Pins "Delete All" button calls deleteAll({ sceneId }) with no moduleId.
+// Guarding on `moduleId === MODULE_ID` alone silently skips exactly the case that
+// wipes everything, leaving your refs dangling — the outcome this section exists to prevent.
 Hooks.on('blacksmith.pins.deletedAll', ({ sceneId, moduleId }) => {
-  if (moduleId === MODULE_ID) reconcileAndPersist(sceneId);
+  if (moduleId === undefined || moduleId === MODULE_ID) reconcileAndPersist(sceneId);
 });
 
 Hooks.on('blacksmith.pins.deletedAllByType', ({ sceneId, moduleId }) => {
-  if (moduleId === MODULE_ID) reconcileAndPersist(sceneId);
+  if (moduleId === undefined || moduleId === MODULE_ID) reconcileAndPersist(sceneId);
 });
 ```
 
@@ -2089,11 +2113,12 @@ Hooks.on('blacksmith.pins.deletedAllByType', ({ sceneId, moduleId }) => {
 Pins have a right-click context menu with the following options:
 
 **Available to All Users:**
-- **Ping Pin**: Animates the pin to draw attention (combo animation: scale-large + ripple with sound)
 - **Bring Players Here**: Pans all connected users who can see the pin to its location (optionally with ping)
+- **Animate** *(submenu)*: Ping, Pulse, Ripple, Flash, Glow, Bounce, Scale (small/medium/large), Rotate, Shake. **"Ping" lives here** — there is no top-level "Ping Pin" item (this page previously listed one). Ping is the combo animation: scale-large + ripple, with sound.
 
 **Available to Users with Edit Permissions:**
 - **Configure Pin**: Opens the Configure Pin window for visual and layout settings
+- **Layer** *(submenu)*: Bring to Front, Bring Forward, Send Backward, Send to Back
 - **Delete Pin**: Deletes the individual pin
 
 **GM-Only Options** (appear below a separator):

@@ -345,7 +345,6 @@ signal to take a comparison snapshot. A real validation pass is a 90–180 minut
 | Token naming (type/subtype cascade, taxonomy) | **architecture-token-naming.md** |
 | XP system | **architecture-xp.md** |
 | HookManager | **architecture-hookmanager.md** |
-| Core utilities | **architecture-core.md** |
 | API references (pins, menubar, toolbar, stats, etc.) | **api-*.md** |
 
 ---

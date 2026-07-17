@@ -82,6 +82,48 @@ dismantled into the five kinds above: work → `TODO.md`, design → architectur
 
 Prefer these docs over re-deriving from source. Point at them; don't duplicate them.
 
+## The change workflow
+
+Idea → live has been the weak link here: stale docs and ad-hoc changes are what produced the rot this
+repo has been digging out of. **Every change follows this pipeline.** The docs are the source of truth;
+the code is reality. They stay honest only if updating them is *part of the change*, not a later chore.
+
+Name the outcome first — **bug fix / feature / performance / refactor** — because it sets the bar
+(a bug fix skips the plan step; nothing else does).
+
+1. **Orient in the docs.** Read the relevant architecture, API, and `TODO.md` entries for the area with the
+   outcome in mind. These are the anti-crawl artifacts — start here, not in the code.
+2. **Reality-check against the code.** Grep and read the actual source. Docs have been wrong often enough
+   that you verify before trusting — and when a doc and the code disagree, *decide which is right* (the doc
+   has been the correct spec against buggy code more than once).
+3. **Plan — anything larger than a bug fix.** Write it in `documentation/plans/` under the "Plans are
+   scaffolding" rules above. A bug fix needs no plan. The plan is deleted once implemented and its content
+   distributed to the five doc kinds.
+4. **Break the work into `TODO.md` items.** Each one carries how it will be verified (step 6).
+5. **Make the change.**
+6. **Test it — and state how.** There is no test framework beyond running Foundry, so every change names its
+   verification: the exact steps to confirm in a live world, or the console check, or the file exercised.
+   "How you test" is part of the change and travels with it into the `TODO.md` item and the `CHANGELOG.md`
+   entry. If the only check is "client loads with no errors," say exactly that — don't imply more.
+7. **Milestone check-in — author.** When a milestone's tests pass, the author reviews the diff in Cursor and
+   commits. Claude prepares reviewable changes; the author commits.
+8. **Update the docs to reflect progress.** Architecture and API now describe the new reality; finished
+   `TODO.md` items are removed (step 11), not left checked-off.
+9. **Final doc pass** when the whole plan/bug is done — architecture and API fully reconciled to shipped code.
+10. **Update `CHANGELOG.md`** for the next release — code changes first, per the CHANGELOG rule.
+11. **Delete completed TODOs.** They live in the CHANGELOG now. Never keep a done item "for reference."
+12. **Version bump + BUILD commit — author, after final tests.** The author bumps `module.json` and makes the
+    BUILD commit. See Git: BUILD now bundles the final docs + changelog + todo deletions + the bump.
+13. **Sync the wiki — Claude.** Once the BUILD commit has landed the doc changes, Claude pushes them to the
+    wiki (a pure mirror of `documentation/`). See the wiki note in Git — the mechanism is not solved yet.
+
+**Never hold TODOs in the API or architecture docs.** That is precisely how they drift out of sync with the
+code. Those docs describe what *is* — including "this is currently broken, and here is the truth" when that
+is the reality. Anything shaped like "we should…", "TODO:", "planned", or a task list belongs in `TODO.md`
+and nowhere else. A ⚠️ correction block documenting current broken behavior is allowed, but it is
+**transitional**: when the code is fixed, step 8 deletes the block. It is a description of reality with a
+short shelf life, not a parking spot for work.
+
 > ⚠️ **The docs in this repo are not trustworthy yet.** Where accuracy has been checked against code, most
 > were substantially wrong — one architecture doc had **zero** real symbols across 24 code blocks. See the
 > verification table in `documentation/TODO-GLOBAL.md` for what has actually been checked. **Verify before
@@ -160,13 +202,26 @@ you are tempted to add a `packs` array, that's a decision to re-litigate, not a 
 Personal Claude Code settings belong in `.claude/settings.local.json` (gitignored) — the committed
 `.claude/settings.json` should stay empty, since permissions there would apply to anyone who clones the repo.
 
-Do not commit or push unless asked. The author reviews diffs in Cursor and commits himself.
+Do not commit or push to the main repo unless asked. The author reviews diffs in Cursor and commits himself —
+this covers both the milestone check-ins and the final release commit in the workflow above. Claude stages
+reviewable changes; the author commits.
 
-**Never bump the version in `module.json`.** The author does it deliberately, as a lone `BUILD x.y.z` commit,
-so the history carries a clean single-change build marker. Bumping it as part of another change destroys
-that signal — it happened once: a helpful bump got folded into a 20-file doc commit, and the author's
-`BUILD 13.9.0` commit ended up containing only a description edit. Write the `CHANGELOG.md` entry when asked;
-leave the version and the tag alone.
+**Never bump the version in `module.json`.** The author bumps it and makes the release commit himself, after
+his own final tests. **The `BUILD x.y.z` commit bundles the final doc updates, `CHANGELOG.md`, and todo
+deletions together with the version bump** — one commit per release. (Changed 2026-07-17. It used to be a
+*lone* single-change bump for a clean history marker; the author folded the final doc pass into it. Do not
+"restore" the lone-bump rule — this supersedes it.) Claude writes the CHANGELOG entry and stages the final
+doc changes; the author makes the BUILD commit and the tag.
 
-**Releases are the author's.** Tagging (`v*` fires `.github/workflows/release.yml`), pushing, and anything
-that publishes are his to run. Note the workflow runs no lint, tests, or build — the tag is the only gate.
+**Releases are the author's.** Tagging (`v*` fires `.github/workflows/release.yml`), pushing the main repo,
+and anything that publishes to GitHub are his. The workflow runs no lint, tests, or build — the tag is the
+only gate.
+
+**The wiki is Claude's to sync — after the BUILD commit.** The GitHub wiki is a **pure mirror** of
+`documentation/`; the author writes nothing wiki-specific, so it never leads, it only follows. Once a BUILD
+commit lands doc changes in the main repo, Claude pushes the same docs to the wiki.
+> ⚠️ **Unsolved mechanical blocker.** The wiki is a bare git repo (`…coffee-pub-blacksmith.wiki.git`) that
+> would not check out on Windows: at least one page (`Architecture:-Core`) has a `:` in its filename, which
+> is illegal in NTFS, so a plain `git clone` of the wiki fails on this machine. The push path has to be
+> worked out — sparse checkout, filename mapping, or generating the wiki files without a full checkout —
+> before the first real sync. Do not assume `git clone …​.wiki.git && cp && push` works here; it doesn't yet.

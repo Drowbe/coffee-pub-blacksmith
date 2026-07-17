@@ -44,24 +44,32 @@ These points affect how consumers implement interactive body content (e.g. works
 
 ---
 
-## 3. Components (Planned)
+## 3. Components
 
-### 3.1 Window Registry
+> **Corrected 2026-07-17.** This section previously read "Components (Planned)" and described the registry, the base class, and the migration as future work. **All three shipped.** The failure mode here is the inverse of the usual one: not a plan overselling itself, but a *built and actively used system underselling itself as planned*. A contributor reading the old text could reasonably have built `api-windows.js` a second time.
 
-- **Location (planned):** e.g. `scripts/api-windows.js` or a dedicated window-registry module used by `blacksmith.js`.
-- **Role:** Store registered window descriptors keyed by `windowId`. Expose `registerWindow(windowId, descriptor)`, `unregisterWindow(windowId)`, and `openWindow(windowId, options)` on `module.api`.
-- **Descriptor:** At minimum, a way to open the window (e.g. `open: (options) => ApplicationInstance`, or a WindowClass so Blacksmith can `new WindowClass(options)`). Optional: default `title`, `position`, `moduleId` for debugging.
-- **Lifecycle:** Registration typically happens in a consumer’s `ready` or `init` hook; unregister on `disableModule` for cleanup.
+### 3.1 Window Registry — **BUILT**
 
-### 3.2 Optional Base Class / Mixin
+- **Location:** `scripts/api-windows.js`.
+- **Role:** Stores window descriptors keyed by `windowId`. Exposed on `module.api` at `blacksmith.js:1222-1226`: `registerWindow` (`api-windows.js:15`), `unregisterWindow` (`:27`), `openWindow` (`:36`), `getRegisteredWindows` (`:45`), `isWindowRegistered` (`:53`). The last two were listed as "optional" and are also built.
+- **Descriptor:** a way to open the window — `open: (options) => ApplicationInstance`, or a WindowClass. Optional: default `title`, `position`, `moduleId` for debugging.
+- **In real use:** `window-pin-layers.js:1983` registers `blacksmith-pin-layers`; `api-pins.js:582` opens it via `api.openWindow(...)`. There is a live producer and a live consumer — this is not theoretical.
+- **Lifecycle:** registration happens in a consumer's `ready` or `init` hook.
 
-- **Role:** Encapsulate Application V2 patterns so each consumer doesn’t reimplement them: `_getRoot()`, scroll save/restore in `render()`, document-level delegation for `data-action`, and optionally a **central window ref** so static actions don’t require a module-level ref per app. The guidance doc (§5 “What We’d Do Different”) calls this a “WindowWithHeaderAndActions” base class.
-- **Consumer responsibility:** Extend the base (or use the mixin), supply template path, `getData`, and action handlers. Template must follow the zone contract (include only the zones the window needs).
+> **Cleanup caveat.** This section used to say "unregister on `unloadModule` for cleanup." **`unloadModule` is a dead hook** — it appears zero times in Foundry v13 and nothing (Foundry, Blacksmith, or any module) ever fires it, so that cleanup never ran. Foundry has no runtime module-unload event; disabling a module reloads the world and tears everything down anyway. Call `unregisterWindow` from your own lifecycle if you need it at all. See `api-hookmanager.md` and `documentation/TODO.md`.
 
-### 3.3 Existing Windows and Migration
+### 3.2 Base Class — **BUILT, and universal in practice**
 
-- **Current state:** Blacksmith’s own windows (e.g. SkillCheckDialog, JournalToolsWindow, PinConfigWindow) still use legacy `Application` / `FormApplication`. See the earlier “Application V2” review for the full list.
-- **Migration path:** As each window is migrated to Application V2, it can optionally be registered with the window registry (e.g. `registerWindow('request-roll', { open: (opts) => new SkillCheckDialog(opts) })`) so `openWindow('request-roll')` is available. Toolbar tools that open windows can then call `openWindow(id)` or continue to instantiate the class directly.
+- **Location:** `BlacksmithWindowBaseV2` in `scripts/window-base.js:13`.
+- **Role:** encapsulates the Application V2 patterns so each window doesn't reimplement them: `_getRoot()`, scroll save/restore across `render()`, document-level delegation for `data-action`, and a central window ref so static actions don't need a module-level ref per app.
+- **Not optional in practice.** This was described as an "Optional Base Class / Mixin". **Every window class in `scripts/` extends it.**
+- **Consumer responsibility:** extend the base, supply template path, `getData`, and action handlers. The template must follow the zone contract (include only the zones the window needs).
+
+### 3.3 Existing Windows and Migration — **COMPLETE**
+
+- **Current state:** the Application V2 migration is **done**. `grep -rE 'extends (Application|FormApplication)\b' scripts/` returns **zero results** — no legacy `Application` / `FormApplication` window remains in the codebase.
+- This section previously claimed SkillCheckDialog, JournalToolsWindow, and PinConfigWindow "still use legacy `Application` / `FormApplication`". All three extend `BlacksmithWindowBaseV2` (`window-skillcheck.js:11`, `manager-journal-tools.js:2369`, `window-pin-configuration.js:22`), as does every other window. It also pointed at an "earlier Application V2 review" for the full list; **no such document exists in this repo** — that reference is removed rather than repaired.
+- **Registering a window is now the optional part**, not the migration: a window can be registered with the registry (e.g. `registerWindow('request-roll', { open: (opts) => new SkillCheckDialog(opts) })`) so `openWindow('request-roll')` works. Toolbar tools may call `openWindow(id)` or instantiate the class directly.
 
 ---
 

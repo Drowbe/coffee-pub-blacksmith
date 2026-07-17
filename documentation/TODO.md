@@ -4,6 +4,12 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Wiki sync mechanism (blocked)
+- **Owner:** Claude (assigned 2026-07-17). The wiki is a pure mirror of `documentation/`; Claude syncs it after each BUILD commit — see the workflow and Git rules in `CLAUDE.md`.
+- **Blocker:** the wiki bare repo (`…coffee-pub-blacksmith.wiki.git`) will not check out on Windows — the page `Architecture:-Core` has a `:` in its filename, illegal in NTFS, so `git clone` of the wiki fails on this machine.
+- **How to verify (once solved):** the wiki renders the current `documentation/` docs, and re-running the sync on an unchanged tree is a no-op.
+- **Options to work out:** sparse/partial checkout excluding colon-named pages; a filename mapping layer (`:` ↔ safe char); or generating/pushing wiki blobs without a working-tree checkout. Also decide whether the colon-named page should just be renamed at the source so the mirror is clean.
+
 ## Performance & memory
 
 Open items only. Completed work lives in `CHANGELOG.md`; the *design* that came out of this work (shared
@@ -45,13 +51,39 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 > `registerModule`, never checked `removeHook`'s return, never used `BLACKSMITH.rolls.execute` — and all
 > four were silently broken. **If an API isn't dogfooded, nothing tests it.**
 
-### `SkillCheckDialog` `options.title` never sets the window title
-- **Issue**: `window-skillcheck.js:37` does `options.title = data.title` then `super(options)`. ApplicationV2 reads the frame title from `options.window.title`. **20+ call sites across this repo use `window: { title }`; zero use root `title`.** No `get title()` override exists, so `DEFAULT_OPTIONS.window.title = 'Request a Roll'` always wins.
+### Leader selection errors with no canvas tokens — should use each player's assigned character
+- **Found**: 2026-07-17 build testing.
+- **Issue**: selecting a party leader throws an error when there are no tokens on the canvas. That is not the intended rule.
+- **Correct behavior**: a candidate is a **logged-in player's assigned character** (`user.character`), regardless of how many actors they own and regardless of canvas tokens. E.g. Alicia logs in owning Favia and Cyrus but is *assigned* Favia → only Favia appears.
+- **Likely site**: `scripts/manager-vote.js` — the leader path builds candidates via `_getUserCharacter(u.id)` (~:240); confirm whether that, or the character-source selection (~:373–445, which gates on `canvas.tokens.controlled/placeables`), is deriving the character from canvas tokens instead of `game.users.get(id)?.character`. Fix: source from the assigned character; do not require canvas tokens.
+- **How to verify**: with zero tokens on the canvas, open the leader vote → no error; candidate list = the assigned character of each logged-in player (one per player, their assigned actor only).
+
+### Planning timer stops counting down in combat until paused/restarted (suspected regression)
+- **Found**: 2026-07-17 build testing. Author recalls a prior fix for this — likely a regression.
+- **Issue**: during combat the planning timer does not tick down on its own; pausing and restarting it makes it resume.
+- **Likely site**: `scripts/timer-planning.js` — the countdown/tick loop and its combat-state gating (what starts/resumes the tick on combat start). Check `git log`/blame for the earlier fix to see what regressed.
+- **How to verify**: start combat → the planning-phase timer counts down without a manual pause/restart.
+
+### XP window marks non-combatants eligible after combat — should be only active combatants
+- **Found**: 2026-07-17 build testing.
+- **Issue**: after a combat ends, the XP distribution window defaults to the **whole party** as eligible recipients. It should include only the players who were **actually in the combat**.
+- **Likely site**: `scripts/xp-manager.js` — the post-combat path appears to use the party-members list (`game.actors.filter(...)`, ~:420–428, "for non-combat XP distribution") instead of the combat's participants (`combat.combatants`, ~:322). For post-combat XP, source recipients from the combat's player-owned combatants. Note the two entry points (`openXpDistributionWindow` vs `calculateXpData` / `_onCombatEnd`) — the combat-end path is the one to fix, and this is adjacent to the two-entry-point shape mismatch flagged in the `architecture-xp.md` audit.
+- **How to verify**: run a combat with only some party members participating → after it ends, the XP window lists only the participants, not the whole party.
+
+### ✅ FIXED (2026-07-17) — `SkillCheckDialog` `options.title` never sets the window title
+- **Fix applied**: `window-skillcheck.js` now sets `options.window = { title: data.title }`. Verified against Foundry core: `ApplicationV2#title` reads `this.options.window.title` (`applications/api/application.mjs`), and `#mergeApplicationOptions` deep-merges nested objects, so `resizable`/`minimizable` from `DEFAULT_OPTIONS.window` survive. **Not yet verified in a live Foundry session.**
+- **Original issue**: `window-skillcheck.js:37` did `options.title = data.title` then `super(options)`. ApplicationV2 reads the frame title from `options.window.title`. **20+ call sites across this repo use `window: { title }`; zero use root `title`.** No `get title()` override exists, so `DEFAULT_OPTIONS.window.title = 'Request a Roll'` always wins.
 - **Impact**: every module passing `title: 'Spot the trap'` gets a window captioned "Request a Roll". The value *does* work for the chat card title and in silent mode — which is why it failed partially and silently.
 - **Doc is right** (`api-requestroll.md:67` "Override the dialog window title"); the intent at `:37` is explicit and simply doesn't work. Fix: `options.window = { title: data.title }`.
 - **Priority**: Medium.
 
-### `api.CanvasLayer` is nulled by an unrelated user setting
+### `api.CanvasLayer` — the setting gate is real, but the ORDERING bug is the primary cause
+- **Added 2026-07-17**: the entry below blames `enableSceneClickBehaviors`. That gate is real, **but it is not what most users hit** — the setting defaults to `true`. The bigger bug is ordering: the `canvasReady` handler that assigns `module.api.CanvasLayer` (`blacksmith.js:662`) is registered during **`ready`**, and Foundry fires **`canvasReady` before `ready`** (verified in core: `game.mjs:784` `await this.canvas.initializing;` precedes `game.mjs:787` `Hooks.callAll("ready")`). So the assignment is **always too late for the initial canvas** — `api.CanvasLayer` stays `null` until the user switches scenes, which fires a second `canvasReady`.
+- **Consequence**: `window.BlacksmithCanvasLayer` is **never** set, even after a scene change — `_syncGlobalsFromApi()` guards on `if (api.CanvasLayer)` and only runs at API-ready time, before any of this.
+- **Fix**: hoist the assignment out of the `blnCustomClicks` branch AND register the `canvasReady` hook at `init`, not `ready` — plus assign once eagerly if the canvas is already drawn. **Left undone: this is init-order surgery and wants a live session.**
+- **Docs updated 2026-07-17** to steer consumers to `BlacksmithAPI.getCanvasLayer()`, which works in all cases via its raw-canvas fallback.
+
+### (original entry) `api.CanvasLayer` is nulled by an unrelated user setting
 - **Issue**: `blacksmith.js:945-946` initialises `CanvasLayer: null, getCanvasLayer: null`. The only assignment (`:650-668`) lives inside `if (blnShowIcons || blnCustomClicks) { if (blnCustomClicks) {` where `blnCustomClicks = getSettingSafely(MODULE.ID, 'enableSceneClickBehaviors', false)` (`:620`). Turn that setting off and `api.CanvasLayer` stays `null` forever, though the layer itself is registered and fully functional (`hookCanvas()` at `:822-838` runs unconditionally).
 - **Impact**: `api-canvas.md:57-60` and `:73-80` document `blacksmith.CanvasLayer` and `window.BlacksmithCanvasLayer` as supported access paths. A GM toggling a *scene-click-behaviour* setting silently kills a canvas API that has nothing to do with it. Cartographer (named in the doc) would read `null` and conclude Blacksmith isn't ready. Masked by the default being on, and by `BlacksmithAPI.getCanvasLayer()`'s raw-canvas fallback (`api/blacksmith-api.js:180-181`) — which is the only reason this hasn't been reported.
 - **Fix**: hoist the `module.api.CanvasLayer` / `getCanvasLayer` assignment out of the `blnCustomClicks` branch into an unconditional `canvasReady` hook.
@@ -64,20 +96,158 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 - **Decide**: honour `visible` in `getFoundryToolbarTools`, or state in the doc that `visible` is CoffeePub-only and `onFoundry` is the sole Foundry-side gate. The code comment at `:116-117` claims the omission is deliberate — but the doc's contract is the sane one.
 - **Priority**: Medium.
 
-### `registerToolbarTool`: `onClick` is documented as required but never validated
-- **Issue**: `api-toolbar.md:78` says `onClick` is **required**. `registerTool` never checks it — `registerToolbarTool('x', {})` returns `true` and installs a dead button. The failure then surfaces as a click that does nothing, far from the registration that caused it.
-- **Partly addressed in 13.9.x**: the two type-validation rejections and the duplicate-id rejection now log. The empty `catch` blocks (`manager-toolbar.js` `registerTool`, `unregisterToolbarTool`) still swallow errors, and `onClick` is still unchecked.
+### ✅ FIXED (2026-07-17) — `registerToolbarTool`: `onClick` documented as required but never validated
+- **Fix applied**: `registerTool` now rejects a non-function `onClick` with a log, matching the contract `api-toolbar.md` has always stated. Safe by construction: `_wireToolClicks` already skips any tool whose `onClick` isn't a function, so such a tool was a dead button already — this only makes the failure loud. All five internal tools define `onClick`, so nothing internal is affected.
+- **Still open**: the empty `catch` blocks in `registerTool` / `unregisterToolbarTool` still swallow errors.
+- **Priority**: Low (remainder).
+
+### ✅ FIXED (2026-07-17) — `getToolsByModule()` returns objects you cannot unregister
+- **Fix applied**: `registerTool` now stores `toolId` on the stored tool object (set *after* the `...toolData` spread, so a caller cannot clobber the registry key). `getToolsByModule()` results are now unregisterable via `tool.toolId`.
+- **Doc**: `api-toolbar.md`'s cleanup example still needs updating from `tool.name` to `tool.toolId` — see the doc-fix list below.
+- **Priority**: Low (remainder).
+
+### ⚠️ There is no module-unload hook at all — `disableModule` AND `unloadModule` are both dead
+- **Status (2026-07-17)**: the docs no longer teach `disableModule`. **But the replacement was also wrong**, and that is the real finding.
+- **`disableModule`**: taught in four docs, zero occurrences in code. Fixed → `unloadModule`.
+- **`unloadModule`**: **nothing fires it either.** Zero occurrences in Foundry v13 core, and **no installed module — Blacksmith included — ever calls `Hooks.call('unloadModule')`**. Verified against a working control (`pauseGame`/`canvasReady` both hit; these return nothing). It is a listener convention with no emitter: `manager-canvas.js:35`, `manager-combatbar.js:395`, `manager-latency-checker.js:51`, `manager-navigation.js:46`, `manager-pins.js:1315`, `manager-token-indicators.js:187`, `timer-combat.js:254`, `timer-planning.js:156`, `timer-round.js:88`, `ui-combat-tracker.js:62` — **ten registrations in Blacksmith's own code that have never run once.**
+- **Also dead, same class**: `closeGame` (`api-hookmanager.md`, and `blacksmith.js:565` + `manager-journal-dom.js:101` in code) — zero occurrences in Foundry. `EncounterToolbar.dispose()` and `JournalPagePins.dispose()` have never been called.
+- **Impact**: low in practice, embarrassing in principle. Foundry has no runtime module-unload event; enabling/disabling forces a world reload that tears everything down anyway. So the cleanup was never *needed* — but every doc that taught it, and every internal handler that relies on it, is theatre. It also means "we clean up after ourselves" is not a claim this codebase can currently make.
+- **DECISION NEEDED — do not let an agent pick one of these unilaterally:**
+  1. **Make the convention real**: have Blacksmith emit `Hooks.callAll('unloadModule', moduleId)` from somewhere meaningful. But there is no meaningful moment — that's the whole problem.
+  2. **Drop it**: delete the ten dead registrations and the `closeGame` pair, and document plainly that there is no unload event and none is needed.
+  3. **Keep listeners, fix docs only** (current state): docs now say plainly that nothing fires it; code keeps the harmless dead handlers.
+- **Current state**: option 3, chosen because it is reversible and truthful. `api-hookmanager.md` carries the full explanation; the six cleanup examples across `api-menubar.md`, `api-pins.md`, `api-toolbar.md`, `api-window.md`, and `developer-note-pin-editing-visibility.md` are annotated in place. **The ten dead code registrations are untouched.**
+- **Priority**: Medium (correctness of guidance), Low (runtime impact).
+
+### Pins: `shape: 'rectangle'` is silently dropped by `update()` — doc is right, code is buggy
+- **Issue**: `manager-pins.js:2014-2019` (`_applyPatch`) whitelists `if (shape === 'circle' || shape === 'square' || shape === 'none')`. **`'rectangle'` is missing.** The patch is dropped with no error.
+- **Rectangle is real everywhere else**: validated (`pins-schema.js:386`), rendered (`pins-renderer.js:548`), styled (`styles/pins.css:115`), offered in the UI (`window-pin-configuration.js:818`), given free aspect (`blacksmith.js:771`). `create()` accepts it; only `update()` drops it.
+- **User-facing**: `window-pin-configuration.js:1079` saves via `pinsAPI.update(...)` — so **choosing "Rectangle" in Configure Pin silently never persists.** This is a live user-visible bug, not just a doc issue.
+- **Fix**: add `'rectangle'` to the whitelist. Looks like a one-word fix; **left undone because it is a live behavior change to the pins UI and deserves a real session to confirm**, not a 2am patch.
+- **Priority**: High. Verified independently? No — reported by audit with strong evidence; spot-check before fixing.
+
+### Pins: `list({ includeHiddenByFilter })` default is inverted — doc is right, code is buggy
+- **Issue**: `manager-pins.js:1231` does `if (options.includeHiddenByFilter === false && ...)`. Strict `=== false` means **omitting the flag includes filter-hidden pins** — the opposite of the documented default (`api-pins.md:1273`: "default is `false`").
+- **Why it hid**: every internal caller passes an explicit boolean, so the bug is only reachable through the public API — i.e. exactly the call the doc teaches (`pins.list({ moduleId })`). **The dogfooding pattern again.**
+- **Fix**: `!== true`. Same reasoning as above — behavior change, wants a live check.
+- **Priority**: High.
+
+### Sockets: native `emit()` never rejects, so the "unified interface" premise is false
+- **Issue**: `api-sockets.md:123` states unconditionally that `emit` "rejects if delivery fails (e.g. a `userId` target who is not connected)". True under SocketLib (`manager-sockets.js:214` → `executeAsUser`). **Under the native fallback it is false**: the native `emit` closure (`manager-sockets.js:292-323`) never inspects `game.users`, never checks connectivity, and **has no `return` at all** → `blacksmith.js:1369` does `Promise.resolve(undefined).then(() => true)` → **always resolves `true`**.
+- **Impact**: silent, and maximally so. A consumer follows the doc's error-handling section, gets `true`, and concludes a message reached an offline user. The doc even tells them not to worry about transport differences.
+- **DECISION NEEDED**: (a) scope the doc's claim per-transport — honest minimum; or (b) make native `emit` reject when `!game.users.get(userId)?.active`, which makes the transports actually uniform. **(b) is the better spec** — "same API regardless of transport" is the API's selling point — but it is a real behavior change under a fallback path that is hard to test without disabling SocketLib. **Left for you.**
+- **Priority**: High.
+
+### Sockets: `register()` silently overwrites, and native handlers share Blacksmith's own namespace
+- **Issue**: both paths `Map.set` over an existing handler (`blacksmith.js:1317`, `manager-sockets.js:289`) and return `true`. The only log is guarded by `if (!_registeredEvents.has(eventName))`, so the *second* registration isn't even logged. There is **no unregister method at all** on `api.sockets`.
+- **Worse, native-only**: external `register()` writes into the **same `_nativeHandlers` map Blacksmith's internals use** (`ping`, `pong`, `updateCSS`, `syncTimerState`, `updateSkillRoll`…). An external module registering `'ping'` **silently destroys Blacksmith's own latency handler.** Under SocketLib the namespaces are separate, so this only bites when SocketLib is absent.
+- **Fix**: namespace external native handlers, and/or reject a name already owned by internals. Needs a design call.
+- **Priority**: High.
+
+### HookManager: `once` + `debounceMs` guarantees the callback never fires
+- **Issue**: `manager-hooks.js:73-91` — `hookRunner` invokes the debounced wrapper (which only *schedules* a timeout), immediately marks the callback for removal because `options.once`, then `removeCallback` → `:221` `cb.teardown?.()` → `clearTimeout` **before the debounce interval elapses**. The user callback never executes. Registration returns a valid id, no error.
+- **Also**: `:105/:115` are `if (options.throttleMs) ... else if (options.debounceMs)` — **`throttleMs` wins and `debounceMs` is silently discarded**. They are mutually exclusive; nothing says so.
+- **Doc made it worse**: `api-hookmanager.md:40-44` showed `{ once: true, throttleMs: 50, debounceMs: 300 }` — all three at once — as the canonical options shape. **Doc fixed 2026-07-17**; the code still accepts the incoherent combination silently.
+- **Fix**: warn (or reject) on `once`+`debounceMs` and on `throttleMs`+`debounceMs`.
 - **Priority**: Medium.
 
-### `getToolsByModule()` returns objects you cannot unregister
-- **Issue**: `registeredTools` is keyed by `toolId` and `unregisterToolbarTool` looks up by `toolId`, but `getToolsByModule()` returns stored tool objects carrying `name` and **no `toolId` field**. `api-toolbar.md:400-412` tells consumers to unregister via `tool.name`, which works only because `name` defaults to `toolId`. Pass an explicit `name` ≠ `toolId` and unregister silently returns `false` — the tool becomes unremovable, with no supported way to recover its id.
-- **Fix**: store `toolId` on the stored tool object — the same fix already applied to the **menubar** registry in 13.9.x (`api-menubar.js` `registerMenubarTool`). The toolbar registry still needs it.
+### `createJournalEntry` never returns the created JournalEntry — doc is right, code is buggy
+- **Issue**: all three paths `await JournalEntry.create({...})` and **discard the result** — no `return` (`utility-common.js:421` ENCOUNTER, `:489` AREA, `:604` LOCATION). `api-create-journal-entry.md:33` documents `Promise<JournalEntry>`. It always resolves `undefined` on the success path.
+- **Impact**: silent. `const e = await api.createJournalEntry(d); e.sheet.render();` → `TypeError` far from the cause. Regent (the named consumer) can't link the created journal without it.
+- **Not just three `return`s**: the AREA/LOCATION branches also have bare `return;` on the existing-entry path (`:486`, `:601`) — those probably should return the *existing* entry, but that's a contract decision. **Left for you.**
 - **Priority**: Medium.
 
-### `disableModule` is not a hook — cleanup examples in four docs can never run
-- **Issue**: `api-toolbar.md:404`, `api-menubar.md:606,860`, `api-window.md:164,272`, and `architecture-window.md:54` all teach `Hooks.once('disableModule', ...)` for cleanup. **It appears in zero lines of code.** Blacksmith's actual convention is `unloadModule` (`manager-canvas.js:35`, `manager-combatbar.js:395`, `manager-latency-checker.js:51`).
-- **Impact**: every consumer who copied the cleanup pattern has a callback that never fires. One wrong hook name, copied across four docs.
-- **Priority**: Medium — doc fix, but it has been shipping bad guidance to nine modules.
+### Pins: three documented guarantees the code does not implement (doc fixes still pending)
+- **`create()` duplicate-id throw is not cross-store**: `api-pins.md` promises `Error` if an id exists "unplaced or on a scene". The unplaced branch checks only the unplaced store; the placed branch checks only that one scene. Creating placed with an id that exists unplaced (or on another scene) **does not throw** → duplicate ids, and `_findPinLocation` then resolves whichever it hits first. The doc's recommended `exists()` workaround *does* search both, so the advice is sound — only the throw guarantee is false.
+- **`options.sceneId` is ignored by `update()` and `delete()`**: both call `_findPinLocation(pinId)`, which takes one argument and always searches unplaced-then-all-scenes. So the documented "only that scene is searched" scoping and its "throws if scene not found" are both phantom. `delete(id, { sceneId: 'other-scene' })` **deletes the pin anyway** instead of no-oping. `get()` and `exists()` *do* honor `sceneId` — the doc is right for those two only.
+- **Unplaced `create()` skips the tag registry**: `_addTagsToRegistry` runs in the placed-create branch and in `update()`, but not in the unplaced-create branch. Tags on unplaced-created pins don't reach the registry until first update/placement.
+- **Priority**: Medium. These are doc corrections (or small code fixes); not done for lack of time, not lack of evidence.
+
+## ARCHITECTURE DOCS — audit results (2026-07-17)
+
+All 13 audited against source. **Two are fiction, three are shipped-work-described-as-plans, and the pattern is consistent enough to name.**
+
+> **The finding that explains almost all of it:** the house rule *"a doc that copies code drifts; a doc that points at code doesn't"* held as a **natural experiment**. In `architecture-blacksmith.md`, everything that *points* (file inventory 45/46 correct, the style list exactly right, the §9A trap list 7/9, all cross-links) survived intact. Everything that *narrates or copies* (§3.1's hand-maintained call sequence, §2.1's transcribed esmodules array) rotted. Same doc, same author, same age — the only variable was pointer vs copy.
+
+### ✅ DONE — `architecture-hookmanager.md` rewritten (1,411 → ~200 lines)
+- The 398-line verbatim class copy had **drifted into resurrecting the `callbackId.split('_')[0]` bug we deleted this same cycle**, omitted `context`/`teardown`, showed dead `_throttle`/`_debounce` as the live path, and lacked the `pre*` cancel. Every defect existed *because the copy existed*.
+- Deleted an invented rule ("⚠️ Parameter order is strict and must be exact!" — `registerHook` takes a **destructured object**; order is meaningless), a 155-line section claiming "Only one callback per hook name / Module B will OVERWRITE Module A" while proposing multi-callback dispatch as future work (**it shipped**; `entry.callbacks.push` + sort), ~300 lines of migration runbook, ~180 lines duplicating the api doc, and phantom examples (`closeGame`, `userLogin`, `searchInput`, `PanelManager`, `StatsManager`).
+- Now documents the real internals, none of which were documented before.
+
+### ✅ DONE — `architecture-rolls.md` trimmed (797 → 522 lines)
+- **Deleted a 202-line "Schema-Driven Roll System" section: 100% fiction.** `scripts/rules/` has **never existed in any commit** (`git log --all -- scripts/rules` is empty). It confidently described D&D 5e handling for Jack of All Trades, Remarkable Athlete, Reliable Talent, cover, auto-crit and exhaustion — 19/19 symbols phantom.
+- Deleted a 99-line migration plan that referenced a nonexistent `TODO.md` eight times and two phantom files.
+- Added a correction block: it is a **3-function** flow (`requestRoll()` is commented out at `manager-rolls.js:26` under the code's own "LEGACY… NO LONGER USED" banner), `orchestrateRoll` **throws** without an existing message id rather than creating cards, and the socket direction is **inverted** (roller→GM, not GM→clients).
+- **Still open:** the ASCII diagrams and API Reference section still encode the 4-function/public-internal errors. Left in place — rewriting them needs a session with the code.
+
+### ✅ DONE — `architecture-window.md` corrected (inverted staleness)
+- **The opposite of the usual failure: a shipped, actively-used system described as "Planned."** `api-windows.js` exists and is wired (`blacksmith.js:1222-1226`); `window-pin-layers.js:1983` registers and `api-pins.js:582` opens. A contributor could have built it twice.
+- The V2 migration is **complete** — `grep -rE 'extends (Application|FormApplication)\b' scripts/` returns **zero**. The doc named three windows as legacy; all extend `BlacksmithWindowBaseV2`.
+- Removed the dead `unloadModule` cleanup guidance (last surviving instance in the repo) and a dangling "earlier Application V2 review" that doesn't exist.
+
+### ⛔ `architecture-socketmanager.md` — 81% fiction, BORN fiction. REWRITE NEEDED — #1 POST-RESET EFFORT
+- **Priority (author, 2026-07-17): #1 after the wiki reset**, ahead of the design-system effort — sockets and hooks are the two most critical systems. (The hook-system doc, `architecture-hookmanager.md`, was already rewritten from source this session; sockets is the remaining critical one.) Excluded from the first wiki publish; rewrite from `manager-sockets.js` preserving the god-module analysis.
+- **67 of 83 symbols phantom.** Proven never-real by `git log -S`: `_handleIncomingMessage`, `performanceMetrics`, `_initializeLocal`, `_detectSocketLib` have **only ever existed in this doc file, in any commit**. Added whole 2025-08-28, when `manager-sockets.js` already looked as it does now. Never described this codebase.
+- Invented: a third "Local Mode" transport, batching, reconnection/backoff, replay-attack validation, latency metrics, a config system, four debug globals.
+- **Most dangerous:** it invents a security model. Reality is `_isLocalRecipient()` (`:125`) filtering **on receipt** — both transports broadcast to every client. Source: *"emit() must never carry secrets"* (`:306`).
+- **Header added; body left for diffing.** Do NOT delete: the socket layer has no other contributor doc, and the **"Migration Plan" section is real** — the god-module problem (SocketManager imports 6 UI subsystems at `:14-19`) is live and correct. Its status is stale (`module.api` exposure shipped at `blacksmith.js:1298`).
+
+### ✅ DELETED (2026-07-17) — `architecture-core.md`
+- Deleted per author decision: misnamed (said nothing about core), duplicative (every section had a better owner), wrong on both unique claims (**"4 esmodules"** → actually 9; a **"Base Timer Class"** that does not exist), and its "Testing and Quality Assurance" section was fiction (no tests exist).
+- Referrers repointed: removed the "Core utilities" row from `architecture-blacksmith.md`; dropped the `architecture-core.md` mentions in `api-core.md`. If `api-core.js` / `utility-core.js` ever warrant contributor-facing internals, that is a **new** doc — not this one.
+
+### `architecture-blacksmith.md` — KEEP, fix §3.1 (the map a new contributor reads first)
+- **§9A is right and §3.1 is wrong — the doc contradicts itself and the correct half loses.** §3.1 claims `hookCanvas()` registers canvasInit/canvasReady/updateScene/dropCanvasData. It registers **no hooks** (`:821-837` only injects the layer class); those live in `initializeSceneInteractions()` (`:617`, called during `ready`) and three are gated on `enableSceneClickBehaviors`. §9A says so correctly.
+- **§3.1 lists lifecycle phases in the wrong order** (`setup → init → ready → canvasReady`; Foundry runs `init → setup → canvasReady → ready`). Its own phase *numbers* are right — only the list order is wrong. Worst possible place for it.
+- §3.1 also self-contradicts §4.3 on `BLACKSMITH.rolls.execute` (§4.3 correctly says removed), and names phantoms `ConstantsGenerator`, `registerWindowQueryPartials`, `executeRoll`, `_setupDomObserver`.
+- §9A's `removeCallback` "trap" is now **stale — we fixed that code today**. Delete it.
+- §2.1 drift: esmodules omits 2 files (9, not 7); ships **two** style entries, not one.
+- §11 (~89 lines) is a migration plan — honestly fenced, but belongs in this file.
+- **Verified excellent and worth protecting:** file inventory 45/46, style list exact (48 imports, names and order), §9A Quick View line-for-line, §4.3 roll exports exact, §9B.2 dead-code table (its `_setupActivePageChecker` row looks like a false positive but is **transitively dead** — the doc is right).
+- **Live bug it predicted:** §7 warns "a new stylesheet is silently unstyled unless added to `default.css`". `styles/journal-toolbars.css` and `styles/widget-tags.css` are on disk, imported by nothing. `widget-tags.css` matters — `TagWidget.registerPartial()` is live at `blacksmith.js:543`.
+
+### `architecture-toolbarmanager.md` — 20 phantoms; ~60% is a superseded plan
+- 8 phantom API names (`registerBlacksmithTool`, `BlacksmithToolbarManager`, `TokenControlToolbarManager`, …) presented as the design to implement; that design was abandoned for what shipped. It **documents and disclaims the same phantom class** 160 lines apart.
+- Says **"9 default tools"** — actual is **5**. Third wrong count in this file's history; note line 14 already warns readers not to trust its lists, then line 150 supplies one.
+- Copied `request-roll` block says `zone: 'rolls'`; actual is `gmtools`. Tool Data Structure omits `onCoffeePub`/`onFoundry`/`toggle` (load-bearing). Claims `icon`/`title` required; both default — only `onClick` is (now validated).
+- 3 wrong file paths, 1 fictional CSS selector.
+- **Doc arguably right vs code:** its "Tool Visibility System" implies parity, but `getFoundryToolbarTools()` ignores `tool.visible` while `getVisibleTools()` honors it. Fix belongs in code.
+
+### `architecture-tags.md` — MAJOR-REWRITE, but **fix the code split first**
+- Root cause: the system was renamed **Flags → Tags**; the code finished, the doc didn't. Its title says Tags, its body says flags — so it names 5 phantom files (`widget-flags.js` → real `widget-tags.js`, etc.) and a phantom `api.flags` namespace.
+- **Do not rewrite it yet.** The doc's JSON section is *correct* for the shipped `tag-taxonomy.json` (which really does use `flags`). Rewriting to `tags` while the JSON ships `flags` just moves the lie. Fix the three-shape split first (see the Tags entry below), then document one schema.
+- Also: four-tier classification is fiction (code has `taxonomy`|`global` only); `TagWidget.prepareData` is documented positional but takes an **object**; `activate()` omitted (widget renders inert without it); context key documented `.quests`, shipped JSON has `.quest`.
+
+### `architecture-stats.md` — MAJOR-REWRITE (~66% is a decision memo)
+- **Its central storage claim is inverted.** It says "**NO PERSISTENCE** — all combat data is lost" and recommends *against* storing summaries. The code stores every one, deliberately unbounded, in the `combatHistory` world setting (`stats-combat.js:1090`, `settings.js:2141`). Option C was chosen and shipped; the doc still presents it as an open question.
+- It proposes "keep last 10-20, prune oldest" — **the pruning lie in proposal form.** Delete it or it regenerates.
+- §2 misattributes an entire subsystem: claims `stats-player.js` owns `combat.setFlag('combatStats')`. That file has **zero** combat setFlag/getFlag/unsetFlag; its only flag is `actor.setFlag('playerStats')`. 8 phantoms.
+- Asserts clean ownership of the `stats` flag; reality is the known three-way collision — and **worse than recorded**: `timer-round.js:233` also writes *wholesale*, clobbering `currentStats` in the other direction.
+- Never mentions that **all writes are GM-gated** — a real gap. Keep the data-flow diagram (L726-752, verifies almost perfectly); add the `combatHistory` write.
+
+### `architecture-xp.md` — KEEP-WITH-FIXES (weakest of the "real" docs)
+- Resolution multipliers wrong on **4 of 6**, and wrong in *mechanism*: they're GM-configurable settings (`xpMultiplierDefeated` etc.), not the fixed constants the doc lists.
+- Calls `XpDistributionWindow` a `FormApplication`; it extends `BlacksmithWindowBaseV2` (`xp-manager.js:806`).
+- Its "Known Issues" section describes a circular-dependency bug **that is already fixed** — the code at `:878` implements the exact proposed fix. Delete.
+- Possible latent code bug: two entry points produce different monster shapes (`openXpDistributionWindow` → raw Combatants; `calculateXpData` → the documented shape). The doc may be describing correct *intent*.
+
+### `architecture-pins.md` — KEEP-WITH-FIXES (the recent rewrite mostly holds)
+- Verified strong: schema v7, all 6 migration rows exact, all 9 schema defaults byte-exact, permissions model exact, all 5 lifecycle hooks.
+- **"No canvas layer is used for pins" is false** — `canvas-layer.js` defines `BlacksmithLayer`, registered at `blacksmith.js:830`, and it is a pin lifecycle entry point (`_draw()` → `PinRenderer.initialize()`, `activate()` → `loadScenePins`). Absent from Components entirely.
+- **`pinTagRegistry` is filed under "client settings"; it is `scope: 'world'`** (`settings.js:3451`) — and this contradicts the doc's own three-concerns spine, since it's shared vocabulary, not view state. Highest-value fix.
+- Shape list omits `rectangle` — note it matches the **buggy** `update()` whitelist rather than the design. Don't "correct" the doc to the bug.
+- `_getPinLocation` → real name `_findPinLocation`. Event list omits 7 of 16. Filter-change mechanism misdescribed (it's `applyVisibilityFilters()`, not a reload).
+
+### `architecture-token-naming.md` — REAL. The model doc.
+- Promoted from a plan **properly**: describes built behavior, and its "Do not enumerate the keys" callout applies the house rule correctly *and is self-aware about the prior failure* ("The plan this doc replaced hardcoded '18 keys'; the file had 20" — the file has 20).
+- One phantom: `flag-taxonomy.json` → real `tag-taxonomy.json`.
+- Its §3 pseudocode **drops rung 2** of the cascade and contradicts its own §2 — the copy-drifts rule biting an otherwise good doc. Replace the block with a pointer to `utility-token-naming.js:231`.
+
+### Audit coverage gaps — what was NOT checked (2026-07-17)
+Recorded so a future pass doesn't mistake silence for a clean bill of health.
+- **`api-pins.md`** (~100 symbols checked, largest doc): NOT verified — `reconcile()` internals; the five GM tag mutators' bodies (so doc claims about scrubbing saved visibility-profile snapshots are **unverified**); `seedTagRegistryIfEmpty` semantics; arc-text layout / `textMaxWidth`; `imageFit`/`imageZoom`; the v4→v7 schema migration chain; most `window-pin-layers.js` UI claims. Given the reserved-profile-name finding, **the profile/UI-layer claims are the least trustworthy area**.
+- **`architecture-*.md`**: 10 docs, still substantially unverified. `architecture-socketmanager.md` is known fiction (30/30 symbols phantom). `architecture-hookmanager.md` needs ~900 of 1411 lines cut.
+- **Fence checker**: `scratchpad/check-fences.ps1` syntax-checks all 378 JS fences across the API docs (tries whole-module, function-body, class-body, and object-literal readings before reporting). ~29 remaining hits are pseudo-code fragments, not defects. Worth keeping if you want it in the repo.
 
 ### Tags: `register()` reads `tags`, the JSON loader reads `flags`
 - **Issue**: `manager-tags.js:180` (runtime `register()`) checks `Array.isArray(taxonomy?.tags)`. `manager-tags.js:117` (JSON loader) checks `Array.isArray(entry?.flags)`. Same conceptual object, two key names depending on entry path. `api-tags.md:144,151-159` documents `flags`. `_loadPinTaxonomyCompat` (`:148`) uses a **third** shape.
@@ -126,6 +296,17 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 
 ### High Priority
 
+#### Design system: audit, split, and make it the source of truth for component docs — TOP PRIORITY after the wiki reset
+- **Why it matters**: cross-module design continuity is "better but lacking." `design-system/design-system.md` (1,219 lines) is the coherent-design reference, but it is unaudited — §15 admits its own drift (mixed `cpb-`/`blacksmith-` prefixes, hardcoded colors vs. tokens) — and it does not yet drive the per-component docs, which each restate design details that have diverged.
+- **Scope**:
+  1. **Audit against the CSS/code** — verify every documented token name, class, and component actually exists in `styles/*`. This doc has never been checked; treat nothing in it as true until verified.
+  2. **Split per the five kinds** — *definition → architecture* (token architecture §1, file org §2, naming conventions §11, known inconsistencies §15 → mostly TODO tech-debt); *consumption → api/consumer reference* (tokens §3, palette §4, typography §5, spacing/radius/z-index/animations §6–9, component library §10, how-to-extend §12, patterns §13–14, cheatsheet §16).
+  3. **Make it upstream of the component docs** — chat cards, windows, pins, menubar, timers. Those architecture/api docs should point at and conform to the design system, not restate divergent design details. This is the continuity fix.
+- **Relationship**: the "Card CSS migration to theme system" item below is a facet of this — fold it in when this starts.
+- **Blocked on**: the wiki reset finishing (this is the #1 effort after).
+- **How to verify**: every token/class named in the split docs resolves to a real definition in `styles/*`; no design detail is stated divergently between the design-system docs and a component doc; a sibling can style a card/window from the consumer reference and match Blacksmith.
+- **Priority**: Highest post-reset.
+
 #### Card CSS migration to theme system
 - **Issue**: Card-type CSS files (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.css`) still use hardcoded colors; they should use the CSS variable theme system for consistency and themeability.
 - **Status**: PENDING – Checklist and strategy documented
@@ -134,6 +315,21 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 - **Priority**: High – Improves theme consistency and maintainability
 
 ### Medium Priority
+
+#### Actionable menubar notifications
+- **Issue**: `MenuBar.addNotification(text, icon, duration, moduleId)` (`scripts/api-menubar.js:1106`) is display-only. The stored notification object carries `text`/`icon`/`duration`/`moduleId`/`timeoutId` and nothing else, so a message like "Alicia sent you a message" just shows and auto-dismisses — there is nothing to click.
+- **Need**: add an optional `onClick` (and likely `onDismiss`) to `addNotification` / `updateNotification`; store it on the notification object; render actionable notifications with a pointer cursor / click affordance in the menubar partial; invoke `onClick` on click and then clear the notification. Keep it optional so existing display-only notifications are unchanged.
+- **Consumer value**: the producing module routes the click — open the message, focus the sender, jump to the relevant UI.
+- **Location**: `scripts/api-menubar.js` (`addNotification` :1106, `updateNotification` :1150, `removeNotification`, the `notifications` Map :43, `renderMenubar`); the menubar template/partial; document the new option in `api-menubar.md` once shipped.
+- **How to verify**: register a notification with an `onClick` → it shows with a clickable affordance, clicking runs the handler and dismisses it; a notification with no `onClick` behaves exactly as it does today.
+- **Priority**: Medium (user-requested UX).
+
+#### Player-facing toast system (cross-client, actionable)
+- **Need**: a transient on-screen "toast" that pops up on player screens — as a passive notification and/or with actions (e.g. "roll for crit", "read message", "acknowledge"). Distinct from the menubar notification (which lives in the menubar); a toast appears over the play area and can target specific players.
+- **Relationship**: shares the "actionable notification" mechanism with **Actionable menubar notifications** above — build the action/handler layer once, use it for both. Cross-client delivery rides on `api.sockets`, so it depends on the socket system being solid — another reason the socket rewrite is #1.
+- **Sketch**: `blacksmith.toast({ text, icon, recipients, actions: [{ label, onClick }], duration })`; GM or a module pushes it; targeted clients render it; actions route back (roll / open / ack). Respect the socket privacy rule — targeting is receipt-side; never send secrets in the payload.
+- **How to verify**: GM pushes a toast to one player → only that player sees it; an action button runs its handler on click; a passive toast auto-dismisses.
+- **Priority**: Medium (feature); gated on the socket system.
 
 #### Creature-type / subtype token naming — polish
 - **Status**: Data, resolver, wiring, and per-key settings are **shipped**. Design is documented in `documentation/architecture/architecture-token-naming.md`.

@@ -140,7 +140,7 @@ if (blacksmith?.registerWindow) {
 ```javascript
 // When your module is ready (e.g. in ready hook)
 blacksmith.registerWindow('my-module-window', {
-    open: (options = {}) => {
+    open: async (options = {}) => {          // `async` — the body awaits a dynamic import
         const { MyModuleWindow } = await import('/modules/my-module/scripts/my-window.js');
         const win = new MyModuleWindow(options);
         return win.render(true);
@@ -161,7 +161,10 @@ blacksmith.openWindow('my-module-window', { /* optional options */ });
 ### 5. Unregister on Disable
 
 ```javascript
-Hooks.once('disableModule', (moduleId) => {
+// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
+// Foundry has no module-unload event; disabling a module reloads the world anyway.
+// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
+Hooks.on('unloadModule', (moduleId) => {
     if (moduleId === 'my-module' && blacksmith?.unregisterWindow) {
         blacksmith.unregisterWindow('my-module-window');
     }
@@ -238,10 +241,10 @@ Opens the window registered under `windowId`. The registered `open` function is 
 
 ```javascript
 // From a toolbar tool
-blacksmith.api.registerToolbarTool('my-module-query', {
+blacksmith.registerToolbarTool('my-module-query', {
     icon: 'fa-solid fa-crystal-ball',
     title: 'My Query Window',
-    onClick: () => blacksmith.api.openWindow('my-module-query')
+    onClick: () => blacksmith.openWindow('my-module-query')
 });
 ```
 
@@ -269,7 +272,7 @@ Both are exposed on `module.api`.
 ## Best Practices
 
 1. **Unique window ids** — Use a prefix (e.g. module id) to avoid collisions: `'my-module-settings'`, `'my-module-query'`.
-2. **Unregister on disable** — In `disableModule`, call `unregisterWindow` for every window id your module registered.
+2. **Unregister on disable** — In `unloadModule`, call `unregisterWindow` for every window id your module registered.
 3. **Zone contract** — Follow the five-zone contract (option bar, header, body, action bar optional; body required) so windows look consistent and any future shared behavior (e.g. base class) applies. See **guidance-applicationv2.md** and the example template.
 4. **Own your content** — Your template and `getData` define header and body; Blacksmith does not inject content into your window.
 5. **Application V2 only** — Build your window with `HandlebarsApplicationMixin(ApplicationV2)` and the patterns in the guidance doc (delegation, scroll save/restore, unique instance id).

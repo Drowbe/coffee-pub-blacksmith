@@ -30,7 +30,22 @@ Legacy **`NARRATIVE`** import is **not supported** (use **`AREA`** with `blocks.
 - **Encounter:** `realm`, `region`, `site`, `area`, `scenetitle`, `prepencounter`, `prepencounterdetails`, `preprewards`, `prepsetup`, `sections` / `cards`, `linkedEncounters`, etc.
 - **Location:** `title`, `scenetitle`, `journalname`, `realm`, `region`, `site`, `area`, `locationimage` / `image`, and other fields consumed by the location builder (see `createLocationJournalEntry` in `utility-common.js`).
 
-**Returns:** `Promise<JournalEntry>` (or void in error paths handled internally — match Blacksmith import behavior).
+**Returns:** `Promise<undefined>` — see the warning below.
+
+> ### ⚠️ This currently resolves to `undefined`, even on success
+>
+> This page used to promise `Promise<JournalEntry>`. **It does not return the created entry.** All three builders (`AREA`, `ENCOUNTER`, `LOCATION`) `await JournalEntry.create({...})` and discard the result — there is no `return` on any success path. So:
+>
+> ```javascript
+> const entry = await api.createJournalEntry(data);
+> entry.sheet.render(true);   // TypeError: entry is undefined
+> ```
+>
+> The journal **is** created correctly; you just don't get a handle to it. Until this is fixed, find it afterwards via the folder/name you passed (e.g. `game.journal.getName(...)`).
+>
+> **Also:** unsupported input **throws** rather than being "handled internally" — a `NARRATIVE` journaltype and any unrecognised type both `throw`, as do missing required blocks and template failures. Wrap the call in `try/catch`.
+>
+> The documented `Promise<JournalEntry>` shape is the intended contract and the fix is small, but the existing-entry branches need a decision about what they should hand back. Tracked in `documentation/TODO.md`.
 
 **Permissions:** Creating folders and journal entries requires appropriate GM/world permissions, same as the in-app import.
 

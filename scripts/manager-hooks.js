@@ -129,6 +129,10 @@ export class HookManager {
             registeredAt: Date.now(),
             options,
             key,
+            context, // Also tracked in this.contexts for batch cleanup, but the stats readers
+                     // (BlacksmithAPIHookStats / HookDetails) read it off the callback record.
+                     // Without it every hook reported as context 'default', making the
+                     // context breakdown — the one thing those tools exist for — useless.
             teardown
         };
         

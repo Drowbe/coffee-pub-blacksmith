@@ -62,10 +62,10 @@ const allThemes = chatCardsAPI.getThemes();
 // [
 //   {
 //     id: 'default',
-//     name: 'Default',
+//     name: 'Tan',
 //     className: 'theme-default',
 //     type: 'card',
-//     description: 'Light background, subtle borders'
+//     description: 'Tan parchment theme with subtle borders'
 //   },
 //   {
 //     id: 'blue',
@@ -142,7 +142,8 @@ Returns an object suitable for Foundry settings dropdowns (key-value pairs). Opt
 const allChoices = chatCardsAPI.getThemeChoices();
 // Returns:
 // {
-//   'default': 'Default',
+//   'default': 'Tan',
+//   'amber': 'Amber',
 //   'blue': 'Blue',
 //   'green': 'Green',
 //   'red': 'Red',
@@ -154,7 +155,7 @@ const allChoices = chatCardsAPI.getThemeChoices();
 
 // Get only card theme choices
 const cardChoices = chatCardsAPI.getThemeChoices('card');
-// Returns: { 'default': 'Default', 'blue': 'Blue', ... }
+// Returns: { 'default': 'Tan', 'amber': 'Amber', 'blue': 'Blue', ... }
 
 // Get only announcement theme choices
 const announcementChoices = chatCardsAPI.getThemeChoices('announcement');
@@ -227,7 +228,8 @@ Returns theme choices with **CSS class names as keys** instead of theme IDs. Thi
 const allChoices = chatCardsAPI.getThemeChoicesWithClassNames();
 // Returns:
 // {
-//   'theme-default': 'Default',
+//   'theme-default': 'Tan',
+//   'theme-amber': 'Amber',
 //   'theme-blue': 'Blue',
 //   'theme-green': 'Green',
 //   'theme-red': 'Red',
@@ -239,7 +241,7 @@ const allChoices = chatCardsAPI.getThemeChoicesWithClassNames();
 
 // Get only card theme choices with class names
 const cardChoices = chatCardsAPI.getThemeChoicesWithClassNames('card');
-// Returns: { 'theme-default': 'Default', 'theme-blue': 'Blue', ... }
+// Returns: { 'theme-default': 'Tan', 'theme-amber': 'Amber', 'theme-blue': 'Blue', ... }
 
 // Get only announcement theme choices with class names
 const announcementChoices = chatCardsAPI.getThemeChoicesWithClassNames('announcement');
@@ -377,11 +379,14 @@ The following themes are available, organized by type:
 
 | ID | Name | CSS Class | Description |
 |---|---|---|---|
-| `default` | Default | `theme-default` | Light background, subtle borders |
+| `default` | Tan | `theme-default` | Tan parchment theme with subtle borders |
+| `amber` | Amber | `theme-amber` | Warm amber and brown narration theme |
 | `blue` | Blue | `theme-blue` | Blue accent theme |
 | `green` | Green | `theme-green` | Green accent theme |
 | `red` | Red | `theme-red` | Red accent theme |
 | `orange` | Orange | `theme-orange` | Orange accent theme |
+
+> Note the `default` **id** is named **"Tan"** — the id and the display name deliberately differ, so the theme setting doesn't read "Default default". Don't hardcode this table: call `getThemeChoices()`, which is generated from `CHAT_CARD_THEMES` in `scripts/api-chat-cards.js` and cannot drift.
 
 ### Announcement Themes (Dark Backgrounds)
 

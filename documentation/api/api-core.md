@@ -4,7 +4,7 @@
 > 
 > This document covers how **other FoundryVTT modules** can integrate with Coffee Pub Blacksmith. 
 > 
-> **If you're developing Blacksmith itself**, see `architecture-blacksmith.md` and `architecture-core.md` for internal architecture details.
+> **If you're developing Blacksmith itself**, see `architecture-blacksmith.md` for internal architecture details.
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
@@ -64,7 +64,7 @@ We believe external modules should have a **simple, predictable interface** that
 ## **Internal vs External APIs - What's the Difference?**
 
 ### **🔧 Internal API (for Blacksmith developers)**
-- **Location**: `architecture-blacksmith.md`, `architecture-core.md`
+- **Location**: `architecture-blacksmith.md`
 - **Access**: Direct manager access (e.g., `HookManager.registerHook()`)
 - **Use case**: When developing Blacksmith itself
 - **Example**: `scripts/blacksmith.js` uses internal APIs
@@ -340,9 +340,11 @@ Hooks.once('ready', async () => {
         console.log('API TEST | 2. The registration should include your module ID and version.');
         console.log('API TEST | ');
 
+        // There is no getRegisteredModules() — read the registeredModules Map directly.
         const moduleManager = BlacksmithModuleManager;
-        const registeredModules = moduleManager.getRegisteredModules?.() || [];
-        console.log('API TEST | Registered modules:', registeredModules);
+        console.log('API TEST | Registered modules:', [...moduleManager.registeredModules.keys()]);
+        console.log('API TEST | This module active:', moduleManager.isModuleActive('my-module-id'));
+        console.log('API TEST | This module features:', moduleManager.getModuleFeatures('my-module-id'));
 
         // ----- HOOK ACTIVATION TEST INSTRUCTIONS
         console.log('API TEST | ===================================================');
@@ -497,7 +499,7 @@ For detailed information about what each command returns and displays:
 |---------|---------|----------------|
 | `BlacksmithAPIStatus()` | `true`/`false` | Ready/not ready status with details |
 | `BlacksmithAPICheck()` | Object | Module count and registration list |
-| `BlacksmithAPIVersion()` | String | Current API version (e.g., "12.2.0") |
+| `BlacksmithAPIVersion()` | String | Current API version (`MODULE.APIVERSION`, defined in `scripts/const.js`) |
 | `BlacksmithAPIDetails()` | Object | Full debug status and system overview |
 | `BlacksmithAPIModules()` | Object | All registered modules with details |
 | `BlacksmithAPIFeatures()` | Object | Features grouped by source module |
@@ -603,6 +605,15 @@ Each asset now includes enhanced metadata:
 
 ## **Usage Examples**
 
+> **Getting `assetLookup`.** There is no `assetLookup` global and no `BlacksmithAPI.getAssetLookup()`. Obtain it from the api object once, then reuse it:
+>
+> ```javascript
+> const blacksmith = await BlacksmithAPI.get();
+> const assetLookup = blacksmith.assetLookup;
+> ```
+>
+> Every example below assumes `assetLookup` was obtained this way.
+
 ### **1. Get Assets by Type and Tags**
 ```javascript
 // Get all interface sounds tagged as "error"
@@ -644,8 +655,11 @@ const notificationAssets = assetLookup.searchByCriteria({
 // Get choices for dropdown (returns { id: name, ... })
 const soundChoices = assetLookup.getChoices('sound', 'interface');
 
-// Get choices for specific tag combination
-const errorSoundChoices = assetLookup.getChoices('sound', 'interface', ['error']);
+// getChoices takes ONLY (type, category) — it does NOT accept tags. A third
+// argument is silently ignored, so filter by tag with getByTypeAndTags instead:
+const errorSoundChoices = Object.fromEntries(
+    assetLookup.getByTypeAndTags('sound', 'interface', ['error']).map(a => [a.id, a.name])
+);
 ```
 
 ### **5. Random Asset Selection**
@@ -881,35 +895,35 @@ const items = getSelectedCompendiums('Item');
 const journals = getSelectedCompendiums('JournalEntry');
 ```
 
-## **Accessing BLACKSMITH Object**
+## **Accessing the BLACKSMITH Object**
 
-The compendium arrays are exposed through the `BLACKSMITH` object. Access methods:
+> ⚠️ **There is no bare `BLACKSMITH` global.** `BLACKSMITH` is a module-scoped export inside Blacksmith.
+> Writing `BLACKSMITH.arrSelectedMonsterCompendiums` in your module or the console throws
+> `ReferenceError: BLACKSMITH is not defined`. Neither is there a `window.BLACKSMITH`. Use one of the two
+> real paths below.
 
-### **Method 1: Direct Access (Recommended)**
+### **Method 1: Via Module API (Recommended)**
 ```javascript
-// In FoundryVTT console or your module code
-const monsterCompendiums = BLACKSMITH.arrSelectedMonsterCompendiums || [];
-```
-
-### **Method 2: Via Module API**
-```javascript
-// In external modules
 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 const monsterCompendiums = blacksmith?.BLACKSMITH?.arrSelectedMonsterCompendiums || [];
 ```
 
-### **Method 3: Via Window Object**
+### **Method 2: Via the global (console-friendly)**
 ```javascript
-// If BLACKSMITH is exposed to window
-const monsterCompendiums = window.BLACKSMITH?.arrSelectedMonsterCompendiums || [];
+// Named BlacksmithConstants, NOT BLACKSMITH. Set once the API is ready.
+const monsterCompendiums = window.BlacksmithConstants?.arrSelectedMonsterCompendiums || [];
 ```
+
+> For compendium lookups specifically, prefer **`api.compendiums`** over reading these arrays — see
+> `api-compendiums.md`. The arrays carry pack ids but none of the search semantics, so hand-rolling a
+> lookup over them silently ignores the GM's `searchWorldFirst` / `searchWorldLast` configuration.
 
 ## **Configuration in Settings**
 
 Users configure compendiums in Blacksmith's module settings under the "Manage Content" group:
 
-1. **Number of Slots**: Each type can have 1-20 priority slots (default: 1)
-2. **Priority Selection**: For each slot, select which compendium has that priority
+1. **Number of Slots**: Each type can have **0-15** priority slots (default: 1). The setting is `requiresReload`, so changes take effect after a reload.
+2. **Priority Selection**: For each slot, select which compendium has that priority. Slots are numbered from **1** (Priority 1 is the first-searched source).
 3. **Search Order**: Optional settings for "Search World First" and "Search World Last"
 4. **Automatic Updates**: Arrays update automatically when settings change
 
@@ -1039,7 +1053,7 @@ import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api
 ## **Complete Module Initialization**
 ```javascript
 // In your module's main file
-import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 
 Hooks.once('ready', async () => {
     try {
@@ -1129,9 +1143,9 @@ const macroChoices = BlacksmithConstants.arrMacroChoices;  // Macro names for dr
 - **Sound Constants**: `BlacksmithConstants.SOUNDNOTIFICATION01`, `BlacksmithConstants.SOUNDBUTTON01`, `BlacksmithConstants.SOUNDSUCCESS`, etc.
 - **Feature-local presentation assets**: Request Roll cinematic banners and Request Roll-specific sounds are internal feature-theme data, not shared external constants
 - **Chat card themes** (IDs / CSS classes): use **`ChatCardsAPI`** / `CHAT_CARD_THEMES` in `api-chat-cards.js` — not `BlacksmithConstants.THEME*` (legacy removed).
-- **Icon Constants**: `BlacksmithConstants.ICONNONE`, `BlacksmithConstants.ICONCHESSQUEEN`, `BlacksmithConstants.ICONSHIELD`, etc.
-- **Volume Constants**: `BlacksmithConstants.SOUNDVOLUMESOFT`, `BlacksmithConstants.SOUNDVOLUMENORMAL`, `BlacksmithConstants.SOUNDVOLUMELOUD`
-- **Choice arrays (for dropdowns)**: `BlacksmithConstants.arrThemeChoices`, `BlacksmithConstants.arrSoundChoices`, `BlacksmithConstants.arrTableChoices`, `BlacksmithConstants.arrMacroChoices` (object: value → label, e.g. for macro pickers)
+- **Icon Constants**: `BlacksmithConstants.ICONNONE`, `BlacksmithConstants.ICONCHESSQUEEN`, etc. The set is small and defined by `resources/asset-defaults/assets-icons.json` — run `BlacksmithAPIConstants()` for the current list rather than trusting an example here.
+- **Volume Constants**: `BlacksmithConstants.SOUNDVOLUMESOFT` / `SOUNDVOLUMENORMAL` / `SOUNDVOLUMELOUD` / `SOUNDVOLUMEMAX`. These resolve to the **numeric string** the entry carries (e.g. `"0.5"`), suitable to pass straight to `playSound`.
+- **Choice arrays (for dropdowns)**: `BlacksmithConstants.arrThemeChoices`, `arrSoundChoices`, `arrTableChoices`, `arrMacroChoices`. **These are plain objects** (`{ value: label }`) despite the `arr` prefix — a Foundry `choices` map, not an array. `.length` is `undefined`; use `Object.keys()`.
 
 ### **Access Methods:**
 ```javascript
@@ -1139,8 +1153,9 @@ const macroChoices = BlacksmithConstants.arrMacroChoices;  // Macro names for dr
 const sound = BlacksmithConstants.SOUNDNOTIFICATION01;
 
 // Method 2: Asset Lookup (for tag-based searching)
-const assetLookup = BlacksmithAPI.getAssetLookup();
-const sounds = assetLookup.findByTag('notification');
+// There is no BlacksmithAPI.getAssetLookup() — reach it through the api object.
+const blacksmith = await BlacksmithAPI.get();
+const sounds = blacksmith.assetLookup.searchByCriteria({ type: 'sound', tags: ['notification'] });
 ```
 
   **Available Utilities**:
@@ -1154,7 +1169,7 @@ const sounds = assetLookup.findByTag('notification');
   | `htmlToMarkdown` | Function | Convert supported HTML subset to Markdown | `(html)` |
 | `setSettingSafely` | Function | Safe settings modification | `(moduleId, settingKey, value)` |
 | `formatTime` | Function | Time formatting utilities | `(ms, format)` |
-| `generateFormattedDate` | Function | Date formatting utilities | `(format)` |
+| `generateFormattedDate` | Function | Current date/time as a string. `format` is an **enum**, not a format string: `'date'` → `"2026-7-17"`, `'time'` → `"03:45 PM"`, anything else → `"2026-7-17 03:45 PM"`. Values are **not zero-padded** and there is no way to supply a custom pattern. | `(format)` |
 | `trimString` | Function | String truncation | `(str, maxLength)` |
 | `toSentenceCase` | Function | Text case conversion | `(str)` |
 | `getActorId` | Function | Get actor ID by name | `(actorName)` |
@@ -1170,7 +1185,7 @@ const sounds = assetLookup.findByTag('notification');
 | `resetModuleSettings` | Function | Reset module settings | `(moduleId)` |
 | `isPlayerCharacter` | Function | Check if entity is player character | `(entity)` |
 
-### **Sound playback (`playSound`, `playSoundLocalWithDuration`)**
+### **Sound playback (`playSound`)**
 
 **`playSound(sound, volume?, loop?, broadcast?, duration?)`**
 
@@ -1180,9 +1195,7 @@ const sounds = assetLookup.findByTag('notification');
 - **broadcast** (boolean or object, default `true`): If true, play on all clients via Foundry’s `AudioHelper.play`; if false, local only.
 - **duration** (number, optional): If provided and &gt; 0, the sound loops for this many seconds then stops. When **broadcast** is true, all clients stop after the duration (via socket). When broadcast is false, only the local client stops. When duration is set, **loop** is effectively true until the duration ends.
 
-**`playSoundLocalWithDuration(sound, volume?, duration)`**
-
-- Plays the sound locally with loop, then stops after **duration** seconds. Useful when you only need local playback with a timed stop (e.g. from a socket handler). Same behavior as `playSound(sound, volume, false, false, duration)`.
+> **Not public:** `playSoundLocalWithDuration` is exported from `scripts/api-core.js`, but it is **not** on `BlacksmithUtils` — `UtilsManager.getUtils()` never adds it, so `utils.playSoundLocalWithDuration` is `undefined`. It exists for Blacksmith's own socket handler. For local playback with a timed stop, call `playSound(sound, volume, false, false, duration)`, which is exactly what it does internally.
 
 ### **Markdown Utilities (Subset)**
 
@@ -1250,7 +1263,7 @@ utils.setSettingSafely('my-module-id', 'setting-key', 'newValue');
 
 // Time and formatting utilities
 const formattedTime = utils.formatTime(ms, 'colon');
-const formattedDate = utils.generateFormattedDate('YYYY-MM-DD');
+const formattedDate = utils.generateFormattedDate('date'); // 'date' | 'time' | omit for both — NOT a pattern string
 
 // Additional exposed functions:
 const actorId = utils.getActorId("My Character");
@@ -1357,7 +1370,7 @@ Blacksmith exposes a global `BlacksmithStats` helper (installed by the API bridg
 ## **Module Initialization Pattern**
 ```javascript
 // In your module's main file
-import { BlacksmithAPI } from 'coffee-pub-blacksmith/api/blacksmith-api.js';
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 
 Hooks.once('ready', async () => {
     try {
@@ -1488,8 +1501,10 @@ const utils = BlacksmithUtils;
 
 ## **2. Handle Errors Gracefully**
 ```javascript
-// Always check if APIs are available
-if (!BlacksmithAPI.isReady()) {
+// Always check if APIs are available.
+// isAPIOpen() is the callable check. `BlacksmithAPI.isReady` is a static BOOLEAN property,
+// not a method — calling it throws "isReady is not a function".
+if (!BlacksmithAPI.isAPIOpen()) {
     console.warn('Blacksmith not ready, using fallback');
     // Fallback logic
     return;
@@ -1604,17 +1619,17 @@ async function testBLACKSMITHObject() {
     if (!BlacksmithConstants) return false;
     
     try {
-        // Test choice arrays
+        // The arr* choices are OBJECTS ({ value: label }), not arrays — .length is undefined.
         if (BlacksmithConstants.arrThemeChoices) {
-            console.log('✅ Theme choices available:', BlacksmithConstants.arrThemeChoices.length);
+            console.log('✅ Theme choices available:', Object.keys(BlacksmithConstants.arrThemeChoices).length);
         }
         
         if (BlacksmithConstants.arrSoundChoices) {
-            console.log('✅ Sound choices available:', BlacksmithConstants.arrSoundChoices.length);
+            console.log('✅ Sound choices available:', Object.keys(BlacksmithConstants.arrSoundChoices).length);
         }
         
         if (BlacksmithConstants.arrTableChoices) {
-            console.log('✅ Table choices available:', BlacksmithConstants.arrTableChoices.length);
+            console.log('✅ Table choices available:', Object.keys(BlacksmithConstants.arrTableChoices).length);
         }
         
         // Test default values
@@ -1637,19 +1652,20 @@ async function testModuleRegistration() {
     if (!BlacksmithModuleManager) return false;
     
     try {
-        // Test registration
-        BlacksmithModuleManager.registerModule('test-module', {
-            name: 'Test Module',
+        // Use YOUR real module id: registerModule returns false for a module Foundry
+        // doesn't have active, so a made-up id like 'test-module' always fails.
+        // features entries must be OBJECTS with BOTH `type` and `data` — a bare
+        // string like 'testing' is silently skipped.
+        const ok = BlacksmithModuleManager.registerModule('my-module-id', {
+            name: 'My Module',
             version: '1.0.0',
-            features: ['testing']
+            features: [{ type: 'testing', data: { enabled: true } }]
         });
-        console.log('✅ Module registration working');
+        console.log(ok ? '✅ Module registration working' : '❌ registerModule returned false');
         
         // Test feature checking
-        if (BlacksmithModuleManager.getModuleFeatures) {
-            const features = BlacksmithModuleManager.getModuleFeatures('test-module');
-            console.log('✅ Feature checking working:', features);
-        }
+        const features = BlacksmithModuleManager.getModuleFeatures('my-module-id');
+        console.log('✅ Feature checking working:', features);
         
         return true;
     } catch (error) {
@@ -1738,28 +1754,34 @@ if (BlacksmithUtils) {
 - Settings registration fails
 - Choice arrays are empty or undefined
 
-**Solutions:**
-1. **Wait for data**: Use `blacksmithUpdated` hook to detect when data is ready
-2. **Check timing**: Ensure you're accessing data after Blacksmith is fully initialized
-3. **Add fallbacks**: Provide default choices if arrays are empty
-4. **Verify data source**: Check if Blacksmith has the expected data
+**Cause:** the asset-backed choice arrays are populated during Blacksmith's `ready`, after its asset JSON
+loads. Reading them earlier gets you an empty object.
 
 **Code Fix:**
 ```javascript
-// BAD: Access immediately (may be empty)
+// BAD: reads during your own ready, which may beat Blacksmith's asset load
 Hooks.once('ready', () => {
     const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
     const choices = blacksmith.BLACKSMITH.arrThemeChoices; // May be empty!
 });
 
-// GOOD: Wait for data to be ready
-Hooks.on('blacksmithUpdated', (data) => {
-    if (data.type === 'ready') {
-        const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-        const choices = blacksmith.BLACKSMITH.arrThemeChoices; // Should be populated
-    }
+// GOOD: wait for the readiness gate
+import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+
+Hooks.once('ready', async () => {
+    const blacksmith = await BlacksmithAPI.get();   // resolves after assets are merged
+    const choices = blacksmith.BLACKSMITH.arrThemeChoices;
 });
 ```
+
+> **Do not use `blacksmithUpdated` as a readiness signal.** It fires on *every* `BLACKSMITH.updateValue()`
+> call — many times during startup — and its payload is the whole `BLACKSMITH` object, not an event
+> descriptor. There is no `data.type`, and there is no `'ready'` event kind, so a guard like
+> `if (data.type === 'ready')` **never runs**. It looks like a readiness check and is a silent no-op.
+> Use `BlacksmithAPI.waitForReady()` / `BlacksmithAPI.get()` — that is what the gate is for.
+>
+> `blacksmithUpdated` is still useful for *reacting to changes* after startup; just read the object you're
+> handed rather than looking for an event type on it.
 
 ## **Issue: Settings not accessible**
 

@@ -94,6 +94,7 @@
                       "name":  "Shield",
                       "id":  "icon-shield",
                       "value":  "fa-shield",
+                      "constantname":  "ICONSHIELD",
                       "path":  "",
                       "tags":  [
                                    "icon",

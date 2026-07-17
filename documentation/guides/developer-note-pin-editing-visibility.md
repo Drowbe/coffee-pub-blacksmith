@@ -248,6 +248,9 @@ Hooks.once('canvasReady', () => {
   }, { moduleId: MODULE_ID, signal: controller.signal });
 });
 
+// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
+// Foundry has no module-unload event; disabling a module reloads the world anyway.
+// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
 Hooks.on('unloadModule', (id) => {
   if (id !== MODULE_ID) return;
   controller.abort();

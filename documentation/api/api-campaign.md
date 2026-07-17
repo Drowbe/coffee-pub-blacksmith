@@ -87,12 +87,12 @@ Returns the full normalized campaign object:
   journal: {
     narrative: {
       folder: string,
-      cardImage: string,
-      imagePath: string
+      imagePath: string,           // note: no cardImage — see below
+      characterImagePath: string
     },
     encounter: {
       folder: string,
-      cardImage: string,
+      cardImage: string,           // encounter DOES have cardImage
       imagePath: string
     }
   }
@@ -218,17 +218,13 @@ These fields are intended as campaign context. They should not be assumed to mat
   - Source setting: `Imports > Journal > Narrative > Narrative Folder`
   - Default folder used for narrative journal generation/import.
   - This should be the journal folder where generated narratives should land by default.
-- `journal.narrative.cardImage`
-  - Source setting: `Imports > Journal > Narrative > Card Image`
-  - Selected built-in narrative card image path or `custom` or `none`.
-  - This should be one of:
-    - a built-in image selection
-    - `custom`
-    - `none`
 - `journal.narrative.imagePath`
   - Source setting: `Imports > Journal > Narrative > Custom Image`
-  - Custom narrative image path used when `cardImage === 'custom'`.
-  - This should be a valid Foundry asset path only when the card image mode is `custom`.
+  - The resolved narrative image path.
+  - **There is no `journal.narrative.cardImage`.** Earlier versions of this page documented one, along with a `Narrative > Card Image` settings control. Both are gone: the narrative card-image setting was collapsed into `imagePath` and is no longer registered. Its only surviving trace is a one-line legacy read inside `resolveNarrativeImagePath()`, which migrates the old value forward. Reading `.cardImage` off narrative returns `undefined` — silently, because `getSettingSafely` returns a default for unregistered keys rather than throwing. The **encounter** side genuinely does still have `cardImage`.
+- `journal.narrative.characterImagePath`
+  - Source setting: `Imports > Journal > Narrative > Character Image`
+  - Default character image for generated narratives. Exposed as `narrativeCharacterImagePath` in `getPromptContext()`.
 - `journal.encounter.folder`
   - Source setting: `Imports > Journal > Encounter > Encounter Folder`
   - Default folder used for encounter journal generation/import.
@@ -294,10 +290,11 @@ This section maps the normalized API fields back to the settings users actually 
 
 - `Narrative Folder` -> `campaign.getJournalDefaults().narrative.folder`
   - Expected content: the default journal folder for generated/imported narrative entries.
-- `Card Image` -> `campaign.getJournalDefaults().narrative.cardImage`
-  - Expected content: a built-in image choice, `custom`, or `none`.
 - `Custom Image` -> `campaign.getJournalDefaults().narrative.imagePath`
-  - Expected content: a valid asset path only when the selected card image mode is `custom`.
+  - Expected content: a valid asset path.
+- `Character Image` -> `campaign.getJournalDefaults().narrative.characterImagePath`
+  - Expected content: a valid asset path.
+- *(A narrative `Card Image` control was listed here. It no longer exists — the setting is not registered.)*
 
 ### Imports > Journal > Encounter
 
@@ -337,8 +334,12 @@ Returns the configured party leader with the user and actor already resolved:
 
 - Source setting: `partyLeader` (hidden; set via the Blacksmith menubar, not the settings sheet).
 - `isCurrentUser` is the field most consumers want for permission checks such as "may this user start a vote?".
-  It is true when the stored `userId` matches the current user, **or** when the current user owns the leader's
-  actor. The ownership fallback matters because legacy worlds sometimes stored the GM's `userId` here.
+  It requires a configured **`actorId`** and then either the stored `userId` matching the current user **or**
+  the current user owning the leader's actor — i.e. `!!leader.actorId && (leader.userId === game.user?.id || !!actor?.isOwner)`.
+  The ownership fallback matters because legacy worlds sometimes stored the GM's `userId` here.
+  **Note the leading `actorId` requirement**: a leader configured with a `userId` but no `actorId` yields
+  `false` even for that very user. (This page previously omitted that clause. The guard is deliberate — it
+  mirrors `isCurrentUserPartyLeader()`, which has the identical `if (!leader?.actorId) return false;` check.)
 - Returns the same shape with empty/null fields when no leader is configured; it never throws.
 
 ### `campaign.getRulebooks()`
@@ -368,13 +369,15 @@ Returns a flattened helper object for prompt/template replacement:
   site,
   area,
   narrativeFolder,
-  narrativeCardImage,
   narrativeImagePath,
+  narrativeCharacterImagePath,
   encounterFolder,
   encounterCardImage,
   encounterImagePath
 }
 ```
+
+> There is **no `narrativeCardImage`** key (it was listed here previously and never existed on this object). `narrativeCharacterImagePath` is real and was missing from this list.
 
 ### Prompt Context Semantics
 
@@ -399,7 +402,7 @@ Returns a flattened helper object for prompt/template replacement:
   - Prompt-ready comma-delimited list of unique class names derived from the selected party actors.
 - `realm`, `region`, `site`, `area`
   - Prompt-ready geography values.
-- `narrativeFolder`, `narrativeCardImage`, `narrativeImagePath`
+- `narrativeFolder`, `narrativeImagePath`, `narrativeCharacterImagePath`
   - Narrative journal defaults flattened for prompt/template replacement.
 - `encounterFolder`, `encounterCardImage`, `encounterImagePath`
   - Encounter journal defaults flattened for prompt/template replacement.

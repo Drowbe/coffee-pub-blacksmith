@@ -34,7 +34,15 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
     constructor(data = {}) {
         const options = {};
-        if (data.title != null && data.title !== '') options.title = data.title;
+        // ApplicationV2 reads the frame title from options.window.title — `options.title` is the
+        // ApplicationV1 key and is silently ignored (core: get title() { ...this.options.window.title }).
+        // api-requestroll.md has always documented `title` as overriding the window title; this is the
+        // V1 spelling left behind by the V2 migration. window-gmnotes.js does it the correct way.
+        // Note this only ever affected the window frame: `data.title` is also carried to the chat card
+        // via this.apiRollTitle, and that path works.
+        if (data.title != null && data.title !== '') {
+            options.window = { title: data.title };
+        }
         super(options);
         this.actors = data.actors || [];
         // Initial roll type: 'skill' | 'ability' | 'save' (initialSkill is legacy, same as initialType:'skill' + initialValue)

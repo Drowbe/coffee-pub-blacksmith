@@ -400,24 +400,27 @@ blacksmith.registerToolbarTool('my-conditional-tool', {
 ### Module Cleanup
 
 ```javascript
-// Unregister all tools when module is disabled
-Hooks.once('disableModule', (moduleId) => {
-    if (moduleId === 'my-module') {
-        const tools = blacksmith.getToolsByModule('my-module');
-        tools.forEach(tool => {
-            blacksmith.unregisterToolbarTool(tool.name);
-        });
-    }
-});
+// Unregister every tool this module registered.
+// Unregister by tool.toolId — NOT tool.name. The registry is keyed by toolId; `name` is only a
+// CSS class/label that happens to default to toolId. If you passed a `name` different from your
+// toolId, unregistering by name silently returns false and the tool becomes unremovable.
+function cleanUpMyTools() {
+    const tools = blacksmith.getToolsByModule('my-module');
+    tools.forEach(tool => blacksmith.unregisterToolbarTool(tool.toolId));
+}
 ```
+
+> **Call this from your own lifecycle, not from an unload hook.** Foundry has no module-unload event — `disableModule` and `unloadModule` are both dead names that never fire (see `api-hookmanager.md`). Disabling a module reloads the world and tears the toolbar down anyway, so this is only worth calling if *you* turn a feature off at runtime.
+>
+> `tool.toolId` is available as of 13.9.x. Before that, `getToolsByModule()` returned objects whose registry key was unrecoverable.
 
 ## Error Handling
 
 The API includes robust error handling:
 
-- **Invalid tool data**: Returns `false` and logs error
-- **Duplicate tool IDs**: Returns `false` (tools must be unique)
-- **Missing required properties**: Returns `false` and logs error
+- **Invalid tool data**: Returns `false` and logs error — `toolId` must be a non-empty string, `toolData` must be an object.
+- **Missing `onClick`**: Returns `false` and logs error. A tool without a callable `onClick` would render a button that does nothing, so it is rejected rather than stored.
+- **Duplicate tool IDs**: Returns `false` **only when a *different* module already owns the id** — the owner keeps its tool and the newcomer is rejected with a log naming both. **Re-registering your own tool is allowed** and overwrites your previous entry, returning `true`; modules do this deliberately to refresh button state. So a `false` here means "someone else owns this id", not "this id is taken".
 - **API not available**: Check for API availability before use
 
 ## Best Practices
