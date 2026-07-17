@@ -73,12 +73,16 @@ fade to finish.
 
 ## First consumer (dogfood): leader change
 
-The `partyLeader` settingChange hook in `api-menubar.js` (the same callback that syncs the menubar
-leader display on every client) shows a toast receipt-side: the new leader's client gets "You are
-now the party leader", everyone else gets the actor's name, `stackKey: "blacksmith-party-leader"`
-so rapid re-picks replace rather than stack. It runs alongside the existing leader chat cards from
-`setNewLeader` — replacing that chat noise with toasts is a planned later step, tracked in
-`TODO.md`, not something this system does yet.
+`_registerLeaderChangeHook` in `api-menubar.js` listens to the core `updateSetting` /
+`createSetting` **document** hooks for the `partyLeader` world setting — those fire on every
+client, so the toast is receipt-side: the new leader's client gets "You are now the party leader",
+everyone else gets the actor's name, `stackKey: "blacksmith-party-leader"` so rapid re-picks
+replace rather than stack. (This site originally listened to `settingChange`, a hook that **does
+not exist in Foundry** — see the ⚠️ block in `architecture-blacksmith.md` §9B.2 for the suite-wide
+fallout; the leader *display* had always synced via the socketlib `updateLeader` broadcast, which
+masked it.) The toast runs alongside the existing leader chat cards from `setNewLeader` — replacing
+that chat noise with toasts is a planned later step, tracked in `TODO.md`, not something this
+system does yet.
 
 ## Boundaries
 

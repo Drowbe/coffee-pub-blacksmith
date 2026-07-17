@@ -191,47 +191,71 @@ class MenuBar {
     }
 
     static _registerLeaderChangeHook() {
-        // Register setting change hook to refresh menubar when party leader changes
-        const settingChangeHookId = HookManager.registerHook({
-            name: 'settingChange',
-            description: 'MenuBar: Refresh menubar on party leader changes',
-            context: 'menubar-settings-change',
-            priority: 3,
-            callback: (module, key, value) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                if (module === MODULE.ID && key === 'partyLeader') {
-                    
-                    // Update the current leader display
-                    if (value && value.userId) {
-                        // Find the actor for the new leader
-                        const actor = game.actors.get(value.actorId);
-                        if (actor) {
-                            MenuBar.currentLeader = actor.name;
-
-                            // Toast dogfood (api-toast Phase 1): this hook fires on every client
-                            // via the world-setting sync, so the toast is receipt-side — no
-                            // sockets. Runs alongside the leader chat cards for now; replacing
-                            // that chat noise is a later step (see TODO).
-                            const isNewLeader = game.user.id === value.userId;
-                            ToastAPI.show({
-                                title: isNewLeader ? "You are now the party leader" : "Party leader changed",
-                                subtitle: isNewLeader ? `Leading as ${actor.name}` : `${actor.name} now leads the party`,
-                                icon: "fas fa-crown",
-                                duration: 8,
-                                moduleId: "blacksmith-core",
-                                stackKey: "blacksmith-party-leader"
-                            });
-                        }
-                    } else {
-                        MenuBar.currentLeader = null;
-                    }
-                    
-                    // Refresh the menubar to update tool visibility
-                    MenuBar.updateLeaderDisplay();
+        // partyLeader is a WORLD setting, so every client sees its Setting document change via
+        // the core `updateSetting` document hook (`createSetting` for the first-ever set in a
+        // world). There is NO core hook named `settingChange` — registrations against it never
+        // fire (found 2026-07-17; menubar leader display had always synced via the socketlib
+        // "updateLeader" path instead, which masked it).
+        const onPartyLeaderSetting = (setting) => {
+            // --- BEGIN - HOOKMANAGER CALLBACK ---
+            if (setting?.key !== `${MODULE.ID}.partyLeader`) return;
+            // The client Setting document casts `value` to the registered type on initialize
+            // (Setting#_initialize → _castType), so for this `type: Object` setting it is
+            // already the parsed {userId, actorId} object — only `_source.value` is the raw
+            // JSON string. Guard for the string anyway (e.g. a hook firing before cast).
+            let value = setting.value;
+            if (typeof value === 'string') {
+                try {
+                    value = JSON.parse(value);
+                } catch (_error) {
+                    value = null;
                 }
             }
+
+            // Update the current leader display
+            if (value && value.userId) {
+                // Find the actor for the new leader
+                const actor = game.actors.get(value.actorId);
+                if (actor) {
+                    MenuBar.currentLeader = actor.name;
+
+                    // Toast dogfood (api-toast Phase 1): this document hook fires on every
+                    // client, so the toast is receipt-side — no sockets. Runs alongside the
+                    // leader chat cards for now; replacing that chat noise is a later step
+                    // (see TODO).
+                    const isNewLeader = game.user.id === value.userId;
+                    ToastAPI.show({
+                        title: isNewLeader ? "You are now the party leader" : "Party leader changed",
+                        subtitle: isNewLeader ? `Leading as ${actor.name}` : `${actor.name} now leads the party`,
+                        icon: "fas fa-crown",
+                        duration: 8,
+                        moduleId: "blacksmith-core",
+                        stackKey: "blacksmith-party-leader"
+                    });
+                }
+            } else {
+                MenuBar.currentLeader = null;
+            }
+
+            // Refresh the menubar to update tool visibility
+            MenuBar.updateLeaderDisplay();
+        };
+
+        HookManager.registerHook({
+            name: 'updateSetting',
+            description: 'MenuBar: Refresh menubar + toast on party leader changes',
+            context: 'menubar-settings-change',
+            priority: 3,
+            callback: onPartyLeaderSetting
         });
-        
+        HookManager.registerHook({
+            name: 'createSetting',
+            description: 'MenuBar: Refresh menubar + toast on first-ever party leader set',
+            context: 'menubar-settings-change',
+            priority: 3,
+            callback: onPartyLeaderSetting
+        });
+
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Leader change hook registered", "", true, false);
     }
 

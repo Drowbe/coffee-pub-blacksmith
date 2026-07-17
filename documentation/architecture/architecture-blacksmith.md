@@ -302,6 +302,24 @@ These exist in the source and are **never called**. They are legacy, not wiring 
 | `_setupActivePageChecker`, `_setupPageNavigationListener` | `ui-journal-encounter.js` | Same — dead. |
 | `_setupDomObserver` | `ui-journal-pins.js` | Defines a body `MutationObserver`. **Nothing calls it.** `dispose()` still clears it defensively. |
 
+> ⚠️ **Every hook registered as `settingChange` is dead — the hook does not exist in Foundry**
+> (verified against v13.351 core source, 2026-07-17: core fires `clientSettingChanged` for
+> client-scoped settings on the changing client, and the standard `updateSetting`/`createSetting`
+> *document* hooks on all clients for world-scoped settings; nothing anywhere fires `settingChange`,
+> and `HookManager` does not remap it). Roughly ten registrations across `blacksmith.js`,
+> `manager-combatbar.js`, `manager-journal-tools.js`, `manager-token-indicators.js`,
+> `manager-toolbar.js`, `sidebar-combat.js` (raw `Hooks.on`), `ui-journal-encounter.js`,
+> `ui-sidebar-style.js`, and `ui-sidebar-pin.js` have never fired once. Features that appear to
+> sync anyway do so through compensating paths — e.g. the menubar leader display syncs via the
+> socketlib `updateLeader` broadcast, which masked this for a long time. The menubar's partyLeader
+> site was rewired to `updateSetting`/`createSetting` (see `_registerLeaderChangeHook`); the rest
+> are pending the audit tracked in `TODO.md`. When fixing a site, pick the hook by the setting's
+> scope: world → `updateSetting`+`createSetting` (fires everywhere; note the client Setting
+> document **casts `value` to the registered type** on initialize — for a `type: Object` setting
+> it is already the parsed object, and only `_source.value` holds the raw JSON string — do NOT
+> `JSON.parse` it blindly); client → `clientSettingChanged` (local client only). This block shrinks as
+> sites are fixed and is deleted when the audit completes.
+
 ### 9B.3 Render paths that deliberately skip work
 
 - **Menubar fingerprinting** — `renderMenubar` compares `_computeMenubarStructureFingerprint(templateData)`
