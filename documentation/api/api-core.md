@@ -2170,6 +2170,8 @@ For full menubar API documentation, see: **`documentation/api/api-menubar.md`**
 
 For full canvas layer API documentation, see: **`documentation/api/api-canvas.md`**
 
+For on-screen toast documentation (`api.toast`), see: **`documentation/api/api-toast.md`**
+
 ---
 
 # **Support and Community**

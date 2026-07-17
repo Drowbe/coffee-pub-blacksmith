@@ -1,0 +1,100 @@
+/* ------------------------------------ */
+/* --- TOASTS ------------------------- */
+/* ------------------------------------ */
+/* Local toast primitive — scripts/api-toast.js.
+   See documentation/api/api-toast.md */
+
+/* Fixed stack container, lazily created on first show().
+   pointer-events: none so empty space between toasts never blocks the canvas. */
+#blacksmith-toast-container {
+    position: fixed;
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.blacksmith-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    max-width: 420px;
+    background: rgba(20, 20, 20, 0.95);
+    border: 1px solid #ac9f81;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    transform: translateY(-12px);
+    /* Duration must match ANIMATION_MS in scripts/api-toast.js */
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.blacksmith-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.blacksmith-toast-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1px solid #ac9f81;
+    object-fit: cover;
+    object-position: top;
+    flex: 0 0 auto;
+}
+.blacksmith-toast-icon {
+    font-size: 24px;
+    color: #ac9f81;
+    flex: 0 0 auto;
+}
+
+.blacksmith-toast-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.blacksmith-toast-title {
+    color: #ac9f81;
+    font-family: "Signika", sans-serif;
+    font-size: 1.15em;
+    font-weight: bold;
+}
+.blacksmith-toast-subtitle {
+    color: rgba(224, 224, 224, 0.6);
+    font-size: 0.85em;
+}
+
+.blacksmith-toast-close {
+    background: none;
+    border: none;
+    color: rgba(240, 240, 224, 0.7);
+    cursor: pointer;
+    padding: 0;
+    margin-left: 6px;
+    width: auto;
+    line-height: 1;
+    font-size: 16px;
+    flex: 0 0 auto;
+}
+.blacksmith-toast-close:hover {
+    color: rgba(255, 100, 0, 0.9);
+    background: none;
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
+/* Actionable toast (has an onClick) */
+.blacksmith-toast-actionable {
+    cursor: pointer;
+}
+.blacksmith-toast-actionable:hover {
+    border-color: rgba(255, 100, 0, 0.9);
+}

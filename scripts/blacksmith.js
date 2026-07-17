@@ -89,6 +89,7 @@ import { TagWidget } from './widget-tags.js';
 import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
+import { ToastAPI } from './api-toast.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
@@ -946,6 +947,7 @@ Hooks.once('init', async function() {
         tags: TagsAPI,
         gmNotes: GMNotesAPI,
         chatCards: ChatCardsAPI,
+        toast: ToastAPI,
         campaign: CampaignAPI,
         compendiums: CompendiumsAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),

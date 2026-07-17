@@ -53,6 +53,9 @@
 @import "menubar.css";
 @import "menubar-combatbar.css";
 
+/* --- Toasts ---------------------- */
+@import "toast.css";
+
 /* --- Context Menus (global) ------ */
 @import "menu-context-global.css";
 

@@ -13,6 +13,7 @@ import { StatsWindow } from './window-stats-party.js';
 import { deployParty, clearPartyFromCanvas } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './ui-journal-encounter.js';
+import { ToastAPI } from './api-toast.js';
 import { PartyManager } from './manager-party.js';
 import { ReputationManager } from './manager-reputation.js';
 import { UIContextMenu } from './ui-context-menu.js';
@@ -206,6 +207,20 @@ class MenuBar {
                         const actor = game.actors.get(value.actorId);
                         if (actor) {
                             MenuBar.currentLeader = actor.name;
+
+                            // Toast dogfood (api-toast Phase 1): this hook fires on every client
+                            // via the world-setting sync, so the toast is receipt-side — no
+                            // sockets. Runs alongside the leader chat cards for now; replacing
+                            // that chat noise is a later step (see TODO).
+                            const isNewLeader = game.user.id === value.userId;
+                            ToastAPI.show({
+                                title: isNewLeader ? "You are now the party leader" : "Party leader changed",
+                                subtitle: isNewLeader ? `Leading as ${actor.name}` : `${actor.name} now leads the party`,
+                                icon: "fas fa-crown",
+                                duration: 8,
+                                moduleId: "blacksmith-core",
+                                stackKey: "blacksmith-party-leader"
+                            });
                         }
                     } else {
                         MenuBar.currentLeader = null;
