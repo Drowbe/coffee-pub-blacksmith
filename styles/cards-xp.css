@@ -146,6 +146,12 @@
     flex-shrink: 0;
 }
 
+.cpb-xp-card .xp-gained.cpb-xp-not-in-combat {
+    color: rgba(62, 18, 18, 0.55);
+    font-weight: 700;
+    font-style: italic;
+}
+
 .cpb-xp-card .total-xp {
     color: rgba(62, 18, 18, 0.9);
     font-size: 0.9em;

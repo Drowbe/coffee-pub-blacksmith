@@ -137,7 +137,7 @@
           {{#each xpData.players}}
           <div class="xp-table-row" data-row-type="player" data-player-id="{{actorId}}">
             <span class="xp-table-col-1" data-field="name">
-              <span class="inclusion-toggle active" data-player-id="{{actorId}}" tabindex="0">
+              <span class="inclusion-toggle {{#if included}}active{{else}}dimmed{{/if}}" data-player-id="{{actorId}}" tabindex="0">
                 <i class="fas fa-swords"></i>
               </span>
               <img class="player-portrait" src="{{img}}" alt="{{name}}" />
@@ -147,14 +147,14 @@
             <span class="xp-table-col-2" data-field="level">{{level}}</span>
 
             <span class="xp-table-col-3" data-field="xp">
-              <span class="player-base-xp">{{../xpData.xpPerPlayer}}</span>
+              <span class="player-base-xp">{{#if included}}{{../xpData.xpPerPlayer}}{{else}}0{{/if}}</span>
               <span class="adjustment-controls">
                 <i class="fas fa-square-plus adjustment-sign active" data-sign="+"></i>
                 <i class="fas fa-square-minus adjustment-sign" data-sign="-"></i>
                 <input type="number" class="player-adjustment" name="player-adjustment-{{actorId}}" value="0" min="0" max="10000" placeholder="0">
               </span>
               <span class="equals">=</span>
-              <span class="calculated-total">{{../xpData.xpPerPlayer}}</span>
+              <span class="calculated-total">{{#if included}}{{../xpData.xpPerPlayer}}{{else}}0{{/if}}</span>
             </span>
           </div>
           {{/each}}

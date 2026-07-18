@@ -100,7 +100,7 @@
                         {{#if leveledUp}}
                             <i class="fas fa-star level-up"></i>
                         {{/if}}
-                        <span class="xp-gained">{{#if (gt xpGained 0)}}+{{xpGained}} XP{{else}}0 XP{{/if}}</span>
+                        <span class="xp-gained{{#if excluded}} cpb-xp-not-in-combat{{/if}}">{{#if excluded}}No Combat{{else if (gt xpGained 0)}}+{{xpGained}} XP{{else}}0 XP{{/if}}</span>
                     </div>
                 </div>
                 {{/each}}

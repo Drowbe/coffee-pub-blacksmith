@@ -141,10 +141,11 @@ export class XpManager {
                 };
             }
             
-            // Initialize all players as included with no adjustments (default state)
+            // Reset adjustments to the default state, but keep each player's inclusion —
+            // calculateXpData defaults it to combat participation, same as the window's toggles
             xpData.players = xpData.players.map(player => ({
                 ...player,
-                included: true, // All players included by default
+                included: player.included !== false,
                 adjustment: 0,  // No adjustments by default
                 adjustmentSign: '+',
                 signedAdjustment: 0,
@@ -159,9 +160,11 @@ export class XpManager {
             // Update XP calculations (this sets xpPerPlayer and combinedXp)
             tempWindow.updateXpCalculations();
             
-            // Calculate final XP for each player (all included, no adjustments)
+            // Calculate final XP for each included player (no adjustments); excluded players get 0
             xpData.players = xpData.players.map(player => {
-                const finalXp = Math.max(0, xpData.xpPerPlayer + (player.signedAdjustment || 0));
+                const finalXp = player.included
+                    ? Math.max(0, xpData.xpPerPlayer + (player.signedAdjustment || 0))
+                    : 0;
                 return {
                     ...player,
                     calculatedXp: finalXp,
@@ -249,6 +252,17 @@ export class XpManager {
         const monsters = this.getCombatMonsters(combat);
         const players = this.loadPartyMembers();
 
+        // The whole party is listed, but only actual combat participants default to
+        // included — the GM can still toggle anyone in from the window.
+        const combatantActorIds = new Set(
+            combat.combatants
+                .filter(c => c.actor && (c.actor.hasPlayerOwner || c.actor.type === 'character'))
+                .map(c => c.actor.id)
+        );
+        for (const player of players) {
+            player.included = combatantActorIds.has(player.actorId);
+        }
+
         const partySizeHandling = game.settings.get(MODULE.ID, 'xpPartySizeHandling');
 
         // Calculate monster XP data
@@ -274,7 +288,8 @@ export class XpManager {
             });
 
         const monsterXp = monsterXpData.reduce((sum, monster) => sum + monster.finalXp, 0);
-            const partySize = players.length;
+            // Size the distribution by who is actually included, matching the toggles the window opens with
+            const partySize = players.filter(p => p.included).length;
         let partyMultiplier = 1;
         
             if (partySizeHandling === 'multipliers') {
@@ -290,7 +305,7 @@ export class XpManager {
             totalXp: monsterXp,
             adjustedTotalXp: adjustedMonsterXp,
             xpPerPlayer: 0, // Will be calculated based on active modes
-            partySize: players.length,
+            partySize: partySize,
             partyMultiplier: partyMultiplier,
             modeExperiencePoints: true, // Default to Experience Points mode
             modeMilestone: false, // Default to Milestone mode off
@@ -597,13 +612,14 @@ export class XpManager {
                     leveledUp: this.checkLevelUp(actor, previousXp, newXp)
                 });
             } else {
-                // Still include in results but with 0 XP
+                // Still include in results but with 0 XP; excluded players are labeled
+                // "No Combat" on the card rather than shown as a 0 XP award
                 const previousXp = actor.system.details.xp.value || 0;
                 const currentLevel = actor.system.details.level || 1;
                 const nextLevel = currentLevel + 1;
                 const nextLevelTotalXp = this.getXpForLevel(nextLevel);
                 const nextLevelXp = nextLevelTotalXp - previousXp;
-                
+
                 results.push({
                     name: actor.name,
                     img: actor.img,
@@ -611,7 +627,8 @@ export class XpManager {
                     totalXp: previousXp,
                     nextLevel: nextLevel,
                     nextLevelXp: nextLevelXp,
-                    leveledUp: false
+                    leveledUp: false,
+                    excluded: player.included === false
                 });
             }
         }
