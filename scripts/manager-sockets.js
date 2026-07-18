@@ -17,6 +17,7 @@ import { MenuBar } from './api-menubar.js';
 import { VoteManager } from './manager-vote.js';
 import { CSSEditor } from './window-gmtools.js';
 import { LatencyChecker } from './manager-latency-checker.js';
+import { ToastAPI } from './api-toast.js';
 
 // ================================================================== 
 // ===== SOCKET MANAGER =============================================
@@ -430,6 +431,13 @@ class SocketManager {
         this.socket.register('movementRequestDenied', async (data) => {
             const { handleMovementRequestDenied } = await import('./token-movement.js');
             handleMovementRequestDenied(data);
+        });
+
+        // Toast relay — internal counterpart of broadcastToast() in api-toast.js:
+        // renders a data-only toast pushed from another client (Blacksmith-internal
+        // until toast Phase 3; not part of the public toast API)
+        this.socket.register("showToast", (data) => {
+            ToastAPI.show(data);
         });
 
         // Token Movement

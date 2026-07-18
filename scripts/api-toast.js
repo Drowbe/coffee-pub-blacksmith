@@ -262,6 +262,28 @@ class ToastManager {
 }
 
 /**
+ * INTERNAL — Blacksmith-only until toast Phase 3. Show a toast on every connected
+ * client: locally via show(), remotely via the "showToast" socket relay registered
+ * in manager-sockets.js. Data-only by necessity — callbacks cannot cross the socket
+ * and are stripped. Deliberately NOT on ToastAPI: the public cross-client surface
+ * (send({recipients})) is gated on the socket rewrite; this is private plumbing for
+ * Blacksmith's own announcements (timers). SocketManager is imported dynamically to
+ * avoid a static import cycle (manager-sockets imports api-toast for the relay).
+ * @param {Object} config - Same shape as show(), minus callbacks
+ */
+export async function broadcastToast(config) {
+    const { onClick, onDismiss, ...data } = config || {};
+    ToastManager.show(data);
+    try {
+        const { SocketManager } = await import('./manager-sockets.js');
+        const socket = SocketManager.getSocket();
+        if (socket) await socket.executeForOthers('showToast', data);
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, 'Toast: broadcast relay failed', error, false, false);
+    }
+}
+
+/**
  * Public surface — exposed as module.api.toast. See documentation/api/api-toast.md.
  */
 const ToastAPI = {

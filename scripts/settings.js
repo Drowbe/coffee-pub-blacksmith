@@ -3532,6 +3532,42 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 
+	// -- SESSION TIMER --
+	game.settings.register(MODULE.ID, 'notifySessionTimer', {
+		name: MODULE.ID + '.notifySessionTimer-Label',
+		hint: MODULE.ID + '.notifySessionTimer-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: NOTIFICATION_CHANNEL_CHOICES,
+		default: 'toast',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// -- PLANNING TIMER --
+	game.settings.register(MODULE.ID, 'notifyPlanningTimer', {
+		name: MODULE.ID + '.notifyPlanningTimer-Label',
+		hint: MODULE.ID + '.notifyPlanningTimer-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: NOTIFICATION_CHANNEL_CHOICES,
+		default: 'toast',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// -- COMBAT TIMER --
+	game.settings.register(MODULE.ID, 'notifyCombatTimer', {
+		name: MODULE.ID + '.notifyCombatTimer-Label',
+		hint: MODULE.ID + '.notifyCombatTimer-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: NOTIFICATION_CHANNEL_CHOICES,
+		default: 'toast',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
 	// ====================================================================================================================
 	// ====================================================================================================================
 	// == ROLLING AND PROGRESSION

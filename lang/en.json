@@ -766,6 +766,15 @@
 		"notifyMarchingOrder-Label": "Show Marching Order in Chat",
 		"notifyMarchingOrder-Hint": "Post the marching order card to chat when Conga or Fastest Path movement establishes or changes the party order.",
 
+		"notifySessionTimer-Label": "Session Timer",
+		"notifySessionTimer-Hint": "How to announce session timer events (set, warning, expired). Which events fire at all is still controlled in the session timer's own settings.",
+
+		"notifyPlanningTimer-Label": "Planning Timer",
+		"notifyPlanningTimer-Hint": "How to announce planning timer events (start, set, pause, resume, warning, expired). Which events fire at all is still controlled in the planning timer's own settings.",
+
+		"notifyCombatTimer-Label": "Combat Timer",
+		"notifyCombatTimer-Hint": "How to announce combat (turn) timer events (start, set, pause, resume, warning, expired). Which events fire at all is still controlled in the combat timer's own settings.",
+
 
 	"SEPARATOR-ROLLING-AND-PROGRESSION": "-------------------------------------------------------",
 

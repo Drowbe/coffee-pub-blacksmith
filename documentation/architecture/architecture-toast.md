@@ -71,6 +71,24 @@ element after `ANIMATION_MS`. **`ANIMATION_MS` in `api-toast.js` and the `transi
 `styles/toast.css` must stay in sync** — the JS value is how long the element lingers for the CSS
 fade to finish.
 
+## The internal broadcast relay (pre-Phase-3)
+
+`broadcastToast(config)` in `api-toast.js` shows a toast on **every** connected client: locally via
+`show()`, remotely via the `showToast` socketlib handler in `manager-sockets.js`. It exists for
+announcements that originate on one client (the GM's timer helpers) where the chat card used to be
+the transport to players. It is **deliberately not on `ToastAPI`**: the public cross-client surface
+(`send({recipients})`) is gated on the socket rewrite, and this relay is Blacksmith-private plumbing
+until then — data-only by construction (callbacks are stripped before the socket). When Phase 3
+lands, `send()` subsumes this. `SocketManager` is imported dynamically inside `broadcastToast` to
+avoid a static import cycle (`manager-sockets` statically imports `api-toast` for the handler).
+
+`timer-notifications.js` is the first consumer: `routeTimerNotification(settingKey, label,
+stackKey, data)` is the shared channel router for the three timer announcement helpers — it maps
+the timer payload flags to toast content, broadcasts the toast half, and returns whether the caller
+should still post its chat card. The per-kind toggles in each timer's own settings section gate the
+calls *before* they reach the router: the timer section decides *what* fires, the Notifications
+section decides *where* it goes.
+
 ## Delivery channels: the `notifyX` setting pattern
 
 Each feature migrated from chat cards to toasts gets a world-scoped channel setting in the

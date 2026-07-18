@@ -14,6 +14,7 @@ import { deployParty, clearPartyFromCanvas } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './ui-journal-encounter.js';
 import { ToastAPI } from './api-toast.js';
+import { routeTimerNotification } from './timer-notifications.js';
 import { PartyManager } from './manager-party.js';
 import { ReputationManager } from './manager-reputation.js';
 import { UIContextMenu } from './ui-context-menu.js';
@@ -4823,6 +4824,10 @@ class MenuBar {
 
     // Helper method for sending chat messages
     static async sendTimerMessage(data) {
+        // Route per the notifySessionTimer channel (Notifications section) — the
+        // toast half broadcasts to every client; false = no chat card either
+        if (!routeTimerNotification('notifySessionTimer', 'Session', 'blacksmith-timer-session', data)) return;
+
         // Get the GM user to send messages from
         const gmUser = game.users.find(u => u.isGM);
         if (!gmUser) return;

@@ -8,6 +8,7 @@ import { postConsoleAndNotification, playSound, trimString, getSettingSafely } f
 import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
+import { routeTimerNotification } from './timer-notifications.js';
 
 export class PlanningTimer {
     static DEFAULTS = {
@@ -208,9 +209,8 @@ export class PlanningTimer {
     }
 
     static async timerAdjusted(timeString) {
-        if (!game.user.isGM) {
-            ui.notifications.info(`Planning timer set to ${timeString}`);
-        }
+        // No ui.notifications here — the "timer set" announcement is owned by the
+        // notifyPlanningTimer channel (toast/chat) via sendChatMessage.
     }
 
     static async timerCleanup(data) {
@@ -694,7 +694,6 @@ export class PlanningTimer {
                     if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
                         this.state.hasHandledWarning = true;
                         const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
-                        ui.notifications.warn(message);
                         this.sendChatMessage({
                             isTimerWarning: true,
                             warningMessage: message
@@ -967,11 +966,8 @@ export class PlanningTimer {
             playSound(timeUpSound, this.getTimerVolume());
         }
             
-        // Show notification if enabled
-        if (this.shouldShowNotification()) {
-            const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
-            ui.notifications.info(`${label} Has Ended`);
-        }
+        // No ui.notifications banner here — the expiry announcement is owned by the
+        // notifyPlanningTimer channel (toast broadcast / chat) via sendChatMessage.
 
         // Send chat message for timer expiration if GM
         if (game.user.isGM) {
@@ -1071,11 +1067,8 @@ export class PlanningTimer {
             playSound(timeUpSound, this.getTimerVolume());
         }
         
-        // Show notification if enabled
-        if (this.shouldShowNotification()) {
-            const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
-            ui.notifications.info(`${label} Has Ended`);
-        }
+        // No ui.notifications banner here — the expiry announcement is owned by the
+        // notifyPlanningTimer channel (toast broadcast / chat) via sendChatMessage.
         
         // Clean up the timer
         this.cleanupTimer();
@@ -1115,12 +1108,16 @@ export class PlanningTimer {
 
     // Helper method for sending chat messages
     static async sendChatMessage(data) {
+        // Get the timer label from settings
+        const timerLabel = game.settings.get(MODULE.ID, 'planningTimerLabel');
+
+        // Route per the notifyPlanningTimer channel (Notifications section) — the
+        // toast half broadcasts to every client; false = no chat card either
+        if (!routeTimerNotification('notifyPlanningTimer', timerLabel || 'Planning', 'blacksmith-timer-planning', data)) return;
+
         // Get the GM user to send messages from
         const gmUser = game.users.find(u => u.isGM);
         if (!gmUser) return;
-
-        // Get the timer label from settings
-        const timerLabel = game.settings.get(MODULE.ID, 'planningTimerLabel');
 
         // Format duration to include minutes and seconds if it exists
         if (data.duration) {

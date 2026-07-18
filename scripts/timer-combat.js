@@ -8,6 +8,7 @@ import { postConsoleAndNotification, playSound, trimString, getSettingSafely } f
 import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
+import { routeTimerNotification } from './timer-notifications.js';
 
 class CombatTimer {
     static ID = 'combat-timer';
@@ -863,10 +864,8 @@ class CombatTimer {
                     const message = game.settings.get(MODULE.ID, 'combatTimerCriticalMessage');
                     const formattedMessage = this.getFormattedMessage(message);
                     
-                    // Show notification if general notifications are enabled
-                    if (this.shouldShowNotification()) {
-                        ui.notifications.warn(formattedMessage);
-                    }
+                    // No ui.notifications banner — the critical warning is owned by the
+                    // notifyCombatTimer channel (toast broadcast / chat) via sendChatMessage
 
                     // Send critical warning chat message if GM
                     if (game.user.isGM) {
@@ -997,10 +996,10 @@ class CombatTimer {
             playSound(timeUpSound, this.getTimerVolume());
         }
 
-        // Show notification and send chat message if enabled
+        // Send the expiry announcement if enabled — no ui.notifications banner; the
+        // announcement is owned by the notifyCombatTimer channel via sendChatMessage
         if (this.shouldShowNotification() && game.user.isGM) {
             const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage');
-            ui.notifications.warn(message.replace('{name}', game.combat?.combatant?.name || ''));
 
             // Send expired chat message if setting enabled
             if (game.settings.get(MODULE.ID, 'timerChatTurnEnded')) {
@@ -1113,19 +1112,34 @@ class CombatTimer {
     }
 
     static async timerAdjusted(timeString) {
-        if (!game.user.isGM) {
-            ui.notifications.info(`Combat timer set to ${timeString}`);
-        }
+        // No ui.notifications here — the "timer set" announcement is owned by the
+        // notifyCombatTimer channel (toast/chat) via sendChatMessage.
     }
 
     // Helper method for sending chat messages
     static async sendChatMessage(data) {
+        // Get the current combatant name if available
+        const name = game.combat?.combatant?.name || 'Unknown';
+
+        // Format any messages that need the combatant name — shared by the toast
+        // and chat halves, so this must happen before routing
+        if (data.warningMessage) {
+            data.warningMessage = data.warningMessage.replace('{name}', name);
+        }
+        if (data.expiredMessage) {
+            data.expiredMessage = data.expiredMessage.replace('{name}', name);
+        }
+
+        // Pull timer label from settings so the announcement matches configured text
+        const timerLabel = game.settings.get(MODULE.ID, 'combatTimerLabel') || 'Combat';
+
+        // Route per the notifyCombatTimer channel (Notifications section) — the
+        // toast half broadcasts to every client; false = no chat card either
+        if (!routeTimerNotification('notifyCombatTimer', timerLabel, 'blacksmith-timer-combat', data)) return;
+
         // Get the GM user to send messages from
         const gmUser = game.users.find(u => u.isGM);
         if (!gmUser) return;
-
-        // Get the current combatant name if available
-        const name = game.combat?.combatant?.name || 'Unknown';
 
         // Format duration to include minutes and seconds if it exists
         if (data.duration) {
@@ -1134,27 +1148,16 @@ class CombatTimer {
             data.duration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
 
-        // Pull timer label from settings so the chat card matches configured text
-        const timerLabel = game.settings.get(MODULE.ID, 'combatTimerLabel') || 'Combat';
-
         // Prepare the message data with timer info
         const messageData = {
             isPublic: true,
             isTimer: true,
             timerLabel,
-            theme: data.isTimerWarning ? 'orange' : 
-                   data.isTimerExpired ? 'red' : 
+            theme: data.isTimerWarning ? 'orange' :
+                   data.isTimerExpired ? 'red' :
                    (data.isTimerStart || data.isTimerSet) ? 'blue' : 'default',
             ...data
         };
-
-        // Format any messages that need the combatant name
-        if (data.warningMessage) {
-            messageData.warningMessage = data.warningMessage.replace('{name}', name);
-        }
-        if (data.expiredMessage) {
-            messageData.expiredMessage = data.expiredMessage.replace('{name}', name);
-        }
 
         const messageHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
 
