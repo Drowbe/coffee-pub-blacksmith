@@ -68,10 +68,21 @@ const WORKFLOW_GROUPS = {
     GETTING_STARTED: 'getting-started',
     THEMES_AND_EXPERIENCE: 'themes-and-experience',
     RUN_THE_GAME: 'run-the-game',
+    NOTIFICATIONS: 'notifications',
     MANAGE_CONTENT: 'manage-content',
     ROLLING_AND_PROGRESSION: 'rolling-and-progression',
     AUTOMATION: 'automation',
 	DEVELOPER_TOOLS: 'developer-tools'
+};
+
+// Delivery channels for feature notifications (the Notifications section). One
+// setting per migrated feature; toast-only is the standard default unless a
+// feature deliberately chooses otherwise.
+const NOTIFICATION_CHANNEL_CHOICES = {
+    'toast': 'Toast Only',
+    'chat': 'Chat Only',
+    'both': 'Toast and Chat',
+    'none': 'None'
 };
 
 export function ensureCoreLoadingProgressSettingRegistered() {
@@ -3479,11 +3490,53 @@ export const registerSettings = () => {
 		default: ''
 	});
 
-	// ==================================================================================================================== 
-	// ==================================================================================================================== 
+	// ====================================================================================================================
+	// ====================================================================================================================
+	// == NOTIFICATIONS
+	// ====================================================================================================================
+	// ====================================================================================================================
+	registerHeader('Notifications', 'headingH1Notifications-Label', 'headingH1Notifications-Hint', 'H1', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
+
+	// -- LEADER CHANGES --
+	game.settings.register(MODULE.ID, 'notifyLeaderChange', {
+		name: MODULE.ID + '.notifyLeaderChange-Label',
+		hint: MODULE.ID + '.notifyLeaderChange-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: NOTIFICATION_CHANNEL_CHOICES,
+		default: 'toast',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// -- MOVEMENT CHANGES --
+	game.settings.register(MODULE.ID, 'notifyMovementChange', {
+		name: MODULE.ID + '.notifyMovementChange-Label',
+		hint: MODULE.ID + '.notifyMovementChange-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: NOTIFICATION_CHANNEL_CHOICES,
+		default: 'toast',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// -- MARCHING ORDER CARD --
+	game.settings.register(MODULE.ID, 'notifyMarchingOrder', {
+		name: MODULE.ID + '.notifyMarchingOrder-Label',
+		hint: MODULE.ID + '.notifyMarchingOrder-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// ====================================================================================================================
+	// ====================================================================================================================
 	// == ROLLING AND PROGRESSION
-	// ==================================================================================================================== 
-	// ==================================================================================================================== 
+	// ====================================================================================================================
+	// ====================================================================================================================
 	registerHeader('RollingAndProgression', 'headingH1RollingAndProgression-Label', 'headingH1RollingAndProgression-Hint', 'H1', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 	// --------------------------------------

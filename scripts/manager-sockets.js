@@ -436,8 +436,10 @@ class SocketManager {
         this.socket.register("movementChange", (data) => {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Received movement change", data, false, false);
             if (data.type === 'movementChange' && !game.user.isGM) {
-                ui.notifications.info(`Movement type changed to: ${data.name}`);
-                
+                // No ui.notifications here — the announcement is owned by the
+                // notifyMovementChange channel (toast/chat); this handler only
+                // syncs the menubar UI.
+
                 // Force refresh of the menubar for consistent update
                 ui.chat.render();
                 

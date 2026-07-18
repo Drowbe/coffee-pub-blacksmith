@@ -8,6 +8,7 @@ import { SocketManager } from './manager-sockets.js';
 import { MenuBar } from "./api-menubar.js";
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { ToastAPI } from './api-toast.js';
 
 // ================================================================== 
 // ===== STATE VARIABLES ============================================
@@ -37,6 +38,94 @@ let preCombatMovementMode = null;
 
 // Add state variable for token spacing
 let tokenSpacing = 0;
+
+// ==================================================================
+// ===== MOVEMENT TYPES =============================================
+// ==================================================================
+
+// Movement type catalog — shared by the config window (getData) and the
+// movement-change notification hooks below.
+const MOVEMENT_TYPES = [
+    {
+        id: 'normal-movement',
+        name: 'Wander',
+        description: 'All party members can move their tokens at will without limitations. Move wisely.',
+        icon: 'fa-person-walking',
+    },
+    {
+        id: 'no-movement',
+        name: 'Locked',
+        description: 'Movement is completly locked down for all party members.',
+        icon: 'fa-person-circle-xmark'
+    },
+    {
+        id: 'combat-movement',
+        name: 'Combat',
+        description: 'Movement is locked down while combat is active. Players can only move their tokens during their turn in combat.',
+        icon: 'fa-person-harassing'
+    },
+    {
+        id: 'conga-movement',
+        name: 'Conga',
+        description: 'The party leader moves freely while the ramaining party will follow the exact path set by the leader.',
+        icon: 'fa-people-pulling'
+    },
+    {
+        id: 'follow-movement',
+        name: 'Fastest Path',
+        description: 'The party leader moves freely while the reamining party loosely follows them in line.',
+        icon: 'fa-person-running'
+    },
+    {
+        id: 'request-movement',
+        name: 'Request',
+        description: 'When a party member moves their token, they will be prompted to get approval for the move by the GM.',
+        icon: 'fa-person-circle-question'
+    }
+];
+
+// ==================================================================
+// ===== MOVEMENT CHANGE NOTIFICATIONS ==============================
+// ==================================================================
+
+// movementType is a WORLD setting, so the core updateSetting/createSetting document
+// hooks fire on every client — the toast is receipt-side, no sockets (same pattern
+// as the party-leader toast in api-menubar.js). Delivery is gated by the
+// notifyMovementChange channel setting (toast | chat | both | none); the chat card
+// half is gated GM-side in _handleMovementChange.
+const onMovementTypeSetting = (setting) => {
+    if (setting?.key !== `${MODULE.ID}.movementType`) return;
+    const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
+    if (notifyMode !== 'toast' && notifyMode !== 'both') return;
+    // The client Setting document casts value to the registered type — movementType
+    // is type: String, so this is the movement id itself.
+    const movementType = MOVEMENT_TYPES.find(t => t.id === setting.value);
+    if (!movementType) return;
+    ToastAPI.show({
+        title: `Movement: ${movementType.name}`,
+        subtitle: movementType.description,
+        icon: `fa-solid ${movementType.icon}`,
+        duration: 8,
+        moduleId: 'blacksmith-core',
+        stackKey: 'blacksmith-movement'
+    });
+};
+
+HookManager.registerHook({
+    name: 'updateSetting',
+    description: 'Token Movement: Toast on movement type changes',
+    context: 'token-movement-notifications',
+    priority: 3,
+    callback: onMovementTypeSetting
+});
+
+HookManager.registerHook({
+    name: 'createSetting',
+    description: 'Token Movement: Toast on first-ever movement type set',
+    context: 'token-movement-notifications',
+    priority: 3,
+    callback: onMovementTypeSetting
+});
 
 // Add this near the top with other state variables
 let marchingOrderJustCalculated = false;
@@ -457,44 +546,7 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
 
         return {
             currentSpacing,
-            MovementTypes: [
-                {
-                    id: 'normal-movement',
-                    name: 'Wander',
-                    description: 'All party members can move their tokens at will without limitations. Move wisely.',
-                    icon: 'fa-person-walking',
-                },
-                {
-                    id: 'no-movement',
-                    name: 'Locked',
-                    description: 'Movement is completly locked down for all party members.',
-                    icon: 'fa-person-circle-xmark'
-                },
-                {
-                    id: 'combat-movement',
-                    name: 'Combat',
-                    description: 'Movement is locked down while combat is active. Players can only move their tokens during their turn in combat.',
-                    icon: 'fa-person-harassing'
-                },
-                {
-                    id: 'conga-movement',
-                    name: 'Conga',
-                    description: 'The party leader moves freely while the ramaining party will follow the exact path set by the leader.',
-                    icon: 'fa-people-pulling'
-                },
-                {
-                    id: 'follow-movement',
-                    name: 'Fastest Path',
-                    description: 'The party leader moves freely while the reamining party loosely follows them in line.',
-                    icon: 'fa-person-running'
-                },
-                {
-                    id: 'request-movement',
-                    name: 'Request',
-                    description: 'When a party member moves their token, they will be prompted to get approval for the move by the GM.',
-                    icon: 'fa-person-circle-question'
-                }
-            ].filter(type => !type.gmOnly || isGM)
+            MovementTypes: MOVEMENT_TYPES.filter(type => !type.gmOnly || isGM)
         };
     }
 
@@ -551,6 +603,28 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
         const movementType = this.getData().MovementTypes.find(t => t.id === movementId);
         if (!movementType) return;
 
+        // Announce the movement change — chat half of the notifyMovementChange channel;
+        // the toast half fires receipt-side from the updateSetting hook. Applies to every
+        // movement type; conga/follow additionally post the marching order below, gated
+        // by its own notifyMarchingOrder setting.
+        const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
+        if (notifyMode === 'chat' || notifyMode === 'both') {
+            const basicTemplateData = {
+                isPublic: true,
+                isMovementChange: true,
+                movementIcon: movementType.icon,
+                movementLabel: movementType.name,
+                movementDescription: movementType.description
+            };
+
+            const basicContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', basicTemplateData);
+
+            ChatMessage.create({
+                content: basicContent,
+                type: CONST.CHAT_MESSAGE_STYLES.OTHER
+            });
+        }
+
         // Special handling for conga/follow movement
         if (movementId === 'conga-movement' || movementId === 'follow-movement') {
             const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
@@ -577,23 +651,6 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
                     ui.notifications.warn("Could not find a leader token on the canvas. Make sure the party leader has at least one token placed.");
                 }
             }
-        } else {
-            // For other movement types
-            const basicTemplateData = {
-                isPublic: true,
-                isMovementChange: true,
-                movementIcon: movementType.icon,
-                movementLabel: movementType.name,
-                movementDescription: movementType.description
-            };
-
-            const basicContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', basicTemplateData);
-
-            // Send chat message
-            ChatMessage.create({
-                content: basicContent,
-                type: CONST.CHAT_MESSAGE_STYLES.OTHER
-            });
         }
 
         // Force refresh of the menubar
@@ -1354,6 +1411,10 @@ function getPositionLabel(index, total, status) {
 
 // Function to post marching order to chat
 async function postMarchingOrder() {
+    // Gated by the Show Marching Order in Chat setting (Notifications section) —
+    // covers both the initial post and change reposts
+    if (!getSettingSafely(MODULE.ID, 'notifyMarchingOrder', true)) return;
+
     const leaderToken = canvas.tokens.get(currentLeaderTokenId);
     if (!leaderToken) return;
 
@@ -1509,22 +1570,26 @@ const createCombatHookId = HookManager.registerHook({
                 throw settingError; // Re-throw if it's a different error
             }
             
-            // For combat start
-            const combatTemplateData = {
-                isPublic: true,
-                isMovementChange: true,
-                movementIcon: combatModeType?.icon ?? 'fa-person-harassing',
-                movementLabel: combatModeType?.name ?? 'Combat',
-                movementDescription: `When combat ends <strong>${prevModeType.name}</strong> will be restored.<br><br>${combatModeType.description}`
-            };
+            // For combat start — chat card gated by the notifyMovementChange channel;
+            // the toast half fires on every client from the movementType write above
+            const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
+            if (notifyMode === 'chat' || notifyMode === 'both') {
+                const combatTemplateData = {
+                    isPublic: true,
+                    isMovementChange: true,
+                    movementIcon: combatModeType?.icon ?? 'fa-person-harassing',
+                    movementLabel: combatModeType?.name ?? 'Combat',
+                    movementDescription: `When combat ends <strong>${prevModeType.name}</strong> will be restored.<br><br>${combatModeType.description}`
+                };
 
-            const combatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', combatTemplateData);
+                const combatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', combatTemplateData);
 
-            ChatMessage.create({
-                content: combatContent,
-                type: CONST.CHAT_MESSAGE_STYLES.OTHER
-            });
-            
+                ChatMessage.create({
+                    content: combatContent,
+                    type: CONST.CHAT_MESSAGE_STYLES.OTHER
+                });
+            }
+
             // Update UI
             const movementIcon = document.querySelector('.movement-icon');
             const movementLabel = document.querySelector('.movement-label');
@@ -1585,22 +1650,26 @@ const deleteCombatHookId = HookManager.registerHook({
             throw settingError; // Re-throw if it's a different error
         }
         
-        // For combat end
-        const endCombatTemplateData = {
-            isPublic: true,
-            isMovementChange: true,
-            movementIcon: movementType.icon,
-            movementLabel: movementType.name,
-            movementDescription: `${movementType.name} Mode restored.<br><br>${movementType.description}`
-        };
+        // For combat end — chat card gated by the notifyMovementChange channel;
+        // the toast half fires on every client from the movementType write above
+        const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
+        if (notifyMode === 'chat' || notifyMode === 'both') {
+            const endCombatTemplateData = {
+                isPublic: true,
+                isMovementChange: true,
+                movementIcon: movementType.icon,
+                movementLabel: movementType.name,
+                movementDescription: `${movementType.name} Mode restored.<br><br>${movementType.description}`
+            };
 
-        const endCombatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', endCombatTemplateData);
+            const endCombatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', endCombatTemplateData);
 
-        ChatMessage.create({
-            content: endCombatContent,
-            type: CONST.CHAT_MESSAGE_STYLES.OTHER
-        });
-        
+            ChatMessage.create({
+                content: endCombatContent,
+                type: CONST.CHAT_MESSAGE_STYLES.OTHER
+            });
+        }
+
         // Update UI
         const movementIcon = document.querySelector('.movement-icon');
         const movementLabel = document.querySelector('.movement-label');

@@ -751,6 +751,22 @@
 			"searchWorldLast-Hint": "When enabled, will search for for matches in the world after looking in compendiums if no results are found. When disabled, will not search world as a fallback.",
 
 
+	"SEPARATOR-NOTIFICATIONS": "-------------------------------------------------------",
+
+
+	"headingH1Notifications-Label": "Notifications",
+	"headingH1Notifications-Hint": "How Blacksmith announces game events to the table: an on-screen toast (a transient popup over the play area), a chat card (a permanent entry in the chat log), both, or neither. Features gain a preference here as they are migrated to the toast system.",
+
+		"notifyLeaderChange-Label": "Leader Changes",
+		"notifyLeaderChange-Hint": "How to announce that the party leader changed. The toast appears on every player's screen, with a personal version for the new leader; the chat option posts the public card plus a whisper to the new leader.",
+
+		"notifyMovementChange-Label": "Movement Changes",
+		"notifyMovementChange-Hint": "How to announce a change to the party movement type (Wander, Locked, Combat, Conga, Fastest Path, Request).",
+
+		"notifyMarchingOrder-Label": "Show Marching Order in Chat",
+		"notifyMarchingOrder-Hint": "Post the marching order card to chat when Conga or Fastest Path movement establishes or changes the party order.",
+
+
 	"SEPARATOR-ROLLING-AND-PROGRESSION": "-------------------------------------------------------",
 
 

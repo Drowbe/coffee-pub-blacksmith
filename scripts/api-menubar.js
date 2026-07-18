@@ -219,19 +219,22 @@ class MenuBar {
                 if (actor) {
                     MenuBar.currentLeader = actor.name;
 
-                    // Toast dogfood (api-toast Phase 1): this document hook fires on every
-                    // client, so the toast is receipt-side — no sockets. Runs alongside the
-                    // leader chat cards for now; replacing that chat noise is a later step
-                    // (see TODO).
-                    const isNewLeader = game.user.id === value.userId;
-                    ToastAPI.show({
-                        title: isNewLeader ? "You are now the party leader" : "Party leader changed",
-                        subtitle: isNewLeader ? `Leading as ${actor.name}` : `${actor.name} now leads the party`,
-                        icon: "fas fa-crown",
-                        duration: 8,
-                        moduleId: "blacksmith-core",
-                        stackKey: "blacksmith-party-leader"
-                    });
+                    // Receipt-side toast: this document hook fires on every client, no
+                    // sockets. Gated by the notifyLeaderChange channel setting
+                    // (toast | chat | both | none); the chat-card half is gated GM-side
+                    // in setNewLeader.
+                    const notifyMode = getSettingSafely(MODULE.ID, 'notifyLeaderChange', 'toast');
+                    if (notifyMode === 'toast' || notifyMode === 'both') {
+                        const isNewLeader = game.user.id === value.userId;
+                        ToastAPI.show({
+                            title: isNewLeader ? "You are now the party leader" : "Party leader changed",
+                            subtitle: isNewLeader ? `Leading as ${actor.name}` : `${actor.name} now leads the party`,
+                            icon: "fas fa-crown",
+                            duration: 8,
+                            moduleId: "blacksmith-core",
+                            stackKey: "blacksmith-party-leader"
+                        });
+                    }
                 }
             } else {
                 MenuBar.currentLeader = null;
@@ -4955,43 +4958,50 @@ class MenuBar {
             this.updateVoteIconState();
             await this.updateLeaderDisplay();
 
-            // Send the leader messages only if requested AND we are the GM
+            // Send the leader messages only if requested AND we are the GM.
+            // Chat cards are gated by the notifyLeaderChange channel setting
+            // (toast | chat | both | none) — the toast half fires receipt-side on every
+            // client from the partyLeader updateSetting hook. The sound plays for any
+            // mode except 'none'.
             if (sendMessages && game.user.isGM) {
-    
-                
+                const notifyMode = getSettingSafely(MODULE.ID, 'notifyLeaderChange', 'toast');
+
                 // Play notification sound
-                playSound(window.COFFEEPUB?.SOUNDNOTIFICATION09, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                if (notifyMode !== 'none') {
+                    playSound(window.COFFEEPUB?.SOUNDNOTIFICATION09, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                }
 
-                // Send public message
-                const publicData = {
-                    isPublic: true,
-                    isLeaderChange: true,
-                    leaderName: actor.name,
-                    playerName: user.name
-                };
+                if (notifyMode === 'chat' || notifyMode === 'both') {
+                    // Send public message
+                    const publicData = {
+                        isPublic: true,
+                        isLeaderChange: true,
+                        leaderName: actor.name,
+                        playerName: user.name
+                    };
 
-                const publicHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', publicData);
-                await ChatMessage.create({
-                    content: publicHtml,
-                    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                    speaker: ChatMessage.getSpeaker({ user: game.user })
-                });
+                    const publicHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', publicData);
+                    await ChatMessage.create({
+                        content: publicHtml,
+                        style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                        speaker: ChatMessage.getSpeaker({ user: game.user })
+                    });
 
-                // Send private message to new leader
-                const privateData = {
-                    isPublic: false,
-                    isLeaderChange: true,
-                    leaderName: actor.name
-                };
+                    // Send private message to new leader
+                    const privateData = {
+                        isPublic: false,
+                        isLeaderChange: true,
+                        leaderName: actor.name
+                    };
 
-                const privateHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', privateData);
-                await ChatMessage.create({
-                    content: privateHtml,
-                    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                    speaker: ChatMessage.getSpeaker({ user: game.user }),
-                    whisper: [leaderData.userId]
-                });
-    
+                    const privateHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', privateData);
+                    await ChatMessage.create({
+                        content: privateHtml,
+                        style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                        speaker: ChatMessage.getSpeaker({ user: game.user }),
+                        whisper: [leaderData.userId]
+                    });
+                }
             }
 
             return true;

@@ -71,7 +71,16 @@ element after `ANIMATION_MS`. **`ANIMATION_MS` in `api-toast.js` and the `transi
 `styles/toast.css` must stay in sync** — the JS value is how long the element lingers for the CSS
 fade to finish.
 
-## First consumer (dogfood): leader change
+## Delivery channels: the `notifyX` setting pattern
+
+Each feature migrated from chat cards to toasts gets a world-scoped channel setting in the
+**Notifications** settings section (`settings.js`, `NOTIFICATION_CHANNEL_CHOICES`): `toast` /
+`chat` / `both` / `none`, defaulting to `toast`. The gate lives at **both ends** — the toast half
+is checked receipt-side inside the feature's `updateSetting` hook (every client reads the same
+world value), the chat half GM-side at the `ChatMessage.create` site. Live examples:
+`notifyLeaderChange` (`api-menubar.js`) and `notifyMovementChange` (`token-movement.js`).
+
+## First consumers (dogfood): leader change, movement change
 
 `_registerLeaderChangeHook` in `api-menubar.js` listens to the core `updateSetting` /
 `createSetting` **document** hooks for the `partyLeader` world setting — those fire on every
@@ -80,9 +89,11 @@ everyone else gets the actor's name, `stackKey: "blacksmith-party-leader"` so ra
 replace rather than stack. (This site originally listened to `settingChange`, a hook that **does
 not exist in Foundry** — see the ⚠️ block in `architecture-blacksmith.md` §9B.2 for the suite-wide
 fallout; the leader *display* had always synced via the socketlib `updateLeader` broadcast, which
-masked it.) The toast runs alongside the existing leader chat cards from `setNewLeader` — replacing
-that chat noise with toasts is a planned later step, tracked in `TODO.md`, not something this
-system does yet.
+masked it.) Movement follows the identical shape in `token-movement.js`: `movementType` is a world
+setting, its hook toasts receipt-side from the shared `MOVEMENT_TYPES` catalog,
+`stackKey: "blacksmith-movement"`. Both features' chat cards still exist but are gated by their
+`notifyX` channel setting (default `toast` — so chat is off unless the GM opts back in); further
+chat-noise migrations are tracked in `TODO.md`.
 
 ## Boundaries
 
