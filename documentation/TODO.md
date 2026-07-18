@@ -57,6 +57,18 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 - **Likely site**: `scripts/xp-manager.js` — the post-combat path appears to use the party-members list (`game.actors.filter(...)`, ~:420–428, "for non-combat XP distribution") instead of the combat's participants (`combat.combatants`, ~:322). For post-combat XP, source recipients from the combat's player-owned combatants. Note the two entry points (`openXpDistributionWindow` vs `calculateXpData` / `_onCombatEnd`) — the combat-end path is the one to fix, and this is adjacent to the two-entry-point shape mismatch flagged in the `architecture-xp.md` audit.
 - **How to verify**: run a combat with only some party members participating → after it ends, the XP window lists only the participants, not the whole party.
 
+### Hide-initiative-rolls setting does not hide the chat cards
+- **Found**: 2026-07-18, reported from play.
+- **Issue**: with `combatTrackerHideInitiativeRoll` (world scope, `settings.js:2022`) enabled, initiative roll cards still appear in chat.
+- **Site**: `blacksmith.js:1091-1117` — a `renderChatMessageHTML` hook (context `blacksmith-hide-initiative-roll`) hides the element on render, then deletes the message (deferred behind `diceSoNiceRollComplete` when DSN is active).
+- **Candidate causes to check, in order**:
+  1. **Detection**: the flag check is `flags.core.initiativeRoll === true || flags.dnd5e.roll.type === 'initiative'`. Verify what flags an initiative message actually carries in dnd5e on v13 — if Blacksmith's own combat-tracker initiative path (`combatTrackerRollInitiativeNonPlayer`/`Player`) creates rolls without those flags, its own cards would never match.
+  2. **Permissions**: the callback runs on every client, but `message.delete()` only succeeds for the GM or the message author. A player client swallows the rejection (`.catch(() => {})`), so if the *hide* also isn't applying there, the card stays visible for players.
+  3. **DSN listener mismatch**: `Hooks.once('diceSoNiceRollComplete', doDelete)` — with several simultaneous initiative rolls, each render registers a `once` listener but they may pair with the wrong/first completion, or the hook may not fire for messages whose animation is skipped.
+  4. **Hook delivery**: HookManager remaps `renderChatMessage` (§9A trap list) — confirm `renderChatMessageHTML` registrations actually fire on v13 (console-log in the callback first; don't assume).
+- **How to verify**: enable the setting, roll initiative from the tracker (both the Blacksmith auto-roll path and a manual combatant roll), on GM and player clients — no card appears and the message is gone from `game.messages`; with DSN active the dice still animate.
+- **Priority**: High — user-facing feature observably broken.
+
 ### ✅ FIXED (2026-07-17) — `SkillCheckDialog` `options.title` never sets the window title
 - **Fix applied**: `window-skillcheck.js` now sets `options.window = { title: data.title }`. Verified against Foundry core: `ApplicationV2#title` reads `this.options.window.title` (`applications/api/application.mjs`), and `#mergeApplicationOptions` deep-merges nested objects, so `resizable`/`minimizable` from `DEFAULT_OPTIONS.window` survive. **Not yet verified in a live Foundry session.**
 - **Original issue**: `window-skillcheck.js:37` did `options.title = data.title` then `super(options)`. ApplicationV2 reads the frame title from `options.window.title`. **20+ call sites across this repo use `window: { title }`; zero use root `title`.** No `get title()` override exists, so `DEFAULT_OPTIONS.window.title = 'Request a Roll'` always wins.
@@ -326,6 +338,27 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 - **How to verify (Phase 1)**: console `api.toast.show({ title: "Hi" })` → toast appears top-center, fades out after 8s; with `onClick` → pointer cursor + hover, click plays the button sound, runs the handler, removes it without firing `onDismiss`; timeout and the × fire `onDismiss`; two toasts with the same `stackKey` → the second replaces the first; different keys stack (cap 5, oldest evicted); `image:` shows a round avatar. Leader dogfood: change leader with two clients open → leader's client shows "You are now the party leader", the other shows the actor's name; chat cards still post; re-picking a leader rapidly replaces the toast rather than stacking.
 - **Priority**: Medium (feature). Phase 2 is unblocked; Phase 3 is gated on the socket system.
 
+#### Scene "burden" calculator — developer tool for scene performance cost
+- **Issue**: no way to quantify how expensive a scene is before players hit it. The costly scenes are the counter-intuitive ones — wide-open maps with few walls mean huge unoccluded areas, so light, sound, and vision polygons cover far more space and every token-vision refresh does more work. A "burden" score would let us test scenes against calibrated benchmarks and eventually warn in real time that a level is "too much".
+- **Status**: PENDING — needs a plan (feature; phased below)
+- **Location**: new dev tool; nearest pattern is `scripts/utility-performance.js` (perf monitor — dynamically imported, surfaced via the menubar hamburger, gated behind its enable setting). Same load-gate treatment applies.
+- **Phases**:
+  1. **Calculator** — on demand, score the current scene from its document + canvas state: dimensions/grid area, wall count *and* open-space ratio (walls actually *reduce* vision cost by occluding), light sources (count, radius, animated?), ambient sounds, tokens with vision enabled, tiles/drawings, fog exploration size. Output a breakdown, not just one number, so we can see *which* axis is heavy. Surface via the perf-monitor menu or a console-callable API first — UI polish later.
+  2. **Calibrate** — run it across known-good and known-bad scenes (and the burden-of-knowledge campaign's real scenes are ideal test data — read-only, never edit) alongside observed FPS/refresh timings to weight the axes into meaningful thresholds. Until this phase, the score is a raw metric, not a verdict.
+  3. **Real-time advisory** — once calibrated, evaluate on `canvasReady` (and optionally on wall/light/token changes, debounced) and warn the GM when a scene crosses the "too much" threshold. GM-only, low-noise (once per scene load, not per change).
+- **Design questions for the plan**: static document analysis vs. live measurement (e.g. timing an actual `canvas.perception` refresh) — probably both, since phase 2 needs the live numbers to calibrate the static score; where the score lives (pure function in the utility vs. exposed on `module.api` for siblings like Cartographer, which builds scenes and would want this).
+- **How to verify**: run the calculator on a trivially small scene and a large open scene → scores differ in the expected direction with a sensible breakdown; toggling a big light or vision on a token changes the relevant axis; disabled setting → nothing loads (dynamic import not fetched).
+- **Priority**: Medium
+
+#### Token "blood" HP indicator animation
+- **Issue**: no at-a-glance visual of token health on the canvas. Idea: a "blood" treatment on the token that scales with missing HP — e.g. a blood-splatter overlay that intensifies as HP drops (thresholds like bloodied/critical), optionally with a brief animation on damage taken.
+- **Ownership open (author, 2026-07-18)**: may live in Blacksmith or in a sibling module — injuries/crit/fumble handling already lives elsewhere, and blood is thematically adjacent. Decide in the plan. Either way Blacksmith's role is the *event surface* (the rolls-classification hooks above plus HP-change events); if the visual ships in a sibling, this item reduces to "expose what it needs" and the feature entry moves to that module's TODO / `TODO-GLOBAL.md`.
+- **Status**: PENDING — needs a plan first (feature, so per the workflow it gets a `documentation/plans/` entry before code: **ownership**, visual approach, thresholds, settings, GM/player visibility).
+- **Location**: new code; nearest existing pattern is `scripts/manager-token-indicators.js` (per-token overlay driven by actor state). Hook shape: `updateActor`/`updateToken` HP diffs via `HookManager`, gated behind an enable setting (see the load-gate model, `architecture-blacksmith.md` §8).
+- **Design questions for the plan**: overlay art (tinted PIXI filter vs. sprite/texture splatter vs. DOM like pins)? thresholds (continuous 0-100% vs. bloodied/critical steps)? does it respect HP visibility rules for players, or GM-only? does dead get its own state (ties into the "Hide Dead" menubar item below)? performance in token-dense scenes (§9B rules apply — no per-frame work, update only on HP change).
+- **How to verify**: damage a token past each threshold → visual updates on all clients; heal → it recedes; no per-frame cost when idle (check with the perf monitor); disabled setting → no hooks registered.
+- **Priority**: Medium
+
 #### Creature-type / subtype token naming — polish
 - **Status**: Data, resolver, wiring, and per-key settings are **shipped**. Design is documented in `documentation/architecture/architecture-token-naming.md`.
 - **Remaining**:
@@ -353,6 +386,25 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 - **Status**: PENDING
 - **Location**: `scripts/manager-rolls.js`, `documentation/architecture/architecture-rolls.md`
 - **Need**: `processRoll()` respects `diceRollToolSystem`; implement Foundry roll path when selected; document in api-rolls when that doc exists.
+
+#### Roll outcome classification API (hit/miss/crit/fumble/criteria) — UNIFY the four existing implementations
+- **Issue**: consumers (and Blacksmith itself) have no API to ask what a roll *meant* — hit, miss, crit, fumble, success vs DC, or arbitrary criteria. **The knowledge already exists, computed independently in four places** (survey 2026-07-18):
+  1. `manager-rolls.js` (~:381-433 and again ~:1487) — advantage/disadvantage-aware active-d20 extraction, used only to pick crit/fumble *sounds* and cinema overlay classes. The cinema overlay's success/failure class is `roll.total >= 10` with its own `// TODO: get actual DC from context` (`:1562`) — a hardcoded DC.
+  2. `blacksmith.js` ~:2370-2440 (GM-side skill-check update handler) — the most complete logic: per-actor crit/fumble via `detectD20Roll`, success = `total >= flags.dc`, **group success** (majority rule), and **contested roll** winners/ties. Buried in a socket callback in the god-module; results live only in chat-card flags.
+  3. `utility-message-resolution.js` (~:269-283) — **attack hit/miss per target vs AC** from chat messages → `hitTargets`/`missTargets`/`unknownTargets`.
+  4. `utility-midi-resolution.js` — `getCritFumbleFromWorkflow` normalizes crit/fumble from MIDI-QOL workflows (flags → roll flags → d20 inspection); consumed by `stats-combat.js`/`stats-player.js` for MVP scoring.
+- **Status**: PENDING — this is a *consolidation*, not new functionality. Investigate first; the four sites have subtly different semantics (crit = nat 20 vs. dnd5e crit-range config; hit vs AC vs. success vs DC vs. majority-group) that a unified contract has to name explicitly rather than paper over.
+- **Location**: the four sites above; new surface on `module.api.rolls` (see "Rolls API as first-class surface" below — these are the same effort's two halves).
+- **Contract decision (author, 2026-07-18): this is a SUBSCRIPTION surface, not just a pull API.** Sibling modules must be able to *subscribe* to roll outcomes — injuries and crit/fumble handling live in another module, and "blood" may too. Blacksmith classifies and broadcasts; siblings react. So the design is two layers:
+  - **Events** (the primary surface): fire a hook per resolved roll — e.g. `Hooks.callAll('blacksmith.rolls.resolved', outcome)` — carrying the classified outcome object (who rolled, roll type, d20, total, isCrit, isFumble, success/DC, per-target hit/miss when it's an attack). Follow the pins precedent (`blacksmith.pins.*` hooks). Decide which of the four detection sites is the authoritative firing point per roll type, and make sure each outcome fires **exactly once** (site 2 recalculates the whole group on every member's roll — naive wiring would re-fire earlier members).
+  - **Pull helper** (secondary): `rolls.classify(rollOrMessage, { dc, targetAC })` for consumers holding a roll/message, sharing the same internals.
+- **Need**:
+  - Decide inputs (Foundry `Roll` vs `ChatMessage` vs Blacksmith result object) and whether crit/fumble reads dnd5e's crit-range config or stays raw nat-20/nat-1 (sites 1-2 assume raw; site 4 already trusts system flags when present).
+  - Decide event scope: which clients see the hook (all? GM-only for hidden rolls?) — respect roll visibility (blind/private GM rolls must not broadcast outcomes to players).
+  - Migrate the four sites onto the shared internals one at a time, each with its own verification (dogfooding — see the CRITICAL BUGS preamble). Fixing the cinema overlay's hardcoded DC 10 falls out of site 1.
+  - Downstream consumers are **external by design**: the injury/crit/fumble module subscribes for its triggers (the "Auto-Roll Injury" backlog item likely moves out of Blacksmith entirely — see BACKLOG note), and any sibling reacting to roll outcomes. Document the event contract in a future `api-rolls.md`; cross-module consumer wiring goes in `TODO-GLOBAL.md` when it starts.
+- **How to verify**: console-classify normal/advantage/disadvantage/nat-20/nat-1 rolls against a known DC; crit/fumble sounds unchanged; group and contested skill-check cards unchanged; MVP crit/fumble counts unchanged across a test combat.
+- **Priority**: Medium
 
 #### Rolls API as first-class surface
 - **Issue**: Rolls may still be exposed via nested `BLACKSMITH` helpers; there is no dedicated `module.api.rolls` namespace and no `documentation/api-rolls.md` yet.
@@ -532,6 +584,7 @@ In FoundryVTT v13, jQuery is removed from the core UI stack. `html` parameters s
 
 ### Auto-Roll Injury Based on Rules
 - Automatically trigger injury rolls based on configurable rules/conditions (HP thresholds, critical hits, massive damage, etc.)
+- **Ownership note (2026-07-18)**: injuries/crit/fumble handling belongs to a sibling module, not Blacksmith. This item is here only until the rolls-classification event surface ships (see ENHANCEMENTS); then it becomes that module's feature, subscribing to `blacksmith.rolls.*` hooks, and this entry moves to `TODO-GLOBAL.md` / the owning module.
 
 ### Multiple Image Directories for Token Image Replacement
 - Allow users to configure multiple image directories with priority order (deferred until a dedicated image pipeline is back in scope for Blacksmith or a companion module)
