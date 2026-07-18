@@ -68,11 +68,11 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - `DISPLAYNAMEVALUE`: When token name shows (0=Never, 10=Hovered by Owner, 20=Hovered by Anyone, 30=Always for Owner, 40=Always for Everyone)
 - `DISPOSITIONVALUE`: Token attitude (-1=Hostile, 0=Neutral, 1=Friendly)
 - `LANGUAGESVALUE`: Array of languages the NPC knows (e.g., ["common", "draconic"])
-- `ADDITIONALSKILLSVALUE`: Additional skills beyond basic ones (e.g., "ste": { "value": 4, "bonus": 0, "ability": "dex" })
+- `ADDITIONALSKILLSVALUE`: Additional skills beyond basic ones. Use `value` as the proficiency multiplier: 0 = not proficient, 0.5 = half proficient, 1 = proficient, 2 = Expertise (e.g., "ste": { "value": 1, "bonus": 0, "ability": "dex" })
 
-- ITEMSARRAY: Array of plain text item names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Shortsword", "Leather Armor", "Thieves' Tools"]
-- SPELLSARRAY: Array of plain text spell names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Mage Hand", "Minor Illusion", "Fire Bolt"]
-- FEATURESARRAY: Array of plain text feature names using official names from [ADD-RULEBOOKS-HERE], e.g., ["Sneak Attack", "Thieves' Cant", "Cunning Action"]
+- ITEMSARRAY: Array whose entries may be official item names or inline native Foundry Item objects. Use names for existing world/compendium content, e.g., ["Shortsword", "Leather Armor"]. Use an inline object with top-level `name`, dnd5e `type`, and `system` only for custom content that cannot be resolved by name.
+- SPELLSARRAY: Array whose entries may be official spell names, friendly Blacksmith Spell objects (`itemName`, `itemType: "Spell"`, and the Spell profile fields), or native Foundry Item objects. Official examples: ["Mage Hand", "Minor Illusion", "Fire Bolt"].
+- FEATURESARRAY: Array whose entries may be official feature names, friendly Blacksmith Feature objects (`itemName`, `itemType: "Feature"`, and the Feature profile fields), or native Foundry Item objects. Official examples: ["Sneak Attack", "Thieves' Cant", "Cunning Action"].
 - CURRENCYARRAY: Array of currency objects with type and amount, e.g., [{"type": "gp", "value": 150}, {"type": "sp", "value": 25}, {"type": "cp", "value": 100}]
 
 **Abilities (system.abilities):**
@@ -110,8 +110,14 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - `languages.value`: Known languages array
 
 **Skills (system.skills):**
-- Add skill bonuses as needed (e.g., "ste": { "value": 4, "bonus": 0, "ability": "dex" })
-- Common skills: "ath", "acr", "slt", "ste", "arc", "his", "inv", "nat", "rel", "ani", "ins", "med", "per", "sur", "dec", "int", "prf", "per"
+- Add skills as needed. `value` is the proficiency multiplier: 0 = not proficient, 0.5 = half proficient, 1 = proficient, 2 = Expertise (e.g., "ste": { "value": 1, "bonus": 0, "ability": "dex" })
+- Common skills: "ath", "acr", "slt", "ste", "arc", "his", "inv", "nat", "rel", "ani", "ins", "med", "prc", "sur", "dec", "int", "prf", "per"
+
+**Items, Spells, and Features:**
+- Prefer an exact official name string when the content already exists in the configured world or compendiums.
+- For custom content, prefer the friendly Blacksmith Feature or Spell schema used by the corresponding Item Import profile. Native Foundry Item objects (`name`, `type`, `system`) remain an advanced lossless option; optional `img`, `effects`, and `flags` are preserved.
+- Never represent a custom feature or spell as only a made-up name: unresolved name references are reported and skipped.
+- Do not include `_id`, `folder`, `ownership`, `_stats`, or `pack` in inline definitions.
 
 **Token Settings:**
 - `name`: The generic name displayed on the token (e.g., "Goblin", "Cultist")
@@ -172,7 +178,7 @@ JSON TEMPLATE
     "skills": {
       "ins": { "value": 0, "bonus": 0, "ability": "wis" },
       "inv": { "value": 0, "bonus": 0, "ability": "int" },
-      "per": { "value": 0, "bonus": 0, "ability": "wis" },
+      "prc": { "value": 0, "bonus": 0, "ability": "wis" },
       ADDITIONALSKILLSVALUE
     }
   },

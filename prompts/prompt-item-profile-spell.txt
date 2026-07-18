@@ -1,0 +1,40 @@
+========================================
+IMPORT PROFILE: SPELL
+========================================
+
+For this generation, set itemType to "Spell".
+
+Spell-specific fields:
+- spellLevel: integer 0 through 9.
+- spellSchool: one of "abj", "con", "div", "enc", "evo", "ill", "nec", "trs".
+- spellAbility: optional ability key ("int", "wis", or "cha"); use "" to use the actor's spellcasting ability.
+- spellPreparation: one of "unprepared", "prepared", or "always".
+- spellProperties: array containing any that apply: "vocal", "somatic", "material", "concentration", "ritual".
+- materialDescription: material component text, or "".
+- materialCost: non-negative number, normally 0.
+- materialConsumed: boolean.
+- castingTime: object with value and units, e.g. {"value": 1, "units": "action"}.
+- spellRange: object with value and units, e.g. {"value": 60, "units": "ft"}; use units "self", "touch", "spec", or "any" when appropriate.
+- spellDuration: object with value and units, e.g. {"value": 1, "units": "minute"}; use units "inst", "perm", or "spec" when appropriate.
+- spellTarget: object with affectsType, affectsCount, templateType, templateSize, and units. Use empty strings/nulls for unused targeting fields.
+
+Spell activities may use only these activityType values: "Attack", "Damage", "Heal", "Save", or "Utility". Most damaging saving-throw spells use one Save activity containing saveAbility, damageFormula, damageType, and onSave ("none", "half", or "full"). Spell attacks use Attack with attackType "melee" or "ranged" and attackAbility "spellcasting".
+
+Append these fields to the core JSON object:
+
+"spellLevel": 1,
+"spellSchool": "evo",
+"spellAbility": "",
+"spellPreparation": "prepared",
+"spellProperties": ["vocal", "somatic"],
+"materialDescription": "",
+"materialCost": 0,
+"materialConsumed": false,
+"castingTime": {"value": 1, "units": "action"},
+"spellRange": {"value": 60, "units": "ft"},
+"spellDuration": {"value": null, "units": "inst"},
+"spellTarget": {"affectsType": "creature", "affectsCount": "1", "templateType": "", "templateSize": "", "units": "ft"}
+
+Do not output native Foundry `system` data. Blacksmith converts this friendly schema into the current dnd5e Spell model.
+
+The physical core fields itemRarity, itemQuantity, itemWeight, itemPrice, itemIdentified, itemIsMagical, magicalAttunementRequired, itemLimitedUses, limitedUsesSpent, limitedUsesMax, destroyOnEmpty, and itemRecoveryPeriod are ignored for Spell imports. Keep their harmless core defaults; spell components and mechanics come from the Spell profile fields.

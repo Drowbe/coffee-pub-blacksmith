@@ -61,6 +61,8 @@ For the ITEM JSON you will generate well-structured JSON for a single ITEM using
 - Include optional module flags only when a partial section below requires them
 - Use only straight ASCII apostrophes ('). Do not use curly or typographic apostrophes (’). Do not use smart quotes. Never output typographic or curved quotes (" " " ").
 
+The importer also accepts a native Foundry Item export containing top-level `name`, `type`, and `system` fields. Native imports preserve the complete dnd5e Item data, including activities, effects, flags, and type-specific system fields, while discarding the original document ID, folder, ownership, and source statistics so a new Item can be created safely. The generated template below remains Blacksmith's simpler flat format.
+
 ----------------------------
 JSON CORE FIELD RULES & EXPECTATIONS
 ----------------------------
@@ -85,7 +87,11 @@ ITEMTYPE: (STRING) (REQUIRED) Item type. The D&D 5e item document type only. One
 -"Equipment", 
 -"Loot", 
 -"Tool", 
--"Weapon"
+-"Weapon",
+-"Feature",
+-"Spell"
+
+Feature and Spell are non-physical Item types. Their appended import profile defines the authoritative type-specific fields; use 0/false/empty values for irrelevant physical fields in the core object.
 
 ITEMSUBTYPE: (STRING) (REQUIRED)
 - Consumable: "Ammunition", "Food", "Poison", "Potion", "Rod", "Scroll", "Trinket", "Wand", "Wondrous Item".
@@ -135,19 +141,29 @@ DESTROYONEMPTY: (BOOLEAN) (REQUIRED)  Determines if the item is destroyed after 
 RECOVERYPERIOD: (STRING) (OPTIONAL) Determines how often the item resets its uses. For instance the magic may recharge every short rest and the uses get reset to their defaults. Should be set to one of the following: none, Long Rest, Short Rest, Day, Dawn, Dusk, Initiative, Start of Turn, End of Turn, Each Turn, Recharge
 
 ACTIVITIES: (ARRAY) An array of activity objects. Each activity object should have:
-- activityType: (STRING) One of the following: Attack, Cast, Check, Damage, Enchant, Forward, Heal, Save, Summon, Transform, Use
+- activityType: (STRING) One of: Attack, Damage, Heal, Save, Utility. Other modern dnd5e activity schemas are not yet supported by the friendly importer.
 - activityName: (STRING) Display name for the activity (e.g., "Heal", "Attack", "Cast Spell")
 - activityIcon: (STRING) Icon path for the activity (optional, can be left empty for default)
 - activityFlavorText: (STRING) Text displayed in chat when the activity happens
-- activityFormula: (STRING) Dice formula for the effect (e.g., "3d8", "2d4+2", "1d6")
-- activityEffectType: (STRING) Type of effect - for Heal: "healing" or "temphp", for Attack: "damage", etc.
-- activityEffectValue: (INTEGER) Base value for the effect (e.g., 3 for "3d8")
-- activityEffectDie: (STRING) Die type for the effect (e.g., "d8", "d6", "d4")
-- activityEffectBonus: (INTEGER) Bonus added to the roll (e.g., 0 for "3d8", 2 for "2d4+2")
+- activationType: (STRING) action, bonus, reaction, passive, special, etc.
+- activationValue: (NUMBER OR NULL) Usually 1 for action/bonus/reaction; null for passive/special.
+- damageFormula: (STRING) Damage dice/formula, e.g. "3d8" or "2d4+2".
+- damageType: (STRING) dnd5e damage type key, e.g. "fire", "slashing", "radiant".
+- healingFormula: (STRING) Healing dice/formula.
+- healingType: (STRING) "healing" or "temphp".
+- saveAbility: (STRING) Ability key for Save activities, e.g. "dex".
+- saveDC: (NUMBER OR STRING OR NULL) Fixed/formula DC; null uses normal actor/spell calculation.
+- onSave: (STRING) "none", "half", or "full".
+- attackType: (STRING) "melee" or "ranged".
+- attackAbility: (STRING) Ability key, "spellcasting", or "" for automatic.
+- rollFormula: (STRING) Optional generic roll for Utility activities.
+- activityUsesMax: (NUMBER, STRING, OR NULL) Optional activity-specific uses.
+- activityRecoveryPeriod: (STRING) Optional recovery period using the same labels as the profile, including "Recharge".
+- activityRecoveryFormula: (STRING) Required when activityRecoveryPeriod is "Recharge"; use "6" for Recharge 6 or "5" for Recharge 5–6.
 
 USES AND ACTIVITIES BY ITEM TYPE:
 - Consumable items with a real use effect (potion, poison, scroll, etc.): set itemLimitedUses / limitedUsesMax appropriately (often 1), destroyOnEmpty true when consumed, and include activities describing the effect.
-- Loot, Equipment, Tool, Weapon, and Container items that are NOT actively used (no drink/heal/attack effect): set itemLimitedUses and limitedUsesMax to 1, limitedUsesSpent to 0, destroyOnEmpty to false, recoveryPeriod to "none", and activities to [].
+- Loot, Equipment, Tool, Weapon, and Container items that are NOT actively used (no drink/heal/attack effect): set itemLimitedUses and limitedUsesMax to 1, limitedUsesSpent to 0, destroyOnEmpty to false, itemRecoveryPeriod to "none", and activities to [].
 - If an item is both a crafting material and usable (e.g. a medicinal herb), use itemType "Consumable" with the correct itemSubType and full uses/activities—not Loot with fake activities.
 
 ITEMSOURCE: (STRING) The sourcebook or hombrew source name. Default to the campaign name, [ADD-CAMPAIGN-NAME-HERE], if provided.
@@ -186,7 +202,7 @@ JSON TEMPLATE
   "limitedUsesSpent": LIMITEDUSESSPENT,
   "limitedUsesMax": LIMITEDUSESMAX,
   "destroyOnEmpty": DESTROYONEMPTY,
-  "recoveryPeriod": "RECOVERYPERIOD",
+  "itemRecoveryPeriod": "RECOVERYPERIOD",
 
   "itemSource": "ITEMSOURCE",
   "itemLicense": "ITEMLICENSE",

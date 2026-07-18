@@ -225,12 +225,293 @@ function _sharedItemSystem(flat) {
     };
 }
 
+const RECOVERY_PERIODS = {
+    'long rest': 'lr',
+    'short rest': 'sr',
+    day: 'day',
+    dawn: 'dawn',
+    dusk: 'dusk',
+    initiative: 'initiative',
+    'start of turn': 'turnStart',
+    'end of turn': 'turnEnd',
+    recharge: 'recharge'
+};
+
+const FRIENDLY_ACTIVITY_TYPES = new Set(['attack', 'damage', 'heal', 'save', 'utility']);
+const SPELL_SCHOOLS = new Set(['abj', 'con', 'div', 'enc', 'evo', 'ill', 'nec', 'trs']);
+const FEATURE_TYPES = new Set(['background', 'class', 'monster', 'race', 'enchantment', 'feat', 'supernaturalGift', 'vehicle']);
+
+function _identifier(value) {
+    return String(value || 'imported-item')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'imported-item';
+}
+
+function _recovery(value, formula = '') {
+    const token = String(value || '').trim().toLowerCase();
+    if (!token || token === 'none') return [];
+    const period = RECOVERY_PERIODS[token];
+    if (!period) throw new Error(`Unsupported recoveryPeriod "${value}"`);
+    return [{ period, type: 'recoverAll', formula: period === 'recharge' ? String(formula || '6') : '' }];
+}
+
+function _uses(max, spent = 0, recoveryPeriod = 'none', recoveryFormula = '') {
+    return {
+        spent: Number.isFinite(Number(spent)) ? Number(spent) : 0,
+        max: max == null || max === '' ? '' : String(max),
+        recovery: _recovery(recoveryPeriod, recoveryFormula)
+    };
+}
+
+function _damagePart(formula, damageType) {
+    const raw = String(formula || '').trim();
+    const type = String(damageType || '').trim().toLowerCase();
+    const simple = raw.match(/^(\d+)d(\d+)(?:\s*([+-])\s*(.+))?$/i);
+    if (simple) {
+        return {
+            number: Number(simple[1]),
+            denomination: Number(simple[2]),
+            bonus: simple[3] ? `${simple[3]}${simple[4]}` : '',
+            types: type ? [type] : [],
+            custom: { enabled: false, formula: '' },
+            scaling: { mode: '', number: 1, formula: '' }
+        };
+    }
+    return {
+        number: null,
+        denomination: null,
+        bonus: '',
+        types: type ? [type] : [],
+        custom: { enabled: true, formula: raw },
+        scaling: { mode: '', number: 1, formula: '' }
+    };
+}
+
+function _activityBase(activity, index, parentType, parentHasUses) {
+    const type = String(activity.activityType || 'utility').trim().toLowerCase();
+    if (type === 'use') {
+        throw new Error(`Activity ${index + 1}: "Use" is not a dnd5e activity type; use "Utility"`);
+    }
+    if (!FRIENDLY_ACTIVITY_TYPES.has(type)) {
+        throw new Error(`Activity ${index + 1}: unsupported activityType "${activity.activityType}"`);
+    }
+    const id = foundry.utils.randomID();
+    const hasActivityUses = activity.activityUsesMax != null && activity.activityUsesMax !== '';
+    const consumptionTargets = hasActivityUses
+        ? [{ type: 'activityUses', target: '', value: '1', scaling: { mode: '', formula: '' } }]
+        : (parentHasUses ? [{ type: 'itemUses', target: '', value: '1', scaling: { mode: '', formula: '' } }] : []);
+    return {
+        _id: id,
+        type,
+        name: activity.activityName || activity.activityType || 'Use',
+        img: activity.activityIcon || undefined,
+        activation: {
+            type: activity.activationType || (parentType === 'spell' ? 'action' : 'special'),
+            value: activity.activationValue ?? null,
+            condition: activity.activationCondition || '',
+            override: false
+        },
+        consumption: {
+            scaling: { allowed: false, max: '' },
+            spellSlot: parentType === 'spell',
+            targets: consumptionTargets
+        },
+        description: { chatFlavor: activity.activityFlavorText || '' },
+        duration: { value: '', units: 'inst', special: '', concentration: false, override: false },
+        effects: [],
+        range: { value: '', units: 'self', special: '', override: false },
+        target: {
+            template: { count: '', contiguous: false, type: '', size: '', width: '', height: '', units: 'ft' },
+            affects: { count: '', type: '', choice: false, special: '' },
+            override: false,
+            prompt: true
+        },
+        uses: _uses(
+            activity.activityUsesMax,
+            activity.activityUsesSpent,
+            activity.activityRecoveryPeriod,
+            activity.activityRecoveryFormula
+        )
+    };
+}
+
+function _buildActivities(activities, parentType, parentHasUses = false) {
+    if (activities == null) return {};
+    if (!Array.isArray(activities)) throw new Error('activities must be an array');
+    const result = {};
+    activities.forEach((activity, index) => {
+        if (!activity || typeof activity !== 'object') throw new Error(`Activity ${index + 1} must be an object`);
+        const data = _activityBase(activity, index, parentType, parentHasUses);
+        const damageFormula = activity.damageFormula ?? activity.activityFormula ?? '';
+        const damageType = activity.damageType ?? activity.activityEffectType ?? '';
+        if (data.type === 'attack') {
+            data.attack = {
+                ability: activity.attackAbility || (parentType === 'spell' ? 'spellcasting' : ''),
+                bonus: activity.attackBonus || '',
+                critical: { threshold: null },
+                flat: false,
+                type: { value: activity.attackType || 'melee', classification: parentType === 'spell' ? 'spell' : 'weapon' }
+            };
+            data.damage = { critical: { bonus: '' }, includeBase: false, parts: damageFormula ? [_damagePart(damageFormula, damageType)] : [] };
+        } else if (data.type === 'damage') {
+            data.damage = { critical: { allow: false, bonus: '' }, parts: damageFormula ? [_damagePart(damageFormula, damageType)] : [] };
+        } else if (data.type === 'heal') {
+            const formula = activity.healingFormula ?? activity.activityFormula ?? '';
+            data.healing = _damagePart(formula, activity.healingType ?? activity.activityEffectType ?? 'healing');
+        } else if (data.type === 'save') {
+            if (!activity.saveAbility) throw new Error(`Activity ${index + 1}: Save requires saveAbility`);
+            const fixedDC = activity.saveDC != null && activity.saveDC !== '';
+            data.damage = { onSave: activity.onSave || 'half', parts: damageFormula ? [_damagePart(damageFormula, damageType)] : [] };
+            data.save = {
+                ability: [String(activity.saveAbility).toLowerCase()],
+                dc: { calculation: fixedDC ? '' : (parentType === 'spell' ? 'spellcasting' : 'initial'), formula: fixedDC ? String(activity.saveDC) : '' }
+            };
+        } else if (data.type === 'utility') {
+            data.roll = { formula: activity.rollFormula || '', name: activity.rollName || '', prompt: false, visible: !!activity.rollFormula };
+        }
+        result[data._id] = data;
+    });
+    return result;
+}
+
+function _descriptionSystem(flat) {
+    return {
+        description: { value: flat.itemDescription || '', chat: flat.itemDescriptionChat || '' },
+        identifier: _identifier(flat.itemName),
+        source: { custom: flat.itemSource || 'Blacksmith Import', license: flat.itemLicense || '' }
+    };
+}
+
+function _featureData(flat, img) {
+    if (!flat.itemName?.trim()) throw new Error('Feature itemName is required');
+    const type = String(flat.featureType || 'monster');
+    if (!FEATURE_TYPES.has(type)) throw new Error(`Unsupported featureType "${flat.featureType}"`);
+    const featureUsesMax = flat.featureUsesMax ?? flat.usesMax;
+    const hasUses = featureUsesMax != null && featureUsesMax !== '';
+    return {
+        type: 'feat',
+        name: flat.itemName,
+        img,
+        system: {
+            ..._descriptionSystem(flat),
+            activities: _buildActivities(flat.activities, 'feat', hasUses),
+            uses: _uses(
+                featureUsesMax,
+                flat.featureUsesSpent ?? flat.usesSpent,
+                flat.featureRecoveryPeriod ?? flat.recoveryPeriod,
+                flat.featureRecoveryFormula
+            ),
+            advancement: [],
+            cover: null,
+            crewed: false,
+            enchant: { max: '', period: '' },
+            prerequisites: { items: [], level: null, repeatable: false },
+            properties: [],
+            requirements: flat.featureRequirements || null,
+            type: { value: type, subtype: flat.featureSubtype || '' }
+        },
+        effects: Array.isArray(flat.effects) ? flat.effects : [],
+        flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
+    };
+}
+
+function _spellData(flat, img) {
+    if (!flat.itemName?.trim()) throw new Error('Spell itemName is required');
+    const level = Number(flat.spellLevel);
+    if (!Number.isInteger(level) || level < 0 || level > 9) throw new Error('spellLevel must be an integer from 0 through 9');
+    const school = String(flat.spellSchool || '').toLowerCase();
+    if (!SPELL_SCHOOLS.has(school)) throw new Error(`Unsupported spellSchool "${flat.spellSchool}"`);
+    const preparation = { unprepared: 0, prepared: 1, always: 2 }[String(flat.spellPreparation || 'prepared').toLowerCase()];
+    if (preparation == null) throw new Error(`Unsupported spellPreparation "${flat.spellPreparation}"`);
+    const casting = flat.castingTime || {};
+    const range = flat.spellRange || {};
+    const duration = flat.spellDuration || {};
+    const target = flat.spellTarget || {};
+    const hasUses = flat.usesMax != null && flat.usesMax !== '';
+    return {
+        type: 'spell',
+        name: flat.itemName,
+        img,
+        system: {
+            ..._descriptionSystem(flat),
+            activities: _buildActivities(flat.activities, 'spell', hasUses),
+            uses: _uses(flat.usesMax, flat.usesSpent, flat.recoveryPeriod),
+            ability: flat.spellAbility || '',
+            activation: { type: casting.units || 'action', value: casting.value ?? 1, condition: casting.condition || '' },
+            duration: { value: duration.value ?? '', units: duration.units || 'inst', special: duration.special || '' },
+            level,
+            materials: {
+                value: flat.materialDescription || '',
+                consumed: !!flat.materialConsumed,
+                cost: Number(flat.materialCost) || 0,
+                supply: 0
+            },
+            method: '',
+            prepared: preparation,
+            properties: Array.isArray(flat.spellProperties) ? flat.spellProperties : [],
+            range: { value: range.value ?? '', units: range.units || 'self', special: range.special || '' },
+            school,
+            sourceClass: flat.spellSourceClass || '',
+            target: {
+                template: {
+                    count: target.templateCount ?? '', contiguous: !!target.contiguous,
+                    type: target.templateType || '', size: target.templateSize ?? '', width: '', height: '', units: target.units || 'ft'
+                },
+                affects: { count: target.affectsCount ?? '', type: target.affectsType || '', choice: !!target.choice, special: target.special || '' }
+            }
+        },
+        effects: Array.isArray(flat.effects) ? flat.effects : [],
+        flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
+    };
+}
+
+/**
+ * Whether an import entry is native Foundry Item data rather than Blacksmith's flat prompt shape.
+ * A `system` object is the discriminator so lightweight actor references such as
+ * `{ "name": "Fire Bolt", "type": "spell" }` remain references.
+ * @param {object} entry
+ * @returns {boolean}
+ */
+export function isNativeFoundryItemData(entry) {
+    return !!entry
+        && typeof entry === 'object'
+        && typeof entry.name === 'string'
+        && typeof entry.type === 'string'
+        && entry.system != null
+        && typeof entry.system === 'object'
+        && !Array.isArray(entry.system);
+}
+
+/**
+ * Prepare exported/native Item data for creation as a new world or embedded document.
+ * Root document identity and placement fields cannot be reused; embedded data, effects,
+ * activities, flags, and system-specific fields are deliberately preserved.
+ * @param {object} entry
+ * @returns {object}
+ */
+export function prepareNativeItemForCreation(entry) {
+    const data = foundry.utils.deepClone(entry);
+    delete data._id;
+    delete data.folder;
+    delete data.ownership;
+    delete data._stats;
+    delete data.pack;
+    return data;
+}
+
 /**
  * Parse flat item JSON (import prompt template) into Foundry D&D 5e item data.
  * @param {object} flat
  * @returns {Promise<object>}
  */
 export async function parseFlatItemToFoundry(flat) {
+    if (isNativeFoundryItemData(flat)) {
+        return prepareNativeItemForCreation(flat);
+    }
+
     const type = (flat.itemType || 'loot').toLowerCase();
     let img = flat.itemImagePath;
     if (!img) {
@@ -239,7 +520,11 @@ export async function parseFlatItemToFoundry(flat) {
     const shared = _sharedItemSystem(flat);
     let data = {};
 
-    if (type === 'loot') {
+    if (type === 'feature' || type === 'feat') {
+        data = _featureData(flat, img);
+    } else if (type === 'spell') {
+        data = _spellData(flat, img);
+    } else if (type === 'loot') {
         data = {
             type: 'loot',
             name: flat.itemName,
@@ -254,6 +539,7 @@ export async function parseFlatItemToFoundry(flat) {
     } else if (type === 'consumable') {
         const consumableValue = (flat.itemSubType || 'potion').toLowerCase().replace(/\s+/g, '-');
         const consumableSubtype = (flat.itemSubTypeNuance || '').trim();
+        const itemRecoveryPeriod = flat.itemRecoveryPeriod ?? flat.recoveryPeriod;
         data = {
             type: 'consumable',
             name: flat.itemName,
@@ -264,15 +550,11 @@ export async function parseFlatItemToFoundry(flat) {
                 type: { value: consumableValue, subtype: consumableSubtype },
                 properties: { mgc: !!flat.itemIsMagical },
                 uses: {
-                    spent: flat.limitedUsesSpent ?? 0,
-                    max: flat.limitedUsesMax ?? flat.itemLimitedUses ?? 1,
-                    recovery: flat.recoveryPeriod && String(flat.recoveryPeriod).toLowerCase() !== 'none'
-                        ? [{ period: String(flat.recoveryPeriod).toLowerCase().replace(/\s+/g, '').replace('rest', ''), formula: String(flat.limitedUsesMax ?? flat.itemLimitedUses ?? 1) }]
-                        : [],
+                    ..._uses(flat.limitedUsesMax ?? flat.itemLimitedUses ?? 1, flat.limitedUsesSpent, itemRecoveryPeriod),
                     autoDestroy: !!flat.destroyOnEmpty
                 },
                 consume: { type: flat.destroyOnEmpty ? 'destroy' : 'none', target: null, amount: null },
-                recharge: { value: flat.recoveryPeriod || 'none', formula: flat.recoveryAmount || 'recover all uses' }
+                recharge: { value: itemRecoveryPeriod || 'none', formula: flat.recoveryAmount || 'recover all uses' }
             },
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '', consumableSubtype } }
         };

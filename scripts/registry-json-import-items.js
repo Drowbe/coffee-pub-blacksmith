@@ -25,7 +25,9 @@ export const ITEM_PROMPT_PROFILES = {
     weapon: 'prompt-item-profile-weapon.txt',
     equipment: 'prompt-item-profile-equipment.txt',
     tool: 'prompt-item-profile-tool.txt',
-    container: 'prompt-item-profile-container.txt'
+    container: 'prompt-item-profile-container.txt',
+    feature: 'prompt-item-profile-feature.txt',
+    spell: 'prompt-item-profile-spell.txt'
 };
 
 /** Dropdown options for JsonImportWindow (item directory). */
@@ -35,7 +37,9 @@ export const ITEM_TEMPLATE_OPTIONS = [
     { value: 'weapon', label: 'Weapon' },
     { value: 'equipment', label: 'Equipment' },
     { value: 'tool', label: 'Tool' },
-    { value: 'container', label: 'Container' }
+    { value: 'container', label: 'Container' },
+    { value: 'feature', label: 'Feature' },
+    { value: 'spell', label: 'Spell' }
 ];
 
 /**
@@ -48,7 +52,7 @@ export function isArtificerModuleActive() {
 
 /**
  * Build the full clipboard prompt for an item import template.
- * @param {string} templateKey - loot | consumable | weapon | equipment | tool | container
+ * @param {string} templateKey - loot | consumable | weapon | equipment | tool | container | feature | spell
  * @param {{ includeArtificer?: boolean }} [options]
  * @returns {Promise<string>}
  */

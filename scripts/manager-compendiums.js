@@ -35,6 +35,7 @@ import {
     getMappedTypes,
     isSyntheticType
 } from './compendium-types.js';
+import { isNativeFoundryItemData, parseFlatItemToFoundry } from './parsers/parse-item.js';
 
 /** Match tiers in priority order. */
 const MATCH_TIERS = ['exact', 'startsWith', 'includes'];
@@ -506,6 +507,7 @@ export class CompendiumManager {
         postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Adding items to actor', actor.name, false, false);
 
         const allItems = [];
+        const unresolved = [];
         const groups = [
             [characterData._originalItems, 'Item'],
             [characterData._originalSpells, 'Spell'],
@@ -514,13 +516,30 @@ export class CompendiumManager {
 
         for (const [list, type] of groups) {
             if (!Array.isArray(list) || !list.length) continue;
-            const documents = await this.fetchItemDocuments(list, type);
+            const inline = list.filter(entry => this._isInlineItemDefinition(entry));
+            const references = list.filter(entry => !this._isInlineItemDefinition(entry));
+            const documents = await this.fetchItemDocuments(references, type, unresolved);
+            for (const definition of inline) {
+                try {
+                    documents.push(await parseFlatItemToFoundry(definition));
+                } catch (error) {
+                    const name = definition?.name || definition?.itemName || '(unnamed inline item)';
+                    unresolved.push(`${type}: ${name}`);
+                    postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Invalid inline ${type}: ${name}`, error, false, false);
+                }
+            }
             allItems.push(...documents);
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | ${type} documents fetched`, `${documents.length}/${list.length}`, true, false);
         }
 
         if (Array.isArray(characterData._originalCurrency) && characterData._originalCurrency.length) {
             await this.setActorCurrency(actor, characterData._originalCurrency);
+        }
+
+        if (unresolved.length) {
+            const message = `Imported ${actor.name}, but could not add: ${unresolved.join(', ')}`;
+            postConsoleAndNotification(MODULE.NAME, message, '', false, false);
+            ui.notifications.warn(message);
         }
 
         if (!allItems.length) {
@@ -533,7 +552,20 @@ export class CompendiumManager {
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Added ${allItems.length} items to ${actor.name}`, "", false, false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error adding items to ${actor.name}`, error, false, false);
+            ui.notifications.error(`Imported ${actor.name}, but its inline or resolved Items could not be embedded: ${error.message}`);
         }
+    }
+
+    /**
+     * Inline definitions use either native Foundry Item data or Blacksmith's flat item schema.
+     * Lightweight `{name, type?}` objects remain compendium references.
+     * @param {*} entry
+     * @returns {boolean}
+     * @private
+     */
+    _isInlineItemDefinition(entry) {
+        return isNativeFoundryItemData(entry)
+            || !!(entry && typeof entry === 'object' && typeof entry.itemName === 'string');
     }
 
     /**
@@ -542,13 +574,14 @@ export class CompendiumManager {
      * @param {string} type
      * @returns {Promise<Array<object>>}
      */
-    async fetchItemDocuments(itemNames, type) {
+    async fetchItemDocuments(itemNames, type, unresolved = []) {
         const results = await this.resolveMany(itemNames, type);
         const items = [];
 
         for (const result of results) {
             if (!result.found) {
                 postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Unresolved ${type}: ${result.name}`, "", true, false);
+                unresolved.push(`${type}: ${result.name || '(blank name)'}`);
                 continue;
             }
             try {

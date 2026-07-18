@@ -1095,9 +1095,7 @@ Hooks.once('init', async function() {
         priority: 3,
         callback: (message, html) => {
             if (!getSettingSafely(MODULE.ID, 'combatTrackerHideInitiativeRoll', false)) return;
-            const isInitiative = message.flags?.core?.initiativeRoll === true
-                || message.flags?.dnd5e?.roll?.type === 'initiative';
-            if (!isInitiative) return;
+            if (!_isInitiativeRollMessage(message)) return;
 
             // Hide immediately so the card never visually appears in chat
             const el = html instanceof HTMLElement ? html : html?.[0];
@@ -1108,8 +1106,19 @@ Hooks.once('init', async function() {
             };
 
             if (game.modules.get('dice-so-nice')?.active) {
-                // Wait for DSN to finish its animation before deleting
-                Hooks.once('diceSoNiceRollComplete', doDelete);
+                // Wait for THIS message's animation: diceSoNiceRollComplete fires per message with
+                // its id, and a bare Hooks.once would pair with whichever roll finishes first when
+                // a group initiative roll creates several messages at once. The timeout covers
+                // messages DSN never animates (per-user DSN settings, hidden rolls).
+                const hookId = Hooks.on('diceSoNiceRollComplete', (completedMessageId) => {
+                    if (completedMessageId !== message.id) return;
+                    Hooks.off('diceSoNiceRollComplete', hookId);
+                    doDelete();
+                });
+                setTimeout(() => {
+                    Hooks.off('diceSoNiceRollComplete', hookId);
+                    doDelete();
+                }, 15000);
             } else {
                 doDelete();
             }
@@ -2292,6 +2301,36 @@ function updateSceneStyles() {
     root.style.setProperty('--strScenePaddingRight', sceneTitlePaddingRight);
     root.style.setProperty('--intScenePanelHeight', scenePanelHeight);
 
+}
+
+/** Cached per-language regex built from the flavor string core uses for initiative messages. */
+let _initiativeFlavorPattern = null;
+
+/**
+ * Detect whether a chat message is an initiative roll.
+ *
+ * Foundry v13.351 core bug: Combat#rollInitiative writes its marker as a nested dotted key
+ * (`flags: {"core.initiativeRoll": true}`); nothing in the creation pipeline expands it, and
+ * DocumentFlagsField key validation silently deletes it — so on v13 initiative messages carry
+ * no identifying flag at all. The flag checks are kept for other roll paths and for a future
+ * core fix; the flavor pattern — built from the same COMBAT.RollsInitiative i18n string core
+ * formats the flavor with — is the detection that actually fires on v13.
+ * @param {ChatMessage} message - The chat message to test
+ * @returns {boolean} True if the message is an initiative roll
+ */
+function _isInitiativeRollMessage(message) {
+    if (message.flags?.core?.initiativeRoll === true) return true;
+    if (message.flags?.dnd5e?.roll?.type === 'initiative') return true;
+    if (!message.rolls?.length || typeof message.flavor !== 'string') return false;
+    if (!_initiativeFlavorPattern) {
+        const template = game.i18n.localize('COMBAT.RollsInitiative');
+        const escaped = template
+            .split('{name}')
+            .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .join('.+');
+        _initiativeFlavorPattern = new RegExp(`^${escaped}$`);
+    }
+    return _initiativeFlavorPattern.test(message.flavor);
 }
 
 /**

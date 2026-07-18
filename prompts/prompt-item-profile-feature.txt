@@ -1,0 +1,39 @@
+========================================
+IMPORT PROFILE: FEATURE
+========================================
+
+For this generation, set itemType to "Feature".
+
+Feature-specific fields:
+- featureType: one of "monster", "class", "race", "background", "feat", "supernaturalGift". Use "monster" for an NPC or monster ability unless another category is clearly correct.
+- featureSubtype: optional dnd5e subtype key; use "" when none is needed.
+- featureRequirements: optional prerequisite or requirement text.
+- featureUsesMax: null for unlimited use, otherwise a positive integer or formula string.
+- featureUsesSpent: integer, normally 0.
+- featureRecoveryPeriod: one of "none", "Long Rest", "Short Rest", "Day", "Dawn", "Dusk", "Initiative", "Start of Turn", "End of Turn", or "Recharge".
+- featureRecoveryFormula: required only for item-level Recharge; use "6" for Recharge 6 or "5" for Recharge 5–6.
+
+Feature activities may use only these activityType values: "Attack", "Damage", "Heal", "Save", or "Utility".
+Each activity must include activityName and activationType. Use activationType "passive" for passive features, or "action", "bonus", "reaction", "special", etc. as appropriate. activationValue is normally 1 for action/bonus/reaction and null for passive/special.
+
+Activity mechanical fields:
+- damageFormula and damageType for Attack, Damage, or Save activities.
+- healingFormula and healingType ("healing" or "temphp") for Heal activities.
+- saveAbility and optional saveDC for Save activities. Leave saveDC null to use the actor's normal ability-based DC calculation.
+- attackType ("melee" or "ranged") and attackAbility for Attack activities. Use attackAbility "" to let dnd5e choose.
+- rollFormula for Utility activities that make a generic roll; otherwise "".
+- activityUsesMax, activityRecoveryPeriod, and activityRecoveryFormula only when the activity itself, rather than the whole Item, tracks uses. Recharge belongs on the specific activity for normal monster Recharge actions.
+
+Append these fields to the core JSON object:
+
+"featureType": "monster",
+"featureSubtype": "",
+"featureRequirements": "",
+"featureUsesMax": null,
+"featureUsesSpent": 0,
+"featureRecoveryPeriod": "none",
+"featureRecoveryFormula": ""
+
+The physical core fields itemRarity, itemQuantity, itemWeight, itemPrice, itemIdentified, itemIsMagical, magicalAttunementRequired, itemLimitedUses, limitedUsesSpent, limitedUsesMax, destroyOnEmpty, and itemRecoveryPeriod are ignored for Feature imports. Keep their harmless core defaults; do not use them to describe feature mechanics.
+
+Do not output native Foundry `system` data. Blacksmith converts this friendly schema into the current dnd5e Feature model.
