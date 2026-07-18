@@ -114,6 +114,15 @@
     width: 100%;
 }
 
+.blacksmith-json-import-format-field {
+    flex: 0 1 190px;
+    min-width: 160px;
+}
+
+.blacksmith-json-import-format-field .blacksmith-select {
+    width: 100%;
+}
+
 .blacksmith-json-import-busy {
     position: absolute;
     inset: 0;

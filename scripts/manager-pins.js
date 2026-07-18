@@ -1228,7 +1228,7 @@ export class PinManager {
             const tagKey = normalizePinGroup(options.tag);
             if (!this._getPinTags(pin).includes(tagKey)) return false;
         }
-        if (options.includeHiddenByFilter === false && this._isHiddenByFilter(pin)) {
+        if (options.includeHiddenByFilter !== true && this._isHiddenByFilter(pin)) {
             return false;
         }
         return true;
@@ -2013,7 +2013,7 @@ export class PinManager {
         }
         if (patch.shape != null) {
             const shape = String(patch.shape).toLowerCase();
-            if (shape === 'circle' || shape === 'square' || shape === 'none') {
+            if (shape === 'circle' || shape === 'square' || shape === 'rectangle' || shape === 'none') {
                 merged.shape = shape;
             }
         }

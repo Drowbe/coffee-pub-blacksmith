@@ -8,6 +8,7 @@ Feature-specific fields:
 - featureType: one of "monster", "class", "race", "background", "feat", "supernaturalGift". Use "monster" for an NPC or monster ability unless another category is clearly correct.
 - featureSubtype: optional dnd5e subtype key; use "" when none is needed.
 - featureRequirements: optional prerequisite or requirement text.
+- featureProperties: array containing "mgc" when the feature counts as magical and/or "trait" when it is a passive trait; otherwise [].
 - featureUsesMax: null for unlimited use, otherwise a positive integer or formula string.
 - featureUsesSpent: integer, normally 0.
 - featureRecoveryPeriod: one of "none", "Long Rest", "Short Rest", "Day", "Dawn", "Dusk", "Initiative", "Start of Turn", "End of Turn", or "Recharge".
@@ -23,12 +24,16 @@ Activity mechanical fields:
 - attackType ("melee" or "ranged") and attackAbility for Attack activities. Use attackAbility "" to let dnd5e choose.
 - rollFormula for Utility activities that make a generic roll; otherwise "".
 - activityUsesMax, activityRecoveryPeriod, and activityRecoveryFormula only when the activity itself, rather than the whole Item, tracks uses. Recharge belongs on the specific activity for normal monster Recharge actions.
+- Use activityDuration, activityRange, and activityTarget whenever the rules specify timing, distance, targets, or an area. Do not leave mechanics only in prose when these fields can represent them. Choose the measured-template shape from the complete mechanic: use a circle for an omnidirectional area around the source and a cone for a directional gaze, breath, or similar projected area. activityTarget.choice, activityTarget.contiguous, and activityTarget.prompt must be true or false JSON booleans, never empty strings.
+- Use appliedEffects for standard conditions that the activity should apply. Keep conditional removal and unusual adjudication rules in prose.
+- When one feature has genuinely different executable mechanics for different target sizes or situations, create one activity per mechanical behavior with the eligibility in its activity name/flavor. Do not create an activity for a purely cosmetic tier.
 
 Append these fields to the core JSON object:
 
 "featureType": "monster",
 "featureSubtype": "",
 "featureRequirements": "",
+"featureProperties": [],
 "featureUsesMax": null,
 "featureUsesSpent": 0,
 "featureRecoveryPeriod": "none",

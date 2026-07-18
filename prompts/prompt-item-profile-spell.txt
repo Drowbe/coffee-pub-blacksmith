@@ -20,6 +20,8 @@ Spell-specific fields:
 
 Spell activities may use only these activityType values: "Attack", "Damage", "Heal", "Save", or "Utility". Most damaging saving-throw spells use one Save activity containing saveAbility, damageFormula, damageType, and onSave ("none", "half", or "full"). Spell attacks use Attack with attackType "melee" or "ranged" and attackAbility "spellcasting".
 
+Use activityDuration, activityRange, activityTarget, and appliedEffects when a spell activity overrides or needs to carry its own targeting/effects. Standard conditions should be linked with appliedEffects; unusual ending rules remain in prose.
+
 Append these fields to the core JSON object:
 
 "spellLevel": 1,

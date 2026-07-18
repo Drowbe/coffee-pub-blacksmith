@@ -16,6 +16,7 @@
 - **Feature and Spell profiles (implemented; pending live verification)**: both are selectable Item Import types with friendly prompt schemas, validation, dnd5e conversion, modern activities, fixtures, and inline NPC reuse.
 - **Activity targeting/effects (implemented; pending live verification)**: friendly activities support duration, range, individual/area targeting, measured-template prompts, and linked Active Effects/statuses; multi-behavior features use multiple activities while cosmetic branches remain prose.
 - **Full Prompt / JSON Template delivery (implemented; pending live verification)**: Item Import's Copy and Save As actions share an Output selector; JSON-only output is valid prose-free starter JSON for every Item profile and includes Artificer flags when checked.
+- **Optional Midi-QOL activity import support (later)**: extend the friendly Feature/Spell activity schema with an explicitly optional Midi-QOL integration block (starting with `midiProperties.magicEffect`, and auditing the remaining activity automation fields). Core dnd5e imports must remain valid and unchanged when Midi-QOL is absent; only emit Midi-QOL data when the JSON explicitly requests it, preserve it through native Foundry Item passthrough, and verify behavior both with and without Midi-QOL installed before shipping.
 - **How to verify (live)**: Item Directory → for every type, Copy and Save As both Full Prompt and JSON Template, parse each JSON-only result, and repeat with Artificer checked; import the Feature, area-save, and Spell fixtures; confirm the area-save activity shows Self / 15-foot circle / creature / 1 minute and links its Charmed effect, then activate from an Actor, fail a save, and apply the effect; Actor Directory → import an NPC containing an official string reference, the same inline friendly feature/spell, and one deliberately missing reference → the first three embed and work, and the missing name is reported visibly.
 - **Later phases**: harden existing physical-item converters; evaluate advancement-bearing and remaining dnd5e Item types individually.
 
@@ -117,18 +118,16 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 - **Current state**: option 3, chosen because it is reversible and truthful. `api-hookmanager.md` carries the full explanation; the six cleanup examples across `api-menubar.md`, `api-pins.md`, `api-toolbar.md`, `api-window.md`, and `developer-note-pin-editing-visibility.md` are annotated in place. **The ten dead code registrations are untouched.**
 - **Priority**: Medium (correctness of guidance), Low (runtime impact).
 
-### Pins: `shape: 'rectangle'` is silently dropped by `update()` — doc is right, code is buggy
-- **Issue**: `manager-pins.js:2014-2019` (`_applyPatch`) whitelists `if (shape === 'circle' || shape === 'square' || shape === 'none')`. **`'rectangle'` is missing.** The patch is dropped with no error.
-- **Rectangle is real everywhere else**: validated (`pins-schema.js:386`), rendered (`pins-renderer.js:548`), styled (`styles/pins.css:115`), offered in the UI (`window-pin-configuration.js:818`), given free aspect (`blacksmith.js:771`). `create()` accepts it; only `update()` drops it.
-- **User-facing**: `window-pin-configuration.js:1079` saves via `pinsAPI.update(...)` — so **choosing "Rectangle" in Configure Pin silently never persists.** This is a live user-visible bug, not just a doc issue.
-- **Fix**: add `'rectangle'` to the whitelist. Looks like a one-word fix; **left undone because it is a live behavior change to the pins UI and deserves a real session to confirm**, not a 2am patch.
-- **Priority**: High. Verified independently? No — reported by audit with strong evidence; spot-check before fixing.
+### ✅ FIXED (2026-07-18) — Pins: `shape: 'rectangle'` silently dropped by `update()` — **pending live verification**
+- **Spot-check confirmed the audit**: rectangle is valid everywhere else (`pins-schema.js:386` create-validation, renderer, config UI, free-aspect logic at `blacksmith.js:771-772`) — `_applyPatch` was the only site missing it, and Configure Pin saves via `pinsAPI.update(...)`, so choosing "Rectangle" silently never persisted.
+- **Fix applied**: `'rectangle'` added to the `_applyPatch` shape whitelist (`manager-pins.js`).
+- **How to verify (live)**: Configure Pin → set shape to Rectangle with an image and non-square width → Save → reopen: shape is still Rectangle and the pin renders with free aspect; console `api.pins.update(id, { shape: 'rectangle' })` then `api.pins.get(id).shape` → `'rectangle'`. The other three shapes still round-trip.
+- **Doc follow-up**: `architecture-pins.md`'s shape list intentionally mirrored the buggy whitelist — now the doc can be corrected to include rectangle (documentation agent).
 
-### Pins: `list({ includeHiddenByFilter })` default is inverted — doc is right, code is buggy
-- **Issue**: `manager-pins.js:1231` does `if (options.includeHiddenByFilter === false && ...)`. Strict `=== false` means **omitting the flag includes filter-hidden pins** — the opposite of the documented default (`api-pins.md:1273`: "default is `false`").
-- **Why it hid**: every internal caller passes an explicit boolean, so the bug is only reachable through the public API — i.e. exactly the call the doc teaches (`pins.list({ moduleId })`). **The dogfooding pattern again.**
-- **Fix**: `!== true`. Same reasoning as above — behavior change, wants a live check.
-- **Priority**: High.
+### ✅ FIXED (2026-07-18) — Pins: `list({ includeHiddenByFilter })` default inverted — **pending live verification**
+- **Spot-check confirmed the audit**: every internal caller passes an explicit boolean (verified by grep across `manager-pins.js`, `pins-renderer.js`, `window-pin-configuration.js`, `window-pin-layers.js`), so the `=== false` check only misbehaved for omitted-flag calls through the public API — exactly the call `api-pins.md` teaches.
+- **Fix applied**: `manager-pins.js` `_matchesListFilters` now checks `!== true`, making the omitted-flag default exclude filter-hidden pins, per the documented contract. Internal behavior unchanged by construction.
+- **How to verify (live)**: hide a pin type via visibility filters → console `api.pins.list({ sceneId })` omits the hidden pin; `api.pins.list({ sceneId, includeHiddenByFilter: true })` includes it; pin-layers window counts and filter summaries unchanged.
 
 ### Sockets: native `emit()` never rejects, so the "unified interface" premise is false
 - **Issue**: `api-sockets.md:123` states unconditionally that `emit` "rejects if delivery fails (e.g. a `userId` target who is not connected)". True under SocketLib (`manager-sockets.js:214` → `executeAsUser`). **Under the native fallback it is false**: the native `emit` closure (`manager-sockets.js:292-323`) never inspects `game.users`, never checks connectivity, and **has no `return` at all** → `blacksmith.js:1369` does `Promise.resolve(undefined).then(() => true)` → **always resolves `true`**.

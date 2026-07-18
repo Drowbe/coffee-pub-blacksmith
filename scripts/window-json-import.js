@@ -59,12 +59,14 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.textareaPlaceholder = opts.textareaPlaceholder || 'Paste JSON here, or use Select JSON File below.';
         this.fileInputAccept = opts.fileInputAccept || '.json,application/json';
         this.initialJson = opts.initialJson || '';
-        this.copyTemplateLabel = opts.copyTemplateLabel || 'Copy to Clipboard';
-        this.saveTemplateLabel = opts.saveTemplateLabel || 'Save as Text File';
+        this.copyTemplateLabel = opts.copyTemplateLabel || 'Copy';
+        this.saveTemplateLabel = opts.saveTemplateLabel || 'Save As…';
         this.selectFileLabel = opts.selectFileLabel || 'Select JSON File';
         this.importLabel = opts.importLabel || 'Import JSON';
         this.promptFilePrefix = opts.promptFilePrefix || 'prompt';
         this.onBuildPrompt = typeof opts.onBuildPrompt === 'function' ? opts.onBuildPrompt : null;
+        this.onBuildJsonTemplate = typeof opts.onBuildJsonTemplate === 'function' ? opts.onBuildJsonTemplate : null;
+        this.selectedPromptFormat = opts.selectedPromptFormat === 'json' ? 'json' : 'full';
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
         this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
         this.promptFields = Array.isArray(opts.promptFields) ? opts.promptFields : [];
@@ -83,7 +85,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 <div class="blacksmith-json-import-tools-row blacksmith-json-import-tabs-row">
                     <nav class="blacksmith-tabs" role="tablist">
                         <button type="button" class="blacksmith-tab ${isCopyTab ? 'is-active' : ''}" data-action="selectTab" data-value="copy" role="tab" aria-selected="${isCopyTab}">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i><span>Generate JSON Template</span>
+                            <i class="fa-solid fa-wand-magic-sparkles"></i><span>Prompt / JSON Template</span>
                         </button>
                         <button type="button" class="blacksmith-tab ${!isCopyTab ? 'is-active' : ''}" data-action="selectTab" data-value="import" role="tab" aria-selected="${!isCopyTab}">
                             <i class="fa-solid fa-file-import"></i><span>Import JSON</span>
@@ -134,6 +136,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
 
         const templateSelect = root.querySelector('.blacksmith-json-import-template-select');
         if (templateSelect) this.selectedTemplate = templateSelect.value || this.selectedTemplate;
+
+        const formatSelect = root.querySelector('.blacksmith-json-import-format-select');
+        if (formatSelect) this.selectedPromptFormat = formatSelect.value === 'json' ? 'json' : 'full';
 
         for (const field of this.promptFields) {
             const id = String(field?.id || '').trim();
@@ -232,17 +237,15 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         if (!this.onBuildPrompt) return;
         const root = this.element;
         const copyButton = root?.querySelector('.blacksmith-json-import-copy-template');
-        this._setBusy(true, 'Building prompt — gathering actors & items…');
+        this._setBusy(true, 'Building output…');
         if (copyButton) copyButton.disabled = true;
         try {
-            const prompt = await this.onBuildPrompt(
-                this.selectedTemplate,
-                this._getPromptOptions(),
-                (msg) => this._setBusy(true, msg)
-            );
+            const prompt = await this._buildSelectedPrompt();
             const copied = await copyToClipboard(String(prompt ?? ''), { notify: false });
             if (copied !== false) {
-                ui.notifications.info('Prompt copied to the clipboard');
+                ui.notifications.info(this.selectedPromptFormat === 'json'
+                    ? 'JSON template copied to the clipboard'
+                    : 'Full prompt copied to the clipboard');
             }
         } catch (error) {
             const message = error?.message || String(error);
@@ -257,20 +260,18 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         if (!this.onBuildPrompt) return;
         const root = this.element;
         const saveButton = root?.querySelector('.blacksmith-json-import-save-template');
-        this._setBusy(true, 'Building prompt — gathering actors & items…');
+        this._setBusy(true, 'Building output…');
         if (saveButton) saveButton.disabled = true;
         try {
-            const prompt = String((await this.onBuildPrompt(
-                this.selectedTemplate,
-                this._getPromptOptions(),
-                (msg) => this._setBusy(true, msg)
-            )) ?? '');
+            const prompt = String((await this._buildSelectedPrompt()) ?? '');
             const template = String(this.selectedTemplate || 'prompt')
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
-            const filename = `blacksmith-${this.promptFilePrefix}-${template || 'prompt'}.txt`;
-            this._downloadTextFile(filename, prompt);
+            const jsonOnly = this.selectedPromptFormat === 'json';
+            const suffix = jsonOnly ? 'json-template' : 'full-prompt';
+            const filename = `blacksmith-${this.promptFilePrefix}-${template || 'prompt'}-${suffix}.${jsonOnly ? 'json' : 'txt'}`;
+            this._downloadTextFile(filename, prompt, jsonOnly ? 'application/json' : 'text/plain');
             ui.notifications.info(`Prompt saved as ${filename}`);
         } catch (error) {
             const message = error?.message || String(error);
@@ -281,15 +282,28 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         }
     }
 
+    async _buildSelectedPrompt() {
+        const builder = this.selectedPromptFormat === 'json' && this.onBuildJsonTemplate
+            ? this.onBuildJsonTemplate
+            : this.onBuildPrompt;
+        if (!builder) return '';
+        return builder(
+            this.selectedTemplate,
+            this._getPromptOptions(),
+            (msg) => this._setBusy(true, msg)
+        );
+    }
+
     /**
      * Trigger a download of plain text content. Uses Foundry's saveDataToFile,
      * which sets the dataset.downloadurl hint and defers revoking the object URL
      * so the download works inside Foundry's Electron shell.
      * @param {string} filename
      * @param {string} text
+     * @param {string} [mimeType]
      */
-    _downloadTextFile(filename, text) {
-        foundry.utils.saveDataToFile(text, 'text/plain', filename);
+    _downloadTextFile(filename, text, mimeType = 'text/plain') {
+        foundry.utils.saveDataToFile(text, mimeType, filename);
     }
 
     async _importJson() {
@@ -492,6 +506,11 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 selected: opt.value === this.selectedTemplate
             })),
             hasTemplates: this.templateOptions.length > 0,
+            hasJsonTemplate: !!this.onBuildJsonTemplate,
+            promptFormatOptions: [
+                { value: 'full', label: 'Full Prompt', selected: this.selectedPromptFormat !== 'json' },
+                { value: 'json', label: 'JSON Template', selected: this.selectedPromptFormat === 'json' }
+            ],
             textareaPlaceholder: this.textareaPlaceholder,
             initialJson: this.initialJson,
             promptCheckboxGroups: this._buildPromptCheckboxGroups(),
@@ -668,6 +687,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const fileInput = root.querySelector('.blacksmith-json-import-file-input');
         const textarea = root.querySelector('.blacksmith-json-import-textarea');
         const templateSelect = root.querySelector('.blacksmith-json-import-template-select');
+        const formatSelect = root.querySelector('.blacksmith-json-import-format-select');
 
         fileInput?.addEventListener('change', (event) => {
             const file = event.target.files?.[0];
@@ -684,6 +704,10 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         templateSelect?.addEventListener('change', () => {
             this.selectedTemplate = templateSelect.value || '';
             this._updatePromptFieldVisibility();
+        });
+
+        formatSelect?.addEventListener('change', () => {
+            this.selectedPromptFormat = formatSelect.value === 'json' ? 'json' : 'full';
         });
 
         this._updatePromptFieldVisibility();

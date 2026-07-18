@@ -303,6 +303,17 @@ function _activityBase(activity, index, parentType, parentHasUses) {
     const consumptionTargets = hasActivityUses
         ? [{ type: 'activityUses', target: '', value: '1', scaling: { mode: '', formula: '' } }]
         : (parentHasUses ? [{ type: 'itemUses', target: '', value: '1', scaling: { mode: '', formula: '' } }] : []);
+    const duration = activity.activityDuration || {};
+    const range = activity.activityRange || {};
+    const target = activity.activityTarget || {};
+    const hasDuration = activity.activityDuration && typeof activity.activityDuration === 'object';
+    const hasRange = activity.activityRange && typeof activity.activityRange === 'object';
+    const hasTarget = activity.activityTarget && typeof activity.activityTarget === 'object';
+    for (const key of ['choice', 'contiguous', 'prompt']) {
+        if (hasTarget && key in target && typeof target[key] !== 'boolean') {
+            throw new Error(`Activity ${index + 1}: activityTarget.${key} must be a boolean`);
+        }
+    }
     return {
         _id: id,
         type,
@@ -320,14 +331,27 @@ function _activityBase(activity, index, parentType, parentHasUses) {
             targets: consumptionTargets
         },
         description: { chatFlavor: activity.activityFlavorText || '' },
-        duration: { value: '', units: 'inst', special: '', concentration: false, override: false },
+        duration: {
+            value: duration.value ?? '', units: duration.units || 'inst', special: duration.special || '',
+            concentration: !!duration.concentration, override: !!hasDuration
+        },
         effects: [],
-        range: { value: '', units: 'self', special: '', override: false },
+        range: {
+            value: range.value ?? '', units: range.units || 'self', special: range.special || '',
+            override: !!hasRange
+        },
         target: {
-            template: { count: '', contiguous: false, type: '', size: '', width: '', height: '', units: 'ft' },
-            affects: { count: '', type: '', choice: false, special: '' },
-            override: false,
-            prompt: true
+            template: {
+                count: target.templateCount ?? '', contiguous: !!target.contiguous,
+                type: target.templateType || '', size: target.templateSize ?? '',
+                width: target.templateWidth ?? '', height: target.templateHeight ?? '', units: target.units || 'ft'
+            },
+            affects: {
+                count: target.affectsCount ?? '', type: target.affectsType || '',
+                choice: !!target.choice, special: target.special || ''
+            },
+            override: !!hasTarget,
+            prompt: !!target.templateType && target.prompt !== false
         },
         uses: _uses(
             activity.activityUsesMax,
@@ -338,13 +362,47 @@ function _activityBase(activity, index, parentType, parentHasUses) {
     };
 }
 
-function _buildActivities(activities, parentType, parentHasUses = false) {
+function _buildAppliedEffects(activity, activityIndex, effectDocuments) {
+    if (activity.appliedEffects == null) return [];
+    if (!Array.isArray(activity.appliedEffects)) {
+        throw new Error(`Activity ${activityIndex + 1}: appliedEffects must be an array`);
+    }
+    return activity.appliedEffects.map((effect, effectIndex) => {
+        if (!effect || typeof effect !== 'object' || !String(effect.name || '').trim()) {
+            throw new Error(`Activity ${activityIndex + 1}, effect ${effectIndex + 1}: name is required`);
+        }
+        const id = foundry.utils.randomID();
+        effectDocuments.push({
+            _id: id,
+            name: effect.name,
+            img: effect.img || 'icons/svg/aura.svg',
+            description: effect.description || '',
+            disabled: false,
+            duration: {
+                seconds: effect.durationSeconds ?? null,
+                rounds: effect.durationRounds ?? null,
+                turns: effect.durationTurns ?? null,
+                startTime: null,
+                startRound: null,
+                startTurn: null
+            },
+            changes: Array.isArray(effect.changes) ? effect.changes : [],
+            statuses: Array.isArray(effect.statuses) ? effect.statuses : [],
+            transfer: false,
+            flags: effect.flags && typeof effect.flags === 'object' ? effect.flags : {}
+        });
+        return { _id: id, onSave: !!effect.onSave };
+    });
+}
+
+function _buildActivities(activities, parentType, parentHasUses = false, effectDocuments = []) {
     if (activities == null) return {};
     if (!Array.isArray(activities)) throw new Error('activities must be an array');
     const result = {};
     activities.forEach((activity, index) => {
         if (!activity || typeof activity !== 'object') throw new Error(`Activity ${index + 1} must be an object`);
         const data = _activityBase(activity, index, parentType, parentHasUses);
+        data.effects = _buildAppliedEffects(activity, index, effectDocuments);
         const damageFormula = activity.damageFormula ?? activity.activityFormula ?? '';
         const damageType = activity.damageType ?? activity.activityEffectType ?? '';
         if (data.type === 'attack') {
@@ -391,13 +449,15 @@ function _featureData(flat, img) {
     if (!FEATURE_TYPES.has(type)) throw new Error(`Unsupported featureType "${flat.featureType}"`);
     const featureUsesMax = flat.featureUsesMax ?? flat.usesMax;
     const hasUses = featureUsesMax != null && featureUsesMax !== '';
+    const effects = Array.isArray(flat.effects) ? foundry.utils.deepClone(flat.effects) : [];
+    const activities = _buildActivities(flat.activities, 'feat', hasUses, effects);
     return {
         type: 'feat',
         name: flat.itemName,
         img,
         system: {
             ..._descriptionSystem(flat),
-            activities: _buildActivities(flat.activities, 'feat', hasUses),
+            activities,
             uses: _uses(
                 featureUsesMax,
                 flat.featureUsesSpent ?? flat.usesSpent,
@@ -409,11 +469,11 @@ function _featureData(flat, img) {
             crewed: false,
             enchant: { max: '', period: '' },
             prerequisites: { items: [], level: null, repeatable: false },
-            properties: [],
+            properties: Array.isArray(flat.featureProperties) ? flat.featureProperties : [],
             requirements: flat.featureRequirements || null,
             type: { value: type, subtype: flat.featureSubtype || '' }
         },
-        effects: Array.isArray(flat.effects) ? flat.effects : [],
+        effects,
         flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
     };
 }
@@ -431,13 +491,15 @@ function _spellData(flat, img) {
     const duration = flat.spellDuration || {};
     const target = flat.spellTarget || {};
     const hasUses = flat.usesMax != null && flat.usesMax !== '';
+    const effects = Array.isArray(flat.effects) ? foundry.utils.deepClone(flat.effects) : [];
+    const activities = _buildActivities(flat.activities, 'spell', hasUses, effects);
     return {
         type: 'spell',
         name: flat.itemName,
         img,
         system: {
             ..._descriptionSystem(flat),
-            activities: _buildActivities(flat.activities, 'spell', hasUses),
+            activities,
             uses: _uses(flat.usesMax, flat.usesSpent, flat.recoveryPeriod),
             ability: flat.spellAbility || '',
             activation: { type: casting.units || 'action', value: casting.value ?? 1, condition: casting.condition || '' },
@@ -463,7 +525,7 @@ function _spellData(flat, img) {
                 affects: { count: target.affectsCount ?? '', type: target.affectsType || '', choice: !!target.choice, special: target.special || '' }
             }
         },
-        effects: Array.isArray(flat.effects) ? flat.effects : [],
+        effects,
         flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
     };
 }

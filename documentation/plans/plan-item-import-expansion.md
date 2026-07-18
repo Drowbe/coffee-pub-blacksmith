@@ -1,6 +1,6 @@
 # Plan: Item Import Expansion
 
-Status: **Implemented through Feature/Spell profiles; physical-item hardening planned**
+Status: **Implemented through Feature/Spell profiles and activity targeting/effects; physical-item hardening planned**
 
 ## Outcome
 
