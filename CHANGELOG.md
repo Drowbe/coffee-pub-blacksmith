@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [13.9.3]
+## [13.9.4]
 
 ### Added
 
@@ -16,11 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **On-screen toast primitive — `api.toast` (Phase 1 of the player-facing toast system)** (`scripts/api-toast.js`, `styles/toast.css`, `scripts/blacksmith.js`, `scripts/api-menubar.js`): a transient toast that pops up over the play area, top-center stack — `toast.show({ title, subtitle, icon, image, duration, onClick, onDismiss, stackKey, moduleId })`, plus `remove`, `clearByModule`, `getActive`. Deliberately **local and per-client**: the cross-client part of "toast a player" has always already happened by the time anything renders (Bibliosoph's splash draws after its message arrived on its own transport; the leader toast draws after the `partyLeader` setting synced), so the primitive ships without waiting on the socket rewrite — a `send({recipients})` layer comes later as a thin wrapper. The design generalizes Bibliosoph's homegrown message splash, the suite's one real prior art: `image` renders a round avatar (not just a FontAwesome icon), title + subtitle two-line layout, and `stackKey` gives replace-in-place ("latest state wins") while keyless toasts stack, capped with silent oldest-eviction. `onClick` makes the toast clickable (pointer + hover affordance, same button sound as menubar clicks; handler runs, toast removed) and `onDismiss` follows the **same dismiss contract as menubar notifications** — timeout and × only, never post-click, programmatic, bulk, replacement, or eviction. Rendering is DOM-direct (`createElement`/`textContent` — consumer strings never parsed as HTML; no template, no re-render, no fingerprint to keep honest), which is why there is no `update()`: toasts are immutable, `stackKey` covers that use case. Dogfood consumer: `_registerLeaderChangeHook` listens to the core `updateSetting`/`createSetting` document hooks for the `partyLeader` world setting (which fire on every client) and toasts receipt-side — "You are now the party leader" on the leader's client, the actor's name elsewhere — alongside the existing leader chat cards (replacing that chat noise is a later, separate step). New docs: `documentation/api/api-toast.md` and `documentation/architecture/architecture-toast.md`; `styles/toast.css` is `@import`ed from `default.css`. Verified by console on two clients (`api.toast.show({...})` variants: stacking, stackKey replacement, actionable click vs ×, dismiss-callback matrix); the leader dogfood is verified under the `settingChange` fix below.
 
-- **Actionable menubar notifications** (`scripts/api-menubar.js`, `templates/menubar.hbs`, `styles/menubar.css`): `addNotification()` was display-only — "Alicia sent you a message" showed, auto-dismissed, and there was nothing to click. It now takes an optional fifth `options` argument: `onClick` makes the notification clickable (pointer cursor + hover affordance; the handler runs, then the notification is removed), `onDismiss` fires only when the notification goes away *unacted-on* — auto-timeout or the × button, never after `onClick`, never on programmatic `removeNotification()`, and never from the bulk clears (which bypass `removeNotification` and delete straight from the Map) — and `pulse: true` animates the icon for "You have 5 unread messages"-style alerts. `updateNotification()` accepts the same keys, including `null` to strip a handler. Storing callbacks is safe by construction: notifications live in a per-client Map and never cross the socket. Two traps handled along the way: the structure fingerprint (`_computeMenubarStructureFingerprint`) hashed only id/text/icon, so toggling `onClick`/`pulse` via `updateNotification` would have silently skipped the rebuild and the affordance would never appear — the actionable and pulse bits are now part of the fingerprint; and Handlebars can't read functions, so `renderMenubar()` maps notifications to plain display objects carrying `actionable`/`pulse` booleans instead of handing the template the live objects. The × close branch stays ahead of the body-click branch in the delegated handler, so closing never fires `onClick`. An actionable click plays the same button sound as toolbar and secondary-bar clicks; the × stays silent, as it always has. The strip is also ordered now — it previously rendered in Map insertion order, which in a right-aligned strip put the *newest* notification rightmost: display order is temporary notifications left of persistent ones, newest first within each group, and the fingerprint's notification parts are no longer sorted (order is semantic — a reorder, e.g. `updateNotification` flipping a duration between temp and persistent, must force a rebuild). Display-only notifications are unchanged. Driving consumer: Bibliosoph's unread-message alerts. Documented in `api-menubar.md` (including the dismiss-semantics table) and the `api-core.md` quick example. Verified by console: an `onClick` notification shows the pointer affordance, clicking runs the handler and removes it without firing `onDismiss`; the × and auto-timeout fire `onDismiss` and not `onClick`; `updateNotification(id, {onClick})` on a plain notification makes it clickable (exercises the fingerprint fix); a plain `addNotification("display only")` behaves exactly as before.
-
 ### Fixed
 
 - **The menubar's party-leader hook listened to a Foundry hook that does not exist — and it is not alone** (`scripts/api-menubar.js`): the leader-change callback (menubar refresh + the new leader toast) was registered against `settingChange`, and live testing showed the toast never firing. Verified against Foundry v13.351 core source: **nothing ever fires a hook named `settingChange`** — core fires `clientSettingChanged` for client-scoped settings (changing client only) and the standard `updateSetting`/`createSetting` *document* hooks for world-scoped settings (all clients). The leader *display* had always appeared to sync anyway because `setNewLeader` broadcasts over socketlib (`updateLeader`), which masked the dead registration. `_registerLeaderChangeHook` now registers `updateSetting` + `createSetting` (the latter covers the first-ever leader set in a world) and filters on `setting.key === "coffee-pub-blacksmith.partyLeader"`. A second trap surfaced in live testing: the schema declares `value` as a `JSONField` (a JSON string), but the *client* Setting document re-casts it on initialize (`Setting#_initialize` → `_castType()`), so for this `type: Object` setting `setting.value` is **already the parsed object** — the first fix's `JSON.parse(setting.value)` threw on every fire, the callback's own catch swallowed it, and it fell through to the "leader cleared" branch, still toastless. The callback now uses the value as-is and parses only if it arrives as a string. The wider fallout — roughly ten more never-fired `settingChange` registrations across nine files (settings-cache invalidation, combat bar, token indicators, toolbar, journal tools, sidebar pin/style, and a raw `Hooks.on` in `sidebar-combat.js`) — is documented in `architecture-blacksmith.md` §9B.2 and tracked as a High-priority audit in `TODO.md`; they are deliberately **not** blanket-fixed here, because the correct replacement hook depends on each setting's scope and those callbacks have never once executed. Verify: change the leader with two clients open — both clients toast (leader's says "You are now the party leader", the other names the actor); chat cards unaffected.
+
+
+## [13.9.3]
+
+### Added
+
+- **Actionable menubar notifications** (`scripts/api-menubar.js`, `templates/menubar.hbs`, `styles/menubar.css`): `addNotification()` was display-only — "Alicia sent you a message" showed, auto-dismissed, and there was nothing to click. It now takes an optional fifth `options` argument: `onClick` makes the notification clickable (pointer cursor + hover affordance; the handler runs, then the notification is removed), `onDismiss` fires only when the notification goes away *unacted-on* — auto-timeout or the × button, never after `onClick`, never on programmatic `removeNotification()`, and never from the bulk clears (which bypass `removeNotification` and delete straight from the Map) — and `pulse: true` animates the icon for "You have 5 unread messages"-style alerts. `updateNotification()` accepts the same keys, including `null` to strip a handler. Storing callbacks is safe by construction: notifications live in a per-client Map and never cross the socket. Two traps handled along the way: the structure fingerprint (`_computeMenubarStructureFingerprint`) hashed only id/text/icon, so toggling `onClick`/`pulse` via `updateNotification` would have silently skipped the rebuild and the affordance would never appear — the actionable and pulse bits are now part of the fingerprint; and Handlebars can't read functions, so `renderMenubar()` maps notifications to plain display objects carrying `actionable`/`pulse` booleans instead of handing the template the live objects. The × close branch stays ahead of the body-click branch in the delegated handler, so closing never fires `onClick`. An actionable click plays the same button sound as toolbar and secondary-bar clicks; the × stays silent, as it always has. The strip is also ordered now — it previously rendered in Map insertion order, which in a right-aligned strip put the *newest* notification rightmost: display order is temporary notifications left of persistent ones, newest first within each group, and the fingerprint's notification parts are no longer sorted (order is semantic — a reorder, e.g. `updateNotification` flipping a duration between temp and persistent, must force a rebuild). Display-only notifications are unchanged. Driving consumer: Bibliosoph's unread-message alerts. Documented in `api-menubar.md` (including the dismiss-semantics table) and the `api-core.md` quick example. Verified by console: an `onClick` notification shows the pointer affordance, clicking runs the handler and removes it without firing `onDismiss`; the × and auto-timeout fire `onDismiss` and not `onClick`; `updateNotification(id, {onClick})` on a plain notification makes it clickable (exercises the fingerprint fix); a plain `addNotification("display only")` behaves exactly as before.
+
+### Fixed
 
 - **Party/leader votes no longer require tokens on the canvas, and use each player's *assigned* character** (`scripts/manager-vote.js`): starting a vote gated eligibility on `getUsersWithOwnedTokenOnCanvas()`, so with no tokens placed it errored with "no eligible voters" and refused to open. Eligibility is now simply logged-in (active) non-GM players. Separately, `_getUserCharacter` returned the *first owned* character (`userCharacters[0]`), so a player owning several got an arbitrary one; it now returns `user.character` — the character assigned in User Configuration. So a player assigned Favia while also owning Cyrus is shown as Favia.
 
@@ -323,7 +330,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clarity / Quickview mode** (`scripts/utility-quickview.js`): GM-only local vision aid that boosts scene brightness (via the core illumination shader `gmVision` uniform and darkness layer alpha), makes fog of war nearly transparent, and outlines tokens outside the current vision polygon or hidden from players with a configurable sight-highlight ring. Toggle via the menubar hamburger menu or `Ctrl+Q` keybinding. GM-only — player clients see no change. Deactivates automatically on scene change and restores all original values on toggle-off.
 
 - **Hide Initiative Roll Chat Cards** (`scripts/blacksmith.js`, `scripts/settings.js`): New world setting **Hide Initiative Roll Cards** (Run the Game group). When enabled, initiative roll cards are hidden immediately on render and deleted after the Dice So Nice animation completes (or immediately if DSN is not active) — 3D dice still animate, initiative still resolves and appears in the combat tracker, the card just never clutters the chat log.
-
 
 
 - **Menubar Settings / Refresh visibility** (`scripts/utility-core.js`): The Settings and Refresh items in the hamburger context menu now respect `menubarShowSettings` and `menubarShowRefresh` — toggling either setting hides or shows the item immediately on next menu open.
@@ -854,8 +860,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stale nameplate TODO**: Removed the obsolete documentation TODO entry for adding a nameplate-style enable setting.
 
 
-
-
 ## [13.5.5] - 2026-03-13 - TOKEN OWNERSHIP CLEANUP, COMBAT BAR FILTERING & CURATOR CLEANUP
 
 ### Added
@@ -1020,9 +1024,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Settings and Localization Cleanup**: Removed all settings related to token image replacement, data weights, loot generation, dead tokens, and epic loot odds from Blacksmith's `settings.js` and `lang/en.json`.
 - **Legacy Regent Cleanup**: Removed the unused `styles/panel-assistant.css` leftover from the Regent migration, including its import in `styles/default.css` and mentions in the architecture documentation.
 - **Dead Migration Files**: Removed the old `_Migration` folder containing outdated backup files (`pin-icons.json`, `pin-transition.md`, `panel-notes.js`, etc.).
-
-
-
 
 
 ## [13.4.1] - 2025-03-03
@@ -1797,7 +1798,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Why: v13 changed from class-based theme detection to data attribute-based detection for better flexibility
 
 
-
 ## [13.0.1] - v13 Migration
 
 ### Fixed
@@ -2435,7 +2435,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved debugging experience with properly flagged messages
 
 
-
 ## [12.1.10] - Character Import System and Enhanced Cache Size Monitoring
 
 ### Added
@@ -2519,7 +2518,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added helper functions for world actor/item list generation
 - Enhanced placeholder replacement system with `getTablePromptWithDefaults()`
 - Fixed FoundryVTT data structure compliance for all imported item types
-
 
 
 ## [12.1.8] - Beginning of migration to version 13
@@ -2612,7 +2610,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Proper initialization of milestone data structure
   - Unified monster data format with all required fields
   - Eliminated data structure mismatches between different entry points
-
 
 
 ## [12.1.6] - Token Image Replacement System Enhancements
@@ -2724,7 +2721,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `_getTagsForMatch()` to handle original images without metadata
 - Improved `_calculateRelevanceScore()` with better maxPossibleScore calculation
 - Added proper memory management with HookManager integration
-
 
 
 ## [12.1.3] - NEW Token Image Replacement System
