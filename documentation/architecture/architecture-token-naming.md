@@ -16,8 +16,7 @@ until a GM configures the new mapping.
 | `scripts/manager-canvas.js` (`_onCreateToken`) | Calls the resolver during the rename flow |
 | `scripts/blacksmith.js` | Loads the taxonomy in early `ready`, **before** `registerSettings()` |
 
-> **Do not enumerate the keys in this document.** The taxonomy file is the source of truth and it grows.
-> The plan this doc replaced hardcoded "18 keys"; the file had 20 by the time anyone checked. Read the file.
+Do not enumerate the keys in this document — the taxonomy file is the source of truth and it grows. Read the file rather than hardcoding a key list here.
 
 ---
 
@@ -64,13 +63,15 @@ read details.type:
   subtype = type.subtype                     // free text; may be empty
 
 canonicalize via the taxonomy (normalized: lowercase, trimmed):
-  subKey  = canonicalize(subtype)
-  typeKey = canonicalize(type)
+  subKey      = canonicalize(subtype)
+  specificKey = specific name keyword from the actor name (canonicalized)
+  typeKey     = canonicalize(type)
 
-table =  assignedTable(subKey)
-      || assignedTable(typeKey)
-      || game.tables.getName(tokenNameTable)   // global failover
-      || (no rename)
+table =  assignedTable(subKey)                  // 1. subtype field
+      || assignedTable(specificKey)             // 2. specific name keyword
+      || assignedTable(typeKey)                 // 3. type field
+      || game.tables.getName(tokenNameTable)    // 4. global failover
+      || (no rename)                            // 5.
 
 roll table → name → existing format/ignored/fuzzy logic (unchanged)
 ```
@@ -95,8 +96,8 @@ or missing custom file falls back to the bundled default.
 
 ## 6. Decisions and rationale
 
-- **Filename** `naming-taxonomy.json` mirrors `flag-taxonomy.json`; "schema" was avoided because it connotes
-  a validation schema.
+- **Filename** `naming-taxonomy.json` mirrors the other `*-taxonomy.json` files (`tag-taxonomy.json`,
+  `pin-taxonomy.json`); "schema" was avoided because it connotes a validation schema.
 - **Tables referenced by name**, not UUID — consistent with `tokenNameTable` and the name-keyed
   `getTableChoices()` dropdown. Rename-fragility matches today's behavior and degrades gracefully via the
   cascade. Revisit at the compendium phase, where cross-pack refs need UUIDs.
@@ -116,7 +117,3 @@ or missing custom file falls back to the bundled default.
 
 Nothing changes until at least one per-key table is set. With all keys at `none`, the cascade always lands
 on `tokenNameTable` — identical to the previous behavior.
-
----
-
-Open work: see `documentation/TODO.md`.
