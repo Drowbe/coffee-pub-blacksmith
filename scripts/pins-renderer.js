@@ -565,6 +565,18 @@ class PinDOMElement {
             if (shape !== 'none') {
                 pinElement.style.border = `${scaledStrokeWidth}px solid ${strokeColor}`;
             }
+            if (shape === 'square' || shape === 'rectangle') {
+                // The CSS percentage radius (--blacksmith-pin-square-border-radius) resolves
+                // against width horizontally and height vertically, which skews non-square pins
+                // into elliptical corners; pin the container to a px radius from the short side
+                // so corners stay circular arcs (matches the inner image radius computed above).
+                const radiusRaw = typeof document !== 'undefined'
+                    ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-square-border-radius').trim()
+                    : '';
+                const radiusPct = Number.parseFloat(radiusRaw);
+                const pct = Number.isFinite(radiusPct) ? radiusPct / 100 : 0.15;
+                pinElement.style.borderRadius = `${Math.min(width, height) * pct}px`;
+            }
             
             // Update text size based on scale setting
             const textElement = pinElement.querySelector('.blacksmith-pin-text');
