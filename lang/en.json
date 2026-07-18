@@ -505,9 +505,6 @@
 			"timerSoundVolume-Label": "Sound Volume",
 			"timerSoundVolume-Hint": "",
 
-			"timerChatPauseUnpause-Label": "Send Pause/Unpause Notifications",
-			"timerChatPauseUnpause-Hint": "",
-
 		"headingH3RoundTimer-Label": "Round Timer",
 		"headingH3RoundTimer-Hint": "This timer keeps track of the actual real-world round time.",
 
@@ -560,12 +557,12 @@
 			"planningTimerDuration-Hint": "",
 
 			"timerChatPlanningStart-Label": "Send Starting Message",
-			"timerChatPlanningStart-Hint": "",
+			"timerChatPlanningStart-Hint": "Announce when the planning timer starts.",
 
 
 
 			"timerChatPlanningRunningOut-Label": "Critical Threshold Message",
-			"timerChatPlanningRunningOut-Hint": "",
+			"timerChatPlanningRunningOut-Hint": "Announce when the planning timer crosses its ending-soon threshold.",
 
 			"planningTimerEndingSoonThreshold-Label": "Critical Threshold",
 			"planningTimerEndingSoonThreshold-Hint": "",
@@ -606,7 +603,7 @@
 			"combatTimerDuration-Hint": "",
 
 			"timerChatTurnStart-Label": "Turn Starting Notification",
-			"timerChatTurnStart-Hint": "",
+			"timerChatTurnStart-Hint": "Announce when a combatant's turn begins.",
 
 			"combatTimerStartSound-Label": "Turn Start Sound",
 			"combatTimerStartSound-Hint": "",
@@ -619,7 +616,7 @@
 			"combatTimerAutoAdvanceMessage-Hint": "",
 
 			"combatTimerCriticalEnabled-Label": "Critical Threshold Messages",
-			"combatTimerCriticalEnabled-Hint": "",
+			"combatTimerCriticalEnabled-Hint": "Announce when the turn timer crosses its critical threshold.",
 
 			"combatTimerCriticalThreshold-Label": "Critical Threshold",
 			"combatTimerCriticalThreshold-Hint": "",
@@ -632,7 +629,7 @@
 
 			
 			"timerChatTurnEnded-Label": "Turn Ended Notification",
-			"timerChatTurnEnded-Hint": "",
+			"timerChatTurnEnded-Hint": "Announce when a combatant's turn time runs out.",
 
 			"combatTimerExpiredMessage-Label": "Expired Message",
 			"combatTimerExpiredMessage-Hint": "Use {name} to insert current combatant name.",
@@ -755,10 +752,16 @@
 
 
 	"headingH1Notifications-Label": "Notifications",
-	"headingH1Notifications-Hint": "How Blacksmith announces game events to the table: an on-screen toast (a transient popup over the play area), a chat card (a permanent entry in the chat log), both, or neither. Features gain a preference here as they are migrated to the toast system.",
+	"headingH1Notifications-Hint": "How Blacksmith announces game events to the table: an on-screen toast (a transient popup over the play area), a chat card (a permanent entry in the chat log), both, or none. Each feature below chooses its delivery and which message kinds fire.",
+
+		"headingH2NotifyLeader-Label": "Leader",
+		"headingH2NotifyLeader-Hint": "Announcements when the party leader changes.",
 
 		"notifyLeaderChange-Label": "Leader Changes",
 		"notifyLeaderChange-Hint": "How to announce that the party leader changed. The toast appears on every player's screen, with a personal version for the new leader; the chat option posts the public card plus a whisper to the new leader.",
+
+		"headingH2NotifyMovement-Label": "Movement",
+		"headingH2NotifyMovement-Hint": "Announcements when the party movement type changes.",
 
 		"notifyMovementChange-Label": "Movement Changes",
 		"notifyMovementChange-Hint": "How to announce a change to the party movement type (Wander, Locked, Combat, Conga, Fastest Path, Request).",
@@ -766,14 +769,32 @@
 		"notifyMarchingOrder-Label": "Show Marching Order in Chat",
 		"notifyMarchingOrder-Hint": "Post the marching order card to chat when Conga or Fastest Path movement establishes or changes the party order.",
 
+		"headingH2NotifySessionTimer-Label": "Session Timer",
+		"headingH2NotifySessionTimer-Hint": "Announcements for the session timer (set, warning, expired).",
+
 		"notifySessionTimer-Label": "Session Timer",
-		"notifySessionTimer-Hint": "How to announce session timer events (set, warning, expired). Which events fire at all is still controlled in the session timer's own settings.",
+		"notifySessionTimer-Hint": "How to announce session timer events (set, warning, expired).",
+
+		"headingH2NotifyPlanningTimer-Label": "Planning Timer",
+		"headingH2NotifyPlanningTimer-Hint": "Announcements for the planning timer, and which message kinds fire. Timer behavior, labels, sounds, and message text stay in the planning timer's own section.",
 
 		"notifyPlanningTimer-Label": "Planning Timer",
-		"notifyPlanningTimer-Hint": "How to announce planning timer events (start, set, pause, resume, warning, expired). Which events fire at all is still controlled in the planning timer's own settings.",
+		"notifyPlanningTimer-Hint": "How to announce planning timer events (start, set, pause, resume, warning, expired).",
+
+		"timerChatPlanningEnded-Label": "Send Ended Message",
+		"timerChatPlanningEnded-Hint": "Announce when the planning timer ends.",
+
+		"timerChatPlanningPause-Label": "Send Pause/Resume Messages",
+		"timerChatPlanningPause-Hint": "Announce when the planning timer is paused or resumed.",
+
+		"timerChatTurnPause-Label": "Send Pause/Resume Messages",
+		"timerChatTurnPause-Hint": "Announce when the turn timer is paused or resumed.",
+
+		"headingH2NotifyCombatTimer-Label": "Combat Timer",
+		"headingH2NotifyCombatTimer-Hint": "Announcements for the combat (turn) timer, and which message kinds fire. Timer behavior, labels, sounds, and message text stay in the combat timer's own section.",
 
 		"notifyCombatTimer-Label": "Combat Timer",
-		"notifyCombatTimer-Hint": "How to announce combat (turn) timer events (start, set, pause, resume, warning, expired). Which events fire at all is still controlled in the combat timer's own settings.",
+		"notifyCombatTimer-Hint": "How to announce combat (turn) timer events (start, set, pause, resume, warning, expired).",
 
 
 	"SEPARATOR-ROLLING-AND-PROGRESSION": "-------------------------------------------------------",

@@ -652,7 +652,7 @@ export class PlanningTimer {
         }
 
         // Send chat message if GM and setting enabled
-        if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
+        if (game.user.isGM && game.settings.get(MODULE.ID, 'timerChatPlanningPause')) {
             this.sendChatMessage({
                 isPlanningPaused: true,
                 timeRemaining: this.formatTime(this.state.remaining)
@@ -691,7 +691,7 @@ export class PlanningTimer {
                     if (endingSoonSound !== 'none') {
                         playSound(endingSoonSound, this.getTimerVolume());
                     }
-                    if (!this.state.hasHandledWarning && this.shouldShowNotification() && game.user.isGM) {
+                    if (!this.state.hasHandledWarning && getSettingSafely(MODULE.ID, 'timerChatPlanningRunningOut', true) && game.user.isGM) {
                         this.state.hasHandledWarning = true;
                         const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
                         this.sendChatMessage({
@@ -736,7 +736,7 @@ export class PlanningTimer {
             }
 
             // Send chat message for resume if GM and setting enabled
-            if (game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
+            if (game.settings.get(MODULE.ID, 'timerChatPlanningPause')) {
                 this.sendChatMessage({
                     isPlanningResumed: true,
                     timeRemaining: this.formatTime(this.state.remaining)
@@ -948,11 +948,6 @@ export class PlanningTimer {
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
-    static shouldShowNotification() {
-        // Planning timer just uses the general notification setting
-        return game.settings.get(MODULE.ID, 'timerShowNotifications');
-    }
-
     static async timeExpired() {
         // Record expiration in stats
         CombatStats.recordTimerExpired(true);
@@ -969,8 +964,8 @@ export class PlanningTimer {
         // No ui.notifications banner here — the expiry announcement is owned by the
         // notifyPlanningTimer channel (toast broadcast / chat) via sendChatMessage.
 
-        // Send chat message for timer expiration if GM
-        if (game.user.isGM) {
+        // Send the expiration announcement if GM and the ended-message kind is enabled
+        if (game.user.isGM && getSettingSafely(MODULE.ID, 'timerChatPlanningEnded', true)) {
             const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
             await this.sendChatMessage({
                 isTimerExpired: true,

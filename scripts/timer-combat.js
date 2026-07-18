@@ -736,7 +736,7 @@ class CombatTimer {
         }
 
         // Send chat message only if manually paused and setting enabled
-        if (sendMessage && game.user.isGM && game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
+        if (sendMessage && game.user.isGM && game.settings.get(MODULE.ID, 'timerChatTurnPause')) {
             this.sendChatMessage({
                 isTimerPaused: true,
                 timeRemaining: this.formatTime(this.state.remaining)
@@ -786,7 +786,7 @@ class CombatTimer {
             CombatStats.recordTimerUnpause();
             
             // Send chat message for resume if setting enabled and manual
-            if (sendMessage && game.settings.get(MODULE.ID, 'timerChatPauseUnpause')) {
+            if (sendMessage && game.settings.get(MODULE.ID, 'timerChatTurnPause')) {
                 this.sendChatMessage({
                     isTimerResumed: true,
                     timeRemaining: this.formatTime(this.state.remaining)

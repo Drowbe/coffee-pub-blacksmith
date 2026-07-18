@@ -2799,16 +2799,8 @@ export const registerSettings = () => {
 	});
 
 
-	// Pause/Unpause messges
-	game.settings.register(MODULE.ID, 'timerChatPauseUnpause', {
-		name: MODULE.ID + '.timerChatPauseUnpause-Label',
-		hint: MODULE.ID + '.timerChatPauseUnpause-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
+	// (Pause/resume message checkboxes live in the NOTIFICATIONS section above,
+	// split per timer: timerChatPlanningPause / timerChatTurnPause)
 
 	// -- Timer Show Notifications --
 	game.settings.register(MODULE.ID, 'timerShowNotifications', {
@@ -3088,27 +3080,8 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- Planning Starting --
-	game.settings.register(MODULE.ID, 'timerChatPlanningStart', {
-		name: MODULE.ID + '.timerChatPlanningStart-Label',
-		hint: MODULE.ID + '.timerChatPlanningStart-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
-	// -- Planning Ending Soon --
-	game.settings.register(MODULE.ID, 'timerChatPlanningRunningOut', {
-		name: MODULE.ID + '.timerChatPlanningRunningOut-Label',
-		hint: MODULE.ID + '.timerChatPlanningRunningOut-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
+	// (Planning start / ending-soon / ended message checkboxes live in the
+	// NOTIFICATIONS section above)
 
 	// -- Planning Timer Ending Soon Threshold --
 	game.settings.register(MODULE.ID, 'planningTimerEndingSoonThreshold', {
@@ -3252,17 +3225,9 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	
-	// -- Turn Starting --
-	game.settings.register(MODULE.ID, 'timerChatTurnStart', {
-		name: MODULE.ID + '.timerChatTurnStart-Label',
-		hint: MODULE.ID + '.timerChatTurnStart-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
+
+	// (Turn start / critical / ended message checkboxes live in the
+	// NOTIFICATIONS section above)
 
 	// Combat Timer Settings
 	game.settings.register(MODULE.ID, 'combatTimerStartSound', {
@@ -3300,17 +3265,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});	
 
-	// -- Combat Timer Critical Enabled --
-	game.settings.register(MODULE.ID, 'combatTimerCriticalEnabled', {
-		name: MODULE.ID + '.combatTimerCriticalEnabled-Label',
-		hint: MODULE.ID + '.combatTimerCriticalEnabled-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
 	// -- Critical Threshold --
 	game.settings.register(MODULE.ID, 'combatTimerCriticalThreshold', {
 		name: MODULE.ID + '.combatTimerCriticalThreshold-Label',
@@ -3347,17 +3301,6 @@ export const registerSettings = () => {
 		type: String,
 		default: 'none',
 		choices: BLACKSMITH.arrSoundChoices,
-	});
-
-	// -- Turn Ended --
-	game.settings.register(MODULE.ID, 'timerChatTurnEnded', {
-		name: MODULE.ID + '.timerChatTurnEnded-Label',
-		hint: MODULE.ID + '.timerChatTurnEnded-Hint',
-		scope: "world",
-		config: true,
-		type: Boolean,
-		default: false,
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
 	// -- Expired Message --
@@ -3497,7 +3440,11 @@ export const registerSettings = () => {
 	// ====================================================================================================================
 	registerHeader('Notifications', 'headingH1Notifications-Label', 'headingH1Notifications-Hint', 'H1', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
 
-	// -- LEADER CHANGES --
+	// --------------------------------------
+	// -- H2: LEADER
+	// --------------------------------------
+	registerHeader('NotifyLeader', 'headingH2NotifyLeader-Label', 'headingH2NotifyLeader-Hint', 'H2', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
+
 	game.settings.register(MODULE.ID, 'notifyLeaderChange', {
 		name: MODULE.ID + '.notifyLeaderChange-Label',
 		hint: MODULE.ID + '.notifyLeaderChange-Hint',
@@ -3509,7 +3456,11 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 
-	// -- MOVEMENT CHANGES --
+	// --------------------------------------
+	// -- H2: MOVEMENT
+	// --------------------------------------
+	registerHeader('NotifyMovement', 'headingH2NotifyMovement-Label', 'headingH2NotifyMovement-Hint', 'H2', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
+
 	game.settings.register(MODULE.ID, 'notifyMovementChange', {
 		name: MODULE.ID + '.notifyMovementChange-Label',
 		hint: MODULE.ID + '.notifyMovementChange-Hint',
@@ -3521,7 +3472,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 
-	// -- MARCHING ORDER CARD --
 	game.settings.register(MODULE.ID, 'notifyMarchingOrder', {
 		name: MODULE.ID + '.notifyMarchingOrder-Label',
 		hint: MODULE.ID + '.notifyMarchingOrder-Hint',
@@ -3532,7 +3482,11 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 
-	// -- SESSION TIMER --
+	// --------------------------------------
+	// -- H2: SESSION TIMER
+	// --------------------------------------
+	registerHeader('NotifySessionTimer', 'headingH2NotifySessionTimer-Label', 'headingH2NotifySessionTimer-Hint', 'H2', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
+
 	game.settings.register(MODULE.ID, 'notifySessionTimer', {
 		name: MODULE.ID + '.notifySessionTimer-Label',
 		hint: MODULE.ID + '.notifySessionTimer-Hint',
@@ -3544,7 +3498,11 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 
-	// -- PLANNING TIMER --
+	// --------------------------------------
+	// -- H2: PLANNING TIMER
+	// --------------------------------------
+	registerHeader('NotifyPlanningTimer', 'headingH2NotifyPlanningTimer-Label', 'headingH2NotifyPlanningTimer-Hint', 'H2', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
+
 	game.settings.register(MODULE.ID, 'notifyPlanningTimer', {
 		name: MODULE.ID + '.notifyPlanningTimer-Label',
 		hint: MODULE.ID + '.notifyPlanningTimer-Hint',
@@ -3556,7 +3514,57 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 
-	// -- COMBAT TIMER --
+	// Moved from the planning timer section — which message kinds fire
+	game.settings.register(MODULE.ID, 'timerChatPlanningStart', {
+		name: MODULE.ID + '.timerChatPlanningStart-Label',
+		hint: MODULE.ID + '.timerChatPlanningStart-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// Split from the old shared timerChatPauseUnpause (planning half)
+	game.settings.register(MODULE.ID, 'timerChatPlanningPause', {
+		name: MODULE.ID + '.timerChatPlanningPause-Label',
+		hint: MODULE.ID + '.timerChatPlanningPause-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// Previously registered but never read (the warning gate used the legacy
+	// timerShowNotifications master); now wired as the threshold-message gate in
+	// timer-planning.js. Default true preserves the effective prior behavior.
+	game.settings.register(MODULE.ID, 'timerChatPlanningRunningOut', {
+		name: MODULE.ID + '.timerChatPlanningRunningOut-Label',
+		hint: MODULE.ID + '.timerChatPlanningRunningOut-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// New — the ended message previously always sent; default true preserves that
+	game.settings.register(MODULE.ID, 'timerChatPlanningEnded', {
+		name: MODULE.ID + '.timerChatPlanningEnded-Label',
+		hint: MODULE.ID + '.timerChatPlanningEnded-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// --------------------------------------
+	// -- H2: COMBAT TIMER
+	// --------------------------------------
+	registerHeader('NotifyCombatTimer', 'headingH2NotifyCombatTimer-Label', 'headingH2NotifyCombatTimer-Hint', 'H2', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
+
 	game.settings.register(MODULE.ID, 'notifyCombatTimer', {
 		name: MODULE.ID + '.notifyCombatTimer-Label',
 		hint: MODULE.ID + '.notifyCombatTimer-Hint',
@@ -3565,6 +3573,48 @@ export const registerSettings = () => {
 		type: String,
 		choices: NOTIFICATION_CHANNEL_CHOICES,
 		default: 'toast',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// Moved from the combat timer section — which message kinds fire
+	game.settings.register(MODULE.ID, 'timerChatTurnStart', {
+		name: MODULE.ID + '.timerChatTurnStart-Label',
+		hint: MODULE.ID + '.timerChatTurnStart-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// Split from the old shared timerChatPauseUnpause (combat half)
+	game.settings.register(MODULE.ID, 'timerChatTurnPause', {
+		name: MODULE.ID + '.timerChatTurnPause-Label',
+		hint: MODULE.ID + '.timerChatTurnPause-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	game.settings.register(MODULE.ID, 'combatTimerCriticalEnabled', {
+		name: MODULE.ID + '.combatTimerCriticalEnabled-Label',
+		hint: MODULE.ID + '.combatTimerCriticalEnabled-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	game.settings.register(MODULE.ID, 'timerChatTurnEnded', {
+		name: MODULE.ID + '.timerChatTurnEnded-Label',
+		hint: MODULE.ID + '.timerChatTurnEnded-Hint',
+		scope: "world",
+		config: true,
+		type: Boolean,
+		default: false,
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 
