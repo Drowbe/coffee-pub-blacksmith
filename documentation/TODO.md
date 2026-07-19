@@ -285,9 +285,9 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 
 #### Card CSS migration to theme system
 - **Issue**: Card-type CSS files (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.css`) still use hardcoded colors; they should use the CSS variable theme system for consistency and themeability.
-- **Status**: PENDING – Checklist and strategy documented
-- **Location**: `documentation/architecture/architecture-chatcards.md` → "Migration (internal)" → "Card CSS migration checklist (detailed)"; `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css`
-- **Need**: Replace hardcoded colors with `var(--blacksmith-card-*)`; add XP/skill-check/stats-specific or semantic variables where needed; define new variables in `cards-common-layout.css` / `cards-common-themes.css`; test all card types with all themes.
+- **Status**: PENDING
+- **Location**: `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css`; new variables go in `styles/cards-common-layout.css` (`:root`) and `styles/cards-common-themes.css` (per theme). The as-built theme system is described in `documentation/architecture/architecture-chatcards.md`.
+- **Need**: Grep each card-type file for hardcoded `color`/`background`/`border-color` values and replace with `var(--blacksmith-card-*)`, reusing existing theme variables where the meaning matches and adding XP/skill-check/stats-specific or semantic (success/failure/warning) variables — all `--blacksmith-card-` prefixed — where none fit. Decide per semantic color whether it is theme-dependent (add to each theme) or fixed (keep hardcoded, document). Keep layout/spacing in the layout file, colors in the variable blocks. Test every card type under all themes.
 - **Priority**: High – Improves theme consistency and maintainability
 
 ### Medium Priority

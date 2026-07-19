@@ -78,7 +78,7 @@ Registers a new tool with the Blacksmith toolbar system.
 - `onClick` (Function, required): Function to execute when tool is clicked
 - `button` (boolean, optional): Whether to show as button. **Defaults to `true`** - FoundryVTT v13 requires `button: true` for toolbar display. Must be `true` for tools to appear in toolbars.
 - `toggle` (boolean, optional): Automatically set to `false` for all tools. Not user-configurable.
-- `visible` (boolean|Function, optional): Whether tool is visible. Defaults to `true` if not provided. Can be a function that returns a boolean for dynamic visibility.
+- `visible` (boolean|Function, optional): Whether the tool is visible in the Blacksmith (CoffeePub) toolbar. Defaults to `true`; can be a function returning a boolean. Note: `visible` is honored **only** on the Blacksmith toolbar — the Foundry native toolbar path (`getFoundryToolbarTools`) gates on `onFoundry`, `gmOnly`, and `leaderOnly` only and does not read `visible`. To hide a tool on the Foundry toolbar, drive it with `onFoundry` (which accepts a function).
 - `zone` (string, optional): Zone for organization (default: "general")
 - `order` (number, optional): Order within zone (default: 999)
 - `moduleId` (string, optional): Module identifier (default: "blacksmith-core")
@@ -141,7 +141,7 @@ Updates toolbar settings.
 
 **Parameters:**
 - `settings` (Object): Settings object
-  - `displayStyle` (string, optional): "none", "dividers", or "labels"
+  - `displayStyle` (string, optional): `"none"`, `"dividers"`, or `"labels"`. The value is written straight to the setting and is **not** validated against the allowed set, so an unrecognized value is stored as-is.
 
 ## Toolbar Targeting
 
@@ -410,9 +410,7 @@ function cleanUpMyTools() {
 }
 ```
 
-> **Call this from your own lifecycle, not from an unload hook.** Foundry has no module-unload event — `disableModule` and `unloadModule` are both dead names that never fire (see `api-hookmanager.md`). Disabling a module reloads the world and tears the toolbar down anyway, so this is only worth calling if *you* turn a feature off at runtime.
->
-> `tool.toolId` is available as of 13.9.x. Before that, `getToolsByModule()` returned objects whose registry key was unrecoverable.
+Call this from your own lifecycle, not from an unload hook. Foundry has no module-unload event — `disableModule` and `unloadModule` are both dead names that never fire (see `api-hookmanager.md`). Disabling a module reloads the world and tears the toolbar down anyway, so this is only worth calling if you turn a feature off at runtime.
 
 ## Error Handling
 
@@ -428,7 +426,7 @@ The API includes robust error handling:
 1. **Unique Tool IDs**: Use descriptive, unique tool identifiers
 2. **Proper Zone Selection**: Choose the most appropriate zone for your tool
 3. **Consistent Ordering**: Use consistent order values within your module
-4. **Module Cleanup**: Unregister tools when your module is disabled
+4. **Module Cleanup**: Unregister tools only if you disable a feature at runtime — there is no module-unload event, and a world reload clears them otherwise
 5. **Error Handling**: Always check return values and handle errors gracefully
 6. **API Availability**: Check if the API is available before using it
 
@@ -458,33 +456,3 @@ The API includes robust error handling:
 - Verify `onClick` function is provided and valid
 - Check for JavaScript errors in onClick function
 - Ensure tool is not disabled by visibility logic
-
-## Support
-
-For issues or questions about the Blacksmith Toolbar API:
-
-1. Check this documentation first
-2. Review console logs for error messages
-3. Test with a simple tool registration
-4. Contact the Blacksmith development team
-
-## Version History
-
-- **v13.0.8**: FoundryVTT v13 compatibility updates
-  - **Property defaults**: Added automatic defaults for `name` (defaults to `toolId`), `title`, `icon`, and `button` (defaults to `true`)
-  - **Dynamic visibility**: `onCoffeePub` and `onFoundry` now support function values for dynamic visibility evaluation
-  - **v13 requirements**: `button: true` is now required for toolbar display (defaults to `true` if not provided)
-  - **External module support**: Improved defaults ensure external modules work correctly even if properties are missing
-  - Updated API documentation to reflect v13 requirements and defaults
-
-- **v12.1.3**: Enhanced toolbar targeting
-  - Added `onCoffeePub` and `onFoundry` parameters for toolbar targeting
-  - Support for FoundryVTT native toolbar integration
-  - Backward compatibility maintained
-  - Updated API documentation
-
-- **v12.1.2**: Initial toolbar API release
-  - Basic tool registration/unregistration
-  - Zone-based organization
-  - Three-tier visibility system
-  - Settings management

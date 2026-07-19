@@ -2,7 +2,7 @@
 
 **Audience:** Modules (e.g. Regent) that build area, encounter, or location journals from JSON and must **not** import Blacksmith `scripts/*`.
 
-**Contract:** Same behavior as Blacksmith’s internal JSON journal import (implemented in `utility-common.js`). Call only after Foundry **`ready`** (GM creates documents).
+**Contract:** Same behavior as Blacksmith's internal JSON journal import (implemented in `utility-common.js`). Call only after Foundry **`ready`** (GM creates documents).
 
 ```javascript
 const api = game.modules.get('coffee-pub-blacksmith')?.api;
@@ -30,22 +30,16 @@ Legacy **`NARRATIVE`** import is **not supported** (use **`AREA`** with `blocks.
 - **Encounter:** `realm`, `region`, `site`, `area`, `scenetitle`, `prepencounter`, `prepencounterdetails`, `preprewards`, `prepsetup`, `sections` / `cards`, `linkedEncounters`, etc.
 - **Location:** `title`, `scenetitle`, `journalname`, `realm`, `region`, `site`, `area`, `locationimage` / `image`, and other fields consumed by the location builder (see `createLocationJournalEntry` in `utility-common.js`).
 
-**Returns:** `Promise<undefined>` — see the warning below.
+**Returns:** `Promise<undefined>`.
 
-> ### ⚠️ This currently resolves to `undefined`, even on success
->
-> This page used to promise `Promise<JournalEntry>`. **It does not return the created entry.** All three builders (`AREA`, `ENCOUNTER`, `LOCATION`) `await JournalEntry.create({...})` and discard the result — there is no `return` on any success path. So:
->
-> ```javascript
-> const entry = await api.createJournalEntry(data);
-> entry.sheet.render(true);   // TypeError: entry is undefined
-> ```
->
-> The journal **is** created correctly; you just don't get a handle to it. Until this is fixed, find it afterwards via the folder/name you passed (e.g. `game.journal.getName(...)`).
->
-> **Also:** unsupported input **throws** rather than being "handled internally" — a `NARRATIVE` journaltype and any unrecognised type both `throw`, as do missing required blocks and template failures. Wrap the call in `try/catch`.
->
-> The documented `Promise<JournalEntry>` shape is the intended contract and the fix is small, but the existing-entry branches need a decision about what they should hand back. Tracked in `documentation/TODO.md`.
+This does not currently return the created entry: it resolves to `undefined` even on success. The journal is created correctly, but you get no handle back — find it afterward by the folder/name you passed (e.g. `game.journal.getName(...)`):
+
+```javascript
+const entry = await api.createJournalEntry(data);
+entry.sheet.render(true);   // TypeError: entry is undefined
+```
+
+Unsupported input throws rather than being handled internally — a `NARRATIVE` journaltype, any unrecognised type, missing required blocks, and template failures all throw — so wrap the call in `try/catch`.
 
 **Permissions:** Creating folders and journal entries requires appropriate GM/world permissions, same as the in-app import.
 
@@ -53,8 +47,7 @@ Legacy **`NARRATIVE`** import is **not supported** (use **`AREA`** with `blocks.
 
 ## Related
 
-- **Window / UI:** Use **`api.registerWindow` / `api.openWindow`** for Application V2 windows; see **documentation/api/api-window.md**.
-- **Wiki:** Mirror this page under the Blacksmith wiki (e.g. **API: Journal** or a subsection of **API: Supplement**) so it sits beside other public APIs.
+- **Window / UI:** Use **`api.registerWindow` / `api.openWindow`** for Application V2 windows; see **`api-window.md`**.
 
 ---
 

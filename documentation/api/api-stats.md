@@ -129,13 +129,9 @@ if (actor) {
 - `clearHistory() -> Promise<void>` deletes all stored combat summaries.
 - `removeCombat(combatId: string) -> Promise<void>` deletes a single summary.
 
-> **Combat history is unbounded.** Every combat is kept, deliberately, so lifetime stats stay verifiable —
-> see `_storeCombatSummary()`. It lives in a **world setting**, so it grows forever and syncs to every
-> client. Use `clearHistory()` / `removeCombat()` to prune. You do **not** need to keep your own archive.
+Combat history is unbounded. Every combat is kept, deliberately, so lifetime stats stay verifiable (see `_storeCombatSummary()`). It lives in a world setting, so it grows forever and syncs to every client. Use `clearHistory()` / `removeCombat()` to prune; you do not need to keep your own archive.
 
-> **To observe stats, listen for the `blacksmith.combatSummaryReady` hook** (fired at combat end with
-> `(summary, combat)`). A `subscribeToUpdates()` / `unsubscribeFromUpdates()` pair used to be documented
-> here; it never worked — callbacks were collected and never invoked — and was removed in 13.9.x.
+To observe stats, listen for the `blacksmith.combatSummaryReady` hook (fired at combat end with `(summary, combat)`). There is no subscription API; use the hook.
 
 Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `totals.attacks` (attempts, hits, misses, crits, fumbles) plus `participants[]` entries that mirror those counts per actor. Consumers no longer receive the raw hit/miss arrays; use the aggregate fields for analytics and the `notableMoments` block for highlights. The `notableMoments` bundle now includes `mvpRankings`—a descending list of per-actor MVP scores (same formula used in the Party Breakdown)—alongside the top MVP entry.
 
@@ -146,7 +142,7 @@ Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `to
 
 **Policy guardrails**:
 - Totals include all damage/healing buckets (including `other` / `unlinked` where applicable).
-- “Top hits / Biggest hit / Weakest hit” moments are **onHit-only**.
+- "Top hits / Biggest hit / Weakest hit" moments are **onHit-only**.
 - Party-wide totals are computed from **player characters only** (participants may include NPCs for context/moments).
 
 When combat ends, `CombatStats._onCombatEnd` emits `Hooks.callAll('blacksmith.combatSummaryReady', combatSummary, combat)` so external modules can react without polling the API. During each round, `Hooks.callAll('blacksmith.roundMvpScore', { actorId, actorUuid, score, rank, name })` fires after the Party Breakdown is generated, which you can use to track per-round leaderboards or persist MVP progress mid-combat.
@@ -263,7 +259,7 @@ console.log('Current combat totals', CombatStatsClass.combatStats?.totals);
 3. `_onUpdateCombat` responds to round and turn transitions. `_onRoundEnd` rolls up round data and resets `currentStats`; `_onRoundStart` prepares the next round and refreshes flags.
 4. `_onCombatEnd` guards against deleted combats, generates the summary, logs it via `postConsoleAndNotification`, fires the `blacksmith.combatSummaryReady` hook, persists the bounded history, and clears transient structures.
 5. Player turn processing (`_processTurnStart`, `_processTurnEnd`) updates session maps and actor lifetime stats, applying bounded arrays to prevent growth issues.
-6. Disabling tracking or unloading the module stops new data from being collected. No explicit teardown runs today, so integrations using `subscribeToUpdates` should clear their subscriptions when tracking toggles off.
+6. Disabling tracking or unloading the module stops new data from being collected. No explicit teardown runs, so integrations should clear their own `blacksmith.combatSummaryReady` listeners when tracking toggles off.
 
 ---
 
@@ -279,7 +275,7 @@ console.log('Current combat totals', CombatStatsClass.combatStats?.totals);
 
 ## Debugging & Instrumentation
 
-Stats logging relies on `postConsoleAndNotification(MODULE.NAME, message, payload, /*debug=*/true, /*notify=*/false)` so messages respect the module’s debug flag. Critical errors, such as storage failures, log with `debug = false` to surface regardless of debug settings. Combat summaries log with the `COMBAT SUMMARY` prefix when combats conclude; filter the console by that phrase to inspect payloads quickly.
+Stats logging relies on `postConsoleAndNotification(MODULE.NAME, message, payload, /*debug=*/true, /*notify=*/false)` so messages respect the module's debug flag. Critical errors, such as storage failures, log with `debug = false` to surface regardless of debug settings. Combat summaries log with the `COMBAT SUMMARY` prefix when combats conclude; filter the console by that phrase to inspect payloads quickly.
 
 ---
 

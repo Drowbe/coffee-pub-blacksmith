@@ -1,8 +1,6 @@
 # **Blacksmith Hook Manager API**
 
-> **For External Module Developers**
-> 
-> This document covers the **Hook Manager** API for registering and managing FoundryVTT hooks through Coffee Pub Blacksmith. For general integration setup, see `api-core.md`.
+**For external module developers.** This document covers the Hook Manager API for registering and managing FoundryVTT hooks through Coffee Pub Blacksmith. For general integration setup, see `api-core.md`.
 
 **Audience:** Developers integrating with Blacksmith and using the Hook Manager for event handling.
 
@@ -46,12 +44,12 @@ const callbackId = BlacksmithHookManager.registerHook({
 });
 ```
 
-> **The three `options` are not freely combinable.** This block previously showed `once`, `throttleMs`, and `debounceMs` all set at once, which is the one shape guaranteed to misbehave:
->
-> - **`throttleMs` + `debounceMs`** → `throttleMs` wins and **`debounceMs` is silently discarded** (the implementation is `if (throttleMs) … else if (debounceMs)`).
-> - **`once` + `debounceMs`** → **your callback never runs.** Debounce only *schedules* the work; `once` then removes the callback the moment the hook fires, and removal clears the pending timer before it elapses. You get a valid callback id, no error, and silence.
->
-> Pick **at most one** of `throttleMs` / `debounceMs`, and don't pair `debounceMs` with `once`. The code does not warn about either combination yet — tracked in `documentation/TODO.md`.
+The three `options` are not freely combinable — do not set `once`, `throttleMs`, and `debounceMs` all at once. Two combinations misbehave silently:
+
+- `throttleMs` + `debounceMs` — `throttleMs` wins and `debounceMs` is silently discarded (the implementation is `if (throttleMs) … else if (debounceMs)`).
+- `once` + `debounceMs` — your callback never runs. Debounce only schedules the work; `once` then removes the callback the moment the hook fires, and removal clears the pending timer before it elapses. You get a valid callback id, no error, and silence.
+
+Pick at most one of `throttleMs` / `debounceMs`, and don't pair `debounceMs` with `once`. The code does not warn about either combination.
 
 ## **Parameter Order (Recommended)**
 
@@ -158,10 +156,10 @@ const uiHookId = BlacksmithHookManager.registerHook({
 });
 ```
 
-> **`html` is not jQuery on v13+.** This example previously registered `renderChatMessage` and called `html.find('.message-content').addClass(...)`. Both halves were wrong:
->
-> - **The name**: on v13 core fires `renderChatMessageHTML` and passes a native `HTMLElement`. (Registering `renderChatMessage` still works — HookManager silently rewrites it to `renderChatMessageHTML` and warns once — but you should register the real name.)
-> - **The call**: `.addClass()` is jQuery and **throws `TypeError`**. Blacksmith bolts a small `.find()` shim onto the element for backward compatibility, but that shim returns a **plain Array** with only `.click` attached — `.find()` survives, `.addClass()` does not. Use `querySelector` / `classList` instead.
+On v13+, `html` is a native `HTMLElement`, not jQuery. Two things to know:
+
+- The name: v13 core fires `renderChatMessageHTML` and passes a native `HTMLElement`. Registering `renderChatMessage` still works — HookManager silently rewrites it to `renderChatMessageHTML` and warns once — but register the real name.
+- The call: `.addClass()` is jQuery and throws `TypeError`. Blacksmith bolts a small `.find()` shim onto the element for backward compatibility, but that shim returns a plain Array with only `.click` attached — `.find()` survives, `.addClass()` does not. Use `querySelector` / `classList` instead.
 
 ## **One-time Hook with Auto-cleanup**
 
@@ -178,7 +176,7 @@ const welcomeHookId = BlacksmithHookManager.registerHook({
 });
 ```
 
-> **There is no `userLogin` hook.** This example used to register one; it appears zero times in Foundry, so the callback never fired — and since this was the *only* example of `once`, anyone testing that feature by copying it concluded `once` was broken. The real hook is `userConnected(user, connected)`.
+Note: there is no `userLogin` hook in Foundry — the real hook is `userConnected(user, connected)`, used above.
 
 ## **Performance-Optimized Hooks**
 
@@ -208,9 +206,7 @@ const debouncedHookId = BlacksmithHookManager.registerHook({
 });
 ```
 
-> **There is no `searchInput` hook.** This example used to register one — zero occurrences in Foundry, so it never fired. It was the only demonstration of `debounceMs`, so the feature looked broken to anyone who tested it by copying this. Debounce is best shown on a hook that genuinely bursts, like `updateActor` or `updateToken`.
->
-> Remember `debounceMs` cannot be combined with `once` or `throttleMs` — see the options caveat above.
+Note: there is no `searchInput` hook in Foundry. Debounce is best shown on a hook that genuinely bursts, like `updateActor` (above) or `updateToken`. Remember `debounceMs` cannot be combined with `once` or `throttleMs` — see the options caveat above.
 
 ---
 
@@ -243,7 +239,7 @@ BlacksmithHookManager.registerHook({ name: 'renderApplication', priority: 4, ...
 BlacksmithHookManager.registerHook({ name: 'renderPlayers', priority: 5, ... });
 ```
 
-> **`renderPlayerList` is a v12 name.** Foundry emits `render{ClassName}` for an Application and each of its parent classes; in v13 the player list class is `Players`, so the hook is **`renderPlayers`**. `renderPlayerList` never fires on v13.
+Note: `renderPlayerList` is a v12 name. Foundry emits `render{ClassName}` for an Application and each of its parent classes; in v13 the player-list class is `Players`, so the hook is `renderPlayers`. `renderPlayerList` never fires on v13.
 
 ---
 
@@ -267,9 +263,9 @@ Wait for activity to settle before running:
 
 ```javascript
 BlacksmithHookManager.registerHook({
-    name: 'searchInput',
-    options: { debounceMs: 300 }, // Wait 300ms after last call
-    callback: (input) => { /* ... */ }
+    name: 'updateActor',
+    options: { debounceMs: 300 }, // Fire once, 300ms after a burst of updates settles
+    callback: (actor, changes) => { /* ... */ }
 });
 ```
 
@@ -279,9 +275,9 @@ Auto-remove after first execution:
 
 ```javascript
 BlacksmithHookManager.registerHook({
-    name: 'userLogin',
+    name: 'userConnected',
     options: { once: true },
-    callback: (user) => { /* ... */ }
+    callback: (user, connected) => { /* ... */ }
 });
 ```
 
@@ -383,20 +379,19 @@ myHookIds.push(BlacksmithHookManager.registerHook({
 BlacksmithHookManager.disposeByContext('my-module');
 ```
 
-> ### ⚠️ Foundry has no module-unload event — do not trust cleanup examples
->
-> Earlier versions of this page taught `Hooks.once('closeGame', …)`. **`closeGame` is not a Foundry hook** — it appears **zero times** in Foundry v13. Registering it succeeds and the callback never runs, so every cleanup written from that example leaked silently.
->
-> The obvious replacement looks like `unloadModule`, which several Blacksmith docs and ~10 places in Blacksmith's own code listen for. **Nothing fires that either.** It appears zero times in Foundry core, and no installed module — Blacksmith included — ever calls `Hooks.call('unloadModule')`. It is a convention that was never given an emitter.
->
-> **What is actually true:** Foundry does not unload modules at runtime. Enabling or disabling a module forces a world reload, which tears down every hook, timer, and listener anyway. So there is no moment at which an "unregister my hooks" callback both fires *and* matters.
->
-> **What to do:**
-> - Use `context` on every `registerHook` (see above). It costs nothing and makes bulk cleanup a single call **if** you ever have a real trigger — your own settings toggle, a window close, a feature being switched off at runtime.
-> - Call `disposeByContext()` from *your* lifecycle, not from a hook you hope exists.
-> - Do not add a `closeGame` / `unloadModule` listener and consider cleanup handled. It is not.
->
-> Tracked in `documentation/TODO.md` — deciding whether Blacksmith should emit `unloadModule` itself (making the existing convention real) or drop it is an open design question.
+### Foundry has no module-unload event — do not trust cleanup examples
+
+Earlier versions of this page taught `Hooks.once('closeGame', …)`. `closeGame` is not a Foundry hook — it appears zero times in Foundry v13. Registering it succeeds and the callback never runs, so every cleanup written from that example leaked silently.
+
+The obvious replacement looks like `unloadModule`, which several Blacksmith docs and ~10 places in Blacksmith's own code listen for. Nothing fires that either: it appears zero times in Foundry core, and no installed module — Blacksmith included — ever calls `Hooks.call('unloadModule')`. It is a convention that was never given an emitter.
+
+What is actually true: Foundry does not unload modules at runtime. Enabling or disabling a module forces a world reload, which tears down every hook, timer, and listener anyway. So there is no moment at which an "unregister my hooks" callback both fires and matters.
+
+What to do:
+
+- Use `context` on every `registerHook` (see above). It costs nothing and makes bulk cleanup a single call if you ever have a real trigger — your own settings toggle, a window close, a feature being switched off at runtime.
+- Call `disposeByContext()` from your lifecycle, not from a hook you hope exists.
+- Do not add a `closeGame` / `unloadModule` listener and consider cleanup handled. It is not.
 
 ---
 
@@ -430,7 +425,7 @@ BlacksmithHookManager.registerHook({
 
 // Use debouncing for user input
 BlacksmithHookManager.registerHook({
-    name: 'searchInput', 
+    name: 'updateActor',
     options: { debounceMs: 500 },
     callback: () => { /* ... */ }
 });

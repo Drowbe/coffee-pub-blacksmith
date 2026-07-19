@@ -4,7 +4,7 @@
 
 ## Overview
 
-The Request a Roll API lets external modules open Blacksmith’s **Request a Roll** (Skill Check) dialog programmatically and optionally pre-fill its state. The dialog is the same one opened by the “Request a Roll” toolbar tool and menubar entry: it lets the GM choose a roll type (skill, ability, save, or tool), select actors (challengers/defenders), set a DC, and send a roll request to chat.
+The Request a Roll API lets external modules open Blacksmith's **Request a Roll** (Skill Check) dialog programmatically and optionally pre-fill its state. The dialog is the same one opened by the "Request a Roll" toolbar tool and menubar entry: it lets the GM choose a roll type (skill, ability, save, or tool), select actors (challengers/defenders), set a DC, and send a roll request to chat.
 
 Request Roll presentation is now driven by an internal feature theme file:
 
@@ -12,7 +12,7 @@ Request Roll presentation is now driven by an internal feature theme file:
 - default file: `modules/coffee-pub-blacksmith/themes/request-roll/theme-requestroll.json`
 - current top-level arrays: `cinematicBanners` and `sounds`
 
-This theme file is for Blacksmith’s internal Request Roll presentation. It is not part of the shared external asset API and should not be treated as a cross-module `BlacksmithConstants` or `AssetLookup` surface.
+This theme file is for Blacksmith's internal Request Roll presentation. It is not part of the shared external asset API and should not be treated as a cross-module `BlacksmithConstants` or `AssetLookup` surface.
 
 Use this API when your module needs to:
 - Open the Request a Roll dialog from a button, macro, or hook
@@ -20,7 +20,7 @@ Use this API when your module needs to:
 - Pre-select a roll type (e.g. Perception, Stealth, Strength save)
 - Set a default DC or actor filter (selected tokens vs party)
 - Pre-check the "Group roll" option (e.g. for party group checks)
-- Override the dialog title for context (e.g. “Spot the trap”)
+- Override the dialog title for context (e.g. "Spot the trap")
 
 ## Getting Started
 
@@ -71,13 +71,13 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options.silent` | `boolean` | If `true`, the dialog is not opened; the roll request is created immediately and posted to chat. Requires `initialValue` or `initialSkill`. Actors come from `initialFilter` ('party' \| 'selected') or from `options.actors`. Returns a Promise resolving to `{ message, messageId }` (module API returns that Promise; drop-in API resolves with it). **If no actors are found** (e.g. no tokens on the scene or none matching the filter), the API falls back to opening the dialog instead of throwing, and the Promise resolves with `{ message: null, messageId: null, fallbackDialog }` so callers can detect the fallback. |
 | `options.title` | `string` | Override the dialog window title (e.g. `"Spot the trap"`). |
 | `options.initialType` | `string` | Pre-select the roll type: `'skill'`, `'ability'`, or `'save'`. |
-| `options.initialValue` | `string` | Id or friendly name for that type. You can pass the system’s CONFIG id (e.g. `'prc'` for Perception in D&D 5e) or a friendly/localized name (e.g. `'perception'`); the dialog resolves it automatically. Skills: `'perception'`, `'stealth'`, `'insight'`, etc.; abilities: `'str'`, `'dex'`, `'con'`, `'int'`, `'wis'`, `'cha'`; saves: same as abilities plus `'death'`. |
+| `options.initialValue` | `string` | Id or friendly name for that type. You can pass the system's CONFIG id (e.g. `'prc'` for Perception in D&D 5e) or a friendly/localized name (e.g. `'perception'`); the dialog resolves it automatically. Skills: `'perception'`, `'stealth'`, `'insight'`, etc.; abilities: `'str'`, `'dex'`, `'con'`, `'int'`, `'wis'`, `'cha'`; saves: same as abilities plus `'death'`. |
 | `options.initialSkill` | `string` | **Legacy.** Same as `initialType: 'skill'` with `initialValue` set to this (e.g. `'perception'`). |
-| `options.dc` | `number` or `string` | Default DC value shown in the dialog’s DC field. |
+| `options.dc` | `number` or `string` | Default DC value shown in the dialog's DC field. |
 | `options.initialFilter` | `string` | Which actor list is active: `'selected'` (only selected tokens) or `'party'` (party filter). When `'party'`, all visible party actors are also pre-selected as challengers. |
 | `options.groupRoll` | `boolean` | If `true`, the "Group roll" checkbox is checked (multiple challengers roll as a group); if `false`, it is unchecked. **When omitted:** in **dialog** mode the checkbox is unchecked; in **silent** mode, if multiple actors are supplied (via `actors` or `initialFilter`), group roll defaults to `true` unless you pass `groupRoll: false`. |
-| `options.situationalBonus` | `number` | Optional. Pre-filled in the **Roll Configuration** window’s "Situational Bonus" field. When using `initialFilter` or the dialog, this value applies to **all** actors. When using `options.actors`, this is the **default** for any actor that does not specify its own `situationalBonus`. |
-| `options.customModifier` | `string` | Optional. Pre-filled in the **Roll Configuration** window’s "Custom Modifier" field (e.g. `"+2"`, `"-1"`). Same scope as `situationalBonus`: all actors when using filter/dialog, or default when using `options.actors`. |
+| `options.situationalBonus` | `number` | Optional. Pre-filled in the **Roll Configuration** window's "Situational Bonus" field. When using `initialFilter` or the dialog, this value applies to **all** actors. When using `options.actors`, this is the **default** for any actor that does not specify its own `situationalBonus`. |
+| `options.customModifier` | `string` | Optional. Pre-filled in the **Roll Configuration** window's "Custom Modifier" field (e.g. `"+2"`, `"-1"`). Same scope as `situationalBonus`: all actors when using filter/dialog, or default when using `options.actors`. |
 | `options.callback` | `Function` | **Not implemented — does nothing.** The value is stored on the dialog and never invoked anywhere. Use `options.onRollComplete` or the `blacksmith.requestRollComplete` hook instead. |
 | `options.onRollComplete` | `Function` | Callback invoked each time a roll result is delivered to the chat card on the local client that registered it. Receives one argument: `(payload)` where `payload` is `{ messageId, message, messageData, tokenId, result, allComplete, requesterId, rollerUserId }`. Called once per roll; unregistered when `allComplete` is true. For cross-client/GM-authoritative handling, use the global hook `Hooks.on('blacksmith.requestRollComplete', ...)`. |
 | `options.actors` | `Array` | Optional actor list. When **silent** mode is used, this is the preferred way to supply actors. Each element may be **(1)** a Foundry **Actor document** (or `{ id: actorId, name? }`), or **(2)** a token-centric object `{ tokenId, actorId, name?, group?, situationalBonus?, customModifier? }`. **Form (2) must use a `tokenId` key** — the token branch is selected by `if (a.tokenId != null && a.actorId != null)`. An object shaped `{ id: tokenId, actorId }` does **not** match: it falls back to matching *every* placeable for that actor, so an actor with two tokens on the scene silently produces **two roll rows instead of the one you named**. (Earlier versions of this table said `{ id: tokenId, ... }`; the worked example below was always correct.) **Per-actor modifiers:** when you pass an array of actor objects, each may include `situationalBonus` (number) and `customModifier` (string) for that actor only. If omitted for an actor, the global `options.situationalBonus` and `options.customModifier` are used. Use this when only some actors get a bonus (e.g. one of two players has +2 for harvest). **Silent mode only** — in dialog mode `actors` is stored and never read, so it does not pre-fill anything. Use `initialFilter` to influence the dialog's actor list. |
@@ -224,7 +224,7 @@ Hooks.on('blacksmith.requestRollComplete', (payload) => {
 
 ## Roll Type and Value Reference
 
-You can pass either the system’s CONFIG id (e.g. D&D 5e uses `prc` for Perception) or a friendly/localized name (e.g. `perception`); the dialog resolves it automatically.
+You can pass either the system's CONFIG id (e.g. D&D 5e uses `prc` for Perception) or a friendly/localized name (e.g. `perception`); the dialog resolves it automatically.
 
 ### Skills (`initialType: 'skill'`)
 
@@ -328,12 +328,12 @@ Hooks.on('my-module.requestRoll', (context) => {
 
 ## Related Documentation
 
-- **`api-menubar.md`** – Menubar and toolbar registration (the “Request Roll” entry uses the same dialog)
+- **`api-menubar.md`** – Menubar and toolbar registration (the "Request Roll" entry uses the same dialog)
 - **`api-toolbar.md`** – Toolbar tool registration
 - **`architecture-rolls.md`** – Roll and skill check flow architecture
 
 ## Implementation Notes
 
 - The Request Roll cinematic overlay and Request Roll-specific sounds are resolved from `theme-requestroll.json`.
-- The old “skill-check backgrounds” terminology has been replaced in this feature theme with `cinematicBanners`.
+- The old "skill-check backgrounds" terminology has been replaced in this feature theme with `cinematicBanners`.
 - These theme assets are feature-local to Request Rolls and are not intended to be consumed by other modules through the general asset mapping system.

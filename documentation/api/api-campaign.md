@@ -377,7 +377,7 @@ Returns a flattened helper object for prompt/template replacement:
 }
 ```
 
-> There is **no `narrativeCardImage`** key (it was listed here previously and never existed on this object). `narrativeCharacterImagePath` is real and was missing from this list.
+This object has no `narrativeCardImage` key; the narrative character image field is `narrativeCharacterImagePath`.
 
 ### Prompt Context Semantics
 

@@ -2,7 +2,7 @@
 
 **Audience:** Developers integrating with Blacksmith and opening or registering Application V2–style windows.
 
-This document describes the **Window API**: how to register a window type with Blacksmith and how to open a window by id. It follows the same registration pattern as the Toolbar API: you register a **window type** (id + descriptor); Blacksmith routes “open this window” to your opener. **You keep full control** of header and body content; Blacksmith provides the zone contract and optional base behavior.
+This document describes the **Window API**: how to register a window type with Blacksmith and how to open a window by id. It follows the same registration pattern as the Toolbar API: you register a **window type** (id + descriptor); Blacksmith routes "open this window" to your opener. **You keep full control** of header and body content; Blacksmith provides the zone contract and optional base behavior.
 
 **Status:** The Window API is exposed on `game.modules.get('coffee-pub-blacksmith').api`. Use this document as the contract for integration.
 
@@ -32,16 +32,16 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 | Surface | Purpose |
 |---------|---------|
 | **Registry** (`registerWindow`, `openWindow`, `unregisterWindow`, …) | Register an **id** and an **opener** so toolbars, macros, and other modules can open your window **without importing your class**. |
-| **Base class** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith’s Application V2 base when you build a window that uses the zone template and shared behavior (scroll save/restore, optional `data-action` delegation, window size constraints). |
+| **Base class** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith's Application V2 base when you build a window that uses the zone template and shared behavior (scroll save/restore, optional `data-action` delegation, window size constraints). |
 
 - Use the **registry** when something else (Blacksmith toolbar, another module, a macro) should call `openWindow('your-id')`.
-- Use **`api.BlacksmithWindowBaseV2`** (recommended) or **`api.getWindowBaseV2()`** when your module defines `class MyWindow extends BlacksmithWindowBaseV2`. **Do not** deep-link `scripts/window-base.js` from another module’s manifest — use **`module.api`**; file paths are not the stable contract.
+- Use **`api.BlacksmithWindowBaseV2`** (recommended) or **`api.getWindowBaseV2()`** when your module defines `class MyWindow extends BlacksmithWindowBaseV2`. **Do not** deep-link `scripts/window-base.js` from another module's manifest — use **`module.api`**; file paths are not the stable contract.
 
 **Availability timing**
 
-- **`BlacksmithWindowBaseV2` / `getWindowBaseV2()`** — Also patched on `module.api` **as soon as Blacksmith’s module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level** (e.g. `class X extends resolveBase()`).
-- **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith’s **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
-- **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith’s `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith’s **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture/architecture-blacksmith.md** §3.2–3.3.
+- **`BlacksmithWindowBaseV2` / `getWindowBaseV2()`** — Also patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level** (e.g. `class X extends resolveBase()`).
+- **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith's **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
+- **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith's `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith's **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture/architecture-blacksmith.md** §3.2–3.3.
 
 ---
 
@@ -64,7 +64,7 @@ See **documentation/applicationv2-window/blacksmith-windows-zones.webp** for the
 
 ## Template data contract (core template)
 
-When you use Blacksmith’s core template (`templates/window-template.hbs`) and extend `BlacksmithWindowBaseV2`, your `getData()` return value can include the following. All are optional unless noted. HTML slots are rendered as HTML (use triple-brace in Handlebars if you author your own template).
+When you use Blacksmith's core template (`templates/window-template.hbs`) and extend `BlacksmithWindowBaseV2`, your `getData()` return value can include the following. All are optional unless noted. HTML slots are rendered as HTML (use triple-brace in Handlebars if you author your own template).
 
 | Key | Type | Description |
 |-----|------|-------------|
@@ -132,7 +132,7 @@ if (blacksmith?.registerWindow) {
         // Registry attaches during Blacksmith ready
     });
 }
-// `blacksmith?.BlacksmithWindowBaseV2` may already exist at module load (see “Availability timing” above).
+// `blacksmith?.BlacksmithWindowBaseV2` may already exist at module load (see "Availability timing" above).
 ```
 
 ### 3. Register Your Window
@@ -158,18 +158,9 @@ From a toolbar tool, macro, or another module:
 blacksmith.openWindow('my-module-window', { /* optional options */ });
 ```
 
-### 5. Unregister on Disable
+### 5. Cleanup
 
-```javascript
-// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
-// Foundry has no module-unload event; disabling a module reloads the world anyway.
-// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
-Hooks.on('unloadModule', (moduleId) => {
-    if (moduleId === 'my-module' && blacksmith?.unregisterWindow) {
-        blacksmith.unregisterWindow('my-module-window');
-    }
-});
-```
+There is no per-module teardown step. Foundry has no module-unload event — `unloadModule` is never fired by Foundry or Blacksmith — and disabling a module reloads the world, which tears everything down anyway. Your registered window types simply go away with the reload. Call `unregisterWindow(id)` only if you need to remove a window type at runtime. See `api-hookmanager.md` for the full explanation of the missing unload event.
 
 ---
 
@@ -193,7 +184,7 @@ Registers a window type with Blacksmith. Only one window per `windowId`; re-regi
 **Descriptor properties:**
 
 - `open` (Function, required): `(options?: Object) => Promise<Application | void> | Application | void`. Called when the window should be opened. Typically instantiates your Application V2 class and calls `render(true)`. May be async.
-- `title` (string, optional): Default window title (e.g. for Foundry’s title bar).
+- `title` (string, optional): Default window title (e.g. for Foundry's title bar).
 - `moduleId` (string, optional): Module id that owns this window (for debugging and cleanup).
 
 **Example:**
@@ -233,7 +224,7 @@ Opens the window registered under `windowId`. The registered `open` function is 
 **Parameters:**
 
 - `windowId` (string): Id of a registered window type.
-- `options` (Object, optional): Passed through to the descriptor’s `open` function. Use for window-specific options (e.g. initial data, size).
+- `options` (Object, optional): Passed through to the descriptor's `open` function. Use for window-specific options (e.g. initial data, size).
 
 **Returns:** `Promise<Application | void> | Application | void` — Whatever the registered `open` returns (typically the rendered Application).
 
@@ -272,14 +263,14 @@ Both are exposed on `module.api`.
 ## Best Practices
 
 1. **Unique window ids** — Use a prefix (e.g. module id) to avoid collisions: `'my-module-settings'`, `'my-module-query'`.
-2. **Unregister on disable** — In `unloadModule`, call `unregisterWindow` for every window id your module registered.
+2. **No manual teardown needed** — Foundry has no module-unload event, and disabling a module reloads the world; your registered window types are cleared automatically. Use `unregisterWindow(id)` only to remove a window type at runtime.
 3. **Zone contract** — Follow the five-zone contract (option bar, header, body, action bar optional; body required) so windows look consistent and any future shared behavior (e.g. base class) applies. See **guidance-applicationv2.md** and the example template.
 4. **Own your content** — Your template and `getData` define header and body; Blacksmith does not inject content into your window.
 5. **Application V2 only** — Build your window with `HandlebarsApplicationMixin(ApplicationV2)` and the patterns in the guidance doc (delegation, scroll save/restore, unique instance id).
 
 ### Application V2: Body injection and scripts
 
-- **Scripts in body/partials do not run.** When Application V2 injects the body part (e.g. from Handlebars), it does **not** execute `<script>` tags inside the injected HTML. Any logic you put in a `<script>` block in a partial will never run. Do not rely on inline `onclick="someFunction()"` unless that function is already defined on `window` by a **module script that runs at load** (e.g. a separate `.js` file in your module’s `esmodules` that assigns `window.someFunction = ...`). Prefer **document-level delegation** and `data-action` so handlers are attached in JS and work regardless of when the body is injected.
+- **Scripts in body/partials do not run.** When Application V2 injects the body part (e.g. from Handlebars), it does **not** execute `<script>` tags inside the injected HTML. Any logic you put in a `<script>` block in a partial will never run. Do not rely on inline `onclick="someFunction()"` unless that function is already defined on `window` by a **module script that runs at load** (e.g. a separate `.js` file in your module's `esmodules` that assigns `window.someFunction = ...`). Prefer **document-level delegation** and `data-action` so handlers are attached in JS and work regardless of when the body is injected.
 - **Body controls (buttons, drop zones)** — If your body contains buttons, drop zones, or other interactive elements, attach their behavior via **document-level** (or stable-wrapper) delegation (e.g. in `_attachDelegationOnce()`), not by querying the body in `activateListeners(html)`. Application V2 may call `activateListeners` with a wrapper element that does not contain the body part, or the body may be injected later; delegation on `document` (with a check that the event target is inside your app root or a known wrapper) ensures clicks are handled regardless.
 - **Legacy inline onclick** — If you have many existing inline `onclick` handlers (e.g. a complex worksheet), you can either: (1) **Migrate** to `data-action` and document-level delegation (recommended long term), or (2) **Keep inline onclick** by moving the handler implementations into a module script that runs at load and assigns them to `window`, so the same attribute strings resolve when the body is injected. With option 2, a module script registers the globals at load and each global delegates to the app instance via a ref.
 
@@ -288,9 +279,9 @@ Both are exposed on `module.api`.
 ## Troubleshooting
 
 - **`registerWindow` / `openWindow` undefined** — Window API not loaded yet. Wait for `ready` and check `game.modules.get('coffee-pub-blacksmith')?.api?.registerWindow`.
-- **Window doesn’t open** — Ensure the window type is registered before calling `openWindow`. Check that `descriptor.open` returns or resolves to the Application instance if you need a reference.
+- **Window doesn't open** — Ensure the window type is registered before calling `openWindow`. Check that `descriptor.open` returns or resolves to the Application instance if you need a reference.
 - **Layout or behavior issues** — Follow **documentation/applicationv2-window/guidance-applicationv2.md** (delegation, scroll save/restore, `_getRoot()`, safe merge of `DEFAULT_OPTIONS`).
-- **Buttons or controls in the body do nothing** — Application V2 may not run `<script>` inside injected body HTML, and `activateListeners(html)` may not receive the body part. Use document-level delegation for body controls (see “Application V2: Body injection and scripts” under Best Practices) or ensure handlers are on `window` from a module that loads before the window opens.
+- **Buttons or controls in the body do nothing** — Application V2 may not run `<script>` inside injected body HTML, and `activateListeners(html)` may not receive the body part. Use document-level delegation for body controls (see "Application V2: Body injection and scripts" under Best Practices) or ensure handlers are on `window` from a module that loads before the window opens.
 
 ---
 

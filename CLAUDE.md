@@ -120,9 +120,31 @@ Name the outcome first — **bug fix / feature / performance / refactor** — be
 **Never hold TODOs in the API or architecture docs.** That is precisely how they drift out of sync with the
 code. Those docs describe what *is* — including "this is currently broken, and here is the truth" when that
 is the reality. Anything shaped like "we should…", "TODO:", "planned", or a task list belongs in `TODO.md`
-and nowhere else. A ⚠️ correction block documenting current broken behavior is allowed, but it is
-**transitional**: when the code is fixed, step 8 deletes the block. It is a description of reality with a
-short shelf life, not a parking spot for work.
+and nowhere else. Documenting current broken behavior is allowed — as plain behavioral prose, not a styled callout — but it is
+**transitional**: when the code is fixed, step 8 updates the sentence to the new reality. It is a description
+of reality with a short shelf life, not a parking spot for work.
+
+### Behavior, not commentary — what an API or architecture doc says
+
+These docs specify what the code **does**, as the contract: specific, present tense, neutral. When current
+behavior is a defect, state the behavior — that *is* the truth a consumer needs — but keep it to behavior.
+Leave out:
+
+- **Implementation narration / root cause.** "All three builders `await X` and discard the result" belongs in
+  `known-issues.md`, not the spec.
+- **History.** "Used to be documented", "removed in 13.9.x" belongs in `CHANGELOG.md`.
+- **Fix status.** "The fix is tracked in…", "intended contract", "open design question" belongs in `TODO.md`.
+
+Where behavior is a known defect that may change, signal it with at most a one-clause hint — "the entry is
+not *currently* returned" — and nothing more.
+
+**Reference direction: link only stable-to-stable, and structural.** A doc may link **code** (`file:line`)
+and another **stable doc** (the api-to-architecture pair). A doc must **not** link the transient lists —
+`known-issues.md` or `TODO.md` — nor carry an "Open work / Remaining work" section. Those lists exist to be
+emptied as things are fixed, so every inbound link is a future broken reference, and it breaks at exactly the
+moment you update the doc after the fix. The transient lists point outward (they cite code and docs); the
+durable docs never point back at them. A reader who wants the backlog opens `TODO.md` or `known-issues.md`
+directly — both stand on their own.
 
 > ⚠️ **The docs in this repo are not trustworthy yet.** Where accuracy has been checked against code, most
 > were substantially wrong — one architecture doc had **zero** real symbols across 24 code blocks. See the
