@@ -298,14 +298,27 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
   4. *Scene styles*: ✅ VERIFIED — applied at Save without reload (then Foundry's `requiresReload` prompt fired redundantly — see follow-up below).
   5. *Combat bar*: ✅ scope filter VERIFIED (other client unaffected). Live-apply is partial — the CSS height var applies instantly but the rest of the bar layout only recomputes on full render, so it looks hybrid until the `requiresReload` reload settles it. **Check whether size 30 renders correctly after reload** — if not, separate cosmetic bug at small sizes.
   6. *Sidebar combat tab*: tested — callback fires but `ui.sidebar.render()` cannot inject/remove the tab; the setting's `requiresReload` covers it. Callback is ineffective-but-harmless for now; keep the reload flag here.
-  7. *Journal tools*: NOT YET — toggle `enableJournalTools` with a journal open → tools icon appears/disappears.
-  8. *Token indicators*: NOT YET — change an indicator style/color → indicators refresh on all clients without reload.
-  9. *Toolbar visibility*: NOT YET — toggle `requestRollShowInFoundryToolbar` → button shows/hides.
-  10. *Encounter toolbar + sidebar pin/style + dice config*: NOT YET — toggle each → UI reacts (pin/style/manual-rolls; deployment label already verified via party bar).
+  7. *Journal tools*: ✅ callback VERIFIED — journal re-renders on toggle, no reload prompt. The icon still doesn't appear, but that is a **separate pre-existing v13 bug** (see "Journal Tools icon missing on v13 sheets" below), not a hook failure.
+  8. *Token indicators*: ✅ VERIFIED — style/color changes apply.
+  9. *Toolbar visibility*: tested — callback fires but the button only disappears after the `requiresReload` reload; live-apply insufficient for Foundry's scene controls here. Keep the reload flag on this one.
+  10. *Sidebar pin/style/manual-rolls*: ✅ VERIFIED — all applied live ("everything worked"), then Foundry redundantly prompted reload → **prime drop-`requiresReload` candidates**. Core dice-config + encounter-toolbar toggles: minor, untested; deployment label already verified via the party bar.
+
+#### Journal Tools icon missing on v13 AppV2 journal sheets — legacy header injection never migrated
+- **Found**: 2026-07-18, during the settingChange verification (toggling `enableJournalTools` re-rendered the sheet but no icon appeared).
+- **Issue**: v13 AppV2 journal sheets moved header icons into the "⋯" controls menu. The export icon in the titlebar was migrated during the v12→v13 move; the Journal Tools icon injection apparently still targets the old header layout, so it never renders on v13 sheets. The author's diagnosis from live testing — treat as the working hypothesis and confirm in code.
+- **Likely site**: `scripts/manager-journal-tools.js` `_onRenderJournalSheet` (and whatever hook it rides — check it fires for AppV2 sheets at all). Fix pattern: register through the AppV2 header-controls hook (`getHeaderControls*` family), mirroring how the export icon was fixed. Note the GM Notes TODO item also wants the header-controls approach — same mechanism, do them consistently.
+- **How to verify**: open a journal on v13 → the Tools entry appears in the "⋯" menu (or titlebar, wherever the export icon lives); toggling `enableJournalTools` shows/hides it on the open sheet without reload.
+- **Priority**: Medium — feature is currently unreachable on v13.
+
+#### Request Roll cannot be fully disabled
+- **Found**: 2026-07-18 (author, during toolbar-visibility testing).
+- **Issue**: `requestRollShowInFoundryToolbar` only hides the Foundry-toolbar button; there is no master off-switch for the Request Roll feature. Harder than it looks: the menubar/CoffeePub toolbar surfaces it too, and **other modules can invoke it via the API** (`SkillCheckDialog` / request-roll surface), so a true disable needs a decision about what a consumer API call does when the feature is "off" (throw? no-op with log? still work headlessly?).
+- **Need**: design the gate first (load gate vs UI-only vs API-refusal — see the §8 load-gate model), then implement across the button surfaces + API entry points.
+- **Priority**: Low-Medium — polish, but the current toggle implies more off than it delivers.
 
 #### Audit `requiresReload` flags now that setting-change handlers are live
 - **Found during the settingChange verification (2026-07-18)**: many settings carry `requiresReload: true` from the era when the change handlers were dead and reload was the *only* way changes applied. Now both mechanisms fire on Save: e.g. scene-title styles apply instantly and then Foundry redundantly prompts for a reload; `menubarCombatSize` half-applies live (CSS var) and needs the reload to settle the rest of the bar layout.
-- **Need**: per-setting decision — where the live handler fully applies the change (scene styles, indicator styles, toolbar visibility…), drop `requiresReload` so Save is clean; where it can't (`sidebarCombatChatEnabled` tab injection, anything wired only at init), keep it. Do this with the settings sheet open and a checklist, not as a blanket sed.
+- **Need**: per-setting decision — where the live handler fully applies the change, drop `requiresReload` so Save is clean; where it can't, keep it. Do this with the settings sheet open and a checklist, not as a blanket sed. **Data from the 2026-07-18 test round**: confirmed DROP candidates — scene-title styles, `sidebarPinUI`, `sidebarStyleUI`, `sidebarManualRollsEnabled` (all applied fully live, prompt was redundant); confirmed KEEP — `sidebarCombatChatEnabled` (tab injection needs the reload), `requestRollShowInFoundryToolbar` (scene-controls button only clears on reload); RECHECK — `menubarCombatSize` (half-applies live; if the bar renders correctly after reload, keep the flag or fix the live path).
 - **How to verify**: for each flag dropped — change the setting, Save → change fully applies with **no reload prompt**; for each kept — the prompt still appears and reload applies it.
 - **Priority**: Medium — pure UX polish, but the redundant prompts now actively misrepresent which settings need a reload.
 - **Leftover found during the audit**: `manager-toolbar.js` watches `tokenImageReplacementShowInFoundryToolbar` / `...CoffeePubToolbar`, which are **registered nowhere** — those branches can never fire. Decide: register the settings or delete the branches (small item).
