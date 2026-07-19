@@ -20,8 +20,8 @@ const kinds = new Map();
  * @property {string} windowIcon
  * @property {object} [position]
  * @property {Array<{value: string, label: string}>} [templateOptions]
- * @property {Array<{id: string, label: string, checked?: boolean, disabled?: boolean, showForTemplate?: string}>} [promptCheckboxes]
- * @property {Array<{id: string, label: string, value?: string, showForTemplate?: string, inputType?: 'text'|'select'|'textarea', fullWidth?: boolean, options?: Array<{value: string, label: string}>}>} [promptFields]
+ * @property {Array<{id: string, label: string, checked?: boolean, disabled?: boolean, showForTemplate?: string, authoringModes?: string}>} [promptCheckboxes]
+ * @property {Array<{id: string, label: string, value?: string, showForTemplate?: string, authoringModes?: string, inputType?: 'text'|'select'|'textarea', fullWidth?: boolean, options?: Array<{value: string, label: string}>}>} [promptFields]
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildPrompt] - Build and return the prompt text; the window delivers it (clipboard or text file).
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildJsonTemplate] - Build a clean JSON-only hand-authoring template.
  * @property {(entries: object[]) => Promise<boolean>} onImport - Parsed entries from {@link parseJsonImportPayload} (via runJsonImport)

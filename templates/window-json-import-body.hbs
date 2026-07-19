@@ -1,10 +1,10 @@
 <div class="blacksmith-json-import-body">
-    <div class="blacksmith-json-import-tab-panel" data-json-import-panel="copy" {{#unless isCopyTab}}hidden{{/unless}}>
+    <div class="blacksmith-json-import-tab-panel" data-json-import-panel="authoring" {{#unless isAuthoringTab}}hidden{{/unless}}>
         <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-section-copy">
             <div class="blacksmith-window-section-body">
                 <div class="blacksmith-window-section-header">
                     <i class="fa-solid fa-list"></i>
-                    <span>Select Prompt Template</span>
+                    <span>{{authoringHeading}}</span>
                 </div>
                 <div class="blacksmith-field-row blacksmith-json-import-template-row">
                     <div class="blacksmith-field blacksmith-json-import-template-field">
@@ -18,16 +18,6 @@
                             {{/if}}
                         </select>
                     </div>
-                    {{#if hasJsonTemplate}}
-                    <div class="blacksmith-field blacksmith-json-import-format-field">
-                        <label class="blacksmith-json-import-prompt-field-label" for="blacksmith-json-import-format">Output</label>
-                        <select id="blacksmith-json-import-format" class="blacksmith-select blacksmith-json-import-format-select">
-                            {{#each promptFormatOptions}}
-                            <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                    {{/if}}
                 </div>
                 {{#if journalAreaUi.hasJournalAreaUi}}
                 <div class="blacksmith-json-import-journal-area" data-for-template="{{journalAreaUi.showForTemplate}}">

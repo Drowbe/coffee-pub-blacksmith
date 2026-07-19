@@ -312,9 +312,9 @@ const itemJsonImportKind = {
     position: { width: 920, height: 680 },
     templateOptions: ITEM_TEMPLATE_OPTIONS,
     get promptCheckboxes() {
-        const options = [{ id: 'includeImageRequest', label: 'Include Image Generation Request', checked: false }];
+        const options = [{ id: 'includeImageRequest', label: 'Include Image Generation Request', checked: false, authoringModes: 'prompt' }];
         if (isArtificerModuleActive()) {
-            options.unshift({ id: 'artificerItem', label: 'Artificer Item', checked: false });
+            options.unshift({ id: 'artificerItem', label: 'Artificer Item', checked: false, authoringModes: 'json prompt' });
         }
         return options;
     },
