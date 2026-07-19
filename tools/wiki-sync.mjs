@@ -51,17 +51,19 @@ const PUBLISH = [
   'api/api-toolbar.md',
   'api/api-window.md',
   // Architecture
+  'architecture/architecture-blacksmith.md',
   'architecture/architecture-chatcards.md',
   'architecture/architecture-hookmanager.md',
   'architecture/architecture-pins.md',
   'architecture/architecture-rolls.md',
   'architecture/architecture-token-naming.md',
   'architecture/architecture-window.md',
+  'architecture/architecture-xp.md',
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
 //   API:          api-tags (blocked on the flags-vs-tags code split)
-//   Architecture: architecture-blacksmith, -socketmanager, -stats, -tags, -toast, -toolbarmanager, -xp
+//   Architecture: architecture-socketmanager, -stats, -tags, -toast, -toolbarmanager
 //   Also held:    known-issues.md (author decision), TODO.md (internal / holds security items)
 
 const HOME_SRC = 'guides/guide-registering-with-blacksmith.md';

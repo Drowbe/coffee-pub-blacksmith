@@ -82,10 +82,12 @@
                         </div>
                         {{/each}}
                     </div>
+                    {{#if isPromptTab}}
                     <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-fields-row-full blacksmith-json-import-additional-context">
                         <span class="blacksmith-json-import-prompt-field-label">{{journalAreaUi.additionalContext.label}}</span>
                         <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{journalAreaUi.additionalContext.id}}" rows="3" autocomplete="off">{{journalAreaUi.additionalContext.value}}</textarea>
                     </label>
+                    {{/if}}
                     </div>
                 </div>
                 {{/if}}
@@ -132,10 +134,12 @@
                             </div>
                         </div>
                     </div>
+                    {{#if isPromptTab}}
                     <label class="blacksmith-json-import-prompt-field-row blacksmith-json-import-journal-fields-row-full blacksmith-json-import-additional-context">
                         <span class="blacksmith-json-import-prompt-field-label">{{journalLocationUi.additionalContext.label}}</span>
                         <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{journalLocationUi.additionalContext.id}}" rows="3" autocomplete="off">{{journalLocationUi.additionalContext.value}}</textarea>
                     </label>
+                    {{/if}}
                     </div>
                 </div>
                 {{/if}}

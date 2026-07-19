@@ -24,7 +24,7 @@ The main static class that handles XP distribution logic and provides the public
 
 ### 2. XpDistributionWindow Class (`scripts/xp-manager.js`)
 
-The FormApplication window that provides the user interface for XP distribution.
+The window that provides the user interface for XP distribution. It extends `BlacksmithWindowBaseV2` (`xp-manager.js:823`), not `FormApplication`.
 
 #### Key Instance Methods:
 - `updateXpCalculations()` - Core calculation engine
@@ -153,23 +153,27 @@ User clicks "Distribute XP"
 
 ## Resolution Types and Multipliers
 
-### Monster Resolution Types:
-- **DEFEATED**: 1.00x XP (Combat Victory)
-- **NEGOTIATED**: 1.50x XP (Diplomatic Success)
-- **CAPTURED**: 1.20x XP (Tactical Success)
-- **ESCAPED**: 0.60x XP (Monster Retreated)
-- **IGNORED**: 0.20x XP (Avoided Entirely)
-- **REMOVED**: 0.00x XP (Excluded Entirely)
+### Monster resolution types
 
-### Party Size Multipliers (D&D 5e Standard):
-- 1 player: 1.0x
-- 2 players: 1.5x
-- 3 players: 2.0x
-- 4 players: 2.5x
-- 5 players: 2.0x
-- 6 players: 1.5x
-- 7 players: 1.25x
-- 8 players: 1.0x
+Each resolution multiplies the monster's base XP. Five of the six are **GM-configurable settings**, read at calculation time by `getResolutionMultipliers()`; `REMOVED` is hardcoded to `0.0` and cannot be configured.
+
+| Resolution | Setting | Default |
+|---|---|---|
+| DEFEATED (combat victory) | `xpMultiplierDefeated` | 1.0 |
+| NEGOTIATED (diplomatic success) | `xpMultiplierNegotiated` | 1.0 |
+| CAPTURED (tactical success) | `xpMultiplierCaptured` | 1.0 |
+| ESCAPED (monster retreated) | `xpMultiplierEscaped` | 0.5 |
+| IGNORED (avoided entirely) | `xpMultiplierIgnored` | 0.0 |
+| REMOVED (excluded entirely) | not configurable | 0.0 |
+
+`xp-manager.js` also defines a static `RESOLUTION_XP_MULTIPLIERS` constant carrying the same default values, but the calculation path does not read it — read the settings, not the constant.
+
+### Party size multipliers
+
+`getPartySizeMultipliers()` branches on the `xpPartySizeHandling` setting (default `'dnd5e'`):
+
+- **`'dnd5e'`** — the D&D 5e standard curve from the static `PARTY_SIZE_MULTIPLIERS`: 1 player 1.0, 2 players 1.5, 3 players 2.0, 4 players 2.5, 5 players 2.0, 6 players 1.5, 7 players 1.25, 8 players 1.0.
+- **`'equal'`** — every party size is `1`, so XP divides equally with no size scaling.
 
 ## CR to XP Conversion
 
@@ -211,27 +215,6 @@ CR_TO_XP = {
 - `.xp-section` - Content sections (monsters, players, milestones)
 - `.hidden` - Hidden sections (display: none !important)
 
-## Known Issues
-
-### Critical Bug: Circular Dependency in XP Calculations
-**Location**: `updateXpCalculations()` method
-**Problem**: The method uses `this.xpData.adjustedTotalXp` which is calculated AFTER `updateXpCalculations()` is called in `_updateXpDisplay()`.
-
-**Current Flow (Broken)**:
-```
-_updateXpDisplay()
-├── updateXpCalculations() ← Uses stale adjustedTotalXp
-├── Calculate adjustedTotalXp ← Too late!
-└── Update display
-```
-
-**Impact**: 
-- Monster resolution changes don't update totals immediately
-- Inconsistent state between individual monster XP and global totals
-- UI shows stale data until another action triggers recalculation
-
-**Solution**: `updateXpCalculations()` should calculate monster bucket from current monster data, not from stale `adjustedTotalXp`.
-
 ## Event Handlers
 
 ### Mode Toggles
@@ -259,7 +242,7 @@ _updateXpDisplay()
 - `game.actors` - Actor data access
 - `game.combat` - Combat state
 - `game.scenes.active` - Scene data
-- `FormApplication` - Window base class
+- `BlacksmithWindowBaseV2` - window base class (Blacksmith's Application V2 base)
 - `ChatMessage` - Chat posting
 - `renderTemplate` - Template rendering
 
