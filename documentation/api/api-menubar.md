@@ -128,7 +128,7 @@ const persistentId = game.modules.get('coffee-pub-blacksmith').api.addNotificati
 );
 
 // Actionable notification: click opens the messages window, pulses for attention
-// ⚠️ onClick runs in Blacksmith's context — keep it self-contained (same rule as tool onClick)
+// onClick runs in Blacksmith's context — keep it self-contained (same rule as tool onClick)
 const unreadId = game.modules.get('coffee-pub-blacksmith').api.addNotification(
     "5 Unread Messages",
     "fas fa-envelope",
@@ -637,15 +637,9 @@ class MyModule {
     }
 }
 
-// Register cleanup when module is disabled
-// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
-// Foundry has no module-unload event; disabling a module reloads the world anyway.
-// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
-Hooks.on('unloadModule', (moduleId) => {
-    if (moduleId === 'my-module') {
-        myModuleInstance.cleanup();
-    }
-});
+// Foundry has no module-unload event, so there is no teardown hook to register.
+// Call cleanup from your own lifecycle when you turn the feature off:
+//   myModuleInstance.cleanup();
 ```
 
 #### Simple Notification Examples
@@ -894,18 +888,10 @@ blacksmith.registerMenubarTool('my-custom-tool', {
 ### Module Cleanup
 
 ```javascript
-// Unregister all tools when module is disabled
-// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
-// Foundry has no module-unload event; disabling a module reloads the world anyway.
-// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
-Hooks.on('unloadModule', (moduleId) => {
-    if (moduleId === 'my-module') {
-        const tools = blacksmith.getMenubarToolsByModule('my-module');
-        tools.forEach(tool => {
-            blacksmith.unregisterMenubarTool(tool.toolId);
-        });
-    }
-});
+// Foundry has no module-unload event, and disabling a module reloads the world, which clears
+// registered tools anyway. Unregister only if you turn a feature off at runtime:
+const tools = blacksmith.getMenubarToolsByModule('my-module');
+tools.forEach(tool => blacksmith.unregisterMenubarTool(tool.toolId));
 ```
 
 ## Error Handling
@@ -944,15 +930,15 @@ blacksmith.registerMenubarTool('my-module-other', {
 });
 ```
 
-> Errors thrown inside `onClick` are caught and logged by Blacksmith so one bad tool cannot break the
-> menubar — which also means a thrown error will not surface as an uncaught exception. Handle your own
-> failures if you need the user to see them.
+Errors thrown inside `onClick` are caught and logged by Blacksmith so one bad tool cannot break the
+menubar — which also means a thrown error will not surface as an uncaught exception. Handle your own
+failures if you need the user to see them.
 
 ## Best Practices
 
 1. **Explicit Parameter Setting**: Always explicitly set all optional parameters when registering tools. This ensures clarity, consistency, and makes your code more maintainable:
    ```javascript
-   // ✅ Good: Explicit parameters
+   // Good: Explicit parameters
    blacksmith.registerMenubarTool('my-tool', {
        icon: "fa-solid fa-icon",
        name: "my-tool",
@@ -974,7 +960,7 @@ blacksmith.registerMenubarTool('my-module-other', {
        onClick: () => {}
    });
    
-   // ❌ Avoid: Relying on defaults (less clear)
+   // Avoid: Relying on defaults (less clear)
    blacksmith.registerMenubarTool('my-tool', {
        icon: "fa-solid fa-icon",
        name: "my-tool",
@@ -1047,15 +1033,6 @@ blacksmith.registerMenubarTool('my-module-other', {
 - Check for JavaScript errors in onClick function
 - Ensure tool is not disabled by visibility logic
 
-## Support
-
-For issues or questions about the Blacksmith Menubar API:
-
-1. Check this documentation first
-2. Review console logs for error messages
-3. Test with a simple tool registration
-4. Contact the Blacksmith development team
-
 ## Secondary Bar API
 
 The menubar supports **secondary bars** - additional toolbars that appear below the main menubar, similar to tabs. Only one secondary bar can be open at a time. When you open a new secondary bar, the existing one automatically closes.
@@ -1092,7 +1069,7 @@ The menubar supports **secondary bars** - additional toolbars that appear below 
 
 The **default tool system** (no custom template) supports:
 
-- **Zones**: Each item can specify a zone: `'left'`, `'middle'`, or `'right'`. Items without a zone default to `'middle'`. The bar renders three regions: left-aligned, center, and right-aligned. This matches the main menubar’s left/middle/right layout so you can build encounter-style bars (info on the sides, actions in the center) without a custom template.
+- **Zones**: Each item can specify a zone: `'left'`, `'middle'`, or `'right'`. Items without a zone default to `'middle'`. The bar renders three regions: left-aligned, center, and right-aligned. This matches the main menubar's left/middle/right layout so you can build encounter-style bars (info on the sides, actions in the center) without a custom template.
 - **Item kinds**:
   - **Button** (default): Clickable item with `icon` or `image` and `onClick`. Same as before.
   - **Info**: Display-only item with `label` and/or `value`. No `onClick`. Use `updateSecondaryBarItemInfo(barTypeId, itemId, { value, label })` to update the displayed text so the bar can show dynamic content (e.g. Party CR, Difficulty) without re-registering.
@@ -1564,7 +1541,7 @@ If the bar is currently open, it re-renders so the new value/label is visible im
 
 ### Reputation API (party bar)
 
-Party reputation is stored in the **world setting** `blacksmithPartyData`, keyed by scene id. Each scene’s data lives under `blacksmithPartyData.scenes[sceneId]` and includes `reputation` (and optionally `uuid`, `title` for display); reputation is a subset of this structure so other party data can be added later. Party reputation is shown in the party bar’s **Reputation** balancebar (left zone). Right-click the bar to set the current scene’s value, send a current-reputation card, or change reputation by ±1 or ±5 (each change posts a **New Reputation** card). Scale labels and descriptions come from `resources/reputation.json`. The following are exposed on `game.modules.get('coffee-pub-blacksmith').api`:
+Party reputation is stored in the **world setting** `blacksmithPartyData`, keyed by scene id. Each scene's data lives under `blacksmithPartyData.scenes[sceneId]` and includes `reputation` (and optionally `uuid`, `title` for display); reputation is a subset of this structure so other party data can be added later. Party reputation is shown in the party bar's **Reputation** balancebar (left zone). Right-click the bar to set the current scene's value, send a current-reputation card, or change reputation by ±1 or ±5 (each change posts a **New Reputation** card). Scale labels and descriptions come from `resources/reputation.json`. The following are exposed on `game.modules.get('coffee-pub-blacksmith').api`:
 
 **getPartyReputation(scene?)**
 - Returns the party reputation for a scene (-100 to +100). Omit `scene` to use the current canvas scene. Value is read from `game.settings.get(MODULE.ID, 'blacksmithPartyData').scenes[sceneId].reputation`.
@@ -1966,7 +1943,7 @@ Hooks.once('ready', async () => {
 
 | Feature | Default Tool System | Custom Template |
 |---------|---------------------|-----------------|
-| **Recommended** | ✅ **Use this by default** | ❌ Only when absolutely necessary |
+| **Recommended** | **Use this by default** | Only when absolutely necessary |
 | **Complexity** | Simple toolbars with buttons | Complex UIs (portraits, health rings, etc.) |
 | **Setup** | Register items, no template needed | Create Handlebars template partial |
 | **Flexibility** | Standardized button layout | Full control over HTML/CSS |
@@ -1990,8 +1967,8 @@ Hooks.once('ready', async () => {
 1. **Default to default tool system**: Always use the default tool system unless you absolutely need a custom template
 2. **Register early**: Register your secondary bar type in a `ready` hook (async if using custom templates)
 3. **Choose the right approach**: 
-   - ✅ **Default tool system**: Use for all simple toolbars (drawing tools, filters, toggles, etc.)
-   - ❌ **Custom templates**: Only use for complex UIs that cannot be achieved with buttons (portraits, health rings, complex nested layouts)
+   - **Default tool system**: Use for all simple toolbars (drawing tools, filters, toggles, etc.)
+   - **Custom templates**: Only use for complex UIs that cannot be achieved with buttons (portraits, health rings, complex nested layouts)
 4. **Unique type IDs**: Use descriptive, unique type IDs (e.g., `'cartographer'`, not `'tools'`)
 5. **Timing-safe registration**: Items can be registered before bar types - they'll be queued automatically
 6. **Template organization**: If using custom templates, keep them simple and focused
@@ -2014,70 +1991,3 @@ Hooks.once('ready', async () => {
 **Bar closes unexpectedly:**
 - Check the `persistence` setting (auto bars close after delay)
 - Verify no other code is calling `closeSecondaryBar()`
-
-## Version History
-
-- **v13.0.0+**: Enhanced Menubar Features
-  - **Main Toolbar Grouping System**: Added tiered grouping system for organizing tools
-    - Added `group` parameter to `registerMenubarTool` for organizing tools into groups
-    - Added `groupOrder` parameter to control group positioning within zones
-    - Groups are separated by visual dividers in the menubar
-    - Blacksmith-defined groups take precedence over other modules
-    - Organization hierarchy: Zone -> Group -> Module -> Order
-    - Blacksmith groups: `"combat"` (order 1), `"utility"` (order 2), `"party"` (order 3), `"general"` (order 999)
-    - Dynamic group creation: modules can create new groups automatically
-  - **Button Color Customization**: Added button tinting support
-    - Added `buttonNormalTint` parameter for custom normal button background color
-    - Added `buttonSelectedTint` parameter for custom active/selected button background color
-    - Both parameters accept any valid CSS color format (hex, rgba, named colors, etc.)
-  - **Enhanced Tool Properties**:
-    - `title` and `tooltip` can now be functions that return strings for dynamic content
-    - `visible` can be a function for dynamic visibility
-    - `iconColor` accepts any valid CSS color format
-  - **Main Toolbar Toggleable**: Added `toggleable` and `active` parameters to `registerMenubarTool`
-  - Added `updateMenubarToolActive()` method for programmatic state updates
-  - **Secondary Bar Groups**: Added group system with two modes:
-    - `'default'` mode: Independent buttons (supports toggleable)
-    - `'switch'` mode: Radio-button behavior (only one active, one always active)
-  - Added `groups` parameter to `registerSecondaryBarType` for group configuration
-  - Added `group` parameter to `registerSecondaryBarItem` for organizing items
-  - Added `toggleable` parameter to `registerSecondaryBarItem` for default-mode groups
-  - Added `updateSecondaryBarItemActive()` method for programmatic state updates
-  - Visual dividers between groups
-  - Group ordering and sorting
-  - Multiple modules can contribute groups to the same bar type
-  - Hybrid Secondary Bar System:
-    - Added default tool system (`registerSecondaryBarItem`, `unregisterSecondaryBarItem`, `getSecondaryBarItems`)
-    - Added `templatePath` parameter to `registerSecondaryBarType` for custom templates
-    - Timing-safe registration: items can be registered before bar types
-    - Automatic template handling for both default and custom templates
-    - Backward compatible with existing combat bar implementation
-
-- **v12.1.8**: Secondary Bar API
-  - Added `registerSecondaryBarType()` method
-  - Added `openSecondaryBar()`, `closeSecondaryBar()`, `toggleSecondaryBar()` methods
-  - Added `updateSecondaryBar()` method for real-time updates
-  - Tab-like behavior: only one secondary bar open at a time
-  - Automatic switching between secondary bars
-  - Persistence modes (manual/auto) with auto-close support
-
-- **v12.1.7**: Enhanced notification system
-  - Added `updateNotification()` method for real-time notification updates
-  - Added `getNotificationIdsByModule()` helper for module notification tracking
-  - Improved timeout management to prevent memory leaks
-  - Enhanced notification lifecycle management
-  - Added comprehensive notification management examples
-
-- **v12.1.6**: Initial menubar API release
-  - Basic tool registration/unregistration
-  - Zone-based organization (left, middle, right)
-  - Three-tier visibility system (GM, Leader, Player)
-  - Dynamic visibility support
-  - Tool ordering and organization
-  - Basic notification system
-
----
-
-**Last Updated**: Current session - Secondary Bar API with tab-like switching  
-**Status**: Production ready with comprehensive integration support  
-**Next Milestone**: Enhanced menubar features and ecosystem integration

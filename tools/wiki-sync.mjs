@@ -42,9 +42,12 @@ const PUBLISH = [
   'api/api-create-journal-entry.md',
   'api/api-gmnotes.md',
   'api/api-hookmanager.md',
+  'api/api-menubar.md',
   'api/api-pins.md',
   'api/api-requestroll.md',
+  'api/api-sockets.md',
   'api/api-stats.md',
+  'api/api-toast.md',
   'api/api-toolbar.md',
   'api/api-window.md',
   // Architecture
@@ -57,7 +60,7 @@ const PUBLISH = [
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
-//   API:          api-menubar, api-sockets, api-toast, api-tags
+//   API:          api-tags (blocked on the flags-vs-tags code split)
 //   Architecture: architecture-blacksmith, -socketmanager, -stats, -tags, -toast, -toolbarmanager, -xp
 //   Also held:    known-issues.md (author decision), TODO.md (internal / holds security items)
 

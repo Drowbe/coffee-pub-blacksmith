@@ -1,10 +1,6 @@
 # Blacksmith Socket API Documentation
 
-> **For External Module Developers Only**
-> 
-> This document covers how **other FoundryVTT modules** can use Blacksmith's socket management system for cross-client communication.
-> 
-> **If you're developing Blacksmith itself**, see `architecture-socketmanager.md` for internal architecture details.
+**For external module developers.** This document covers how other FoundryVTT modules can use Blacksmith's socket management system for cross-client communication.
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
@@ -14,11 +10,10 @@ Blacksmith provides a unified socket management API that handles SocketLib integ
 
 ## What This API Provides
 
-- ✅ **Automatic SocketLib Integration** - Handles SocketLib detection and registration
-- ✅ **Native Fallback** - Automatically falls back to Foundry's native socket system if SocketLib isn't available
-- ✅ **Timing-Safe** - Provides `waitForReady()` to handle initialization timing
-- ✅ **Unified Interface** - Same API regardless of underlying transport (SocketLib or native)
-- ✅ **Event Registration** - Simple `register()` and `emit()` methods
+- **Automatic SocketLib integration** - handles SocketLib detection and registration.
+- **Native fallback** - falls back to Foundry's native socket system when SocketLib isn't installed.
+- **Timing-safe** - `waitForReady()` handles initialization timing.
+- **One interface** - the same `register()` / `emit()` calls regardless of transport, with the two behavioral differences noted under those methods.
 
 ## Accessing the Socket API
 
@@ -86,13 +81,11 @@ Register a socket event handler to receive messages from other clients.
 
 **Returns:** `Promise<boolean>` — Resolves to `true` if registration succeeded.
 
-> ### ⚠️ `register()` overwrites silently, and there is no unregister
->
-> Registering an event name that is already registered **replaces the previous handler and returns `true`**. Nothing is logged — the "already registered" log is guarded such that the *second* registration isn't even reported. There is **no `unregister` method** on `api.sockets`, so a handler can only ever be replaced, never removed.
->
-> **On a world without SocketLib this is sharper than a name collision between modules.** The native fallback puts external handlers in the **same map Blacksmith's own internals use** (`ping`, `pong`, `updateCSS`, `syncTimerState`, `updateSkillRoll`, …). Registering `'ping'` there **silently destroys Blacksmith's latency checker**. With SocketLib the namespaces are separate and this cannot happen.
->
-> The "use module-specific event names" advice below is therefore a **requirement**, not a style preference. Always prefix with your module id: `'my-module.thing'`, never `'thing'`.
+**`register()` overwrites silently, and there is no unregister.** Registering an event name that is already registered replaces the previous handler and returns `true`, with nothing logged. There is no `unregister` method on `api.sockets`, so a handler can only be replaced, never removed.
+
+Without SocketLib this is sharper than a collision between modules: the native fallback puts external handlers in the same map Blacksmith's own internals use (`ping`, `pong`, `updateCSS`, `syncTimerState`, `updateSkillRoll`, and others), so registering `'ping'` there silently destroys Blacksmith's latency checker. With SocketLib the namespaces are separate and this cannot happen.
+
+Prefixing event names with your module id is therefore a requirement, not a style preference: use `'my-module.thing'`, never `'thing'`.
 
 **Example:**
 ```javascript
@@ -128,25 +121,21 @@ Emit a socket message to other clients.
 - `eventName` (string, required): The event name to emit
 - `data` (any, required): The data to send (can be any serializable JavaScript object)
 - `options` (object, optional): Delivery targeting options
-  - `userId` (string, optional): Deliver to one specific user only. If it is your own user ID, your local handler fires. **Rejection on a disconnected target is SocketLib-only — see the warning below.**
+  - `userId` (string, optional): Deliver to one specific user only. If it is your own user ID, your local handler fires. Rejection on a disconnected target is SocketLib-only — see below.
   - `recipients` (array, optional): Array of user IDs to deliver to. Disconnected users are silently skipped; if your own user ID is included, your local handler fires.
 
 With no targeting options, the event is delivered to all other connected clients (never the sender).
 
 **Returns:** `Promise<boolean>` — Resolves to `true` if emit succeeded.
 
-> ### ⚠️ `emit` does not reject under the native fallback
->
-> This page used to say flatly that `emit` "rejects if delivery fails". **That is only true when SocketLib is installed.**
->
-> - **With SocketLib**: `emit` routes to `executeAsUser`, which rejects for a user who isn't connected. The documented behavior holds.
-> - **Without SocketLib** (native fallback): the native `emit` calls `game.socket.emit(...)` and **never inspects `game.users` at all** — no connectivity check, no rejection. It returns nothing, and the wrapper turns that into a resolved **`true`**.
->
-> So on a world without SocketLib, `await sockets.emit('x', data, { userId: someOfflineUser })` **resolves `true`** and the message goes nowhere. A `try/catch` around it will never fire.
->
-> Until this is reconciled (tracked in `documentation/TODO.md`), **do not treat a resolved `emit` as proof of delivery**. If delivery actually matters, check `sockets.isUsingSocketLib()`, or have the receiver acknowledge explicitly.
+**`emit` does not reject under the native fallback.** Rejection on a failed delivery is SocketLib-only:
 
-> **Privacy note:** Targeting controls which clients *dispatch* the event to their registered handlers — it is not wire-level privacy. Under both transports (SocketLib and the native fallback) the payload is broadcast to every connected client and filtered on receipt, so anyone inspecting socket traffic (e.g., via the browser console) can see it. Never send secrets through `sockets.emit()`.
+- **With SocketLib**, `emit` routes to `executeAsUser`, which rejects for a user who is not connected.
+- **Without SocketLib** (native fallback), `emit` calls `game.socket.emit(...)` and never inspects `game.users` — no connectivity check and no rejection. It returns nothing, and the wrapper turns that into a resolved `true`.
+
+So on a world without SocketLib, `await sockets.emit('x', data, { userId: someOfflineUser })` resolves `true` and the message goes nowhere; a `try/catch` around it never fires. Do not treat a resolved `emit` as proof of delivery. If delivery matters, check `sockets.isUsingSocketLib()`, or have the receiver acknowledge explicitly.
+
+**Privacy:** targeting controls which clients dispatch the event to their registered handlers — it is not wire-level privacy. Under both transports the payload is broadcast to every connected client and filtered on receipt, so anyone inspecting socket traffic can see it. Never send secrets through `sockets.emit()`.
 
 **Example:**
 ```javascript
@@ -228,16 +217,16 @@ if (socket && socket.executeForOthers) {
 }
 ```
 
-> **There is no `emitToOthers`.** Earlier versions of this page showed `socket.emitToOthers(...)` guarded by `if (socket && socket.emitToOthers)`. That method does not exist on either wrapper — and because the example guarded on it, the block was a **silent no-op that never warned**. The real method is `executeForOthers`.
->
-> **The available methods depend on the transport** — which is exactly why `getSocket()` is a last resort:
->
-> | Method | SocketLib | Native fallback |
-> |---|---|---|
-> | `register`, `emit`, `executeForOthers` | ✅ | ✅ |
-> | `executeForAll`, `executeForEveryone`, `executeAsGM` | ✅ | ❌ **undefined** |
->
-> Check `sockets.isUsingSocketLib()` before reaching for anything in the second row.
+There is no `emitToOthers` on either wrapper — the real method is `executeForOthers`. A guard like `if (socket && socket.emitToOthers)` is a silent no-op that never warns.
+
+The available methods depend on the transport, which is why `getSocket()` is a last resort:
+
+| Method | SocketLib | Native fallback |
+|---|---|---|
+| `register`, `emit`, `executeForOthers` | Yes | Yes |
+| `executeForAll`, `executeForEveryone`, `executeAsGM` | Yes | No — `undefined` |
+
+Check `sockets.isUsingSocketLib()` before reaching for anything in the second row.
 
 ## Complete Example
 
@@ -280,15 +269,15 @@ Hooks.once('ready', async () => {
 ## Event Naming Best Practices
 
 1. **Use Module Prefixes**: Always prefix events with your module ID
-   - ✅ Good: `'my-module.eventName'`
-   - ❌ Bad: `'eventName'` (might conflict with other modules)
+   - Good: `'my-module.eventName'`
+   - Avoid: `'eventName'` (might conflict with other modules)
 
 2. **Use Descriptive Names**: Make event names clear and specific
-   - ✅ Good: `'cartographer.drawingStarted'`
-   - ❌ Bad: `'cartographer.event1'`
+   - Good: `'cartographer.drawingStarted'`
+   - Avoid: `'cartographer.event1'`
 
 3. **Follow Conventions**: Use dot notation for namespacing
-   - ✅ Good: `'module.category.action'`
+   - Good: `'module.category.action'`
    - Example: `'my-module.sync.update'`
 
 ## Error Handling
@@ -398,10 +387,10 @@ await sockets.emit('event', data);
 ```
 
 **Benefits:**
-- ✅ No need to detect/manage SocketLib yourself
-- ✅ Automatic fallback if SocketLib isn't available
-- ✅ Consistent API across Coffee Pub modules
-- ✅ Less code to write and maintain
+- No need to detect/manage SocketLib yourself
+- Automatic fallback if SocketLib isn't available
+- Consistent API across Coffee Pub modules
+- Less code to write and maintain
 
 ## Troubleshooting
 
@@ -453,7 +442,6 @@ console.log('Handler registered for my-module.event');
 
 ## Related Documentation
 
-- **Internal Architecture**: See `architecture-socketmanager.md` for Blacksmith developers
 - **SocketLib Documentation**: See [SocketLib documentation](https://github.com/manuelVo/foundryvtt-socketlib) for advanced features
 - **Blacksmith Core API**: See `api-core.md` for general API access
 
@@ -467,18 +455,3 @@ console.log('Handler registered for my-module.event');
 | `isReady()` | `boolean` | Check if socket is ready |
 | `isUsingSocketLib()` | `boolean` | Check which transport is used |
 | `getSocket()` | `Object\|null` | Get underlying socket (advanced) |
-
-## Support
-
-For issues or questions:
-1. Check this documentation
-2. Review console logs for errors
-3. Verify SocketLib is installed (if expecting SocketLib features)
-4. Contact the Blacksmith development team
-
----
-
-**Last Updated**: Current session  
-**Status**: Production ready  
-**API Version**: 1.0.0
-
