@@ -1,0 +1,39 @@
+{
+  "itemName": "Hushbell Charm",
+  "itemDescription": "<p>A muted charm that quiets nearby gear while worn.</p>",
+  "itemDescriptionUnidentified": "",
+  "itemDescriptionChat": "",
+  "itemGMNotes": "",
+  "itemType": "Equipment",
+  "itemSubType": "Trinket",
+  "itemSubTypeNuance": "",
+  "itemRarity": "uncommon",
+  "itemQuantity": 1,
+  "itemWeight": 0,
+  "itemPrice": "50 GP",
+  "itemIdentified": true,
+  "itemImagePath": "icons/svg/silenced.svg",
+  "itemImageTerms": [],
+  "itemImageNuance": "",
+  "itemIsMagical": true,
+  "magicalAttunementRequired": "attunement not required",
+  "itemLimitedUses": 1,
+  "limitedUsesSpent": 0,
+  "limitedUsesMax": 1,
+  "destroyOnEmpty": false,
+  "itemRecoveryPeriod": "none",
+  "itemSource": "Burden of Knowledge",
+  "itemLicense": "CC BY 4.0",
+  "activities": [],
+  "passiveEffects": [
+    {
+      "name": "Hushbell Reminder",
+      "img": "",
+      "description": "Advantage on Dexterity (Stealth) checks made specifically to avoid noise from worn gear.",
+      "activation": "equipped",
+      "statuses": [],
+      "changes": [],
+      "flags": {}
+    }
+  ]
+}

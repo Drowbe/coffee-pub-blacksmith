@@ -130,6 +130,8 @@ export async function buildItemJsonTemplate(templateKey, options = {}) {
         activities: []
     };
 
+    if (key === 'equipment') data.passiveEffects = [];
+
     if (key === 'feature') {
         Object.assign(data, {
             featureType: 'monster',

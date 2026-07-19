@@ -215,6 +215,8 @@ JSON TEMPLATE
   "activities": [ACTIVITIES]
 }
 
+Equipment profiles may additionally define passiveEffects; follow the Equipment profile's restricted contract. Do not use passiveEffects for other friendly Item types unless their profile explicitly allows it.
+
 ----------------------------
 USAGE INSTRUCTIONS
 ----------------------------

@@ -222,6 +222,42 @@ function _attunementValue(value) {
     throw new Error(`Unsupported magicalAttunementRequired "${value}"`);
 }
 
+function _buildEquipmentPassiveEffects(flat, img) {
+    if (flat.passiveEffects == null) return [];
+    if (!Array.isArray(flat.passiveEffects)) throw new Error('passiveEffects must be an array');
+    const attunement = _attunementValue(flat.magicalAttunementRequired);
+    return flat.passiveEffects.map((effect, index) => {
+        if (!effect || typeof effect !== 'object' || !String(effect.name || '').trim()) {
+            throw new Error(`Passive effect ${index + 1}: name is required`);
+        }
+        const activation = String(effect.activation || 'equipped').trim();
+        if (!['equipped', 'equippedAndAttuned'].includes(activation)) {
+            throw new Error(`Passive effect ${index + 1}: activation must be "equipped" or "equippedAndAttuned"`);
+        }
+        if (activation === 'equippedAndAttuned' && (!flat.itemIsMagical || attunement !== 'required')) {
+            throw new Error(`Passive effect ${index + 1}: equippedAndAttuned requires a magical Item with required attunement`);
+        }
+        if (effect.changes != null && (!Array.isArray(effect.changes) || effect.changes.length)) {
+            throw new Error(`Passive effect ${index + 1}: changes must be [] in the friendly Equipment schema; use native Item JSON for Active Effect changes`);
+        }
+        if (effect.statuses != null && !Array.isArray(effect.statuses)) {
+            throw new Error(`Passive effect ${index + 1}: statuses must be an array`);
+        }
+        return {
+            _id: foundry.utils.randomID(),
+            name: effect.name,
+            img: effect.img || img || 'icons/svg/aura.svg',
+            description: effect.description || '',
+            disabled: false,
+            duration: { seconds: null, rounds: null, turns: null },
+            changes: [],
+            statuses: effect.statuses || [],
+            transfer: true,
+            flags: effect.flags && typeof effect.flags === 'object' ? effect.flags : {}
+        };
+    });
+}
+
 function _sharedItemSystem(flat) {
     return {
         description: {
@@ -681,6 +717,7 @@ export async function parseFlatItemToFoundry(flat) {
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
     } else if (type === 'equipment') {
+        const passiveEffects = _buildEquipmentPassiveEffects(flat, img);
         data = {
             type: 'equipment',
             name: flat.itemName,
@@ -690,6 +727,7 @@ export async function parseFlatItemToFoundry(flat) {
                 type: { value: (flat.itemSubType || 'trinket').toLowerCase().replace(/\s+/g, '-') },
                 properties: _physicalItemProperties(flat)
             },
+            effects: passiveEffects,
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
         if (flat.itemIsMagical) {

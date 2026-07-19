@@ -9,3 +9,24 @@ Choose itemSubType from: Clothing, Ring, Rod, Trinket, Vehicle Equipment, Wand, 
 Worn or carried gear—not a consumable unless I ask for a usable potion-like item (use Consumable profile instead).
 
 Default: destroyOnEmpty false, activities [] for passive gear. Rings and wondrous items may be magical (itemIsMagical true) with attunement when appropriate.
+
+Passive equipped reminder/status effects may use:
+
+"passiveEffects": [
+  {
+    "name": "Effect Name",
+    "img": "",
+    "description": "What the equipped benefit does and any rules the GM must adjudicate.",
+    "activation": "equipped",
+    "statuses": [],
+    "changes": [],
+    "flags": {}
+  }
+]
+
+- activation is exactly "equipped" or "equippedAndAttuned". The latter requires itemIsMagical true and magicalAttunementRequired "attunement required".
+- Leave img empty to inherit the imported Equipment image.
+- statuses may contain standard dnd5e condition IDs when the passive benefit truly grants that condition; otherwise use [].
+- changes MUST be [] in this first safe phase. Put contextual or relational mechanics in description for GM adjudication. Use native Foundry Item JSON when exact Active Effect changes are required.
+- The effect transfers to an Actor and dnd5e suppresses it while the Equipment is unequipped; equippedAndAttuned is also suppressed until attuned.
+- Use [] when the Equipment has no passive reminder/status effect.
