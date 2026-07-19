@@ -222,7 +222,7 @@ function _attunementValue(value) {
     throw new Error(`Unsupported magicalAttunementRequired "${value}"`);
 }
 
-function _buildEquipmentPassiveEffects(flat, img) {
+function _buildEquippablePassiveEffects(flat, img) {
     if (flat.passiveEffects == null) return [];
     if (!Array.isArray(flat.passiveEffects)) throw new Error('passiveEffects must be an array');
     const attunement = _attunementValue(flat.magicalAttunementRequired);
@@ -238,7 +238,7 @@ function _buildEquipmentPassiveEffects(flat, img) {
             throw new Error(`Passive effect ${index + 1}: equippedAndAttuned requires a magical Item with required attunement`);
         }
         if (effect.changes != null && (!Array.isArray(effect.changes) || effect.changes.length)) {
-            throw new Error(`Passive effect ${index + 1}: changes must be [] in the friendly Equipment schema; use native Item JSON for Active Effect changes`);
+            throw new Error(`Passive effect ${index + 1}: changes must be [] in the friendly equippable Item schema; use native Item JSON for Active Effect changes`);
         }
         if (effect.statuses != null && !Array.isArray(effect.statuses)) {
             throw new Error(`Passive effect ${index + 1}: statuses must be an array`);
@@ -289,6 +289,25 @@ const RECOVERY_PERIODS = {
 const FRIENDLY_ACTIVITY_TYPES = new Set(['attack', 'damage', 'heal', 'save', 'utility']);
 const SPELL_SCHOOLS = new Set(['abj', 'con', 'div', 'enc', 'evo', 'ill', 'nec', 'trs']);
 const FEATURE_TYPES = new Set(['background', 'class', 'monster', 'race', 'enchantment', 'feat', 'supernaturalGift', 'vehicle']);
+const WEAPON_TYPES = {
+    'simple melee': 'simpleM', simplem: 'simpleM',
+    'simple ranged': 'simpleR', simpler: 'simpleR',
+    'martial melee': 'martialM', martialm: 'martialM',
+    'martial ranged': 'martialR', martialr: 'martialR',
+    natural: 'natural', improvised: 'improv', improv: 'improv',
+    'siege weapon': 'siege', siege: 'siege'
+};
+const WEAPON_ATTACK_TYPES = { simpleM: 'melee', simpleR: 'ranged', martialM: 'melee', martialR: 'ranged', natural: 'melee', improv: 'melee', siege: 'ranged' };
+const WEAPON_PROPERTIES = {
+    adamantine: 'ada', ada: 'ada', ammunition: 'amm', amm: 'amm', finesse: 'fin', fin: 'fin',
+    firearm: 'fir', fir: 'fir', focus: 'foc', foc: 'foc', heavy: 'hvy', hvy: 'hvy',
+    light: 'lgt', lgt: 'lgt', loading: 'lod', lod: 'lod', magical: 'mgc', mgc: 'mgc',
+    reach: 'rch', rch: 'rch', reload: 'rel', rel: 'rel', returning: 'ret', ret: 'ret',
+    silvered: 'sil', sil: 'sil', special: 'spc', spc: 'spc', thrown: 'thr', thr: 'thr',
+    'two-handed': 'two', twohanded: 'two', two: 'two', versatile: 'ver', ver: 'ver'
+};
+const WEAPON_MASTERIES = new Set(['', 'cleave', 'graze', 'nick', 'push', 'sap', 'slow', 'topple', 'vex']);
+const WEAPON_ABILITIES = new Set(['', 'str', 'dex', 'int', 'wis', 'cha', 'spellcasting', 'none']);
 
 function _identifier(value) {
     return String(value || 'imported-item')
@@ -336,6 +355,120 @@ function _damagePart(formula, damageType) {
         types: type ? [type] : [],
         custom: { enabled: true, formula: raw },
         scaling: { mode: '', number: 1, formula: '' }
+    };
+}
+
+function _emptyDamagePart() {
+    return {
+        number: null, denomination: null, bonus: '', types: [],
+        custom: { enabled: false, formula: '' },
+        scaling: { mode: '', number: 1, formula: '' }
+    };
+}
+
+function _weaponData(flat, img) {
+    const typeToken = String(flat.itemSubType || 'Simple Melee').trim().toLowerCase();
+    const weaponType = WEAPON_TYPES[typeToken];
+    if (!weaponType) throw new Error(`Unsupported Weapon itemSubType "${flat.itemSubType}"`);
+
+    const damageFormula = String(flat.weaponDamageFormula || '').trim();
+    const damageType = String(flat.weaponDamageType || '').trim().toLowerCase();
+    if (!damageFormula) throw new Error('Weapon weaponDamageFormula is required');
+    if (!damageType) throw new Error('Weapon weaponDamageType is required');
+    if (Array.isArray(flat.activities) && flat.activities.length) {
+        throw new Error('Friendly Weapon activities must be []; Blacksmith creates the standard Attack activity automatically');
+    }
+
+    if (!Array.isArray(flat.weaponProperties ?? [])) throw new Error('weaponProperties must be an array');
+    const properties = [];
+    for (const value of flat.weaponProperties ?? []) {
+        const key = WEAPON_PROPERTIES[String(value || '').trim().toLowerCase()];
+        if (!key) throw new Error(`Unsupported weapon property "${value}"`);
+        if (!properties.includes(key)) properties.push(key);
+    }
+    if (flat.itemIsMagical && !properties.includes('mgc')) properties.push('mgc');
+    if (!flat.itemIsMagical && properties.includes('mgc')) {
+        throw new Error('Weapon property Magical requires itemIsMagical true');
+    }
+
+    const versatileFormula = String(flat.weaponVersatileDamageFormula || '').trim();
+    if (properties.includes('ver') !== !!versatileFormula) {
+        throw new Error('Weapon Versatile property and weaponVersatileDamageFormula must be supplied together');
+    }
+    if (properties.includes('ver') && properties.includes('two')) {
+        throw new Error('Weapon cannot be both Versatile and Two-Handed');
+    }
+
+    const mastery = String(flat.weaponMastery || '').trim().toLowerCase();
+    if (!WEAPON_MASTERIES.has(mastery)) throw new Error(`Unsupported weaponMastery "${flat.weaponMastery}"`);
+    const ability = String(flat.weaponAbility || '').trim().toLowerCase();
+    if (!WEAPON_ABILITIES.has(ability)) throw new Error(`Unsupported weaponAbility "${flat.weaponAbility}"`);
+
+    const magicalBonus = Number(flat.weaponMagicalBonus ?? 0);
+    if (!Number.isInteger(magicalBonus) || magicalBonus < 0) throw new Error('weaponMagicalBonus must be a non-negative integer');
+    if (magicalBonus && !flat.itemIsMagical) throw new Error('weaponMagicalBonus requires itemIsMagical true');
+
+    const proficient = flat.weaponProficient == null || flat.weaponProficient === '' ? null : Number(flat.weaponProficient);
+    if (![null, 0, 1].includes(proficient)) throw new Error('weaponProficient must be null, 0, or 1');
+
+    const sourceRange = flat.weaponRange || {};
+    if (typeof sourceRange !== 'object' || Array.isArray(sourceRange)) throw new Error('weaponRange must be an object');
+    const range = { units: String(sourceRange.units || 'ft') };
+    for (const key of ['value', 'long', 'reach']) {
+        const raw = sourceRange[key];
+        if (raw == null || raw === '') range[key] = null;
+        else {
+            const number = Number(raw);
+            if (!Number.isFinite(number) || number < 0) throw new Error(`weaponRange.${key} must be a non-negative number or null`);
+            range[key] = number;
+        }
+    }
+    const attackType = WEAPON_ATTACK_TYPES[weaponType];
+    if ((attackType === 'ranged' || properties.includes('thr')) && !(range.value > 0)) {
+        throw new Error('Ranged and Thrown weapons require weaponRange.value greater than 0');
+    }
+
+    const activity = _activityBase({
+        activityType: 'Attack', activityName: flat.itemName, activityIcon: img,
+        activityFlavorText: flat.itemDescriptionChat || '', activationType: 'action', activationValue: 1,
+        activityTarget: {
+            affectsType: 'creature', affectsCount: 1, choice: false, special: '',
+            templateType: '', templateSize: null, templateWidth: null, templateHeight: null,
+            templateCount: null, contiguous: false, units: range.units, prompt: false
+        }
+    }, 0, 'weapon', false);
+    activity.attack = {
+        ability,
+        bonus: String(flat.weaponAttackBonus || ''),
+        critical: { threshold: null },
+        flat: false,
+        type: { value: attackType, classification: 'weapon' }
+    };
+    activity.damage = { critical: { bonus: '' }, includeBase: true, parts: [] };
+
+    const passiveEffects = _buildEquippablePassiveEffects(flat, img);
+    return {
+        type: 'weapon', name: flat.itemName, img,
+        system: {
+            ..._sharedItemSystem(flat),
+            type: { value: weaponType, baseItem: String(flat.weaponBaseItem || '') },
+            properties,
+            damage: {
+                base: _damagePart(damageFormula, damageType),
+                versatile: versatileFormula ? _damagePart(versatileFormula, damageType) : _emptyDamagePart()
+            },
+            range,
+            mastery,
+            magicalBonus,
+            proficient,
+            ammunition: { type: String(flat.weaponAmmunitionType || '') },
+            activities: { [activity._id]: activity },
+            attunement: flat.itemIsMagical ? _attunementValue(flat.magicalAttunementRequired) : '',
+            attuned: false,
+            equipped: false
+        },
+        effects: passiveEffects,
+        flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
     };
 }
 
@@ -717,7 +850,7 @@ export async function parseFlatItemToFoundry(flat) {
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
     } else if (type === 'equipment') {
-        const passiveEffects = _buildEquipmentPassiveEffects(flat, img);
+        const passiveEffects = _buildEquippablePassiveEffects(flat, img);
         data = {
             type: 'equipment',
             name: flat.itemName,
@@ -747,17 +880,7 @@ export async function parseFlatItemToFoundry(flat) {
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
     } else if (type === 'weapon') {
-        data = {
-            type: 'weapon',
-            name: flat.itemName,
-            img,
-            system: {
-                ...shared,
-                type: { value: (flat.itemSubType || 'simpleM').toLowerCase().replace(/\s+/g, '-') },
-                properties: _physicalItemProperties(flat)
-            },
-            flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
-        };
+        data = _weaponData(flat, img);
     }
 
     if (!data.name || !data.type) {

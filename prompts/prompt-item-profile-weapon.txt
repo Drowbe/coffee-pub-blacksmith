@@ -6,6 +6,43 @@ For this generation, set itemType to "Weapon".
 
 Choose itemSubType from: Simple Melee, Simple Ranged, Martial Melee, Martial Ranged, Natural, Improvised, or Siege Weapon.
 
-Weapons are not consumables: set destroyOnEmpty to false, activities to [] unless the weapon has an unusual activated power (then use Consumable instead).
+Weapons are not consumables: set destroyOnEmpty false and leave the shared activities array empty. Blacksmith creates the standard modern Attack activity from the Weapon fields below.
 
 Set weight, price, and rarity appropriate to the weapon. itemIsMagical and magicalAttunementRequired only if the weapon is clearly magical.
+
+Append these fields to the core JSON object:
+
+"weaponBaseItem": "",
+"weaponDamageFormula": "1d8",
+"weaponDamageType": "slashing",
+"weaponVersatileDamageFormula": "",
+"weaponAbility": "",
+"weaponAttackBonus": "",
+"weaponMagicalBonus": 0,
+"weaponProficient": null,
+"weaponMastery": "",
+"weaponProperties": [],
+"weaponRange": {"value": null, "long": null, "reach": 5, "units": "ft"},
+"weaponAmmunitionType": "",
+"passiveEffects": []
+
+Field rules:
+- weaponBaseItem: optional dnd5e base-item identifier; use "" for a custom weapon. Prefer an exact compendium name reference instead of recreating an official weapon.
+- weaponDamageFormula: required base damage formula such as "1d8". Ability modifiers are applied by dnd5e; do not add @mod.
+- weaponDamageType: required lowercase damage type key such as slashing, piercing, bludgeoning, fire, cold, lightning, acid, poison, psychic, radiant, force, thunder, or necrotic.
+- weaponVersatileDamageFormula: alternate damage such as "1d10"; use "" unless the Versatile property is present.
+- weaponAbility: str, dex, int, wis, cha, spellcasting, none, or "" for dnd5e automatic selection. Finesse weapons should normally use "" so the Actor's best valid ability is selected.
+- weaponAttackBonus: optional formula added to attack rolls, normally "". Magical enhancement bonuses belong in weaponMagicalBonus, not here.
+- weaponMagicalBonus: non-negative integer. When greater than 0, itemIsMagical must be true.
+- weaponProficient: null for Actor-based automatic proficiency, 1 to force proficient, or 0 to force not proficient.
+- weaponMastery: "", cleave, graze, nick, push, sap, slow, topple, or vex.
+- weaponProperties: array using these friendly labels or keys: Adamantine (ada), Ammunition (amm), Finesse (fin), Firearm (fir), Focus (foc), Heavy (hvy), Light (lgt), Loading (lod), Magical (mgc), Reach (rch), Reload (rel), Returning (ret), Silvered (sil), Special (spc), Thrown (thr), Two-Handed (two), or Versatile (ver). itemIsMagical automatically adds mgc; do not duplicate it.
+- weaponRange: non-negative numbers or null. Ranged/thrown weapons use value and optional long; melee weapons normally use reach 5 (or 10 with Reach). units is normally ft.
+- weaponAmmunitionType: optional dnd5e ammunition subtype key; use "" unless Ammunition is present and a subtype is known.
+- passiveEffects: optional always-on effects that transfer while the weapon is equipped. Each entry uses {"name":"...","img":"","description":"...","activation":"equipped","statuses":[],"changes":[],"flags":{}}. activation may be equipped or equippedAndAttuned; equippedAndAttuned requires itemIsMagical true and required attunement. Blank img inherits the weapon image. In this friendly phase changes must remain []; put contextual mechanics in description, or use native Foundry Item JSON when exact Active Effect changes are required.
+
+Consistency requirements:
+- Versatile requires weaponVersatileDamageFormula; a versatile formula requires Versatile.
+- Ammunition is appropriate for ranged weapons; Thrown is appropriate for throwable melee weapons.
+- Magical enhancement requires itemIsMagical true and adds the Magical property.
+- Do not add a second standard Attack entry to activities.

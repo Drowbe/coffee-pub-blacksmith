@@ -130,7 +130,24 @@ export async function buildItemJsonTemplate(templateKey, options = {}) {
         activities: []
     };
 
-    if (key === 'equipment') data.passiveEffects = [];
+    if (key === 'equipment' || key === 'weapon') data.passiveEffects = [];
+
+    if (key === 'weapon') {
+        Object.assign(data, {
+            weaponBaseItem: '',
+            weaponDamageFormula: '1d8',
+            weaponDamageType: 'slashing',
+            weaponVersatileDamageFormula: '',
+            weaponAbility: '',
+            weaponAttackBonus: '',
+            weaponMagicalBonus: 0,
+            weaponProficient: null,
+            weaponMastery: '',
+            weaponProperties: [],
+            weaponRange: { value: null, long: null, reach: 5, units: 'ft' },
+            weaponAmmunitionType: ''
+        });
+    }
 
     if (key === 'feature') {
         Object.assign(data, {
