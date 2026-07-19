@@ -32,13 +32,6 @@ On `registerHook`, combining `once` with `debounceMs` means the callback never r
 
 ## Tags
 
-### Runtime `register()` expects `tags`; the taxonomy JSON expects `flags`
-
-A runtime `tags.register(contextKey, { tags: [...] })` call reads a `tags` array, but the taxonomy JSON loader reads `flags`. A runtime registration written with `flags` yields an empty taxonomy with no warning.
-
-- **Workaround:** use `tags` in runtime `register()`; the shipped `tag-taxonomy.json` uses `flags`.
-- **Fix:** accept `entry?.tags ?? entry?.flags` in both paths, then standardise the docs on `tags` (the JSON must keep accepting `flags` for the shipped file).
-
 ### `seedRegistry()` silently no-ops for players
 
 `tags.seedRegistry(...)` returns immediately on a non-GM client with no warning, so a player-client first-run seed does not happen.

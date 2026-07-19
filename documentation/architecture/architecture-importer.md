@@ -122,6 +122,14 @@ Examples: destination folder/pack, duplicate policy, dry run, and partial-batch 
 
 The selected kind/profile declares its supported options. The UI and API consume the same capability metadata. Unsupported values fail clearly; they are never silently ignored.
 
+## Catalog queries and linked content
+
+Authoring workflows that reference existing content must use a shared, UI-neutral catalog query layer. A query identifies the document kind (`actor` or `item`), source (`world` or selected compendium ids), and typed filters. Actor filters include CR bounds, creature type, size, and name; Item filters include document type, rarity, magical status, and name.
+
+Roll Table profiles use this layer for World Actors, World Items, Compendium Actors, and Compendium Items. Prompt output receives only the filtered catalog, and a guided human template receives the same list with exact names and pack ids. The planned Utility tab will expose these queries directly as plain-text lists; it must not create a second catalog implementation.
+
+Exact linked references are the default. A prompt may explicitly request text fallback, but Blacksmith must never silently convert a misspelled linked result into a different document. Compendium selection is per configured pack and remains part of the request so external callers can reproduce the same output.
+
 ## Output delivery
 
 Every authoring output supports:

@@ -130,7 +130,7 @@ if (!tags?.isAvailable()) {
 
 ### Taxonomy
 
-#### `flags.register(contextKey, taxonomy)`
+#### `tags.register(contextKey, taxonomy)`
 
 Merge a taxonomy entry into the in-memory registry at runtime. Useful for dev-time testing or dynamic contexts not known at ship time. For shipped modules, prefer adding entries directly to `tag-taxonomy.json`.
 
@@ -141,7 +141,9 @@ Runtime entries merge on top of the JSON entries — runtime wins on key collisi
 | Name | Type | Description |
 |---|---|---|
 | `contextKey` | `string` | Context identifier in `{moduleId}.{dataType}` format |
-| `taxonomy` | `object` | `{ label: string, flags: Array<{ key: string, protected?: boolean }> }` |
+| `taxonomy` | `object` | `{ label: string, tags: Array<string \| { key: string, protected?: boolean }> }` |
+
+Use `tags` as the array key. `flags` is also accepted — the shipped `tag-taxonomy.json` uses it, and both readers take either key — but `tags` is the canonical shape. Entries may be plain strings or `{ key, protected }` objects.
 
 **Returns:** `void`
 
@@ -150,7 +152,7 @@ Hooks.on('blacksmithReady', () => {
   const tags = game.modules.get('coffee-pub-blacksmith')?.api?.tags;
   tags?.register('coffee-pub-squire.quests', {
     label: 'Quests',
-    flags: [
+    tags: [
       { key: 'main', protected: true },
       { key: 'side', protected: true },
       { key: 'backstory' },

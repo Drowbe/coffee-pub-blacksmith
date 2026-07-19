@@ -65,6 +65,22 @@ Validated selections declared by the profile. Options have one of three scopes:
 
 A JavaScript object, array of objects, or JSON string accepted for validation/import.
 
+### Catalog query
+
+A reusable request for existing content. The planned API exposes the same query contract used by Roll Table prompts/guides and the future Utility tab:
+
+```javascript
+const result = await importer.queryCatalog({
+  kind: 'actor',
+  source: 'compendium',
+  compendiumIds: ['dnd5e.monsters'],
+  filters: { actorCrMin: 2, actorCrMax: 4, actorType: 'humanoid', nameSearch: '' },
+  format: 'text'
+});
+```
+
+Item filters include item type, rarity, magical status, and name. Actor filters include exact/minimum/maximum CR, creature type, size, and name. Results retain exact document names, ids/UUIDs, pack ids, images, and relevant filter metadata. This method is proposed until published on `module.api`.
+
 ## Capability discovery
 
 ### `getCapabilities(request?)`

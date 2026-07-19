@@ -33,6 +33,8 @@ const WIKI_URL = process.env.WIKI_URL || 'https://github.com/Drowbe/coffee-pub-b
 
 // ---- Round-1 publish set. Add held docs here as they are finished and verified clean. ----
 const PUBLISH = [
+  // Reference
+  'known-issues.md',
   // API
   'api/api-campaign.md',
   'api/api-canvas.md',
@@ -124,9 +126,14 @@ function buildSidebar() {
     PUBLISH.filter((p) => p.startsWith(prefix))
       .map((rel) => `- [${label(rel)}](${pageName(rel)})`)
       .join('\n');
+  // Top-level docs (no api/ or architecture/ prefix) go under Reference.
+  const topLevel = PUBLISH.filter((p) => !p.includes('/'))
+    .map((rel) => `- [${label(rel)}](${pageName(rel)})`)
+    .join('\n');
   return [
     '### Getting started',
     '- [Home](Home)',
+    topLevel,
     '',
     '### API',
     group('api/'),
