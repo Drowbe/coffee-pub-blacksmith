@@ -270,8 +270,7 @@ class MenuBar {
             'sessionTimerSpecificTime'
         ]);
 
-        HookManager.registerHook({
-            name: 'settingChange',
+        HookManager.registerSettingChangeCallback({
             description: 'MenuBar: Apply session Default Time settings when saved',
             context: 'menubar-session-timer-settings',
             priority: 3,
@@ -690,8 +689,7 @@ class MenuBar {
         this._refreshPartyBarInfo();
 
         // Listen for deployment pattern setting changes to update the button label
-        HookManager.registerHook({
-            name: 'settingChange',
+        HookManager.registerSettingChangeCallback({
             description: 'Party Tools: Update deployment pattern button label when pattern changes',
             context: 'party-deployment-pattern',
             priority: 5,

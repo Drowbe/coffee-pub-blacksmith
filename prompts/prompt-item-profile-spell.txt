@@ -16,7 +16,7 @@ Spell-specific fields:
 - castingTime: object with value and units, e.g. {"value": 1, "units": "action"}.
 - spellRange: object with value and units, e.g. {"value": 60, "units": "ft"}; use units "self", "touch", "spec", or "any" when appropriate.
 - spellDuration: object with value and units, e.g. {"value": 1, "units": "minute"}; use units "inst", "perm", or "spec" when appropriate.
-- spellTarget: object with affectsType, affectsCount, templateType, templateSize, and units. Use empty strings/nulls for unused targeting fields.
+- spellTarget: object with affectsType, affectsCount, templateType, templateSize, and units. affectsCount and templateSize are numbers when present and null when unused; do not emit numeric strings.
 
 Spell activities may use only these activityType values: "Attack", "Damage", "Heal", "Save", or "Utility". Most damaging saving-throw spells use one Save activity containing saveAbility, damageFormula, damageType, and onSave ("none", "half", or "full"). Spell attacks use Attack with attackType "melee" or "ranged" and attackAbility "spellcasting".
 
@@ -35,7 +35,7 @@ Append these fields to the core JSON object:
 "castingTime": {"value": 1, "units": "action"},
 "spellRange": {"value": 60, "units": "ft"},
 "spellDuration": {"value": null, "units": "inst"},
-"spellTarget": {"affectsType": "creature", "affectsCount": "1", "templateType": "", "templateSize": "", "units": "ft"}
+"spellTarget": {"affectsType": "creature", "affectsCount": 1, "templateType": "", "templateSize": null, "units": "ft"}
 
 Do not output native Foundry `system` data. Blacksmith converts this friendly schema into the current dnd5e Spell model.
 

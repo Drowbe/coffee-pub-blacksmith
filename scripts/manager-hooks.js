@@ -160,7 +160,47 @@ export class HookManager {
         
         return callbackId;
     }
-    
+
+    /**
+     * Register a callback that fires when a game setting changes.
+     *
+     * Foundry has NO hook named `settingChange` — registrations against it never fire.
+     * What actually fires: world- and user-scoped settings are Setting documents, so their
+     * changes arrive as `createSetting`/`updateSetting` on EVERY client (user-scoped documents
+     * carry a `user` field and are filtered here to the owning client); client-scoped settings
+     * live in localStorage and fire `clientSettingChanged` on the changing client only.
+     * This helper registers all three and normalizes them to one callback shape.
+     *
+     * The callback receives `(namespace, key, value)`. For document events `value` is the
+     * client Setting document's value, which is ALREADY cast to the registered type — never
+     * JSON.parse it (only `_source.value` is the raw JSON string).
+     *
+     * @param {Object} options
+     * @param {string} options.description - Description for debugging
+     * @param {string} options.context - Context for batch cleanup via disposeByContext
+     * @param {number} [options.priority=3] - Priority level (1-5)
+     * @param {string} [options.key] - Optional dedupe key (suffixed per underlying hook)
+     * @param {Function} options.callback - `(namespace, key, value) => void`
+     * @returns {string[]} The three underlying callback ids
+     */
+    static registerSettingChangeCallback({ description = '', context, priority = 3, key, callback }) {
+        const dispatch = (id, value) => {
+            const dot = typeof id === 'string' ? id.indexOf('.') : -1;
+            if (dot < 1) return;
+            callback(id.slice(0, dot), id.slice(dot + 1), value);
+        };
+        const fromDocument = (setting) => {
+            // User-scoped settings broadcast to every client; only the owning user reacts.
+            if (setting?.user && setting.user !== game.userId) return;
+            dispatch(setting?.key, setting?.value);
+        };
+        return [
+            this.registerHook({ name: 'updateSetting', description, context, priority, key: key ? `${key}:update` : undefined, callback: fromDocument }),
+            this.registerHook({ name: 'createSetting', description, context, priority, key: key ? `${key}:create` : undefined, callback: fromDocument }),
+            this.registerHook({ name: 'clientSettingChanged', description, context, priority, key: key ? `${key}:client` : undefined, callback: (id, value) => dispatch(id, value) })
+        ];
+    }
+
     /**
      * Remove a specific hook
      * @param {string} hookName - Hook to remove

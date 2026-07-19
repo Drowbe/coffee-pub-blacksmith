@@ -344,8 +344,7 @@ export class CombatBarManager {
             }
         });
 
-        const combatSizeSettingHookId = HookManager.registerHook({
-            name: 'settingChange',
+        const combatSizeSettingHookId = HookManager.registerSettingChangeCallback({
             description: 'MenuBar: Refresh combat bar when combat size changes',
             context: 'menubar-combat-size-change',
             priority: 3,
@@ -358,8 +357,7 @@ export class CombatBarManager {
             }
         });
 
-        const combatHideDeadSettingHookId = HookManager.registerHook({
-            name: 'settingChange',
+        const combatHideDeadSettingHookId = HookManager.registerSettingChangeCallback({
             description: 'MenuBar: Refresh combat bar when dead combatant visibility changes',
             context: 'menubar-combat-hide-dead-change',
             priority: 3,

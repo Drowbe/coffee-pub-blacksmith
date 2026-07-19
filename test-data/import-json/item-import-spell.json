@@ -34,7 +34,7 @@
   "castingTime": { "value": 1, "units": "action" },
   "spellRange": { "value": 60, "units": "ft" },
   "spellDuration": { "value": 1, "units": "minute" },
-  "spellTarget": { "affectsType": "creature", "affectsCount": "1", "templateType": "", "templateSize": "", "units": "ft" },
+  "spellTarget": { "affectsType": "creature", "affectsCount": 1, "templateType": "", "templateSize": null, "units": "ft" },
   "activities": [
     {
       "activityType": "Save",

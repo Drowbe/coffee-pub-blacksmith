@@ -21,15 +21,19 @@ try {
     });
   });
 
-  // Listen for setting changes to add/remove tab dynamically
-  Hooks.on("settingChange", (moduleId, settingKey, value) => {
-    if (moduleId === MODULE.ID && settingKey === SETTING_ENABLED) {
-      // When setting changes, trigger sidebar re-render to add/remove tab
-      if (ui?.sidebar) {
-        ui.sidebar.render();
-      }
+  // Listen for setting changes to add/remove tab dynamically.
+  // SETTING_ENABLED is user-scoped: it arrives as a Setting document (updateSetting/createSetting)
+  // on every client, so filter to the owning user. There is no core hook named `settingChange`.
+  const onSettingDocChange = (setting) => {
+    if (setting?.key !== `${MODULE.ID}.${SETTING_ENABLED}`) return;
+    if (setting.user && setting.user !== game.userId) return;
+    // When setting changes, trigger sidebar re-render to add/remove tab
+    if (ui?.sidebar) {
+      ui.sidebar.render();
     }
-  });
+  };
+  Hooks.on("updateSetting", onSettingDocChange);
+  Hooks.on("createSetting", onSettingDocChange);
 
   // Also try ready hook as fallback
   Hooks.once("ready", () => {

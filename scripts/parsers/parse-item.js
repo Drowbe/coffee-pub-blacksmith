@@ -362,7 +362,7 @@ function _activityBase(activity, index, parentType, parentHasUses) {
     };
 }
 
-function _buildAppliedEffects(activity, activityIndex, effectDocuments) {
+function _buildAppliedEffects(activity, activityIndex, effectDocuments, defaultImg) {
     if (activity.appliedEffects == null) return [];
     if (!Array.isArray(activity.appliedEffects)) {
         throw new Error(`Activity ${activityIndex + 1}: appliedEffects must be an array`);
@@ -375,7 +375,7 @@ function _buildAppliedEffects(activity, activityIndex, effectDocuments) {
         effectDocuments.push({
             _id: id,
             name: effect.name,
-            img: effect.img || 'icons/svg/aura.svg',
+            img: effect.img || activity.activityIcon || defaultImg || 'icons/svg/aura.svg',
             description: effect.description || '',
             disabled: false,
             duration: {
@@ -395,14 +395,14 @@ function _buildAppliedEffects(activity, activityIndex, effectDocuments) {
     });
 }
 
-function _buildActivities(activities, parentType, parentHasUses = false, effectDocuments = []) {
+function _buildActivities(activities, parentType, parentHasUses = false, effectDocuments = [], defaultImg = '') {
     if (activities == null) return {};
     if (!Array.isArray(activities)) throw new Error('activities must be an array');
     const result = {};
     activities.forEach((activity, index) => {
         if (!activity || typeof activity !== 'object') throw new Error(`Activity ${index + 1} must be an object`);
         const data = _activityBase(activity, index, parentType, parentHasUses);
-        data.effects = _buildAppliedEffects(activity, index, effectDocuments);
+        data.effects = _buildAppliedEffects(activity, index, effectDocuments, defaultImg);
         const damageFormula = activity.damageFormula ?? activity.activityFormula ?? '';
         const damageType = activity.damageType ?? activity.activityEffectType ?? '';
         if (data.type === 'attack') {
@@ -450,7 +450,7 @@ function _featureData(flat, img) {
     const featureUsesMax = flat.featureUsesMax ?? flat.usesMax;
     const hasUses = featureUsesMax != null && featureUsesMax !== '';
     const effects = Array.isArray(flat.effects) ? foundry.utils.deepClone(flat.effects) : [];
-    const activities = _buildActivities(flat.activities, 'feat', hasUses, effects);
+    const activities = _buildActivities(flat.activities, 'feat', hasUses, effects, img);
     return {
         type: 'feat',
         name: flat.itemName,
@@ -492,7 +492,7 @@ function _spellData(flat, img) {
     const target = flat.spellTarget || {};
     const hasUses = flat.usesMax != null && flat.usesMax !== '';
     const effects = Array.isArray(flat.effects) ? foundry.utils.deepClone(flat.effects) : [];
-    const activities = _buildActivities(flat.activities, 'spell', hasUses, effects);
+    const activities = _buildActivities(flat.activities, 'spell', hasUses, effects, img);
     return {
         type: 'spell',
         name: flat.itemName,

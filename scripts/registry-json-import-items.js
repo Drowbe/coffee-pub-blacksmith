@@ -150,8 +150,8 @@ export async function buildItemJsonTemplate(templateKey, options = {}) {
             spellRange: { value: 60, units: 'ft' },
             spellDuration: { value: null, units: 'inst' },
             spellTarget: {
-                affectsType: 'creature', affectsCount: '1',
-                templateType: '', templateSize: '', units: 'ft'
+                affectsType: 'creature', affectsCount: 1,
+                templateType: '', templateSize: null, units: 'ft'
             }
         });
         data.activities = [_friendlyActivityTemplate('Save')];

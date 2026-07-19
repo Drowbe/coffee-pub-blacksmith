@@ -61,9 +61,10 @@ export class SidebarStyle {
      * Register hook for setting changes
      */
     static _registerSettingChangeHook() {
-        // Register settingChange hook to handle external setting changes
-        const settingChangeHookId = HookManager.registerHook({
-            name: 'settingChange',
+        // Register setting-change callback to handle external setting changes
+        // (covers world/user settings via updateSetting/createSetting AND the client-scoped
+        // core.diceConfiguration via clientSettingChanged)
+        const settingChangeHookIds = HookManager.registerSettingChangeCallback({
             description: 'Sidebar Style: Handle setting changes for sidebar style and manual rolls',
             context: 'sidebar-style-settings',
             priority: 3,

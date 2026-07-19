@@ -35,9 +35,8 @@ export class JournalTools {
         // Log hook registration
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalPageSheet", "journal-tools-sheet-page", true, false);
         
-        // Register settingChange hook
-        const settingChangeHookId = HookManager.registerHook({
-			name: 'settingChange',
+        // Register setting-change callback
+        const settingChangeHookIds = HookManager.registerSettingChangeCallback({
 			description: 'Journal Tools: Handle setting changes for journal tools',
 			context: 'journal-tools-settings',
 			priority: 3,
@@ -83,9 +82,16 @@ export class JournalTools {
     static _onSettingChange(moduleId, key, value) {
         if (moduleId === 'coffee-pub-blacksmith') {
             if (key === 'enableJournalTools') {
-                // Refresh any open journal sheets to show/hide the tools icon
+                // Refresh any open journal sheets to show/hide the tools icon.
+                // v13: journal sheets are ApplicationV2 (foundry.applications.instances);
+                // ui.windows only holds legacy AppV1 windows, so check both.
+                for (const app of foundry.applications.instances.values()) {
+                    if (app.document?.documentName === 'JournalEntry') {
+                        app.render();
+                    }
+                }
                 Object.values(ui.windows).forEach(window => {
-                    if (window instanceof JournalSheet) {
+                    if (window.document?.documentName === 'JournalEntry') {
                         window.render(true);
                     }
                 });

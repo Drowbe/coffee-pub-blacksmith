@@ -144,8 +144,7 @@ export class TokenIndicatorManager {
             }
         });
 
-        this._hookIds.settingChange = HookManager.registerHook({
-            name: 'settingChange',
+        this._hookIds.settingChange = HookManager.registerSettingChangeCallback({
             description: 'Token indicators: refresh when indicator settings change',
             context: 'token-indicators',
             priority: 3,

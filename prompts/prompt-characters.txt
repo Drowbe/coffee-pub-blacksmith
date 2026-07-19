@@ -111,7 +111,7 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 
 **Skills (system.skills):**
 - Add skills as needed. `value` is the proficiency multiplier: 0 = not proficient, 0.5 = half proficient, 1 = proficient, 2 = Expertise (e.g., "ste": { "value": 1, "bonus": 0, "ability": "dex" })
-- Common skills: "ath", "acr", "slt", "ste", "arc", "his", "inv", "nat", "rel", "ani", "ins", "med", "prc", "sur", "dec", "int", "prf", "per"
+- Common skills: "ath", "acr", "slt", "ste", "arc", "his", "inv", "nat", "rel", "ani", "ins", "med", "prc", "sur", "dec", "int", "prf", "per". In current dnd5e, `prc` is Perception (normally Wisdom) and `per` is Persuasion (normally Charisma). Never use `per` for Perception, and do not emit zero-proficiency placeholder skills that the creature does not need.
 
 **Items, Spells, and Features:**
 - Prefer an exact official name string when the content already exists in the configured world or compendiums.
@@ -216,8 +216,7 @@ JSON TEMPLATE
     "texture": { "src": "NPCTOKEN", "scaleX": 1, "scaleY": 1 },
     "occlusion": { "mode": 0, "radius": 0 },
     "lightAnimation": { "type": null, "speed": 5, "intensity": 5 },
-    "elevation": 0,
-    "lockRotation": false
+    "elevation": 0
   },
   "prototypeToken": {},
     "items": ITEMSARRAY,

@@ -90,8 +90,7 @@ export class EncounterToolbar {
                 priority: 3,
                 callback: this._onUpdateJournalEntryPage.bind(this)
             }),
-            HookManager.registerHook({
-                name: 'settingChange',
+            ...HookManager.registerSettingChangeCallback({
                 description: 'Encounter Toolbar: Handle setting changes for toolbar configuration',
                 context: 'encounter-toolbar-settings',
                 priority: 3,

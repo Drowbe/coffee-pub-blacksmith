@@ -1126,33 +1126,34 @@ Hooks.once('init', async function() {
     });
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML (initiative hide)", "blacksmith-hide-initiative-roll", true, false);
 
-    // Register settingChange hook for cache management
-    const settingChangeHookId = HookManager.registerHook({
-        name: 'settingChange',
+    // Register setting-change callback for cache management
+    const settingChangeHookIds = HookManager.registerSettingChangeCallback({
         description: 'Blacksmith: Clear settings cache when settings change',
         context: 'blacksmith-settings-cache',
         priority: 3, // Normal priority - cache management
-        callback: async (moduleId, settingKey, value) => {
+        callback: (moduleId, settingKey, value) => {
             //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-            
+
             if (moduleId === MODULE.ID) {
                 clearSettingsCache();
-                
+
                 // Update scene styles when scene-related settings change
                 const sceneSettingPattern = /^(sceneTextAlign|sceneFontSize|sceneTitlePadding|scenePanelHeight)$/;
                 if (sceneSettingPattern.test(settingKey)) {
                     updateSceneStyles();
                 }
-                
+
                 // Rebuild selected compendium arrays if compendium settings changed
                 // Match any numCompendiums* setting, any *Compendium{number} setting, or searchWorld*First/Last settings
                 const compendiumSettingPattern = /^(numCompendiums.+|.+Compendium\d+|searchWorld.+First|searchWorld.+Last)$/;
                 if (compendiumSettingPattern.test(settingKey)) {
-                    // If this is a compendium priority setting (e.g., "actorCompendium1"), trigger reordering
+                    // If this is a compendium priority setting (e.g., "actorCompendium1"), trigger reordering.
+                    // GM only: reorderCompendiumsForType WRITES world settings, and this callback now
+                    // fires on every client — player clients must not attempt world-setting writes.
                     const type = settingKey.startsWith('rulebookCompendium')
                         ? null
                         : extractTypeFromCompendiumSetting(settingKey);
-                    if (type) {
+                    if (type && game.user.isGM) {
                         // Use setTimeout to avoid race conditions and ensure setting is saved
                         setTimeout(async () => {
                             await reorderCompendiumsForType(type);
@@ -1166,13 +1167,13 @@ Hooks.once('init', async function() {
                     buildSelectedCampaignArrays();
                 }
             }
-            
+
             //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
         }
     });
 
     // Log hook registration
-    postConsoleAndNotification(MODULE.NAME, "Hook Manager | settingChange", "blacksmith-settings-cache", true, false);
+    postConsoleAndNotification(MODULE.NAME, "Hook Manager | setting change (updateSetting/createSetting/clientSettingChanged)", "blacksmith-settings-cache", true, false);
     
     // Initialize other systems
     // MenuBar.initialize() already called at start of ready (registers its ready callback)

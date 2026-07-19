@@ -42,9 +42,8 @@ export class SidebarPin {
      * Register hook for setting changes
      */
     static _registerSettingChangeHook() {
-        // Register settingChange hook to handle external setting changes
-        const settingChangeHookId = HookManager.registerHook({
-            name: 'settingChange',
+        // Register setting-change callback to handle external setting changes
+        const settingChangeHookIds = HookManager.registerSettingChangeCallback({
             description: 'Sidebar Pin: Handle setting changes for sidebar pin',
             context: 'sidebar-pin-settings',
             priority: 3,

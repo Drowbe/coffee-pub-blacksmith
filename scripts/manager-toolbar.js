@@ -1141,9 +1141,8 @@ export async function addToolbarButton() {
         }
     });
 
-    // Register setting change hook to refresh toolbar when party leader or toolbar visibility settings change
-    const settingChangeHookId = HookManager.registerHook({
-        name: 'settingChange',
+    // Register setting change callback to refresh toolbar when party leader or toolbar visibility settings change
+    const settingChangeHookIds = HookManager.registerSettingChangeCallback({
         description: 'Manager Toolbar: Refresh toolbar when party leader or toolbar visibility settings change',
         context: 'manager-toolbar-setting',
         priority: 3,
