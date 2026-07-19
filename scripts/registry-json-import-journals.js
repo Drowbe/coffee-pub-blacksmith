@@ -598,6 +598,7 @@ export function getJournalAreaImportUi() {
         generationOptions: [
             {
                 id: 'sceneEmphasis', label: 'Scene emphasis', value: 'auto',
+                authoringModes: 'prompt',
                 options: [
                     { value: 'auto', label: 'Auto' },
                     { value: 'exploration', label: 'Exploration' },
@@ -608,6 +609,7 @@ export function getJournalAreaImportUi() {
             },
             {
                 id: 'contentHandling', label: 'Content handling', value: 'expand',
+                authoringModes: 'prompt',
                 options: [
                     { value: 'expand', label: 'Expand Freely' },
                     { value: 'preserve', label: 'Preserve Supplied Facts' },
@@ -616,6 +618,7 @@ export function getJournalAreaImportUi() {
             },
             {
                 id: 'detailLevel', label: 'Detail level', value: 'standard',
+                authoringModes: 'prompt',
                 options: [
                     { value: 'concise', label: 'Concise' },
                     { value: 'standard', label: 'Standard' },
@@ -624,6 +627,7 @@ export function getJournalAreaImportUi() {
             },
             {
                 id: 'encounterContent', label: 'Encounter', value: 'auto',
+                authoringModes: 'json prompt',
                 options: [
                     { value: 'auto', label: 'Auto' },
                     { value: 'include', label: 'Include' },
@@ -632,6 +636,7 @@ export function getJournalAreaImportUi() {
             },
             {
                 id: 'conversationContent', label: 'Conversations', value: 'auto',
+                authoringModes: 'json prompt',
                 options: [
                     { value: 'auto', label: 'Auto' },
                     { value: 'include', label: 'Include' },
@@ -640,6 +645,7 @@ export function getJournalAreaImportUi() {
             },
             {
                 id: 'rewardContent', label: 'Rewards', value: 'auto',
+                authoringModes: 'json prompt',
                 options: [
                     { value: 'auto', label: 'Auto' },
                     { value: 'include', label: 'Include' },
@@ -722,7 +728,7 @@ async function saveCampaignImagePaths(promptOptions = {}) {
  * @returns {string}
  */
 function buildLocationPathHint(geography = {}) {
-    const parts = ['realm', 'region', 'site', 'area', 'scenetitle']
+    const parts = ['realm', 'region', 'site', 'area']
         .map((k) => String(geography[k] ?? '').trim())
         .filter(Boolean);
     return parts.join(' > ');
@@ -1103,6 +1109,103 @@ export async function buildLocationImportPrompt(promptOptions = {}) {
     return applyCampaignPlaceholders(composed);
 }
 
+function _areaTemplateData(options = {}) {
+    const ctx = CampaignManager.getPromptContext();
+    const pick = (key, fallback = '') => String(options[key] ?? fallback ?? '').trim();
+    const geography = {
+        realm: pick('realm', ctx.realm), region: pick('region', ctx.region),
+        site: pick('site', ctx.site), area: pick('area', ctx.area),
+        scenetitle: pick('scenetitle')
+    };
+    const title = geography.area || geography.scenetitle;
+    const narrativeImage = options.narrativeImagePlaceholder
+        ? pick('narrativeImage', ctx.narrativeImagePath)
+        : '';
+    const blocks = {
+        preparation: { purpose: [], actors: [], gmnotes: [] },
+        area: {
+            title,
+            narrative: { description: '', layout: '', atmosphere: '' },
+            narrativecard: { title, description: '', imagetitle: '', image: narrativeImage },
+            interactivedetails: [],
+            discoverablefacts: []
+        }
+    };
+    if (String(options.rewardContent || 'auto') !== 'omit') blocks.preparation.rewards = [];
+    if (String(options.encounterContent || 'auto') === 'include') {
+        blocks.encounter = { overview: '', tactics: [], triggers: [], specialconditions: [] };
+    }
+    if (String(options.conversationContent || 'auto') === 'include') {
+        const characterImage = options.characterImagePlaceholder
+            ? pick('characterImage', ctx.narrativeCharacterImagePath)
+            : '';
+        blocks.conversations = [{
+            name: '', keycharacter: true,
+            narrativecard: { title: '', description: '', imagetitle: '', image: characterImage },
+            snapshot: [], theyknow: [], theyveheard: [], theywant: []
+        }];
+    }
+    return {
+        journaltype: 'area',
+        foldername: pick('foldername', ctx.narrativeFolder),
+        realm: geography.realm, region: geography.region, site: geography.site, area: geography.area,
+        breadcrumb: buildLocationPathHint(geography),
+        scenetitle: geography.scenetitle,
+        blocks
+    };
+}
+
+function _locationTemplateData(options = {}) {
+    const ctx = CampaignManager.getPromptContext();
+    const pick = (key, fallback = '') => String(options[key] ?? fallback ?? '').trim();
+    return {
+        journaltype: 'location',
+        foldername: pick('locationFoldername', 'Libraries'),
+        journalname: pick('locationJournalname', 'Locations'),
+        title: pick('locationTitle'),
+        realm: pick('realm', ctx.realm), region: pick('region', ctx.region),
+        site: pick('site', ctx.site), area: pick('area', ctx.area),
+        locationimage: pick('locationimage'),
+        cardimagetitle: '', carddescriptionprimary: '', carddescriptionsecondary: '',
+        introduction: '', geography: '', government: '', trade: '', culture: '',
+        religion: '', history: '', notablelocations: ''
+    };
+}
+
+export async function buildJournalJsonTemplate(templateKey, options = {}) {
+    const key = String(templateKey || 'area').toLowerCase();
+    if (key === 'area') return JSON.stringify(_areaTemplateData(options), null, 2);
+    if (key === 'location') return JSON.stringify(_locationTemplateData(options), null, 2);
+    throw new Error(`JSON Template is not available for Journal profile "${templateKey}"`);
+}
+
+export async function buildJournalAuthoringGuide(templateKey, options = {}) {
+    const key = String(templateKey || 'area').toLowerCase();
+    const json = await buildJournalJsonTemplate(key, options);
+    const guidance = key === 'area'
+        ? `Area is one playable scene, not a setting encyclopedia. blocks.area is required.\n- blocks.area.title is the clean heading; scenetitle may include an ordering prefix.\n- narrative has exactly description, layout, and atmosphere.\n- preparation arrays use strings. actors/rewards use "Exact Name - short blurb" when linkable.\n- conversations entries represent named individuals, never bare roles such as Guard or Commoner.\n- encounter and conversations are included only when selected. Auto starts without those optional blocks for manual authoring.\n- Empty optional block keys may be deleted before import. narrativecard.image paths must be Foundry-relative paths.`
+        : `Location is an encyclopedia entry, not a playable Area scene.\n- title is the location name; journalname is the containing Journal entry.\n- carddescriptionprimary is a short introduction. carddescriptionsecondary may use a simple HTML list.\n- introduction, geography, government, trade, culture, religion, history, and notablelocations are factual reference sections.\n- locationimage is a Foundry-relative path or may remain empty until art is available.`;
+    return `BLACKSMITH ${key.toUpperCase()} JOURNAL JSON AUTHORING GUIDE
+
+The JSON block below is a valid starter template. Edit it, then copy only the JSON into Blacksmith's Import JSON tab. Do not put comments inside JSON.
+
+Profile guidance
+- ${guidance}
+
+Validation reminders
+- Keep journaltype exactly "${key}".
+- Keep arrays, objects, booleans, and numbers as their existing JSON types.
+- Use straight quotes, no trailing commas, and no duplicate keys.
+- Use only documented block/field names; a visually reasonable alternate schema will not import correctly.
+
+JSON TEMPLATE
+
+\`\`\`json
+${json}
+\`\`\`
+`;
+}
+
 /**
  * Build the prompt text for a journal import template. The window decides how to
  * deliver it (copy to clipboard or save as a text file).
@@ -1213,11 +1316,11 @@ const journalJsonImportKind = {
     windowIcon: 'fa-solid fa-masks-theater',
     position: { width: 920, height: 720 },
     templateOptions: [
-        { value: 'area', label: 'Area Narrative' },
-        { value: 'illustration', label: 'Illustration Image' },
-        { value: 'location', label: 'Location Narrative' },
-        { value: 'encounter', label: 'Encounter (Legacy)' },
-        { value: 'injury', label: 'Injury (Legacy)' }
+        { value: 'area', label: 'Area Narrative', authoringModes: 'json prompt' },
+        { value: 'illustration', label: 'Illustration Image', authoringModes: 'prompt' },
+        { value: 'location', label: 'Location Narrative', authoringModes: 'json prompt' },
+        { value: 'encounter', label: 'Encounter (Legacy)', authoringModes: 'prompt' },
+        { value: 'injury', label: 'Injury (Legacy)', authoringModes: 'prompt' }
     ],
     get promptCheckboxes() {
         return getJournalPromptCheckboxes();
@@ -1232,6 +1335,8 @@ const journalJsonImportKind = {
         return getJournalLocationImportUi();
     },
     onBuildPrompt: buildJournalPrompt,
+    onBuildJsonTemplate: buildJournalJsonTemplate,
+    onBuildAuthoringGuide: buildJournalAuthoringGuide,
     onImport: async (entries) => importJournalEntries(entries),
     onImportError(e) {
         const message = e?.message || String(e);
