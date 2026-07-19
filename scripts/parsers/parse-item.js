@@ -198,15 +198,28 @@ export async function testImageGuessing(itemName, itemDescription = '') {
 }
 
 function parseItemPrice(itemPrice) {
-    if (itemPrice == null || String(itemPrice).trim() === '') return '0 gp';
+    if (itemPrice == null || String(itemPrice).trim() === '') return { value: 0, denomination: 'gp' };
     const s = String(itemPrice).trim();
     const match = s.match(/^(\d+(?:\.\d+)?)\s*(gp|sp|cp|ep|pp)?$/i);
     if (match) {
-        const num = match[1];
-        const denom = (match[2] || 'gp').toLowerCase();
-        return `${num} ${denom}`;
+        return {
+            value: Number(match[1]),
+            denomination: (match[2] || 'gp').toLowerCase()
+        };
     }
-    return s;
+    throw new Error(`Unsupported itemPrice "${itemPrice}"; use a value such as "50 GP"`);
+}
+
+function _physicalItemProperties(flat) {
+    return flat.itemIsMagical ? ['mgc'] : [];
+}
+
+function _attunementValue(value) {
+    const token = String(value || '').trim().toLowerCase();
+    if (!token || ['none', 'not required', 'attunement not required'].includes(token)) return '';
+    if (['required', 'attunement required'].includes(token)) return 'required';
+    if (['optional', 'attunement optional'].includes(token)) return 'optional';
+    throw new Error(`Unsupported magicalAttunementRequired "${value}"`);
 }
 
 function _sharedItemSystem(flat) {
@@ -594,7 +607,7 @@ export async function parseFlatItemToFoundry(flat) {
             system: {
                 ...shared,
                 type: { value: flat.itemSubType || 'trinket' },
-                properties: { magical: !!flat.itemIsMagical }
+                properties: _physicalItemProperties(flat)
             },
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
@@ -610,7 +623,7 @@ export async function parseFlatItemToFoundry(flat) {
                 ...shared,
                 consumableType: { value: consumableValue, subtype: consumableSubtype },
                 type: { value: consumableValue, subtype: consumableSubtype },
-                properties: { mgc: !!flat.itemIsMagical },
+                properties: _physicalItemProperties(flat),
                 uses: {
                     ..._uses(flat.limitedUsesMax ?? flat.itemLimitedUses ?? 1, flat.limitedUsesSpent, itemRecoveryPeriod),
                     autoDestroy: !!flat.destroyOnEmpty
@@ -620,8 +633,8 @@ export async function parseFlatItemToFoundry(flat) {
             },
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '', consumableSubtype } }
         };
-        if (flat.itemIsMagical && flat.magicalAttunementRequired) {
-            data.system.attunement = flat.magicalAttunementRequired;
+        if (flat.itemIsMagical) {
+            data.system.attunement = _attunementValue(flat.magicalAttunementRequired);
         }
         if (flat.activities && Array.isArray(flat.activities)) {
             data.system.activities = {};
@@ -663,7 +676,7 @@ export async function parseFlatItemToFoundry(flat) {
             system: {
                 ...shared,
                 type: { value: flat.itemSubType || 'other' },
-                properties: { magical: !!flat.itemIsMagical }
+                properties: _physicalItemProperties(flat)
             },
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
@@ -675,12 +688,12 @@ export async function parseFlatItemToFoundry(flat) {
             system: {
                 ...shared,
                 type: { value: (flat.itemSubType || 'trinket').toLowerCase().replace(/\s+/g, '-') },
-                properties: { magical: !!flat.itemIsMagical }
+                properties: _physicalItemProperties(flat)
             },
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
-        if (flat.itemIsMagical && flat.magicalAttunementRequired) {
-            data.system.attunement = flat.magicalAttunementRequired;
+        if (flat.itemIsMagical) {
+            data.system.attunement = _attunementValue(flat.magicalAttunementRequired);
         }
     } else if (type === 'tool') {
         data = {
@@ -690,7 +703,8 @@ export async function parseFlatItemToFoundry(flat) {
             system: {
                 ...shared,
                 type: { value: (flat.itemSubType || 'artisans-tools').toLowerCase().replace(/\s+/g, '-') },
-                ability: { value: 'int', proficient: false }
+                ability: { value: 'int', proficient: false },
+                properties: _physicalItemProperties(flat)
             },
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
@@ -702,7 +716,7 @@ export async function parseFlatItemToFoundry(flat) {
             system: {
                 ...shared,
                 type: { value: (flat.itemSubType || 'simpleM').toLowerCase().replace(/\s+/g, '-') },
-                properties: { magical: !!flat.itemIsMagical }
+                properties: _physicalItemProperties(flat)
             },
             flags: { 'coffee-pub': { source: flat.itemSource, license: flat.itemLicense || '' } }
         };
@@ -716,7 +730,7 @@ export async function parseFlatItemToFoundry(flat) {
             system: {
                 ..._sharedItemSystem(flat),
                 type: { value: flat.itemSubType || 'trinket' },
-                properties: { magical: !!flat.itemIsMagical }
+                properties: _physicalItemProperties(flat)
             },
             flags: data.flags || {}
         };

@@ -11,30 +11,33 @@ import { getCompendiumSettingPrefix, getNumCompendiumsSettingName } from './comp
 
 export class JournalTools {
     static async init() {
-        // Register renderJournalSheet hook (fires on initial journal sheet render)
-        const renderJournalSheetHookId = HookManager.registerHook({
-            name: 'renderJournalSheet',
-            description: 'Journal Tools: Add tools icon to journal sheets',
-            context: 'journal-tools-sheet',
+        // v13: journal sheets are ApplicationV2 (`JournalEntrySheet`), so the entry point is the
+        // header-controls "⋯" menu, populated via the getHeaderControls hook during each render.
+        // The old renderJournalSheet/renderJournalPageSheet hooks are the v12 class names and
+        // never fire on v13 — the titlebar icon they injected has been unreachable since the move.
+        const headerControlsHookId = HookManager.registerHook({
+            name: 'getHeaderControlsJournalEntrySheet',
+            description: 'Journal Tools: Add Journal Tools entry to the journal sheet controls menu',
+            context: 'journal-tools-header-controls',
             priority: 3, // Normal priority - UI enhancement
-            callback: this._onRenderJournalSheet.bind(this)
+            callback: (app, controls) => {
+                // Header-control clicks dispatch to app.options.actions[action] and core has no
+                // handler for our action name, so the handler installs alongside the entry.
+                app.options.actions.blacksmithJournalTools ??= () => this._openToolsForApp(app);
+                controls.push({
+                    icon: 'fas fa-feather',
+                    label: 'Journal Tools',
+                    action: 'blacksmithJournalTools',
+                    // Evaluated on every render, so toggling the setting shows/hides the
+                    // entry via the settings-change re-render below — no reload needed.
+                    visible: () => getSettingSafely(MODULE.ID, 'enableJournalTools', false)
+                });
+            }
         });
         
         // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalSheet", "journal-tools-sheet", true, false);
-        
-        // Register renderJournalPageSheet hook (fires when journal pages are switched in v13 ApplicationV2)
-        const renderJournalPageSheetHookId = HookManager.registerHook({
-            name: 'renderJournalPageSheet',
-            description: 'Journal Tools: Add tools icon to journal pages (v13 ApplicationV2)',
-            context: 'journal-tools-sheet-page',
-            priority: 3, // Normal priority - UI enhancement
-            callback: this._onRenderJournalSheet.bind(this)
-        });
-        
-        // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderJournalPageSheet", "journal-tools-sheet-page", true, false);
-        
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | getHeaderControlsJournalEntrySheet", "journal-tools-header-controls", true, false);
+
         // Register setting-change callback
         const settingChangeHookIds = HookManager.registerSettingChangeCallback({
 			description: 'Journal Tools: Handle setting changes for journal tools',
@@ -99,106 +102,12 @@ export class JournalTools {
         }
     }
 
-    static async _onRenderJournalSheet(app, html, data) {
-        // Only add the tools icon if the feature is enabled
-        const enableJournalTools = game.settings.get('coffee-pub-blacksmith', 'enableJournalTools');
-        postConsoleAndNotification(MODULE.NAME, "Journal Tools: renderJournalSheet hook called", 
-            `enableJournalTools: ${enableJournalTools}`, true, false);
-        
-        if (!enableJournalTools) {
-            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Feature disabled", 
-                "enableJournalTools setting is false", false, true);
-            return;
-        }
-
-        // Only add tools icon in normal view, not edit view (same as old code)
-        const isEditMode = this._isEditMode(html);
-        if (isEditMode) {
-            return;
-        }
-
-        // Store the app instance for reliable journal retrieval
-        html.setAttribute('data-journal-app', 'stored');
-        html._journalApp = app; // Store app reference for access
-
-        // Add the tools icon
-        this._addToolsIcon(html);
-    }
-
-    static _isEditMode(html) {
-        // v13: Foundry passes native DOM to hook callbacks
-        return html.querySelector('.editor-container') !== null;
-    }
-
-    static _addToolsIcon(html) {
-        // v13: Foundry passes native DOM to hook callbacks
-        // Find the window header
-        const windowHeader = html.querySelector('.window-header');
-        
-        if (!windowHeader) {
-            return;
-        }
-
-        // Check if tools icon already exists
-        const existingToolsIcon = windowHeader.querySelector('.journal-tools-icon');
-        if (existingToolsIcon) {
-            return; // Already added
-        }
-
-        // Create the tools icon
-        const toolsIcon = document.createElement('a');
-        toolsIcon.className = 'journal-tools-icon';
-        toolsIcon.title = 'Journal Tools';
-        toolsIcon.style.cursor = 'pointer';
-        toolsIcon.style.marginLeft = '8px';
-        toolsIcon.innerHTML = '<i class="fas fa-feather"></i>';
-        
-        postConsoleAndNotification(MODULE.NAME, "Journal Tools: Created tools icon", 
-            "Icon element created", true, false);
-
-        // Add click handler
-        toolsIcon.addEventListener('click', (event) => {
-            event.preventDefault();
-            this._openToolsDialog(html);
-        });
-
-        // Insert the icon before the close button (if it exists) or at the end
-        const closeButton = windowHeader.querySelector('.header-button.close');
-        const configureButton = windowHeader.querySelector('.header-button.configure-sheet');
-        
-        // Try to place it before the close button, then before configure button, then at the end
-        if (closeButton) {
-            closeButton.insertAdjacentElement('beforebegin', toolsIcon);
-        } else if (configureButton) {
-            configureButton.insertAdjacentElement('beforebegin', toolsIcon);
-        } else {
-            windowHeader.appendChild(toolsIcon);
-        }
-
-        postConsoleAndNotification(MODULE.NAME, "Journal Tools: Added tools icon to journal window", "", false, false);
-    }
-
-    static _openToolsDialog(html) {
+    static _openToolsForApp(app) {
         try {
-            // Get the journal from the stored app instance
-            const app = html._journalApp;
-            let journal = null;
-
-            if (app && app.document) {
-                journal = app.document;
-            } else {
-                // Fallback: try to get from the HTML data attribute
-                const journalId = html.getAttribute('data-journal-id');
-                if (journalId) {
-                    journal = game.journal.get(journalId);
-                }
-                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Found journal via HTML data", 
-                    journal ? `Journal: ${journal.name}` : 'No journal found', true, false);
-            }
-
+            const journal = app?.document;
             if (!journal) {
-                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Could not find journal entry", 
-                    `Primary: ${app?.document?.name}, Alternative: ${html.getAttribute('data-journal-id')}`, false, true);
+                postConsoleAndNotification(MODULE.NAME, "Journal Tools: Could not find journal entry",
+                    `App: ${app?.constructor?.name}`, false, true);
                 ui.notifications.error("Could not find journal entry");
                 return;
             }
@@ -207,7 +116,7 @@ export class JournalTools {
             new JournalToolsWindow(journal).render(true);
 
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error opening tools dialog", 
+            postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error opening tools dialog",
                 error.message, false, true);
             ui.notifications.error(`Error opening journal tools: ${error.message}`);
         }
