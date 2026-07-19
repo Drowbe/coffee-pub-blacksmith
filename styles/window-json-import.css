@@ -307,6 +307,18 @@
     grid-column: 1 / -1;
 }
 
+.blacksmith-json-import-area-generation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    gap: 8px 12px;
+}
+
+@media (max-width: 720px) {
+    .blacksmith-json-import-area-generation-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+}
+
 .blacksmith-json-import-journal-location-meta {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

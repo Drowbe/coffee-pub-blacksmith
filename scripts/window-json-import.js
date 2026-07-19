@@ -179,6 +179,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         for (const field of ui.geography ?? []) {
             if (field.id && state[field.id] !== undefined) field.value = state[field.id];
         }
+        for (const field of ui.generationOptions ?? []) {
+            if (field.id && state[field.id] !== undefined) field.value = state[field.id];
+        }
         if (ui.locationImage?.fieldId && state[ui.locationImage.fieldId] !== undefined) {
             ui.locationImage.value = state[ui.locationImage.fieldId];
         }
@@ -384,6 +387,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         readField(ui.additionalContext?.id, ui.additionalContext?.value);
 
         for (const field of ui.geography ?? []) {
+            readField(field.id, field.value);
+        }
+        for (const field of ui.generationOptions ?? []) {
             readField(field.id, field.value);
         }
 
@@ -618,6 +624,15 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 id: field.id,
                 label: field.label,
                 value: field.value ?? ''
+            })),
+            generationOptions: (ui.generationOptions ?? []).map((field) => ({
+                id: field.id,
+                label: field.label,
+                options: (field.options ?? []).map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                    selected: String(option.value) === String(field.value ?? '')
+                }))
             })),
             images: (ui.images ?? []).map((row) => ({
                 fieldId: row.fieldId,

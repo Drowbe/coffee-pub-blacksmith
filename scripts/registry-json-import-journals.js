@@ -595,6 +595,58 @@ export function getJournalAreaImportUi() {
             { id: 'area', label: 'Area', value: ctx.area || '' },
             { id: 'scenetitle', label: 'Scene title', value: '' }
         ],
+        generationOptions: [
+            {
+                id: 'sceneEmphasis', label: 'Scene emphasis', value: 'auto',
+                options: [
+                    { value: 'auto', label: 'Auto' },
+                    { value: 'exploration', label: 'Exploration' },
+                    { value: 'social', label: 'Social' },
+                    { value: 'combat', label: 'Combat' },
+                    { value: 'mixed', label: 'Mixed' }
+                ]
+            },
+            {
+                id: 'contentHandling', label: 'Content handling', value: 'expand',
+                options: [
+                    { value: 'expand', label: 'Expand Freely' },
+                    { value: 'preserve', label: 'Preserve Supplied Facts' },
+                    { value: 'catalog', label: 'Catalog Content Only' }
+                ]
+            },
+            {
+                id: 'detailLevel', label: 'Detail level', value: 'standard',
+                options: [
+                    { value: 'concise', label: 'Concise' },
+                    { value: 'standard', label: 'Standard' },
+                    { value: 'detailed', label: 'Detailed' }
+                ]
+            },
+            {
+                id: 'encounterContent', label: 'Encounter', value: 'auto',
+                options: [
+                    { value: 'auto', label: 'Auto' },
+                    { value: 'include', label: 'Include' },
+                    { value: 'omit', label: 'Omit' }
+                ]
+            },
+            {
+                id: 'conversationContent', label: 'Conversations', value: 'auto',
+                options: [
+                    { value: 'auto', label: 'Auto' },
+                    { value: 'include', label: 'Include' },
+                    { value: 'omit', label: 'Omit' }
+                ]
+            },
+            {
+                id: 'rewardContent', label: 'Rewards', value: 'auto',
+                options: [
+                    { value: 'auto', label: 'Auto' },
+                    { value: 'include', label: 'Include' },
+                    { value: 'omit', label: 'Omit' }
+                ]
+            }
+        ],
         additionalContext: {
             id: 'additionalContext',
             label: 'Additional context',
@@ -716,6 +768,11 @@ export function applyAreaJournalGeography(prompt, options = {}) {
             placeholder: '[ADD-AREA-CONTEXT-HERE]',
             value: options.additionalContext,
             allowEmpty: true
+        },
+        {
+            placeholder: '[ADD-AREA-GENERATION-DIRECTIVES-HERE]',
+            value: buildAreaGenerationDirectives(options),
+            allowEmpty: true
         }
     ];
 
@@ -726,6 +783,78 @@ export function applyAreaJournalGeography(prompt, options = {}) {
         }
     }
     return result;
+}
+
+const AREA_GENERATION_OPTIONS = {
+    sceneEmphasis: {
+        default: 'auto',
+        values: {
+            auto: 'Scene emphasis: infer the most useful emphasis from the supplied context; do not force an optional block without evidence.',
+            exploration: 'Scene emphasis: exploration. Prioritize navigable layout, interactive details, discoverable facts, clues, and meaningful environmental choices.',
+            social: 'Scene emphasis: social. Prioritize a playable cast, motives, knowledge, rumors, wants, and conversational leverage.',
+            combat: 'Scene emphasis: combat. Make the encounter runnable with clear participants, triggers, terrain implications, tactics, and special conditions.',
+            mixed: 'Scene emphasis: mixed. Balance exploration, social interaction, and conflict while keeping each included element actionable.'
+        }
+    },
+    contentHandling: {
+        default: 'expand',
+        values: {
+            expand: 'Content handling: expand freely within the supplied campaign facts. Invent cohesive supporting details, NPCs, items, clues, and complications when they improve play.',
+            preserve: 'Content handling: preserve supplied facts. Treat pasted/source material as authoritative; organize and clarify it, but add only conservative connective detail and never replace established facts.',
+            catalog: 'Content handling: catalog content only for linkable Actors and Items. Use exact names from the appended selected catalogs; do not invent named Actors or Items. Non-linkable scenery and prose details may still be created.'
+        }
+    },
+    detailLevel: {
+        default: 'standard',
+        values: {
+            concise: 'Detail level: concise. Produce a lean table-ready scene with short read-aloud text and only the most actionable entries.',
+            standard: 'Detail level: standard. Provide enough material to run the scene comfortably without padding or novel-like prose.',
+            detailed: 'Detail level: detailed. Provide robust alternatives, clues, motivations, and operational detail, but preserve fast scanning during play.'
+        }
+    },
+    encounterContent: {
+        default: 'auto',
+        values: {
+            auto: 'Encounter block: include only when the context supports a runnable conflict or hazard.',
+            include: 'Encounter block: REQUIRED. Include blocks.encounter with a runnable overview, tactics, triggers, and special conditions as applicable.',
+            omit: 'Encounter block: OMIT blocks.encounter entirely, even if conflict is mentioned; retain only non-encounter context elsewhere when useful.'
+        }
+    },
+    conversationContent: {
+        default: 'auto',
+        values: {
+            auto: 'Conversations block: include only when specific people meaningfully participate in the scene.',
+            include: 'Conversations block: REQUIRED. Include at least one playable individual with a personal name or diegetic handle and useful knowledge, hearsay, and wants.',
+            omit: 'Conversations block: OMIT blocks.conversations entirely; anonymous population may remain environmental prose.'
+        }
+    },
+    rewardContent: {
+        default: 'auto',
+        values: {
+            auto: 'Rewards: include blocks.preparation.rewards only when the context supports treasure, payment, clues-as-rewards, or other meaningful gains.',
+            include: 'Rewards: REQUIRED. Include at least one context-appropriate reward entry; use exact catalog Item names for linkable items.',
+            omit: 'Rewards: omit the rewards field entirely; do not emit an empty array or filler reward.'
+        }
+    }
+};
+
+/**
+ * Convert stable Area generation options into explicit prompt directives. This is shared by
+ * the Foundry window and future API/tool callers of buildJournalImportPrompt().
+ * @param {object} [options]
+ * @returns {string}
+ */
+export function buildAreaGenerationDirectives(options = {}) {
+    const lines = [];
+    for (const [key, config] of Object.entries(AREA_GENERATION_OPTIONS)) {
+        const value = String(options[key] ?? config.default).trim().toLowerCase();
+        const directive = config.values[value];
+        if (!directive) {
+            throw new Error(`Unsupported Area prompt option ${key}="${options[key]}"`);
+        }
+        lines.push(`- ${directive}`);
+    }
+    return lines.join('\n');
 }
 
 /**
@@ -839,7 +968,13 @@ export async function buildJournalImportPrompt(profileKey, options = {}) {
         includeNarrativeImage: options.includeNarrativeImage,
         includeCharacterImage: options.includeCharacterImage,
         narrativeImage: options.narrativeImage,
-        characterImage: options.characterImage
+        characterImage: options.characterImage,
+        sceneEmphasis: options.sceneEmphasis,
+        contentHandling: options.contentHandling,
+        detailLevel: options.detailLevel,
+        encounterContent: options.encounterContent,
+        conversationContent: options.conversationContent,
+        rewardContent: options.rewardContent
     });
     // Default to all configured compendiums when the caller doesn't specify a subset,
     // preserving the prior "include everything" behavior.
@@ -1020,6 +1155,12 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
             scenetitle: promptOptions.scenetitle ?? ''
         },
         additionalContext: promptOptions.additionalContext ?? '',
+        sceneEmphasis: promptOptions.sceneEmphasis ?? 'auto',
+        contentHandling: promptOptions.contentHandling ?? 'expand',
+        detailLevel: promptOptions.detailLevel ?? 'standard',
+        encounterContent: promptOptions.encounterContent ?? 'auto',
+        conversationContent: promptOptions.conversationContent ?? 'auto',
+        rewardContent: promptOptions.rewardContent ?? 'auto',
         onProgress
     });
     return prompt;

@@ -50,6 +50,22 @@
                         {{#unless @last}}<span class="blacksmith-json-import-location-sep blacksmith-json-import-location-sep-chevron" aria-hidden="true">&gt;</span>{{/unless}}
                         {{/each}}
                     </div>
+                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header blacksmith-json-import-journal-fields-row-full">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>Generation direction</span>
+                    </div>
+                    <div class="blacksmith-json-import-area-generation-grid blacksmith-json-import-journal-fields-row-full">
+                        {{#each journalAreaUi.generationOptions}}
+                        <label class="blacksmith-json-import-prompt-field-row">
+                            <span class="blacksmith-json-import-prompt-field-label">{{label}}</span>
+                            <select class="blacksmith-select blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}">
+                                {{#each options}}
+                                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                                {{/each}}
+                            </select>
+                        </label>
+                        {{/each}}
+                    </div>
                     <div class="blacksmith-json-import-journal-image-rows blacksmith-json-import-journal-fields-row-full">
                         {{#each journalAreaUi.images}}
                         <div class="blacksmith-json-import-journal-image-row">
