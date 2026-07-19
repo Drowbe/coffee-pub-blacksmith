@@ -19,11 +19,12 @@ const kinds = new Map();
  * @property {string} headerTitle
  * @property {string} windowIcon
  * @property {object} [position]
- * @property {Array<{value: string, label: string}>} [templateOptions]
+ * @property {Array<{value: string, label: string, authoringModes?: string}>} [templateOptions]
  * @property {Array<{id: string, label: string, checked?: boolean, disabled?: boolean, showForTemplate?: string, authoringModes?: string}>} [promptCheckboxes]
  * @property {Array<{id: string, label: string, value?: string, showForTemplate?: string, authoringModes?: string, inputType?: 'text'|'select'|'textarea', fullWidth?: boolean, options?: Array<{value: string, label: string}>}>} [promptFields]
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildPrompt] - Build and return the prompt text; the window delivers it (clipboard or text file).
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildJsonTemplate] - Build a clean JSON-only hand-authoring template.
+ * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildAuthoringGuide] - Build a plain-text JSON template plus human authoring instructions.
  * @property {(entries: object[]) => Promise<boolean>} onImport - Parsed entries from {@link parseJsonImportPayload} (via runJsonImport)
  * @property {(error: Error) => boolean} [onImportError]
  */
@@ -121,6 +122,7 @@ export function openJsonImportWindow(kindId) {
         journalLocationUi: kind.journalLocationUi ?? null,
         onBuildPrompt: kind.onBuildPrompt,
         onBuildJsonTemplate: kind.onBuildJsonTemplate,
+        onBuildAuthoringGuide: kind.onBuildAuthoringGuide,
         onImport: async (jsonDataRaw) => {
             try {
                 return await runJsonImport(kind, jsonDataRaw);

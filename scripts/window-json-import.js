@@ -66,6 +66,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.promptFilePrefix = opts.promptFilePrefix || 'prompt';
         this.onBuildPrompt = typeof opts.onBuildPrompt === 'function' ? opts.onBuildPrompt : null;
         this.onBuildJsonTemplate = typeof opts.onBuildJsonTemplate === 'function' ? opts.onBuildJsonTemplate : null;
+        this.onBuildAuthoringGuide = typeof opts.onBuildAuthoringGuide === 'function' ? opts.onBuildAuthoringGuide : null;
+        this.selectedJsonOutput = opts.selectedJsonOutput === 'guided' ? 'guided' : 'clean';
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
         this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
         this.promptFields = Array.isArray(opts.promptFields) ? opts.promptFields : [];
@@ -145,6 +147,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const templateSelect = root.querySelector('.blacksmith-json-import-template-select');
         if (templateSelect) this.selectedTemplate = templateSelect.value || this.selectedTemplate;
 
+        const jsonOutputSelect = root.querySelector('.blacksmith-json-import-json-output-select');
+        if (jsonOutputSelect) this.selectedJsonOutput = jsonOutputSelect.value === 'guided' ? 'guided' : 'clean';
+
         for (const field of this.promptFields) {
             const id = String(field?.id || '').trim();
             if (!id) continue;
@@ -206,6 +211,10 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         if (!['import', 'json', 'prompt'].includes(tab)) return;
         if (tab === 'json' && !this.onBuildJsonTemplate) return;
         this.activeTab = tab;
+        const available = this._availableTemplateOptions(tab);
+        if (!available.some((template) => template.value === this.selectedTemplate)) {
+            this.selectedTemplate = available[0]?.value || '';
+        }
         void this.render(true);
     }
 
@@ -254,7 +263,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             const copied = await copyToClipboard(String(prompt ?? ''), { notify: false });
             if (copied !== false) {
                 ui.notifications.info(this.activeTab === 'json'
-                    ? 'JSON template copied to the clipboard'
+                    ? `${this.selectedJsonOutput === 'guided' ? 'Guided JSON template' : 'JSON template'} copied to the clipboard`
                     : 'Full prompt copied to the clipboard');
             }
         } catch (error) {
@@ -279,7 +288,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
             const jsonOnly = this.activeTab === 'json';
-            const suffix = jsonOnly ? 'json-template' : 'full-prompt';
+            const suffix = jsonOnly
+                ? (this.selectedJsonOutput === 'guided' ? 'json-template-guided' : 'json-template')
+                : 'full-prompt';
             const filename = `blacksmith-${this.promptFilePrefix}-${template || 'prompt'}-${suffix}.txt`;
             this._downloadTextFile(filename, prompt, 'text/plain');
             ui.notifications.info(`${jsonOnly ? 'JSON template' : 'Prompt'} saved as ${filename}`);
@@ -293,7 +304,11 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _buildSelectedPrompt() {
-        const builder = this.activeTab === 'json' ? this.onBuildJsonTemplate : this.onBuildPrompt;
+        const builder = this.activeTab === 'json'
+            ? (this.selectedJsonOutput === 'guided' && this.onBuildAuthoringGuide
+                ? this.onBuildAuthoringGuide
+                : this.onBuildJsonTemplate)
+            : this.onBuildPrompt;
         if (!builder) return '';
         return builder(
             this.selectedTemplate,
@@ -435,6 +450,16 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         return modes.includes(this.activeTab);
     }
 
+    _templateSupportsTab(template, tab = this.activeTab) {
+        if (tab === 'import') return true;
+        const modes = String(template?.authoringModes ?? 'json prompt').trim().split(/\s+/).filter(Boolean);
+        return modes.includes(tab);
+    }
+
+    _availableTemplateOptions(tab = this.activeTab) {
+        return this.templateOptions.filter((template) => this._templateSupportsTab(template, tab));
+    }
+
     _updatePromptFieldVisibility() {
         const root = this.element;
         if (!root) return;
@@ -460,7 +485,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 '.blacksmith-json-import-prompt-checkbox, .blacksmith-json-import-prompt-options-hint, .blacksmith-json-import-prompt-section-header'
             )) {
                 const forTemplate = row.getAttribute('data-for-template') || '';
-                const show = !forTemplate || forTemplate === template;
+                const show = this._templateMatchesForAttribute(forTemplate, template);
                 row.hidden = !show;
             }
             const optionsBlock = root.querySelector('.blacksmith-json-import-prompt-options');
@@ -519,18 +544,24 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const isPromptTab = this.activeTab === 'prompt';
         const promptCheckboxGroups = this._buildPromptCheckboxGroups();
         const promptFieldGroups = this._buildPromptFieldGroups();
+        const availableTemplates = this._availableTemplateOptions();
         return {
             isAuthoringTab: isJsonTab || isPromptTab,
             isImportTab,
             isJsonTab,
             isPromptTab,
             authoringHeading: isJsonTab ? 'Select JSON Template' : 'Select Prompt Template',
-            templateOptions: this.templateOptions.map((opt) => ({
+            hasAuthoringGuide: isJsonTab && !!this.onBuildAuthoringGuide,
+            jsonOutputOptions: [
+                { value: 'clean', label: 'Template Only', selected: this.selectedJsonOutput !== 'guided' },
+                { value: 'guided', label: 'Template + Instructions', selected: this.selectedJsonOutput === 'guided' }
+            ],
+            templateOptions: availableTemplates.map((opt) => ({
                 value: opt.value,
                 label: opt.label,
                 selected: opt.value === this.selectedTemplate
             })),
-            hasTemplates: this.templateOptions.length > 0,
+            hasTemplates: availableTemplates.length > 0,
             textareaPlaceholder: this.textareaPlaceholder,
             initialJson: this.initialJson,
             promptCheckboxGroups,
@@ -716,6 +747,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const fileInput = root.querySelector('.blacksmith-json-import-file-input');
         const textarea = root.querySelector('.blacksmith-json-import-textarea');
         const templateSelect = root.querySelector('.blacksmith-json-import-template-select');
+        const jsonOutputSelect = root.querySelector('.blacksmith-json-import-json-output-select');
 
         fileInput?.addEventListener('change', (event) => {
             const file = event.target.files?.[0];
@@ -732,6 +764,10 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         templateSelect?.addEventListener('change', () => {
             this.selectedTemplate = templateSelect.value || '';
             this._updatePromptFieldVisibility();
+        });
+
+        jsonOutputSelect?.addEventListener('change', () => {
+            this.selectedJsonOutput = jsonOutputSelect.value === 'guided' ? 'guided' : 'clean';
         });
 
 

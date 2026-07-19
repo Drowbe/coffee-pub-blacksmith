@@ -71,7 +71,7 @@ import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';
 import './registry-json-import-journals.js';
 import { JOURNAL_JSON_IMPORT_KIND_ID, buildJournalVisualPrompt, getJournalPortraitPromptFields } from './registry-json-import-journals.js';
-import { buildActorImportPrompt, getActorPromptFields } from './prompt-builder-actors.js';
+import { buildActorImportPrompt, buildActorJsonTemplate, buildActorAuthoringGuide, getActorPromptFields } from './prompt-builder-actors.js';
 import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
@@ -2651,13 +2651,15 @@ const renderActorDirectoryHookId = HookManager.registerHook({
             windowIcon: 'fa-solid fa-user-plus',
             position: { width: 920, height: 680 },
             templateOptions: [
-                { value: 'npc', label: 'NPC/Monster' },
-                { value: 'portrait', label: 'Portrait Image' }
+                { value: 'npc', label: 'NPC/Monster', authoringModes: 'json prompt' },
+                { value: 'portrait', label: 'Portrait Image', authoringModes: 'prompt' }
             ],
             promptFields: [...getActorPromptFields(), ...getJournalPortraitPromptFields()],
             onBuildPrompt: async (type, promptOptions = {}) => type === 'portrait'
                 ? buildJournalVisualPrompt('portrait', promptOptions)
                 : buildActorImportPrompt(promptOptions),
+            onBuildJsonTemplate: async (type) => type === 'npc' ? buildActorJsonTemplate() : '',
+            onBuildAuthoringGuide: async (type) => type === 'npc' ? buildActorAuthoringGuide() : '',
             onImport: async (jsonData) => {
                 try {
                     const parsed = JSON.parse(jsonData);

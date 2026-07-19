@@ -86,3 +86,95 @@ export async function buildActorImportPrompt(options = {}) {
     prompt += `\n\n========================================\nGENERATION DIRECTION (AUTHORITATIVE)\n========================================\n\n${buildActorGenerationDirectives(options)}`;
     return applyCampaignPlaceholders(prompt, { actorsSource: options.actorsSource });
 }
+
+export async function buildActorJsonTemplate() {
+    const data = {
+        name: '',
+        type: 'npc',
+        img: 'icons/svg/mystery-man.svg',
+        system: {
+            abilities: Object.fromEntries(['str', 'dex', 'con', 'int', 'wis', 'cha'].map((ability) => [ability, { value: 10, proficient: 0 }])),
+            attributes: {
+                ac: { flat: 10, calc: 'flat' },
+                hp: { value: 1, min: 0, max: 1, formula: '1d8' },
+                movement: { walk: 30 },
+                senses: { darkvision: 0, passive: 10 },
+                spellcasting: '',
+                proficiency: 2
+            },
+            details: {
+                alignment: 'unaligned',
+                type: { value: 'humanoid', subtype: '', swarm: '', custom: '' },
+                cr: 0,
+                xp: { value: 0 },
+                source: '[ADD-NPC-SOURCE-HERE]',
+                biography: { value: '', public: '' },
+                ideal: '', bond: '', flaw: ''
+            },
+            traits: {
+                size: 'med',
+                di: { value: [], custom: '' },
+                dr: { value: [], custom: '' },
+                dv: { value: [], custom: '' },
+                ci: { value: [], custom: '' },
+                languages: { value: ['common'], custom: '' }
+            },
+            skills: {}
+        },
+        token: {
+            name: '', displayName: 20, actorLink: false,
+            width: 1, height: 1, disposition: 0, vision: true,
+            dimSight: 0, brightSight: 0, displayBars: 0,
+            texture: { src: 'icons/svg/mystery-man.svg', scaleX: 1, scaleY: 1 }
+        },
+        prototypeToken: {},
+        items: [],
+        spells: [],
+        features: ['Dash', 'Disengage', 'Grapple', 'Shove', 'Ready Action'],
+        currency: [],
+        ownership: { default: 0 },
+        folder: null
+    };
+    return applyCampaignPlaceholders(JSON.stringify(data, null, 2));
+}
+
+export async function buildActorAuthoringGuide() {
+    const json = await buildActorJsonTemplate();
+    return `BLACKSMITH NPC/MONSTER JSON AUTHORING GUIDE
+
+The JSON block below is a valid starter template. Copy only the JSON object into Blacksmith's Import JSON tab after editing it. Keep JSON value types intact: numbers and booleans must not be quoted.
+
+Required basics
+- name: the Actor's display name; it must not be blank when importing.
+- type: keep "npc". Character-sheet imports are not supported by this profile.
+- abilities: set the six ability scores; proficient is 1 only for saving-throw proficiency.
+- attributes: set Armor Class, current/maximum HP, hit-die formula, movement, senses, and proficiency bonus.
+- details: set alignment, creature type/subtype, CR, XP, source, biography, ideal, bond, and flaw.
+- traits: use dnd5e size keys (tiny, sm, med, lg, huge, grg) and lowercase system keys for immunities, resistances, vulnerabilities, conditions, and languages.
+- skills: add only relevant skill entries. Use { "value": 1, "bonus": 0, "ability": "dex" } for proficiency or value 2 for Expertise. Perception is prc; Persuasion is per.
+
+Content arrays
+- items: exact existing Item names or inline friendly/native Item definitions.
+- spells: exact existing Spell names or inline friendly/native Spell definitions.
+- features: signature features first, then standard action references. Ready Spell should be added for spellcasters.
+- currency: entries such as { "type": "gp", "value": 10 }.
+- Unresolved name references are warned and skipped. Do not use a made-up name alone for custom content; embed its definition.
+
+Token and biography
+- token.name is normally the generic creature label; name may be the individual's proper name.
+- disposition is -1 hostile, 0 neutral, or 1 friendly.
+- displayName is 0 never, 10 owner hover, 20 anyone hover, 30 owner always, or 40 everyone always.
+- biography.value may contain simple Foundry-safe HTML. Escape double quotes inside JSON strings.
+
+Validation reminders
+- Do not add comments or trailing commas inside the JSON.
+- Keep prototypeToken as an object for Foundry v13 compatibility.
+- Blacksmith forces Actor type npc, root-folder placement, and default GM ownership.
+
+JSON TEMPLATE
+
+\`\`\`json
+${json}
+\`\`\`
+`;
+}

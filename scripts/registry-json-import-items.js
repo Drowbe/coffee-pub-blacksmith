@@ -141,6 +141,12 @@ export async function buildItemImportPrompt(templateKey, options = {}) {
         parts.push(await fetchPromptText(ITEM_PROMPT_PARTIAL_IMAGE_REQUEST));
     }
 
+    if (['weapon', 'equipment'].includes(key)) {
+        parts.push(options.includePassiveEffects === false
+            ? 'SCHEMA SELECTION: Omit passiveEffects entirely for this Item. Keep passive or equipped benefits in the description unless another selected supported structure represents them.'
+            : 'SCHEMA SELECTION: Include passiveEffects when the Item has an equipped or equipped-and-attuned ongoing benefit; use [] when no such effect applies.');
+    }
+
     parts.push(`========================================\nGENERATION DIRECTION (AUTHORITATIVE)\n========================================\n\n${buildItemGenerationDirectives(options)}`);
 
     const composed = composePrompt(parts);
@@ -196,7 +202,7 @@ export async function buildItemJsonTemplate(templateKey, options = {}) {
         activities: []
     };
 
-    if (key === 'equipment' || key === 'weapon') data.passiveEffects = [];
+    if ((key === 'equipment' || key === 'weapon') && options.includePassiveEffects !== false) data.passiveEffects = [];
 
     if (key === 'weapon') {
         Object.assign(data, {
@@ -265,6 +271,60 @@ export async function buildItemJsonTemplate(templateKey, options = {}) {
     return applyCampaignPlaceholders(JSON.stringify(data, null, 2));
 }
 
+const ITEM_GUIDANCE = {
+    loot: 'Loot is narrative treasure or an exploration object. Use itemSubType for its loot category; activities are normally empty.',
+    consumable: 'Consumables normally use limited uses and may destroy themselves when empty. Add supported activities for their executable effects.',
+    weapon: 'Weapons require damage formula/type, a valid weapon category, properties, range, and optional mastery/bonuses. Blacksmith creates the standard Attack activity automatically; leave activities empty.',
+    equipment: 'Equipment uses a worn/equipment subtype. Magical status and attunement must agree. Passive effects can provide equipped reminders/statuses but friendly changes must remain empty.',
+    tool: 'Tools describe a usable tool category and normally rely on Actor proficiency rather than custom activities.',
+    container: 'Containers represent carried storage. Set believable weight, price, and identification data; activities are normally empty.',
+    feature: 'Features use featureType and may contain one or more activities. Use multiple activities for genuinely different executable behaviors and prose for cosmetic branches.',
+    spell: 'Spells require level, school, preparation, components, casting time, range, duration, target, and appropriate activities. A null saveDC defers to the caster.'
+};
+
+export async function buildItemAuthoringGuide(templateKey, options = {}) {
+    const key = String(templateKey || 'loot').toLowerCase();
+    const json = await buildItemJsonTemplate(key, options);
+    const passive = ['weapon', 'equipment'].includes(key)
+        ? (options.includePassiveEffects === false
+            ? '- Passive effects were omitted by your schema selection.'
+            : '- passiveEffects is included. activation is equipped or equippedAndAttuned; changes must be [] in the friendly schema.')
+        : '';
+    const artificer = options.includeArtificer
+        ? '- Artificer flags are included. Keep the coffee-pub-artificer namespace and allowed field types intact.'
+        : '- Artificer flags are omitted.';
+    return `BLACKSMITH ${key.toUpperCase()} ITEM JSON AUTHORING GUIDE
+
+The JSON block below is a valid starter template. After editing, copy only the JSON object into Blacksmith's Import JSON tab. Do not place comments inside the JSON.
+
+Profile guidance
+- ${ITEM_GUIDANCE[key] || ITEM_GUIDANCE.loot}
+${passive}
+${artificer}
+
+Common fields
+- itemName must not be blank. itemType should remain the selected profile type.
+- Keep numbers, booleans, null, arrays, and objects as their existing JSON types; do not quote them.
+- itemPrice uses text such as "50 GP". itemWeight and itemQuantity are numbers.
+- itemIsMagical and magicalAttunementRequired must agree. Use "", "attunement optional", or "attunement required".
+- itemImagePath may be blank for Blacksmith icon lookup. itemImageTerms and itemImageNuance guide that lookup/generation workflow.
+- activities must follow the selected profile's supported structure. Do not invent field names.
+- Exact existing names are preferable for official content; this template is intended for genuinely custom Items.
+
+Validation reminders
+- No trailing commas or duplicate keys.
+- Use straight quotes and escape double quotes inside HTML strings.
+- Unsupported values and inconsistent cross-field combinations fail visibly rather than importing corrupted data.
+- For mechanics beyond the friendly schema, use an exported native Foundry Item JSON object instead.
+
+JSON TEMPLATE
+
+\`\`\`json
+${json}
+\`\`\`
+`;
+}
+
 function _friendlyActivityTemplate(activityType) {
     return {
         activityType,
@@ -313,6 +373,10 @@ const itemJsonImportKind = {
     templateOptions: ITEM_TEMPLATE_OPTIONS,
     get promptCheckboxes() {
         const options = [{ id: 'includeImageRequest', label: 'Include Image Generation Request', checked: false, authoringModes: 'prompt' }];
+        options.unshift({
+            id: 'includePassiveEffects', label: 'Include Passive Effects', checked: true,
+            authoringModes: 'json prompt', showForTemplate: 'weapon equipment'
+        });
         if (isArtificerModuleActive()) {
             options.unshift({ id: 'artificerItem', label: 'Artificer Item', checked: false, authoringModes: 'json prompt' });
         }
@@ -324,6 +388,7 @@ const itemJsonImportKind = {
     onBuildPrompt: async (type, promptOptions = {}) => buildItemImportPrompt(type, {
         includeArtificer: !!promptOptions.artificerItem,
         includeImageRequest: !!promptOptions.includeImageRequest,
+        includePassiveEffects: promptOptions.includePassiveEffects !== false,
         itemPurpose: promptOptions.itemPurpose,
         itemPower: promptOptions.itemPower,
         itemComplexity: promptOptions.itemComplexity,
@@ -331,7 +396,12 @@ const itemJsonImportKind = {
         automationPolicy: promptOptions.automationPolicy
     }),
     onBuildJsonTemplate: async (type, promptOptions = {}) => buildItemJsonTemplate(type, {
-        includeArtificer: !!promptOptions.artificerItem
+        includeArtificer: !!promptOptions.artificerItem,
+        includePassiveEffects: promptOptions.includePassiveEffects !== false
+    }),
+    onBuildAuthoringGuide: async (type, promptOptions = {}) => buildItemAuthoringGuide(type, {
+        includeArtificer: !!promptOptions.artificerItem,
+        includePassiveEffects: promptOptions.includePassiveEffects !== false
     }),
     onImport: async (entries) => {
         const itemsToImport = await Promise.all(entries.map(parseFlatItemToFoundry));

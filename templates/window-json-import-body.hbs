@@ -18,6 +18,16 @@
                             {{/if}}
                         </select>
                     </div>
+                    {{#if hasAuthoringGuide}}
+                    <div class="blacksmith-field blacksmith-json-import-format-field">
+                        <label class="blacksmith-json-import-prompt-field-label">Output</label>
+                        <select class="blacksmith-select blacksmith-json-import-json-output-select">
+                            {{#each jsonOutputOptions}}
+                            <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+                            {{/each}}
+                        </select>
+                    </div>
+                    {{/if}}
                 </div>
                 {{#if journalAreaUi.hasJournalAreaUi}}
                 <div class="blacksmith-json-import-journal-area" data-for-template="{{journalAreaUi.showForTemplate}}">
