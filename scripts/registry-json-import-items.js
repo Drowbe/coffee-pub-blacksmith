@@ -43,6 +43,70 @@ export const ITEM_TEMPLATE_OPTIONS = [
     { value: 'spell', label: 'Spell' }
 ];
 
+const ITEM_GENERATION_OPTIONS = {
+    itemPurpose: {
+        default: 'auto', values: {
+            auto: 'Item purpose: infer its most useful role from the requested concept and selected Item type.',
+            practical: 'Item purpose: practical gear. Favor believable construction, clear everyday utility, and restrained lore.',
+            reward: 'Item purpose: memorable reward. Make its value, identity, and table use immediately legible.',
+            plot: 'Item purpose: plot or exploration object. Give it actionable clues, provenance, and future implications without replacing mechanics with mystery.',
+            combat: 'Item purpose: combat-facing. Prioritize clear action economy, targeting, uses, recovery, and effects.'
+        }
+    },
+    itemPower: {
+        default: 'standard', values: {
+            conservative: 'Power posture: conservative. Prefer familiar mechanics and modest numerical benefits.',
+            standard: 'Power posture: standard. Match rarity, level, price, uses, and action economy; avoid hidden power spikes.',
+            bold: 'Power posture: bold homebrew. Distinctive mechanics are welcome, but keep them bounded, explicit, and playable.'
+        }
+    },
+    itemComplexity: {
+        default: 'standard', values: {
+            simple: 'Mechanical complexity: simple. Prefer one clear behavior and minimal bookkeeping.',
+            standard: 'Mechanical complexity: standard. Include the activities and effects genuinely needed, without redundant branches.',
+            advanced: 'Mechanical complexity: advanced. Multiple activities or conditional branches are welcome when the concept requires them; keep cosmetic branches in prose.'
+        }
+    },
+    itemLore: {
+        default: 'standard', values: {
+            concise: 'Lore depth: concise. Use brief, functional descriptions.',
+            standard: 'Lore depth: standard. Give the Item a clear appearance, purpose, and a restrained story hook.',
+            rich: 'Lore depth: rich. Add cohesive provenance, sensory identity, and implications while keeping mechanics easy to find.'
+        }
+    },
+    automationPolicy: {
+        default: 'appropriate', values: {
+            appropriate: 'Automation: encode supported activities, targeting, recovery, and effects when they materially improve play; leave relational or event-driven exceptions in prose.',
+            maximize: 'Automation: maximize the friendly schema. Encode every supported activity, range, target, duration, recovery, and effect instead of leaving supported mechanics only in prose.',
+            description: 'Automation: description-first. Keep the mechanics correct but minimize optional activities/effects and favor GM adjudication for nonessential automation.'
+        }
+    }
+};
+
+export function getItemPromptFields() {
+    const make = (id, label, value, entries) => ({
+        id, label, value, inputType: 'select', showForTemplate: Object.keys(ITEM_PROMPT_PROFILES).join(' '),
+        group: 'Generation direction', groupIcon: 'fa-solid fa-sliders',
+        options: entries.map(([optionValue, optionLabel]) => ({ value: optionValue, label: optionLabel }))
+    });
+    return [
+        make('itemPurpose', 'Item purpose', 'auto', [['auto','Auto'],['practical','Practical Gear'],['reward','Memorable Reward'],['plot','Plot / Exploration'],['combat','Combat-Facing']]),
+        make('itemPower', 'Power posture', 'standard', [['conservative','Conservative'],['standard','Standard'],['bold','Bold Homebrew']]),
+        make('itemComplexity', 'Complexity', 'standard', [['simple','Simple'],['standard','Standard'],['advanced','Advanced']]),
+        make('itemLore', 'Lore depth', 'standard', [['concise','Concise'],['standard','Standard'],['rich','Rich']]),
+        make('automationPolicy', 'Automation', 'appropriate', [['appropriate','Appropriate'],['maximize','Maximize Friendly'],['description','Description-First']])
+    ];
+}
+
+export function buildItemGenerationDirectives(options = {}) {
+    return Object.entries(ITEM_GENERATION_OPTIONS).map(([key, config]) => {
+        const value = String(options[key] ?? config.default).trim().toLowerCase();
+        const directive = config.values[value];
+        if (!directive) throw new Error(`Unsupported Item prompt option ${key}="${options[key]}"`);
+        return `- ${directive}`;
+    }).join('\n');
+}
+
 /**
  * True when Coffee Pub Artificer is installed and active.
  * @returns {boolean}
@@ -76,6 +140,8 @@ export async function buildItemImportPrompt(templateKey, options = {}) {
     if (options.includeImageRequest) {
         parts.push(await fetchPromptText(ITEM_PROMPT_PARTIAL_IMAGE_REQUEST));
     }
+
+    parts.push(`========================================\nGENERATION DIRECTION (AUTHORITATIVE)\n========================================\n\n${buildItemGenerationDirectives(options)}`);
 
     const composed = composePrompt(parts);
     return applyCampaignPlaceholders(composed);
@@ -252,9 +318,17 @@ const itemJsonImportKind = {
         }
         return options;
     },
+    get promptFields() {
+        return getItemPromptFields();
+    },
     onBuildPrompt: async (type, promptOptions = {}) => buildItemImportPrompt(type, {
         includeArtificer: !!promptOptions.artificerItem,
-        includeImageRequest: !!promptOptions.includeImageRequest
+        includeImageRequest: !!promptOptions.includeImageRequest,
+        itemPurpose: promptOptions.itemPurpose,
+        itemPower: promptOptions.itemPower,
+        itemComplexity: promptOptions.itemComplexity,
+        itemLore: promptOptions.itemLore,
+        automationPolicy: promptOptions.automationPolicy
     }),
     onBuildJsonTemplate: async (type, promptOptions = {}) => buildItemJsonTemplate(type, {
         includeArtificer: !!promptOptions.artificerItem

@@ -57,6 +57,7 @@ export async function applyCampaignPlaceholders(prompt, extra = {}) {
         { placeholder: '[ADD-RULEBOOKS-HERE]', value: rulebooks },
         { placeholder: '[ADD-ITEM-SOURCE-HERE]', value: itemSource },
         { placeholder: '[ADD-ACTORS-SOURCE-HERE]', value: actorsSource },
+        { placeholder: '[ADD-NPC-SOURCE-HERE]', value: actorsSource },
         // Party context — derived from the configured party actors (see CampaignManager).
         { placeholder: '[ADD-PARTY-NAME-HERE]', value: context.partyName },
         { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },

@@ -70,7 +70,8 @@ import { attachJsonImportButton } from './registry-json-import.js';
 import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';
 import './registry-json-import-journals.js';
-import { JOURNAL_JSON_IMPORT_KIND_ID } from './registry-json-import-journals.js';
+import { JOURNAL_JSON_IMPORT_KIND_ID, buildJournalVisualPrompt, getJournalPortraitPromptFields } from './registry-json-import-journals.js';
+import { buildActorImportPrompt, getActorPromptFields } from './prompt-builder-actors.js';
 import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
@@ -2542,31 +2543,6 @@ export async function handleSkillRollUpdate(data) {
     }
 }
 
-// Helper to replace placeholders in the actor prompt with settings values
-async function getActorPromptWithDefaults(actorPrompt) {
-  const context = CampaignManager.getPromptContext();
-  const settings = [
-    { placeholder: '[ADD-CAMPAIGN-NAME-HERE]', value: context.campaignName },
-    { placeholder: '[ADD-RULES-VERSION-HERE]', value: context.rulesVersion },
-    { placeholder: '[ADD-RULEBOOKS-HERE]', value: context.rulebooks },
-    { placeholder: '[ADD-NPC-SOURCE-HERE]', value: context.campaignName },
-    { placeholder: '[ADD-PARTY-NAME-HERE]', value: context.partyName },
-    { placeholder: '[ADD-PARTY-SIZE-HERE]', value: context.partySize },
-    { placeholder: '[ADD-PARTY-LEVEL-HERE]', value: context.partyLevel },
-    { placeholder: '[ADD-PARTY-MAKEUP-HERE]', value: context.partyMakeup },
-    { placeholder: '[ADD-PARTY-CLASSES-HERE]', value: context.partyClasses }
-  ];
-
-  let result = actorPrompt;
-  for (const setting of settings) {
-    const value = setting.value || '';
-    if (value) {
-      result = result.split(setting.placeholder).join(value);
-    }
-  }
-  return result;
-}
-
 /**
  * Parse actor JSON (NPC/Monster) into FoundryVTT D&D5E actor data.
  * @param {object} actorData - The actor JSON data.
@@ -2665,9 +2641,6 @@ const renderActorDirectoryHookId = HookManager.registerHook({
         return;
     }
     
-    // Fetch the character prompt template at runtime
-    const characterPrompt = await (await fetch('modules/coffee-pub-blacksmith/prompts/prompt-characters.txt')).text();
-
     const button = document.createElement('button');
     button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Import';
     button.addEventListener('click', () => {
@@ -2677,8 +2650,14 @@ const renderActorDirectoryHookId = HookManager.registerHook({
             headerTitle: 'Import Actor',
             windowIcon: 'fa-solid fa-user-plus',
             position: { width: 920, height: 680 },
-            templateOptions: [{ value: 'npc', label: 'NPC/Monster' }],
-            onBuildPrompt: async () => getActorPromptWithDefaults(characterPrompt),
+            templateOptions: [
+                { value: 'npc', label: 'NPC/Monster' },
+                { value: 'portrait', label: 'Portrait Image' }
+            ],
+            promptFields: [...getActorPromptFields(), ...getJournalPortraitPromptFields()],
+            onBuildPrompt: async (type, promptOptions = {}) => type === 'portrait'
+                ? buildJournalVisualPrompt('portrait', promptOptions)
+                : buildActorImportPrompt(promptOptions),
             onImport: async (jsonData) => {
                 try {
                     const parsed = JSON.parse(jsonData);

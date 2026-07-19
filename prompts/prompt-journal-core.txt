@@ -17,7 +17,7 @@ An IMPORT PROFILE is appended after this core. It defines:
 
 IMAGES (out of scope for this prompt)
 - This prompt is **JSON only**. Do not generate or attach images in the same reply as the JSON.
-- Scene illustrations and NPC portraits use **separate** copy prompts in Foundry: **Illustration Image** and **Portrait Image** (each includes shared visual core + bucket rules). Paste card title/description after copying the image prompt.
+- Scene illustrations use the separate **Illustration Image** copy prompt here. NPC portraits use **Portrait Image** in Actor Import. Paste card title/description after copying the appropriate image prompt.
 - `narrativecard.imagetitle` in JSON is **not** an image-generation prompt — see the IMPORT PROFILE.
 
 SERIALIZATION CONTRACT (all profiles)

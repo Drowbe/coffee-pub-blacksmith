@@ -384,11 +384,11 @@ export function applyIllustrationPromptPlaceholders(prompt, options = {}) {
 }
 
 /**
- * Illustration + portrait facet fields for Import JSON.
+ * Illustration facet fields for Journal Import. Portrait fields are exported separately for Actor Import.
  * @returns {Array<{id: string, label: string, value?: string, showForTemplate: string}>}
  */
 export function getJournalImagePromptFields() {
-    return [...getJournalIllustrationPromptFields(), ...getJournalPortraitPromptFields()];
+    return getJournalIllustrationPromptFields();
 }
 
 /** @type {Record<string, string>} */
@@ -1215,7 +1215,6 @@ const journalJsonImportKind = {
     templateOptions: [
         { value: 'area', label: 'Area Narrative' },
         { value: 'illustration', label: 'Illustration Image' },
-        { value: 'portrait', label: 'Portrait Image' },
         { value: 'location', label: 'Location Narrative' },
         { value: 'encounter', label: 'Encounter (Legacy)' },
         { value: 'injury', label: 'Injury (Legacy)' }
