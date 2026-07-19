@@ -14,7 +14,7 @@ PROFILE BUILD NOTES:
 - Do not cluster all entries in one compendium unless I ask.
 
 PROFILE INSTRUCTIONS:
-- Optional filters I may specify: CR [CR] to [CR], habitat [HABITAT].
+- The appended authoritative generation direction and filtered catalog already reflect the selected CR, creature-type, size, and name filters. Use only entries present in that catalog.
 
 COMPENDIUM ACTORS (grouped by pack, then CR — use resultCompendium + resultText):
 

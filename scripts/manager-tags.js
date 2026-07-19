@@ -114,14 +114,7 @@ export class TagManager {
         if (payload?.contexts && typeof payload.contexts === 'object') {
             for (const [contextKey, entry] of Object.entries(payload.contexts)) {
                 if (!contextKey || typeof contextKey !== 'string') continue;
-                const tags = Array.isArray(entry?.flags)
-                    ? entry.flags
-                        .filter(f => f && (typeof f === 'string' || typeof f?.key === 'string'))
-                        .map(f => typeof f === 'string'
-                            ? { key: normalizeTag(f), protected: false }
-                            : { key: normalizeTag(f.key), protected: !!f.protected })
-                        .filter(f => f.key)
-                    : [];
+                const tags = this._normalizeTagList(entry);
                 registry.set(contextKey, {
                     label: (typeof entry?.label === 'string' && entry.label.trim()) ? entry.label.trim() : '',
                     tags
@@ -145,9 +138,7 @@ export class TagManager {
                     for (const [type, entry] of Object.entries(cats)) {
                         const contextKey = `${moduleId}.${type}`;
                         if (this._builtinRegistry.has(contextKey)) continue;
-                        const tags = Array.isArray(entry?.tags)
-                            ? entry.tags.map(t => ({ key: normalizeTag(t), protected: false })).filter(f => f.key)
-                            : [];
+                        const tags = this._normalizeTagList(entry);
                         this._builtinRegistry.set(contextKey, {
                             label: (typeof entry?.label === 'string' && entry.label.trim()) ? entry.label.trim() : '',
                             tags
@@ -170,6 +161,30 @@ export class TagManager {
     }
 
     /**
+     * Normalize a taxonomy entry's tag list into `{ key, protected }[]`.
+     *
+     * Accepts `tags` or `flags` as the source key: `tags` is the documented shape for runtime
+     * `register()` and `pin-taxonomy.json`, while the shipped `tag-taxonomy.json` uses `flags`.
+     * Reading both means a caller cannot get a silently-empty taxonomy by picking the wrong key.
+     * Entries may be plain strings or `{ key, protected }` objects.
+     *
+     * @param {{ tags?: Array, flags?: Array }} entry
+     * @returns {Array<{key: string, protected: boolean}>}
+     */
+    static _normalizeTagList(entry) {
+        const src = Array.isArray(entry?.tags) ? entry.tags
+                  : Array.isArray(entry?.flags) ? entry.flags
+                  : null;
+        if (!src) return [];
+        return src
+            .filter(f => f && (typeof f === 'string' || typeof f?.key === 'string'))
+            .map(f => typeof f === 'string'
+                ? { key: normalizeTag(f), protected: false }
+                : { key: normalizeTag(f.key), protected: !!f.protected })
+            .filter(f => f.key);
+    }
+
+    /**
      * Register or merge a taxonomy entry at runtime.
      * Prefer adding entries to tag-taxonomy.json for shipped modules.
      * @param {string} contextKey
@@ -177,14 +192,7 @@ export class TagManager {
      */
     static register(contextKey, taxonomy = {}) {
         if (!contextKey || typeof contextKey !== 'string') return;
-        const tags = Array.isArray(taxonomy?.tags)
-            ? taxonomy.tags
-                .filter(f => f && (typeof f === 'string' || typeof f?.key === 'string'))
-                .map(f => typeof f === 'string'
-                    ? { key: normalizeTag(f), protected: false }
-                    : { key: normalizeTag(f.key), protected: !!f.protected })
-                .filter(f => f.key)
-            : [];
+        const tags = this._normalizeTagList(taxonomy);
         const existing = this._runtimeRegistry.get(contextKey);
         if (existing) {
             const existingKeys = new Set(existing.tags.map(f => f.key));

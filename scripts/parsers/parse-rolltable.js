@@ -26,7 +26,10 @@ export async function parseTableToFoundry(flat) {
         let maxRange = 0;
 
         for (const result of flat.results) {
-            const weight = result.resultWeight || 1;
+            const weight = result.resultWeight ?? 1;
+            if (!Number.isInteger(weight) || weight < 1) {
+                throw new Error(`Invalid result weight for "${result.resultText || 'unnamed result'}": expected a positive whole number.`);
+            }
             let rangeLower;
             let rangeUpper;
 
@@ -46,6 +49,13 @@ export async function parseTableToFoundry(flat) {
 
             if (rangeLower > rangeUpper) {
                 throw new Error(`Invalid range: lower bound (${rangeLower}) is greater than upper bound (${rangeUpper})`);
+            }
+            if (!Number.isInteger(rangeLower) || !Number.isInteger(rangeUpper) || rangeLower < 1) {
+                throw new Error(`Invalid range for "${result.resultText || 'unnamed result'}": bounds must be positive whole numbers.`);
+            }
+            const overlaps = data.results.some(existing => rangeLower <= existing.range[1] && rangeUpper >= existing.range[0]);
+            if (overlaps) {
+                throw new Error(`Overlapping range for "${result.resultText || 'unnamed result'}": ${rangeLower}-${rangeUpper}.`);
             }
 
             if (rangeUpper > maxRange) {
@@ -67,7 +77,20 @@ export async function parseTableToFoundry(flat) {
             };
 
             if (tableResult.type === 'document' && result.resultDocumentType) {
-                tableResult.documentCollection = result.resultDocumentType.charAt(0).toUpperCase() + result.resultDocumentType.slice(1);
+                const { collection, documentName } = getWorldCollection(result.resultDocumentType);
+                tableResult.documentCollection = documentName;
+                const entry = collection?.find?.(document => document.name.toLowerCase() === tableResult.text.toLowerCase());
+                if (entry) {
+                    tableResult.documentId = entry.id;
+                } else {
+                    postConsoleAndNotification(
+                        MODULE.NAME,
+                        'Table Import: World document not found',
+                        `${result.resultText} not found in ${result.resultDocumentType}`,
+                        false,
+                        false
+                    );
+                }
             }
 
             if (tableResult.type === 'pack' && result.resultCompendium && result.resultText) {
@@ -116,4 +139,24 @@ export async function parseTableToFoundry(flat) {
     }
 
     return data;
+}
+
+function getWorldCollection(documentType) {
+    const type = String(documentType ?? '').trim().toLowerCase();
+    const collections = {
+        actor: { documentName: 'Actor', collection: game.actors?.contents },
+        adventure: { documentName: 'Adventure', collection: game.adventures?.contents },
+        'card stack': { documentName: 'Cards', collection: game.cards?.contents },
+        item: { documentName: 'Item', collection: game.items?.contents },
+        'journal entry': { documentName: 'JournalEntry', collection: game.journal?.contents },
+        macro: { documentName: 'Macro', collection: game.macros?.contents },
+        playlist: { documentName: 'Playlist', collection: game.playlists?.contents },
+        'rollable table': { documentName: 'RollTable', collection: game.tables?.contents },
+        scene: { documentName: 'Scene', collection: game.scenes?.contents }
+    };
+    return collections[type] ?? { documentName: resultDocumentName(type), collection: [] };
+}
+
+function resultDocumentName(type) {
+    return type.split(/\s+/).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
 }

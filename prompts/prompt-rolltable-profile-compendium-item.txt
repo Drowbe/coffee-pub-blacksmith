@@ -13,8 +13,8 @@ PROFILE BUILD NOTES:
 - Do not cluster all entries in one compendium unless I ask.
 
 PROFILE INSTRUCTIONS:
-- Only items that verifiably exist in the listed compendiums (max 200 entries unless I cap lower).
-- Optional filters I may specify: item type [ITEM-TYPE], rarity [RARITY].
+- Only use Items that verifiably exist in the filtered catalog (maximum 200 results).
+- The appended authoritative generation direction and filtered catalog already reflect the selected Item type, rarity, magical-status, and name filters.
 
 COMPENDIUM ITEMS (grouped by pack, then rarity — use resultCompendium + resultText):
 

@@ -56,6 +56,114 @@ function formatCrLabel(num) {
     return String(num);
 }
 
+function normalizeText(value) {
+    return String(value ?? '').trim().toLowerCase();
+}
+
+function getActorType(actor) {
+    const value = actor?.system?.details?.type?.value ?? actor?.system?.details?.type ?? actor?.type ?? '';
+    return normalizeText(value);
+}
+
+function getActorSize(actor) {
+    return normalizeText(actor?.system?.traits?.size ?? '');
+}
+
+function getItemType(item) {
+    return normalizeText(item?.type ?? item?.system?.type?.value ?? '');
+}
+
+function isMagicalItem(item) {
+    const properties = item?.system?.properties;
+    if (properties instanceof Set) return properties.has('mgc');
+    if (Array.isArray(properties)) return properties.includes('mgc');
+    return !!properties?.mgc;
+}
+
+function matchesName(document, search) {
+    const term = normalizeText(search);
+    return !term || normalizeText(document?.name).includes(term);
+}
+
+function matchesActorFilters(actor, filters = {}) {
+    const cr = getActorCr(actor).sortKey;
+    const exactCr = parseCrToNumber(filters.actorCrExact);
+    const minCr = parseCrToNumber(filters.actorCrMin);
+    const maxCr = parseCrToNumber(filters.actorCrMax);
+    if (exactCr !== null && cr !== exactCr) return false;
+    if (minCr !== null && (cr === CR_SORT_OTHER || cr < minCr)) return false;
+    if (maxCr !== null && (cr === CR_SORT_OTHER || cr > maxCr)) return false;
+    if (normalizeText(filters.actorType) && getActorType(actor) !== normalizeText(filters.actorType)) return false;
+    if (normalizeText(filters.actorSize) && getActorSize(actor) !== normalizeText(filters.actorSize)) return false;
+    return matchesName(actor, filters.nameSearch);
+}
+
+function matchesItemFilters(item, filters = {}) {
+    if (normalizeText(filters.itemType) && getItemType(item) !== normalizeText(filters.itemType)) return false;
+    if (normalizeText(filters.itemRarity) && getItemRarityKey(item) !== normalizeText(filters.itemRarity)) return false;
+    const magical = normalizeText(filters.itemMagical);
+    if (magical === 'magical' && !isMagicalItem(item)) return false;
+    if (magical === 'nonmagical' && isMagicalItem(item)) return false;
+    return matchesName(item, filters.nameSearch);
+}
+
+/**
+ * Query world or compendium Actors/Items using the shared importer catalog contract.
+ * This is intentionally UI-neutral so Roll Tables, guided templates, the future Utility
+ * tab, and the public importer API can all consume the same filtered rows.
+ * @param {{kind:'actor'|'item', source:'world'|'compendium', packIds?:string[], filters?:object, onProgress?:(message:string)=>void}} options
+ * @returns {Promise<Array<object>>}
+ */
+export async function queryImportCatalog({ kind, source, packIds = [], filters = {}, onProgress } = {}) {
+    if (!['actor', 'item'].includes(kind)) throw new Error(`Unsupported catalog kind: ${kind}`);
+    if (!['world', 'compendium'].includes(source)) throw new Error(`Unsupported catalog source: ${source}`);
+    const matches = kind === 'actor' ? matchesActorFilters : matchesItemFilters;
+    const rows = [];
+    if (source === 'world') {
+        const documents = kind === 'actor'
+            ? (game.actors?.contents ?? []).filter(actor => !actor.isToken)
+            : (game.items?.contents ?? []);
+        for (const document of documents) {
+            if (matches(document, filters)) rows.push(toCatalogRow(document, kind, 'world', ''));
+        }
+    } else {
+        let index = 0;
+        for (const packId of packIds.filter(Boolean)) {
+            const pack = game.packs.get(packId);
+            if (!pack) continue;
+            index += 1;
+            await reportScan(onProgress, kind === 'actor' ? 'actors' : 'items', pack.metadata?.label ?? packId, index, packIds.length);
+            const documents = await pack.getDocuments();
+            for (const document of documents) {
+                if (matches(document, filters)) rows.push(toCatalogRow(document, kind, 'compendium', packId));
+            }
+        }
+    }
+    return rows.sort((a, b) => a.name.localeCompare(b.name) || a.packId.localeCompare(b.packId));
+}
+
+function toCatalogRow(document, kind, source, packId) {
+    const base = { name: document.name, id: document.id, uuid: document.uuid, source, packId, img: document.img ?? '' };
+    if (kind === 'actor') {
+        const cr = getActorCr(document);
+        return { ...base, cr: cr.label, creatureType: getActorType(document), size: getActorSize(document) };
+    }
+    return { ...base, itemType: getItemType(document), rarity: getItemRarityKey(document), magical: isMagicalItem(document) };
+}
+
+/** @param {Array<object>} rows @param {'actor'|'item'} kind @param {{includeImages?:boolean}} options */
+export function formatImportCatalog(rows, kind, options = {}) {
+    if (!rows.length) return 'No matching entries found.';
+    return rows.map(row => {
+        const source = row.source === 'compendium' ? `pack=${row.packId}` : 'world';
+        const details = kind === 'actor'
+            ? `CR=${row.cr}; type=${row.creatureType || 'unknown'}; size=${row.size || 'unknown'}`
+            : `type=${row.itemType || 'unknown'}; rarity=${row.rarity}; magical=${row.magical}`;
+        const image = options.includeImages && row.img ? ` | img=${row.img}` : '';
+        return `- ${row.name} | ${source} | ${details}${image}`;
+    }).join('\n');
+}
+
 export function getWorldActorsList() {
     try {
         const actors = game.actors.contents.filter(actor => !actor.isToken);
