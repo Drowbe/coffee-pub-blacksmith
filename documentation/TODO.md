@@ -63,21 +63,6 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 > `registerModule`, never checked `removeHook`'s return, never used `BLACKSMITH.rolls.execute` — and all
 > four were silently broken. **If an API isn't dogfooded, nothing tests it.**
 
-### ✅ FIXED (2026-07-18) — Hide-initiative-rolls setting does not hide the chat cards — **pending live verification**
-- **Root cause (proven against core source, not just hypothesized): a Foundry v13 core bug means initiative messages carry NO identifying flag at all.** `Combat#rollInitiative` (core `combat.mjs:411`, v13.351) writes its marker as a *nested dotted key* — `flags: {"core.initiativeRoll": true}`. Nothing expands it (`mergeObject` only expands top-level dotted keys, `helpers.mjs:929`; `Roll#toMessage`'s merge sees no top-level dots; DataModel construction never expands), and then `DocumentFlagsField` validates flag keys as package IDs (`/^[A-Za-z0-9-_]+$/` — a dot fails) and `TypedObjectField._cleanType` **silently deletes** the invalid key. dnd5e 5.2.5 adds no flag of its own (`Combat5e#rollInitiative` just calls `super`). So Blacksmith's detection (`flags.core.initiativeRoll` / `flags.dnd5e.roll.type`) could never match — the feature never fired once. Ruled out along the way: HookManager delivery (remap only affects `renderChatMessage`; dispatch try/catches per callback), registration gating (unconditional in `init`), and Blacksmith's auto-roll paths (`Combatant#rollInitiative` creates no message at all).
-- **Fix applied** (`blacksmith.js`): new `_isInitiativeRollMessage()` helper — keeps both flag checks (other roll paths; future core fix), and adds the detection that actually works on v13: match `message.flavor` against a regex built from the same `COMBAT.RollsInitiative` i18n string core formats the flavor with (localization-safe; requires `message.rolls.length`; template split on `{name}`, parts regex-escaped — unit-tested against en/fr/ja templates incl. regex metacharacters). Also fixed the DSN pairing bug this activation would have surfaced: `Hooks.once('diceSoNiceRollComplete')` mass-fires on the first completion when a group roll creates several messages — now each render registers a filtered listener keyed to its own `message.id`, with a 15s fallback for messages DSN never animates.
-- **Known limit**: in a mixed-language world, the flavor is baked in the *creator's* language, so clients on a different language won't match — the creator's own client (which can delete) still will. Goes away when core fixes the flag.
-- **How to verify (live)**: enable `combatTrackerHideInitiativeRoll`; roll initiative from the tracker (single combatant, and "roll all NPCs" as a group), and from a player's sheet, with GM + player clients open → no card appears on either client, messages absent from `game.messages`; with DSN active, dice still animate fully for *every* combatant in a group roll before deletion. Disable the setting → cards appear normally.
-- **v14 note**: detection is layered — flag check first (auto-recovers if v14 fixes the core bug), flavor regex fallback (survives as long as `COMBAT.RollsInitiative` exists with a `{name}` placeholder; built from the localized string at runtime, so rewording is fine). `renderChatMessageHTML` confirmed present in the v14 API. **On upgrade, spot-check**: roll one initiative, console `game.messages.contents.at(-1).flags` — `core.initiativeRoll` present means the core bug is fixed (flag path active); empty flags means the flavor layer is carrying it — confirm the card hid.
-- **Priority**: High — user-facing feature observably broken. Consider reporting the dotted-key flag bug upstream to Foundry.
-
-### ✅ FIXED (2026-07-17) — `SkillCheckDialog` `options.title` never sets the window title
-- **Fix applied**: `window-skillcheck.js` now sets `options.window = { title: data.title }`. Verified against Foundry core: `ApplicationV2#title` reads `this.options.window.title` (`applications/api/application.mjs`), and `#mergeApplicationOptions` deep-merges nested objects, so `resizable`/`minimizable` from `DEFAULT_OPTIONS.window` survive. **Not yet verified in a live Foundry session.**
-- **Original issue**: `window-skillcheck.js:37` did `options.title = data.title` then `super(options)`. ApplicationV2 reads the frame title from `options.window.title`. **20+ call sites across this repo use `window: { title }`; zero use root `title`.** No `get title()` override exists, so `DEFAULT_OPTIONS.window.title = 'Request a Roll'` always wins.
-- **Impact**: every module passing `title: 'Spot the trap'` gets a window captioned "Request a Roll". The value *does* work for the chat card title and in silent mode — which is why it failed partially and silently.
-- **Doc is right** (`api-requestroll.md:67` "Override the dialog window title"); the intent at `:37` is explicit and simply doesn't work. Fix: `options.window = { title: data.title }`.
-- **Priority**: Medium.
-
 ### `api.CanvasLayer` — the setting gate is real, but the ORDERING bug is the primary cause
 - **Added 2026-07-17**: the entry below blames `enableSceneClickBehaviors`. That gate is real, **but it is not what most users hit** — the setting defaults to `true`. The bigger bug is ordering: the `canvasReady` handler that assigns `module.api.CanvasLayer` (`blacksmith.js:662`) is registered during **`ready`**, and Foundry fires **`canvasReady` before `ready`** (verified in core: `game.mjs:784` `await this.canvas.initializing;` precedes `game.mjs:787` `Hooks.callAll("ready")`). So the assignment is **always too late for the initial canvas** — `api.CanvasLayer` stays `null` until the user switches scenes, which fires a second `canvasReady`.
 - **Consequence**: `window.BlacksmithCanvasLayer` is **never** set, even after a scene change — `_syncGlobalsFromApi()` guards on `if (api.CanvasLayer)` and only runs at API-ready time, before any of this.
@@ -97,15 +82,13 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 - **Decide**: honour `visible` in `getFoundryToolbarTools`, or state in the doc that `visible` is CoffeePub-only and `onFoundry` is the sole Foundry-side gate. The code comment at `:116-117` claims the omission is deliberate — but the doc's contract is the sane one.
 - **Priority**: Medium.
 
-### ✅ FIXED (2026-07-17) — `registerToolbarTool`: `onClick` documented as required but never validated
-- **Fix applied**: `registerTool` now rejects a non-function `onClick` with a log, matching the contract `api-toolbar.md` has always stated. Safe by construction: `_wireToolClicks` already skips any tool whose `onClick` isn't a function, so such a tool was a dead button already — this only makes the failure loud. All five internal tools define `onClick`, so nothing internal is affected.
-- **Still open**: the empty `catch` blocks in `registerTool` / `unregisterToolbarTool` still swallow errors.
-- **Priority**: Low (remainder).
+### `registerToolbarTool` / `unregisterToolbarTool` — empty `catch` blocks swallow errors
+- The `onClick`-required validation shipped (see `CHANGELOG.md` 13.9.2). Remaining: both `registerTool` and `unregisterToolbarTool` still have empty `catch` blocks that silently swallow errors.
+- **Priority**: Low.
 
-### ✅ FIXED (2026-07-17) — `getToolsByModule()` returns objects you cannot unregister
-- **Fix applied**: `registerTool` now stores `toolId` on the stored tool object (set *after* the `...toolData` spread, so a caller cannot clobber the registry key). `getToolsByModule()` results are now unregisterable via `tool.toolId`.
-- **Doc**: `api-toolbar.md`'s cleanup example still needs updating from `tool.name` to `tool.toolId` — see the doc-fix list below.
-- **Priority**: Low (remainder).
+### `api-toolbar.md` cleanup example uses `tool.name` where it must use `tool.toolId`
+- The `getToolsByModule()` unregisterability fix shipped (see `CHANGELOG.md` 13.9.2). Remaining doc fix: `api-toolbar.md`'s cleanup example still passes `tool.name` to unregister; update it to `tool.toolId`. Fold into the `api-toolbar.md` cleanup.
+- **Priority**: Low.
 
 ### ⚠️ There is no module-unload hook at all — `disableModule` AND `unloadModule` are both dead
 - **Status (2026-07-17)**: the docs no longer teach `disableModule`. **But the replacement was also wrong**, and that is the real finding.
@@ -120,9 +103,8 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 - **Current state**: option 3, chosen because it is reversible and truthful. `api-hookmanager.md` carries the full explanation; the six cleanup examples across `api-menubar.md`, `api-pins.md`, `api-toolbar.md`, `api-window.md`, and `developer-note-pin-editing-visibility.md` are annotated in place. **The ten dead code registrations are untouched.**
 - **Priority**: Medium (correctness of guidance), Low (runtime impact).
 
-### Pins doc follow-up — rectangle is real; describe it as the image-only shape
-- Both 2026-07-18 pins bugs (`update()` dropping `shape: 'rectangle'`; `list()`'s inverted `includeHiddenByFilter` default) and the elliptical-corner rendering fix are **shipped and live-verified** — details in `CHANGELOG.md` 13.9.5.
-- **Remaining (documentation agent)**: `architecture-pins.md`'s shape list intentionally mirrored the buggy whitelist (circle/square/none) — correct it to include `rectangle`, described per the author's decision: image-only free-aspect shape (FA icon → forced square, same as Square; image URL → natural aspect with rounded-corner border; `none` = same aspect, no border). Also note `--blacksmith-pin-square-border-radius` is a percent of the short side, converted to px by the renderer.
+### Pins doc follow-up — describe `rectangle` as the image-only shape
+- The `rectangle` code fixes (`update()` no longer drops the shape; elliptical-corner rendering; inverted `includeHiddenByFilter` default) shipped (see `CHANGELOG.md` 13.9.5). Remaining doc fix: `architecture-pins.md`'s shape list still mirrors the old buggy whitelist (circle/square/none) — correct it to include `rectangle`, per the author's decision: an image-only free-aspect shape (FA icon → forced square, same as Square; image URL → natural aspect with rounded-corner border; `none` = same aspect, no border). Note `--blacksmith-pin-square-border-radius` is a percent of the short side, converted to px by the renderer.
 
 ### Sockets: native `emit()` never rejects, so the "unified interface" premise is false
 - **Issue**: `api-sockets.md:123` states unconditionally that `emit` "rejects if delivery fails (e.g. a `userId` target who is not connected)". True under SocketLib (`manager-sockets.js:214` → `executeAsUser`). **Under the native fallback it is false**: the native `emit` closure (`manager-sockets.js:292-323`) never inspects `game.users`, never checks connectivity, and **has no `return` at all** → `blacksmith.js:1369` does `Promise.resolve(undefined).then(() => true)` → **always resolves `true`**.
@@ -161,21 +143,8 @@ All 13 audited against source. **Two are fiction, three are shipped-work-describ
 
 > **The finding that explains almost all of it:** the house rule *"a doc that copies code drifts; a doc that points at code doesn't"* held as a **natural experiment**. In `architecture-blacksmith.md`, everything that *points* (file inventory 45/46 correct, the style list exactly right, the §9A trap list 7/9, all cross-links) survived intact. Everything that *narrates or copies* (§3.1's hand-maintained call sequence, §2.1's transcribed esmodules array) rotted. Same doc, same author, same age — the only variable was pointer vs copy.
 
-### ✅ DONE — `architecture-hookmanager.md` rewritten (1,411 → ~200 lines)
-- The 398-line verbatim class copy had **drifted into resurrecting the `callbackId.split('_')[0]` bug we deleted this same cycle**, omitted `context`/`teardown`, showed dead `_throttle`/`_debounce` as the live path, and lacked the `pre*` cancel. Every defect existed *because the copy existed*.
-- Deleted an invented rule ("⚠️ Parameter order is strict and must be exact!" — `registerHook` takes a **destructured object**; order is meaningless), a 155-line section claiming "Only one callback per hook name / Module B will OVERWRITE Module A" while proposing multi-callback dispatch as future work (**it shipped**; `entry.callbacks.push` + sort), ~300 lines of migration runbook, ~180 lines duplicating the api doc, and phantom examples (`closeGame`, `userLogin`, `searchInput`, `PanelManager`, `StatsManager`).
-- Now documents the real internals, none of which were documented before.
-
-### ✅ DONE — `architecture-rolls.md` trimmed (797 → 522 lines)
-- **Deleted a 202-line "Schema-Driven Roll System" section: 100% fiction.** `scripts/rules/` has **never existed in any commit** (`git log --all -- scripts/rules` is empty). It confidently described D&D 5e handling for Jack of All Trades, Remarkable Athlete, Reliable Talent, cover, auto-crit and exhaustion — 19/19 symbols phantom.
-- Deleted a 99-line migration plan that referenced a nonexistent `TODO.md` eight times and two phantom files.
-- Added a correction block: it is a **3-function** flow (`requestRoll()` is commented out at `manager-rolls.js:26` under the code's own "LEGACY… NO LONGER USED" banner), `orchestrateRoll` **throws** without an existing message id rather than creating cards, and the socket direction is **inverted** (roller→GM, not GM→clients).
-- **Still open:** the ASCII diagrams and API Reference section still encode the 4-function/public-internal errors. Left in place — rewriting them needs a session with the code.
-
-### ✅ DONE — `architecture-window.md` corrected (inverted staleness)
-- **The opposite of the usual failure: a shipped, actively-used system described as "Planned."** `api-windows.js` exists and is wired (`blacksmith.js:1222-1226`); `window-pin-layers.js:1983` registers and `api-pins.js:582` opens. A contributor could have built it twice.
-- The V2 migration is **complete** — `grep -rE 'extends (Application|FormApplication)\b' scripts/` returns **zero**. The doc named three windows as legacy; all extend `BlacksmithWindowBaseV2`.
-- Removed the dead `unloadModule` cleanup guidance (last surviving instance in the repo) and a dangling "earlier Application V2 review" that doesn't exist.
+### `architecture-rolls.md` — ASCII diagrams and API Reference still encode the wrong flow
+- The trim and the correction block shipped (see `CHANGELOG.md`, architecture-docs audit). Remaining: the ASCII diagrams and the API Reference section still encode the old 4-function/public-internal model. The real flow is 3-function (`requestRoll()` is commented-out legacy), `orchestrateRoll` throws without an existing message id rather than creating cards, and the socket direction is inverted (roller→GM). Rewriting the diagrams needs a session with the code.
 
 ### ⛔ `architecture-socketmanager.md` — 81% fiction, BORN fiction. REWRITE NEEDED — #1 POST-RESET EFFORT
 - **Priority (author, 2026-07-17): #1 after the wiki reset**, ahead of the design-system effort — sockets and hooks are the two most critical systems. (The hook-system doc, `architecture-hookmanager.md`, was already rewritten from source this session; sockets is the remaining critical one.) Excluded from the first wiki publish; rewrite from `manager-sockets.js` preserving the god-module analysis.
@@ -183,10 +152,6 @@ All 13 audited against source. **Two are fiction, three are shipped-work-describ
 - Invented: a third "Local Mode" transport, batching, reconnection/backoff, replay-attack validation, latency metrics, a config system, four debug globals.
 - **Most dangerous:** it invents a security model. Reality is `_isLocalRecipient()` (`:125`) filtering **on receipt** — both transports broadcast to every client. Source: *"emit() must never carry secrets"* (`:306`).
 - **Header added; body left for diffing.** Do NOT delete: the socket layer has no other contributor doc, and the **"Migration Plan" section is real** — the god-module problem (SocketManager imports 6 UI subsystems at `:14-19`) is live and correct. Its status is stale (`module.api` exposure shipped at `blacksmith.js:1298`).
-
-### ✅ DELETED (2026-07-17) — `architecture-core.md`
-- Deleted per author decision: misnamed (said nothing about core), duplicative (every section had a better owner), wrong on both unique claims (**"4 esmodules"** → actually 9; a **"Base Timer Class"** that does not exist), and its "Testing and Quality Assurance" section was fiction (no tests exist).
-- Referrers repointed: removed the "Core utilities" row from `architecture-blacksmith.md`; dropped the `architecture-core.md` mentions in `api-core.md`. If `api-core.js` / `utility-core.js` ever warrant contributor-facing internals, that is a **new** doc — not this one.
 
 ### `architecture-blacksmith.md` — KEEP, fix §3.1 (the map a new contributor reads first)
 - **§9A is right and §3.1 is wrong — the doc contradicts itself and the correct half loses.** §3.1 claims `hookCanvas()` registers canvasInit/canvasReady/updateScene/dropCanvasData. It registers **no hooks** (`:821-837` only injects the layer class); those live in `initializeSceneInteractions()` (`:617`, called during `ready`) and three are gated on `enableSceneClickBehaviors`. §9A says so correctly.
@@ -287,27 +252,6 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 ## ENHANCEMENTS
 
 ### High Priority
-
-#### ✅ FIXED (2026-07-18) — Dead `settingChange` hook registrations, all ten sites rewired — **pending live verification, one site at a time**
-- **What shipped**: a new explicit helper `HookManager.registerSettingChangeCallback({description, context, priority, key?, callback})` (`manager-hooks.js`) registers `updateSetting` + `createSetting` + `clientSettingChanged` and normalizes all three to the old `(namespace, key, value)` shape. This is **not** the forbidden blanket remap — `settingChange` stays unregistered; each site opted in explicitly. Two scope facts from core v13.351 baked into the helper: **`scope: 'user'` settings are stored as world Setting documents** (`#setWorld` stamps `setting.user`), broadcast to every client, so the helper filters user-scoped events to the owning client; and document `setting.value` is already cast — never `JSON.parse` it.
-- **Sites rewired (all ten)**: `blacksmith.js` (cache invalidation — **reorder branch now GM-gated**: `reorderCompendiumsForType` writes world settings and the callback now fires on player clients), `api-menubar.js` ×2 (session-timer defaults — GM-gated, does socket sends by design; deployment-pattern label), `manager-combatbar.js` ×2 (user-scoped size/hide-dead), `manager-journal-tools.js` (also modernized the callback: re-renders AppV2 journal sheets via `foundry.applications.instances` — the old body only scanned legacy `ui.windows`), `manager-token-indicators.js`, `manager-toolbar.js`, `ui-journal-encounter.js`, `ui-sidebar-pin.js`, `ui-sidebar-style.js` (incl. client-scoped `core.diceConfiguration`), `sidebar-combat.js` (hand-rolled raw hooks, matching its standalone style).
-- **Verification status (live session 2026-07-18 — six of ten sites verified)**:
-  1. *Cache/compendium*: ✅ VERIFIED — player client synced arrays ("Selected compendium arrays updated") with no permission errors.
-  2. *Session timer*: ✅ VERIFIED — timer reloaded + toast on save, no runaway resends.
-  3. *Toolbar leader*: ✅ VERIFIED — clean single refresh, no flicker from the doubled path.
-  4. *Scene styles*: ✅ VERIFIED — applied at Save without reload (then Foundry's `requiresReload` prompt fired redundantly — see follow-up below).
-  5. *Combat bar*: ✅ scope filter VERIFIED (other client unaffected). Live-apply is partial — the CSS height var applies instantly but the rest of the bar layout only recomputes on full render, so it looks hybrid until the `requiresReload` reload settles it. **Check whether size 30 renders correctly after reload** — if not, separate cosmetic bug at small sizes.
-  6. *Sidebar combat tab*: tested — callback fires but `ui.sidebar.render()` cannot inject/remove the tab; the setting's `requiresReload` covers it. Callback is ineffective-but-harmless for now; keep the reload flag here.
-  7. *Journal tools*: ✅ callback VERIFIED — journal re-renders on toggle, no reload prompt. The icon still doesn't appear, but that is a **separate pre-existing v13 bug** (see "Journal Tools icon missing on v13 sheets" below), not a hook failure.
-  8. *Token indicators*: ✅ VERIFIED — style/color changes apply.
-  9. *Toolbar visibility*: tested — callback fires but the button only disappears after the `requiresReload` reload; live-apply insufficient for Foundry's scene controls here. Keep the reload flag on this one.
-  10. *Sidebar pin/style/manual-rolls*: ✅ VERIFIED — all applied live ("everything worked"), then Foundry redundantly prompted reload → **prime drop-`requiresReload` candidates**. Core dice-config + encounter-toolbar toggles: minor, untested; deployment label already verified via the party bar.
-
-#### ✅ FIXED (2026-07-18) — Journal Tools unreachable on v13 — now a "⋯" controls-menu entry — **pending live verification**
-- **Root cause confirmed in code (worse than the hypothesis)**: the icon rode `renderJournalSheet`/`renderJournalPageSheet` — **v12 class-name hooks that never fire on v13** (the sheet class is `JournalEntrySheet`, so v13 fires `renderJournalEntrySheet`). The injection also targeted v1 header anatomy (`.header-button.close`). The feature has been unreachable since the v13 move — a second dead layer under the dead `settingChange` hook fixed earlier the same day.
-- **Fix applied (author chose the "⋯" menu — Option A)**: `manager-journal-tools.js` registers `getHeaderControlsJournalEntrySheet`, pushing a "Journal Tools" entry (feather icon) whose `visible` re-evaluates `enableJournalTools` per render — so the settings-change re-render shows/hides it without reload. Header-control clicks dispatch to `app.options.actions[action]`, so the handler installs alongside the entry. Dead methods deleted (`_onRenderJournalSheet`, `_isEditMode`, `_addToolsIcon`, html-based `_openToolsDialog`) in favor of `_openToolsForApp(app)`. `.journal-tools-icon` CSS kept — reused inside the tools window's entity-replacement partial. Behavior change: the entry is available while editing a page (the old titlebar icon hid in edit view); acceptable since the tools window operates on the document.
-- **How to verify (live)**: open a journal → "⋯" menu shows **Journal Tools** with a feather icon; clicking opens the tools window for that journal; toggle `enableJournalTools` off + Save → entry disappears from the open sheet's menu without reload (and back on re-enable); run an entity-replacement scan to confirm the window still functions end-to-end.
-- **This establishes the header-controls pattern** the GM Notes item wants (its "header-control trigger" remaining task) — reuse this shape.
 
 #### Journal Tools entity replacement should resolve through `api.compendiums`
 - **Context (author, 2026-07-18)**: the Compendiums API now handles exactly what Journal Tools does by hand — plain text in, formatted compendium/world link out (`resolve`/`resolveMany`, canonical name-to-UUID). `manager-journal-tools.js` predates it and drives `compendiumManager` + the per-type setting names directly.
