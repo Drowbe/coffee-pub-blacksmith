@@ -510,12 +510,22 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 
 ## TECHNICAL DEBT
 
-### Journal Tools — de-clunk refactor
+### Journal Tools — de-clunk refactor (now CORRECTNESS, not just clunk — see 2026-07-18 review)
 - **Issue**: `JournalToolsWindow` is ApplicationV2 (extends `BlacksmithWindowBaseV2`) but opts out of V2 idioms: `ACTION_HANDLERS = null` with hand-wired `_attachLocalListeners()` (silent no-attach on selector miss), runtime partial `fetch()`+`registerPartial()`, `setTimeout` timing hacks (200ms render wait, 0ms reflow poke, 10ms throttles), manual DOM state mutation, `isProcessing`/`shouldStop` flags instead of `AbortController`, and 600/287/180-line mega-methods.
-- **Status**: PLANNED — assessment done; phased plan in `documentation/plans/plan-journal-tools-refactor.md`.
-- **Location**: `scripts/manager-journal-tools.js` (3569 lines), `templates/journal-tools-window.hbs` (+ partials).
-- **Need**: Phase 1 (no behavior change) — `data-action`/`ACTION_HANDLERS`, `loadTemplates()` for partials, remove `setTimeout` hacks, add `_onClose` teardown. Phase 2 — extract scan/collect/apply into a testable core module, `AbortController` cancellation. Verify `_renderSearchResults` escaping (XSS) first.
-- **Priority**: Medium
+- **Code review findings (2026-07-18) — the entity-linking core has real correctness bugs, not just style debt:**
+  1. **Stale-offset replacement (CRITICAL)**: all four scanners record absolute `startIndex`/`liStart` offsets against the *original* page content, but the processing loop mutates `pageContent` after each replacement (`:635-636`) without re-scanning, offset-adjusting, or processing in descending order across the merged entity list. Any run performing 2+ replacements on a page can slice at wrong offsets and corrupt page HTML. (The existing-links scanner sorts descending — safe among itself — but bullet/manual/html entities are appended after it in ascending order.)
+  2. **World fallback searches the wrong collection** (`_upgradeEntityLinkUnified` `:1910`): uses `foundEntityType` (always null at that point) instead of `entityType`, so a failed *item* lookup falls back to searching **actors** — an item name colliding with an actor name links to the actor; items effectively have no world fallback.
+  3. `worldEntity.type === 'Item'` (`:1918`) is never true — `.type` is the subtype (`'npc'`, `'weapon'`); world finds are always labeled actor in stats/labels.
+  4. **First-occurrence bugs**: bullet entities use `content.indexOf(line)` (duplicate lines resolve to the first); html-list plain-text replacement uses `liContent.replace(entity.name, newLink)` (first occurrence anywhere in the li; `$` in names would inject regex-replacement patterns).
+  5. The existing-link li path replaces **all** UUID-pattern matches in the li with the same new link (`:1952-1953` global regex) — an li with two links gets both overwritten.
+  6. **Scanning is keyword-luck, not contract**: section gating uses `includes()` on heading keyword lists against *every line* (prose containing "monster" flips the section state, and the state never turns off at an unrelated heading); `_isHeading` treats any Title-Case line as a heading; plain-text acceptance is "2–100 chars, doesn't end in a period"; type disambiguation is a 240-line context-bias heuristic (`_determineEntityTypeFromContext`). What gets linked depends on wording and ordering — this is the "does it do what we want" problem.
+  7. Dedupe is by lowercase name only, page-wide, across types.
+  8. **No preview and no undo for entity linking** — pages are updated immediately (`page.update` per page); the search-replace half *does* have report-first, the linking half doesn't.
+  9. `_renderSearchResults` interpolates document names and matched content into `innerHTML` unescaped — journal content IS html, so OLD/NEW cells render markup instead of displaying it (and can execute it). The escaping concern previously flagged is confirmed real.
+  10. Resolution duplicates the Compendiums API across three near-identical ~100-line methods (see the `api.compendiums` item above).
+- **Status**: PLANNED — assessment done; phased plan in `documentation/plans/plan-journal-tools-refactor.md`. **The review upgrades Phase 2 from "extract for testability" to "rebuild the linking core"**: parse page HTML with `DOMParser` instead of regex over serialized strings; collect candidates from the DOM; resolve via `api.compendiums.resolveMany`; apply as DOM mutations; show a preview table before writing. Escape all interpolated content in results rendering (finding 9) — small and worth doing ahead of the full refactor.
+- **Location**: `scripts/manager-journal-tools.js` (~3,480 lines), `templates/journal-tools-window.hbs` (+ partials).
+- **Priority**: Medium-High (was Medium) — the tool writes corrupted or wrong links under real conditions.
 
 ### jQuery Detection Pattern is Technical Debt
 - **Status**: TECHNICAL DEBT – cleanup target now that **v13+ is the supported platform**
