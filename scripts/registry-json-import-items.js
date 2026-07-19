@@ -16,6 +16,7 @@ export const ARTIFICER_MODULE_ID = 'coffee-pub-artificer';
 
 export const ITEM_PROMPT_CORE = 'prompt-item-core.txt';
 export const ITEM_PROMPT_PARTIAL_ARTIFICER = 'prompt-item-partial-artificer.txt';
+export const ITEM_PROMPT_PARTIAL_IMAGE_REQUEST = 'prompt-item-partial-image-request.txt';
 export const ITEM_PROMPT_PROFILE_ARTIFICER = 'prompt-item-profile-artificer.txt';
 
 /** @type {Record<string, string>} */
@@ -53,7 +54,7 @@ export function isArtificerModuleActive() {
 /**
  * Build the full clipboard prompt for an item import template.
  * @param {string} templateKey - loot | consumable | weapon | equipment | tool | container | feature | spell
- * @param {{ includeArtificer?: boolean }} [options]
+ * @param {{ includeArtificer?: boolean, includeImageRequest?: boolean }} [options]
  * @returns {Promise<string>}
  */
 export async function buildItemImportPrompt(templateKey, options = {}) {
@@ -70,6 +71,10 @@ export async function buildItemImportPrompt(templateKey, options = {}) {
     if (includeArtificer) {
         parts.push(await fetchPromptText(ITEM_PROMPT_PARTIAL_ARTIFICER));
         parts.push(await fetchPromptText(ITEM_PROMPT_PROFILE_ARTIFICER));
+    }
+
+    if (options.includeImageRequest) {
+        parts.push(await fetchPromptText(ITEM_PROMPT_PARTIAL_IMAGE_REQUEST));
     }
 
     const composed = composePrompt(parts);
@@ -112,6 +117,7 @@ export async function buildItemJsonTemplate(templateKey, options = {}) {
         itemIdentified: true,
         itemImagePath: '',
         itemImageTerms: [],
+        itemImageNuance: '',
         itemIsMagical: false,
         magicalAttunementRequired: '',
         itemLimitedUses: 1,
@@ -221,11 +227,15 @@ const itemJsonImportKind = {
     position: { width: 920, height: 680 },
     templateOptions: ITEM_TEMPLATE_OPTIONS,
     get promptCheckboxes() {
-        if (!isArtificerModuleActive()) return [];
-        return [{ id: 'artificerItem', label: 'Artificer Item', checked: false }];
+        const options = [{ id: 'includeImageRequest', label: 'Include Image Generation Request', checked: false }];
+        if (isArtificerModuleActive()) {
+            options.unshift({ id: 'artificerItem', label: 'Artificer Item', checked: false });
+        }
+        return options;
     },
     onBuildPrompt: async (type, promptOptions = {}) => buildItemImportPrompt(type, {
-        includeArtificer: !!promptOptions.artificerItem
+        includeArtificer: !!promptOptions.artificerItem,
+        includeImageRequest: !!promptOptions.includeImageRequest
     }),
     onBuildJsonTemplate: async (type, promptOptions = {}) => buildItemJsonTemplate(type, {
         includeArtificer: !!promptOptions.artificerItem

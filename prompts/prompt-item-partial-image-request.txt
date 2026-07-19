@@ -1,0 +1,28 @@
+========================================
+OPTIONAL SQUARE IMAGE (only after I confirm the JSON)
+========================================
+
+After producing the Item JSON, stop and ask whether to proceed with image generation. Do not generate the image until I confirm.
+
+Generate a tight, straight-on item portrait of the generated item, fantasy RPG item, facing directly toward the camera, frontal perspective only.
+
+Framing is a close item portrait. The item dominates the frame.
+
+Apply the generated itemImageNuance as subtle, controlled adjustments while preserving composition, framing, and camera angle.
+- Do not introduce new framing.
+- Do not introduce new camera angles or framing changes.
+
+If attached, use the attached image strictly as a visual design reference only. Do not copy pose, camera angle, or perspective from the image.
+
+Painterly ink-and-wash illustration style with visible hand-drawn linework, sketch-like outlines, and textured brush strokes. Strong pen lines define important features, used only for emphasis. Subtle cross-hatching and loose ink strokes remain visible. Warm directional rim lighting with golden highlights along the edges of the item, soft ambient fill, cinematic contrast. Muted earthy color palette with warm ochres, browns, and desaturated reds unless overridden by itemImageNuance. Slightly weathered, gritty surface texture. Semi-realistic proportions with stylized exaggeration. No smooth airbrushing. No photorealism.
+
+Simple, unobtrusive background with soft gradients and faint atmospheric particles. Background does not influence camera angle, lighting direction, or framing. Fantasy concept art, tabletop RPG item portrait, dramatic mood, hand-illustrated look, high detail, sharp focus, square composition.
+
+Camera and framing constraints are mandatory: frontal view, eye-level, straight-on portrait. Close crop. Item only. Avoid full props. Avoid cinematic pull-back.
+- Do not create grids, panels, sheets, collages, contact sheets, or multiple images.
+
+IMAGE OUTPUT FORMAT:
+- 1:1 square aspect ratio (1024x1024).
+- Square canvas only. Do not generate portrait or landscape images.
+- If image generation fails, say "Image generation failed".
+
