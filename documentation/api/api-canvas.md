@@ -56,24 +56,16 @@ if (layer) {
 
 ```javascript
 const blacksmith = await BlacksmithAPI.get();
-const layer = blacksmith.CanvasLayer; // ⚠️ null on initial load — see below
+const layer = blacksmith.CanvasLayer; // null on initial load — prefer getCanvasLayer(), see below
 ```
 
-> ### ⚠️ Prefer `BlacksmithAPI.getCanvasLayer()` — `blacksmith.CanvasLayer` is unreliable
->
-> **`blacksmith.CanvasLayer` is `null` on the initial canvas draw**, and only becomes populated after you switch scenes. It is assigned from a `canvasReady` handler that Blacksmith registers during `ready` — but Foundry fires `canvasReady` *before* `ready` (`game.mjs`: `await this.canvas.initializing` precedes `Hooks.callAll("ready")`), so the handler is always registered too late for the first scene.
->
-> **It is also gated on an unrelated setting.** The assignment sits inside the `enableSceneClickBehaviors` branch. That setting defaults to **on**, but a GM who turns *scene-click behaviours* off loses `blacksmith.CanvasLayer` **permanently** — scene switches won't help — even though the layer itself is registered unconditionally and works fine.
->
-> **`window.BlacksmithCanvasLayer` is worse**: it is assigned by a sync step guarded on `if (api.CanvasLayer)`, which runs at API-ready time when the value is still `null`. Nothing re-syncs it later, so in practice it is **never set**.
->
-> **Use this instead — it works in every case**, because it falls back to reading the layer straight off the canvas:
->
-> ```javascript
-> const layer = await BlacksmithAPI.getCanvasLayer();
-> ```
->
-> The layer is registered unconditionally at `init`, so the fallback path is always available. Tracked in `documentation/TODO.md`.
+Prefer `BlacksmithAPI.getCanvasLayer()`. `blacksmith.CanvasLayer` is unreliable:
+
+- It is `null` on the initial canvas draw, and only becomes populated after a scene switch.
+- It is gated on the `enableSceneClickBehaviors` setting (default on); with that setting off, `blacksmith.CanvasLayer` stays `null` even across scene switches.
+- `window.BlacksmithCanvasLayer` is effectively never set — a sync step assigns it only while `blacksmith.CanvasLayer` is still `null`, and nothing re-syncs it.
+
+`BlacksmithAPI.getCanvasLayer()` works in every case: it returns `api.getCanvasLayer()` when present, and otherwise reads the layer straight off the canvas (`canvas['blacksmith-utilities-layer']`), which is registered unconditionally at `init`.
 
 #### Direct Canvas Access
 
@@ -88,7 +80,7 @@ Hooks.once('canvasReady', () => {
 
 #### Global Access (after canvasReady)
 
-> **This global is effectively never set** — see the warning above. The guard below means the block is a silent no-op rather than an error, which is why this went unnoticed. Use `BlacksmithAPI.getCanvasLayer()` or read `canvas['blacksmith-utilities-layer']` directly.
+`window.BlacksmithCanvasLayer` is effectively never set (see above), so this block is a silent no-op. Use `BlacksmithAPI.getCanvasLayer()` or read `canvas['blacksmith-utilities-layer']` directly.
 
 ```javascript
 if (window.BlacksmithCanvasLayer) {
@@ -347,242 +339,16 @@ await drawing.delete(); // Not just drawing.visible = false
 
 ## Related Documentation
 
-- **[Core API](./api-core.md)** - Blacksmith's shared utilities and constants
-- **[Canvas Layer Implementation](../scripts/canvas-layer.js)** - Internal layer implementation
-- **[Blacksmith API Core](./api-core.md)** - Main API documentation
+- **[Core API](api-core.md)** - Blacksmith's shared utilities and constants
+- Canvas layer implementation: `scripts/canvas-layer.js`
 
-## Testing
+## Quick check
 
-### Quick Console Test
-
-Open your browser console (F12 → Console tab) and run these commands:
+After `canvasReady`, in the browser console:
 
 ```javascript
-// Test 1: Check if layer is available (must run after canvasReady)
-canvas['blacksmith-utilities-layer']
-
-// Test 2: Check via API
-BlacksmithAPI.getCanvasLayer()
-
-// Test 3: Check global access
-window.BlacksmithCanvasLayer
+canvas['blacksmith-utilities-layer']       // direct access
+await BlacksmithAPI.getCanvasLayer()        // via the bridge (recommended)
 ```
 
-### Complete Test Suite
-
-Copy this entire test block into your browser console after the canvas is ready:
-
-```javascript
-// ========== BEGIN: CANVAS LAYER API TESTING ==========
-// Run this in browser console after canvas is ready
-// Filter console for "CANVAS TEST" to see results
-
-(async function testCanvasLayerAPI() {
-    console.log('CANVAS TEST | ===================================================');
-    console.log('CANVAS TEST | ====  CANVAS LAYER API TESTING                 ====');
-    console.log('CANVAS TEST | ===================================================');
-    console.log('CANVAS TEST | ');
-    
-    try {
-        // Test 1: Direct Canvas Access
-        console.log('CANVAS TEST | ==== TEST 1: Direct Canvas Access ====');
-        const directLayer = canvas['blacksmith-utilities-layer'];
-        if (directLayer) {
-            console.log('✅ CANVAS TEST | Direct access: Layer found', directLayer);
-        } else {
-            console.log('❌ CANVAS TEST | Direct access: Layer not found');
-        }
-        
-        // Test 2: API Bridge Access
-        console.log('CANVAS TEST | ==== TEST 2: API Bridge Access ====');
-        const apiLayer = await BlacksmithAPI.getCanvasLayer();
-        if (apiLayer) {
-            console.log('✅ CANVAS TEST | API access: Layer found', apiLayer);
-        } else {
-            console.log('❌ CANVAS TEST | API access: Layer not found');
-        }
-        
-        // Test 3: Direct API Access
-        console.log('CANVAS TEST | ==== TEST 3: Direct API Access ====');
-        const blacksmith = await BlacksmithAPI.get();
-        const apiDirectLayer = blacksmith.CanvasLayer;
-        if (apiDirectLayer) {
-            console.log('✅ CANVAS TEST | Direct API: Layer found', apiDirectLayer);
-        } else {
-            console.log('❌ CANVAS TEST | Direct API: Layer not found');
-        }
-        
-        // Test 4: Global Access
-        console.log('CANVAS TEST | ==== TEST 4: Global Access ====');
-        if (window.BlacksmithCanvasLayer) {
-            console.log('✅ CANVAS TEST | Global access: Layer found', window.BlacksmithCanvasLayer);
-        } else {
-            console.log('⚠️ CANVAS TEST | Global access: Not available (may not be set until canvasReady)');
-        }
-        
-        // Test 5: Layer Properties
-        console.log('CANVAS TEST | ==== TEST 5: Layer Properties ====');
-        if (apiLayer) {
-            console.log('CANVAS TEST | Layer class:', apiLayer.constructor.name);
-            console.log('CANVAS TEST | Has activate method:', typeof apiLayer.activate === 'function');
-            console.log('CANVAS TEST | Has deactivate method:', typeof apiLayer.deactivate === 'function');
-            console.log('CANVAS TEST | Layer object:', apiLayer);
-        }
-        
-        // Test 6: Layer Activation (if available)
-        console.log('CANVAS TEST | ==== TEST 6: Layer Activation ====');
-        if (apiLayer && typeof apiLayer.activate === 'function') {
-            try {
-                apiLayer.activate();
-                console.log('✅ CANVAS TEST | Layer activated successfully');
-            } catch (error) {
-                console.log('⚠️ CANVAS TEST | Layer activation error (may be normal):', error.message);
-            }
-        }
-        
-        // Test 7: Create Test Drawing (requires GM permissions)
-        console.log('CANVAS TEST | ==== TEST 7: Create Test Drawing ====');
-        if (game.user.isGM && canvas.scene) {
-            try {
-                const testDrawing = await canvas.scene.createEmbeddedDocuments("Drawing", [{
-                    type: "r", // rectangle
-                    x: 100,
-                    y: 100,
-                    width: 50,
-                    height: 50,
-                    strokeWidth: 2,
-                    strokeColor: 0xFF0000,
-                    flags: {
-                        "test-module": {
-                            temporary: true,
-                            layerManaged: true
-                        }
-                    }
-                }]);
-                console.log('✅ CANVAS TEST | Test drawing created:', testDrawing[0]);
-                console.log('CANVAS TEST | Drawing ID:', testDrawing[0].id);
-                
-                // Clean up test drawing
-                setTimeout(() => {
-                    testDrawing[0].delete();
-                    console.log('CANVAS TEST | Test drawing cleaned up');
-                }, 5000);
-            } catch (error) {
-                console.log('⚠️ CANVAS TEST | Test drawing creation failed:', error.message);
-            }
-        } else {
-            console.log('ℹ️ CANVAS TEST | Skipping drawing test (requires GM permissions)');
-        }
-        
-        console.log('CANVAS TEST | ');
-        console.log('CANVAS TEST | ==== TEST COMPLETE ====');
-        console.log('CANVAS TEST | Review results above');
-        console.log('CANVAS TEST | ===================================================');
-        
-    } catch (error) {
-        console.error('CANVAS TEST | ❌ Error during testing:', error);
-        console.error('CANVAS TEST | Stack:', error.stack);
-    }
-})();
-// ========== END: CANVAS LAYER API TESTING ==========
-```
-
-### Module Integration Test
-
-Add this to your module to test Canvas Layer integration:
-
-```javascript
-// Add to your module's ready hook
-Hooks.once('canvasReady', async () => {
-    console.log('MODULE TEST | Testing Canvas Layer integration...');
-    
-    try {
-        // Test API access
-        const layer = await BlacksmithAPI.getCanvasLayer();
-        if (!layer) {
-            console.error('MODULE TEST | ❌ Canvas Layer not available');
-            return;
-        }
-        
-        console.log('MODULE TEST | ✅ Canvas Layer available:', layer);
-        
-        // Test layer methods
-        if (typeof layer.activate === 'function') {
-            console.log('MODULE TEST | ✅ Layer has activate method');
-        }
-        
-        if (typeof layer.deactivate === 'function') {
-            console.log('MODULE TEST | ✅ Layer has deactivate method');
-        }
-        
-        console.log('MODULE TEST | ✅ All Canvas Layer tests passed');
-        
-    } catch (error) {
-        console.error('MODULE TEST | ❌ Canvas Layer test failed:', error);
-    }
-});
-```
-
-### Console Commands
-
-Run these in the browser console:
-
-```javascript
-// Quick availability check
-BlacksmithAPI.getCanvasLayer().then(layer => {
-    console.log('Layer available:', !!layer);
-    if (layer) console.log('Layer:', layer);
-});
-
-// Check via direct access
-console.log('Direct access:', canvas['blacksmith-utilities-layer']);
-
-// Check module API
-const api = game.modules.get('coffee-pub-blacksmith')?.api;
-console.log('API CanvasLayer:', api?.CanvasLayer);
-console.log('API getCanvasLayer:', api?.getCanvasLayer);
-```
-
-### Test Checklist
-
-Use this checklist to verify your Canvas Layer integration:
-
-- [ ] Canvas Layer is accessible after `canvasReady` hook
-- [ ] `BlacksmithAPI.getCanvasLayer()` returns layer object
-- [ ] Direct canvas access works: `canvas['blacksmith-utilities-layer']`
-- [ ] Layer has standard methods: `activate()`, `deactivate()`
-- [ ] Can create temporary drawings with flags
-- [ ] Layer persists across scene changes
-- [ ] No console errors during initialization
-- [ ] No console errors during layer access
-
-### Common Issues
-
-**Layer returns `null`:**
-- Ensure you're testing after `canvasReady` hook fires
-- Check that Blacksmith module is enabled
-- Verify canvas has initialized
-
-**Layer methods not available:**
-- Check that layer is fully initialized (wait a tick after `canvasReady`)
-- Verify layer extends `foundry.canvas.layers.CanvasLayer`
-
-**Test drawing not appearing:**
-- Check GM permissions
-- Verify scene is active
-- Check drawing flags are set correctly
-
-## Support
-
-For issues or questions:
-- See the examples earlier in this document for detailed usage
-- Review the [Blacksmith API Core](./api-core.md) documentation
-- Check browser console for error messages
-- Report issues on GitHub
-
----
-
-**Last Updated**: v13.0.0  
-**Status**: Production ready  
-**Available**: After `canvasReady` hook fires
-
+Both return the `BlacksmithLayer` instance once the canvas is ready. If they return `null`, confirm the canvas has initialized and Blacksmith is enabled.
