@@ -680,20 +680,23 @@ export class PlanningTimer {
             const timeLimit = PlanningTimer._planningBarDenominatorSeconds();
             const percentRemaining = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
 
-            const endingSoonThreshold = game.settings.get(MODULE.ID, 'planningTimerEndingSoonThreshold');
+            // Safe reads with registered defaults: this tick can start before settings register —
+            // the renderCombatTracker self-heal recreates the countdown during a world load with
+            // an active combat, ahead of the ready callback that runs registerSettings().
+            const endingSoonThreshold = getSettingSafely(MODULE.ID, 'planningTimerEndingSoonThreshold', 20);
             const previousPercentRemaining = this.previousPercentRemaining ?? Infinity;
             const justEnteredWarning = previousPercentRemaining > endingSoonThreshold &&
                                      percentRemaining <= endingSoonThreshold;
 
             if (percentRemaining <= endingSoonThreshold) {
                 if (justEnteredWarning) {
-                    const endingSoonSound = game.settings.get(MODULE.ID, 'planningTimerEndingSoonSound');
+                    const endingSoonSound = getSettingSafely(MODULE.ID, 'planningTimerEndingSoonSound', 'none');
                     if (endingSoonSound !== 'none') {
                         playSound(endingSoonSound, this.getTimerVolume());
                     }
                     if (!this.state.hasHandledWarning && getSettingSafely(MODULE.ID, 'timerChatPlanningRunningOut', true) && game.user.isGM) {
                         this.state.hasHandledWarning = true;
-                        const message = game.settings.get(MODULE.ID, 'planningTimerEndingSoonMessage');
+                        const message = getSettingSafely(MODULE.ID, 'planningTimerEndingSoonMessage', 'Planning phase ending soon!');
                         this.sendChatMessage({
                             isTimerWarning: true,
                             warningMessage: message
@@ -779,7 +782,7 @@ export class PlanningTimer {
     }
 
     static getTimerVolume() {
-        return game.settings.get(MODULE.ID, 'timerSoundVolume');
+        return getSettingSafely(MODULE.ID, 'timerSoundVolume', 0.5);
     }
 
     static verifyTimerConditions() {
@@ -956,7 +959,7 @@ export class PlanningTimer {
         this.cleanupTimer();
             
         // Play expiration sound if configured
-        const timeUpSound = game.settings.get(MODULE.ID, 'planningTimerExpiredSound');
+        const timeUpSound = getSettingSafely(MODULE.ID, 'planningTimerExpiredSound', 'none');
         if (timeUpSound !== 'none') {
             playSound(timeUpSound, this.getTimerVolume());
         }
@@ -966,7 +969,7 @@ export class PlanningTimer {
 
         // Send the expiration announcement if GM and the ended-message kind is enabled
         if (game.user.isGM && getSettingSafely(MODULE.ID, 'timerChatPlanningEnded', true)) {
-            const label = game.settings.get(MODULE.ID, 'planningTimerLabel');
+            const label = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
             await this.sendChatMessage({
                 isTimerExpired: true,
                 expiredMessage: `${label} Has Ended`
@@ -1057,7 +1060,7 @@ export class PlanningTimer {
         this.state.remaining = 0;
         
         // Play expiration sound if configured
-        const timeUpSound = game.settings.get(MODULE.ID, 'planningTimerExpiredSound');
+        const timeUpSound = getSettingSafely(MODULE.ID, 'planningTimerExpiredSound', 'none');
         if (timeUpSound !== 'none') {
             playSound(timeUpSound, this.getTimerVolume());
         }
@@ -1104,7 +1107,7 @@ export class PlanningTimer {
     // Helper method for sending chat messages
     static async sendChatMessage(data) {
         // Get the timer label from settings
-        const timerLabel = game.settings.get(MODULE.ID, 'planningTimerLabel');
+        const timerLabel = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
 
         // Route per the notifyPlanningTimer channel (Notifications section) — the
         // toast half broadcasts to every client; false = no chat card either
