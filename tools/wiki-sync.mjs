@@ -38,6 +38,7 @@ const PUBLISH = [
   'api/api-canvas.md',
   'api/api-chatcards.md',
   'api/api-compendiums.md',
+  'api/api-core.md',
   'api/api-create-journal-entry.md',
   'api/api-gmnotes.md',
   'api/api-hookmanager.md',
@@ -56,7 +57,7 @@ const PUBLISH = [
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
-//   API:          api-core, api-menubar, api-sockets, api-toast, api-tags
+//   API:          api-menubar, api-sockets, api-toast, api-tags
 //   Architecture: architecture-blacksmith, -socketmanager, -stats, -tags, -toast, -toolbarmanager, -xp
 //   Also held:    known-issues.md (author decision), TODO.md (internal / holds security items)
 
