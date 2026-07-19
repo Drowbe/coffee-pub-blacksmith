@@ -1,0 +1,53 @@
+name: Sync Wiki
+
+# Publishes the documentation/ publish set to the GitHub wiki on every commit to master that touches
+# the docs — so sibling modules always have the current reference without waiting for a build.
+# What goes live is controlled entirely by the PUBLISH list in tools/wiki-sync.mjs, NOT by what
+# changed: held docs are never published, so a commit touching them cannot leak an unfinished doc.
+# Runs on GitHub's servers — nothing to run locally.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'documentation/**'
+      - 'tools/wiki-sync.mjs'
+      - '.github/workflows/sync-wiki.yml'
+  workflow_dispatch: {}   # also runnable by hand from the Actions tab
+
+permissions:
+  contents: write         # needed for the token to push to the repo's wiki
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build wiki pages
+        run: node tools/wiki-sync.mjs build
+
+      - name: Publish to the wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git" wiki-repo
+          # Mirror: drop existing pages, copy the freshly built ones in.
+          find wiki-repo -maxdepth 1 -name '*.md' -delete
+          cp tools/.wiki-build/*.md wiki-repo/
+          cd wiki-repo
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Wiki already up to date — nothing to publish."
+          else
+            git commit -m "Sync wiki from documentation/ @ ${GITHUB_SHA::7}"
+            git push
+          fi
