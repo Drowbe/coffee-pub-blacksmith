@@ -10,20 +10,6 @@ Security-sensitive issues are not listed here; they are handled privately until 
 
 ## Pins
 
-### `update()` silently drops `shape: 'rectangle'`
-
-Creating a pin with `shape: 'rectangle'` works, but changing an existing pin to rectangle via `pins.update()` does nothing — the update whitelist accepts only `circle`, `square`, and `none`, and drops `rectangle` with no error. Choosing "Rectangle" in the Configure Pin window (which saves through `update()`) therefore does not persist.
-
-- **Workaround:** set the rectangular shape at `create()` time; do not switch an existing pin to rectangle via `update()` or the config UI until this is fixed.
-- **Fix:** add `'rectangle'` to the whitelist in `manager-pins.js` `_applyPatch`.
-
-### `list({ includeHiddenByFilter })` default is inverted
-
-`pins.list()` is documented to exclude filter-hidden pins by default. An inverted check means that omitting `includeHiddenByFilter` currently *includes* them instead.
-
-- **Workaround:** pass `includeHiddenByFilter: false` explicitly to get the documented "what the user sees on the map" set.
-- **Fix:** change the guard in `manager-pins.js` from `=== false` to `!== true`.
-
 ### Three API guarantees are not yet implemented
 
 - **`create()` does not throw on a cross-store duplicate id.** It checks only the unplaced store (for unplaced creates) or a single scene (for placed creates), so an id that already exists in the *other* store is not caught. Call `pins.exists(id)` first — it checks both.
@@ -59,6 +45,24 @@ A runtime `tags.register(contextKey, { tags: [...] })` call reads a `tags` array
 
 - **Workaround:** run the seed as GM. (Other registry mutations route through the GM proxy and do work for players.)
 - **Fix:** the GM guard in `seedRegistry` is unnecessary — the write already routes through the GM proxy; remove the guard.
+
+---
+
+## Sockets
+
+### `emit()` does not reject on the native fallback
+
+`sockets.emit()` is documented to reject when delivery fails. That holds under SocketLib (it routes to `executeAsUser`), but the native fallback never inspects `game.users` — it returns nothing, which the wrapper turns into a resolved `true`. On a world without SocketLib, emitting to a disconnected `userId` resolves `true` and the message goes nowhere; a `try/catch` never fires.
+
+- **Workaround:** do not treat a resolved `emit` as proof of delivery. Check `sockets.isUsingSocketLib()`, or have the receiver acknowledge explicitly.
+- **Fix:** decide the contract — either make the native path check `game.users.get(userId)?.active` and reject (making the transports genuinely uniform), or scope the documented guarantee per-transport.
+
+### `register()` overwrites silently, and shares Blacksmith's namespace natively
+
+Registering an event name that is already registered replaces the previous handler and returns `true`, with nothing logged, and there is no `unregister` method. Under the native fallback external handlers land in the *same* map Blacksmith's internals use (`ping`, `pong`, `updateCSS`, `syncTimerState`, ...), so registering `'ping'` silently destroys Blacksmith's latency checker. SocketLib keeps the namespaces separate.
+
+- **Workaround:** always prefix event names with your module id (`'my-module.thing'`, never `'thing'`).
+- **Fix:** namespace external native handlers (or reject a name owned by internals), and warn on overwrite.
 
 ---
 

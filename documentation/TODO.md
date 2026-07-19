@@ -57,85 +57,25 @@ the performance monitor, latency, and pins menubar are done — see `CHANGELOG.m
 
 ## CRITICAL BUGS
 
-> The block below came out of the 2026-07-16 API-doc audit. Pattern worth internalising: **every one of
-> these is an API Blacksmith does not call on itself.** Blacksmith self-registers its menubar tools, and the
-> menubar API works. It does *not* self-register through `registerToolbarTool`, never called
-> `registerModule`, never checked `removeHook`'s return, never used `BLACKSMITH.rolls.execute` — and all
-> four were silently broken. **If an API isn't dogfooded, nothing tests it.**
+Consumer-facing defects — the ones other modules will hit — live in **`known-issues.md`**, each with a symptom, a workaround, and a fix pointer. This section holds only what is *not* consumer-facing: open design decisions and internal code-quality work.
 
-### `api.CanvasLayer` — the setting gate is real, but the ORDERING bug is the primary cause
-- **Added 2026-07-17**: the entry below blames `enableSceneClickBehaviors`. That gate is real, **but it is not what most users hit** — the setting defaults to `true`. The bigger bug is ordering: the `canvasReady` handler that assigns `module.api.CanvasLayer` (`blacksmith.js:662`) is registered during **`ready`**, and Foundry fires **`canvasReady` before `ready`** (verified in core: `game.mjs:784` `await this.canvas.initializing;` precedes `game.mjs:787` `Hooks.callAll("ready")`). So the assignment is **always too late for the initial canvas** — `api.CanvasLayer` stays `null` until the user switches scenes, which fires a second `canvasReady`.
-- **Consequence**: `window.BlacksmithCanvasLayer` is **never** set, even after a scene change — `_syncGlobalsFromApi()` guards on `if (api.CanvasLayer)` and only runs at API-ready time, before any of this.
-- **Fix**: hoist the assignment out of the `blnCustomClicks` branch AND register the `canvasReady` hook at `init`, not `ready` — plus assign once eagerly if the canvas is already drawn. **Left undone: this is init-order surgery and wants a live session.**
-- **Docs updated 2026-07-17** to steer consumers to `BlacksmithAPI.getCanvasLayer()`, which works in all cases via its raw-canvas fallback.
-
-### (original entry) `api.CanvasLayer` is nulled by an unrelated user setting
-- **Issue**: `blacksmith.js:945-946` initialises `CanvasLayer: null, getCanvasLayer: null`. The only assignment (`:650-668`) lives inside `if (blnShowIcons || blnCustomClicks) { if (blnCustomClicks) {` where `blnCustomClicks = getSettingSafely(MODULE.ID, 'enableSceneClickBehaviors', false)` (`:620`). Turn that setting off and `api.CanvasLayer` stays `null` forever, though the layer itself is registered and fully functional (`hookCanvas()` at `:822-838` runs unconditionally).
-- **Impact**: `api-canvas.md:57-60` and `:73-80` document `blacksmith.CanvasLayer` and `window.BlacksmithCanvasLayer` as supported access paths. A GM toggling a *scene-click-behaviour* setting silently kills a canvas API that has nothing to do with it. Cartographer (named in the doc) would read `null` and conclude Blacksmith isn't ready. Masked by the default being on, and by `BlacksmithAPI.getCanvasLayer()`'s raw-canvas fallback (`api/blacksmith-api.js:180-181`) — which is the only reason this hasn't been reported.
-- **Fix**: hoist the `module.api.CanvasLayer` / `getCanvasLayer` assignment out of the `blnCustomClicks` branch into an unconditional `canvasReady` hook.
-- **Also**: `window.BlacksmithCanvasLayer` is a race regardless — `_syncGlobalsFromApi()` (`api/blacksmith-api.js:396`) guards on `if (api.CanvasLayer)` but runs at API-ready/merge time, **before `canvasReady`**, when it's still `null`. Nothing guarantees a later re-sync.
-- **Priority**: High.
-
-### `visible` is silently ignored on the Foundry toolbar
-- **Issue**: `api-toolbar.md:81` documents `visible` unconditionally ("Whether tool is visible… Can be a function"), and `:436` tells you to check it when a tool doesn't appear. `getFoundryToolbarTools()` (`manager-toolbar.js:120-145`) filters on `gmOnly`, `leaderOnly`, and `onFoundry` — and **never reads `tool.visible`**. `getVisibleToolsByZones()` (`:83`) does honour it.
-- **Impact**: `{ visible: () => false, onFoundry: true }` is hidden in Blacksmith's toolbar and **still rendered in Foundry's**. A consumer using `visible` as a kill-switch ships a button they believe is off.
-- **Decide**: honour `visible` in `getFoundryToolbarTools`, or state in the doc that `visible` is CoffeePub-only and `onFoundry` is the sole Foundry-side gate. The code comment at `:116-117` claims the omission is deliberate — but the doc's contract is the sane one.
-- **Priority**: Medium.
+Pattern worth internalising from the 2026-07-16 API audit: **every defect it found was an API Blacksmith does not call on itself.** The menubar API works because Blacksmith self-registers its own menubar tools. It does not self-register through `registerToolbarTool`, never called `registerModule`, never checked `removeHook`'s return, and never used `BLACKSMITH.rolls.execute` — and all four were silently broken. If an API isn't dogfooded, nothing tests it.
 
 ### `registerToolbarTool` / `unregisterToolbarTool` — empty `catch` blocks swallow errors
-- The `onClick`-required validation shipped (see `CHANGELOG.md` 13.9.2). Remaining: both `registerTool` and `unregisterToolbarTool` still have empty `catch` blocks that silently swallow errors.
+- Both `registerTool` and `unregisterToolbarTool` have empty `catch` blocks that silently swallow errors.
 - **Priority**: Low.
 
-### `api-toolbar.md` cleanup example uses `tool.name` where it must use `tool.toolId`
-- The `getToolsByModule()` unregisterability fix shipped (see `CHANGELOG.md` 13.9.2). Remaining doc fix: `api-toolbar.md`'s cleanup example still passes `tool.name` to unregister; update it to `tool.toolId`. Fold into the `api-toolbar.md` cleanup.
-- **Priority**: Low.
-
-### ⚠️ There is no module-unload hook at all — `disableModule` AND `unloadModule` are both dead
-- **Status (2026-07-17)**: the docs no longer teach `disableModule`. **But the replacement was also wrong**, and that is the real finding.
-- **`disableModule`**: taught in four docs, zero occurrences in code. Fixed → `unloadModule`.
-- **`unloadModule`**: **nothing fires it either.** Zero occurrences in Foundry v13 core, and **no installed module — Blacksmith included — ever calls `Hooks.call('unloadModule')`**. Verified against a working control (`pauseGame`/`canvasReady` both hit; these return nothing). It is a listener convention with no emitter: `manager-canvas.js:35`, `manager-combatbar.js:395`, `manager-latency-checker.js:51`, `manager-navigation.js:46`, `manager-pins.js:1315`, `manager-token-indicators.js:187`, `timer-combat.js:254`, `timer-planning.js:156`, `timer-round.js:88`, `ui-combat-tracker.js:62` — **ten registrations in Blacksmith's own code that have never run once.**
-- **Also dead, same class**: `closeGame` (`api-hookmanager.md`, and `blacksmith.js:565` + `manager-journal-dom.js:101` in code) — zero occurrences in Foundry. `EncounterToolbar.dispose()` and `JournalPagePins.dispose()` have never been called.
-- **Impact**: low in practice, embarrassing in principle. Foundry has no runtime module-unload event; enabling/disabling forces a world reload that tears everything down anyway. So the cleanup was never *needed* — but every doc that taught it, and every internal handler that relies on it, is theatre. It also means "we clean up after ourselves" is not a claim this codebase can currently make.
-- **DECISION NEEDED — do not let an agent pick one of these unilaterally:**
-  1. **Make the convention real**: have Blacksmith emit `Hooks.callAll('unloadModule', moduleId)` from somewhere meaningful. But there is no meaningful moment — that's the whole problem.
-  2. **Drop it**: delete the ten dead registrations and the `closeGame` pair, and document plainly that there is no unload event and none is needed.
-  3. **Keep listeners, fix docs only** (current state): docs now say plainly that nothing fires it; code keeps the harmless dead handlers.
-- **Current state**: option 3, chosen because it is reversible and truthful. `api-hookmanager.md` carries the full explanation; the six cleanup examples across `api-menubar.md`, `api-pins.md`, `api-toolbar.md`, `api-window.md`, and `developer-note-pin-editing-visibility.md` are annotated in place. **The ten dead code registrations are untouched.**
+### DECISION NEEDED — there is no module-unload hook at all
+- Neither `disableModule` nor `unloadModule` is a Foundry hook; nothing fires either. `closeGame` is dead the same way. Verified against v13 core using a working control (`pauseGame` / `canvasReady` both hit).
+- Blacksmith itself carries **ten dead `unloadModule` registrations** (`manager-canvas.js:35`, `manager-combatbar.js:395`, `manager-latency-checker.js:51`, `manager-navigation.js:46`, `manager-pins.js:1315`, `manager-token-indicators.js:187`, `timer-combat.js:254`, `timer-planning.js:156`, `timer-round.js:88`, `ui-combat-tracker.js:62`) plus a `closeGame` pair (`blacksmith.js:565`, `manager-journal-dom.js:101`). None has ever run, so `EncounterToolbar.dispose()` and `JournalPagePins.dispose()` have never been called.
+- **Impact**: low in practice — enabling or disabling a module reloads the world, which tears everything down anyway. But "we clean up after ourselves" is not a claim this codebase can currently make.
+- **Options — do not let an agent pick one unilaterally:**
+  1. **Make the convention real**: emit `Hooks.callAll('unloadModule', moduleId)` from somewhere meaningful. There is no meaningful moment — that is the whole problem.
+  2. **Drop it**: delete the ten dead registrations and the `closeGame` pair.
+  3. **Keep the listeners, fix docs only** (current state): the docs state plainly that nothing fires it; the harmless dead handlers stay.
+- **Current state**: option 3, chosen because it is reversible and truthful. Every published doc now describes the reality instead of teaching the dead hook. **The ten dead code registrations are untouched.**
 - **Priority**: Medium (correctness of guidance), Low (runtime impact).
 
-### Pins doc follow-up — describe `rectangle` as the image-only shape
-- The `rectangle` code fixes (`update()` no longer drops the shape; elliptical-corner rendering; inverted `includeHiddenByFilter` default) shipped (see `CHANGELOG.md` 13.9.5). Remaining doc fix: `architecture-pins.md`'s shape list still mirrors the old buggy whitelist (circle/square/none) — correct it to include `rectangle`, per the author's decision: an image-only free-aspect shape (FA icon → forced square, same as Square; image URL → natural aspect with rounded-corner border; `none` = same aspect, no border). Note `--blacksmith-pin-square-border-radius` is a percent of the short side, converted to px by the renderer.
-
-### Sockets: native `emit()` never rejects, so the "unified interface" premise is false
-- **Issue**: `api-sockets.md:123` states unconditionally that `emit` "rejects if delivery fails (e.g. a `userId` target who is not connected)". True under SocketLib (`manager-sockets.js:214` → `executeAsUser`). **Under the native fallback it is false**: the native `emit` closure (`manager-sockets.js:292-323`) never inspects `game.users`, never checks connectivity, and **has no `return` at all** → `blacksmith.js:1369` does `Promise.resolve(undefined).then(() => true)` → **always resolves `true`**.
-- **Impact**: silent, and maximally so. A consumer follows the doc's error-handling section, gets `true`, and concludes a message reached an offline user. The doc even tells them not to worry about transport differences.
-- **DECISION NEEDED**: (a) scope the doc's claim per-transport — honest minimum; or (b) make native `emit` reject when `!game.users.get(userId)?.active`, which makes the transports actually uniform. **(b) is the better spec** — "same API regardless of transport" is the API's selling point — but it is a real behavior change under a fallback path that is hard to test without disabling SocketLib. **Left for you.**
-- **Priority**: High.
-
-### Sockets: `register()` silently overwrites, and native handlers share Blacksmith's own namespace
-- **Issue**: both paths `Map.set` over an existing handler (`blacksmith.js:1317`, `manager-sockets.js:289`) and return `true`. The only log is guarded by `if (!_registeredEvents.has(eventName))`, so the *second* registration isn't even logged. There is **no unregister method at all** on `api.sockets`.
-- **Worse, native-only**: external `register()` writes into the **same `_nativeHandlers` map Blacksmith's internals use** (`ping`, `pong`, `updateCSS`, `syncTimerState`, `updateSkillRoll`…). An external module registering `'ping'` **silently destroys Blacksmith's own latency handler.** Under SocketLib the namespaces are separate, so this only bites when SocketLib is absent.
-- **Fix**: namespace external native handlers, and/or reject a name already owned by internals. Needs a design call.
-- **Priority**: High.
-
-### HookManager: `once` + `debounceMs` guarantees the callback never fires
-- **Issue**: `manager-hooks.js:73-91` — `hookRunner` invokes the debounced wrapper (which only *schedules* a timeout), immediately marks the callback for removal because `options.once`, then `removeCallback` → `:221` `cb.teardown?.()` → `clearTimeout` **before the debounce interval elapses**. The user callback never executes. Registration returns a valid id, no error.
-- **Also**: `:105/:115` are `if (options.throttleMs) ... else if (options.debounceMs)` — **`throttleMs` wins and `debounceMs` is silently discarded**. They are mutually exclusive; nothing says so.
-- **Doc made it worse**: `api-hookmanager.md:40-44` showed `{ once: true, throttleMs: 50, debounceMs: 300 }` — all three at once — as the canonical options shape. **Doc fixed 2026-07-17**; the code still accepts the incoherent combination silently.
-- **Fix**: warn (or reject) on `once`+`debounceMs` and on `throttleMs`+`debounceMs`.
-- **Priority**: Medium.
-
-### `createJournalEntry` never returns the created JournalEntry — doc is right, code is buggy
-- **Issue**: all three paths `await JournalEntry.create({...})` and **discard the result** — no `return` (`utility-common.js:421` ENCOUNTER, `:489` AREA, `:604` LOCATION). `api-create-journal-entry.md:33` documents `Promise<JournalEntry>`. It always resolves `undefined` on the success path.
-- **Impact**: silent. `const e = await api.createJournalEntry(d); e.sheet.render();` → `TypeError` far from the cause. Regent (the named consumer) can't link the created journal without it.
-- **Not just three `return`s**: the AREA/LOCATION branches also have bare `return;` on the existing-entry path (`:486`, `:601`) — those probably should return the *existing* entry, but that's a contract decision. **Left for you.**
-- **Priority**: Medium.
-
-### Pins: three documented guarantees the code does not implement (doc fixes still pending)
-- **`create()` duplicate-id throw is not cross-store**: `api-pins.md` promises `Error` if an id exists "unplaced or on a scene". The unplaced branch checks only the unplaced store; the placed branch checks only that one scene. Creating placed with an id that exists unplaced (or on another scene) **does not throw** → duplicate ids, and `_findPinLocation` then resolves whichever it hits first. The doc's recommended `exists()` workaround *does* search both, so the advice is sound — only the throw guarantee is false.
-- **`options.sceneId` is ignored by `update()` and `delete()`**: both call `_findPinLocation(pinId)`, which takes one argument and always searches unplaced-then-all-scenes. So the documented "only that scene is searched" scoping and its "throws if scene not found" are both phantom. `delete(id, { sceneId: 'other-scene' })` **deletes the pin anyway** instead of no-oping. `get()` and `exists()` *do* honor `sceneId` — the doc is right for those two only.
-- **Unplaced `create()` skips the tag registry**: `_addTagsToRegistry` runs in the placed-create branch and in `update()`, but not in the unplaced-create branch. Tags on unplaced-created pins don't reach the registry until first update/placement.
-- **Priority**: Medium. These are doc corrections (or small code fixes); not done for lack of time, not lack of evidence.
 
 ## ARCHITECTURE DOCS — audit results (2026-07-17)
 
@@ -205,31 +145,6 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 - **`api-pins.md`** (~100 symbols checked, largest doc): NOT verified — `reconcile()` internals; the five GM tag mutators' bodies (so doc claims about scrubbing saved visibility-profile snapshots are **unverified**); `seedTagRegistryIfEmpty` semantics; arc-text layout / `textMaxWidth`; `imageFit`/`imageZoom`; the v4→v7 schema migration chain; most `window-pin-layers.js` UI claims. Given the reserved-profile-name finding, **the profile/UI-layer claims are the least trustworthy area**.
 - **`architecture-*.md`**: 10 docs, still substantially unverified. `architecture-socketmanager.md` is known fiction (30/30 symbols phantom). `architecture-hookmanager.md` needs ~900 of 1411 lines cut.
 - **Fence checker**: `scratchpad/check-fences.ps1` syntax-checks all 378 JS fences across the API docs (tries whole-module, function-body, class-body, and object-literal readings before reporting). ~29 remaining hits are pseudo-code fragments, not defects. Worth keeping if you want it in the repo.
-
-### Tags: `register()` reads `tags`, the JSON loader reads `flags`
-- **Issue**: `manager-tags.js:180` (runtime `register()`) checks `Array.isArray(taxonomy?.tags)`. `manager-tags.js:117` (JSON loader) checks `Array.isArray(entry?.flags)`. Same conceptual object, two key names depending on entry path. `api-tags.md:144,151-159` documents `flags`. `_loadPinTaxonomyCompat` (`:148`) uses a **third** shape.
-- **Impact**: a consumer copying the doc's runtime-register example gets `tags: []` — a silent empty taxonomy, no warning. Copying the working runtime shape into `tag-taxonomy.json` fails the other way.
-- **Fix**: accept `entry?.tags ?? entry?.flags` in **both**, then correct the doc to `tags`. The shipped `tag-taxonomy.json` uses `flags`, so the loader must keep accepting it.
-- **Priority**: High.
-
-### Tags: `seedRegistry()` silently no-ops for players
-- **Issue**: `manager-tags.js:447` — `if (!game.user?.isGM) return;` with no warning. The guard is **unnecessary**: `seedRegistry` → `_addToRegistry` → `_writeRegistry` (`:356-362`) already routes non-GM through the GM proxy, and every other registry mutation works for players. `rename`/`delete` have GM guards that *are* correct and *do* warn.
-- **Impact**: a player-client first-run seed silently doesn't happen. `api-tags.md:398-417` documents it with no GM caveat.
-- **Priority**: Medium.
-
-### Sockets: the rejection guarantee is SocketLib-only
-- **Issue**: `api-sockets.md:123` promises `emit` "rejects if delivery fails (e.g. `userId` targets a user who is not connected)". True under SocketLib (`executeAsUser` rejects). **False on the native fallback**: `manager-sockets.js:292-323` returns `undefined` unconditionally, which `blacksmith.js:1371-1372` wraps into a resolved `true` — the message goes nowhere and the caller is told it succeeded.
-- **This is the 13.8.5 bug one transport over.** The doc is the correct spec; the native path is the gap.
-- **Fix**: native `emit` should check `game.users.get(options.userId)?.active` and throw. Until then the doc needs a "SocketLib only" qualifier.
-- **Priority**: Medium.
-
-### Sockets: `register()` silently overwrites an existing handler
-- **Issue**: `blacksmith.js:1319` and `manager-sockets.js:289` both `Map.set` by event name. A second `register()` for the same name **silently replaces the first** and still returns `true`. `api-sockets.md:103-106` frames name collisions as a naming-convention concern rather than a silent clobber.
-- **Priority**: Medium — warn on overwrite, and state the one-handler-per-name limit.
-
-### `setToolbarSettings()` validates nothing
-- **Issue**: `manager-toolbar.js:1274-1280` writes `settings.displayStyle` straight to `game.settings.set` with no check against the registered choices (`settings.js:1503-1507`: `none` / `dividers` / `labels`). `setToolbarSettings({displayStyle: 'labelz'})` corrupts a user-scope setting.
-- **Priority**: Low.
 
 ### Combat flag `'stats'` has three subsystems and no owner
 - **Issue**: `stats-combat.js` (`:118`, `:142`, `:727`) writes `this.currentStats` **wholesale** to `combat.setFlag(MODULE.ID, 'stats')`. `timer-round.js` (`:116`, `:128`, `:233`) read-modify-writes the **same key** and owns `accumulatedTime` — a field that appears **4 times in `timer-round.js` and zero times in `stats-combat.js`**, so the wholesale write silently drops it. `manager-combatbar.js:639` reads the flag as well. Both files also write `roundStartTimestamp`, so a naive merge just moves the conflict.
