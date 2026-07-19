@@ -2,7 +2,7 @@
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
-> **Status**: Chat Cards API provides theme access for dropdowns and UI. For planned full chat card API (create/update/delete), see `architecture-chatcards.md` and `TODO.md`.
+This API provides theme access for dropdowns and card styling. It does not create, update, or delete messages — render your own HTML against the card contract (see "Building chat cards" below) and post it with `ChatMessage.create`.
 
 ## Overview
 
@@ -386,7 +386,7 @@ The following themes are available, organized by type:
 | `red` | Red | `theme-red` | Red accent theme |
 | `orange` | Orange | `theme-orange` | Orange accent theme |
 
-> Note the `default` **id** is named **"Tan"** — the id and the display name deliberately differ, so the theme setting doesn't read "Default default". Don't hardcode this table: call `getThemeChoices()`, which is generated from `CHAT_CARD_THEMES` in `scripts/api-chat-cards.js` and cannot drift.
+The `default` id is named "Tan" — the id and the display name deliberately differ, so the theme setting doesn't read "Default default". Don't hardcode this table: call `getThemeChoices()`, which is generated from `CHAT_CARD_THEMES` in `scripts/api-chat-cards.js` and cannot drift.
 
 ### Announcement Themes (Dark Backgrounds)
 
@@ -615,7 +615,7 @@ function showThemePreview(themeId) {
 
 ## Integration with Chat Card System
 
-The Chat Cards API works with the chat card HTML/CSS framework documented in `guide-chat-card-migration.md`. Use the API to:
+The Chat Cards API works with the chat card HTML/CSS framework (see "Building chat cards" below). Use the API to:
 
 1. **Get theme choices** for settings dropdowns (with IDs or CSS class names as keys)
 2. **Look up theme class names** when rendering templates
@@ -696,12 +696,135 @@ const html = await renderTemplate('modules/my-module/templates/my-card.hbs', {
 });
 ```
 
+## Building chat cards (HTML and CSS)
+
+The methods above style cards; this section is the HTML/CSS contract for building them. A "chat card" is a chat message whose content follows this structure, so Blacksmith's CSS themes it.
+
+### Card structure
+
+```html
+<span style="visibility: hidden">coffeepub-hide-header</span>
+<div class="blacksmith-card theme-default">
+    <div class="card-header">
+        <i class="fa-solid fa-dice"></i> Card Title
+    </div>
+    <div class="section-content">
+        <!-- your content -->
+    </div>
+</div>
+```
+
+- `.blacksmith-card` — base container (required).
+- `.theme-{name}` — theme class (required); see Available Themes above.
+- `.card-header` — title row with optional icon. The theme owns its styling; do not style it yourself.
+- `.section-content` — body. Put your content and section headers here, and style only inside here.
+
+The leading `<span style="visibility: hidden">coffeepub-hide-header</span>` hides Foundry's default message header. Use `visibility: hidden` — `visibility: none` is invalid CSS.
+
+### Layout components
+
+Inside `.section-content`:
+
+- **Section header** — `<div class="section-header"><i class="fa-solid fa-list"></i> Summary</div>` — a divider with optional icon; theme-aware.
+- **Section subheader** — `<div class="section-subheader">Results</div>` — a prominent centered title with a background highlight.
+- **Data table** — a two-column label/content grid; `label-dimmed` and `label-highlighted` are label variants:
+
+```html
+<div class="section-table">
+    <div class="row-label">Label</div>
+    <div class="row-content">Value</div>
+    <div class="row-label label-dimmed">Dimmed label</div>
+    <div class="row-content">Value</div>
+</div>
+```
+
+- **Buttons** — `.blacksmith-chat-buttons` wrapping `<button class="chat-button" data-action="...">`; use `data-*` attributes for event handling:
+
+```html
+<div class="blacksmith-chat-buttons">
+    <button class="chat-button" data-action="accept"><i class="fa-solid fa-check"></i> Accept</button>
+    <button class="chat-button" data-action="reject"><i class="fa-solid fa-xmark"></i> Reject</button>
+</div>
+```
+
+### CSS variables
+
+Themes are driven by `--blacksmith-card-*` variables (all prefixed to avoid clashes): `--blacksmith-card-bg`, `-border`, `-text`, `-header-text`, `-section-header-text`, `-section-header-border`, `-section-subheader-text`, `-section-subheader-bg`, `-section-content-text`, `-hover-color`, `-button-text`, `-button-border`, `-button-hover-bg`, `-button-container-bg`. Define a custom theme by setting these on your own selector:
+
+```css
+.blacksmith-card.theme-custom {
+    --blacksmith-card-bg: rgba(100, 50, 200, 0.1);
+    --blacksmith-card-border: rgba(100, 50, 200, 0.3);
+    --blacksmith-card-header-text: #6432c8;
+}
+```
+
+### Rendering and sending
+
+Render a Handlebars template and post it with `ChatMessage.create`:
+
+```javascript
+const html = await foundry.applications.handlebars.renderTemplate(
+    'modules/my-module/templates/my-card.hbs',
+    { title: 'My Card', icon: 'dice', content: 'Content here', cardTheme: 'theme-default' }
+);
+
+await ChatMessage.create({
+    content: html,
+    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+    speaker: ChatMessage.getSpeaker({ user: game.user.id })
+});
+```
+
+A matching template:
+
+```handlebars
+<span style="visibility: hidden">coffeepub-hide-header</span>
+<div class="blacksmith-card {{cardTheme}}">
+    <div class="card-header"><i class="fa-solid fa-{{icon}}"></i> {{title}}</div>
+    <div class="section-content">
+        <p>{{{content}}}</p>
+    </div>
+</div>
+```
+
+### Event handling
+
+Wire button clicks in the `renderChatMessageHTML` hook. On v13 the second argument is a native `HTMLElement`, not jQuery — use DOM methods:
+
+```javascript
+Hooks.on('renderChatMessageHTML', (message, html) => {
+    html.querySelectorAll('.chat-button').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+            event.preventDefault();
+            const { action, id } = event.currentTarget.dataset;
+            // handle action
+        });
+    });
+});
+```
+
+### Icons
+
+Icons are Font Awesome 6; prefer the `fa-solid` prefix (e.g. `fa-solid fa-dice`). The older `fas fa-...` form still resolves where supported.
+
+### Best practices
+
+- Start from `.blacksmith-card` plus a theme class, and use the semantic classes for consistency.
+- Style only inside `.blacksmith-card .section-content` (and your own ids/classes, e.g. `[id^="my-module-"]`). Do not style `.card-header`, the header icon, or the wrapper — the theme owns those.
+- Keep card themes and announcement themes in separate settings/dropdowns (`getCardThemeChoicesWithClassNames()` vs `getAnnouncementThemeChoicesWithClassNames()`); do not mix them in one dropdown.
+- Store CSS class names in settings (not ids) and pass them straight into templates — no id-to-class conversion at render time.
+- Theme choices come from the API, so register those settings in a `ready` hook and `await` your registration before reading them; registering in `init` can hit "setting is not registered" at startup.
+- Prefer attribute selectors (`[id^="my-module-"]`) over theme-specific classes so new themes work without CSS changes.
+
+### Troubleshooting
+
+- **Card not styled** — confirm Blacksmith is active, the base class is `.blacksmith-card`, and a theme class is applied. Don't add your own `.card-header` CSS.
+- **"Setting is not registered" at startup** — register theme-backed settings in `ready` and `await` registration before reading them.
+- **Buttons not firing** — confirm the listener is on `renderChatMessageHTML` (not `renderChatMessage`) and uses native DOM, and that `data-action` is set.
+
 ## Related Documentation
 
-- **`guide-chat-card-migration.md`** - Complete guide to using the chat card HTML/CSS framework
-- **`api-core.md`** - Core Blacksmith API documentation
-- **Chat Card Templates** - See `templates/cards-common.hbs`, `templates/cards-xp.hbs` for examples
-
-For planned full chat card API (create/update/delete), see **`architecture-chatcards.md`** and **`TODO.md`**.
-
-**Note**: This API provides access to themes only. For creating and rendering chat cards, use the template rendering approach documented in `guide-chat-card-migration.md`.
+- **`api-core.md`** - Core Blacksmith API documentation.
+- **`../architecture/architecture-chatcards.md`** - how the chat card system is built (contributors); CSS lives in `styles/cards-common-layout.css` and `styles/cards-common-themes.css`.
+- Card templates: `templates/cards-common.hbs`, `templates/cards-xp.hbs`, `templates/card-skill-check.hbs`.

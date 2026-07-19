@@ -101,11 +101,11 @@ pins.registerPinType('my-module-id', 'note', 'My Notes');
 pins.registerPinType('my-module-id', 'quest', 'My Quests');
 ```
 
-Create pins with the same `moduleId` and `type` so filtering and “Delete all [type] pins” work correctly.
+Create pins with the same `moduleId` and `type` so filtering and "Delete all [type] pins" work correctly.
 
-## 6. Cleanup on unload
+## 6. Cleanup
 
-If you register context menu items, event handlers, or socket handlers, unregister or disconnect them in `Hooks.on('unloadModule', (id) => { ... })` when `id === 'my-module-id'` so nothing keeps a reference after your module is unloaded.
+Foundry has no module-unload event, and disabling a module reloads the world, which tears everything down anyway — there is no teardown hook to register. If you need to remove context-menu items, event handlers, or socket handlers at runtime (e.g. when a feature toggles off), call the relevant unregister/disconnect methods from your own lifecycle.
 
 ---
 

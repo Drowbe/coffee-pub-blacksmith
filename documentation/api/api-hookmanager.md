@@ -379,13 +379,11 @@ myHookIds.push(BlacksmithHookManager.registerHook({
 BlacksmithHookManager.disposeByContext('my-module');
 ```
 
-### Foundry has no module-unload event — do not trust cleanup examples
+### Foundry has no module-unload event
 
-Earlier versions of this page taught `Hooks.once('closeGame', …)`. `closeGame` is not a Foundry hook — it appears zero times in Foundry v13. Registering it succeeds and the callback never runs, so every cleanup written from that example leaked silently.
+Neither `closeGame` nor `unloadModule` is a Foundry hook — both appear zero times in Foundry v13, and nothing (Blacksmith included) ever calls `Hooks.call('unloadModule')`. Registering either succeeds silently and the callback never runs, so any cleanup written against them never executes.
 
-The obvious replacement looks like `unloadModule`, which several Blacksmith docs and ~10 places in Blacksmith's own code listen for. Nothing fires that either: it appears zero times in Foundry core, and no installed module — Blacksmith included — ever calls `Hooks.call('unloadModule')`. It is a convention that was never given an emitter.
-
-What is actually true: Foundry does not unload modules at runtime. Enabling or disabling a module forces a world reload, which tears down every hook, timer, and listener anyway. So there is no moment at which an "unregister my hooks" callback both fires and matters.
+Foundry does not unload modules at runtime: enabling or disabling a module forces a world reload, which tears down every hook, timer, and listener anyway. So there is no moment at which an "unregister my hooks" callback both fires and matters.
 
 What to do:
 

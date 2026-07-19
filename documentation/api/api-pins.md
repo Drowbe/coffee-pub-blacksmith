@@ -2,19 +2,18 @@
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 
-> **Remaining work** is tracked in `documentation/TODO.md`.
->
-> **Feature summary:**
-> - **Rendering**: Pure DOM overlay (no PIXI). Shapes: `circle`, `square`, `rectangle`, `none`. Icons: Font Awesome class strings or image URLs. Text labels with 7 layout modes and 4 display modes.
-> - **Placement model**: Pins exist in two stores — *placed* (on a scene, stored in scene flags) or *unplaced* (data-only, stored in a world setting). Create without `sceneId`/x/y to keep unplaced; use `place()` / `unplace()` to move between stores.
-> - **Classification**: Coarse `type` (displayed as "Category") + fine-grained `tags[]`. The old `group` field is removed (v4 schema auto-migrates existing values into tags).
-> - **Events**: `hover`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag*` — scoped by `pinId`, `moduleId`, or `sceneId`. Cleaned up via disposer or `AbortSignal`.
-> - **Animations**: `ping()` with 11 types, broadcast support, loop control. Optional per-pin event animations (hover, click, double-click, add, delete) with sound.
-> - **Pin visibility (per pin)**: **`config.blacksmithVisibility`** is `'visible'` or `'hidden'`. **`hidden`** means the marker is **not drawn** on the map for other players (who can otherwise view the pin). **GMs always see every pin** (canvas preview at **50% opacity**). **Pin owners always see their own pins** even when hidden. Only GMs set pin visibility in the UI. This is separate from **client filter profiles** (`setGlobalVisibility`, taxonomy/tag hides, etc.). **Module authors (share with other Coffee Pub modules):** [`developer-note-pin-editing-visibility.md`](../guides/developer-note-pin-editing-visibility.md) + public wiki [API: Pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins).
-> - **Pin editing (per pin)**: **`config.blacksmithAccess`** is `'gm'` | `'private'` | `'public'` — who may **edit the pin record** (move, Configure Pin, delete). Does **not** control what opens on click; the **calling module** owns click/double-click behavior and document edit rights.
-> - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). World-level tag registry tracks every tag ever used.
-> - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, **Manage Pins** window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
-> - **Configure Pin window**: Full visual editor — Design, Text, Animations, Source, Permissions (**Pin editing** + **Pin visibility** + Allow Duplicates), Classification. "Update All [type] Pins" with tag-scoped filter. "Default for [type]" with per-section checkboxes.
+**Feature summary:**
+
+- **Rendering**: Pure DOM overlay (no PIXI). Shapes: `circle`, `square`, `rectangle`, `none`. Icons: Font Awesome class strings or image URLs. Text labels with 7 layout modes and 4 display modes.
+- **Placement model**: Pins exist in two stores — *placed* (on a scene, stored in scene flags) or *unplaced* (data-only, stored in a world setting). Create without `sceneId`/x/y to keep unplaced; use `place()` / `unplace()` to move between stores.
+- **Classification**: Coarse `type` (displayed as "Category") + fine-grained `tags[]`. The old `group` field is removed (v4 schema auto-migrates existing values into tags).
+- **Events**: `hover`, `click`, `doubleClick`, `rightClick`, `middleClick`, `drag*` — scoped by `pinId`, `moduleId`, or `sceneId`. Cleaned up via disposer or `AbortSignal`.
+- **Animations**: `ping()` with 11 types, broadcast support, loop control. Optional per-pin event animations (hover, click, double-click, add, delete) with sound.
+- **Pin visibility (per pin)**: `config.blacksmithVisibility` is `'visible'` or `'hidden'`. `hidden` means the marker is not drawn on the map for other players (who can otherwise view the pin). GMs always see every pin (canvas preview at 50% opacity). Pin owners always see their own pins even when hidden. Only GMs set pin visibility in the UI. This is separate from client filter profiles (`setGlobalVisibility`, taxonomy/tag hides).
+- **Pin editing (per pin)**: `config.blacksmithAccess` is `'gm'` | `'private'` | `'public'` — who may edit the pin record (move, Configure Pin, delete). It does not control what opens on click; the calling module owns click/double-click behavior and document edit rights.
+- **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). A world-level tag registry tracks every tag ever used.
+- **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, and the Manage Pins window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
+- **Configure Pin window**: Full visual editor — Design, Text, Animations, Source, Permissions (Pin editing + Pin visibility + Allow Duplicates), Classification. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
 
 ## Overview
 
@@ -73,7 +72,7 @@ Use these **before** calling create/update/delete/reload from another module or 
 - **`isReady()`**: `isAvailable()` plus `canvas?.ready` and `canvas?.scene`. Use as a sync guard before create/reload when you know canvas may not be ready yet.
 - **`whenReady()`**: Returns a Promise that resolves when the canvas is ready and a scene is active. If already ready, resolves immediately. Use when your module runs at `init` or `ready` and you need to create pins—avoids creating before the layer/renderer exist.
 
-- If pins exist in scene flags but don’t appear, activate the Blacksmith layer (scene controls) or call `pins.reload()`; the layer auto-activates when loading scenes with pins.
+- If pins exist in scene flags but don't appear, activate the Blacksmith layer (scene controls) or call `pins.reload()`; the layer auto-activates when loading scenes with pins.
 
 ### Testing Pins
 
@@ -92,7 +91,7 @@ Blacksmith does **not** create a default or test pin. To exercise the pins API:
 3. **Wait for canvas** (if using pins at init/ready): `await pins.whenReady();` then create/list/reload.
 4. **Create pins** with `moduleId: 'your-module-id'` so you can filter and manage them.
 5. **Register handlers** with `pins.on(...)`. Use `{ moduleId: 'your-module' }` to scope events, and `signal` or the returned disposer for cleanup.
-6. **Cleanup on unload**: Call your disposers or `controller.abort()` in your module's `Hooks.on('unloadModule', ...)` when your module ID unloads.
+6. **Cleanup**: Call your disposers or `controller.abort()` from your own lifecycle when you turn a feature off. Foundry has no module-unload event, and a world reload tears listeners down anyway (see `api-hookmanager.md`).
 7. **Register pin types with friendly names**: If your module uses multiple pin types (e.g. sticky-notes vs pins), call `pins.registerPinType(moduleId, type, friendlyName)` so context menus, tools, and other UI show the name you provide (e.g. "Squire Sticky Notes") instead of inferring a label. See [Registering pin types (friendly names)](#registering-pin-types-friendly-names).
 8. **Use `tags[]` for user-facing classification**: Keep `type` coarse/technical (it's your module's category key), and use `tags[]` for fine-grained filterable labels. Groups have been removed — any group values on old pins are automatically migrated into tags on schema upgrade.
 
@@ -166,14 +165,10 @@ Hooks.once('canvasReady', () => {
   }, { moduleId: MODULE_ID, signal: controller.signal });
 });
 
-// NOTE: nothing fires 'unloadModule' — not Foundry, not Blacksmith. This callback never runs.
-// Foundry has no module-unload event; disabling a module reloads the world anyway.
-// See api-hookmanager.md -> 'Foundry has no module-unload event'. Open design question.
-Hooks.on('unloadModule', (id) => {
-  if (id !== MODULE_ID) return;
-  controller.abort();
-  offClick?.();
-});
+// Foundry has no module-unload event, so there is no teardown hook to register.
+// Call your disposers from your own lifecycle when you turn the feature off:
+//   controller.abort();  // aborts every handler registered with this signal
+//   offClick?.();
 ```
 
 #### Example: sync guard before reload
@@ -187,6 +182,142 @@ if (pins?.isReady()) {
   console.warn('Pins not ready (no canvas/scene)');
 }
 ```
+
+## Integration guide
+
+A checklist for Coffee Pub modules integrating with the Pins API. The method details are in the API Reference below; this is the "do these things" summary.
+
+### 1. Register your taxonomy in `ready`, before creating pins
+
+This populates the Configure Pin tag suggestions and the Pin Layers window.
+
+```javascript
+Hooks.once('ready', () => {
+    const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+    if (!pins?.isAvailable()) return;
+
+    pins.registerPinTaxonomy('coffee-pub-squire', {
+        pinCategories: {
+            'journal-pin': { label: 'Journal Pin', tags: ['location', 'shop', 'npc', 'quest'] },
+            'quest-pin':   { label: 'Quest Pin',   tags: ['active', 'completed', 'side-quest', 'main-quest'] }
+        }
+    });
+});
+```
+
+- `moduleId` must match your `module.json` id.
+- `type` keys (e.g. `'journal-pin'`) are the coarse technical category, shown in the UI as "Category".
+- `tags` are the fine-grained user-facing labels; use lowercase kebab-case.
+- Call it once per `ready`; calling again merges tags.
+
+### 2. Create pins with a `type` and at least one tag
+
+```javascript
+await pins.create({
+    moduleId: 'coffee-pub-squire',
+    type: 'journal-pin',          // matches a key in your registered taxonomy
+    tags: ['location', 'shop'],   // at least one tag
+    text: 'The Rusty Anchor',
+    x: 1200, y: 800,
+    sceneId: canvas.scene.id
+});
+```
+
+`type` drives the Configure Pin choices and the header label; tags populate the Pin Layers tag cloud and enable per-tag visibility filtering. A pin with no tags is invisible to the tag-based visibility system.
+
+### 3. Classification is `type` + `tags[]` only
+
+There is no `group` field. If you find `group` on a pin it is pre-v4 data — the schema migrates it into `tags` on load, so you don't migrate stored data yourself. Filter by tag: `pinList.filter(p => p.tags?.includes('tavern'))`.
+
+### 4. Read the tag registry for your own autocomplete
+
+`pins.getTagRegistry()` returns the deduplicated list of every tag across all modules and scenes, seeded automatically on `ready`. Use it to populate your own dropdowns. For a picker scoped to one pin type, use `getPinTaxonomy(moduleId, type)` instead (see Tag Registry below).
+
+### 5. Ship taxonomy JSON in v3 format
+
+If your module ships a `pin-taxonomy.json`, use the v3 shape:
+
+```json
+{
+    "version": 3,
+    "globalTags": ["location", "quest", "npc"],
+    "modules": {
+        "coffee-pub-squire": {
+            "pinCategories": {
+                "journal-pin": { "label": "Journal Pin", "tags": ["location", "shop", "npc", "quest"] }
+            }
+        }
+    }
+}
+```
+
+Differences from v2: a single `tags` array (no `defaultTags` / `suggestedTags`); categories nest under `modules.{moduleId}.pinCategories`, not at the root; `globalTags` at the root for cross-module tags; `"version": 3` is required. Blacksmith's built-in `resources/pin-taxonomy.json` uses this format.
+
+### 6. Set ownership explicitly for GM-only pins
+
+```javascript
+const NONE = CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;         // 0 — hidden from players
+const OBSERVER = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER; // 2 — players can see and click
+
+await pins.create({
+    moduleId: 'coffee-pub-squire',
+    type: 'journal-pin', tags: ['gm-notes'],
+    text: 'Secret Location',
+    ownership: { default: NONE },   // GM-only
+    sceneId: canvas.scene.id, x: 800, y: 600
+});
+```
+
+GMs always see all pins. Players see a pin only where `ownership.default >= OBSERVER` or their user id has a per-user override.
+
+### 7. Reconcile after bulk operations
+
+If you track pin ids externally (e.g. in journal flags), call `reconcile()` after bulk deletes to repair broken links:
+
+```javascript
+const result = await pins.reconcile({
+    moduleId: 'coffee-pub-squire',
+    sceneId: canvas.scene.id,
+    getPinId: (entry) => entry.flags?.['coffee-pub-squire']?.pinId,
+    setPinId: async (entry, pinId) => entry.setFlag('coffee-pub-squire', 'pinId', pinId),
+    items: journalEntries
+});
+console.log(`Reconciled: ${result.kept} kept, ${result.cleared} cleared`);
+```
+
+### 8. Pin visibility vs ownership vs module behavior
+
+These are three independent axes — conflating them is the main way pin integration goes wrong:
+
+| Field | What it controls | Who sets it |
+|-------|-----------------|-------------|
+| `ownership.default` | Foundry gate: can this user view/edit the pin record at all? | GM (Pin editing maps here) |
+| `config.blacksmithVisibility` | Is the marker drawn on the map for others? (`visible` / `hidden`) | GM only |
+| Module click handlers | What opens or runs when the pin is used | Your module |
+
+`blacksmithVisibility: 'hidden'` means other players do not see the marker at all (not a dimmed hint); GMs always see the pin, and pin owners always see their own. Create a player-visible-but-hidden pin and reveal it later:
+
+```javascript
+const OBSERVER = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+await pins.create({
+    moduleId: 'coffee-pub-squire', type: 'quest-pin', tags: ['main-quest'],
+    text: 'The Hidden Lair',
+    ownership: { default: OBSERVER },            // players CAN see it when visible
+    config: { blacksmithVisibility: 'hidden' },  // but it is hidden from the map now
+    sceneId: canvas.scene.id, x: 1400, y: 900
+});
+
+await pins.update(pinId, { config: { ...existingPin.config, blacksmithVisibility: 'visible' } });
+```
+
+### Checklist
+
+- Register taxonomy in `ready` with all your pin types and their tags.
+- Every `pins.create()` includes `type` and at least one tag.
+- No `group` references in your create/update/filter code.
+- Taxonomy JSON updated to v3 if you ship one.
+- Ownership set explicitly (`NONE` for GM-only, `OBSERVER` for player-visible).
+- `size.w` / `size.h` set independently for non-square pins.
 
 ## Data Types
 
@@ -300,7 +431,7 @@ Pins can be configured to play an **animation** and optional **sound** when the 
 - **Interaction animations** (hover, click, double-click): Same set as `pins.ping()` — `ping`, `pulse`, `ripple`, `flash`, `glow`, `bounce`, `scale-small`, `scale-medium`, `scale-large`, `rotate`, `shake`. On hover enter the animation runs once (ease-out when pointer leaves). On click or double-click the animation runs once after the handler.
 - **Delete animation**: Only `fade`, `dissolve`, or `scale-small`. When the pin is deleted (via context menu or API), if the pin is on the current scene and has a delete animation set, that animation runs (with optional sound), then the pin is removed from the canvas and data.
 - **Sound**: Optional. Use a Blacksmith sound name (e.g. `interface-ping-01`) or a full path. Default is none. Applied per event (each of hover, click, double-click, add, delete can have its own sound or none).
-- **Configuration**: The Configure Pin window includes an **Event Animations** section where users choose animation and sound for each of Hover, Click, Double-click, and Delete. Updates are applied via `pins.update(pinId, { eventAnimations: { ... } })`. Sound options are dropdowns populated from `pins.getSoundOptions()` (Blacksmith’s sound list).
+- **Configuration**: The Configure Pin window includes an **Event Animations** section where users choose animation and sound for each of Hover, Click, Double-click, and Delete. Updates are applied via `pins.update(pinId, { eventAnimations: { ... } })`. Sound options are dropdowns populated from `pins.getSoundOptions()` (Blacksmith's sound list).
 
 ## API Reference
 
@@ -600,7 +731,7 @@ const defaultPin = await pinsAPI.create({
 
 **Options**:
 - `sceneId` (string, optional): if provided with x/y in pinData, the pin is placed on this scene at creation; if omitted (and no x/y), the pin is created unplaced
-- `silent` (boolean, optional): **Not implemented on this method — it is ignored.** The JSDoc declares it and the intent exists, but only `deleteAll()` / `deleteAllByType()` actually check it; this method always fires its hooks and handlers. Tracked in `documentation/TODO.md`.
+- `silent` (boolean, optional): ignored by this method — it always fires its hooks and handlers. Only `deleteAll()` / `deleteAllByType()` honor `silent`.
 
 **Throws**: 
 - `Error` if pin data is invalid
@@ -670,7 +801,7 @@ await pinsAPI.update(pin.id, { style: { iconColor: '#ffd700' } });
 
 **Options**:
 - `sceneId` (string, optional): target scene when you know where the pin is; if omitted, lookup is unplaced then all scenes
-- `silent` (boolean, optional): **Not implemented on this method — it is ignored.** The JSDoc declares it and the intent exists, but only `deleteAll()` / `deleteAllByType()` actually check it; this method always fires its hooks and handlers. Tracked in `documentation/TODO.md`.
+- `silent` (boolean, optional): ignored by this method — it always fires its hooks and handlers. Only `deleteAll()` / `deleteAllByType()` honor `silent`.
 
 **Throws**: 
 - `Error` if patch data is invalid
@@ -697,7 +828,7 @@ await pinsAPI.delete(pin.id, { sceneId: 'some-scene-id' });
 
 **Options**:
 - `sceneId` (string, optional): if provided, only that scene is searched; if omitted, search is unplaced then all scenes
-- `silent` (boolean, optional): **Not implemented on this method — it is ignored.** The JSDoc declares it and the intent exists, but only `deleteAll()` / `deleteAllByType()` actually check it; this method always fires its hooks and handlers. Tracked in `documentation/TODO.md`.
+- `silent` (boolean, optional): ignored by this method — it always fires its hooks and handlers. Only `deleteAll()` / `deleteAllByType()` honor `silent`.
 
 **Throws**: 
 - `Error` if pin not found (unplaced or on any scene)
@@ -734,7 +865,7 @@ await pins.place(pin.id, { sceneId: canvas.scene.id, x: 1200, y: 900 });
 - pin not found
 - pin is already placed
 
-> Earlier versions listed "pin not found or already placed" under **Throws**, contradicting this method's own documented `null` return. Those two cases notify the user and return `null`, so a `try/catch` around them never fires — **check the return value**.
+These two cases return `null` rather than throwing, so check the return value instead of relying on `try/catch`.
 
 ### `pins.unplace(pinId)`
 Remove a pin from the canvas but keep its data. The pin becomes unplaced (no `sceneId`, and typically no `x`/`y`). The pin must currently be on a scene.
@@ -756,7 +887,7 @@ if (unplaced) {
 - pin not found
 - pin is already unplaced
 
-> Same correction as `place()` above: these two cases return `null` rather than throwing.
+As with `place()`, these two cases return `null` rather than throwing.
 
 ### `pins.deleteAll(options?)`
 Delete all pins from a scene (GM only). Useful for cleaning up scenes or resetting pin data.
@@ -1039,7 +1170,7 @@ The following clarifies payload shapes, storage contracts, and integration point
 
 #### 1. `onSelect` payload (exact shape)
 
-The callback receives a **stable** object. This is the current contract (matches the window’s internal config):
+The callback receives a **stable** object. This is the current contract (matches the window's internal config):
 
 ```ts
 // Exact shape passed to onSelect(config)
@@ -1077,16 +1208,16 @@ The window uses an internal `{ type, value }` format. For storage or passing int
 
 Recommendation: store **FA as class string** and **images as URL string** so all modules and the API stay consistent.
 
-#### 3. Default storage schema (“Default for [type]”)
+#### 3. Default storage schema ("Default for [type]")
 
-The **”Default for [type]”** toggle (renamed from “Use as Default” in v13.6.3) saves selected sections of the current pin design so that **new pins of that module and pin type** use them when nothing else is set. Storage is **per module + pin type**:
+The **"Default for [type]"** toggle (renamed from "Use as Default" in v13.6.3) saves selected sections of the current pin design so that **new pins of that module and pin type** use them when nothing else is set. Storage is **per module + pin type**:
 
-- **Where it’s stored**: Blacksmith’s client setting `clientPinDefaultDesigns`, keyed by **`moduleId|type`** (e.g. `coffee-pub-blacksmith|journal-pin`, `coffee-pub-blacksmith|encounter`). So one module can have different defaults for “Journal Page”, “Encounter”, “Map Annotation”, etc. Each player has their own (client scope). If the pin has no type, `default` is used (e.g. `my-module|default`).
-- **When it applies**: When a module creates a new pin, it calls **`pins.getDefaultPinDesign(moduleId, type)`**. If that returns a saved default for that (module, type) pair, the module merges it into the new pin’s data.
-- **What’s saved**: Only the sections the user checks when “Default for [type]” is active. Available sections: Design (size, shape, style, drop shadow), Text (layout, display, color, size, max length/width, scale), Animations (eventAnimations), Source (image/icon), Classification (type, tags), Permissions (ownership, blacksmithVisibility, allowDuplicatePins). If no section checkboxes are rendered (backward compat), all design fields are saved.
-- **What’s excluded**: Ownership and event animations are excluded unless the Permissions / Animations section is explicitly checked.
+- **Where it's stored**: Blacksmith's client setting `clientPinDefaultDesigns`, keyed by **`moduleId|type`** (e.g. `coffee-pub-blacksmith|journal-pin`, `coffee-pub-blacksmith|encounter`). So one module can have different defaults for "Journal Page", "Encounter", "Map Annotation", etc. Each player has their own (client scope). If the pin has no type, `default` is used (e.g. `my-module|default`).
+- **When it applies**: When a module creates a new pin, it calls **`pins.getDefaultPinDesign(moduleId, type)`**. If that returns a saved default for that (module, type) pair, the module merges it into the new pin's data.
+- **What's saved**: Only the sections the user checks when "Default for [type]" is active. Available sections: Design (size, shape, style, drop shadow), Text (layout, display, color, size, max length/width, scale), Animations (eventAnimations), Source (image/icon), Classification (type, tags), Permissions (ownership, blacksmithVisibility, allowDuplicatePins). If no section checkboxes are rendered (backward compat), all design fields are saved.
+- **What's excluded**: Ownership and event animations are excluded unless the Permissions / Animations section is explicitly checked.
 
-When “Default for [type]” is toggled on, the window uses the pin’s **moduleId** and **type** (from the pin being edited) and writes only the checked sections to `clientPinDefaultDesigns` under the key **`moduleId|type`** (or `moduleId|default` if type is missing):
+When "Default for [type]" is toggled on, the window uses the pin's **moduleId** and **type** (from the pin being edited) and writes only the checked sections to `clientPinDefaultDesigns` under the key **`moduleId|type`** (or `moduleId|default` if type is missing):
 
 ```ts
 {
@@ -1106,7 +1237,7 @@ When “Default for [type]” is toggled on, the window uses the pin’s **modul
 }
 ```
 
-When creating new pins, call **`pins.getDefaultPinDesign(moduleId, type)`** to get the current user’s saved default for that (module, type) (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [ApiPinData](#apipindata)). Pass the **pin type** (e.g. `'journal-pin'`, `'encounter'`) so each type has its own default.
+When creating new pins, call **`pins.getDefaultPinDesign(moduleId, type)`** to get the current user's saved default for that (module, type) (or `null`). Merge that with any other defaults and pass the result into `pins.create()` (using the same property names as in [ApiPinData](#apipindata)). Pass the **pin type** (e.g. `'journal-pin'`, `'encounter'`) so each type has its own default.
 
 #### 4. Pin type handling
 
@@ -1115,8 +1246,8 @@ When creating new pins, call **`pins.getDefaultPinDesign(moduleId, type)`** to g
 
 #### 5. Icon library and image options
 
-- **Default**: Icon categories come from Blacksmith’s `resources/pin-icons.json`.
-- **Browse**: The window includes a built-in **FilePicker** “Browse” control for image selection.
+- **Default**: Icon categories come from Blacksmith's `resources/pin-icons.json`.
+- **Browse**: The window includes a built-in **FilePicker** "Browse" control for image selection.
 - **Planned**: Override/defaults for icon categories (e.g. `iconCategories`) and toggles like `allowImageUrl` / `allowFilePicker` may be added as options.
 
 #### 6. Permission gating
@@ -1176,23 +1307,23 @@ await pinsAPI.configure(pinId, {
 
 **Throws**: 
 - `Error` if pin not found
-- `Error` if user doesn’t have permission to edit the pin
+- `Error` if user doesn't have permission to edit the pin
 - `Error` if Pins API not available
 
 **Behavior**:
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
 - The window includes: **Appearance**, **Icon/Image**, **Text**, **Event Animations**, and **Permissions** (**Pin editing**, **Pin visibility**, allow duplicates). Pin **type** is not editable in the window.
-- The window header shows **”[Category]: [Pin Title]”** (e.g. “Journal Pin: The Rusty Anchor”) using `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header includes a **”Default for [type]”** toggle (renamed from “Default” in v13.6.3); when enabled, each section shows an additional checkbox so the user can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the client default for that type.
+- The window header shows **"[Category]: [Pin Title]"** (e.g. "Journal Pin: The Rusty Anchor") using `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header includes a **"Default for [type]"** toggle (renamed from "Default" in v13.6.3); when enabled, each section shows an additional checkbox so the user can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the client default for that type.
 - **Permissions section** (GM only): **Pin editing** (`blacksmithAccess`: **GM only** / **Owner** / **Everyone`) and **Pin visibility** (`blacksmithVisibility`: **Visible** / **Hidden**). Pin editing maps to `ownership.default`. Pin visibility does not change document rights. **Allow Duplicates** toggle.
-- **Action bar left** (v13.6.3): **”Update All [type] Pins”** toggle (moved from header). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to matching pins with a confirmation dialog. The Permissions section includes pin editing, pin visibility, and allow-duplicates when checked. A **”Filter by tag:”** chip row appears below the toggle showing every tag used across all same-type pins on the scene; the current pin's own tags are pre-selected. Selecting chips (multiselect, OR logic) narrows the update target — type is always the first gate, tags narrow within it. An empty tag selection (all chips deselected) is not possible on initial open since the pin's tags are pre-seeded; if all chips are manually deselected the update applies to all pins of that type.
-- On submit, the pin is updated via `pins.update()` with the fields produced by the form (including **ownership** and **config** when Permissions are saved). If “Default for [type]” is toggled on, only the checked sections are written to `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If no section checkboxes are checked, a warning is shown. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
-- The window is also available from the pin’s right-click context menu (“Configure Pin”).
+- **Action bar left** (v13.6.3): **"Update All [type] Pins"** toggle (moved from header). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to matching pins with a confirmation dialog. The Permissions section includes pin editing, pin visibility, and allow-duplicates when checked. A **"Filter by tag:"** chip row appears below the toggle showing every tag used across all same-type pins on the scene; the current pin's own tags are pre-selected. Selecting chips (multiselect, OR logic) narrows the update target — type is always the first gate, tags narrow within it. An empty tag selection (all chips deselected) is not possible on initial open since the pin's tags are pre-seeded; if all chips are manually deselected the update applies to all pins of that type.
+- On submit, the pin is updated via `pins.update()` with the fields produced by the form (including **ownership** and **config** when Permissions are saved). If "Default for [type]" is toggled on, only the checked sections are written to `clientPinDefaultDesigns` under the key **`moduleId|type`** (from the pin being edited). If no section checkboxes are checked, a warning is shown. If `onSelect` was passed, it is called with the [exact payload](#1-onselect-payload-exact-shape).
+- The window is also available from the pin's right-click context menu ("Configure Pin").
 
 **Styling**: Use the [stable selectors](#8-styling-hooks-stable-selectors) `div#blacksmith-pin-config`, `.blacksmith-pin-config`, and `div#blacksmith-pin-config .window-content` for theming.
 
 ### `pins.getDefaultPinDesign(moduleId, type?)`
-Get the current user’s default pin design for a **module and pin type** (saved via Configure Pin “Use as Default”). Stored in client scope so each player can have their own default. The key is **`moduleId|type`**, so the same module can have different defaults per type (e.g. Journal Page vs Encounter vs Map Annotation).
+Get the current user's default pin design for a **module and pin type** (saved via Configure Pin "Use as Default"). Stored in client scope so each player can have their own default. The key is **`moduleId|type`**, so the same module can have different defaults per type (e.g. Journal Page vs Encounter vs Map Annotation).
 
 **Returns**: `Object | null` — Default design object (size, shape, style, dropShadow, textLayout, textDisplay, textColor, textSize, textMaxLength, textMaxWidth, textScaleWithPin, **allowDuplicatePins**) or `null` if none saved for that (moduleId, type). `lockProportions` may be present in designs saved before v13.7.4 but is no longer written — ignore it.
 
@@ -1283,7 +1414,7 @@ const tagged = pinsAPI.list({ sceneId: canvas.scene.id, tag: 'quest' });
 - `moduleId` (string, optional): filter by consumer module
 - `type` (string, optional): filter by pin type (e.g., 'note', 'quest', 'default')
 - `tag` (string, optional): filter to pins whose normalized tags include this tag
-- `includeHiddenByFilter` (boolean, optional): if `true`, include pins that are currently hidden by the client visibility profile / taxonomy filters (default is `false`; omit or `false` for “what the user sees on the map”)
+- `includeHiddenByFilter` (boolean, optional): if `true`, include pins that are currently hidden by the client visibility profile / taxonomy filters (default is `false`; omit or `false` for "what the user sees on the map")
 
 **Throws**: 
 - `Error` if scene not found (when sceneId required and invalid)
@@ -1446,7 +1577,7 @@ const visible = pins.getModuleVisibility('coffee-pub-squire');
 ```
 
 #### `pins.setTagVisibility(tag, visible)`
-Sets the client-side “hidden tag” filter for `tag` (normalized the same way as pin tags). When `visible` is `false`, pins that are affected by that global tag filter are hidden from the overlay for this user; `true` clears the filter for that tag. Also syncs `game.modules.get('coffee-pub-blacksmith').api.tags.setVisibility` when the Tags API is available.
+Sets the client-side "hidden tag" filter for `tag` (normalized the same way as pin tags). When `visible` is `false`, pins that are affected by that global tag filter are hidden from the overlay for this user; `true` clears the filter for that tag. Also syncs `game.modules.get('coffee-pub-blacksmith').api.tags.setVisibility` when the Tags API is available.
 
 ```javascript
 await pins.setTagVisibility('quest', false);
@@ -1466,15 +1597,13 @@ Saved profiles capture the current **client** hide state: global hide-all, hidde
 
 Built-in profiles **`All Pins`** and **`No Pins`** appear in the UI like custom names.
 
-> ⚠️ **The reserved-name protection is UI-only — the API does not enforce it.** This page previously said the names "All Pins" and "No Pins" are rejected when saving. They are not: the check lives in the Manage Pins window, and `saveVisibilityProfile()` throws **only** on an empty name. Internally the built-ins are keyed `__blacksmith_all_pins__` / `__blacksmith_no_pins__`, and name normalisation only trims — so `'All Pins'` is not recognised as reserved at all, and saving under that name creates an ordinary custom profile that shadows the built-in in the list.
->
-> The flip side: **`applyVisibilityProfile('All Pins')` throws** `Profile not found: All Pins`. The built-ins are only reachable by their internal keys, so the display names shown in the UI are **not** usable through the API.
+The reserved-name protection is UI-only; the API does not enforce it. `saveVisibilityProfile()` throws only on an empty name — the "All Pins" / "No Pins" reserved-name check lives in the Manage Pins window. The built-ins are keyed internally (`__blacksmith_all_pins__` / `__blacksmith_no_pins__`), and name normalization only trims, so saving under the name `'All Pins'` creates an ordinary custom profile that shadows the built-in in the list. Conversely, `applyVisibilityProfile('All Pins')` throws `Profile not found: All Pins` — the built-ins are only reachable by their internal keys, so the display names shown in the UI are not usable through the API.
 
 - **`pins.listVisibilityProfiles()`** — `{ name, state }[]` sorted by name. `state` is a deep clone suitable for inspection.
 - **`pins.saveVisibilityProfile(name)`** — Persists the current filter state under `name` and sets it active. **Throws only if the name is empty** — see the warning above.
 - **`pins.applyVisibilityProfile(name, options?)`** — Applies a **saved** profile. Throws `Profile not found` for anything not in the saved set, including the built-in display names. **`options.sceneId`** (optional): when applying a custom profile, pass the scene whose pin population should be used for repair logic (e.g. clearing hide-all when the profile still shows pins on that scene). Defaults to the active canvas scene.
 - **`pins.deleteVisibilityProfile(name)`** — Removes a saved profile. Built-in names are not stored and are not deleted here.
-- **`pins.getActiveVisibilityProfileName()`** — Returns the active profile key, or `''` if the user is in ad-hoc “custom / current view” mode.
+- **`pins.getActiveVisibilityProfileName()`** — Returns the active profile key, or `''` if the user is in ad-hoc "custom / current view" mode.
 
 ```javascript
 await pins.applyVisibilityProfile('Combat', { sceneId: canvas.scene.id });
@@ -1489,14 +1618,14 @@ The **world-level tag registry** is the sorted, deduplicated list of known pin t
 
 The registry is used to populate tag suggestion chips in the Configure Pin window and the Manage Custom Pin Tags window, so GMs see all tags that exist even if no pin currently uses them.
 
-> **`getPinTaxonomy` vs `getPinTaxonomyChoices`** — critical distinction for UI:
->
-> - **`getPinTaxonomy(moduleId, type)`** — returns only the tags registered for that specific pin type. Use this for type-scoped tag chip pickers (journal toolbar, Configure Pin tag row) so the user only sees relevant tags.
-> - **`getPinTaxonomyChoices(moduleId, type)`** — returns `{ tags, label }` (an **object**, not an array — `.length` on the result is `undefined`). It merges that type's registered tags with the **taxonomy's declared `globalTags`** — the `globalTags` array in `pin-taxonomy.json` / registered taxonomy payloads. Use it for autocomplete inputs where showing the declared cross-module tags is helpful. **Do not** use it for a chip picker scoped to one type — it will show unrelated tags.
->
-> ⚠️ **It does *not* include "every tag ever used".** This page used to say it merged "every tag in the global registry". It does not touch the world tag registry (the `pinTagRegistry` setting) at all — that is read by a separate path. So tags added via `addTagToRegistry()`, or created freeform on a pin, **never appear** in `getPinTaxonomyChoices()`. Only tags *declared* as `globalTags` in a taxonomy do.
->
-> Rule of thumb: **`getPinTaxonomy` for type-scoped pickers; `getPinTaxonomyChoices` for declared-tag autocomplete.**
+`getPinTaxonomy` vs `getPinTaxonomyChoices` — an important distinction for UI:
+
+- `getPinTaxonomy(moduleId, type)` returns only the tags registered for that specific pin type. Use it for type-scoped tag chip pickers (journal toolbar, Configure Pin tag row) so the user sees only relevant tags.
+- `getPinTaxonomyChoices(moduleId, type)` returns `{ tags, label }` (an object, not an array — `.length` on the result is `undefined`). It merges that type's registered tags with the taxonomy's declared `globalTags` (the `globalTags` array in `pin-taxonomy.json` or a registered taxonomy payload). Use it for autocomplete inputs where showing declared cross-module tags is helpful; do not use it for a chip picker scoped to one type.
+
+`getPinTaxonomyChoices` does not include every tag ever used: it does not read the world tag registry (`pinTagRegistry`) at all, so tags added via `addTagToRegistry()` or created freeform on a pin never appear in its result — only tags declared as `globalTags` in a taxonomy do.
+
+Rule of thumb: `getPinTaxonomy` for type-scoped pickers; `getPinTaxonomyChoices` for declared-tag autocomplete.
 
 #### `pins.getModuleTaxonomy(moduleId)`
 Returns **all registered taxonomy entries** for a module in one call — every pin type registered via the built-in JSON, an override JSON, or `registerPinTaxonomy()`. Merges all three sources the same way `getPinTaxonomy` does for each individual type.
@@ -1590,7 +1719,7 @@ Blacksmith controls the **map marker** only (position, icon, label, Configure Pi
 
 **Always (not in the dropdown):** GMs see every pin (**50% opacity** on canvas when `hidden`). Pin owners always see pins they can edit, even when visibility is `hidden`. Only GMs set pin visibility in Configure Pin, context menu, and Manage Pins browse.
 
-**Integration brief for other Coffee Pub modules:** [`developer-note-pin-editing-visibility.md`](../guides/developer-note-pin-editing-visibility.md) (standalone; pair with public wiki [API: Pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/API:-Pins)).
+**For other Coffee Pub modules:** see the Integration guide section near the top of this page.
 
 **Solo-player pins on the map** (only one player should see the marker): use `ownership.default: NONE` and `ownership.users[playerId]: OWNER` — not a separate visibility mode.
 
@@ -1743,9 +1872,9 @@ await pins.ping(pinId, {
 ### `pins.reload(options?)`
 Reload pins from scene flags and re-render on the canvas.
 
-**When you need it**: `create()` and `place()` automatically update the renderer when the target is the currently active scene and the Blacksmith layer container is already initialized. `reload()` is needed when: (1) the layer container doesn’t exist yet (layer never activated since page load — call `whenReady()` first to avoid this), or (2) pins exist in scene flags but don’t appear after a scene change or page refresh.
+**When you need it**: `create()` and `place()` automatically update the renderer when the target is the currently active scene and the Blacksmith layer container is already initialized. `reload()` is needed when: (1) the layer container doesn't exist yet (layer never activated since page load — call `whenReady()` first to avoid this), or (2) pins exist in scene flags but don't appear after a scene change or page refresh.
 
-**When you don’t need it**: Normal `create()`, `place()`, `update()`, and `delete()` calls on the active scene handle their own rendering. Don’t add `reload()` after every pin operation as a precaution — it’s a full re-render of all pins and has a cost.
+**When you don't need it**: Normal `create()`, `place()`, `update()`, and `delete()` calls on the active scene handle their own rendering. Don't add `reload()` after every pin operation as a precaution — it's a full re-render of all pins and has a cost.
 
 **Returns**: `Promise<{ reloaded: number; containerReady: boolean; pinsInData: number; layerActive: boolean }>`
 
@@ -1763,7 +1892,7 @@ const result = await pins.reload();
 **Throws**: `Error` if no scene (e.g. canvas not ready).
 
 ### `pins.refreshPin(pinId, options?)`
-Forces a rebuild of a single pin’s rendered icon from current data. Use when `update()` did not fully refresh visuals.
+Forces a rebuild of a single pin's rendered icon from current data. Use when `update()` did not fully refresh visuals.
 
 **Returns**: `Promise<boolean>` — `true` if the pin existed and was refreshed.
 
@@ -1774,7 +1903,7 @@ Returns aggregate counts for **Manage Pins**–style summaries: totals plus grou
 
 **Parameters**:
 - `sceneId` (string, optional): defaults to `canvas.scene.id` when omitted.
-- `options.includeHiddenByFilter` (boolean, optional): when `true`, counts include pins hidden by the current user’s taxonomy/profile filters (same idea as `list({ includeHiddenByFilter: true })`).
+- `options.includeHiddenByFilter` (boolean, optional): when `true`, counts include pins hidden by the current user's taxonomy/profile filters (same idea as `list({ includeHiddenByFilter: true })`).
 
 **Returns**: `{ total: number, modules: Array<{ key: string, count: number, pins: string[] }>, types: Array<...>, tags: Array<...> }` — each grouping sorted by `key`. Type keys are `moduleId|visibilityType` as used internally for filters.
 
@@ -1958,7 +2087,7 @@ Fired when a placed pin is removed from the canvas but its data is kept: after `
 - `pin`: The full pin data after unplacing (no longer on a scene)
 
 **`blacksmith.pins.updated`**  
-Fired when a pin is updated: after `pins.update()` returns successfully, and when the core **Configure Pin** window saves (it calls `pins.update()`). Use this to keep module data in sync (e.g. journal note flags, notes panel UI) without registering a duplicate “Configure Pin” menu item.
+Fired when a pin is updated: after `pins.update()` returns successfully, and when the core **Configure Pin** window saves (it calls `pins.update()`). Use this to keep module data in sync (e.g. journal note flags, notes panel UI) without registering a duplicate "Configure Pin" menu item.
 
 **Payload**:
 ```js
@@ -1966,8 +2095,8 @@ Fired when a pin is updated: after `pins.update()` returns successfully, and whe
 ```
 - `pinId`: Pin ID that was updated
 - `sceneId`: Scene where the pin lives, or `null` if the pin is unplaced
-- `moduleId`: Pin’s `moduleId`
-- `type`: Pin’s `type` (e.g. `'note'`, `'quest'`, `'default'`)
+- `moduleId`: Pin's `moduleId`
+- `type`: Pin's `type` (e.g. `'note'`, `'quest'`, `'default'`)
 - `patch`: The update patch passed to `pins.update()`
 - `pin`: The full pin data after the update
 
@@ -1992,7 +2121,7 @@ Hooks.on('blacksmith.pins.updated', async ({ pinId, moduleId, pin, patch }) => {
 **`blacksmith.pins.deleted`**  
 Fired when a single pin is deleted: after `pins.delete()` returns successfully. Use this to clear module data tied to the pin (e.g. clear `pinId` / `sceneId` from a note, refresh UI). Fired for both API-driven deletes and the core **Delete Pin** context menu (right-click on canvas or Manage Pins single-delete). Works for both placed and unplaced pins.
 
-> **This hook does NOT fire for bulk deletions.** If a user deletes via `deleteAll()` or `deleteAllByType()` (including Manage Pins bulk-delete-by-type), `blacksmith.pins.deleted` is not called per pin — only `blacksmith.pins.deletedAll` or `blacksmith.pins.deletedAllByType` fires. To handle all deletion paths, listen to all three hooks. Because the bulk hooks do not carry per-pin IDs, the recommended pattern is to call `pins.reconcile()` inside the bulk-delete handlers to identify and clear orphaned references.
+This hook does not fire for bulk deletions. If a user deletes via `deleteAll()` or `deleteAllByType()` (including Manage Pins bulk-delete-by-type), `blacksmith.pins.deleted` is not called per pin — only `blacksmith.pins.deletedAll` or `blacksmith.pins.deletedAllByType` fires. To handle all deletion paths, listen to all three hooks. Because the bulk hooks do not carry per-pin IDs, the recommended pattern is to call `pins.reconcile()` inside the bulk-delete handlers to identify and clear orphaned references.
 
 **Payload**:
 ```js
@@ -2000,10 +2129,10 @@ Fired when a single pin is deleted: after `pins.delete()` returns successfully. 
 ```
 - `pinId`: Pin ID that was deleted
 - `sceneId`: Scene where the pin lived, or `null` if the pin was unplaced
-- `moduleId`: Pin’s `moduleId` (if any)
-- `type`: Pin’s `type` (if any)
+- `moduleId`: Pin's `moduleId` (if any)
+- `type`: Pin's `type` (if any)
 - `pin`: Full pin data **before** deletion (useful for looking up linked documents)
-- `config`: Pin’s `config` object (e.g. `noteUuid` for Squire) for clearing links
+- `config`: Pin's `config` object (e.g. `noteUuid` for Squire) for clearing links
 
 ```javascript
 Hooks.on('blacksmith.pins.deleted', async ({ pinId, moduleId, config }) => {
