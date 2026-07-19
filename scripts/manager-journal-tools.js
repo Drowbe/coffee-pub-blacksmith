@@ -550,14 +550,25 @@ export class JournalTools {
                 
                 // Convert map values back to array
                 uniqueEntities.push(...seen.values());
-                
+
+                // Replace from the END of the page toward the front: every scanner records
+                // offsets into the ORIGINAL page content, but pageContent mutates after each
+                // replacement — processing in descending offset order keeps every remaining
+                // entity's offsets valid. Without this, the second and later replacements on
+                // a page slice at stale offsets and corrupt the content.
+                uniqueEntities.sort((a, b) => ((b.liStart ?? b.startIndex) || 0) - ((a.liStart ?? a.startIndex) || 0));
+
                 logStatus(`Found ${uniqueEntities.length} unique entities to process`);
                 
                 updatePageProgress(40, "Processing entities...");
                 
                 // Process each unique entity (only if actors/items are enabled)
                 let contentChanged = false;
-                
+                // Ranges already replaced, in ORIGINAL-content coordinates — an entity whose
+                // range overlaps one (e.g. a link inside an <li> that was already rewritten)
+                // would slice into freshly written content; skip it instead.
+                const replacedRanges = [];
+
                 if (upgradeActors || upgradeItems) {
                     for (let i = 0; i < uniqueEntities.length; i++) {
                         // Check for stop request
@@ -565,8 +576,14 @@ export class JournalTools {
                             logStatus("Processing stopped by user request.", "warning");
                             break;
                         }
-                        
+
                         const entity = uniqueEntities[i];
+                        const entityStart = entity.liStart ?? entity.startIndex;
+                        const entityEnd = entity.liEnd ?? entity.endIndex;
+                        if (replacedRanges.some(([s, e]) => entityStart < e && entityEnd > s)) {
+                            logStatus(`Skipped (Overlaps Prior Change): ${entity.name}`, "skipped");
+                            continue;
+                        }
                         const pageProgress = 40 + (i / uniqueEntities.length) * 40; // 40-80% for entities
                         updatePageProgress(pageProgress, `Processing ${entity.name}...`);
                         
@@ -636,6 +653,9 @@ export class JournalTools {
                                 pageContent = result.newContent;
                                 contentChanged = true;
                                 totalUpgraded++;
+                                if (Number.isFinite(entityStart) && Number.isFinite(entityEnd)) {
+                                    replacedRanges.push([entityStart, entityEnd]);
+                                }
                             }
                         } catch (error) {
                             totalErrors++;
@@ -1905,19 +1925,26 @@ export class JournalTools {
                 }
             }
             
-            // If not found in compendiums, check world as last resort
+            // If not found in compendiums, check world as last resort. Search the collection
+            // matching the REQUESTED type (foundEntityType is always null here) — 'both' tries
+            // actors then items. The found type derives from which collection matched, not
+            // from document .type (which is the subtype, e.g. 'npc'/'weapon', never 'Item').
             if (!uuid) {
-                const worldEntities = foundEntityType === 'item' ? game.items : game.actors;
-                const worldEntity = worldEntities.find(e => 
-                    e.name.toLowerCase() === entity.name.toLowerCase()
-                );
-                
-                if (worldEntity) {
-                    uuid = worldEntity.uuid;
-                    foundInWorld = true;
-                    foundEntityType = foundEntityType || (worldEntity.type === 'Item' ? 'item' : 'actor');
-                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found entity in world`, 
-                        `${entity.name} -> ${worldEntity.uuid}`, true, false);
+                const worldCollections = entityType === 'item' ? [['item', game.items]]
+                    : entityType === 'actor' ? [['actor', game.actors]]
+                    : [['actor', game.actors], ['item', game.items]];
+                for (const [collectionType, collection] of worldCollections) {
+                    const worldEntity = collection.find(e =>
+                        e.name.toLowerCase() === entity.name.toLowerCase()
+                    );
+                    if (worldEntity) {
+                        uuid = worldEntity.uuid;
+                        foundInWorld = true;
+                        foundEntityType = collectionType;
+                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found entity in world`,
+                            `${entity.name} -> ${worldEntity.uuid}`, true, false);
+                        break;
+                    }
                 }
             }
             
