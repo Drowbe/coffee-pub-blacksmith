@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Documentation now publishes to the GitHub wiki automatically** (`.github/workflows/sync-wiki.yml` new, `tools/wiki-sync.mjs` new): every push to `master` touching `documentation/` rebuilds the publish set (the `PUBLISH` list in `tools/wiki-sync.mjs`) and mirrors it to the wiki on GitHub's runners, so the Windows checkout blocker (colon-named wiki pages are illegal on NTFS) no longer applies; held docs are never published regardless of what changed.
+
 - Added shared JSON import preflight and persistent results: Validate performs parse and kind conversion checks without creating documents; imports process batches entry-by-entry and keep the window open with success/error counts, created-document links, issue/report copying, Edit and Retry, Retry Failed (without recreating successes), Open All, and Import Another. Actor post-processing now rolls back the newly created Actor if item embedding fails so a retry does not duplicate a partial Actor.
 
 - Improved the shared JSON importer authoring UI: Roll Table name matching now lives with the applicable Actor, Item, or Document filters; authoring panels are constrained to the window body instead of overflowing beneath the footer; and the header now provides a Journal/Actor/Item/Roll Table importer switcher that preserves each importer's saved choices.

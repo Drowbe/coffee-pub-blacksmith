@@ -122,8 +122,9 @@ Name the outcome first — **bug fix / feature / performance / refactor** — be
 11. **Delete completed TODOs.** They live in the CHANGELOG now. Never keep a done item "for reference."
 12. **Version bump + BUILD commit — author, after final tests.** The author bumps `module.json` and makes the
     BUILD commit. See Git: BUILD now bundles the final docs + changelog + todo deletions + the bump.
-13. **Sync the wiki — Claude.** Once the BUILD commit has landed the doc changes, Claude pushes them to the
-    wiki (a pure mirror of `documentation/`). See the wiki note in Git — the mechanism is not solved yet.
+13. **Wiki sync is automatic.** A GitHub Action (`.github/workflows/sync-wiki.yml`) mirrors the publish set
+    to the wiki on every push to `master` that touches `documentation/`. What publishes is the `PUBLISH`
+    list in `tools/wiki-sync.mjs` — a new doc goes live only when added there. See the wiki note in Git.
 
 **Never hold TODOs in the API or architecture docs.** That is precisely how they drift out of sync with the
 code. Those docs describe what *is* — including "this is currently broken, and here is the truth" when that
