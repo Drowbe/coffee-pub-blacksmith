@@ -8,6 +8,14 @@ import { postConsoleAndNotification, playSound, trimString, formatTime, getSetti
 import { HookManager } from './manager-hooks.js';
 
 /**
+ * Combat flag owned solely by RoundTimer: `{ startedAt, accumulatedTime }`.
+ * Kept separate from the `stats` flag (owned by stats-combat.js) because the two subsystems
+ * store different quantities under what used to be the same key — stats-combat writes `stats`
+ * wholesale, which silently dropped this timer's `accumulatedTime`.
+ */
+const ROUND_TIMER_FLAG = 'roundTimer';
+
+/**
  * RoundTimer handles tiered timing concerns for combat rounds (no stat storage).
  */
 export class RoundTimer {
@@ -93,25 +101,20 @@ export class RoundTimer {
             if (game.user.isGM) {
                 window.addEventListener('focus', () => {
                     this.isActive = true;
-                    // When game becomes active, update the start timestamp to now
+                    // Resume: begin a new active session from now; banked time is unchanged.
                     if (game.combat?.started && game.combats.has(game.combat.id)) {
-                        const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
-                        if (stats.roundStartTimestamp) {
-                            stats.roundStartTimestamp = Date.now();
-                            stats.accumulatedTime = stats.accumulatedTime || 0;
-                            game.combat.setFlag(MODULE.ID, 'stats', stats);
-                        }
+                        const { startedAt, accumulatedTime } = this._getRoundTiming();
+                        if (startedAt) this._setRoundTiming(Date.now(), accumulatedTime);
                     }
                 });
 
                 window.addEventListener('blur', () => {
                     this.isActive = false;
-                    // When game becomes inactive, save the accumulated time
+                    // Pause: bank the elapsed active session.
                     if (game.combat?.started && game.combats.has(game.combat.id)) {
-                        const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
-                        if (stats.roundStartTimestamp) {
-                            stats.accumulatedTime = (stats.accumulatedTime || 0) + (Date.now() - stats.roundStartTimestamp);
-                            game.combat.setFlag(MODULE.ID, 'stats', stats);
+                        const { startedAt, accumulatedTime } = this._getRoundTiming();
+                        if (startedAt) {
+                            this._setRoundTiming(startedAt, accumulatedTime + (Date.now() - startedAt));
                         }
                     }
                 });
@@ -199,9 +202,6 @@ export class RoundTimer {
         
         // If round changes, we need to reset our timer
         if (changed.round && changed.round !== combat.previous.round && game.user.isGM) {
-            // Get current stats before resetting
-            const currentStats = game.combat.getFlag(MODULE.ID, 'stats') || {};
-            
             // Calculate the duration of the previous round
             const previousRoundDuration = this._getCurrentRoundDuration();
             
@@ -211,13 +211,10 @@ export class RoundTimer {
             // Add the previous round's duration to the total
             const newTotalCombatDuration = totalCombatDuration + previousRoundDuration;
             
-            // Reset the timer stats for the new round
-            const stats = {
-                roundStartTimestamp: Date.now(),
-                accumulatedTime: 0
-            };
-            game.combat.setFlag(MODULE.ID, 'stats', stats);
-            
+            // Reset this timer's own state for the new round. The `stats` flag is not touched here —
+            // it belongs to stats-combat.js.
+            this._setRoundTiming(Date.now(), 0);
+
             // Save the updated total combat duration
             game.combat.setFlag(MODULE.ID, 'totalCombatDuration', newTotalCombatDuration);
             
@@ -226,20 +223,54 @@ export class RoundTimer {
         }
     }
 
+    /**
+     * Read this round's timing state from the combat flag this timer owns.
+     *
+     * `startedAt` is the current *active session* start (reset on focus), not the wall-clock start
+     * of the round — `stats-combat.js` owns that, under its own `stats` flag. Keeping the two apart
+     * is deliberate: they are different quantities that were previously stored under one key.
+     *
+     * Falls back to the legacy fields on the shared `stats` flag so combats already in flight when
+     * this shipped keep their elapsed time. Remove the fallback a release after it lands.
+     *
+     * @returns {{startedAt: number, accumulatedTime: number}}
+     */
+    static _getRoundTiming() {
+        const combat = game.combat;
+        if (!combat) return { startedAt: 0, accumulatedTime: 0 };
+
+        const timing = combat.getFlag(MODULE.ID, ROUND_TIMER_FLAG);
+        if (timing && typeof timing === 'object') {
+            return { startedAt: timing.startedAt || 0, accumulatedTime: timing.accumulatedTime || 0 };
+        }
+
+        const legacy = combat.getFlag(MODULE.ID, 'stats') || {};
+        return {
+            startedAt: legacy.roundStartTimestamp || 0,
+            accumulatedTime: legacy.accumulatedTime || 0
+        };
+    }
+
+    /** Write this round's timing state to the flag this timer owns. */
+    static _setRoundTiming(startedAt, accumulatedTime) {
+        if (!game.combat) return;
+        game.combat.setFlag(MODULE.ID, ROUND_TIMER_FLAG, { startedAt, accumulatedTime });
+    }
+
+    /** Elapsed time for the current round, in ms. Public: the combat bar reads this. */
+    static getCurrentRoundDuration() {
+        return this._getCurrentRoundDuration();
+    }
+
     static _getCurrentRoundDuration() {
         if (!game.combat?.started || !game.combats.has(game.combat.id)) return 0;
-        
-        // Get the current stats from combat flags
-        const stats = game.combat.getFlag(MODULE.ID, 'stats') || {};
-        
-        // If no timestamp exists, return 0
-        if (!stats.roundStartTimestamp) {
-            return 0;
-        }
-        
-        // Calculate total duration: accumulated time + current active session time
-        const currentSessionTime = this.isActive ? (Date.now() - stats.roundStartTimestamp) : 0;
-        return (stats.accumulatedTime || 0) + currentSessionTime;
+
+        const { startedAt, accumulatedTime } = this._getRoundTiming();
+        if (!startedAt) return 0;
+
+        // Total duration: time banked from previous active sessions + the running one.
+        const currentSessionTime = this.isActive ? (Date.now() - startedAt) : 0;
+        return accumulatedTime + currentSessionTime;
     }
 
     static _getTotalCombatDuration() {

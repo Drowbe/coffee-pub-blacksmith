@@ -134,12 +134,6 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 - **`architecture-*.md`**: 10 docs, still substantially unverified. `architecture-socketmanager.md` is known fiction (30/30 symbols phantom). `architecture-hookmanager.md` needs ~900 of 1411 lines cut.
 - **Fence checker**: `scratchpad/check-fences.ps1` syntax-checks all 378 JS fences across the API docs (tries whole-module, function-body, class-body, and object-literal readings before reporting). ~29 remaining hits are pseudo-code fragments, not defects. Worth keeping if you want it in the repo.
 
-### Combat flag `'stats'` has three subsystems and no owner
-- **Issue**: `stats-combat.js` (`:118`, `:142`, `:727`) writes `this.currentStats` **wholesale** to `combat.setFlag(MODULE.ID, 'stats')`. `timer-round.js` (`:116`, `:128`, `:233`) read-modify-writes the **same key** and owns `accumulatedTime` — a field that appears **4 times in `timer-round.js` and zero times in `stats-combat.js`**, so the wholesale write silently drops it. `manager-combatbar.js:639` reads the flag as well. Both files also write `roundStartTimestamp`, so a naive merge just moves the conflict.
-- **Impact**: `timer-round.js:256` computes `(stats.accumulatedTime || 0) + currentSessionTime` — losing the field means round duration under-reports after a stats write. Ordering-dependent, so it may be intermittent.
-- **Status**: PENDING — **needs a decision about who owns the key, not a patch.** Options: namespace the timer's data under its own flag (needs a migration for in-flight combats), or make `stats-combat` merge and define precedence for `roundStartTimestamp`. Validate in a real session; there is no test suite.
-- **Location**: `scripts/stats-combat.js`, `scripts/timer-round.js`, `scripts/manager-combatbar.js`
-
 ### Curator ships its own fork of HookManager
 - **Issue**: `coffee-pub-curator/scripts/manager-hooks.js` is a 520-line copy of Blacksmith's `HookManager` — identical static surface, all 18 methods, none added — and Curator never touches `module.api.HookManager`. Blacksmith exposes HookManager precisely so nobody does this. The fork inherited the `removeHook` return bug (fixed in Blacksmith 13.9.x, still present in the copy).
 - **Status**: PENDING — Curator's call, not Blacksmith's. Tracked here because it defeats the hub pattern.

@@ -24,7 +24,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         {
             id: APP_ID,
             classes: ['blacksmith-toast-send-window'],
-            position: { width: 460, height: 'auto' },
+            position: { width: 520, height: 'auto' },
             window: { title: 'Send Toast', resizable: false, minimizable: true, icon: 'fas fa-bullhorn' }
         }
     );
@@ -66,30 +66,41 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
         const bodyContent = `
             <div class="blacksmith-toast-send-form">
-                <div class="blacksmith-toast-send-section">Recipients</div>
+                <div class="blacksmith-window-section-header">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Recipients</span>
+                </div>
+                <label class="blacksmith-toast-send-recipient blacksmith-toast-send-party">
+                    <input type="checkbox" name="toast-party">
+                    <i class="fa-solid fa-people-group"></i>
+                    <span>Entire Party (everyone online)</span>
+                </label>
                 <div class="blacksmith-toast-send-recipients">${recipientRows || '<em>No players in this world.</em>'}</div>
 
-                <div class="blacksmith-toast-send-section">Message</div>
-                <input type="text" class="blacksmith-input" name="toast-title" placeholder="Title (required)" maxlength="120">
-                <input type="text" class="blacksmith-input" name="toast-subtitle" placeholder="Message (optional)" maxlength="300">
-
-                <div class="blacksmith-toast-send-grid">
-                    <label>Style
-                        <select class="blacksmith-input" name="toast-style">${styleOptions}</select>
-                    </label>
-                    <label>Duration
-                        <select class="blacksmith-input" name="toast-duration">
-                            <option value="0">Until closed</option>
-                            <option value="10">10 seconds</option>
-                            <option value="20">20 seconds</option>
-                            <option value="30">30 seconds</option>
-                            <option value="60">1 minute</option>
-                        </select>
-                    </label>
+                <div class="blacksmith-window-section-header">
+                    <i class="fa-solid fa-message"></i>
+                    <span>Message</span>
+                </div>
+                <div class="blacksmith-field">
+                    <label class="blacksmith-field-label">Title</label>
+                    <input type="text" class="blacksmith-input" name="toast-title" placeholder="Title (required)" maxlength="120">
+                </div>
+                <div class="blacksmith-field">
+                    <label class="blacksmith-field-label">Message</label>
+                    <textarea class="blacksmith-input blacksmith-toast-send-message" name="toast-subtitle" rows="3" maxlength="300" placeholder="Message (optional)"></textarea>
                 </div>
 
-                <div class="blacksmith-toast-send-grid">
-                    <label>Size
+                <div class="blacksmith-window-section-header">
+                    <i class="fa-solid fa-palette"></i>
+                    <span>Appearance</span>
+                </div>
+                <div class="blacksmith-field-row">
+                    <div class="blacksmith-field">
+                        <label class="blacksmith-field-label">Style</label>
+                        <select class="blacksmith-input" name="toast-style">${styleOptions}</select>
+                    </div>
+                    <div class="blacksmith-field">
+                        <label class="blacksmith-field-label">Size</label>
                         <select class="blacksmith-input" name="toast-size">
                             <option value="large" selected>Large</option>
                             <option value="">Default (fits content)</option>
@@ -98,32 +109,70 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                             <option value="vw80">80% of screen</option>
                             <option value="fullscreen">Fullscreen overlay</option>
                         </select>
-                    </label>
-                    <span></span>
+                    </div>
+                    <div class="blacksmith-field">
+                        <label class="blacksmith-field-label">Duration</label>
+                        <select class="blacksmith-input" name="toast-duration">
+                            <option value="0">Until closed</option>
+                            <option value="10">10 seconds</option>
+                            <option value="20">20 seconds</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                        </select>
+                    </div>
                 </div>
-
-                <label class="blacksmith-toast-send-image-row">Image
-                    <input type="text" class="blacksmith-input" name="toast-image" placeholder="Avatar image path (optional)">
-                    <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-image"
-                        title="Browse"><i class="fas fa-file-image"></i></button>
-                </label>
-                <label class="blacksmith-toast-send-image-row">Background
-                    <input type="text" class="blacksmith-input" name="toast-background" placeholder="Background image path (optional)">
-                    <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-background"
-                        title="Browse"><i class="fas fa-panorama"></i></button>
-                </label>
+                <div class="blacksmith-field">
+                    <label class="blacksmith-field-label">Image</label>
+                    <div class="blacksmith-toast-send-image-row">
+                        <input type="text" class="blacksmith-input" name="toast-image" placeholder="Avatar image path (optional)">
+                        <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-image"
+                            title="Browse"><i class="fas fa-file-image"></i></button>
+                    </div>
+                </div>
+                <div class="blacksmith-field">
+                    <label class="blacksmith-field-label">Background</label>
+                    <div class="blacksmith-toast-send-image-row">
+                        <input type="text" class="blacksmith-input" name="toast-background" placeholder="Background image path (optional)">
+                        <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-background"
+                            title="Browse"><i class="fas fa-panorama"></i></button>
+                    </div>
+                </div>
             </div>`;
 
         return {
             appId: this.id,
             showOptionBar: false,
-            showHeader: false,
+            showHeader: true,
+            headerIcon: 'fa-solid fa-bullhorn',
+            windowTitle: 'Send Toast',
+            subtitle: 'Send an on-screen message to selected players',
             showTools: false,
             showActionBar: true,
             bodyContent,
             actionBarLeft: '<button type="button" class="blacksmith-window-btn-secondary" data-action="toast-cancel"><i class="fas fa-xmark"></i> Cancel</button>',
             actionBarRight: '<button type="button" class="blacksmith-window-btn-primary" data-action="toast-send"><i class="fas fa-bullhorn"></i> Send Toast</button>'
         };
+    }
+
+    async _onRender(context, options) {
+        await super._onRender?.(context, options);
+        const root = this._getRoot();
+        if (!root) return;
+        // "Entire Party" overrides the individual picks: checking it checks and locks
+        // every online player's box; unchecking restores individual control.
+        const party = root.querySelector('[name="toast-party"]');
+        party?.addEventListener('change', () => {
+            for (const cb of root.querySelectorAll('[name="toast-recipient"]')) {
+                const offline = cb.closest('.blacksmith-toast-send-recipient')?.classList.contains('offline');
+                if (offline) continue;
+                if (party.checked) {
+                    cb.checked = true;
+                    cb.disabled = true;
+                } else {
+                    cb.disabled = false;
+                }
+            }
+        });
     }
 
     _browseImage(inputName = 'toast-image') {
@@ -150,10 +199,12 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 ui.notifications.warn('A toast needs a title.');
                 return;
             }
-            const recipients = [...root.querySelectorAll('[name="toast-recipient"]:checked')]
-                .map(cb => cb.value);
+            const partyChecked = root.querySelector('[name="toast-party"]')?.checked === true;
+            const recipients = partyChecked
+                ? game.users.filter(u => !u.isGM && u.active).map(u => u.id)
+                : [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(cb => cb.value);
             if (!recipients.length) {
-                ui.notifications.warn('Pick at least one recipient.');
+                ui.notifications.warn(partyChecked ? 'No players are online.' : 'Pick at least one recipient.');
                 return;
             }
 
@@ -175,10 +226,9 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             }, recipients);
 
             // Small GM confirmation (author decision 2026-07-19) — not an echo of the announcement
-            const names = recipients
-                .map(id => game.users.get(id))
-                .filter(Boolean)
-                .map(u => u.character?.name || u.name);
+            const names = partyChecked
+                ? ['Entire party']
+                : recipients.map(id => game.users.get(id)).filter(Boolean).map(u => u.character?.name || u.name);
             ToastManager.show({
                 title: 'Toast sent',
                 subtitle: names.join(', '),

@@ -61,19 +61,23 @@ stats-combat.js discards combatStats; stats-player.js clears session data
 Lifetime stats persist in actor flags
 ```
 
-## The shared combat `stats` flag
+## Combat flag ownership
 
-`combat.setFlag(MODULE.ID, 'stats', ...)` is touched by three subsystems, and this is the sharpest trap in the system. The code flags it inline at `stats-combat.js:727-729`.
+Each combat flag has exactly one owner. This was not always true, and the split is deliberate:
 
-| Subsystem | Access | Note |
+| Flag | Owner | Holds |
 |---|---|---|
-| `stats-combat.js` (`:118`, `:142`, `:730`) | **writes wholesale** | Replaces the flag with `currentStats` |
-| `timer-round.js` (`:112-116`, `:125-128`, `:217-233`) | read-modify-writes | Owns `accumulatedTime` |
-| `manager-combatbar.js` (`:637`) | reads | Display only |
+| `stats` | `stats-combat.js` | `currentStats` — written wholesale, safe because nothing else stores here |
+| `roundTimer` | `timer-round.js` | `{ startedAt, accumulatedTime }` — this round's timing |
+| `totalCombatDuration` | `timer-round.js` | Accumulated duration of completed rounds |
 
-`accumulatedTime` is a `timer-round.js` field and is **not** part of `currentStats`, so every wholesale write from `stats-combat.js` drops it. Because both sides also write `roundStartTimestamp`, a naive merge just relocates the conflict rather than resolving it. The observable symptom is round duration under-reporting after a stats write, and it is ordering-dependent, so it can look intermittent.
+Both subsystems previously stored data under `stats`, which broke in a way worth remembering: `stats-combat` writes that flag wholesale from its in-memory `currentStats`, which has no `accumulatedTime` field — so every write silently discarded the round timer's banked time, producing intermittent under-reported round durations.
 
-This needs an ownership decision — namespace the timer's data under its own flag (requiring a migration for in-flight combats), or make `stats-combat` merge and define precedence — not a patch. Do not "fix" it by changing one writer in isolation.
+The deeper problem was semantic, not just a write collision: both subsystems kept a field called `roundStartTimestamp` and meant **different things by it**. For `stats-combat` it is the wall-clock start of the round (`roundEndTimestamp - roundStartTimestamp` gives `roundDuration`). For the round timer it is the start of the current *active session*, reset whenever the GM's window regains focus. One key could not hold both meanings, which is why merging was not a fix — separate keys were.
+
+Consumers should not read these flags directly. `RoundTimer.getCurrentRoundDuration()` is the public accessor for round elapsed time; `manager-combatbar.js` uses it rather than touching flags.
+
+`_getRoundTiming()` still falls back to the legacy `stats.roundStartTimestamp` / `stats.accumulatedTime` when the `roundTimer` flag is absent, so combats already in progress when the split shipped keep their elapsed time. That fallback is transitional — remove it a release after it lands.
 
 ## GM gating
 

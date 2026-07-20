@@ -620,12 +620,8 @@ export class CombatBarManager {
             const currentTurn = Math.min(currentTurnIndex + 1, Math.max(totalTurns, 1));
             const currentCombatantName = combat.combatant?.name || 'No Active Turn';
             const totalCombatDurationBase = combat.getFlag(MODULE.ID, 'totalCombatDuration') || 0;
-            const stats = combat.getFlag(MODULE.ID, 'stats') || {};
-            const accumulated = stats.accumulatedTime || 0;
-            const roundStart = stats.roundStartTimestamp || 0;
-            const isActive = RoundTimer?.isActive ?? true;
-            const runningRound = (roundStart && isActive) ? Math.max(0, Date.now() - roundStart) : 0;
-            const currentRoundDurationMs = accumulated + runningRound;
+            // Round timing is owned by RoundTimer; ask it rather than reading combat flags here.
+            const currentRoundDurationMs = RoundTimer?.getCurrentRoundDuration?.() ?? 0;
             const totalCombatDurationMs = totalCombatDurationBase + currentRoundDurationMs;
 
             return {

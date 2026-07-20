@@ -723,10 +723,9 @@ class CombatStats {
             this.currentStats.roundStartTimestamp = Date.now();  // Set the wall-clock start time
             this.currentStats.planningStartTime = Date.now();
 
-            // Save the stats to combat flags.
-            // ⚠️ SHARED KEY: `timer-round.js` also read-modify-writes this same flag and owns
-            // `accumulatedTime`, which is NOT part of currentStats — this wholesale write drops it.
-            // `manager-combatbar.js` reads the flag too. See documentation/TODO.md before changing.
+            // Save the stats to combat flags. CombatStats owns this key outright — the wholesale
+            // write is safe because no other subsystem stores data here. Round timing lives on the
+            // separate `roundTimer` flag owned by timer-round.js; keep it that way.
             game.combat.setFlag(MODULE.ID, 'stats', this.currentStats);
             this._schedulePersistCombatStats('roundStart');
 

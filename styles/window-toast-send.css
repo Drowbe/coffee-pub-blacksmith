@@ -2,23 +2,14 @@
 /* --- SEND TOAST WINDOW -------------- */
 /* ------------------------------------ */
 /* GM "Send Toast" tool — scripts/window-toast-send.js.
-   Form controls come from window-form-controls.css; this file is layout only. */
+   Section headers, fields, and buttons come from the shared window styles
+   (window-template.css, window-form-controls.css); this file is layout only. */
 
 .blacksmith-toast-send-form {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 4px 2px;
-}
-
-.blacksmith-toast-send-section {
-    font-family: "Signika", sans-serif;
-    font-weight: bold;
-    font-size: 0.8em;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #ac9f81;
-    margin-top: 6px;
 }
 
 .blacksmith-toast-send-recipients {
@@ -47,23 +38,24 @@
     cursor: default;
 }
 
-.blacksmith-toast-send-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+/* "Entire Party" master row sits above the individual grid */
+.blacksmith-toast-send-party {
+    font-weight: bold;
+    margin-bottom: 2px;
 }
-.blacksmith-toast-send-grid label {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    font-size: 0.85em;
+.blacksmith-toast-send-party i {
+    color: #ac9f81;
+}
+
+.blacksmith-toast-send-message {
+    resize: vertical;
+    min-height: 3.4em;
 }
 
 .blacksmith-toast-send-image-row {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.85em;
 }
 .blacksmith-toast-send-image-row input {
     flex: 1;
