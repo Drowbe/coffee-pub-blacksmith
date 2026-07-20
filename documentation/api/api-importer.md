@@ -230,6 +230,8 @@ Part ids and roles must be versioned before this method becomes stable. Callers 
 
 ## Validation
 
+The shared Blacksmith window and internal importer registry now use this result model. Publication as `api.importer.validateJson()` remains pending until the public namespace and capability/version surfaces are implemented.
+
 ### `validateJson(request)`
 
 Validates without creating documents.
@@ -287,6 +289,8 @@ Proposed result:
 Validation does not reserve ids or guarantee that external state remains unchanged before a later import.
 
 ## Import
+
+The shared window currently performs per-entry validation/import and renders this envelope internally. The public `api.importer.importJson()` method described below is still proposed.
 
 ### `importJson(request)`
 

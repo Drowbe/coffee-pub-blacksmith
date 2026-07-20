@@ -2,7 +2,7 @@
 
 **Audience:** Contributors to Blacksmith and maintainers of tools that generate content for Blacksmith.
 
-**Status:** Target architecture. Existing Item, Actor, Journal, and Roll Table importers are being converged onto this design incrementally.
+**Status:** Active incremental implementation. Shared authoring, validation, per-entry import orchestration, and result reporting are implemented for Item, Actor, Journal, and Roll Table importers; the public API and some domain-specific warning detail remain proposed.
 
 **Related documentation:**
 
@@ -305,5 +305,7 @@ Current importers do not yet implement every part of this architecture. Migratio
 6. Add Validate, Retry Failed, and Import Another.
 7. Expose stable public API methods.
 8. Migrate disconnected module workflows onto the shared contract.
+
+Steps 1–6 are implemented in the shared window/registry. Current validation performs parse and kind conversion checks without document creation, and imports process entries independently so failed entries can be retried without recreating successful entries. The result screen preserves the submitted payload and exposes per-entry status, errors, created-document links, complete/individual report copying, Retry Failed, Edit and Retry, and Import Another. Rich warning capture from every legacy domain helper and the stable public API remain follow-up work.
 
 Do not expose an API method as stable until its behavior and result shape match `api-importer.md`.
