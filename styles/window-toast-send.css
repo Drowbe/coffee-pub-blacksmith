@@ -63,6 +63,12 @@
     min-height: 3.4em;
 }
 
+/* The Image field only exists while the "Custom image" icon-picker entry is
+   selected — image and icon are mutually exclusive (window-toast-send.js). */
+.blacksmith-toast-send-image-field.hidden {
+    display: none;
+}
+
 .blacksmith-toast-send-image-row {
     display: flex;
     align-items: center;
@@ -75,4 +81,43 @@
     flex: 0 0 auto;
     width: auto;
     line-height: 1;
+}
+
+.blacksmith-toast-send-icons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.blacksmith-toast-send-icon,
+.blacksmith-toast-send-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--color-text-light-heading);
+    cursor: pointer;
+}
+
+.blacksmith-toast-send-icon:hover,
+.blacksmith-toast-send-clear:hover {
+    border-color: rgba(0, 0, 0, 0.3);
+    background: rgba(247, 133, 2, 0.9);
+    color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 1.8px rgba(171, 153, 60, 0.2);
+}
+
+.blacksmith-toast-send-icon.selected {
+    border-color: rgba(185, 84, 61, 1);
+    background: rgba(185, 84, 61, 0.6);
+}
+
+.blacksmith-toast-send-clear {
+    color: rgba(224, 224, 224, 0.72);
 }
