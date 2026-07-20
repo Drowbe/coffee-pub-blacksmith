@@ -77,7 +77,8 @@ await compendiums.resolve(name, type, {
   exact: false,       // true = only accept exact matches
   fuzzy: false,       // true = also allow the loose 'includes' tier
   itemType: null,     // prefer this document subtype, e.g. 'weapon'
-  parseCount: false   // strip a trailing "(3)" and report it as `count`
+  parseCount: false,  // strip a trailing "(3)" and report it as `count`
+  sources: null       // optional configured-source subset, e.g. ['world', 'dnd5e.monsters']
 });
 ```
 

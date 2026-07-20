@@ -2,34 +2,33 @@
 
 **Audience:** Developers integrating with Blacksmith and using the Tags system from another module.
 
-> **Architecture reference:** See `documentation/architecture/architecture-tags.md` for internals, storage design, the migration path from the pin tag system, and the TagWidget component specification.
->
-> **Feature summary:**
-> - **Central storage**: All tag assignments (record → flags) are stored in a Blacksmith world setting. Consuming modules do not store flags in their own record data.
-> - **Context keys**: Every tag operation is scoped to a `{moduleId}.{dataType}` context key (e.g. `"coffee-pub-squire.quests"`). This allows the same flag name to exist independently in different data types.
-> - **Taxonomy**: `resources/tag-taxonomy.json` defines the suggested tag set for each context. Modules contribute by adding their context entries to this file. Protected flags (those that drive module code) are marked `protected: true` and cannot be renamed or deleted.
-> - **Global flags**: Tags like `"todo"` and `"revisit"` are offered as suggestions in every context.
-> - **Visibility**: Per-flag-globally by default, with an optional per-context override. Visibility is client-scope and affects filtering only — it does not remove flags from data.
-> - **TagWidget**: A reusable Blacksmith UI component for flag selection, search, add, and remove. Embed in any Application V2 window; requires the Blacksmith Window API.
-> - **GM-only mutations**: Rename and delete operate across all records in all contexts and require GM privileges.
+
+**Feature summary:**
+- **Central storage**: All tag assignments (record → tags) are stored in a Blacksmith world setting. Consuming modules do not store tags in their own record data.
+- **Context keys**: Every tag operation is scoped to a `{moduleId}.{dataType}` context key (e.g. `"coffee-pub-squire.quest"`). This allows the same tag name to exist independently in different data types.
+- **Taxonomy**: `resources/tag-taxonomy.json` defines the suggested tag set for each context. Modules contribute by adding their context entries to this file. Protected tags (those that drive module code) are marked `protected: true` and cannot be renamed or deleted.
+- **Global tags**: Tags like `"todo"` and `"revisit"` are offered as suggestions in every context.
+- **Visibility**: Per-tag-globally by default, with an optional per-context override. Visibility is client-scope and affects filtering only — it does not remove tags from data.
+- **TagWidget**: A reusable Blacksmith UI component for tag selection, search, add, and remove. Embed in any Application V2 window; requires the Blacksmith Window API.
+- **GM-only mutations**: Rename and delete operate across all records in all contexts and require GM privileges.
 
 ---
 
 ## Overview
 
-The Tags API provides a shared labeling infrastructure for all coffee-pub modules. Use it to attach classification labels to your records, offer a consistent UI for choosing and filtering tags, and let the GM manage the world's flag vocabulary in one place.
+The Tags API provides a shared labeling infrastructure for all coffee-pub modules. Use it to attach classification labels to your records, offer a consistent UI for choosing and filtering tags, and let the GM manage the world's tag vocabulary in one place.
 
-A **tag** is a normalized string: lowercase, hyphen-separated, no spaces (e.g. `"main-quest"`, `"tavern"`, `"todo"`). A **context key** scopes a tag taxonomy and its record assignments to one module + data type (e.g. `"coffee-pub-squire.quests"`).
+A **tag** is a normalized string: lowercase, hyphen-separated, no spaces (e.g. `"main-quest"`, `"tavern"`, `"todo"`). A **context key** scopes a tag taxonomy and its record assignments to one module + data type (e.g. `"coffee-pub-squire.quest"`).
 
 ### When to use the Tags API
 
 - You have records (quests, codex entries, notes, items) that users want to classify and filter.
-- You want a consistent flag UI without building tag-input, chip rendering, or search from scratch.
-- You want the GM to be able to rename or delete a flag world-wide and have it propagate to all records automatically.
+- You want a consistent tag UI without building tag-input, chip rendering, or search from scratch.
+- You want the GM to be able to rename or delete a tag world-wide and have it propagate to all records automatically.
 
 ### When not to use it
 
-- For boolean or typed metadata on a record (use your own data model). Flags are display labels, not typed configuration fields.
+- For boolean or typed metadata on a record (use your own data model). Tags are display labels, not typed configuration fields.
 - For system-level classification that drives rendering or behavior and never changes (use your `type` field or constants instead — and if you do define such values in the taxonomy, mark them `protected: true`).
 
 ---
@@ -69,7 +68,7 @@ Add your context key entry to `resources/tag-taxonomy.json` before shipping:
   "version": 1,
   "globalTags": ["todo", "revisit", "avoid", "complete"],
   "contexts": {
-    "coffee-pub-squire.quests": {
+    "coffee-pub-squire.quest": {
       "label": "Quests",
       "tags": [
         { "key": "main", "protected": true },
@@ -82,27 +81,27 @@ Add your context key entry to `resources/tag-taxonomy.json` before shipping:
 }
 ```
 
-Mark `protected: true` on any flag your code checks by value (e.g. `if (flags.includes('main'))`). Protected flags cannot be renamed or deleted by a GM.
+Mark `protected: true` on any tag your code checks by value (e.g. `if (tags.includes('main'))`). Protected tags cannot be renamed or deleted by a GM.
 
-### Attach flags to a record
+### Attach tags to a record
 
 ```javascript
 Hooks.on('blacksmithReady', async () => {
   const tags = game.modules.get('coffee-pub-blacksmith')?.api?.tags;
   if (!tags?.isAvailable()) return;
 
-  // Set flags on a record (replaces any existing flags for this record)
-  await tags.setTags('coffee-pub-squire.quests', quest.id, ['main', 'faction']);
+  // Set tags on a record (replaces any existing tags for this record)
+  await tags.setTags('coffee-pub-squire.quest', quest.id, ['main', 'faction']);
 });
 ```
 
 ### Clean up on record delete
 
 ```javascript
-await tags.deleteRecordTags('coffee-pub-squire.quests', quest.id);
+await tags.deleteRecordTags('coffee-pub-squire.quest', quest.id);
 ```
 
-### Embed the flag widget in a window
+### Embed the tag widget in a window
 
 See [TagWidget](#TagWidget) below for the full embed pattern.
 
@@ -150,7 +149,7 @@ Use `tags` as the array key. `flags` is also accepted — the shipped `tag-taxon
 ```javascript
 Hooks.on('blacksmithReady', () => {
   const tags = game.modules.get('coffee-pub-blacksmith')?.api?.tags;
-  tags?.register('coffee-pub-squire.quests', {
+  tags?.register('coffee-pub-squire.quest', {
     label: 'Quests',
     tags: [
       { key: 'main', protected: true },
@@ -166,9 +165,9 @@ Hooks.on('blacksmithReady', () => {
 
 #### `tags.getChoices(contextKey)`
 
-Get the full list of suggested flags for a context: the context's taxonomy flags plus global flags. Use this to populate a dropdown, chip input, or TagWidget's suggestion list.
+Get the full list of suggested tags for a context: the context's taxonomy tags plus global tags. Use this to populate a dropdown, chip input, or TagWidget's suggestion list.
 
-Flags are returned in taxonomy order, with global flags appended. Protected flags are included; the caller can use the `protected` field to style or sort them differently.
+Tags are returned in taxonomy order, with global tags appended. Protected tags are included; the caller can use the `protected` field to style or sort them differently.
 
 **Parameters:**
 
@@ -179,7 +178,7 @@ Flags are returned in taxonomy order, with global flags appended. Protected flag
 **Returns:** `Array<{ key: string, label: string, protected: boolean, tier: 'taxonomy' \| 'global' }>`
 
 ```javascript
-const choices = tags.getChoices('coffee-pub-squire.quests');
+const choices = tags.getChoices('coffee-pub-squire.quest');
 // [
 //   { key: 'main',      label: 'Main',      protected: true,  tier: 'taxonomy' },
 //   { key: 'side',      label: 'Side',      protected: true,  tier: 'taxonomy' },
@@ -190,13 +189,13 @@ const choices = tags.getChoices('coffee-pub-squire.quests');
 
 ---
 
-### Record flag CRUD
+### Record tag CRUD
 
 All CRUD methods write to the central `tagAssignments` world setting. Non-GM users go through the GM proxy automatically — you do not need to handle that routing.
 
-#### `tags.setTags(contextKey, recordId, flagArray)`
+#### `tags.setTags(contextKey, recordId, tagArray)`
 
-Replace the flag set for a record. Normalizes the input array before storing. Adds any new flags to the world registry.
+Replace the tag set for a record. Normalizes the input array before storing. Adds any new tags to the world registry.
 
 **Parameters:**
 
@@ -204,20 +203,20 @@ Replace the flag set for a record. Normalizes the input array before storing. Ad
 |---|---|---|
 | `contextKey` | `string` | Context identifier |
 | `recordId` | `string` | Unique identifier of the record within this context |
-| `flagArray` | `string[]` | The complete new flag set (replaces existing) |
+| `tagArray` | `string[]` | The complete new tag set (replaces existing) |
 
 **Returns:** `Promise<void>`
 
 ```javascript
 // On quest save
-await tags.setTags('coffee-pub-squire.quests', quest.id, ['main', 'faction', 'todo']);
+await tags.setTags('coffee-pub-squire.quest', quest.id, ['main', 'faction', 'todo']);
 ```
 
 ---
 
 #### `tags.getTags(contextKey, recordId)`
 
-Get the current flags for a record. Returns an empty array if the record has no flags.
+Get the current tags for a record. Returns an empty array if the record has no tags.
 
 **Parameters:**
 
@@ -229,15 +228,15 @@ Get the current flags for a record. Returns an empty array if the record has no 
 **Returns:** `string[]`
 
 ```javascript
-const questFlags = tags.getTags('coffee-pub-squire.quests', quest.id);
+const questFlags = tags.getTags('coffee-pub-squire.quest', quest.id);
 // ['main', 'faction', 'todo']
 ```
 
 ---
 
-#### `flags.addTags(contextKey, recordId, flagArray)`
+#### `tags.addTags(contextKey, recordId, tagArray)`
 
-Add flags to a record without replacing its existing flags. Duplicates are deduplicated automatically. Adds any new flags to the world registry.
+Add tags to a record without replacing its existing tags. Duplicates are deduplicated automatically. Adds any new tags to the world registry.
 
 **Parameters:**
 
@@ -245,20 +244,20 @@ Add flags to a record without replacing its existing flags. Duplicates are dedup
 |---|---|---|
 | `contextKey` | `string` | Context identifier |
 | `recordId` | `string` | Record identifier |
-| `flagArray` | `string[]` | Flags to add |
+| `tagArray` | `string[]` | Tags to add |
 
 **Returns:** `Promise<void>`
 
 ```javascript
-// Mark a quest complete without touching its other flags
-await tags.addTags('coffee-pub-squire.quests', quest.id, ['complete']);
+// Mark a quest complete without touching its other tags
+await tags.addTags('coffee-pub-squire.quest', quest.id, ['complete']);
 ```
 
 ---
 
-#### `flags.removeTags(contextKey, recordId, flagArray)`
+#### `tags.removeTags(contextKey, recordId, tagArray)`
 
-Remove specific flags from a record. Flags not present on the record are silently ignored.
+Remove specific tags from a record. Tags not present on the record are silently ignored.
 
 **Parameters:**
 
@@ -266,20 +265,20 @@ Remove specific flags from a record. Flags not present on the record are silentl
 |---|---|---|
 | `contextKey` | `string` | Context identifier |
 | `recordId` | `string` | Record identifier |
-| `flagArray` | `string[]` | Flags to remove |
+| `tagArray` | `string[]` | Tags to remove |
 
 **Returns:** `Promise<void>`
 
 ```javascript
 // Un-complete a quest
-await tags.removeTags('coffee-pub-squire.quests', quest.id, ['complete']);
+await tags.removeTags('coffee-pub-squire.quest', quest.id, ['complete']);
 ```
 
 ---
 
 #### `tags.deleteRecordTags(contextKey, recordId)`
 
-Remove all flag data for a record. Call this when the record itself is deleted to avoid orphan entries in the assignment store.
+Remove all tag data for a record. Call this when the record itself is deleted to avoid orphan entries in the assignment store.
 
 **Parameters:**
 
@@ -292,40 +291,40 @@ Remove all flag data for a record. Call this when the record itself is deleted t
 
 ```javascript
 // In your module's record delete handler
-await tags.deleteRecordTags('coffee-pub-squire.quests', deletedQuest.id);
+await tags.deleteRecordTags('coffee-pub-squire.quest', deletedQuest.id);
 ```
 
 ---
 
-#### `tags.getRecordsByTag(contextKey, flag)`
+#### `tags.getRecordsByTag(contextKey, tag)`
 
-Get all record IDs in a context that currently have a specific flag. Useful for building filter views.
+Get all record IDs in a context that currently have a specific tag. Useful for building filter views.
 
 **Parameters:**
 
 | Name | Type | Description |
 |---|---|---|
 | `contextKey` | `string` | Context identifier |
-| `flag` | `string` | Flag to look up |
+| `tag` | `string` | Tag to look up |
 
 **Returns:** `string[]` — array of record IDs
 
 ```javascript
 // Find all quests tagged 'faction'
-const factionQuestIds = tags.getRecordsByTag('coffee-pub-squire.quests', 'faction');
+const factionQuestIds = tags.getRecordsByTag('coffee-pub-squire.quest', 'faction');
 ```
 
 ---
 
 ### Registry management
 
-These methods operate on the world-level flag registry. Rename and delete require GM privileges and propagate across all contexts and records automatically.
+These methods operate on the world-level tag registry. Rename and delete require GM privileges and propagate across all contexts and records automatically.
 
 #### `tags.getRegistry()`
 
-Get the full world flag list — every flag ever used in any context, including custom and orphan flags.
+Get the full world tag list — every tag ever used in any context, including custom and orphan tags.
 
-**Returns:** `string[]` — sorted array of normalized flag strings
+**Returns:** `string[]` — sorted array of normalized tag strings
 
 ```javascript
 const allFlags = tags.getRegistry();
@@ -334,15 +333,15 @@ const allFlags = tags.getRegistry();
 
 ---
 
-#### `tags.normalize(flagArray)`
+#### `tags.normalize(input)`
 
-Normalize an array of flag strings: lowercase, replace spaces with hyphens, deduplicate. Use this before storing flags you receive from user input.
+Normalize an array of tag strings: lowercase, replace spaces with hyphens, deduplicate. Use this before storing tags you receive from user input.
 
 **Parameters:**
 
 | Name | Type | Description |
 |---|---|---|
-| `flagArray` | `string[]` | Raw input flags |
+| `tagArray` | `string[]` | Raw input tags |
 
 **Returns:** `string[]` — normalized, deduplicated
 
@@ -353,9 +352,9 @@ const clean = tags.normalize(['Main Quest', 'FACTION', 'main quest']);
 
 ---
 
-#### `flags.rename(oldFlag, newFlag)`
+#### `tags.rename(oldTag, newTag)`
 
-Rename a flag globally. Updates every record in every context that uses `oldFlag`, then updates the registry. Silently rejected if `oldFlag` is protected.
+Rename a tag globally. Updates every record in every context that uses `oldTag`, then updates the registry. Silently rejected if `oldTag` is protected.
 
 **GM only.** Non-GM callers receive a warning and no change is made.
 
@@ -363,8 +362,8 @@ Rename a flag globally. Updates every record in every context that uses `oldFlag
 
 | Name | Type | Description |
 |---|---|---|
-| `oldFlag` | `string` | Existing flag key |
-| `newFlag` | `string` | Replacement flag key (will be normalized) |
+| `oldTag` | `string` | Existing tag key |
+| `newTag` | `string` | Replacement tag key (will be normalized) |
 
 **Returns:** `Promise<{ updated: number } \| null>` — number of records updated, or `null` if rejected
 
@@ -376,9 +375,9 @@ const result = await tags.rename('backstory', 'lore');
 
 ---
 
-#### `flags.delete(flag)`
+#### `tags.delete(tag)`
 
-Delete a flag globally. Removes it from every record in every context, then removes it from the registry. Silently rejected if the flag is protected.
+Delete a tag globally. Removes it from every record in every context, then removes it from the registry. Silently rejected if the tag is protected.
 
 **GM only.** Non-GM callers receive a warning and no change is made.
 
@@ -386,7 +385,7 @@ Delete a flag globally. Removes it from every record in every context, then remo
 
 | Name | Type | Description |
 |---|---|---|
-| `flag` | `string` | Flag key to delete |
+| `tag` | `string` | Tag key to delete |
 
 **Returns:** `Promise<{ removed: number } \| null>` — number of records affected, or `null` if rejected
 
@@ -397,45 +396,45 @@ const result = await tags.delete('old-unused-tag');
 
 ---
 
-#### `tags.seedRegistry(contextKey, existingFlagArrays)`
+#### `tags.seedRegistry(contextKey, existingTagArrays)`
 
-Populate the world registry from a flat list of flag arrays. Use this once during your module's first-run initialization to ensure the registry reflects all flags already present in your existing data — before any user interaction has created them through normal use.
+Populate the world registry from a flat list of tag arrays. Use this once during your module's first-run initialization to ensure the registry reflects all tags already present in your existing data — before any user interaction has created them through normal use.
 
-If the registry already contains a flag it is not duplicated.
+If the registry already contains a tag it is not duplicated.
 
 **Parameters:**
 
 | Name | Type | Description |
 |---|---|---|
 | `contextKey` | `string` | Context identifier (used for logging only) |
-| `existingFlagArrays` | `string[][]` | Array of flag arrays, one per record |
+| `existingTagArrays` | `string[][]` | Array of tag arrays, one per record |
 
 **Returns:** `Promise<void>`
 
 ```javascript
 // On first load: seed registry from all existing quests
-const allQuestFlags = myQuests.map(q => tags.getTags('coffee-pub-squire.quests', q.id));
-await tags.seedRegistry('coffee-pub-squire.quests', allQuestFlags);
+const allQuestFlags = myQuests.map(q => tags.getTags('coffee-pub-squire.quest', q.id));
+await tags.seedRegistry('coffee-pub-squire.quest', allQuestFlags);
 ```
 
 ---
 
 ### Visibility
 
-Visibility is client-scope (per-user) and affects UI filtering only. It does not remove flags from stored data or prevent other users from seeing them.
+Visibility is client-scope (per-user) and affects UI filtering only. It does not remove tags from stored data or prevent other users from seeing them.
 
 **Resolution order:** Context override → global default → `true` (visible if no entry exists).
 
-#### `tags.setVisibility(flag, visible, contextKey?)`
+#### `tags.setVisibility(tag, visible, contextKey?)`
 
-Set the visibility of a flag. If `contextKey` is provided, this sets a context-specific override. If omitted, it sets the global default for that flag across all contexts.
+Set the visibility of a tag. If `contextKey` is provided, this sets a context-specific override. If omitted, it sets the global default for that tag across all contexts.
 
 **Parameters:**
 
 | Name | Type | Description |
 |---|---|---|
-| `flag` | `string` | Flag key |
-| `visible` | `boolean` | Whether the flag should be visible in filter UIs |
+| `tag` | `string` | Tag key |
+| `visible` | `boolean` | Whether the tag should be visible in filter UIs |
 | `contextKey` | `string?` | Optional — scope override to one context |
 
 **Returns:** `void`
@@ -445,37 +444,37 @@ Set the visibility of a flag. If `contextKey` is provided, this sets a context-s
 tags.setVisibility('todo', false);
 
 // Hide 'backstory' only in the quests context
-tags.setVisibility('backstory', false, 'coffee-pub-squire.quests');
+tags.setVisibility('backstory', false, 'coffee-pub-squire.quest');
 
 // Restore 'backstory' visibility in quests (removes the context override)
-tags.setVisibility('backstory', true, 'coffee-pub-squire.quests');
+tags.setVisibility('backstory', true, 'coffee-pub-squire.quest');
 ```
 
 ---
 
-#### `tags.getVisibility(flag, contextKey?)`
+#### `tags.getVisibility(tag, contextKey?)`
 
-Get the effective visibility of a flag for the current user. Applies context override → global default → `true` fallback.
+Get the effective visibility of a tag for the current user. Applies context override → global default → `true` fallback.
 
 **Parameters:**
 
 | Name | Type | Description |
 |---|---|---|
-| `flag` | `string` | Flag key |
+| `tag` | `string` | Tag key |
 | `contextKey` | `string?` | Optional — check effective visibility for a specific context |
 
 **Returns:** `boolean`
 
 ```javascript
 // Is 'todo' visible in the quests context?
-const visible = tags.getVisibility('todo', 'coffee-pub-squire.quests');
+const visible = tags.getVisibility('todo', 'coffee-pub-squire.quest');
 ```
 
 ---
 
 ## TagWidget
 
-TagWidget is a Blacksmith UI component for selecting and managing flags. Embed it in any Application V2 window instead of building your own tag input.
+TagWidget is a Blacksmith UI component for selecting and managing tags. Embed it in any Application V2 window instead of building your own tag input.
 
 **Prerequisite:** Your window must use the Blacksmith Window API (`documentation/api/api-window.md`). TagWidget follows the same lifecycle and CSS conventions.
 
@@ -516,9 +515,9 @@ async prepareContext(options) {
 </div>
 ```
 
-> **Pass the context positionally, not as a hash.** `{{> blacksmith-tag-widget tags=TagWidget}}` does
-> **not** work: a hash argument adds `tags` to your context rather than replacing it, and the partial reads
-> `contextKey` / `isFullMode` / `chips` off the **root** context. You get a silent empty div.
+**Pass the context positionally, not as a hash.** `{{> blacksmith-tag-widget tags=TagWidget}}` does
+**not** work: a hash argument adds `tags` to your context rather than replacing it, and the partial reads
+`contextKey` / `isFullMode` / `chips` off the **root** context. You get a silent empty div.
 
 **3. After render — wire up interactivity:**
 
@@ -529,8 +528,8 @@ _onRender(context, options) {
 }
 ```
 
-> **Without this the widget is inert.** `activate()` is the entire event layer — suggestion clicks,
-> Enter-to-add, chip removal, live search. Rendering the partial alone gives you a display-only div.
+**Without this the widget is inert.** `activate()` is the entire event layer — suggestion clicks,
+Enter-to-add, chip removal, live search. Rendering the partial alone gives you a display-only div.
 
 **4. On save — read the widget value and persist:**
 
@@ -583,7 +582,7 @@ search. Call it after every render (e.g. in `_onRender`). Without it the widget 
 
 ### `TagWidget.readValue(element, contextKey)`
 
-Read the current flag selection from a rendered widget inside `element`. Call this in your `_onSubmit` or change handler.
+Read the current tag selection from a rendered widget inside `element`. Call this in your `_onSubmit` or change handler.
 
 **Parameters:**
 
@@ -592,20 +591,20 @@ Read the current flag selection from a rendered widget inside `element`. Call th
 | `element` | `HTMLElement` | The window's root element (e.g. `this.element`) |
 | `contextKey` | `string` | Context identifier (must match the one used in `prepareData`) |
 
-**Returns:** `string[]` — normalized array of selected flags
+**Returns:** `string[]` — normalized array of selected tags
 
 ---
 
 ## Hooks
 
-The Flags system fires the following Foundry hooks:
+The Tags system fires the following Foundry hooks:
 
 | Hook | When | Payload |
 |---|---|---|
 | `blacksmith.tags.registered` | A taxonomy is registered (JSON load or runtime) | `{ contextKey, taxonomy }` |
-| `blacksmith.tags.renamed` | A flag is renamed globally (GM only) | `{ oldTag, newTag, updated: number }` |
-| `blacksmith.tags.deleted` | A flag is deleted globally (GM only) | `{ tag, removed: number }` |
-| `blacksmith.tags.changed` | Flags are set/added/removed on a record | `{ contextKey, recordId, flags: string[] }` |
+| `blacksmith.tags.renamed` | A tag is renamed globally (GM only) | `{ oldTag, newTag, updated: number }` |
+| `blacksmith.tags.deleted` | A tag is deleted globally (GM only) | `{ tag, removed: number }` |
+| `blacksmith.tags.changed` | Tags are set/added/removed on a record | `{ contextKey, recordId, tags: string[] }` |
 
 ---
 
@@ -613,13 +612,13 @@ The Flags system fires the following Foundry hooks:
 
 When adding Tags support to a new module or data type:
 
-- [ ] Add your context key to `resources/tag-taxonomy.json`. Mark `protected: true` on any flags your code checks by value.
-- [ ] Call `tags.setTags(contextKey, recordId, flagArray)` when saving a record.
-- [ ] Call `tags.deleteRecordTags(contextKey, recordId)` when deleting a record.
-- [ ] Call `tags.seedRegistry(contextKey, existingArrays)` once on first load to populate the registry from pre-existing data.
-- [ ] Embed `TagWidget` in your record's edit window.
-- [ ] Use `tags.getRecordsByTag(contextKey, flag)` to power any filter UI.
-- [ ] Check `tags.isAvailable()` before all API calls from outside Blacksmith.
+- Add your context key to `resources/tag-taxonomy.json`. Mark `protected: true` on any tags your code checks by value.
+- Call `tags.setTags(contextKey, recordId, tagArray)` when saving a record.
+- Call `tags.deleteRecordTags(contextKey, recordId)` when deleting a record.
+- Call `tags.seedRegistry(contextKey, existingArrays)` once on first load to populate the registry from pre-existing data.
+- Embed `TagWidget` in your record's edit window.
+- Use `tags.getRecordsByTag(contextKey, tag)` to power any filter UI.
+- Check `tags.isAvailable()` before all API calls from outside Blacksmith.
 
 ---
 
@@ -627,11 +626,11 @@ When adding Tags support to a new module or data type:
 
 **Tags are not appearing in suggestions**
 - Verify your context key is in `tag-taxonomy.json` (or registered at runtime before the UI opens).
-- Check that `tags.getChoices(contextKey)` returns your expected flags in the console.
+- Check that `tags.getChoices(contextKey)` returns your expected tags in the console.
 
 **Rename / delete silently does nothing**
 - Confirm the calling user is GM.
-- Check if the flag is marked `protected: true` in the taxonomy — protected flags cannot be renamed or deleted.
+- Check if the tag is marked `protected: true` in the taxonomy — protected tags cannot be renamed or deleted.
 
 **TagWidget is not rendering**
 - Confirm your window extends the Blacksmith Window API (see `documentation/api/api-window.md`).

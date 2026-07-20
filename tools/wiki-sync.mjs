@@ -49,6 +49,7 @@ const PUBLISH = [
   'api/api-requestroll.md',
   'api/api-sockets.md',
   'api/api-stats.md',
+  'api/api-tags.md',
   'api/api-toast.md',
   'api/api-toolbar.md',
   'api/api-window.md',
@@ -64,9 +65,9 @@ const PUBLISH = [
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
-//   API:          api-tags (blocked on the flags-vs-tags code split)
+//   API:          (none — all published)
 //   Architecture: architecture-socketmanager, -stats, -tags, -toast, -toolbarmanager
-//   Also held:    known-issues.md (author decision), TODO.md (internal / holds security items)
+//   Also held:    TODO.md (internal / holds security items and open decisions)
 
 const HOME_SRC = 'guides/guide-registering-with-blacksmith.md';
 
