@@ -77,6 +77,19 @@ components rendered inside your own UI, override a token on your root element --
 #coffee-pub-mymodule { --blacksmith-color-brand-accent: #4a7a2a; }
 ```
 
+Custom properties are inherited, so this override applies to that element and its descendants only.
+Blacksmith components elsewhere in the document keep the `:root` value, and other modules are unaffected.
+
+The corollary is the thing to watch: **an override only reaches components that render inside your
+element.** Several Blacksmith surfaces do not. Toasts and the canvas pin overlay attach to `document.body`
+(`scripts/api-toast.js:218`, `scripts/pins-renderer.js:93`), chat cards render into Foundry's chat log, and
+the menubar is fixed at the top of the interface. A scoped override has no effect on any of those -- it
+will look like nothing happened.
+
+To restyle those, either target the component's own classes in your stylesheet, or set the token on
+`:root` -- but a `:root` override is global, changing that token for Blacksmith and every other coffee-pub
+module at once. Prefer scoping unless a suite-wide change is what you intend.
+
 ### A custom card theme
 
 Themes are color-only. Declare a `.blacksmith-card.theme-[name]` block and set the card tokens; structure,

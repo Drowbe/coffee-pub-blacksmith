@@ -6,6 +6,14 @@ the API as a contract, not internal code.
 
 D&D 5e / Foundry v13 (`minimum: 13`, `verified: 13`, `maximum: 14`). Requires `socketlib` and `lib-wrapper`.
 
+**Before starting: confirm the session's working directory is this module's folder.** The Claude app's
+Code -> New session flow does not prompt for a folder, so a session can silently inherit an unrelated
+project's directory — the only tell is a small badge next to the session name. Reaching this repo through
+an additional working directory works fine, which is what makes the mismatch easy to miss: editing
+succeeds, but the session reads and writes the *wrong project's* memory and scratchpad. This happened
+across a full session on 2026-07-19/20. If the working directory is not this module, say so before doing
+the work rather than after.
+
 ## Suite context
 
 Sibling modules live next to this one in `Data/modules/` and are wired in as readable directories:
