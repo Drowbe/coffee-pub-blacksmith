@@ -57,22 +57,6 @@ class CombatTracker {
                 // Reset last processed round
                 this._lastProcessedRound = 0;
                 
-                // Register cleanup hook for module unload
-                HookManager.registerHook({
-                    name: 'unloadModule',
-                    description: 'Combat Tracker: Cleanup on module unload',
-                    context: 'combat-tracker-cleanup',
-                    priority: 3,
-                    callback: (moduleId) => {
-                        // --- BEGIN - HOOKMANAGER CALLBACK ---
-                        if (moduleId === MODULE.ID) {
-                            this._removeRollRemainingButton();
-                            this._clearAllTimeouts();
-                        }
-                        // --- END - HOOKMANAGER CALLBACK ---
-                    }
-                });
-                
                 // Hook for detecting when all initiatives have been rolled
                 const updateCombatantHookId = HookManager.registerHook({
 					name: 'updateCombatant',

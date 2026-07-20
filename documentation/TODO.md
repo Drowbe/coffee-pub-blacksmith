@@ -65,18 +65,6 @@ Pattern worth internalising from the 2026-07-16 API audit: **every defect it fou
 - Both `registerTool` and `unregisterToolbarTool` have empty `catch` blocks that silently swallow errors.
 - **Priority**: Low.
 
-### DECISION NEEDED — there is no module-unload hook at all
-- Neither `disableModule` nor `unloadModule` is a Foundry hook; nothing fires either. `closeGame` is dead the same way. Verified against v13 core using a working control (`pauseGame` / `canvasReady` both hit).
-- Blacksmith itself carries **ten dead `unloadModule` registrations** (`manager-canvas.js:35`, `manager-combatbar.js:395`, `manager-latency-checker.js:51`, `manager-navigation.js:46`, `manager-pins.js:1315`, `manager-token-indicators.js:187`, `timer-combat.js:254`, `timer-planning.js:156`, `timer-round.js:88`, `ui-combat-tracker.js:62`) plus a `closeGame` pair (`blacksmith.js:565`, `manager-journal-dom.js:101`). None has ever run, so `EncounterToolbar.dispose()` and `JournalPagePins.dispose()` have never been called.
-- **Impact**: low in practice — enabling or disabling a module reloads the world, which tears everything down anyway. But "we clean up after ourselves" is not a claim this codebase can currently make.
-- **Options — do not let an agent pick one unilaterally:**
-  1. **Make the convention real**: emit `Hooks.callAll('unloadModule', moduleId)` from somewhere meaningful. There is no meaningful moment — that is the whole problem.
-  2. **Drop it**: delete the ten dead registrations and the `closeGame` pair.
-  3. **Keep the listeners, fix docs only** (current state): the docs state plainly that nothing fires it; the harmless dead handlers stay.
-- **Current state**: option 3, chosen because it is reversible and truthful. Every published doc now describes the reality instead of teaching the dead hook. **The ten dead code registrations are untouched.**
-- **Priority**: Medium (correctness of guidance), Low (runtime impact).
-
-
 ## ARCHITECTURE DOCS — audit results (2026-07-17)
 
 All 13 audited against source. **Two are fiction, three are shipped-work-described-as-plans, and the pattern is consistent enough to name.**
@@ -209,6 +197,7 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 
 #### Player-facing toast system (phased: local primitive → multi-action → cross-client)
 - **Status**: Phase 1 IMPLEMENTED — pending live verification (see "How to verify"). Phases 2–3 pending.
+- **Shipped 2026-07-19 (pending live verification — steps in `CHANGELOG.md`)**: `style` (semantic set, whitelisted → CSS classes; token mapping deferred to the design-system effort) and `size: 'large'` on `show()`; `duration: 0` toasts now exempt from stack-cap eviction (persistent means persistent); internal targeted relay `sendToastToUsers(config, userIds)` (receipt-side `_recipients` filter — still NOT the public Phase 3 surface); and the GM **Send Toast** party-bar tool (`window-toast-send.js`) sending large styled toasts to selected players with a small GM confirmation. Plan scaffold: `documentation/plans/plan-toast-styles-gm-send.md` — dismantle after live verification.
 - **Shipped (Phase 1)**: `api.toast` — `show({ title, subtitle, icon, image, duration, onClick, onDismiss, stackKey, moduleId })`, `remove`, `clearByModule`, `getActive`. Local per-client primitive, `scripts/api-toast.js` + `styles/toast.css`; docs at `documentation/api/api-toast.md` and `documentation/architecture/architecture-toast.md`; leader-change dogfood toast wired into the `partyLeader` settingChange callback in `api-menubar.js` (runs alongside the chat cards). Full detail in `CHANGELOG.md` 13.9.3.
 - **Phase 2 — actions beyond the body click**: optional `actions: [{ label, onClick }]` button row for multi-choice toasts ("roll for crit" / "read message" / "acknowledge"). Phase 1's single body-click API must not change shape when this lands — actions are additive. Note the architecture constraint: toasts are immutable DOM (no `update()`), so an action row is part of the built element, not patched in later.
 - **Phase 3 — cross-client delivery (gated on the socket rewrite, #1)**: `api.toast.send({ recipients, ... })` riding `api.sockets`; GM or a module pushes, targeted clients render via the Phase 1 primitive. Respect the socket privacy rule — targeting is receipt-side; never send secrets in the payload.

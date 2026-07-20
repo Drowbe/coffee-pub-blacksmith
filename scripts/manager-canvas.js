@@ -29,20 +29,6 @@ export class CanvasTools {
         // Initialize token naming functionality
         this._initializeTokenNaming();
 
-        // Register cleanup hook for module unload
-        Hooks.once('ready', () => {
-            HookManager.registerHook({
-                name: 'unloadModule',
-                description: 'CanvasTools: Cleanup on module unload',
-                context: 'canvas-tools-cleanup',
-                priority: 3,
-                callback: (moduleId) => {
-                    if (moduleId === MODULE.ID) {
-                        CanvasTools.cleanup();
-                    }
-                }
-            });
-        });
     }
 
     // *** TOKEN NAMING ***

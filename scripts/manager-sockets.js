@@ -437,7 +437,11 @@ class SocketManager {
         // renders a data-only toast pushed from another client (Blacksmith-internal
         // until toast Phase 3; not part of the public toast API)
         this.socket.register("showToast", (data) => {
-            ToastAPI.show(data);
+            // Receipt-side targeting: sendToastToUsers() rides _recipients on the payload;
+            // untargeted broadcasts (broadcastToast) carry none and render everywhere.
+            const { _recipients, ...config } = data || {};
+            if (Array.isArray(_recipients) && !_recipients.includes(game.userId)) return;
+            ToastAPI.show(config);
         });
 
         // Token Movement

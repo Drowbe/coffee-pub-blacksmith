@@ -98,3 +98,161 @@
 .blacksmith-toast-actionable:hover {
     border-color: rgba(255, 100, 0, 0.9);
 }
+
+/* ------------------------------------ */
+/* --- SEMANTIC STYLES ---------------- */
+/* ------------------------------------ */
+/* Applied as blacksmith-toast-style-* from the STYLES whitelist in api-toast.js.
+   Accent = border + icon + title. Hardcoded hex for now — these map onto the
+   design-system tokens when that migration lands (author decision 2026-07-19). */
+
+.blacksmith-toast-style-info { border-color: #5b9bd5; }
+.blacksmith-toast-style-info .blacksmith-toast-icon,
+.blacksmith-toast-style-info .blacksmith-toast-title { color: #5b9bd5; }
+.blacksmith-toast-style-info .blacksmith-toast-image { border-color: #5b9bd5; }
+
+.blacksmith-toast-style-success { border-color: #5cb85c; }
+.blacksmith-toast-style-success .blacksmith-toast-icon,
+.blacksmith-toast-style-success .blacksmith-toast-title { color: #5cb85c; }
+.blacksmith-toast-style-success .blacksmith-toast-image { border-color: #5cb85c; }
+
+.blacksmith-toast-style-warning { border-color: #e0a800; }
+.blacksmith-toast-style-warning .blacksmith-toast-icon,
+.blacksmith-toast-style-warning .blacksmith-toast-title { color: #e0a800; }
+.blacksmith-toast-style-warning .blacksmith-toast-image { border-color: #e0a800; }
+
+.blacksmith-toast-style-danger { border-color: #e05252; }
+.blacksmith-toast-style-danger .blacksmith-toast-icon,
+.blacksmith-toast-style-danger .blacksmith-toast-title { color: #e05252; }
+.blacksmith-toast-style-danger .blacksmith-toast-image { border-color: #e05252; }
+
+/* Announcement: the GM-voice style — the default gold, turned up */
+.blacksmith-toast-style-announcement {
+    border-color: #ac9f81;
+    border-width: 2px;
+    background: rgba(28, 24, 16, 0.97);
+}
+.blacksmith-toast-style-announcement .blacksmith-toast-icon,
+.blacksmith-toast-style-announcement .blacksmith-toast-title { color: #d8c9a3; }
+
+/* ------------------------------------ */
+/* --- SIZES -------------------------- */
+/* ------------------------------------ */
+/* blacksmith-toast-size-* from the SIZES whitelist in api-toast.js. */
+
+.blacksmith-toast-size-large {
+    max-width: 560px;
+    padding: 18px 26px;
+    gap: 16px;
+}
+.blacksmith-toast-size-large .blacksmith-toast-image {
+    width: 84px;
+    height: 84px;
+}
+.blacksmith-toast-size-large .blacksmith-toast-icon {
+    font-size: 40px;
+}
+.blacksmith-toast-size-large .blacksmith-toast-title {
+    font-size: 1.5em;
+}
+.blacksmith-toast-size-large .blacksmith-toast-subtitle {
+    font-size: 1.05em;
+}
+.blacksmith-toast-size-large .blacksmith-toast-close {
+    font-size: 20px;
+}
+
+/* Viewport-relative presets: width is a fixed share of the viewport,
+   typography scales with each step. */
+.blacksmith-toast-size-vw40,
+.blacksmith-toast-size-vw60,
+.blacksmith-toast-size-vw80 {
+    justify-content: center;
+    gap: 18px;
+}
+.blacksmith-toast-size-vw40 { width: 40vw; max-width: 40vw; padding: 20px 28px; }
+.blacksmith-toast-size-vw60 { width: 60vw; max-width: 60vw; padding: 24px 34px; }
+.blacksmith-toast-size-vw80 { width: 80vw; max-width: 80vw; padding: 30px 40px; }
+
+.blacksmith-toast-size-vw40 .blacksmith-toast-image { width: 96px; height: 96px; }
+.blacksmith-toast-size-vw60 .blacksmith-toast-image { width: 120px; height: 120px; }
+.blacksmith-toast-size-vw80 .blacksmith-toast-image { width: 148px; height: 148px; }
+
+.blacksmith-toast-size-vw40 .blacksmith-toast-icon { font-size: 48px; }
+.blacksmith-toast-size-vw60 .blacksmith-toast-icon { font-size: 64px; }
+.blacksmith-toast-size-vw80 .blacksmith-toast-icon { font-size: 80px; }
+
+.blacksmith-toast-size-vw40 .blacksmith-toast-title { font-size: 1.7em; }
+.blacksmith-toast-size-vw60 .blacksmith-toast-title { font-size: 2.1em; }
+.blacksmith-toast-size-vw80 .blacksmith-toast-title { font-size: 2.6em; }
+
+.blacksmith-toast-size-vw40 .blacksmith-toast-subtitle { font-size: 1.1em; }
+.blacksmith-toast-size-vw60 .blacksmith-toast-subtitle { font-size: 1.3em; }
+.blacksmith-toast-size-vw80 .blacksmith-toast-subtitle { font-size: 1.5em; }
+
+.blacksmith-toast-size-vw40 .blacksmith-toast-close,
+.blacksmith-toast-size-vw60 .blacksmith-toast-close { font-size: 20px; }
+.blacksmith-toast-size-vw80 .blacksmith-toast-close { font-size: 24px; }
+
+/* Fullscreen: a viewport overlay, not a stack entry — rendered directly on <body>
+   (api-toast.js appends it outside the stack container). One at a time; click
+   anywhere dismisses. */
+.blacksmith-toast-size-fullscreen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    z-index: 10001; /* above the toast stack container */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 28px;
+    border: none;
+    border-radius: 0;
+    background: rgba(10, 10, 10, 0.92);
+    cursor: pointer;
+}
+.blacksmith-toast-size-fullscreen .blacksmith-toast-text {
+    align-items: center;
+}
+.blacksmith-toast-size-fullscreen .blacksmith-toast-image {
+    width: 200px;
+    height: 200px;
+    border-width: 3px;
+}
+.blacksmith-toast-size-fullscreen .blacksmith-toast-icon { font-size: 110px; }
+.blacksmith-toast-size-fullscreen .blacksmith-toast-title { font-size: 3.2em; }
+.blacksmith-toast-size-fullscreen .blacksmith-toast-subtitle { font-size: 1.6em; }
+.blacksmith-toast-size-fullscreen .blacksmith-toast-close {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    font-size: 32px;
+    margin: 0;
+}
+
+/* ------------------------------------ */
+/* --- BACKGROUND IMAGE --------------- */
+/* ------------------------------------ */
+/* blacksmith-toast-has-bg: cover background (inline style from api-toast.js,
+   sanitized) with an automatic dark scrim so text stays legible over any art. */
+
+.blacksmith-toast-has-bg {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+}
+.blacksmith-toast-has-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(10, 10, 10, 0.45), rgba(10, 10, 10, 0.75));
+    border-radius: inherit;
+    pointer-events: none;
+}
+.blacksmith-toast-has-bg > * {
+    position: relative;
+    z-index: 1;
+}

@@ -1312,17 +1312,6 @@ export class PinManager {
             });
         }
         Hooks.once('ready', () => {
-            Hooks.on('unloadModule', (moduleId) => {
-                if (moduleId === MODULE.ID) {
-                    this.cleanup();
-                } else {
-                    // Clear pin type labels registered by the unloaded module
-                    const prefix = `${moduleId}|`;
-                    for (const key of this._pinTypeLabels.keys()) {
-                        if (key.startsWith(prefix)) this._pinTypeLabels.delete(key);
-                    }
-                }
-            });
             this.seedTagRegistryIfEmpty().catch(err => {
                 console.warn('BLACKSMITH | PINS Failed to seed tag registry:', err);
             });

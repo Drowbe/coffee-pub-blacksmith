@@ -661,6 +661,25 @@ class MenuBar {
             }
         });
 
+        // Send Toast (GM only) — middle zone: large styled toast to selected players
+        this.registerSecondaryBarItem('party', 'send-toast', {
+            zone: 'middle',
+            icon: 'fas fa-bullhorn',
+            label: 'Send Toast',
+            tooltip: 'Send an on-screen toast to selected players',
+            group: 'default',
+            order: 6,
+            visible: () => game.user.isGM,
+            onClick: async () => {
+                try {
+                    const { ToastSendWindow } = await import('./window-toast-send.js');
+                    new ToastSendWindow().render(true);
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "Party Tools: Error opening Send Toast", error.message, false, false);
+                }
+            }
+        });
+
         // Party health progressbar — right zone (sum of party HP current/max, 100% = total max)
         const initialHealth = PartyManager.getPartyHealthSummary();
         this.registerSecondaryBarItem('party', 'party-health', {

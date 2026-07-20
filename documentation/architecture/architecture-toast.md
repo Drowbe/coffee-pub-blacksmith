@@ -61,6 +61,21 @@ inject an arbitrary class or CSS through the config. Accent colors in `styles/to
 hardcoded hex for now, to be mapped onto design-system tokens when that migration lands
 (author decision 2026-07-19: semantic set now, token mapping later).
 
+**`backgroundImage` is the one deliberate exception** to class-only: a cover background applied as
+an inline style. The path is `encodeURI`d so quotes cannot escape the `url("")` wrapper, and the
+`has-bg` class adds an automatic dark scrim (`::before` overlay; content stacks above it) so text
+stays legible over arbitrary art. Sizes are discrete presets rather than a free percentage for the
+same reason the styles are class-only: every size is a tested CSS class, nothing is computed into
+inline styles from consumer input.
+
+**Fullscreen is not a stack entry.** `size: 'fullscreen'` renders as its own fixed overlay appended
+directly to `<body>` — the stack container's flex layout never sees it. It is a singleton (a new
+fullscreen replaces the current one — two simultaneous screen takeovers is meaningless), exempt
+from the stack cap like persistent toasts, and — when it has no `onClick` — a click anywhere on the
+overlay dismisses it through `_dismiss` (the player let it go by, so `onDismiss` fires; author
+decision 2026-07-19). The `remove`/`clearByModule`/`getActive` surfaces treat it like any other
+toast because it still lives in the Map.
+
 ## The dismissal contract (shared with menubar notifications)
 
 `onDismiss` means one thing: *the user let this go by* — auto-timeout or the × button. Every other

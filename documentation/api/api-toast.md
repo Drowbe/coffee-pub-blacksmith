@@ -32,7 +32,20 @@ Show a toast on this client. Returns a toast ID (string), or `null` on error.
 - `subtitle` (string, optional): second line
 - `icon` (string, optional): FontAwesome icon class
 - `image` (string, optional): image path/URL, rendered as a round avatar. Wins over `icon`.
-- `duration` (number, optional): seconds before auto-dismiss; `0` = until closed (default: 8)
+- `duration` (number, optional): seconds before auto-dismiss; `0` = until closed (default: 8).
+  A `0`-duration toast is **persistent**: it does not count toward the stack cap and is never
+  evicted — only the × button, a matching `stackKey` replacement, or programmatic removal ends it.
+- `style` (string, optional): semantic accent — `'info'` | `'success'` | `'warning'` | `'danger'` |
+  `'announcement'`. Anything else renders the default look. Values are whitelisted and mapped to
+  CSS classes; consumers cannot inject classes or CSS through the config.
+- `size` (string, optional): `'large'` (bigger content-fit), `'vw40'` / `'vw60'` / `'vw80'` (that
+  percent of viewport width, typography scaling with each step), or `'fullscreen'` — a full
+  viewport overlay (centered giant text, dark scrim). Fullscreen is a **singleton**: a new
+  fullscreen toast replaces the current one; it is exempt from the stack cap; with no `onClick`,
+  clicking anywhere dismisses it (that counts as a dismissal — `onDismiss` fires).
+- `backgroundImage` (string, optional): image path/URL rendered as a cover background behind the
+  toast content, with an automatic dark scrim so text stays legible. Combines with `image` (the
+  avatar floats over it); best with the larger sizes and fullscreen.
 - `moduleId` (string, optional): owning module, used by `clearByModule` (default: `"blacksmith-core"`)
 - `onClick` (Function, optional): makes the toast clickable (pointer cursor, hover affordance,
   button sound on click). Called with the click event when the user clicks the toast body; the toast
@@ -95,12 +108,14 @@ Remove all toasts owned by a module (e.g. on your module's cleanup). Silent. Ret
 
 ## `getActive()`
 
-Returns `Array<{ id, moduleId, stackKey }>` for the toasts currently on screen — display metadata
-only, no elements or callbacks.
+Returns `Array<{ id, moduleId, stackKey, persistent, style, size }>` for the toasts currently on
+screen — display metadata only, no elements or callbacks.
 
 ## Stacking model
 
-Toasts stack vertically at top-center, newest at the bottom of the stack, capped (see `MAX_STACK`
-in `scripts/api-toast.js`); when full, the oldest is evicted silently. Same-`stackKey` toasts
-replace in place. Rendering is DOM-direct — there is no template or re-render cycle; see
-`architecture-toast.md` for the mechanism.
+Toasts stack vertically at top-center, newest at the bottom of the stack. The cap (see `MAX_STACK`
+in `scripts/api-toast.js`) applies to **transient** toasts only: when full, the oldest transient
+toast is evicted silently. Persistent (`duration: 0`) toasts sit outside the cap and are never
+evicted. Same-`stackKey` toasts replace in place regardless of persistence. Rendering is
+DOM-direct — there is no template or re-render cycle; see `architecture-toast.md` for the
+mechanism.

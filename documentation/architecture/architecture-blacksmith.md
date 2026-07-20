@@ -303,6 +303,7 @@ These exist in the source and are **never called**. They are legacy, not wiring 
 | `_setupGlobalObserver` | `ui-journal-encounter.js` | Contains a body `MutationObserver`, a `setInterval(500)`, and a capture-phase click handler. **`init()` never calls it.** |
 | `_setupActivePageChecker`, `_setupPageNavigationListener` | `ui-journal-encounter.js` | Same — dead. |
 | `_setupDomObserver` | `ui-journal-pins.js` | Defines a body `MutationObserver`. **Nothing calls it.** `dispose()` still clears it defensively. |
+| `EncounterToolbar.dispose()`, `JournalPagePins.dispose()` | `ui-journal-encounter.js`, `ui-journal-pins.js` | Real teardown methods with **no caller**. They were only ever invoked from a `closeGame` listener, and `closeGame` is not a Foundry hook — the listeners were removed once that was confirmed. Kept deliberately: they are correct implementations waiting for a real teardown trigger, so wire them up rather than rewriting if one ever exists. |
 
 **There is no `settingChange` hook in Foundry.** Core fires `clientSettingChanged` for client-scoped
 settings on the changing client, and the standard `updateSetting` / `createSetting` *document* hooks on

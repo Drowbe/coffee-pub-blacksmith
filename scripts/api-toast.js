@@ -14,9 +14,14 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 
 class ToastManager {
-    static toasts = new Map(); // toastId -> { id, moduleId, stackKey, onClick, onDismiss, timeoutId, element }
-    static MAX_STACK = 5;
+    static toasts = new Map(); // toastId -> { id, moduleId, stackKey, persistent, style, size, onClick, onDismiss, timeoutId, element }
+    static MAX_STACK = 5;      // applies to TRANSIENT toasts only — persistent (duration: 0) toasts are exempt
     static ANIMATION_MS = 400; // must match the transition duration in styles/toast.css
+    // Class-only styling: config values are whitelisted and mapped to CSS classes —
+    // consumers can never inject arbitrary classes or CSS through the config.
+    // (backgroundImage is the one deliberate exception: a sanitized inline style.)
+    static STYLES = ['info', 'success', 'warning', 'danger', 'announcement'];
+    static SIZES = ['large', 'vw40', 'vw60', 'vw80', 'fullscreen'];
 
     // ===== PUBLIC API =====
 
@@ -27,14 +32,17 @@ class ToastManager {
      * @param {string} config.subtitle - Second line (optional)
      * @param {string} config.icon - FontAwesome icon class (ignored if image is set)
      * @param {string} config.image - Image path/URL, rendered as a round avatar (wins over icon)
-     * @param {number} config.duration - Seconds before auto-dismiss; 0 = until closed (default: 8)
+     * @param {number} config.duration - Seconds before auto-dismiss; 0 = until closed (default: 8). Persistent (0) toasts are exempt from stack-cap eviction — only the close button, stackKey replacement, or programmatic removal ends them.
+     * @param {string} config.style - Semantic style: 'info' | 'success' | 'warning' | 'danger' | 'announcement' (optional; anything else = default look)
+     * @param {string} config.size - 'large' (bigger content-fit) | 'vw40' | 'vw60' | 'vw80' (percent of viewport width, typography scales) | 'fullscreen' (viewport overlay: one at a time — a new fullscreen replaces the old; exempt from the stack cap; click anywhere dismisses)
+     * @param {string} config.backgroundImage - Image path/URL rendered as a cover background behind the toast content, with an automatic dark scrim for legibility (optional)
      * @param {string} config.moduleId - Owning module (default: "blacksmith-core")
      * @param {Function} config.onClick - Body click runs this, then the toast is removed (onDismiss does NOT fire)
      * @param {Function} config.onDismiss - Fires only when the toast goes away unacted-on: auto-timeout or the close button. Same contract as menubar notifications (see api-menubar.md). Never fires on replacement via stackKey, stack-cap eviction, programmatic remove(), or clearByModule().
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
      * @returns {string|null} - Toast ID for later removal, or null on error
      */
-    static show({ title, subtitle = "", icon = null, image = null, duration = 8, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null } = {}) {
+    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, duration = 8, style = null, size = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null } = {}) {
         try {
             if (!title) {
                 postConsoleAndNotification(MODULE.NAME, "Toast: show() requires a title", "", false, false);
@@ -48,10 +56,25 @@ class ToastManager {
                 }
             }
 
-            // Stack cap: evict the oldest, silently. Eviction is not a dismissal — no onDismiss.
-            while (this.toasts.size >= this.MAX_STACK) {
-                const oldestId = this.toasts.keys().next().value;
-                this._remove(oldestId, { instant: true });
+            const validStyle = this.STYLES.includes(style) ? style : null;
+            const validSize = this.SIZES.includes(size) ? size : null;
+            const persistent = !(Number(duration) > 0);
+
+            // Fullscreen is a singleton: a second screen takeover replaces the first.
+            // Replacement, not dismissal — no onDismiss.
+            if (validSize === 'fullscreen') {
+                for (const [id, toast] of this.toasts.entries()) {
+                    if (toast.size === 'fullscreen') this._remove(id, { instant: true });
+                }
+            }
+
+            // Stack cap: evict the oldest TRANSIENT toast, silently. Persistent (duration: 0)
+            // toasts don't count toward the cap and are never evicted — "until closed" means it.
+            // Fullscreen toasts live outside the stack entirely and are likewise exempt.
+            // Eviction is not a dismissal — no onDismiss.
+            let transientIds = [...this.toasts.values()].filter(t => !t.persistent && t.size !== 'fullscreen').map(t => t.id);
+            while (transientIds.length >= this.MAX_STACK) {
+                this._remove(transientIds.shift(), { instant: true });
             }
 
             const toastId = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -61,15 +84,24 @@ class ToastManager {
                 id: toastId,
                 moduleId: moduleId,
                 stackKey: stackKey,
+                persistent: persistent,
+                style: validStyle,
+                size: validSize,
                 onClick: typeof onClick === 'function' ? onClick : null,
                 onDismiss: typeof onDismiss === 'function' ? onDismiss : null,
                 timeoutId: null,
                 element: null
             };
 
-            toast.element = this._buildElement(toast, { title, subtitle, icon, image });
+            toast.element = this._buildElement(toast, { title, subtitle, icon, image, backgroundImage });
             this.toasts.set(toastId, toast);
-            this._getContainer().appendChild(toast.element);
+            // Fullscreen renders as its own fixed overlay directly on <body>, outside
+            // the top-center stack container — it IS the viewport, not a stack entry.
+            if (toast.size === 'fullscreen') {
+                document.body.appendChild(toast.element);
+            } else {
+                this._getContainer().appendChild(toast.element);
+            }
             requestAnimationFrame(() => toast.element.classList.add('visible'));
 
             if (duration > 0) {
@@ -133,7 +165,10 @@ class ToastManager {
         return Array.from(this.toasts.values()).map(t => ({
             id: t.id,
             moduleId: t.moduleId,
-            stackKey: t.stackKey
+            stackKey: t.stackKey,
+            persistent: t.persistent,
+            style: t.style,
+            size: t.size
         }));
     }
 
@@ -158,10 +193,20 @@ class ToastManager {
      * never parsed as HTML.
      * @private
      */
-    static _buildElement(toast, { title, subtitle, icon, image }) {
+    static _buildElement(toast, { title, subtitle, icon, image, backgroundImage }) {
         const el = document.createElement('div');
         el.className = 'blacksmith-toast';
         if (toast.onClick) el.classList.add('blacksmith-toast-actionable');
+        // Whitelisted in show() — these can only ever be values from STYLES/SIZES
+        if (toast.style) el.classList.add(`blacksmith-toast-style-${toast.style}`);
+        if (toast.size) el.classList.add(`blacksmith-toast-size-${toast.size}`);
+
+        // backgroundImage is the one inline-style exception to the class-only model:
+        // encodeURI neutralizes quotes so the path cannot escape the url("") wrapper.
+        if (backgroundImage && typeof backgroundImage === 'string') {
+            el.classList.add('blacksmith-toast-has-bg');
+            el.style.backgroundImage = `url("${encodeURI(backgroundImage)}")`;
+        }
 
         if (image) {
             const img = document.createElement('img');
@@ -214,6 +259,11 @@ class ToastManager {
                 // Acted on — remove silently, onDismiss does not fire
                 this._remove(toast.id);
             });
+        } else if (toast.size === 'fullscreen') {
+            // A screen takeover with no action: click anywhere dismisses (author decision
+            // 2026-07-19 — fastest re-entry to play). This IS a dismissal — the player let
+            // it go by — so it routes through _dismiss and onDismiss fires.
+            el.addEventListener('click', () => this._dismiss(toast.id));
         }
 
         return el;
@@ -280,6 +330,35 @@ export async function broadcastToast(config) {
         if (socket) await socket.executeForOthers('showToast', data);
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, 'Toast: broadcast relay failed', error, false, false);
+    }
+}
+
+/**
+ * INTERNAL — Blacksmith-only until toast Phase 3, same standing as broadcastToast.
+ * Show a toast on SPECIFIC users' clients. Targeting is receipt-side per the socket
+ * privacy rule: both transports broadcast, `_recipients` rides the payload, and the
+ * showToast handler renders only on listed clients — so the payload must never carry
+ * secrets (a GM announcement is non-secret by contract). Shows locally too if the
+ * sender is in the list. Data-only — callbacks are stripped.
+ * @param {Object} config - Same shape as show(), minus callbacks
+ * @param {string[]} userIds - User ids to show the toast to
+ * @returns {boolean} - True if the send was handed to the socket (or was local-only)
+ */
+export async function sendToastToUsers(config, userIds) {
+    const recipients = Array.isArray(userIds) ? userIds.filter(id => typeof id === 'string' && id) : [];
+    if (!recipients.length) return false;
+    const { onClick, onDismiss, ...data } = config || {};
+    if (recipients.includes(game.userId)) ToastManager.show(data);
+    const remote = recipients.filter(id => id !== game.userId);
+    if (!remote.length) return true;
+    try {
+        const { SocketManager } = await import('./manager-sockets.js');
+        const socket = SocketManager.getSocket();
+        if (socket) await socket.executeForOthers('showToast', { ...data, _recipients: remote });
+        return !!socket;
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, 'Toast: targeted relay failed', error, false, false);
+        return false;
     }
 }
 

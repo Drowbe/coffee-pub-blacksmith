@@ -13,7 +13,6 @@ export class LatencyChecker {
     static #initialized = false;
     static #checkInterval = null;
     static #playerListHookId = null;
-    static #unloadModuleHookId = null;
     
     static isInitialized() {
         return this.#initialized;
@@ -45,20 +44,6 @@ export class LatencyChecker {
                 context: 'latency-checker-player-list',
                 priority: 3,
                 callback: this.#onRenderPlayerList.bind(this)
-            });
-
-            this.#unloadModuleHookId = HookManager.registerHook({
-                name: 'unloadModule',
-                key: 'blacksmith-latency-unload',
-                description: 'Latency Checker: Cleanup on module unload',
-                context: 'latency-checker-cleanup',
-                priority: 3,
-                callback: (moduleId) => {
-                    if (moduleId === MODULE.ID) {
-                        this.cleanupChecker({ unloadModule: true });
-                        postConsoleAndNotification(MODULE.NAME, "Latency Checker | Cleaned up on module unload", "", true, false);
-                    }
-                }
             });
 
             this.#initialized = true;
@@ -342,11 +327,7 @@ export class LatencyChecker {
     /**
      * Clean up latency checker interval
      */
-    /**
-     * @param {{ unloadModule?: boolean }} [options] - Pass `unloadModule: true` when Blacksmith is unloading so the `unloadModule` hook is removed too.
-     */
-    static cleanupChecker(options = {}) {
-        const unloadModule = !!options.unloadModule;
+    static cleanupChecker() {
         if (this.#checkInterval) {
             clearInterval(this.#checkInterval);
             this.#checkInterval = null;
@@ -354,10 +335,6 @@ export class LatencyChecker {
         if (this.#playerListHookId) {
             HookManager.unregisterHook('renderPlayerList', this.#playerListHookId);
             this.#playerListHookId = null;
-        }
-        if (unloadModule && this.#unloadModuleHookId) {
-            HookManager.unregisterHook('unloadModule', this.#unloadModuleHookId);
-            this.#unloadModuleHookId = null;
         }
         this.#initialized = false;
         this.#stripLatencyUi();

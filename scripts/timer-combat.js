@@ -250,20 +250,6 @@ class CombatTimer {
                     }
                 });
 
-                // Register cleanup hook for module unload
-                const unloadHookId = HookManager.registerHook({
-                    name: 'unloadModule',
-                    description: 'Combat Timer: Cleanup on module unload',
-                    context: 'timer-combat-cleanup',
-                    priority: 3,
-                    callback: (moduleId) => {
-                        if (moduleId === MODULE.ID) {
-                            this.cleanupTimer();
-                            postConsoleAndNotification(MODULE.NAME, "Combat Timer | Cleaned up on module unload", "", true, false);
-                        }
-                    }
-                });
-
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Could not initialize Combat Timer`, error, false, false);
             }

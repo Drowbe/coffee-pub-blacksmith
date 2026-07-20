@@ -154,19 +154,6 @@ export class PlanningTimer {
             });
 
             HookManager.registerHook({
-                name: 'unloadModule',
-                description: 'Planning Timer: Cleanup on module unload',
-                context: 'timer-planning-cleanup',
-                priority: 3,
-                callback: (moduleId) => {
-                    if (moduleId === MODULE.ID) {
-                        this.cleanupTimer();
-                        postConsoleAndNotification(MODULE.NAME, "Planning Timer | Cleaned up on module unload", "", true, false);
-                    }
-                }
-            });
-
-            HookManager.registerHook({
                 name: 'updateCombat',
                 description: 'Planning Timer: Handle combat updates for planning phase management',
                 context: 'timer-planning',

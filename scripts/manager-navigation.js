@@ -41,16 +41,6 @@ export class NavigationManager {
             callback: NavigationManager._onRenderSceneNavigation
         });
         
-        // Register cleanup hook
-        HookManager.registerHook({
-            name: 'unloadModule',
-            description: 'Scene Navigation: Cleanup scene navigation hooks',
-            context: 'Module',
-            priority: 3,
-            key: 'scene-navigation-cleanup',
-            callback: NavigationManager.cleanup
-        });
-        
     }
 
     /**

@@ -64,7 +64,6 @@ export class CombatBarManager {
         menuBar.secondaryBarToolMapping.set('combat', 'combat-bar');
         this.registerCombatHooks(menuBar);
         this.registerCombatBarEvents(menuBar);
-        this.registerCombatCleanupHook(menuBar);
         this.checkActiveCombatOnLoad(menuBar);
         this.registerCombatPartial().catch((error) => {
             postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering combat partial", error?.message || error, true, false);
@@ -387,19 +386,6 @@ export class CombatBarManager {
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
     }
 
-    static registerCombatCleanupHook(menuBar) {
-        Hooks.once('ready', () => {
-            HookManager.registerHook({
-                name: 'unloadModule',
-                description: 'MenuBar: Cleanup on module unload',
-                context: 'menubar-cleanup',
-                priority: 3,
-                callback: (moduleId) => {
-                    if (moduleId === MODULE.ID) menuBar._cleanupCombatBarEvents();
-                }
-            });
-        });
-    }
     static updateCombatPortraitScrollArrows(_menuBar) {
         const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
         if (!wrapper) return;

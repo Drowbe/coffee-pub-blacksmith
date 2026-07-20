@@ -31,6 +31,7 @@
 @import "window-tabs.css";
 @import "window-list.css";
 @import "window-panels.css";
+@import "window-toast-send.css";
 
 /* --- Tabs ---------------------- */
 @import "tabs-scenes.css";

@@ -181,17 +181,6 @@ export class TokenIndicatorManager {
             }
         });
 
-        Hooks.once('ready', () => {
-            HookManager.registerHook({
-                name: 'unloadModule',
-                description: 'Token indicators: cleanup on unload',
-                context: 'token-indicators-cleanup',
-                priority: 3,
-                callback: (moduleId) => {
-                    if (moduleId === MODULE.ID) this.cleanup();
-                }
-            });
-        });
     }
 
     static refreshAll() {

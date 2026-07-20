@@ -97,8 +97,6 @@ export class JournalDomWatchdog {
                 }
             }
         }, 1000);
-
-        Hooks.once('closeGame', () => this.dispose());
     }
 
     static dispose() {
