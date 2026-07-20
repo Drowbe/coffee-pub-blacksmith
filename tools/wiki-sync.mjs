@@ -67,6 +67,11 @@ const PUBLISH = [
   'architecture/architecture-toolbarmanager.md',
   'architecture/architecture-window.md',
   'architecture/architecture-xp.md',
+  // Design system
+  'design-system/design-tokens.md',
+  'design-system/design-components.md',
+  'design-system/design-patterns.md',
+  'design-system/design-extending.md',
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
@@ -81,7 +86,7 @@ const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
 
 // Clean sidebar label: strip the api-/architecture- prefix, kebab -> Sentence case.
 function label(rel) {
-  const base = pageName(rel).replace(/^(api|architecture)-/, '');
+  const base = pageName(rel).replace(/^(api|architecture|design)-/, '');
   const spaced = base.replace(/-/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -146,6 +151,9 @@ function buildSidebar() {
     '',
     '### Architecture',
     group('architecture/'),
+    '',
+    '### Design system',
+    group('design-system/'),
     '',
   ].join('\n');
 }
