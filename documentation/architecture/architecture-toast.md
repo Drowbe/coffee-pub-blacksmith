@@ -46,20 +46,21 @@ blocks canvas interaction (each toast re-enables its own pointer events). Active
 Three bounds keep the stack sane, all resolved inside `show()`:
 1. **`stackKey` replacement** — an existing toast with the same key is removed instantly before the
    new one is added (instant, not faded: a fade-out would overlap the incoming replacement).
-2. **The cap** (`MAX_STACK`) — applies to **transient** toasts only: the oldest transient is evicted
-   instantly when full. Persistent (`duration: 0`) toasts sit outside the cap and are never evicted —
-   "until closed" means it (author decision 2026-07-19; a GM announcement must survive timer noise).
-   The unbounded-persistent case is accepted: persistent toasts come from deliberate acts, and each
-   still has its × button.
+2. **The cap** (`MAX_STACK`) — applies to **transient, unsized** toasts only: the oldest is evicted
+   instantly when full. Two kinds sit outside it and are never evicted. Persistent (`duration: 0`)
+   toasts, because "until closed" means it — a GM announcement must survive timer noise. And **sized**
+   toasts, which are billboards rather than stack entries (see Sized toasts below). The filter is
+   literally `!persistent && !size`. The unbounded-persistent case is accepted: persistent toasts come
+   from deliberate acts, and each still has its × button.
 3. Neither path fires `onDismiss` — see the dismissal contract below.
 
 ## Appearance: parameters over a closed style set
 
-An earlier iteration shipped a whitelisted semantic `style` set (`info`/`success`/…); the author
-replaced it pre-release (2026-07-19) with a **`color` parameter** — the API takes parameters, and
-presets live in the *consumer* (the Send Toast tool's templates), not in the primitive. `size`
-remains whitelisted (`SIZES`) and class-mapped; sizes are discrete presets rather than a free
-percentage so every size is a tested CSS class.
+Appearance is driven by **parameters, not a closed style set**: there is no semantic `style`
+whitelist. Colour comes in as a **`color` parameter**, and presets live in the *consumer* (the Send
+Toast tool's templates) rather than in the primitive — the primitive takes values, the caller decides
+what they mean. `size` is the exception: it stays whitelisted (`SIZES`) and class-mapped, because
+sizes are discrete presets rather than a free percentage, so every size is a tested CSS class.
 
 Class-only styling has exactly **three deliberate, sanitized inline exceptions**:
 
@@ -107,7 +108,7 @@ Optional `sound` is a data path, not a shared audio instance. `show()` plays it 
 Blacksmith's sound helper. Internal broadcast/targeted relays carry the path, and each receiving
 client plays the sound when it renders the toast.
 
-**Sized toasts are billboards, not stack entries** (author decision 2026-07-19). The display model
+**Sized toasts are billboards, not stack entries.** The display model
 is binary: no `size` = a toast (content-fit, stacks top-center); any `size` (`small`/`medium`/
 `large`/`fullscreen`) = a **billboard** — a viewport-proportional box in *both* dimensions,
 centered, rendered inside a dedicated fixed full-viewport layer (`#blacksmith-toast-billboard-layer`)
@@ -152,8 +153,8 @@ fade to finish.
 
 `broadcastToast(config)` in `api-toast.js` shows a toast on **every** connected client: locally via
 `show()`, remotely via the `showToast` socketlib handler in `manager-sockets.js`. It exists for
-announcements that originate on one client (the GM's timer helpers) where the chat card used to be
-the transport to players. It is **deliberately not on `ToastAPI`**: there is no public cross-client
+announcements that originate on one client (the GM's timer helpers) and must reach players, where a
+chat card is the alternative transport. It is **deliberately not on `ToastAPI`**: there is no public cross-client
 toast surface, and this relay is Blacksmith-private plumbing — data-only by construction (callbacks
 are stripped before the socket). `SocketManager` is imported dynamically inside `broadcastToast` to
 avoid a static import cycle (`manager-sockets` statically imports `api-toast` for the handler).
@@ -172,8 +173,8 @@ the payload must never carry secrets; a GM announcement is non-secret by contrac
 own client renders locally only if it is in the list. First consumer: the GM **Send Toast** tool
 (`window-toast-send.js`, opened from the party menubar, GM-only) — it sends `size: 'large'`
 toasts to selected players and shows the sending GM a small confirmation toast rather than an
-echo of the announcement. That tool is a Blacksmith feature consuming private plumbing; the
-public `send({recipients})` surface remains gated on the socket rewrite.
+echo of the announcement. That tool is a Blacksmith feature consuming private plumbing — there is
+no public cross-client toast surface for other modules to call.
 
 ## Delivery channels: the `notifyX` setting pattern
 
