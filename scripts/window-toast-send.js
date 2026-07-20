@@ -137,7 +137,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         const templateOptions = [
             `<option value="${CUSTOM_TEMPLATE}"${selectedTemplate === CUSTOM_TEMPLATE ? ' selected' : ''}>— Custom —</option>`,
             ...Object.keys(templates).map(name =>
-                `<option value="${esc(name)}"${name === selectedTemplate ? ' selected' : ''}>${esc(name)}${BUILTIN_TEMPLATES[name] ? '' : ' *'}</option>`)
+                `<option value="${esc(name)}"${name === selectedTemplate ? ' selected' : ''}>${esc(name)}</option>`)
         ].join('');
         const soundOptions = Object.entries(BLACKSMITH.arrSoundChoices || { 'sound-none': 'No Sound' })
             .map(([value, label]) => `<option value="${esc(value)}"${String(prefs.sound || 'sound-none') === value ? ' selected' : ''}>${esc(label)}</option>`)
@@ -165,6 +165,27 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
                 <div class="blacksmith-window-section">
                     <div class="blacksmith-window-section-header">
+                        <i class="fa-solid fa-swatchbook"></i>
+                        <span>Template</span>
+                    </div>
+                    <div class="blacksmith-toast-send-image-row">
+                        <select class="blacksmith-input" name="toast-template">${templateOptions}</select>
+                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-toast-send-browse blacksmith-toast-send-template-save" data-action="toast-template-save"
+                            data-tooltip="Save the current settings as a new template" aria-label="Save as template"
+                            ${BUILTIN_TEMPLATES[selectedTemplate] ? 'style="display:none"' : ''}><i class="fa-solid fa-floppy-disk"></i></button>
+                        <button type="button" class="blacksmith-toast-send-clear blacksmith-toast-send-template-delete" data-action="toast-template-delete"
+                            data-tooltip="Delete this template" aria-label="Delete template"
+                            ${BUILTIN_TEMPLATES[selectedTemplate] || selectedTemplate === CUSTOM_TEMPLATE ? 'style="display:none"' : ''}><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <label class="blacksmith-toast-send-recipient blacksmith-toast-send-include-text"
+                        ${BUILTIN_TEMPLATES[selectedTemplate] ? 'style="display:none"' : ''}>
+                        <input type="checkbox" name="toast-include-text" ${prefs.includeText ? 'checked' : ''}>
+                        <span>Include title and message in the template</span>
+                    </label>
+                </div>
+
+                <div class="blacksmith-window-section">
+                    <div class="blacksmith-window-section-header">
                         <i class="fa-solid fa-message"></i>
                         <span>Message</span>
                     </div>
@@ -182,17 +203,6 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                     <div class="blacksmith-window-section-header">
                         <i class="fa-solid fa-palette"></i>
                         <span>Appearance</span>
-                    </div>
-                    <div class="blacksmith-field">
-                        <label class="blacksmith-field-label">Template</label>
-                        <div class="blacksmith-toast-send-image-row">
-                            <select class="blacksmith-input" name="toast-template">${templateOptions}</select>
-                            <button type="button" class="blacksmith-window-btn-secondary blacksmith-toast-send-browse" data-action="toast-template-save"
-                                data-tooltip="Save current appearance as a new template" aria-label="Save as template"><i class="fa-solid fa-floppy-disk"></i></button>
-                            <button type="button" class="blacksmith-toast-send-clear blacksmith-toast-send-template-delete" data-action="toast-template-delete"
-                                data-tooltip="Delete this template" aria-label="Delete template"
-                                ${BUILTIN_TEMPLATES[selectedTemplate] || selectedTemplate === CUSTOM_TEMPLATE ? 'style="display:none"' : ''}><i class="fa-solid fa-trash"></i></button>
-                        </div>
                     </div>
                     <div class="blacksmith-field-row">
                         <div class="blacksmith-field">
@@ -311,8 +321,9 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         applyPartyState();
 
         // Appearance edits flip the template selector to "Custom" — the selector never
-        // claims a template the form has diverged from. Recipients/message are not
-        // appearance and do not flip it.
+        // claims a template the form has diverged from. Recipients and the title/message
+        // text are deliberately NOT appearance: typing a message is the normal use of a
+        // template, not a divergence from it (author decision 2026-07-20).
         const APPEARANCE_FIELDS = ['toast-size', 'toast-duration', 'toast-sound', 'toast-border-color', 'toast-border-color-text', 'toast-bg-color', 'toast-bg-color-text', 'toast-image', 'toast-background'];
         for (const input of root.querySelectorAll('input, select')) {
             if (['toast-title', 'toast-subtitle', 'toast-party', 'toast-template'].includes(input.name)) continue;
@@ -346,23 +357,61 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         root.querySelector('[name="toast-template"]')?.addEventListener('change', (event) => {
             this._applyTemplate(event.currentTarget.value);
         });
+
+        // Wording lives only in the DOM (it is deliberately never persisted in
+        // preferences), so a remembered template that carries text must stamp it on
+        // open — otherwise reopening shows the right template name with empty fields
+        // until you toggle away and back. Only fills blanks; never clobbers.
+        const selected = root.querySelector('[name="toast-template"]')?.value;
+        const remembered = selected && selected !== CUSTOM_TEMPLATE ? this._getTemplates()[selected] : null;
+        if (remembered?.includeText) {
+            const title = root.querySelector('[name="toast-title"]');
+            const subtitle = root.querySelector('[name="toast-subtitle"]');
+            if (title && !title.value) title.value = remembered.title ?? '';
+            if (subtitle && !subtitle.value) subtitle.value = remembered.subtitle ?? '';
+        }
+
+        // Reflect the remembered selection in the contextual controls (in particular the
+        // Save tooltip, which reads "Update «name»" for a user's own template).
+        this._refreshTemplateControls();
     }
 
-    /** The form no longer matches a template — reflect that in the selector. */
+    /**
+     * An appearance field changed. Built-ins are read-only presets, so editing one
+     * forks the form to Custom; a user's own template keeps the edits attached to it
+     * (Save then updates that template in place). Custom stays Custom.
+     */
     _markCustom() {
         const select = this._getRoot()?.querySelector('[name="toast-template"]');
-        if (select) select.value = CUSTOM_TEMPLATE;
-        this._refreshDeleteButton();
+        if (select && BUILTIN_TEMPLATES[select.value]) select.value = CUSTOM_TEMPLATE;
+        this._refreshTemplateControls();
     }
 
-    /** Delete is only meaningful for user-saved templates. */
-    _refreshDeleteButton() {
+    /**
+     * Template controls are contextual: saving (and the include-text choice that
+     * governs what a save captures) only applies when the form is NOT showing an
+     * untouched built-in; deleting only applies to user-saved templates.
+     */
+    _refreshTemplateControls() {
         const root = this._getRoot();
         const name = root?.querySelector('[name="toast-template"]')?.value;
-        const button = root?.querySelector('.blacksmith-toast-send-template-delete');
-        if (!button) return;
-        const deletable = name && name !== CUSTOM_TEMPLATE && !BUILTIN_TEMPLATES[name];
-        button.style.display = deletable ? '' : 'none';
+        const isBuiltIn = !!BUILTIN_TEMPLATES[name];
+        const setShown = (selector, shown) => {
+            const el = root?.querySelector(selector);
+            if (el) el.style.display = shown ? '' : 'none';
+        };
+        setShown('.blacksmith-toast-send-template-save', !isBuiltIn);
+        setShown('.blacksmith-toast-send-include-text', !isBuiltIn);
+        setShown('.blacksmith-toast-send-template-delete', !isBuiltIn && name !== CUSTOM_TEMPLATE);
+
+        // Save means different things by selection — say which in the tooltip
+        const save = root?.querySelector('.blacksmith-toast-send-template-save');
+        if (save) {
+            const updating = !isBuiltIn && name !== CUSTOM_TEMPLATE;
+            const label = updating ? `Update "${name}"` : 'Save as a new template';
+            save.dataset.tooltip = label;
+            save.setAttribute('aria-label', label);
+        }
     }
 
     _getTemplates() {
@@ -376,7 +425,16 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
     _currentAppearance() {
         const root = this._getRoot();
         const imageMode = this.selectedIcon === IMAGE_MODE;
+        // Text is opt-in: only a template saved with "Include title and message"
+        // carries wording. The built-ins never do — they are look, not content.
+        const includeText = root?.querySelector('[name="toast-include-text"]')?.checked === true;
+        const text = includeText ? {
+            includeText: true,
+            title: root?.querySelector('[name="toast-title"]')?.value ?? '',
+            subtitle: root?.querySelector('[name="toast-subtitle"]')?.value ?? ''
+        } : {};
         return {
+            ...text,
             color: root?.querySelector('[name="toast-border-color"]')?.value || '#ac9f81',
             backgroundColor: root?.querySelector('[name="toast-bg-color"]')?.value || DEFAULT_BG_COLOR,
             icon: imageMode ? '' : this.selectedIcon,
@@ -393,7 +451,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         if (!root) return;
         if (name === CUSTOM_TEMPLATE) {
             // "Custom" is a state, not a template — keep the form as it stands
-            this._refreshDeleteButton();
+            this._refreshTemplateControls();
             void this._savePreferences();
             return;
         }
@@ -414,35 +472,70 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         setValue('[name="toast-background"]', tpl.backgroundImage || '');
         setValue('[name="toast-image"]', tpl.image || '');
 
+        // Only a template saved with text stamps the wording; otherwise whatever the
+        // GM has typed is left alone (the built-ins carry no text at all).
+        const includeText = tpl.includeText === true;
+        const includeBox = root.querySelector('[name="toast-include-text"]');
+        if (includeBox) includeBox.checked = includeText;
+        if (includeText) {
+            setValue('[name="toast-title"]', tpl.title ?? '');
+            setValue('[name="toast-subtitle"]', tpl.subtitle ?? '');
+        }
+
         this.selectedIcon = tpl.image ? IMAGE_MODE : String(tpl.icon ?? '');
         this._refreshIconSelection();
         root.querySelector('.blacksmith-toast-send-image-field')
             ?.classList.toggle('hidden', this.selectedIcon !== IMAGE_MODE);
-        this._refreshDeleteButton();
+        this._refreshTemplateControls();
 
         void this._savePreferences();
     }
 
     async _saveTemplateAs() {
-        const name = await foundry.applications.api.DialogV2.prompt({
-            window: { title: 'Save Toast Template' },
-            content: '<input type="text" name="template-name" placeholder="Template name" autofocus maxlength="40">',
-            ok: {
-                label: 'Save',
-                callback: (_event, button) => button.form.elements['template-name']?.value?.trim()
+        const selected = this._getRoot()?.querySelector('[name="toast-template"]')?.value;
+        // A user's own template is a document: Save updates it in place. Only Custom
+        // (an unsaved configuration) asks for a name. Built-ins never reach here —
+        // their Save button is hidden.
+        const updating = selected && selected !== CUSTOM_TEMPLATE && !BUILTIN_TEMPLATES[selected];
+
+        let name = selected;
+        if (!updating) {
+            name = await foundry.applications.api.DialogV2.prompt({
+                window: { title: 'Save Toast Template' },
+                content: '<input type="text" name="template-name" placeholder="Template name" autofocus maxlength="40">',
+                ok: {
+                    label: 'Save',
+                    callback: (_event, button) => button.form.elements['template-name']?.value?.trim()
+                }
+            }).catch(() => null);
+            if (!name) return;
+            if (BUILTIN_TEMPLATES[name] || name === CUSTOM_TEMPLATE) {
+                ui.notifications.warn(`"${name}" is a reserved template name — pick another.`);
+                return;
             }
-        }).catch(() => null);
-        if (!name) return;
-        if (BUILTIN_TEMPLATES[name] || name === CUSTOM_TEMPLATE) {
-            ui.notifications.warn(`"${name}" is a reserved template name — pick another.`);
-            return;
         }
         const saved = { ...(game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {}) };
         saved[name] = this._currentAppearance();
         await game.settings.set(MODULE.ID, TEMPLATES_SETTING, saved);
-        this.preferences = { ...this.preferences, template: name };
-        await game.settings.set(MODULE.ID, PREFS_SETTING, this.preferences);
-        this.render();
+
+        // Update the selector in place rather than re-rendering: a re-render rebuilds
+        // the form from preferences, and the title/message deliberately live only in
+        // the DOM — so re-rendering here would discard wording the GM just typed
+        // (and typing before saving is the normal flow).
+        const select = this._getRoot()?.querySelector('[name="toast-template"]');
+        if (select) {
+            let option = [...select.options].find(o => o.value === name);
+            if (!option) {
+                option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            }
+            select.value = name;
+        }
+        this._refreshTemplateControls();
+        await this._savePreferences();
+        ui.notifications.info(updating ? `Updated template "${name}".` : `Saved template "${name}".`);
     }
 
     async _deleteTemplate() {
@@ -461,9 +554,17 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         const saved = { ...(game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {}) };
         delete saved[name];
         await game.settings.set(MODULE.ID, TEMPLATES_SETTING, saved);
-        this.preferences = { ...this.preferences, template: 'Information' };
-        await game.settings.set(MODULE.ID, PREFS_SETTING, this.preferences);
-        this.render();
+
+        // In place, for the same reason as saving: keep the form (and any typed
+        // wording) exactly as it is. The settings fall back to Custom — the form still
+        // holds what was that template's look.
+        const select = root.querySelector('[name="toast-template"]');
+        if (select) {
+            [...select.options].find(o => o.value === name)?.remove();
+            select.value = CUSTOM_TEMPLATE;
+        }
+        this._refreshTemplateControls();
+        await this._savePreferences();
     }
 
     _browseImage(inputName = 'toast-image') {
@@ -527,6 +628,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             party: root.querySelector('[name="toast-party"]')?.checked === true,
             recipients: [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(input => input.value),
             template: root.querySelector('[name="toast-template"]')?.value || 'Information',
+            includeText: root.querySelector('[name="toast-include-text"]')?.checked === true,
             color: root.querySelector('[name="toast-border-color"]')?.value || '#ac9f81',
             backgroundColor: root.querySelector('[name="toast-bg-color"]')?.value || DEFAULT_BG_COLOR,
             size: root.querySelector('[name="toast-size"]')?.value || '',

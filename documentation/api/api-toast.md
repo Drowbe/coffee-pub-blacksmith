@@ -39,7 +39,8 @@ Show a toast on this client. Returns a toast ID (string), or `null` on error.
   renders the default look). Drives the border, icon, and title. Validated and applied as a CSS
   custom property — arbitrary CSS cannot be injected.
 - `backgroundColor` (string, optional): box background color as strict hex, **independent of the
-  accent** (default: the dark base). A `backgroundImage` covers it when both are set.
+  accent** (default: the dark base). Rendered slightly translucent (alpha 0.9) so the play area
+  reads through, matching the default look. A `backgroundImage` covers it when both are set.
 - `size` (string, optional): omit for a normal toast (content-fit, stacks top-center). `'small'` |
   `'medium'` | `'large'` | `'fullscreen'` render a **billboard** instead: a viewport-proportional
   box (both dimensions — roughly 26×18 / 40×28 / 58×42 percent, fullscreen 100×100 with a dark

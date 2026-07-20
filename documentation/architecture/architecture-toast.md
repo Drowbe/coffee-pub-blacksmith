@@ -69,23 +69,39 @@ Class-only styling has exactly **three deliberate, sanitized inline exceptions**
 2. **`color`** — validated against a strict hex pattern (`COLOR_PATTERN`) and applied as the
    `--blacksmith-toast-accent` custom property; `toast.css` derives border/icon/title from it.
    A custom property carrying a validated hex cannot smuggle CSS.
-3. **`backgroundColor`** — same strict-hex validation, applied as an inline `background-color`,
-   **independent of the accent**. (An earlier iteration derived the background from the accent via
-   `color-mix`; the author retired derivation — explicit beats clever.) A `backgroundImage` covers
-   it when both are set; the border keeps its accent either way.
+3. **`backgroundColor`** — same strict-hex validation, converted to `rgba()` at `BACKGROUND_ALPHA`
+   (0.9) and applied as an inline `background-color`, **independent of the accent**. (An earlier
+   iteration derived the background from the accent via `color-mix`; the author retired derivation —
+   explicit beats clever.) A `backgroundImage` covers it when both are set; the border keeps its
+   accent either way. **`BACKGROUND_ALPHA` and the default background alpha in `toast.css` must stay
+   in sync** — toasts are deliberately translucent so the play area reads through them.
 
 ## The Send Toast templates (consumer-side presets)
 
 The GM tool's template selector is where presets live now that the primitive takes parameters.
-Built-in templates are code-side constants in `window-toast-send.js` (`BUILTIN_TEMPLATES` — the
-former semantic styles reborn as color bundles) and are not deletable; user templates are
-appearance bundles saved by name in the world-scoped `toastSendTemplates` setting (Save As /
-Delete in the window). A template stamps the appearance fields (border color — from which the box
-background derives unless an optional background image is set — icon/avatar mode, size, duration,
-sound) onto the form; any subsequent appearance edit flips the selector to the **— Custom —**
-sentinel so it never claims a template the form has diverged from. Recipients and message text are
-never part of a template. The border-color control follows the pin-configuration pattern (hex text
-+ swatch, two-way synced).
+Built-in templates are code-side constants in `window-toast-send.js` (`BUILTIN_TEMPLATES`) and are
+not deletable; user templates are appearance bundles saved by name in the world-scoped
+`toastSendTemplates` setting (Save As / Delete in the window — Delete is only shown for user
+templates). The built-in set is deliberately small — three presets forming an escalation ladder
+(Information: content-fit, auto-dismisses; Announcement: small billboard, lingers; Important:
+fullscreen, waits for a click) — because the wide middle is what Custom and user-saved templates
+are for.
+
+A template stamps the appearance fields (border color, background color, optional background
+image, icon/avatar mode, size, duration, sound) onto the form. **Built-ins are read-only presets;
+a GM's own templates are documents.** Editing an appearance field while a built-in is selected
+forks the form to the **— Custom —** sentinel (the selector never claims a built-in the form has
+diverged from); editing while a user template is selected keeps the edits attached to it, and Save
+then updates that template in place without prompting. Only Custom — an unsaved configuration —
+prompts for a name. Built-ins show no Save at all. Recipients are never part of a template. **Title and message are opt-in**, stored only when
+the template is saved with *Include title and message* (`includeText`) — so a template can be a
+canned announcement or just a look — and applying a template without text leaves whatever the GM
+has typed alone. Typing in the title or message deliberately does **not** flip the selector to
+Custom: writing the message is the normal use of a template, not a divergence from it. The
+built-ins carry no text. The color controls follow the
+pin-configuration pattern (hex text + swatch, two-way synced). One trap worth remembering: a
+template's `sound` is a **path**, not an asset id — the sound dropdown is keyed by path
+(`getSoundChoices` in `settings.js`) and `playSound()` takes a src, so an id here 404s.
 
 Optional `sound` is a data path, not a shared audio instance. `show()` plays it locally through
 Blacksmith's sound helper. Internal broadcast/targeted relays carry the path, and each receiving
