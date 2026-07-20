@@ -59,6 +59,7 @@ const PUBLISH = [
   'architecture/architecture-hookmanager.md',
   'architecture/architecture-pins.md',
   'architecture/architecture-rolls.md',
+  'architecture/architecture-socketmanager.md',
   'architecture/architecture-token-naming.md',
   'architecture/architecture-window.md',
   'architecture/architecture-xp.md',
@@ -66,7 +67,7 @@ const PUBLISH = [
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
 //   API:          (none — all published)
-//   Architecture: architecture-socketmanager, -stats, -tags, -toast, -toolbarmanager
+//   Architecture: architecture-stats, -tags, -toast, -toolbarmanager
 //   Also held:    TODO.md (internal / holds security items and open decisions)
 
 const HOME_SRC = 'guides/guide-registering-with-blacksmith.md';

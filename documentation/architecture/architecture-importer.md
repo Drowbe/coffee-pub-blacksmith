@@ -126,9 +126,9 @@ The selected kind/profile declares its supported options. The UI and API consume
 
 Authoring workflows that reference existing content must use a shared, UI-neutral catalog query layer. A query identifies the document kind (`actor` or `item`), source (`world` or selected compendium ids), and typed filters. Actor filters include CR bounds, creature type, size, and name; Item filters include document type, rarity, magical status, and name.
 
-Roll Table profiles use this layer for World Actors, World Items, Compendium Actors, and Compendium Items. Prompt output receives only the filtered catalog, and a guided human template receives the same list with exact names and pack ids. The planned Utility tab will expose these queries directly as plain-text lists; it must not create a second catalog implementation.
+Roll Tables expose only Foundry v13's `text` and `document` result types. World and compendium choices are source controls, not result types. Text tables may optionally consume a filtered catalog as unlinked source material. Document tables emit friendly exact names, document categories, and optional source ids; Blacksmith's centralized Compendium API resolves those names to UUID-backed `documentCollection`/`documentId` data during import. Prompt output receives only the filtered catalog, and a guided human template receives the same list with exact names and source ids. The planned Utility tab will expose these queries directly as plain-text lists; it must not create a second catalog implementation.
 
-Exact linked references are the default. A prompt may explicitly request text fallback, but Blacksmith must never silently convert a misspelled linked result into a different document. Compendium selection is per configured pack and remains part of the request so external callers can reproduce the same output.
+Exact linked references are the default. A prompt may explicitly request Text fallback, but Blacksmith must never silently convert a misspelled linked result into a different document. The author or AI does not supply UUIDs. Compendium selection is per configured pack and remains part of the request and friendly source context so external callers can reproduce the same resolution scope.
 
 ## Output delivery
 
