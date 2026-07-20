@@ -23,6 +23,9 @@ class ToastManager {
     //   color — strict-hex accent applied as a CSS custom property; drives the border
     //           and (via color-mix in toast.css) a tinted wash of the box background
     static COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+    // Toast bodies are slightly translucent so the play area reads through them.
+    // Keep in sync with the default background alpha in styles/toast.css.
+    static BACKGROUND_ALPHA = 0.9;
     // Two display modes (author decision 2026-07-19): no size = a TOAST (content-fit,
     // stacks top-center); any size = a BILLBOARD (viewport-proportional box in BOTH
     // dimensions, typography scaling with it, centered, singleton, cap-exempt,
@@ -192,6 +195,18 @@ class ToastManager {
     // ===== INTERNALS =====
 
     /**
+     * Convert a validated hex color (#rgb or #rrggbb) to an rgba() string.
+     * Input is already strict-hex validated by show() — no sanitizing needed here.
+     * @private
+     */
+    static _hexToRgba(hex, alpha) {
+        let h = hex.slice(1);
+        if (h.length === 3) h = h.split('').map(c => c + c).join('');
+        const int = parseInt(h, 16);
+        return `rgba(${(int >> 16) & 255}, ${(int >> 8) & 255}, ${int & 255}, ${alpha})`;
+    }
+
+    /**
      * The fixed stack container, lazily created on first show().
      * @private
      */
@@ -242,9 +257,10 @@ class ToastManager {
             el.style.setProperty('--blacksmith-toast-accent', toast.color);
         }
         // Background color: independent of the accent, strict-hex validated in show().
-        // A backgroundImage (inline background-image) covers it when both are set.
+        // Rendered at BACKGROUND_ALPHA so the play area reads through the toast, matching
+        // the default look. A backgroundImage covers it when both are set.
         if (toast.backgroundColor) {
-            el.style.backgroundColor = toast.backgroundColor;
+            el.style.backgroundColor = this._hexToRgba(toast.backgroundColor, this.BACKGROUND_ALPHA);
         }
         if (toast.size) el.classList.add(`blacksmith-toast-size-${toast.size}`);
 

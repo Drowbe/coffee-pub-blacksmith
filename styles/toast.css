@@ -26,10 +26,12 @@
     gap: 12px;
     padding: 12px 18px;
     max-width: 420px;
-    background: rgba(20, 20, 20, 0.95);
-    /* 4px solid everywhere (the announcement treatment); fullscreen is the one
+    /* Alpha must match BACKGROUND_ALPHA in scripts/api-toast.js (inline background
+       colors are converted to rgba with the same value) */
+    background: rgba(20, 20, 20, 0.9);
+    /* 3px solid everywhere (the announcement treatment); fullscreen is the one
        exception — it overrides border to none and carries the scrim instead */
-    border: 4px solid #ac9f81;
+    border: 3px solid #ac9f81;
     border-radius: 6px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
     opacity: 0;
@@ -205,7 +207,7 @@
     gap: 3vh;
     border: none;
     border-radius: 0;
-    background: rgba(10, 10, 10, 0.92);
+    background: rgba(10, 10, 10, 0.9);
     transform: none; /* inset covers the viewport; no centering transform needed */
 }
 .blacksmith-toast-size-fullscreen.visible {

@@ -9,7 +9,7 @@
 // ==================================================================
 
 import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, playSound } from './api-core.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { ToastManager, sendToastToUsers } from './api-toast.js';
 
@@ -25,9 +25,11 @@ const TEMPLATES_SETTING = 'toastSendTemplates';
 // A deliberately small set — Information is the everyday default, Announcement and
 // Important cover the loud cases, and everything else is Custom / user-saved.
 const BUILTIN_TEMPLATES = {
-    'Information':   { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bullhorn', image: '', backgroundImage: '', size: '', duration: 10, sound: 'sound-interface-pop-01' },
-    'Announcement':  { color: '#5b9bd5', backgroundColor: '#1e2b37', icon: 'fa-solid fa-bullhorn', image: '', backgroundImage: '', size: 'medium', duration: 0, sound: 'sound-none' },
-    'Important':     { color: '#e05252', backgroundColor: '#391c1c', icon: 'fa-solid fa-triangle-exclamation', image: '', backgroundImage: '', size: '', duration: 0, sound: 'sound-none' }
+    // NOTE: `sound` is the PATH, not the asset id — the sound dropdown is keyed by
+    // path (settings.js getSoundChoices) and playSound() takes a src.
+    'Information':   { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3' },
+    'Announcement':  { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3' },
+    'Important':     { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3' }
 };
 const DEFAULT_BG_COLOR = '#141414';
 // Template-selector sentinel: shown whenever the form has diverged from a template.
@@ -95,7 +97,8 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         'toast-clear-background': () => ToastSendWindow._ref?._clearImage('toast-background'),
         'toast-select-icon': (_event, target) => ToastSendWindow._ref?._selectIcon(target),
         'toast-template-save': () => ToastSendWindow._ref?._saveTemplateAs(),
-        'toast-template-delete': () => ToastSendWindow._ref?._deleteTemplate()
+        'toast-template-delete': () => ToastSendWindow._ref?._deleteTemplate(),
+        'toast-preview-sound': () => ToastSendWindow._ref?._previewSound()
     };
 
     constructor(options = {}) {
@@ -184,10 +187,11 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                         <label class="blacksmith-field-label">Template</label>
                         <div class="blacksmith-toast-send-image-row">
                             <select class="blacksmith-input" name="toast-template">${templateOptions}</select>
-                            <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-template-save"
-                                data-tooltip="Save current appearance as a new template"><i class="fa-solid fa-floppy-disk"></i> Save As</button>
-                            <button type="button" class="blacksmith-toast-send-clear" data-action="toast-template-delete"
-                                data-tooltip="Delete this template (saved templates only)" aria-label="Delete template"><i class="fa-solid fa-trash"></i></button>
+                            <button type="button" class="blacksmith-window-btn-secondary blacksmith-toast-send-browse" data-action="toast-template-save"
+                                data-tooltip="Save current appearance as a new template" aria-label="Save as template"><i class="fa-solid fa-floppy-disk"></i></button>
+                            <button type="button" class="blacksmith-toast-send-clear blacksmith-toast-send-template-delete" data-action="toast-template-delete"
+                                data-tooltip="Delete this template" aria-label="Delete template"
+                                ${BUILTIN_TEMPLATES[selectedTemplate] || selectedTemplate === CUSTOM_TEMPLATE ? 'style="display:none"' : ''}><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                     <div class="blacksmith-field-row">
@@ -210,7 +214,11 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                     </div>
                     <div class="blacksmith-field">
                         <label class="blacksmith-field-label">Sound</label>
-                        <select class="blacksmith-input" name="toast-sound">${soundOptions}</select>
+                        <div class="blacksmith-toast-send-image-row">
+                            <select class="blacksmith-input" name="toast-sound">${soundOptions}</select>
+                            <button type="button" class="blacksmith-window-btn-secondary blacksmith-toast-send-browse" data-action="toast-preview-sound"
+                                data-tooltip="Preview this sound" aria-label="Preview sound"><i class="fa-solid fa-play"></i></button>
+                        </div>
                     </div>
                     <div class="blacksmith-field">
                         <label class="blacksmith-field-label">Icon</label>
@@ -344,6 +352,17 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
     _markCustom() {
         const select = this._getRoot()?.querySelector('[name="toast-template"]');
         if (select) select.value = CUSTOM_TEMPLATE;
+        this._refreshDeleteButton();
+    }
+
+    /** Delete is only meaningful for user-saved templates. */
+    _refreshDeleteButton() {
+        const root = this._getRoot();
+        const name = root?.querySelector('[name="toast-template"]')?.value;
+        const button = root?.querySelector('.blacksmith-toast-send-template-delete');
+        if (!button) return;
+        const deletable = name && name !== CUSTOM_TEMPLATE && !BUILTIN_TEMPLATES[name];
+        button.style.display = deletable ? '' : 'none';
     }
 
     _getTemplates() {
@@ -374,6 +393,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         if (!root) return;
         if (name === CUSTOM_TEMPLATE) {
             // "Custom" is a state, not a template — keep the form as it stands
+            this._refreshDeleteButton();
             void this._savePreferences();
             return;
         }
@@ -398,6 +418,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         this._refreshIconSelection();
         root.querySelector('.blacksmith-toast-send-image-field')
             ?.classList.toggle('hidden', this.selectedIcon !== IMAGE_MODE);
+        this._refreshDeleteButton();
 
         void this._savePreferences();
     }
@@ -460,6 +481,13 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 void this._savePreferences();
             }
         }).browse();
+    }
+
+    /** Play the currently selected sound locally, so the GM can audition it before sending. */
+    _previewSound() {
+        const sound = this._getRoot()?.querySelector('[name="toast-sound"]')?.value;
+        if (!sound || sound === 'sound-none') return;
+        void playSound(sound, window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7, false, false);
     }
 
     _clearImage(inputName) {
@@ -568,15 +596,20 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 moduleId: 'blacksmith-core'
             }, recipients);
 
-            // Small GM confirmation (author decision 2026-07-19) — not an echo of the announcement
+            // Small GM confirmation (author decision 2026-07-19) — not an echo of the
+            // announcement. Wears the Information template so the tool's own voice
+            // matches the house default look.
             const names = partyChecked
                 ? ['Entire party']
                 : recipients.map(id => game.users.get(id)).filter(Boolean).map(u => u.character?.name || u.name);
+            const info = BUILTIN_TEMPLATES['Information'];
             ToastManager.show({
                 title: 'Toast sent',
                 subtitle: names.join(', '),
-                icon: 'fas fa-bullhorn',
-                color: '#5b9bd5',
+                icon: info.icon,
+                color: info.color,
+                backgroundColor: info.backgroundColor,
+                sound: info.sound,
                 duration: 5,
                 stackKey: 'blacksmith-toast-send-confirm'
             });
