@@ -15,7 +15,8 @@ defined before any component stylesheet consumes them.
 `notes-gm.css` is the exception -- Foundry loads it directly, not through the import chain.
 
 Two stylesheets are reached by neither mechanism and are therefore inert: `styles/journal-toolbars.css`
-and `styles/widget-tags.css`.
+and `styles/widget-tags.css`. The latter styles the tag widget, whose template and script are complete but
+which no template currently renders.
 
 ## Stylesheet organization
 
@@ -49,6 +50,9 @@ radius, spacing, typography, or layout -- which is what makes a new theme a pure
 Two prefixes are in live parallel use: `.blacksmith-*` (345 distinct classes) and `.cpb-*` (141). Broadly
 `blacksmith-` covers canvas, menubar, window and card surfaces while `cpb-` covers dialog chrome and
 skill-check UI, but the split is historical rather than semantic. New components use `blacksmith-`.
+
+A third prefix, `.bsw-*` (15 classes), is used only by the tag widget --
+`templates/partials/tag-widget.hbs` and `styles/widget-tags.css`. It is scoped to that one component.
 
 The `.bh-` prefix appears nowhere in `styles/`, `templates/`, or `scripts/`.
 
