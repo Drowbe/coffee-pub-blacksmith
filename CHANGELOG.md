@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.10.1]
 
+### Added
+
+- **Documentation auto-publishes to the GitHub wiki** (`.github/workflows/sync-wiki.yml`, `tools/wiki-sync.mjs`): a GitHub Action rebuilds and republishes the wiki on every push to `master` that touches `documentation/**` (or the sync script itself), so the wiki mirrors `documentation/` with no manual step. `tools/wiki-sync.mjs` flattens each published doc into a top-level page named by its basename (`api/api-pins.md` -> `api-pins`), so page filenames carry no colons and the wiki checks out on any filesystem; inter-doc links are rewritten to wiki page names, while links to code files or to docs not in the publish set are downgraded to plain text so the wiki has no broken links. The `PUBLISH` list in `tools/wiki-sync.mjs` is the single control over what goes live — held docs (currently `TODO.md`) never publish, so a commit touching an unfinished page cannot leak it. Run `node tools/wiki-sync.mjs build` to write the built pages to `tools/.wiki-build/` for local review without pushing.
+
 ### Fixed
 
 - **The cinematic roll spinner rendered static — it named an undefined keyframe** (`styles/window-roll-cinematic.css`): the pending-roll icon on the cinematic roll overlay declared `animation: cpb-spin 1.5s linear infinite`, but no `@keyframes cpb-spin` is defined anywhere in `styles/`, and a CSS animation naming an undefined keyframe is silently ignored — so the icon never rotated. The reference now points at the real `cpb-cinematic-spin` keyframe (`:365`, a plain 0->360 rotation), the same one the equivalent spinner at `:351` already uses. How to verify (live): trigger a cinematic roll and confirm the pending-roll icon spins while it waits.

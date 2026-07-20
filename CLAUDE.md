@@ -123,7 +123,7 @@ Name the outcome first — **bug fix / feature / performance / refactor** — be
 12. **Version bump + BUILD commit — author, after final tests.** The author bumps `module.json` and makes the
     BUILD commit. See Git: BUILD now bundles the final docs + changelog + todo deletions + the bump.
 13. **Sync the wiki — Claude.** Once the BUILD commit has landed the doc changes, Claude pushes them to the
-    wiki (a pure mirror of `documentation/`). See the wiki note in Git — the mechanism is not solved yet.
+    wiki (a pure mirror of `documentation/`). See the wiki note in Git for how it publishes.
 
 **Never hold TODOs in the API or architecture docs.** That is precisely how they drift out of sync with the
 code. Those docs describe what *is* — including "this is currently broken, and here is the truth" when that
@@ -264,11 +264,10 @@ doc changes; the author makes the BUILD commit and the tag.
 and anything that publishes to GitHub are his. The workflow runs no lint, tests, or build — the tag is the
 only gate.
 
-**The wiki is Claude's to sync — after the BUILD commit.** The GitHub wiki is a **pure mirror** of
-`documentation/`; the author writes nothing wiki-specific, so it never leads, it only follows. Once a BUILD
-commit lands doc changes in the main repo, Claude pushes the same docs to the wiki.
-> ⚠️ **Unsolved mechanical blocker.** The wiki is a bare git repo (`…coffee-pub-blacksmith.wiki.git`) that
-> would not check out on Windows: at least one page (`Architecture:-Core`) has a `:` in its filename, which
-> is illegal in NTFS, so a plain `git clone` of the wiki fails on this machine. The push path has to be
-> worked out — sparse checkout, filename mapping, or generating the wiki files without a full checkout —
-> before the first real sync. Do not assume `git clone …​.wiki.git && cp && push` works here; it doesn't yet.
+**The wiki is a pure mirror of `documentation/`, published automatically.** The author writes nothing
+wiki-specific, so the wiki never leads — it only follows. A GitHub Action (`.github/workflows/sync-wiki.yml`)
+republishes the wiki on every push to `master` that touches `documentation/**` (or `tools/wiki-sync.mjs`); it
+runs on GitHub's servers, so landing the docs on `master` is all it takes. The `PUBLISH` list in
+`tools/wiki-sync.mjs` controls exactly which pages go live, independent of what a given commit changed —
+held docs never publish, so a commit touching one cannot leak an unfinished page. To preview the built
+pages locally without pushing anything, run `node tools/wiki-sync.mjs build`.
