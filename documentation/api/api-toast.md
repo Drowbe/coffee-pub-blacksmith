@@ -35,9 +35,11 @@ Show a toast on this client. Returns a toast ID (string), or `null` on error.
 - `duration` (number, optional): seconds before auto-dismiss; `0` = until closed (default: 8).
   A `0`-duration toast is **persistent**: it does not count toward the stack cap and is never
   evicted — only the × button, a matching `stackKey` replacement, or programmatic removal ends it.
-- `style` (string, optional): semantic accent — `'info'` | `'success'` | `'warning'` | `'danger'` |
-  `'announcement'`. Anything else renders the default look. Values are whitelisted and mapped to
-  CSS classes; consumers cannot inject classes or CSS through the config.
+- `color` (string, optional): accent color as **strict hex** (`#rgb` or `#rrggbb`; anything else
+  renders the default look). Drives the border, icon, and title. Validated and applied as a CSS
+  custom property — arbitrary CSS cannot be injected.
+- `backgroundColor` (string, optional): box background color as strict hex, **independent of the
+  accent** (default: the dark base). A `backgroundImage` covers it when both are set.
 - `size` (string, optional): omit for a normal toast (content-fit, stacks top-center). `'small'` |
   `'medium'` | `'large'` | `'fullscreen'` render a **billboard** instead: a viewport-proportional
   box (both dimensions — roughly 26×18 / 40×28 / 58×42 percent, fullscreen 100×100 with a dark
@@ -48,6 +50,8 @@ Show a toast on this client. Returns a toast ID (string), or `null` on error.
 - `backgroundImage` (string, optional): image path/URL rendered as a cover background behind the
   toast content, with an automatic dark scrim so text stays legible. Combines with `image` (the
   avatar floats over it); best with the larger sizes and fullscreen.
+- `sound` (string, optional): audio path played locally when the toast appears. Cross-client
+  Blacksmith relays carry the path as data and each recipient plays it locally.
 - `moduleId` (string, optional): owning module, used by `clearByModule` (default: `"blacksmith-core"`)
 - `onClick` (Function, optional): makes the toast clickable (pointer cursor, hover affordance,
   button sound on click). Called with the click event when the user clicks the toast body; the toast
@@ -110,8 +114,8 @@ Remove all toasts owned by a module (e.g. on your module's cleanup). Silent. Ret
 
 ## `getActive()`
 
-Returns `Array<{ id, moduleId, stackKey, persistent, style, size }>` for the toasts currently on
-screen — display metadata only, no elements or callbacks.
+Returns `Array<{ id, moduleId, stackKey, persistent, color, backgroundColor, size }>` for the
+toasts currently on screen — display metadata only, no elements or callbacks.
 
 ## Stacking model
 

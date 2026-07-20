@@ -1047,6 +1047,23 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	game.settings.register(MODULE.ID, 'toastSendPreferences', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
+	// Saved Send Toast templates: { [name]: appearance bundle }. World scope — the
+	// template library is shared by all GMs; built-in templates are code-side and
+	// never stored here.
+	game.settings.register(MODULE.ID, 'toastSendTemplates', {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
 		name: MODULE.ID + '.defaultNarrativeFolder-Label',
 		hint: MODULE.ID + '.defaultNarrativeFolder-Hint',

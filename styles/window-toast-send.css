@@ -6,9 +6,13 @@
    (window-template.css, window-form-controls.css); this file is layout only. */
 
 /* The shared template body ships with NO padding — every window supplies its own
-   gutter (GM Notes: 12px; json-import: 0 + internal). Same pattern here. */
+   gutter (GM Notes: 12px; json-import: 0 + internal). Same pattern here.
+   The body is the scrolling zone: the window is height-resizable, so shrinking it
+   scrolls the form rather than clipping the action bar. */
 .blacksmith-toast-send-window .blacksmith-window-template-body {
     padding: 12px;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 /* Sections are .blacksmith-window-section cards (shared component) which carry
@@ -120,4 +124,65 @@
 
 .blacksmith-toast-send-clear {
     color: rgba(224, 224, 224, 0.72);
+}
+
+/* Path input with its clear × INSIDE the box; the browse button is icon-only */
+.blacksmith-toast-send-input-wrap {
+    position: relative;
+    display: flex;
+    flex: 1;
+    min-width: 0;
+}
+.blacksmith-toast-send-input-wrap input {
+    flex: 1;
+    padding-right: 1.9rem;
+}
+.blacksmith-toast-send-input-wrap .blacksmith-toast-send-clear {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.35rem;
+    height: 1.35rem;
+    border: none;
+    background: none;
+}
+.blacksmith-toast-send-input-wrap .blacksmith-toast-send-clear:hover {
+    background: none;
+    box-shadow: none;
+    color: rgba(255, 100, 0, 0.9);
+}
+
+.blacksmith-toast-send-browse {
+    flex: 0 0 auto;
+}
+
+/* Border color: hex text + square swatch, the pin-configuration pattern.
+   (Swatch styles mirror .blacksmith-pin-config-color-picker — reconcile into one
+   shared class in the design-system pass.) */
+.blacksmith-toast-send-color-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.blacksmith-toast-send-color-text {
+    flex: 0 0 7em;
+}
+.blacksmith-toast-send-color-picker {
+    height: 26px;
+    width: 26px;
+    padding: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+.blacksmith-toast-send-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+.blacksmith-toast-send-color-picker::-webkit-color-swatch {
+    border: none;
+    border-radius: 3px;
 }

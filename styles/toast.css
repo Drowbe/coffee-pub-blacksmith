@@ -27,7 +27,9 @@
     padding: 12px 18px;
     max-width: 420px;
     background: rgba(20, 20, 20, 0.95);
-    border: 1px solid #ac9f81;
+    /* 4px solid everywhere (the announcement treatment); fullscreen is the one
+       exception — it overrides border to none and carries the scrim instead */
+    border: 4px solid #ac9f81;
     border-radius: 6px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
     opacity: 0;
@@ -100,40 +102,24 @@
 }
 
 /* ------------------------------------ */
-/* --- SEMANTIC STYLES ---------------- */
+/* --- ACCENT COLOR ------------------- */
 /* ------------------------------------ */
-/* Applied as blacksmith-toast-style-* from the STYLES whitelist in api-toast.js.
-   Accent = border + icon + title. Hardcoded hex for now — these map onto the
-   design-system tokens when that migration lands (author decision 2026-07-19). */
+/* blacksmith-toast-accented: the --blacksmith-toast-accent custom property is set
+   inline by api-toast.js from a STRICT-HEX validated `color` config value (the API
+   takes parameters, not a closed style set — author decision 2026-07-19). The accent
+   drives border + icon + title. The box background is its own independent parameter
+   (`backgroundColor`, validated inline style) — derivation was tried and retired. */
 
-.blacksmith-toast-style-info { border-color: #5b9bd5; }
-.blacksmith-toast-style-info .blacksmith-toast-icon,
-.blacksmith-toast-style-info .blacksmith-toast-title { color: #5b9bd5; }
-.blacksmith-toast-style-info .blacksmith-toast-image { border-color: #5b9bd5; }
-
-.blacksmith-toast-style-success { border-color: #5cb85c; }
-.blacksmith-toast-style-success .blacksmith-toast-icon,
-.blacksmith-toast-style-success .blacksmith-toast-title { color: #5cb85c; }
-.blacksmith-toast-style-success .blacksmith-toast-image { border-color: #5cb85c; }
-
-.blacksmith-toast-style-warning { border-color: #e0a800; }
-.blacksmith-toast-style-warning .blacksmith-toast-icon,
-.blacksmith-toast-style-warning .blacksmith-toast-title { color: #e0a800; }
-.blacksmith-toast-style-warning .blacksmith-toast-image { border-color: #e0a800; }
-
-.blacksmith-toast-style-danger { border-color: #e05252; }
-.blacksmith-toast-style-danger .blacksmith-toast-icon,
-.blacksmith-toast-style-danger .blacksmith-toast-title { color: #e05252; }
-.blacksmith-toast-style-danger .blacksmith-toast-image { border-color: #e05252; }
-
-/* Announcement: the GM-voice style — the default gold, turned up */
-.blacksmith-toast-style-announcement {
-    border-color: #ac9f81;
-    border-width: 2px;
-    background: rgba(28, 24, 16, 0.97);
+.blacksmith-toast-accented {
+    border-color: var(--blacksmith-toast-accent);
 }
-.blacksmith-toast-style-announcement .blacksmith-toast-icon,
-.blacksmith-toast-style-announcement .blacksmith-toast-title { color: #d8c9a3; }
+.blacksmith-toast-accented .blacksmith-toast-icon,
+.blacksmith-toast-accented .blacksmith-toast-title {
+    color: var(--blacksmith-toast-accent);
+}
+.blacksmith-toast-accented .blacksmith-toast-image {
+    border-color: var(--blacksmith-toast-accent);
+}
 
 /* ------------------------------------ */
 /* --- BILLBOARDS (sized toasts) ------ */

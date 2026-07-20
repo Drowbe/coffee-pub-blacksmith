@@ -15,6 +15,23 @@ import { ToastManager, sendToastToUsers } from './api-toast.js';
 
 const APP_ID = 'blacksmith-toast-send-window';
 const PREFS_SETTING = 'toastSendPreferences';
+const TEMPLATES_SETTING = 'toastSendTemplates';
+
+// Built-in templates are code-side and non-deletable; user templates live in the
+// world-scoped toastSendTemplates setting. A template is an APPEARANCE bundle —
+// recipients and message text are never part of one. Border and background colors
+// are independent parameters (derivation was tried and retired); a background
+// image, when set, covers the background color.
+// A deliberately small set — Information is the everyday default, Announcement and
+// Important cover the loud cases, and everything else is Custom / user-saved.
+const BUILTIN_TEMPLATES = {
+    'Information':   { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bullhorn', image: '', backgroundImage: '', size: '', duration: 10, sound: 'sound-interface-pop-01' },
+    'Announcement':  { color: '#5b9bd5', backgroundColor: '#1e2b37', icon: 'fa-solid fa-bullhorn', image: '', backgroundImage: '', size: 'medium', duration: 0, sound: 'sound-none' },
+    'Important':     { color: '#e05252', backgroundColor: '#391c1c', icon: 'fa-solid fa-triangle-exclamation', image: '', backgroundImage: '', size: '', duration: 0, sound: 'sound-none' }
+};
+const DEFAULT_BG_COLOR = '#141414';
+// Template-selector sentinel: shown whenever the form has diverged from a template.
+const CUSTOM_TEMPLATE = 'Custom';
 // '__image__' is a UI sentinel, never sent as an icon class: selecting it switches the
 // visual to a custom image (revealing the path/browse field) — image and icon are
 // mutually exclusive by construction.
@@ -56,8 +73,12 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         {
             id: APP_ID,
             classes: ['blacksmith-toast-send-window'],
-            position: { width: 520, height: 'auto' },
-            window: { title: 'Send Toast', resizable: false, minimizable: true, icon: 'fas fa-bullhorn' }
+            position: { width: 500, height: 'auto' },
+            window: { title: 'Send Toast', resizable: true, minimizable: true, icon: 'fas fa-bullhorn' },
+            // Base-class constraints (never put min/max on position — Foundry's
+            // position object is not extensible). Width stays put; height is the
+            // axis worth dragging when the recipient list or icon grid grows.
+            windowSizeConstraints: { minWidth: 500, maxWidth: 500, minHeight: 420 }
         }
     );
 
@@ -72,7 +93,9 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         'toast-browse-background': () => ToastSendWindow._ref?._browseImage('toast-background'),
         'toast-clear-image': () => ToastSendWindow._ref?._clearImage('toast-image'),
         'toast-clear-background': () => ToastSendWindow._ref?._clearImage('toast-background'),
-        'toast-select-icon': (_event, target) => ToastSendWindow._ref?._selectIcon(target)
+        'toast-select-icon': (_event, target) => ToastSendWindow._ref?._selectIcon(target),
+        'toast-template-save': () => ToastSendWindow._ref?._saveTemplateAs(),
+        'toast-template-delete': () => ToastSendWindow._ref?._deleteTemplate()
     };
 
     constructor(options = {}) {
@@ -105,9 +128,14 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 </label>`)
             .join('');
 
-        const styleOptions = ['announcement', ...ToastManager.STYLES.filter(s => s !== 'announcement'), '']
-            .map(s => `<option value="${s}"${String(prefs.style ?? 'announcement') === s ? ' selected' : ''}>${s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Default'}</option>`)
-            .join('');
+        const templates = this._getTemplates();
+        const selectedTemplate = prefs.template === CUSTOM_TEMPLATE ? CUSTOM_TEMPLATE
+            : (templates[prefs.template] ? prefs.template : 'Information');
+        const templateOptions = [
+            `<option value="${CUSTOM_TEMPLATE}"${selectedTemplate === CUSTOM_TEMPLATE ? ' selected' : ''}>— Custom —</option>`,
+            ...Object.keys(templates).map(name =>
+                `<option value="${esc(name)}"${name === selectedTemplate ? ' selected' : ''}>${esc(name)}${BUILTIN_TEMPLATES[name] ? '' : ' *'}</option>`)
+        ].join('');
         const soundOptions = Object.entries(BLACKSMITH.arrSoundChoices || { 'sound-none': 'No Sound' })
             .map(([value, label]) => `<option value="${esc(value)}"${String(prefs.sound || 'sound-none') === value ? ' selected' : ''}>${esc(label)}</option>`)
             .join('');
@@ -152,11 +180,17 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                         <i class="fa-solid fa-palette"></i>
                         <span>Appearance</span>
                     </div>
-                    <div class="blacksmith-field-row">
-                        <div class="blacksmith-field">
-                            <label class="blacksmith-field-label">Style</label>
-                            <select class="blacksmith-input" name="toast-style">${styleOptions}</select>
+                    <div class="blacksmith-field">
+                        <label class="blacksmith-field-label">Template</label>
+                        <div class="blacksmith-toast-send-image-row">
+                            <select class="blacksmith-input" name="toast-template">${templateOptions}</select>
+                            <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-template-save"
+                                data-tooltip="Save current appearance as a new template"><i class="fa-solid fa-floppy-disk"></i> Save As</button>
+                            <button type="button" class="blacksmith-toast-send-clear" data-action="toast-template-delete"
+                                data-tooltip="Delete this template (saved templates only)" aria-label="Delete template"><i class="fa-solid fa-trash"></i></button>
                         </div>
+                    </div>
+                    <div class="blacksmith-field-row">
                         <div class="blacksmith-field">
                             <label class="blacksmith-field-label">Size</label>
                             <select class="blacksmith-input" name="toast-size">
@@ -185,19 +219,44 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                     <div class="blacksmith-field blacksmith-toast-send-image-field${this.selectedIcon === IMAGE_MODE ? '' : ' hidden'}">
                         <label class="blacksmith-field-label">Image</label>
                         <div class="blacksmith-toast-send-image-row">
-                            <input type="text" class="blacksmith-input" name="toast-image" value="${esc(prefs.image || '')}" placeholder="Avatar image path">
-                            <button type="button" class="blacksmith-toast-send-clear" data-action="toast-clear-image" data-tooltip="Clear image" aria-label="Clear image"><i class="fa-solid fa-xmark"></i></button>
-                            <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-image"
-                                data-tooltip="Browse for image"><i class="fa-solid fa-folder-open"></i> Browse</button>
+                            <div class="blacksmith-toast-send-input-wrap">
+                                <input type="text" class="blacksmith-input" name="toast-image" value="${esc(prefs.image || '')}" placeholder="Avatar image path">
+                                <button type="button" class="blacksmith-toast-send-clear" data-action="toast-clear-image" data-tooltip="Clear image" aria-label="Clear image"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <button type="button" class="blacksmith-window-btn-secondary blacksmith-toast-send-browse" data-action="toast-browse-image"
+                                data-tooltip="Browse for image" aria-label="Browse for image"><i class="fa-solid fa-folder-open"></i></button>
+                        </div>
+                    </div>
+                    <div class="blacksmith-field-row">
+                        <div class="blacksmith-field">
+                            <label class="blacksmith-field-label">Border Color</label>
+                            <div class="blacksmith-toast-send-color-row">
+                                <input type="text" class="blacksmith-input blacksmith-toast-send-color-text" name="toast-border-color-text"
+                                    value="${esc(prefs.color || '#ac9f81')}" maxlength="7" placeholder="#ac9f81"
+                                    data-tooltip="Border, icon, and title color">
+                                <input type="color" class="blacksmith-toast-send-color-picker" name="toast-border-color" value="${esc(prefs.color || '#ac9f81')}">
+                            </div>
+                        </div>
+                        <div class="blacksmith-field">
+                            <label class="blacksmith-field-label">Background Color</label>
+                            <div class="blacksmith-toast-send-color-row">
+                                <input type="text" class="blacksmith-input blacksmith-toast-send-color-text" name="toast-bg-color-text"
+                                    value="${esc(prefs.backgroundColor || DEFAULT_BG_COLOR)}" maxlength="7" placeholder="${DEFAULT_BG_COLOR}"
+                                    data-tooltip="Box background; a background image covers it">
+                                <input type="color" class="blacksmith-toast-send-color-picker" name="toast-bg-color" value="${esc(prefs.backgroundColor || DEFAULT_BG_COLOR)}">
+                            </div>
                         </div>
                     </div>
                     <div class="blacksmith-field">
-                        <label class="blacksmith-field-label">Background</label>
+                        <label class="blacksmith-field-label">Background Image</label>
                         <div class="blacksmith-toast-send-image-row">
-                            <input type="text" class="blacksmith-input" name="toast-background" value="${esc(prefs.backgroundImage || '')}" placeholder="Background image path (optional)">
-                            <button type="button" class="blacksmith-toast-send-clear" data-action="toast-clear-background" data-tooltip="Clear background" aria-label="Clear background"><i class="fa-solid fa-xmark"></i></button>
-                            <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-background"
-                                data-tooltip="Browse for image"><i class="fa-solid fa-folder-open"></i> Browse</button>
+                            <div class="blacksmith-toast-send-input-wrap">
+                                <input type="text" class="blacksmith-input" name="toast-background" value="${esc(prefs.backgroundImage || '')}"
+                                    placeholder="Optional — covers the background color">
+                                <button type="button" class="blacksmith-toast-send-clear" data-action="toast-clear-background" data-tooltip="Clear background" aria-label="Clear background"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <button type="button" class="blacksmith-window-btn-secondary blacksmith-toast-send-browse" data-action="toast-browse-background"
+                                data-tooltip="Browse for image" aria-label="Browse for image"><i class="fa-solid fa-folder-open"></i></button>
                         </div>
                     </div>
                 </div>
@@ -243,12 +302,147 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         });
         applyPartyState();
 
+        // Appearance edits flip the template selector to "Custom" — the selector never
+        // claims a template the form has diverged from. Recipients/message are not
+        // appearance and do not flip it.
+        const APPEARANCE_FIELDS = ['toast-size', 'toast-duration', 'toast-sound', 'toast-border-color', 'toast-border-color-text', 'toast-bg-color', 'toast-bg-color-text', 'toast-image', 'toast-background'];
         for (const input of root.querySelectorAll('input, select')) {
-            if (['toast-title', 'toast-subtitle', 'toast-party'].includes(input.name)) continue;
+            if (['toast-title', 'toast-subtitle', 'toast-party', 'toast-template'].includes(input.name)) continue;
             input.addEventListener('change', () => {
+                if (APPEARANCE_FIELDS.includes(input.name)) this._markCustom();
                 void this._savePreferences();
             });
         }
+
+        // Color rows: hex text and swatch stay in two-way sync (pin-config pattern)
+        const syncColorPair = (textName, pickerName) => {
+            const text = root.querySelector(`[name="${textName}"]`);
+            const picker = root.querySelector(`[name="${pickerName}"]`);
+            picker?.addEventListener('input', () => {
+                if (text) text.value = picker.value;
+            });
+            text?.addEventListener('change', () => {
+                const value = text.value.trim();
+                if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+                    if (picker) picker.value = value;
+                } else if (picker) {
+                    text.value = picker.value; // invalid hex: revert to the swatch
+                }
+            });
+        };
+        syncColorPair('toast-border-color-text', 'toast-border-color');
+        syncColorPair('toast-bg-color-text', 'toast-bg-color');
+
+        // Picking a template stamps its appearance onto the form (then normal editing
+        // diverges freely — a template is a starting point, not a binding)
+        root.querySelector('[name="toast-template"]')?.addEventListener('change', (event) => {
+            this._applyTemplate(event.currentTarget.value);
+        });
+    }
+
+    /** The form no longer matches a template — reflect that in the selector. */
+    _markCustom() {
+        const select = this._getRoot()?.querySelector('[name="toast-template"]');
+        if (select) select.value = CUSTOM_TEMPLATE;
+    }
+
+    _getTemplates() {
+        let saved = {};
+        try {
+            saved = game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {};
+        } catch { /* setting not registered yet */ }
+        return { ...BUILTIN_TEMPLATES, ...saved };
+    }
+
+    _currentAppearance() {
+        const root = this._getRoot();
+        const imageMode = this.selectedIcon === IMAGE_MODE;
+        return {
+            color: root?.querySelector('[name="toast-border-color"]')?.value || '#ac9f81',
+            backgroundColor: root?.querySelector('[name="toast-bg-color"]')?.value || DEFAULT_BG_COLOR,
+            icon: imageMode ? '' : this.selectedIcon,
+            image: imageMode ? (root?.querySelector('[name="toast-image"]')?.value?.trim() || '') : '',
+            backgroundImage: root?.querySelector('[name="toast-background"]')?.value?.trim() || '',
+            size: root?.querySelector('[name="toast-size"]')?.value || '',
+            duration: Number(root?.querySelector('[name="toast-duration"]')?.value ?? 0),
+            sound: root?.querySelector('[name="toast-sound"]')?.value || 'sound-none'
+        };
+    }
+
+    _applyTemplate(name) {
+        const root = this._getRoot();
+        if (!root) return;
+        if (name === CUSTOM_TEMPLATE) {
+            // "Custom" is a state, not a template — keep the form as it stands
+            void this._savePreferences();
+            return;
+        }
+        const tpl = this._getTemplates()[name];
+        if (!tpl) return;
+
+        const setValue = (selector, value) => {
+            const el = root.querySelector(selector);
+            if (el) el.value = value;
+        };
+        setValue('[name="toast-size"]', tpl.size ?? '');
+        setValue('[name="toast-duration"]', String(tpl.duration ?? 0));
+        setValue('[name="toast-sound"]', tpl.sound ?? 'sound-none');
+        setValue('[name="toast-border-color"]', tpl.color || '#ac9f81');
+        setValue('[name="toast-border-color-text"]', tpl.color || '#ac9f81');
+        setValue('[name="toast-bg-color"]', tpl.backgroundColor || DEFAULT_BG_COLOR);
+        setValue('[name="toast-bg-color-text"]', tpl.backgroundColor || DEFAULT_BG_COLOR);
+        setValue('[name="toast-background"]', tpl.backgroundImage || '');
+        setValue('[name="toast-image"]', tpl.image || '');
+
+        this.selectedIcon = tpl.image ? IMAGE_MODE : String(tpl.icon ?? '');
+        this._refreshIconSelection();
+        root.querySelector('.blacksmith-toast-send-image-field')
+            ?.classList.toggle('hidden', this.selectedIcon !== IMAGE_MODE);
+
+        void this._savePreferences();
+    }
+
+    async _saveTemplateAs() {
+        const name = await foundry.applications.api.DialogV2.prompt({
+            window: { title: 'Save Toast Template' },
+            content: '<input type="text" name="template-name" placeholder="Template name" autofocus maxlength="40">',
+            ok: {
+                label: 'Save',
+                callback: (_event, button) => button.form.elements['template-name']?.value?.trim()
+            }
+        }).catch(() => null);
+        if (!name) return;
+        if (BUILTIN_TEMPLATES[name] || name === CUSTOM_TEMPLATE) {
+            ui.notifications.warn(`"${name}" is a reserved template name — pick another.`);
+            return;
+        }
+        const saved = { ...(game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {}) };
+        saved[name] = this._currentAppearance();
+        await game.settings.set(MODULE.ID, TEMPLATES_SETTING, saved);
+        this.preferences = { ...this.preferences, template: name };
+        await game.settings.set(MODULE.ID, PREFS_SETTING, this.preferences);
+        this.render();
+    }
+
+    async _deleteTemplate() {
+        const root = this._getRoot();
+        const name = root?.querySelector('[name="toast-template"]')?.value;
+        if (!name || name === CUSTOM_TEMPLATE) return;
+        if (BUILTIN_TEMPLATES[name]) {
+            ui.notifications.warn('Built-in templates cannot be deleted.');
+            return;
+        }
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete Toast Template' },
+            content: `<p>Delete the template <strong>${foundry.utils.escapeHTML(name)}</strong>?</p>`
+        }).catch(() => false);
+        if (!confirmed) return;
+        const saved = { ...(game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {}) };
+        delete saved[name];
+        await game.settings.set(MODULE.ID, TEMPLATES_SETTING, saved);
+        this.preferences = { ...this.preferences, template: 'Information' };
+        await game.settings.set(MODULE.ID, PREFS_SETTING, this.preferences);
+        this.render();
     }
 
     _browseImage(inputName = 'toast-image') {
@@ -304,7 +498,9 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         const preferences = {
             party: root.querySelector('[name="toast-party"]')?.checked === true,
             recipients: [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(input => input.value),
-            style: root.querySelector('[name="toast-style"]')?.value || '',
+            template: root.querySelector('[name="toast-template"]')?.value || 'Information',
+            color: root.querySelector('[name="toast-border-color"]')?.value || '#ac9f81',
+            backgroundColor: root.querySelector('[name="toast-bg-color"]')?.value || DEFAULT_BG_COLOR,
             size: root.querySelector('[name="toast-size"]')?.value || '',
             duration: Number(root.querySelector('[name="toast-duration"]')?.value ?? 0),
             sound: root.querySelector('[name="toast-sound"]')?.value || 'sound-none',
@@ -347,13 +543,16 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             }
 
             const subtitle = root.querySelector('[name="toast-subtitle"]')?.value?.trim() || '';
-            const style = root.querySelector('[name="toast-style"]')?.value || null;
             const duration = Number(root.querySelector('[name="toast-duration"]')?.value ?? 0);
             const size = root.querySelector('[name="toast-size"]')?.value || null;
             const imageMode = this.selectedIcon === IMAGE_MODE;
             const image = imageMode
                 ? (root.querySelector('[name="toast-image"]')?.value?.trim() || null)
                 : null;
+            // Border and background colors are independent; a background image covers
+            // the background color (the border keeps its color either way).
+            const color = root.querySelector('[name="toast-border-color"]')?.value || null;
+            const backgroundColor = root.querySelector('[name="toast-bg-color"]')?.value || null;
             const backgroundImage = root.querySelector('[name="toast-background"]')?.value?.trim() || null;
             const sound = root.querySelector('[name="toast-sound"]')?.value || null;
             const icon = imageMode ? null : (this.selectedIcon || null);
@@ -362,7 +561,8 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
             await sendToastToUsers({
                 title, subtitle, image, backgroundImage, icon, sound,
-                style: style || null,
+                color,
+                backgroundColor,
                 size,
                 duration,
                 moduleId: 'blacksmith-core'
@@ -376,7 +576,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 title: 'Toast sent',
                 subtitle: names.join(', '),
                 icon: 'fas fa-bullhorn',
-                style: 'info',
+                color: '#5b9bd5',
                 duration: 5,
                 stackKey: 'blacksmith-toast-send-confirm'
             });

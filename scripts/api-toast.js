@@ -14,13 +14,15 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 
 class ToastManager {
-    static toasts = new Map(); // toastId -> { id, moduleId, stackKey, persistent, style, size, onClick, onDismiss, timeoutId, element }
+    static toasts = new Map(); // toastId -> { id, moduleId, stackKey, persistent, color, size, onClick, onDismiss, timeoutId, element }
     static MAX_STACK = 5;      // applies to TRANSIENT toasts only — persistent (duration: 0) toasts are exempt
     static ANIMATION_MS = 400; // must match the transition duration in styles/toast.css
-    // Class-only styling: config values are whitelisted and mapped to CSS classes —
-    // consumers can never inject arbitrary classes or CSS through the config.
-    // (backgroundImage is the one deliberate exception: a sanitized inline style.)
-    static STYLES = ['info', 'success', 'warning', 'danger', 'announcement'];
+    // Class-only styling with two deliberate, sanitized inline exceptions
+    // (author decision 2026-07-19 — the API takes parameters, not a closed style set):
+    //   backgroundImage — encodeURI'd path in url("")
+    //   color — strict-hex accent applied as a CSS custom property; drives the border
+    //           and (via color-mix in toast.css) a tinted wash of the box background
+    static COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
     // Two display modes (author decision 2026-07-19): no size = a TOAST (content-fit,
     // stacks top-center); any size = a BILLBOARD (viewport-proportional box in BOTH
     // dimensions, typography scaling with it, centered, singleton, cap-exempt,
@@ -37,7 +39,8 @@ class ToastManager {
      * @param {string} config.icon - FontAwesome icon class (ignored if image is set)
      * @param {string} config.image - Image path/URL, rendered as a round avatar (wins over icon)
      * @param {number} config.duration - Seconds before auto-dismiss; 0 = until closed (default: 8). Persistent (0) toasts are exempt from stack-cap eviction — only the close button, stackKey replacement, or programmatic removal ends them.
-     * @param {string} config.style - Semantic style: 'info' | 'success' | 'warning' | 'danger' | 'announcement' (optional; anything else = default look)
+     * @param {string} config.color - Accent color as strict hex ('#rgb' or '#rrggbb'); drives the border, icon, and title (optional; anything else = default look)
+     * @param {string} config.backgroundColor - Box background color as strict hex, independent of the accent (optional; default is the dark base; a backgroundImage covers it)
      * @param {string} config.size - Omit for a normal toast (content-fit, stacks top-center). 'small' | 'medium' | 'large' | 'fullscreen' render a BILLBOARD: a viewport-proportional box (both dimensions, typography scaling with it), centered on screen, one at a time (a new billboard replaces the current), exempt from the stack cap; with no onClick, clicking anywhere dismisses it
      * @param {string} config.backgroundImage - Image path/URL rendered as a cover background behind the toast content, with an automatic dark scrim for legibility (optional)
      * @param {string} config.sound - Optional audio path played locally when the toast appears
@@ -47,7 +50,7 @@ class ToastManager {
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
      * @returns {string|null} - Toast ID for later removal, or null on error
      */
-    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, sound = null, duration = 8, style = null, size = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null } = {}) {
+    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null } = {}) {
         try {
             if (!title) {
                 postConsoleAndNotification(MODULE.NAME, "Toast: show() requires a title", "", false, false);
@@ -61,7 +64,8 @@ class ToastManager {
                 }
             }
 
-            const validStyle = this.STYLES.includes(style) ? style : null;
+            const validColor = (typeof color === 'string' && this.COLOR_PATTERN.test(color)) ? color : null;
+            const validBackgroundColor = (typeof backgroundColor === 'string' && this.COLOR_PATTERN.test(backgroundColor)) ? backgroundColor : null;
             const validSize = this.SIZES.includes(size) ? size : null;
             const persistent = !(Number(duration) > 0);
 
@@ -90,7 +94,8 @@ class ToastManager {
                 moduleId: moduleId,
                 stackKey: stackKey,
                 persistent: persistent,
-                style: validStyle,
+                color: validColor,
+                backgroundColor: validBackgroundColor,
                 size: validSize,
                 onClick: typeof onClick === 'function' ? onClick : null,
                 onDismiss: typeof onDismiss === 'function' ? onDismiss : null,
@@ -178,7 +183,8 @@ class ToastManager {
             moduleId: t.moduleId,
             stackKey: t.stackKey,
             persistent: t.persistent,
-            style: t.style,
+            color: t.color,
+            backgroundColor: t.backgroundColor,
             size: t.size
         }));
     }
@@ -229,7 +235,17 @@ class ToastManager {
         el.className = 'blacksmith-toast';
         if (toast.onClick) el.classList.add('blacksmith-toast-actionable');
         // Whitelisted in show() — these can only ever be values from STYLES/SIZES
-        if (toast.style) el.classList.add(`blacksmith-toast-style-${toast.style}`);
+        // Accent color: strict-hex validated in show(); applied as a custom property so
+        // toast.css derives border/icon/title from one value.
+        if (toast.color) {
+            el.classList.add('blacksmith-toast-accented');
+            el.style.setProperty('--blacksmith-toast-accent', toast.color);
+        }
+        // Background color: independent of the accent, strict-hex validated in show().
+        // A backgroundImage (inline background-image) covers it when both are set.
+        if (toast.backgroundColor) {
+            el.style.backgroundColor = toast.backgroundColor;
+        }
         if (toast.size) el.classList.add(`blacksmith-toast-size-${toast.size}`);
 
         // backgroundImage is the one inline-style exception to the class-only model:

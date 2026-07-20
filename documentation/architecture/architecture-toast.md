@@ -53,20 +53,39 @@ Three bounds keep the stack sane, all resolved inside `show()`:
    still has its × button.
 3. Neither path fires `onDismiss` — see the dismissal contract below.
 
-## Styles and sizes — class-only
+## Appearance: parameters over a closed style set
 
-`style` (semantic set) and `size` values are whitelisted (`STYLES`/`SIZES` in `api-toast.js`) and
-mapped to `blacksmith-toast-style-*` / `blacksmith-toast-size-*` classes — a consumer can never
-inject an arbitrary class or CSS through the config. Accent colors in `styles/toast.css` are
-hardcoded hex for now, to be mapped onto design-system tokens when that migration lands
-(author decision 2026-07-19: semantic set now, token mapping later).
+An earlier iteration shipped a whitelisted semantic `style` set (`info`/`success`/…); the author
+replaced it pre-release (2026-07-19) with a **`color` parameter** — the API takes parameters, and
+presets live in the *consumer* (the Send Toast tool's templates), not in the primitive. `size`
+remains whitelisted (`SIZES`) and class-mapped; sizes are discrete presets rather than a free
+percentage so every size is a tested CSS class.
 
-**`backgroundImage` is the one deliberate exception** to class-only: a cover background applied as
-an inline style. The path is `encodeURI`d so quotes cannot escape the `url("")` wrapper, and the
-`has-bg` class adds an automatic dark scrim (`::before` overlay; content stacks above it) so text
-stays legible over arbitrary art. Sizes are discrete presets rather than a free percentage for the
-same reason the styles are class-only: every size is a tested CSS class, nothing is computed into
-inline styles from consumer input.
+Class-only styling has exactly **three deliberate, sanitized inline exceptions**:
+
+1. **`backgroundImage`** — a cover background applied as an inline style. The path is `encodeURI`d
+   so quotes cannot escape the `url("")` wrapper, and the `has-bg` class adds an automatic dark
+   scrim (`::before` overlay; content stacks above it) so text stays legible over arbitrary art.
+2. **`color`** — validated against a strict hex pattern (`COLOR_PATTERN`) and applied as the
+   `--blacksmith-toast-accent` custom property; `toast.css` derives border/icon/title from it.
+   A custom property carrying a validated hex cannot smuggle CSS.
+3. **`backgroundColor`** — same strict-hex validation, applied as an inline `background-color`,
+   **independent of the accent**. (An earlier iteration derived the background from the accent via
+   `color-mix`; the author retired derivation — explicit beats clever.) A `backgroundImage` covers
+   it when both are set; the border keeps its accent either way.
+
+## The Send Toast templates (consumer-side presets)
+
+The GM tool's template selector is where presets live now that the primitive takes parameters.
+Built-in templates are code-side constants in `window-toast-send.js` (`BUILTIN_TEMPLATES` — the
+former semantic styles reborn as color bundles) and are not deletable; user templates are
+appearance bundles saved by name in the world-scoped `toastSendTemplates` setting (Save As /
+Delete in the window). A template stamps the appearance fields (border color — from which the box
+background derives unless an optional background image is set — icon/avatar mode, size, duration,
+sound) onto the form; any subsequent appearance edit flips the selector to the **— Custom —**
+sentinel so it never claims a template the form has diverged from. Recipients and message text are
+never part of a template. The border-color control follows the pin-configuration pattern (hex text
++ swatch, two-way synced).
 
 Optional `sound` is a data path, not a shared audio instance. `show()` plays it locally through
 Blacksmith's sound helper. Internal broadcast/targeted relays carry the path, and each receiving
