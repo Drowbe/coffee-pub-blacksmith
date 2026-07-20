@@ -65,8 +65,7 @@ import { JournalPagePins } from './ui-journal-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
-import { JsonImportWindow } from './window-json-import.js';
-import { attachJsonImportButton } from './registry-json-import.js';
+import { attachJsonImportButton, registerJsonImportKind } from './registry-json-import.js';
 import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';
 import './registry-json-import-journals.js';
@@ -562,16 +561,6 @@ Hooks.once('ready', async () => {
         // ENCOUNTER TOOLBAR
         LoadingProgressManager.logActivity("Setting up encounter toolbar...");
         EncounterToolbar.init();
-
-        // Tear down journal/encounter DOM watchers on world exit (reduces duplicate intervals if session restarts without full reload)
-        Hooks.once('closeGame', () => {
-            try {
-                EncounterToolbar.dispose();
-                JournalPagePins.dispose();
-            } catch (e) {
-                console.warn(`${MODULE.ID}: closeGame journal lifecycle dispose`, e);
-            }
-        });
 
         // SIDEBAR PIN
         LoadingProgressManager.logActivity("Configuring sidebar...");
@@ -2628,6 +2617,44 @@ const renderRollTableDirectoryHookId = HookManager.registerHook({
 // Log hook registration
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderRollTableDirectory", "blacksmith-rolltable-directory", true, false);
 
+const ACTOR_JSON_IMPORT_KIND_ID = 'actor';
+registerJsonImportKind({
+    id: ACTOR_JSON_IMPORT_KIND_ID,
+    gmOnly: true,
+    buttonHtml: '<i class="fa-solid fa-user-plus"></i> Import',
+    idSuffix: 'actor',
+    windowTitle: 'Import JSON',
+    headerTitle: 'Import Actor',
+    windowIcon: 'fa-solid fa-user-plus',
+    position: { width: 920, height: 680 },
+    templateOptions: [
+        { value: 'npc', label: 'NPC/Monster', authoringModes: 'json prompt' },
+        { value: 'portrait', label: 'Portrait Image', authoringModes: 'prompt' }
+    ],
+    get promptFields() {
+        return [...getActorPromptFields(), ...getJournalPortraitPromptFields()];
+    },
+    onBuildPrompt: async (type, promptOptions = {}) => type === 'portrait'
+        ? buildJournalVisualPrompt('portrait', promptOptions)
+        : buildActorImportPrompt(promptOptions),
+    onBuildJsonTemplate: async (type) => type === 'npc' ? buildActorJsonTemplate() : '',
+    onBuildAuthoringGuide: async (type) => type === 'npc' ? buildActorAuthoringGuide() : '',
+    onImport: async (entries) => {
+        const actorsToImport = await Promise.all(entries.map(parseActorJSONToFoundry));
+        const created = await Actor.createDocuments(actorsToImport, { keepId: false });
+        for (let i = 0; i < created.length; i++) {
+            await compendiumManager.addItemsToActor(created[i], actorsToImport[i]);
+        }
+        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} actor(s) successfully.`, '', false, true);
+        return true;
+    },
+    onImportError: (e) => {
+        postConsoleAndNotification(MODULE.NAME, 'Failed to import actors', e, false, true);
+        ui.notifications.error(`Failed to import actors: ${e.message}`);
+        return false;
+    }
+});
+
 // Register renderActorDirectory hook for actor import functionality
 const renderActorDirectoryHookId = HookManager.registerHook({
     name: 'renderActorDirectory',
@@ -2636,67 +2663,7 @@ const renderActorDirectoryHookId = HookManager.registerHook({
     priority: 3, // Normal priority - UI enhancement
     callback: async (app, html, data) => {
         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-    // Only GMs can import actors
-    if (!game.user.isGM) {
-        return;
-    }
-    
-    const button = document.createElement('button');
-    button.innerHTML = '<i class="fa-solid fa-user-plus"></i> Import';
-    button.addEventListener('click', () => {
-        void JsonImportWindow.open({
-            idSuffix: 'actor',
-            windowTitle: 'Import JSON',
-            headerTitle: 'Import Actor',
-            windowIcon: 'fa-solid fa-user-plus',
-            position: { width: 920, height: 680 },
-            templateOptions: [
-                { value: 'npc', label: 'NPC/Monster', authoringModes: 'json prompt' },
-                { value: 'portrait', label: 'Portrait Image', authoringModes: 'prompt' }
-            ],
-            promptFields: [...getActorPromptFields(), ...getJournalPortraitPromptFields()],
-            onBuildPrompt: async (type, promptOptions = {}) => type === 'portrait'
-                ? buildJournalVisualPrompt('portrait', promptOptions)
-                : buildActorImportPrompt(promptOptions),
-            onBuildJsonTemplate: async (type) => type === 'npc' ? buildActorJsonTemplate() : '',
-            onBuildAuthoringGuide: async (type) => type === 'npc' ? buildActorAuthoringGuide() : '',
-            onImport: async (jsonData) => {
-                try {
-                    const parsed = JSON.parse(jsonData);
-                    let actorsToImport = [];
-                    if (Array.isArray(parsed)) {
-                        actorsToImport = await Promise.all(parsed.map(parseActorJSONToFoundry));
-                    } else if (typeof parsed === 'object' && parsed !== null) {
-                        actorsToImport = [await parseActorJSONToFoundry(parsed)];
-                    } else {
-                        throw new Error('JSON must be an array or object');
-                    }
-                    const created = await Actor.createDocuments(actorsToImport, { keepId: false });
-                    for (let i = 0; i < created.length; i++) {
-                        const actor = created[i];
-                        const originalData = actorsToImport[i];
-                        await compendiumManager.addItemsToActor(actor, originalData);
-                    }
-                    postConsoleAndNotification(
-                        MODULE.NAME,
-                        `Imported ${created.length} actor(s) successfully.`,
-                        '',
-                        false,
-                        true
-                    );
-                    return true;
-                } catch (e) {
-                    postConsoleAndNotification(MODULE.NAME, 'Failed to import actors', e, false, true);
-                    ui.notifications.error('Failed to import actors: ' + e.message);
-                    return false;
-                }
-            }
-        });
-    });
-        const headerActions = html.querySelector(".header-actions.action-buttons");
-        if (headerActions) {
-            headerActions.insertBefore(button, headerActions.firstChild);
-        }
+        attachJsonImportButton(html, ACTOR_JSON_IMPORT_KIND_ID);
         
         //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
     }

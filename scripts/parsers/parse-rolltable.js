@@ -2,8 +2,7 @@
 // Flat roll table JSON → Foundry RollTable documents
 // ==================================================================
 
-import { MODULE } from '../const.js';
-import { postConsoleAndNotification } from '../api-core.js';
+import { compendiumManager } from '../manager-compendiums.js';
 
 /**
  * Convert flat roll table JSON into Foundry RollTable create data.
@@ -11,6 +10,10 @@ import { postConsoleAndNotification } from '../api-core.js';
  * @returns {Promise<object>}
  */
 export async function parseTableToFoundry(flat) {
+    const missingDocumentPolicy = String(flat.missingDocumentPolicy || 'error').trim().toLowerCase();
+    if (!['error', 'text'].includes(missingDocumentPolicy)) {
+        throw new Error('missingDocumentPolicy must be "error" or "text".');
+    }
     const data = {
         name: flat.tableName || 'Imported Table',
         description: flat.tableDescription || '',
@@ -62,9 +65,9 @@ export async function parseTableToFoundry(flat) {
                 maxRange = rangeUpper;
             }
 
-            let foundryType = (result.resultType || 'text').toLowerCase();
-            if (foundryType === 'compendium') {
-                foundryType = 'pack';
+            const foundryType = String(result.resultType || 'text').trim().toLowerCase();
+            if (!['text', 'document'].includes(foundryType)) {
+                throw new Error(`Unsupported Roll Table result type "${result.resultType}". Foundry v13+ imports support only "text" and "document".`);
             }
 
             const tableResult = {
@@ -76,59 +79,25 @@ export async function parseTableToFoundry(flat) {
                 drawn: false
             };
 
-            if (tableResult.type === 'document' && result.resultDocumentType) {
-                const { collection, documentName } = getWorldCollection(result.resultDocumentType);
-                tableResult.documentCollection = documentName;
-                const entry = collection?.find?.(document => document.name.toLowerCase() === tableResult.text.toLowerCase());
-                if (entry) {
-                    tableResult.documentId = entry.id;
-                } else {
-                    postConsoleAndNotification(
-                        MODULE.NAME,
-                        'Table Import: World document not found',
-                        `${result.resultText} not found in ${result.resultDocumentType}`,
-                        false,
-                        false
-                    );
-                }
-            }
-
-            if (tableResult.type === 'pack' && result.resultCompendium && result.resultText) {
-                tableResult.documentCollection = result.resultCompendium;
-
-                try {
-                    const pack = game.packs.get(result.resultCompendium);
-                    if (pack) {
-                        const index = await pack.getIndex();
-                        const entry = index.find(e => e.name.toLowerCase() === result.resultText.toLowerCase());
-                        if (entry) {
-                            tableResult.documentId = entry._id;
-                        } else {
-                            postConsoleAndNotification(
-                                MODULE.NAME,
-                                'Table Import: Item not found in compendium',
-                                `${result.resultText} not found in ${result.resultCompendium}`,
-                                false,
-                                false
-                            );
-                        }
+            if (tableResult.type === 'document') {
+                const documentType = String(result.resultDocumentType || '').trim();
+                const documentSource = String(result.resultDocumentSource || '').trim();
+                if (!documentType) throw new Error(`Document result "${tableResult.text || 'unnamed result'}" is missing resultDocumentType.`);
+                if (!tableResult.text) throw new Error('Document results require a non-empty resultText name.');
+                const resolved = await compendiumManager.resolve(tableResult.text, documentType, {
+                    exact: true,
+                    sources: documentSource ? [documentSource] : null
+                });
+                if (!resolved.found) {
+                    if (missingDocumentPolicy === 'text') {
+                        tableResult.type = 'text';
                     } else {
-                        postConsoleAndNotification(
-                            MODULE.NAME,
-                            'Table Import: Compendium pack not found',
-                            result.resultCompendium,
-                            false,
-                            false
-                        );
+                        const scope = documentSource ? ` in source "${documentSource}"` : '';
+                        throw new Error(`Could not resolve ${documentType} "${tableResult.text}"${scope}.`);
                     }
-                } catch (error) {
-                    postConsoleAndNotification(
-                        MODULE.NAME,
-                        'Table Import: Error looking up compendium item',
-                        `${result.resultCompendium}: ${error.message}`,
-                        false,
-                        false
-                    );
+                } else {
+                    tableResult.documentCollection = resolved.packId || resolved.documentClass;
+                    tableResult.documentId = resolved.uuid.split('.').at(-1);
                 }
             }
 
@@ -139,24 +108,4 @@ export async function parseTableToFoundry(flat) {
     }
 
     return data;
-}
-
-function getWorldCollection(documentType) {
-    const type = String(documentType ?? '').trim().toLowerCase();
-    const collections = {
-        actor: { documentName: 'Actor', collection: game.actors?.contents },
-        adventure: { documentName: 'Adventure', collection: game.adventures?.contents },
-        'card stack': { documentName: 'Cards', collection: game.cards?.contents },
-        item: { documentName: 'Item', collection: game.items?.contents },
-        'journal entry': { documentName: 'JournalEntry', collection: game.journal?.contents },
-        macro: { documentName: 'Macro', collection: game.macros?.contents },
-        playlist: { documentName: 'Playlist', collection: game.playlists?.contents },
-        'rollable table': { documentName: 'RollTable', collection: game.tables?.contents },
-        scene: { documentName: 'Scene', collection: game.scenes?.contents }
-    };
-    return collections[type] ?? { documentName: resultDocumentName(type), collection: [] };
-}
-
-function resultDocumentName(type) {
-    return type.split(/\s+/).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
 }

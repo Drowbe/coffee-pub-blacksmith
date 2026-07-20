@@ -3,9 +3,11 @@ import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { copyToClipboard } from './utility-common.js';
 
 const BODY_TEMPLATE = `modules/${MODULE.ID}/templates/window-json-import-body.hbs`;
+const AUTHORING_STATE_SETTING = 'jsonImporterAuthoringState';
 
 export class JsonImportWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-template-root';
+    static _authoringSaveQueue = Promise.resolve();
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
@@ -54,6 +56,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.headerTitle = opts.headerTitle || this.windowTitle;
         this.windowSubtitle = opts.windowSubtitle || '';
         this.windowIcon = opts.windowIcon || 'fa-solid fa-file-import';
+        this.importerOptions = Array.isArray(opts.importerOptions) ? opts.importerOptions : [];
+        this.selectedImporter = String(opts.selectedImporter || idSuffix || '');
+        this.onSwitchImporter = typeof opts.onSwitchImporter === 'function' ? opts.onSwitchImporter : null;
         this.templateOptions = Array.isArray(opts.templateOptions) ? opts.templateOptions : [];
         this.selectedTemplate = opts.selectedTemplate || this.templateOptions[0]?.value || '';
         this.textareaPlaceholder = opts.textareaPlaceholder || 'Paste JSON here, or use Select JSON File below.';
@@ -71,6 +76,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
         this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
         this.promptFields = Array.isArray(opts.promptFields) ? opts.promptFields : [];
+        this.importerStateKey = idSuffix || 'generic';
+        this._restoreAuthoringState();
         this.journalAreaUi = opts.journalAreaUi && typeof opts.journalAreaUi === 'object'
             ? opts.journalAreaUi
             : null;
@@ -80,6 +87,53 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const requestedTab = String(opts.activeTab || 'import').toLowerCase();
         this.activeTab = ['import', 'json', 'prompt'].includes(requestedTab) ? requestedTab : 'import';
         if (this.activeTab === 'json' && !this.onBuildJsonTemplate) this.activeTab = 'import';
+    }
+
+    _restoreAuthoringState() {
+        let saved = null;
+        try {
+            saved = game.settings.get(MODULE.ID, AUTHORING_STATE_SETTING)?.[this.importerStateKey] ?? null;
+        } catch {
+            return;
+        }
+        if (!saved || typeof saved !== 'object') return;
+        if (this.templateOptions.some(option => option.value === saved.selectedTemplate)) {
+            this.selectedTemplate = saved.selectedTemplate;
+        }
+        if (saved.selectedJsonOutput === 'guided' || saved.selectedJsonOutput === 'clean') {
+            this.selectedJsonOutput = saved.selectedJsonOutput;
+        }
+        const fields = saved.fields && typeof saved.fields === 'object' ? saved.fields : {};
+        for (const field of this.promptFields) {
+            if (field.id in fields) field.value = String(fields[field.id] ?? '');
+        }
+        const checkboxes = saved.checkboxes && typeof saved.checkboxes === 'object' ? saved.checkboxes : {};
+        for (const checkbox of this.promptCheckboxes) {
+            if (checkbox.id in checkboxes) checkbox.checked = !!checkboxes[checkbox.id];
+        }
+    }
+
+    async _saveAuthoringState() {
+        const fields = Object.fromEntries(this.promptFields.filter(field => field?.id).map(field => [field.id, String(field.value ?? '')]));
+        const checkboxes = Object.fromEntries(this.promptCheckboxes.filter(checkbox => checkbox?.id).map(checkbox => [checkbox.id, !!checkbox.checked]));
+        const snapshot = {
+            selectedTemplate: this.selectedTemplate,
+            selectedJsonOutput: this.selectedJsonOutput,
+            fields,
+            checkboxes
+        };
+        JsonImportWindow._authoringSaveQueue = JsonImportWindow._authoringSaveQueue.then(async () => {
+            try {
+                const allState = game.settings.get(MODULE.ID, AUTHORING_STATE_SETTING) ?? {};
+                await game.settings.set(MODULE.ID, AUTHORING_STATE_SETTING, {
+                    ...allState,
+                    [this.importerStateKey]: snapshot
+                });
+            } catch {
+                // A missing/unavailable client setting should never block authoring.
+            }
+        });
+        return JsonImportWindow._authoringSaveQueue;
     }
 
     _buildToolsContent() {
@@ -304,6 +358,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _buildSelectedPrompt() {
+        this._persistFormStateFromDom();
+        await this._saveAuthoringState();
         const builder = this.activeTab === 'json'
             ? (this.selectedJsonOutput === 'guided' && this.onBuildAuthoringGuide
                 ? this.onBuildAuthoringGuide
@@ -470,7 +526,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 '.blacksmith-json-import-prompt-field-row, .blacksmith-json-import-prompt-fields-header[data-for-template], .blacksmith-json-import-prompt-field-group-header'
             )) {
                 const forTemplate = row.getAttribute('data-for-template') || '';
-                const show = this._templateMatchesForAttribute(forTemplate, template);
+                const showForField = row.getAttribute('data-for-field') || '';
+                const show = this._templateMatchesForAttribute(forTemplate, template)
+                    && this._promptFieldConditionMatches(showForField);
                 row.hidden = !show;
             }
             const block = root.querySelector('.blacksmith-json-import-prompt-fields');
@@ -485,7 +543,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 '.blacksmith-json-import-prompt-checkbox, .blacksmith-json-import-prompt-options-hint, .blacksmith-json-import-prompt-section-header'
             )) {
                 const forTemplate = row.getAttribute('data-for-template') || '';
-                const show = this._templateMatchesForAttribute(forTemplate, template);
+                const showForField = row.getAttribute('data-for-field') || '';
+                const show = this._templateMatchesForAttribute(forTemplate, template)
+                    && this._promptFieldConditionMatches(showForField);
                 row.hidden = !show;
             }
             const optionsBlock = root.querySelector('.blacksmith-json-import-prompt-options');
@@ -501,6 +561,27 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             const forTemplate = journalBlock.getAttribute('data-for-template') || '';
             journalBlock.hidden = forTemplate !== template;
         }
+    }
+
+    _promptFieldConditionMatches(condition) {
+        const [fieldId, ...expectedParts] = String(condition ?? '').split('=');
+        if (!fieldId || !expectedParts.length) return true;
+        const input = this.element?.querySelector(`[data-prompt-field="${fieldId}"]`);
+        const actual = String(input?.value ?? '');
+        return expectedParts.join('=').split('|').includes(actual);
+    }
+
+    _buildHeaderRight() {
+        if (!this.onSwitchImporter || this.importerOptions.length < 2) return '';
+        const options = this.importerOptions.map(option => {
+            const selected = String(option.value) === this.selectedImporter ? ' selected' : '';
+            return `<option value="${String(option.value)}"${selected}>${String(option.label)}</option>`;
+        }).join('');
+        return `<label class="blacksmith-json-import-switcher" title="Switch importer">
+            <i class="fa-solid fa-shuffle" aria-hidden="true"></i>
+            <span class="sr-only">Importer</span>
+            <select class="blacksmith-select blacksmith-json-import-switcher-select" aria-label="Switch importer">${options}</select>
+        </label>`;
     }
 
     /**
@@ -522,6 +603,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                     sectionIcon: cb.sectionIcon || 'fa-solid fa-book',
                     stacked: !!cb.stacked,
                     showForTemplate: cb.showForTemplate ?? '',
+                    showForField: cb.showForField ?? '',
                     items: []
                 };
                 groups.push(current);
@@ -532,7 +614,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 checked: !!cb.checked,
                 disabled: !!cb.disabled,
                 isNote: !!cb.isNote,
-                showForTemplate: cb.showForTemplate ?? ''
+                showForTemplate: cb.showForTemplate ?? '',
+                showForField: cb.showForField ?? ''
             });
         }
         return groups;
@@ -587,6 +670,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             windowTitle: this.headerTitle,
             subtitle: this.windowSubtitle,
             headerIcon: this.windowIcon,
+            headerRight: this._buildHeaderRight(),
             toolsContent: this._buildToolsContent(),
             bodyContent,
             actionBarLeft: this._buildActionBarLeft(),
@@ -610,7 +694,11 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             id: field.id,
             label: field.label,
             value,
+            placeholder: field.placeholder ?? '',
+            hint: field.hint ?? '',
+            hasHint: !!field.hint,
             showForTemplate: field.showForTemplate ?? '',
+            showForField: field.showForField ?? '',
             inputType,
             isSelect: inputType === 'select',
             isTextarea: inputType === 'textarea',
@@ -635,7 +723,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         for (const field of this.promptFields) {
             if (!this._optionSupportsActiveAuthoringTab(field)) continue;
             const formatted = this._formatPromptFieldForTemplate(field);
-            const groupKey = `${formatted.showForTemplate}::${formatted.group}`;
+            const groupKey = `${formatted.showForTemplate}::${formatted.showForField}::${formatted.group}`;
             if (!current || current.groupKey !== groupKey) {
                 current = {
                     groupKey,
@@ -643,12 +731,14 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                     hasGroup: !!formatted.group,
                     groupIcon: formatted.groupIcon,
                     showForTemplate: formatted.showForTemplate,
+                    showForField: formatted.showForField,
                     items: []
                 };
                 groups.push(current);
             }
             current.items.push(formatted);
         }
+        for (const group of groups) group.singleItem = group.items.length === 1;
         return groups;
     }
 
@@ -750,6 +840,16 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const textarea = root.querySelector('.blacksmith-json-import-textarea');
         const templateSelect = root.querySelector('.blacksmith-json-import-template-select');
         const jsonOutputSelect = root.querySelector('.blacksmith-json-import-json-output-select');
+        const importerSelect = root.querySelector('.blacksmith-json-import-switcher-select');
+
+        importerSelect?.addEventListener('change', async () => {
+            const nextImporter = importerSelect.value;
+            if (!nextImporter || nextImporter === this.selectedImporter) return;
+            this._persistFormStateFromDom();
+            await this._saveAuthoringState();
+            await this.close();
+            this.onSwitchImporter(nextImporter);
+        });
 
         fileInput?.addEventListener('change', (event) => {
             const file = event.target.files?.[0];
@@ -766,11 +866,28 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         templateSelect?.addEventListener('change', () => {
             this.selectedTemplate = templateSelect.value || '';
             this._updatePromptFieldVisibility();
+            this._persistFormStateFromDom();
+            void this._saveAuthoringState();
         });
 
         jsonOutputSelect?.addEventListener('change', () => {
             this.selectedJsonOutput = jsonOutputSelect.value === 'guided' ? 'guided' : 'clean';
+            void this._saveAuthoringState();
         });
+
+        for (const input of root.querySelectorAll('[data-prompt-field]')) {
+            input.addEventListener('change', () => {
+                this._persistFormStateFromDom();
+                this._updatePromptFieldVisibility();
+                void this._saveAuthoringState();
+            });
+        }
+        for (const input of root.querySelectorAll('[data-prompt-checkbox]')) {
+            input.addEventListener('change', () => {
+                this._persistFormStateFromDom();
+                void this._saveAuthoringState();
+            });
+        }
 
 
         this._updatePromptFieldVisibility();

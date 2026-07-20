@@ -76,6 +76,7 @@ export const CompendiumsAPI = {
      * @param {boolean} [options.fuzzy=false]      - Allow loose substring matching
      * @param {string}  [options.itemType=null]    - Prefer this document subtype (e.g. "weapon")
      * @param {boolean} [options.parseCount=false] - Strip a trailing "(3)" and report it as count
+     * @param {string[]} [options.sources=null]    - Restrict lookup to configured source ids (`world` or pack ids)
      * @returns {Promise<{found: boolean, uuid: string|null, name: string, matchedName: string|null,
      *                    packId: string|null, source: string|null, matchType: string|null,
      *                    confidence: string, documentClass: string, count: number|null, link: string|null}>}

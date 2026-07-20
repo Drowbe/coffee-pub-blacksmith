@@ -4,6 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { getWorldCollection as getMappedWorldCollection, normalizeType } from './compendium-types.js';
 
 const ITEM_RARITY_ORDER = ['common', 'uncommon', 'rare', 'very rare', 'legendary', 'artifact'];
 
@@ -111,20 +112,20 @@ function matchesItemFilters(item, filters = {}) {
  * Query world or compendium Actors/Items using the shared importer catalog contract.
  * This is intentionally UI-neutral so Roll Tables, guided templates, the future Utility
  * tab, and the public importer API can all consume the same filtered rows.
- * @param {{kind:'actor'|'item', source:'world'|'compendium', packIds?:string[], filters?:object, onProgress?:(message:string)=>void}} options
+ * @param {{kind:string, source:'world'|'compendium', packIds?:string[], filters?:object, onProgress?:(message:string)=>void}} options
  * @returns {Promise<Array<object>>}
  */
 export async function queryImportCatalog({ kind, source, packIds = [], filters = {}, onProgress } = {}) {
-    if (!['actor', 'item'].includes(kind)) throw new Error(`Unsupported catalog kind: ${kind}`);
+    const canonicalKind = normalizeType(kind);
+    if (!canonicalKind) throw new Error(`Unsupported catalog kind: ${kind}`);
+    const kindKey = canonicalKind.toLowerCase();
     if (!['world', 'compendium'].includes(source)) throw new Error(`Unsupported catalog source: ${source}`);
-    const matches = kind === 'actor' ? matchesActorFilters : matchesItemFilters;
+    const matches = kindKey === 'actor' ? matchesActorFilters : (['item', 'spell', 'feature'].includes(kindKey) ? matchesItemFilters : (document => matchesName(document, filters.nameSearch)));
     const rows = [];
     if (source === 'world') {
-        const documents = kind === 'actor'
-            ? (game.actors?.contents ?? []).filter(actor => !actor.isToken)
-            : (game.items?.contents ?? []);
+        const documents = (getMappedWorldCollection(canonicalKind) ?? []).filter(document => !document.isToken);
         for (const document of documents) {
-            if (matches(document, filters)) rows.push(toCatalogRow(document, kind, 'world', ''));
+            if (matches(document, filters)) rows.push(toCatalogRow(document, kindKey, 'world', ''));
         }
     } else {
         let index = 0;
@@ -132,10 +133,12 @@ export async function queryImportCatalog({ kind, source, packIds = [], filters =
             const pack = game.packs.get(packId);
             if (!pack) continue;
             index += 1;
-            await reportScan(onProgress, kind === 'actor' ? 'actors' : 'items', pack.metadata?.label ?? packId, index, packIds.length);
+            await reportScan(onProgress, `${canonicalKind} documents`, pack.metadata?.label ?? packId, index, packIds.length);
             const documents = await pack.getDocuments();
             for (const document of documents) {
-                if (matches(document, filters)) rows.push(toCatalogRow(document, kind, 'compendium', packId));
+                if (kindKey === 'spell' && document.type !== 'spell') continue;
+                if (kindKey === 'feature' && document.type !== 'feat') continue;
+                if (matches(document, filters)) rows.push(toCatalogRow(document, kindKey, 'compendium', packId));
             }
         }
     }
@@ -148,17 +151,21 @@ function toCatalogRow(document, kind, source, packId) {
         const cr = getActorCr(document);
         return { ...base, cr: cr.label, creatureType: getActorType(document), size: getActorSize(document) };
     }
-    return { ...base, itemType: getItemType(document), rarity: getItemRarityKey(document), magical: isMagicalItem(document) };
+    if (['item', 'spell', 'feature'].includes(kind)) return { ...base, itemType: getItemType(document), rarity: getItemRarityKey(document), magical: isMagicalItem(document) };
+    return base;
 }
 
-/** @param {Array<object>} rows @param {'actor'|'item'} kind @param {{includeImages?:boolean}} options */
+/** @param {Array<object>} rows @param {string} kind @param {{includeImages?:boolean}} options */
 export function formatImportCatalog(rows, kind, options = {}) {
     if (!rows.length) return 'No matching entries found.';
     return rows.map(row => {
-        const source = row.source === 'compendium' ? `pack=${row.packId}` : 'world';
-        const details = kind === 'actor'
+        const source = `source=${row.source === 'compendium' ? row.packId : 'world'}`;
+        const kindKey = String(kind).toLowerCase();
+        const details = kindKey === 'actor'
             ? `CR=${row.cr}; type=${row.creatureType || 'unknown'}; size=${row.size || 'unknown'}`
-            : `type=${row.itemType || 'unknown'}; rarity=${row.rarity}; magical=${row.magical}`;
+            : (['item', 'spell', 'feature'].includes(kindKey)
+                ? `type=${row.itemType || 'unknown'}; rarity=${row.rarity}; magical=${row.magical}`
+                : 'document');
         const image = options.includeImages && row.img ? ` | img=${row.img}` : '';
         return `- ${row.name} | ${source} | ${details}${image}`;
     }).join('\n');

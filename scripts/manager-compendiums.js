@@ -140,6 +140,7 @@ export class CompendiumManager {
      * @param {boolean} [options.fuzzy=false]      - Also allow the loose "includes" tier
      * @param {string}  [options.itemType=null]    - Prefer entries with this document subtype
      * @param {boolean} [options.parseCount=false] - Strip a trailing "(3)" / "(CR 1/2)" and report the count
+     * @param {string[]} [options.sources=null]    - Optional subset of configured source ids (`world` or pack ids)
      * @returns {Promise<{found: boolean, uuid: string|null, name: string, matchedName: string|null,
      *                    packId: string|null, source: string|null, matchType: string|null,
      *                    confidence: string, documentClass: string, count: number|null, link: string|null}>}
@@ -149,7 +150,8 @@ export class CompendiumManager {
             exact = false,
             fuzzy = false,
             itemType = null,
-            parseCount = false
+            parseCount = false,
+            sources = null
         } = options;
 
         const canonical = normalizeType(type);
@@ -164,7 +166,11 @@ export class CompendiumManager {
 
         if (!query) return miss;
 
-        const { searchOrder } = this.getMapping(canonical);
+        const mapping = this.getMapping(canonical);
+        const requestedSources = Array.isArray(sources) ? [...new Set(sources.filter(Boolean))] : null;
+        const searchOrder = requestedSources
+            ? requestedSources.filter(source => source === 'world' || mapping.packIds.includes(source))
+            : mapping.searchOrder;
         if (!searchOrder.length) {
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | No sources configured for type`, canonical, true, false);
             return miss;
@@ -219,7 +225,11 @@ export class CompendiumManager {
         const canonical = normalizeType(type);
 
         // Warm every source's index once, concurrently, before resolving.
-        const { searchOrder } = this.getMapping(canonical);
+        const mapping = this.getMapping(canonical);
+        const requestedSources = Array.isArray(options.sources) ? [...new Set(options.sources.filter(Boolean))] : null;
+        const searchOrder = requestedSources
+            ? requestedSources.filter(source => source === 'world' || mapping.packIds.includes(source))
+            : mapping.searchOrder;
         await Promise.all(
             searchOrder
                 .filter(source => source !== 'world')

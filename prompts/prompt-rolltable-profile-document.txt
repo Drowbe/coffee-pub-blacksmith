@@ -1,0 +1,11 @@
+================================
+IMPORT PROFILE: DOCUMENT
+================================
+
+Every result must use:
+- resultType: "document"
+- resultDocumentType: the selected catalog document type
+- resultDocumentSource: the exact value after `source=` beside that catalog entry (`world` or a compendium pack id)
+- resultText: the exact catalog entry name
+
+Do not output UUIDs. Blacksmith converts the exact plain-text name into the UUID-backed Foundry Document result during import. Never invent an entry that is absent from the filtered catalog.

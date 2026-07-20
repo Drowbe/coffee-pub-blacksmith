@@ -1037,6 +1037,16 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// Per-user authoring choices shared by every JSON importer (type, fields,
+	// checkboxes, and clean/guided output). Campaign/geography defaults remain
+	// in their existing world settings.
+	game.settings.register(MODULE.ID, 'jsonImporterAuthoringState', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	game.settings.register(MODULE.ID, 'defaultNarrativeFolder', {
 		name: MODULE.ID + '.defaultNarrativeFolder-Label',
 		hint: MODULE.ID + '.defaultNarrativeFolder-Hint',

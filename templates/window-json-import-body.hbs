@@ -155,15 +155,18 @@
                     </div>
                     {{#each promptFieldGroups}}
                     {{#if hasGroup}}
-                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-field-group-header" data-for-template="{{showForTemplate}}">
+                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-field-group-header" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
                         <i class="{{groupIcon}}"></i>
                         <span>{{group}}</span>
                     </div>
                     {{/if}}
-                    <div class="blacksmith-json-import-prompt-fields-grid">
+                    <div class="blacksmith-json-import-prompt-fields-grid{{#if singleItem}} blacksmith-json-import-prompt-fields-grid-single{{/if}}">
                         {{#each items}}
-                        <label class="blacksmith-json-import-prompt-field-row{{#if fullWidth}} blacksmith-json-import-prompt-field-row-full{{/if}}" data-for-template="{{showForTemplate}}">
-                            <span class="blacksmith-json-import-prompt-field-label">{{label}}</span>
+                        <label class="blacksmith-json-import-prompt-field-row{{#if fullWidth}} blacksmith-json-import-prompt-field-row-full{{/if}}" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
+                            <span class="blacksmith-json-import-prompt-field-label">
+                                <span>{{label}}</span>
+                                {{#if hasHint}}<i class="fa-solid fa-circle-question blacksmith-json-import-field-help" data-tooltip="{{hint}}" tabindex="0" aria-label="{{hint}}"></i>{{/if}}
+                            </span>
                             {{#if isSelect}}
                             <select class="blacksmith-select blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}">
                                 {{#each options}}
@@ -172,10 +175,10 @@
                             </select>
                             {{/if}}
                             {{#if isTextarea}}
-                            <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{id}}" rows="{{rows}}" autocomplete="off">{{value}}</textarea>
+                            <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{id}}" rows="{{rows}}" autocomplete="off" placeholder="{{placeholder}}">{{value}}</textarea>
                             {{/if}}
                             {{#if isText}}
-                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}" value="{{value}}" autocomplete="off">
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}" value="{{value}}" autocomplete="off" placeholder="{{placeholder}}">
                             {{/if}}
                         </label>
                         {{/each}}
@@ -189,7 +192,7 @@
                     {{#each promptCheckboxGroups}}
                     <div class="blacksmith-json-import-prompt-group{{#if hasSection}} blacksmith-json-import-prompt-group-sectioned{{/if}}">
                         {{#if hasSection}}
-                        <div class="blacksmith-json-import-prompt-section-header" data-for-template="{{showForTemplate}}">
+                        <div class="blacksmith-json-import-prompt-section-header" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
                             <i class="{{sectionIcon}}"></i>
                             <span>{{section}}</span>
                         </div>
@@ -197,11 +200,11 @@
                         <div class="blacksmith-json-import-prompt-group-items{{#if stacked}} blacksmith-json-import-prompt-group-items-stacked{{/if}}">
                             {{#each items}}
                             {{#if isNote}}
-                            <div class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-prompt-note" data-for-template="{{showForTemplate}}">
+                            <div class="blacksmith-json-import-prompt-checkbox blacksmith-json-import-prompt-note" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
                                 <span>{{label}}</span>
                             </div>
                             {{else}}
-                            <label class="blacksmith-json-import-prompt-checkbox" data-for-template="{{showForTemplate}}">
+                            <label class="blacksmith-json-import-prompt-checkbox" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
                                 <input type="checkbox" class="blacksmith-json-import-prompt-checkbox-input" data-prompt-checkbox="{{id}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}>
                                 <span>{{label}}</span>
                             </label>

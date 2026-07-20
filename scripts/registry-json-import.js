@@ -109,11 +109,25 @@ export function openJsonImportWindow(kindId) {
         throw new Error(`Unknown JSON import kind: ${kindId}`);
     }
 
+    const importerOrder = ['journal', 'actor', 'item', 'rolltable'];
+    const importerKinds = [...kinds.values()].sort((left, right) => {
+        const leftIndex = importerOrder.indexOf(left.id);
+        const rightIndex = importerOrder.indexOf(right.id);
+        return (leftIndex < 0 ? Number.MAX_SAFE_INTEGER : leftIndex)
+            - (rightIndex < 0 ? Number.MAX_SAFE_INTEGER : rightIndex);
+    });
+
     void JsonImportWindow.open({
         idSuffix: kind.idSuffix ?? kind.id,
         windowTitle: kind.windowTitle ?? 'Import JSON',
         headerTitle: kind.headerTitle ?? kind.windowTitle ?? 'Import JSON',
         windowIcon: kind.windowIcon ?? 'fa-solid fa-file-import',
+        selectedImporter: kind.id,
+        importerOptions: importerKinds.map(entry => ({
+            value: entry.id,
+            label: entry.switcherLabel ?? entry.headerTitle?.replace(/^Import\s+/i, '') ?? entry.id
+        })),
+        onSwitchImporter: openJsonImportWindow,
         position: kind.position ?? { width: 920, height: 680 },
         templateOptions: kind.templateOptions ?? [],
         promptCheckboxes: kind.promptCheckboxes ?? [],

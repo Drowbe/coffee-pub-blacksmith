@@ -57,6 +57,8 @@
     display: flex;
     flex-direction: column;
     overflow: auto;
+    overflow-x: hidden;
+    max-width: 100%;
 }
 
 .blacksmith-json-import-tab-panel-import {
@@ -72,6 +74,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+    max-width: 100%;
 }
 
 .blacksmith-json-import-tab-panel .blacksmith-window-section-body {
@@ -88,6 +91,8 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .blacksmith-json-import-window .blacksmith-window-section-header {
@@ -170,6 +175,8 @@
     align-items: center;
     gap: 12px 16px;
     flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .blacksmith-json-import-prompt-checkbox {
@@ -240,6 +247,8 @@
     flex-direction: column;
     gap: 8px;
     flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .blacksmith-json-import-prompt-fields-header {
@@ -256,12 +265,24 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 8px 12px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.blacksmith-json-import-prompt-fields-grid-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.blacksmith-json-import-prompt-fields-grid-single .blacksmith-json-import-prompt-field-input,
+.blacksmith-json-import-prompt-fields-grid-single .blacksmith-select {
+    max-width: 360px;
 }
 
 .blacksmith-json-import-prompt-field-row {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0;
 }
 
 .blacksmith-json-import-prompt-field-row-full {
@@ -272,6 +293,9 @@
     width: 100%;
     min-height: 6.5rem;
     resize: vertical;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .blacksmith-json-import-prompt-fields-grid .blacksmith-select {
@@ -279,12 +303,42 @@
 }
 
 .blacksmith-json-import-prompt-field-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: var(--font-size-12, 0.75rem);
     opacity: 0.9;
 }
 
+.blacksmith-json-import-field-help {
+    flex: 0 0 auto;
+    color: var(--blacksmith-window-accent-color, #ac9f81);
+    cursor: help;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.blacksmith-json-import-field-help:hover,
+.blacksmith-json-import-field-help:focus-visible {
+    opacity: 1;
+}
+
 .blacksmith-json-import-prompt-field-input {
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.blacksmith-json-import-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.blacksmith-json-import-switcher-select {
+    width: auto;
+    min-width: 140px;
 }
 
 .blacksmith-json-import-journal-area,

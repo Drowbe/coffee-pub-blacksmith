@@ -45,6 +45,8 @@ Importer windows use three tabs in this order:
 
 The ordering communicates that AI is optional and that the importer is the core product.
 
+Journal, Actor, Item, and Roll Table importers use the same window contract. A header switcher moves directly between those importers; switching saves the current importer's authoring choices and restores the destination importer's independent choices. The switcher changes content kind, while the three tabs continue to change authoring workflow.
+
 ### Import JSON
 
 Accepts completed JSON from any source. This tab does not mention AI.

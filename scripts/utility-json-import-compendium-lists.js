@@ -23,7 +23,7 @@ export {
  * @param {string} type - Any accepted type token ('actor', 'item', ...)
  * @returns {Array<{id: string, label: string}>}
  */
-function getConfiguredCompendiums(type) {
+export function getConfiguredCompendiums(type) {
     const uniqueIds = [...new Set(compendiumManager.getSelected(type))];
     return uniqueIds.map(id => ({ id, label: formatPackLabel(game.packs.get(id), id) }));
 }

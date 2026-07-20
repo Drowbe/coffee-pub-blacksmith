@@ -1,12 +1,15 @@
 ================================
-IMPORT PROFILE: SIMPLE TEXT
+IMPORT PROFILE: TEXT
 ================================
 
-PROFILE DEFAULTS (every result):
+Every result must use:
 - resultType: "text"
-- resultDocumentType: " "
-- resultCompendium: " "
-- displayRollFormula on the table: false
+- resultDocumentType: ""
+- resultDocumentSource: ""
 
-PROFILE INSTRUCTIONS:
-- Text-only results; do not link to world documents or compendiums.
+"Text" describes only how Foundry stores the result: it is not UUID-linked. It does not mean catalog entries must be renamed, paraphrased, or avoided.
+
+Follow the appended Catalog policy exactly:
+- EXACT NAMES: choose entries from the filtered catalog and copy each selected name verbatim into resultText.
+- INSPIRATION ONLY: the catalog may inspire newly authored or embellished resultText.
+- NONE: create original results without catalog input.
