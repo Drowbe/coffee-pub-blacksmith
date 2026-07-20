@@ -30,14 +30,14 @@ Legacy **`NARRATIVE`** import is **not supported** (use **`AREA`** with `blocks.
 - **Encounter:** `realm`, `region`, `site`, `area`, `scenetitle`, `prepencounter`, `prepencounterdetails`, `preprewards`, `prepsetup`, `sections` / `cards`, `linkedEncounters`, etc.
 - **Location:** `title`, `scenetitle`, `journalname`, `realm`, `region`, `site`, `area`, `locationimage` / `image`, and other fields consumed by the location builder (see `createLocationJournalEntry` in `utility-common.js`).
 
-**Returns:** `Promise<undefined>`.
-
-This does not currently return the created entry: it resolves to `undefined` even on success. The journal is created correctly, but you get no handle back — find it afterward by the folder/name you passed (e.g. `game.journal.getName(...)`):
+**Returns:** `Promise<JournalEntry>` — the journal entry, so you can act on it directly:
 
 ```javascript
 const entry = await api.createJournalEntry(data);
-entry.sheet.render(true);   // TypeError: entry is undefined
+entry.sheet.render(true);
 ```
+
+All three types (`AREA`, `ENCOUNTER`, `LOCATION`) resolve to a `JournalEntry`. When an entry with the same name already exists, these builders update it in place rather than creating a duplicate — and return **that existing entry**, so the return value is a handle to the journal your data now lives in, whether or not this call created it.
 
 Unsupported input throws rather than being handled internally — a `NARRATIVE` journaltype, any unrecognised type, missing required blocks, and template failures all throw — so wrap the call in `try/catch`.
 

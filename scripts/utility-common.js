@@ -416,9 +416,10 @@ export async function createJournalEntry(journalData) {
                 }
             }]);
         }
+        return existingEntry;
     } else {
         // Create a new journal entry with a page
-        await JournalEntry.create({
+        return await JournalEntry.create({
             name: strArea || strSceneTitle || "Unnamed Entry",
             pages: [
                 {
@@ -483,10 +484,10 @@ async function createAreaJournalEntry(journalData, folder) {
         } else {
             await existingEntry.createEmbeddedDocuments('JournalEntryPage', [pagePayload]);
         }
-        return;
+        return existingEntry;
     }
 
-    await JournalEntry.create({
+    return await JournalEntry.create({
         name: strArea || strSceneTitle || 'Unnamed Entry',
         pages: [pagePayload],
         folder: folder ? folder.id : undefined
@@ -598,10 +599,10 @@ async function createLocationJournalEntry(journalData, folder) {
         } else {
             await existingEntry.createEmbeddedDocuments("JournalEntryPage", [pageData]);
         }
-        return;
+        return existingEntry;
     }
 
-    await JournalEntry.create({
+    return await JournalEntry.create({
         name: strJournalName,
         pages: [pageData],
         folder: targetFolder ? targetFolder.id : undefined

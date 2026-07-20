@@ -452,7 +452,8 @@ export class TagManager {
     }
 
     static async seedRegistry(contextKey, existingTagArrays) {
-        if (!game.user?.isGM) return;
+        // No GM guard: the write below routes through _writeRegistry, which proxies to the GM for
+        // non-GM clients. Guarding here only stopped a player-client first-run seed from happening.
         if (!Array.isArray(existingTagArrays)) return;
         const all = [];
         for (const arr of existingTagArrays) {

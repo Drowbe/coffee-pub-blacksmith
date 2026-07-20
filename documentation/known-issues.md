@@ -30,17 +30,6 @@ On `registerHook`, combining `once` with `debounceMs` means the callback never r
 
 ---
 
-## Tags
-
-### `seedRegistry()` silently no-ops for players
-
-`tags.seedRegistry(...)` returns immediately on a non-GM client with no warning, so a player-client first-run seed does not happen.
-
-- **Workaround:** run the seed as GM. (Other registry mutations route through the GM proxy and do work for players.)
-- **Fix:** the GM guard in `seedRegistry` is unnecessary — the write already routes through the GM proxy; remove the guard.
-
----
-
 ## Sockets
 
 ### `emit()` does not reject on the native fallback
@@ -68,15 +57,6 @@ A tool's `visible` (including a `visible: () => false` function) is honored on B
 - **Workaround:** use `onFoundry` as the Foundry-side gate; don't rely on `visible` to hide a tool there.
 - **Fix:** have `getFoundryToolbarTools()` honor `tool.visible`, or document `visible` as Blacksmith-toolbar-only.
 
-### `setToolbarSettings()` does not validate `displayStyle`
-
-`setToolbarSettings({ displayStyle })` writes the value straight to the setting without checking it against the allowed set (`none`, `dividers`, `labels`). An invalid value corrupts the setting.
-
-- **Workaround:** pass only `none`, `dividers`, or `labels`.
-- **Fix:** validate against the registered choices before writing.
-
----
-
 ## Canvas
 
 ### `blacksmith.CanvasLayer` can be null on the initial scene
@@ -85,14 +65,3 @@ A tool's `visible` (including a `visible: () => false` function) is honored on B
 
 - **Workaround:** use `await BlacksmithAPI.getCanvasLayer()`, which resolves the layer reliably (it falls back to reading it off the canvas). See `api-canvas.md`.
 - **Fix:** assign the layer at `init` (and eagerly if the canvas is already drawn), outside the `enableSceneClickBehaviors` branch.
-
----
-
-## Journal
-
-### `createJournalEntry()` resolves to `undefined`
-
-`api.createJournalEntry(...)` creates the journal correctly but does not return it — it resolves to `undefined` even on success, so `const e = await api.createJournalEntry(...)` gives you no handle.
-
-- **Workaround:** find the entry afterward by the folder and name you passed (e.g. `game.journal.getName(...)`).
-- **Fix:** return the created entry from each builder path in `utility-common.js`; decide what the existing-entry branches should return.

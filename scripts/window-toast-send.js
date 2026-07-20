@@ -66,75 +66,81 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
         const bodyContent = `
             <div class="blacksmith-toast-send-form">
-                <div class="blacksmith-window-section-header">
-                    <i class="fa-solid fa-users"></i>
-                    <span>Recipients</span>
-                </div>
-                <label class="blacksmith-toast-send-recipient blacksmith-toast-send-party">
-                    <input type="checkbox" name="toast-party">
-                    <i class="fa-solid fa-people-group"></i>
-                    <span>Entire Party (everyone online)</span>
-                </label>
-                <div class="blacksmith-toast-send-recipients">${recipientRows || '<em>No players in this world.</em>'}</div>
-
-                <div class="blacksmith-window-section-header">
-                    <i class="fa-solid fa-message"></i>
-                    <span>Message</span>
-                </div>
-                <div class="blacksmith-field">
-                    <label class="blacksmith-field-label">Title</label>
-                    <input type="text" class="blacksmith-input" name="toast-title" placeholder="Title (required)" maxlength="120">
-                </div>
-                <div class="blacksmith-field">
-                    <label class="blacksmith-field-label">Message</label>
-                    <textarea class="blacksmith-input blacksmith-toast-send-message" name="toast-subtitle" rows="3" maxlength="300" placeholder="Message (optional)"></textarea>
+                <div class="blacksmith-window-section">
+                    <div class="blacksmith-window-section-header">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Recipients</span>
+                    </div>
+                    <label class="blacksmith-toast-send-recipient blacksmith-toast-send-party">
+                        <input type="checkbox" name="toast-party">
+                        <i class="fa-solid fa-people-group"></i>
+                        <span>Entire Party (everyone online)</span>
+                    </label>
+                    <div class="blacksmith-toast-send-recipients">${recipientRows || '<em>No players in this world.</em>'}</div>
                 </div>
 
-                <div class="blacksmith-window-section-header">
-                    <i class="fa-solid fa-palette"></i>
-                    <span>Appearance</span>
-                </div>
-                <div class="blacksmith-field-row">
-                    <div class="blacksmith-field">
-                        <label class="blacksmith-field-label">Style</label>
-                        <select class="blacksmith-input" name="toast-style">${styleOptions}</select>
+                <div class="blacksmith-window-section">
+                    <div class="blacksmith-window-section-header">
+                        <i class="fa-solid fa-message"></i>
+                        <span>Message</span>
                     </div>
                     <div class="blacksmith-field">
-                        <label class="blacksmith-field-label">Size</label>
-                        <select class="blacksmith-input" name="toast-size">
-                            <option value="large" selected>Large</option>
-                            <option value="">Default (fits content)</option>
-                            <option value="vw40">40% of screen</option>
-                            <option value="vw60">60% of screen</option>
-                            <option value="vw80">80% of screen</option>
-                            <option value="fullscreen">Fullscreen overlay</option>
-                        </select>
+                        <label class="blacksmith-field-label">Title</label>
+                        <input type="text" class="blacksmith-input" name="toast-title" placeholder="Title (required)" maxlength="120">
                     </div>
                     <div class="blacksmith-field">
-                        <label class="blacksmith-field-label">Duration</label>
-                        <select class="blacksmith-input" name="toast-duration">
-                            <option value="0">Until closed</option>
-                            <option value="10">10 seconds</option>
-                            <option value="20">20 seconds</option>
-                            <option value="30">30 seconds</option>
-                            <option value="60">1 minute</option>
-                        </select>
+                        <label class="blacksmith-field-label">Message</label>
+                        <textarea class="blacksmith-input blacksmith-toast-send-message" name="toast-subtitle" rows="3" maxlength="300" placeholder="Message (optional)"></textarea>
                     </div>
                 </div>
-                <div class="blacksmith-field">
-                    <label class="blacksmith-field-label">Image</label>
-                    <div class="blacksmith-toast-send-image-row">
-                        <input type="text" class="blacksmith-input" name="toast-image" placeholder="Avatar image path (optional)">
-                        <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-image"
-                            title="Browse"><i class="fas fa-file-image"></i></button>
+
+                <div class="blacksmith-window-section">
+                    <div class="blacksmith-window-section-header">
+                        <i class="fa-solid fa-palette"></i>
+                        <span>Appearance</span>
                     </div>
-                </div>
-                <div class="blacksmith-field">
-                    <label class="blacksmith-field-label">Background</label>
-                    <div class="blacksmith-toast-send-image-row">
-                        <input type="text" class="blacksmith-input" name="toast-background" placeholder="Background image path (optional)">
-                        <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-background"
-                            title="Browse"><i class="fas fa-panorama"></i></button>
+                    <div class="blacksmith-field-row">
+                        <div class="blacksmith-field">
+                            <label class="blacksmith-field-label">Style</label>
+                            <select class="blacksmith-input" name="toast-style">${styleOptions}</select>
+                        </div>
+                        <div class="blacksmith-field">
+                            <label class="blacksmith-field-label">Size</label>
+                            <select class="blacksmith-input" name="toast-size">
+                                <option value="large" selected>Large</option>
+                                <option value="">Default (fits content)</option>
+                                <option value="vw40">40% of screen</option>
+                                <option value="vw60">60% of screen</option>
+                                <option value="vw80">80% of screen</option>
+                                <option value="fullscreen">Fullscreen overlay</option>
+                            </select>
+                        </div>
+                        <div class="blacksmith-field">
+                            <label class="blacksmith-field-label">Duration</label>
+                            <select class="blacksmith-input" name="toast-duration">
+                                <option value="0">Until closed</option>
+                                <option value="10">10 seconds</option>
+                                <option value="20">20 seconds</option>
+                                <option value="30">30 seconds</option>
+                                <option value="60">1 minute</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="blacksmith-field">
+                        <label class="blacksmith-field-label">Image</label>
+                        <div class="blacksmith-toast-send-image-row">
+                            <input type="text" class="blacksmith-input" name="toast-image" placeholder="Avatar image path (optional)">
+                            <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-image"
+                                title="Browse for image"><i class="fa-solid fa-folder-open"></i> Browse</button>
+                        </div>
+                    </div>
+                    <div class="blacksmith-field">
+                        <label class="blacksmith-field-label">Background</label>
+                        <div class="blacksmith-toast-send-image-row">
+                            <input type="text" class="blacksmith-input" name="toast-background" placeholder="Background image path (optional)">
+                            <button type="button" class="blacksmith-window-btn-secondary" data-action="toast-browse-background"
+                                title="Browse for image"><i class="fa-solid fa-folder-open"></i> Browse</button>
+                        </div>
                     </div>
                 </div>
             </div>`;

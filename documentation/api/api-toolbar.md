@@ -141,7 +141,7 @@ Updates toolbar settings.
 
 **Parameters:**
 - `settings` (Object): Settings object
-  - `displayStyle` (string, optional): `"none"`, `"dividers"`, or `"labels"`. The value is written straight to the setting and is **not** validated against the allowed set, so an unrecognized value is stored as-is.
+  - `displayStyle` (string, optional): `"none"`, `"dividers"`, or `"labels"`. Validated against that set before writing — an unrecognized value is logged and ignored rather than stored.
 
 ## Toolbar Targeting
 

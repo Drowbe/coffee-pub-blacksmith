@@ -5,11 +5,22 @@
    Section headers, fields, and buttons come from the shared window styles
    (window-template.css, window-form-controls.css); this file is layout only. */
 
+/* The shared template body ships with NO padding — every window supplies its own
+   gutter (GM Notes: 12px; json-import: 0 + internal). Same pattern here. */
+.blacksmith-toast-send-window .blacksmith-window-template-body {
+    padding: 12px;
+}
+
+/* Sections are .blacksmith-window-section cards (shared component) which carry
+   their own spacing — the form wrapper adds none of its own. */
 .blacksmith-toast-send-form {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 4px 2px;
+}
+
+.blacksmith-toast-send-form .blacksmith-field,
+.blacksmith-toast-send-form .blacksmith-field-row {
+    margin-top: 8px;
 }
 
 .blacksmith-toast-send-recipients {

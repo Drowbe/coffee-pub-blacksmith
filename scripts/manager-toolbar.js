@@ -1314,8 +1314,21 @@ export function getToolbarSettings() {
  * @param {Object} settings - Settings object
  * @param {string} settings.displayStyle - Toolbar display style: 'none', 'dividers', or 'labels'
  */
+/** Valid values for the toolbar display style, matching the registered setting choices. */
+const TOOLBAR_DISPLAY_STYLES = ['none', 'dividers', 'labels'];
+
 export function setToolbarSettings(settings) {
     if (settings.displayStyle !== undefined) {
+        if (!TOOLBAR_DISPLAY_STYLES.includes(settings.displayStyle)) {
+            postConsoleAndNotification(
+                MODULE.NAME,
+                `Toolbar | setToolbarSettings: invalid displayStyle "${settings.displayStyle}" — expected one of ${TOOLBAR_DISPLAY_STYLES.join(', ')}. Ignoring.`,
+                { received: settings.displayStyle },
+                false,
+                false
+            );
+            return;
+        }
         game.settings.set(MODULE.ID, 'toolbarDisplayStyle', settings.displayStyle);
     }
     // Refresh toolbar to apply changes using debounced render
