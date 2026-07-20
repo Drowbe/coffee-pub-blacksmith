@@ -27,7 +27,7 @@ The stats system splits responsibilities across multiple scopes:
 - **Combat scope (`CombatStats.combatStats`)**: aggregate-only data for the active combat. Totals live in `combatStats.totals` (damage, healing, attack counts) alongside per-participant summaries and top moment highlights. Raw event arrays are discarded when the summary is generated.
 - **Lifetime scope (`CPBPlayerStats` on actor flags)**: permanent per-actor records covering attacks, healing, and turn metrics. Only GMs modify this data.
 - **Session scope (`CPBPlayerStats._sessionStats`)**: GM-only in-memory Map keyed by actor ID to hold transient session information (combat tracking, current combat turns). Reset on world reload.
-- **Bounded arrays**: `_boundedPush` applies limits (default 1000 entries) to round and actor logs. The persisted combat history stored in the `combatHistory` world setting keeps only the newest twenty summaries.
+- **Bounded arrays**: `_boundedPush` applies limits (default 1000 entries) to round and actor logs. The persisted combat history in the `combatHistory` world setting is **not** bounded — it keeps every summary. The `20` you may see is `getCombatHistory(limit = 20)`, a read-time cap only.
 
 ---
 

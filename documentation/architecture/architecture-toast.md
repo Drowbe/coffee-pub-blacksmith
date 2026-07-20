@@ -17,10 +17,10 @@ message arrived through Bibliosoph's own transport; Blacksmith's leader toast re
 `partyLeader` world-setting sync reached every client. The rendering primitive needs no sockets —
 so it doesn't get any. Consumers call `show()` receipt-side, wherever their event lands.
 
-A cross-client `send({recipients})` layer is planned as a thin wrapper over this primitive, gated
-on the socket rewrite (see `TODO.md`). Keeping delivery out of Phase 1 is what let it ship without
-that dependency. This is also why callbacks can be stored as plain function references: toasts are
-per-client state that never serializes.
+There is no public cross-client send on this API — the rendering primitive takes no sockets at all.
+Keeping delivery out of it is what let it ship without a socket dependency, and it is also why
+callbacks can be stored as plain function references: toasts are per-client state that never
+serializes.
 
 ## DOM-direct rendering — deliberately not the menubar model
 
@@ -76,10 +76,9 @@ fade to finish.
 `broadcastToast(config)` in `api-toast.js` shows a toast on **every** connected client: locally via
 `show()`, remotely via the `showToast` socketlib handler in `manager-sockets.js`. It exists for
 announcements that originate on one client (the GM's timer helpers) where the chat card used to be
-the transport to players. It is **deliberately not on `ToastAPI`**: the public cross-client surface
-(`send({recipients})`) is gated on the socket rewrite, and this relay is Blacksmith-private plumbing
-until then — data-only by construction (callbacks are stripped before the socket). When Phase 3
-lands, `send()` subsumes this. `SocketManager` is imported dynamically inside `broadcastToast` to
+the transport to players. It is **deliberately not on `ToastAPI`**: there is no public cross-client
+toast surface, and this relay is Blacksmith-private plumbing — data-only by construction (callbacks
+are stripped before the socket). `SocketManager` is imported dynamically inside `broadcastToast` to
 avoid a static import cycle (`manager-sockets` statically imports `api-toast` for the handler).
 
 `timer-notifications.js` is the first consumer: `routeTimerNotification(settingKey, label,
@@ -105,13 +104,12 @@ world value), the chat half GM-side at the `ChatMessage.create` site. Live examp
 client, so the toast is receipt-side: the new leader's client gets "You are now the party leader",
 everyone else gets the actor's name, `stackKey: "blacksmith-party-leader"` so rapid re-picks
 replace rather than stack. (This site originally listened to `settingChange`, a hook that **does
-not exist in Foundry** — see the ⚠️ block in `architecture-blacksmith.md` §9B.2 for the suite-wide
+not exist in Foundry** — see `architecture-blacksmith.md` §9B.2 for the suite-wide
 fallout; the leader *display* had always synced via the socketlib `updateLeader` broadcast, which
 masked it.) Movement follows the identical shape in `token-movement.js`: `movementType` is a world
 setting, its hook toasts receipt-side from the shared `MOVEMENT_TYPES` catalog,
 `stackKey: "blacksmith-movement"`. Both features' chat cards still exist but are gated by their
-`notifyX` channel setting (default `toast` — so chat is off unless the GM opts back in); further
-chat-noise migrations are tracked in `TODO.md`.
+`notifyX` channel setting (default `toast` — so chat is off unless the GM opts back in).
 
 ## Boundaries
 

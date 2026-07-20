@@ -1,393 +1,102 @@
-# Tags system Architecture
+# Tags System Architecture
 
-**Audience:** Contributors to the Blacksmith codebase.
+**Audience:** Contributors to the Blacksmith codebase. For the public API, see `../api/api-tags.md`.
 
-This document describes how the Tags system is built and how its parts interact. It is an architecture reference, not an API reference (see `api-flags.md` for the public API).
+The Tags system is module-agnostic labeling infrastructure. Any Coffee Pub module can declare a taxonomy of suggested tags for one of its data types, attach tags to its records through Blacksmith's central store, and rely on Blacksmith for the world registry, normalization, rename/delete, per-user visibility, and the UI widget.
 
-## Overview
+A "tag" here is a normalized classification label (`"tavern"`, `"main-quest"`, `"todo"`). This is unrelated to FoundryVTT's `document.flags`, which is a generic key-value store on documents. The system was renamed from "flags" to "tags"; one artifact of that rename survives deliberately — see Taxonomy sources below.
 
-The Tags system is a module-agnostic labeling infrastructure. Any coffee-pub module can define a **taxonomy** of recommended flags for a data type, attach flags to its records via Blacksmith's central store, and rely on Blacksmith to manage the world-level registry, normalization, rename/delete, per-user visibility, and the UI widget.
+Target: FoundryVTT v13+.
 
-"Flag" in this system means a normalized classification label (e.g., `"tavern"`, `"main-quest"`, `"todo"`). This is distinct from FoundryVTT's `document.flags` API, which is a generic key-value store on documents.
-
-**Target:** FoundryVTT v13+.
-
-**Relationship to Pins:** The Pins tag system (currently in `manager-pins.js` and `api-pins.js`) is the v0 implementation that this system generalizes. On extraction, Pins becomes a consumer of the Flags API. All existing pin tag data migrates to the central assignment store; the compatibility shim handles this on first load (see Migration section).
-
----
-
-## Core Concepts
+## Core concepts
 
 | Concept | Description |
 |---|---|
-| **Flag** | A normalized string label: lowercase, hyphen-separated, no spaces. E.g., `"main-quest"`. |
-| **Context key** | Scopes a taxonomy and assignment store to one module + data type. Format: `{moduleId}.{dataType}`. E.g., `"coffee-pub-blacksmith.journal-pin"`, `"coffee-pub-squire.quests"`. |
-| **Taxonomy** | A predefined set of recommended flags for a given context key. Defined in `tag-taxonomy.json`. |
-| **Global flags** | Flags that apply across all contexts (e.g., `"todo"`, `"revisit"`). Suggested in every context's choices. |
-| **Protected flag** | A taxonomy flag that drives code behavior in a module (e.g., a pin type value). Cannot be renamed or deleted by the GM via the UI. Marked `protected: true` in the taxonomy JSON. |
-| **Registry** | The world-level list of all known flags. Grows on first use; shrinks on delete. |
-| **Custom flag** | Freeform flag created by a user, not present in any taxonomy. |
-| **Orphan flag** | In the registry but not used by any record and not in any taxonomy. Safe to prune. |
+| **Tag** | A normalized string label: lowercase, hyphen-separated, no spaces (e.g. `"main-quest"`). |
+| **Context key** | Scopes a taxonomy and its assignments to one module plus data type: `{moduleId}.{dataType}` (e.g. `"coffee-pub-squire.quest"`). |
+| **Taxonomy** | The declared set of suggested tags for a context key. |
+| **Global tags** | Tags offered as suggestions in every context (e.g. `"todo"`, `"revisit"`), from the taxonomy's `globalTags`. |
+| **Protected tag** | A taxonomy tag marked `protected: true` because module code checks it by value. GMs cannot rename or delete it. |
+| **Registry** | The world-level deduplicated list of every tag ever used. |
 
-### Four-tier flag classification
-
-Every flag in the registry falls into one tier:
-
-1. **Protected** — in the taxonomy with `protected: true`. Drives module code. Shown as "Built-in" in UI. Cannot be renamed or deleted by GM via the UI.
-2. **Taxonomy** — in the taxonomy without the protected marker. Shown as "Suggested" in UI. Protected from bulk delete but GM can remove individually.
-3. **Custom** — user-created, not in any taxonomy. Shown as "Custom" in UI. Can be deleted by GM.
-4. **Orphan** — in the registry but no records use it and it is not in any taxonomy. Shown as "Orphan" in UI. Can be pruned automatically or by GM.
-
----
+`getChoices(contextKey)` returns entries shaped `{ key, label, protected, tier }`, where **`tier` is `'taxonomy'` or `'global'`** — those are the only two tiers the code has. "Custom" and "orphan" are descriptive terms for registry entries that appear in no taxonomy; they are not a stored classification.
 
 ## Storage
 
-All flag data is owned and managed by Blacksmith. Consuming modules do not store flags in their own record data; they read and write flags via the TagsAPI.
+All tag data lives in Blacksmith settings; consuming modules do not store tags in their own records. The keys are defined at the top of `manager-tags.js` (`:16-19`).
 
-### Flag assignments (central store)
+| Setting | Scope | Type | Holds |
+|---|---|---|---|
+| `tagAssignments` | world | Object | `{ [contextKey]: { [recordId]: string[] } }` — the central assignment store |
+| `tagRegistry` | world | Array | The deduplicated list of known tags |
+| `tagVisibility` | **user** | Object | Per-user visibility map (see Visibility) |
+| `tagTaxonomyOverrideJson` | world | String | Path to a GM-supplied override taxonomy |
+| `tagsMigrationComplete` | world | Boolean | Migration sentinel |
 
-- **Where:** World setting `tagAssignments` (object, GM-writable via proxy for non-GM users).
-- **Shape:**
-  ```json
-  {
-    "coffee-pub-blacksmith.journal-pin": {
-      "pin-abc123": ["narrative", "backstory"],
-      "pin-def456": ["encounter", "tavern"]
-    },
-    "coffee-pub-squire.quests": {
-      "quest-xyz789": ["main", "faction"]
-    }
-  }
-  ```
-- **Key structure:** `tagAssignments[contextKey][recordId]` = `string[]` (normalized flags).
-- **Why central:** TagManager can execute rename and delete entirely within this one store — no cross-module coordination required. Any context key that registered a taxonomy or has records with flags is represented here.
+Assignment writes normalize first, then prune: `setTags()` (`:300`) deletes the record's entry entirely when the resulting array is empty, so an emptied record leaves no residue in the store.
 
-### World registry
+## Taxonomy sources
 
-- **Where:** World setting `tagRegistry` (array of normalized flag strings, GM-writable).
-- **When:** Grows on first use of any new flag; shrinks on `delete()`.
-- **Scope:** One registry for the whole world, shared across all contexts.
+The taxonomy registry is merged from three sources, held in separate maps on `TagManager` and resolved by `ensureTaxonomyLoaded()`:
 
-### Visibility
+| Map | Source |
+|---|---|
+| `_builtinRegistry` | `resources/tag-taxonomy.json`, plus `pin-taxonomy.json` via `_loadPinTaxonomyCompat()` |
+| `_overrideRegistry` | the JSON at the `tagTaxonomyOverrideJson` setting path |
+| `_runtimeRegistry` | `register(contextKey, taxonomy)` calls from consuming modules |
 
-- **Where:** Client setting `tagVisibility` (object, per-user).
-- **Shape:** Two lookup patterns coexist:
-  - `tagVisibility[flag]` — global default visibility for a flag across all contexts.
-  - `tagVisibility[contextKey + "." + flag]` — context-specific override. Takes precedence over the global default when present.
-- **Resolution order:** Context override → global default → `true` (visible by default if no entry exists).
-- **Scope:** Client only. Affects UI filtering only; does not remove flags from stored data.
+`_globalTags` holds the cross-context suggestions. `invalidateTaxonomy()` clears the cache so a changed override is picked up.
 
-### Taxonomy (static)
-
-- **Where:** `resources/tag-taxonomy.json` (shipped with Blacksmith). Contains all context entries across all coffee-pub modules.
-- **Override:** Optional override JSON at the path stored in world setting `tagTaxonomyOverrideJson`. Override entries are merged on top of the built-in JSON (override wins on collision).
-- **Runtime registration:** Modules may also call `flags.register(contextKey, taxonomy)` during `blacksmithReady` as a convenience, but the JSON file is the canonical source. Runtime entries merge on top of override entries (runtime wins on collision). This path is mainly for dynamic or dev-time use.
-
----
+**The `tags` / `flags` key.** All three readers go through one helper, `_normalizeTagList(entry)` (`:174`), which accepts either `tags` or `flags` as the array key and accepts entries as plain strings or `{ key, protected }` objects. This exists because the shipped `tag-taxonomy.json` uses `flags` (a leftover from the rename) while `tags` is the documented shape. Reading both means no caller gets a silently empty taxonomy from picking the wrong key. `tags` wins if an entry somehow carries both.
 
 ## Components
 
-### TagManager (`scripts/manager-tags.js`)
-
-Core logic. No UI, no module-specific knowledge.
-
-**Responsibilities:**
-- Load and merge taxonomy from JSON, override JSON, and runtime registrations.
-- Normalize flag arrays: deduplicate, lowercase, replace spaces with hyphens.
-- CRUD on the world registry: add, rename, delete.
-- Read and write the central `tagAssignments` store: `setTags`, `getTags`, `deleteRecordTags`.
-- On `rename(old, new)`: update every `tagAssignments[contextKey][recordId]` array across all contexts, then update the registry.
-- On `delete(flag)`: remove from every assignment array across all contexts, then remove from the registry. Protected flags are rejected.
-- Classify flags into protected / taxonomy / custom / orphan tiers.
-- Manage per-user visibility state (global and context-level).
-- Seed the registry from existing data on first run.
-
-**Key internal methods:**
-
-| Method | Purpose |
+| File | Role |
 |---|---|
-| `_loadTaxonomy()` | Parse `tag-taxonomy.json` + override; store in `_builtinTaxonomy`. |
-| `_getRuntimeTaxonomy()` | Return the in-memory runtime registry (populated by `register()`). |
-| `_mergeTaxonomy(contextKey)` | Merge built-in, override, and runtime entries for one context. |
-| `_normalize(flags[])` | Returns deduplicated, lowercased, hyphenated array. |
-| `_getAssignments()` | Read world setting `tagAssignments`. |
-| `_writeAssignments(data)` | Write world setting (GM-only path; non-GM uses requestGM). |
-| `_getRegistry()` | Read world setting `tagRegistry`. |
-| `_writeRegistry(flags[])` | Write world setting (GM-only path). |
-| `_isProtected(flag)` | Return true if `flag` appears as `protected: true` in any taxonomy entry. |
-| `_resolveVisibility(flag, contextKey?)` | Apply context override → global default → true fallback. |
+| `scripts/manager-tags.js` | `TagManager` — storage, normalization, taxonomy merge, registry, GM proxy |
+| `scripts/api-tags.js` | `TagsAPI` — the public wrapper exposed as `module.api.tags` |
+| `scripts/widget-tags.js` | `TagWidget` — the embeddable UI component |
+| `templates/partials/tag-widget.hbs` | Widget template |
+| `styles/widget-tags.css` | Widget styles |
+| `resources/tag-taxonomy.json` | Canonical taxonomy for Coffee Pub contexts |
 
-### TagsAPI (`scripts/api-tags.js`)
+### TagWidget
 
-Public interface. Thin wrapper over TagManager. Consumed via `game.modules.get('coffee-pub-blacksmith')?.api?.flags`.
+Three static methods carry the whole component:
 
-See `api-flags.md` for full method contracts. High-level surface:
+- `prepareData({ contextKey, currentTags, mode, placeholder })` (`widget-tags.js:17`) — builds the render context. It takes a **destructured options object**, not positional arguments. `mode` defaults to `'full'`; `'filter'` is declared but not implemented.
+- `activate(element, contextKey, onChange)` (`:78`) — installs the entire event layer: suggestion clicks, Enter-to-add, chip removal, live search. Rendering the partial without calling this yields a display-only div.
+- `readValue(element, contextKey)` — reads the current selection back out.
 
-**Taxonomy**
-- `register(contextKey, taxonomy)` — merge a taxonomy at runtime (convenience; JSON is canonical).
-- `getChoices(contextKey)` — get suggested flags (taxonomy + globals) for a UI picker.
+The partial must receive its context positionally; passing it as a hash adds a key rather than replacing the context, and the partial reads `contextKey` / `isFullMode` / `chips` off the root — the failure mode is a silent empty div.
 
-**Record flag CRUD**
-- `setTags(contextKey, recordId, flags[])` — replace the flags for one record. Normalizes and updates registry.
-- `getTags(contextKey, recordId)` — get the current flags for one record.
-- `addTags(contextKey, recordId, flags[])` — add flags to a record without replacing existing ones.
-- `removeTags(contextKey, recordId, flags[])` — remove specific flags from a record.
-- `deleteRecordTags(contextKey, recordId)` — remove all flag data for a record (e.g. on record delete).
+## Write path and the GM proxy
 
-**Registry management (GM only)**
-- `getRegistry()` — get the full world flag list.
-- `normalize(flags[])` — normalize a flag array.
-- `rename(oldFlag, newFlag)` — rename globally: updates all assignments across all contexts and the registry.
-- `delete(flag)` — remove from registry and strip from all assignments across all contexts. Rejected for protected flags.
-- `seedRegistry(contextKey, existingFlags[])` — one-time call to populate registry from a flat list.
+Tag data lives in world settings, which only a GM can write. Rather than refusing player writes, `TagManager` routes them:
 
-**Visibility**
-- `setVisibility(flag, visible, contextKey?)` — set global visibility, or a context-specific override if `contextKey` is provided.
-- `getVisibility(flag, contextKey?)` — read effective visibility (applies context override → global → default true).
+- `_writeAssignments()` (`:292`) and `_writeRegistry()` (`:364`) check `game.user.isGM`. A GM writes directly; a player calls `_requestGM(action, payload)`, which goes over the socket handler named `blacksmith-tags-gm-proxy` (`:22`) and is executed GM-side by `_handleGMProxy` / `_executeGMAction`.
+- So `setTags`, `addTags`, `removeTags`, and `deleteRecordTags` all work for players.
 
-### Taxonomy JSON (`resources/tag-taxonomy.json`)
+Three methods are genuinely GM-only and return early for players: `rename()` (`:386`), `delete()` (`:418`), and `seedRegistry()` (`:455`). The first two are world-wide mutations that should stay GM-gated. The guard on `seedRegistry` is not required by the write path — seeding routes through the same proxy — and it returns silently, so a player-client first-run seed simply does not happen.
 
-Single source of truth for all taxonomy entries across all coffee-pub modules. Format:
+## Normalization
 
-```json
-{
-  "version": 1,
-  "globalFlags": ["todo", "revisit", "avoid", "complete"],
-  "contexts": {
-    "coffee-pub-blacksmith.journal-pin": {
-      "label": "Journal Page",
-      "flags": [
-        { "key": "narrative" },
-        { "key": "backstory" },
-        { "key": "encounter" },
-        { "key": "tavern" },
-        { "key": "location", "protected": true }
-      ]
-    },
-    "coffee-pub-squire.quests": {
-      "label": "Quests",
-      "flags": [
-        { "key": "main", "protected": true },
-        { "key": "side", "protected": true },
-        { "key": "backstory" },
-        { "key": "faction" }
-      ]
-    }
-  }
-}
-```
+`normalizeTag` / `normalizeTagArray` lowercase, hyphenate, and deduplicate. Normalization happens on the way in — at assignment, registration, and registry add — so stored data is always canonical and comparisons never need to normalize again.
 
-`protected: true` marks flags that the owning module's code depends on. TagManager rejects rename or delete attempts on protected flags. When a module's code checks `flags.includes('main')` to determine behavior, that flag must be marked protected.
+## Visibility
 
-`pin-taxonomy.json` remains in place during the migration window and is read by the compatibility shim in TagManager (see Migration section).
+Visibility is stored in `tagVisibility` at **user** scope: it is a per-client display preference, not a permission. It filters UI only and never removes tags from stored data. `setVisibility(tag, visible, contextKey?)` sets a context-specific override when `contextKey` is supplied and the global default otherwise; `getVisibility` resolves context override, then global default, then `true`.
 
-### TagWidget (`scripts/widget-flags.js`)
+## Hooks
 
-A reusable UI component for selecting and managing flags. Consumed by any module that needs a flags interface — it does not need to re-implement tag input, chip rendering, or search.
-
-**Prerequisite:** The Blacksmith Window API (`documentation/api/api-window.md`). TagWidget is designed to be embedded inside Application V2 windows and follows the same lifecycle and CSS conventions.
-
-**Capabilities:**
-- Display current flags as removable chips.
-- Input field with live search/filter against taxonomy choices.
-- Add new flags (custom or from suggestions) via keyboard or click.
-- Remove individual flags.
-- Show taxonomy suggestions grouped by tier (protected / taxonomy / custom).
-- Optional filter-only mode (for filtering panels — no add/remove, only show/hide toggles).
-- Emits a change event when the flag set changes; consuming window reads it on save.
-
-**Usage (inside an Application V2 window):**
-
-```javascript
-// In prepareContext():
-context.TagWidget = TagWidget.prepareData(contextKey, currentFlags);
-
-// In template (HBS):
-{{> blacksmith-flag-widget flags=TagWidget}}
-
-// In changeHandler or _onSubmit():
-const newFlags = TagWidget.readValue(this.element, contextKey);
-await game.modules.get('coffee-pub-blacksmith').api.tags.setTags(contextKey, recordId, newFlags);
-```
-
-**Files:** `scripts/widget-flags.js`, `templates/widget-flags.hbs`, `styles/widget-flags.css`.
-
----
-
-## Data flow
-
-### Flag normalization
-
-```
-raw input (user text or API call)
-  → split on comma/space
-  → trim whitespace
-  → lowercase
-  → replace remaining spaces with hyphens
-  → deduplicate
-  → normalized string[]
-```
-
-### Taxonomy resolution for a context key
-
-```
-1. Load built-in JSON entries for contextKey
-2. Merge override JSON entries (override wins on collision)
-3. Merge runtime-registered entries (runtime wins on collision)
-4. Append globalFlags
-→ return merged flag list as "choices" (used by getChoices and TagWidget)
-```
-
-### Visibility resolution for a flag
-
-```
-1. Check tagVisibility[contextKey + "." + flag]  → context override (highest priority)
-2. Check tagVisibility[flag]                      → global default
-3. Default: true (visible)
-```
-
-### Delete / rename write path
-
-Both operations are GM-only and touch the central assignment store:
-
-```
-rename(old, new):
-  1. Reject if old is protected
-  2. For each contextKey in tagAssignments:
-       For each recordId: replace old with new in flags[]
-  3. Replace old with new in tagRegistry
-  4. Write tagAssignments + tagRegistry (GM proxy if needed)
-
-delete(flag):
-  1. Reject if flag is protected
-  2. For each contextKey in tagAssignments:
-       For each recordId: remove flag from flags[]
-  3. Remove flag from tagRegistry
-  4. Write tagAssignments + tagRegistry (GM proxy if needed)
-```
-
-### Registry write path (all mutations)
-
-Non-GM users cannot write world settings directly. Any registry or assignment mutation goes through the GM proxy via `requestGM` / socket, same pattern as pin CRUD. TagManager detects GM status and routes accordingly.
-
----
-
-## Permission model
-
-| Operation | Player | GM |
-|---|---|---|
-| Read registry | Yes | Yes |
-| Read taxonomy | Yes | Yes |
-| Read flags for a record | Yes (via TagsAPI) | Yes |
-| Toggle flag visibility (client) | Yes | Yes |
-| Set flags on own records | Per consuming module rules | Yes |
-| Add flags to registry | Via GM proxy | Yes |
-| Rename flag globally | No | Yes (not protected) |
-| Delete flag globally | No | Yes (not protected) |
-| Register taxonomy at runtime | Via `blacksmithReady` hook (any module) | Yes |
-
----
-
-## Migration from pin taxonomy
-
-The existing pin tag system (`pinTagRegistry` setting, `pin-taxonomy.json`, tag methods on `PinsAPI`) is preserved during migration. The transition is additive: no data is deleted, no breaking API changes in the same major version.
-
-### Step 1 — Extract to TagManager
-
-Move the core logic (normalize, registry CRUD, taxonomy merge, visibility) from `manager-pins.js` into `manager-tags.js`. `manager-pins.js` becomes a thin caller delegating to TagManager.
-
-### Step 2 — Add compatibility shim
-
-On TagManager init, if `tagAssignments` is empty and `pinTagRegistry` is non-empty, run a one-time migration:
-- Read all pins from all scenes and the unplaced store.
-- For each pin, read `pin.tags[]` and call `_writeAssignments(contextKey, pin.id, pin.tags)`.
-- Seed `tagRegistry` from `pinTagRegistry`.
-- Load `pin-taxonomy.json` and fold entries into `tag-taxonomy.json` context format.
-- Set a world flag `flagsMigrationComplete: true` so the shim does not re-run.
-
-### Step 3 — Redirect Pins API methods
-
-Tag-related methods on `PinsAPI` (`getTagRegistry`, `registerPinTaxonomy`, `getPinTaxonomy`, etc.) become wrappers over `TagsAPI`, keeping their existing signatures so callers do not break.
-
-### Step 4 — Remove tags from pin objects
-
-After one major version, stop reading `pin.tags[]` and stop writing it on pin update. Pin data readers fall back to `flags.getTags(contextKey, pin.id)` instead. The `pin.tags` field is removed from the schema.
-
-### Step 5 — Retire legacy settings and files
-
-After confirming migration is complete for all active worlds, drop the `pinTagRegistry` setting and mark `pin-taxonomy.json` as deprecated. Remove both in the following major version.
-
----
-
-## Integration pattern for consuming modules
-
-A module that uses the Tags system for a new data type:
-
-```javascript
-// 1. Add the context to tag-taxonomy.json
-// (no code registration required — JSON is the canonical source)
-
-// 2. On record create/update, store flags via TagsAPI
-const flags = game.modules.get('coffee-pub-blacksmith')?.api?.flags;
-await flags.setTags('coffee-pub-squire.quests', quest.id, normalizedFlagsArray);
-
-// 3. On record delete, clean up
-await flags.deleteRecordTags('coffee-pub-squire.quests', quest.id);
-
-// 4. To read flags for a record
-const questFlags = flags.getTags('coffee-pub-squire.quests', quest.id);
-
-// 5. To build a filter UI or tag input, embed TagWidget in your window
-// (see TagWidget section above)
-```
-
-Runtime registration is available for dynamic or dev-time use only:
-
-```javascript
-Hooks.on('blacksmithReady', () => {
-  game.modules.get('coffee-pub-blacksmith')?.api?.flags
-    ?.register('coffee-pub-squire.quests', {
-      label: 'Quests',
-      flags: [{ key: 'main', protected: true }, { key: 'side', protected: true }]
-    });
-});
-```
-
----
-
-## Integration points (summary)
-
-| Concern | Location / mechanism |
+| Hook | Payload |
 |---|---|
-| Flag assignment storage | World setting `tagAssignments` (object: contextKey → recordId → flags[]) |
-| World registry storage | World setting `tagRegistry` (array of strings) |
-| Visibility storage | Client setting `tagVisibility` (object: flag or contextKey.flag → boolean) |
-| Taxonomy (static) | `resources/tag-taxonomy.json` (all modules' contexts in one file) |
-| Taxonomy (override) | World setting `tagTaxonomyOverrideJson` (path to optional override JSON) |
-| Taxonomy (runtime) | `flags.register(contextKey, taxonomy)` during `blacksmithReady` |
-| Core logic | `scripts/manager-tags.js` (TagManager) |
-| Public API | `scripts/api-tags.js` → `game.modules.get('coffee-pub-blacksmith')?.api?.flags` |
-| UI widget | `scripts/widget-flags.js` (TagWidget) — embeddable in any App V2 window |
-| GM write proxy | `requestGM` / socket (same pattern as pins CRUD) |
-| Pins compatibility | `manager-pins.js` delegates to TagManager; `api-pins.js` tag methods wrap TagsAPI |
+| `blacksmith.tags.changed` | `{ contextKey, recordId, tags }` |
+| `blacksmith.tags.renamed` | `{ oldTag, newTag, updated }` |
+| `blacksmith.tags.deleted` | `{ tag, removed }` |
 
----
+Note the payload key on `changed` is `tags`, not `flags`.
 
-## Design decisions
+## Relationship to Pins
 
-The following questions were resolved before implementation planning:
-
-**Visibility scope:** Per-flag-globally, with optional per-context-key override. Hiding `"tavern"` globally hides it everywhere; a context override can make it visible (or hidden) specifically for one data type. This matches the most common use case (hide a noisy flag everywhere) while still allowing fine-grained control.
-
-**Delete and rename semantics:** TagManager owns all CRUD operations end-to-end, including stripping deleted or renamed flags from every record in `tagAssignments`. Because all flag-to-record assignments are stored centrally in Blacksmith, this is a single-store scan — no cross-module coordination or callback registration required.
-
-**Taxonomy file ownership:** One shared `tag-taxonomy.json` shipped with Blacksmith contains all context entries for all coffee-pub modules. Modules contribute by updating this file, not by registering programmatically. Flags that drive module code behavior are marked `protected: true` in the taxonomy entry; the UI and TagManager refuse to rename or delete them. Runtime registration remains available as a secondary convenience path for dynamic or dev-time scenarios.
-
-**UI widget:** TagWidget is a first-class Blacksmith component, not a per-module re-implementation. It covers the full interaction surface: display, add, remove, search, filter. It requires the Blacksmith Window API as a prerequisite and is intended to be embedded in Application V2 windows. A filter-only mode supports sidebar filter panels without the add/remove controls.
-
----
-
-## Remaining work
-
-See `TODO.md` for the master list. This document tracks design intent; implementation tasks are tracked there.
-
+Pins predates this system and carried its own tag vocabulary in the `pinTagRegistry` world setting. The canonical store is now `tagRegistry` via this system, with a legacy fallback to `pinTagRegistry` retained during migration, and `_loadPinTaxonomyCompat()` folds `pin-taxonomy.json` entries into the builtin registry under `{moduleId}.{type}` context keys. Pins is therefore a consumer of the Tags system rather than a parallel implementation, but the fallback path is still present — do not assume `pinTagRegistry` is dead when touching either side.
