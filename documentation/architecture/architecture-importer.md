@@ -137,6 +137,8 @@ Every authoring output supports:
 - **Copy** to clipboard.
 - **Save As** a plain-text file.
 
+Authoring choices are remembered per user and per importer: selected profile/type, clean versus guided JSON output, structured fields, and checkboxes. Campaign-owned defaults such as Journal geography remain world state; transient paste/import results are not stored in authoring preferences.
+
 Blacksmith intentionally does not require a specialized editor or binary format. Suggested filenames may distinguish the output (`weapon-template.txt`, `weapon-template-guided.txt`, `weapon-full-prompt.txt`), but all remain readable in any text editor.
 
 Before Copy/Save, the UI should show a compact output summary, for example:

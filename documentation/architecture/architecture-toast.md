@@ -46,8 +46,20 @@ blocks canvas interaction (each toast re-enables its own pointer events). Active
 Three bounds keep the stack sane, all resolved inside `show()`:
 1. **`stackKey` replacement** — an existing toast with the same key is removed instantly before the
    new one is added (instant, not faded: a fade-out would overlap the incoming replacement).
-2. **The cap** (`MAX_STACK`) — oldest evicted instantly when full.
+2. **The cap** (`MAX_STACK`) — applies to **transient** toasts only: the oldest transient is evicted
+   instantly when full. Persistent (`duration: 0`) toasts sit outside the cap and are never evicted —
+   "until closed" means it (author decision 2026-07-19; a GM announcement must survive timer noise).
+   The unbounded-persistent case is accepted: persistent toasts come from deliberate acts, and each
+   still has its × button.
 3. Neither path fires `onDismiss` — see the dismissal contract below.
+
+## Styles and sizes — class-only
+
+`style` (semantic set) and `size` values are whitelisted (`STYLES`/`SIZES` in `api-toast.js`) and
+mapped to `blacksmith-toast-style-*` / `blacksmith-toast-size-*` classes — a consumer can never
+inject an arbitrary class or CSS through the config. Accent colors in `styles/toast.css` are
+hardcoded hex for now, to be mapped onto design-system tokens when that migration lands
+(author decision 2026-07-19: semantic set now, token mapping later).
 
 ## The dismissal contract (shared with menubar notifications)
 
@@ -87,6 +99,16 @@ the timer payload flags to toast content, broadcasts the toast half, and returns
 should still post its chat card. The per-kind toggles in each timer's own settings section gate the
 calls *before* they reach the router: the timer section decides *what* fires, the Notifications
 section decides *where* it goes.
+
+`sendToastToUsers(config, userIds)` is the relay's **targeted** sibling, same internal-only
+standing. Targeting is receipt-side per the socket privacy rule (both transports broadcast):
+`_recipients` rides the payload and the `showToast` handler renders only on listed clients — so
+the payload must never carry secrets; a GM announcement is non-secret by contract. The sender's
+own client renders locally only if it is in the list. First consumer: the GM **Send Toast** tool
+(`window-toast-send.js`, opened from the party menubar, GM-only) — it sends `size: 'large'`
+toasts to selected players and shows the sending GM a small confirmation toast rather than an
+echo of the announcement. That tool is a Blacksmith feature consuming private plumbing; the
+public `send({recipients})` surface remains gated on the socket rewrite.
 
 ## Delivery channels: the `notifyX` setting pattern
 

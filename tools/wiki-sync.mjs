@@ -64,13 +64,14 @@ const PUBLISH = [
   'architecture/architecture-tags.md',
   'architecture/architecture-toast.md',
   'architecture/architecture-token-naming.md',
+  'architecture/architecture-toolbarmanager.md',
   'architecture/architecture-window.md',
   'architecture/architecture-xp.md',
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
 //   API:          (none — all published)
-//   Architecture: architecture-toolbarmanager (major rewrite)
+//   Architecture: (none — all published)
 //   Also held:    TODO.md (internal / holds security items and open decisions)
 
 const HOME_SRC = 'guides/guide-registering-with-blacksmith.md';
