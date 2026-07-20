@@ -81,7 +81,6 @@
     blacksmith-panel-card-variant-music
     blacksmith-panel-card-variant-environment
     blacksmith-panel-card-variant-oneshot
-    blacksmith-panel-card-variant-timeline
 */
 
 .blacksmith-panel-card-variant-danger {
@@ -117,11 +116,6 @@
 .blacksmith-panel-card-variant-oneshot {
     border-color: var(--blacksmith-variant-oneshot-border);
     background: var(--blacksmith-variant-oneshot-bg);
-}
-
-.blacksmith-panel-card-variant-timeline {
-    border-color: var(--blacksmith-variant-timeline-border);
-    background: var(--blacksmith-variant-timeline-bg);
 }
 
 

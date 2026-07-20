@@ -509,7 +509,6 @@ class PinDOMElement {
             pinElement.style.top = `${top}px`;
             pinElement.style.width = `${width}px`;
             pinElement.style.height = `${height}px`;
-            pinElement.style.setProperty('--pin-size-px', `${width}px`);
             // GM indicator: fixed 16 scene-units converted to screen pixels — scales with zoom, not pin size
             pinElement.style.setProperty('--gm-indicator-size-px', `${Math.round(16 * scale)}px`);
             pinElement.style.setProperty('--pin-stroke-color', strokeColor);

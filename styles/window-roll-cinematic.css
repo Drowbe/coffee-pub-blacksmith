@@ -438,7 +438,7 @@
 }
 
 .cpb-cinematic-roll-btn .fa-spin {
-    animation: cpb-spin 1.5s linear infinite;
+    animation: cpb-cinematic-spin 1.5s linear infinite;
 }
 
 /* WAITING ON ROLL ICON */

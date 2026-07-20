@@ -140,11 +140,6 @@ a solid fill. Consume them as a pair.
 | `--blacksmith-variant-environment-bg` | `rgba(42, 70, 62, 0.12)` | Environment panel background |
 | `--blacksmith-variant-oneshot-border` | `rgba(124, 133, 0, 0.45)` | One-shot panel border |
 | `--blacksmith-variant-oneshot-bg` | `rgba(124, 133, 0, 0.12)` | One-shot panel background |
-| `--blacksmith-variant-timeline-border` | `rgba(47, 68, 106, 0.45)` | Timeline panel border |
-| `--blacksmith-variant-timeline-bg` | `rgba(47, 68, 106, 0.12)` | Timeline panel background |
-
-The `timeline` and `info` pairs currently hold identical values, so the two variants render
-indistinguishably.
 
 ## Typography
 

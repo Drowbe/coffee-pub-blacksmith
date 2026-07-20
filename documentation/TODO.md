@@ -4,12 +4,6 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
-## Wiki sync mechanism (blocked)
-- **Owner:** Claude (assigned 2026-07-17). The wiki is a pure mirror of `documentation/`; Claude syncs it after each BUILD commit — see the workflow and Git rules in `CLAUDE.md`.
-- **Blocker:** the wiki bare repo (`…coffee-pub-blacksmith.wiki.git`) will not check out on Windows — the page `Architecture:-Core` has a `:` in its filename, illegal in NTFS, so `git clone` of the wiki fails on this machine.
-- **How to verify (once solved):** the wiki renders the current `documentation/` docs, and re-running the sync on an unchanged tree is a no-op.
-- **Options to work out:** sparse/partial checkout excluding colon-named pages; a filename mapping layer (`:` ↔ safe char); or generating/pushing wiki blobs without a working-tree checkout. Also decide whether the colon-named page should just be renamed at the source so the mirror is clean.
-
 ## Item import expansion
 
 - **Phase 1 — native Items and inline NPC content (implemented; pending live verification)**: Item Directory accepts lossless native Foundry Item JSON; NPC `items`/`spells`/`features` arrays mix compendium-name references with inline native definitions (and existing Blacksmith-flat physical items); unresolved references surface visibly. See `plans/plan-item-import-expansion.md`.
@@ -197,7 +191,6 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
   - `styles/journal-toolbars.css` (52 lines) is genuinely dead. None of its 5 classes appears anywhere in `scripts/` or `templates/`. Safe to delete.
   - `styles/widget-tags.css` (154 lines) is **unlanded, not dead** — do not delete it. 14 of its 15 `bsw-*` classes are emitted by `templates/partials/tag-widget.hbs`, and `scripts/widget-tags.js` (imported at `scripts/blacksmith.js:88`) registers that template as the `blacksmith-tag-widget` partial. What is missing is the last step: **no template invokes the partial**, and the stylesheet is not imported. The tag widget is therefore a complete, inert feature — nothing renders it, so nothing is visibly broken today. Landing it means adding the `@import` to `default.css` and a `{{> blacksmith-tag-widget}}` call site. Deleting the CSS instead would destroy the styling for a feature that is one call site from working.
 - **`@keyframes cpb-pulse`** (`styles/cards-skill-check.css:105`) is defined and referenced by no `animation` declaration. Delete it, or find the rule that lost its reference.
-- **`--blacksmith-variant-timeline-*` duplicates `--blacksmith-variant-info-*`.** Both pairs are `rgba(47, 68, 106, ...)` (`styles/vars.css:112-113` and `:124-125`), so the two variants render indistinguishably despite being presented as distinct. Decide: give `timeline` its own hue, or drop it and alias consumers to `info`. This is a design call, not a cleanup — the published token page currently states the duplication as fact.
 - **Priority**: Low, except the two dead stylesheets, which are worth a quick look since they may mean a feature is shipping unstyled.
 
 #### `applicationv2-window/` — decide its disposition
