@@ -218,8 +218,7 @@ Permission is `blacksmithAccess` (`gm`, `private`, `public`) and visibility is `
 
 Sizing is written inline as `width`/`height` at `scripts/pins-renderer.js:510-511`. The per-pin custom
 properties that stylesheets actually read are `--pin-stroke-color`, `--pin-stroke-px`, and
-`--gm-indicator-size-px` (`:514-519`), plus `--blacksmith-pin-icon-size-ratio` (`styles/pins.css:9`).
-`--pin-size-px` is set at `:512` but read by no stylesheet, so overriding it has no effect.
+`--gm-indicator-size-px` (`:513-518`), plus `--blacksmith-pin-icon-size-ratio` (`styles/pins.css:9`).
 
 ## Combat timer bar
 

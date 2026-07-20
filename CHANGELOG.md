@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.10.1]
+
+### Fixed
+
+- **The cinematic roll spinner rendered static — it named an undefined keyframe** (`styles/window-roll-cinematic.css`): the pending-roll icon on the cinematic roll overlay declared `animation: cpb-spin 1.5s linear infinite`, but no `@keyframes cpb-spin` is defined anywhere in `styles/`, and a CSS animation naming an undefined keyframe is silently ignored — so the icon never rotated. The reference now points at the real `cpb-cinematic-spin` keyframe (`:365`, a plain 0->360 rotation), the same one the equivalent spinner at `:351` already uses. How to verify (live): trigger a cinematic roll and confirm the pending-roll icon spins while it waits.
+
+- **The shared chat-card template used an invalid `visibility` value, so its header marker was never hidden** (`templates/cards-common.hbs`): the header-hiding marker was wrapped in `<span style="visibility: none">`, and `none` is not a valid `visibility` value, so the declaration was dropped and the `coffeepub-hide-header` marker was not hidden. The other 18 card templates use `visibility: hidden`, which `cards-common.hbs` now matches — closing the one exception the `api-chatcards.md` guidance already specified. How to verify (live): render a chat card built from this template and confirm the marker text is not visible.
+
+### Removed
+
+- **Dropped the dead `--pin-size-px` custom property** (`scripts/pins-renderer.js`, `documentation/design-system/design-tokens.md`, `documentation/design-system/design-components.md`): the renderer set `--pin-size-px` on every pin element, but no stylesheet in the module read it — pin dimensions come from the inline `width`/`height` written on the same element (`:510-511`), so the property had no effect and could not be used to override pin size from another module. Removed the assignment; the design-token and component pages no longer describe it.
+
+- **Dropped the `timeline` panel-card variant, a silent duplicate of `info`** (`styles/vars.css`, `styles/window-panels.css`, `documentation/design-system/design-tokens.md`): `--blacksmith-variant-timeline-border`/`-bg` held values byte-identical to `--blacksmith-variant-info-*`, so `.blacksmith-panel-card-variant-timeline` rendered indistinguishably from the info variant, while no template or script referenced either the class or its tokens. Removed the token pair, the class and its comment, and the doc rows; `tools/check-design-tokens.mjs` passes with the reduced set (61 tokens). A timeline variant can be reintroduced with its own hue if a surface ever needs one.
+
 ## [13.10.0]
 
 ### Added

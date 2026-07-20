@@ -185,10 +185,6 @@ otherwise.
 
 A few are written by JavaScript at runtime rather than declared in CSS, so they hold no value in a static
 stylesheet read. `--marker-position` is set per-card at `scripts/` render time and read by
-`styles/cards-stats.css:356` to place the damage-ratio marker. On canvas pins, `--pin-stroke-color`,
-`--pin-stroke-px` and `--gm-indicator-size-px` are set per-pin at `scripts/pins-renderer.js:514-519`.
-
-`--pin-size-px` is set at `scripts/pins-renderer.js:512` but is read by no stylesheet in the module: pin
-dimensions currently come from inline `width`/`height` written alongside it at
-`scripts/pins-renderer.js:510-511`. Setting or overriding `--pin-size-px` from another module therefore has
-no effect.
+`styles/cards-stats.css:357` to place the damage-ratio marker. On canvas pins, `--pin-stroke-color`,
+`--pin-stroke-px` and `--gm-indicator-size-px` are set per-pin at `scripts/pins-renderer.js:513-518`.
+Pin dimensions come from inline `width`/`height` written at `scripts/pins-renderer.js:510-511`.
