@@ -38,11 +38,13 @@ Show a toast on this client. Returns a toast ID (string), or `null` on error.
 - `style` (string, optional): semantic accent — `'info'` | `'success'` | `'warning'` | `'danger'` |
   `'announcement'`. Anything else renders the default look. Values are whitelisted and mapped to
   CSS classes; consumers cannot inject classes or CSS through the config.
-- `size` (string, optional): `'large'` (bigger content-fit), `'vw40'` / `'vw60'` / `'vw80'` (that
-  percent of viewport width, typography scaling with each step), or `'fullscreen'` — a full
-  viewport overlay (centered giant text, dark scrim). Fullscreen is a **singleton**: a new
-  fullscreen toast replaces the current one; it is exempt from the stack cap; with no `onClick`,
-  clicking anywhere dismisses it (that counts as a dismissal — `onDismiss` fires).
+- `size` (string, optional): omit for a normal toast (content-fit, stacks top-center). `'small'` |
+  `'medium'` | `'large'` | `'fullscreen'` render a **billboard** instead: a viewport-proportional
+  box (both dimensions — roughly 26×18 / 40×28 / 58×42 percent, fullscreen 100×100 with a dark
+  scrim), centered on screen, with typography scaling relationally with the box. Billboards are
+  **singletons** (a new one replaces the current, whatever its size), exempt from the stack cap,
+  and — with no `onClick` — clicking anywhere dismisses (that counts as a dismissal — `onDismiss`
+  fires). Long messages scroll inside the box rather than growing it.
 - `backgroundImage` (string, optional): image path/URL rendered as a cover background behind the
   toast content, with an automatic dark scrim so text stays legible. Combines with `image` (the
   avatar floats over it); best with the larger sizes and fullscreen.

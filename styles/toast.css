@@ -136,101 +136,107 @@
 .blacksmith-toast-style-announcement .blacksmith-toast-title { color: #d8c9a3; }
 
 /* ------------------------------------ */
-/* --- SIZES -------------------------- */
+/* --- BILLBOARDS (sized toasts) ------ */
 /* ------------------------------------ */
-/* blacksmith-toast-size-* from the SIZES whitelist in api-toast.js. */
-
-.blacksmith-toast-size-large {
-    max-width: 560px;
-    padding: 18px 26px;
-    gap: 16px;
-}
-.blacksmith-toast-size-large .blacksmith-toast-image {
-    width: 84px;
-    height: 84px;
-}
-.blacksmith-toast-size-large .blacksmith-toast-icon {
-    font-size: 40px;
-}
-.blacksmith-toast-size-large .blacksmith-toast-title {
-    font-size: 1.5em;
-}
-.blacksmith-toast-size-large .blacksmith-toast-subtitle {
-    font-size: 1.05em;
-}
-.blacksmith-toast-size-large .blacksmith-toast-close {
-    font-size: 20px;
-}
-
-/* Viewport-relative presets: width is a fixed share of the viewport,
-   typography scales with each step. */
-.blacksmith-toast-size-vw40,
-.blacksmith-toast-size-vw60,
-.blacksmith-toast-size-vw80 {
-    justify-content: center;
-    gap: 18px;
-}
-.blacksmith-toast-size-vw40 { width: 40vw; max-width: 40vw; padding: 20px 28px; }
-.blacksmith-toast-size-vw60 { width: 60vw; max-width: 60vw; padding: 24px 34px; }
-.blacksmith-toast-size-vw80 { width: 80vw; max-width: 80vw; padding: 30px 40px; }
-
-.blacksmith-toast-size-vw40 .blacksmith-toast-image { width: 96px; height: 96px; }
-.blacksmith-toast-size-vw60 .blacksmith-toast-image { width: 120px; height: 120px; }
-.blacksmith-toast-size-vw80 .blacksmith-toast-image { width: 148px; height: 148px; }
-
-.blacksmith-toast-size-vw40 .blacksmith-toast-icon { font-size: 48px; }
-.blacksmith-toast-size-vw60 .blacksmith-toast-icon { font-size: 64px; }
-.blacksmith-toast-size-vw80 .blacksmith-toast-icon { font-size: 80px; }
-
-.blacksmith-toast-size-vw40 .blacksmith-toast-title { font-size: 1.7em; }
-.blacksmith-toast-size-vw60 .blacksmith-toast-title { font-size: 2.1em; }
-.blacksmith-toast-size-vw80 .blacksmith-toast-title { font-size: 2.6em; }
-
-.blacksmith-toast-size-vw40 .blacksmith-toast-subtitle { font-size: 1.1em; }
-.blacksmith-toast-size-vw60 .blacksmith-toast-subtitle { font-size: 1.3em; }
-.blacksmith-toast-size-vw80 .blacksmith-toast-subtitle { font-size: 1.5em; }
-
-.blacksmith-toast-size-vw40 .blacksmith-toast-close,
-.blacksmith-toast-size-vw60 .blacksmith-toast-close { font-size: 20px; }
-.blacksmith-toast-size-vw80 .blacksmith-toast-close { font-size: 24px; }
-
-/* Fullscreen: a viewport overlay, not a stack entry — rendered directly on <body>
-   (api-toast.js appends it outside the stack container). One at a time; click
+/* blacksmith-toast-size-* from the SIZES whitelist in api-toast.js.
+   Any size = a BILLBOARD: a viewport-proportional box (both dimensions), centered,
+   rendered directly on <body> outside the stack. Typography is viewport-relative
+   (clamp'd vw) so content scales relationally with the box. One at a time; click
    anywhere dismisses. */
+
+.blacksmith-toast-size-small,
+.blacksmith-toast-size-medium,
+.blacksmith-toast-size-large,
 .blacksmith-toast-size-fullscreen {
     position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
+    top: 50%;
+    left: 50%;
     max-width: none;
     z-index: 10001; /* above the toast stack container */
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    gap: 28px;
+    padding: 2vh 2vw;
+    cursor: pointer;
+    /* Own enter/exit transform (centering + scale) replaces the stack slide-in */
+    transform: translate(-50%, -50%) scale(0.96);
+}
+.blacksmith-toast-size-small.visible,
+.blacksmith-toast-size-medium.visible,
+.blacksmith-toast-size-large.visible,
+.blacksmith-toast-size-fullscreen.visible {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.blacksmith-toast-size-small .blacksmith-toast-text,
+.blacksmith-toast-size-medium .blacksmith-toast-text,
+.blacksmith-toast-size-large .blacksmith-toast-text,
+.blacksmith-toast-size-fullscreen .blacksmith-toast-text {
+    align-items: center;
+    min-height: 0;
+    overflow-y: auto; /* long messages scroll inside the box instead of overflowing it */
+}
+
+.blacksmith-toast-size-small .blacksmith-toast-close,
+.blacksmith-toast-size-medium .blacksmith-toast-close,
+.blacksmith-toast-size-large .blacksmith-toast-close,
+.blacksmith-toast-size-fullscreen .blacksmith-toast-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    margin: 0;
+}
+
+/* Per-preset box dimensions (width × height tuned per step, not one shared percent —
+   a single percent of both axes goes shapeless on ultrawide monitors) and
+   viewport-relative typography, clamped so nothing becomes unreadable or absurd. */
+.blacksmith-toast-size-small  { width: 26vw; height: 18vh; gap: 1.2vh; }
+.blacksmith-toast-size-medium { width: 40vw; height: 28vh; gap: 1.8vh; }
+.blacksmith-toast-size-large  { width: 58vw; height: 42vh; gap: 2.2vh; }
+
+.blacksmith-toast-size-small  .blacksmith-toast-image { width: clamp(48px, 6vw, 96px);   height: clamp(48px, 6vw, 96px); }
+.blacksmith-toast-size-medium .blacksmith-toast-image { width: clamp(72px, 8.8vw, 150px); height: clamp(72px, 8.8vw, 150px); }
+.blacksmith-toast-size-large  .blacksmith-toast-image { width: clamp(96px, 12.4vw, 205px); height: clamp(96px, 12.4vw, 205px); border-width: 2px; }
+
+.blacksmith-toast-size-small  .blacksmith-toast-icon { font-size: clamp(24px, 2.8vw, 46px); }
+.blacksmith-toast-size-medium .blacksmith-toast-icon { font-size: clamp(34px, 4.4vw, 74px); }
+.blacksmith-toast-size-large  .blacksmith-toast-icon { font-size: clamp(46px, 6.2vw, 106px); }
+
+.blacksmith-toast-size-small  .blacksmith-toast-title { font-size: clamp(1em, 1.6vw, 1.8em); }
+.blacksmith-toast-size-medium .blacksmith-toast-title { font-size: clamp(1.25em, 2.4vw, 2.7em); }
+.blacksmith-toast-size-large  .blacksmith-toast-title { font-size: clamp(1.55em, 3.4vw, 3.8em); }
+
+.blacksmith-toast-size-small  .blacksmith-toast-subtitle { font-size: clamp(0.85em, 1vw, 1.15em); }
+.blacksmith-toast-size-medium .blacksmith-toast-subtitle { font-size: clamp(0.95em, 1.35vw, 1.55em); }
+.blacksmith-toast-size-large  .blacksmith-toast-subtitle { font-size: clamp(1.05em, 1.7vw, 2em); }
+
+/* Fullscreen: the 100%×100% billboard, with a scrim instead of a card border */
+.blacksmith-toast-size-fullscreen {
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    gap: 3vh;
     border: none;
     border-radius: 0;
     background: rgba(10, 10, 10, 0.92);
-    cursor: pointer;
+    transform: none; /* inset covers the viewport; no centering transform needed */
 }
-.blacksmith-toast-size-fullscreen .blacksmith-toast-text {
-    align-items: center;
+.blacksmith-toast-size-fullscreen.visible {
+    transform: none;
 }
 .blacksmith-toast-size-fullscreen .blacksmith-toast-image {
-    width: 200px;
-    height: 200px;
+    width: clamp(140px, 18vw, 300px);
+    height: clamp(140px, 18vw, 300px);
     border-width: 3px;
 }
-.blacksmith-toast-size-fullscreen .blacksmith-toast-icon { font-size: 110px; }
-.blacksmith-toast-size-fullscreen .blacksmith-toast-title { font-size: 3.2em; }
-.blacksmith-toast-size-fullscreen .blacksmith-toast-subtitle { font-size: 1.6em; }
+.blacksmith-toast-size-fullscreen .blacksmith-toast-icon { font-size: clamp(64px, 9.5vw, 170px); }
+.blacksmith-toast-size-fullscreen .blacksmith-toast-title { font-size: clamp(2em, 5vw, 5.6em); }
+.blacksmith-toast-size-fullscreen .blacksmith-toast-subtitle { font-size: clamp(1.15em, 2.4vw, 2.8em); }
 .blacksmith-toast-size-fullscreen .blacksmith-toast-close {
-    position: absolute;
     top: 24px;
     right: 32px;
     font-size: 32px;
-    margin: 0;
 }
 
 /* ------------------------------------ */

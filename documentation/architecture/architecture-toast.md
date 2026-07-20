@@ -68,13 +68,28 @@ stays legible over arbitrary art. Sizes are discrete presets rather than a free 
 same reason the styles are class-only: every size is a tested CSS class, nothing is computed into
 inline styles from consumer input.
 
-**Fullscreen is not a stack entry.** `size: 'fullscreen'` renders as its own fixed overlay appended
-directly to `<body>` — the stack container's flex layout never sees it. It is a singleton (a new
-fullscreen replaces the current one — two simultaneous screen takeovers is meaningless), exempt
-from the stack cap like persistent toasts, and — when it has no `onClick` — a click anywhere on the
-overlay dismisses it through `_dismiss` (the player let it go by, so `onDismiss` fires; author
-decision 2026-07-19). The `remove`/`clearByModule`/`getActive` surfaces treat it like any other
-toast because it still lives in the Map.
+Optional `sound` is a data path, not a shared audio instance. `show()` plays it locally through
+Blacksmith's sound helper. Internal broadcast/targeted relays carry the path, and each receiving
+client plays the sound when it renders the toast.
+
+**Sized toasts are billboards, not stack entries** (author decision 2026-07-19). The display model
+is binary: no `size` = a toast (content-fit, stacks top-center); any `size` (`small`/`medium`/
+`large`/`fullscreen`) = a **billboard** — a viewport-proportional box in *both* dimensions,
+centered, rendered inside a dedicated fixed full-viewport layer (`#blacksmith-toast-billboard-layer`)
+so the stack container's flex layout never sees it. The layer's positioning is **inline and
+JS-owned** — a deliberate guard, not a style: a billboard appended as a plain `<body>` child with a
+stale or missing stylesheet becomes a static block in Foundry's body layout and physically shoves
+the interface around (observed live 2026-07-19 via a cached `toast.css`). The layer makes that
+failure mode impossible; broken CSS now degrades to "billboard renders unstyled," never "UI moves."
+Width×height are tuned per preset rather than one shared percent (a single percent of both axes
+goes shapeless on ultrawide monitors), and typography is clamp'd viewport units so content scales
+relationally with the box; overflow scrolls inside the box, because a fixed box cannot grow with
+its content. Billboards are singletons (a new one replaces the current, whatever its size — two
+simultaneous centered takeovers is meaningless), exempt from the stack cap like persistent toasts,
+and — when there is no `onClick` — a click anywhere dismisses through `_dismiss` (the player let it
+go by, so `onDismiss` fires). Billboards carry their own centering transform, so the stack's
+slide-in transition is overridden with a scale-in. The `remove`/`clearByModule`/`getActive`
+surfaces treat a billboard like any other toast because it still lives in the Map.
 
 ## The dismissal contract (shared with menubar notifications)
 

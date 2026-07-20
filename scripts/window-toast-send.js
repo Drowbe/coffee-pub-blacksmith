@@ -107,12 +107,11 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                         <div class="blacksmith-field">
                             <label class="blacksmith-field-label">Size</label>
                             <select class="blacksmith-input" name="toast-size">
-                                <option value="large" selected>Large</option>
-                                <option value="">Default (fits content)</option>
-                                <option value="vw40">40% of screen</option>
-                                <option value="vw60">60% of screen</option>
-                                <option value="vw80">80% of screen</option>
-                                <option value="fullscreen">Fullscreen overlay</option>
+                                <option value="" selected>Adapt to Content</option>
+                                <option value="small">Small</option>
+                                <option value="medium">Medium</option>
+                                <option value="large">Large</option>
+                                <option value="fullscreen">Fullscreen</option>
                             </select>
                         </div>
                         <div class="blacksmith-field">
