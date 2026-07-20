@@ -99,8 +99,6 @@ means delete. **One plan needs dismantling; two are legitimately live** (`migrat
         section (4 of its 5 bullets duplicate Best Practices), rename away from "migration".
       - `guides/developer-note-pin-editing-visibility.md` — drop the "13.7.6" framing; consider merging into
         `guide-pins-integration.md`, which it overlaps heavily.
-- [ ] **Delete `guides/blacksmith-apis.md`** once the wiki sidebar is generated — it's a hand-maintained
-      index of wiki links doing the same job, and it was carrying stale paths.
 - [ ] **Audit the rest of `architecture/architecture-blacksmith.md`.** §4.3/§5/§7, its doc links, and the
       new §9A/§9B were verified against the filesystem; the other sections were never checked.
 - [ ] **Verify doc-claimed filenames across the remaining architecture docs.** §4.3 alone carried 8

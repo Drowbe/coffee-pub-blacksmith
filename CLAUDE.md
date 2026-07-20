@@ -124,6 +124,23 @@ and nowhere else. Documenting current broken behavior is allowed — as plain be
 **transitional**: when the code is fixed, step 8 updates the sentence to the new reality. It is a description
 of reality with a short shelf life, not a parking spot for work.
 
+### The formatting standard for published docs
+
+Every doc published to the wiki conforms to this. It is checkable, so check it before publishing:
+
+- **No emoji or decorative icons** — not in headings, prose, tables, or example output. Write
+  `console.log('Foo working')`, not `console.log('✅ Foo working')`. No `📋`, `🔧`, `⭐`, `⚠️`, `⛔`.
+- **No styled callout blocks.** A `>` block with a bold warning header is still a note about the code;
+  state it as prose. (Ordinary blockquotes for actual quotations are fine.)
+- **ASCII quotes and apostrophes**, not curly ones.
+- **Uniform header.** Line 1 `# <Name>`, then one bold audience line, then a one-sentence scope line,
+  then where the authoritative counterpart lives if there is one.
+- **No footers or status-theatre** — no "Last Updated: Current session", no "Status: production ready",
+  no "Version History" section (that is what `CHANGELOG.md` is for), no "Support" boilerplate.
+- **No task lists or checkboxes.** Anything shaped like work belongs in `TODO.md`.
+- **Point at code, don't copy it.** `file.js:line` pointers beat pasted classes, constant lists, and
+  signature tables. Every copied block found in the audits had drifted; every pointer had not.
+
 ### Behavior, not commentary — what an API or architecture doc says
 
 These docs specify what the code **does**, as the contract: specific, present tense, neutral. When current

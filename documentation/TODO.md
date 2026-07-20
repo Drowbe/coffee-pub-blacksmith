@@ -178,9 +178,20 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
   3. **Make it upstream of the component docs** — chat cards, windows, pins, menubar, timers. Those architecture/api docs should point at and conform to the design system, not restate divergent design details. This is the continuity fix.
 - **Relationship**: the "Card CSS migration to theme system" item below is a facet of this — fold it in when this starts.
 - **Window-template gap found 2026-07-19**: `.blacksmith-window-template-body` ships with **no padding**, so every window re-invents the gutter (`notes-gm.css` 12px; `window-json-import.css` 0 + internal panel padding; `window-toast-send.css` 12px). When the design-system pass touches windows, decide a default body gutter in `window-template.css` and strip the per-window overrides (watch for double-padding in windows that pad internally). Same pass should reconcile field-label styling: the shared `blacksmith-field-label` (small uppercase) vs the importer's own bolder sentence-case labels — one canonical label style in the shared kit.
-- **Blocked on**: the wiki reset finishing (this is the #1 effort after).
+- **Blocked on**: nothing — the wiki reset is complete.
 - **How to verify**: every token/class named in the split docs resolves to a real definition in `styles/*`; no design detail is stated divergently between the design-system docs and a component doc; a sibling can style a card/window from the consumer reference and match Blacksmith.
 - **Priority**: Highest post-reset.
+
+#### `applicationv2-window/` — decide its disposition
+- **Issue**: `documentation/applicationv2-window/guidance-applicationv2.md` (539 lines) has never been audited and is **not published to the wiki**, yet three published pages point at it by repo path — `api-window.md`, `architecture-window.md`, and `architecture-blacksmith.md`. Those render as plain text on the wiki (the sync downgrades unpublished targets), so nothing is broken, but a wiki reader is sent off-wiki to the repo to find how to build an Application V2 window.
+- **Options**: (a) audit, scrub to the formatting standard, and publish it as its own page; or (b) fold it into the design-system split as originally planned, since window guidance is design-system material. Either way `applicationv2-window/README.md` (27 lines, quick start for the example) gets deleted and the `.webp`/`.png`/example files stay as repo assets.
+- **If it publishes**, revisit the wording of those three references so they name a wiki page rather than a repo path.
+- **Priority**: Medium — fold it into the design-system effort rather than doing it standalone.
+
+#### Publish the importer docs once the import work is verified
+- **Issue**: `api/api-importer.md` (474 lines) and `architecture/architecture-importer.md` (311 lines) are the only two `api-*`/`architecture-*` docs not on the wiki. They were written ahead of the functionality, so they are held under the rule that a doc describes what exists.
+- **Gate**: the JSON-import work lands and passes live testing. Then audit both against the finished code, scrub to the formatting standard, and add them to `PUBLISH` in `tools/wiki-sync.mjs`.
+- **Priority**: Medium — this closes the documentation set with nothing held back.
 
 #### Card CSS migration to theme system
 - **Issue**: Card-type CSS files (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.css`) still use hardcoded colors; they should use the CSS variable theme system for consistency and themeability.
