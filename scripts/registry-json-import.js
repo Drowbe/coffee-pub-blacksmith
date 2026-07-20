@@ -25,8 +25,9 @@ const kinds = new Map();
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildPrompt] - Build and return the prompt text; the window delivers it (clipboard or text file).
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildJsonTemplate] - Build a clean JSON-only hand-authoring template.
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildAuthoringGuide] - Build a plain-text JSON template plus human authoring instructions.
- * @property {(entries: object[]) => Promise<boolean>} onImport - Parsed entries from {@link parseJsonImportPayload} (via runJsonImport)
- * @property {(error: Error) => boolean} [onImportError]
+ * @property {(entries: object[]) => Promise<unknown>} [onImport] - Legacy batch fallback for kinds not yet using onImportEntry.
+ * @property {(entry: object) => Promise<unknown>} [onValidateEntry]
+ * @property {(entry: object) => Promise<unknown>} [onImportEntry]
  */
 
 /**
@@ -92,11 +93,125 @@ export function parseJsonImportPayload(jsonDataRaw) {
 /**
  * @param {JsonImportKind} kind
  * @param {string} jsonDataRaw
- * @returns {Promise<boolean>}
+ * @returns {Promise<object>}
  */
+function inputName(entry, index) {
+    return String(entry?.name || entry?.itemName || entry?.tableName || entry?.title || `Entry ${index + 1}`);
+}
+
+function profileName(kind, entry) {
+    if (kind.id === 'item') return String(entry?.itemType || entry?.type || '').toLowerCase();
+    if (kind.id === 'journal') return String(entry?.journaltype || '').toLowerCase();
+    if (kind.id === 'rolltable') return String(entry?.results?.[0]?.resultType || '').toLowerCase();
+    return String(entry?.type || '').toLowerCase();
+}
+
+function issueFromError(error, stage) {
+    return {
+        code: String(error?.code || `${stage.toUpperCase()}_FAILED`),
+        stage,
+        path: String(error?.path || ''),
+        message: String(error?.message || error || 'Unknown error'),
+        details: error?.details && typeof error.details === 'object' ? error.details : {}
+    };
+}
+
+function normalizeIssues(issues, stage = 'validate') {
+    return (Array.isArray(issues) ? issues : []).map(issue => {
+        if (typeof issue === 'string') return { code: 'IMPORT_WARNING', stage, path: '', message: issue, details: {} };
+        return {
+            code: String(issue?.code || 'IMPORT_WARNING'), stage: String(issue?.stage || stage),
+            path: String(issue?.path || ''), message: String(issue?.message || issue || 'Warning'),
+            details: issue?.details && typeof issue.details === 'object' ? issue.details : {}
+        };
+    });
+}
+
+function summarize(operation, entries) {
+    const succeeded = entries.filter(entry => entry.status === 'success').length;
+    const warned = entries.filter(entry => entry.status === 'warning').length;
+    const failed = entries.filter(entry => entry.status === 'error').length;
+    const status = failed
+        ? ((succeeded || warned) ? 'partial' : 'error')
+        : (warned ? 'warning' : 'success');
+    return { operation, status, processed: entries.length, succeeded, warned, failed, entries };
+}
+
+function parseFailure(operation, kind, error) {
+    return summarize(operation, [{
+        index: -1, status: 'error', inputName: 'JSON payload', kind: kind.id, profile: '',
+        document: null, warnings: [], errors: [issueFromError(error, 'parse')], retryable: true
+    }]);
+}
+
+function documentSummary(document) {
+    if (!document || typeof document !== 'object') return null;
+    return {
+        uuid: String(document.uuid || ''),
+        id: String(document.id || document._id || ''),
+        name: String(document.name || ''),
+        documentName: String(document.documentName || document.constructor?.documentName || ''),
+        type: String(document.type || ''),
+        destination: { type: document.pack ? 'compendium' : 'world', folderId: document.folder?.id || null, packId: document.pack || null }
+    };
+}
+
+async function validateEntry(kind, entry, index) {
+    const base = {
+        index, inputName: inputName(entry, index), kind: kind.id, profile: profileName(kind, entry),
+        document: null, warnings: [], errors: [], retryable: false
+    };
+    try {
+        const outcome = typeof kind.onValidateEntry === 'function' ? await kind.onValidateEntry(entry) : null;
+        const warnings = normalizeIssues(outcome?.validationWarnings, 'validate');
+        return { ...base, status: warnings.length ? 'warning' : 'success', warnings };
+    } catch (error) {
+        return { ...base, status: 'error', errors: [issueFromError(error, 'validate')], retryable: true };
+    }
+}
+
+export async function validateJsonImport(kind, jsonDataRaw) {
+    let entries;
+    try {
+        entries = parseJsonImportPayload(jsonDataRaw);
+    } catch (error) {
+        return parseFailure('validate', kind, error);
+    }
+    return summarize('validate', await Promise.all(entries.map((entry, index) => validateEntry(kind, entry, index))));
+}
+
 export async function runJsonImport(kind, jsonDataRaw) {
-    const entries = parseJsonImportPayload(jsonDataRaw);
-    return kind.onImport(entries);
+    let entries;
+    try {
+        entries = parseJsonImportPayload(jsonDataRaw);
+    } catch (error) {
+        return parseFailure('import', kind, error);
+    }
+    const results = [];
+    for (let index = 0; index < entries.length; index++) {
+        const entry = entries[index];
+        const validation = await validateEntry(kind, entry, index);
+        if (validation.status === 'error') {
+            results.push(validation);
+            continue;
+        }
+        try {
+            const created = typeof kind.onImportEntry === 'function'
+                ? await kind.onImportEntry(entry)
+                : await kind.onImport([entry]);
+            const importWarnings = normalizeIssues(created?.importWarnings, 'postProcess');
+            const createdValue = created?.document ? created.document : created;
+            const documents = (Array.isArray(createdValue) ? createdValue : [createdValue]).filter(value => value && typeof value === 'object');
+            const warnings = [...validation.warnings, ...importWarnings];
+            results.push({ ...validation, status: warnings.length ? 'warning' : 'success', warnings, document: documentSummary(documents[0]), documents: documents.map(documentSummary).filter(Boolean) });
+        } catch (error) {
+            results.push({
+                ...validation, status: 'error', document: null,
+                errors: [issueFromError(error, 'create')], retryable: true
+            });
+        }
+    }
+    return summarize('import', results);
 }
 
 /**
@@ -137,15 +252,9 @@ export function openJsonImportWindow(kindId) {
         onBuildPrompt: kind.onBuildPrompt,
         onBuildJsonTemplate: kind.onBuildJsonTemplate,
         onBuildAuthoringGuide: kind.onBuildAuthoringGuide,
+        onValidate: async (jsonDataRaw) => validateJsonImport(kind, jsonDataRaw),
         onImport: async (jsonDataRaw) => {
-            try {
-                return await runJsonImport(kind, jsonDataRaw);
-            } catch (e) {
-                if (typeof kind.onImportError === 'function') {
-                    return kind.onImportError(e);
-                }
-                throw e;
-            }
+            return runJsonImport(kind, jsonDataRaw);
         }
     });
 }

@@ -2639,19 +2639,23 @@ registerJsonImportKind({
         : buildActorImportPrompt(promptOptions),
     onBuildJsonTemplate: async (type) => type === 'npc' ? buildActorJsonTemplate() : '',
     onBuildAuthoringGuide: async (type) => type === 'npc' ? buildActorAuthoringGuide() : '',
-    onImport: async (entries) => {
-        const actorsToImport = await Promise.all(entries.map(parseActorJSONToFoundry));
-        const created = await Actor.createDocuments(actorsToImport, { keepId: false });
-        for (let i = 0; i < created.length; i++) {
-            await compendiumManager.addItemsToActor(created[i], actorsToImport[i]);
-        }
-        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} actor(s) successfully.`, '', false, true);
-        return true;
+    onValidateEntry: async (entry) => {
+        const actorData = await parseActorJSONToFoundry(entry);
+        return { validationWarnings: await compendiumManager.validateCharacterItems(actorData) };
     },
-    onImportError: (e) => {
-        postConsoleAndNotification(MODULE.NAME, 'Failed to import actors', e, false, true);
-        ui.notifications.error(`Failed to import actors: ${e.message}`);
-        return false;
+    onImportEntry: async (entry) => {
+        const actorData = await parseActorJSONToFoundry(entry);
+        const [created] = await Actor.createDocuments([actorData], { keepId: false });
+        try {
+            const postProcess = await compendiumManager.addItemsToActor(created, actorData);
+            return {
+                document: created,
+                importWarnings: (postProcess?.unresolved ?? []).map(reference => `Could not add ${reference}.`)
+            };
+        } catch (error) {
+            await created.delete();
+            throw error;
+        }
     }
 });
 

@@ -506,12 +506,45 @@ export class CompendiumManager {
     }
 
     /**
+     * Resolve Actor inventory references and parse inline definitions without creating documents.
+     * Returns user-facing warnings for anything that would be skipped during post-processing.
+     */
+    async validateCharacterItems(characterData) {
+        const warnings = [];
+        const groups = [
+            [characterData._originalItems ?? characterData.items, 'Item'],
+            [characterData._originalSpells ?? characterData.spells, 'Spell'],
+            [characterData._originalFeatures ?? characterData.features, 'Feature']
+        ];
+        for (const [list, type] of groups) {
+            if (!Array.isArray(list) || !list.length) continue;
+            const inline = list.filter(entry => this._isInlineItemDefinition(entry));
+            const references = list.filter(entry => !this._isInlineItemDefinition(entry));
+            for (const result of await this.resolveMany(references, type)) {
+                if (!result.found) warnings.push(`No matching ${type} named "${result.name || '(blank name)'}" was found.`);
+            }
+            for (const definition of inline) {
+                try {
+                    await parseFlatItemToFoundry({
+                        ...definition,
+                        itemImagePath: definition.itemImagePath || definition.img || 'icons/svg/item-bag.svg'
+                    });
+                } catch (error) {
+                    const name = definition?.name || definition?.itemName || '(unnamed inline item)';
+                    warnings.push(`Inline ${type} "${name}" is invalid: ${error.message}`);
+                }
+            }
+        }
+        return warnings;
+    }
+
+    /**
      * Add items, spells, and features to an existing actor.
      */
     async addItemsToActor(actor, characterData) {
         if (!actor) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | No actor provided for item addition', "", false, false);
-            return;
+            throw new Error('No Actor was provided for item post-processing.');
         }
 
         postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | Adding items to actor', actor.name, false, false);
@@ -554,7 +587,7 @@ export class CompendiumManager {
 
         if (!allItems.length) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | No items to add', "", false, false);
-            return;
+            return { unresolved, embeddedCount: 0 };
         }
 
         try {
@@ -563,7 +596,9 @@ export class CompendiumManager {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error adding items to ${actor.name}`, error, false, false);
             ui.notifications.error(`Imported ${actor.name}, but its inline or resolved Items could not be embedded: ${error.message}`);
+            throw error;
         }
+        return { unresolved, embeddedCount: allItems.length };
     }
 
     /**

@@ -484,6 +484,103 @@
     box-sizing: border-box;
 }
 
+.blacksmith-json-import-results {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.blacksmith-json-import-results-summary {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--blacksmith-window-border-color, #444);
+    border-left: 4px solid var(--blacksmith-window-accent-color, #ac9f81);
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.blacksmith-json-import-results-error .blacksmith-json-import-results-summary,
+.blacksmith-json-import-results-partial .blacksmith-json-import-results-summary {
+    border-left-color: #c34b4b;
+}
+
+.blacksmith-json-import-results-warning .blacksmith-json-import-results-summary {
+    border-left-color: #c89b3c;
+}
+
+.blacksmith-json-import-results-title {
+    font-size: var(--font-size-16, 1rem);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.blacksmith-json-import-results-counts {
+    margin-top: 3px;
+    opacity: 0.78;
+}
+
+.blacksmith-json-import-results-status {
+    font-size: var(--font-size-12, 0.75rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.blacksmith-json-import-results-list {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+.blacksmith-json-import-result {
+    padding: 10px 12px;
+    border: 1px solid var(--blacksmith-window-border-color, #444);
+    border-left: 3px solid #4f9857;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.blacksmith-json-import-result-warning { border-left-color: #c89b3c; }
+.blacksmith-json-import-result-error { border-left-color: #c34b4b; }
+
+.blacksmith-json-import-result-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.blacksmith-json-import-result-identity {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.blacksmith-json-import-result-identity span {
+    font-size: var(--font-size-12, 0.75rem);
+    opacity: 0.72;
+}
+
+.blacksmith-json-import-result-open {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+.blacksmith-json-import-result-issues {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 8px 0 0 26px;
+    font-size: var(--font-size-13, 0.8125rem);
+}
+
 .blacksmith-json-import-select-file {
     width: auto;
     min-width: 220px;

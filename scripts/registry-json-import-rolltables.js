@@ -2,8 +2,6 @@
 // Roll Table JSON import — v13 Text/Document authoring and import
 // ==================================================================
 
-import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
 import { registerJsonImportKind } from './registry-json-import.js';
 import { parseTableToFoundry } from './parsers/parse-rolltable.js';
 import { fetchPromptText, composePrompt, applyCampaignPlaceholders } from './utility-json-import-prompts.js';
@@ -251,14 +249,13 @@ registerJsonImportKind({
     onBuildPrompt: buildRollTableImportPrompt,
     onBuildJsonTemplate: buildRollTableJsonTemplate,
     onBuildAuthoringGuide: buildRollTableAuthoringGuide,
-    onImport: async (entries) => {
-        const created = await RollTable.createDocuments(await Promise.all(entries.map(parseTableToFoundry)), { keepId: false });
-        postConsoleAndNotification(MODULE.NAME, `Imported ${created.length} table(s) successfully.`, '', false, true);
-        return true;
+    onValidateEntry: async (entry) => {
+        if (!String(entry?.tableName || '').trim()) throw new Error('tableName is required.');
+        if (!Array.isArray(entry?.results) || !entry.results.length) throw new Error('results must contain at least one table result.');
+        return parseTableToFoundry(entry);
     },
-    onImportError: (error) => {
-        postConsoleAndNotification(MODULE.NAME, 'Failed to import tables', error, false, true);
-        ui.notifications.error(`Failed to import tables: ${error.message}`);
-        return false;
+    onImportEntry: async (entry) => {
+        const [created] = await RollTable.createDocuments([await parseTableToFoundry(entry)], { keepId: false });
+        return created;
     }
 });

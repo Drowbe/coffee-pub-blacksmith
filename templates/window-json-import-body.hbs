@@ -220,6 +220,51 @@
     </div>
 
     <div class="blacksmith-json-import-tab-panel blacksmith-json-import-tab-panel-import" data-json-import-panel="import" {{#unless isImportTab}}hidden{{/unless}}>
+        {{#if showImportResults}}
+        <div class="blacksmith-json-import-results blacksmith-json-import-results-{{importResult.status}}">
+            <div class="blacksmith-json-import-results-summary">
+                <div>
+                    <div class="blacksmith-json-import-results-title">{{importResult.operationLabel}} results</div>
+                    <div class="blacksmith-json-import-results-counts">{{importResult.processed}} processed · {{importResult.succeeded}} succeeded · {{importResult.warned}} warnings · {{importResult.failed}} failed</div>
+                </div>
+                <span class="blacksmith-json-import-results-status">{{importResult.status}}</span>
+            </div>
+            <div class="blacksmith-json-import-results-list">
+                {{#each importResult.entries}}
+                <article class="blacksmith-json-import-result blacksmith-json-import-result-{{status}}">
+                    <div class="blacksmith-json-import-result-heading">
+                        <i class="{{statusIcon}}"></i>
+                        <div class="blacksmith-json-import-result-identity">
+                            <strong>{{inputName}}</strong>
+                            <span>{{statusLabel}}{{#if profile}} · {{profile}}{{/if}}</span>
+                        </div>
+                        {{#if canOpen}}
+                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-result-open" data-action="openDocument" data-uuid="{{document.uuid}}">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+                        </button>
+                        {{/if}}
+                        {{#if hasIssues}}
+                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-result-open" data-action="copyEntryIssues" data-entry-index="{{index}}">
+                            <i class="fa-solid fa-copy"></i> Copy Issues
+                        </button>
+                        {{/if}}
+                    </div>
+                    {{#if warnings.length}}
+                    <div class="blacksmith-json-import-result-issues">
+                        {{#each warnings}}<div><i class="fa-solid fa-triangle-exclamation"></i> {{message}}</div>{{/each}}
+                    </div>
+                    {{/if}}
+                    {{#if errors.length}}
+                    <div class="blacksmith-json-import-result-issues">
+                        {{#each errors}}<div><i class="fa-solid fa-circle-xmark"></i> {{message}}{{#if path}} <code>{{path}}</code>{{/if}}</div>{{/each}}
+                    </div>
+                    {{/if}}
+                </article>
+                {{/each}}
+            </div>
+        </div>
+        {{else}}
         <textarea class="blacksmith-textarea blacksmith-json-import-textarea" placeholder="{{textareaPlaceholder}}">{{initialJson}}</textarea>
+        {{/if}}
     </div>
 </div>

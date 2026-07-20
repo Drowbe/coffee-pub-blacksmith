@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { copyToClipboard } from './utility-common.js';
+import { prepareJsonImportText } from './utility-json-import-prompts.js';
 
 const BODY_TEMPLATE = `modules/${MODULE.ID}/templates/window-json-import-body.hbs`;
 const AUTHORING_STATE_SETTING = 'jsonImporterAuthoringState';
@@ -31,7 +32,15 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         copyTemplate: () => JsonImportWindow._ref?._copyTemplate(),
         saveTemplate: () => JsonImportWindow._ref?._saveTemplate(),
         selectFile: () => JsonImportWindow._ref?._selectFile(),
-        importJson: () => JsonImportWindow._ref?._importJson()
+        validateJson: () => JsonImportWindow._ref?._validateJson(),
+        importJson: () => JsonImportWindow._ref?._importJson(),
+        editJson: () => JsonImportWindow._ref?._editJson(),
+        importAnother: () => JsonImportWindow._ref?._importAnother(),
+        retryFailed: () => JsonImportWindow._ref?._retryFailed(),
+        copyReport: () => JsonImportWindow._ref?._copyReport(),
+        copyEntryIssues: (_event, target) => JsonImportWindow._ref?._copyEntryIssues(target),
+        openAllDocuments: () => JsonImportWindow._ref?._openAllDocuments(),
+        openDocument: (_event, target) => JsonImportWindow._ref?._openDocument(target)
     };
 
     constructor(options = {}) {
@@ -74,6 +83,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.onBuildAuthoringGuide = typeof opts.onBuildAuthoringGuide === 'function' ? opts.onBuildAuthoringGuide : null;
         this.selectedJsonOutput = opts.selectedJsonOutput === 'guided' ? 'guided' : 'clean';
         this.onImport = typeof opts.onImport === 'function' ? opts.onImport : null;
+        this.onValidate = typeof opts.onValidate === 'function' ? opts.onValidate : null;
+        this.importResult = null;
+        this.showImportResults = false;
         this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
         this.promptFields = Array.isArray(opts.promptFields) ? opts.promptFields : [];
         this.importerStateKey = idSuffix || 'generic';
@@ -162,12 +174,26 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
 
     _buildActionBarLeft() {
         if (this.activeTab !== 'import') return '';
+        if (this.showImportResults && this.importResult) {
+            const openAll = this.importResult.entries?.filter(entry => entry.document?.uuid).length > 1
+                ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="openAllDocuments"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open All</button>`
+                : '';
+            return `<button type="button" class="blacksmith-window-btn-secondary" data-action="importAnother">
+                    <i class="fa-solid fa-plus"></i> Import Another
+                </button>
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="copyReport">
+                    <i class="fa-solid fa-clipboard"></i> Copy Report
+                </button>${openAll}`;
+        }
         const accept = String(this.fileInputAccept || '.json,application/json')
             .replace(/"/g, '&quot;');
         return `
             <input class="blacksmith-json-import-file-input" type="file" accept="${accept}" hidden>
             <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-select-file" data-action="selectFile">
                 <i class="fa-solid fa-folder-open"></i> ${this.selectFileLabel}
+            </button>
+            <button type="button" class="blacksmith-window-btn-secondary" data-action="validateJson">
+                <i class="fa-solid fa-check-double"></i> Validate
             </button>
         `;
     }
@@ -183,6 +209,15 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                     <i class="fa-solid fa-clipboard"></i> ${this.copyTemplateLabel}
                 </button>
             `;
+        }
+        if (this.showImportResults && this.importResult) {
+            const retry = this.importResult.operation === 'import'
+                && this.importResult.failed > 0
+                && this.importResult.entries?.some(entry => entry.retryable && entry.index >= 0)
+                ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="retryFailed"><i class="fa-solid fa-rotate-right"></i> Retry Failed</button>`
+                : '';
+            const editLabel = this.importResult.operation === 'import' && this.importResult.failed > 0 ? 'Edit and Retry' : 'Edit JSON';
+            return `${retry}<button type="button" class="blacksmith-window-btn-primary" data-action="editJson"><i class="fa-solid fa-pen"></i> ${editLabel}</button>`;
         }
         return `
             <button type="button" class="blacksmith-window-btn-primary blacksmith-json-import-submit" data-action="importJson">
@@ -394,15 +429,106 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const textarea = root?.querySelector('.blacksmith-json-import-textarea');
         const payload = textarea?.value || '';
         this._setBusy(true, 'Importing…');
-        let ok;
         try {
-            ok = await this.onImport(payload);
+            this.initialJson = String(payload);
+            this.importResult = await this.onImport(payload);
+            this.showImportResults = true;
         } finally {
             this._setBusy(false);
         }
-        if (ok !== false) {
-            this.close();
+        await this.render(true);
+    }
+
+    async _validateJson() {
+        if (!this.onValidate) return;
+        const textarea = this.element?.querySelector('.blacksmith-json-import-textarea');
+        const payload = textarea?.value || '';
+        this._setBusy(true, 'Validating…');
+        try {
+            this.initialJson = String(payload);
+            this.importResult = await this.onValidate(payload);
+            this.showImportResults = true;
+        } finally {
+            this._setBusy(false);
         }
+        await this.render(true);
+    }
+
+    async _retryFailed() {
+        if (!this.onImport || !this.importResult) return;
+        const retryEntries = this._failedPayloadEntries();
+        if (!retryEntries.length) return;
+        this._setBusy(true, `Retrying ${retryEntries.length} failed entr${retryEntries.length === 1 ? 'y' : 'ies'}…`);
+        try {
+            this.initialJson = JSON.stringify(retryEntries, null, 2);
+            this.importResult = await this.onImport(this.initialJson);
+            this.showImportResults = true;
+        } finally {
+            this._setBusy(false);
+        }
+        await this.render(true);
+    }
+
+    _editJson() {
+        if (this.importResult?.operation === 'import' && this.importResult.failed > 0) {
+            const failedEntries = this._failedPayloadEntries();
+            if (failedEntries.length) this.initialJson = JSON.stringify(failedEntries, null, 2);
+        }
+        this.showImportResults = false;
+        void this.render(true);
+    }
+
+    _failedPayloadEntries() {
+        if (!this.importResult) return [];
+        try {
+            const parsed = JSON.parse(prepareJsonImportText(this.initialJson));
+            const entries = Array.isArray(parsed) ? parsed : [parsed];
+            return this.importResult.entries
+                .filter(entry => entry.status === 'error' && entry.retryable && entry.index >= 0)
+                .map(entry => entries[entry.index])
+                .filter(Boolean);
+        } catch (error) {
+            ui.notifications.error(`Cannot prepare failed entries until the JSON parses: ${error.message}`);
+            return [];
+        }
+    }
+
+    _importAnother() {
+        this.initialJson = '';
+        this.importResult = null;
+        this.showImportResults = false;
+        void this.render(true);
+    }
+
+    async _copyReport() {
+        if (!this.importResult) return;
+        const copied = await copyToClipboard(JSON.stringify(this.importResult, null, 2), { notify: false });
+        if (copied !== false) ui.notifications.info('Import report copied to the clipboard');
+    }
+
+    async _copyEntryIssues(target) {
+        const index = Number.parseInt(String(target?.dataset?.entryIndex ?? ''), 10);
+        const entry = this.importResult?.entries?.find(candidate => candidate.index === index);
+        if (!entry) return;
+        const issues = [...(entry.errors ?? []), ...(entry.warnings ?? [])];
+        const text = issues.map(issue => `[${issue.stage || 'unknown'}] ${issue.code}: ${issue.message}${issue.path ? ` (${issue.path})` : ''}`).join('\n');
+        const copied = await copyToClipboard(text, { notify: false });
+        if (copied !== false) ui.notifications.info('Entry issues copied to the clipboard');
+    }
+
+    async _openAllDocuments() {
+        const uuids = this.importResult?.entries?.map(entry => entry.document?.uuid).filter(Boolean) ?? [];
+        for (const uuid of uuids) {
+            const document = await fromUuid(uuid);
+            document?.sheet?.render(true);
+        }
+    }
+
+    async _openDocument(target) {
+        const uuid = String(target?.dataset?.uuid || '');
+        if (!uuid) return;
+        const document = await fromUuid(uuid);
+        document?.sheet?.render(true);
     }
 
     _getPromptCheckboxState() {
@@ -628,6 +754,19 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         const promptCheckboxGroups = this._buildPromptCheckboxGroups();
         const promptFieldGroups = this._buildPromptFieldGroups();
         const availableTemplates = this._availableTemplateOptions();
+        const result = this.importResult;
+        const resultEntries = (result?.entries ?? []).map(entry => ({
+            ...entry,
+            statusLabel: entry.status === 'error'
+                ? 'Failed'
+                : (entry.status === 'warning'
+                    ? (result.operation === 'validate' ? 'Valid with warnings' : 'Imported with warnings')
+                    : (result.operation === 'validate' ? 'Valid' : 'Imported')),
+            statusIcon: entry.status === 'error' ? 'fa-solid fa-circle-xmark' : (entry.status === 'warning' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-check'),
+            canOpen: !!entry.document?.uuid,
+            hasIssues: !!(entry.errors?.length || entry.warnings?.length),
+            documentLabel: entry.document?.name || entry.inputName
+        }));
         return {
             isAuthoringTab: isJsonTab || isPromptTab,
             isImportTab,
@@ -647,6 +786,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             hasTemplates: availableTemplates.length > 0,
             textareaPlaceholder: this.textareaPlaceholder,
             initialJson: this.initialJson,
+            showImportResults: this.showImportResults && !!result,
+            importResult: result ? { ...result, entries: resultEntries, operationLabel: result.operation === 'validate' ? 'Validation' : 'Import' } : null,
             promptCheckboxGroups,
             hasPromptCheckboxes: promptCheckboxGroups.length > 0,
             promptFieldGroups,

@@ -1269,41 +1269,23 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
     return prompt;
 }
 
-/**
- * @param {object[]} entries
- * @returns {Promise<boolean>}
- */
-async function importJournalEntries(entries) {
-    for (const journalData of entries) {
-        const strJournalType = journalData.journaltype;
-        if (!strJournalType) {
-            throw new Error("Missing 'journaltype' field in JSON data");
-        }
-        switch (String(strJournalType).toUpperCase()) {
-            case 'AREA':
-            case 'ENCOUNTER':
-            case 'LOCATION':
-                await createJournalEntry(journalData);
-                break;
-            case 'NARRATIVE':
-                throw new Error(
-                    'Legacy narrative import is not supported. Use journaltype "area" with blocks.*.'
-                );
-            case 'INJURY':
-                await buildInjuryJournalEntry(journalData);
-                break;
-            default:
-                postConsoleAndNotification(
-                    MODULE.NAME,
-                    "Can't create the journal entry. The journal type was not found.",
-                    strJournalType,
-                    false,
-                    true
-                );
-                return false;
-        }
+function validateJournalEntry(journalData) {
+    const journalType = String(journalData?.journaltype || '').trim().toUpperCase();
+    if (!journalType) throw new Error("Missing 'journaltype' field in JSON data");
+    if (journalType === 'NARRATIVE') {
+        throw new Error('Legacy narrative import is not supported. Use journaltype "area" with blocks.*.');
+    }
+    if (!['AREA', 'ENCOUNTER', 'LOCATION', 'INJURY'].includes(journalType)) {
+        throw new Error(`Unsupported journaltype "${journalData.journaltype}".`);
     }
     return true;
+}
+
+async function importJournalEntry(journalData) {
+    validateJournalEntry(journalData);
+    const journalType = String(journalData.journaltype).trim().toUpperCase();
+    if (journalType === 'INJURY') return buildInjuryJournalEntry(journalData);
+    return createJournalEntry(journalData);
 }
 
 const journalJsonImportKind = {
@@ -1337,12 +1319,8 @@ const journalJsonImportKind = {
     onBuildPrompt: buildJournalPrompt,
     onBuildJsonTemplate: buildJournalJsonTemplate,
     onBuildAuthoringGuide: buildJournalAuthoringGuide,
-    onImport: async (entries) => importJournalEntries(entries),
-    onImportError(e) {
-        const message = e?.message || String(e);
-        postConsoleAndNotification(MODULE.NAME, `Journal import failed: ${message}`, e, false, true);
-        return false;
-    }
+    onValidateEntry: async (entry) => validateJournalEntry(entry),
+    onImportEntry: async (entry) => importJournalEntry(entry)
 };
 
 registerJsonImportKind(journalJsonImportKind);

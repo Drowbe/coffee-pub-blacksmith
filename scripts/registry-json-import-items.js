@@ -2,8 +2,6 @@
 // Item JSON import — prompt registry (core + partial + profile)
 // ==================================================================
 
-import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
 import { registerJsonImportKind } from './registry-json-import.js';
 import { parseFlatItemToFoundry } from './parsers/parse-item.js';
 import {
@@ -403,22 +401,13 @@ const itemJsonImportKind = {
         includeArtificer: !!promptOptions.artificerItem,
         includePassiveEffects: promptOptions.includePassiveEffects !== false
     }),
-    onImport: async (entries) => {
-        const itemsToImport = await Promise.all(entries.map(parseFlatItemToFoundry));
-        const created = await Item.createDocuments(itemsToImport, { keepId: false });
-        postConsoleAndNotification(
-            MODULE.NAME,
-            `Imported ${created.length} item(s) successfully.`,
-            '',
-            false,
-            true
-        );
-        return true;
+    onValidateEntry: async (entry) => {
+        if (!String(entry?.itemName || entry?.name || '').trim()) throw new Error('Item name is required.');
+        return parseFlatItemToFoundry({ ...entry, itemImagePath: entry.itemImagePath || entry.img || 'icons/svg/item-bag.svg' });
     },
-    onImportError: (e) => {
-        postConsoleAndNotification(MODULE.NAME, 'Failed to import items', e, false, true);
-        ui.notifications.error(`Failed to import items: ${e.message}`);
-        return false;
+    onImportEntry: async (entry) => {
+        const [created] = await Item.createDocuments([await parseFlatItemToFoundry(entry)], { keepId: false });
+        return created;
     }
 };
 
