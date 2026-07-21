@@ -1,6 +1,10 @@
 # Compendiums API
 
-Blacksmith owns the **Compendium Mapping** the GM configures (which compendiums to use for monsters, items, spells, features, journals, roll tables, and in what priority order), and exposes both that mapping and a name-to-UUID resolver built on top of it.
+Blacksmith owns the **Compendium Mapping** the GM configures (which compendiums to use for monsters, items, spells, features, species/races, backgrounds, classes, subclasses, journals, roll tables, and in what priority order), and exposes both that mapping and a name-to-UUID resolver built on top of it.
+
+When **Automatically Map Compendiums** is enabled, `getMapping()`, `getSelected()`, `getSearchOrder()`, and all resolver methods transparently use the detected automatic mapping. One master checkbox per installed Foundry package/source restricts detection to every pack owned by the enabled sources; the same allowlist filters the choices shown in manual mappings after save/reload. Manual settings are preserved underneath and become active again when automatic mode is disabled.
+
+`numCompendiums` in `getMapping()` is the effective number of compatible priority slots, derived from the enabled sources. The historical `numCompendiums*` world settings are hidden compatibility storage and must not be used to determine the current selector count.
 
 **If your module turns plain text into a link or a document, use this API.** Do not read `monsterCompendium1` / `numCompendiumsActor` yourself, and do not hand-build `@UUID[...]` strings. The setting keys carry backward-compat quirks (`Actor` maps to `monster`, `Feature` maps to `features`), the search order has world-first/world-last rules, and the matching is tiered. All of that is handled here.
 
@@ -125,11 +129,15 @@ Every method accepts any of these, case-insensitively. They normalize to a canon
 | `Item` | `item`, `items`, `equipment`, `gear` | `itemCompendium{i}` |
 | `Spell` | `spell`, `spells` | `spellCompendium{i}` |
 | `Feature` | `feature`, `features`, `feat`, `feats` | `featuresCompendium{i}` |
+| `Species` | `species`, `race`, `races`, `ancestry` | `speciesCompendium{i}` |
+| `Background` | `background`, `backgrounds` | `backgroundCompendium{i}` |
+| `Class` | `class`, `classes` | `classCompendium{i}` |
+| `Subclass` | `subclass`, `subclasses` | `subclassCompendium{i}` |
 | `JournalEntry` | `journal`, `journalentry` | `journalEntryCompendium{i}` |
 | `RollTable` | `rolltable`, `table`, `tables` | `rollTableCompendium{i}` |
 | `Scene`, `Macro`, `Playlist`, `Cards`, ... | singular/plural | `{camelCase}Compendium{i}` |
 
-`Spell` and `Feature` are **synthetic** types: they live in Item packs but get their own mapping, and resolution filters by document subtype (`spell` / `feat`). Resolving `'Fireball'` as a `feature` correctly returns not-found.
+`Spell`, `Feature`, `Species`, `Background`, `Class`, and `Subclass` are **synthetic** types: they live in Item packs but get their own mapping, and resolution filters by document subtype (`spell`, `feat`, `race`, `background`, `class`, or `subclass`). Resolving `'Fireball'` as a `feature` correctly returns not-found.
 
 The setting prefixes are listed for reference only — read them through `getMapping()` rather than building the keys yourself.
 
@@ -151,7 +159,7 @@ compendiums.getMapping('actor');
 
 compendiums.getSelected('actor');     // ['dnd5e.monsters', 'my-module.custom-npcs']
 compendiums.getSearchOrder('actor');  // ['dnd5e.monsters', ..., 'world']
-compendiums.getTypes();               // ['Actor', 'Item', 'JournalEntry', ..., 'Spell', 'Feature']
+compendiums.getTypes();               // ['Actor', 'Item', ..., 'Spell', 'Feature', 'Species', 'Background', 'Class', 'Subclass']
 compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters': 'D&D 5e: Monsters (SRD)', ... }
 ```
 

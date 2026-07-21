@@ -24,7 +24,6 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import {
     normalizeType,
     getCompendiumSettingPrefix,
-    getNumCompendiumsSettingName,
     getSearchWorldFirstKey,
     getSearchWorldLastKey,
     getDocumentClass,
@@ -36,6 +35,12 @@ import {
     isSyntheticType
 } from './compendium-types.js';
 import { isNativeFoundryItemData, parseFlatItemToFoundry } from './parsers/parse-item.js';
+import {
+    getAutomaticCompendiumPackIds,
+    getCompendiumSourceId,
+    getCompendiumSourceSettingKey,
+    getInstalledCompendiumSources
+} from './utility-compendium-auto-map.js';
 
 /** Match tiers in priority order. */
 const MATCH_TIERS = ['exact', 'startsWith', 'includes'];
@@ -69,15 +74,28 @@ export class CompendiumManager {
      */
     getMapping(type) {
         const canonical = normalizeType(type);
-        const numSetting = getNumCompendiumsSettingName(canonical);
         const prefix = getCompendiumSettingPrefix(canonical);
-        const numCompendiums = getSettingSafely(MODULE.ID, numSetting, 1) ?? 1;
 
-        const packIds = [];
-        for (let i = 1; i <= numCompendiums; i++) {
+        const autoMap = !!getSettingSafely(MODULE.ID, 'autoMapCompendiums', false);
+        const sourcePool = getInstalledCompendiumSources()
+            .filter(source => getSettingSafely(MODULE.ID, getCompendiumSourceSettingKey(source.id), true))
+            .map(source => source.id);
+        const enabledSources = new Set(sourcePool);
+        const eligiblePackIds = getAutomaticCompendiumPackIds(canonical, { sourceIds: sourcePool });
+        const eligiblePacks = new Set(eligiblePackIds);
+        const selectorCount = eligiblePackIds.length;
+        const manualPackIds = [];
+        for (let i = 1; i <= selectorCount; i++) {
             const packId = getSettingSafely(MODULE.ID, `${prefix}${i}`, null);
-            if (packId && packId !== 'none' && packId !== '') packIds.push(packId);
+            if (packId && packId !== 'none' && packId !== '') manualPackIds.push(packId);
         }
+        const availableManualPackIds = manualPackIds.filter(packId => {
+            const pack = game.packs.get(packId);
+            return pack && enabledSources.has(getCompendiumSourceId(pack)) && eligiblePacks.has(packId);
+        });
+        const packIds = autoMap
+            ? eligiblePackIds
+            : availableManualPackIds;
 
         const searchWorldFirst = !!getSettingSafely(MODULE.ID, getSearchWorldFirstKey(canonical), false);
         const searchWorldLast = !!getSettingSafely(MODULE.ID, getSearchWorldLastKey(canonical), false);
@@ -94,7 +112,7 @@ export class CompendiumManager {
             searchWorldFirst,
             searchWorldLast,
             searchOrder,
-            numCompendiums,
+            numCompendiums: autoMap ? packIds.length : selectorCount,
             documentClass: getDocumentClass(canonical),
             subtype: getDocumentSubtype(canonical)
         };
@@ -522,8 +540,11 @@ export class CompendiumManager {
             const inline = list.filter(entry => this._isInlineItemDefinition(entry));
             const references = list.filter(entry => !this._isInlineItemDefinition(entry));
             for (const reference of references) this._validateItemReferenceWrapper(reference);
-            for (const result of await this.resolveMany(references, type)) {
-                if (!result.found) warnings.push(`No matching ${type} named "${result.name || '(blank name)'}" was found.`);
+            const referencesByType = this._groupReferencesByMappingType(references, type);
+            for (const [mappingType, mappedReferences] of referencesByType) {
+                for (const result of await this.resolveMany(mappedReferences, mappingType)) {
+                    if (!result.found) warnings.push(`No matching ${mappingType} named "${result.name || '(blank name)'}" was found.`);
+                }
             }
             for (const definition of inline) {
                 try {
@@ -563,7 +584,11 @@ export class CompendiumManager {
             if (!Array.isArray(list) || !list.length) continue;
             const inline = list.filter(entry => this._isInlineItemDefinition(entry));
             const references = list.filter(entry => !this._isInlineItemDefinition(entry));
-            const documents = await this.fetchItemDocuments(references, type, unresolved);
+            const documents = [];
+            const referencesByType = this._groupReferencesByMappingType(references, type);
+            for (const [mappingType, mappedReferences] of referencesByType) {
+                documents.push(...await this.fetchItemDocuments(mappedReferences, mappingType, unresolved));
+            }
             for (const definition of inline) {
                 try {
                     documents.push(await parseFlatItemToFoundry(definition));
@@ -623,6 +648,30 @@ export class CompendiumManager {
         if (!entry || typeof entry !== 'object' || typeof entry.itemName !== 'string') return false;
         const wrapperKeys = new Set(['itemName', 'itemType', 'name', 'type', 'equipped', 'attuned', 'prepared', 'quantity']);
         return Object.keys(entry).every(key => wrapperKeys.has(key));
+    }
+
+    /**
+     * Character foundation references are Item documents with independent
+     * compendium mappings. Ordinary inventory remains on the Item mapping.
+     */
+    _referenceMappingType(entry, fallbackType) {
+        if (String(fallbackType).toLowerCase() !== 'item' || !entry || typeof entry !== 'object') return fallbackType;
+        const subtype = String(entry.type || entry.itemType || '').trim().toLowerCase();
+        const mappingType = ({ race: 'Species', species: 'Species', background: 'Background', class: 'Class', subclass: 'Subclass' })[subtype];
+        if (!mappingType) return fallbackType;
+        // Existing worlds historically resolved every foundation through Item.
+        // Preserve that path until the GM configures this dedicated mapping.
+        return this.getSearchOrderForType(mappingType).length ? mappingType : fallbackType;
+    }
+
+    _groupReferencesByMappingType(references, fallbackType) {
+        const groups = new Map();
+        for (const reference of references) {
+            const mappingType = this._referenceMappingType(reference, fallbackType);
+            if (!groups.has(mappingType)) groups.set(mappingType, []);
+            groups.get(mappingType).push(reference);
+        }
+        return groups;
     }
 
     _validateItemReferenceWrapper(entry) {

@@ -25,7 +25,7 @@ export const CompendiumsAPI = {
 
     /**
      * Every type that has compendium mappings in this world.
-     * @returns {string[]} e.g. ["Actor", "Item", "JournalEntry", "RollTable", "Spell", "Feature"]
+     * @returns {string[]} e.g. ["Actor", "Item", "Spell", "Feature", "Species", "Background", "Class", "Subclass"]
      */
     getTypes: () => compendiumManager.getTypes(),
 
@@ -70,7 +70,7 @@ export const CompendiumsAPI = {
      * matches. The result's `matchType`/`confidence` tell you which tier hit.
      *
      * @param {string} name - e.g. "Goblin", "Longsword"
-     * @param {string} type - e.g. "actor", "item", "spell", "feature"
+     * @param {string} type - e.g. "actor", "item", "spell", "feature", "species", "background", "class", "subclass"
      * @param {object} [options]
      * @param {boolean} [options.exact=false]      - Exact matches only
      * @param {boolean} [options.fuzzy=false]      - Allow loose substring matching

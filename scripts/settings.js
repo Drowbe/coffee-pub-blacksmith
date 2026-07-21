@@ -29,6 +29,14 @@ import {
 	formatPackLabel,
 	extractTypeFromCompendiumSetting
 } from './compendium-types.js';
+import {
+    describeCompendiumContents,
+    compendiumContainsMappedType,
+    getAutomaticCompendiumPackIds,
+    getCompendiumSourceId,
+    getCompendiumSourceSettingKey,
+    getInstalledCompendiumSources
+} from './utility-compendium-auto-map.js';
 
 // Re-exported for consumers that historically imported it from settings.js.
 export { extractTypeFromCompendiumSetting };
@@ -193,14 +201,20 @@ function checkInstalledModules() {
 }
 
 // -- COMPENDIUM CHOICES  --
-function getCompendiumChoices() {
+function getCompendiumChoices({ sourceIds = null } = {}) {
     postConsoleAndNotification(MODULE.NAME, "Building Compendium List...", "", false, false);
+    const allowedSources = Array.isArray(sourceIds) ? new Set(sourceIds) : null;
 
-    const choicesArray = Array.from(game.packs.values()).map(compendium => ({
-        id: compendium.metadata.id,
-        label: formatPackLabel(compendium, compendium.metadata.id),
-        type: compendium.metadata.type
-    }));
+    const choicesArray = Array.from(game.packs.values())
+    .filter(compendium => !allowedSources || allowedSources.has(getCompendiumSourceId(compendium)))
+    .map(compendium => {
+        const contents = describeCompendiumContents(compendium);
+        return {
+            id: compendium.metadata.id,
+            label: `${formatPackLabel(compendium, compendium.metadata.id)}${contents ? ` — ${contents}` : ''}`,
+            type: compendium.metadata.type
+        };
+    });
 
     // Sort array alphabetically by label
     choicesArray.sort((a, b) => a.label.localeCompare(b.label));
@@ -223,7 +237,8 @@ function getCompendiumChoices() {
     const types = [...new Set(choicesArray.map(c => c.type))];
     types.forEach(type => {
         const filteredChoices = choicesArray
-            .filter(compendium => compendium.type === type)
+            .filter(compendium => compendium.type === type
+                && compendiumContainsMappedType(game.packs.get(compendium.id), type))
             .reduce((choices, compendium) => {
                 choices[compendium.id] = `${getTypeLabel(type)}: ${compendium.label}`;
                 return choices;
@@ -232,15 +247,18 @@ function getCompendiumChoices() {
         BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, filteredChoices);
     });
     
-    // Spell and Feature are content-based types: both draw from every Item pack.
-    const itemPackChoices = choicesArray
-        .filter(compendium => compendium.type === 'Item')
-        .reduce((choices, compendium) => {
-            choices[compendium.id] = compendium.label;
-            return choices;
-        }, {"none": "-- None --"});
-    BLACKSMITH.updateValue('arrSpellChoices', { ...itemPackChoices });
-    BLACKSMITH.updateValue('arrFeatureChoices', { ...itemPackChoices });
+    // Synthetic content-based types draw from every Item pack, then filter by
+    // document subtype while resolving and building prompt catalogs.
+    for (const type of ['Spell', 'Feature', 'Species', 'Background', 'Class', 'Subclass']) {
+        const choices = choicesArray
+            .filter(compendium => compendium.type === 'Item'
+                && compendiumContainsMappedType(game.packs.get(compendium.id), type))
+            .reduce((result, compendium) => {
+                result[compendium.id] = compendium.label;
+                return result;
+            }, {"none": "-- None --"});
+        BLACKSMITH.updateValue(getChoicesArrayKey(type), choices);
+    }
 
     // Make the array available to these settings.
     return choices;
@@ -251,6 +269,11 @@ function getCompendiumChoices() {
 
 // Track reordering in progress to prevent recursive calls
 const _reorderingInProgress = new Set();
+
+function getCompendiumSelectorCount(type) {
+    const choices = BLACKSMITH[getChoicesArrayKey(type)] || {};
+    return Object.keys(choices).filter(id => id && id !== 'none').length;
+}
 
 /**
  * Reorder compendiums for a type so configured ones come first, "none" ones last
@@ -266,15 +289,9 @@ export async function reorderCompendiumsForType(type) {
     _reorderingInProgress.add(type);
     
     try {
-    const numSetting = getNumCompendiumsSettingName(type);
     const settingPrefix = getCompendiumSettingPrefix(type);
-    
-    // Check if setting exists
-    if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
-        return;
-    }
-    
-    const numCompendiums = game.settings.get(MODULE.ID, numSetting) ?? 1;
+
+    const numCompendiums = getCompendiumSelectorCount(type);
     if (numCompendiums === 0) {
         return; // No compendiums to reorder
     }
@@ -366,17 +383,17 @@ function registerDynamicCompendiumTypes() {
                 'world');
         }
         
-        // Register number setting (skip if already exists)
+        // Keep the historical count setting registered but hidden so existing
+        // worlds and external readers do not break. Slot count is now derived
+        // from the compatible choices available for this type.
         if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
             game.settings.register(MODULE.ID, numSetting, {
                 name: MODULE.ID + '.numCompendiums-Label',
                 hint: MODULE.ID + '.numCompendiums-Hint',
                 type: Number,
-                config: true,
+                config: false,
                 scope: 'world',
                 default: 1,
-                range: { min: 0, max: 15, step: 1 },
-                requiresReload: true,
                 group: WORKFLOW_GROUPS.MANAGE_CONTENT
             });
         }
@@ -410,7 +427,7 @@ function registerDynamicCompendiumTypes() {
         }
         
         // Register compendium priority settings
-        const numCompendiums = game.settings.get(MODULE.ID, numSetting) ?? 1;
+        const numCompendiums = getCompendiumSelectorCount(type);
         for (let i = 1; i <= numCompendiums; i++) {
             const settingKey = `${settingPrefix}${i}`;
             
@@ -450,19 +467,25 @@ function registerDynamicCompendiumTypes() {
  */
 export function buildSelectedCompendiumArrays() {
     const allTypes = getMappedTypes(BLACKSMITH.arrCompendiumChoicesData || []);
+    const autoMap = !!getSettingSafely(MODULE.ID, 'autoMapCompendiums', false);
+    const sourcePool = getInstalledCompendiumSources()
+        .filter(source => getSettingSafely(MODULE.ID, getCompendiumSourceSettingKey(source.id), true))
+        .map(source => source.id);
+    const enabledSources = new Set(sourcePool);
 
     // Build arrays for each type
     for (const type of allTypes) {
-        const numSetting = getNumCompendiumsSettingName(type);
         const settingPrefix = getCompendiumSettingPrefix(type);
         const arrayName = getSelectedArrayName(type);
-        
-        // Check if setting exists (may not be registered yet on first load)
-        if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
-            continue; // Skip if settings not registered yet
+
+        if (autoMap) {
+            BLACKSMITH.updateValue(arrayName, getAutomaticCompendiumPackIds(type, {
+                sourceIds: sourcePool
+            }));
+            continue;
         }
         
-        const numCompendiums = game.settings.get(MODULE.ID, numSetting) ?? 1;
+        const numCompendiums = getCompendiumSelectorCount(type);
         const selected = [];
         
         for (let i = 1; i <= numCompendiums; i++) {
@@ -472,7 +495,9 @@ export function buildSelectedCompendiumArrays() {
             }
             
             const compendiumId = game.settings.get(MODULE.ID, settingKey);
-            if (compendiumId && compendiumId !== 'none' && compendiumId !== '') {
+            const pack = game.packs.get(compendiumId);
+            if (compendiumId && compendiumId !== 'none' && compendiumId !== ''
+                && pack && enabledSources.has(getCompendiumSourceId(pack))) {
                 selected.push(compendiumId);
             }
         }
@@ -1212,6 +1237,40 @@ export const registerSettings = () => {
 	// -- H2: Compendiums
 	// --------------------------------------
 	registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+
+	// Automatic mapping is authoritative while enabled, but never overwrites the
+	// manual per-type settings below. Disabling it restores the prior hand map.
+	registerHeader('AutomaticCompendiumMapping', 'headingH3AutomaticCompendiumMapping-Label', 'headingH3AutomaticCompendiumMapping-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+	game.settings.register(MODULE.ID, 'autoMapCompendiums', {
+		name: MODULE.ID + '.autoMapCompendiums-Label',
+		hint: MODULE.ID + '.autoMapCompendiums-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: false,
+		requiresReload: true,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+	registerHeader('CompendiumSources', 'headingH4CompendiumSources-Label', 'headingH4CompendiumSources-Hint', 'H4', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+	const compendiumSources = getInstalledCompendiumSources();
+	for (const source of compendiumSources) {
+		game.settings.register(MODULE.ID, getCompendiumSourceSettingKey(source.id), {
+			name: `${source.label} (${source.packCount} ${source.packCount === 1 ? 'compendium' : 'compendiums'})`,
+			hint: '',
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+			requiresReload: true,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
+	}
+	const enabledSourceIds = compendiumSources
+		.filter(source => game.settings.get(MODULE.ID, getCompendiumSourceSettingKey(source.id)))
+		.map(source => source.id);
+	// Refresh every lower dropdown from the enabled package/source checkboxes.
+	// Changes require one save/reload because Foundry setting choices are fixed at registration.
+	getCompendiumChoices({ sourceIds: enabledSourceIds });
 
 	// Dynamically register settings for ALL compendium types found in the system
 	// This includes Actor, Item, Spell, Feature, and any other types (JournalEntry, RollTable, etc.)

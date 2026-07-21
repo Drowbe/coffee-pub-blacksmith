@@ -20,28 +20,36 @@ function collectActorCatalogPackIds(options, kind) {
 export function getActorPromptCheckboxes() {
     const checkboxes = [];
     const sections = [
-        ['Item', 'Character Building & Item Compendiums', 'fa-solid fa-boxes-stacked'],
-        ['Feature', 'Feature Compendiums', 'fa-solid fa-sparkles'],
-        ['Spell', 'Spell Compendiums', 'fa-solid fa-book-sparkles']
+        ['Species', 'Species / Race Compendiums', 'fa-solid fa-dna', 'character'],
+        ['Background', 'Background Compendiums', 'fa-solid fa-scroll', 'character'],
+        ['Class', 'Class Compendiums', 'fa-solid fa-shield-halved', 'character'],
+        ['Subclass', 'Subclass Compendiums', 'fa-solid fa-diagram-project', 'character'],
+        ['Item', 'Equipment & Item Compendiums', 'fa-solid fa-boxes-stacked', ACTOR_AUTHORING_PROFILES],
+        ['Feature', 'Feature Compendiums', 'fa-solid fa-sparkles', ACTOR_AUTHORING_PROFILES],
+        ['Spell', 'Spell Compendiums', 'fa-solid fa-book-sparkles', ACTOR_AUTHORING_PROFILES]
     ];
-    for (const [kind, section, sectionIcon] of sections) {
+    for (const [kind, section, sectionIcon, showForTemplate] of sections) {
         const packs = getConfiguredCompendiums(kind);
         if (!packs.length) {
             checkboxes.push({
                 id: `${ACTOR_CATALOG_PREFIX}${kind}:__none`, label: `No ${kind.toLowerCase()} compendiums configured (see module settings).`,
-                checked: false, disabled: true, isNote: true, authoringModes: 'prompt', showForTemplate: ACTOR_AUTHORING_PROFILES,
+                checked: false, disabled: true, isNote: true, authoringModes: 'prompt', showForTemplate,
                 section, sectionIcon
             });
         } else {
             for (const pack of packs) {
                 checkboxes.push({
                     id: `${ACTOR_CATALOG_PREFIX}${kind}:${pack.id}`, label: pack.label, checked: true,
-                    authoringModes: 'prompt', showForTemplate: ACTOR_AUTHORING_PROFILES, section, sectionIcon
+                    authoringModes: 'prompt', showForTemplate, section, sectionIcon
                 });
             }
         }
     }
     checkboxes.push(
+        { id: `${ACTOR_WORLD_PREFIX}Species`, label: 'Include world Species / Races', checked: false, authoringModes: 'prompt', showForTemplate: 'character', section: 'World Content', sectionIcon: 'fa-solid fa-globe', stacked: true },
+        { id: `${ACTOR_WORLD_PREFIX}Background`, label: 'Include world Backgrounds', checked: false, authoringModes: 'prompt', showForTemplate: 'character', section: 'World Content', sectionIcon: 'fa-solid fa-globe', stacked: true },
+        { id: `${ACTOR_WORLD_PREFIX}Class`, label: 'Include world Classes', checked: false, authoringModes: 'prompt', showForTemplate: 'character', section: 'World Content', sectionIcon: 'fa-solid fa-globe', stacked: true },
+        { id: `${ACTOR_WORLD_PREFIX}Subclass`, label: 'Include world Subclasses', checked: false, authoringModes: 'prompt', showForTemplate: 'character', section: 'World Content', sectionIcon: 'fa-solid fa-globe', stacked: true },
         { id: `${ACTOR_WORLD_PREFIX}Item`, label: 'Include world character-building Items and equipment', checked: false, authoringModes: 'prompt', showForTemplate: ACTOR_AUTHORING_PROFILES, section: 'World Content', sectionIcon: 'fa-solid fa-globe', stacked: true },
         { id: `${ACTOR_WORLD_PREFIX}Feature`, label: 'Include world Features', checked: false, authoringModes: 'prompt', showForTemplate: ACTOR_AUTHORING_PROFILES, section: 'World Content', sectionIcon: 'fa-solid fa-globe', stacked: true },
         { id: `${ACTOR_WORLD_PREFIX}Spell`, label: 'Include world Spells', checked: false, authoringModes: 'prompt', showForTemplate: ACTOR_AUTHORING_PROFILES, section: 'World Content', sectionIcon: 'fa-solid fa-globe', stacked: true }
@@ -49,23 +57,28 @@ export function getActorPromptCheckboxes() {
     return checkboxes;
 }
 
-async function buildActorCatalogSections(options = {}, onProgress) {
+async function buildActorCatalogSections(profile, options = {}, onProgress) {
     const definitions = [
-        ['Item', 'AVAILABLE CHARACTER-BUILDING ITEMS AND EQUIPMENT'],
+        ['Species', 'AVAILABLE SPECIES / RACES'],
+        ['Background', 'AVAILABLE BACKGROUNDS'],
+        ['Class', 'AVAILABLE CLASSES'],
+        ['Subclass', 'AVAILABLE SUBCLASSES'],
+        ['Item', 'AVAILABLE EQUIPMENT AND OTHER ITEMS'],
         ['Feature', 'AVAILABLE FEATURES'],
         ['Spell', 'AVAILABLE SPELLS']
     ];
     const sections = [];
     for (const [kind, heading] of definitions) {
+        if (profile !== 'character' && ['Species', 'Background', 'Class', 'Subclass'].includes(kind)) continue;
         const packIds = collectActorCatalogPackIds(options, kind);
         const includeWorld = !!options[`${ACTOR_WORLD_PREFIX}${kind}`];
         const rows = [];
         if (packIds.length) rows.push(...await queryImportCatalog({ kind, source: 'compendium', packIds, onProgress }));
         if (includeWorld) rows.push(...await queryImportCatalog({ kind, source: 'world', onProgress }));
-        const usableRows = kind === 'Item' ? rows.filter(row => !['feat', 'spell'].includes(row.itemType)) : rows;
+        const usableRows = kind === 'Item' ? rows.filter(row => !['feat', 'spell', 'race', 'background', 'class', 'subclass'].includes(row.itemType)) : rows;
         if (!usableRows.length) continue;
         const scope = kind === 'Item'
-            ? 'This catalog contains only Item documents found in the selected sources. Race/species, background, class, and subclass names are verified only when those document types appear below.'
+            ? 'This catalog contains equipment and other non-foundation Item documents from the selected sources.'
             : `A plain ${kind} name is verified only when it appears below.`;
         sections.push(`========================================\n${heading}\n========================================\n\nUse exact names from this selected catalog whenever referencing existing content. Catalog metadata is guidance only; emit plain names, never UUIDs. ${scope}\n\n${formatImportCatalog(usableRows, kind)}`);
     }
@@ -209,7 +222,11 @@ export async function buildActorImportPrompt(profile = 'npc', options = {}, onPr
         const template = await buildActorJsonTemplate('character');
         prompt += `\n\n========================================\nCHARACTER SNAPSHOT (AUTHORITATIVE)\n========================================\n\n- Build a complete, immediately playable dnd5e Character snapshot. Keep top-level type as "character". Do not ask the user to make build decisions and do not generate future-level instructions.\n- Race/species preference: ${preference('characterRacePreference')}. Background preference: ${preference('characterBackgroundPreference')}. Class preference: ${preference('characterClassPreference')}. Subclass preference: ${preference('characterSubclassPreference')}.\n- Auto means infer the best choice from the supplied concept. It does not mean emitting the word "Auto" in the JSON.\n- Emit characterRace and characterBackground as exact existing Item names or complete inline native Item definitions.\n- For existing classes, emit characterClasses entries as { "name": "Exact Class Name", "levels": 1 }; levels is the final current number of levels in that class. Inline native Class definitions may instead carry system.levels. Emit characterSubclasses as exact-name strings or inline native definitions.\n- Blacksmith resolves those plain names through its configured Item sources, embeds them, applies the supplied class levels, and assigns the resulting race, background, and original-class IDs. Never invent or emit UUIDs or embedded Item IDs.\n- Treat supplied catalogs as authoritative for resolvable plain names. Never fabricate a near-match, combine catalog names, or silently omit a required mechanic. If a required Feature is absent from the Feature catalog, embed a complete friendly Blacksmith Feature object with its rules, activities, Feature profile fields, and an itemGMNotes note identifying the catalog-gap fallback. Optional nonessential content may be omitted.\n- Selected Item catalogs contain race/species, background, class, and subclass documents only when the selected sources actually provide them. A foundation name is catalog-verified only if it appears in the supplied Item catalog. When a required foundation is absent, use a complete inline native Foundry Item only if its full document can be authored correctly; otherwise preserve the intended exact name and identify the unresolved dependency in the biography. Never silently substitute a different build choice.\n- Do not duplicate race, background, class, or subclass entries in items, features, or spells.\n- Supply final current-level abilities, HP, AC inputs, proficiencies, skills, tools, spell data, currency, inventory, features, and spells. Blacksmith imports the snapshot; it does not build, level, or repair the character.\n\nJSON SHAPE\n\nUse this shape, replacing every neutral value with the completed character data. Preserve JSON types.\n\n${template}`;
     }
-    const catalogs = await buildActorCatalogSections(options, onProgress);
+    prompt = prompt.replace(
+        'Selected Item catalogs contain race/species, background, class, and subclass documents only when the selected sources actually provide them. A foundation name is catalog-verified only if it appears in the supplied Item catalog.',
+        'Species/Race, Background, Class, and Subclass catalogs are selected independently even though Foundry stores them as Item documents. A foundation name is catalog-verified only if it appears in its corresponding supplied catalog.'
+    );
+    const catalogs = await buildActorCatalogSections(profile, options, onProgress);
     if (catalogs) prompt += `\n\n${catalogs}`;
     return applyCampaignPlaceholders(prompt, { actorsSource: options.actorsSource });
 }

@@ -687,6 +687,13 @@
 		"headingH2CompendiumMapping-Label": "Compendium Mapping",
 		"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 
+		"headingH3AutomaticCompendiumMapping-Label": "Automatic Mapping",
+		"headingH3AutomaticCompendiumMapping-Hint": "Let Blacksmith detect what each compendium contains and build every mapping from the enabled package/source list. Automatic mappings are authoritative while enabled; your manual mappings below are preserved and return when this is disabled.",
+		"autoMapCompendiums-Label": "Automatically Map Compendiums",
+		"autoMapCompendiums-Hint": "Ranks matching sources in four tiers: official supplements and updated books; core books in Player's Handbook, Dungeon Master's Guide, Monster Manual order; third-party/imported/homebrew books; then bundled SRD packs. Requires a reload when changed.",
+		"headingH4CompendiumSources-Label": "Included Sources",
+		"headingH4CompendiumSources-Hint": "Enable whole Foundry packages or world sources here. Packages appear only when they contain at least one non-empty Actor, Item, Journal, or Roll Table compendium that Blacksmith can match. After saving and reloading, the mappings below offer only compatible compendiums from enabled sources.",
+
 		"headingH2AssetMapping-Label": "Asset Mapping",
 		"headingH2AssetMapping-Hint": "Each field defaults to JSON shipped under `resources/asset-defaults/` in this module. Chat card appearance themes live in code (`api-chat-cards.js`). Clear a field to use only the embedded JS bundle for that category (no fetch).",
 
@@ -713,6 +720,18 @@
 
 			"headingH3FeatureCompendiums-Label": "Features",
 			"headingH3FeatureCompendiums-Hint": "",
+
+			"headingH3SpeciesCompendiums-Label": "Species / Races",
+			"headingH3SpeciesCompendiums-Hint": "Prioritized Item compendiums used to resolve character species and race names.",
+
+			"headingH3BackgroundCompendiums-Label": "Backgrounds",
+			"headingH3BackgroundCompendiums-Hint": "Prioritized Item compendiums used to resolve character background names.",
+
+			"headingH3ClassCompendiums-Label": "Classes",
+			"headingH3ClassCompendiums-Hint": "Prioritized Item compendiums used to resolve character class names.",
+
+			"headingH3SubclassCompendiums-Label": "Subclasses",
+			"headingH3SubclassCompendiums-Hint": "Prioritized Item compendiums used to resolve character subclass names.",
 
 			"headingH3ItemCompendiums-Label": "Items",
 			"headingH3ItemCompendiums-Hint": "",

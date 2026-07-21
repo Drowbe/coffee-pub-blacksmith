@@ -7,8 +7,9 @@
  * utility-common.js.
  *
  * The canonical type token is the Foundry document type ("Actor", "Item",
- * "JournalEntry", "RollTable", ...) plus two synthetic content-based types
- * ("Spell", "Feature") which live inside Item packs but are mapped separately.
+ * "JournalEntry", "RollTable", ...) plus synthetic content-based types (Spell,
+ * Feature, Species, Background, Class, and Subclass) which live inside Item
+ * packs but are mapped separately.
  *
  * Setting keys keep their historical (inconsistent) names for backward
  * compatibility -- Actor maps to "monsterCompendium{i}", Feature maps to
@@ -17,7 +18,7 @@
  */
 
 /** Synthetic types that are stored in Item packs but mapped independently. */
-export const SYNTHETIC_TYPES = ['Spell', 'Feature'];
+export const SYNTHETIC_TYPES = ['Spell', 'Feature', 'Species', 'Background', 'Class', 'Subclass'];
 
 /**
  * Per-type overrides. Anything not listed here is derived mechanically from the
@@ -28,6 +29,10 @@ const TYPE_OVERRIDES = {
     Item:    { prefix: 'itemCompendium',     num: 'numCompendiumsItem',    array: 'arrSelectedItemCompendiums',    plural: 'Items',   label: 'Items',   docClass: 'Item' },
     Spell:   { prefix: 'spellCompendium',    num: 'numCompendiumsSpell',   array: 'arrSelectedSpellCompendiums',   plural: 'Spells',  label: 'Spells',  docClass: 'Item', packType: 'Item', subtype: 'spell', choices: 'arrSpellChoices' },
     Feature: { prefix: 'featuresCompendium', num: 'numCompendiumsFeature', array: 'arrSelectedFeatureCompendiums', plural: 'Features', label: 'Features', docClass: 'Item', packType: 'Item', subtype: 'feat', choices: 'arrFeatureChoices' },
+    Species: { prefix: 'speciesCompendium',  num: 'numCompendiumsSpecies', array: 'arrSelectedSpeciesCompendiums',  plural: 'Species', label: 'Species / Races', docClass: 'Item', packType: 'Item', subtype: 'race', choices: 'arrSpeciesChoices' },
+    Background: { prefix: 'backgroundCompendium', num: 'numCompendiumsBackground', array: 'arrSelectedBackgroundCompendiums', plural: 'Backgrounds', label: 'Backgrounds', docClass: 'Item', packType: 'Item', subtype: 'background', choices: 'arrBackgroundChoices' },
+    Class: { prefix: 'classCompendium', num: 'numCompendiumsClass', array: 'arrSelectedClassCompendiums', plural: 'Classes', label: 'Classes', docClass: 'Item', packType: 'Item', subtype: 'class', choices: 'arrClassChoices' },
+    Subclass: { prefix: 'subclassCompendium', num: 'numCompendiumsSubclass', array: 'arrSelectedSubclassCompendiums', plural: 'Subclasses', label: 'Subclasses', docClass: 'Item', packType: 'Item', subtype: 'subclass', choices: 'arrSubclassChoices' },
 
     JournalEntry: { plural: 'JournalEntries', label: 'Journal Entries' },
     RollTable:    { plural: 'RollTables',     label: 'Roll Tables' },
@@ -44,6 +49,10 @@ const TYPE_ALIASES = {
     item: 'Item', items: 'Item', equipment: 'Item', gear: 'Item',
     spell: 'Spell', spells: 'Spell',
     feature: 'Feature', features: 'Feature', feat: 'Feature', feats: 'Feature',
+    species: 'Species', race: 'Species', races: 'Species', ancestry: 'Species', ancestries: 'Species',
+    background: 'Background', backgrounds: 'Background',
+    class: 'Class', classes: 'Class',
+    subclass: 'Subclass', subclasses: 'Subclass',
     journal: 'JournalEntry', journalentry: 'JournalEntry', journalentries: 'JournalEntry',
     rolltable: 'RollTable', rolltables: 'RollTable', table: 'RollTable', tables: 'RollTable',
     scene: 'Scene', scenes: 'Scene',
@@ -127,7 +136,7 @@ export function getSearchWorldLastKey(type) {
 
 /**
  * The Foundry document class a resolved entry of this type will be.
- * Spell and Feature both live in Item packs.
+ * Synthetic character-building types live in Item packs.
  * @returns {string} e.g. "Item" for "Spell"
  */
 export function getDocumentClass(type) {
@@ -137,7 +146,7 @@ export function getDocumentClass(type) {
 
 /**
  * The pack `type` whose compendiums are eligible for this mapped type.
- * Spell/Feature draw from Item packs.
+ * Synthetic types draw from Item packs.
  * @returns {string} e.g. "Item" for "Feature"
  */
 export function getPackType(type) {
@@ -154,7 +163,7 @@ export function getDocumentSubtype(type) {
     return TYPE_OVERRIDES[t]?.subtype ?? null;
 }
 
-/** @returns {boolean} True for Spell/Feature -- content-based, not real pack types */
+/** @returns {boolean} True for content-based mappings that are not real pack types. */
 export function isSyntheticType(type) {
     return SYNTHETIC_TYPES.includes(normalizeType(type));
 }

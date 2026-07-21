@@ -4,7 +4,8 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { getWorldCollection as getMappedWorldCollection, normalizeType } from './compendium-types.js';
+import { getWorldCollection as getMappedWorldCollection, getDocumentSubtype, normalizeType } from './compendium-types.js';
+import { compendiumManager } from './manager-compendiums.js';
 
 const ITEM_RARITY_ORDER = ['common', 'uncommon', 'rare', 'very rare', 'legendary', 'artifact'];
 
@@ -120,7 +121,9 @@ export async function queryImportCatalog({ kind, source, packIds = [], filters =
     if (!canonicalKind) throw new Error(`Unsupported catalog kind: ${kind}`);
     const kindKey = canonicalKind.toLowerCase();
     if (!['world', 'compendium'].includes(source)) throw new Error(`Unsupported catalog source: ${source}`);
-    const matches = kindKey === 'actor' ? matchesActorFilters : (['item', 'spell', 'feature'].includes(kindKey) ? matchesItemFilters : (document => matchesName(document, filters.nameSearch)));
+    const itemKinds = ['item', 'spell', 'feature', 'species', 'background', 'class', 'subclass'];
+    const matches = kindKey === 'actor' ? matchesActorFilters : (itemKinds.includes(kindKey) ? matchesItemFilters : (document => matchesName(document, filters.nameSearch)));
+    const requiredSubtype = getDocumentSubtype(canonicalKind);
     const rows = [];
     if (source === 'world') {
         const documents = (getMappedWorldCollection(canonicalKind) ?? []).filter(document => !document.isToken);
@@ -136,8 +139,7 @@ export async function queryImportCatalog({ kind, source, packIds = [], filters =
             await reportScan(onProgress, `${canonicalKind} documents`, pack.metadata?.label ?? packId, index, packIds.length);
             const documents = await pack.getDocuments();
             for (const document of documents) {
-                if (kindKey === 'spell' && document.type !== 'spell') continue;
-                if (kindKey === 'feature' && document.type !== 'feat') continue;
+                if (requiredSubtype && document.type !== requiredSubtype) continue;
                 if (matches(document, filters)) rows.push(toCatalogRow(document, kindKey, 'compendium', packId));
             }
         }
@@ -151,7 +153,7 @@ function toCatalogRow(document, kind, source, packId) {
         const cr = getActorCr(document);
         return { ...base, cr: cr.label, creatureType: getActorType(document), size: getActorSize(document) };
     }
-    if (['item', 'spell', 'feature'].includes(kind)) return { ...base, itemType: getItemType(document), rarity: getItemRarityKey(document), magical: isMagicalItem(document) };
+    if (['item', 'spell', 'feature', 'species', 'background', 'class', 'subclass'].includes(kind)) return { ...base, itemType: getItemType(document), rarity: getItemRarityKey(document), magical: isMagicalItem(document) };
     return base;
 }
 
@@ -163,7 +165,7 @@ export function formatImportCatalog(rows, kind, options = {}) {
         const kindKey = String(kind).toLowerCase();
         const details = kindKey === 'actor'
             ? `CR=${row.cr}; type=${row.creatureType || 'unknown'}; size=${row.size || 'unknown'}`
-            : (['item', 'spell', 'feature'].includes(kindKey)
+            : (['item', 'spell', 'feature', 'species', 'background', 'class', 'subclass'].includes(kindKey)
                 ? `type=${row.itemType || 'unknown'}; rarity=${row.rarity}; magical=${row.magical}`
                 : 'document');
         const image = options.includeImages && row.img ? ` | img=${row.img}` : '';
@@ -191,17 +193,7 @@ export function getWorldItemsList() {
 
 export function getItemCompendiumsList() {
     try {
-        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsItem') ?? 1;
-        const compendiums = [];
-
-        for (let i = 1; i <= numCompendiums; i++) {
-            const compendiumSetting = game.settings.get(MODULE.ID, `itemCompendium${i}`);
-            if (compendiumSetting && compendiumSetting !== 'none') {
-                compendiums.push(compendiumSetting);
-            }
-        }
-
-        return compendiums.join(', ');
+        return compendiumManager.getSelected('Item').join(', ');
     } catch (e) {
         postConsoleAndNotification(MODULE.NAME, 'Error getting item compendiums list', e, false, false);
         return 'No compendiums configured';
@@ -210,17 +202,7 @@ export function getItemCompendiumsList() {
 
 export function getActorCompendiumsList() {
     try {
-        const numCompendiums = game.settings.get(MODULE.ID, 'numCompendiumsActor') ?? 1;
-        const compendiums = [];
-
-        for (let i = 1; i <= numCompendiums; i++) {
-            const compendiumSetting = game.settings.get(MODULE.ID, `monsterCompendium${i}`);
-            if (compendiumSetting && compendiumSetting !== 'none') {
-                compendiums.push(compendiumSetting);
-            }
-        }
-
-        return compendiums.join(', ');
+        return compendiumManager.getSelected('Actor').join(', ');
     } catch (e) {
         postConsoleAndNotification(MODULE.NAME, 'Error getting actor compendiums list', e, false, false);
         return 'No compendiums configured';
@@ -261,17 +243,11 @@ async function reportScan(onProgress, category, label, index, total) {
     await yieldToUI();
 }
 
-function resolveConfiguredPackIds(countKey, prefix, packIds) {
+function resolveConfiguredPackIds(type, packIds) {
     if (Array.isArray(packIds)) {
         return packIds.filter((id) => id && id !== 'none');
     }
-    const ids = [];
-    const numCompendiums = game.settings.get(MODULE.ID, countKey) ?? 1;
-    for (let i = 1; i <= numCompendiums; i++) {
-        const id = game.settings.get(MODULE.ID, `${prefix}${i}`);
-        if (id && id !== 'none') ids.push(id);
-    }
-    return ids;
+    return compendiumManager.getSelected(type);
 }
 
 /**
@@ -281,7 +257,7 @@ function resolveConfiguredPackIds(countKey, prefix, packIds) {
  */
 export async function getCompendiumItemsList(packIds, onProgress) {
     try {
-        const compendiumIds = resolveConfiguredPackIds('numCompendiumsItem', 'itemCompendium', packIds);
+        const compendiumIds = resolveConfiguredPackIds('Item', packIds);
         const compendiumBlocks = [];
 
         let scanIndex = 0;
@@ -341,7 +317,7 @@ export async function getCompendiumItemsList(packIds, onProgress) {
  */
 export async function getCompendiumActorsList(packIds, onProgress) {
     try {
-        const compendiumIds = resolveConfiguredPackIds('numCompendiumsActor', 'monsterCompendium', packIds);
+        const compendiumIds = resolveConfiguredPackIds('Actor', packIds);
         const compendiumBlocks = [];
 
         let scanIndex = 0;

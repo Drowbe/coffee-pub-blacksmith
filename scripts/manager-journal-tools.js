@@ -7,7 +7,7 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { compendiumManager } from './manager-compendiums.js';
-import { getCompendiumSettingPrefix, getNumCompendiumsSettingName } from './compendium-types.js';
+import { getCompendiumSettingPrefix } from './compendium-types.js';
 
 export class JournalTools {
     static async init() {
@@ -73,7 +73,7 @@ export class JournalTools {
      */
     static getCompendiumSettingKeys(type) {
         const prefix = getCompendiumSettingPrefix(type);
-        const numCompendiums = getSettingSafely(MODULE.ID, getNumCompendiumsSettingName(type), 1) ?? 1;
+        const numCompendiums = compendiumManager.getMapping(type).numCompendiums;
 
         const keys = [];
         for (let i = 1; i <= numCompendiums; i++) {
