@@ -39,7 +39,10 @@ import {
     getAutomaticCompendiumPackIds,
     getCompendiumSourceId,
     getCompendiumSourceSettingKey,
-    getInstalledCompendiumSources
+    getInstalledCompendiumSources,
+    isSourceAggregatedMappingType,
+    getMappedSourceGroups,
+    expandMappedSelection
 } from './utility-compendium-auto-map.js';
 
 /** Match tiers in priority order. */
@@ -76,26 +79,27 @@ export class CompendiumManager {
         const canonical = normalizeType(type);
         const prefix = getCompendiumSettingPrefix(canonical);
 
-        const autoMap = !!getSettingSafely(MODULE.ID, 'autoMapCompendiums', false);
         const sourcePool = getInstalledCompendiumSources()
             .filter(source => getSettingSafely(MODULE.ID, getCompendiumSourceSettingKey(source.id), true))
             .map(source => source.id);
         const enabledSources = new Set(sourcePool);
         const eligiblePackIds = getAutomaticCompendiumPackIds(canonical, { sourceIds: sourcePool });
         const eligiblePacks = new Set(eligiblePackIds);
-        const selectorCount = eligiblePackIds.length;
+        const selectorCount = isSourceAggregatedMappingType(canonical)
+            ? getMappedSourceGroups(canonical, { sourceIds: sourcePool }).length
+            : eligiblePackIds.length;
         const manualPackIds = [];
         for (let i = 1; i <= selectorCount; i++) {
-            const packId = getSettingSafely(MODULE.ID, `${prefix}${i}`, null);
-            if (packId && packId !== 'none' && packId !== '') manualPackIds.push(packId);
+            const selection = getSettingSafely(MODULE.ID, `${prefix}${i}`, null);
+            for (const packId of expandMappedSelection(canonical, selection, { sourceIds: sourcePool })) {
+                if (!manualPackIds.includes(packId)) manualPackIds.push(packId);
+            }
         }
         const availableManualPackIds = manualPackIds.filter(packId => {
             const pack = game.packs.get(packId);
             return pack && enabledSources.has(getCompendiumSourceId(pack)) && eligiblePacks.has(packId);
         });
-        const packIds = autoMap
-            ? eligiblePackIds
-            : availableManualPackIds;
+        const packIds = availableManualPackIds;
 
         const searchWorldFirst = !!getSettingSafely(MODULE.ID, getSearchWorldFirstKey(canonical), false);
         const searchWorldLast = !!getSettingSafely(MODULE.ID, getSearchWorldLastKey(canonical), false);
@@ -112,7 +116,7 @@ export class CompendiumManager {
             searchWorldFirst,
             searchWorldLast,
             searchOrder,
-            numCompendiums: autoMap ? packIds.length : selectorCount,
+            numCompendiums: selectorCount,
             documentClass: getDocumentClass(canonical),
             subtype: getDocumentSubtype(canonical)
         };

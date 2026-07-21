@@ -35,7 +35,10 @@ import {
     getAutomaticCompendiumPackIds,
     getCompendiumSourceId,
     getCompendiumSourceSettingKey,
-    getInstalledCompendiumSources
+    getInstalledCompendiumSources,
+    isSourceAggregatedMappingType,
+    getMappedSourceGroups,
+    expandMappedSelection
 } from './utility-compendium-auto-map.js';
 
 // Re-exported for consumers that historically imported it from settings.js.
@@ -236,6 +239,17 @@ function getCompendiumChoices({ sourceIds = null } = {}) {
     // Create and store filtered arrays for each type
     const types = [...new Set(choicesArray.map(c => c.type))];
     types.forEach(type => {
+        if (isSourceAggregatedMappingType(type)) {
+            const sourceChoices = getMappedSourceGroups(type, { sourceIds })
+                .reduce((choices, source) => {
+                    const compendiumLabel = `${source.packIds.length} ${source.packIds.length === 1 ? 'compendium' : 'compendiums'}`;
+                    const documentLabel = `${source.documentCount} ${getTypeLabel(type)}${source.documentCount === 1 ? '' : 's'}`;
+                    choices[source.value] = `${getTypeLabel(type)}: ${source.label} — ${compendiumLabel}, ${documentLabel}`;
+                    return choices;
+                }, {"none": "-- None --"});
+            BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, sourceChoices);
+            return;
+        }
         const filteredChoices = choicesArray
             .filter(compendium => compendium.type === type
                 && compendiumContainsMappedType(game.packs.get(compendium.id), type))
@@ -269,10 +283,26 @@ function getCompendiumChoices({ sourceIds = null } = {}) {
 
 // Track reordering in progress to prevent recursive calls
 const _reorderingInProgress = new Set();
+let _autoMappingInProgress = false;
 
 function getCompendiumSelectorCount(type) {
     const choices = BLACKSMITH[getChoicesArrayKey(type)] || {};
     return Object.keys(choices).filter(id => id && id !== 'none').length;
+}
+
+function getPersistedCompendiumSelectorCount(type) {
+    const prefix = getCompendiumSettingPrefix(type);
+    const pattern = new RegExp(`^${MODULE.ID}\\.${prefix}(\\d+)$`);
+    const storage = game.settings.storage?.get('world');
+    if (!storage) return 0;
+
+    let maximum = 0;
+    for (const setting of storage.values()) {
+        const key = setting?.key || setting?._source?.key || '';
+        const match = String(key).match(pattern);
+        if (match) maximum = Math.max(maximum, Number(match[1]) || 0);
+    }
+    return maximum;
 }
 
 /**
@@ -428,7 +458,8 @@ function registerDynamicCompendiumTypes() {
         
         // Register compendium priority settings
         const numCompendiums = getCompendiumSelectorCount(type);
-        for (let i = 1; i <= numCompendiums; i++) {
+        const registeredCompendiums = Math.max(numCompendiums, getPersistedCompendiumSelectorCount(type));
+        for (let i = 1; i <= registeredCompendiums; i++) {
             const settingKey = `${settingPrefix}${i}`;
             
             // Skip if already registered
@@ -440,11 +471,12 @@ function registerDynamicCompendiumTypes() {
                 name: `${getTypeLabel(type)}: Priority ${i}`,
                 hint: null,
                 scope: "world",
-                config: true,
+                config: i <= numCompendiums,
                 requiresReload: false,
                 default: "none",
                 choices: BLACKSMITH[choicesKey] || {"none": "-- None --"},
                 onChange: async (value) => {
+                    if (_autoMappingInProgress) return;
                     // Reorder compendiums when one is changed to "none" or configured
                     // Use setTimeout to avoid race conditions with multiple simultaneous changes
                     // and to ensure the setting has been saved before we read all values
@@ -467,7 +499,6 @@ function registerDynamicCompendiumTypes() {
  */
 export function buildSelectedCompendiumArrays() {
     const allTypes = getMappedTypes(BLACKSMITH.arrCompendiumChoicesData || []);
-    const autoMap = !!getSettingSafely(MODULE.ID, 'autoMapCompendiums', false);
     const sourcePool = getInstalledCompendiumSources()
         .filter(source => getSettingSafely(MODULE.ID, getCompendiumSourceSettingKey(source.id), true))
         .map(source => source.id);
@@ -478,13 +509,6 @@ export function buildSelectedCompendiumArrays() {
         const settingPrefix = getCompendiumSettingPrefix(type);
         const arrayName = getSelectedArrayName(type);
 
-        if (autoMap) {
-            BLACKSMITH.updateValue(arrayName, getAutomaticCompendiumPackIds(type, {
-                sourceIds: sourcePool
-            }));
-            continue;
-        }
-        
         const numCompendiums = getCompendiumSelectorCount(type);
         const selected = [];
         
@@ -494,11 +518,13 @@ export function buildSelectedCompendiumArrays() {
                 continue; // Skip if setting not registered
             }
             
-            const compendiumId = game.settings.get(MODULE.ID, settingKey);
-            const pack = game.packs.get(compendiumId);
-            if (compendiumId && compendiumId !== 'none' && compendiumId !== ''
-                && pack && enabledSources.has(getCompendiumSourceId(pack))) {
-                selected.push(compendiumId);
+            const selection = game.settings.get(MODULE.ID, settingKey);
+            const expanded = expandMappedSelection(type, selection, { sourceIds: sourcePool });
+            for (const compendiumId of expanded) {
+                const pack = game.packs.get(compendiumId);
+                if (pack && enabledSources.has(getCompendiumSourceId(pack)) && !selected.includes(compendiumId)) {
+                    selected.push(compendiumId);
+                }
             }
         }
         
@@ -506,6 +532,46 @@ export function buildSelectedCompendiumArrays() {
     }
     
     postConsoleAndNotification(MODULE.NAME, "Selected compendium arrays updated", "", false, false);
+}
+
+/**
+ * Execute the GM-requested one-shot automatic mapping after settings register.
+ * The generated values become ordinary manual settings; runtime lookup never
+ * maintains a separate automatic mapping mode.
+ */
+export async function applyPendingAutomaticCompendiumMapping() {
+    if (!game.user?.isGM || !getSettingSafely(MODULE.ID, 'autoMapCompendiums', false)) return false;
+    const activeGM = game.users?.activeGM;
+    if (activeGM && activeGM.id !== game.user.id) return false;
+
+    const sourcePool = getInstalledCompendiumSources()
+        .filter(source => getSettingSafely(MODULE.ID, getCompendiumSourceSettingKey(source.id), true))
+        .map(source => source.id);
+    const allTypes = getMappedTypes(BLACKSMITH.arrCompendiumChoicesData || []);
+
+    _autoMappingInProgress = true;
+    try {
+        for (const type of allTypes) {
+            const prefix = getCompendiumSettingPrefix(type);
+            const selections = isSourceAggregatedMappingType(type)
+                ? getMappedSourceGroups(type, { sourceIds: sourcePool }).map(source => source.value)
+                : getAutomaticCompendiumPackIds(type, { sourceIds: sourcePool });
+            const selectorCount = getCompendiumSelectorCount(type);
+            const replacementCount = Math.max(selectorCount, getPersistedCompendiumSelectorCount(type));
+
+            for (let i = 1; i <= replacementCount; i++) {
+                const settingKey = `${prefix}${i}`;
+                if (!game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) continue;
+                await game.settings.set(MODULE.ID, settingKey, i <= selectorCount ? (selections[i - 1] || 'none') : 'none');
+            }
+        }
+        await game.settings.set(MODULE.ID, 'autoMapCompendiums', false);
+        buildSelectedCompendiumArrays();
+        ui.notifications.info(game.i18n.localize(`${MODULE.ID}.autoMapCompendiums-Complete`));
+        return true;
+    } finally {
+        _autoMappingInProgress = false;
+    }
 }
 
 // -- TABLE CHOICES  --
@@ -1238,8 +1304,23 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
-	// Automatic mapping is authoritative while enabled, but never overwrites the
-	// manual per-type settings below. Disabling it restores the prior hand map.
+	registerHeader('CompendiumSources', 'headingH4CompendiumSources-Label', 'headingH4CompendiumSources-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
+	const compendiumSources = getInstalledCompendiumSources();
+	for (const source of compendiumSources) {
+		const compendiumCount = `${source.packCount} ${source.packCount === 1 ? 'compendium' : 'compendiums'}`;
+		game.settings.register(MODULE.ID, getCompendiumSourceSettingKey(source.id), {
+			name: source.label,
+			hint: source.contentSummary ? `${compendiumCount} — ${source.contentSummary}` : compendiumCount,
+			type: Boolean,
+			config: true,
+			scope: 'world',
+			default: true,
+			requiresReload: true,
+			group: WORKFLOW_GROUPS.MANAGE_CONTENT
+		});
+	}
+	// One-shot mapping belongs below its source inputs. On the next GM load it
+	// replaces the ordinary priority settings, clears itself, and exits.
 	registerHeader('AutomaticCompendiumMapping', 'headingH3AutomaticCompendiumMapping-Label', 'headingH3AutomaticCompendiumMapping-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 	game.settings.register(MODULE.ID, 'autoMapCompendiums', {
 		name: MODULE.ID + '.autoMapCompendiums-Label',
@@ -1251,20 +1332,6 @@ export const registerSettings = () => {
 		requiresReload: true,
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
-	registerHeader('CompendiumSources', 'headingH4CompendiumSources-Label', 'headingH4CompendiumSources-Hint', 'H4', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-	const compendiumSources = getInstalledCompendiumSources();
-	for (const source of compendiumSources) {
-		game.settings.register(MODULE.ID, getCompendiumSourceSettingKey(source.id), {
-			name: `${source.label} (${source.packCount} ${source.packCount === 1 ? 'compendium' : 'compendiums'})`,
-			hint: '',
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-			requiresReload: true,
-			group: WORKFLOW_GROUPS.MANAGE_CONTENT
-		});
-	}
 	const enabledSourceIds = compendiumSources
 		.filter(source => game.settings.get(MODULE.ID, getCompendiumSourceSettingKey(source.id)))
 		.map(source => source.id);

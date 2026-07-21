@@ -63,11 +63,22 @@ export function getInstalledCompendiumSources() {
     for (const pack of game.packs.values()) {
         if (!isImporterRelevantCompendium(pack)) continue;
         const id = getCompendiumSourceId(pack);
-        const current = sources.get(id) || { id, label: getCompendiumSourceLabel(pack), packCount: 0 };
+        const current = sources.get(id) || {
+            id,
+            label: getCompendiumSourceLabel(pack),
+            packCount: 0,
+            contentCounts: new Map()
+        };
         current.packCount += 1;
+        accumulateSourceContents(current.contentCounts, pack);
         sources.set(id, current);
     }
-    return [...sources.values()].sort((a, b) => a.label.localeCompare(b.label));
+    return [...sources.values()]
+        .map(source => ({
+            ...source,
+            contentSummary: formatContentCounts(source.contentCounts)
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 function matchesAny(text, patterns) {
@@ -116,8 +127,50 @@ function indexEntries(pack) {
 const CONTENT_LABELS = {
     actor: 'Actors', background: 'Backgrounds', class: 'Classes', feat: 'Features / Feats',
     race: 'Species / Races', spell: 'Spells', subclass: 'Subclasses', weapon: 'Weapons',
-    equipment: 'Equipment', consumable: 'Consumables', tool: 'Tools', loot: 'Loot'
+    equipment: 'Equipment', consumable: 'Consumables', tool: 'Tools', loot: 'Loot',
+    item: 'Other Items', journalentry: 'Journals', rolltable: 'Roll Tables'
 };
+
+const CONTENT_ORDER = [
+    'actor', 'background', 'race', 'class', 'subclass', 'feat', 'spell',
+    'weapon', 'equipment', 'consumable', 'tool', 'loot', 'item',
+    'journalentry', 'rolltable'
+];
+
+function incrementContentCount(counts, type, amount = 1) {
+    const key = String(type || '').toLowerCase();
+    if (!key || amount <= 0) return;
+    counts.set(key, (counts.get(key) || 0) + amount);
+}
+
+function accumulateSourceContents(counts, pack) {
+    const entries = indexEntries(pack);
+    const packType = String(pack?.metadata?.type || '').toLowerCase();
+
+    // Actor subtypes (npc/character/vehicle) are all useful through the Actor
+    // mapping, while Journal and Roll Table indexes generally expose no subtype.
+    if (packType === 'actor' || packType === 'journalentry' || packType === 'rolltable') {
+        incrementContentCount(counts, packType, entries.length);
+        return;
+    }
+
+    if (packType === 'item') {
+        for (const entry of entries) incrementContentCount(counts, entry?.type || 'item');
+    }
+}
+
+function formatContentCounts(counts) {
+    return [...counts.entries()]
+        .sort(([a], [b]) => {
+            const aOrder = CONTENT_ORDER.indexOf(a);
+            const bOrder = CONTENT_ORDER.indexOf(b);
+            if (aOrder !== bOrder) return (aOrder < 0 ? Number.MAX_SAFE_INTEGER : aOrder)
+                - (bOrder < 0 ? Number.MAX_SAFE_INTEGER : bOrder);
+            return (CONTENT_LABELS[a] || a).localeCompare(CONTENT_LABELS[b] || b);
+        })
+        .map(([type, count]) => `${count} ${CONTENT_LABELS[type] || type}`)
+        .join(', ');
+}
 
 export function describeCompendiumContents(pack) {
     const counts = new Map();
@@ -126,10 +179,7 @@ export function describeCompendiumContents(pack) {
         if (type) counts.set(type, (counts.get(type) || 0) + 1);
     }
     if (!counts.size) return '';
-    return [...counts.entries()]
-        .sort(([a], [b]) => (CONTENT_LABELS[a] || a).localeCompare(CONTENT_LABELS[b] || b))
-        .map(([type, count]) => `${count} ${CONTENT_LABELS[type] || type}`)
-        .join(', ');
+    return formatContentCounts(counts);
 }
 
 const LABEL_SUBTYPE_HINTS = {
@@ -141,6 +191,73 @@ const LABEL_SUBTYPE_HINTS = {
     subclass: [/subclass/, /class/]
 };
 
+// Some automation/content modules split a public-facing feature into a parent
+// document and one or more implementation documents stored in support packs.
+// Those children are valid dnd5e `feat` Items, but offering their packs as
+// authoring catalogs produces noisy prompts, duplicate names, and references to
+// mechanics that were never intended to be placed on an Actor directly.
+//
+// Keep this based on the pack's declared purpose rather than a package id so a
+// GM can still use the source's real Feats, Class Features, Monster Features,
+// Species Features, and Actions. The whole-source checkbox remains available
+// when a GM wants to exclude an automation package entirely.
+const FEATURE_SUPPORT_PACK_PATTERNS = [
+    /\bclass feature items?\b/,
+    /\bfeat features?\b/,
+    /\bfeature items?\b/,
+    /\bitem features?\b/,
+    /\bspell features?\b/,
+    /\bsummon features?\b/,
+    /\bembedded macro(?: sample)? items?\b/
+];
+
+export function isPrimaryFeatureCompendium(pack) {
+    const label = packLabel(pack).toLowerCase();
+    return !matchesAny(label, FEATURE_SUPPORT_PACK_PATTERNS);
+}
+
+// The generic Item mapping is for inventory a character can carry: weapons,
+// equipment, consumables, tools, loot, and containers. Many class, background,
+// spell, and feature packs contain one incidental physical Item (or a helper
+// Item) alongside their real content. Presence alone therefore cannot make a
+// pack an Item catalog.
+const PHYSICAL_ITEM_TYPES = new Set(['weapon', 'equipment', 'consumable', 'tool', 'loot', 'container']);
+const NON_ITEM_PACK_PURPOSE_PATTERNS = [
+    /\bbackgrounds?\b/, /\bclasses?\b/, /\bsubclasses?\b/,
+    /\bfeatures?\b/, /\bfeats?\b/, /\bspells?\b/,
+    /\braces?\b/, /\bspecies\b/, /\borigins?\b/,
+    /\bmonster(?:s)?\b/, /\bactions?\b/, /\bsummons?\b/,
+    /\bbastions?\b/, /\bfacilit(?:y|ies)\b/
+];
+const ITEM_PACK_PURPOSE_PATTERNS = [
+    /\bitems?\b/, /\bequipment\b/, /\bweapons?\b/, /\barmor\b/,
+    /\bconsumables?\b/, /\bpotions?\b/, /\bscrolls?\b/,
+    /\btools?\b/, /\bgear\b/, /\bloot\b/, /\btreasure\b/,
+    /\btrade goods?\b/, /\bcontainers?\b/
+];
+
+export function isPrimaryItemCompendium(pack) {
+    const entries = indexEntries(pack);
+    const indexedTypes = entries.map(entry => String(entry?.type || '').toLowerCase()).filter(Boolean);
+    if (!indexedTypes.length) {
+        const label = packLabel(pack).toLowerCase();
+        return !matchesAny(label, NON_ITEM_PACK_PURPOSE_PATTERNS)
+            && matchesAny(label, ITEM_PACK_PURPOSE_PATTERNS);
+    }
+
+    const physicalCount = indexedTypes.filter(type => PHYSICAL_ITEM_TYPES.has(type)).length;
+    if (!physicalCount) return false;
+
+    const label = packLabel(pack).toLowerCase();
+    if (matchesAny(label, NON_ITEM_PACK_PURPOSE_PATTERNS)) return false;
+    if (matchesAny(label, ITEM_PACK_PURPOSE_PATTERNS)) return true;
+
+    // Ambiguously named mixed packs qualify only when physical inventory is
+    // their majority content. This retains packs such as "Creations" without
+    // admitting a character-options pack because it happens to contain a sword.
+    return physicalCount > indexedTypes.length / 2;
+}
+
 export function compendiumContainsMappedType(pack, type) {
     const canonicalType = normalizeType(type);
     const expectedPackType = getPackType(canonicalType);
@@ -151,18 +268,20 @@ export function compendiumContainsMappedType(pack, type) {
     if (!entries.length) return false;
     if (subtype) {
         const indexedTypes = entries.map(entry => String(entry?.type || '').toLowerCase()).filter(Boolean);
-        if (indexedTypes.length) return indexedTypes.includes(subtype);
+        if (indexedTypes.length) {
+            if (!indexedTypes.includes(subtype)) return false;
+            if (canonicalType === 'Feature' && !isPrimaryFeatureCompendium(pack)) return false;
+            return true;
+        }
         const label = packLabel(pack).toLowerCase();
+        if (canonicalType === 'Feature' && !isPrimaryFeatureCompendium(pack)) return false;
         if (['class', 'subclass'].includes(subtype) && /feature|feat/.test(label)) return false;
         if (subtype === 'class' && /subclass/.test(label)) return false;
         return matchesAny(label, LABEL_SUBTYPE_HINTS[subtype] || []);
     }
 
     if (canonicalType !== 'Item') return true;
-    const specialized = new Set(['spell', 'feat', 'race', 'background', 'class', 'subclass']);
-    const indexedTypes = entries.map(entry => String(entry?.type || '').toLowerCase()).filter(Boolean);
-    if (indexedTypes.length) return indexedTypes.some(type => !specialized.has(type));
-    return !matchesAny(packLabel(pack).toLowerCase(), [/spell/, /feat/, /feature/, /race/, /species/, /background/, /class/, /origin/]);
+    return isPrimaryItemCompendium(pack);
 }
 
 /**
@@ -182,6 +301,64 @@ export function getAutomaticCompendiumPackIds(type, { sourceIds = null } = {}) {
             || a.order - b.order
             || packLabel(a.pack).localeCompare(packLabel(b.pack)))
         .map(entry => entry.pack.metadata.id);
+}
+
+// Scene packs are commonly divided by adventure, chapter, or location. Those
+// divisions organize a package but are rarely meaningful mapping decisions, so
+// the settings UI selects their owning source and runtime expands it back into
+// concrete pack ids. Keep the expansion boundary centralized so APIs and lookup
+// code continue to operate exclusively on real compendium ids.
+const SOURCE_AGGREGATED_MAPPING_TYPES = new Set(['Scene']);
+const SOURCE_SELECTION_PREFIX = 'source:';
+
+export function isSourceAggregatedMappingType(type) {
+    return SOURCE_AGGREGATED_MAPPING_TYPES.has(normalizeType(type));
+}
+
+export function getMappedSourceGroups(type, { sourceIds = null } = {}) {
+    const canonicalType = normalizeType(type);
+    if (!isSourceAggregatedMappingType(canonicalType)) return [];
+
+    const groups = new Map();
+    for (const packId of getAutomaticCompendiumPackIds(canonicalType, { sourceIds })) {
+        const pack = game.packs.get(packId);
+        if (!pack) continue;
+        const sourceId = getCompendiumSourceId(pack);
+        const current = groups.get(sourceId) || {
+            id: sourceId,
+            value: `${SOURCE_SELECTION_PREFIX}${sourceId}`,
+            label: getCompendiumSourceLabel(pack),
+            packIds: [],
+            documentCount: 0
+        };
+        current.packIds.push(packId);
+        current.documentCount += indexEntries(pack).length;
+        groups.set(sourceId, current);
+    }
+    return [...groups.values()];
+}
+
+export function expandMappedSelection(type, selection, { sourceIds = null } = {}) {
+    const canonicalType = normalizeType(type);
+    const value = String(selection || '');
+    if (!value || value === 'none') return [];
+    if (!isSourceAggregatedMappingType(canonicalType)) return [value];
+
+    let sourceId = value.startsWith(SOURCE_SELECTION_PREFIX)
+        ? value.slice(SOURCE_SELECTION_PREFIX.length)
+        : null;
+
+    // Backward compatibility: an existing Scene pack selection now means its
+    // owning source, so old worlds gain the compact behavior without migration.
+    if (!sourceId) {
+        const pack = game.packs.get(value);
+        if (pack) sourceId = getCompendiumSourceId(pack);
+    }
+    if (!sourceId) return [];
+
+    const allowedSources = Array.isArray(sourceIds) ? new Set(sourceIds) : null;
+    if (allowedSources && !allowedSources.has(sourceId)) return [];
+    return getAutomaticCompendiumPackIds(canonicalType, { sourceIds: [sourceId] });
 }
 
 export function getAutomaticCompendiumPlan(types, options = {}) {

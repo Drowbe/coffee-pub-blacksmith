@@ -2,7 +2,7 @@
 
 Blacksmith owns the **Compendium Mapping** the GM configures (which compendiums to use for monsters, items, spells, features, species/races, backgrounds, classes, subclasses, journals, roll tables, and in what priority order), and exposes both that mapping and a name-to-UUID resolver built on top of it.
 
-When **Automatically Map Compendiums** is enabled, `getMapping()`, `getSelected()`, `getSearchOrder()`, and all resolver methods transparently use the detected automatic mapping. One master checkbox per installed Foundry package/source restricts detection to every pack owned by the enabled sources; the same allowlist filters the choices shown in manual mappings after save/reload. Manual settings are preserved underneath and become active again when automatic mode is disabled.
+The enabled-source checkboxes independently define which installed Foundry packages may appear in mappings. **Auto-map Compendiums on Next Load** is a one-shot initializer: on the next active-GM load it replaces the ordinary priority settings from those enabled sources, clears itself, and leaves a fully manual configuration. `getMapping()`, `getSelected()`, `getSearchOrder()`, and all resolver methods always report and use that saved configuration; there is no separate automatic runtime mapping.
 
 `numCompendiums` in `getMapping()` is the effective number of compatible priority slots, derived from the enabled sources. The historical `numCompendiums*` world settings are hidden compatibility storage and must not be used to determine the current selector count.
 
