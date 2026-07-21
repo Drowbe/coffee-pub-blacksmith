@@ -336,7 +336,10 @@ export class XpManager {
     static getCombatMonsters(combat) {
         return combat.combatants.filter(combatant => {
             const actor = combatant.actor;
-            return actor && actor.type === 'npc' && !actor.hasPlayerOwner;
+            return actor
+                && actor.type === 'npc'
+                && !actor.hasPlayerOwner
+                && !actor.getFlag('coffee-pub-blacksmith', 'sidekick');
         });
     }
 
@@ -403,7 +406,10 @@ export class XpManager {
 
         for (const token of tokens) {
             const actor = token.actor;
-            if (actor && actor.type === 'npc' && !actor.hasPlayerOwner) {
+            if (actor
+                && actor.type === 'npc'
+                && !actor.hasPlayerOwner
+                && !actor.getFlag('coffee-pub-blacksmith', 'sidekick')) {
                 // Get base XP for this monster (pass token, not actor)
                 const cr = actor.system.details.cr;
                 const baseXp = this.getMonsterBaseXp(token);

@@ -298,16 +298,16 @@ export function getJournalPortraitPromptFields() {
     const APPEARANCE = { group: 'Appearance', groupIcon: 'fa-solid fa-palette' };
     const select = (values, value = '') => ({ inputType: 'select', options: promptSelectOptions(values), value });
     return [
-        { id: 'portraitName', label: 'Name', value: '', showForTemplate: 'portrait', ...IDENTITY },
-        { id: 'portraitGender', label: 'Gender', showForTemplate: 'portrait', ...select(PORTRAIT_GENDERS), ...IDENTITY },
-        { id: 'portraitAge', label: 'Age', showForTemplate: 'portrait', ...select(PORTRAIT_AGES), ...IDENTITY },
-        { id: 'portraitRace', label: 'Creature race', showForTemplate: 'portrait', ...select(PORTRAIT_RACES), ...SPECIES },
-        { id: 'portraitClass', label: 'Creature class', showForTemplate: 'portrait', ...select(PORTRAIT_CLASSES), ...SPECIES },
-        { id: 'portraitPhysique', label: 'Physique', showForTemplate: 'portrait', ...select(PORTRAIT_PHYSIQUES), ...APPEARANCE },
-        { id: 'portraitExpression', label: 'Expression', showForTemplate: 'portrait', ...select(PORTRAIT_EXPRESSIONS), ...APPEARANCE },
-        { id: 'portraitHair', label: 'Hair', value: '', showForTemplate: 'portrait', ...APPEARANCE },
-        { id: 'portraitSkin', label: 'Skin', value: '', showForTemplate: 'portrait', ...APPEARANCE },
-        { id: 'portraitProp', label: 'Prop', value: '', inputType: 'textarea', rows: 3, fullWidth: true, showForTemplate: 'portrait', ...APPEARANCE }
+        { id: 'portraitName', label: 'Name', value: '', showForTemplate: 'portrait', hint: 'Optional character name. It helps the image generator preserve identity and can influence presentation, but it is not drawn as visible text in the portrait.', ...IDENTITY },
+        { id: 'portraitGender', label: 'Gender', showForTemplate: 'portrait', hint: 'Optional presentation cue for the portrait. Leave blank when it is unknown, irrelevant, or should be inferred from the accompanying description.', ...select(PORTRAIT_GENDERS), ...IDENTITY },
+        { id: 'portraitAge', label: 'Age', showForTemplate: 'portrait', hint: 'Select the apparent age category shown in the portrait. This controls visible age cues rather than an exact chronological age.', ...select(PORTRAIT_AGES), ...IDENTITY },
+        { id: 'portraitRace', label: 'Creature race', showForTemplate: 'portrait', hint: 'Select the ancestry, species, or creature kind that should control visible anatomy. Leave blank to infer it from the description.', ...select(PORTRAIT_RACES), ...SPECIES },
+        { id: 'portraitClass', label: 'Creature class', showForTemplate: 'portrait', hint: 'Select the role or class whose visual language should influence clothing, equipment, and bearing. This does not create or modify Character mechanics.', ...select(PORTRAIT_CLASSES), ...SPECIES },
+        { id: 'portraitPhysique', label: 'Physique', showForTemplate: 'portrait', hint: 'Controls the subject’s visible build and silhouette. Leave blank to infer an appropriate physique from race, class, and description.', ...select(PORTRAIT_PHYSIQUES), ...APPEARANCE },
+        { id: 'portraitExpression', label: 'Expression', showForTemplate: 'portrait', hint: 'Sets the dominant facial expression and emotional read. Choose the expression that should be immediately legible in the final portrait.', ...select(PORTRAIT_EXPRESSIONS), ...APPEARANCE },
+        { id: 'portraitHair', label: 'Hair', value: '', showForTemplate: 'portrait', hint: 'Optional free-form hair color, texture, style, facial hair, or explicit absence of hair. Be specific when continuity with an existing character matters.', ...APPEARANCE },
+        { id: 'portraitSkin', label: 'Skin', value: '', showForTemplate: 'portrait', hint: 'Optional free-form skin, scales, fur, feathers, material, markings, or complexion. Use this for continuity details the race selection alone cannot express.', ...APPEARANCE },
+        { id: 'portraitProp', label: 'Prop', value: '', inputType: 'textarea', rows: 3, fullWidth: true, showForTemplate: 'portrait', hint: 'Optional signature object, weapon, tool, familiar, or symbolic detail to include. Describe only the most important prop so it does not compete with the subject.', ...APPEARANCE }
     ];
 }
 

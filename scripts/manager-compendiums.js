@@ -239,9 +239,10 @@ export class CompendiumManager {
         const results = [];
         for (const entry of names) {
             const isObject = entry && typeof entry === 'object';
-            const rawName = isObject ? entry.name : entry;
-            const perItemOptions = isObject && entry.type
-                ? { ...options, itemType: entry.type }
+            const rawName = isObject ? (entry.name ?? entry.itemName) : entry;
+            const requestedItemType = isObject ? (entry.type ?? entry.itemType) : null;
+            const perItemOptions = requestedItemType
+                ? { ...options, itemType: String(requestedItemType).trim().toLowerCase() }
                 : options;
             // Always push, one result per input, in order — an empty/blank entry must still yield a
             // structured miss. `resolve()` handles falsy input and returns one. Previously this
@@ -520,6 +521,7 @@ export class CompendiumManager {
             if (!Array.isArray(list) || !list.length) continue;
             const inline = list.filter(entry => this._isInlineItemDefinition(entry));
             const references = list.filter(entry => !this._isInlineItemDefinition(entry));
+            for (const reference of references) this._validateItemReferenceWrapper(reference);
             for (const result of await this.resolveMany(references, type)) {
                 if (!result.found) warnings.push(`No matching ${type} named "${result.name || '(blank name)'}" was found.`);
             }
@@ -587,18 +589,18 @@ export class CompendiumManager {
 
         if (!allItems.length) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Manager | No items to add', "", false, false);
-            return { unresolved, embeddedCount: 0 };
+            return { unresolved, embeddedCount: 0, embeddedDocuments: [] };
         }
 
         try {
-            await actor.createEmbeddedDocuments('Item', allItems);
+            const embeddedDocuments = await actor.createEmbeddedDocuments('Item', allItems);
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Added ${allItems.length} items to ${actor.name}`, "", false, false);
+            return { unresolved, embeddedCount: allItems.length, embeddedDocuments };
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error adding items to ${actor.name}`, error, false, false);
             ui.notifications.error(`Imported ${actor.name}, but its inline or resolved Items could not be embedded: ${error.message}`);
             throw error;
         }
-        return { unresolved, embeddedCount: allItems.length };
     }
 
     /**
@@ -610,7 +612,33 @@ export class CompendiumManager {
      */
     _isInlineItemDefinition(entry) {
         return isNativeFoundryItemData(entry)
-            || !!(entry && typeof entry === 'object' && typeof entry.itemName === 'string');
+            || !!(entry && typeof entry === 'object' && typeof entry.itemName === 'string' && !this._isItemReferenceWrapper(entry));
+    }
+
+    /**
+     * Friendly reference plus Actor-local state. This deliberately remains on
+     * the name-resolution path rather than becoming an incomplete flat Item.
+     */
+    _isItemReferenceWrapper(entry) {
+        if (!entry || typeof entry !== 'object' || typeof entry.itemName !== 'string') return false;
+        const wrapperKeys = new Set(['itemName', 'itemType', 'name', 'type', 'equipped', 'attuned', 'prepared', 'quantity']);
+        return Object.keys(entry).every(key => wrapperKeys.has(key));
+    }
+
+    _validateItemReferenceWrapper(entry) {
+        if (!this._isItemReferenceWrapper(entry)) return;
+        if (entry.quantity !== undefined) {
+            const quantity = Number(entry.quantity);
+            if (!Number.isInteger(quantity) || quantity < 0) throw new Error(`Item reference "${entry.itemName}" requires a non-negative integer quantity`);
+        }
+        for (const key of ['equipped', 'attuned', 'prepared']) {
+            if (entry[key] !== undefined && typeof entry[key] !== 'boolean') {
+                throw new Error(`Item reference "${entry.itemName}" requires ${key} to be true or false`);
+            }
+        }
+        if (entry.prepared !== undefined && String(entry.itemType || '').trim().toLowerCase() !== 'spell') {
+            throw new Error(`Only Spell references may set prepared (${entry.itemName})`);
+        }
     }
 
     /**
@@ -623,7 +651,9 @@ export class CompendiumManager {
         const results = await this.resolveMany(itemNames, type);
         const items = [];
 
-        for (const result of results) {
+        for (let index = 0; index < results.length; index++) {
+            const result = results[index];
+            const reference = itemNames[index];
             if (!result.found) {
                 postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Unresolved ${type}: ${result.name}`, "", true, false);
                 unresolved.push(`${type}: ${result.name || '(blank name)'}`);
@@ -639,6 +669,28 @@ export class CompendiumManager {
                 }
                 const itemData = document.toObject();
                 delete itemData._id;
+                if (itemData.type === 'class' && reference && typeof reference === 'object' && reference.levels !== undefined) {
+                    const levels = Number(reference.levels);
+                    if (!Number.isInteger(levels) || levels < 1 || levels > 20) {
+                        throw new Error(`Class reference "${result.name}" requires integer levels from 1 through 20`);
+                    }
+                    itemData.system = itemData.system || {};
+                    itemData.system.levels = levels;
+                }
+                if (reference && typeof reference === 'object') {
+                    itemData.system = itemData.system || {};
+                    if (reference.quantity !== undefined) {
+                        const quantity = Number(reference.quantity);
+                        if (!Number.isInteger(quantity) || quantity < 0) throw new Error(`Item reference "${result.name}" requires a non-negative integer quantity`);
+                        itemData.system.quantity = quantity;
+                    }
+                    if (reference.equipped !== undefined) itemData.system.equipped = !!reference.equipped;
+                    if (reference.attuned !== undefined) itemData.system.attuned = !!reference.attuned;
+                    if (reference.prepared !== undefined) {
+                        if (itemData.type !== 'spell') throw new Error(`Only Spell references may set prepared (${result.name})`);
+                        itemData.system.prepared = reference.prepared ? 1 : 0;
+                    }
+                }
                 items.push(itemData);
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error fetching ${result.name}`, error, false, false);

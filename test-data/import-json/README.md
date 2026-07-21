@@ -6,6 +6,8 @@ Use these sample payloads to test the JSON import dialogs.
 | `item-import-loot.json` | Item Directory import |
 | `rolltable-import-simple.json` | Roll Table Directory import |
 | `actor-import-npc.json` | Actor Directory import |
+| `actor-import-sidekick.json` | Actor Directory Sidekick snapshot import |
+| `actor-import-character.json` | Actor Directory friendly Character snapshot import |
 
 Legacy samples (will **fail** import by design):
 

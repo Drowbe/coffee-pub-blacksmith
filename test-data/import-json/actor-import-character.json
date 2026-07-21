@@ -1,0 +1,53 @@
+{
+  "name": "Blacksmith Import Test Character",
+  "type": "character",
+  "img": "icons/svg/mystery-man.svg",
+  "characterRace": "Human",
+  "characterBackground": "Soldier",
+  "characterClasses": [{ "name": "Fighter", "levels": 1 }],
+  "characterSubclasses": [],
+  "prototypeToken": {
+    "name": "Import Test Character",
+    "texture": {
+      "src": "icons/svg/mystery-man.svg",
+      "scaleX": 1,
+      "scaleY": 1
+    }
+  },
+  "system": {
+    "details": {
+      "biography": { "value": "<p>Created for friendly Character Snapshot import testing.</p>", "public": "" },
+      "alignment": "Neutral Good",
+      "xp": { "value": 0 }
+    },
+    "abilities": {
+      "str": { "value": 15, "proficient": 1 },
+      "dex": { "value": 14, "proficient": 0 },
+      "con": { "value": 14, "proficient": 1 },
+      "int": { "value": 10, "proficient": 0 },
+      "wis": { "value": 12, "proficient": 0 },
+      "cha": { "value": 10, "proficient": 0 }
+    },
+    "attributes": {
+      "ac": { "calc": "default" },
+      "hp": { "value": 12, "max": 12, "temp": 0, "tempmax": 0 },
+      "movement": { "walk": 30 },
+      "death": { "success": 0, "failure": 0 },
+      "inspiration": false
+    },
+    "traits": {
+      "size": "med",
+      "languages": { "value": ["common"], "custom": "" },
+      "weaponProf": { "value": [], "custom": "" },
+      "armorProf": { "value": [], "custom": "" }
+    },
+    "skills": {},
+    "tools": {},
+    "currency": { "pp": 0, "gp": 10, "ep": 0, "sp": 0, "cp": 0 }
+  },
+  "items": ["Longsword", "Chain Mail", "Backpack"],
+  "features": ["Dash", "Disengage", "Grapple", "Shove", "Ready"],
+  "spells": [],
+  "ownership": { "default": 0 },
+  "folder": null
+}

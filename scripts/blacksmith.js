@@ -70,7 +70,7 @@ import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';
 import './registry-json-import-journals.js';
 import { JOURNAL_JSON_IMPORT_KIND_ID, buildJournalVisualPrompt, getJournalPortraitPromptFields } from './registry-json-import-journals.js';
-import { buildActorImportPrompt, buildActorJsonTemplate, buildActorAuthoringGuide, getActorPromptFields } from './prompt-builder-actors.js';
+import { buildActorImportPrompt, buildActorJsonTemplate, buildActorAuthoringGuide, getActorPromptFields, getActorPromptCheckboxes } from './prompt-builder-actors.js';
 import { XpManager } from './xp-manager.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
@@ -2543,12 +2543,106 @@ async function parseActorJSONToFoundry(actorData) {
     throw new Error("Actor name is required");
   }
   
-  // Ensure type is npc (we don't support character imports yet)
+  // Sidekicks are snapshot NPCs. Preserve their authoring metadata without
+  // introducing a non-dnd5e Actor type or attempting to calculate progression.
   const data = { ...actorData };
-  if (data.type && data.type !== "npc") {
+  data.items = Array.isArray(actorData.items) ? [...actorData.items] : [];
+  const sidekickInput = data.sidekick ?? data.flags?.['coffee-pub-blacksmith']?.sidekick;
+  const isSidekick = String(data.type || '').trim().toLowerCase() === 'sidekick' || sidekickInput !== undefined;
+  if (isSidekick) {
+    if (!sidekickInput || typeof sidekickInput !== 'object' || Array.isArray(sidekickInput)) {
+      throw new Error('Sidekick metadata must be an object');
+    }
+    const role = String(sidekickInput.role || '').trim().toLowerCase();
+    if (!['expert', 'spellcaster', 'warrior'].includes(role)) {
+      throw new Error('Sidekick role must be expert, spellcaster, or warrior');
+    }
+    const level = Number(sidekickInput.level);
+    if (!Number.isInteger(level) || level < 1 || level > 20) {
+      throw new Error('Sidekick level must be an integer from 1 through 20');
+    }
+    const baseCreature = String(sidekickInput.baseCreature || '').trim();
+    const baseStatBlock = String(sidekickInput.baseStatBlock || '').trim();
+    const spellcastingAbility = String(sidekickInput.spellcastingAbility || '').trim().toLowerCase();
+    if (spellcastingAbility && !['int', 'wis', 'cha'].includes(spellcastingAbility)) {
+      throw new Error('Sidekick spellcastingAbility must be int, wis, cha, or blank');
+    }
+    data.flags = foundry.utils.mergeObject(data.flags || {}, {
+      'coffee-pub-blacksmith': {
+        sidekick: { schemaVersion: 1, role, level, baseCreature, baseStatBlock, spellcastingAbility }
+      }
+    }, { inplace: false });
+    data.system = foundry.utils.mergeObject(data.system || {}, {
+      traits: { important: true }
+    }, { inplace: false });
+    delete data.sidekick;
+  }
+
+  const isCharacter = String(data.type || '').trim().toLowerCase() === 'character';
+  if (isCharacter) {
+    const nativeExportItems = data.items.filter(item => item && typeof item === 'object' && item._id && item.system);
+    const hasFriendlyFoundations = data.characterRace !== undefined
+      || data.characterBackground !== undefined
+      || data.characterClasses !== undefined
+      || data.characterSubclasses !== undefined;
+    if (nativeExportItems.length && !hasFriendlyFoundations) {
+      throw new Error('Native Character exports require relationship-ID remapping and are not accepted by Character Snapshot yet. Use the friendly Character template with plain-name foundations.');
+    }
+    const foundations = [];
+    const addFoundation = (value, expectedType, field) => {
+      if (value == null || value === '') return;
+      if (typeof value === 'string' && value.trim().toLowerCase() === 'auto') {
+        throw new Error(`${field} must contain the generated exact name, not "Auto"`);
+      }
+      if (typeof value !== 'string' && (typeof value !== 'object' || Array.isArray(value))) {
+        throw new Error(`${field} must be an exact Item name or an inline native Item definition`);
+      }
+      const name = typeof value === 'string' ? value.trim() : String(value.name || '').trim();
+      if (!name) throw new Error(`${field} entries require a name`);
+      if (expectedType === 'class' && typeof value === 'object' && !value.system) {
+        const levels = Number(value.levels);
+        if (!Number.isInteger(levels) || levels < 1 || levels > 20) {
+          throw new Error('Friendly characterClasses entries require integer levels from 1 through 20');
+        }
+      }
+      const entry = typeof value === 'string' ? { name, type: expectedType } : { ...value, type: value.type || expectedType };
+      const alreadyIncluded = data.items.some(item => {
+        const itemName = typeof item === 'string' ? item : item?.name;
+        const itemType = typeof item === 'object' ? item?.type : null;
+        return String(itemName || '').trim().toLowerCase() === name.toLowerCase()
+          && (!itemType || itemType === expectedType);
+      });
+      if (!alreadyIncluded) data.items.push(entry);
+      foundations.push({ field, expectedType, name });
+    };
+    addFoundation(data.characterRace, 'race', 'characterRace');
+    addFoundation(data.characterBackground, 'background', 'characterBackground');
+    const classes = data.characterClasses ?? [];
+    const subclasses = data.characterSubclasses ?? [];
+    if (!Array.isArray(classes)) throw new Error('characterClasses must be an array');
+    if (!Array.isArray(subclasses)) throw new Error('characterSubclasses must be an array');
+    classes.forEach(value => addFoundation(value, 'class', 'characterClasses'));
+    subclasses.forEach(value => addFoundation(value, 'subclass', 'characterSubclasses'));
+    data._characterFoundations = foundations;
+    delete data.characterRace;
+    delete data.characterBackground;
+    delete data.characterClasses;
+    delete data.characterSubclasses;
+  }
+
+  // Ensure supported Actor type.
+  if (!isCharacter && data.type && data.type !== "npc") {
     data.type = "npc";
   } else if (!data.type) {
     data.type = "npc";
+  }
+
+  // The friendly Actor schema historically calls this block `token`, while
+  // Foundry v13 persists Actor defaults as `prototypeToken`. Merge the friendly
+  // values forward, allowing explicit prototypeToken values to win.
+  if (data.token && typeof data.token === 'object' && !Array.isArray(data.token)) {
+    data.prototypeToken = foundry.utils.mergeObject(data.token, data.prototypeToken || {}, { inplace: false });
+    delete data.token;
   }
   
   // Process items, spells, and features using compendium manager
@@ -2569,20 +2663,68 @@ async function parseActorJSONToFoundry(actorData) {
   
   // Just preserve the data as-is - no modifications needed
   
-  // Ensure token has proper texture settings
-  if (processedData.token) {
-    if (!processedData.token.texture) {
-      processedData.token.texture = {
+  // Ensure the v13 prototype token has proper texture settings.
+  if (processedData.prototypeToken) {
+    if (!processedData.prototypeToken.texture) {
+      processedData.prototypeToken.texture = {
         "src": "icons/svg/mystery-man.svg",
         "scaleX": 1,
         "scaleY": 1
       };
-    } else if (!processedData.token.texture.src) {
-      processedData.token.texture.src = "icons/svg/mystery-man.svg";
+    } else if (!processedData.prototypeToken.texture.src) {
+      processedData.prototypeToken.texture.src = "icons/svg/mystery-man.svg";
     }
   }
   
   return processedData;
+}
+
+async function validateSidekickSnapshot(actorData) {
+  const warnings = [];
+  const sidekick = actorData.flags?.['coffee-pub-blacksmith']?.sidekick;
+  if (!sidekick) return warnings;
+
+  const expectedProficiency = sidekick.level >= 17 ? 6 : sidekick.level >= 13 ? 5 : sidekick.level >= 9 ? 4 : sidekick.level >= 5 ? 3 : 2;
+  const proficiency = Number(actorData.system?.attributes?.proficiency);
+  if (Number.isFinite(proficiency) && proficiency !== expectedProficiency) {
+    warnings.push(`Sidekick level ${sidekick.level} normally uses proficiency +${expectedProficiency}, but the snapshot supplies +${proficiency}.`);
+  }
+
+  const sheetSpellcastingAbility = String(actorData.system?.attributes?.spellcasting || '').trim().toLowerCase();
+  if (sidekick.role === 'spellcaster') {
+    if (!sidekick.spellcastingAbility) {
+      warnings.push('Spellcaster Sidekick metadata requires spellcastingAbility set to int, wis, or cha.');
+    } else if (sheetSpellcastingAbility !== sidekick.spellcastingAbility) {
+      warnings.push(`Spellcaster Sidekick uses ${sidekick.spellcastingAbility} in metadata, but system.attributes.spellcasting is "${sheetSpellcastingAbility || '(blank)'}".`);
+    }
+  }
+
+  const hitDiceBySize = { tiny: 4, sm: 6, med: 8, lg: 10, huge: 12, grg: 20 };
+  const size = String(actorData.system?.traits?.size || '').toLowerCase();
+  const formula = String(actorData.system?.attributes?.hp?.formula || '');
+  const dieMatch = formula.match(/d(4|6|8|10|12|20)\b/i);
+  if (hitDiceBySize[size] && dieMatch && Number(dieMatch[1]) !== hitDiceBySize[size]) {
+    warnings.push(`Sidekick size ${size} uses d${hitDiceBySize[size]} Hit Dice, but HP formula "${formula}" uses d${dieMatch[1]}. Final HP was preserved.`);
+  }
+
+  if (sidekick.baseStatBlock) {
+    const baseActor = await compendiumManager.resolveDocument(sidekick.baseStatBlock, 'Actor', { exact: true });
+    if (!baseActor) {
+      warnings.push(`No exact Actor named "${sidekick.baseStatBlock}" was found for sidekick.baseStatBlock.`);
+    } else {
+      const suppliedCR = Number(actorData.system?.details?.cr);
+      const baseCR = Number(baseActor.system?.details?.cr);
+      if (Number.isFinite(suppliedCR) && Number.isFinite(baseCR) && suppliedCR !== baseCR) {
+        warnings.push(`Sidekick CR ${suppliedCR} differs from base stat block ${sidekick.baseStatBlock} CR ${baseCR}; sidekick CR should remain the unscaled base value.`);
+      }
+      const suppliedXP = Number(actorData.system?.details?.xp?.value);
+      const baseXP = Number(baseActor.system?.details?.xp?.value);
+      if (Number.isFinite(suppliedXP) && Number.isFinite(baseXP) && suppliedXP !== baseXP) {
+        warnings.push(`Sidekick XP ${suppliedXP} differs from base stat block ${sidekick.baseStatBlock} XP ${baseXP}; sidekick XP should remain the unscaled base value.`);
+      }
+    }
+  }
+  return warnings;
 }
 
 // Register renderItemDirectory hook for item import functionality
@@ -2629,25 +2771,50 @@ registerJsonImportKind({
     position: { width: 920, height: 680 },
     templateOptions: [
         { value: 'npc', label: 'NPC/Monster', authoringModes: 'json prompt' },
+        { value: 'sidekick', label: 'Sidekick', authoringModes: 'json prompt' },
+        { value: 'character', label: 'Character Snapshot', authoringModes: 'json prompt' },
         { value: 'portrait', label: 'Portrait Image', authoringModes: 'prompt' }
     ],
     get promptFields() {
         return [...getActorPromptFields(), ...getJournalPortraitPromptFields()];
     },
-    onBuildPrompt: async (type, promptOptions = {}) => type === 'portrait'
+    get promptCheckboxes() {
+        return getActorPromptCheckboxes();
+    },
+    onBuildPrompt: async (type, promptOptions = {}, onProgress) => type === 'portrait'
         ? buildJournalVisualPrompt('portrait', promptOptions)
-        : buildActorImportPrompt(promptOptions),
-    onBuildJsonTemplate: async (type) => type === 'npc' ? buildActorJsonTemplate() : '',
-    onBuildAuthoringGuide: async (type) => type === 'npc' ? buildActorAuthoringGuide() : '',
+        : buildActorImportPrompt(type, promptOptions, onProgress),
+    onBuildJsonTemplate: async (type) => ['npc', 'sidekick', 'character'].includes(type) ? buildActorJsonTemplate(type) : '',
+    onBuildAuthoringGuide: async (type) => ['npc', 'sidekick', 'character'].includes(type) ? buildActorAuthoringGuide(type) : '',
     onValidateEntry: async (entry) => {
         const actorData = await parseActorJSONToFoundry(entry);
-        return { validationWarnings: await compendiumManager.validateCharacterItems(actorData) };
+        return { validationWarnings: [
+            ...await compendiumManager.validateCharacterItems(actorData),
+            ...await validateSidekickSnapshot(actorData)
+        ] };
     },
     onImportEntry: async (entry) => {
         const actorData = await parseActorJSONToFoundry(entry);
-        const [created] = await Actor.createDocuments([actorData], { keepId: false });
+        const actorCreationData = { ...actorData };
+        for (const key of ['_originalItems', '_originalSpells', '_originalFeatures', '_originalCurrency', '_characterFoundations']) delete actorCreationData[key];
+        const [created] = await Actor.createDocuments([actorCreationData], { keepId: false });
         try {
             const postProcess = await compendiumManager.addItemsToActor(created, actorData);
+            if (created.type === 'character' && actorData._characterFoundations?.length) {
+                const updates = {};
+                const embedded = postProcess?.embeddedDocuments ?? [];
+                const findFoundation = (foundation) => embedded.find(item => item.type === foundation.expectedType
+                    && item.name.trim().toLowerCase() === foundation.name.toLowerCase());
+                const race = actorData._characterFoundations.find(foundation => foundation.field === 'characterRace');
+                const background = actorData._characterFoundations.find(foundation => foundation.field === 'characterBackground');
+                const originalClass = actorData._characterFoundations.find(foundation => foundation.field === 'characterClasses');
+                if (race) updates['system.details.race'] = findFoundation(race)?.id || null;
+                if (background) updates['system.details.background'] = findFoundation(background)?.id || null;
+                if (originalClass) updates['system.details.originalClass'] = findFoundation(originalClass)?.id || null;
+                const missing = Object.entries(updates).filter(([, value]) => !value).map(([path]) => path.split('.').pop());
+                if (missing.length) throw new Error(`Could not link Character foundation documents: ${missing.join(', ')}`);
+                if (Object.keys(updates).length) await created.update(updates);
+            }
             return {
                 document: created,
                 importWarnings: (postProcess?.unresolved ?? []).map(reference => `Could not add ${reference}.`)

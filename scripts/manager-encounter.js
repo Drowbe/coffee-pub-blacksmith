@@ -55,7 +55,10 @@ export class EncounterManager {
         try {
             if (!canvas?.tokens?.placeables) return '0';
             const monsterTokens = canvas.tokens.placeables.filter(
-                (token) => token.actor && token.actor.type === 'npc' && !token.actor.hasPlayerOwner
+                (token) => token.actor
+                    && token.actor.type === 'npc'
+                    && !token.actor.hasPlayerOwner
+                    && !token.actor.getFlag('coffee-pub-blacksmith', 'sidekick')
             );
             if (monsterTokens.length === 0) return '0';
 

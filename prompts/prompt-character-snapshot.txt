@@ -1,0 +1,33 @@
+You are creating a complete, table-ready Foundry VTT dnd5e Character Snapshot for Blacksmith.
+
+Return exactly one raw JSON object and nothing else. Do not use Markdown fences, commentary, placeholders, ellipses, duplicate keys, or trailing commas.
+
+The JSON represents the character at its current completed level. Make all build choices yourself from the supplied concept and authoritative generation direction. Do not ask follow-up questions unless the concept is logically impossible. Do not provide advancement instructions or future-level recommendations.
+
+AUTHORING CONTRACT
+
+- Use top-level type "character".
+- Keep numbers and booleans as JSON numbers and booleans.
+- Use Foundry dnd5e system keys and lowercase ability, skill, size, proficiency, damage, and condition identifiers.
+- Perception is prc. Persuasion is per.
+- Provide final ability scores, saving-throw proficiencies, HP, movement, senses, skills, tools, traits, currency, and biography.
+- Provide a practical carried inventory appropriate to the character's role and means, including expected mundane essentials unless the generation direction says otherwise.
+- Include every feature and spell needed to run the current character. Use exact existing names for known content and complete inline definitions for genuinely custom content or required mechanics absent from the supplied catalogs.
+- After class, subclass, ancestry, background, feat, and other signature features, append the exact standard action references "Dash", "Disengage", "Grapple", "Shove", and "Ready". Ready is the single shared action for martial and spell use; never emit Ready Action or Ready Spell.
+- Plain-name content is resolved by Blacksmith through configured world and compendium sources. Never emit UUIDs, compendium links, Actor IDs, or embedded Item IDs.
+- characterRace and characterBackground each accept one exact Item name or one complete inline native Foundry Item definition.
+- For an existing class, characterClasses uses `{ "name": "Exact Class Name", "levels": 1 }`, where levels is the final current level count in that class. A complete inline native Class definition may instead provide system.levels. Use one array entry per class for multiclass characters.
+- characterSubclasses is an array of exact Item names or complete inline native Foundry Item definitions.
+- Do not repeat race, background, class, or subclass documents in items, features, or spells.
+- items contains carried/equipped Item references or inline definitions. Use a plain exact-name string when no Actor-local state needs overriding. To set state on resolved content, use `{ "itemName": "Exact Name", "itemType": "Equipment", "equipped": true, "attuned": false, "quantity": 1 }`; omit state keys that do not apply.
+- features contains Feature references or inline definitions.
+- spells contains Spell references or inline definitions. Use `{ "itemName": "Exact Spell Name", "itemType": "Spell", "prepared": true }` when prepared state matters; a plain exact-name string is sufficient when it does not.
+- Final current-level values are authoritative. Blacksmith does not execute advancements, select advancements, calculate levels, repair builds, or auto-level the character.
+- If an exact official or supplied catalog entry is intended, preserve its exact unembellished name.
+- Treat the supplied catalogs as authoritative for resolvable plain names. Never invent a near-match, combine two catalog names, or emit a bare name that is absent from the relevant supplied catalog.
+- When a mechanically required Feature is absent from the supplied Feature catalog, embed it as a complete friendly Blacksmith Feature object instead of omitting it. At minimum include `itemName`, `itemType: "Feature"`, a complete rules description in `itemDescription`, `itemGMNotes` identifying it as an inline catalog-gap fallback, `activities`, `featureType`, `featureSubtype`, `featureRequirements`, `featureProperties`, `featureUsesMax`, `featureUsesSpent`, `featureRecoveryPeriod`, and `featureRecoveryFormula`. Use an empty activities array only for a genuinely passive or descriptive feature whose rules need no executable activity.
+- Minimum passive fallback shape: `{ "itemName": "Exact Required Feature", "itemType": "Feature", "itemDescription": "<p>Complete rules text.</p>", "itemGMNotes": "<p>Embedded because the required feature was absent from the supplied catalog.</p>", "activities": [], "featureType": "class", "featureSubtype": "", "featureRequirements": "", "featureProperties": ["trait"], "featureUsesMax": null, "featureUsesSpent": 0, "featureRecoveryPeriod": "none", "featureRecoveryFormula": "" }`. Add correctly modeled activities and uses whenever the mechanic requires them.
+- Optional nonessential content may be omitted when unavailable. Never omit a required class, subclass, ancestry, background, feat, or progression mechanic merely because it is absent from a selected catalog.
+- The Item catalog contains race/species, background, class, subclass, equipment, and other Item documents only when the user selected compendiums containing them. If a foundation entry is absent, do not claim its name is catalog-verified. Use a complete inline native Foundry Item definition only when you can provide the full correct document; otherwise keep the intended exact name and make the unresolved dependency explicit in the generated character's biography rather than substituting a different build choice silently.
+
+The authoritative generation direction and JSON shape follow this contract.
