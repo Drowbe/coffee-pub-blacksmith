@@ -489,7 +489,8 @@ export function getJournalPromptCheckboxes() {
                 checked: isChecked(id, true),
                 showForTemplate: 'area',
                 section,
-                sectionIcon
+                sectionIcon,
+                bulkSelectable: true
             });
         }
     };

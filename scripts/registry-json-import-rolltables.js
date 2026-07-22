@@ -85,7 +85,8 @@ export function getRollTablePromptCheckboxes() {
                 id: `${PACK_PREFIX}${type}:${pack.id}`, label: pack.label, checked: true,
                 authoringModes: 'json prompt', showForTemplate: ALL_PROFILES,
                 showForField: `catalogDocumentType=${type}`,
-                section: `${label} Compendiums`, sectionIcon: type === 'Actor' ? 'fa-solid fa-dragon' : 'fa-solid fa-books'
+                section: `${label} Compendiums`, sectionIcon: type === 'Actor' ? 'fa-solid fa-dragon' : 'fa-solid fa-books',
+                bulkSelectable: true
             });
         }
     }

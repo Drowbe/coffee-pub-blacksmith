@@ -63,11 +63,10 @@ Replace the ALL-CAPS placeholders below using the rules that follow. All fields 
 - `DISPLAYNAMEVALUE`: When token name shows (0=Never, 10=Hovered by Owner, 20=Hovered by Anyone, 30=Always for Owner, 40=Always for Everyone)
 - `DISPOSITIONVALUE`: Token attitude (-1=Hostile, 0=Neutral, 1=Friendly)
 - `LANGUAGESVALUE`: Array of languages the NPC knows (e.g., ["common", "draconic"])
-- `ADDITIONALSKILLSVALUE`: Additional skills beyond basic ones. Use `value` as the proficiency multiplier: 0 = not proficient, 0.5 = half proficient, 1 = proficient, 2 = Expertise (e.g., "ste": { "value": 1, "bonus": 0, "ability": "dex" })
 
 - ITEMSARRAY: Array whose entries may be exact official item-name references, friendly Blacksmith physical Item objects, or native Foundry Item objects. Prefer exact names for existing world/compendium content, e.g., ["Shortsword", "Leather Armor"]; use an inline definition only for genuinely custom content. Every gear-carrying NPC should have a lean, believable inventory beyond its signature weapons and armor: normally 3–6 entries chosen from traveling supplies, ammunition, professional tools, a light source, an appropriate consumable, and one useful or story-bearing pocket item. Match the kit to role and means—a scholar might carry ink and a journal, a cultist a ritual token, a mercenary dice and a debt note. Do not pad inventories with random loot, and do not give carried gear to creatures that cannot plausibly carry it, such as ordinary beasts, oozes, incorporeal spirits, most constructs, or summoned creatures. Keep CURRENCYARRAY consistent with the NPC's means.
 - SPELLSARRAY: Array whose entries may be official spell names, friendly Blacksmith Spell objects (`itemName`, `itemType: "Spell"`, and the Spell profile fields), or native Foundry Item objects. Official examples: ["Mage Hand", "Minor Illusion", "Fire Bolt"].
-- FEATURESARRAY: Array whose entries may be official feature names, friendly Blacksmith Feature objects (`itemName`, `itemType: "Feature"`, and the Feature profile fields), or native Foundry Item objects. Official examples: ["Sneak Attack", "Thieves' Cant", "Cunning Action"]. Treat any supplied Feature catalog as authoritative for resolvable plain names: never invent a near-match or silently omit a required mechanic. If a required feature is absent, embed a complete friendly Feature object with its rules description, activities, Feature profile fields, and an `itemGMNotes` note identifying the catalog-gap fallback. In addition to the NPC's special features, ALWAYS append this baseline of standard actions as exact name references (they resolve from the world's actions content — never invent inline versions of them): "Dash", "Disengage", "Grapple", "Shove", "Ready". The exact shared action name is "Ready" for both weapon/action and spell use; never emit "Ready Action" or "Ready Spell". Add other common actions (e.g., "Hide" for ambushers) only when they fit the NPC's tactics. List special features first, standard actions last.
+- FEATURESARRAY: Array whose entries may be official feature names, friendly Blacksmith Feature objects (`itemName`, `itemType: "Feature"`, and the Feature profile fields), or native Foundry Item objects. Official examples: ["Sneak Attack", "Thieves' Cant", "Cunning Action"]. Treat any supplied Feature catalog as authoritative for resolvable plain names: never invent a near-match or silently omit a required mechanic. If a required signature feature is absent, embed a complete friendly Feature object with its rules description, activities, Feature profile fields, and an `itemGMNotes` note identifying the catalog-gap fallback. After the NPC's signature features, append useful standard actions only when their exact names appear in the supplied Feature catalog. Prefer "Dash", "Disengage", and "Ready" when available; add catalog-backed actions such as "Dodge" or "Hide" when they fit the NPC's tactics. Include "Grapple" or "Shove" only when each exact name is actually present in the catalog. Do not create inline standard-action Features merely to complete a baseline. The exact shared action name is "Ready" for both weapon/action and spell use; never emit "Ready Action" or "Ready Spell". List special features first, standard actions last.
 - CURRENCYARRAY: Array of currency objects with type and amount, e.g., [{"type": "gp", "value": 150}, {"type": "sp", "value": 25}, {"type": "cp", "value": 100}]
 
 **Abilities (system.abilities):**
@@ -170,12 +169,7 @@ JSON TEMPLATE
       "ci": { "value": [], "custom": "" },
       "languages": { "value": LANGUAGESVALUE, "custom": "" }
     },
-    "skills": {
-      "ins": { "value": 0, "bonus": 0, "ability": "wis" },
-      "inv": { "value": 0, "bonus": 0, "ability": "int" },
-      "prc": { "value": 0, "bonus": 0, "ability": "wis" },
-      ADDITIONALSKILLSVALUE
-    }
+    "skills": {}
   },
   "token": {
     "name": "TOKENNAME",
@@ -271,7 +265,7 @@ Additional settings and details:
 - Use appropriate CR and XP values
 - Set disposition: -1 for hostile monsters
 - Include proper creature type and subtype
-- Every NPC gets the standard-actions baseline in FEATURESARRAY (Dash, Disengage, Grapple, Shove, Ready). "Ready" is the single exact reference for all Actors, including spellcasters; never use "Ready Action" or "Ready Spell". Every gear-carrying NPC gets a lean, role-appropriate ITEMSARRAY; creatures that cannot plausibly carry gear are exempt
+- Add only useful standard actions whose exact names occur in the supplied Feature catalog. Prefer Dash, Disengage, and Ready when available; never use Ready Action or Ready Spell, and never emit unresolved Grapple or Shove references. Every gear-carrying NPC gets a lean, role-appropriate ITEMSARRAY; creatures that cannot plausibly carry gear are exempt
 
 - Output only the NPC JSON inside json code fences.
 - The NPC should have enough implied mystery or narrative weight to hint at future plot use.

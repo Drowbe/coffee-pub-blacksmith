@@ -767,6 +767,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 showForTemplate: cb.showForTemplate ?? '',
                 showForField: cb.showForField ?? ''
             });
+            if (cb.bulkSelectable && !cb.disabled && !cb.isNote) current.bulkSelectable = true;
         }
         return groups;
     }
@@ -1052,6 +1053,19 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             this.additionalGuidance = String(additionalGuidance.value ?? '');
             JsonImportWindow._sessionAdditionalGuidance = this.additionalGuidance;
         });
+
+        for (const button of root.querySelectorAll('[data-prompt-bulk-selection]')) {
+            button.addEventListener('click', () => {
+                const checked = button.dataset.promptBulkSelection === 'all';
+                const section = button.closest('.blacksmith-json-import-prompt-group');
+                if (!section) return;
+                for (const input of section.querySelectorAll('[data-prompt-checkbox]:not(:disabled)')) {
+                    input.checked = checked;
+                }
+                this._persistFormStateFromDom();
+                void this._saveAuthoringState();
+            });
+        }
 
         for (const input of root.querySelectorAll('[data-prompt-field]')) {
             input.addEventListener('change', () => {

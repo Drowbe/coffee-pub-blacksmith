@@ -214,6 +214,24 @@
     width: 100%;
 }
 
+.blacksmith-json-import-prompt-section-header > span {
+    flex: 1 1 auto;
+}
+
+.blacksmith-json-import-prompt-bulk-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.blacksmith-json-import-prompt-bulk-actions .blacksmith-window-btn-secondary {
+    min-height: 24px;
+    padding: 2px 8px;
+    font-size: var(--font-size-11, 0.6875rem);
+    line-height: 1.2;
+}
+
 .blacksmith-json-import-prompt-group-items {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));

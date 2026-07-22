@@ -40,7 +40,7 @@ export function getActorPromptCheckboxes() {
             for (const pack of packs) {
                 checkboxes.push({
                     id: `${ACTOR_CATALOG_PREFIX}${kind}:${pack.id}`, label: pack.label, checked: true,
-                    authoringModes: 'prompt', showForTemplate, section, sectionIcon
+                    authoringModes: 'prompt', showForTemplate, section, sectionIcon, bulkSelectable: true
                 });
             }
         }
@@ -133,7 +133,7 @@ const ACTOR_GENERATION_OPTIONS = {
         default: 'auto',
         values: {
             auto: 'Spellcasting: include only when supported by the concept and role.',
-            include: 'Spellcasting: REQUIRED. Include a coherent, role-appropriate spell selection and the shared Ready action among standard action references.',
+            include: 'Spellcasting: REQUIRED. Include a coherent, role-appropriate spell selection and, when that exact Feature exists in the supplied catalog, the shared Ready action among standard action references.',
             omit: 'Spellcasting: omit spells and spellcasting features entirely.'
         }
     }
@@ -146,7 +146,7 @@ export function getActorPromptFields() {
         actorDetail: 'Controls descriptive and supporting depth, not mechanical completeness. Concise minimizes biography and secondary detail; Standard produces a complete table-ready sheet; Detailed adds richer motives, tactics, possessions, and story hooks.',
         inventoryPolicy: 'Controls carried equipment. Auto supplies a lean role-appropriate kit when the creature can carry gear; Complete Kit adds practical tools, supplies, and necessities; Signature Only keeps mechanically or narratively important gear; None omits carried gear except inseparable natural equipment.',
         featurePolicy: 'Controls the breadth of actions and traits. Auto infers what the role needs; Complete Action Suite includes standard actions and all signature capabilities needed to run the Actor; Signature Only keeps the standard baseline plus distinctive features and removes minor clutter.',
-        spellcastingPolicy: 'Controls whether the generator builds spellcasting. Auto includes it only when supported by the concept; Include requires a coherent spell selection and the shared Ready action; Omit removes spells and spellcasting features.'
+        spellcastingPolicy: 'Controls whether the generator builds spellcasting. Auto includes it only when supported by the concept; Include requires a coherent spell selection and adds the shared Ready action when that exact Feature is available in the selected catalog; Omit removes spells and spellcasting features.'
     };
     const select = (id, label, value, options, showForTemplate, group = 'Generation direction', groupIcon = 'fa-solid fa-sliders', hint = '') => ({
         id, label, value, inputType: 'select', showForTemplate, group, groupIcon, hint,
@@ -274,7 +274,7 @@ export async function buildActorJsonTemplate(profile = 'npc') {
         prototypeToken: {},
         items: [],
         spells: [],
-        features: ['Dash', 'Disengage', 'Grapple', 'Shove', 'Ready'],
+        features: [],
         currency: [],
         ownership: { default: 0 },
         folder: null
@@ -336,7 +336,7 @@ ${isCharacter ? '- Actor-local state on an existing reference uses the friendly 
 Content arrays
 - items: exact existing Item names or inline friendly/native Item definitions.
 - spells: exact existing Spell names or inline friendly/native Spell definitions.
-- features: signature features first, then standard action references. Use the single exact reference Ready for every Actor; never use Ready Action or Ready Spell.
+- features: signature features first, then useful standard-action references whose exact names appear in the supplied Feature catalog. Prefer Dash, Disengage, and Ready when available. Include Grapple or Shove only when catalog-backed; never invent inline standard actions merely to fill a baseline. Ready is the single shared name; never use Ready Action or Ready Spell.
 - Catalog names must match exactly. Never use a guessed near-match for missing content. For a mechanically required Feature absent from the available catalog, use a complete inline friendly Feature definition rather than a bare unresolved name or silent omission.
 - currency: entries such as { "type": "gp", "value": 10 }.
 - Unresolved name references are warned and skipped. Do not use a made-up name alone for custom content; embed its definition.

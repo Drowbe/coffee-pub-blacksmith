@@ -209,6 +209,12 @@
                         <div class="blacksmith-window-section-header blacksmith-json-import-prompt-section-header">
                             <i class="{{sectionIcon}}"></i>
                             <span>{{section}}</span>
+                            {{#if bulkSelectable}}
+                            <div class="blacksmith-json-import-prompt-bulk-actions">
+                                <button type="button" class="blacksmith-window-btn-secondary" data-prompt-bulk-selection="all" data-tooltip="Select every compendium in this section" aria-label="Select every compendium in this section">Select All</button>
+                                <button type="button" class="blacksmith-window-btn-secondary" data-prompt-bulk-selection="none" data-tooltip="Clear every compendium in this section" aria-label="Clear every compendium in this section">Select None</button>
+                            </div>
+                            {{/if}}
                         </div>
                         {{/if}}
                         <div class="blacksmith-json-import-prompt-group-items{{#if stacked}} blacksmith-json-import-prompt-group-items-stacked{{/if}}">
