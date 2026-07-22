@@ -173,6 +173,7 @@ export class TokenIndicatorManager {
                     ? (prev - hp.value) / hp.max
                     : 0;
 
+                postConsoleAndNotification(MODULE.NAME, 'Token blood | HP change', { uuid, prev, now: hp?.value, damageFraction, hitActive: this._bloodHitActive }, true, false);
                 for (const token of actor?.getActiveTokens?.() ?? []) {
                     if (damageFraction > 0) {
                         // New damage re-blooms a token cleared by "Remove All Blood"
@@ -1309,10 +1310,10 @@ export class TokenIndicatorManager {
      * the pool so they read as separate droplets, not pool lumps.
      */
     static _BLOOD_TIERS = {
-        injured:  { pool: 0.30, splats: 5,  spread: 0.60, splatRadius: 0.050, alpha: 0.55, color: 0x7a0f0f },
-        bloodied: { pool: 0.44, splats: 8,  spread: 0.75, splatRadius: 0.060, alpha: 0.65, color: 0x7a0f0f },
-        critical: { pool: 0.55, splats: 11, spread: 0.95, splatRadius: 0.070, alpha: 0.72, color: 0x6b0c0c },
-        dead:     { pool: 0.70, splats: 12, spread: 0.85, splatRadius: 0.080, alpha: 0.80, color: 0x520909 }
+        injured:  { pool: 0.42, splats: 5,  spread: 0.70, splatRadius: 0.050, alpha: 0.55, color: 0x7a0f0f },
+        bloodied: { pool: 0.58, splats: 8,  spread: 0.85, splatRadius: 0.060, alpha: 0.65, color: 0x7a0f0f },
+        critical: { pool: 0.72, splats: 11, spread: 1.05, splatRadius: 0.070, alpha: 0.72, color: 0x6b0c0c },
+        dead:     { pool: 0.90, splats: 12, spread: 1.10, splatRadius: 0.080, alpha: 0.80, color: 0x520909 }
     };
 
     /** Splatter field size as a multiple of token size: a 1x1 token bleeds over a 3x3 area. */
@@ -1545,11 +1546,14 @@ export class TokenIndicatorManager {
             sprite.anchor.set(0.5, 0.5);
             sprite.position.set(token.center.x, token.center.y);
             sprite.eventMode = 'none';
-            sprite.scale.set(0.7);
-            sprite.alpha = 0.9;
+            sprite.scale.set(0.6);
+            sprite.alpha = 0.95;
+            // High zIndex pins the burst above other interface-layer children (rings, portraits)
+            sprite.zIndex = 100;
             canvas.interface.addChild(sprite);
+            postConsoleAndNotification(MODULE.NAME, 'Token blood | Hit burst spawned', { token: token.id, damageFraction }, true, false);
 
-            const duration = 900;
+            const duration = 1300;
             let elapsed = 0;
             let done = false;
             const finish = () => {
@@ -1568,8 +1572,9 @@ export class TokenIndicatorManager {
                 const progress = Math.min(elapsed / duration, 1);
                 if (!sprite.destroyed) {
                     const eased = 1 - Math.pow(1 - progress, 2);
-                    sprite.scale.set(0.7 + eased * 0.45);
-                    sprite.alpha = 0.9 * (1 - eased);
+                    sprite.scale.set(0.55 + eased * 0.8);
+                    // Hold near-full alpha for the first third, then fade
+                    sprite.alpha = progress < 0.33 ? 0.95 : 0.95 * (1 - (progress - 0.33) / 0.67);
                 }
                 if (progress >= 1 || sprite.destroyed) finish();
             };
@@ -1587,26 +1592,46 @@ export class TokenIndicatorManager {
 
         // Fresh-blood red, brighter than the ground tiers; blob count scales with the hit
         const color = 0x9c1414;
+        const darkColor = 0x6e0d0d;
         const frac = Math.max(0.02, Math.min(1, damageFraction));
-        const blobs = 4 + Math.round(frac * 10);
+        const blobs = 10 + Math.round(frac * 14);
         const rand = this._seededRandom(`${token.id}:hit:${Math.round(frac * 1000)}`);
-        const area = size * 2.2;
+        const area = size * 3;
         const half = area / 2;
         const g = new PIXI.Graphics();
 
         for (let i = 0; i < blobs; i++) {
             const angle = rand() * Math.PI * 2;
-            const dist = size * rand() * (0.25 + frac * 0.5);
+            const dist = size * rand() * (0.4 + frac * 0.6);
             const x = half + Math.cos(angle) * dist;
             const y = half + Math.sin(angle) * dist;
-            const r = size * (0.04 + rand() * 0.07) * (0.6 + frac * 0.8);
-            g.beginFill(color, 0.7 + rand() * 0.3);
-            g.drawEllipse(x, y, r, r * (0.6 + rand() * 0.6));
+            const r = size * (0.08 + rand() * 0.12) * (0.8 + frac * 0.9);
+            g.beginFill(rand() < 0.7 ? color : darkColor, 0.75 + rand() * 0.25);
+            g.drawEllipse(x, y, r, r * (0.55 + rand() * 0.7));
             g.endFill();
-            // Fling a droplet outward along the same angle for a spray direction
-            g.beginFill(color, 0.55 + rand() * 0.3);
-            g.drawCircle(x + Math.cos(angle) * r * 2.5, y + Math.sin(angle) * r * 2.5, r * (0.25 + rand() * 0.25));
-            g.endFill();
+        }
+
+        // Arterial streaks: chains of shrinking droplets flung radially outward,
+        // reaching well past the token edge. Count and length scale with the hit.
+        const streaks = 3 + Math.round(frac * 5);
+        for (let s = 0; s < streaks; s++) {
+            const angle = rand() * Math.PI * 2;
+            const startDist = size * (0.15 + rand() * 0.2);
+            const reach = size * (0.5 + rand() * 0.5 + frac * 0.4);
+            const steps = 4 + Math.floor(rand() * 3);
+            let r = size * (0.05 + rand() * 0.05) * (0.8 + frac * 0.7);
+            for (let step = 0; step < steps; step++) {
+                const t = step / steps;
+                const d = startDist + reach * t;
+                // Slight wobble off the axis so streaks are not laser-straight
+                const wobble = (rand() - 0.5) * size * 0.08;
+                const px = half + Math.cos(angle) * d + Math.cos(angle + Math.PI / 2) * wobble;
+                const py = half + Math.sin(angle) * d + Math.sin(angle + Math.PI / 2) * wobble;
+                g.beginFill(rand() < 0.8 ? color : darkColor, 0.65 + rand() * 0.3);
+                g.drawEllipse(px, py, r, r * (0.6 + rand() * 0.5));
+                g.endFill();
+                r *= 0.78;
+            }
         }
 
         const texture = canvas.app.renderer.generateTexture(g, {
