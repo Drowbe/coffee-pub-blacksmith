@@ -29,8 +29,23 @@
                     </div>
                     {{/if}}
                 </div>
+            </div>
+        </section>
+        {{#if isPromptTab}}
+        <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-guidance-section">
+            <div class="blacksmith-window-section-body">
+                <div class="blacksmith-window-section-header">
+                    <i class="fa-solid fa-message-pen"></i>
+                    <span>Additional Guidance</span>
+                    <i class="fa-solid fa-circle-question blacksmith-json-import-field-help" data-tooltip="Add story context, preferences, constraints, or specific instructions for this generation. Blacksmith adds this to the full AI prompt but keeps its schema and catalog rules authoritative." tabindex="0" aria-label="Add story context, preferences, constraints, or specific instructions for this generation. Blacksmith adds this to the full AI prompt but keeps its schema and catalog rules authoritative."></i>
+                </div>
+                <textarea class="blacksmith-textarea blacksmith-json-import-guidance" data-additional-guidance rows="5" autocomplete="off" placeholder="Add context, preferences, constraints, or specific instructions for this generation…">{{additionalGuidance}}</textarea>
+            </div>
+        </section>
+        {{/if}}
                 {{#if journalAreaUi.hasJournalAreaUi}}
-                <div class="blacksmith-json-import-journal-area" data-for-template="{{journalAreaUi.showForTemplate}}">
+                <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-journal-area" data-for-template="{{journalAreaUi.showForTemplate}}">
+                    <div class="blacksmith-window-section-body">
                     <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header">
                         <i class="fa-solid fa-location-dot"></i>
                         <span>Location path (Area template)</span>
@@ -89,10 +104,12 @@
                     </label>
                     {{/if}}
                     </div>
-                </div>
+                    </div>
+                </section>
                 {{/if}}
                 {{#if journalLocationUi.hasJournalLocationUi}}
-                <div class="blacksmith-json-import-journal-location" data-for-template="{{journalLocationUi.showForTemplate}}">
+                <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-journal-location" data-for-template="{{journalLocationUi.showForTemplate}}">
+                    <div class="blacksmith-window-section-body">
                     <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header">
                         <i class="fa-solid fa-map-location-dot"></i>
                         <span>Location Narrative (prefill before copy)</span>
@@ -141,21 +158,16 @@
                     </label>
                     {{/if}}
                     </div>
-                </div>
+                    </div>
+                </section>
                 {{/if}}
                 {{#if hasPromptFields}}
                 <div class="blacksmith-json-import-prompt-fields">
-                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header blacksmith-json-import-illustration-fields-header" data-for-template="illustration">
-                        <i class="fa-solid fa-image"></i>
-                        <span>Scene facets (prefill before copy)</span>
-                    </div>
-                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-fields-header blacksmith-json-import-portrait-fields-header" data-for-template="portrait">
-                        <i class="fa-solid fa-user"></i>
-                        <span>Portrait facets (prefill before copy)</span>
-                    </div>
                     {{#each promptFieldGroups}}
+                    <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-prompt-field-section" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
+                    <div class="blacksmith-window-section-body">
                     {{#if hasGroup}}
-                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-field-group-header" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
+                    <div class="blacksmith-window-section-header blacksmith-json-import-prompt-field-group-header">
                         <i class="{{groupIcon}}"></i>
                         <span>{{group}}</span>
                     </div>
@@ -183,16 +195,18 @@
                         </label>
                         {{/each}}
                     </div>
+                    </div>
+                    </section>
                     {{/each}}
                 </div>
                 {{/if}}
                 {{#if hasPromptCheckboxes}}
                 <div class="blacksmith-json-import-prompt-options">
-                    <span class="blacksmith-json-import-prompt-options-hint" data-for-template="area">Append to Area Narrative prompt:</span>
                     {{#each promptCheckboxGroups}}
-                    <div class="blacksmith-json-import-prompt-group{{#if hasSection}} blacksmith-json-import-prompt-group-sectioned{{/if}}">
+                    <section class="blacksmith-window-section blacksmith-json-import-section blacksmith-json-import-prompt-group" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
+                        <div class="blacksmith-window-section-body">
                         {{#if hasSection}}
-                        <div class="blacksmith-json-import-prompt-section-header" data-for-template="{{showForTemplate}}" data-for-field="{{showForField}}">
+                        <div class="blacksmith-window-section-header blacksmith-json-import-prompt-section-header">
                             <i class="{{sectionIcon}}"></i>
                             <span>{{section}}</span>
                         </div>
@@ -211,12 +225,11 @@
                             {{/if}}
                             {{/each}}
                         </div>
-                    </div>
+                        </div>
+                    </section>
                     {{/each}}
                 </div>
                 {{/if}}
-            </div>
-        </section>
     </div>
 
     <div class="blacksmith-json-import-tab-panel blacksmith-json-import-tab-panel-import" data-json-import-panel="import" {{#unless isImportTab}}hidden{{/unless}}>

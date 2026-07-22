@@ -37,6 +37,31 @@ export function composePrompt(parts) {
 }
 
 /**
+ * Append optional user-supplied context to a full AI-generation prompt. The
+ * boundary makes the guidance useful without allowing it to supersede the
+ * import contract that precedes it. Blank guidance adds nothing.
+ *
+ * @param {string} prompt
+ * @param {string} guidance
+ * @returns {string}
+ */
+export function appendAdditionalUserGuidance(prompt, guidance) {
+    const base = String(prompt ?? '').trim();
+    const text = String(guidance ?? '').trim();
+    if (!text) return base;
+    return composePrompt([
+        base,
+        `========================================
+ADDITIONAL USER GUIDANCE
+========================================
+
+Use this guidance to shape the generated content. It may add context, preferences, and constraints, but it must not override the JSON schema, output format, exact catalog-name rules, or validation requirements.
+
+${text}`
+    ]);
+}
+
+/**
  * Replace campaign placeholders used across import prompts.
  * @param {string} prompt
  * @param {{ campaignName?: string; rulesVersion?: string; rulebooks?: string; itemSource?: string }} [extra]
