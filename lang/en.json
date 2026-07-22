@@ -155,6 +155,9 @@
 				"toolbarDisplayStyle-Label": "Display Style",
 				"toolbarDisplayStyle-Hint": "Choose how to display category organization in the toolbar: Foundry Default (no organization), Category Dividers (visual separators), or Category Labels (text labels).",
 
+				"toolbarShowClearTargets-Label": "Clear All Targets Button",
+				"toolbarShowClearTargets-Hint": "Add a Clear All Targets button to the token toolbar, below the native Select Targets tool. Clicking it clears all of your targeted tokens.",
+
 			"headingH3Scenes-Label": "Scenes",
 			"headingH3Scenes-Hint": "",
 

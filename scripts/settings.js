@@ -1685,6 +1685,26 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
+	// -- Clear All Targets Button --
+	game.settings.register(MODULE.ID, 'toolbarShowClearTargets', {
+		name: MODULE.ID + '.toolbarShowClearTargets-Label',
+		hint: MODULE.ID + '.toolbarShowClearTargets-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'user',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE,
+		onChange: () => {
+			// Rebuild scene controls so the button appears/disappears immediately
+			try {
+				ui.controls?.render({ reset: true });
+			} catch (e) {
+				// Controls not ready yet; the next render will pick up the setting
+			}
+		}
+	});
+
 	// --------------------------------------
 	// -- H3: SCENES
 	// --------------------------------------

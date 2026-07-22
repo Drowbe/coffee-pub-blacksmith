@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.10.3]
+
+### Added
+
+- **Clear All Targets button in the token toolbar** (`scripts/manager-toolbar.js`, `scripts/settings.js`, `lang/en.json`): a new button injected into Foundry's native token controls directly below the native Select Targets tool. Clicking it clears all of the current user's targeted tokens via `canvas.tokens.setTargets([], {mode: "replace"})` (the v13 targeting API), which also broadcasts the change to other clients. Visible to all users. A new user-scoped setting, Clear All Targets Button (`toolbarShowClearTargets`, default on) in the Foundry Toolbar settings section, hides it; toggling the setting rebuilds the scene controls immediately without a reload. Injection follows the same idempotent pattern as the existing template-control `clear` shim and is applied both in the `getSceneControlButtons` hook and in `refreshSceneControls()`.
+
 ## [13.10.2]
 
 ### Fixed

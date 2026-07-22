@@ -465,6 +465,38 @@ function ensureTemplateClearTool(controls) {
 }
 
 /**
+ * Add a "Clear All Targets" button to Foundry's native token controls, directly
+ * below the native "Select Targets" tool. Visible to all users; gated by the
+ * user-scoped toolbarShowClearTargets setting (default on).
+ * @param {object|Array} controls - The controls collection from getSceneControlButtons
+ */
+function ensureClearTargetsTool(controls) {
+    if (!getSettingSafely(MODULE.ID, 'toolbarShowClearTargets', true)) return;
+    const tokensControl = getControlByName(controls, 'tokens');
+    const tools = tokensControl?.tools;
+    if (!tokensControl || !tools || Array.isArray(tools) || tools['blacksmith-clear-targets']) return;
+    // Slot directly after the native target tool without renumbering the rest
+    const targetOrder = typeof tools.target?.order === 'number' ? tools.target.order : null;
+    const existingOrders = Object.values(tools)
+        .map(tool => (typeof tool?.order === 'number' ? tool.order : null))
+        .filter(order => order != null);
+    const fallbackOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 999;
+    tools['blacksmith-clear-targets'] = {
+        name: 'blacksmith-clear-targets',
+        title: 'Clear All Targets',
+        icon: 'fa-regular fa-circle-xmark',
+        button: true,
+        visible: true,
+        active: false,
+        onChange: () => {
+            // v13: User#updateTokenTargets no longer exists; TokenLayer#setTargets replaced it
+            canvas?.tokens?.setTargets?.([], { mode: 'replace' });
+        },
+        order: targetOrder != null ? targetOrder + 0.5 : fallbackOrder
+    };
+}
+
+/**
  * Refresh the SceneControls by triggering Foundry to re-prepare controls
  * v13: Use reset: true to trigger Foundry to rebuild controls and re-run getSceneControlButtons
  * This is the only way to make newly registered tools appear in the DOM
@@ -477,6 +509,7 @@ function refreshSceneControls() {
 
     try {
         ensureTemplateClearTool(ui.controls.controls);
+        ensureClearTargetsTool(ui.controls.controls);
     } catch (e) {
         return false;
     }
@@ -791,6 +824,7 @@ export async function addToolbarButton() {
 			// --- BEGIN - HOOKMANAGER CALLBACK ---
 
             ensureTemplateClearTool(controls);
+            ensureClearTargetsTool(controls);
 
             // v13: Get active control and tool - do NOT use game.activeTool/activeControl here
             // as they can crash during early initialization. Safely access ui.controls with try-catch

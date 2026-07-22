@@ -4,6 +4,10 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Foundry toolbar
+
+- **Live-verify the Clear All Targets button** (implemented, in `CHANGELOG.md` [Unreleased]): in a live world, (1) confirm the button appears in the token controls directly below the native Select Targets tool for both a GM and a player client; (2) target several tokens, click the button, and confirm targets clear locally and on the other client; (3) uncheck Clear All Targets Button in the Foundry Toolbar settings section and confirm the button disappears immediately without a reload, then re-check it and confirm it returns; (4) confirm the console shows no errors during scene load and control switching.
+
 ## Item import expansion
 
 - **Live-verify the shipped 13.10.0 batch**: native Item/inline NPC ingestion, Feature/Spell profiles, activity targeting/effects, Full Prompt / JSON Template delivery, Equipment passive effects Phase 1, and the shared Validate/results flow are implemented and recorded in `CHANGELOG.md` [13.10.0], each entry carrying its own live-verification steps; run them in a live world. For the shared validation flow: verify one valid fixture, malformed JSON, a mixed valid/invalid two-entry batch, Open/Open All, Edit and Retry, Retry Failed without duplicate creation, and importer switching after results.

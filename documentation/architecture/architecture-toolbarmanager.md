@@ -64,6 +64,15 @@ The code comment at `:116-117` presents the omission as deliberate, but `api-too
 
 `gmOnly` and `leaderOnly` behave as a hierarchy: GMs see everything, leaders see leader tools plus general ones, players see neither.
 
+## Injections into Foundry's native controls
+
+Besides rendering registry tools, the manager injects tools directly into Foundry's own controls. Both injections live next to each other and run from two call sites: the `getSceneControlButtons` hook callback and `refreshSceneControls()`. Both are idempotent — they return early if their tool key already exists — because the hook re-runs on every controls rebuild.
+
+- `ensureTemplateClearTool()` (`:446`) adds a hidden no-op `clear` tool to the `templates` control.
+- `ensureClearTargetsTool()` adds a visible `blacksmith-clear-targets` button to the `tokens` control, ordered at the native `target` tool's order plus 0.5 so it sits directly below Select Targets without renumbering the other tools. Its `onChange` calls `canvas.tokens.setTargets([], {mode: "replace"})`, the v13 replacement for the removed `User#updateTokenTargets`, which clears the user's targets and broadcasts the change. It is gated by the user-scoped `toolbarShowClearTargets` setting (read through `getSettingSafely`, defaulting to on), whose `onChange` in `settings.js` re-renders the controls with `reset: true` so toggling applies immediately.
+
+Unlike the Blacksmith toolbar's own tools, these native-control buttons use a real `onChange` handler rather than the DOM-wired click path — the v13 `onClick` shim concern only applies to the `blacksmith-utilities` control's render flow.
+
 ## Settings
 
 `getToolbarSettings()` / `setToolbarSettings()` read and write `toolbarDisplayStyle`, whose registered choices are `none`, `dividers`, and `labels`.
