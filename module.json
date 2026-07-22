@@ -1,7 +1,7 @@
 {
   "id": "coffee-pub-blacksmith",
   "title": "Coffee Pub Blacksmith",
-  "description": "Quality of life, gameplay frameworks, automation, and aesthetic improvements",
+  "description": "Quality of life, gameplay frameworks, automation, and aesthetic improvements.",
   "version": "13.10.2",
   
   "manifest": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json",
