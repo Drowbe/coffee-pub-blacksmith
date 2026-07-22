@@ -7,7 +7,6 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { compendiumManager } from './manager-compendiums.js';
-import { getCompendiumSettingPrefix } from './compendium-types.js';
 
 export class JournalTools {
     static async init() {
@@ -64,22 +63,6 @@ export class JournalTools {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Journal Tools: Error registering partials", error.message, false, false);
         }
-    }
-
-    /**
-     * Generate array of compendium setting keys for a given type
-     * @param {string} type - 'actor' or 'item'
-     * @returns {string[]} Array of setting keys like ['monsterCompendium1', 'monsterCompendium2', ...]
-     */
-    static getCompendiumSettingKeys(type) {
-        const prefix = getCompendiumSettingPrefix(type);
-        const numCompendiums = compendiumManager.getMapping(type).numCompendiums;
-
-        const keys = [];
-        for (let i = 1; i <= numCompendiums; i++) {
-            keys.push(`${prefix}${i}`);
-        }
-        return keys;
     }
 
     static _onSettingChange(moduleId, key, value) {
@@ -1444,25 +1427,6 @@ export class JournalTools {
             postConsoleAndNotification(MODULE.NAME, `Journal Tools: Searching for ${entityType}`, 
                 `"${strEntityName}"`, true, false);
             
-            // Get settings based on entity type
-            const searchWorldFirst = entityType === 'actor' 
-                ? game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst')
-                : game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst');
-            
-            // Search world entities first if enabled
-            if (searchWorldFirst) {
-                const worldEntities = entityType === 'actor' ? game.actors : game.items;
-                const worldEntity = worldEntities.find(e => 
-                    e.name.toLowerCase() === strEntityName.toLowerCase()
-                );
-                
-                if (worldEntity) {
-                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found ${entityType} in world`, 
-                        `${strEntityName} -> ${worldEntity.uuid}`, true, false);
-                    return worldEntity.uuid;
-                }
-            }
-            
             // Handle colon-separated names (e.g., "Gem: Diamond")
             let searchNames = [strEntityName];
             if (strEntityName.includes(':')) {
@@ -1473,49 +1437,13 @@ export class JournalTools {
                 }
             }
             
-            // Search compendiums based on entity type
-            const compendiumSettings = this.constructor.getCompendiumSettingKeys(entityType);
-            
             // Try each search name
             for (const searchName of searchNames) {
-                for (const settingKey of compendiumSettings) {
-                    const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
-                    
-                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') {
-                        // Skip silently - this is normal for unconfigured compendiums
-                        continue;
-                    }
-                    
-                    try {
-                        const pack = game.packs.get(compendiumName);
-                        if (!pack) {
-                            // Only warn if the compendium is configured but doesn't exist
-                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Configured compendium not found`, 
-                                `${compendiumName} (${settingKey})`, false, true);
-                            continue;
-                        }
-                        
-                        const index = await pack.getIndex();
-                        
-                        // Only use exact match - no partial matching to avoid false positives
-                        let entry = index.find(e => 
-                            e.name.toLowerCase() === searchName.toLowerCase()
-                        );
-                        
-                        if (entry) {
-                            // Console only - always show successful finds
-                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found ${entityType} in compendium`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
-                            return `Compendium.${compendiumName}.${entityType === 'actor' ? 'Actor' : 'Item'}.${entry._id}`;
-                        } else {
-                            // Console only - debug only
-                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: ${entityType} not found in compendium`, 
-                                `${searchName} not found in ${compendiumName}`, true, false);
-                        }
-                    } catch (error) {
-                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Error searching compendium`, 
-                            `${compendiumName}: ${error.message}`, true, false);
-                    }
+                const result = await compendiumManager.resolve(searchName, entityType, { exact: true });
+                if (result.found) {
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found ${entityType}`,
+                        `${searchName} -> ${result.matchedName} in ${result.source}`, false, false);
+                    return result.uuid;
                 }
             }
             
@@ -1559,57 +1487,27 @@ export class JournalTools {
             // Try each search name
             for (const searchName of searchNames) {
                 // Try actor compendiums first (default bias)
-                const actorCompendiums = this.constructor.getCompendiumSettingKeys('actor');
-                
-                for (const settingKey of actorCompendiums) {
-                    const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
-                    
-                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') continue;
-                    
-                    try {
-                        const pack = game.packs.get(compendiumName);
-                        if (!pack) continue;
-                        
-                        const index = await pack.getIndex();
-                        
-                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
-                        
-                        if (entry) {
-                                                    // Console only - always show
-                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in actor compendium`, 
-                            `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
-                            return `Compendium.${compendiumName}.Actor.${entry._id}`;
-                        }
-                    } catch (error) {
-                        // Continue to next compendium
-                    }
+                const actorSources = compendiumManager.getSelected('Actor');
+                const actorResult = actorSources.length ? await compendiumManager.resolve(searchName, 'Actor', {
+                    exact: true,
+                    sources: actorSources
+                }) : { found: false };
+                if (actorResult.found) {
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in actor compendium`,
+                        `${searchName} -> ${actorResult.matchedName} in ${actorResult.source}`, false, false);
+                    return actorResult.uuid;
                 }
                 
                 // Try item compendiums second
-                const itemCompendiums = this.constructor.getCompendiumSettingKeys('item');
-                
-                for (const settingKey of itemCompendiums) {
-                    const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
-                    
-                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') continue;
-                    
-                    try {
-                        const pack = game.packs.get(compendiumName);
-                        if (!pack) continue;
-                        
-                        const index = await pack.getIndex();
-                        
-                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
-                        
-                        if (entry) {
-                                                    // Console only - always show
-                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in item compendium`, 
-                            `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
-                            return `Compendium.${compendiumName}.Item.${entry._id}`;
-                        }
-                    } catch (error) {
-                        // Continue to next compendium
-                    }
+                const itemSources = compendiumManager.getSelected('Item');
+                const itemResult = itemSources.length ? await compendiumManager.resolve(searchName, 'Item', {
+                    exact: true,
+                    sources: itemSources
+                }) : { found: false };
+                if (itemResult.found) {
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in item compendium`,
+                        `${searchName} -> ${itemResult.matchedName} in ${itemResult.source}`, false, false);
+                    return itemResult.uuid;
                 }
             }
             
@@ -2038,106 +1936,25 @@ export class JournalTools {
             
             // Try each search name
             for (const searchName of searchNames) {
-                // Check world first if enabled
-                const searchWorldActorsFirst = game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst');
-                const searchWorldItemsFirst = game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst');
-                
-                // Try world actors first if enabled
-                if (searchWorldActorsFirst) {
-                    const worldActor = game.actors.getName(searchName);
-                    if (worldActor) {
-                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in world actors (first)`, 
-                            `${searchName} -> ${worldActor.name}`, false, false);
-                        return `Actor.${worldActor.id}`;
-                    }
-                }
-                
-                // Try world items first if enabled
-                if (searchWorldItemsFirst) {
-                    const worldItem = game.items.getName(searchName);
-                    if (worldItem) {
-                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in world items (first)`, 
-                            `${searchName} -> ${worldItem.name}`, false, false);
-                        return `Item.${worldItem.id}`;
-                    }
-                }
-                
-                // Try actor compendiums
-                const actorCompendiums = this.constructor.getCompendiumSettingKeys('actor');
-                
-                for (const settingKey of actorCompendiums) {
-                    const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
-                    
-                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') continue;
-                    
-                    try {
-                        const pack = game.packs.get(compendiumName);
-                        if (!pack) continue;
-                        
-                        const index = await pack.getIndex();
-                        
-                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
-                        
-                        if (entry) {
-                            // Console only - always show
-                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in actor compendium (type detection)`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
-                            return `Compendium.${compendiumName}.Actor.${entry._id}`;
-                        }
-                    } catch (error) {
-                        // Continue to next compendium
-                    }
-                }
-                
-                // Try item compendiums
-                const itemCompendiums = this.constructor.getCompendiumSettingKeys('item');
-                
-                for (const settingKey of itemCompendiums) {
-                    const compendiumName = game.settings.get('coffee-pub-blacksmith', settingKey);
-                    
-                    if (!compendiumName || compendiumName === '' || compendiumName === 'none') continue;
-                    
-                    try {
-                        const pack = game.packs.get(compendiumName);
-                        if (!pack) continue;
-                        
-                        const index = await pack.getIndex();
-                        
-                        let entry = index.find(e => e.name.toLowerCase() === searchName.toLowerCase());
-                        
-                        if (entry) {
-                            // Console only - always show
-                            postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in item compendium (type detection)`, 
-                                `${searchName} -> ${entry.name} in ${compendiumName}`, false, false);
-                            return `Compendium.${compendiumName}.Item.${entry._id}`;
-                        }
-                    } catch (error) {
-                        // Continue to next compendium
-                    }
-                }
-                
-                // Check world last if enabled
-                const searchWorldActorsLast = game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsLast');
-                const searchWorldItemsLast = game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsLast');
-                
-                // Try world actors last if enabled
-                if (searchWorldActorsLast) {
-                    const worldActor = game.actors.getName(searchName);
-                    if (worldActor) {
-                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in world actors (last)`, 
-                            `${searchName} -> ${worldActor.name}`, false, false);
-                        return `Actor.${worldActor.id}`;
-                    }
-                }
-                
-                // Try world items last if enabled
-                if (searchWorldItemsLast) {
-                    const worldItem = game.items.getName(searchName);
-                    if (worldItem) {
-                        postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in world items (last)`, 
-                            `${searchName} -> ${worldItem.name}`, false, false);
-                        return `Item.${worldItem.id}`;
-                    }
+                const actorMapping = compendiumManager.getMapping('Actor');
+                const itemMapping = compendiumManager.getMapping('Item');
+                const stages = [];
+                if (actorMapping.searchWorldFirst) stages.push({ type: 'Actor', sources: ['world'], label: 'world actors (first)' });
+                if (itemMapping.searchWorldFirst) stages.push({ type: 'Item', sources: ['world'], label: 'world items (first)' });
+                if (actorMapping.packIds.length) stages.push({ type: 'Actor', sources: actorMapping.packIds, label: 'actor compendiums' });
+                if (itemMapping.packIds.length) stages.push({ type: 'Item', sources: itemMapping.packIds, label: 'item compendiums' });
+                if (actorMapping.searchWorldLast && !actorMapping.searchWorldFirst) stages.push({ type: 'Actor', sources: ['world'], label: 'world actors (last)' });
+                if (itemMapping.searchWorldLast && !itemMapping.searchWorldFirst) stages.push({ type: 'Item', sources: ['world'], label: 'world items (last)' });
+
+                for (const stage of stages) {
+                    const result = await compendiumManager.resolve(searchName, stage.type, {
+                        exact: true,
+                        sources: stage.sources
+                    });
+                    if (!result.found) continue;
+                    postConsoleAndNotification(MODULE.NAME, `Journal Tools: Found in ${stage.label}`,
+                        `${searchName} -> ${result.matchedName} in ${result.source}`, false, false);
+                    return result.uuid;
                 }
             }
             
@@ -2162,13 +1979,10 @@ export class JournalTools {
             if (!compendiumMatch) {
                 // Not a compendium link, check if it's a world link and world is first
                 if (existingUuid.includes('Actor.') || existingUuid.includes('Item.')) {
-                    const searchWorldActorsFirst = game.settings.get('coffee-pub-blacksmith', 'searchWorldActorsFirst');
-                    const searchWorldItemsFirst = game.settings.get('coffee-pub-blacksmith', 'searchWorldItemsFirst');
-                    
-                    if (existingUuid.includes('Actor.') && searchWorldActorsFirst) {
+                    if (existingUuid.includes('Actor.') && compendiumManager.getMapping('Actor').searchWorldFirst) {
                         return true;
                     }
-                    if (existingUuid.includes('Item.') && searchWorldItemsFirst) {
+                    if (existingUuid.includes('Item.') && compendiumManager.getMapping('Item').searchWorldFirst) {
                         return true;
                     }
                 }
