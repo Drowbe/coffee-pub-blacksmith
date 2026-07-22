@@ -287,7 +287,40 @@ const FEATURE_SUPPORT_PACK_PATTERNS = [
 
 export function isPrimaryFeatureCompendium(pack) {
     const label = packLabel(pack).toLowerCase();
-    return !matchesAny(label, FEATURE_SUPPORT_PACK_PATTERNS);
+    if (matchesAny(label, FEATURE_SUPPORT_PACK_PATTERNS)) return false;
+
+    const entries = indexEntries(pack);
+    const types = entries.map(entry => String(entry?.type || '').toLowerCase()).filter(Boolean);
+    const featureCount = types.filter(type => type === 'feat').length;
+    if (!featureCount) return false;
+
+    // Equipment/background/spell packs sometimes carry a few implementation
+    // Features. Do not promote the entire pack into the Feature catalog unless
+    // Features are actually its primary indexed content.
+    const incidentalPurpose = matchesAny(label, [
+        /\bequipment\b/, /\bweapons?\b/, /\barmor\b/,
+        /\bbackgrounds?\b/, /\bspells?\b/
+    ]);
+    return !incidentalPurpose || featureCount > types.length / 2;
+}
+
+export function isPrimarySpellCompendium(pack) {
+    const label = packLabel(pack).toLowerCase();
+    const entries = indexEntries(pack);
+    const types = entries.map(entry => String(entry?.type || '').toLowerCase()).filter(Boolean);
+    const spellCount = types.filter(type => type === 'spell').length;
+    if (!spellCount) return false;
+    if (/\bspells?\b/.test(label)) return true;
+
+    // A class, ancestry, background, equipment, or monster pack may include a
+    // rider spell without being a useful spell-authoring catalog. Broadly named
+    // option/campaign packs remain eligible when they intentionally mix content.
+    const incidentalPurpose = matchesAny(label, [
+        /\bclasses?\b/, /\bsubclasses?\b/, /\bbackgrounds?\b/,
+        /\braces?\b/, /\bspecies\b/, /\borigins?\b/,
+        /\bequipment\b/, /\bitems?\b/, /\bmonster features?\b/
+    ]);
+    return !incidentalPurpose || spellCount > types.length / 2;
 }
 
 // Some tools use world-owned Journal compendiums as implementation storage.
@@ -359,10 +392,12 @@ export function compendiumContainsMappedType(pack, type) {
         if (indexedTypes.length) {
             if (!indexedTypes.includes(subtype)) return false;
             if (canonicalType === 'Feature' && !isPrimaryFeatureCompendium(pack)) return false;
+            if (canonicalType === 'Spell' && !isPrimarySpellCompendium(pack)) return false;
             return true;
         }
         const label = packLabel(pack).toLowerCase();
         if (canonicalType === 'Feature' && !isPrimaryFeatureCompendium(pack)) return false;
+        if (canonicalType === 'Spell' && !isPrimarySpellCompendium(pack)) return false;
         if (['class', 'subclass'].includes(subtype) && /feature|feat/.test(label)) return false;
         if (subtype === 'class' && /subclass/.test(label)) return false;
         return matchesAny(label, LABEL_SUBTYPE_HINTS[subtype] || []);

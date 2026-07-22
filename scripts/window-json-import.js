@@ -10,6 +10,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-template-root';
     static _authoringSaveQueue = Promise.resolve();
     static _sessionAdditionalGuidance = '';
+    static _sessionAuthoringState = new Map();
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
@@ -108,8 +109,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         try {
             saved = game.settings.get(MODULE.ID, AUTHORING_STATE_SETTING)?.[this.importerStateKey] ?? null;
         } catch {
-            return;
+            // The in-memory mirror below still preserves state for this session.
         }
+        saved = JsonImportWindow._sessionAuthoringState.get(this.importerStateKey) ?? saved;
         if (!saved || typeof saved !== 'object') return;
         if (this.templateOptions.some(option => option.value === saved.selectedTemplate)) {
             this.selectedTemplate = saved.selectedTemplate;
@@ -136,6 +138,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             fields,
             checkboxes
         };
+        JsonImportWindow._sessionAuthoringState.set(this.importerStateKey, snapshot);
         JsonImportWindow._authoringSaveQueue = JsonImportWindow._authoringSaveQueue.then(async () => {
             try {
                 const allState = game.settings.get(MODULE.ID, AUTHORING_STATE_SETTING) ?? {};
@@ -143,11 +146,19 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                     ...allState,
                     [this.importerStateKey]: snapshot
                 });
-            } catch {
-                // A missing/unavailable client setting should never block authoring.
+            } catch (error) {
+                // A missing/unavailable client setting should never block authoring,
+                // but make persistence failures diagnosable instead of silently losing choices.
+                console.warn(`${MODULE.ID} | Could not save JSON importer authoring state`, error);
             }
         });
         return JsonImportWindow._authoringSaveQueue;
+    }
+
+    async close(options = {}) {
+        this._persistFormStateFromDom();
+        await this._saveAuthoringState();
+        return super.close(options);
     }
 
     _buildToolsContent() {

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [13.10.2]
+
+### Fixed
+
+- **Importer catalog selectors reject incidental cross-category packs and reliably remember choices** (`scripts/utility-compendium-auto-map.js`, `scripts/window-json-import.js`): Feature mapping no longer promotes equipment, background, or spell packs merely because they contain support Features, and Spell mapping no longer promotes class, ancestry, background, equipment, or monster packs because of isolated rider Spells. Genuinely mixed option/campaign packs and packs whose matching type is their primary content remain eligible. Prompt authoring state now mirrors immediately in memory, saves again when the window closes, and reports client-setting failures instead of silently resetting checkbox selections.
+
 ## [13.10.1]
 
 ### Added
