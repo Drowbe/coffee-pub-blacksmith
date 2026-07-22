@@ -485,11 +485,14 @@
 			"headingH3HealthIndicators-Label": "Health Indicators",
 			"headingH3HealthIndicators-Hint": "",
 
-				"tokenBloodEnabled-Label": "Token Blood",
-				"tokenBloodEnabled-Hint": "Show a blood splatter on the ground under tokens as they lose hit points. The splatter intensifies as health drops below 75%, 50%, and 25%, with a heavier pool at 0 HP.",
+				"tokenBloodEnabled-Label": "Blood Damage",
+				"tokenBloodEnabled-Hint": "Show a pool of blood on the ground under tokens that grows as they lose hit points, with smaller splatters around it. The pool deepens as health drops below 75%, 50%, and 25%, spreading widest at 0 HP. The Remove All Blood toolbar button clears the canvas until tokens take new damage.",
+
+				"tokenBloodHitEnabled-Label": "Blood Hit",
+				"tokenBloodHitEnabled-Hint": "Show a brief blood burst from a token the moment it takes damage, scaled to how hard the hit was. The burst fades out after about a second.",
 
 				"tokenBloodVisibility-Label": "Token Blood Visibility",
-				"tokenBloodVisibility-Hint": "Who can see the blood splatter. GM Only hides it from players so they cannot read enemy health from the canvas.",
+				"tokenBloodVisibility-Hint": "Who can see blood damage pools and hit bursts. GM Only hides them from players so they cannot read enemy health from the canvas.",
 
 
 	"headingH2Timers-Label": "Timers",

@@ -350,6 +350,26 @@ async function registerDefaultTools() {
         order: 10
     });
     
+    registerTool('clear-blood', {
+        icon: "fa-solid fa-droplet-slash",
+        name: "clear-blood",
+        title: "Remove All Blood",
+        button: true,
+        visible: true,
+        gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: () => {
+            return getSettingSafely(MODULE.ID, 'tokenBloodEnabled', true);
+        },
+        onClick: async () => {
+            const { TokenIndicatorManager } = await import('./manager-token-indicators.js');
+            TokenIndicatorManager.requestClearAllBlood();
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 40
+    });
+
     registerTool('vote', {
         icon: "fa-solid fa-vote-yea",
         name: "vote",

@@ -2980,6 +2980,27 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Token Blood Hit Bursts --
+	game.settings.register(MODULE.ID, 'tokenBloodHitEnabled', {
+		name: MODULE.ID + '.tokenBloodHitEnabled-Label',
+		hint: MODULE.ID + '.tokenBloodHitEnabled-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Token Blood Clear Request (hidden relay: GM "Remove All Blood" writes a nonce here;
+	// -- every client's settingChange watcher clears its local splatter) --
+	game.settings.register(MODULE.ID, 'tokenBloodClearRequest', {
+		scope: 'world',
+		config: false,
+		type: Number,
+		default: 0
+	});
+
 	// -- Token Blood Visibility --
 	game.settings.register(MODULE.ID, 'tokenBloodVisibility', {
 		name: MODULE.ID + '.tokenBloodVisibility-Label',

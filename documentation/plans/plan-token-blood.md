@@ -1,6 +1,12 @@
 # Plan: Token Blood HP Indicator
 
-**Status: Implemented (v1) — pending live verification; phases 2-3 open**
+**Status: Implemented (Blood Damage + Blood Hit + Remove All Blood) — pending live verification; authored-art phase open**
+
+Author reskin direction (2026-07-22, applied): Blood Damage is a central pool that grows with damage,
+ringed by small splats — not uniform large blobs. Blood Hit is a second feature: a transient brighter
+burst above the token on each hit, scaled to damage, fading over ~0.9s. Remove All Blood is a GM
+toolbar button relayed to all clients via the hidden `tokenBloodClearRequest` world setting;
+cleared tokens are suppressed until they next take damage.
 
 Ground blood splatter rendered UNDER each token whose HP is reduced, with splatter intensity following
 % remaining HP. Author direction (2026-07-22): the splatter is on the ground beneath the token, not

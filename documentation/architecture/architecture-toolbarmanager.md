@@ -37,14 +37,15 @@ Within a zone, tools sort by `order` ascending. An unrecognised zone falls back 
 
 ## Blacksmith's own tools
 
-`registerDefaultTools()` registers **five** tools. Read that function for the current list rather than trusting a copy here — this doc has carried a wrong count more than once:
+`registerDefaultTools()` registers **six** tools. Read that function for the current list rather than trusting a copy here — this doc has carried a wrong count more than once:
 
 | Tool | Zone | Gate |
 |---|---|---|
 | `css` | `gmtools` | `gmOnly` |
+| `clear-blood` | `gmtools` | `gmOnly`, `onFoundry` gated by `tokenBloodEnabled` |
 | `journal-tools` | `gmtools` | `gmOnly` |
 | `refresh` | `gmtools` | `gmOnly` |
-| `request-roll` | `gmtools` | `gmOnly` |
+| `request-roll` | `gmtools` | `gmOnly`, `onFoundry` gated by `requestRollShowInFoundryToolbar` |
 | `vote` | `leadertools` | `leaderOnly` |
 
 `addToolbarButton()` only wires the `getSceneControlButtons` hook; it does not define the defaults.

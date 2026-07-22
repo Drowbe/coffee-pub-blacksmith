@@ -1,7 +1,7 @@
 import { MODULE } from './const.js';
 import { getSettingSafely, postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { getHealthPercent, getHealthSeverity } from './utility-health.js';
+import { getActorHP, getHealthPercent, getHealthSeverity } from './utility-health.js';
 
 export class TokenIndicatorManager {
     static _initialized = false;
@@ -34,6 +34,18 @@ export class TokenIndicatorManager {
 
     /** Cached gate for the hot refreshToken path — recomputed by _rebuildAllBlood(), never per-frame */
     static _bloodActive = false;
+
+    /** Cached gate for hit bursts — recomputed by _rebuildAllBlood() */
+    static _bloodHitActive = false;
+
+    /** Token ids cleared by "Remove All Blood" — blood stays gone until the token next takes damage */
+    static _bloodSuppressed = new Set();
+
+    /** @type {Map<string, number>} actor uuid -> last known HP, for detecting damage vs healing */
+    static _lastHpByActor = new Map();
+
+    /** @type {Set<Function>} cancel functions for in-flight hit-burst animations */
+    static _activeBloodBursts = new Set();
 
     static _hookIds = {};
 
@@ -146,13 +158,28 @@ export class TokenIndicatorManager {
             context: 'token-indicators',
             priority: 3,
             callback: (actor, changes) => {
-                if (!this._bloodActive) return;
+                if (!this._bloodActive && !this._bloodHitActive) return;
                 const hpChanged = foundry.utils.getProperty(changes, 'system.attributes.hp') !== undefined
                     || foundry.utils.getProperty(changes, 'system.vitals.hp') !== undefined
                     || foundry.utils.getProperty(changes, 'system.hp') !== undefined;
                 if (!hpChanged) return;
+
+                // Keyed by uuid, not id: unlinked tokens share the base actor's id but not its uuid
+                const hp = getActorHP(actor);
+                const uuid = actor?.uuid;
+                const prev = uuid ? this._lastHpByActor.get(uuid) : undefined;
+                if (uuid && hp) this._lastHpByActor.set(uuid, hp.value);
+                const damageFraction = (hp && prev !== undefined && hp.value < prev)
+                    ? (prev - hp.value) / hp.max
+                    : 0;
+
                 for (const token of actor?.getActiveTokens?.() ?? []) {
-                    this._updateBloodForToken(token);
+                    if (damageFraction > 0) {
+                        // New damage re-blooms a token cleared by "Remove All Blood"
+                        this._bloodSuppressed.delete(token.id);
+                        if (this._bloodHitActive) this._spawnHitBurst(token, damageFraction);
+                    }
+                    if (this._bloodActive) this._updateBloodForToken(token);
                 }
             }
         });
@@ -175,6 +202,12 @@ export class TokenIndicatorManager {
             priority: 3,
             callback: (module, key) => {
                 if (module !== MODULE.ID) return;
+                // Clear-request relay: the GM's "Remove All Blood" button writes a world
+                // setting, which lands here on EVERY client — clear locally on each
+                if (key === 'tokenBloodClearRequest') {
+                    this._clearAllBloodAndSuppress();
+                    return;
+                }
                 const watchedKeys = new Set([
                     'generalIndicatorsEnabled',
                     'generalIndicatorsThickness',
@@ -201,6 +234,7 @@ export class TokenIndicatorManager {
                     'targetedPortraitsShape',
                     'targetedPortraitsPortraitType',
                     'tokenBloodEnabled',
+                    'tokenBloodHitEnabled',
                     'tokenBloodVisibility'
                 ]);
                 if (!watchedKeys.has(key)) return;
@@ -230,6 +264,7 @@ export class TokenIndicatorManager {
         this._removeTurnIndicator();
         this._removeAllTargetedIndicators();
         this._removeAllBlood();
+        this._cancelAllHitBursts();
         this._stopHideTargetIndicatorsLoop();
         this._targetsByUser.clear();
         this._sourceTokenByUser.clear();
@@ -1268,15 +1303,16 @@ export class TokenIndicatorManager {
 
     /**
      * Splatter parameters per severity tier (tiers from utility-health.js).
-     * `spread` is the max blob distance from token center in token-size units —
-     * values near 1.0 land blobs a full token-width out, in the surrounding
-     * squares, so the splatter reads around the token instead of hiding under it.
+     * `pool` is the central pool radius in token-size units (0.5 = the token's
+     * edge, so pools past 0.5 ring visibly around the token). `spread` is the
+     * max distance small splats land from center; splats always start outside
+     * the pool so they read as separate droplets, not pool lumps.
      */
     static _BLOOD_TIERS = {
-        injured:  { blobs: 4,  spread: 0.55, radius: 0.10, alpha: 0.5,  color: 0x7a0f0f },
-        bloodied: { blobs: 7,  spread: 0.70, radius: 0.14, alpha: 0.6,  color: 0x7a0f0f },
-        critical: { blobs: 12, spread: 0.90, radius: 0.17, alpha: 0.7,  color: 0x6b0c0c },
-        dead:     { blobs: 16, spread: 0.80, radius: 0.24, alpha: 0.8,  color: 0x520909 }
+        injured:  { pool: 0.30, splats: 5,  spread: 0.60, splatRadius: 0.050, alpha: 0.55, color: 0x7a0f0f },
+        bloodied: { pool: 0.44, splats: 8,  spread: 0.75, splatRadius: 0.060, alpha: 0.65, color: 0x7a0f0f },
+        critical: { pool: 0.55, splats: 11, spread: 0.95, splatRadius: 0.070, alpha: 0.72, color: 0x6b0c0c },
+        dead:     { pool: 0.70, splats: 12, spread: 0.85, splatRadius: 0.080, alpha: 0.80, color: 0x520909 }
     };
 
     /** Splatter field size as a multiple of token size: a 1x1 token bleeds over a 3x3 area. */
@@ -1295,9 +1331,13 @@ export class TokenIndicatorManager {
     static _rebuildAllBlood() {
         this._removeAllBlood();
         this._bloodActive = this._isBloodVisibleToUser();
-        if (!this._bloodActive || !canvas?.tokens) return;
+        this._bloodHitActive = this._isBloodHitVisibleToUser();
+        if (!canvas?.tokens) return;
+        // Seed the last-HP cache so the first hit after load computes a real delta
         for (const token of canvas.tokens.placeables) {
-            this._updateBloodForToken(token);
+            const hp = getActorHP(token.actor);
+            if (hp && token.actor?.uuid) this._lastHpByActor.set(token.actor.uuid, hp.value);
+            if (this._bloodActive) this._updateBloodForToken(token);
         }
     }
 
@@ -1308,6 +1348,7 @@ export class TokenIndicatorManager {
             this._removeBloodForToken(tokenId);
             return;
         }
+        if (this._bloodSuppressed.has(tokenId)) return;
         const severity = getHealthSeverity(getHealthPercent(token.actor));
         if (!severity || severity === 'healthy') {
             this._removeBloodForToken(tokenId);
@@ -1360,32 +1401,33 @@ export class TokenIndicatorManager {
         const half = area / 2;
         const g = new PIXI.Graphics();
 
-        // Dead gets one central pool under the body before the droplets
-        if (severity === 'dead') {
-            g.beginFill(tier.color, 1);
-            g.drawEllipse(half, half, size * 0.38, size * 0.30);
-            g.endFill();
-        }
-
-        for (let i = 0; i < tier.blobs; i++) {
+        // Central pool that grows with damage: a main ellipse plus a few offset
+        // lobes for an organic edge. Past 0.5 token-size it rings around the art.
+        const poolR = size * tier.pool;
+        g.beginFill(tier.color, 1);
+        g.drawEllipse(half, half, poolR, poolR * 0.85);
+        const lobes = 3;
+        for (let i = 0; i < lobes; i++) {
             const angle = rand() * Math.PI * 2;
-            // Bias outward: most blobs land beyond the token edge, in the surrounding squares
-            const dist = size * (0.15 + rand() * tier.spread);
+            const off = poolR * (0.35 + rand() * 0.35);
+            g.drawEllipse(half + Math.cos(angle) * off, half + Math.sin(angle) * off, poolR * (0.45 + rand() * 0.25), poolR * (0.35 + rand() * 0.25));
+        }
+        g.endFill();
+
+        // Small splats scattered outside the pool
+        for (let i = 0; i < tier.splats; i++) {
+            const angle = rand() * Math.PI * 2;
+            const dist = size * (tier.pool + 0.08 + rand() * Math.max(0.1, tier.spread - tier.pool));
             const x = half + Math.cos(angle) * dist;
             const y = half + Math.sin(angle) * dist;
-            const r = size * tier.radius * (0.35 + rand() * 0.65);
-            g.beginFill(tier.color, 0.75 + rand() * 0.25);
+            const r = size * tier.splatRadius * (0.5 + rand() * 0.9);
+            g.beginFill(tier.color, 0.7 + rand() * 0.3);
             g.drawEllipse(x, y, r, r * (0.7 + rand() * 0.5));
             g.endFill();
-            // A couple of small satellite droplets flung further out per blob
-            const droplets = 1 + Math.floor(rand() * 2);
-            for (let d = 0; d < droplets; d++) {
-                const dAngle = rand() * Math.PI * 2;
-                const dDist = r * (1.2 + rand() * 1.8);
-                g.beginFill(tier.color, 0.6 + rand() * 0.3);
-                g.drawCircle(x + Math.cos(dAngle) * dDist, y + Math.sin(dAngle) * dDist, r * (0.12 + rand() * 0.2));
-                g.endFill();
-            }
+            // One tiny trailing droplet per splat, flung outward from center
+            g.beginFill(tier.color, 0.6 + rand() * 0.3);
+            g.drawCircle(x + Math.cos(angle) * r * 2, y + Math.sin(angle) * r * 2, r * (0.2 + rand() * 0.2));
+            g.endFill();
         }
 
         // Explicit region keeps the texture frame fixed and centered regardless of
@@ -1457,5 +1499,128 @@ export class TokenIndicatorManager {
         for (const tokenId of Array.from(this._bloodMeshes.keys())) {
             this._removeBloodForToken(tokenId);
         }
+    }
+
+    static _isBloodHitVisibleToUser() {
+        if (!getSettingSafely(MODULE.ID, 'generalIndicatorsEnabled', true)) return false;
+        if (!getSettingSafely(MODULE.ID, 'tokenBloodHitEnabled', true)) return false;
+        if (game.user?.isGM) return true;
+        return getSettingSafely(MODULE.ID, 'tokenBloodVisibility', 'everyone') === 'everyone';
+    }
+
+    /**
+     * GM "Remove All Blood" toolbar action. Writes a world-setting nonce; the
+     * settingChange relay fires on every client, so each one clears locally.
+     */
+    static requestClearAllBlood() {
+        if (!game.user?.isGM) return;
+        game.settings.set(MODULE.ID, 'tokenBloodClearRequest', Date.now()).catch(error => {
+            postConsoleAndNotification(MODULE.NAME, 'Token indicators | Failed to broadcast blood clear', error?.message || error, false, false);
+        });
+    }
+
+    /**
+     * Clear all splatter and suppress each cleared token until it next takes
+     * damage — without suppression the lazy refreshToken path would redraw the
+     * blood immediately, since it derives from HP.
+     */
+    static _clearAllBloodAndSuppress() {
+        for (const tokenId of this._bloodMeshes.keys()) {
+            this._bloodSuppressed.add(tokenId);
+        }
+        this._removeAllBlood();
+    }
+
+    /**
+     * Transient "you hit it" burst: a brighter splatter above the token that
+     * expands and fades over ~0.9s. Size scales with damage as % of max HP.
+     */
+    static _spawnHitBurst(token, damageFraction) {
+        if (!canvas?.app?.ticker || !canvas.interface || !token?.center) return;
+        if (token.visible === false) return;
+        try {
+            const texture = this._generateHitBurstTexture(token, damageFraction);
+            if (!texture) return;
+            const sprite = new PIXI.Sprite(texture);
+            sprite.anchor.set(0.5, 0.5);
+            sprite.position.set(token.center.x, token.center.y);
+            sprite.eventMode = 'none';
+            sprite.scale.set(0.7);
+            sprite.alpha = 0.9;
+            canvas.interface.addChild(sprite);
+
+            const duration = 900;
+            let elapsed = 0;
+            let done = false;
+            const finish = () => {
+                if (done) return;
+                done = true;
+                canvas.app?.ticker?.remove(tick);
+                this._activeBloodBursts.delete(finish);
+                if (!sprite.destroyed) {
+                    sprite.parent?.removeChild(sprite);
+                    sprite.destroy();
+                }
+                texture.destroy(true);
+            };
+            const tick = (delta) => {
+                elapsed += delta * 16.67;
+                const progress = Math.min(elapsed / duration, 1);
+                if (!sprite.destroyed) {
+                    const eased = 1 - Math.pow(1 - progress, 2);
+                    sprite.scale.set(0.7 + eased * 0.45);
+                    sprite.alpha = 0.9 * (1 - eased);
+                }
+                if (progress >= 1 || sprite.destroyed) finish();
+            };
+            this._activeBloodBursts.add(finish);
+            canvas.app.ticker.add(tick);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Token indicators | Failed to spawn hit burst', error?.message || error, true, false);
+        }
+    }
+
+    static _generateHitBurstTexture(token, damageFraction) {
+        if (!canvas?.app?.renderer) return null;
+        const size = Math.max(token.w || 0, token.h || 0);
+        if (!size) return null;
+
+        // Fresh-blood red, brighter than the ground tiers; blob count scales with the hit
+        const color = 0x9c1414;
+        const frac = Math.max(0.02, Math.min(1, damageFraction));
+        const blobs = 4 + Math.round(frac * 10);
+        const rand = this._seededRandom(`${token.id}:hit:${Math.round(frac * 1000)}`);
+        const area = size * 2.2;
+        const half = area / 2;
+        const g = new PIXI.Graphics();
+
+        for (let i = 0; i < blobs; i++) {
+            const angle = rand() * Math.PI * 2;
+            const dist = size * rand() * (0.25 + frac * 0.5);
+            const x = half + Math.cos(angle) * dist;
+            const y = half + Math.sin(angle) * dist;
+            const r = size * (0.04 + rand() * 0.07) * (0.6 + frac * 0.8);
+            g.beginFill(color, 0.7 + rand() * 0.3);
+            g.drawEllipse(x, y, r, r * (0.6 + rand() * 0.6));
+            g.endFill();
+            // Fling a droplet outward along the same angle for a spray direction
+            g.beginFill(color, 0.55 + rand() * 0.3);
+            g.drawCircle(x + Math.cos(angle) * r * 2.5, y + Math.sin(angle) * r * 2.5, r * (0.25 + rand() * 0.25));
+            g.endFill();
+        }
+
+        const texture = canvas.app.renderer.generateTexture(g, {
+            resolution: 1,
+            region: new PIXI.Rectangle(0, 0, area, area)
+        });
+        g.destroy();
+        return texture;
+    }
+
+    static _cancelAllHitBursts() {
+        for (const finish of Array.from(this._activeBloodBursts)) {
+            finish();
+        }
+        this._activeBloodBursts.clear();
     }
 }
