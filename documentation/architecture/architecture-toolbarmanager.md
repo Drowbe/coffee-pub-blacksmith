@@ -81,4 +81,4 @@ Unlike the Blacksmith toolbar's own tools, these native-control buttons use a re
 
 ## Error handling
 
-`registerTool` and `unregisterToolbarTool` wrap their bodies in `try`/`catch` blocks that are currently **empty**, so an unexpected failure is swallowed silently rather than logged. Bear that in mind when a registration appears to do nothing — the absence of an error is not evidence that it succeeded.
+`registerTool` and `unregisterToolbarTool` wrap their bodies in `try`/`catch` blocks that log the failure through `postConsoleAndNotification` and return `false`. A registration that appears to do nothing therefore leaves a console entry naming the tool.

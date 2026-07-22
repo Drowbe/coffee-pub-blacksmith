@@ -44,6 +44,11 @@
     transform: translateY(0);
 }
 
+/* Content-fit toasts only — billboards (any -size- class) set their own widths */
+.blacksmith-toast:not([class*="blacksmith-toast-size-"]) {
+    min-width: 250px;
+}
+
 .blacksmith-toast-image {
     width: 48px;
     height: 48px;
@@ -81,7 +86,8 @@
     color: rgba(240, 240, 224, 0.7);
     cursor: pointer;
     padding: 0;
-    margin-left: 6px;
+    /* auto pushes the button to the toast's right edge when min-width leaves slack */
+    margin-left: auto;
     width: auto;
     line-height: 1;
     font-size: 16px;

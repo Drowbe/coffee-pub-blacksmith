@@ -6,11 +6,11 @@
 
 ## Foundry toolbar
 
-- **Live-verify the Clear All Targets button** (implemented, in `CHANGELOG.md` [Unreleased]): in a live world, (1) confirm the button appears in the token controls directly below the native Select Targets tool for both a GM and a player client; (2) target several tokens, click the button, and confirm targets clear locally and on the other client; (3) uncheck Clear All Targets Button in the Foundry Toolbar settings section and confirm the button disappears immediately without a reload, then re-check it and confirm it returns; (4) confirm the console shows no errors during scene load and control switching.
+- **Live-verify the Clear All Targets button** (implemented, in `CHANGELOG.md` [13.10.3]): in a live world, (1) confirm the button appears in the token controls directly below the native Select Targets tool for both a GM and a player client; (2) target several tokens, click the button, and confirm targets clear locally and on the other client; (3) uncheck Clear All Targets Button in the Foundry Toolbar settings section and confirm the button disappears immediately without a reload, then re-check it and confirm it returns; (4) confirm the console shows no errors during scene load and control switching.
 
 ## Pins
 
-- **Single-click selects a pin**: clicking a pin should put it in a selected state (with a visible indicator) so keyboard actions can operate on it — starting with Delete/Backspace removing the pin via `PinManager.delete`. Currently a single click only invokes registered `click` handlers (`pins-renderer.js:994` editable path, `pins-renderer.js:743` non-editable path); there is no selection concept. Needs: a selected visual state, a keydown listener scoped so it does not fire while typing in inputs, deselect on canvas click or Escape, and a decision on whether selection is exclusive (one pin at a time). Verify live: click a pin and see the selected indicator; press Delete and confirm the pin is removed (with its delete animation if configured); click empty canvas or Escape and confirm deselect; confirm Delete does nothing when no pin is selected and does not fire while typing in a text field.
+- **Single-click selects a pin (selection state + keyboard actions)**: clicking a pin should put it in a selected state with a visible ring so keyboard actions can operate on it — first milestone: Delete/Backspace removes the selected pin via `PinManager.delete` with a permission check. Currently a single click only invokes registered `click` handlers (`pins-renderer.js:994` editable path, `pins-renderer.js:743` non-editable path); there is no selection concept. Design validated; no performance concern — pins are a pure DOM overlay, so one delegated `pointerdown` listener on `#blacksmith-pins-overlay` plus a `document` `keydown` handler suffices. Implementation: track the selected pin id in the renderer (`PinDOMElement._selectedPinId`); apply an `is-selected` class styled in `styles/pins.css`; `pointerdown` on a pin element selects, on the overlay container deselects; `keydown` Delete/Backspace deletes (scoped so it does not fire while typing in inputs), Escape deselects; expose `pins.getSelectedPin()` / `selectPin()` / `deselectPin()` on the public API and fire `blacksmith.pins.selected` / `blacksmith.pins.deselected` hooks so other modules can react. Verify live: click a pin and see the ring; press Delete and confirm the pin is removed (with its delete animation if configured); click empty canvas or Escape deselects; Delete does nothing when no pin is selected and does not fire while typing in a text field.
 - **Double-click sometimes lands in drag mode instead of firing**: for editable pins, mousedown enters the drag system and any movement beyond `DRAG_THRESHOLD` (10px screen space, `pins-renderer.js:856`) makes the release count as a drag (`pins-renderer.js:943`), so a slightly jittery double-click gets swallowed as a tiny drag and the second click never reaches the double-click counter (`pins-renderer.js:1004`). Candidate fixes: track movement per press instead of cumulatively, treat a second press arriving within the 300ms click window as a double-click before the drag decision, or require both distance and a minimum hold time before committing to drag. Verify live: rapidly double-click an editable pin ~20 times with normal hand jitter and confirm the double-click action fires every time and the pin does not shift position; confirm a real drag (press, move, release) still moves the pin and a deliberate slow click still fires the single-click action.
 
 ## Item import expansion
@@ -57,10 +57,6 @@ Consumer-facing defects — the ones other modules will hit — live in **`known
 
 Pattern worth internalising from the 2026-07-16 API audit: **every defect it found was an API Blacksmith does not call on itself.** The menubar API works because Blacksmith self-registers its own menubar tools. It does not self-register through `registerToolbarTool`, never called `registerModule`, never checked `removeHook`'s return, and never used `BLACKSMITH.rolls.execute` — and all four were silently broken. If an API isn't dogfooded, nothing tests it.
 
-### `registerToolbarTool` / `unregisterToolbarTool` — empty `catch` blocks swallow errors
-- Both `registerTool` and `unregisterToolbarTool` have empty `catch` blocks that silently swallow errors.
-- **Priority**: Low.
-
 ## ARCHITECTURE DOCS — audit results (2026-07-17)
 
 All 13 audited against source. **Two are fiction, three are shipped-work-described-as-plans, and the pattern is consistent enough to name.**
@@ -85,7 +81,7 @@ All 13 audited against source. **Two are fiction, three are shipped-work-describ
 - §2.1 drift: esmodules omits 2 files (9, not 7); ships **two** style entries, not one.
 - §11 (~89 lines) is a migration plan — honestly fenced, but belongs in this file.
 - **Verified excellent and worth protecting:** file inventory 45/46, style list exact (48 imports, names and order), §9A Quick View line-for-line, §4.3 roll exports exact, §9B.2 dead-code table (its `_setupActivePageChecker` row looks like a false positive but is **transitively dead** — the doc is right).
-- **Live bug it predicted:** §7 warns "a new stylesheet is silently unstyled unless added to `default.css`". `styles/journal-toolbars.css` and `styles/widget-tags.css` are on disk, imported by nothing. `widget-tags.css` matters — `TagWidget.registerPartial()` is live at `blacksmith.js:543`.
+- **Live bug it predicted:** §7 warns "a new stylesheet is silently unstyled unless added to `default.css`". `styles/widget-tags.css` is on disk, imported by nothing — it matters because `TagWidget.registerPartial()` is live at `blacksmith.js:543`. (A second instance, `journal-toolbars.css`, was genuinely dead and has since been deleted.)
 
 ### `architecture-toolbarmanager.md` — 20 phantoms; ~60% is a superseded plan
 - 8 phantom API names (`registerBlacksmithTool`, `BlacksmithToolbarManager`, `TokenControlToolbarManager`, …) presented as the design to implement; that design was abandoned for what shipped. It **documents and disclaims the same phantom class** 160 lines apart.
@@ -162,7 +158,6 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 - **Need**: per-setting decision — where the live handler fully applies the change, drop `requiresReload` so Save is clean; where it can't, keep it. Do this with the settings sheet open and a checklist, not as a blanket sed. **Data from the 2026-07-18 test round**: confirmed DROP candidates — scene-title styles, `sidebarPinUI`, `sidebarStyleUI`, `sidebarManualRollsEnabled` (all applied fully live, prompt was redundant); confirmed KEEP — `sidebarCombatChatEnabled` (tab injection needs the reload), `requestRollShowInFoundryToolbar` (scene-controls button only clears on reload); RECHECK — `menubarCombatSize` (half-applies live; if the bar renders correctly after reload, keep the flag or fix the live path).
 - **How to verify**: for each flag dropped — change the setting, Save → change fully applies with **no reload prompt**; for each kept — the prompt still appears and reload applies it.
 - **Priority**: Medium — pure UX polish, but the redundant prompts now actively misrepresent which settings need a reload.
-- **Leftover found during the audit**: `manager-toolbar.js` watches `tokenImageReplacementShowInFoundryToolbar` / `...CoffeePubToolbar`, which are **registered nowhere** — those branches can never fire. Decide: register the settings or delete the branches (small item).
 - **Doc follow-up**: the ⚠️ block in `architecture-blacksmith.md` §9B.2 describes the dead registrations — once verification passes, it should be rewritten to describe the helper (documentation agent).
 
 #### Design system: make it upstream of the component docs
@@ -188,12 +183,9 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
 - **Priority**: Medium. None of this is user-visible; it is what makes the design system actually govern the CSS instead of merely describing it.
 
 #### Dead CSS found during the design-system audit (2026-07-20)
-- **Two stylesheets are loaded by nothing** — neither appears in `styles/default.css`'s import list nor `module.json`'s `styles` array, so none of their rules ever apply. They are *not* the same case, and were checked against the code on 2026-07-20:
-  - `styles/journal-toolbars.css` (52 lines) is genuinely dead. None of its 5 classes appears anywhere in `scripts/` or `templates/`. Safe to delete.
-  - `styles/widget-tags.css` (154 lines) is **unlanded, not dead** — do not delete it. 14 of its 15 `bsw-*` classes are emitted by `templates/partials/tag-widget.hbs`, and `scripts/widget-tags.js` (imported at `scripts/blacksmith.js:88`) registers that template as the `blacksmith-tag-widget` partial. What is missing is the last step: **no template invokes the partial**, and the stylesheet is not imported. The tag widget is therefore a complete, inert feature — nothing renders it, so nothing is visibly broken today. Landing it means adding the `@import` to `default.css` and a `{{> blacksmith-tag-widget}}` call site. Deleting the CSS instead would destroy the styling for a feature that is one call site from working.
-- **`@keyframes cpb-pulse`** (`styles/cards-skill-check.css:105`) is defined and referenced by no `animation` declaration. Delete it, or find the rule that lost its reference.
+- **`styles/widget-tags.css` (154 lines) is unlanded, not dead** — do not delete it. It appears in neither `styles/default.css`'s import list nor `module.json`'s `styles` array, so none of its rules apply. 14 of its 15 `bsw-*` classes are emitted by `templates/partials/tag-widget.hbs`, and `scripts/widget-tags.js` (imported at `scripts/blacksmith.js:88`) registers that template as the `blacksmith-tag-widget` partial. What is missing is the last step: **no template invokes the partial**, and the stylesheet is not imported. The tag widget is therefore a complete, inert feature — nothing renders it, so nothing is visibly broken today. Landing it means adding the `@import` to `default.css` and a `{{> blacksmith-tag-widget}}` call site. Deleting the CSS instead would destroy the styling for a feature that is one call site from working.
 - **`--blacksmith-variant-timeline-*` duplicates `--blacksmith-variant-info-*`.** Both pairs are `rgba(47, 68, 106, ...)` (`styles/vars.css:112-113` and `:124-125`), so the two variants render indistinguishably despite being presented as distinct. Decide: give `timeline` its own hue, or drop it and alias consumers to `info`. This is a design call, not a cleanup — the published token page currently states the duplication as fact.
-- **Priority**: Low, except the two dead stylesheets, which are worth a quick look since they may mean a feature is shipping unstyled.
+- **Priority**: Low.
 
 #### `applicationv2-window/` — decide its disposition
 - **Issue**: `documentation/applicationv2-window/guidance-applicationv2.md` (539 lines) has never been audited and is **not published to the wiki**, yet three published pages point at it by repo path — `api-window.md`, `architecture-window.md`, and `architecture-blacksmith.md`. Those render as plain text on the wiki (the sync downgrades unpublished targets), so nothing is broken, but a wiki reader is sent off-wiki to the repo to find how to build an Application V2 window.
@@ -411,20 +403,6 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
 - **Issue**: The "Update All" / "Default" checkbox labels in section headers render too small. `font-size` overrides in `.blacksmith-pin-config-section-check-label` (including absolute `px` values) have no visible effect, suggesting the label text is controlled by an ancestor rule or Foundry's CSS reset that overrides the element styles.
 - **Status**: PENDING — `font-size: 11px`, `text-transform: none`, and `line-height: 1.4` are set on the label but not applying. Needs investigation into Foundry's CSS cascade for Application V2 windows.
 - **Location**: `styles/window-pin-config.css` (`.blacksmith-pin-config-section-check-label`), `templates/window-pin-config.hbs`
-
-#### Pins: Selection state + keyboard actions
-- **Issue**: No concept of a "selected" pin — clicking fires the click event but nothing persists. Desired: click selects a pin (visual ring), selection clears on click-elsewhere or Escape, keyboard actions operate on the selected pin (Delete key → delete with permission check).
-- **Status**: PENDING — design validated; no performance concern (pins are a pure DOM overlay, so a single `pointerdown` delegated listener on `#blacksmith-pins-overlay` + a `document` `keydown` handler is sufficient)
-- **Location**: `scripts/pins-renderer.js` (selection state, CSS class, deselect-on-outside-click), `scripts/manager-pins.js` (keyboard delete), `scripts/api-pins.js` (expose `getSelectedPin()`, `selectPin()`, `deselectPin()`)
-- **Need**:
-  - Track selected pin ID in renderer (`PinDOMElement._selectedPinId`)
-  - Apply `is-selected` CSS class to selected pin element; define ring/outline style in `styles/pins.css`
-  - `pointerdown` on `#blacksmith-pins-overlay`: if target is a pin element, select it; if target is the container itself, deselect
-  - `document` `keydown`: Delete/Backspace → delete selected pin (respecting permissions); Escape → deselect
-  - Expose `pins.getSelectedPin()`, `pins.selectPin(pinId)`, `pins.deselectPin()` on the public API
-  - Fire `blacksmith.pins.selected` / `blacksmith.pins.deselected` hooks so other modules can react
-  - First keyboard action milestone: Delete key deletes the selected pin
-- **Priority**: Low — good UX foundation for future keyboard-driven pin management
 
 #### Migrate Combat Hooks to lib-wrapper
 - **Issue**: Using Foundry hooks for Combat methods that should be wrapped with lib-wrapper instead

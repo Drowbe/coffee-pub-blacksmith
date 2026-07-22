@@ -253,9 +253,10 @@ function registerTool(toolId, toolData) {
         };
         
         registeredTools.set(toolId, storedTool);
-        
+
         return true;
     } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `Toolbar | registerTool failed unexpectedly (tool: ${toolId})`, error?.message || error, false, false);
         return false;
     }
 }
@@ -1028,7 +1029,6 @@ export async function addToolbarButton() {
             
             // Check if settings are available - if not, schedule a refresh once they are
             const settingKeys = [
-                `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`,
                 `${MODULE.ID}.requestRollShowInFoundryToolbar`
             ];
             const missingSettings = settingKeys.filter(key => !game.settings.settings.has(key));
@@ -1152,7 +1152,6 @@ export async function addToolbarButton() {
             // Wait for settings to be registered before building toolbar
             // This ensures onFoundry() functions can read setting values correctly
             const settingKeys = [
-                `${MODULE.ID}.tokenImageReplacementShowInFoundryToolbar`,
                 `${MODULE.ID}.requestRollShowInFoundryToolbar`
             ];
             let retries = 0;
@@ -1208,9 +1207,7 @@ export async function addToolbarButton() {
                     
                     // Rebuild and render controls using v13+ API (replaces deprecated initialize())
                     requestControlsRender();
-                } else if (key === 'tokenImageReplacementShowInFoundryToolbar' || 
-                           key === 'tokenImageReplacementShowInCoffeePubToolbar' ||
-                           key === 'requestRollShowInFoundryToolbar') {
+                } else if (key === 'requestRollShowInFoundryToolbar') {
                     // Refresh toolbar when toolbar visibility settings change
                     // Rebuild and render controls using v13+ API (replaces deprecated initialize())
                     requestControlsRender();
@@ -1303,6 +1300,7 @@ export function unregisterToolbarTool(toolId) {
         }
         return false;
     } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `Toolbar | unregisterToolbarTool failed unexpectedly (tool: ${toolId})`, error?.message || error, false, false);
         return false;
     }
 }

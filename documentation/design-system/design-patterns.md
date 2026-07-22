@@ -14,9 +14,8 @@ defined before any component stylesheet consumes them.
 
 `notes-gm.css` is the exception -- Foundry loads it directly, not through the import chain.
 
-Two stylesheets are reached by neither mechanism and are therefore inert: `styles/journal-toolbars.css`
-and `styles/widget-tags.css`. The latter styles the tag widget, whose template and script are complete but
-which no template currently renders.
+One stylesheet is reached by neither mechanism and is therefore inert: `styles/widget-tags.css`. It styles
+the tag widget, whose template and script are complete but which no template currently renders.
 
 ## Stylesheet organization
 

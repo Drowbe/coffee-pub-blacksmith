@@ -102,14 +102,6 @@
 }
 
 /* Animations */
-@keyframes cpb-pulse {
-    0%, 100% { transform: scale(.98); }
-    2%, 6%, 10%, 14%   { transform: scale(1.02); }
-    4%, 8%, 12%  { transform: scale(.98); }
-    /* Rest of the cycle (16%–100%) stays still */
-    16%, 100% { transform: translateX(0); }
-}
-
 @keyframes cpb-shake-x {
     /* First 0–16% (≈0.5s of 3s) does the shake */
     0%, 100%   { transform: translateX(0); }

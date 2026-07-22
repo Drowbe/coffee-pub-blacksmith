@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [13.10.3]
 
+### Changed
+
+- **Content-fit toasts now have a 250px minimum width** (`styles/toast.css`): the default no-size toast previously shrank to fit very short titles, which looked undersized; it now keeps a 250px floor while still growing with content up to the existing 420px cap, and the dismiss button uses an auto left margin so it sits at the toast's right edge rather than hugging the text when the floor leaves slack. Billboard sizes (`small`/`medium`/`large`/`fullscreen`) are unaffected — the min-width rule targets only toasts without a size class, and billboards position the dismiss button absolutely. Verify by showing a toast with a one-word title (`api.toast.show({ title: "Hi" })`) and confirming it renders 250px wide with the X at the right edge.
+
+### Fixed
+
+- **Toolbar registration failures are no longer swallowed silently** (`scripts/manager-toolbar.js`, `documentation/architecture/architecture-toolbarmanager.md`): `registerTool` and `unregisterToolbarTool` had empty `catch` blocks, so an unexpected failure returned `false` with no trace. Both now log the error through `postConsoleAndNotification`, naming the tool id, and still return `false`. Log-only behavior change; verification is that the client loads with no errors and toolbar tools register as before.
+
+### Removed
+
+- **Dead code swept ahead of the release** (`scripts/manager-toolbar.js`, `styles/journal-toolbars.css` deleted, `styles/cards-skill-check.css`, `documentation/design-system/design-patterns.md`): deleted the `tokenImageReplacementShowInFoundryToolbar` / `tokenImageReplacementShowInCoffeePubToolbar` watcher branches and setting-wait keys in the toolbar manager — those settings are registered nowhere, so the branches could never fire; deleted `styles/journal-toolbars.css` (52 lines, imported by nothing, none of its classes referenced anywhere in `scripts/` or `templates/`); and deleted the unused `@keyframes cpb-pulse`, which no `animation` declaration referenced. The design-patterns page now lists only `styles/widget-tags.css` as inert (kept deliberately — that feature is unlanded, not dead). Verification: client loads with no console errors, the toolbar still appears once settings register, and skill-check cards render unchanged.
+
 ### Added
 
 - **Clear All Targets button in the token toolbar** (`scripts/manager-toolbar.js`, `scripts/settings.js`, `lang/en.json`): a new button injected into Foundry's native token controls directly below the native Select Targets tool. Clicking it clears all of the current user's targeted tokens via `canvas.tokens.setTargets([], {mode: "replace"})` (the v13 targeting API), which also broadcasts the change to other clients. Visible to all users. A new user-scoped setting, Clear All Targets Button (`toolbarShowClearTargets`, default on) in the Foundry Toolbar settings section, hides it; toggling the setting rebuilds the scene controls immediately without a reload. Injection follows the same idempotent pattern as the existing template-control `clear` shim and is applied both in the `getSceneControlButtons` hook and in `refreshSceneControls()`.
