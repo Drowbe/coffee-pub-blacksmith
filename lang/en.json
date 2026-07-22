@@ -482,6 +482,15 @@
 				"targetedIndicatorBackgroundColor-Label": "Default Background Color",
 				"targetedIndicatorBackgroundColor-Hint": "Hex. Inner fill when Player Color is off. With Player Color on, fill uses the active turn owner's player color only.",
 
+			"headingH3HealthIndicators-Label": "Health Indicators",
+			"headingH3HealthIndicators-Hint": "",
+
+				"tokenBloodEnabled-Label": "Token Blood",
+				"tokenBloodEnabled-Hint": "Show a blood splatter on the ground under tokens as they lose hit points. The splatter intensifies as health drops below 75%, 50%, and 25%, with a heavier pool at 0 HP.",
+
+				"tokenBloodVisibility-Label": "Token Blood Visibility",
+				"tokenBloodVisibility-Hint": "Who can see the blood splatter. GM Only hides it from players so they cannot read enemy health from the canvas.",
+
 
 	"headingH2Timers-Label": "Timers",
 	"headingH2Timers-Hint": "Blacksmith supports various timers for your game. This includes session timers, combat timers, and planning timers.",

@@ -2964,6 +2964,39 @@ export const registerSettings = () => {
 	});
 
 	// --------------------------------------
+	// -- H3: Health Indicators
+	// --------------------------------------
+	registerHeader('HealthIndicators', 'headingH3HealthIndicators-Label', 'headingH3HealthIndicators-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
+
+	// -- Token Blood Enabled --
+	game.settings.register(MODULE.ID, 'tokenBloodEnabled', {
+		name: MODULE.ID + '.tokenBloodEnabled-Label',
+		hint: MODULE.ID + '.tokenBloodEnabled-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Token Blood Visibility --
+	game.settings.register(MODULE.ID, 'tokenBloodVisibility', {
+		name: MODULE.ID + '.tokenBloodVisibility-Label',
+		hint: MODULE.ID + '.tokenBloodVisibility-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			everyone: 'Everyone',
+			gmOnly: 'GM Only'
+		},
+		default: 'everyone',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
 	// -- H2: Timers
 	// --------------------------------------
 	registerHeader('Timers', 'headingH2Timers-Label', 'headingH2Timers-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');

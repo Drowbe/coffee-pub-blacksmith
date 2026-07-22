@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 import { getSettingSafely, postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { getHealthPercent, getHealthSeverity } from './utility-health.js';
 
 export class TokenIndicatorManager {
     static _initialized = false;
@@ -27,6 +28,12 @@ export class TokenIndicatorManager {
 
     /** @type {Map<string, string>} userId -> tokenId of the last token they controlled on this client */
     static _sourceTokenByUser = new Map();
+
+    /** @type {Map<string, {mesh: PrimarySpriteMesh, severity: string}>} tokenId -> ground blood splatter under the token */
+    static _bloodMeshes = new Map();
+
+    /** Cached gate for the hot refreshToken path — recomputed by _rebuildAllBlood(), never per-frame */
+    static _bloodActive = false;
 
     static _hookIds = {};
 
@@ -129,6 +136,24 @@ export class TokenIndicatorManager {
             priority: 3,
             callback: (token) => {
                 this._hideTokenTargetIndicators(token);
+                this._syncBloodOnRefresh(token);
+            }
+        });
+
+        this._hookIds.updateActor = HookManager.registerHook({
+            name: 'updateActor',
+            description: 'Token indicators: update blood splatter when HP changes',
+            context: 'token-indicators',
+            priority: 3,
+            callback: (actor, changes) => {
+                if (!this._bloodActive) return;
+                const hpChanged = foundry.utils.getProperty(changes, 'system.attributes.hp') !== undefined
+                    || foundry.utils.getProperty(changes, 'system.vitals.hp') !== undefined
+                    || foundry.utils.getProperty(changes, 'system.hp') !== undefined;
+                if (!hpChanged) return;
+                for (const token of actor?.getActiveTokens?.() ?? []) {
+                    this._updateBloodForToken(token);
+                }
             }
         });
 
@@ -174,7 +199,9 @@ export class TokenIndicatorManager {
                     'targetedPortraitsEnabled',
                     'targetedPortraitsSize',
                     'targetedPortraitsShape',
-                    'targetedPortraitsPortraitType'
+                    'targetedPortraitsPortraitType',
+                    'tokenBloodEnabled',
+                    'tokenBloodVisibility'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -188,17 +215,21 @@ export class TokenIndicatorManager {
             this._stopHideTargetIndicatorsLoop();
             this._removeTurnIndicator();
             this._removeAllTargetedIndicators();
+            this._removeAllBlood();
+            this._bloodActive = false;
             return;
         }
         this._refreshDefaultTargetIndicatorHiding();
         this._updateTurnIndicator();
         this._seedTargetsFromUserTargets();
         this._rebuildTargetedIndicatorGraphics();
+        this._rebuildAllBlood();
     }
 
     static cleanup() {
         this._removeTurnIndicator();
         this._removeAllTargetedIndicators();
+        this._removeAllBlood();
         this._stopHideTargetIndicatorsLoop();
         this._targetsByUser.clear();
         this._sourceTokenByUser.clear();
@@ -498,6 +529,16 @@ export class TokenIndicatorManager {
         if ((changes.x !== undefined || changes.y !== undefined) && this._targetedTokens.has(tokenId)) {
             this._updateTargetedIndicatorPosition(tokenId, changes);
         }
+
+        // Blood splatter: size changes need a rebuilt texture; elevation changes re-sort in canvas.primary
+        if (this._bloodMeshes.has(tokenId)
+            && (changes.width !== undefined || changes.height !== undefined || changes.elevation !== undefined)) {
+            const token = canvas.tokens?.get(tokenId);
+            if (token) {
+                this._removeBloodForToken(tokenId);
+                this._updateBloodForToken(token);
+            }
+        }
     }
 
     static _onTokenDeleted(tokenData) {
@@ -510,6 +551,7 @@ export class TokenIndicatorManager {
 
         this._removeTargetedRingsForToken(tokenId);
         this._targetedTokens.delete(tokenId);
+        this._removeBloodForToken(tokenId);
 
         for (const set of this._targetsByUser.values()) {
             set?.delete?.(tokenId);
@@ -1219,6 +1261,201 @@ export class TokenIndicatorManager {
     static _removeAllTargetPortraits() {
         for (const tokenId of Array.from(this._targetPortraits.keys())) {
             this._removeTargetPortraitsForToken(tokenId);
+        }
+    }
+
+    // ===== TOKEN BLOOD (ground splatter under tokens) =====
+
+    /**
+     * Splatter parameters per severity tier (tiers from utility-health.js).
+     * `spread` is the max blob distance from token center in token-size units —
+     * values near 1.0 land blobs a full token-width out, in the surrounding
+     * squares, so the splatter reads around the token instead of hiding under it.
+     */
+    static _BLOOD_TIERS = {
+        injured:  { blobs: 4,  spread: 0.55, radius: 0.10, alpha: 0.5,  color: 0x7a0f0f },
+        bloodied: { blobs: 7,  spread: 0.70, radius: 0.14, alpha: 0.6,  color: 0x7a0f0f },
+        critical: { blobs: 12, spread: 0.90, radius: 0.17, alpha: 0.7,  color: 0x6b0c0c },
+        dead:     { blobs: 16, spread: 0.80, radius: 0.24, alpha: 0.8,  color: 0x520909 }
+    };
+
+    /** Splatter field size as a multiple of token size: a 1x1 token bleeds over a 3x3 area. */
+    static _BLOOD_FIELD_SCALE = 3;
+
+    /** Renders above tiles (500) and drawings (600), under all token meshes (700). */
+    static _BLOOD_SORT_LAYER = 650;
+
+    static _isBloodVisibleToUser() {
+        if (!getSettingSafely(MODULE.ID, 'generalIndicatorsEnabled', true)) return false;
+        if (!getSettingSafely(MODULE.ID, 'tokenBloodEnabled', true)) return false;
+        if (game.user?.isGM) return true;
+        return getSettingSafely(MODULE.ID, 'tokenBloodVisibility', 'everyone') === 'everyone';
+    }
+
+    static _rebuildAllBlood() {
+        this._removeAllBlood();
+        this._bloodActive = this._isBloodVisibleToUser();
+        if (!this._bloodActive || !canvas?.tokens) return;
+        for (const token of canvas.tokens.placeables) {
+            this._updateBloodForToken(token);
+        }
+    }
+
+    static _updateBloodForToken(token) {
+        const tokenId = token?.id;
+        if (!tokenId || !token.document) return;
+        if (!this._bloodActive) {
+            this._removeBloodForToken(tokenId);
+            return;
+        }
+        const severity = getHealthSeverity(getHealthPercent(token.actor));
+        if (!severity || severity === 'healthy') {
+            this._removeBloodForToken(tokenId);
+            return;
+        }
+        const existing = this._bloodMeshes.get(tokenId);
+        if (existing && existing.severity === severity && !existing.mesh.destroyed) {
+            this._positionBloodMesh(existing.mesh, token);
+            return;
+        }
+        this._removeBloodForToken(tokenId);
+        try {
+            const mesh = this._buildBloodMesh(token, severity);
+            if (!mesh) return;
+            this._bloodMeshes.set(tokenId, { mesh, severity });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Token indicators | Failed to build blood splatter', error?.message || error, true, false);
+        }
+    }
+
+    static _buildBloodMesh(token, severity) {
+        if (!canvas?.primary || !canvas.app?.renderer) return null;
+        const tier = this._BLOOD_TIERS[severity];
+        if (!tier) return null;
+
+        const texture = this._generateBloodTexture(token, severity, tier);
+        if (!texture) return null;
+
+        const mesh = new foundry.canvas.primary.PrimarySpriteMesh({ name: `blacksmith-blood-${token.id}`, texture });
+        mesh.anchor.set(0.5, 0.5);
+        mesh.sortLayer = this._BLOOD_SORT_LAYER;
+        mesh.sort = 0;
+        mesh.alpha = tier.alpha;
+        mesh.eventMode = 'none';
+        this._positionBloodMesh(mesh, token);
+        canvas.primary.addChild(mesh);
+        return mesh;
+    }
+
+    /**
+     * Procedural splatter, seeded from the token id so every client (and every
+     * redraw) produces the identical pattern for the same token and tier.
+     */
+    static _generateBloodTexture(token, severity, tier) {
+        const size = Math.max(token.w || 0, token.h || 0);
+        if (!size) return null;
+
+        const rand = this._seededRandom(`${token.id}:${severity}`);
+        const area = size * this._BLOOD_FIELD_SCALE;
+        const half = area / 2;
+        const g = new PIXI.Graphics();
+
+        // Dead gets one central pool under the body before the droplets
+        if (severity === 'dead') {
+            g.beginFill(tier.color, 1);
+            g.drawEllipse(half, half, size * 0.38, size * 0.30);
+            g.endFill();
+        }
+
+        for (let i = 0; i < tier.blobs; i++) {
+            const angle = rand() * Math.PI * 2;
+            // Bias outward: most blobs land beyond the token edge, in the surrounding squares
+            const dist = size * (0.15 + rand() * tier.spread);
+            const x = half + Math.cos(angle) * dist;
+            const y = half + Math.sin(angle) * dist;
+            const r = size * tier.radius * (0.35 + rand() * 0.65);
+            g.beginFill(tier.color, 0.75 + rand() * 0.25);
+            g.drawEllipse(x, y, r, r * (0.7 + rand() * 0.5));
+            g.endFill();
+            // A couple of small satellite droplets flung further out per blob
+            const droplets = 1 + Math.floor(rand() * 2);
+            for (let d = 0; d < droplets; d++) {
+                const dAngle = rand() * Math.PI * 2;
+                const dDist = r * (1.2 + rand() * 1.8);
+                g.beginFill(tier.color, 0.6 + rand() * 0.3);
+                g.drawCircle(x + Math.cos(dAngle) * dDist, y + Math.sin(dAngle) * dDist, r * (0.12 + rand() * 0.2));
+                g.endFill();
+            }
+        }
+
+        // Explicit region keeps the texture frame fixed and centered regardless of
+        // where blobs landed, so the anchor-0.5 mesh stays aligned to token center
+        const texture = canvas.app.renderer.generateTexture(g, {
+            resolution: 1,
+            region: new PIXI.Rectangle(0, 0, area, area)
+        });
+        g.destroy();
+        return texture;
+    }
+
+    /** Deterministic PRNG (mulberry32) seeded from a string. */
+    static _seededRandom(seedString) {
+        let h = 1779033703;
+        for (let i = 0; i < seedString.length; i++) {
+            h = Math.imul(h ^ seedString.charCodeAt(i), 3432918353);
+            h = (h << 13) | (h >>> 19);
+        }
+        let state = h >>> 0;
+        return () => {
+            state = (state + 0x6D2B79F5) >>> 0;
+            let t = Math.imul(state ^ (state >>> 15), 1 | state);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    static _positionBloodMesh(mesh, token) {
+        if (!mesh || mesh.destroyed) return;
+        const center = token.center ?? { x: (token.document?.x ?? 0) + (token.w ?? 0) / 2, y: (token.document?.y ?? 0) + (token.h ?? 0) / 2 };
+        mesh.position.set(center.x, center.y);
+        mesh.elevation = token.document?.elevation ?? 0;
+        mesh.visible = token.visible !== false;
+    }
+
+    /**
+     * Runs on every refreshToken: follows drag animation, mirrors visibility
+     * (hidden tokens must not leak position through their blood), and lazily
+     * creates blood for freshly dropped tokens.
+     */
+    static _syncBloodOnRefresh(token) {
+        if (!this._bloodActive) return;
+        const tokenId = token?.id;
+        if (!tokenId) return;
+        const entry = this._bloodMeshes.get(tokenId);
+        if (entry) {
+            this._positionBloodMesh(entry.mesh, token);
+            return;
+        }
+        // Lazy creation path (e.g. a token dropped after canvasReady)
+        if (token.actor) this._updateBloodForToken(token);
+    }
+
+    static _removeBloodForToken(tokenId) {
+        const entry = this._bloodMeshes.get(tokenId);
+        if (!entry) return;
+        const { mesh } = entry;
+        if (mesh && !mesh.destroyed) {
+            const texture = mesh.texture;
+            if (mesh.parent) mesh.parent.removeChild(mesh);
+            mesh.destroy();
+            texture?.destroy(true);
+        }
+        this._bloodMeshes.delete(tokenId);
+    }
+
+    static _removeAllBlood() {
+        for (const tokenId of Array.from(this._bloodMeshes.keys())) {
+            this._removeBloodForToken(tokenId);
         }
     }
 }
