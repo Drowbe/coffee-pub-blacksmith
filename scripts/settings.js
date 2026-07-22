@@ -244,7 +244,7 @@ function getCompendiumChoices({ sourceIds = null } = {}) {
                 .reduce((choices, source) => {
                     const compendiumLabel = `${source.packIds.length} ${source.packIds.length === 1 ? 'compendium' : 'compendiums'}`;
                     const documentLabel = `${source.documentCount} ${getTypeLabel(type)}${source.documentCount === 1 ? '' : 's'}`;
-                    choices[source.value] = `${getTypeLabel(type)}: ${source.label} — ${compendiumLabel}, ${documentLabel}`;
+                    choices[source.value] = `${source.label} — ${compendiumLabel}, ${documentLabel}`;
                     return choices;
                 }, {"none": "-- None --"});
             BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, sourceChoices);
@@ -254,7 +254,7 @@ function getCompendiumChoices({ sourceIds = null } = {}) {
             .filter(compendium => compendium.type === type
                 && compendiumContainsMappedType(game.packs.get(compendium.id), type))
             .reduce((choices, compendium) => {
-                choices[compendium.id] = `${getTypeLabel(type)}: ${compendium.label}`;
+                choices[compendium.id] = compendium.label;
                 return choices;
             }, {"none": "-- None --"});
         
@@ -387,6 +387,19 @@ export async function reorderCompendiumsForType(type) {
     } finally {
         _reorderingInProgress.delete(type);
     }
+}
+
+/** Compact every saved mapping once during the active GM's load. */
+export async function compactCompendiumMappingsOnLoad() {
+    if (!game.user?.isGM) return false;
+    const activeGM = game.users?.activeGM;
+    if (activeGM && activeGM.id !== game.user.id) return false;
+
+    for (const type of getMappedTypes(BLACKSMITH.arrCompendiumChoicesData || [])) {
+        await reorderCompendiumsForType(type);
+    }
+    buildSelectedCompendiumArrays();
+    return true;
 }
 
 /**

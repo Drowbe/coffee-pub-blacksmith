@@ -240,8 +240,16 @@ export function formatPackLabel(pack, fallbackId = '') {
     const meta = pack?.metadata;
     if (!meta) return fallbackId;
 
-    let packageLabel = meta.packageLabel || meta.package || meta.packageName
-        || meta.system || meta.id?.split('.')[0] || 'Unknown Source';
+    const worldOwned = meta.packageType === 'world'
+        || String(meta.id || '').startsWith('world.')
+        || String(pack?.collection || '').startsWith('world.');
+    const packageId = meta.packageName || meta.package || meta.id?.split('.')[0] || '';
+    const manifestTitle = globalThis.game?.modules?.get?.(packageId)?.title
+        || (packageId === globalThis.game?.system?.id ? globalThis.game.system.title : '');
+    let packageLabel = worldOwned
+        ? `World: ${globalThis.game?.world?.title || globalThis.game?.world?.id || 'Current World'}`
+        : manifestTitle || meta.packageLabel || meta.package || meta.packageName
+            || meta.system || meta.id?.split('.')[0] || 'Unknown Source';
     if (packageLabel === 'world') packageLabel = 'World';
 
     return `${packageLabel}: ${meta.label}`;

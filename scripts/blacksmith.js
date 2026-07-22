@@ -37,7 +37,7 @@ import {
     buildCompendiumLinkActor
 } from './utility-common.js';
 // -- Import special page variables --
-import { registerSettings, ensureCoreLoadingProgressSettingRegistered, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices, primeCoreChoiceCaches, applyPendingAutomaticCompendiumMapping } from './settings.js';
+import { registerSettings, ensureCoreLoadingProgressSettingRegistered, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices, primeCoreChoiceCaches, applyPendingAutomaticCompendiumMapping, compactCompendiumMappingsOnLoad } from './settings.js';
 import { BlacksmithLayer } from './canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './timer-combat.js';
@@ -412,6 +412,7 @@ Hooks.once('ready', async () => {
     try {
         registerSettings();
         await applyPendingAutomaticCompendiumMapping();
+        await compactCompendiumMappingsOnLoad();
         LoadingProgressManager.reconcileVisibilityFromSetting();
     } catch (e) {
         console.error(`${MODULE.ID}: registerSettings failed (early ready)`, e);

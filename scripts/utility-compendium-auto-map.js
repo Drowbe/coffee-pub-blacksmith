@@ -17,26 +17,96 @@ const CORE_PHB_PATTERNS = [
 const CORE_DMG_PATTERNS = [/dungeon master'?s guide/, /\bdmg\b/, /^items$/];
 const CORE_MM_PATTERNS = [/monster manual/, /\bmm\b/, /^monster features$/];
 
+function normalizeSearchText(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[’']/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getOwningPackageId(pack) {
+    const metadata = pack?.metadata ?? {};
+    return String(metadata.packageName || metadata.package || metadata.id?.split('.')[0] || '');
+}
+
+function getOwningPackageTitle(pack) {
+    if (isWorldOwnedPack(pack)) return globalThis.game?.world?.title || globalThis.game?.world?.id || 'Current World';
+
+    const metadata = pack?.metadata ?? {};
+    const packageId = getOwningPackageId(pack);
+    const moduleTitle = globalThis.game?.modules?.get?.(packageId)?.title;
+    if (moduleTitle) return moduleTitle;
+    if (packageId && packageId === globalThis.game?.system?.id) return globalThis.game.system.title || packageId;
+    return metadata.packageLabel || '';
+}
+
+function ownerSearchText(pack) {
+    const metadata = pack?.metadata ?? {};
+    return normalizeSearchText([
+        getOwningPackageId(pack), getOwningPackageTitle(pack),
+        metadata.packageType, metadata.system
+    ].filter(Boolean).join(' '));
+}
+
+function getDeclaredSourceBook(pack) {
+    const metadata = pack?.metadata ?? {};
+    const systemId = metadata.system || globalThis.game?.system?.id;
+    const direct = metadata.flags?.[systemId]?.sourceBook
+        || metadata.flags?.dnd5e?.sourceBook
+        || metadata.sourceBook;
+    if (direct) return String(direct);
+
+    const packageId = getOwningPackageId(pack);
+    const owner = globalThis.game?.modules?.get?.(packageId)
+        || (packageId === globalThis.game?.system?.id ? globalThis.game.system : null);
+    const declarations = owner?.packs;
+    if (!declarations) return '';
+    const candidates = Array.isArray(declarations)
+        ? declarations
+        : Array.from(declarations.values?.() || declarations);
+    const packName = String(metadata.name || metadata.id?.split('.').pop() || '');
+    const declaration = candidates.find(candidate => {
+        const data = candidate?.metadata || candidate;
+        return data?.name === packName || data?.label === metadata.label || data?.id === metadata.id;
+    });
+    const data = declaration?.metadata || declaration;
+    return String(data?.flags?.[systemId]?.sourceBook || data?.flags?.dnd5e?.sourceBook || data?.sourceBook || '');
+}
+
 function packSearchText(pack) {
     const metadata = pack?.metadata ?? {};
-    return [
+    return normalizeSearchText([
         metadata.id, metadata.label, metadata.name, metadata.package,
-        metadata.packageName, metadata.packageLabel, metadata.system
-    ].filter(Boolean).join(' ').toLowerCase();
+        metadata.packageName, metadata.packageLabel, metadata.system,
+        getOwningPackageTitle(pack)
+    ].filter(Boolean).join(' '));
 }
 
 function packLabel(pack) {
     return String(pack?.metadata?.label || pack?.metadata?.name || pack?.metadata?.id || '').trim();
 }
 
+function isWorldOwnedPack(pack) {
+    const metadata = pack?.metadata ?? {};
+    return metadata.packageType === 'world'
+        || String(metadata.id || '').startsWith('world.')
+        || String(pack?.collection || '').startsWith('world.');
+}
+
 export function getCompendiumSourceId(pack) {
     const metadata = pack?.metadata ?? {};
+    if (isWorldOwnedPack(pack)) return 'world';
     return String(metadata.packageName || metadata.package || metadata.id?.split('.')[0] || 'unknown');
 }
 
 export function getCompendiumSourceLabel(pack) {
     const metadata = pack?.metadata ?? {};
-    return String(metadata.packageLabel || metadata.package || metadata.packageName || metadata.id?.split('.')[0] || 'Unknown Source');
+    if (isWorldOwnedPack(pack)) {
+        return `World: ${globalThis.game?.world?.title || globalThis.game?.world?.id || 'Current World'}`;
+    }
+    return String(getOwningPackageTitle(pack) || metadata.package || metadata.packageName || metadata.id?.split('.')[0] || 'Unknown Source');
 }
 
 function stableHash(value) {
@@ -53,8 +123,10 @@ export function getCompendiumSourceSettingKey(sourceId) {
 const IMPORTER_RELEVANT_PACK_TYPES = new Set(['Actor', 'Item', 'JournalEntry', 'RollTable']);
 
 export function isImporterRelevantCompendium(pack) {
-    return IMPORTER_RELEVANT_PACK_TYPES.has(String(pack?.metadata?.type || ''))
-        && indexEntries(pack).length > 0;
+    const type = String(pack?.metadata?.type || '');
+    return IMPORTER_RELEVANT_PACK_TYPES.has(type)
+        && indexEntries(pack).length > 0
+        && (type !== 'JournalEntry' || isPrimaryJournalCompendium(pack));
 }
 
 export function getInstalledCompendiumSources() {
@@ -92,11 +164,13 @@ function matchesAny(text, patterns) {
  */
 export function classifyCompendiumTier(pack) {
     const text = packSearchText(pack);
-    const label = packLabel(pack).toLowerCase();
-    const packageId = String(pack?.metadata?.package || pack?.metadata?.packageName || '').toLowerCase();
+    const ownerText = ownerSearchText(pack);
+    const label = normalizeSearchText(packLabel(pack));
+    const packageId = getOwningPackageId(pack).toLowerCase();
+    const sourceBook = normalizeSearchText(getDeclaredSourceBook(pack));
 
-    if (/\bsrd\b|\(srd\)/.test(text)) return { tier: 4, order: 0, reason: 'SRD' };
-    if (matchesAny(text, OFFICIAL_SUPPLEMENT_PATTERNS)) return { tier: 1, order: 0, reason: 'official supplement' };
+    if (/\bsrd\b/.test(sourceBook) || /\bsrd\b/.test(text)) return { tier: 4, order: 0, reason: 'SRD' };
+    if (matchesAny(ownerText, OFFICIAL_SUPPLEMENT_PATTERNS)) return { tier: 1, order: 0, reason: 'official supplement' };
 
     // The dnd5e system's non-SRD Character Classes, Character Origins,
     // Equipment, Feats, Spells, Items, and Monster Features packs represent
@@ -104,13 +178,13 @@ export function classifyCompendiumTier(pack) {
     // metadata.system is dnd5e for every compatible third-party pack, so only
     // the owning package—not the game system—can establish official core status.
     const officialCore = packageId === 'dnd5e';
-    if (matchesAny(text, CORE_PHB_PATTERNS) || (officialCore && matchesAny(label, CORE_PHB_PATTERNS))) {
+    if (matchesAny(ownerText, CORE_PHB_PATTERNS) || (officialCore && matchesAny(label, CORE_PHB_PATTERNS))) {
         return { tier: 2, order: 0, reason: 'Player’s Handbook/core player content' };
     }
-    if (matchesAny(text, CORE_DMG_PATTERNS) || (officialCore && matchesAny(label, CORE_DMG_PATTERNS))) {
+    if (matchesAny(ownerText, CORE_DMG_PATTERNS) || (officialCore && matchesAny(label, CORE_DMG_PATTERNS))) {
         return { tier: 2, order: 1, reason: 'Dungeon Master’s Guide/core GM content' };
     }
-    if (matchesAny(text, CORE_MM_PATTERNS) || (officialCore && matchesAny(label, CORE_MM_PATTERNS))) {
+    if (matchesAny(ownerText, CORE_MM_PATTERNS) || (officialCore && matchesAny(label, CORE_MM_PATTERNS))) {
         return { tier: 2, order: 2, reason: 'Monster Manual/core monster content' };
     }
     if (officialCore) return { tier: 2, order: 3, reason: 'official core system content' };
@@ -216,6 +290,19 @@ export function isPrimaryFeatureCompendium(pack) {
     return !matchesAny(label, FEATURE_SUPPORT_PACK_PATTERNS);
 }
 
+// Some tools use world-owned Journal compendiums as implementation storage.
+// These are real JournalEntry documents, but preset/cache/configuration stores
+// are not narrative catalogs and should not become importer sources merely
+// because another module chose JournalEntry as its persistence format.
+const JOURNAL_SUPPORT_PACK_PATTERNS = [
+    /\bpresets?\b/, /\bcaches?\b/, /\bconfiguration\b/,
+    /\binternal storage\b/, /\bdata store\b/
+];
+
+export function isPrimaryJournalCompendium(pack) {
+    return !matchesAny(packLabel(pack).toLowerCase(), JOURNAL_SUPPORT_PACK_PATTERNS);
+}
+
 // The generic Item mapping is for inventory a character can carry: weapons,
 // equipment, consumables, tools, loot, and containers. Many class, background,
 // spell, and feature packs contain one incidental physical Item (or a helper
@@ -266,6 +353,7 @@ export function compendiumContainsMappedType(pack, type) {
     const subtype = getDocumentSubtype(canonicalType);
     const entries = indexEntries(pack);
     if (!entries.length) return false;
+    if (canonicalType === 'JournalEntry' && !isPrimaryJournalCompendium(pack)) return false;
     if (subtype) {
         const indexedTypes = entries.map(entry => String(entry?.type || '').toLowerCase()).filter(Boolean);
         if (indexedTypes.length) {
