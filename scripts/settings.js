@@ -2992,6 +2992,48 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Token Blood Hit Trigger --
+	game.settings.register(MODULE.ID, 'tokenBloodHitTrigger', {
+		name: MODULE.ID + '.tokenBloodHitTrigger-Label',
+		hint: MODULE.ID + '.tokenBloodHitTrigger-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			damage: 'When Damage Is Applied',
+			attack: 'On a Successful Attack Roll'
+		},
+		default: 'damage',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Token Blood Hit Sound --
+	game.settings.register(MODULE.ID, 'tokenBloodHitSound', {
+		name: MODULE.ID + '.tokenBloodHitSound-Label',
+		hint: MODULE.ID + '.tokenBloodHitSound-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: 'sound-none',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Token Blood Cleanup --
+	game.settings.register(MODULE.ID, 'tokenBloodCleanupSeconds', {
+		name: MODULE.ID + '.tokenBloodCleanupSeconds-Label',
+		hint: MODULE.ID + '.tokenBloodCleanupSeconds-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0,
+		range: { min: 0, max: 300, step: 5 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Token Blood Clear Request (hidden relay: GM "Remove All Blood" writes a nonce here;
 	// -- every client's settingChange watcher clears its local splatter) --
 	game.settings.register(MODULE.ID, 'tokenBloodClearRequest', {

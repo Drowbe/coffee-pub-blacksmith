@@ -1,7 +1,8 @@
 import { MODULE } from './const.js';
-import { getSettingSafely, postConsoleAndNotification } from './api-core.js';
+import { getSettingSafely, postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { getActorHP, getHealthPercent, getHealthSeverity } from './utility-health.js';
+import { resolveAttackMessage } from './utility-message-resolution.js';
 
 export class TokenIndicatorManager {
     static _initialized = false;
@@ -37,6 +38,15 @@ export class TokenIndicatorManager {
 
     /** Cached gate for hit bursts — recomputed by _rebuildAllBlood() */
     static _bloodHitActive = false;
+
+    /** Cached hit-trigger mode ('damage' | 'attack') — recomputed by _rebuildAllBlood() */
+    static _bloodHitTrigger = 'damage';
+
+    /** Cached hit-burst sound ('sound-none' = silent) — recomputed by _rebuildAllBlood() */
+    static _bloodHitSound = 'sound-none';
+
+    /** Attack-mode dedupe: message ids that already produced a burst (bounded FIFO) */
+    static _bloodHitProcessedMessages = new Set();
 
     /** Token ids cleared by "Remove All Blood" — blood stays gone until the token next takes damage */
     static _bloodSuppressed = new Set();
@@ -118,6 +128,29 @@ export class TokenIndicatorManager {
             }
         });
 
+        // dnd5e 5.x creates the attack card first and fills in rolls/target flags via a
+        // later update, so the attack lane must watch BOTH hooks (same pattern as
+        // CombatStats._onChatMessage); _onChatMessageForBloodHit dedupes per message.
+        this._hookIds.createChatMessage = HookManager.registerHook({
+            name: 'createChatMessage',
+            description: 'Token indicators: blood hit burst on successful attack rolls',
+            context: 'token-indicators',
+            priority: 3,
+            callback: (message) => {
+                this._onChatMessageForBloodHit(message);
+            }
+        });
+
+        this._hookIds.updateChatMessage = HookManager.registerHook({
+            name: 'updateChatMessage',
+            description: 'Token indicators: blood hit burst when attack rolls arrive via message update',
+            context: 'token-indicators',
+            priority: 3,
+            callback: (message) => {
+                this._onChatMessageForBloodHit(message);
+            }
+        });
+
         this._hookIds.canvasReady = HookManager.registerHook({
             name: 'canvasReady',
             description: 'Token indicators: refresh after scene load',
@@ -178,9 +211,13 @@ export class TokenIndicatorManager {
                     if (damageFraction > 0) {
                         // New damage re-blooms a token cleared by "Remove All Blood"
                         this._bloodSuppressed.delete(token.id);
-                        if (this._bloodHitActive) this._spawnHitBurst(token, damageFraction);
+                        if (this._bloodHitActive && this._bloodHitTrigger === 'damage') this._spawnHitBurst(token, damageFraction, hp?.value ?? 0);
                     }
-                    if (this._bloodActive) this._updateBloodForToken(token);
+                    if (this._bloodActive) {
+                        this._updateBloodForToken(token);
+                        // New damage restarts the cleanup countdown even within the same tier
+                        if (damageFraction > 0) this._scheduleBloodCleanup(token.id);
+                    }
                 }
             }
         });
@@ -236,7 +273,10 @@ export class TokenIndicatorManager {
                     'targetedPortraitsPortraitType',
                     'tokenBloodEnabled',
                     'tokenBloodHitEnabled',
-                    'tokenBloodVisibility'
+                    'tokenBloodHitTrigger',
+                    'tokenBloodHitSound',
+                    'tokenBloodVisibility',
+                    'tokenBloodCleanupSeconds'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -1333,6 +1373,8 @@ export class TokenIndicatorManager {
         this._removeAllBlood();
         this._bloodActive = this._isBloodVisibleToUser();
         this._bloodHitActive = this._isBloodHitVisibleToUser();
+        this._bloodHitTrigger = getSettingSafely(MODULE.ID, 'tokenBloodHitTrigger', 'damage');
+        this._bloodHitSound = getSettingSafely(MODULE.ID, 'tokenBloodHitSound', 'sound-none');
         if (!canvas?.tokens) return;
         // Seed the last-HP cache so the first hit after load computes a real delta
         for (const token of canvas.tokens.placeables) {
@@ -1364,7 +1406,8 @@ export class TokenIndicatorManager {
         try {
             const mesh = this._buildBloodMesh(token, severity);
             if (!mesh) return;
-            this._bloodMeshes.set(tokenId, { mesh, severity });
+            this._bloodMeshes.set(tokenId, { mesh, severity, cleanupTimeout: null });
+            this._scheduleBloodCleanup(tokenId);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Token indicators | Failed to build blood splatter', error?.message || error, true, false);
         }
@@ -1483,9 +1526,76 @@ export class TokenIndicatorManager {
         if (token.actor) this._updateBloodForToken(token);
     }
 
+    /**
+     * Attack-mode lane, called from createChatMessage AND updateChatMessage.
+     * Only marks a message processed once it actually resolves with hit targets,
+     * so a create-time miss (rolls not yet populated) can succeed on the update.
+     */
+    static _onChatMessageForBloodHit(message) {
+        if (!this._bloodHitActive || this._bloodHitTrigger !== 'attack') return;
+        if (!message?.id || this._bloodHitProcessedMessages.has(message.id)) return;
+        let resolved = null;
+        try {
+            resolved = resolveAttackMessage(message);
+        } catch (error) {
+            return;
+        }
+        if (!resolved?.hitTargets?.length) return;
+        this._bloodHitProcessedMessages.add(message.id);
+        // Bounded FIFO: Sets iterate in insertion order, so evict the oldest
+        while (this._bloodHitProcessedMessages.size > 100) {
+            this._bloodHitProcessedMessages.delete(this._bloodHitProcessedMessages.values().next().value);
+        }
+        postConsoleAndNotification(MODULE.NAME, 'Token blood | Attack hit', { message: message.id, hitTargets: resolved.hitTargets }, true, false);
+        for (const uuid of resolved.hitTargets) {
+            const token = this._resolveTokenFromTargetUuid(uuid);
+            // Fixed mid-weight burst: no damage number exists yet at attack time
+            if (token) this._spawnHitBurst(token, 0.35, message.id);
+        }
+    }
+
+    /**
+     * Resolve a dnd5e attack-card target uuid (TokenDocument or Actor, including
+     * synthetic actors on unlinked tokens) to a canvas Token.
+     */
+    static _resolveTokenFromTargetUuid(uuid) {
+        if (!uuid) return null;
+        try {
+            const doc = fromUuidSync(uuid);
+            if (!doc) return null;
+            if (doc.documentName === 'Token') return doc.object ?? null;
+            if (doc.documentName === 'Actor') return doc.getActiveTokens?.()[0] ?? null;
+        } catch (error) {
+            // Unresolvable uuid (cross-scene target, deleted document) — no burst
+        }
+        return null;
+    }
+
+    /**
+     * Blood Cleanup: after the configured number of seconds since the token's
+     * last damage, remove its pool and suppress redraws until it bleeds again.
+     * 0 means never. Each client runs its own timer from the same update event.
+     */
+    static _scheduleBloodCleanup(tokenId) {
+        const entry = this._bloodMeshes.get(tokenId);
+        if (!entry) return;
+        if (entry.cleanupTimeout) {
+            clearTimeout(entry.cleanupTimeout);
+            entry.cleanupTimeout = null;
+        }
+        const seconds = Number(getSettingSafely(MODULE.ID, 'tokenBloodCleanupSeconds', 0)) || 0;
+        if (seconds <= 0) return;
+        entry.cleanupTimeout = setTimeout(() => {
+            // Suppress so the lazy refresh path does not immediately redraw from HP state
+            this._bloodSuppressed.add(tokenId);
+            this._removeBloodForToken(tokenId);
+        }, seconds * 1000);
+    }
+
     static _removeBloodForToken(tokenId) {
         const entry = this._bloodMeshes.get(tokenId);
         if (!entry) return;
+        if (entry.cleanupTimeout) clearTimeout(entry.cleanupTimeout);
         const { mesh } = entry;
         if (mesh && !mesh.destroyed) {
             const texture = mesh.texture;
@@ -1536,24 +1646,37 @@ export class TokenIndicatorManager {
      * Transient "you hit it" burst: a brighter splatter above the token that
      * expands and fades over ~0.9s. Size scales with damage as % of max HP.
      */
-    static _spawnHitBurst(token, damageFraction) {
+    static _spawnHitBurst(token, damageFraction, seedValue = 0) {
         if (!canvas?.app?.ticker || !canvas.interface || !token?.center) return;
         if (token.visible === false) return;
         try {
-            const texture = this._generateHitBurstTexture(token, damageFraction);
+            // Seeding with the token's NEW HP value makes every hit draw a different
+            // burst while still matching across all clients (same update, same seed)
+            const rand = this._seededRandom(`${token.id}:hit:${seedValue}:${Math.round(Math.min(1, damageFraction) * 1000)}`);
+            const texture = this._generateHitBurstTexture(token, damageFraction, rand);
             if (!texture) return;
             const sprite = new PIXI.Sprite(texture);
             sprite.anchor.set(0.5, 0.5);
             sprite.position.set(token.center.x, token.center.y);
             sprite.eventMode = 'none';
-            sprite.scale.set(0.6);
+            sprite.scale.set(0.55);
             sprite.alpha = 0.95;
+            // Random rotation is a cheap second axis of variety on the radial pattern
+            sprite.rotation = rand() * Math.PI * 2;
             // High zIndex pins the burst above other interface-layer children (rings, portraits)
             sprite.zIndex = 100;
             canvas.interface.addChild(sprite);
             postConsoleAndNotification(MODULE.NAME, 'Token blood | Hit burst spawned', { token: token.id, damageFraction }, true, false);
 
-            const duration = 1300;
+            // Local playback (broadcast: false): every client spawns its own burst
+            // from the same event, so broadcasting would double the sound
+            const sound = this._bloodHitSound;
+            if (sound && sound !== 'sound-none' && sound !== 'none') {
+                void playSound(sound, window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7, false, false);
+            }
+
+            const duration = 1100 + rand() * 400;
+            const expansion = 0.7 + rand() * 0.3;
             let elapsed = 0;
             let done = false;
             const finish = () => {
@@ -1572,7 +1695,7 @@ export class TokenIndicatorManager {
                 const progress = Math.min(elapsed / duration, 1);
                 if (!sprite.destroyed) {
                     const eased = 1 - Math.pow(1 - progress, 2);
-                    sprite.scale.set(0.55 + eased * 0.8);
+                    sprite.scale.set(0.55 + eased * expansion);
                     // Hold near-full alpha for the first third, then fade
                     sprite.alpha = progress < 0.33 ? 0.95 : 0.95 * (1 - (progress - 0.33) / 0.67);
                 }
@@ -1585,7 +1708,7 @@ export class TokenIndicatorManager {
         }
     }
 
-    static _generateHitBurstTexture(token, damageFraction) {
+    static _generateHitBurstTexture(token, damageFraction, rand) {
         if (!canvas?.app?.renderer) return null;
         const size = Math.max(token.w || 0, token.h || 0);
         if (!size) return null;
@@ -1595,7 +1718,6 @@ export class TokenIndicatorManager {
         const darkColor = 0x6e0d0d;
         const frac = Math.max(0.02, Math.min(1, damageFraction));
         const blobs = 10 + Math.round(frac * 14);
-        const rand = this._seededRandom(`${token.id}:hit:${Math.round(frac * 1000)}`);
         const area = size * 3;
         const half = area / 2;
         const g = new PIXI.Graphics();
@@ -1632,6 +1754,19 @@ export class TokenIndicatorManager {
                 g.endFill();
                 r *= 0.78;
             }
+        }
+
+        // Fine mist: tiny droplets peppered in all directions, thickest near the
+        // body and thinning with distance, so the spray reads as 360-degree
+        const mist = 18 + Math.round(frac * 24);
+        for (let m = 0; m < mist; m++) {
+            const angle = rand() * Math.PI * 2;
+            // Square the roll to bias droplets toward the center
+            const dist = size * (0.15 + Math.pow(rand(), 1.6) * (1.0 + frac * 0.3));
+            const r = size * (0.012 + rand() * 0.028);
+            g.beginFill(rand() < 0.75 ? color : darkColor, 0.5 + rand() * 0.4);
+            g.drawCircle(half + Math.cos(angle) * dist, half + Math.sin(angle) * dist, r);
+            g.endFill();
         }
 
         const texture = canvas.app.renderer.generateTexture(g, {

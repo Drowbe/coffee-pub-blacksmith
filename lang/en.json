@@ -491,6 +491,15 @@
 				"tokenBloodHitEnabled-Label": "Blood Hit",
 				"tokenBloodHitEnabled-Hint": "Show a brief blood burst from a token the moment it takes damage, scaled to how hard the hit was. The burst fades out after about a second.",
 
+				"tokenBloodHitTrigger-Label": "Blood Hit Trigger",
+				"tokenBloodHitTrigger-Hint": "When the hit burst fires. When Damage Is Applied works in any system and scales the burst to the damage dealt. On a Successful Attack Roll fires the moment an attack hits (dnd5e attack cards with targeted tokens; hit is judged against the target's AC), before any damage is rolled or applied.",
+
+				"tokenBloodHitSound-Label": "Blood Hit Sound",
+				"tokenBloodHitSound-Hint": "Sound played with the hit burst. Each client plays it locally alongside its own burst, so it follows the Token Blood Visibility setting.",
+
+				"tokenBloodCleanupSeconds-Label": "Blood Cleanup",
+				"tokenBloodCleanupSeconds-Hint": "Seconds until a token's blood pool is removed from the ground, counted from the last time it took damage. New damage brings the blood back and restarts the timer. 0 means blood is never removed automatically.",
+
 				"tokenBloodVisibility-Label": "Token Blood Visibility",
 				"tokenBloodVisibility-Hint": "Who can see blood damage pools and hit bursts. GM Only hides them from players so they cannot read enemy health from the canvas.",
 
