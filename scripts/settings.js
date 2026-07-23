@@ -3043,6 +3043,15 @@ export const registerSettings = () => {
 		default: 0
 	});
 
+	// -- Token Blood Restore Request (hidden relay: GM "Restore All Blood" writes a nonce here;
+	// -- every client lifts suppression and redraws blood from current HP) --
+	game.settings.register(MODULE.ID, 'tokenBloodRestoreRequest', {
+		scope: 'world',
+		config: false,
+		type: Number,
+		default: 0
+	});
+
 	// -- Token Blood Visibility --
 	game.settings.register(MODULE.ID, 'tokenBloodVisibility', {
 		name: MODULE.ID + '.tokenBloodVisibility-Label',

@@ -370,6 +370,26 @@ async function registerDefaultTools() {
         order: 40
     });
 
+    registerTool('restore-blood', {
+        icon: "fa-solid fa-droplet",
+        name: "restore-blood",
+        title: "Restore All Blood",
+        button: true,
+        visible: true,
+        gmOnly: true,
+        onCoffeePub: true,
+        onFoundry: () => {
+            return getSettingSafely(MODULE.ID, 'tokenBloodEnabled', true);
+        },
+        onClick: async () => {
+            const { TokenIndicatorManager } = await import('./manager-token-indicators.js');
+            TokenIndicatorManager.requestRestoreAllBlood();
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'gmtools',
+        order: 41
+    });
+
     registerTool('vote', {
         icon: "fa-solid fa-vote-yea",
         name: "vote",

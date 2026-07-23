@@ -246,6 +246,11 @@ export class TokenIndicatorManager {
                     this._clearAllBloodAndSuppress();
                     return;
                 }
+                if (key === 'tokenBloodRestoreRequest') {
+                    this._bloodSuppressed.clear();
+                    this._rebuildAllBlood();
+                    return;
+                }
                 const watchedKeys = new Set([
                     'generalIndicatorsEnabled',
                     'generalIndicatorsThickness',
@@ -1628,6 +1633,17 @@ export class TokenIndicatorManager {
         if (!game.user?.isGM) return;
         game.settings.set(MODULE.ID, 'tokenBloodClearRequest', Date.now()).catch(error => {
             postConsoleAndNotification(MODULE.NAME, 'Token indicators | Failed to broadcast blood clear', error?.message || error, false, false);
+        });
+    }
+
+    /**
+     * GM "Restore All Blood" toolbar action: the inverse of the clear. Lifts
+     * suppression on every client and redraws blood from current HP state.
+     */
+    static requestRestoreAllBlood() {
+        if (!game.user?.isGM) return;
+        game.settings.set(MODULE.ID, 'tokenBloodRestoreRequest', Date.now()).catch(error => {
+            postConsoleAndNotification(MODULE.NAME, 'Token indicators | Failed to broadcast blood restore', error?.message || error, false, false);
         });
     }
 
