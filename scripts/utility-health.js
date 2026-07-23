@@ -32,10 +32,11 @@ export function getHealthPercent(actor) {
 }
 
 /**
- * Classify a health percent into the severity tiers used across Blacksmith
- * (same boundaries as the combat bar's portrait ring classes).
+ * Classify a health percent into severity tiers. The 75/50/25/0 boundaries match
+ * the combat bar's portrait ring classes; 'hurt' additionally distinguishes
+ * "has taken any damage at all" from truly untouched 'healthy'.
  * @param {number | null} percent
- * @returns {'healthy' | 'injured' | 'bloodied' | 'critical' | 'dead' | null}
+ * @returns {'healthy' | 'hurt' | 'injured' | 'bloodied' | 'critical' | 'dead' | null}
  */
 export function getHealthSeverity(percent) {
     if (percent === null || percent === undefined || !Number.isFinite(percent)) return null;
@@ -43,5 +44,6 @@ export function getHealthSeverity(percent) {
     if (percent < 25) return 'critical';
     if (percent < 50) return 'bloodied';
     if (percent < 75) return 'injured';
+    if (percent < 100) return 'hurt';
     return 'healthy';
 }

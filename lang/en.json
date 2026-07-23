@@ -486,7 +486,7 @@
 			"headingH3HealthIndicators-Hint": "",
 
 				"tokenBloodEnabled-Label": "Blood Damage",
-				"tokenBloodEnabled-Hint": "Show a pool of blood on the ground under tokens that grows as they lose hit points, with smaller splatters around it. The pool deepens as health drops below 75%, 50%, and 25%, spreading widest at 0 HP. The Remove All Blood toolbar button clears the canvas until tokens take new damage.",
+				"tokenBloodEnabled-Hint": "Show a pool of blood on the ground under tokens that grows as they lose hit points, with smaller splatters around it. Any damage at all shows a small pool and a few droplets; the pool deepens as health drops below 75%, 50%, and 25%, spreading widest at 0 HP. The Remove All Blood toolbar button clears the canvas until tokens take new damage.",
 
 				"tokenBloodHitEnabled-Label": "Blood Hit",
 				"tokenBloodHitEnabled-Hint": "Show a brief blood burst from a token the moment it takes damage, scaled to how hard the hit was. The burst fades out after about a second.",

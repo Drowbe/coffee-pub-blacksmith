@@ -1350,6 +1350,7 @@ export class TokenIndicatorManager {
      * the pool so they read as separate droplets, not pool lumps.
      */
     static _BLOOD_TIERS = {
+        hurt:     { pool: 0.26, splats: 3,  spread: 0.55, splatRadius: 0.038, alpha: 0.50, color: 0x7a0f0f },
         injured:  { pool: 0.42, splats: 5,  spread: 0.70, splatRadius: 0.050, alpha: 0.55, color: 0x7a0f0f },
         bloodied: { pool: 0.58, splats: 8,  spread: 0.85, splatRadius: 0.060, alpha: 0.65, color: 0x7a0f0f },
         critical: { pool: 0.72, splats: 11, spread: 1.05, splatRadius: 0.070, alpha: 0.72, color: 0x6b0c0c },
