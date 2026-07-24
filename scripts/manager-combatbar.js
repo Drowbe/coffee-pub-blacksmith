@@ -472,6 +472,23 @@ export class CombatBarManager {
             document.removeEventListener('contextmenu', menuBar._combatBarContextMenuHandler);
             menuBar._combatBarContextMenuHandler = null;
         }
+        if (menuBar._combatBarPointerDownHandler) {
+            document.removeEventListener('pointerdown', menuBar._combatBarPointerDownHandler);
+            menuBar._combatBarPointerDownHandler = null;
+        }
+        if (menuBar._combatBarPointerMoveHandler) {
+            document.removeEventListener('pointermove', menuBar._combatBarPointerMoveHandler);
+            menuBar._combatBarPointerMoveHandler = null;
+        }
+        if (menuBar._combatBarPointerUpHandler) {
+            document.removeEventListener('pointerup', menuBar._combatBarPointerUpHandler);
+            menuBar._combatBarPointerUpHandler = null;
+        }
+        if (menuBar._combatBarKeyDownHandler) {
+            document.removeEventListener('keydown', menuBar._combatBarKeyDownHandler);
+            menuBar._combatBarKeyDownHandler = null;
+        }
+        CombatBarManager._teardownInitiativeDrag();
 
         CombatBarManager.hideCombatantHoverCard(menuBar);
         UIContextMenu.close('blacksmith-combat-portrait-context-menu');
@@ -501,6 +518,13 @@ export class CombatBarManager {
 
     static updateCombatBar(menuBar, combatData = null) {
         try {
+            // A rebuild mid-drag would yank the portrait out from under the
+            // pointer — defer; the drag's end applies it (or the initiative
+            // write triggers its own).
+            if (CombatBarManager._initiativeDrag?.active) {
+                CombatBarManager._initiativeDrag.refreshPending = true;
+                return false;
+            }
             if (menuBar._isUserExcluded(game.user)) return false;
             if (!menuBar.secondaryBar.isOpen || menuBar.secondaryBar.type !== 'combat') return false;
 
@@ -796,6 +820,14 @@ export class CombatBarManager {
         if (menuBar._combatBarClickHandler) return;
 
         menuBar._combatBarClickHandler = async (event) => {
+            // The click that follows an initiative drag's pointerup is not a
+            // click — eat it so it can't pan the canvas.
+            if (CombatBarManager._suppressNextCombatClick) {
+                CombatBarManager._suppressNextCombatClick = false;
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
             if (event.target.closest('.combatbar-button[data-control="toggleTracker"]')) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -1020,6 +1052,10 @@ export class CombatBarManager {
         document.addEventListener('dblclick', menuBar._combatBarDblClickHandler);
 
         menuBar._combatBarHoverMoveHandler = (event) => {
+            if (CombatBarManager._initiativeDrag?.active) {
+                CombatBarManager.hideCombatantHoverCard(menuBar);
+                return;
+            }
             const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
             if (!portrait || !CombatBarManager.isCombatBarActive(menuBar)) {
                 CombatBarManager.hideCombatantHoverCard(menuBar);
@@ -1049,6 +1085,20 @@ export class CombatBarManager {
             CombatBarManager.showCombatantPortraitContextMenu(menuBar, combatantId, event.clientX, event.clientY);
         };
         document.addEventListener('contextmenu', menuBar._combatBarContextMenuHandler);
+
+        // Initiative drag-to-reorder (GM only) — pointer trio + Escape cancel.
+        menuBar._combatBarPointerDownHandler = (event) => CombatBarManager.onInitiativeDragStart(menuBar, event);
+        menuBar._combatBarPointerMoveHandler = (event) => CombatBarManager.onInitiativeDragMove(menuBar, event);
+        menuBar._combatBarPointerUpHandler = (event) => { void CombatBarManager.onInitiativeDragEnd(menuBar, event); };
+        menuBar._combatBarKeyDownHandler = (event) => {
+            if (event.key === 'Escape' && CombatBarManager._initiativeDrag?.active) {
+                CombatBarManager.cancelInitiativeDrag(menuBar);
+            }
+        };
+        document.addEventListener('pointerdown', menuBar._combatBarPointerDownHandler);
+        document.addEventListener('pointermove', menuBar._combatBarPointerMoveHandler);
+        document.addEventListener('pointerup', menuBar._combatBarPointerUpHandler);
+        document.addEventListener('keydown', menuBar._combatBarKeyDownHandler);
 
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
     }
@@ -1510,5 +1560,155 @@ export class CombatBarManager {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error setting current combatant", error, false, false);
         }
+    }
+
+    // ===== INITIATIVE DRAG (GM) =====
+    // Drag a portrait left/right to rewrite its initiative between its new
+    // neighbors, mirroring the native tracker's reordering. Pointer-based:
+    // a press only becomes a drag past DRAG_THRESHOLD (same disambiguation
+    // the pins renderer uses), so portrait clicks/double-clicks stay intact.
+    // While a drag is live, updateCombatBar() defers re-renders (a mid-drag
+    // rebuild would yank the element out from under the pointer) and the
+    // hover card stays hidden; the initiative write's own re-render is the
+    // natural drag end.
+
+    static _initiativeDrag = null;          // { combatantId, element, startX, startY, active, refreshPending }
+    static _suppressNextCombatClick = false; // eat the click that follows a drag's pointerup
+    static DRAG_THRESHOLD = 8;               // px before a press commits to dragging
+
+    static onInitiativeDragStart(menuBar, event) {
+        if (!game.user.isGM || event.button !== 0) return;
+        if (this._initiativeDrag) return;
+        if (!CombatBarManager.isCombatBarActive(menuBar)) return;
+        const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
+        if (!portrait) return;
+        if (event.target.closest('a, button, .combatant-control, .combat-portrait-initiative-dice')) return;
+        this._initiativeDrag = {
+            combatantId: portrait.getAttribute('data-combatant-id'),
+            element: portrait,
+            startX: event.clientX,
+            startY: event.clientY,
+            active: false,
+            refreshPending: false
+        };
+    }
+
+    static onInitiativeDragMove(menuBar, event) {
+        const drag = this._initiativeDrag;
+        if (!drag) return;
+        if (!drag.active) {
+            const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
+            if (distance < this.DRAG_THRESHOLD) return;
+            drag.active = true;
+            drag.element.classList.add('initiative-dragging');
+            drag.element.closest('.combat-portraits')?.classList.add('initiative-drag-active');
+            CombatBarManager.hideCombatantHoverCard(menuBar);
+        }
+        event.preventDefault();
+        this._updateInitiativeDropMarker(event.clientX);
+    }
+
+    static async onInitiativeDragEnd(menuBar, event) {
+        const drag = this._initiativeDrag;
+        if (!drag) return;
+        if (!drag.active) {
+            // Never crossed the threshold — it's a click; let it proceed.
+            this._initiativeDrag = null;
+            return;
+        }
+
+        // Eat the click that follows this pointerup — it would pan the canvas.
+        this._suppressNextCombatClick = true;
+        setTimeout(() => { this._suppressNextCombatClick = false; }, 250);
+
+        const others = this._portraitList().filter(el => el !== drag.element);
+        const target = this._initiativeDropTarget(event.clientX, others);
+        const prev = drag.element.previousElementSibling;
+        const next = drag.element.nextElementSibling;
+        const refreshPending = drag.refreshPending;
+        this._teardownInitiativeDrag();
+
+        try {
+            const combat = game.combat;
+            const combatant = combat?.combatants?.get(drag.combatantId);
+            if (combat && combatant && others.length) {
+                // rightEl = the portrait we insert in front of; leftEl = the one before it.
+                const rightEl = target.before;
+                const leftEl = rightEl ? (others[others.indexOf(rightEl) - 1] ?? null) : others[others.length - 1];
+                // Dropped back into its own slot (neighbors unchanged) — no write.
+                const sameSlot = rightEl === next && leftEl === prev;
+                if (!sameSlot) {
+                    const getInit = (el) => {
+                        const c = combat.combatants.get(el?.getAttribute?.('data-combatant-id'));
+                        return typeof c?.initiative === 'number' ? c.initiative : 0;
+                    };
+                    let newInitiative;
+                    if (leftEl && rightEl) newInitiative = (getInit(leftEl) + getInit(rightEl)) / 2;
+                    else if (rightEl) newInitiative = getInit(rightEl) + 1;  // far left: above the current top
+                    else newInitiative = getInit(leftEl) - 1;                 // far right: below the current bottom
+                    newInitiative = Math.round(newInitiative * 100) / 100;
+                    await combat.setInitiative(drag.combatantId, newInitiative);
+                    postConsoleAndNotification(MODULE.NAME, `Combat Bar: ${combatant.name} initiative set to ${newInitiative} via drag`, "", true, false);
+                    return; // setInitiative's own update re-renders the bar
+                }
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error applying initiative drag', error, false, false);
+        }
+        // No write happened — apply any re-render deferred during the drag.
+        if (refreshPending) CombatBarManager.updateCombatBar(menuBar);
+    }
+
+    static cancelInitiativeDrag(menuBar) {
+        const drag = this._initiativeDrag;
+        if (!drag) return;
+        const wasActive = drag.active;
+        const refreshPending = drag.refreshPending;
+        this._teardownInitiativeDrag();
+        if (wasActive) {
+            this._suppressNextCombatClick = true;
+            setTimeout(() => { this._suppressNextCombatClick = false; }, 250);
+            if (refreshPending) CombatBarManager.updateCombatBar(menuBar);
+        }
+    }
+
+    static _teardownInitiativeDrag() {
+        const drag = this._initiativeDrag;
+        if (!drag) return;
+        drag.element?.classList?.remove('initiative-dragging');
+        document.querySelector('.blacksmith-menubar-secondary .combat-portraits')?.classList.remove('initiative-drag-active');
+        this._clearInitiativeDropMarkers();
+        this._initiativeDrag = null;
+    }
+
+    static _portraitList() {
+        return [...document.querySelectorAll('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]')];
+    }
+
+    static _clearInitiativeDropMarkers() {
+        for (const el of this._portraitList()) {
+            el.classList.remove('initiative-drop-before', 'initiative-drop-after');
+        }
+    }
+
+    static _updateInitiativeDropMarker(pointerX) {
+        const drag = this._initiativeDrag;
+        if (!drag?.active) return;
+        this._clearInitiativeDropMarkers();
+        const others = this._portraitList().filter(el => el !== drag.element);
+        if (!others.length) return;
+        const target = this._initiativeDropTarget(pointerX, others);
+        if (target.before) target.before.classList.add('initiative-drop-before');
+        else target.after?.classList.add('initiative-drop-after');
+    }
+
+    static _initiativeDropTarget(pointerX, others) {
+        // First portrait whose midpoint the pointer sits left of → insert
+        // before it; past all midpoints → insert after the last portrait.
+        for (const el of others) {
+            const rect = el.getBoundingClientRect();
+            if (pointerX < rect.left + rect.width / 2) return { before: el, after: null };
+        }
+        return { before: null, after: others[others.length - 1] ?? null };
     }
 }

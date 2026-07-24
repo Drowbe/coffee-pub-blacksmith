@@ -139,12 +139,9 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 
 ### High Priority
 
-#### Combat bar: drag portraits to reorder initiative
-- **Context (author, 2026-07-24)**: wants to drag portraits left/right on the combat bar to change initiative order, mirroring what the native combat tracker allows.
-- **Sketch**: GM-only pointer-based drag on `.combat-portrait` elements — pointerdown arms a drag after a movement threshold (the portraits already have click and context-menu handlers, so click-vs-drag disambiguation is required, same problem the pins renderer solved with `DRAG_THRESHOLD`); on drop, compute the target slot from the drop X among the initiative-sorted portraits and write an initiative between the neighbors via `combat.setInitiative(id, (left + right) / 2)`, clamping the edges (above the top: `top + 1`; below the bottom: `bottom - 1`). Combatants with null initiative and ties need a rule before shipping.
-- **Complications that set the difficulty (medium, one focused session)**: the bar re-renders on every `updateCombat`/combatant change through the menubar's template pipeline, so the drag state must survive or suppress a mid-drag re-render; and the initiative write itself triggers that re-render, which is the natural drag-end.
-- **Location**: `scripts/manager-combatbar.js` (portrait event binding), `styles/` combat bar CSS for drag affordance.
-- **Priority**: Medium — author-requested; verify by dragging a portrait between two others and confirming the tracker order matches on all clients.
+#### Combat bar: drag portraits to reorder initiative (shipped 2026-07-24 — pending live verification)
+- **Shipped as sketched**: GM-only pointer drag on `.combat-portrait-container` (8px threshold before a press commits, so click/double-click/hover/context-menu are untouched); drop writes the neighbor-midpoint initiative via `combat.setInitiative` (edges: top + 1 / bottom - 1; null initiative counts as 0; ties join at the shared value; same-slot drops write nothing); `updateCombatBar()` defers mid-drag rebuilds and the post-drag click is consumed so it cannot pan. Escape cancels. Dragged portrait dims, gold edge marks the slot (`styles/menubar-combatbar.css`).
+- **How to verify**: as GM drag a portrait between two others — bar and native tracker reorder identically on all clients, initiative reads as the midpoint; drag past either end → first/last; Escape mid-drag → no change; click and double-click still pan / set current; same-slot drop fires no update; players cannot drag.
 
 #### Journal Tools entity replacement should resolve through `api.compendiums`
 - **Context (author, 2026-07-18)**: the Compendiums API now handles exactly what Journal Tools does by hand — plain text in, formatted compendium/world link out (`resolve`/`resolveMany`, canonical name-to-UUID). `manager-journal-tools.js` predates it and drives `compendiumManager` + the per-type setting names directly.

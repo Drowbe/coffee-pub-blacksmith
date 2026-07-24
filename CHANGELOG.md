@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+
+- **Combat bar: drag portraits to reorder initiative** (`scripts/manager-combatbar.js`, `styles/menubar-combatbar.css`): the GM can now drag a portrait left or right along the combat bar to change its place in the initiative order, mirroring the native tracker's reordering. A press only becomes a drag after 8 pixels of movement (the same click-vs-drag disambiguation the pins renderer uses), so single-click pan, double-click set-current, the hover card, and the right-click menu all behave exactly as before; once dragging, the portrait dims, a gold edge marks the insertion slot, the hover card stays hidden, and Escape cancels. On drop the combatant's initiative is written to the midpoint of its new neighbors (rounded to two decimals; dropping past the left end writes top + 1, past the right end bottom - 1; combatants without initiative count as 0), via `combat.setInitiative`, so the new order propagates to the native tracker and every client; dropping a portrait back into its own slot writes nothing. Two guards handle the bar's re-render churn: `updateCombatBar()` defers any rebuild that lands mid-drag (a rebuild would yank the element from under the pointer) and applies it at drag end, and the click that the browser fires after a drag's pointerup is consumed so it cannot pan the canvas. Player clients are untouched — the pointer handlers exit immediately for non-GMs. Verify live: as GM with several combatants, drag a portrait between two others — the gold marker tracks the pointer, the drop reorders the bar and the native tracker identically on all clients, and the combatant's initiative reads as the neighbor midpoint; drag past either end — it becomes first/last; press Escape mid-drag — nothing changes; click and double-click a portrait — pan and set-current still work; drop a portrait exactly where it started — no update fires; as a player, dragging does nothing.
+
 ## [13.11.2]
 
 ### Changed

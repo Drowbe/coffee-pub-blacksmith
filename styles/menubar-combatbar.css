@@ -600,3 +600,23 @@
     color: rgba(56, 41, 26, 0.75);
     padding: 4px;
 }
+
+/* ------------------------------------ */
+/* --- INITIATIVE DRAG (GM) ----------- */
+/* ------------------------------------ */
+/* Drag a portrait left/right to rewrite its initiative between its new
+   neighbors (manager-combatbar.js, onInitiativeDrag*). The dragged portrait
+   dims; a gold edge marks the insertion slot. */
+.combat-portraits.initiative-drag-active {
+    cursor: grabbing;
+    user-select: none;
+}
+.combat-portrait-container.initiative-dragging {
+    opacity: 0.45;
+}
+.combat-portrait-container.initiative-drop-before {
+    box-shadow: -3px 0 0 0 rgba(255, 214, 130, 0.95);
+}
+.combat-portrait-container.initiative-drop-after {
+    box-shadow: 3px 0 0 0 rgba(255, 214, 130, 0.95);
+}
