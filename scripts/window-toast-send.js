@@ -18,20 +18,23 @@ const PREFS_SETTING = 'toastSendPreferences';
 const TEMPLATES_SETTING = 'toastSendTemplates';
 
 // Built-in templates are code-side and non-deletable; user templates live in the
-// world-scoped toastSendTemplates setting. A template is an APPEARANCE + TARGET
-// bundle — recipients and message text are never part of one (text is the
-// includeText opt-in), but the publish target IS: a saved "BIG HIT!" template
-// can carry Stream with it. Border and background colors are independent
-// parameters (derivation was tried and retired); a background image, when set,
-// covers the background color.
+// world-scoped toastSendTemplates setting. A user template is a FULL SNAPSHOT —
+// appearance, target, title, and message all save and all stamp on apply
+// (author decision 2026-07-23; the old includeText opt-in is gone). Recipients
+// are the one thing never saved: who is online is situational, and the Quick
+// Toast path always sends party-wide. The built-ins are ADHOC designs — fixed
+// looks that deliberately carry no text, so selecting one clears the wording
+// for fresh typing; their names say so. Border and background colors are
+// independent parameters (derivation was tried and retired); a background
+// image, when set, covers the background color.
 // A deliberately small set — Information is the everyday default, Announcement and
 // Important cover the loud cases, and everything else is Custom / user-saved.
 const BUILTIN_TEMPLATES = {
     // NOTE: `sound` is the PATH, not the asset id — the sound dropdown is keyed by
     // path (settings.js getSoundChoices) and playSound() takes a src.
-    'Information':   { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3', publish: 'game', animation: '' },
-    'Announcement':  { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3', publish: 'game', animation: '' },
-    'Important':     { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3', publish: 'game', animation: '' }
+    'Information (adhoc)':  { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3', publish: 'game', animation: '' },
+    'Announcement (adhoc)': { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3', publish: 'game', animation: '' },
+    'Important (adhoc)':    { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3', publish: 'game', animation: '' }
 };
 const DEFAULT_BG_COLOR = '#141414';
 // Template-selector sentinel: shown whenever the form has diverged from a template.
@@ -138,7 +141,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
         const templates = this._getTemplates();
         const selectedTemplate = prefs.template === CUSTOM_TEMPLATE ? CUSTOM_TEMPLATE
-            : (templates[prefs.template] ? prefs.template : 'Information');
+            : (templates[prefs.template] ? prefs.template : 'Information (adhoc)');
         const templateOptions = [
             `<option value="${CUSTOM_TEMPLATE}"${selectedTemplate === CUSTOM_TEMPLATE ? ' selected' : ''}>— Custom —</option>`,
             ...Object.keys(templates).map(name =>
@@ -182,11 +185,6 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                             data-tooltip="Delete this template" aria-label="Delete template"
                             ${BUILTIN_TEMPLATES[selectedTemplate] || selectedTemplate === CUSTOM_TEMPLATE ? 'style="display:none"' : ''}><i class="fa-solid fa-trash"></i></button>
                     </div>
-                    <label class="blacksmith-toast-send-recipient blacksmith-toast-send-include-text"
-                        ${BUILTIN_TEMPLATES[selectedTemplate] ? 'style="display:none"' : ''}>
-                        <input type="checkbox" name="toast-include-text" ${prefs.includeText ? 'checked' : ''}>
-                        <span>Include title and message in the template</span>
-                    </label>
                 </div>
 
                 <div class="blacksmith-window-section">
@@ -248,8 +246,8 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                             <option value="pop" ${prefs.animation === 'pop' ? 'selected' : ''}>Pop — scale in with a bounce</option>
                             <option value="reveal" ${prefs.animation === 'reveal' ? 'selected' : ''}>Reveal — icon, then title, then message</option>
                             <option value="pulse" ${prefs.animation === 'pulse' ? 'selected' : ''}>Pulse — gentle breathing, best with Until closed</option>
-                            <option value="slam" ${prefs.animation === 'slam' ? 'selected' : ''}>Slam — smashes in like a stamp (crits!)</option>
-                            <option value="shake" ${prefs.animation === 'shake' ? 'selected' : ''}>Shake — rattles in (fumbles!)</option>
+                            <option value="slam" ${prefs.animation === 'slam' ? 'selected' : ''}>Slam — smashes in like a stamp</option>
+                            <option value="shake" ${prefs.animation === 'shake' ? 'selected' : ''}>Shake — rattles in and settles</option>
                         </select>
                         <div class="blacksmith-toast-send-note">Plays on sized toasts only — an "Adapt to Content" toast ignores it.</div>
                     </div>
@@ -401,12 +399,14 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         });
 
         // Wording lives only in the DOM (it is deliberately never persisted in
-        // preferences), so a remembered template that carries text must stamp it on
+        // preferences), so a remembered user template must stamp its text on
         // open — otherwise reopening shows the right template name with empty fields
         // until you toggle away and back. Only fills blanks; never clobbers.
+        // Adhoc built-ins carry no text, so they stamp nothing here.
         const selected = root.querySelector('[name="toast-template"]')?.value;
-        const remembered = selected && selected !== CUSTOM_TEMPLATE ? this._getTemplates()[selected] : null;
-        if (remembered?.includeText) {
+        const remembered = selected && selected !== CUSTOM_TEMPLATE && !BUILTIN_TEMPLATES[selected]
+            ? this._getTemplates()[selected] : null;
+        if (remembered) {
             const title = root.querySelector('[name="toast-title"]');
             const subtitle = root.querySelector('[name="toast-subtitle"]');
             if (title && !title.value) title.value = remembered.title ?? '';
@@ -441,9 +441,9 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
     }
 
     /**
-     * Template controls are contextual: saving (and the include-text choice that
-     * governs what a save captures) only applies when the form is NOT showing an
-     * untouched built-in; deleting only applies to user-saved templates.
+     * Template controls are contextual: saving only applies when the form is
+     * NOT showing an untouched built-in; deleting only applies to user-saved
+     * templates.
      */
     _refreshTemplateControls() {
         const root = this._getRoot();
@@ -454,7 +454,6 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             if (el) el.style.display = shown ? '' : 'none';
         };
         setShown('.blacksmith-toast-send-template-save', !isBuiltIn);
-        setShown('.blacksmith-toast-send-include-text', !isBuiltIn);
         setShown('.blacksmith-toast-send-template-delete', !isBuiltIn && name !== CUSTOM_TEMPLATE);
 
         // Save means different things by selection — say which in the tooltip
@@ -478,16 +477,10 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
     _currentAppearance() {
         const root = this._getRoot();
         const imageMode = this.selectedIcon === IMAGE_MODE;
-        // Text is opt-in: only a template saved with "Include title and message"
-        // carries wording. The built-ins never do — they are look, not content.
-        const includeText = root?.querySelector('[name="toast-include-text"]')?.checked === true;
-        const text = includeText ? {
-            includeText: true,
-            title: root?.querySelector('[name="toast-title"]')?.value ?? '',
-            subtitle: root?.querySelector('[name="toast-subtitle"]')?.value ?? ''
-        } : {};
+        // Full snapshot: title and message always save with the template.
         return {
-            ...text,
+            title: root?.querySelector('[name="toast-title"]')?.value ?? '',
+            subtitle: root?.querySelector('[name="toast-subtitle"]')?.value ?? '',
             color: root?.querySelector('[name="toast-border-color"]')?.value || '#ac9f81',
             backgroundColor: root?.querySelector('[name="toast-bg-color"]')?.value || DEFAULT_BG_COLOR,
             icon: imageMode ? '' : this.selectedIcon,
@@ -532,15 +525,11 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         this._applyPublishState();
         setValue('[name="toast-animation"]', tpl.animation || '');
 
-        // Only a template saved with text stamps the wording; otherwise whatever the
-        // GM has typed is left alone (the built-ins carry no text at all).
-        const includeText = tpl.includeText === true;
-        const includeBox = root.querySelector('[name="toast-include-text"]');
-        if (includeBox) includeBox.checked = includeText;
-        if (includeText) {
-            setValue('[name="toast-title"]', tpl.title ?? '');
-            setValue('[name="toast-subtitle"]', tpl.subtitle ?? '');
-        }
+        // Templates are full snapshots: the wording stamps too. Adhoc (built-in)
+        // designs carry no text, so selecting one clears the fields for fresh
+        // typing — that is their point.
+        setValue('[name="toast-title"]', tpl.title ?? '');
+        setValue('[name="toast-subtitle"]', tpl.subtitle ?? '');
 
         this.selectedIcon = tpl.image ? IMAGE_MODE : String(tpl.icon ?? '');
         this._refreshIconSelection();
@@ -688,8 +677,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             party: root.querySelector('[name="toast-party"]')?.checked === true,
             recipients: [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(input => input.value),
             publish: root.querySelector('[name="toast-publish"]')?.value || 'game',
-            template: root.querySelector('[name="toast-template"]')?.value || 'Information',
-            includeText: root.querySelector('[name="toast-include-text"]')?.checked === true,
+            template: root.querySelector('[name="toast-template"]')?.value || 'Information (adhoc)',
             color: root.querySelector('[name="toast-border-color"]')?.value || '#ac9f81',
             backgroundColor: root.querySelector('[name="toast-bg-color"]')?.value || DEFAULT_BG_COLOR,
             size: root.querySelector('[name="toast-size"]')?.value || '',
@@ -785,7 +773,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                     ? ['Entire party']
                     : recipients.map(id => game.users.get(id)).filter(Boolean).map(u => u.character?.name || u.name);
             if (publish !== 'game') names.push('Stream');
-            const info = BUILTIN_TEMPLATES['Information'];
+            const info = BUILTIN_TEMPLATES['Information (adhoc)'];
             ToastManager.show({
                 title: 'Toast sent',
                 subtitle: names.join(', '),
@@ -809,14 +797,14 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 // ===== QUICK TOAST — fire a saved template without the window =====
 // ==================================================================
 // The party menubar's Quick Toast menu (api-menubar.js) lists fireable
-// templates and sends one on click. Only templates saved WITH text
-// (includeText + a title) are fireable — show() requires a title, and a
-// look-only template has nothing to say. Built-ins never carry text, so
+// templates and sends one on click. Only templates with a saved title are
+// fireable — show() requires one. The adhoc built-ins never carry text, so
 // the menu is always the GM's own canned announcements.
 
 /**
- * Saved templates that can fire as-is: user templates carrying includeText
- * and a non-empty title. Sorted by name for a stable menu.
+ * Saved templates that can fire as-is: user templates with a non-empty title.
+ * (Look-only templates saved before the full-snapshot model lack one — those
+ * stay window-only.) Sorted by name for a stable menu.
  * @returns {Array<{name: string, tpl: Object}>}
  */
 export function getQuickToastTemplates() {
@@ -825,7 +813,7 @@ export function getQuickToastTemplates() {
         saved = game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {};
     } catch { /* setting not registered yet */ }
     return Object.entries(saved)
-        .filter(([, tpl]) => tpl?.includeText === true && typeof tpl.title === 'string' && tpl.title.trim())
+        .filter(([, tpl]) => typeof tpl?.title === 'string' && tpl.title.trim())
         .map(([name, tpl]) => ({ name, tpl }))
         .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -881,7 +869,7 @@ export async function quickSendToastTemplate(name) {
 
         const names = (publish !== 'stream' && recipients.length) ? ['Entire party'] : [];
         if (publish !== 'game') names.push('Stream');
-        const info = BUILTIN_TEMPLATES['Information'];
+        const info = BUILTIN_TEMPLATES['Information (adhoc)'];
         ToastManager.show({
             title: `Toast sent: ${name}`,
             subtitle: names.join(', '),

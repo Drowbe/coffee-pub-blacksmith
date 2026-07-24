@@ -4094,7 +4094,7 @@ class MenuBar {
             if (!items.length) {
                 items.push({
                     name: 'No quick toasts yet',
-                    description: 'Save a Send Toast template with "Include title and message" to list it here.',
+                    description: 'Save a template with a title in Send Toast to list it here.',
                     icon: 'fa-solid fa-circle-info',
                     disabled: true
                 });

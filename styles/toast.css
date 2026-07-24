@@ -300,14 +300,14 @@
 
     /* slam: the gratuitous one — content smashes in from oversized like a
        stamp and jolts on impact. Everything lands together (impact is one
-       moment, so no stagger). Crit energy. */
+       moment, so no stagger). */
     .blacksmith-toast-anim-slam .blacksmith-toast-icon,
     .blacksmith-toast-anim-slam .blacksmith-toast-image,
     .blacksmith-toast-anim-slam .blacksmith-toast-text {
         animation: blacksmith-toast-slam 0.55s ease-out both;
     }
 
-    /* shake: rattles in with a decaying wobble. Fumble energy. */
+    /* shake: rattles in with a decaying wobble. */
     .blacksmith-toast-anim-shake .blacksmith-toast-icon,
     .blacksmith-toast-anim-shake .blacksmith-toast-image,
     .blacksmith-toast-anim-shake .blacksmith-toast-text {

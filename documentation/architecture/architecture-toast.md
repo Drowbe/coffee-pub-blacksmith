@@ -102,39 +102,41 @@ Class-only styling has exactly **three deliberate, sanitized inline exceptions**
 
 The GM tool's template selector is where presets live now that the primitive takes parameters.
 Built-in templates are code-side constants in `window-toast-send.js` (`BUILTIN_TEMPLATES`) and are
-not deletable; user templates are appearance + target bundles saved by name in the world-scoped
+not deletable; user templates are full snapshots saved by name in the world-scoped
 `toastSendTemplates` setting (Save As / Delete in the window — Delete is only shown for user
-templates). The built-in set is deliberately small — three presets forming an escalation ladder
-(Information: content-fit, auto-dismisses; Announcement: small billboard, lingers; Important:
-fullscreen, waits for a click) — because the wide middle is what Custom and user-saved templates
-are for.
+templates). The built-in set is deliberately small — three **adhoc** presets forming an
+escalation ladder (Information: content-fit, auto-dismisses; Announcement: small billboard,
+lingers; Important: fullscreen, waits for a click), each named with an "(adhoc)" suffix —
+because the wide middle is what Custom and user-saved templates are for.
 
-A template stamps the appearance fields (border color, background color, optional background
-image, icon/avatar mode, size, duration, sound, animation) and the publish target onto the form — a saved
-template can carry Stream with it, so a canned stream overlay is one selection away; a template
-saved before targets existed stamps Game. **Built-ins are read-only presets; a GM's own templates
-are documents.** Editing an appearance field or the target while a built-in is selected
-forks the form to the **— Custom —** sentinel (the selector never claims a built-in the form has
-diverged from); editing while a user template is selected keeps the edits attached to it, and Save
-then updates that template in place without prompting. Only Custom — an unsaved configuration —
-prompts for a name. Built-ins show no Save at all. Recipients are never part of a template. **Title and message are opt-in**, stored only when
-the template is saved with *Include title and message* (`includeText`) — so a template can be a
-canned announcement or just a look — and applying a template without text leaves whatever the GM
-has typed alone. Typing in the title or message deliberately does **not** flip the selector to
-Custom: writing the message is the normal use of a template, not a divergence from it. The
-built-ins carry no text. The color controls follow the
+A user template is a **full snapshot**: applying one stamps the appearance fields (border color,
+background color, optional background image, icon/avatar mode, size, duration, sound, animation),
+the publish target, **and the title and message** onto the form — a saved template can carry
+Stream with it, so a canned stream overlay is one selection away. The adhoc built-ins are the
+deliberate exception on text: they carry none, so selecting one **clears** the title and message
+for fresh wording — a fixed design you type into each time, which is what the suffix signals.
+(Templates saved before the full-snapshot model may lack text or a target; they stamp empty
+wording and a Game target.) **Built-ins are read-only presets; a GM's own templates are
+documents.** Editing an appearance field or the target while a built-in is selected forks the
+form to the **— Custom —** sentinel (the selector never claims a built-in the form has diverged
+from); editing while a user template is selected keeps the edits attached to it, and Save then
+updates that template in place without prompting. Only Custom — an unsaved configuration —
+prompts for a name. Built-ins show no Save at all. Recipients are the one thing never saved in a
+template: who is online is situational, and the Quick Toast path always sends party-wide. Typing
+in the title or message deliberately does **not** flip the selector to Custom: writing the
+message is the normal use of a template, not a divergence from it. The color controls follow the
 pin-configuration pattern (hex text + swatch, two-way synced). One trap worth remembering: a
 template's `sound` is a **path**, not an asset id — the sound dropdown is keyed by path
 (`getSoundChoices` in `settings.js`) and `playSound()` takes a src, so an id here 404s.
 
-Templates saved with text are also fireable without the window: the party menubar's **Quick
+User templates with a title are also fireable without the window: the party menubar's **Quick
 Toast** item (GM-only, `showQuickToastMenu` in `api-menubar.js`) lists them in a `UIContextMenu`
 and `quickSendToastTemplate()` (`window-toast-send.js`) sends the pick exactly as stored —
 party-wide delivery (online non-GM users minus the Excluded Users list) on the template's own
-publish target, with a stream target going out as a broadcast. Look-only templates never appear
-in the menu — `show()` requires a title — so the list is always the GM's canned announcements,
-and an empty list explains how to create one. The menu's last entry opens the full Send Toast
-window.
+publish target, with a stream target going out as a broadcast. The adhoc built-ins and titleless
+pre-snapshot templates never appear in the menu — `show()` requires a title — so the list is
+always the GM's canned announcements, and an empty list explains how to create one. The menu's
+last entry opens the full Send Toast window.
 
 Optional `sound` is a data path, not a shared audio instance. `show()` plays it locally through
 Blacksmith's sound helper. Internal broadcast/targeted relays carry the path, and each receiving
