@@ -105,7 +105,7 @@ const onMovementTypeSetting = (setting) => {
         title: `Movement: ${movementType.name}`,
         subtitle: movementType.description,
         icon: `fa-solid ${movementType.icon}`,
-        duration: 8,
+        duration: 3,
         moduleId: 'blacksmith-core',
         stackKey: 'blacksmith-movement'
     });

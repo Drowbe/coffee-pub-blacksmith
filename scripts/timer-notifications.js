@@ -133,7 +133,7 @@ export async function sendHurryUpNudge(targetName, targetActor, scope = 'direct'
                     ToastAPI.show({
                         title: `Nudge sent to ${targetName}`,
                         icon: 'fa-solid fa-rabbit-running',
-                        duration: 4,
+                        duration: 3,
                         stackKey: 'blacksmith-hurry-up-confirm',
                         moduleId: 'blacksmith-core'
                     });
@@ -174,7 +174,7 @@ export function routeTimerNotification(settingKey, timerLabel, stackKey, data) {
             title: `${timerLabel} Timer`,
             subtitle: content.subtitle,
             icon: content.icon,
-            duration: 8,
+            duration: 3,
             moduleId: 'blacksmith-core',
             stackKey: stackKey
         });

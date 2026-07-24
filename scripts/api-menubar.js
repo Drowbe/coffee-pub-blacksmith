@@ -231,7 +231,7 @@ class MenuBar {
                             title: isNewLeader ? "You are now the party leader" : "Party leader changed",
                             subtitle: isNewLeader ? `Leading as ${actor.name}` : `${actor.name} now leads the party`,
                             icon: "fas fa-crown",
-                            duration: 8,
+                            duration: 3,
                             moduleId: "blacksmith-core",
                             stackKey: "blacksmith-party-leader"
                         });

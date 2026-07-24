@@ -781,7 +781,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 color: info.color,
                 backgroundColor: info.backgroundColor,
                 sound: info.sound,
-                duration: 5,
+                duration: 3,
                 stackKey: 'blacksmith-toast-send-confirm'
             });
 
@@ -877,7 +877,7 @@ export async function quickSendToastTemplate(name) {
             color: info.color,
             backgroundColor: info.backgroundColor,
             sound: info.sound,
-            duration: 5,
+            duration: 3,
             stackKey: 'blacksmith-toast-send-confirm'
         });
         return true;
