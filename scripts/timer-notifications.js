@@ -115,7 +115,7 @@ export async function sendHurryUpNudge(targetName, targetActor, scope = 'direct'
                 image: targetActor ? (getPortraitImage(targetActor) || null) : null,
                 size: 'small',
                 animation: 'shake',
-                duration: 10,
+                duration: 3,
                 sound: sendChat ? null : soundPath,
                 stackKey: 'blacksmith-hurry-up',
                 moduleId: 'blacksmith-core'
