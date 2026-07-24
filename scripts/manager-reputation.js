@@ -125,8 +125,7 @@ export class ReputationManager {
             );
             await ChatMessage.create({
                 content: html,
-                speaker: ChatMessage.getSpeaker({ alias: game.user?.name }),
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER
+                speaker: ChatMessage.getSpeaker({ alias: game.user?.name })
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'ReputationManager: Error posting current reputation card', error?.message ?? error, false, true);
@@ -162,8 +161,7 @@ export class ReputationManager {
             );
             await ChatMessage.create({
                 content: html,
-                speaker: ChatMessage.getSpeaker({ alias: game.user?.name }),
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER
+                speaker: ChatMessage.getSpeaker({ alias: game.user?.name })
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'ReputationManager: Error posting new reputation card', error?.message ?? error, false, true);

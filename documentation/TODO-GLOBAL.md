@@ -222,6 +222,10 @@ Being rebuilt, not ported — the old pack data is reference material at most.
 
 ---
 
+## Sibling deprecation warnings (spotted 2026-07-24)
+
+- **Bibliosoph registers the deprecated `renderChatMessage` hook** (`coffee-pub-bibliosoph/scripts/bibliosoph.js`, raw `Hooks.on`): Foundry v13 logs "The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead" on every chat message render; support is removed in v15. Not a rename-only fix — `renderChatMessageHTML` passes an `HTMLElement` where the old hook passed jQuery, so the callback body must drop jQuery calls (or wrap the element itself). Fix belongs in the Bibliosoph repo with its own verification. (Blacksmith is clean: its `HookManager` remaps legacy `renderChatMessage` registrations to `renderChatMessageHTML` automatically, and the module's own `CHAT_MESSAGE_TYPES` uses were removed 2026-07-24 — see Blacksmith `CHANGELOG.md`.)
+
 ## Open questions for Drowbe
 
 1. **Mirror scope** — all 48 docs, or only the consumer-facing API surface + README-as-Home?

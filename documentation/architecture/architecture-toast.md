@@ -151,10 +151,12 @@ JS-owned** — a deliberate guard, not a style: a billboard appended as a plain 
 stale or missing stylesheet becomes a static block in Foundry's body layout and physically shoves
 the interface around (observed live 2026-07-19 via a cached `toast.css`). The layer makes that
 failure mode impossible; broken CSS now degrades to "billboard renders unstyled," never "UI moves."
-Width×height are tuned per preset rather than one shared percent (a single percent of both axes
-goes shapeless on ultrawide monitors), and typography is clamp'd viewport units so content scales
-relationally with the box; overflow scrolls inside the box, because a fixed box cannot grow with
-its content. Billboards are singletons (a new one replaces the current, whatever its size — two
+Width and minimum height are tuned per preset rather than one shared percent (a single percent of
+both axes goes shapeless on ultrawide monitors), and typography is clamp'd viewport units so
+content scales relationally with the box. The preset height is a **minimum**: the box grows with
+its content, so ordinary messages never scroll (author decision 2026-07-24 — a scrollbar inside a
+billboard is a design failure). A 90vh cap keeps pathological content from pushing the box past
+the screen; only past that cap does the text block fall back to scrolling. Billboards are singletons (a new one replaces the current, whatever its size — two
 simultaneous centered takeovers is meaningless), exempt from the stack cap like persistent toasts,
 and — when there is no `onClick` — a click anywhere dismisses through `_dismiss` (the player let it
 go by, so `onDismiss` fires). Billboards carry their own centering transform, so the stack's
@@ -222,7 +224,13 @@ handler renders it on any `/stream` client regardless of `_recipients`, because 
 into the capture page is incidental to the send; `show()`'s own view gate keeps the exemption from
 leaking anything onto `/game`. First consumer: the GM **Send Toast** tool (`window-toast-send.js`,
 opened from the party menubar, GM-only) — it sends `size: 'large'` toasts to selected players and
-shows the sending GM a small confirmation toast rather than an echo of the announcement. Its
+shows the sending GM a small confirmation toast rather than an echo of the announcement. Second
+consumer: the **Hurry Up nudge** (`sendHurryUpNudge` in `timer-notifications.js`, gated by the
+`notifyHurryUp` channel setting) — a small `shake` billboard wearing the slow combatant's
+portrait, sent either direct (targeted to the
+active owners of the slow combatant's actor, with a local confirmation toast for the sender and a
+chat-card fallback when no owner is online) or as a blast through `broadcastToast` to every client
+(the combat bar menu offers both scopes; the combat tracker's timer overlay always blasts). Its
 Target section maps directly onto `publish`: Game sends to the selected recipients as before,
 Both adds the stream surface to the same send, and Stream drops user recipients entirely (the
 section dims) and goes out through `broadcastToast` — every client hears it, only `/stream` pages

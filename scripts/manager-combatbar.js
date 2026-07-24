@@ -1335,39 +1335,14 @@ export class CombatBarManager {
         }
     }
 
-    static async sendHurryUp(_menuBar, combatantId) {
+    static async sendHurryUp(_menuBar, combatantId, scope = 'direct') {
         try {
             const context = CombatBarManager.getCombatantContext(combatantId);
             if (!context?.combatant) return;
-            const targetName = context.combatant.name || 'Unknown';
-            const hurryMessages = [
-                "If you don't make a move soon, {name}, I'm rolling to adopt your turn as my new pet. I'll call it Procrastination Jr.",
-                "{name}, your character isn't actually frozen in time, just your decision-making skills.",
-                "By the time you pick, {name}, our torches will burn out, and we'll have to roleplay in the dark. No pressure.",
-                "Hurry up, {name}, or I'm rolling a persuasion check to convince the DM to skip you!",
-                "We're waiting, {name}, not writing a novel. Unless you are, in which case, finish Chapter 1 already!",
-                "{name}, we're all aging in real-time here. Even the elf is starting to grow gray hairs.",
-                "If you don't decide soon, {name}, I'm calling a bard to write a song about how long this turn took.",
-                "{name}, at this rate, the dice are going to roll themselves out of sheer boredom.",
-                "C'mon, {name}! Even a gelatinous cube moves faster than this.",
-                "{name}, if this turn were a quest, we'd already have failed the time limit."
-            ];
-            const message = hurryMessages[Math.floor(Math.random() * hurryMessages.length)].replace(/{name}/g, targetName);
-            const html = await foundry.applications.handlebars.renderTemplate(
-                `modules/${MODULE.ID}/templates/card-hurry-up.hbs`,
-                { message }
-            );
-            await ChatMessage.create({
-                content: html,
-                speaker: ChatMessage.getSpeaker({ alias: game.user?.name }),
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER
-            });
-
-            const hurryUpSound = game.settings.get(MODULE.ID, 'hurryUpSound');
-            if (hurryUpSound !== 'none') {
-                const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
-                playSound(hurryUpSound, volume);
-            }
+            // Nudge routing (toast/chat/both, scope, sound) lives in the
+            // shared helper — see notifyHurryUp in the Notifications settings.
+            const { sendHurryUpNudge } = await import('./timer-notifications.js');
+            await sendHurryUpNudge(context.combatant.name || 'Unknown', context.combatant.actor || null, scope);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Menubar: Error sending Hurry Up message', error?.message || error, false, false);
         }
@@ -1401,10 +1376,20 @@ export class CombatBarManager {
         });
 
         coreItems.push({
-            name: 'Hurry Up',
+            name: 'Hurry Up (Direct)',
+            description: "Nudge only this combatant's player",
             icon: 'fa-solid fa-rabbit-running',
             callback: async () => {
-                await CombatBarManager.sendHurryUp(menuBar, combatantId);
+                await CombatBarManager.sendHurryUp(menuBar, combatantId, 'direct');
+            }
+        });
+
+        coreItems.push({
+            name: 'Hurry Up (Blast)',
+            description: 'Nudge everyone at the table',
+            icon: 'fa-solid fa-bullhorn',
+            callback: async () => {
+                await CombatBarManager.sendHurryUp(menuBar, combatantId, 'blast');
             }
         });
 

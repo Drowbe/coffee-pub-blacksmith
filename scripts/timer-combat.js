@@ -8,7 +8,7 @@ import { postConsoleAndNotification, playSound, trimString, getSettingSafely } f
 import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
-import { routeTimerNotification } from './timer-notifications.js';
+import { routeTimerNotification, sendHurryUpNudge } from './timer-notifications.js';
 
 class CombatTimer {
     static ID = 'combat-timer';
@@ -429,41 +429,18 @@ class CombatTimer {
             } else if (!game.user.isGM && progress) {
                 // Non-active player - Add hurry up overlay
                 const currentPlayerName = combat?.combatant?.name || 'Unknown';
-                
-                // Array of hurry up messages
-                const hurryMessages = [
-                    "If you don't make a move soon, {name}, I'm rolling to adopt your turn as my new pet. I'll call it Procrastination Jr.",
-                    "{name}, your character isn't actually frozen in time—just your decision-making skills.",
-                    "By the time you pick, {name}, our torches will burn out, and we'll have to roleplay in the dark. No pressure.",
-                    "Hurry up, {name}, or I'm rolling a persuasion check to convince the DM to skip you!",
-                    "We're waiting, {name}, not writing a novel. Unless you are… in which case, finish Chapter 1 already!",
-                    "{name}, we're all aging in real-time here. Even the elf is starting to grow gray hairs.",
-                    "If you don't decide soon, {name}, I'm calling a bard to write a song about how long this turn took.",
-                    "{name}, at this rate, the dice are going to roll themselves out of sheer boredom.",
-                    "C'mon, {name}! Even a gelatinous cube moves faster than this.",
-                    "{name}, if this turn were a quest, we'd already have failed the time limit."
-                ];
-                
+                const currentActor = combat?.combatant?.actor || null;
+
                 const overlay = document.createElement('div');
                 overlay.className = 'combat-timer-hurry-overlay';
                 overlay.innerHTML = `<div class="overlay-text"><i class="fa-solid fa-rabbit-running"></i> TELL ${currentPlayerName} TO HURRY UP!</div>`;
-                
-                // Add click handler to overlay (v13: native DOM)
-                overlay.addEventListener('click', () => {
-                    // Get random message and replace {name} with player name when clicked
-                    const randomMessage = hurryMessages[Math.floor(Math.random() * hurryMessages.length)]
-                        .replace(/{name}/g, currentPlayerName);
-                        
-                    ChatMessage.create({
-                        content: randomMessage,
-                        speaker: ChatMessage.getSpeaker()
-                    });
 
-                    // Play hurry up sound if configured
-                    const hurryUpSound = game.settings.get(MODULE.ID, 'hurryUpSound');
-                    if (hurryUpSound !== 'none') {
-                        playSound(hurryUpSound, CombatTimer.getTimerVolume());
-                    }
+                // Nudge routing (toast/chat/both, sound included) lives in the
+                // shared helper — see notifyHurryUp in the Notifications settings.
+                // The tracker overlay is table banter, so it BLASTS — matching
+                // its pre-toast behavior of razzing via public chat.
+                overlay.addEventListener('click', () => {
+                    void sendHurryUpNudge(currentPlayerName, currentActor, 'blast');
                 });
                 
                 progress.appendChild(overlay);

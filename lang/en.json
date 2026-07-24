@@ -846,6 +846,12 @@
 		"notifyCombatTimer-Label": "Combat Timer",
 		"notifyCombatTimer-Hint": "How to announce combat (turn) timer events (start, set, pause, resume, warning, expired).",
 
+		"headingH2NotifyHurryUp-Label": "Hurry Up",
+		"headingH2NotifyHurryUp-Hint": "Nudging the slow combatant: how the nudge is delivered and what it sounds like.",
+
+		"notifyHurryUp-Label": "Hurry Up Nudges",
+		"notifyHurryUp-Hint": "How to deliver the Hurry Up nudge. Toast shows a shaking popup - sent direct (only the slow combatant's players, from the combat bar's Hurry Up Direct) or as a blast to every screen (Hurry Up Blast, and the combat tracker's timer overlay). Chat posts the public banter card with the table-wide sound. A direct toast falls back to chat when none of that combatant's players are online.",
+
 
 	"SEPARATOR-ROLLING-AND-PROGRESSION": "-------------------------------------------------------",
 

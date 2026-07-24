@@ -45,9 +45,10 @@ class ToastManager {
     // Keep in sync with the default background alpha in styles/toast.css.
     static BACKGROUND_ALPHA = 0.9;
     // Two display modes (author decision 2026-07-19): no size = a TOAST (content-fit,
-    // stacks top-center); any size = a BILLBOARD (viewport-proportional box in BOTH
-    // dimensions, typography scaling with it, centered, singleton, cap-exempt,
-    // click-anywhere dismisses). 'fullscreen' is the 100%×100% billboard with a scrim.
+    // stacks top-center); any size = a BILLBOARD (viewport-proportional width,
+    // content-adaptive height with the preset as a minimum — never a scrollbar,
+    // typography scaling with it, centered, singleton, cap-exempt, click-anywhere
+    // dismisses). 'fullscreen' is the 100%×100% billboard with a scrim.
     static SIZES = ['small', 'medium', 'large', 'fullscreen'];
     // Content animations — BILLBOARDS ONLY (author decision 2026-07-23): stacked
     // toasts fire from timers and announcements, and five toasts each doing their
@@ -73,7 +74,7 @@ class ToastManager {
      * @param {number} config.duration - Seconds before auto-dismiss; 0 = until closed (default: 8). Persistent (0) toasts are exempt from stack-cap eviction — only the close button, stackKey replacement, or programmatic removal ends them.
      * @param {string} config.color - Accent color as strict hex ('#rgb' or '#rrggbb'); drives the border, icon, and title (optional; anything else = default look)
      * @param {string} config.backgroundColor - Box background color as strict hex, independent of the accent (optional; default is the dark base; a backgroundImage covers it)
-     * @param {string} config.size - Omit for a normal toast (content-fit, stacks top-center). 'small' | 'medium' | 'large' | 'fullscreen' render a BILLBOARD: a viewport-proportional box (both dimensions, typography scaling with it), centered on screen, one at a time (a new billboard replaces the current), exempt from the stack cap; with no onClick, clicking anywhere dismisses it
+     * @param {string} config.size - Omit for a normal toast (content-fit, stacks top-center). 'small' | 'medium' | 'large' | 'fullscreen' render a BILLBOARD: a viewport-proportional width with a content-adaptive height (the preset height is a minimum — long messages grow the box rather than scrolling), typography scaling with it, centered on screen, one at a time (a new billboard replaces the current), exempt from the stack cap; with no onClick, clicking anywhere dismisses it
      * @param {string} config.backgroundImage - Image path/URL rendered as a cover background behind the toast content, with an automatic dark scrim for legibility (optional)
      * @param {string} config.sound - Optional audio path played locally when the toast appears
      * @param {string} config.moduleId - Owning module (default: "blacksmith-core")

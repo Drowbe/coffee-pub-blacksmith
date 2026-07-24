@@ -3114,18 +3114,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- Hurry Up Message Sound --
-	game.settings.register(MODULE.ID, 'hurryUpSound', {
-		name: MODULE.ID + '.hurryUpSound-Label',
-		hint: MODULE.ID + '.hurryUpSound-Hint',
-		scope: "world",
-		config: true,
-		type: String,
-		choices: BLACKSMITH.arrSoundChoices,
-		default: "none",
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
 	// -- Timer Pause/Resume Sound --
 	game.settings.register(MODULE.ID, 'timerPauseResumeSound', {
 		name: MODULE.ID + '.timerPauseResumeSound-Label',
@@ -3926,6 +3914,40 @@ export const registerSettings = () => {
 		config: true,
 		type: Boolean,
 		default: false,
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// --------------------------------------
+	// -- H2: HURRY UP
+	// --------------------------------------
+	registerHeader('NotifyHurryUp', 'headingH2NotifyHurryUp-Label', 'headingH2NotifyHurryUp-Hint', 'H2', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
+
+	// Hurry Up nudge delivery — the toast half is a shaking billboard wearing
+	// the slow combatant's portrait, sent direct (only that combatant's
+	// players) or as a blast (everyone) per the trigger (shared helper in
+	// timer-notifications.js); chat is the public banter card. A direct toast
+	// falls back to chat when no owner is online.
+	game.settings.register(MODULE.ID, 'notifyHurryUp', {
+		name: MODULE.ID + '.notifyHurryUp-Label',
+		hint: MODULE.ID + '.notifyHurryUp-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: NOTIFICATION_CHANNEL_CHOICES,
+		default: 'both',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// Moved from the combat timer section (2026-07-24) — the nudge sound is
+	// part of notification delivery, so it lives with the channel setting.
+	game.settings.register(MODULE.ID, 'hurryUpSound', {
+		name: MODULE.ID + '.hurryUpSound-Label',
+		hint: MODULE.ID + '.hurryUpSound-Hint',
+		scope: "world",
+		config: true,
+		type: String,
+		choices: BLACKSMITH.arrSoundChoices,
+		default: "none",
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 

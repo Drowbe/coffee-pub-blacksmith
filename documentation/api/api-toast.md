@@ -57,11 +57,12 @@ target the stream view or both.
   reads through, matching the default look. A `backgroundImage` covers it when both are set.
 - `size` (string, optional): omit for a normal toast (content-fit, stacks top-center). `'small'` |
   `'medium'` | `'large'` | `'fullscreen'` render a **billboard** instead: a viewport-proportional
-  box (both dimensions — roughly 26×18 / 40×28 / 58×42 percent, fullscreen 100×100 with a dark
-  scrim), centered on screen, with typography scaling relationally with the box. Billboards are
-  **singletons** (a new one replaces the current, whatever its size), exempt from the stack cap,
-  and — with no `onClick` — clicking anywhere dismisses (that counts as a dismissal — `onDismiss`
-  fires). Long messages scroll inside the box rather than growing it.
+  box (widths roughly 26 / 40 / 58 percent of the viewport, fullscreen 100×100 with a dark scrim;
+  heights are per-preset **minimums** that grow with the content, so long messages enlarge the box
+  rather than scrolling), centered on screen, with typography scaling relationally with the box.
+  Billboards are **singletons** (a new one replaces the current, whatever its size), exempt from
+  the stack cap, and — with no `onClick` — clicking anywhere dismisses (that counts as a
+  dismissal — `onDismiss` fires).
 - `animation` (string, optional): content animation, **billboards only** — ignored without a
   `size`, so stacked toasts always render still. `'pop'` scales the content in with a springy
   bounce; `'reveal'` stages the entrance (icon, then title, then subtitle); `'pulse'` is a subtle

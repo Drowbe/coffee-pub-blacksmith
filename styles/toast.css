@@ -133,10 +133,12 @@
 /* --- BILLBOARDS (sized toasts) ------ */
 /* ------------------------------------ */
 /* blacksmith-toast-size-* from the SIZES whitelist in api-toast.js.
-   Any size = a BILLBOARD: a viewport-proportional box (both dimensions), centered,
-   rendered directly on <body> outside the stack. Typography is viewport-relative
-   (clamp'd vw) so content scales relationally with the box. One at a time; click
-   anywhere dismisses. */
+   Any size = a BILLBOARD: a box with a viewport-proportional WIDTH and a
+   content-adaptive height (the preset height is a MINIMUM — long messages grow
+   the box, never a scrollbar; author decision 2026-07-24), centered, rendered
+   directly on <body> outside the stack. Typography is viewport-relative
+   (clamp'd vw) so content scales relationally with the box. One at a time;
+   click anywhere dismisses. */
 
 .blacksmith-toast-size-small,
 .blacksmith-toast-size-medium,
@@ -169,7 +171,10 @@
 .blacksmith-toast-size-fullscreen .blacksmith-toast-text {
     align-items: center;
     min-height: 0;
-    overflow-y: auto; /* long messages scroll inside the box instead of overflowing it */
+    /* Last resort only: the box grows with content (min-height presets below),
+       so this scroll can engage solely when content exceeds the 90vh cap or
+       the fullscreen viewport — never for ordinary messages. */
+    overflow-y: auto;
 }
 
 .blacksmith-toast-size-small .blacksmith-toast-close,
@@ -182,12 +187,14 @@
     margin: 0;
 }
 
-/* Per-preset box dimensions (width × height tuned per step, not one shared percent —
-   a single percent of both axes goes shapeless on ultrawide monitors) and
-   viewport-relative typography, clamped so nothing becomes unreadable or absurd. */
-.blacksmith-toast-size-small  { width: 26vw; height: 18vh; gap: 1.2vh; }
-.blacksmith-toast-size-medium { width: 40vw; height: 28vh; gap: 1.8vh; }
-.blacksmith-toast-size-large  { width: 58vw; height: 42vh; gap: 2.2vh; }
+/* Per-preset box dimensions (width fixed per step, height a MINIMUM that grows
+   with content — not one shared percent, which goes shapeless on ultrawide
+   monitors) and viewport-relative typography, clamped so nothing becomes
+   unreadable or absurd. The 90vh cap only exists so pathological content
+   cannot push the box past the screen. */
+.blacksmith-toast-size-small  { width: 26vw; min-height: 18vh; max-height: 90vh; height: auto; gap: 1.2vh; }
+.blacksmith-toast-size-medium { width: 40vw; min-height: 28vh; max-height: 90vh; height: auto; gap: 1.8vh; }
+.blacksmith-toast-size-large  { width: 58vw; min-height: 42vh; max-height: 90vh; height: auto; gap: 2.2vh; }
 
 .blacksmith-toast-size-small  .blacksmith-toast-image { width: clamp(48px, 6vw, 96px);   height: clamp(48px, 6vw, 96px); }
 .blacksmith-toast-size-medium .blacksmith-toast-image { width: clamp(72px, 8.8vw, 150px); height: clamp(72px, 8.8vw, 150px); }

@@ -551,11 +551,12 @@ export class SidebarStyle {
 
             const msg = `${game.user.name} ${enabled ? 'enabled' : 'disabled'} Manual Rolls.`;
 
+            // No style field: OTHER is the default, and CHAT_MESSAGE_TYPES is
+            // deprecated in v12+ (renamed to CHAT_MESSAGE_STYLES).
             await ChatMessage.create({
                 content: msg,
                 whisper: gmRecipients.map(u => u.id),
-                speaker: ChatMessage.getSpeaker({ user: game.user }),
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER
+                speaker: ChatMessage.getSpeaker({ user: game.user })
             });
         } catch (e) {
             postConsoleAndNotification(MODULE.NAME, 'Failed to whisper GM about manual rolls toggle', e, false, true);
