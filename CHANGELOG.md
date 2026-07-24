@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Fixed
+
+- **Players no longer get "lacks permission to delete ChatMessage" banners when combat starts with Hide Initiative Roll enabled** (`scripts/blacksmith.js`): the initiative-card hide hook runs on every client via `renderChatMessageHTML`, and after hiding the card it also attempted the document delete on every client — a GM-only operation, so each player's client earned a red permission banner from the server for every initiative roll (the promise rejection was caught, but Foundry surfaces the socket denial as a notification regardless). Hiding remains every client's job; the delete now runs only on the active GM's client (`game.users.activeGM?.isSelf`, which also prevents two logged-in GMs racing the same delete), and the deletion propagates to all clients as before. The Dice So Nice wait-for-animation path is skipped entirely on non-GM clients, since it existed only to time the delete. If no GM is connected, cards are hidden locally but not deleted — the visual intent of the setting still holds. Verify live: with Hide Initiative Roll on and a GM plus a player connected, start combat and roll initiative for several combatants — no permission banners appear on the player client, the cards never show in chat on either client, and with Dice So Nice active the dice animation still plays before the messages vanish.
+
 ## [13.11.1]
 
 ### Added

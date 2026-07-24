@@ -1093,6 +1093,14 @@ Hooks.once('init', async function() {
             const el = html instanceof HTMLElement ? html : html?.[0];
             if (el) el.style.display = 'none';
 
+            // Hiding is every client's job; DELETING is the active GM's alone.
+            // This hook fires on all clients, and ChatMessage deletion is a
+            // GM-only document operation — a player attempting it earns a
+            // "lacks permission to delete ChatMessage" banner from the server
+            // even with the promise rejection caught. The activeGM guard also
+            // keeps two logged-in GMs from racing the same delete.
+            if (!game.users.activeGM?.isSelf) return;
+
             const doDelete = () => {
                 if (game.messages.has(message.id)) message.delete().catch(() => {});
             };
