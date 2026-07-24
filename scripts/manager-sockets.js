@@ -439,8 +439,13 @@ class SocketManager {
         this.socket.register("showToast", (data) => {
             // Receipt-side targeting: sendToastToUsers() rides _recipients on the payload;
             // untargeted broadcasts (broadcastToast) carry none and render everywhere.
+            // The stream surface is view-addressed, not user-addressed: a payload whose
+            // publish targets the stream renders on any /stream client regardless of
+            // _recipients — whoever is logged into the capture page is incidental.
+            // show() still gates by view, so this exemption leaks nothing to /game.
             const { _recipients, ...config } = data || {};
-            if (Array.isArray(_recipients) && !_recipients.includes(game.userId)) return;
+            const streamTargeted = (config.publish === 'stream' || config.publish === 'both') && game.view === 'stream';
+            if (!streamTargeted && Array.isArray(_recipients) && !_recipients.includes(game.userId)) return;
             ToastAPI.show(config);
         });
 

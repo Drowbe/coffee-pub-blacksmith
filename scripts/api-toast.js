@@ -11,7 +11,25 @@
 // removed once. See documentation/architecture/architecture-toast.md.
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound } from './api-core.js';
+import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
+
+/**
+ * True when a user is listed in the world setting `toastExcludedUsers` — a
+ * comma-separated list of Foundry user names (case-insensitive) whose clients
+ * never render toasts, e.g. a camera/stream account that cannot click a toast
+ * closed. show() checks the current user, making the exclusion receipt-side:
+ * it covers local shows, broadcastToast relays, and targeted sends alike.
+ * @param {User} user - The user to test (default: the current user)
+ * @returns {boolean}
+ */
+export function isToastExcludedUser(user = game.user) {
+    const raw = getSettingSafely(MODULE.ID, 'toastExcludedUsers', '');
+    if (!user?.name || typeof raw !== 'string' || !raw.trim()) return false;
+    return raw.split(',')
+        .map(name => name.trim().toLowerCase())
+        .filter(Boolean)
+        .includes(user.name.toLowerCase());
+}
 
 class ToastManager {
     static toasts = new Map(); // toastId -> { id, moduleId, stackKey, persistent, color, size, onClick, onDismiss, timeoutId, element }
@@ -31,6 +49,10 @@ class ToastManager {
     // dimensions, typography scaling with it, centered, singleton, cap-exempt,
     // click-anywhere dismisses). 'fullscreen' is the 100%×100% billboard with a scrim.
     static SIZES = ['small', 'medium', 'large', 'fullscreen'];
+    // Publish surfaces: Foundry serves two player-facing views — the active
+    // tabletop (/game) and the chat-only /stream capture page (typically
+    // recorded by OBS). Toasts default to the tabletop.
+    static PUBLISH = ['game', 'stream', 'both'];
 
     // ===== PUBLIC API =====
 
@@ -51,12 +73,33 @@ class ToastManager {
      * @param {Function} config.onClick - Body click runs this, then the toast is removed (onDismiss does NOT fire)
      * @param {Function} config.onDismiss - Fires only when the toast goes away unacted-on: auto-timeout or the close button. Same contract as menubar notifications (see api-menubar.md). Never fires on replacement via stackKey, stack-cap eviction, programmatic remove(), or clearByModule().
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
+     * @param {string} config.publish - Which Foundry view renders the toast: 'game' (the active tabletop, default), 'stream' (the chat-only /stream capture view), or 'both'. Anything else falls back to 'game'. Checked receipt-side against game.view, so it covers every delivery path.
      * @returns {string|null} - Toast ID for later removal, or null on error
      */
-    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null } = {}) {
+    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game' } = {}) {
         try {
             if (!title) {
                 postConsoleAndNotification(MODULE.NAME, "Toast: show() requires a title", "", false, false);
+                return null;
+            }
+
+            // Publish surface: render only when this client's view is targeted.
+            // game.view is "stream" on the /stream capture page, "game" on the
+            // active tabletop; anything else counts as the tabletop.
+            const validPublish = this.PUBLISH.includes(publish) ? publish : 'game';
+            const currentView = game.view === 'stream' ? 'stream' : 'game';
+            if (validPublish !== 'both' && validPublish !== currentView) {
+                postConsoleAndNotification(MODULE.NAME, `Toast publish '${validPublish}' skips the ${currentView} view - suppressed`, "", true, false);
+                return null;
+            }
+
+            // Excluded users never render toasts on the tabletop, whatever the
+            // delivery path. The stream view is exempt: exclusion protects a
+            // passive account from interactive noise on /game, while a
+            // stream-targeted toast is a deliberate publish to the capture
+            // surface — often logged in through that same account.
+            if (currentView === 'game' && isToastExcludedUser()) {
+                postConsoleAndNotification(MODULE.NAME, `Toast suppressed for excluded user: ${game.user?.name}`, "", true, false);
                 return null;
             }
 

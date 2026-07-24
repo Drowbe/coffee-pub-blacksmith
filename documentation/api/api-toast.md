@@ -27,6 +27,20 @@ Available from `init` (assigned in the early synchronous API block — see the b
 
 Show a toast on this client. Returns a toast ID (string), or `null` on error.
 
+If the current user's name appears in the Excluded Users world setting (`toastExcludedUsers`,
+Notifications settings — a comma-separated, case-insensitive list of Foundry user names), `show()`
+renders nothing and returns `null` on the tabletop (`/game`). The check runs on the receiving
+client, so it suppresses every delivery path — direct consumer calls and Blacksmith's internal
+cross-client relays alike. It exists for accounts that cannot interact with the screen, e.g. a
+camera or stream login. The `/stream` view is exempt: a stream-targeted toast (see `publish`)
+renders there even when the logged-in account is on the exclusion list — exclusion protects a
+passive account from tabletop noise, while publishing to the stream is deliberate.
+
+`show()` also renders only on the view its `publish` config targets: by default toasts appear on
+the active tabletop (`/game`) and never on Foundry's chat-only `/stream` capture view — on a
+non-targeted view `show()` renders nothing and returns `null`. See the `publish` config below to
+target the stream view or both.
+
 **Config:**
 - `title` (string, **required**): headline text
 - `subtitle` (string, optional): second line
@@ -63,6 +77,11 @@ Show a toast on this client. Returns a toast ID (string), or `null` on error.
 - `stackKey` (string, optional): toasts stack by default (capped; oldest evicted). A new toast with
   the same `stackKey` **replaces** the existing one in place — use for "latest state wins" toasts
   (unread counters, current leader) instead of stacking duplicates.
+- `publish` (string, optional): which Foundry view renders the toast — `'game'` (the active
+  tabletop, **default**), `'stream'` (the chat-only `/stream` capture page, typically recorded by
+  OBS), or `'both'`. Anything else falls back to `'game'`. Checked receipt-side against
+  `game.view`, so it holds across every delivery path; plain data, so it rides Blacksmith's
+  cross-client relays unchanged.
 
 Title and subtitle are rendered as text, never parsed as HTML.
 

@@ -186,3 +186,10 @@
     border: none;
     border-radius: 3px;
 }
+
+/* Target = Stream: the stream surface is view-addressed, so user recipients are
+   moot — the whole section dims and stops taking input until the target changes. */
+.blacksmith-toast-send-recipients-section.stream-only {
+    opacity: 0.4;
+    pointer-events: none;
+}

@@ -11,7 +11,7 @@
 import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
-import { ToastManager, sendToastToUsers } from './api-toast.js';
+import { ToastManager, sendToastToUsers, broadcastToast, isToastExcludedUser } from './api-toast.js';
 
 const APP_ID = 'blacksmith-toast-send-window';
 const PREFS_SETTING = 'toastSendPreferences';
@@ -119,8 +119,11 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         const prefs = this.preferences;
 
         // Non-GM users; active ones enabled and pre-checked, offline disabled.
+        // Users on the toastExcludedUsers list are left out entirely — the
+        // receipt-side gate in show() would drop the toast anyway; hiding them
+        // keeps the list honest about who can be reached.
         const recipientRows = game.users
-            .filter(u => !u.isGM)
+            .filter(u => !u.isGM && !isToastExcludedUser(u))
             .map(u => `
                 <label class="blacksmith-toast-send-recipient${u.active ? '' : ' offline'}">
                     <input type="checkbox" name="toast-recipient" value="${esc(u.id)}"
@@ -151,6 +154,20 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         const bodyContent = `
             <div class="blacksmith-toast-send-form">
                 <div class="blacksmith-window-section">
+                    <div class="blacksmith-window-section-header">
+                        <i class="fa-solid fa-crosshairs"></i>
+                        <span>Target</span>
+                    </div>
+                    <div class="blacksmith-field">
+                        <select class="blacksmith-input" name="toast-publish" data-tooltip="Which screen shows the toast. Stream is Foundry's chat-only /stream capture page (e.g. an OBS overlay).">
+                            <option value="game" ${(prefs.publish ?? 'game') === 'game' ? 'selected' : ''}>Game — the play screen</option>
+                            <option value="stream" ${prefs.publish === 'stream' ? 'selected' : ''}>Stream — the chat-only capture page</option>
+                            <option value="both" ${prefs.publish === 'both' ? 'selected' : ''}>Both — game and stream</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="blacksmith-window-section blacksmith-toast-send-recipients-section">
                     <div class="blacksmith-window-section-header">
                         <i class="fa-solid fa-users"></i>
                         <span>Recipients</span>
@@ -319,6 +336,19 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             void this._savePreferences();
         });
         applyPartyState();
+
+        // Target drives whether recipients matter: the stream surface is
+        // view-addressed (any /stream client renders a stream-targeted toast,
+        // whoever is logged into it), so a stream-only send has no user
+        // recipients and the section dims to say so. Preference saving rides
+        // the generic change listener below.
+        const publishSelect = root.querySelector('[name="toast-publish"]');
+        const applyPublishState = () => {
+            root.querySelector('.blacksmith-toast-send-recipients-section')
+                ?.classList.toggle('stream-only', publishSelect?.value === 'stream');
+        };
+        publishSelect?.addEventListener('change', applyPublishState);
+        applyPublishState();
 
         // Appearance edits flip the template selector to "Custom" — the selector never
         // claims a template the form has diverged from. Recipients and the title/message
@@ -627,6 +657,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         const preferences = {
             party: root.querySelector('[name="toast-party"]')?.checked === true,
             recipients: [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(input => input.value),
+            publish: root.querySelector('[name="toast-publish"]')?.value || 'game',
             template: root.querySelector('[name="toast-template"]')?.value || 'Information',
             includeText: root.querySelector('[name="toast-include-text"]')?.checked === true,
             color: root.querySelector('[name="toast-border-color"]')?.value || '#ac9f81',
@@ -664,10 +695,16 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 return;
             }
             const partyChecked = root.querySelector('[name="toast-party"]')?.checked === true;
-            const recipients = partyChecked
-                ? game.users.filter(u => !u.isGM && u.active).map(u => u.id)
-                : [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(cb => cb.value);
-            if (!recipients.length) {
+            const publish = root.querySelector('[name="toast-publish"]')?.value || 'game';
+            // Party resolves at send time to everyone online — minus excluded
+            // users, so a camera/stream account is never swept in by the party box.
+            // A stream-only send is view-addressed and has no user recipients.
+            const recipients = publish === 'stream'
+                ? []
+                : partyChecked
+                    ? game.users.filter(u => !u.isGM && u.active && !isToastExcludedUser(u)).map(u => u.id)
+                    : [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(cb => cb.value);
+            if (publish !== 'stream' && !recipients.length) {
                 ui.notifications.warn(partyChecked ? 'No players are online.' : 'Pick at least one recipient.');
                 return;
             }
@@ -689,21 +726,32 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
             await this._savePreferences();
 
-            await sendToastToUsers({
+            const payload = {
                 title, subtitle, image, backgroundImage, icon, sound,
                 color,
                 backgroundColor,
                 size,
                 duration,
+                publish,
                 moduleId: 'blacksmith-core'
-            }, recipients);
+            };
+            if (publish === 'stream') {
+                // No user recipients — broadcast and let each client's show()
+                // gate by view; only /stream pages render it.
+                await broadcastToast(payload);
+            } else {
+                await sendToastToUsers(payload, recipients);
+            }
 
             // Small GM confirmation (author decision 2026-07-19) — not an echo of the
             // announcement. Wears the Information template so the tool's own voice
             // matches the house default look.
-            const names = partyChecked
-                ? ['Entire party']
-                : recipients.map(id => game.users.get(id)).filter(Boolean).map(u => u.character?.name || u.name);
+            const names = publish === 'stream'
+                ? []
+                : partyChecked
+                    ? ['Entire party']
+                    : recipients.map(id => game.users.get(id)).filter(Boolean).map(u => u.character?.name || u.name);
+            if (publish !== 'game') names.push('Stream');
             const info = BUILTIN_TEMPLATES['Information'];
             ToastManager.show({
                 title: 'Toast sent',

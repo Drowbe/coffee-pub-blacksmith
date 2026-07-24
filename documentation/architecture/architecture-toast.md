@@ -22,6 +22,27 @@ Keeping delivery out of it is what let it ship without a socket dependency, and 
 callbacks can be stored as plain function references: toasts are per-client state that never
 serializes.
 
+Receipt-side rendering is also where suppression lives, because every delivery path — a consumer's
+local call, the broadcast relay, the targeted relay — ends in `show()` on the receiving client, so
+one gate covers them all and senders need no knowledge of it. Two gates run at the top of `show()`:
+
+- **Publish surface.** Foundry serves two player-facing views — the active tabletop (`/game`) and
+  the chat-only `/stream` capture page (typically recorded by OBS) — and `/stream` loads modules
+  like the tabletop does, so without a gate every toast would render on top of the chat capture
+  with nobody behind the view to click it closed. The `publish` config (`'game'` default,
+  `'stream'`, `'both'`; whitelist in `ToastManager.PUBLISH`) names the target; `show()` compares
+  it against `game.view` and returns `null` on a non-targeted view. `publish` is plain data, so it
+  crosses the relays unchanged and the receiving client decides — the same receipt-side model as
+  `_recipients` targeting.
+- **Excluded users.** On the tabletop view, `show()` returns `null` when the current user is on
+  the `toastExcludedUsers` world setting (comma-separated Foundry user names, case-insensitive;
+  `isToastExcludedUser()` in `api-toast.js`). The stream view is exempt: exclusion protects a
+  passive account from interactive noise on `/game`, while a stream-targeted toast is a deliberate
+  publish to the capture surface — often logged in through that same account. The Send Toast
+  window additionally filters excluded users out of its recipient list and its "Entire Party"
+  resolution (`window-toast-send.js`) so the GM UI does not offer recipients who cannot be
+  reached — a courtesy filter, not the enforcement point.
+
 ## DOM-direct rendering — deliberately not the menubar model
 
 The menubar re-renders a Handlebars template into replaced DOM and guards the cost with a structure
@@ -170,11 +191,18 @@ section decides *where* it goes.
 standing. Targeting is receipt-side per the socket privacy rule (both transports broadcast):
 `_recipients` rides the payload and the `showToast` handler renders only on listed clients — so
 the payload must never carry secrets; a GM announcement is non-secret by contract. The sender's
-own client renders locally only if it is in the list. First consumer: the GM **Send Toast** tool
-(`window-toast-send.js`, opened from the party menubar, GM-only) — it sends `size: 'large'`
-toasts to selected players and shows the sending GM a small confirmation toast rather than an
-echo of the announcement. That tool is a Blacksmith feature consuming private plumbing — there is
-no public cross-client toast surface for other modules to call.
+own client renders locally only if it is in the list. One exemption: the stream surface is
+**view-addressed, not user-addressed** — when a payload's `publish` targets the stream, the
+handler renders it on any `/stream` client regardless of `_recipients`, because whoever is logged
+into the capture page is incidental to the send; `show()`'s own view gate keeps the exemption from
+leaking anything onto `/game`. First consumer: the GM **Send Toast** tool (`window-toast-send.js`,
+opened from the party menubar, GM-only) — it sends `size: 'large'` toasts to selected players and
+shows the sending GM a small confirmation toast rather than an echo of the announcement. Its
+Target section maps directly onto `publish`: Game sends to the selected recipients as before,
+Both adds the stream surface to the same send, and Stream drops user recipients entirely (the
+section dims) and goes out through `broadcastToast` — every client hears it, only `/stream` pages
+render it. That tool is a Blacksmith feature consuming private plumbing — there is no public
+cross-client toast surface for other modules to call.
 
 ## Delivery channels: the `notifyX` setting pattern
 

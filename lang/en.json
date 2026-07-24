@@ -798,6 +798,12 @@
 	"headingH1Notifications-Label": "Notifications",
 	"headingH1Notifications-Hint": "How Blacksmith announces game events to the table: an on-screen toast (a transient popup over the play area), a chat card (a permanent entry in the chat log), both, or none. Each feature below chooses its delivery and which message kinds fire.",
 
+		"headingH2NotifyToasts-Label": "Toasts",
+		"headingH2NotifyToasts-Hint": "Delivery rules that apply to every toast Blacksmith shows, whatever feature sends it.",
+
+		"toastExcludedUsers-Label": "Excluded Users",
+		"toastExcludedUsers-Hint": "Comma-separated Foundry user names (not character names) whose screens never show toasts - for example a camera or stream account that cannot click a toast to close it. Matching is case-insensitive. Applies to every toast, including 'Entire Party' sends from the Send Toast window, timer announcements, and broadcasts.",
+
 		"headingH2NotifyLeader-Label": "Leader",
 		"headingH2NotifyLeader-Hint": "Announcements when the party leader changes.",
 

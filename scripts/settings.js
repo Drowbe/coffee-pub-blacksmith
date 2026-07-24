@@ -3732,6 +3732,26 @@ export const registerSettings = () => {
 	registerHeader('Notifications', 'headingH1Notifications-Label', 'headingH1Notifications-Hint', 'H1', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
 
 	// --------------------------------------
+	// -- H2: TOASTS
+	// --------------------------------------
+	registerHeader('NotifyToasts', 'headingH2NotifyToasts-Label', 'headingH2NotifyToasts-Hint', 'H2', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
+
+	// Comma-separated Foundry user names whose clients never render toasts —
+	// e.g. a camera/stream account that cannot click a toast closed. Enforced
+	// receipt-side in ToastManager.show() (api-toast.js), so it covers every
+	// delivery path: local shows, broadcasts, and targeted sends.
+	game.settings.register(MODULE.ID, 'toastExcludedUsers', {
+		name: MODULE.ID + '.toastExcludedUsers-Label',
+		hint: MODULE.ID + '.toastExcludedUsers-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
+	// --------------------------------------
 	// -- H2: LEADER
 	// --------------------------------------
 	registerHeader('NotifyLeader', 'headingH2NotifyLeader-Label', 'headingH2NotifyLeader-Hint', 'H2', WORKFLOW_GROUPS.NOTIFICATIONS, 'world');
