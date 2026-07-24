@@ -1158,9 +1158,9 @@ export const registerSettings = () => {
 		default: {}
 	});
 
-	// Saved Send Toast templates: { [name]: appearance bundle }. World scope — the
-	// template library is shared by all GMs; built-in templates are code-side and
-	// never stored here.
+	// Saved Send Toast templates: { [name]: appearance + target bundle }. World
+	// scope — the template library is shared by all GMs; built-in templates are
+	// code-side and never stored here.
 	game.settings.register(MODULE.ID, 'toastSendTemplates', {
 		scope: 'world',
 		config: false,

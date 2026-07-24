@@ -102,7 +102,7 @@ Class-only styling has exactly **three deliberate, sanitized inline exceptions**
 
 The GM tool's template selector is where presets live now that the primitive takes parameters.
 Built-in templates are code-side constants in `window-toast-send.js` (`BUILTIN_TEMPLATES`) and are
-not deletable; user templates are appearance bundles saved by name in the world-scoped
+not deletable; user templates are appearance + target bundles saved by name in the world-scoped
 `toastSendTemplates` setting (Save As / Delete in the window — Delete is only shown for user
 templates). The built-in set is deliberately small — three presets forming an escalation ladder
 (Information: content-fit, auto-dismisses; Announcement: small billboard, lingers; Important:
@@ -110,8 +110,10 @@ fullscreen, waits for a click) — because the wide middle is what Custom and us
 are for.
 
 A template stamps the appearance fields (border color, background color, optional background
-image, icon/avatar mode, size, duration, sound) onto the form. **Built-ins are read-only presets;
-a GM's own templates are documents.** Editing an appearance field while a built-in is selected
+image, icon/avatar mode, size, duration, sound) and the publish target onto the form — a saved
+template can carry Stream with it, so a canned stream overlay is one selection away; a template
+saved before targets existed stamps Game. **Built-ins are read-only presets; a GM's own templates
+are documents.** Editing an appearance field or the target while a built-in is selected
 forks the form to the **— Custom —** sentinel (the selector never claims a built-in the form has
 diverged from); editing while a user template is selected keeps the edits attached to it, and Save
 then updates that template in place without prompting. Only Custom — an unsaved configuration —

@@ -18,18 +18,20 @@ const PREFS_SETTING = 'toastSendPreferences';
 const TEMPLATES_SETTING = 'toastSendTemplates';
 
 // Built-in templates are code-side and non-deletable; user templates live in the
-// world-scoped toastSendTemplates setting. A template is an APPEARANCE bundle —
-// recipients and message text are never part of one. Border and background colors
-// are independent parameters (derivation was tried and retired); a background
-// image, when set, covers the background color.
+// world-scoped toastSendTemplates setting. A template is an APPEARANCE + TARGET
+// bundle — recipients and message text are never part of one (text is the
+// includeText opt-in), but the publish target IS: a saved "BIG HIT!" template
+// can carry Stream with it. Border and background colors are independent
+// parameters (derivation was tried and retired); a background image, when set,
+// covers the background color.
 // A deliberately small set — Information is the everyday default, Announcement and
 // Important cover the loud cases, and everything else is Custom / user-saved.
 const BUILTIN_TEMPLATES = {
     // NOTE: `sound` is the PATH, not the asset id — the sound dropdown is keyed by
     // path (settings.js getSoundChoices) and playSound() takes a src.
-    'Information':   { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3' },
-    'Announcement':  { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3' },
-    'Important':     { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3' }
+    'Information':   { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3', publish: 'game' },
+    'Announcement':  { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3', publish: 'game' },
+    'Important':     { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3', publish: 'game' }
 };
 const DEFAULT_BG_COLOR = '#141414';
 // Template-selector sentinel: shown whenever the form has diverged from a template.
@@ -153,20 +155,6 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
         const bodyContent = `
             <div class="blacksmith-toast-send-form">
-                <div class="blacksmith-window-section">
-                    <div class="blacksmith-window-section-header">
-                        <i class="fa-solid fa-crosshairs"></i>
-                        <span>Target</span>
-                    </div>
-                    <div class="blacksmith-field">
-                        <select class="blacksmith-input" name="toast-publish" data-tooltip="Which screen shows the toast. Stream is Foundry's chat-only /stream capture page (e.g. an OBS overlay).">
-                            <option value="game" ${(prefs.publish ?? 'game') === 'game' ? 'selected' : ''}>Game — the play screen</option>
-                            <option value="stream" ${prefs.publish === 'stream' ? 'selected' : ''}>Stream — the chat-only capture page</option>
-                            <option value="both" ${prefs.publish === 'both' ? 'selected' : ''}>Both — game and stream</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="blacksmith-window-section blacksmith-toast-send-recipients-section">
                     <div class="blacksmith-window-section-header">
                         <i class="fa-solid fa-users"></i>
@@ -203,6 +191,20 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
                 <div class="blacksmith-window-section">
                     <div class="blacksmith-window-section-header">
+                        <i class="fa-solid fa-crosshairs"></i>
+                        <span>Target</span>
+                    </div>
+                    <div class="blacksmith-field">
+                        <select class="blacksmith-input" name="toast-publish" data-tooltip="Which screen shows the toast. Stream is Foundry's chat-only /stream capture page (e.g. an OBS overlay).">
+                            <option value="game" ${(prefs.publish ?? 'game') === 'game' ? 'selected' : ''}>Game — the play screen</option>
+                            <option value="stream" ${prefs.publish === 'stream' ? 'selected' : ''}>Stream — the chat-only capture page</option>
+                            <option value="both" ${prefs.publish === 'both' ? 'selected' : ''}>Both — game and stream</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="blacksmith-window-section">
+                    <div class="blacksmith-window-section-header">
                         <i class="fa-solid fa-message"></i>
                         <span>Message</span>
                     </div>
@@ -235,7 +237,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                         <div class="blacksmith-field">
                             <label class="blacksmith-field-label">Duration</label>
                             <select class="blacksmith-input" name="toast-duration">
-                                ${[0, 10, 20, 30, 60].map(value => `<option value="${value}"${Number(prefs.duration ?? 0) === value ? ' selected' : ''}>${value === 0 ? 'Until closed' : (value === 60 ? '1 minute' : `${value} seconds`)}</option>`).join('')}
+                                ${[0, 3, 10, 20, 30, 60].map(value => `<option value="${value}"${Number(prefs.duration ?? 0) === value ? ' selected' : ''}>${value === 0 ? 'Until closed' : (value === 60 ? '1 minute' : `${value} seconds`)}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -340,21 +342,19 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         // Target drives whether recipients matter: the stream surface is
         // view-addressed (any /stream client renders a stream-targeted toast,
         // whoever is logged into it), so a stream-only send has no user
-        // recipients and the section dims to say so. Preference saving rides
-        // the generic change listener below.
-        const publishSelect = root.querySelector('[name="toast-publish"]');
-        const applyPublishState = () => {
-            root.querySelector('.blacksmith-toast-send-recipients-section')
-                ?.classList.toggle('stream-only', publishSelect?.value === 'stream');
-        };
-        publishSelect?.addEventListener('change', applyPublishState);
-        applyPublishState();
+        // recipients and the section dims to say so. Preference saving and the
+        // divergence-to-Custom flip ride the generic change listener below.
+        root.querySelector('[name="toast-publish"]')
+            ?.addEventListener('change', () => this._applyPublishState());
+        this._applyPublishState();
 
-        // Appearance edits flip the template selector to "Custom" — the selector never
+        // Template-content edits flip the selector to "Custom" — the selector never
         // claims a template the form has diverged from. Recipients and the title/message
-        // text are deliberately NOT appearance: typing a message is the normal use of a
-        // template, not a divergence from it (author decision 2026-07-20).
-        const APPEARANCE_FIELDS = ['toast-size', 'toast-duration', 'toast-sound', 'toast-border-color', 'toast-border-color-text', 'toast-bg-color', 'toast-bg-color-text', 'toast-image', 'toast-background'];
+        // text are deliberately NOT template content: typing a message is the normal use
+        // of a template, not a divergence from it (author decision 2026-07-20). The
+        // publish target IS template content (author decision 2026-07-23), so changing
+        // it diverges too.
+        const APPEARANCE_FIELDS = ['toast-size', 'toast-duration', 'toast-sound', 'toast-border-color', 'toast-border-color-text', 'toast-bg-color', 'toast-bg-color-text', 'toast-image', 'toast-background', 'toast-publish'];
         for (const input of root.querySelectorAll('input, select')) {
             if (['toast-title', 'toast-subtitle', 'toast-party', 'toast-template'].includes(input.name)) continue;
             input.addEventListener('change', () => {
@@ -404,6 +404,17 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         // Reflect the remembered selection in the contextual controls (in particular the
         // Save tooltip, which reads "Update «name»" for a user's own template).
         this._refreshTemplateControls();
+    }
+
+    /**
+     * Reflect the Target choice in the Recipients section: a stream-only send is
+     * view-addressed and has no user recipients, so the section dims and stops
+     * taking input. Called on target changes and after a template stamps one.
+     */
+    _applyPublishState() {
+        const root = this._getRoot();
+        root?.querySelector('.blacksmith-toast-send-recipients-section')
+            ?.classList.toggle('stream-only', root?.querySelector('[name="toast-publish"]')?.value === 'stream');
     }
 
     /**
@@ -472,7 +483,8 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             backgroundImage: root?.querySelector('[name="toast-background"]')?.value?.trim() || '',
             size: root?.querySelector('[name="toast-size"]')?.value || '',
             duration: Number(root?.querySelector('[name="toast-duration"]')?.value ?? 0),
-            sound: root?.querySelector('[name="toast-sound"]')?.value || 'sound-none'
+            sound: root?.querySelector('[name="toast-sound"]')?.value || 'sound-none',
+            publish: root?.querySelector('[name="toast-publish"]')?.value || 'game'
         };
     }
 
@@ -501,6 +513,10 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         setValue('[name="toast-bg-color-text"]', tpl.backgroundColor || DEFAULT_BG_COLOR);
         setValue('[name="toast-background"]', tpl.backgroundImage || '');
         setValue('[name="toast-image"]', tpl.image || '');
+        // Templates saved before targets existed carry no publish — default them
+        // to the game screen rather than leaving a stale prior choice in place.
+        setValue('[name="toast-publish"]', tpl.publish || 'game');
+        this._applyPublishState();
 
         // Only a template saved with text stamps the wording; otherwise whatever the
         // GM has typed is left alone (the built-ins carry no text at all).
