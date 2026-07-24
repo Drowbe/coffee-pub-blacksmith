@@ -29,9 +29,9 @@ const TEMPLATES_SETTING = 'toastSendTemplates';
 const BUILTIN_TEMPLATES = {
     // NOTE: `sound` is the PATH, not the asset id — the sound dropdown is keyed by
     // path (settings.js getSoundChoices) and playSound() takes a src.
-    'Information':   { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3', publish: 'game' },
-    'Announcement':  { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3', publish: 'game' },
-    'Important':     { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3', publish: 'game' }
+    'Information':   { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3', publish: 'game', animation: '' },
+    'Announcement':  { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3', publish: 'game', animation: '' },
+    'Important':     { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3', publish: 'game', animation: '' }
 };
 const DEFAULT_BG_COLOR = '#141414';
 // Template-selector sentinel: shown whenever the form has diverged from a template.
@@ -242,6 +242,16 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                         </div>
                     </div>
                     <div class="blacksmith-field">
+                        <label class="blacksmith-field-label">Animation</label>
+                        <select class="blacksmith-input" name="toast-animation">
+                            <option value="" ${!prefs.animation ? 'selected' : ''}>None</option>
+                            <option value="pop" ${prefs.animation === 'pop' ? 'selected' : ''}>Pop — scale in with a bounce</option>
+                            <option value="reveal" ${prefs.animation === 'reveal' ? 'selected' : ''}>Reveal — icon, then title, then message</option>
+                            <option value="pulse" ${prefs.animation === 'pulse' ? 'selected' : ''}>Pulse — gentle breathing, best with Until closed</option>
+                        </select>
+                        <div class="blacksmith-toast-send-note">Plays on sized toasts only — an "Adapt to Content" toast ignores it.</div>
+                    </div>
+                    <div class="blacksmith-field">
                         <label class="blacksmith-field-label">Sound</label>
                         <div class="blacksmith-toast-send-image-row">
                             <select class="blacksmith-input" name="toast-sound">${soundOptions}</select>
@@ -354,7 +364,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         // of a template, not a divergence from it (author decision 2026-07-20). The
         // publish target IS template content (author decision 2026-07-23), so changing
         // it diverges too.
-        const APPEARANCE_FIELDS = ['toast-size', 'toast-duration', 'toast-sound', 'toast-border-color', 'toast-border-color-text', 'toast-bg-color', 'toast-bg-color-text', 'toast-image', 'toast-background', 'toast-publish'];
+        const APPEARANCE_FIELDS = ['toast-size', 'toast-duration', 'toast-sound', 'toast-border-color', 'toast-border-color-text', 'toast-bg-color', 'toast-bg-color-text', 'toast-image', 'toast-background', 'toast-publish', 'toast-animation'];
         for (const input of root.querySelectorAll('input, select')) {
             if (['toast-title', 'toast-subtitle', 'toast-party', 'toast-template'].includes(input.name)) continue;
             input.addEventListener('change', () => {
@@ -484,7 +494,8 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             size: root?.querySelector('[name="toast-size"]')?.value || '',
             duration: Number(root?.querySelector('[name="toast-duration"]')?.value ?? 0),
             sound: root?.querySelector('[name="toast-sound"]')?.value || 'sound-none',
-            publish: root?.querySelector('[name="toast-publish"]')?.value || 'game'
+            publish: root?.querySelector('[name="toast-publish"]')?.value || 'game',
+            animation: root?.querySelector('[name="toast-animation"]')?.value || ''
         };
     }
 
@@ -517,6 +528,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         // to the game screen rather than leaving a stale prior choice in place.
         setValue('[name="toast-publish"]', tpl.publish || 'game');
         this._applyPublishState();
+        setValue('[name="toast-animation"]', tpl.animation || '');
 
         // Only a template saved with text stamps the wording; otherwise whatever the
         // GM has typed is left alone (the built-ins carry no text at all).
@@ -681,6 +693,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             size: root.querySelector('[name="toast-size"]')?.value || '',
             duration: Number(root.querySelector('[name="toast-duration"]')?.value ?? 0),
             sound: root.querySelector('[name="toast-sound"]')?.value || 'sound-none',
+            animation: root.querySelector('[name="toast-animation"]')?.value || '',
             // The IMAGE_MODE sentinel never persists as an icon — the stored image path is
             // what restores image mode on reopen (see constructor)
             icon: this.selectedIcon === IMAGE_MODE ? '' : this.selectedIcon,
@@ -739,6 +752,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             const backgroundImage = root.querySelector('[name="toast-background"]')?.value?.trim() || null;
             const sound = root.querySelector('[name="toast-sound"]')?.value || null;
             const icon = imageMode ? null : (this.selectedIcon || null);
+            const animation = root.querySelector('[name="toast-animation"]')?.value || null;
 
             await this._savePreferences();
 
@@ -749,6 +763,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 size,
                 duration,
                 publish,
+                animation,
                 moduleId: 'blacksmith-core'
             };
             if (publish === 'stream') {

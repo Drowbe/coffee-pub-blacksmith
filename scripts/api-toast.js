@@ -49,6 +49,13 @@ class ToastManager {
     // dimensions, typography scaling with it, centered, singleton, cap-exempt,
     // click-anywhere dismisses). 'fullscreen' is the 100%×100% billboard with a scrim.
     static SIZES = ['small', 'medium', 'large', 'fullscreen'];
+    // Content animations — BILLBOARDS ONLY (author decision 2026-07-23): stacked
+    // toasts fire from timers and announcements, and five toasts each doing their
+    // own dance is noise; the expressive lane is the sized takeover. Pure CSS
+    // keyframes on the content children (toast.css), entrance-only except pulse
+    // (a subtle infinite breathe meant for persistent billboards), gated behind
+    // prefers-reduced-motion. Applied as a class — same whitelist model as SIZES.
+    static ANIMATIONS = ['pop', 'reveal', 'pulse'];
     // Publish surfaces: Foundry serves two player-facing views — the active
     // tabletop (/game) and the chat-only /stream capture page (typically
     // recorded by OBS). Toasts default to the tabletop.
@@ -74,9 +81,10 @@ class ToastManager {
      * @param {Function} config.onDismiss - Fires only when the toast goes away unacted-on: auto-timeout or the close button. Same contract as menubar notifications (see api-menubar.md). Never fires on replacement via stackKey, stack-cap eviction, programmatic remove(), or clearByModule().
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
      * @param {string} config.publish - Which Foundry view renders the toast: 'game' (the active tabletop, default), 'stream' (the chat-only /stream capture view), or 'both'. Anything else falls back to 'game'. Checked receipt-side against game.view, so it covers every delivery path.
+     * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), or 'pulse' (subtle infinite breathe, meant for persistent billboards). Anything else, or no size, renders without animation. Respects prefers-reduced-motion.
      * @returns {string|null} - Toast ID for later removal, or null on error
      */
-    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game' } = {}) {
+    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, animation = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game' } = {}) {
         try {
             if (!title) {
                 postConsoleAndNotification(MODULE.NAME, "Toast: show() requires a title", "", false, false);
@@ -113,6 +121,8 @@ class ToastManager {
             const validColor = (typeof color === 'string' && this.COLOR_PATTERN.test(color)) ? color : null;
             const validBackgroundColor = (typeof backgroundColor === 'string' && this.COLOR_PATTERN.test(backgroundColor)) ? backgroundColor : null;
             const validSize = this.SIZES.includes(size) ? size : null;
+            // Animations are billboard-only by design — no size, no animation.
+            const validAnimation = (validSize && this.ANIMATIONS.includes(animation)) ? animation : null;
             const persistent = !(Number(duration) > 0);
 
             // Billboards are singletons: a second one replaces the first, whatever its size —
@@ -143,6 +153,7 @@ class ToastManager {
                 color: validColor,
                 backgroundColor: validBackgroundColor,
                 size: validSize,
+                animation: validAnimation,
                 onClick: typeof onClick === 'function' ? onClick : null,
                 onDismiss: typeof onDismiss === 'function' ? onDismiss : null,
                 timeoutId: null,
@@ -231,7 +242,8 @@ class ToastManager {
             persistent: t.persistent,
             color: t.color,
             backgroundColor: t.backgroundColor,
-            size: t.size
+            size: t.size,
+            animation: t.animation
         }));
     }
 
@@ -306,6 +318,10 @@ class ToastManager {
             el.style.backgroundColor = this._hexToRgba(toast.backgroundColor, this.BACKGROUND_ALPHA);
         }
         if (toast.size) el.classList.add(`blacksmith-toast-size-${toast.size}`);
+        // Whitelisted in show() (billboard-only); keyframes live in toast.css,
+        // scoped to the content children so the container's enter/exit
+        // transition and ANIMATION_MS stay untouched.
+        if (toast.animation) el.classList.add(`blacksmith-toast-anim-${toast.animation}`);
 
         // backgroundImage is the one inline-style exception to the class-only model:
         // encodeURI neutralizes quotes so the path cannot escape the url("") wrapper.

@@ -193,3 +193,10 @@
     opacity: 0.4;
     pointer-events: none;
 }
+
+/* Inline caveat under a field's control (the Animation billboard-only note). */
+.blacksmith-toast-send-note {
+    font-size: 0.85em;
+    opacity: 0.6;
+    margin-top: 4px;
+}

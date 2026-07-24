@@ -110,7 +110,7 @@ fullscreen, waits for a click) — because the wide middle is what Custom and us
 are for.
 
 A template stamps the appearance fields (border color, background color, optional background
-image, icon/avatar mode, size, duration, sound) and the publish target onto the form — a saved
+image, icon/avatar mode, size, duration, sound, animation) and the publish target onto the form — a saved
 template can carry Stream with it, so a canned stream overlay is one selection away; a template
 saved before targets existed stamps Game. **Built-ins are read-only presets; a GM's own templates
 are documents.** Editing an appearance field or the target while a built-in is selected
@@ -171,6 +171,18 @@ Enter/exit is CSS-transition driven: the element is appended, then `.visible` is
 element after `ANIMATION_MS`. **`ANIMATION_MS` in `api-toast.js` and the `transition` duration in
 `styles/toast.css` must stay in sync** — the JS value is how long the element lingers for the CSS
 fade to finish.
+
+Content animations (the `animation` config; whitelist in `ToastManager.ANIMATIONS`, keyframes in
+`styles/toast.css`) are deliberately separate from that enter/exit machinery: they are pure CSS
+keyframes scoped to the content children (icon/image, title, subtitle), never the container, so
+they add no second JS/CSS timing sync and cannot fight the `.visible` transition. They are
+**billboard-only** — `show()` refuses an animation without a `size` (author decision 2026-07-23):
+stacked toasts fire from timers and announcements, and several toasts animating at once is noise,
+so the expressive lane is the sized takeover. All are entrance-run-once except `pulse`, a subtle
+infinite breathe meant for persistent billboards — the one sanctioned loop, bounded by billboards
+being singletons. Transform/opacity only (compositor-friendly), and the whole block sits behind a
+`prefers-reduced-motion: no-preference` media query. Because billboards replace rather than stack,
+a replacement re-runs the entrance — correct there, since a new billboard is new content.
 
 ## The internal broadcast relay (pre-Phase-3)
 

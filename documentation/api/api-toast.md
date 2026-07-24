@@ -62,6 +62,12 @@ target the stream view or both.
   **singletons** (a new one replaces the current, whatever its size), exempt from the stack cap,
   and — with no `onClick` — clicking anywhere dismisses (that counts as a dismissal — `onDismiss`
   fires). Long messages scroll inside the box rather than growing it.
+- `animation` (string, optional): content animation, **billboards only** — ignored without a
+  `size`, so stacked toasts always render still. `'pop'` scales the content in with a springy
+  bounce; `'reveal'` stages the entrance (icon, then title, then subtitle); `'pulse'` is a subtle
+  infinite breathe meant for persistent (`duration: 0`) billboards. Anything else renders without
+  animation. Pure CSS on the content children, and honors `prefers-reduced-motion` (reduced-motion
+  users get instant content).
 - `backgroundImage` (string, optional): image path/URL rendered as a cover background behind the
   toast content, with an automatic dark scrim so text stays legible. Combines with `image` (the
   avatar floats over it); best with the larger sizes and fullscreen.
@@ -134,8 +140,8 @@ Remove all toasts owned by a module (e.g. on your module's cleanup). Silent. Ret
 
 ## `getActive()`
 
-Returns `Array<{ id, moduleId, stackKey, persistent, color, backgroundColor, size }>` for the
-toasts currently on screen — display metadata only, no elements or callbacks.
+Returns `Array<{ id, moduleId, stackKey, persistent, color, backgroundColor, size, animation }>`
+for the toasts currently on screen — display metadata only, no elements or callbacks.
 
 ## Stacking model
 

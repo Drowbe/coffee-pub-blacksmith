@@ -256,3 +256,58 @@
     position: relative;
     z-index: 1;
 }
+
+/* ------------------------------------ */
+/* --- CONTENT ANIMATIONS ------------- */
+/* ------------------------------------ */
+/* blacksmith-toast-anim-* from the ANIMATIONS whitelist in api-toast.js.
+   Billboard-only (show() refuses them without a size). Keyframes target the
+   CONTENT CHILDREN, never the toast container — the container's enter/exit
+   transition and its ANIMATION_MS sync with the JS must stay untouched.
+   Transform/opacity only (compositor-friendly); everything sits behind
+   prefers-reduced-motion, so reduced-motion users get instant content. */
+@media (prefers-reduced-motion: no-preference) {
+    /* pop: everything scales in together with a springy overshoot; the text
+       lands a beat after the icon. */
+    .blacksmith-toast-anim-pop .blacksmith-toast-icon,
+    .blacksmith-toast-anim-pop .blacksmith-toast-image {
+        animation: blacksmith-toast-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .blacksmith-toast-anim-pop .blacksmith-toast-text {
+        animation: blacksmith-toast-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+    }
+
+    /* reveal: staged entrance — icon, then title, then subtitle rise in. */
+    .blacksmith-toast-anim-reveal .blacksmith-toast-icon,
+    .blacksmith-toast-anim-reveal .blacksmith-toast-image {
+        animation: blacksmith-toast-reveal 0.4s ease-out both;
+    }
+    .blacksmith-toast-anim-reveal .blacksmith-toast-title {
+        animation: blacksmith-toast-reveal 0.4s ease-out 0.15s both;
+    }
+    .blacksmith-toast-anim-reveal .blacksmith-toast-subtitle {
+        animation: blacksmith-toast-reveal 0.4s ease-out 0.3s both;
+    }
+
+    /* pulse: subtle infinite breathe, meant for persistent (duration: 0)
+       billboards — the one sanctioned loop, and billboards are singletons so
+       at most one runs at a time. */
+    .blacksmith-toast-anim-pulse .blacksmith-toast-icon,
+    .blacksmith-toast-anim-pulse .blacksmith-toast-image,
+    .blacksmith-toast-anim-pulse .blacksmith-toast-text {
+        animation: blacksmith-toast-pulse 2.4s ease-in-out infinite;
+    }
+}
+
+@keyframes blacksmith-toast-pop {
+    from { opacity: 0; transform: scale(0.6); }
+    to   { opacity: 1; transform: scale(1); }
+}
+@keyframes blacksmith-toast-reveal {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes blacksmith-toast-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.03); }
+}
