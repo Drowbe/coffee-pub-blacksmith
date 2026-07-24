@@ -3925,8 +3925,9 @@ export const registerSettings = () => {
 	// Hurry Up nudge delivery — the toast half is a shaking billboard wearing
 	// the slow combatant's portrait, sent direct (only that combatant's
 	// players) or as a blast (everyone) per the trigger (shared helper in
-	// timer-notifications.js); chat is the public banter card. A direct toast
-	// falls back to chat when no owner is online.
+	// timer-notifications.js); chat is the public banter card. The setting is
+	// absolute: a direct toast with no owner online is not delivered (local
+	// sender notice, never a chat fallback).
 	game.settings.register(MODULE.ID, 'notifyHurryUp', {
 		name: MODULE.ID + '.notifyHurryUp-Label',
 		hint: MODULE.ID + '.notifyHurryUp-Hint',

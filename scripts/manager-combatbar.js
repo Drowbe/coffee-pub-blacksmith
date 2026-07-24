@@ -1354,10 +1354,14 @@ export class CombatBarManager {
 
         const { combat, combatant, canvasToken, actor } = context;
         const canViewSheet = CombatBarManager.canOpenCombatantSheet(actor);
-        const coreItems = [];
-        const gmItems = [];
+        const isGM = game.user.isGM;
 
-        coreItems.push({
+        // Flat item list with explicit separators (author layout 2026-07-24):
+        // token actions | nudges | sheet & imagery (Curator's replace items
+        // land here) | GM combat control.
+        const items = [];
+
+        items.push({
             name: 'Pan to Token',
             icon: 'fa-solid fa-location-crosshairs',
             disabled: !canvasToken,
@@ -1366,7 +1370,7 @@ export class CombatBarManager {
             }
         });
 
-        coreItems.push({
+        items.push({
             name: 'Ping Token',
             icon: 'fa-solid fa-signal-stream',
             disabled: !canvasToken,
@@ -1375,25 +1379,27 @@ export class CombatBarManager {
             }
         });
 
-        coreItems.push({
-            name: 'Hurry Up (Direct)',
-            description: "Nudge only this combatant's player",
+        items.push({ separator: true });
+
+        items.push({
+            name: 'Hurry Up (Player)',
             icon: 'fa-solid fa-rabbit-running',
             callback: async () => {
                 await CombatBarManager.sendHurryUp(menuBar, combatantId, 'direct');
             }
         });
 
-        coreItems.push({
-            name: 'Hurry Up (Blast)',
-            description: 'Nudge everyone at the table',
+        items.push({
+            name: 'Hurry Up (Party)',
             icon: 'fa-solid fa-bullhorn',
             callback: async () => {
                 await CombatBarManager.sendHurryUp(menuBar, combatantId, 'blast');
             }
         });
 
-        coreItems.push({
+        items.push({ separator: true });
+
+        items.push({
             name: 'View Character Sheet',
             icon: 'fa-solid fa-user',
             disabled: !canViewSheet,
@@ -1403,8 +1409,56 @@ export class CombatBarManager {
             }
         });
 
-        if (game.user.isGM) {
-            gmItems.push({
+        const portraitSrc = actor?.img || canvasToken?.document?.texture?.src || null;
+        items.push({
+            name: 'View Portrait',
+            icon: 'fa-solid fa-image-portrait',
+            disabled: !portraitSrc,
+            callback: async () => {
+                if (!portraitSrc) return;
+                new foundry.applications.apps.ImagePopout({
+                    src: portraitSrc,
+                    window: { title: combatant.name || 'Portrait' }
+                }).render(true);
+            }
+        });
+
+        if (isGM) {
+            // Curator's image-replacement items belong with the imagery group.
+            const curatorApi = game.modules.get('coffee-pub-curator')?.api;
+            if (curatorApi?.getCombatContextMenuItems) {
+                const curatorContext = { combat, combatantId, canvasToken, x, y };
+                const curatorItems = curatorApi.getCombatContextMenuItems(curatorContext);
+                if (Array.isArray(curatorItems)) {
+                    for (const item of curatorItems) {
+                        items.push(item);
+                    }
+                }
+            }
+
+            items.push({ separator: true });
+
+            // Two distinct hides: the combatant's tracker entry vs the token
+            // on canvas (the one that actually conceals them from players).
+            items.push({
+                name: 'Toggle Combat Visibility',
+                icon: combatant.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+                callback: async () => {
+                    await combatant.update({ hidden: !combatant.hidden });
+                }
+            });
+
+            items.push({
+                name: 'Toggle Canvas Visibility',
+                icon: 'fa-solid fa-ghost',
+                disabled: !canvasToken,
+                callback: async () => {
+                    const tokenDoc = canvasToken?.document;
+                    if (tokenDoc) await tokenDoc.update({ hidden: !tokenDoc.hidden });
+                }
+            });
+
+            items.push({
                 name: 'Set As Current Combatant',
                 icon: 'fa-solid fa-crosshairs',
                 callback: async () => {
@@ -1412,26 +1466,20 @@ export class CombatBarManager {
                 }
             });
 
-            gmItems.push({
-                name: 'Toggle Visibility',
-                icon: combatant.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
-                callback: async () => {
-                    await combatant.update({ hidden: !combatant.hidden });
-                }
-            });
-
-            const curatorApi = game.modules.get('coffee-pub-curator')?.api;
-            if (curatorApi?.getCombatContextMenuItems) {
-                const curatorContext = { combat, combatantId, canvasToken, x, y };
-                const items = curatorApi.getCombatContextMenuItems(curatorContext);
-                if (Array.isArray(items)) {
-                    for (const item of items) {
-                        gmItems.push(item);
+            // v13 combatant groups: the bar deliberately never renders a group
+            // row (portraits are always individual combatants); this is the
+            // escape hatch for members the tracker has folded into one.
+            if (combatant.group) {
+                items.push({
+                    name: 'Remove from Group',
+                    icon: 'fa-solid fa-object-ungroup',
+                    callback: async () => {
+                        await combatant.update({ group: null });
                     }
-                }
+                });
             }
 
-            gmItems.push({
+            items.push({
                 name: 'Remove from Combat',
                 icon: 'fa-solid fa-trash',
                 callback: async () => {
@@ -1444,10 +1492,8 @@ export class CombatBarManager {
             id: 'blacksmith-combat-portrait-context-menu',
             x,
             y,
-            zones: {
-                core: coreItems,
-                gm: gmItems
-            }
+            zones: items,
+            zoneClass: 'core'
         });
     }
 

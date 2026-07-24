@@ -86,11 +86,12 @@ const HURRY_MESSAGES = [
  * billboard with the nudge sound riding the payload. The chat half is the
  * public card-hurry-up.hbs banter with the table-wide sound. In 'both' mode
  * the toast carries no sound — the chat broadcast already covers everyone,
- * including the target. A direct toast falls back to the chat card when no
- * owner of the combatant is online, so the nudge always lands somewhere.
- * The toast wears the slow combatant's face (portrait, token-art fallback via
- * getPortraitImage; the rabbit icon covers actors with no image), while the
- * chat card keeps the rabbit in its header.
+ * including the target. The channel setting is absolute: when no owner of the
+ * combatant is online, a direct toast is simply not delivered and the sender
+ * gets a local "player is not online" notice — never a chat fallback (author
+ * decision 2026-07-24). The toast wears the slow combatant's face (portrait,
+ * token-art fallback via getPortraitImage; the rabbit icon covers actors with
+ * no image), while the chat card keeps the rabbit in its header.
  * @param {string} targetName - The slow combatant's display name
  * @param {Actor|null} targetActor - The combatant's actor, used to resolve owning users
  * @param {string} [scope='direct'] - 'direct' (only the combatant's players) or 'blast' (everyone)
@@ -137,8 +138,20 @@ export async function sendHurryUpNudge(targetName, targetActor, scope = 'direct'
                         stackKey: 'blacksmith-hurry-up-confirm',
                         moduleId: 'blacksmith-core'
                     });
-                } else if (notifyMode === 'toast') {
-                    sendChat = true;
+                } else {
+                    // No owner online. The channel setting is absolute — no
+                    // chat fallback (author decision 2026-07-24: the old
+                    // fallback made toast mode look like it ignored the
+                    // setting). Local notice to the sender; in 'both' mode
+                    // the chat half below still posts.
+                    ToastAPI.show({
+                        title: `${targetName}'s player is not online`,
+                        subtitle: sendChat ? '' : 'Nudge not delivered.',
+                        icon: 'fa-solid fa-rabbit-running',
+                        duration: 3,
+                        stackKey: 'blacksmith-hurry-up-confirm',
+                        moduleId: 'blacksmith-core'
+                    });
                 }
             }
         }

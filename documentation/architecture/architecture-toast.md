@@ -227,10 +227,11 @@ opened from the party menubar, GM-only) — it sends `size: 'large'` toasts to s
 shows the sending GM a small confirmation toast rather than an echo of the announcement. Second
 consumer: the **Hurry Up nudge** (`sendHurryUpNudge` in `timer-notifications.js`, gated by the
 `notifyHurryUp` channel setting) — a small `shake` billboard wearing the slow combatant's
-portrait, sent either direct (targeted to the
-active owners of the slow combatant's actor, with a local confirmation toast for the sender and a
-chat-card fallback when no owner is online) or as a blast through `broadcastToast` to every client
-(the combat bar menu offers both scopes; the combat tracker's timer overlay always blasts). Its
+portrait, sent either direct (targeted to the active owners of the slow combatant's actor, with a
+local confirmation toast for the sender; when no owner is online it is not delivered and the
+sender gets a local notice — the channel setting is absolute, never a chat fallback) or as a
+blast through `broadcastToast` to every client (the combat bar menu offers both scopes; the
+combat tracker's timer overlay always blasts). Its
 Target section maps directly onto `publish`: Game sends to the selected recipients as before,
 Both adds the stream surface to the same send, and Stream drops user recipients entirely (the
 section dims) and goes out through `broadcastToast` — every client hears it, only `/stream` pages
