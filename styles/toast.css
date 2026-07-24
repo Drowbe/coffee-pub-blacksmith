@@ -297,6 +297,22 @@
     .blacksmith-toast-anim-pulse .blacksmith-toast-text {
         animation: blacksmith-toast-pulse 2.4s ease-in-out infinite;
     }
+
+    /* slam: the gratuitous one — content smashes in from oversized like a
+       stamp and jolts on impact. Everything lands together (impact is one
+       moment, so no stagger). Crit energy. */
+    .blacksmith-toast-anim-slam .blacksmith-toast-icon,
+    .blacksmith-toast-anim-slam .blacksmith-toast-image,
+    .blacksmith-toast-anim-slam .blacksmith-toast-text {
+        animation: blacksmith-toast-slam 0.55s ease-out both;
+    }
+
+    /* shake: rattles in with a decaying wobble. Fumble energy. */
+    .blacksmith-toast-anim-shake .blacksmith-toast-icon,
+    .blacksmith-toast-anim-shake .blacksmith-toast-image,
+    .blacksmith-toast-anim-shake .blacksmith-toast-text {
+        animation: blacksmith-toast-shake 0.7s ease-out both;
+    }
 }
 
 @keyframes blacksmith-toast-pop {
@@ -310,4 +326,21 @@
 @keyframes blacksmith-toast-pulse {
     0%, 100% { transform: scale(1); }
     50%      { transform: scale(1.03); }
+}
+@keyframes blacksmith-toast-slam {
+    0%   { opacity: 0; transform: scale(2.6) rotate(0deg); }
+    40%  { opacity: 1; transform: scale(0.94) rotate(-1.5deg); }
+    55%  { transform: scale(1.05) rotate(1deg); }
+    70%  { transform: scale(0.99) rotate(-0.5deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes blacksmith-toast-shake {
+    0%   { opacity: 0; transform: translateX(0); }
+    10%  { opacity: 1; transform: translateX(-10px) rotate(-1deg); }
+    25%  { transform: translateX(9px) rotate(1deg); }
+    40%  { transform: translateX(-7px) rotate(-0.8deg); }
+    55%  { transform: translateX(5px) rotate(0.5deg); }
+    70%  { transform: translateX(-3px) rotate(-0.3deg); }
+    85%  { transform: translateX(2px); }
+    100% { transform: translateX(0); }
 }

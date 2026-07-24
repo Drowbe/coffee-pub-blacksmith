@@ -248,6 +248,8 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                             <option value="pop" ${prefs.animation === 'pop' ? 'selected' : ''}>Pop — scale in with a bounce</option>
                             <option value="reveal" ${prefs.animation === 'reveal' ? 'selected' : ''}>Reveal — icon, then title, then message</option>
                             <option value="pulse" ${prefs.animation === 'pulse' ? 'selected' : ''}>Pulse — gentle breathing, best with Until closed</option>
+                            <option value="slam" ${prefs.animation === 'slam' ? 'selected' : ''}>Slam — smashes in like a stamp (crits!)</option>
+                            <option value="shake" ${prefs.animation === 'shake' ? 'selected' : ''}>Shake — rattles in (fumbles!)</option>
                         </select>
                         <div class="blacksmith-toast-send-note">Plays on sized toasts only — an "Adapt to Content" toast ignores it.</div>
                     </div>
@@ -800,5 +802,100 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             postConsoleAndNotification(MODULE.NAME, 'Send Toast: error sending', error, false, true);
             ui.notifications.error('Failed to send toast — see console.');
         }
+    }
+}
+
+// ==================================================================
+// ===== QUICK TOAST — fire a saved template without the window =====
+// ==================================================================
+// The party menubar's Quick Toast menu (api-menubar.js) lists fireable
+// templates and sends one on click. Only templates saved WITH text
+// (includeText + a title) are fireable — show() requires a title, and a
+// look-only template has nothing to say. Built-ins never carry text, so
+// the menu is always the GM's own canned announcements.
+
+/**
+ * Saved templates that can fire as-is: user templates carrying includeText
+ * and a non-empty title. Sorted by name for a stable menu.
+ * @returns {Array<{name: string, tpl: Object}>}
+ */
+export function getQuickToastTemplates() {
+    let saved = {};
+    try {
+        saved = game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {};
+    } catch { /* setting not registered yet */ }
+    return Object.entries(saved)
+        .filter(([, tpl]) => tpl?.includeText === true && typeof tpl.title === 'string' && tpl.title.trim())
+        .map(([name, tpl]) => ({ name, tpl }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Send a saved template exactly as stored — the Quick Toast path. Same
+ * delivery rules as the window's Send with "Entire Party" checked: the
+ * template's publish target decides the surface; game recipients are all
+ * online non-GM users minus the Excluded Users list; a stream target
+ * broadcasts and lets each client's show() gate by view. Shows the same
+ * small GM confirmation toast as the window.
+ * @param {string} name - A template name from getQuickToastTemplates()
+ * @returns {Promise<boolean>} - True if a send went out
+ */
+export async function quickSendToastTemplate(name) {
+    try {
+        const tpl = getQuickToastTemplates().find(entry => entry.name === name)?.tpl;
+        if (!tpl) {
+            ui.notifications.warn(`Toast template "${name}" has no saved title — open Send Toast to use it.`);
+            return false;
+        }
+        const publish = tpl.publish || 'game';
+        const payload = {
+            title: tpl.title.trim(),
+            subtitle: tpl.subtitle || '',
+            icon: tpl.image ? null : (tpl.icon || null),
+            image: tpl.image || null,
+            backgroundImage: tpl.backgroundImage || null,
+            color: tpl.color || null,
+            backgroundColor: tpl.backgroundColor || null,
+            size: tpl.size || null,
+            duration: Number(tpl.duration ?? 0),
+            sound: tpl.sound && tpl.sound !== 'sound-none' ? tpl.sound : null,
+            animation: tpl.animation || null,
+            publish,
+            moduleId: 'blacksmith-core'
+        };
+
+        const recipients = publish === 'stream'
+            ? []
+            : game.users.filter(u => !u.isGM && u.active && !isToastExcludedUser(u)).map(u => u.id);
+        if (publish === 'stream' || !recipients.length) {
+            if (publish === 'game') {
+                ui.notifications.warn('No players are online.');
+                return false;
+            }
+            // Stream-only, or Both with nobody online — broadcast; each
+            // client's show() gates by view.
+            await broadcastToast(payload);
+        } else {
+            await sendToastToUsers(payload, recipients);
+        }
+
+        const names = (publish !== 'stream' && recipients.length) ? ['Entire party'] : [];
+        if (publish !== 'game') names.push('Stream');
+        const info = BUILTIN_TEMPLATES['Information'];
+        ToastManager.show({
+            title: `Toast sent: ${name}`,
+            subtitle: names.join(', '),
+            icon: info.icon,
+            color: info.color,
+            backgroundColor: info.backgroundColor,
+            sound: info.sound,
+            duration: 5,
+            stackKey: 'blacksmith-toast-send-confirm'
+        });
+        return true;
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, 'Quick Toast: error sending', error, false, true);
+        ui.notifications.error('Failed to send toast — see console.');
+        return false;
     }
 }

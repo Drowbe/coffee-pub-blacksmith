@@ -55,7 +55,7 @@ class ToastManager {
     // keyframes on the content children (toast.css), entrance-only except pulse
     // (a subtle infinite breathe meant for persistent billboards), gated behind
     // prefers-reduced-motion. Applied as a class — same whitelist model as SIZES.
-    static ANIMATIONS = ['pop', 'reveal', 'pulse'];
+    static ANIMATIONS = ['pop', 'reveal', 'pulse', 'slam', 'shake'];
     // Publish surfaces: Foundry serves two player-facing views — the active
     // tabletop (/game) and the chat-only /stream capture page (typically
     // recorded by OBS). Toasts default to the tabletop.
@@ -81,7 +81,7 @@ class ToastManager {
      * @param {Function} config.onDismiss - Fires only when the toast goes away unacted-on: auto-timeout or the close button. Same contract as menubar notifications (see api-menubar.md). Never fires on replacement via stackKey, stack-cap eviction, programmatic remove(), or clearByModule().
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
      * @param {string} config.publish - Which Foundry view renders the toast: 'game' (the active tabletop, default), 'stream' (the chat-only /stream capture view), or 'both'. Anything else falls back to 'game'. Checked receipt-side against game.view, so it covers every delivery path.
-     * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), or 'pulse' (subtle infinite breathe, meant for persistent billboards). Anything else, or no size, renders without animation. Respects prefers-reduced-motion.
+     * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), 'pulse' (subtle infinite breathe, meant for persistent billboards), 'slam' (smashes in from oversized with a jolt on impact — crit energy), or 'shake' (rattles in with a decaying wobble — fumble energy). Anything else, or no size, renders without animation. Respects prefers-reduced-motion.
      * @returns {string|null} - Toast ID for later removal, or null on error
      */
     static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, animation = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game' } = {}) {

@@ -680,6 +680,22 @@ class MenuBar {
             }
         });
 
+        // Quick Toast (GM only) — middle zone: menu of saved Send Toast templates
+        // that carry text, fired as-is with one click (party-wide delivery, the
+        // template's own publish target). Send logic lives in window-toast-send.js.
+        this.registerSecondaryBarItem('party', 'quick-toast', {
+            zone: 'middle',
+            icon: 'fas fa-bolt',
+            label: 'Quick Toast',
+            tooltip: 'Send a saved toast with one click',
+            group: 'default',
+            order: 7,
+            visible: () => game.user.isGM,
+            onClick: (event) => {
+                void MenuBar.showQuickToastMenu(event);
+            }
+        });
+
         // Party health progressbar — right zone (sum of party HP current/max, 100% = total max)
         const initialHealth = PartyManager.getPartyHealthSummary();
         this.registerSecondaryBarItem('party', 'party-health', {
@@ -3478,6 +3494,7 @@ class MenuBar {
         UIContextMenu.close('blacksmith-menubar-leader-menu');
         UIContextMenu.close('blacksmith-menubar-movement-menu');
         UIContextMenu.close('blacksmith-menubar-timer-menu');
+        UIContextMenu.close('blacksmith-menubar-quick-toast-menu');
     }
 
     /**
@@ -4049,6 +4066,59 @@ class MenuBar {
             zones: items,
             zoneClass: 'core'
         });
+    }
+
+    /**
+     * Quick Toast menu — saved Send Toast templates that carry text, fired
+     * as-is on click. Falls back to opening the full Send Toast window when
+     * there are no click coordinates (e.g. the overflow path).
+     */
+    static async showQuickToastMenu(event) {
+        try {
+            const { ToastSendWindow, getQuickToastTemplates, quickSendToastTemplate } = await import('./window-toast-send.js');
+            if (!event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
+                new ToastSendWindow().render(true);
+                return;
+            }
+            this._closeMenubarContextMenu();
+
+            const targetLabel = { stream: ' (stream)', both: ' (game + stream)' };
+            const items = getQuickToastTemplates().map(({ name, tpl }) => ({
+                name: `${name}${targetLabel[tpl.publish] ?? ''}`,
+                description: tpl.subtitle ? `${tpl.title} — ${tpl.subtitle}` : tpl.title,
+                icon: tpl.image ? 'fa-solid fa-image' : (tpl.icon || 'fa-solid fa-bullhorn'),
+                callback: () => {
+                    void quickSendToastTemplate(name);
+                }
+            }));
+            if (!items.length) {
+                items.push({
+                    name: 'No quick toasts yet',
+                    description: 'Save a Send Toast template with "Include title and message" to list it here.',
+                    icon: 'fa-solid fa-circle-info',
+                    disabled: true
+                });
+            }
+            items.push({ separator: true });
+            items.push({
+                name: 'Open Send Toast',
+                description: 'Compose a toast and manage templates',
+                icon: 'fa-solid fa-bullhorn',
+                callback: () => {
+                    new ToastSendWindow().render(true);
+                }
+            });
+
+            UIContextMenu.show({
+                id: 'blacksmith-menubar-quick-toast-menu',
+                x: event.clientX,
+                y: event.clientY,
+                zones: items,
+                zoneClass: 'core'
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Party Tools: Error opening Quick Toast menu', error.message, false, false);
+        }
     }
 
     static async showLeaderDialog() {

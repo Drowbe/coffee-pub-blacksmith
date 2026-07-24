@@ -127,6 +127,15 @@ pin-configuration pattern (hex text + swatch, two-way synced). One trap worth re
 template's `sound` is a **path**, not an asset id — the sound dropdown is keyed by path
 (`getSoundChoices` in `settings.js`) and `playSound()` takes a src, so an id here 404s.
 
+Templates saved with text are also fireable without the window: the party menubar's **Quick
+Toast** item (GM-only, `showQuickToastMenu` in `api-menubar.js`) lists them in a `UIContextMenu`
+and `quickSendToastTemplate()` (`window-toast-send.js`) sends the pick exactly as stored —
+party-wide delivery (online non-GM users minus the Excluded Users list) on the template's own
+publish target, with a stream target going out as a broadcast. Look-only templates never appear
+in the menu — `show()` requires a title — so the list is always the GM's canned announcements,
+and an empty list explains how to create one. The menu's last entry opens the full Send Toast
+window.
+
 Optional `sound` is a data path, not a shared audio instance. `show()` plays it locally through
 Blacksmith's sound helper. Internal broadcast/targeted relays carry the path, and each receiving
 client plays the sound when it renders the toast.
