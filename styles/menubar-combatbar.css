@@ -605,8 +605,9 @@
 /* --- INITIATIVE DRAG (GM) ----------- */
 /* ------------------------------------ */
 /* Drag a portrait left/right to rewrite its initiative between its new
-   neighbors (manager-combatbar.js, onInitiativeDrag*). The dragged portrait
-   dims; a gold edge marks the insertion slot. */
+   neighbors (manager-combatbar.js, onInitiativeDrag*). A ghost of the
+   portrait rides the pointer; dropzones injected between the portraits
+   spread the row apart, the nearest one lighting up as the drop target. */
 .combat-portraits.initiative-drag-active {
     cursor: grabbing;
     user-select: none;
@@ -614,9 +615,29 @@
 .combat-portrait-container.initiative-dragging {
     opacity: 0.45;
 }
-.combat-portrait-container.initiative-drop-before {
-    box-shadow: -3px 0 0 0 rgba(255, 214, 130, 0.95);
+.combat-initiative-drag-ghost {
+    position: fixed;
+    z-index: 10002;
+    pointer-events: none;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 214, 130, 0.9);
+    background-size: cover;
+    background-position: center;
+    background-color: rgba(20, 20, 20, 0.9);
+    transform: translate(-50%, -50%) scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    opacity: 0.9;
 }
-.combat-portrait-container.initiative-drop-after {
-    box-shadow: 3px 0 0 0 rgba(255, 214, 130, 0.95);
+.combat-initiative-dropzone {
+    flex: 0 0 10px;
+    align-self: stretch;
+    margin: 3px 1px;
+    border: 1px dashed rgba(255, 214, 130, 0.35);
+    border-radius: 4px;
+    transition: flex-basis 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+.combat-initiative-dropzone.active {
+    flex-basis: 18px;
+    background-color: rgba(255, 214, 130, 0.25);
+    border-color: rgba(255, 214, 130, 0.95);
 }

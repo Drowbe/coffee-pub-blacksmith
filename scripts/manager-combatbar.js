@@ -4,6 +4,7 @@ import { RoundTimer } from './timer-round.js';
 import { CombatTracker } from './ui-combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
+import { ToastAPI } from './api-toast.js';
 
 export class CombatBarManager {
     static playUiSound(soundPath, volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7) {
@@ -1601,11 +1602,19 @@ export class CombatBarManager {
             if (distance < this.DRAG_THRESHOLD) return;
             drag.active = true;
             drag.element.classList.add('initiative-dragging');
-            drag.element.closest('.combat-portraits')?.classList.add('initiative-drag-active');
+            const container = drag.element.closest('.combat-portraits');
+            container?.classList.add('initiative-drag-active');
             CombatBarManager.hideCombatantHoverCard(menuBar);
+            // Tracker-style affordances: a ghost of the portrait rides the
+            // pointer, and dropzones injected between the portraits spread
+            // the row apart (safe mid-render — updateCombatBar defers while
+            // a drag is live) with the nearest one lighting up.
+            this._createInitiativeDragGhost(drag);
+            this._buildInitiativeDropzones(drag);
         }
         event.preventDefault();
-        this._updateInitiativeDropMarker(event.clientX);
+        this._positionInitiativeDragGhost(drag, event);
+        this._setActiveInitiativeDropzone(event.clientX);
     }
 
     static async onInitiativeDragEnd(menuBar, event) {
@@ -1621,22 +1630,21 @@ export class CombatBarManager {
         this._suppressNextCombatClick = true;
         setTimeout(() => { this._suppressNextCombatClick = false; }, 250);
 
-        const others = this._portraitList().filter(el => el !== drag.element);
-        const target = this._initiativeDropTarget(event.clientX, others);
-        const prev = drag.element.previousElementSibling;
-        const next = drag.element.nextElementSibling;
+        const portraits = this._portraitList();
+        const others = portraits.filter(el => el !== drag.element);
+        const next = portraits[portraits.indexOf(drag.element) + 1] ?? null;
+        // rightEl = the portrait the chosen dropzone precedes (null = past the end).
+        const rightEl = drag.activeZone ? drag.activeZone.rightEl : undefined;
         const refreshPending = drag.refreshPending;
         this._teardownInitiativeDrag();
 
         try {
             const combat = game.combat;
             const combatant = combat?.combatants?.get(drag.combatantId);
-            if (combat && combatant && others.length) {
-                // rightEl = the portrait we insert in front of; leftEl = the one before it.
-                const rightEl = target.before;
+            if (combat && combatant && others.length && rightEl !== undefined) {
                 const leftEl = rightEl ? (others[others.indexOf(rightEl) - 1] ?? null) : others[others.length - 1];
-                // Dropped back into its own slot (neighbors unchanged) — no write.
-                const sameSlot = rightEl === next && leftEl === prev;
+                // The zones flanking the dragged portrait are its own slot — no write.
+                const sameSlot = rightEl === drag.element || rightEl === next;
                 if (!sameSlot) {
                     const getInit = (el) => {
                         const c = combat.combatants.get(el?.getAttribute?.('data-combatant-id'));
@@ -1649,6 +1657,18 @@ export class CombatBarManager {
                     newInitiative = Math.round(newInitiative * 100) / 100;
                     await combat.setInitiative(drag.combatantId, newInitiative);
                     postConsoleAndNotification(MODULE.NAME, `Combat Bar: ${combatant.name} initiative set to ${newInitiative} via drag`, "", true, false);
+                    // Local confirmation for the dragger — where they landed.
+                    const position = combat.turns.findIndex(turn => turn.id === drag.combatantId) + 1;
+                    if (position > 0) {
+                        ToastAPI.show({
+                            title: `${combatant.name} moved to position ${position} of ${combat.turns.length}`,
+                            subtitle: `Initiative ${newInitiative}`,
+                            icon: 'fa-solid fa-list-ol',
+                            duration: 3,
+                            stackKey: 'blacksmith-initiative-drag',
+                            moduleId: 'blacksmith-core'
+                        });
+                    }
                     return; // setInitiative's own update re-renders the bar
                 }
             }
@@ -1677,7 +1697,8 @@ export class CombatBarManager {
         if (!drag) return;
         drag.element?.classList?.remove('initiative-dragging');
         document.querySelector('.blacksmith-menubar-secondary .combat-portraits')?.classList.remove('initiative-drag-active');
-        this._clearInitiativeDropMarkers();
+        drag.ghost?.remove();
+        for (const zone of drag.zones ?? []) zone.el.remove();
         this._initiativeDrag = null;
     }
 
@@ -1685,30 +1706,65 @@ export class CombatBarManager {
         return [...document.querySelectorAll('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]')];
     }
 
-    static _clearInitiativeDropMarkers() {
-        for (const el of this._portraitList()) {
-            el.classList.remove('initiative-drop-before', 'initiative-drop-after');
-        }
+    /**
+     * The floating portrait that rides the pointer — what you are dragging.
+     * Sized to the real portrait, showing its image.
+     */
+    static _createInitiativeDragGhost(drag) {
+        const rect = drag.element.getBoundingClientRect();
+        const img = drag.element.querySelector('.combat-portrait-image img');
+        const ghost = document.createElement('div');
+        ghost.className = 'combat-initiative-drag-ghost';
+        const size = Math.round(Math.min(rect.width, rect.height)) || 44;
+        ghost.style.width = `${size}px`;
+        ghost.style.height = `${size}px`;
+        if (img?.src) ghost.style.backgroundImage = `url("${img.src}")`;
+        document.body.appendChild(ghost);
+        drag.ghost = ghost;
     }
 
-    static _updateInitiativeDropMarker(pointerX) {
+    static _positionInitiativeDragGhost(drag, event) {
+        if (!drag.ghost) return;
+        drag.ghost.style.left = `${event.clientX}px`;
+        drag.ghost.style.top = `${event.clientY}px`;
+    }
+
+    /**
+     * One dropzone before every portrait plus one after the last, injected as
+     * flex children so the row visibly spreads apart (tracker-style). Each
+     * zone records the portrait it precedes (null = past the end); the zones
+     * flanking the dragged portrait exist too — dropping there is a no-op,
+     * which makes "release where you picked it up" do nothing.
+     */
+    static _buildInitiativeDropzones(drag) {
+        drag.zones = [];
+        const portraits = this._portraitList();
+        const makeZone = (rightEl) => {
+            const el = document.createElement('div');
+            el.className = 'combat-initiative-dropzone';
+            drag.zones.push({ el, rightEl });
+            return el;
+        };
+        for (const portrait of portraits) portrait.before(makeZone(portrait));
+        portraits[portraits.length - 1]?.after(makeZone(null));
+    }
+
+    /** Light up the dropzone nearest the pointer; that zone is the drop target. */
+    static _setActiveInitiativeDropzone(pointerX) {
         const drag = this._initiativeDrag;
-        if (!drag?.active) return;
-        this._clearInitiativeDropMarkers();
-        const others = this._portraitList().filter(el => el !== drag.element);
-        if (!others.length) return;
-        const target = this._initiativeDropTarget(pointerX, others);
-        if (target.before) target.before.classList.add('initiative-drop-before');
-        else target.after?.classList.add('initiative-drop-after');
-    }
-
-    static _initiativeDropTarget(pointerX, others) {
-        // First portrait whose midpoint the pointer sits left of → insert
-        // before it; past all midpoints → insert after the last portrait.
-        for (const el of others) {
-            const rect = el.getBoundingClientRect();
-            if (pointerX < rect.left + rect.width / 2) return { before: el, after: null };
+        if (!drag?.zones?.length) return;
+        let best = null;
+        let bestDistance = Infinity;
+        for (const zone of drag.zones) {
+            const rect = zone.el.getBoundingClientRect();
+            const distance = Math.abs(pointerX - (rect.left + rect.width / 2));
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = zone;
+            }
         }
-        return { before: null, after: others[others.length - 1] ?? null };
+        if (drag.activeZone && drag.activeZone !== best) drag.activeZone.el.classList.remove('active');
+        best?.el.classList.add('active');
+        drag.activeZone = best;
     }
 }
