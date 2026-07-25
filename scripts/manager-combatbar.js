@@ -1,10 +1,10 @@
 import { MODULE } from './const.js';
-import { getSettingSafely, postConsoleAndNotification, formatTime, playSound } from './api-core.js';
+import { getSettingSafely, postConsoleAndNotification, formatTime, playSound, getPortraitImage } from './api-core.js';
 import { RoundTimer } from './timer-round.js';
 import { CombatTracker } from './ui-combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
-import { ToastAPI } from './api-toast.js';
+import { broadcastToast } from './api-toast.js';
 
 export class CombatBarManager {
     static playUiSound(soundPath, volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7) {
@@ -1657,13 +1657,15 @@ export class CombatBarManager {
                     newInitiative = Math.round(newInitiative * 100) / 100;
                     await combat.setInitiative(drag.combatantId, newInitiative);
                     postConsoleAndNotification(MODULE.NAME, `Combat Bar: ${combatant.name} initiative set to ${newInitiative} via drag`, "", true, false);
-                    // Local confirmation for the dragger — where they landed.
+                    // Announce the reorder to every client — the order change
+                    // is table-visible, so the toast is too.
                     const position = combat.turns.findIndex(turn => turn.id === drag.combatantId) + 1;
                     if (position > 0) {
-                        ToastAPI.show({
+                        await broadcastToast({
                             title: `${combatant.name} moved to position ${position} of ${combat.turns.length}`,
                             subtitle: `Initiative ${newInitiative}`,
                             icon: 'fa-solid fa-list-ol',
+                            image: combatant.actor ? (getPortraitImage(combatant.actor) || null) : null,
                             duration: 3,
                             stackKey: 'blacksmith-initiative-drag',
                             moduleId: 'blacksmith-core'
