@@ -47,7 +47,7 @@ const stop = rolls.on('resolved', (outcome) => {
 |---|---|---|
 | `'resolved'` | `blacksmith.rolls.resolved` | Any classified outcome (skill check or attack) |
 | `'skillCheckResolved'` | `blacksmith.rolls.skillCheckResolved` | Request Roll / skill-check card row completed |
-| `'attackResolved'` | `blacksmith.rolls.attackResolved` | Attack classified (Phase 3 — not yet emitted from all sources) |
+| `'attackResolved'` | `blacksmith.rolls.attackResolved` | Attack classified — core dnd5e chat (GM) and optional MIDI workflow |
 | `'groupResolved'` | `blacksmith.rolls.groupResolved` | Group skill check: all actors finished (GM client) |
 
 You may also use `Hooks.on('blacksmith.rolls.resolved', ...)` directly.
@@ -81,7 +81,7 @@ You may also use `Hooks.on('blacksmith.rolls.resolved', ...)` directly.
     groupRoll: { success, successCount, totalCount, allComplete } | null,
     contestedRoll: { winningGroup, group1Highest, group2Highest, isTie } | null,
 
-    // attack only (Phase 1 classify; Phase 3 hooks)
+    // attack only
     targets: [{ uuid, ac, hit }],
     hitTargets: ['Actor.uuid...'],
     missTargets: [],
@@ -170,7 +170,7 @@ if (outcome?.kind === 'attack' && outcome.hitTargets?.length) {
 | `classify()` for skill checks, attacks, rolls, MIDI workflow | Shipped |
 | `extractActiveD20` | Shipped |
 | `skillCheckResolved` / `groupResolved` hooks from Request Roll | Shipped (GM client) |
-| `attackResolved` hook from combat/MIDI pipeline | Planned — Phase 3 |
+| `attackResolved` hook from core dnd5e chat + optional MIDI | Shipped — `manager-roll-outcomes.js` |
 | Internal sites fully migrated off duplicated logic | Planned — Phase 2–3 |
 
 See `../plans/plan-rolls-classification.md` for the rollout plan.

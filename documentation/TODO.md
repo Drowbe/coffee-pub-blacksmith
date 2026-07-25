@@ -279,8 +279,8 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
 - **Need**: `processRoll()` respects `diceRollToolSystem`; implement Foundry roll path when selected; document in `api-rolls.md`.
 
 #### Roll outcome classification API (hit/miss/crit/fumble/criteria) — UNIFY the four existing implementations
-- **Issue**: consumers (and Blacksmith itself) had no API to ask what a roll *meant*. **Phase 1 shipped:** `utility-roll-classification.js`, `module.api.rolls`, skill-check hooks. **Remaining:** migrate internal duplicate sites, emit attack/MIDI hooks, sibling adoption.
-- **Status**: IN PROGRESS — Phase 1 done; Phases 2–4 in `documentation/plans/plan-rolls-classification.md`
+- **Issue**: consumers (and Blacksmith itself) had no API to ask what a roll *meant*. **Phase 1 shipped:** `utility-roll-classification.js`, `module.api.rolls`, skill-check hooks. **Phase 3 shipped:** `manager-roll-outcomes.js` emits `attackResolved` (core dnd5e chat + optional MIDI). **Remaining:** Phase 2 internal migration, sibling adoption.
+- **Status**: IN PROGRESS — Phases 1 & 3 done; Phases 2 & 4 in `documentation/plans/plan-rolls-classification.md`
 - **Location**: `scripts/utility-roll-classification.js`, `scripts/api-rolls.js`, the four legacy sites below
 - **Legacy sites still to migrate:**
   1. `manager-rolls.js` — cinema/window d20 + hardcoded DC 10
@@ -295,7 +295,7 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
 - **Issue**: Rolls namespace and docs.
 - **Status**: Phase 1 shipped — `module.api.rolls`, `documentation/api/api-rolls.md`
 - **Location**: `scripts/api-rolls.js`, `scripts/blacksmith.js`
-- **Remaining**: attack hook emission (Phase 3); cross-link from `api-requestroll.md` (done in api-rolls.md)
+- **Remaining**: Phase 2 internal migration; stats-combat dedupe consolidation (optional)
 
 #### Unified Flags system (cross-feature)
 - **Status**: IN PROGRESS – infrastructure complete; journal pins wired; pins storage migration pending.

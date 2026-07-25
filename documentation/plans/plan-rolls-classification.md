@@ -92,12 +92,14 @@ The unified contract **names these explicitly** (`kind`, `success`, `groupRoll`,
 - [ ] Cinema overlay: use card DC from context instead of hardcoded 10
 - [ ] `blacksmith.js` skill-check path: use `buildSkillCheckOutcome` for flag annotation (drop inline crit copy)
 
-### Phase 3 — Attack / MIDI hook emission
+### Phase 3 — Attack hook emission (core-first, MIDI optional)
 
-- [ ] Authoritative firing point: after `resolveAttackMessage` / MIDI workflow normalization (stats pipeline or dedicated hook registrar)
-- [ ] Emit `blacksmith.rolls.attackResolved` once per attack (dedupe like stats combat)
-- [ ] Respect whisper/blind visibility (`outcomeVisibleToUser`)
-- [ ] Migrate `stats-combat.js` crit helpers to shared utility (verify MVP counts unchanged)
+- [x] **Core lane (primary):** GM `createChatMessage` / `updateChatMessage` → `classify(message)` when `resolveAttackMessage` succeeds; skip `midi-qol` flagged messages when MIDI module is active (avoids double-fire)
+- [x] **Optional MIDI lane:** when `midi-qol` is active — `hitsChecked` emits authoritative hit/miss; `RollComplete` stages crit/fumble for merge (same dedupe pattern as stats-combat)
+- [x] `scripts/manager-roll-outcomes.js` — not gated on combat stats or `trackCombatStats`
+- [x] Emit `blacksmith.rolls.attackResolved` once per attack (dedupe by message id or workflow key)
+- [x] Respect whisper/blind visibility (`outcomeVisibleToUser`)
+- [ ] Migrate `stats-combat.js` crit helpers to shared utility (verify MVP counts unchanged) — deferred; stats lane unchanged in Phase 3
 
 ### Phase 4 — Sibling adoption
 

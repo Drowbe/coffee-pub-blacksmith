@@ -95,6 +95,7 @@ import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
 import { CompendiumsAPI } from './api-compendiums.js';
 import { RollsAPI } from './api-rolls.js';
+import { RollOutcomesManager } from './manager-roll-outcomes.js';
 import { extractActiveD20 } from './utility-roll-classification.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import './sidebar-combat.js';
@@ -470,6 +471,9 @@ Hooks.once('ready', async () => {
         // Initialize HookManager (infrastructure layer)
         LoadingProgressManager.logActivity("Initializing hook system...");
         HookManager.initialize();
+
+        LoadingProgressManager.logActivity("Initializing roll outcome hooks...");
+        RollOutcomesManager.initialize();
         
         // Register the Blacksmith hook (after HookManager is initialized)
         LoadingProgressManager.logActivity("Registering hooks...");

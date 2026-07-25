@@ -247,7 +247,8 @@ Uses today: `openRequestRollDialog`, `api.compendiums` (awareness / quick encoun
 ### Blacksmith (remaining internal work — tracked in `TODO.md`)
 
 - [ ] Phase 2: migrate `manager-rolls.js` d20 duplication; fix cinema DC 10
-- [ ] Phase 3: emit `attackResolved` from combat/MIDI pipeline; stats migration
+- [x] Phase 3: emit `attackResolved` from core dnd5e chat + optional MIDI (`manager-roll-outcomes.js`)
+- [ ] Phase 3 follow-up: stats-combat dedupe consolidation (optional; stats lane unchanged)
 
 ---
 

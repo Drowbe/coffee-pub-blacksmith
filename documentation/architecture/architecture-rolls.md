@@ -117,7 +117,7 @@ Roll meaning (crit, fumble, success vs DC, hit/miss vs AC) is centralized in `sc
 
 - `blacksmith.rolls.resolved`
 - `blacksmith.rolls.skillCheckResolved`
-- `blacksmith.rolls.attackResolved` (Phase 3)
+- `blacksmith.rolls.attackResolved` — emitted by `manager-roll-outcomes.js` (core dnd5e chat + optional MIDI)
 - `blacksmith.rolls.groupResolved`
 
 **Not in Blacksmith:** The Query Tool (`window-query.js`) lives in **Regent**, not this repo. Regent integrates with rolls via the public API only.
@@ -129,6 +129,7 @@ Roll meaning (crit, fumble, success vs DC, hit/miss vs AC) is centralized in `sc
 - `scripts/blacksmith.js` — `openRequestRollDialog` (public entry) and `handleSkillRollUpdate` (GM group/contested processing).
 - `scripts/utility-roll-classification.js` — shared classification internals.
 - `scripts/api-rolls.js` — public `module.api.rolls` surface.
+- `scripts/manager-roll-outcomes.js` — attack hook emission (core chat lane + optional MIDI).
 - `scripts/manager-sockets.js` — socket transport.
 - `templates/skill-check-card.hbs`, `templates/window-roll-normal.hbs`, `templates/window-skillcheck.hbs` — card and window templates.
 - `styles/window-roll-cinematic.css` — cinema styling.
