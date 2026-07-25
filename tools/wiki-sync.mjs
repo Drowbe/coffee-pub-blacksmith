@@ -47,6 +47,7 @@ const PUBLISH = [
   'api/api-menubar.md',
   'api/api-pins.md',
   'api/api-requestroll.md',
+  'api/api-rolls.md',
   'api/api-sockets.md',
   'api/api-stats.md',
   'api/api-tags.md',
@@ -75,9 +76,11 @@ const PUBLISH = [
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
-//   API:          (none — all published)
-//   Architecture: (none — all published)
-//   Also held:    TODO.md (internal / holds security items and open decisions)
+//   API:          api-importer.md (gate: JSON import verified — see TODO.md)
+//   Architecture: architecture-importer.md (same gate)
+//   Also held:    applicationv2-window/guidance-applicationv2.md (needs audit — see TODO.md)
+//   Internal:     TODO.md, TODO-GLOBAL.md, plans/* (not consumer docs)
+//   Missing doc:  api-flags.md referenced in TODO but not written yet
 
 const HOME_SRC = 'guides/guide-registering-with-blacksmith.md';
 
