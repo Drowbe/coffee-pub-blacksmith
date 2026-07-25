@@ -130,7 +130,7 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 
 ### 4.3 Feature Domains
 
-- **Rolls** — **manager-rolls.js**: exports `orchestrateRoll`, `processRoll`, `deliverRollResults`, `updateCinemaOverlay`; used by the skill check dialog and socket handlers. **There is no public roll API** — `BLACKSMITH.rolls.execute` was removed in 13.9.x after being `undefined` since 2025-08-26 (it imported an `executeRoll` export that no longer existed; nothing consumed it). See **architecture-rolls.md**.
+- **Rolls** — **manager-rolls.js**: internal orchestration (`orchestrateRoll`, `processRoll`, `deliverRollResults`). **Public:** `openRequestRollDialog` on `module.api` and **`module.api.rolls`** (`api-rolls.js`) for outcome classification and hooks. Legacy `BLACKSMITH.rolls.execute` was removed in 13.9.x. See **architecture-rolls.md**, **api-rolls.md**, **plan-rolls-classification.md**.
 - **Stats** — **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture/architecture-stats.md**, **documentation/api/api-stats.md**.
 - **Timers** — **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`).
 - **Chat cards** — **ChatCardsAPI** (`api-chat-cards.js`): themes and rendering contract. See **documentation/architecture/architecture-chatcards.md**, **documentation/api/api-chatcards.md**.
@@ -167,7 +167,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 
 ## 6. Data and Resources
 
-- **Templates** — Handlebars under `templates/` (e.g. `window-query.hbs`, `vote-card.hbs`, timer and stats templates). **getCachedTemplate()** in blacksmith.js caches compiled templates with TTL.
+- **Templates** — Handlebars under `templates/` (e.g. `vote-card.hbs`, timer and stats templates). **getCachedTemplate()** in blacksmith.js caches compiled templates with TTL. (Query Tool templates live in Regent, not here.)
 - **Packs** — None. Blacksmith ships no compendiums. Users point at their own via the compendium settings (`settings.js` builds choices from `game.packs.values()`; `manager-compendiums.js` resolves the selection).
 - **Resources** — `resources/asset-defaults/*.json` (asset manifests), `dictionary.js`, `monster-mapping.json`, `schema-rolls.json`, `taxonomy.json` used by asset lookup, rolls, and related systems.
 - **Lang** — `lang/en.json` for localization.

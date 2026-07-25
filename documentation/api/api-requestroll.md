@@ -330,6 +330,7 @@ Hooks.on('my-module.requestRoll', (context) => {
 
 - **`api-menubar.md`** – Menubar and toolbar registration (the "Request Roll" entry uses the same dialog)
 - **`api-toolbar.md`** – Toolbar tool registration
+- **`api-rolls.md`** – Roll outcome classification (crit/fumble/hit/miss/success) and subscription hooks
 - **`architecture-rolls.md`** – Roll and skill check flow architecture
 
 ## Implementation Notes

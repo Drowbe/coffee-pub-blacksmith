@@ -272,43 +272,30 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
 - **Remaining**: (1) Actor read card (`renderActorSheet5e`, biography tab) reusing `GMNotesWindow`. (2) Journal support. (3) Header-control trigger via the AppV2 header-controls hook, to eventually drop sheet-body injection entirely. (4) Actor import support — mirror the item `itemGMNotes` field into the actor parser/prompt. (5) `gm:` search integration once a Blacksmith search panel exists (the plain-text mirror is already stored for this). (6) Optional: truly-private storage (GM-only Journal) if secrecy beyond UI-gating is ever required (current storage is document flags, intentionally UI-gated only).
 - **Priority**: Medium
 
-#### Roll system: Query window integration (architecture-rolls Phase 1.3)
-- **Issue**: Query window does not use `orchestrateRoll()`; needs to use unified 4-function flow for cross-client sync.
-- **Status**: PENDING
-- **Location**: `documentation/architecture/architecture-rolls.md`, `scripts/window-query.js`
-- **Need**: Modify `window-query.js` to use `orchestrateRoll()`; replace direct `SkillCheckDialog` creation; test cross-client sync. Then Phase 2–4 (architecture unification, validation, production readiness) per architecture-rolls.md.
-
 #### Roll system: System selection respect
 - **Issue**: `processRoll()` does not respect `diceRollToolSystem`; hardcoded to Blacksmith roll path.
 - **Status**: PENDING
 - **Location**: `scripts/manager-rolls.js`, `documentation/architecture/architecture-rolls.md`
-- **Need**: `processRoll()` respects `diceRollToolSystem`; implement Foundry roll path when selected; document in api-rolls when that doc exists.
+- **Need**: `processRoll()` respects `diceRollToolSystem`; implement Foundry roll path when selected; document in `api-rolls.md`.
 
 #### Roll outcome classification API (hit/miss/crit/fumble/criteria) — UNIFY the four existing implementations
-- **Issue**: consumers (and Blacksmith itself) have no API to ask what a roll *meant* — hit, miss, crit, fumble, success vs DC, or arbitrary criteria. **The knowledge already exists, computed independently in four places** (survey 2026-07-18):
-  1. `manager-rolls.js` (~:381-433 and again ~:1487) — advantage/disadvantage-aware active-d20 extraction, used only to pick crit/fumble *sounds* and cinema overlay classes. The cinema overlay's success/failure class is `roll.total >= 10` with its own `// TODO: get actual DC from context` (`:1562`) — a hardcoded DC.
-  2. `blacksmith.js` ~:2370-2440 (GM-side skill-check update handler) — the most complete logic: per-actor crit/fumble via `detectD20Roll`, success = `total >= flags.dc`, **group success** (majority rule), and **contested roll** winners/ties. Buried in a socket callback in the god-module; results live only in chat-card flags.
-  3. `utility-message-resolution.js` (~:269-283) — **attack hit/miss per target vs AC** from chat messages → `hitTargets`/`missTargets`/`unknownTargets`.
-  4. `utility-midi-resolution.js` — `getCritFumbleFromWorkflow` normalizes crit/fumble from MIDI-QOL workflows (flags → roll flags → d20 inspection); consumed by `stats-combat.js`/`stats-player.js` for MVP scoring.
-- **Status**: PENDING — this is a *consolidation*, not new functionality. Investigate first; the four sites have subtly different semantics (crit = nat 20 vs. dnd5e crit-range config; hit vs AC vs. success vs DC vs. majority-group) that a unified contract has to name explicitly rather than paper over.
-- **Location**: the four sites above; new surface on `module.api.rolls` (see "Rolls API as first-class surface" below — these are the same effort's two halves).
-- **Contract decision (author, 2026-07-18): this is a SUBSCRIPTION surface, not just a pull API.** Sibling modules must be able to *subscribe* to roll outcomes — injuries and crit/fumble handling live in another module, and "blood" may too. Blacksmith classifies and broadcasts; siblings react. So the design is two layers:
-  - **Events** (the primary surface): fire a hook per resolved roll — e.g. `Hooks.callAll('blacksmith.rolls.resolved', outcome)` — carrying the classified outcome object (who rolled, roll type, d20, total, isCrit, isFumble, success/DC, per-target hit/miss when it's an attack). Follow the pins precedent (`blacksmith.pins.*` hooks). Decide which of the four detection sites is the authoritative firing point per roll type, and make sure each outcome fires **exactly once** (site 2 recalculates the whole group on every member's roll — naive wiring would re-fire earlier members).
-  - **Pull helper** (secondary): `rolls.classify(rollOrMessage, { dc, targetAC })` for consumers holding a roll/message, sharing the same internals.
-- **Need**:
-  - Decide inputs (Foundry `Roll` vs `ChatMessage` vs Blacksmith result object) and whether crit/fumble reads dnd5e's crit-range config or stays raw nat-20/nat-1 (sites 1-2 assume raw; site 4 already trusts system flags when present).
-  - Decide event scope: which clients see the hook (all? GM-only for hidden rolls?) — respect roll visibility (blind/private GM rolls must not broadcast outcomes to players).
-  - Migrate the four sites onto the shared internals one at a time, each with its own verification (dogfooding — see the CRITICAL BUGS preamble). Fixing the cinema overlay's hardcoded DC 10 falls out of site 1.
-  - Downstream consumers are **external by design**: the injury/crit/fumble module subscribes for its triggers (the "Auto-Roll Injury" backlog item likely moves out of Blacksmith entirely — see BACKLOG note), and any sibling reacting to roll outcomes. Document the event contract in a future `api-rolls.md`; cross-module consumer wiring goes in `TODO-GLOBAL.md` when it starts.
-- **How to verify**: console-classify normal/advantage/disadvantage/nat-20/nat-1 rolls against a known DC; crit/fumble sounds unchanged; group and contested skill-check cards unchanged; MVP crit/fumble counts unchanged across a test combat.
-- **Priority**: Medium
+- **Issue**: consumers (and Blacksmith itself) had no API to ask what a roll *meant*. **Phase 1 shipped:** `utility-roll-classification.js`, `module.api.rolls`, skill-check hooks. **Remaining:** migrate internal duplicate sites, emit attack/MIDI hooks, sibling adoption.
+- **Status**: IN PROGRESS — Phase 1 done; Phases 2–4 in `documentation/plans/plan-rolls-classification.md`
+- **Location**: `scripts/utility-roll-classification.js`, `scripts/api-rolls.js`, the four legacy sites below
+- **Legacy sites still to migrate:**
+  1. `manager-rolls.js` — cinema/window d20 + hardcoded DC 10
+  2. `blacksmith.js` `handleSkillRollUpdate` — partially migrated (hooks emit; flag annotation still inline)
+  3. `utility-message-resolution.js` — used by `classify()`; no hook emission yet
+  4. `utility-midi-resolution.js` — used by `classify()` and stats; no hook emission yet
+- **Contract (shipped):** subscription-first — `blacksmith.rolls.resolved`, `skillCheckResolved`, `attackResolved`, `groupResolved`; pull helper `rolls.classify()`. See `documentation/api/api-rolls.md`.
+- **How to verify**: console-classify rolls against known DC; skill-check hooks fire once per roller; group/contested cards unchanged; MVP crit/fumble counts unchanged after Phase 3 migration.
+- **Priority**: High — blocks Bibliosoph crit/fumble/reaction automation
 
 #### Rolls API as first-class surface
-- **Issue**: Rolls may still be exposed via nested `BLACKSMITH` helpers; there is no dedicated `module.api.rolls` namespace and no `documentation/api-rolls.md` yet.
-- **Status**: PENDING – Future enhancement
-- **Location**: `scripts/blacksmith.js` (module.api assignment); add `documentation/api-rolls.md` when stable
-- **Need**: Expose a first-class rolls surface (e.g. `module.api.rolls = { execute: ... }`); document for developers leveraging the roll system.
-- **Priority**: Medium – Improves discoverability and consistency with pins/chatCards/stats APIs
+- **Issue**: Rolls namespace and docs.
+- **Status**: Phase 1 shipped — `module.api.rolls`, `documentation/api/api-rolls.md`
+- **Location**: `scripts/api-rolls.js`, `scripts/blacksmith.js`
+- **Remaining**: attack hook emission (Phase 3); cross-link from `api-requestroll.md` (done in api-rolls.md)
 
 #### Unified Flags system (cross-feature)
 - **Status**: IN PROGRESS – infrastructure complete; journal pins wired; pins storage migration pending.
@@ -366,11 +353,8 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
 - **Location**: `scripts/api-menubar.js`, `scripts/combat-tracker.js`
 - **Need**: Settings for `menubarHideDead`, `menubarSkipDead`, `combatTrackerHideDead` with filtering logic
 
-#### Query Tool Review and Improvements
-- **Issue**: Query tool needs comprehensive review and fixes for functionality and UX
-- **Status**: PENDING - Needs review and implementation
-- **Location**: `scripts/window-query.js`
-- **Need**: Verify all tabs work, review/fix drop functionality design, fix JSON generation
+#### Query Tool — moved to Regent
+- **Note (2026-07-25):** `window-query.js` is **not in Blacksmith** — it lives in `coffee-pub-regent`. Any query-tool UX or roll-integration work belongs in the Regent repo using `openRequestRollDialog` / `module.api.rolls`. Removed stale references to `scripts/window-query.js` in this repo.
 
 #### Expand Rulebook Selection Phase 2
 - **Issue**: Phase 1 now uses `Number of Rulebooks`, rulebook compendium dropdowns, and `Custom Rulebooks`; phase 2 may still want curated/common-book shortcuts
@@ -479,7 +463,7 @@ In FoundryVTT v13, jQuery is removed from the core UI stack. `html` parameters s
 
 ### Auto-Roll Injury Based on Rules
 - Automatically trigger injury rolls based on configurable rules/conditions (HP thresholds, critical hits, massive damage, etc.)
-- **Ownership note (2026-07-18)**: injuries/crit/fumble handling belongs to a sibling module, not Blacksmith. This item is here only until the rolls-classification event surface ships (see ENHANCEMENTS); then it becomes that module's feature, subscribing to `blacksmith.rolls.*` hooks, and this entry moves to `TODO-GLOBAL.md` / the owning module.
+- **Ownership note (2026-07-18)**: injuries/crit/fumble handling belongs to Bibliosoph, not Blacksmith. **Phase 1 rolls API shipped** — Bibliosoph should subscribe to `blacksmith.rolls.*` (see `TODO-GLOBAL.md`). This backlog item moves to Bibliosoph when wired.
 
 ### Multiple Image Directories for Token Image Replacement
 - Allow users to configure multiple image directories with priority order (deferred until a dedicated image pipeline is back in scope for Blacksmith or a companion module)

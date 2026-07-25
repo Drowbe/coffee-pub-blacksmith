@@ -222,6 +222,35 @@ Being rebuilt, not ported — the old pack data is reference material at most.
 
 ---
 
+## Roll outcome API — sibling adoption (Blacksmith Phase 1 shipped)
+
+Blacksmith exposes `module.api.rolls` and `blacksmith.rolls.*` hooks for crit/fumble/hit/miss/success classification. **Request Roll** (`openRequestRollDialog`) is unchanged on `module.api` top-level.
+
+**Blacksmith docs:** `documentation/api/api-rolls.md`, `documentation/plans/plan-rolls-classification.md`
+
+**Not in Blacksmith:** Query Tool (`window-query.js`) — lives in **Regent**. Regent integrates via public API only.
+
+### Bibliosoph (primary consumer)
+
+Uses today: `openRequestRollDialog`, `api.compendiums` (awareness / quick encounters), `blacksmith.requestRollComplete`.
+
+- [ ] Subscribe to `blacksmith.rolls.skillCheckResolved` / `attackResolved` for crit, fumble, injury tables, reactions ("Big Hit!")
+- [ ] Replace or supplement `requestRollComplete` handlers where classification fields are needed (`isCritical`, `success`, `dc`)
+- [ ] Wire auto-injury / massive-damage rules to hooks (moves "Auto-Roll Injury" out of Blacksmith `TODO.md` BACKLOG)
+- [ ] Verify blind/private rolls do not leak outcomes to players
+
+### Regent
+
+- [ ] Query window roll flows: use `openRequestRollDialog` from Regent's `window-query.js` (not Blacksmith)
+- [ ] Optional: `rolls.classify(message)` for skill lookup results already in chat
+
+### Blacksmith (remaining internal work — tracked in `TODO.md`)
+
+- [ ] Phase 2: migrate `manager-rolls.js` d20 duplication; fix cinema DC 10
+- [ ] Phase 3: emit `attackResolved` from combat/MIDI pipeline; stats migration
+
+---
+
 ## Sibling deprecation warnings (spotted 2026-07-24)
 
 - **Bibliosoph registers the deprecated `renderChatMessage` hook** (`coffee-pub-bibliosoph/scripts/bibliosoph.js`, raw `Hooks.on`): Foundry v13 logs "The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead" on every chat message render; support is removed in v15. Not a rename-only fix — `renderChatMessageHTML` passes an `HTMLElement` where the old hook passed jQuery, so the callback body must drop jQuery calls (or wrap the element itself). Fix belongs in the Bibliosoph repo with its own verification. (Blacksmith is clean: its `HookManager` remaps legacy `renderChatMessage` registrations to `renderChatMessageHTML` automatically, and the module's own `CHAT_MESSAGE_TYPES` uses were removed 2026-07-24 — see Blacksmith `CHANGELOG.md`.)

@@ -91,17 +91,44 @@ const useBlacksmithSystem = game.settings.get(MODULE.ID, 'diceRollToolSystem') =
 
 ## Public vs internal surface
 
-- **Public (on `module.api`):** `openRequestRollDialog` only — see `../api/api-requestroll.md`.
+- **Public (on `module.api`):**
+  - `openRequestRollDialog` — Request a Roll dialog; see `../api/api-requestroll.md`.
+  - `rolls` (`RollsAPI`) — outcome classification and hooks; see `../api/api-rolls.md`.
 - **Exported for internal use:** `orchestrateRoll` (`:134`), `processRoll` (`:259`), `deliverRollResults` (`:327`), `updateCinemaOverlay` (`:1408`).
 - **Module-private:** `showRollWindow` (`:1030`), `showCinemaOverlay` (`:1343`), `emitRollUpdate` (`:1707`), `_executeBuiltInRoll` (`:622`).
 
-None of the internal roll functions are exposed to other modules; external code drives rolls through the request-roll dialog.
+External modules drive roll *requests* through `openRequestRollDialog`. They react to roll *meaning* through `module.api.rolls` hooks or `rolls.classify()`. Internal orchestration functions are not exposed.
+
+## Outcome classification
+
+Roll meaning (crit, fumble, success vs DC, hit/miss vs AC) is centralized in `scripts/utility-roll-classification.js` and exposed via `scripts/api-rolls.js`.
+
+**Previously duplicated in four places** (migration in progress — see `../plans/plan-rolls-classification.md`):
+
+| Site | Role |
+|---|---|
+| `utility-roll-classification.js` | **Authority** — `extractActiveD20`, `classify()`, `buildSkillCheckOutcome` |
+| `blacksmith.js` `handleSkillRollUpdate` | GM group/contested recalc; emits `blacksmith.rolls.skillCheckResolved` |
+| `manager-rolls.js` | Sounds/cinema d20 (still duplicated — Phase 2) |
+| `utility-message-resolution.js` | Attack hit/miss from chat messages — consumed by `classify()` |
+| `utility-midi-resolution.js` | MIDI crit/fumble — consumed by `classify()` and stats |
+
+**Hooks (subscription surface):**
+
+- `blacksmith.rolls.resolved`
+- `blacksmith.rolls.skillCheckResolved`
+- `blacksmith.rolls.attackResolved` (Phase 3)
+- `blacksmith.rolls.groupResolved`
+
+**Not in Blacksmith:** The Query Tool (`window-query.js`) lives in **Regent**, not this repo. Regent integrates with rolls via the public API only.
 
 ## Files
 
 - `scripts/manager-rolls.js` — the roll system (the three flow functions plus cinema and socket helpers).
 - `scripts/window-skillcheck.js` — the skill-check dialog, card creation, and cinema display.
 - `scripts/blacksmith.js` — `openRequestRollDialog` (public entry) and `handleSkillRollUpdate` (GM group/contested processing).
+- `scripts/utility-roll-classification.js` — shared classification internals.
+- `scripts/api-rolls.js` — public `module.api.rolls` surface.
 - `scripts/manager-sockets.js` — socket transport.
 - `templates/skill-check-card.hbs`, `templates/window-roll-normal.hbs`, `templates/window-skillcheck.hbs` — card and window templates.
 - `styles/window-roll-cinematic.css` — cinema styling.

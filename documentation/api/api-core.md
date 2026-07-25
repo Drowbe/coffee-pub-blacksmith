@@ -106,7 +106,7 @@ Function groups on `api` directly:
 | Menubar notifications | `addNotification`, `updateNotification`, `removeNotification`, `clearNotificationsByModule`, `clearAllNotifications`, `getActiveNotifications`, `getNotificationIdsByModule` | `api-menubar.md` |
 | Secondary bars | `registerSecondaryBarType`, `registerSecondaryBarItem`, `registerSecondaryBarTool`, `unregisterSecondaryBarItem`, `updateSecondaryBarItemActive`, `updateSecondaryBarItemInfo`, `getSecondaryBarItems`, `openSecondaryBar`, `closeSecondaryBar`, `toggleSecondaryBar` | `api-menubar.md` |
 | Canvas | `CanvasLayer`, `getCanvasLayer` | `api-canvas.md` |
-| Rolls | `openRequestRollDialog` | `api-requestroll.md` |
+| Rolls | `openRequestRollDialog`, `rolls` | `api-requestroll.md`, `api-rolls.md` |
 | Encounters | `getPartyCR`, `getMonsterCR`, `parseCR`, `formatCR`, `calculateEncounterDifficulty`, `getCombatAssessment`, `deployMonsters` | this document |
 | Party | `getPartyHealthSummary`, `getPartyActorHp`, `getPartyReputation`, `setPartyReputation`, `getReputationScaleEntry`, `postCurrentReputationCard`, `postNewReputationCard` | this document |
 | Hooks | `BlacksmithHookManager` (global) | `api-hookmanager.md` |
@@ -247,5 +247,5 @@ Run these in the browser console to inspect an integration:
 
 ## Related documentation
 
-- Subsystem references: `api-pins.md`, `api-toolbar.md`, `api-window.md`, `api-menubar.md`, `api-sockets.md`, `api-chatcards.md`, `api-stats.md`, `api-campaign.md`, `api-compendiums.md`, `api-requestroll.md`, `api-gmnotes.md`, `api-canvas.md`, `api-hookmanager.md`, `api-tags.md`, `api-toast.md`
+- Subsystem references: `api-pins.md`, `api-toolbar.md`, `api-window.md`, `api-menubar.md`, `api-sockets.md`, `api-chatcards.md`, `api-stats.md`, `api-campaign.md`, `api-compendiums.md`, `api-requestroll.md`, `api-rolls.md`, `api-gmnotes.md`, `api-canvas.md`, `api-hookmanager.md`, `api-tags.md`, `api-toast.md`
 - Internal architecture: `../architecture/architecture-blacksmith.md`
