@@ -4,6 +4,7 @@ import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { extractActiveD20, classifyCritFumble, coerceDc } from './utility-roll-classification.js';
 
 // Import SkillCheckDialog for chat message formatting
 import { SkillCheckDialog } from './window-skillcheck.js';
@@ -378,61 +379,7 @@ export async function deliverRollResults(rollResults, context) {
             postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Not cinema mode, rollData.cinemaMode:`, rollData.cinemaMode, true, false);
             
             // Play sound for normal window mode (same as cinema mode)
-            let d20Roll = null;
-            
-            // First try the terms structure (newer Foundry format)
-            if (roll?.terms) {
-                for (const term of roll.terms) {
-                    if ((term.class === 'D20Die' || (term.class === 'Die' && term.faces === 20)) && term.results && term.results.length > 0) {
-                        // For advantage/disadvantage, find the active result
-                        if (term.results.length === 2) {
-                            // This is advantage/disadvantage - find the active result
-                            const activeResult = term.results.find(r => r.active === true);
-                            if (activeResult) {
-                                d20Roll = activeResult.result;
-                            } else {
-                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
-                                const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
-                                d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
-                            }
-                        } else {
-                            // Single d20 roll
-                            d20Roll = term.results[0].result;
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            // Fallback to dice structure (older format)
-            if (d20Roll === null && roll?.dice) {
-                for (const die of roll.dice) {
-                    if (die.faces === 20 && die.results && die.results.length > 0) {
-                        // For advantage/disadvantage, find the active result
-                        if (die.results.length === 2) {
-                            // This is advantage/disadvantage - find the active result
-                            const activeResult = die.results.find(r => r.active === true);
-                            if (activeResult) {
-                                d20Roll = activeResult.result;
-                            } else {
-                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
-                                const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
-                                d20Roll = isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
-                            }
-                        } else {
-                            // Single d20 roll
-                            d20Roll = die.results[0].result;
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            // Play sound based on d20 result (same logic as cinema mode)
-            const resolvedIndividualSound = await resolveRequestRollSound(
-                d20Roll === 20 ? 'SOUNDROLLCRITICAL' : d20Roll === 1 ? 'SOUNDROLLFUMBLE' : 'SOUNDROLLCOMPLETE'
-            );
-            if (resolvedIndividualSound) playSound(resolvedIndividualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
+            await _playRollResultSound(roll);
         }
         
         postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Results delivered successfully`, null, true, false);
@@ -453,7 +400,18 @@ export async function deliverRollResults(rollResults, context) {
 // ==================================================================
 
 /**
- * Get the appropriate FontAwesome dice icon based on the roll formula
+ * Play crit/fumble/normal sound for a completed roll.
+ * @param {Roll|object} roll
+ */
+async function _playRollResultSound(roll) {
+    const d20Roll = extractActiveD20(roll);
+    const resolvedIndividualSound = await resolveRequestRollSound(
+        d20Roll === 20 ? 'SOUNDROLLCRITICAL' : d20Roll === 1 ? 'SOUNDROLLFUMBLE' : 'SOUNDROLLCOMPLETE'
+    );
+    if (resolvedIndividualSound) playSound(resolvedIndividualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
+}
+
+/**
  * @param {string} rollFormula - The roll formula (e.g., "1d20", "2d6", "1d100", "d100")
  * @returns {string} FontAwesome icon class
  */
@@ -1409,8 +1367,11 @@ export async function updateCinemaOverlay(rollResults, context) {
     postConsoleAndNotification(MODULE.NAME, `updateCinemaOverlay: Updating cinema with results`, { rollResults, context }, true, false);
     
     try {
-        const { roll } = rollResults;
+        const { roll, rollData } = rollResults;
         const { messageId, tokenId } = context;
+        const cardDc = coerceDc(
+            rollData?.dc ?? game.messages.get(messageId)?.flags?.['coffee-pub-blacksmith']?.dc
+        );
         
         // Find the cinema overlay
         const overlay = document.querySelector('#cpb-cinematic-overlay');
@@ -1431,135 +1392,33 @@ export async function updateCinemaOverlay(rollResults, context) {
         const rollResultsTime = 4000;
 
         setTimeout(async () => {
-            // Play individual roll sound (crit/fumble/normal) - same as old system
-            let d20Roll = null;
-            
-            // First try the terms structure (newer Foundry format)
-            if (roll?.terms) {
-                for (const term of roll.terms) {
-                    if ((term.class === 'D20Die' || (term.class === 'Die' && term.faces === 20)) && term.results && term.results.length > 0) {
-                        // For advantage/disadvantage, find the active result
-                        if (term.results.length === 2) {
-                            // This is advantage/disadvantage - find the active result
-                            const activeResult = term.results.find(r => r.active === true);
-                            if (activeResult) {
-                                d20Roll = activeResult.result;
-                            } else {
-                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
-                                const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
-                                d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
-                            }
-                        } else {
-                            // Single d20 roll
-                            d20Roll = term.results[0].result;
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            // Fallback to dice structure (older format)
-            if (d20Roll === null && roll?.dice) {
-                for (const die of roll.dice) {
-                    if (die.faces === 20 && die.results && die.results.length > 0) {
-                        // For advantage/disadvantage, find the active result
-                        if (die.results.length === 2) {
-                            // This is advantage/disadvantage - find the active result
-                            const activeResult = die.results.find(r => r.active === true);
-                            if (activeResult) {
-                                d20Roll = activeResult.result;
-                            } else {
-                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
-                                const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
-                                d20Roll = isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
-                            }
-                        } else {
-                            // Single d20 roll
-                            d20Roll = die.results[0].result;
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            // Play individual roll sound based on d20 result
-            const resolvedIndividualSound = await resolveRequestRollSound(
-                d20Roll === 20 ? 'SOUNDROLLCRITICAL' : d20Roll === 1 ? 'SOUNDROLLFUMBLE' : 'SOUNDROLLCOMPLETE'
-            );
-            if (resolvedIndividualSound) playSound(resolvedIndividualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
-            
-        }, diceSpinTime); // Small delay for reveal effect
+            await _playRollResultSound(roll);
+        }, diceSpinTime);
         
         setTimeout(async () => {
-            // Determine the sound to play based on the roll result
-            // Improved d20 roll detection to handle different roll types
-            let d20Roll = null;
-            
-            // First try the terms structure (newer Foundry format)
-            if (roll?.terms) {
-                for (const term of roll.terms) {
-                    if ((term.class === 'D20Die' || (term.class === 'Die' && term.faces === 20)) && term.results && term.results.length > 0) {
-                        // For advantage/disadvantage, find the active result
-                        if (term.results.length === 2) {
-                            // This is advantage/disadvantage - find the active result
-                            const activeResult = term.results.find(r => r.active === true);
-                            if (activeResult) {
-                                d20Roll = activeResult.result;
-            } else {
-                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
-                                const isDisadvantage = term.modifiers && term.modifiers.includes('kl');
-                                d20Roll = isDisadvantage ? term.results[0].result : term.results[term.results.length - 1].result;
-                            }
-                        } else {
-                            // Single d20 roll
-                            d20Roll = term.results[0].result;
-                        }
-                        break;
-                    }
-                }
-            }
-            
-            // Fallback to dice structure (older format)
-            if (d20Roll === null && roll?.dice) {
-                for (const die of roll.dice) {
-                    if (die.faces === 20 && die.results && die.results.length > 0) {
-                        // For advantage/disadvantage, find the active result
-                        if (die.results.length === 2) {
-                            // This is advantage/disadvantage - find the active result
-                            const activeResult = die.results.find(r => r.active === true);
-                            if (activeResult) {
-                                d20Roll = activeResult.result;
-                            } else {
-                                // Fallback: for disadvantage (kl), use first result; for advantage (kh), use last result
-                                const isDisadvantage = die.modifiers && die.modifiers.includes('kl');
-                                d20Roll = isDisadvantage ? die.results[0].result : die.results[die.results.length - 1].result;
-                            }
-                        } else {
-                            // Single d20 roll
-                            d20Roll = die.results[0].result;
-                        }
-                        break;
-                    }
-                }
-            }
-            
+            const d20Roll = extractActiveD20(roll);
+            const { isCritical, isFumble } = classifyCritFumble(d20Roll);
+
             postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: Roll result:', roll, true, false);
             postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: d20Roll value:', d20Roll, true, false);
-            if (d20Roll === 20) {
+            if (isCritical) {
                 postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: CRITICAL DETECTED!', "", true, false);
-            } else if (d20Roll === 1) {
+            } else if (isFumble) {
                 postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: FUMBLE DETECTED!', "", true, false);
             }
 
             const rollArea = actorCard.querySelector('.cpb-cinematic-roll-area');
             if (!rollArea) return;
-            rollArea.innerHTML = ''; // Clear the button or pending icon
+            rollArea.innerHTML = '';
 
             let specialClass = '';
-            if (d20Roll === 20) specialClass = 'critical';
-            else if (d20Roll === 1) specialClass = 'fumble';
+            if (isCritical) specialClass = 'critical';
+            else if (isFumble) specialClass = 'fumble';
 
-            const successClass = roll.total >= 10 ? 'success' : 'failure'; // TODO: get actual DC from context
+            let successClass = '';
+            if (cardDc !== null && typeof roll.total === 'number') {
+                successClass = roll.total >= cardDc ? 'success' : 'failure';
+            }
             const resultHtml = `<div class="cpb-cinematic-roll-result ${successClass} ${specialClass}">${roll.total}</div>`;
             rollArea.insertAdjacentHTML('beforeend', resultHtml);
 
@@ -1727,32 +1586,7 @@ async function emitRollUpdate(rollDataForSocket) {
  */
 function createPostRollVerboseFormula(roll, rollData) {
     try {
-        // Get the dice results
-        const dice = roll.dice || [];
-        const terms = roll.terms || [];
-        
-        // Find the d20 roll result
-        let d20Result = null;
-        let d20Index = -1;
-        
-        for (let i = 0; i < dice.length; i++) {
-            if (dice[i].faces === 20) {
-                d20Result = dice[i].results[0]?.result || dice[i].total;
-                d20Index = i;
-                break;
-            }
-        }
-        
-        // If no d20 found, try to find it in terms
-        if (d20Result === null) {
-            for (let i = 0; i < terms.length; i++) {
-                if (terms[i].faces === 20) {
-                    d20Result = terms[i].results[0]?.result || terms[i].total;
-                    d20Index = i;
-                    break;
-                }
-            }
-        }
+        const d20Result = extractActiveD20(roll);
         
         // Build the post-roll verbose formula
         const postRollParts = [];

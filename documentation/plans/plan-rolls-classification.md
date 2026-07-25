@@ -88,9 +88,9 @@ The unified contract **names these explicitly** (`kind`, `success`, `groupRoll`,
 
 ### Phase 2 — Internal migration (Blacksmith dogfooding)
 
-- [ ] Replace duplicated d20 blocks in `manager-rolls.js` with `extractActiveD20`
-- [ ] Cinema overlay: use card DC from context instead of hardcoded 10
-- [ ] `blacksmith.js` skill-check path: use `buildSkillCheckOutcome` for flag annotation (drop inline crit copy)
+- [x] Replace duplicated d20 blocks in `manager-rolls.js` with `extractActiveD20` / `classifyCritFumble`
+- [x] Cinema overlay: use card DC from context instead of hardcoded 10
+- [x] `blacksmith.js` skill-check path: use `classifyCritFumble` for flag annotation (drop inline nat-20 copy)
 
 ### Phase 3 — Attack hook emission (core-first, MIDI optional)
 

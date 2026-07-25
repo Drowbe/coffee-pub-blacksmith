@@ -96,7 +96,7 @@ import { CampaignAPI } from './api-campaign.js';
 import { CompendiumsAPI } from './api-compendiums.js';
 import { RollsAPI } from './api-rolls.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
-import { extractActiveD20 } from './utility-roll-classification.js';
+import { extractActiveD20, classifyCritFumble } from './utility-roll-classification.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import './sidebar-combat.js';
 import './ui-combat-tools.js';
@@ -2371,11 +2371,9 @@ export async function handleSkillRollUpdate(data) {
         // Add crit/fumble detection to the result
         if (actorResult) {
             const d20Roll = extractActiveD20(actorResult);
-            if (d20Roll === 20) {
-                actorResult.isCritical = true;
-            } else if (d20Roll === 1) {
-                actorResult.isFumble = true;
-            }
+            const { isCritical, isFumble } = classifyCritFumble(d20Roll);
+            if (isCritical) actorResult.isCritical = true;
+            if (isFumble) actorResult.isFumble = true;
         }
         
         return {

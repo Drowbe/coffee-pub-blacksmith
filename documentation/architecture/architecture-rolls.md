@@ -109,7 +109,7 @@ Roll meaning (crit, fumble, success vs DC, hit/miss vs AC) is centralized in `sc
 |---|---|
 | `utility-roll-classification.js` | **Authority** — `extractActiveD20`, `classify()`, `buildSkillCheckOutcome` |
 | `blacksmith.js` `handleSkillRollUpdate` | GM group/contested recalc; emits `blacksmith.rolls.skillCheckResolved` |
-| `manager-rolls.js` | Sounds/cinema d20 (still duplicated — Phase 2) |
+| `manager-rolls.js` | Sounds/cinema d20 — migrated to `extractActiveD20` (Phase 2) |
 | `utility-message-resolution.js` | Attack hit/miss from chat messages — consumed by `classify()` |
 | `utility-midi-resolution.js` | MIDI crit/fumble — consumed by `classify()` and stats |
 

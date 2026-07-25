@@ -171,7 +171,7 @@ if (outcome?.kind === 'attack' && outcome.hitTargets?.length) {
 | `extractActiveD20` | Shipped |
 | `skillCheckResolved` / `groupResolved` hooks from Request Roll | Shipped (GM client) |
 | `attackResolved` hook from core dnd5e chat + optional MIDI | Shipped — `manager-roll-outcomes.js` |
-| Internal sites fully migrated off duplicated logic | Planned — Phase 2–3 |
+| Internal sites fully migrated off duplicated logic | Phase 2 done — `manager-rolls.js`, `blacksmith.js` |
 
 See `../plans/plan-rolls-classification.md` for the rollout plan.
 

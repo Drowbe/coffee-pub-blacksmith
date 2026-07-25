@@ -279,12 +279,12 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
 - **Need**: `processRoll()` respects `diceRollToolSystem`; implement Foundry roll path when selected; document in `api-rolls.md`.
 
 #### Roll outcome classification API (hit/miss/crit/fumble/criteria) — UNIFY the four existing implementations
-- **Issue**: consumers (and Blacksmith itself) had no API to ask what a roll *meant*. **Phase 1 shipped:** `utility-roll-classification.js`, `module.api.rolls`, skill-check hooks. **Phase 3 shipped:** `manager-roll-outcomes.js` emits `attackResolved` (core dnd5e chat + optional MIDI). **Remaining:** Phase 2 internal migration, sibling adoption.
-- **Status**: IN PROGRESS — Phases 1 & 3 done; Phases 2 & 4 in `documentation/plans/plan-rolls-classification.md`
+- **Issue**: consumers (and Blacksmith itself) had no API to ask what a roll *meant*. **Phases 1–3 shipped:** `utility-roll-classification.js`, `module.api.rolls`, skill-check + attack hooks. **Phase 2 done:** internal d20/DC migration in `manager-rolls.js` / `blacksmith.js`. **Remaining:** Bibliosoph/Regent adoption (Phase 4).
+- **Status**: IN PROGRESS — Phases 1–3 done; Phase 2 internal migration done; Phase 4 in `documentation/plans/plan-rolls-classification.md`
 - **Location**: `scripts/utility-roll-classification.js`, `scripts/api-rolls.js`, the four legacy sites below
 - **Legacy sites still to migrate:**
-  1. `manager-rolls.js` — cinema/window d20 + hardcoded DC 10
-  2. `blacksmith.js` `handleSkillRollUpdate` — partially migrated (hooks emit; flag annotation still inline)
+  1. ~~`manager-rolls.js` — cinema/window d20 + hardcoded DC 10~~ **done (Phase 2)**
+  2. ~~`blacksmith.js` `handleSkillRollUpdate` — partially migrated~~ **done (Phase 2)**
   3. `utility-message-resolution.js` — used by `classify()`; no hook emission yet
   4. `utility-midi-resolution.js` — used by `classify()` and stats; no hook emission yet
 - **Contract (shipped):** subscription-first — `blacksmith.rolls.resolved`, `skillCheckResolved`, `attackResolved`, `groupResolved`; pull helper `rolls.classify()`. See `documentation/api/api-rolls.md`.
