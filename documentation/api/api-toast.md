@@ -69,6 +69,15 @@ target the stream view or both.
   infinite breathe meant for persistent (`duration: 0`) billboards; `'slam'` smashes in from
   oversized with a jolt on impact; `'shake'` rattles in with a decaying wobble. Anything else renders without animation. Pure CSS on the content children,
   and honors `prefers-reduced-motion` (reduced-motion users get instant content).
+- `callToAction` (string, optional): a button-styled label (e.g. `"Roll for the Crit Card"`)
+  rendered below the text, making it visually unmistakable that the toast wants a click. It is
+  **not a separate control** — there is still exactly one click action: the CTA sits inside the
+  toast's single click target and the body `onClick` handles it, with the same dismissal
+  semantics. Shown only on `'small'` | `'medium'` | `'large'` billboards **and** only when
+  `onClick` is a function — a call to action without an action would be a lie. Because
+  Blacksmith's cross-client relays strip callbacks, only receipt-side `show()` calls (the
+  intended local-first consumer pattern) can display one. Styled from the accent color; ignored
+  in every other case.
 - `backgroundImage` (string, optional): image path/URL rendered as a cover background behind the
   toast content, with an automatic dark scrim so text stays legible. Combines with `image` (the
   avatar floats over it); best with the larger sizes and fullscreen.
@@ -141,8 +150,9 @@ Remove all toasts owned by a module (e.g. on your module's cleanup). Silent. Ret
 
 ## `getActive()`
 
-Returns `Array<{ id, moduleId, stackKey, persistent, color, backgroundColor, size, animation }>`
-for the toasts currently on screen — display metadata only, no elements or callbacks.
+Returns `Array<{ id, moduleId, stackKey, persistent, color, backgroundColor, size, animation,
+callToAction }>` for the toasts currently on screen — display metadata only, no elements or
+callbacks.
 
 ## Stacking model
 

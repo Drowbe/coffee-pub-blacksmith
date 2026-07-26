@@ -351,3 +351,32 @@
     85%  { transform: translateX(2px); }
     100% { transform: translateX(0); }
 }
+
+/* ------------------------------------ */
+/* --- CALL TO ACTION ----------------- */
+/* ------------------------------------ */
+/* blacksmith-toast-cta: button-styled affordance on small/medium/large
+   billboards with an onClick (validated in api-toast.js show()). NOT a
+   separate control — it sits inside the toast's single click target and the
+   body click handles it; the styling only says "this wants a click". Follows
+   the accent custom property like the title and border do. */
+.blacksmith-toast-cta {
+    display: inline-block;
+    margin-top: 0.6vh;
+    padding: 0.45em 1.5em;
+    border: 1px solid var(--blacksmith-toast-accent, #ac9f81);
+    border-radius: 999px;
+    color: var(--blacksmith-toast-accent, #ac9f81);
+    background: color-mix(in srgb, var(--blacksmith-toast-accent, #ac9f81) 10%, transparent);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.blacksmith-toast-actionable:hover .blacksmith-toast-cta {
+    background: color-mix(in srgb, var(--blacksmith-toast-accent, #ac9f81) 25%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--blacksmith-toast-accent, #ac9f81) 45%, transparent);
+}
+.blacksmith-toast-size-small  .blacksmith-toast-cta { font-size: clamp(0.85em, 1.1vw, 1.2em); }
+.blacksmith-toast-size-medium .blacksmith-toast-cta { font-size: clamp(0.95em, 1.5vw, 1.6em); }
+.blacksmith-toast-size-large  .blacksmith-toast-cta { font-size: clamp(1.05em, 1.9vw, 2.1em); }

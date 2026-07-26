@@ -57,6 +57,13 @@ class ToastManager {
     // (a subtle infinite breathe meant for persistent billboards), gated behind
     // prefers-reduced-motion. Applied as a class — same whitelist model as SIZES.
     static ANIMATIONS = ['pop', 'reveal', 'pulse', 'slam', 'shake'];
+    // Call-to-action sizes (author decision 2026-07-25): the CTA button renders
+    // on small/medium/large billboards only — not stacked toasts, not
+    // fullscreen. It also requires a live onClick: a "click to do X" label on
+    // a toast with no action would be a lie, and since the relays strip
+    // callbacks, a relayed toast never shows one — consumers calling show()
+    // receipt-side (the local-first pattern) are the audience.
+    static CTA_SIZES = ['small', 'medium', 'large'];
     // Publish surfaces: Foundry serves two player-facing views — the active
     // tabletop (/game) and the chat-only /stream capture page (typically
     // recorded by OBS). Toasts default to the tabletop.
@@ -83,9 +90,10 @@ class ToastManager {
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
      * @param {string} config.publish - Which Foundry view renders the toast: 'game' (the active tabletop, default), 'stream' (the chat-only /stream capture view), or 'both'. Anything else falls back to 'game'. Checked receipt-side against game.view, so it covers every delivery path.
      * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), 'pulse' (subtle infinite breathe, meant for persistent billboards), 'slam' (smashes in from oversized with a jolt on impact), or 'shake' (rattles in with a decaying wobble). Anything else, or no size, renders without animation. Respects prefers-reduced-motion.
+     * @param {string} config.callToAction - Button-styled label (e.g. "Roll for the Crit Card") making it visually clear the toast wants a click. NOT a separate click event — it renders inside the existing single click target and the body onClick handles it. Shown only on 'small' | 'medium' | 'large' billboards AND only when onClick is a function (no action, no button; relayed toasts strip callbacks, so only receipt-side show() calls can carry one). Ignored otherwise.
      * @returns {string|null} - Toast ID for later removal, or null on error
      */
-    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, animation = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game' } = {}) {
+    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, animation = null, callToAction = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game' } = {}) {
         try {
             if (!title) {
                 postConsoleAndNotification(MODULE.NAME, "Toast: show() requires a title", "", false, false);
@@ -124,6 +132,10 @@ class ToastManager {
             const validSize = this.SIZES.includes(size) ? size : null;
             // Animations are billboard-only by design — no size, no animation.
             const validAnimation = (validSize && this.ANIMATIONS.includes(animation)) ? animation : null;
+            // CTA: sized billboards only, and only with a real action to call to.
+            const validCallToAction = (typeof callToAction === 'string' && callToAction.trim()
+                && this.CTA_SIZES.includes(validSize) && typeof onClick === 'function')
+                ? callToAction.trim() : null;
             const persistent = !(Number(duration) > 0);
 
             // Billboards are singletons: a second one replaces the first, whatever its size —
@@ -155,6 +167,7 @@ class ToastManager {
                 backgroundColor: validBackgroundColor,
                 size: validSize,
                 animation: validAnimation,
+                callToAction: validCallToAction,
                 onClick: typeof onClick === 'function' ? onClick : null,
                 onDismiss: typeof onDismiss === 'function' ? onDismiss : null,
                 timeoutId: null,
@@ -244,7 +257,8 @@ class ToastManager {
             color: t.color,
             backgroundColor: t.backgroundColor,
             size: t.size,
-            animation: t.animation
+            animation: t.animation,
+            callToAction: t.callToAction
         }));
     }
 
@@ -356,6 +370,16 @@ class ToastManager {
             textBlock.appendChild(subEl);
         }
         el.appendChild(textBlock);
+
+        // Call to action: pure affordance inside the existing single click
+        // target — its click bubbles to the body onClick below (validated in
+        // show(): only sized billboards with a live onClick get one).
+        if (toast.callToAction) {
+            const cta = document.createElement('div');
+            cta.className = 'blacksmith-toast-cta';
+            cta.textContent = toast.callToAction;
+            el.appendChild(cta);
+        }
 
         const close = document.createElement('button');
         close.className = 'blacksmith-toast-close';

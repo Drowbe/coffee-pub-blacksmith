@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+
+- **Toast call to action** (`scripts/api-toast.js`, `styles/toast.css`, `documentation/api/api-toast.md`): `show()` accepts a `callToAction` config — a button-styled label ("Roll for the Crit Card") rendered below the toast text that makes it visually unmistakable the toast wants a click. It is deliberately not a separate control: there is still exactly one click action, the CTA sits inside the toast's existing click target, and the body `onClick` handles it with unchanged dismissal semantics (acted-on removal, no `onDismiss`) — Phase 2's multi-button `actions` row remains reserved for genuinely multi-choice toasts. The CTA renders only on small/medium/large billboards (`ToastManager.CTA_SIZES`; not stacked toasts, not fullscreen — author decision 2026-07-25) and only when `onClick` is a live function, since a call to action without an action would be a lie; because the cross-client relays strip callbacks, a relayed toast never shows one — the audience is consumers calling `show()` receipt-side, e.g. a rolls consumer decorating a crit billboard fired from the new `blacksmith.rolls.resolved` hook. Styling follows the toast's accent custom property (pill button, tinted wash, glow on the existing whole-toast hover) and scales with the billboard size; the label lands via `textContent`, never parsed as HTML. `getActive()` includes `callToAction` in its display metadata. Verify live: `api.toast.show({ title: "CRITICAL HIT!", size: 'medium', animation: 'slam', callToAction: "Roll for the Crit Card", onClick: () => console.log('rolled') })` shows the pill button below the text, hovering anywhere on the billboard lights it up, clicking anywhere (button included) logs once and removes the toast without firing `onDismiss`; the same call without `onClick`, without `size`, or with `size: 'fullscreen'` renders no button; with `color:` set the button wears the accent.
+
 ## [13.11.4]
 
 ### Added

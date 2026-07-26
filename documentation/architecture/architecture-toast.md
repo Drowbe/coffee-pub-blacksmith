@@ -185,6 +185,16 @@ element after `ANIMATION_MS`. **`ANIMATION_MS` in `api-toast.js` and the `transi
 `styles/toast.css` must stay in sync** — the JS value is how long the element lingers for the CSS
 fade to finish.
 
+The call to action (the `callToAction` config; size whitelist in `ToastManager.CTA_SIZES` —
+small/medium/large, deliberately not stacked toasts or fullscreen) is **affordance, not a
+control**: the button-styled element sits inside the toast's single click target and the body
+`onClick` handles the click, so the one-action contract is untouched — Phase 2's `actions` row
+remains the design space for genuinely multi-button toasts. `show()` refuses a CTA without a live
+`onClick` (a "click to do X" label with no handler would lie), which combined with the relays
+stripping callbacks means a relayed toast never shows one — the audience is consumers calling
+`show()` receipt-side, e.g. a rolls consumer putting "Roll for the Crit Card" on a crit
+billboard.
+
 Content animations (the `animation` config; whitelist in `ToastManager.ANIMATIONS`, keyframes in
 `styles/toast.css`) are deliberately separate from that enter/exit machinery: they are pure CSS
 keyframes scoped to the content children (icon/image, title, subtitle), never the container, so
