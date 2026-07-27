@@ -12,7 +12,8 @@ import { classify } from './utility-roll-classification.js';
 import {
     createDedupeTracker,
     getWorkflowKey,
-    getCritFumbleFromWorkflow
+    getCritFumbleFromWorkflow,
+    isMidiIntegrationEnabled
 } from './utility-midi-resolution.js';
 
 export class RollOutcomesManager {
@@ -63,7 +64,10 @@ export class RollOutcomesManager {
         const hasRolls = (message.rolls?.length ?? 0) > 0;
         if (!hasDnd5e && !hasMidiFlags && !hasRolls) return;
 
-        if (game.modules.get('midi-qol')?.active && hasMidiFlags) return;
+        // Yield to the MIDI lane only when integration is actually on — with
+        // Midi installed but integration disabled, the core lane processes
+        // Midi-flagged messages too (they still classify from flags).
+        if (isMidiIntegrationEnabled() && hasMidiFlags) return;
 
         const outcome = classify(message);
         if (!outcome || outcome.kind !== 'attack') return;
@@ -79,7 +83,7 @@ export class RollOutcomesManager {
      * @param {object} workflow
      */
     static async _onMidiHitsChecked(workflow) {
-        if (!game.modules.get('midi-qol')?.active) return;
+        if (!isMidiIntegrationEnabled()) return;
 
         const attackRoll = workflow?.attackRoll ?? null;
         if (!attackRoll) return;
@@ -116,7 +120,7 @@ export class RollOutcomesManager {
      * @param {object} workflow
      */
     static _onMidiRollComplete(workflow) {
-        if (!game.modules.get('midi-qol')?.active) return;
+        if (!isMidiIntegrationEnabled()) return;
 
         const key = getWorkflowKey(workflow);
         if (!key || key.toLowerCase() === 'midi:unknown') return;
@@ -138,6 +142,93 @@ export class RollOutcomesManager {
         const { outcome, meta, dedupeKey } = payload ?? {};
         if (!outcome || !dedupeKey) return;
         this._emitAttackOnce(dedupeKey, outcome, meta ?? {});
+    }
+
+    // ===== DAMAGE LANE (dnd5e.calculateDamage + dnd5e.applyDamage) =====
+    // dnd5e fires calculateDamage (typed breakdown, pre-application) and then
+    // applyDamage (final amount, post-application) inside one Actor#applyDamage
+    // call, both on the applying client. We stash the breakdown and the
+    // pre-application HP by actor uuid, then correlate in applyDamage — the
+    // same two-hook dance Bibliosoph proved out for its injury triggers,
+    // centralized here so every consumer gets one normalized damageResolved
+    // event instead of re-implementing it. Non-GM appliers (a player using
+    // their own sheet) forward to the GM client, matching the attack lane's
+    // delivery promise: outcome hooks fire on the GM client.
+
+    /** @type {Map<string, { damages: Array<{value: number, type: string}>|null, hp: object, ts: number }>} */
+    static _pendingDamage = new Map();
+    static DAMAGE_STASH_TTL = 5000;
+
+    static _stashDamageCalculation(actor, damages) {
+        if (!actor?.uuid) return;
+        const now = Date.now();
+        for (const [key, entry] of this._pendingDamage) {
+            if (now - entry.ts > this.DAMAGE_STASH_TTL) this._pendingDamage.delete(key);
+        }
+        const hp = actor.system?.attributes?.hp ?? {};
+        this._pendingDamage.set(actor.uuid, {
+            damages: Array.isArray(damages)
+                ? damages.map((d) => ({ value: d?.value ?? 0, type: d?.type ?? '' }))
+                : null,
+            hp: { value: hp.value ?? null, temp: hp.temp ?? 0, max: hp.max ?? null },
+            ts: now
+        });
+    }
+
+    static async _onDamageApplied(actor, amount) {
+        if (!actor?.uuid) return;
+
+        const stash = this._pendingDamage.get(actor.uuid) ?? null;
+        this._pendingDamage.delete(actor.uuid);
+        const fresh = stash && (Date.now() - stash.ts) <= this.DAMAGE_STASH_TTL ? stash : null;
+
+        const hpNow = actor.system?.attributes?.hp ?? {};
+        const isHealing = typeof amount === 'number' && amount < 0;
+        const tempAbsorbed = fresh && !isHealing
+            ? Math.max(0, (fresh.hp.temp ?? 0) - (hpNow.temp ?? 0))
+            : null;
+
+        // Synthetic token actors know their token directly; linked actors
+        // resolve best-effort through their active tokens.
+        const tokenDoc = actor.token ?? actor.getActiveTokens?.(true, true)?.[0] ?? null;
+
+        const outcome = {
+            kind: 'damage',
+            source: 'dnd5e.applyDamage',
+            amount: typeof amount === 'number' ? amount : null,
+            tempAbsorbed,
+            damages: fresh?.damages ?? null,
+            isHealing,
+            actorId: actor.id ?? null,
+            actorUuid: actor.uuid,
+            tokenId: tokenDoc?.id ?? null,
+            sceneId: tokenDoc?.parent?.id ?? null,
+            hp: {
+                before: fresh?.hp?.value ?? null,
+                after: hpNow.value ?? null,
+                max: hpNow.max ?? null,
+                temp: hpNow.temp ?? 0
+            },
+            // Best-effort attribution not wired yet: core damage buttons do
+            // not know their attacker, and MIDI enrichment is future work.
+            attackerTokenId: null,
+            itemUuid: null,
+            visibility: 'public'
+        };
+        const meta = { trigger: 'dnd5e.applyDamage', actorUuid: actor.uuid };
+
+        if (!game.user.isGM) {
+            await this._forwardToGM('cpbRollDamageResolved', { outcome, meta });
+            return;
+        }
+        RollsAPI.emitResolved(outcome, meta);
+    }
+
+    static _onSocketRollDamageResolved(payload) {
+        if (!game.user.isGM) return;
+        const { outcome, meta } = payload ?? {};
+        if (!outcome || outcome.kind !== 'damage') return;
+        RollsAPI.emitResolved(outcome, meta ?? {});
     }
 
     static _registerHooks() {
@@ -163,6 +254,28 @@ export class RollOutcomesManager {
                 this._onChatMessage(message);
             }
         });
+
+        if (game.system?.id === 'dnd5e') {
+            HookManager.registerHook({
+                name: 'dnd5e.calculateDamage',
+                description: 'Roll outcomes: stash typed damage breakdown + pre-application HP for damageResolved',
+                context: 'roll-outcomes-damage-calc',
+                priority: 4,
+                callback: (actor, damages) => this._stashDamageCalculation(actor, damages)
+            });
+
+            HookManager.registerHook({
+                name: 'dnd5e.applyDamage',
+                description: 'Roll outcomes: emit damageResolved when damage or healing is applied',
+                context: 'roll-outcomes-damage-apply',
+                priority: 4,
+                callback: (actor, amount) => {
+                    this._onDamageApplied(actor, amount).catch((e) => {
+                        postConsoleAndNotification(MODULE.NAME, 'Roll outcomes | applyDamage error', e, true, false);
+                    });
+                }
+            });
+        }
 
         if (game.modules.get('midi-qol')?.active) {
             HookManager.registerHook({
@@ -192,6 +305,7 @@ export class RollOutcomesManager {
             const socket = SocketManager.getSocket();
             if (socket?.register) {
                 socket.register('cpbRollAttackResolved', this._onSocketRollAttackResolved.bind(this));
+                socket.register('cpbRollDamageResolved', this._onSocketRollDamageResolved.bind(this));
             }
         });
     }

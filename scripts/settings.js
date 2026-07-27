@@ -4057,6 +4057,22 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
+	// -- Enable Midi-QOL Integration --
+	// Blacksmith is fully functional without Midi-QOL; when the module is
+	// active this toggle decides whether Blacksmith leverages its workflows
+	// (rolls API, combat/player stats) or ignores them and uses its own core
+	// dnd5e detection. Checked at runtime (isMidiIntegrationEnabled in
+	// utility-midi-resolution.js) — applies live, like the Dice So Nice toggle.
+	game.settings.register(MODULE.ID, 'enableMidiIntegration', {
+		name: MODULE.ID + '.enableMidiIntegration-Label',
+		hint: MODULE.ID + '.enableMidiIntegration-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+	});
+
 
 	// --------------------------------------
 	// -- H2: XP DISTRIBUTION

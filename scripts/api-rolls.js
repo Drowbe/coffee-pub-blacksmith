@@ -18,6 +18,7 @@ export const ROLLS_HOOKS = {
     resolved: 'blacksmith.rolls.resolved',
     skillCheckResolved: 'blacksmith.rolls.skillCheckResolved',
     attackResolved: 'blacksmith.rolls.attackResolved',
+    damageResolved: 'blacksmith.rolls.damageResolved',
     groupResolved: 'blacksmith.rolls.groupResolved'
 };
 
@@ -49,7 +50,7 @@ export class RollsAPI {
 
     /**
      * Subscribe to roll outcome hooks. Returns a disposer function.
-     * @param {'resolved'|'skillCheckResolved'|'attackResolved'|'groupResolved'} event
+     * @param {'resolved'|'skillCheckResolved'|'attackResolved'|'damageResolved'|'groupResolved'} event
      * @param {Function} callback
      * @param {object} [options]
      * @param {AbortSignal} [options.signal]
@@ -77,11 +78,17 @@ export class RollsAPI {
         const payload = { ...outcome, meta: { ts: Date.now(), ...meta } };
 
         if (game.user?.isGM || outcomeVisibleToUser(outcome, game.user)) {
-            Hooks.callAll(ROLLS_HOOKS.resolved, payload);
-            if (outcome.kind === 'skillCheck') {
-                Hooks.callAll(ROLLS_HOOKS.skillCheckResolved, payload);
-            } else if (outcome.kind === 'attack') {
-                Hooks.callAll(ROLLS_HOOKS.attackResolved, payload);
+            if (outcome.kind === 'damage') {
+                // Damage application is not a roll: it fires ONLY its own
+                // hook, keeping 'resolved' d20-shaped for existing consumers.
+                Hooks.callAll(ROLLS_HOOKS.damageResolved, payload);
+            } else {
+                Hooks.callAll(ROLLS_HOOKS.resolved, payload);
+                if (outcome.kind === 'skillCheck') {
+                    Hooks.callAll(ROLLS_HOOKS.skillCheckResolved, payload);
+                } else if (outcome.kind === 'attack') {
+                    Hooks.callAll(ROLLS_HOOKS.attackResolved, payload);
+                }
             }
         }
 

@@ -18,7 +18,8 @@ import {
     createDedupeTracker,
     extractPreTargetDamageArgs,
     getCritFumbleFromWorkflow,
-    getWorkflowKey
+    getWorkflowKey,
+    isMidiIntegrationEnabled
 } from './utility-midi-resolution.js';
 //import { MVPDescriptionGenerator } from './mvp-description-generator.js';
 import { assetLookup } from './asset-lookup.js';
@@ -2479,7 +2480,7 @@ class CombatStats {
         if (!game.combat?.started) return;
 
         // MIDI lane is authoritative for damage; avoid double counting by also forwarding core damage rolls.
-        if (game.modules.get("midi-qol")?.active) {
+        if (isMidiIntegrationEnabled()) {
             if (!game.user.isGM) {
                 postConsoleAndNotification(MODULE.NAME, 'STATS SOCKETS | Skip cpbTrackDamage (MIDI active)', {}, true, false);
             }
@@ -2542,7 +2543,7 @@ class CombatStats {
         if (!game.combat?.started) return;
 
         // MIDI lane is authoritative for crit/fumble; avoid double counting
-        if (game.modules.get("midi-qol")?.active) return;
+        if (isMidiIntegrationEnabled()) return;
 
         const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
         const rollObj = rolls?.[0];
@@ -2585,6 +2586,7 @@ class CombatStats {
      * @param {Object} workflow
      */
     static async _onMidiHitsChecked(workflow) {
+        if (!isMidiIntegrationEnabled()) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
@@ -2661,6 +2663,7 @@ class CombatStats {
      * @param {*} arg2
      */
     static async _onMidiPreTargetDamageApplication(arg1, arg2) {
+        if (!isMidiIntegrationEnabled()) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
@@ -2843,6 +2846,7 @@ class CombatStats {
      * @param {Object} workflow
      */
     static async _onMidiRollComplete(workflow) {
+        if (!isMidiIntegrationEnabled()) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
@@ -2949,9 +2953,10 @@ class CombatStats {
         const hasRolls = (message.rolls?.length ?? 0) > 0;
         if (!hasDnd5e && !hasMidi && !hasRolls) return;
 
-        // If MIDI is active and this message is part of a MIDI workflow, ignore it here.
-        // MIDI lane hooks (hitsChecked + preTargetDamageApplication + RollComplete) are authoritative.
-        if (game.modules.get("midi-qol")?.active && hasMidi) return;
+        // If MIDI integration is on and this message is part of a MIDI workflow, ignore it
+        // here. MIDI lane hooks (hitsChecked + preTargetDamageApplication + RollComplete) are
+        // authoritative; with integration disabled the core lane reclaims these messages.
+        if (isMidiIntegrationEnabled() && hasMidi) return;
 
         // Prune expired cache entries
         CombatStats._pruneAttackCache();

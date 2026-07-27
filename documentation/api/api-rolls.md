@@ -45,14 +45,17 @@ const stop = rolls.on('resolved', (outcome) => {
 
 | `rolls.on()` event | Hook name | When it fires |
 |---|---|---|
-| `'resolved'` | `blacksmith.rolls.resolved` | Any classified outcome (skill check or attack) |
+| `'resolved'` | `blacksmith.rolls.resolved` | Any classified roll outcome (skill check or attack — not damage) |
 | `'skillCheckResolved'` | `blacksmith.rolls.skillCheckResolved` | Request Roll / skill-check card row completed |
 | `'attackResolved'` | `blacksmith.rolls.attackResolved` | Attack classified — core dnd5e chat (GM) and optional MIDI workflow |
+| `'damageResolved'` | `blacksmith.rolls.damageResolved` | Damage or healing applied to an actor (dnd5e; GM client) |
 | `'groupResolved'` | `blacksmith.rolls.groupResolved` | Group skill check: all actors finished (GM client) |
 
 You may also use `Hooks.on('blacksmith.rolls.resolved', ...)` directly.
 
 **Visibility:** Hidden/blind/GM-only rolls do not deliver payloads to clients who should not see the roll. GMs always receive outcomes on the GM client.
+
+**Midi-QOL is optional.** Blacksmith is fully functional without it: the core dnd5e lanes cover attacks and damage on their own. When Midi is installed, its workflows are leveraged for authoritative hit/miss and crit detection — gated by the Midi-QOL Integration world setting (`enableMidiIntegration`, Roll System > Integrations, default on, applies live). With the setting off, Blacksmith ignores Midi workflows and the core lanes process Midi-generated messages too.
 
 **Exactly once:** Skill-check hooks fire for the actor who just rolled, not for every actor already on the card when a later party member rolls.
 
@@ -91,6 +94,39 @@ You may also use `Hooks.on('blacksmith.rolls.resolved', ...)` directly.
     meta: { ts, trigger }  // present on hook payloads only
 }
 ```
+
+### Damage outcome (`damageResolved`)
+
+Fires when dnd5e applies damage or healing to an actor — any path that runs `Actor#applyDamage`
+(chat card damage buttons, sheet application, MIDI's automated application). The typed breakdown
+comes from `dnd5e.calculateDamage` and the final amount from `dnd5e.applyDamage`, correlated by
+actor uuid, so consumers get one normalized event instead of that two-hook dance. Delivery
+matches the attack lane: the hook fires on the GM client (a player applying to their own sheet
+forwards over the socket). Damage is not a roll, so this event does **not** also fire
+`'resolved'`.
+
+```javascript
+{
+    kind: 'damage',
+    source: 'dnd5e.applyDamage',
+    amount: 23,                 // as applied; negative = healing
+    tempAbsorbed: 5,            // portion soaked by temp HP (null when unknowable, 
+                                // and for healing)
+    damages: [                  // typed breakdown from calculateDamage, or null
+        { value: 18, type: 'slashing' },
+        { value: 5,  type: 'fire' }
+    ],
+    isHealing: false,           // healing is delivered too, flagged — filter if unwanted
+    actorId, actorUuid, tokenId, sceneId,   // token/scene best-effort for linked actors
+    hp: { before, after, max, temp },       // before from the pre-application snapshot
+    attackerTokenId: null,      // attribution not yet wired — always null today
+    itemUuid: null,             // same
+    meta: { ts, trigger: 'dnd5e.applyDamage' }
+}
+```
+
+`hp.before/after/max` makes threshold logic one-liners: `amount >= hp.max / 2` (massive hit),
+`hp.before > hp.max / 2 && hp.after <= hp.max / 2` (dropped to bloodied), `hp.after === 0`.
 
 ## Pull API (secondary)
 
@@ -171,9 +207,8 @@ if (outcome?.kind === 'attack' && outcome.hitTargets?.length) {
 | `extractActiveD20` | Shipped |
 | `skillCheckResolved` / `groupResolved` hooks from Request Roll | Shipped (GM client) |
 | `attackResolved` hook from core dnd5e chat + optional MIDI | Shipped — `manager-roll-outcomes.js` |
+| `damageResolved` hook from dnd5e damage application | Shipped — `manager-roll-outcomes.js` (attacker/item attribution not yet carried) |
 | Internal sites fully migrated off duplicated logic | Phase 2 done — `manager-rolls.js`, `blacksmith.js` |
-
-See `../plans/plan-rolls-classification.md` for the rollout plan.
 
 ## Related documentation
 

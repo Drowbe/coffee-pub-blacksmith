@@ -9,7 +9,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { resolveAttackMessage, resolveDamageMessage, makeKey, hydrateFirstRoll } from './utility-message-resolution.js';
-import { getWorkflowId, buildAttackEventFromWorkflow } from './utility-midi-resolution.js';
+import { getWorkflowId, buildAttackEventFromWorkflow, isMidiIntegrationEnabled } from './utility-midi-resolution.js';
 import { CombatStats } from './stats-combat.js';
 
 // Default stats structure
@@ -279,6 +279,7 @@ class CPBPlayerStats {
                 priority: 3,
                 callback: async (workflow) => {
                     try {
+                        if (!isMidiIntegrationEnabled()) return;
                         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
                         const actor = workflow?.actor;
@@ -900,6 +901,7 @@ class CPBPlayerStats {
      * @param {Object} workflow - MIDI workflow object
      */
     static async _onMidiHitsChecked(workflow) {
+        if (!isMidiIntegrationEnabled()) return;
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         const attacker = workflow?.actor;
@@ -948,6 +950,7 @@ class CPBPlayerStats {
      * @param {Object} arg2 - Second argument (data object, if present)
      */
     static async _onMidiPreTargetDamageApplication(arg1, arg2) {
+        if (!isMidiIntegrationEnabled()) return;
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         // Normalize hook arguments - MIDI may pass them in different formats
@@ -1175,10 +1178,11 @@ class CPBPlayerStats {
             return;
         }
 
-        // If MIDI is active and this message is part of a MIDI workflow, ignore it here.
+        // If MIDI integration is on and this message is part of a MIDI workflow, ignore it here.
         // We resolve attacks/damage from MIDI workflow hooks instead (hitsChecked + preTargetDamageApplication)
-        // to avoid racing the activation-card mutation lifecycle.
-        if (game.modules.get("midi-qol")?.active && hasMidi) {
+        // to avoid racing the activation-card mutation lifecycle; with integration disabled the
+        // core lane reclaims these messages.
+        if (isMidiIntegrationEnabled() && hasMidi) {
             return;
         }
 
@@ -1270,7 +1274,7 @@ class CPBPlayerStats {
 
             // Detect crit/fumble from the attack message roll itself (fallback for core dnd5e only)
             // MIDI-QOL uses the RollComplete hook (authoritative), so skip chat parsing when MIDI is active
-            const hasMidiActive = game.modules.get("midi-qol")?.active;
+            const hasMidiActive = isMidiIntegrationEnabled();
             if (!hasMidiActive) {
                 const roll = hydrateFirstRoll(message);
                 if (roll) {
@@ -1856,7 +1860,7 @@ class CPBPlayerStats {
             // Short-circuit: If MIDI is active, let MIDI RollComplete hook handle it (authoritative)
             // OR if the originating chat message already has dnd5e/midi flags, chat lane will handle it
             // (Prevents double counting when core is behaving normally or MIDI is handling it)
-            const hasMidi = game.modules.get("midi-qol")?.active;
+            const hasMidi = isMidiIntegrationEnabled();
             if (hasMidi) {
                 return; // MIDI RollComplete hook is authoritative, skip roll hook
             }

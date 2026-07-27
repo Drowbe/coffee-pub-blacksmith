@@ -15,6 +15,26 @@
  */
 
 /**
+ * Whether Blacksmith should leverage Midi-QOL workflows: the module must be
+ * active AND the enableMidiIntegration world setting on (default true).
+ * Checked at RUNTIME by every MIDI lane — handlers and the core-lane "yield
+ * to MIDI" branches alike — so toggling applies live, like the Dice So Nice
+ * setting. When this returns false with Midi installed, the core dnd5e lanes
+ * reclaim processing (including Midi-flagged chat messages), keeping
+ * Blacksmith fully functional. No imports by design (this module stays
+ * dependency-free); the settings read is guarded for pre-registration calls.
+ * @returns {boolean}
+ */
+export function isMidiIntegrationEnabled() {
+    if (!game.modules.get('midi-qol')?.active) return false;
+    try {
+        return game.settings.get('coffee-pub-blacksmith', 'enableMidiIntegration') !== false;
+    } catch {
+        return true; // setting not registered yet — module active means integrate
+    }
+}
+
+/**
  * Extract workflow ID from MIDI workflow object.
  * Conservative approach: only check known properties, don't guess.
  * Only accepts IDs that look like real workflow/message identifiers, not semantic labels.
