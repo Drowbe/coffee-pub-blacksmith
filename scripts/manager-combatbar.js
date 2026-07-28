@@ -237,6 +237,9 @@ export class CombatBarManager {
                     updateData.round !== undefined ||
                     updateData.combatants !== undefined;
                 if (shouldUpdate) CombatBarManager.updateCombatBar(menuBar);
+                if (updateData.turn !== undefined || updateData.round !== undefined) {
+                    void CombatBarManager.syncFollowingCombatPopouts(menuBar);
+                }
             }
         });
 
@@ -277,7 +280,7 @@ export class CombatBarManager {
                     CombatBarManager.updateCombatBar(menuBar);
                     if (initiativeUpdated) menuBar.renderMenubar();
                 }
-                void CombatBarManager.refreshCombatantPopoutCard(menuBar, _combatant?.id);
+                void CombatBarManager.refreshCombatantPopoutCardsForCombatant(menuBar, _combatant?.id);
             }
         });
 
@@ -287,7 +290,7 @@ export class CombatBarManager {
             context: 'menubar-combatant-delete',
             priority: 3,
             callback: (combatant) => {
-                CombatBarManager.closeCombatantPopoutCard(combatant?.id);
+                CombatBarManager.handleDeletedCombatantPopouts(menuBar, combatant?.id);
                 if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
                     CombatBarManager.updateCombatBar(menuBar);
                 }
@@ -1239,9 +1242,11 @@ export class CombatBarManager {
 
     static _combatantPopoutCards = new Map();
     static _combatantPopoutZIndex = 130;
+    static _combatantPopoutSequence = 0;
 
     static async showCombatantPopoutCard(menuBar, combatantId, x = 120, y = 120) {
-        const existing = CombatBarManager._combatantPopoutCards.get(combatantId);
+        const existing = Array.from(CombatBarManager._combatantPopoutCards.values())
+            .find((record) => record.combatantId === combatantId && !record.followCombat);
         if (existing?.element?.isConnected) {
             existing.element.style.zIndex = String(++CombatBarManager._combatantPopoutZIndex);
             return existing.element;
@@ -1252,6 +1257,7 @@ export class CombatBarManager {
         const hoverData = CombatBarManager.getCombatantHoverData(combatant);
         if (!hoverData) return null;
         hoverData.isPopout = true;
+        hoverData.followCombat = false;
         try {
             hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
         } catch (error) {
@@ -1260,8 +1266,10 @@ export class CombatBarManager {
         }
 
         const card = document.createElement('div');
+        const popoutId = `combatant-popout-${++CombatBarManager._combatantPopoutSequence}`;
         card.className = 'blacksmith-combat-hover-card blacksmith-combat-popout-card is-visible';
         card.dataset.combatantId = combatantId;
+        card.dataset.popoutId = popoutId;
         card.style.zIndex = String(++CombatBarManager._combatantPopoutZIndex);
         card.innerHTML = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
         document.body.appendChild(card);
@@ -1271,12 +1279,27 @@ export class CombatBarManager {
         card.style.left = `${left}px`;
         card.style.top = `${top}px`;
 
-        card.querySelector('[data-action="close-combatant-popout"]')?.addEventListener('click', () => {
-            CombatBarManager.closeCombatantPopoutCard(combatantId);
-        });
+        const record = { id: popoutId, combatantId, followCombat: false, element: card, menuBar };
+        CombatBarManager._combatantPopoutCards.set(popoutId, record);
+        CombatBarManager.attachCombatantPopoutInteractions(record);
         CombatBarManager.makeCombatantPopoutDraggable(card);
-        CombatBarManager._combatantPopoutCards.set(combatantId, { element: card, menuBar });
         return card;
+    }
+
+    static attachCombatantPopoutInteractions(record) {
+        record?.element?.querySelector('[data-action="close-combatant-popout"]')?.addEventListener('click', () => {
+            CombatBarManager.closeCombatantPopoutCard(record.id);
+        });
+        record?.element?.querySelector('[data-action="toggle-combat-follow"]')?.addEventListener('click', async (event) => {
+            record.followCombat = !record.followCombat;
+            event.currentTarget?.setAttribute?.('aria-pressed', String(record.followCombat));
+            event.currentTarget?.classList?.toggle?.('is-active', record.followCombat);
+            if (record.followCombat) {
+                await CombatBarManager.syncFollowingCombatPopouts(record.menuBar);
+            } else {
+                await CombatBarManager.refreshCombatantPopoutCard(record.menuBar, record.id);
+            }
+        });
     }
 
     static makeCombatantPopoutDraggable(card) {
@@ -1309,11 +1332,11 @@ export class CombatBarManager {
         });
     }
 
-    static closeCombatantPopoutCard(combatantId) {
-        if (!combatantId) return;
-        const record = CombatBarManager._combatantPopoutCards.get(combatantId);
+    static closeCombatantPopoutCard(popoutId) {
+        if (!popoutId) return;
+        const record = CombatBarManager._combatantPopoutCards.get(popoutId);
         record?.element?.remove();
-        CombatBarManager._combatantPopoutCards.delete(combatantId);
+        CombatBarManager._combatantPopoutCards.delete(popoutId);
     }
 
     static closeAllCombatantPopoutCards() {
@@ -1321,48 +1344,82 @@ export class CombatBarManager {
         CombatBarManager._combatantPopoutCards.clear();
     }
 
-    static async refreshCombatantPopoutCard(menuBar, combatantId) {
-        const record = CombatBarManager._combatantPopoutCards.get(combatantId);
+    static async refreshCombatantPopoutCard(menuBar, popoutId) {
+        const record = CombatBarManager._combatantPopoutCards.get(popoutId);
         if (!record?.element?.isConnected) return;
+        const combatantId = record.combatantId;
+        const renderVersion = (record.renderVersion ?? 0) + 1;
+        record.renderVersion = renderVersion;
         const combatant = game.combats?.active?.combatants?.get(combatantId);
         if (!combatant) {
-            CombatBarManager.closeCombatantPopoutCard(combatantId);
+            if (!record.followCombat) CombatBarManager.closeCombatantPopoutCard(popoutId);
             return;
         }
         const hoverData = CombatBarManager.getCombatantHoverData(combatant);
         if (!hoverData) return;
         hoverData.isPopout = true;
+        hoverData.followCombat = record.followCombat;
         try {
             hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
         } catch (error) {
             console.warn(`${MODULE.NAME} | Unable to refresh popped-out combatant card`, error);
             hoverData.effects = [];
         }
-        if (!record.element.isConnected) return;
+        if (!record.element.isConnected || record.renderVersion !== renderVersion || record.combatantId !== combatantId) return;
+        record.element.dataset.combatantId = record.combatantId;
         record.element.innerHTML = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
-        record.element.querySelector('[data-action="close-combatant-popout"]')?.addEventListener('click', () => {
-            CombatBarManager.closeCombatantPopoutCard(combatantId);
-        });
+        CombatBarManager.attachCombatantPopoutInteractions(record);
         CombatBarManager.makeCombatantPopoutDraggable(record.element);
     }
 
     static async refreshCombatantPopoutCardsForActor(menuBar, actor) {
         if (!actor) return;
         const refreshes = [];
-        for (const [combatantId] of CombatBarManager._combatantPopoutCards) {
-            const combatant = game.combats?.active?.combatants?.get(combatantId);
+        for (const [popoutId, record] of CombatBarManager._combatantPopoutCards) {
+            const combatant = game.combats?.active?.combatants?.get(record.combatantId);
             if (combatant?.actor?.uuid === actor.uuid || combatant?.actor?.id === actor.id) {
-                refreshes.push(CombatBarManager.refreshCombatantPopoutCard(menuBar, combatantId));
+                refreshes.push(CombatBarManager.refreshCombatantPopoutCard(menuBar, popoutId));
             }
         }
         await Promise.all(refreshes);
     }
 
+    static async refreshCombatantPopoutCardsForCombatant(menuBar, combatantId) {
+        if (!combatantId) return;
+        await Promise.all(
+            Array.from(CombatBarManager._combatantPopoutCards.entries())
+                .filter(([, record]) => record.combatantId === combatantId)
+                .map(([popoutId]) => CombatBarManager.refreshCombatantPopoutCard(menuBar, popoutId))
+        );
+    }
+
     static async refreshAllCombatantPopoutCards(menuBar) {
         await Promise.all(
             Array.from(CombatBarManager._combatantPopoutCards.keys())
-                .map((combatantId) => CombatBarManager.refreshCombatantPopoutCard(menuBar, combatantId))
+                .map((popoutId) => CombatBarManager.refreshCombatantPopoutCard(menuBar, popoutId))
         );
+    }
+
+    static async syncFollowingCombatPopouts(menuBar) {
+        const activeCombatantId = game.combats?.active?.combatant?.id ?? game.combat?.combatant?.id;
+        if (!activeCombatantId) return;
+        const refreshes = [];
+        for (const [popoutId, record] of CombatBarManager._combatantPopoutCards) {
+            if (!record.followCombat) continue;
+            record.combatantId = activeCombatantId;
+            refreshes.push(CombatBarManager.refreshCombatantPopoutCard(menuBar, popoutId));
+        }
+        await Promise.all(refreshes);
+    }
+
+    static handleDeletedCombatantPopouts(menuBar, combatantId) {
+        if (!combatantId) return;
+        for (const [popoutId, record] of Array.from(CombatBarManager._combatantPopoutCards.entries())) {
+            if (record.combatantId !== combatantId) continue;
+            if (record.followCombat) continue;
+            CombatBarManager.closeCombatantPopoutCard(popoutId);
+        }
+        setTimeout(() => { void CombatBarManager.syncFollowingCombatPopouts(menuBar); }, 0);
     }
 
     static getCombatantHoverData(combatant) {
@@ -1457,14 +1514,24 @@ export class CombatBarManager {
         const bloodOverlayHtml = data.bloodOverlay
             ? `<img class="combat-hover-blood" src="${esc(data.bloodOverlay)}" alt="" aria-hidden="true">`
             : '';
-        const popoutCloseHtml = data.isPopout
-            ? `<button type="button"
-                    class="combat-hover-popout-close"
-                    data-action="close-combatant-popout"
-                    data-tooltip="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutClose`))}"
-                    aria-label="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutClose`))}">
-                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-                </button>`
+        const popoutControlsHtml = data.isPopout
+            ? `<div class="combat-hover-popout-controls">
+                    <button type="button"
+                        class="combat-hover-popout-follow${data.followCombat ? ' is-active' : ''}"
+                        data-action="toggle-combat-follow"
+                        data-tooltip="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutFollow`))}"
+                        aria-label="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutFollow`))}"
+                        aria-pressed="${data.followCombat ? 'true' : 'false'}">
+                        <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
+                    </button>
+                    <button type="button"
+                        class="combat-hover-popout-close"
+                        data-action="close-combatant-popout"
+                        data-tooltip="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutClose`))}"
+                        aria-label="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutClose`))}">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>`
             : '';
         const effectsHtml = (data.effects || []).length
             ? `
@@ -1492,7 +1559,7 @@ export class CombatBarManager {
             return `
                 <div class="combat-hover-header">
                     <span class="combat-hover-name">${esc(data.name)}</span>
-                    ${popoutCloseHtml}
+                    ${popoutControlsHtml}
                 </div>
                 <div class="combat-hover-image-wrap">
                     <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">
@@ -1509,7 +1576,7 @@ export class CombatBarManager {
         return `
             <div class="combat-hover-header">
                 <span class="combat-hover-name">${esc(data.name)}</span>
-                ${popoutCloseHtml}
+                ${popoutControlsHtml}
             </div>
             <div class="combat-hover-image-wrap">
                 <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">
