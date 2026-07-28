@@ -46,6 +46,59 @@
     background: rgba(112, 85, 49, 0.14);
 }
 
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro {
+    --header-height: 14px;
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro > .window-header {
+    min-height: var(--header-height);
+    padding: 0 2px;
+    cursor: grab;
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro > .window-header:active {
+    cursor: grabbing;
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > .window-icon,
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > .window-title,
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > [data-action="close"],
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > .blacksmith-window-tool-header-action {
+    display: none;
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > [data-action="toggleControls"] {
+    --button-size: 14px;
+    display: inline-flex;
+    margin-left: auto;
+    border-radius: 2px;
+    opacity: 0.28;
+    font-size: 9px;
+    transition: opacity 100ms ease, background-color 100ms ease;
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header:hover
+    > [data-action="toggleControls"],
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > [data-action="toggleControls"]:focus-visible,
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > [data-action="toggleControls"][aria-expanded="true"] {
+    opacity: 1;
+}
+
 .application.blacksmith-window-tool:not(.blacksmith-window-tool-has-menu)
     > .window-header
     > [data-action="toggleControls"] {

@@ -60,7 +60,7 @@ There is no module-unload cleanup hook. `unloadModule` is a dead name (see [api-
 ### 3.2 Base class
 
 - **`BlacksmithWindowBaseV2`** (`scripts/window-base.js:13`) encapsulates the Application V2 patterns so each window does not reimplement them: `_getRoot()`, scroll save/restore across `render()`, document-level delegation for `data-action`, and a central window ref so static actions do not need a per-app module-level ref.
-- **`BlacksmithToolWindowBaseV2`** (`scripts/window-tool-base.js`) extends the same lifecycle with compact defaults, a dedicated tool template, the shared parchment/gold visual shell, optional inline native-title actions, tool-body scroll preservation, and position persistence. Frame styling belongs to the API; consumers style only their body content unless intentionally overriding the exposed tool custom properties.
+- **`BlacksmithToolWindowBaseV2`** (`scripts/window-tool-base.js`) extends the same lifecycle with compact defaults, a dedicated tool template, the shared parchment/gold visual shell, optional inline native-title actions, tool-body scroll preservation, and position persistence. Frame styling belongs to the API; consumers style only their body content unless intentionally overriding the exposed tool custom properties. `toolTitlebar` selects the full title bar or a micro native drag rail; both use the same Application V2 instance and lifecycle.
 - Tool consumers override `getToolHeaderActions()` for compact title controls and return `bodyContent` plus optional `toolBarLeft` / `toolBarRight` and `toolFooterLeft` / `toolFooterRight`.
 - The combatant pop-out card dogfoods the tool base; its Follow Combat control is a tool header action rather than custom draggable DOM.
 - **Consumer responsibility:** extend the base, supply template path, `getData`, and action handlers; the template follows the zone contract (include only the zones the window needs).
@@ -80,7 +80,7 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 
 ### 4.2 API exposure
 
-- **`module.api`** (in `blacksmith.js`) exposes the registry, both base classes and getters, and `windowStyles` (`STANDARD` / `TOOL`).
+- **`module.api`** (in `blacksmith.js`) exposes the registry, both base classes and getters, `windowStyles` (`STANDARD` / `TOOL`), and `toolTitlebars` (`FULL` / `MICRO`).
 - **`api/blacksmith-api.js`** is the external bridge, providing timing-safe access to `module.api` for other modules.
 
 ### 4.3 Documentation and assets

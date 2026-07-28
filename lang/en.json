@@ -330,6 +330,9 @@
 				"ActiveEffectVia": "via",
 				"CombatHoverPopoutClose": "Close combatant card",
 				"CombatHoverPopoutFollow": "Follow current combatant",
+				"ToolWindowMinimize": "Minimize",
+				"ToolWindowRestore": "Restore",
+				"ToolWindowResetPosition": "Reset Position",
 
 
 		"headingH2Statistics-Label": "Statistics",

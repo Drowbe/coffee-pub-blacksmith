@@ -32,6 +32,8 @@ const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 blacksmith.BlacksmithToolWindowBaseV2;
 blacksmith.getToolWindowBaseV2();
 blacksmith.windowStyles.TOOL; // "tool"
+blacksmith.toolTitlebars.FULL; // "full"
+blacksmith.toolTitlebars.MICRO; // "micro"
 ```
 
 Do not import `/modules/coffee-pub-blacksmith/scripts/window-tool-base.js` directly. The `module.api` members are the stable contract.
@@ -277,6 +279,19 @@ classes: [
 ```
 
 The inherited base contributes `blacksmith-window-tool`; Squire does not need to repeat it.
+
+For compact, persistently open tools such as Dice Tray or Health, Squire may opt into the shared Micro title bar:
+
+```javascript
+static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+    foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+    {
+        toolTitlebar: 'micro'
+    }
+);
+```
+
+Micro mode is a thin native drag rail with an ellipsis on hover/focus. The same menu opens on right-click and includes Squire's registered tool actions, Minimize/Restore, Reset Position, and Close. Squire should not add another close button or context menu.
 
 ## Live verification checklist
 

@@ -40,7 +40,7 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 
 **Availability timing**
 
-- **Both base classes and getters** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, and `windowStyles` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level**.
+- **Both base classes, getters, and style constants** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, `windowStyles`, and `toolTitlebars` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level**.
 - **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith's **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
 - **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith's `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith's **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture/architecture-blacksmith.md** §3.2–3.3.
 
@@ -67,7 +67,7 @@ See **documentation/applicationv2-window/blacksmith-windows-zones.webp** for the
 
 Use `BlacksmithToolWindowBaseV2` for small utilities that should remain open over the canvas: dice trays, health controls, macro palettes, trackers, and similar tools. It uses Foundry's native Application V2 frame, so dragging, focus/z-order, minimizing, closing, and window lifecycle remain standard. It deliberately omits the full editor header and five-zone layout.
 
-The base supplies the complete shared visual shell even when the consumer returns an empty body: parchment surface, gold border, display-type title bar, matching controls, and compact window shadow. No additional parchment class is required. Consumers own only their body content and may override these public custom properties when a deliberate tool-specific variation is required:
+The base supplies the complete shared visual shell even when the consumer returns an empty body: parchment surface, gold border, matching controls, and compact window shadow. No additional parchment class is required. Consumers own only their body content and may override these public custom properties when a deliberate tool-specific variation is required:
 
 | Property | Purpose |
 |----------|---------|
@@ -85,6 +85,31 @@ Scope any override to the consumer's own application class. Do not copy Blacksmi
     --blacksmith-tool-text: #eee;
 }
 ```
+
+### Title-bar modes
+
+Tool windows support two chrome modes through the top-level `toolTitlebar` option:
+
+| Value | Constant | Behavior |
+|-------|----------|----------|
+| `"full"` | `api.toolTitlebars.FULL` | Default. The full parchment title bar shows the title, direct tool actions, Foundry controls menu when populated, and Close. Existing consumers remain in this mode. |
+| `"micro"` | `api.toolTitlebars.MICRO` | A 14px parchment drag rail. The title and direct controls are hidden. A faint ellipsis becomes fully visible on hover/focus and opens the controls menu. Right-clicking anywhere on the rail opens the same menu. |
+
+The Micro menu contains the consumer's `getToolHeaderActions()`, any normal Application V2 header controls, Minimize/Restore (when enabled), Reset Position, and Close. Disabled tool actions are omitted. Active actions receive a checkmark in their menu label.
+
+```javascript
+static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+    foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+    {
+        id: 'my-module-micro-tool',
+        toolTitlebar: 'micro',
+        position: { width: 340, height: 'auto' },
+        window: { title: 'My Tool', resizable: false, minimizable: true }
+    }
+);
+```
+
+`"full"` is the fallback for an omitted or unknown value. A consumer may switch modes at runtime by updating `this.options.toolTitlebar` and calling `render(false)`.
 
 The tool template accepts:
 
@@ -138,7 +163,7 @@ class MyCanvasTool extends ToolBase {
 
 Tool windows remember their last position per user by default. Set `rememberPosition: false` for transient instances, or set `windowPositionKey` when several instances should share one saved position. The same options also work on the standard base.
 
-`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. The registry remains presentation-agnostic: either style can be registered and opened through `registerWindow` / `openWindow`.
+`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. `api.toolTitlebars` similarly exposes `FULL` (`"full"`) and `MICRO` (`"micro"`). The registry remains presentation-agnostic: either style and either Tool title-bar mode can be registered and opened through `registerWindow` / `openWindow`.
 
 ---
 

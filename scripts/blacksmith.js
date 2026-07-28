@@ -99,7 +99,11 @@ import { EffectsAPI } from './api-effects.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
 import { extractActiveD20, classifyCritFumble } from './utility-roll-classification.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
-import { BlacksmithToolWindowBaseV2, BLACKSMITH_WINDOW_STYLES } from './window-tool-base.js';
+import {
+    BlacksmithToolWindowBaseV2,
+    BLACKSMITH_WINDOW_STYLES,
+    BLACKSMITH_TOOL_TITLEBARS
+} from './window-tool-base.js';
 import './sidebar-combat.js';
 import './ui-combat-tools.js';
 
@@ -116,6 +120,7 @@ try {
         _bsMod.api.BlacksmithToolWindowBaseV2 = BlacksmithToolWindowBaseV2;
         _bsMod.api.getToolWindowBaseV2 = () => BlacksmithToolWindowBaseV2;
         _bsMod.api.windowStyles = BLACKSMITH_WINDOW_STYLES;
+        _bsMod.api.toolTitlebars = BLACKSMITH_TOOL_TITLEBARS;
     }
 } catch {
     /* non-Foundry / test */
@@ -921,6 +926,7 @@ Hooks.once('init', async function() {
         BlacksmithToolWindowBaseV2,
         getToolWindowBaseV2: () => BlacksmithToolWindowBaseV2,
         windowStyles: BLACKSMITH_WINDOW_STYLES,
+        toolTitlebars: BLACKSMITH_TOOL_TITLEBARS,
         registerMenubarTool: null,
         unregisterMenubarTool: null,
         getRegisteredMenubarTools: null,
