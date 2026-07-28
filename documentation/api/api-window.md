@@ -97,6 +97,8 @@ Tool windows support two chrome modes through the top-level `toolTitlebar` optio
 
 The Micro menu contains the consumer's `getToolHeaderActions()`, any normal Application V2 header controls, Minimize/Restore (when enabled), Reset Position, and Close. Disabled tool actions are omitted. Active actions receive a checkmark in their menu label.
 
+Both modes also include a mode-switch entry: **Use Micro Title Bar** in Full mode and **Use Full Title Bar** in Micro mode. The user's selection is remembered per tool using the same stable identity as position persistence, so reopening that tool restores the chosen mode.
+
 ```javascript
 static DEFAULT_OPTIONS = foundry.utils.mergeObject(
     foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
@@ -109,7 +111,7 @@ static DEFAULT_OPTIONS = foundry.utils.mergeObject(
 );
 ```
 
-`"full"` is the fallback for an omitted or unknown value. A consumer may switch modes at runtime by updating `this.options.toolTitlebar` and calling `render(false)`.
+`"full"` is the fallback for an omitted or unknown value. Foundry freezes finalized Application V2 options, so consumers must use `setToolTitlebarMode()` for runtime changes rather than assigning `this.options.toolTitlebar`.
 
 The tool template accepts:
 
@@ -164,6 +166,16 @@ class MyCanvasTool extends ToolBase {
 Tool windows remember their last position per user by default. Set `rememberPosition: false` for transient instances, or set `windowPositionKey` when several instances should share one saved position. The same options also work on the standard base.
 
 `api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. `api.toolTitlebars` similarly exposes `FULL` (`"full"`) and `MICRO` (`"micro"`). The registry remains presentation-agnostic: either style and either Tool title-bar mode can be registered and opened through `registerWindow` / `openWindow`.
+
+Consumers may control mode switching and persistence with:
+
+| Option | Default | Purpose |
+|--------|---------|---------|
+| `allowTitlebarModeToggle` | `true` | Include the Full/Micro switch in the controls menu. Set `false` to lock the configured mode and ignore saved user choices. |
+| `rememberTitlebarMode` | `true` | Persist the user's selected mode in local storage. |
+| `toolTitlebarPreferenceKey` | derived | Optional stable storage key. By default it is derived from `windowPositionKey` or the window class. |
+
+The public `setToolTitlebarMode(mode, options?)` method switches modes programmatically. It accepts `{ persist = true, render = true }`.
 
 ---
 

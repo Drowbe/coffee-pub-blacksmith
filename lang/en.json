@@ -333,6 +333,8 @@
 				"ToolWindowMinimize": "Minimize",
 				"ToolWindowRestore": "Restore",
 				"ToolWindowResetPosition": "Reset Position",
+				"ToolWindowUseFullTitlebar": "Use Full Title Bar",
+				"ToolWindowUseMicroTitlebar": "Use Micro Title Bar",
 
 
 		"headingH2Statistics-Label": "Statistics",

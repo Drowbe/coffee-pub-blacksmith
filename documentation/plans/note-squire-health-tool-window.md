@@ -293,6 +293,8 @@ static DEFAULT_OPTIONS = foundry.utils.mergeObject(
 
 Micro mode is a thin native drag rail with an ellipsis on hover/focus. The same menu opens on right-click and includes Squire's registered tool actions, Minimize/Restore, Reset Position, and Close. Squire should not add another close button or context menu.
 
+The menu also lets the user switch back to Full mode; Full mode's ellipsis offers the inverse switch to Micro. Blacksmith remembers that choice for the specific Squire tool. Squire should leave `allowTitlebarModeToggle` and `rememberTitlebarMode` at their default `true` unless a tool has a concrete reason to lock its chrome.
+
 ## Live verification checklist
 
 Before calling the conversion complete:

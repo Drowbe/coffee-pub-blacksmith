@@ -31,6 +31,8 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
                 minimizable: true
             },
             toolTitlebar: BLACKSMITH_TOOL_TITLEBARS.FULL,
+            allowTitlebarModeToggle: true,
+            rememberTitlebarMode: true,
             rememberPosition: true,
             windowSizeConstraints: {
                 minWidth: 220,
@@ -45,6 +47,14 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
             template: 'modules/coffee-pub-blacksmith/templates/window-tool-template.hbs'
         }
     };
+
+    constructor(options = {}) {
+        super(options);
+        this._toolTitlebarMode = this.options?.toolTitlebar === BLACKSMITH_TOOL_TITLEBARS.MICRO
+            ? BLACKSMITH_TOOL_TITLEBARS.MICRO
+            : BLACKSMITH_TOOL_TITLEBARS.FULL;
+        this._loadToolTitlebarPreference();
+    }
 
     async _prepareContext(options = {}) {
         const context = await super._prepareContext(options);
@@ -77,9 +87,42 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
     }
 
     get toolTitlebarMode() {
-        return this.options?.toolTitlebar === BLACKSMITH_TOOL_TITLEBARS.MICRO
+        return this._toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
             ? BLACKSMITH_TOOL_TITLEBARS.MICRO
             : BLACKSMITH_TOOL_TITLEBARS.FULL;
+    }
+
+    get _toolTitlebarPreferenceKey() {
+        return this.options?.toolTitlebarPreferenceKey || `${this._positionKey}-titlebar`;
+    }
+
+    _loadToolTitlebarPreference() {
+        if (this.options?.allowTitlebarModeToggle === false) return;
+        if (this.options?.rememberTitlebarMode === false) return;
+        try {
+            const saved = localStorage.getItem(this._toolTitlebarPreferenceKey);
+            if (Object.values(BLACKSMITH_TOOL_TITLEBARS).includes(saved)) {
+                this._toolTitlebarMode = saved;
+            }
+        } catch (_) {}
+    }
+
+    _saveToolTitlebarPreference(mode) {
+        if (this.options?.rememberTitlebarMode === false) return;
+        try {
+            localStorage.setItem(this._toolTitlebarPreferenceKey, mode);
+        } catch (_) {}
+    }
+
+    async setToolTitlebarMode(mode, { persist = true, render = true } = {}) {
+        const normalized = mode === BLACKSMITH_TOOL_TITLEBARS.MICRO
+            ? BLACKSMITH_TOOL_TITLEBARS.MICRO
+            : BLACKSMITH_TOOL_TITLEBARS.FULL;
+        this._toolTitlebarMode = normalized;
+        if (persist) this._saveToolTitlebarPreference(normalized);
+        this._applyToolWindowModeClasses(this.element);
+        if (render && this.rendered) await this.render(false);
+        return this;
     }
 
     _configureRenderOptions(options) {
@@ -91,7 +134,26 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
 
     _getHeaderControls() {
         const controls = super._getHeaderControls?.() ?? [];
-        if (this.toolTitlebarMode !== BLACKSMITH_TOOL_TITLEBARS.MICRO) return controls;
+        const modeToggleControl = this.options?.allowTitlebarModeToggle === false
+            ? []
+            : [{
+                action: 'blacksmith-tool-toggle-titlebar',
+                icon: this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
+                    ? 'fa-solid fa-window-maximize'
+                    : 'fa-solid fa-grip-lines',
+                label: this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
+                    ? 'coffee-pub-blacksmith.ToolWindowUseFullTitlebar'
+                    : 'coffee-pub-blacksmith.ToolWindowUseMicroTitlebar',
+                onClick: () => this.setToolTitlebarMode(
+                    this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
+                        ? BLACKSMITH_TOOL_TITLEBARS.FULL
+                        : BLACKSMITH_TOOL_TITLEBARS.MICRO
+                )
+            }];
+
+        if (this.toolTitlebarMode !== BLACKSMITH_TOOL_TITLEBARS.MICRO) {
+            return [...controls, ...modeToggleControl];
+        }
 
         const toolActions = (this.getToolHeaderActions?.() ?? [])
             .filter((action) => action?.id && !action.disabled)
@@ -124,6 +186,7 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         return [
             ...toolActions,
             ...controls,
+            ...modeToggleControl,
             ...minimizeControl,
             {
                 action: 'blacksmith-tool-reset-position',
