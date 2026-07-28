@@ -8,7 +8,7 @@ Thank you for the detailed review. We agree with the direction and are extending
 
 Bibliosoph can prepare its Injury Page sheet now without creating temporary storage or a second notes convention. The integration should continue to treat the Injury `JournalEntryPage` as the annotated document.
 
-## What Blacksmith will provide
+## What Blacksmith provides
 
 The existing synchronous API remains compatible:
 
@@ -21,7 +21,7 @@ gmNotes.set(uuidOrDocument, data);
 gmNotes.clear(uuidOrDocument);
 ```
 
-Blacksmith will add the following capabilities.
+Blacksmith now provides the following capabilities.
 
 ### Asynchronous document resolution
 
@@ -66,7 +66,7 @@ The existing `set()` behavior will remain compatible. Blacksmith will also provi
 
 ### Embeddable GM Notes field
 
-Blacksmith will provide a supported field/controller for module-owned sheets. Bibliosoph should not reproduce Blacksmith's editor markup or reach into Blacksmith's private sheet-injection implementation.
+Blacksmith provides a supported field/controller for module-owned sheets. Bibliosoph should not reproduce Blacksmith's editor markup or reach into Blacksmith's private sheet-injection implementation.
 
 The component will own:
 
@@ -80,7 +80,19 @@ The component will own:
 - Event binding and cleanup.
 - Blacksmith's shared styling and accessibility behavior.
 
-The final public factory will accept a UUID or Document plus options such as the label and initial collapsed state, and return a mountable controller/element with explicit cleanup. Blacksmith will document the exact factory signature before release.
+The public factory is:
+
+```js
+const controller = await gmNotes.createField(pageOrUuid, {
+  label: "GM Notes",
+  collapsed: true,
+  editable: true,
+  replace: true,
+  className: "bibliosoph-injury-gm-notes"
+});
+```
+
+`createField()` is the canonical factory; Bibliosoph can drop `mountField` probing. `renderField()` remains only as a compatibility alias. The controller mounts into an ordinary DOM element and exposes `element`, `document`, `capability`, `readOnly`, `mount(root, { replace? })`, `refresh()`, `openEditor()`, and `destroy()`. Its root also carries `.read-only` and `data-gm-notes-read-only="true|false"`.
 
 ### Richer change context
 
@@ -90,11 +102,11 @@ The final public factory will accept a UUID or Document plus options such as the
 { uuid, note, document }
 ```
 
-Journal Pages will additionally receive derived navigation context, including the parent JournalEntry UUID/name and a useful breadcrumb. This context will be derived at event time rather than duplicated in stored flags.
+Journal Pages additionally receive derived navigation context, including the parent JournalEntry UUID/name and a useful breadcrumb. This context is derived at event time rather than duplicated in stored flags.
 
 ### Safe envelope evolution
 
-Blacksmith will update the GM Notes envelope behavior before adding broader metadata. Partial note writes will preserve unknown/future fields instead of rebuilding and discarding them. Clearing note content will be defined separately from deleting broader GM metadata so future links, reveal state, or other annotations cannot be accidentally erased.
+Blacksmith's envelope behavior preserves unknown/future fields instead of rebuilding and discarding them. Clearing note content removes the flag when it contains note data alone, or clears only the note-owned fields when broader metadata exists, so future links, reveal state, or other annotations cannot be accidentally erased.
 
 ### Import preservation
 
@@ -149,7 +161,18 @@ async function readGmNote(pageOrUuid) {
 }
 ```
 
-When the field factory becomes available, the same adapter should prefer it and retain the fallback only for older compatible Blacksmith versions.
+The adapter should prefer `createField()` and retain the fallback only for older compatible Blacksmith versions:
+
+```js
+if (typeof gmNotes.createField === "function") {
+  const controller = await gmNotes.createField(pageOrUuid, {
+    label: "GM Notes",
+    collapsed: true
+  });
+  controller.mount(host);
+  return controller;
+}
+```
 
 ### 3. Target the JournalEntryPage, not its parent
 
@@ -228,4 +251,3 @@ When Blacksmith publishes the extension, verify:
 8. A re-import/update-in-place preserves the GM Notes flag.
 9. Journal search results can display the parent-entry breadcrumb.
 10. Player-visible journals are tested with the explicit understanding that flags are UI-gated, not encrypted.
-

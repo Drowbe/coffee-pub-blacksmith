@@ -34,6 +34,22 @@
     flex-direction: column;
 }
 
+.blacksmith-gm-notes-write-warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border: 1px solid rgba(185, 132, 45, 0.45);
+    border-radius: 5px;
+    background: rgba(185, 132, 45, 0.12);
+}
+
+.blacksmith-gm-notes-readonly-empty {
+    opacity: 0.65;
+    font-style: italic;
+}
+
 .blacksmith-gm-notes-window prose-mirror.editor,
 .blacksmith-gm-notes-window .blacksmith-notes-editor {
     display: flex;
@@ -73,4 +89,78 @@
 
 .blacksmith-gm-notes-window prose-mirror .ProseMirror p:last-child {
     min-height: 1.5em;
+}
+
+/* ---- Reusable field for module-owned sheets --------------------- */
+
+.blacksmith-gm-notes-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px;
+    color: inherit;
+}
+
+.blacksmith-gm-notes-field-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+    border-bottom: 1px solid var(--blacksmith-window-border-color, rgba(128, 128, 128, 0.35));
+}
+
+.blacksmith-gm-notes-field-collapse,
+.blacksmith-gm-notes-field-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 28px;
+    min-height: 26px;
+    padding: 2px 6px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+}
+
+.blacksmith-gm-notes-field-collapse {
+    flex: 1;
+    justify-content: flex-start;
+    font-weight: 700;
+    text-align: left;
+}
+
+.blacksmith-gm-notes-field.has-notes .blacksmith-gm-notes-field-collapse {
+    color: var(--blacksmith-window-accent-color, #d9a441);
+}
+
+.blacksmith-gm-notes-field-edit:disabled {
+    cursor: not-allowed;
+    opacity: 0.38;
+}
+
+.blacksmith-gm-notes-field-status {
+    padding: 6px 8px;
+    border: 1px solid rgba(185, 132, 45, 0.35);
+    border-radius: 4px;
+    background: rgba(185, 132, 45, 0.1);
+    font-size: 0.85em;
+}
+
+.blacksmith-gm-notes-field-content {
+    min-width: 0;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.blacksmith-gm-notes-field-empty {
+    margin: 0;
+    opacity: 0.62;
+    font-style: italic;
+}
+
+.blacksmith-gm-notes-field.collapsed .blacksmith-gm-notes-field-status,
+.blacksmith-gm-notes-field.collapsed .blacksmith-gm-notes-field-content {
+    display: none;
 }

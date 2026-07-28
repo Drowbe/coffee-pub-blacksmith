@@ -26,6 +26,19 @@ const SCHEMA_VERSION = 1;
 // Public event fired after every write. Consumers (future search index,
 // sheet "has notes" badges) subscribe via Hooks.on(GMNotesManager.CHANGE_HOOK, ...).
 const CHANGE_HOOK = 'blacksmith.gmNotesChanged';
+const NOTE_FIELDS = new Set(['schemaVersion', 'html', 'text', 'pinned', 'updatedAt']);
+
+export class GMNotesWriteError extends Error {
+    constructor(reason, message, { document = null, uuid = null, cause = null } = {}) {
+        super(message);
+        this.name = 'GMNotesWriteError';
+        this.code = reason || 'write-failed';
+        this.reason = this.code;
+        this.document = document;
+        this.uuid = uuid ?? document?.uuid ?? null;
+        if (cause) this.cause = cause;
+    }
+}
 
 // ----------------------------------------------------------------
 // GMNotesManager
@@ -59,6 +72,19 @@ export class GMNotesManager {
         }
     }
 
+    /** Resolve a UUID or Document, loading a compendium document when needed. */
+    static async _resolveDocAsync(uuidOrDoc) {
+        const sync = this._resolveDoc(uuidOrDoc);
+        if (sync) return sync;
+        if (!uuidOrDoc || typeof uuidOrDoc === 'object') return null;
+        try {
+            const doc = await fromUuid(String(uuidOrDoc));
+            return (doc && typeof doc.getFlag === 'function') ? doc : null;
+        } catch (_err) {
+            return null;
+        }
+    }
+
     /** A fresh, empty envelope. */
     static _emptyEnvelope() {
         return { schemaVersion: SCHEMA_VERSION, html: '', text: '', pinned: false, updatedAt: 0 };
@@ -69,6 +95,7 @@ export class GMNotesManager {
         const base = this._emptyEnvelope();
         if (!raw || typeof raw !== 'object') return base;
         return {
+            ...foundry.utils.deepClone(raw),
             schemaVersion: SCHEMA_VERSION,
             html: typeof raw.html === 'string' ? raw.html : '',
             text: typeof raw.text === 'string' ? raw.text : this._stripHtml(raw.html),
@@ -131,6 +158,121 @@ export class GMNotesManager {
         return !!(note && (note.text || note.html));
     }
 
+    static async getNoteAsync(uuidOrDoc) {
+        const doc = await this._resolveDocAsync(uuidOrDoc);
+        return doc ? this.getNote(doc) : null;
+    }
+
+    static async getHtmlAsync(uuidOrDoc) {
+        return (await this.getNoteAsync(uuidOrDoc))?.html ?? '';
+    }
+
+    static async getTextAsync(uuidOrDoc) {
+        return (await this.getNoteAsync(uuidOrDoc))?.text ?? '';
+    }
+
+    static async hasNoteAsync(uuidOrDoc) {
+        const note = await this.getNoteAsync(uuidOrDoc);
+        return !!(note && (note.text || note.html));
+    }
+
+    /**
+     * Resolve many notes concurrently. Results are keyed by requested UUID
+     * (or the live Document UUID) and retain null for unresolved/no-note targets.
+     */
+    static async getMany(uuidOrDocs = []) {
+        const targets = Array.isArray(uuidOrDocs) ? uuidOrDocs : [];
+        const pairs = await Promise.all(targets.map(async (target) => {
+            const key = typeof target === 'string' ? target : target?.uuid;
+            return [key, await this.getNoteAsync(target)];
+        }));
+        return new Map(pairs.filter(([key]) => !!key));
+    }
+
+    // ============================================================
+    // Capability
+    // ============================================================
+
+    static async canSet(uuidOrDoc) {
+        const doc = await this._resolveDocAsync(uuidOrDoc);
+        if (!doc) {
+            return {
+                allowed: false,
+                reason: 'unresolved',
+                message: 'The target document could not be resolved.',
+                document: null
+            };
+        }
+        if (typeof doc.update !== 'function' || typeof doc.getFlag !== 'function') {
+            return {
+                allowed: false,
+                reason: 'unsupported',
+                message: 'The target does not support document flags.',
+                document: doc
+            };
+        }
+
+        const packId = doc.pack ?? doc.compendium?.collection;
+        const pack = packId ? game.packs?.get(packId) : null;
+        if (pack?.locked) {
+            return {
+                allowed: false,
+                reason: 'locked-pack',
+                message: `This document lives in the locked compendium "${pack.title ?? packId}". Copy it into a world-owned compendium to add GM notes that survive module updates.`,
+                document: doc
+            };
+        }
+
+        const canUpdate = typeof doc.canUserModify === 'function'
+            ? doc.canUserModify(game.user, 'update')
+            : (doc.isOwner ?? game.user?.isGM);
+        if (!canUpdate) {
+            return {
+                allowed: false,
+                reason: 'no-permission',
+                message: 'You do not have permission to update this document.',
+                document: doc
+            };
+        }
+
+        return {
+            allowed: true,
+            reason: 'allowed',
+            message: '',
+            document: doc
+        };
+    }
+
+    static _buildChangePayload(doc, note) {
+        const parent = doc?.documentName === 'JournalEntryPage' ? doc.parent : null;
+        const folder = parent?.folder ?? null;
+        const folderNames = folder
+            ? [
+                ...Array.from(folder.ancestors ?? [])
+                    .map(entry => entry?.name)
+                    .filter(Boolean),
+                folder.name
+            ].filter(Boolean)
+            : [];
+        const breadcrumb = [...folderNames, parent?.name, doc?.name]
+            .filter(Boolean)
+            .join(' \u203a ');
+        return {
+            uuid: doc?.uuid ?? null,
+            note,
+            document: doc,
+            context: {
+                documentName: doc?.name ?? '',
+                documentType: doc?.documentName ?? '',
+                parentUuid: parent?.uuid ?? null,
+                parentName: parent?.name ?? '',
+                folderUuid: folder?.uuid ?? null,
+                folderName: folder?.name ?? '',
+                breadcrumb: breadcrumb || (doc?.name ?? '')
+            }
+        };
+    }
+
     // ============================================================
     // Write
     // ============================================================
@@ -144,15 +286,34 @@ export class GMNotesManager {
      * @param {{html?: string, pinned?: boolean}} data
      */
     static async setNote(uuidOrDoc, data = {}) {
-        const doc = this._resolveDoc(uuidOrDoc);
-        if (!doc) {
-            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | NOTES setNote: could not resolve document', uuidOrDoc, false, false);
+        try {
+            return await this.setNoteOrThrow(uuidOrDoc, data);
+        } catch (err) {
+            postConsoleAndNotification(
+                MODULE.NAME,
+                'BLACKSMITH | NOTES setNote: write failed',
+                err?.message || err,
+                false,
+                err?.reason !== 'unresolved'
+            );
             return null;
         }
+    }
+
+    static async setNoteOrThrow(uuidOrDoc, data = {}) {
+        const capability = await this.canSet(uuidOrDoc);
+        if (!capability.allowed) {
+            throw new GMNotesWriteError(capability.reason, capability.message, {
+                document: capability.document,
+                uuid: typeof uuidOrDoc === 'string' ? uuidOrDoc : uuidOrDoc?.uuid
+            });
+        }
+        const doc = capability.document;
 
         const current = this.getNote(doc) ?? this._emptyEnvelope();
         const html = typeof data.html === 'string' ? data.html : current.html;
         const envelope = {
+            ...current,
             schemaVersion: SCHEMA_VERSION,
             html,
             text: this._stripHtml(html),
@@ -164,25 +325,47 @@ export class GMNotesManager {
             // render:false so autosave-while-typing does not rebuild the sheet.
             await doc.update({ [`flags.${MODULE.ID}.${NOTES_FLAG}`]: envelope }, { render: false });
         } catch (err) {
-            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | NOTES setNote: write failed', err?.message || err, false, true);
-            return null;
+            throw new GMNotesWriteError('write-failed', err?.message || 'The GM note could not be saved.', {
+                document: doc,
+                cause: err
+            });
         }
 
-        Hooks.callAll(CHANGE_HOOK, { uuid: doc.uuid, note: envelope, document: doc });
+        Hooks.callAll(CHANGE_HOOK, this._buildChangePayload(doc, envelope));
         return envelope;
     }
 
     /** Remove all note data from a document. */
     static async clearNote(uuidOrDoc) {
-        const doc = this._resolveDoc(uuidOrDoc);
-        if (!doc) return false;
+        const capability = await this.canSet(uuidOrDoc);
+        if (!capability.allowed) return false;
+        const doc = capability.document;
+        const raw = doc.getFlag(MODULE.ID, NOTES_FLAG);
+        const extras = raw && typeof raw === 'object'
+            ? Object.fromEntries(Object.entries(foundry.utils.deepClone(raw))
+                .filter(([key]) => !NOTE_FIELDS.has(key)))
+            : {};
+        const hasExtras = Object.keys(extras).length > 0;
+        const cleared = hasExtras
+            ? {
+                ...extras,
+                schemaVersion: SCHEMA_VERSION,
+                html: '',
+                text: '',
+                pinned: false,
+                updatedAt: Date.now()
+            }
+            : null;
         try {
-            await doc.update({ [`flags.${MODULE.ID}.-=${NOTES_FLAG}`]: null }, { render: false });
+            const update = hasExtras
+                ? { [`flags.${MODULE.ID}.${NOTES_FLAG}`]: cleared }
+                : { [`flags.${MODULE.ID}.-=${NOTES_FLAG}`]: null };
+            await doc.update(update, { render: false });
         } catch (err) {
             postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | NOTES clearNote: write failed', err?.message || err, false, true);
             return false;
         }
-        Hooks.callAll(CHANGE_HOOK, { uuid: doc.uuid, note: null, document: doc });
+        Hooks.callAll(CHANGE_HOOK, this._buildChangePayload(doc, cleared));
         return true;
     }
 }

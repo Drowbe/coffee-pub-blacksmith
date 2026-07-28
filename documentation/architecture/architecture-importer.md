@@ -205,6 +205,7 @@ parse -> normalize -> validate -> convert -> create -> post-process -> report
 - Create documents at the requested supported destination.
 - Treat batch entries independently by default: one failed entry does not conceal successful entries.
 - Do not retry or duplicate successful entries when Retry Failed is chosen.
+- When update-in-place conflict handling is implemented, begin from Blacksmith's mandatory preservation paths. `flags.coffee-pub-blacksmith.gmNotes` is user-authored state and must survive every re-import by default; profiles may add paths but cannot remove it.
 
 ### Post-process
 

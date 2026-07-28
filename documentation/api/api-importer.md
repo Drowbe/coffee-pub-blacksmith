@@ -309,6 +309,17 @@ const result = await importer.importJson({
 });
 ```
 
+When a future duplicate policy updates an existing document in place, importer profiles may add preservation paths. Blacksmith-owned GM Notes are user-authored data and are preserved by default for every kind:
+
+```javascript
+preserveOnReimport: [
+  ...blacksmith.gmNotes.PRESERVE_ON_REIMPORT
+]
+// flags.coffee-pub-blacksmith.gmNotes
+```
+
+Callers may add profile-specific paths but must not remove this default. The currently implemented importers use `duplicatePolicy: "create"` semantics and therefore have no existing-document merge stage yet.
+
 Proposed successful entry:
 
 ```javascript

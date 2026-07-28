@@ -12,7 +12,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { GMNotesAPI } from './api-gmnotes.js';
+import { GMNotesManager } from './manager-gmnotes.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 const APP_ID = 'blacksmith-gm-notes-window';
@@ -35,13 +35,6 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         body: { template: `modules/${MODULE.ID}/templates/window-template.hbs` }
     };
 
-    // Prefixed so the base's data-action delegation never intercepts the
-    // ProseMirror toolbar's own data-action="save"/"bold"/... buttons.
-    static ACTION_HANDLERS = {
-        'gm-notes-save': () => GMNotesWindow._ref?._save(),
-        'gm-notes-cancel': () => GMNotesWindow._ref?.close()
-    };
-
     constructor(options = {}) {
         const opts = foundry.utils.mergeObject({}, options);
         opts.id = `${APP_ID}-${foundry.utils.randomID().slice(0, 8)}`;
@@ -50,19 +43,29 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         }
         super(opts);
         this.targetUuid = options.uuid ?? null;
+        this.targetDocument = null;
         this._editor = null;
     }
 
     async getData() {
+        this.targetDocument = await GMNotesManager._resolveDocAsync(this.targetUuid);
+        this.writeCapability = await GMNotesManager.canSet(this.targetDocument ?? this.targetUuid);
+        const warning = this.writeCapability.allowed
+            ? ''
+            : `<div class="blacksmith-gm-notes-write-warning">
+                <i class="fa-solid fa-lock"></i>
+                <span>${foundry.utils.escapeHTML(this.writeCapability.message)}</span>
+            </div>`;
+        const saveDisabled = this.writeCapability.allowed ? '' : ' disabled aria-disabled="true"';
         return {
             appId: this.id,
             showOptionBar: false,
             showHeader: false,
             showTools: false,
             showActionBar: true,
-            bodyContent: '<div class="blacksmith-notes-editor-host"></div>',
-            actionBarLeft: '<button type="button" class="blacksmith-window-btn-secondary" data-action="gm-notes-cancel"><i class="fas fa-xmark"></i> Cancel</button>',
-            actionBarRight: '<button type="button" class="blacksmith-window-btn-primary" data-action="gm-notes-save"><i class="fas fa-floppy-disk"></i> Save &amp; Close</button>'
+            bodyContent: `${warning}<div class="blacksmith-notes-editor-host"></div>`,
+            actionBarLeft: '<button type="button" class="blacksmith-window-btn-secondary" data-action="gm-notes-cancel"><i class="fas fa-xmark"></i> Close</button>',
+            actionBarRight: `<button type="button" class="blacksmith-window-btn-primary" data-action="gm-notes-save"${saveDisabled}><i class="fas fa-floppy-disk"></i> Save &amp; Close</button>`
         };
     }
 
@@ -70,7 +73,39 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         await super._onRender?.(context, options);
         const root = this._getRoot();
         if (!root || !this.targetUuid) return;
-        this._mountEditor(root);
+        this.targetDocument ??= await GMNotesManager._resolveDocAsync(this.targetUuid);
+        root.querySelector('[data-action="gm-notes-save"]')
+            ?.addEventListener('click', (event) => {
+                event.preventDefault();
+                void this._save();
+            });
+        root.querySelector('[data-action="gm-notes-cancel"]')
+            ?.addEventListener('click', (event) => {
+                event.preventDefault();
+                void this.close();
+            });
+        if (this.writeCapability?.allowed) this._mountEditor(root);
+        else await this._renderReadOnly(root);
+    }
+
+    async _renderReadOnly(root) {
+        const host = root.querySelector('.blacksmith-notes-editor-host');
+        if (!host) return;
+        const html = await GMNotesManager.getHtmlAsync(this.targetDocument ?? this.targetUuid);
+        if (!html) {
+            host.innerHTML = '<p class="blacksmith-gm-notes-readonly-empty">No GM notes.</p>';
+            return;
+        }
+        const ns = foundry?.applications?.ux?.TextEditor;
+        const TE = ns?.implementation ?? ns ?? globalThis.TextEditor;
+        try {
+            host.innerHTML = await TE.enrichHTML(html, {
+                relativeTo: this.targetDocument,
+                secrets: true
+            });
+        } catch (_) {
+            host.innerHTML = html;
+        }
     }
 
     _mountEditor(root) {
@@ -86,7 +121,7 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         // Config mirrors Squire's verified-working note editor.
         const config = {
             name: 'content',
-            value: GMNotesAPI.getHtml(this.targetUuid) || '',
+            value: GMNotesManager.getHtml(this.targetDocument ?? this.targetUuid) || '',
             compact: true
         };
         if (this.targetUuid) config.documentUUID = this.targetUuid;
@@ -108,7 +143,7 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         // The editor toolbar's own Save (floppy) autosaves without closing.
         editor.addEventListener('change', async (ev) => {
             ev.stopPropagation();
-            await GMNotesAPI.set(this.targetUuid, { html: editor.value ?? '' });
+            await GMNotesManager.setNote(this.targetDocument ?? this.targetUuid, { html: editor.value ?? '' });
         });
 
         host.replaceChildren(editor);
@@ -116,7 +151,10 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _save() {
-        await GMNotesAPI.set(this.targetUuid, { html: this._editor?.value ?? '' });
-        this.close();
+        const saved = await GMNotesManager.setNote(
+            this.targetDocument ?? this.targetUuid,
+            { html: this._editor?.value ?? '' }
+        );
+        if (saved) this.close();
     }
 }

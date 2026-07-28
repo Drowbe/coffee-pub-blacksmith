@@ -6,9 +6,18 @@
 // See documentation/api/api-gmnotes.md for full method contracts.
 // ==================================================================
 
-import { GMNotesManager } from './manager-gmnotes.js';
+import { GMNotesManager, GMNotesWriteError } from './manager-gmnotes.js';
+import { GMNotesFieldController } from './ui-gmnotes-field.js';
 
 export class GMNotesAPI {
+
+    static get PRESERVE_ON_REIMPORT() {
+        return Object.freeze([`flags.coffee-pub-blacksmith.gmNotes`]);
+    }
+
+    static get WriteError() {
+        return GMNotesWriteError;
+    }
 
     static isAvailable() {
         return GMNotesManager.isAvailable();
@@ -43,6 +52,30 @@ export class GMNotesAPI {
         return GMNotesManager.hasNote(uuid);
     }
 
+    static getAsync(uuid) {
+        return GMNotesManager.getNoteAsync(uuid);
+    }
+
+    static getHtmlAsync(uuid) {
+        return GMNotesManager.getHtmlAsync(uuid);
+    }
+
+    static getTextAsync(uuid) {
+        return GMNotesManager.getTextAsync(uuid);
+    }
+
+    static hasAsync(uuid) {
+        return GMNotesManager.hasNoteAsync(uuid);
+    }
+
+    static getMany(uuids) {
+        return GMNotesManager.getMany(uuids);
+    }
+
+    static canSet(uuid) {
+        return GMNotesManager.canSet(uuid);
+    }
+
     // ============================================================
     // Write
     // ============================================================
@@ -52,8 +85,25 @@ export class GMNotesAPI {
         return GMNotesManager.setNote(uuid, data);
     }
 
+    static setOrThrow(uuid, data) {
+        return GMNotesManager.setNoteOrThrow(uuid, data);
+    }
+
     /** Remove all note data from the document. */
     static clear(uuid) {
         return GMNotesManager.clearNote(uuid);
+    }
+
+    /**
+     * Build a reusable GM-only field/controller for a custom document sheet.
+     * The returned controller exposes element, mount(root), refresh(), destroy().
+     */
+    static createField(uuid, options = {}) {
+        return GMNotesFieldController.create(uuid, options);
+    }
+
+    /** Friendly alias matching the original integration proposal. */
+    static renderField(uuid, options = {}) {
+        return this.createField(uuid, options);
     }
 }
