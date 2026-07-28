@@ -95,6 +95,7 @@ import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
 import { CompendiumsAPI } from './api-compendiums.js';
 import { RollsAPI } from './api-rolls.js';
+import { EffectsAPI } from './api-effects.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
 import { extractActiveD20, classifyCritFumble } from './utility-roll-classification.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
@@ -858,6 +859,7 @@ async function _registerUnifiedHeaderPartial() {
 
 // Call the hookCanvas function during the initialization phase
 Hooks.once('init', async function() {
+    EffectsAPI.initialize();
     ensureCoreLoadingProgressSettingRegistered();
 
     // Show loading progress indicator as early as possible
@@ -949,6 +951,7 @@ Hooks.once('init', async function() {
         campaign: CampaignAPI,
         compendiums: CompendiumsAPI,
         rolls: RollsAPI,
+        effects: EffectsAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),
         getMonsterCR: EncounterManager.getMonsterCR.bind(EncounterManager),
         calculateEncounterDifficulty: EncounterManager.calculateEncounterDifficulty.bind(EncounterManager),

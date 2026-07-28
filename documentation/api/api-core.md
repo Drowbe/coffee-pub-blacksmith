@@ -15,7 +15,7 @@ import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api
 const blacksmith = await BlacksmithAPI.get();   // resolves once Blacksmith is fully ready
 ```
 
-There are also convenience globals (`BlacksmithUtils`, `BlacksmithConstants`, `BlacksmithHookManager`, `BlacksmithModuleManager`, `BlacksmithStats`, `BlacksmithCompendiums`). They are assigned late — see timing below.
+There are also convenience globals (`BlacksmithUtils`, `BlacksmithConstants`, `BlacksmithHookManager`, `BlacksmithModuleManager`, `BlacksmithStats`, `BlacksmithCompendiums`, `BlacksmithEffects`). They are assigned late — see timing below.
 
 ## Availability and timing
 
@@ -88,6 +88,7 @@ Namespaced sub-APIs, each with its own reference doc:
 | `api.chatCards` | Chat card themes and class names | `api-chatcards.md` |
 | `api.campaign` | Normalized campaign context, party roster, leader | `api-campaign.md` |
 | `api.compendiums` | Compendium mapping; resolve text to UUIDs | `api-compendiums.md` |
+| `api.effects` | Read-only Active Effect normalization and classifiers | `api-effects.md` |
 | `api.stats` | Combat and player statistics | `api-stats.md` |
 | `api.sockets` | Cross-client messaging (SocketLib with native fallback) | `api-sockets.md` |
 | `api.gmNotes` | GM-only notes on documents | `api-gmnotes.md` |

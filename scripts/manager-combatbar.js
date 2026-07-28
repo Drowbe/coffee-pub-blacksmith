@@ -5,6 +5,7 @@ import { CombatTracker } from './ui-combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
 import { broadcastToast } from './api-toast.js';
+import { EffectsAPI } from './api-effects.js';
 
 export class CombatBarManager {
     static playUiSound(soundPath, volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7) {
@@ -344,6 +345,16 @@ export class CombatBarManager {
             }
         });
 
+        const activeEffectChangedHookId = HookManager.registerHook({
+            name: EffectsAPI.HOOKS.changed,
+            description: 'MenuBar: Refresh combat hover card when Active Effects change',
+            context: 'menubar-active-effect-change',
+            priority: 3,
+            callback: ({ actor }) => {
+                void CombatBarManager.refreshVisibleCombatantHoverCard(menuBar, actor);
+            }
+        });
+
         const combatSizeSettingHookId = HookManager.registerSettingChangeCallback({
             description: 'MenuBar: Refresh combat bar when combat size changes',
             context: 'menubar-combat-size-change',
@@ -369,6 +380,16 @@ export class CombatBarManager {
             }
         });
 
+        const combatShowEffectsSettingHookId = HookManager.registerSettingChangeCallback({
+            description: 'MenuBar: Refresh combat hover card when effect visibility changes',
+            context: 'menubar-combat-show-effects-change',
+            priority: 3,
+            callback: (module, key) => {
+                if (module !== MODULE.ID || key !== 'menubarCombatShowEffects') return;
+                CombatBarManager.refreshVisibleCombatantHoverCard(menuBar);
+            }
+        });
+
         menuBar._registeredHooks = {
             combatUpdateHookId,
             combatCreateHookId,
@@ -380,8 +401,10 @@ export class CombatBarManager {
             combatTrackerCloseHookId,
             updateActorHookId,
             updateTokenHookId,
+            activeEffectChangedHookId,
             combatSizeSettingHookId,
-            combatHideDeadSettingHookId
+            combatHideDeadSettingHookId,
+            combatShowEffectsSettingHookId
         };
 
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
@@ -1057,6 +1080,7 @@ export class CombatBarManager {
                 CombatBarManager.hideCombatantHoverCard(menuBar);
                 return;
             }
+            if (event.target?.closest?.('#blacksmith-combat-hover-card')) return;
             const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
             if (!portrait || !CombatBarManager.isCombatBarActive(menuBar)) {
                 CombatBarManager.hideCombatantHoverCard(menuBar);
@@ -1067,8 +1091,9 @@ export class CombatBarManager {
                 CombatBarManager.hideCombatantHoverCard(menuBar);
                 return;
             }
+            menuBar._combatHoverCardPointer = { clientX: event.clientX, clientY: event.clientY };
             if (menuBar._combatHoverCardCombatantId !== combatantId || !menuBar._combatHoverCardEl) {
-                CombatBarManager.showCombatantHoverCard(menuBar, combatantId, event);
+                void CombatBarManager.showCombatantHoverCard(menuBar, combatantId, event);
             } else {
                 CombatBarManager.positionCombatantHoverCard(menuBar, event);
             }
@@ -1104,7 +1129,8 @@ export class CombatBarManager {
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers registered", "", true, false);
     }
 
-    static showCombatantHoverCard(menuBar, combatantId, event) {
+    static async showCombatantHoverCard(menuBar, combatantId, event) {
+        if (menuBar._combatHoverCardPendingId === combatantId) return;
         const combat = game.combats?.active;
         const combatant = combat?.combatants?.get(combatantId);
         if (!combatant) {
@@ -1112,11 +1138,23 @@ export class CombatBarManager {
             return;
         }
 
+        const requestId = (menuBar._combatHoverCardRequestId ?? 0) + 1;
+        menuBar._combatHoverCardRequestId = requestId;
+        menuBar._combatHoverCardPendingId = combatantId;
+        menuBar._combatHoverCardPointer = { clientX: event.clientX, clientY: event.clientY };
+
         const hoverData = CombatBarManager.getCombatantHoverData(combatant);
         if (!hoverData) {
             CombatBarManager.hideCombatantHoverCard(menuBar);
             return;
         }
+        try {
+            hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
+        } catch (error) {
+            console.warn(`${MODULE.NAME} | Unable to build combatant effect display`, error);
+            hoverData.effects = [];
+        }
+        if (menuBar._combatHoverCardRequestId !== requestId) return;
 
         if (!menuBar._combatHoverCardEl) {
             const card = document.createElement('div');
@@ -1129,7 +1167,8 @@ export class CombatBarManager {
         menuBar._combatHoverCardEl.innerHTML = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
         menuBar._combatHoverCardEl.classList.add('is-visible');
         menuBar._combatHoverCardCombatantId = combatantId;
-        CombatBarManager.positionCombatantHoverCard(menuBar, event);
+        menuBar._combatHoverCardPendingId = null;
+        CombatBarManager.positionCombatantHoverCard(menuBar, menuBar._combatHoverCardPointer);
     }
 
     static positionCombatantHoverCard(menuBar, event) {
@@ -1157,7 +1196,39 @@ export class CombatBarManager {
             menuBar._combatHoverCardEl.remove();
             menuBar._combatHoverCardEl = null;
         }
+        menuBar._combatHoverCardRequestId = (menuBar._combatHoverCardRequestId ?? 0) + 1;
+        menuBar._combatHoverCardPendingId = null;
         menuBar._combatHoverCardCombatantId = null;
+    }
+
+    static async getCombatantHoverEffects(combatant, hoverData) {
+        if (hoverData?.limitedForPlayer) return [];
+        if (!getSettingSafely(MODULE.ID, 'menubarCombatShowEffects', true)) return [];
+        return EffectsAPI.getDisplayEffects(combatant?.actor, {
+            includeDescriptions: 'auto',
+            enrichDescriptions: true
+        });
+    }
+
+    static async refreshVisibleCombatantHoverCard(menuBar, changedActor = null) {
+        const combatantId = menuBar?._combatHoverCardCombatantId;
+        const card = menuBar?._combatHoverCardEl;
+        if (!combatantId || !card) return;
+        const combatant = game.combats?.active?.combatants?.get(combatantId);
+        if (!combatant) return;
+        if (changedActor && combatant.actor?.uuid !== changedActor?.uuid && combatant.actor?.id !== changedActor?.id) return;
+
+        const hoverData = CombatBarManager.getCombatantHoverData(combatant);
+        if (!hoverData) return;
+        try {
+            hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
+        } catch (error) {
+            console.warn(`${MODULE.NAME} | Unable to refresh combatant effect display`, error);
+            hoverData.effects = [];
+        }
+        if (menuBar._combatHoverCardCombatantId !== combatantId || !menuBar._combatHoverCardEl) return;
+        menuBar._combatHoverCardEl.innerHTML = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
+        CombatBarManager.positionCombatantHoverCard(menuBar, menuBar._combatHoverCardPointer);
     }
 
     static getCombatantHoverData(combatant) {
@@ -1252,6 +1323,27 @@ export class CombatBarManager {
         const bloodOverlayHtml = data.bloodOverlay
             ? `<img class="combat-hover-blood" src="${esc(data.bloodOverlay)}" alt="" aria-hidden="true">`
             : '';
+        const effectsHtml = (data.effects || []).length
+            ? `
+                <section class="combat-hover-effects" aria-label="${esc(game.i18n.localize(`${MODULE.ID}.ActiveEffectsGroup`))}">
+                    <div class="combat-hover-effects-heading">${esc(game.i18n.localize(`${MODULE.ID}.ActiveEffectsGroup`))}</div>
+                    <div class="combat-hover-effects-list">
+                        ${data.effects.map((effect) => `
+                            <div class="combat-hover-effect">
+                                <img class="combat-hover-effect-image"
+                                    src="${esc(effect.img)}"
+                                    alt=""
+                                    data-tooltip="${esc(effect.tooltipHtml)}"
+                                    data-tooltip-direction="LEFT">
+                                <div class="combat-hover-effect-copy">
+                                    <div class="combat-hover-effect-name">${esc(effect.name)}</div>
+                                    <div class="combat-hover-effect-detail">${esc(effect.detail)}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>`
+            : '';
 
         if (data.limitedForPlayer) {
             return `
@@ -1287,6 +1379,7 @@ export class CombatBarManager {
                 <div class="combat-hover-hp-text">${esc(hpLabel)}</div>
             </div>
             <div class="combat-hover-stats">${statsHtml}</div>
+            ${effectsHtml}
         `;
     }
 

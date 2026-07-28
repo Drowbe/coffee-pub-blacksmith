@@ -90,6 +90,7 @@ The same `blacksmith` object exposes:
 | `blacksmith.utils` | Notifications, sounds, and other helpers. |
 | `blacksmith.chatCards` | Chat card rendering and helpers. |
 | `blacksmith.rolls` | Roll outcome classification: crit, fumble, success vs DC, hit/miss. Subscribe via `rolls.on('attackResolved', …)` / `skillCheckResolved`, or inspect with `rolls.classify()`. See [api-rolls](../api/api-rolls.md). |
+| `blacksmith.effects` | Read-only Active Effect filtering, display normalization, condition labels, and classifier registration. See [api-effects](../api/api-effects.md). |
 | `blacksmith.openRequestRollDialog(options)` | Open the Request a Roll (skill-check) dialog or post a silent roll request to chat. See [api-requestroll](../api/api-requestroll.md). |
 
 Always guard with `if (!blacksmith)` or `if (!blacksmith.pins?.isAvailable())` (or equivalent) so your module degrades gracefully when Blacksmith is missing or not ready.

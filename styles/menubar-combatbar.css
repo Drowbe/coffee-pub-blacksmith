@@ -470,7 +470,9 @@
         linear-gradient(180deg, rgba(247, 236, 216, 0.98), rgba(228, 215, 193, 0.98));
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55);
     color: #2f241a;
-    pointer-events: none;
+    pointer-events: auto;
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
     opacity: 0;
     transform: translateY(4px);
     transition: opacity 80ms ease, transform 80ms ease;
@@ -599,6 +601,68 @@
     font-size: 12px;
     color: rgba(56, 41, 26, 0.75);
     padding: 4px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-effects {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(112, 85, 49, 0.28);
+}
+
+.blacksmith-combat-hover-card .combat-hover-effects-heading {
+    margin-bottom: 5px;
+    color: rgba(56, 41, 26, 0.66);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.55px;
+    text-transform: uppercase;
+}
+
+.blacksmith-combat-hover-card .combat-hover-effects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-effect {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+}
+
+.blacksmith-combat-hover-card .combat-hover-effect-image {
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(112, 85, 49, 0.45);
+    border-radius: 4px;
+    object-fit: cover;
+    background: rgba(77, 53, 28, 0.15);
+}
+
+.blacksmith-combat-hover-card .combat-hover-effect-copy {
+    min-width: 0;
+}
+
+.blacksmith-combat-hover-card .combat-hover-effect-name {
+    overflow: hidden;
+    color: #2f241a;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-combat-hover-card .combat-hover-effect-detail {
+    overflow: hidden;
+    margin-top: 2px;
+    color: rgba(56, 41, 26, 0.68);
+    font-size: 10px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ------------------------------------ */

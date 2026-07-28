@@ -310,6 +310,8 @@
 
 				"menubarCombatShow-Label": "Automatically Show",
 				"menubarCombatShow-Hint": "",
+				"menubarCombatShowEffects-Label": "Show Status and Conditions",
+				"menubarCombatShowEffects-Hint": "Show active statuses, conditions, temporary effects, and registered outcome effects on combatant hover cards.",
 
 				"menubarCombatSize-Label": "Size",
 				"menubarCombatSize-Hint": "The verticle size of the combat menubar.",
@@ -318,6 +320,14 @@
 				"menubarCombatHideHealthBars-Hint": "When enabled, the health bars of enemy combatants will be hidden from players in the combat menubar.",
 				"menubarCombatHideDead-Label": "Hide the Dead",
 				"menubarCombatHideDead-Hint": "When enabled, defeated or dead combatants remain in the combat tracker but are hidden from the combat menubar.",
+
+				"ActiveEffectsGroup": "Status and Conditions",
+				"ActiveEffectType-Effect": "Effect",
+				"ActiveEffectType-Injury": "Injury",
+				"ActiveEffectType-Critical": "Critical",
+				"ActiveEffectType-Fumble": "Fumble",
+				"ActiveEffectUnnamed": "Unnamed Effect",
+				"ActiveEffectVia": "via",
 
 
 		"headingH2Statistics-Label": "Statistics",

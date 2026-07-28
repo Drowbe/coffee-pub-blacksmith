@@ -131,6 +131,7 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 ### 4.3 Feature Domains
 
 - **Rolls** — **manager-rolls.js**: internal orchestration (`orchestrateRoll`, `processRoll`, `deliverRollResults`). **Public:** `openRequestRollDialog` on `module.api` and **`module.api.rolls`** (`api-rolls.js`) for outcome classification and hooks. Legacy `BLACKSMITH.rolls.execute` was removed in 13.9.x. See **architecture-rolls.md**, **api-rolls.md**, **plan-rolls-classification.md**.
+- **Active Effects** — **api-effects.js**: read-only filtering, dnd5e condition normalization, permission-safe display data, and a classifier registry shared by sibling modules. Blacksmith's combat hover card consumes the same public `module.api.effects` contract. See **architecture-effects.md** and **api-effects.md**.
 - **Stats** — **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture/architecture-stats.md**, **documentation/api/api-stats.md**.
 - **Timers** — **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`).
 - **Chat cards** — **ChatCardsAPI** (`api-chat-cards.js`): themes and rendering contract. See **documentation/architecture/architecture-chatcards.md**, **documentation/api/api-chatcards.md**.
@@ -357,6 +358,7 @@ signal to take a comparison snapshot. A real validation pass is a 90–180 minut
 | Pins (storage, renderer, schema, API) | **architecture-pins.md** |
 | SocketManager (SocketLib, API, migration) | **architecture-socketmanager.md** |
 | Chat cards (themes, layout, migration) | **architecture-chatcards.md** |
+| Active Effects normalization and classifier registry | **architecture-effects.md** |
 | Roll system (4-function, execute, cinema) | **architecture-rolls.md** |
 | Stats (combat, player, API) | **architecture-stats.md** |
 | Toolbar manager | **architecture-toolbarmanager.md** |
@@ -364,4 +366,3 @@ signal to take a comparison snapshot. A real validation pass is a 90–180 minut
 | XP system | **architecture-xp.md** |
 | HookManager | **architecture-hookmanager.md** |
 | API references (pins, menubar, toolbar, stats, etc.) | **api-*.md** |
-

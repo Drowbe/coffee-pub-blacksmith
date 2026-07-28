@@ -2262,6 +2262,17 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Show Active Effects on Combatant Hover Cards --
+	game.settings.register(MODULE.ID, 'menubarCombatShowEffects', {
+		name: MODULE.ID + '.menubarCombatShowEffects-Label',
+		hint: MODULE.ID + '.menubarCombatShowEffects-Hint',
+		scope: 'user',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Combat Menubar Size --
 	game.settings.register(MODULE.ID, 'menubarCombatSize', {
 		name: MODULE.ID + '.menubarCombatSize-Label',

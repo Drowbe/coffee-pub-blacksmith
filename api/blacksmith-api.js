@@ -165,6 +165,20 @@ export class BlacksmithAPI {
     }
 
     /**
+     * Get the read-only Active Effects normalization and classifier API.
+     * @returns {Promise<Object>} Effects API instance
+     */
+    static getEffects() {
+        return this.waitForReady().then(() => {
+            try {
+                return this._getAPI().effects;
+            } catch (error) {
+                throw new Error(`Failed to get Effects API: ${error.message}`);
+            }
+        });
+    }
+
+    /**
      * Get the BlacksmithCanvasLayer (available after canvasReady)
      * @returns {Promise<Object|null>} BlacksmithLayer instance or null if not available
      */
@@ -391,6 +405,7 @@ export class BlacksmithAPI {
                 window.BlacksmithStats = api.stats;
                 window.BlacksmithConstants = api.BLACKSMITH;
                 window.BlacksmithCompendiums = api.compendiums;
+                window.BlacksmithEffects = api.effects;
                 if (!window.Blacksmith) window.Blacksmith = {};
                 if (api.sockets) window.Blacksmith.socket = api.sockets;
                 if (api.CanvasLayer) window.BlacksmithCanvasLayer = api.CanvasLayer;
