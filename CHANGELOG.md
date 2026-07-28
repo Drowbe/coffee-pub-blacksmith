@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Tool title-bar menu toggle attempted to mutate Foundry's frozen Application V2 options** (`scripts/window-tool-base.js`, `documentation/api/api-window.md`): switching a rendered Tool window from Full to Micro threw `Cannot assign to read only property 'toolTitlebar'`. The configured option is now read once as the initial value; runtime and persisted choices live in mutable instance state and are changed only through `setToolTitlebarMode()`.
+- **Tool title-bar menu toggle attempted to mutate Foundry's frozen Application V2 options** (`scripts/window-tool-base.js`, `documentation/api/api-window.md`): switching a rendered Tool window from Full to Micro threw `Cannot assign to read only property 'toolTitlebar'`. The configured option is now read once as the initial value; runtime and persisted choices live in mutable instance state and are changed only through `setToolTitlebarMode()`. **Live-verified 2026-07-28** on the combatant card: Full → Micro → Full works, the menu remains usable, and the selected mode persists.
 
 ## [13.11.6]
 

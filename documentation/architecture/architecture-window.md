@@ -63,6 +63,7 @@ There is no module-unload cleanup hook. `unloadModule` is a dead name (see [api-
 - **`BlacksmithToolWindowBaseV2`** (`scripts/window-tool-base.js`) extends the same lifecycle with compact defaults, a dedicated tool template, the shared parchment/gold visual shell, optional inline native-title actions, tool-body scroll preservation, and position persistence. Frame styling belongs to the API; consumers style only their body content unless intentionally overriding the exposed tool custom properties. `toolTitlebar` selects the full title bar or a micro native drag rail; both use the same Application V2 instance and lifecycle. The native controls menu switches between modes and persists the user selection per tool unless the consumer locks or disables preference storage.
 - Tool consumers override `getToolHeaderActions()` for compact title controls and return `bodyContent` plus optional `toolBarLeft` / `toolBarRight` and `toolFooterLeft` / `toolFooterRight`.
 - The combatant pop-out card dogfoods the tool base; its Follow Combat control is a tool header action rather than custom draggable DOM.
+- Full/Micro switching, controls-menu actions, persisted mode preference, and the frozen-options-safe runtime state were live-verified through that combatant consumer on 2026-07-28.
 - **Consumer responsibility:** extend the base, supply template path, `getData`, and action handlers; the template follows the zone contract (include only the zones the window needs).
 
 ### 3.3 Migration status

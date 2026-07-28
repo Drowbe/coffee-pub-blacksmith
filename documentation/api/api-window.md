@@ -381,8 +381,8 @@ Both are exposed on `module.api`.
 
 1. **Unique window ids** — Use a prefix (e.g. module id) to avoid collisions: `'my-module-settings'`, `'my-module-query'`.
 2. **No manual teardown needed** — Foundry has no module-unload event, and disabling a module reloads the world; your registered window types are cleared automatically. Use `unregisterWindow(id)` only to remove a window type at runtime.
-3. **Zone contract** — Follow the five-zone contract (option bar, header, body, action bar optional; body required) so windows look consistent and any future shared behavior (e.g. base class) applies. See **guidance-applicationv2.md** and the example template.
-4. **Own your content** — Your template and `getData` define header and body; Blacksmith does not inject content into your window.
+3. **Choose the right contract** — Use the standard five-zone base for forms/editors and `BlacksmithToolWindowBaseV2` for persistent canvas utilities. Tool consumers choose Full or Micro chrome without rebuilding the frame.
+4. **Own your content** — Your template/`getData` owns the standard window's content; Tool consumers provide `bodyContent` and optional toolbar/footer content while Blacksmith owns the shared frame.
 5. **Application V2 only** — Build your window with `HandlebarsApplicationMixin(ApplicationV2)` and the patterns in the guidance doc (delegation, scroll save/restore, unique instance id).
 
 ### Application V2: Body injection and scripts
@@ -399,13 +399,15 @@ Both are exposed on `module.api`.
 - **Window doesn't open** — Ensure the window type is registered before calling `openWindow`. Check that `descriptor.open` returns or resolves to the Application instance if you need a reference.
 - **Layout or behavior issues** — Follow **documentation/applicationv2-window/guidance-applicationv2.md** (delegation, scroll save/restore, `_getRoot()`, safe merge of `DEFAULT_OPTIONS`).
 - **Buttons or controls in the body do nothing** — Application V2 may not run `<script>` inside injected body HTML, and `activateListeners(html)` may not receive the body part. Use document-level delegation for body controls (see "Application V2: Body injection and scripts" under Best Practices) or ensure handlers are on `window` from a module that loads before the window opens.
+- **`Cannot assign to read only property 'toolTitlebar'`** — Foundry freezes finalized Application V2 options. Do not mutate `this.options.toolTitlebar`; call `await app.setToolTitlebarMode('full' | 'micro')`.
 
 ---
 
 ## Version History
 
-- **Implemented** — Window API (`api-windows.js`), core template (`window-template.hbs`), base class (`window-base.js`). Template data contract documented above.
-- **Public API** — `BlacksmithWindowBaseV2` and `getWindowBaseV2()` exposed on `module.api` so consumers do not import Blacksmith base scripts directly.
+- **Implemented** — Window registry (`api-windows.js`), standard template/base (`window-template.hbs`, `window-base.js`), and Tool template/base (`window-tool-template.hbs`, `window-tool-base.js`).
+- **Public API** — Both base classes/getters, `windowStyles`, and `toolTitlebars` are exposed on `module.api` so consumers never import Blacksmith implementation scripts directly.
+- **Tool chrome** — Full and Micro title bars, native menu actions, mode switching, per-tool preference persistence, position reset, and frozen-options-safe runtime state were live-verified on the combatant card on 2026-07-28.
 - **Canonical file** — `scripts/window-base.js`. The old `window-base-v2.js` re-export shim has been removed; use `module.api`, not a file path.
 
 ---
