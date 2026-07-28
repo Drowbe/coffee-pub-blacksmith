@@ -31,7 +31,7 @@
     --blacksmith-tool-background:
         linear-gradient(180deg, var(--blacksmith-surface-dark-1, #222222), #181818);
     --blacksmith-tool-titlebar-background: var(--blacksmith-surface-dark-0, #0e0c0c);
-    --blacksmith-tool-border: var(--blacksmith-surface-dark-3, #4b4b4b);
+    --blacksmith-tool-border: rgba(0, 0, 0, 0.72);
     --blacksmith-tool-divider: rgba(172, 159, 129, 0.35);
     --blacksmith-tool-text: rgba(224, 224, 224, 0.92);
     --blacksmith-tool-accent: var(--blacksmith-window-accent-color, #ac9f81);
