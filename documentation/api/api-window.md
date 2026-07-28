@@ -93,7 +93,7 @@ Tool windows support two chrome modes through the top-level `toolTitlebar` optio
 | Value | Constant | Behavior |
 |-------|----------|----------|
 | `"full"` | `api.toolTitlebars.FULL` | Default. The full parchment title bar shows the title, direct tool actions, a Blacksmith context-menu launcher, and Close. Existing consumers remain in this mode. |
-| `"micro"` | `api.toolTitlebars.MICRO` | A 14px parchment drag rail. The title and direct controls are hidden. A faint ellipsis becomes fully visible on hover/focus and opens Blacksmith's shared context menu. Right-clicking anywhere on the rail opens the same menu. |
+| `"micro"` | `api.toolTitlebars.MICRO` | A 14px parchment drag rail. The title and direct controls are hidden. A faint single-dot launcher becomes fully visible on hover/focus and opens Blacksmith's shared context menu. Right-clicking anywhere on the rail opens the same menu. |
 
 The menu is rendered at the document level by Blacksmith's shared `UIContextMenu`, not inside the Application frame, so it remains usable even when the tool window is very small. It contains the consumer's `getToolHeaderActions()`, inherited Application V2 header controls, Minimize/Restore (when enabled), Reset Position, and Close. Active actions receive a checkmark in their menu label.
 

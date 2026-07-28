@@ -406,7 +406,11 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
 
         const menuButton = document.createElement('button');
         menuButton.type = 'button';
-        menuButton.className = 'header-control icon fa-solid fa-ellipsis-vertical blacksmith-window-tool-menu-trigger';
+        menuButton.className = `header-control icon fa-solid ${
+            this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
+                ? 'fa-dot'
+                : 'fa-ellipsis-vertical'
+        } blacksmith-window-tool-menu-trigger`;
         menuButton.dataset.tooltip = game.i18n.localize('coffee-pub-blacksmith.ToolWindowMenu');
         menuButton.setAttribute('aria-label', menuButton.dataset.tooltip);
         menuButton.addEventListener('click', (event) => this._showToolContextMenu(event));
