@@ -277,6 +277,7 @@ export class CombatBarManager {
                     CombatBarManager.updateCombatBar(menuBar);
                     if (initiativeUpdated) menuBar.renderMenubar();
                 }
+                void CombatBarManager.refreshCombatantPopoutCard(menuBar, _combatant?.id);
             }
         });
 
@@ -285,7 +286,8 @@ export class CombatBarManager {
             description: 'MenuBar: Update combat bar when combatants are removed',
             context: 'menubar-combatant-delete',
             priority: 3,
-            callback: () => {
+            callback: (combatant) => {
+                CombatBarManager.closeCombatantPopoutCard(combatant?.id);
                 if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
                     CombatBarManager.updateCombatBar(menuBar);
                 }
@@ -298,6 +300,7 @@ export class CombatBarManager {
             context: 'menubar-combat-delete',
             priority: 3,
             callback: () => {
+                CombatBarManager.closeAllCombatantPopoutCards();
                 CombatBarManager.closeCombatBar(menuBar);
             }
         });
@@ -329,6 +332,7 @@ export class CombatBarManager {
             priority: 3,
             callback: (actor, updateData) => {
                 if (CombatBarManager.isCombatBarActive(menuBar)) CombatBarManager.handleActorHpChange(menuBar, actor, updateData);
+                void CombatBarManager.refreshCombatantPopoutCardsForActor(menuBar, actor);
                 if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'party') {
                     menuBar._refreshPartyBarInfo();
                 }
@@ -352,6 +356,7 @@ export class CombatBarManager {
             priority: 3,
             callback: ({ actor }) => {
                 void CombatBarManager.refreshVisibleCombatantHoverCard(menuBar, actor);
+                void CombatBarManager.refreshCombatantPopoutCardsForActor(menuBar, actor);
             }
         });
 
@@ -387,6 +392,7 @@ export class CombatBarManager {
             callback: (module, key) => {
                 if (module !== MODULE.ID || key !== 'menubarCombatShowEffects') return;
                 CombatBarManager.refreshVisibleCombatantHoverCard(menuBar);
+                void CombatBarManager.refreshAllCombatantPopoutCards(menuBar);
             }
         });
 
@@ -1231,6 +1237,134 @@ export class CombatBarManager {
         CombatBarManager.positionCombatantHoverCard(menuBar, menuBar._combatHoverCardPointer);
     }
 
+    static _combatantPopoutCards = new Map();
+    static _combatantPopoutZIndex = 130;
+
+    static async showCombatantPopoutCard(menuBar, combatantId, x = 120, y = 120) {
+        const existing = CombatBarManager._combatantPopoutCards.get(combatantId);
+        if (existing?.element?.isConnected) {
+            existing.element.style.zIndex = String(++CombatBarManager._combatantPopoutZIndex);
+            return existing.element;
+        }
+
+        const combatant = game.combats?.active?.combatants?.get(combatantId);
+        if (!combatant) return null;
+        const hoverData = CombatBarManager.getCombatantHoverData(combatant);
+        if (!hoverData) return null;
+        hoverData.isPopout = true;
+        try {
+            hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
+        } catch (error) {
+            console.warn(`${MODULE.NAME} | Unable to build popped-out combatant card`, error);
+            hoverData.effects = [];
+        }
+
+        const card = document.createElement('div');
+        card.className = 'blacksmith-combat-hover-card blacksmith-combat-popout-card is-visible';
+        card.dataset.combatantId = combatantId;
+        card.style.zIndex = String(++CombatBarManager._combatantPopoutZIndex);
+        card.innerHTML = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
+        document.body.appendChild(card);
+
+        const left = Math.max(8, Math.min(Number(x) || 120, window.innerWidth - card.offsetWidth - 8));
+        const top = Math.max(8, Math.min(Number(y) || 120, window.innerHeight - card.offsetHeight - 8));
+        card.style.left = `${left}px`;
+        card.style.top = `${top}px`;
+
+        card.querySelector('[data-action="close-combatant-popout"]')?.addEventListener('click', () => {
+            CombatBarManager.closeCombatantPopoutCard(combatantId);
+        });
+        CombatBarManager.makeCombatantPopoutDraggable(card);
+        CombatBarManager._combatantPopoutCards.set(combatantId, { element: card, menuBar });
+        return card;
+    }
+
+    static makeCombatantPopoutDraggable(card) {
+        const header = card?.querySelector('.combat-hover-header');
+        if (!header) return;
+        header.addEventListener('pointerdown', (event) => {
+            if (event.button !== 0 || event.target?.closest?.('button')) return;
+            event.preventDefault();
+            card.style.zIndex = String(++CombatBarManager._combatantPopoutZIndex);
+            const rect = card.getBoundingClientRect();
+            const offsetX = event.clientX - rect.left;
+            const offsetY = event.clientY - rect.top;
+
+            const move = (moveEvent) => {
+                const maxX = Math.max(8, window.innerWidth - card.offsetWidth - 8);
+                const maxY = Math.max(8, window.innerHeight - card.offsetHeight - 8);
+                const left = Math.max(8, Math.min(moveEvent.clientX - offsetX, maxX));
+                const top = Math.max(8, Math.min(moveEvent.clientY - offsetY, maxY));
+                card.style.left = `${left}px`;
+                card.style.top = `${top}px`;
+            };
+            const stop = () => {
+                document.removeEventListener('pointermove', move);
+                document.removeEventListener('pointerup', stop);
+                document.removeEventListener('pointercancel', stop);
+            };
+            document.addEventListener('pointermove', move);
+            document.addEventListener('pointerup', stop);
+            document.addEventListener('pointercancel', stop);
+        });
+    }
+
+    static closeCombatantPopoutCard(combatantId) {
+        if (!combatantId) return;
+        const record = CombatBarManager._combatantPopoutCards.get(combatantId);
+        record?.element?.remove();
+        CombatBarManager._combatantPopoutCards.delete(combatantId);
+    }
+
+    static closeAllCombatantPopoutCards() {
+        for (const record of CombatBarManager._combatantPopoutCards.values()) record?.element?.remove();
+        CombatBarManager._combatantPopoutCards.clear();
+    }
+
+    static async refreshCombatantPopoutCard(menuBar, combatantId) {
+        const record = CombatBarManager._combatantPopoutCards.get(combatantId);
+        if (!record?.element?.isConnected) return;
+        const combatant = game.combats?.active?.combatants?.get(combatantId);
+        if (!combatant) {
+            CombatBarManager.closeCombatantPopoutCard(combatantId);
+            return;
+        }
+        const hoverData = CombatBarManager.getCombatantHoverData(combatant);
+        if (!hoverData) return;
+        hoverData.isPopout = true;
+        try {
+            hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
+        } catch (error) {
+            console.warn(`${MODULE.NAME} | Unable to refresh popped-out combatant card`, error);
+            hoverData.effects = [];
+        }
+        if (!record.element.isConnected) return;
+        record.element.innerHTML = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
+        record.element.querySelector('[data-action="close-combatant-popout"]')?.addEventListener('click', () => {
+            CombatBarManager.closeCombatantPopoutCard(combatantId);
+        });
+        CombatBarManager.makeCombatantPopoutDraggable(record.element);
+    }
+
+    static async refreshCombatantPopoutCardsForActor(menuBar, actor) {
+        if (!actor) return;
+        const refreshes = [];
+        for (const [combatantId] of CombatBarManager._combatantPopoutCards) {
+            const combatant = game.combats?.active?.combatants?.get(combatantId);
+            if (combatant?.actor?.uuid === actor.uuid || combatant?.actor?.id === actor.id) {
+                refreshes.push(CombatBarManager.refreshCombatantPopoutCard(menuBar, combatantId));
+            }
+        }
+        await Promise.all(refreshes);
+    }
+
+    static async refreshAllCombatantPopoutCards(menuBar) {
+        await Promise.all(
+            Array.from(CombatBarManager._combatantPopoutCards.keys())
+                .map((combatantId) => CombatBarManager.refreshCombatantPopoutCard(menuBar, combatantId))
+        );
+    }
+
     static getCombatantHoverData(combatant) {
         const token = combatant?.token;
         const actor = combatant?.actor;
@@ -1323,6 +1457,15 @@ export class CombatBarManager {
         const bloodOverlayHtml = data.bloodOverlay
             ? `<img class="combat-hover-blood" src="${esc(data.bloodOverlay)}" alt="" aria-hidden="true">`
             : '';
+        const popoutCloseHtml = data.isPopout
+            ? `<button type="button"
+                    class="combat-hover-popout-close"
+                    data-action="close-combatant-popout"
+                    data-tooltip="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutClose`))}"
+                    aria-label="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutClose`))}">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>`
+            : '';
         const effectsHtml = (data.effects || []).length
             ? `
                 <section class="combat-hover-effects" aria-label="${esc(game.i18n.localize(`${MODULE.ID}.ActiveEffectsGroup`))}">
@@ -1349,6 +1492,7 @@ export class CombatBarManager {
             return `
                 <div class="combat-hover-header">
                     <span class="combat-hover-name">${esc(data.name)}</span>
+                    ${popoutCloseHtml}
                 </div>
                 <div class="combat-hover-image-wrap">
                     <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">
@@ -1365,6 +1509,7 @@ export class CombatBarManager {
         return `
             <div class="combat-hover-header">
                 <span class="combat-hover-name">${esc(data.name)}</span>
+                ${popoutCloseHtml}
             </div>
             <div class="combat-hover-image-wrap">
                 <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">
@@ -1564,6 +1709,14 @@ export class CombatBarManager {
                     src: portraitSrc,
                     window: { title: combatant.name || 'Portrait' }
                 }).render(true);
+            }
+        });
+
+        items.push({
+            name: 'Pop Out Combatant Card',
+            icon: 'fa-solid fa-up-right-from-square',
+            callback: async () => {
+                await CombatBarManager.showCombatantPopoutCard(menuBar, combatantId, x + 12, y + 12);
             }
         });
 

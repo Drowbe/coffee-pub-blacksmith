@@ -21,6 +21,8 @@ The Active Effects subsystem is a small shared normalization layer, not an effec
 
 Foundry's Active Effect create/update/delete hooks call `EffectsAPI.emitChanged`. Blacksmith refreshes an already-visible combat hover card and consumers may subscribe through `effects.onChanged`.
 
+The combat portrait context menu can turn that transient view into a persistent card. Persistent cards reuse the same data builder and markup, remain client-local, preserve their position during refreshes, and update on Actor, Combatant, Active Effect, and display-setting changes. They contain no effect mutations and therefore do not expand the API's ownership boundary.
+
 ## Classifier boundary
 
 Blacksmith owns only generic Foundry and dnd5e interpretation. A classifier owned by another module translates that module's flags into display metadata. It does not mutate the effect or implement gameplay.
@@ -39,4 +41,3 @@ Effect names and statuses are returned by the normalization API, but description
 - Midi-QOL or DAE interpretation
 - socket synchronization
 - module-specific injury, critical, or fumble rules
-
