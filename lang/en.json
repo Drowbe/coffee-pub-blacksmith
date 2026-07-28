@@ -333,6 +333,7 @@
 				"ToolWindowMinimize": "Minimize",
 				"ToolWindowRestore": "Restore",
 				"ToolWindowResetPosition": "Reset Position",
+				"ToolWindowMenu": "Tool Window Menu",
 				"ToolWindowUseFullTitlebar": "Use Full Title Bar",
 				"ToolWindowUseMicroTitlebar": "Use Micro Title Bar",
 

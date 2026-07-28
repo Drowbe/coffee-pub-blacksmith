@@ -6,6 +6,7 @@
 // BlacksmithWindowBaseV2 lifecycle and public Window API.
 
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { UIContextMenu } from './ui-context-menu.js';
 
 export const BLACKSMITH_WINDOW_STYLES = Object.freeze({
     STANDARD: 'standard',
@@ -127,80 +128,106 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
 
     _configureRenderOptions(options) {
         super._configureRenderOptions(options);
-        // Application V2 only rebuilds its controls dropdown when a window update
-        // is requested. Tool actions and title-bar modes may change at runtime.
+        // Header controls may change at runtime.
         options.window ??= {};
     }
 
     _getHeaderControls() {
-        const controls = super._getHeaderControls?.() ?? [];
-        const modeToggleControl = this.options?.allowTitlebarModeToggle === false
-            ? []
-            : [{
-                action: 'blacksmith-tool-toggle-titlebar',
-                icon: this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
-                    ? 'fa-solid fa-window-maximize'
-                    : 'fa-solid fa-grip-lines',
-                label: this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
-                    ? 'coffee-pub-blacksmith.ToolWindowUseFullTitlebar'
-                    : 'coffee-pub-blacksmith.ToolWindowUseMicroTitlebar',
-                onClick: () => this.setToolTitlebarMode(
-                    this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
-                        ? BLACKSMITH_TOOL_TITLEBARS.FULL
-                        : BLACKSMITH_TOOL_TITLEBARS.MICRO
-                )
-            }];
+        // Tool windows use Blacksmith's body-level UIContextMenu. Returning only
+        // inherited controls keeps Application V2 integrations available for
+        // conversion into that menu without creating an in-frame tool dropdown.
+        return super._getHeaderControls?.() ?? [];
+    }
 
-        if (this.toolTitlebarMode !== BLACKSMITH_TOOL_TITLEBARS.MICRO) {
-            return [...controls, ...modeToggleControl];
+    _getToolContextMenuItems() {
+        const localize = (value) => game.i18n.localize(value || '');
+        const items = [];
+
+        for (const action of this.getToolHeaderActions?.() ?? []) {
+            if (!action?.id) continue;
+            items.push({
+                name: `${action.active ? '✓ ' : ''}${localize(action.label || String(action.id))}`,
+                icon: action.icon || 'fa-solid fa-circle',
+                disabled: Boolean(action.disabled),
+                callback: () => action.onClick?.call(this, null, action)
+            });
         }
 
-        const toolActions = (this.getToolHeaderActions?.() ?? [])
-            .filter((action) => action?.id && !action.disabled)
-            .map((action) => {
-                const localizedLabel = game.i18n.localize(action.label || String(action.id));
-                return {
-                    action: `blacksmith-tool-${String(action.id)}`,
-                    icon: action.icon || 'fa-solid fa-circle',
-                    label: action.active ? `✓ ${localizedLabel}` : localizedLabel,
-                    visible: true,
-                    onClick: (event) => action.onClick?.call(this, event, action)
-                };
+        for (const control of super._getHeaderControls?.() ?? []) {
+            if (control?.visible === false || !control?.label) continue;
+            items.push({
+                name: localize(control.label),
+                icon: control.icon || 'fa-solid fa-circle',
+                disabled: Boolean(control.disabled),
+                callback: () => control.onClick?.call(this, null)
             });
+        }
 
-        const minimizeControl = this.options?.window?.minimizable === false
-            ? []
-            : [{
-                action: 'blacksmith-tool-minimize',
-                icon: this.minimized ? 'fa-solid fa-window-restore' : 'fa-solid fa-window-minimize',
-                label: this.minimized
+        if (items.length) items.push({ separator: true });
+
+        if (this.options?.allowTitlebarModeToggle !== false) {
+            const useFull = this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO;
+            items.push({
+                name: localize(useFull
+                    ? 'coffee-pub-blacksmith.ToolWindowUseFullTitlebar'
+                    : 'coffee-pub-blacksmith.ToolWindowUseMicroTitlebar'),
+                icon: useFull ? 'fa-solid fa-window-maximize' : 'fa-solid fa-grip-lines',
+                callback: () => this.setToolTitlebarMode(
+                    useFull ? BLACKSMITH_TOOL_TITLEBARS.FULL : BLACKSMITH_TOOL_TITLEBARS.MICRO
+                )
+            });
+        }
+
+        if (this.options?.window?.minimizable !== false) {
+            items.push({
+                name: localize(this.minimized
                     ? 'coffee-pub-blacksmith.ToolWindowRestore'
-                    : 'coffee-pub-blacksmith.ToolWindowMinimize',
-                onClick: async () => {
+                    : 'coffee-pub-blacksmith.ToolWindowMinimize'),
+                icon: this.minimized ? 'fa-solid fa-window-restore' : 'fa-solid fa-window-minimize',
+                callback: async () => {
                     if (this.minimized) await this.maximize();
                     else await this.minimize();
-                    await this.render(false);
                 }
-            }];
+            });
+        }
 
-        return [
-            ...toolActions,
-            ...controls,
-            ...modeToggleControl,
-            ...minimizeControl,
+        items.push(
             {
-                action: 'blacksmith-tool-reset-position',
+                name: localize('coffee-pub-blacksmith.ToolWindowResetPosition'),
                 icon: 'fa-solid fa-arrows-to-dot',
-                label: 'coffee-pub-blacksmith.ToolWindowResetPosition',
-                onClick: () => this.resetToolWindowPosition()
+                callback: () => this.resetToolWindowPosition()
             },
             {
-                action: 'blacksmith-tool-close',
+                name: localize('APPLICATION.TOOLS.Close'),
                 icon: 'fa-solid fa-xmark',
-                label: 'APPLICATION.TOOLS.Close',
-                onClick: () => this.close()
+                callback: () => this.close()
             }
-        ];
+        );
+        return items;
+    }
+
+    _showToolContextMenu(event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        this.bringToFront();
+
+        const trigger = event?.currentTarget;
+        const rect = trigger?.getBoundingClientRect?.();
+        const x = Number.isFinite(event?.clientX) && event.clientX > 0
+            ? event.clientX
+            : (rect?.right ?? this.position.left);
+        const y = Number.isFinite(event?.clientY) && event.clientY > 0
+            ? event.clientY
+            : (rect?.bottom ?? this.position.top);
+
+        UIContextMenu.show({
+            id: `blacksmith-tool-window-menu-${this.id}`,
+            x,
+            y,
+            zones: this._getToolContextMenuItems(),
+            zoneClass: 'core',
+            className: 'blacksmith-tool-window-context-menu'
+        });
     }
 
     resetToolWindowPosition() {
@@ -243,10 +270,13 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         if (!frame || !header) return;
 
         this._applyToolWindowModeClasses(frame);
-        header.querySelectorAll('.blacksmith-window-tool-header-action').forEach((element) => element.remove());
+        header.querySelectorAll(
+            '.blacksmith-window-tool-header-action, .blacksmith-window-tool-menu-trigger'
+        ).forEach((element) => element.remove());
 
         const actions = this.getToolHeaderActions?.() ?? [];
         const controlsToggle = header.querySelector('[data-action="toggleControls"]');
+        if (controlsToggle) controlsToggle.hidden = true;
         if (this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.FULL) {
             for (const action of actions) {
                 if (!action?.id) continue;
@@ -270,23 +300,22 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
             }
         }
 
+        const menuButton = document.createElement('button');
+        menuButton.type = 'button';
+        menuButton.className = 'header-control icon fa-solid fa-ellipsis-vertical blacksmith-window-tool-menu-trigger';
+        menuButton.dataset.tooltip = game.i18n.localize('coffee-pub-blacksmith.ToolWindowMenu');
+        menuButton.setAttribute('aria-label', menuButton.dataset.tooltip);
+        menuButton.addEventListener('click', (event) => this._showToolContextMenu(event));
+        header.insertBefore(menuButton, header.querySelector('[data-action="close"]'));
+
         if (!header.dataset.blacksmithToolContextBound) {
             header.dataset.blacksmithToolContextBound = 'true';
             header.addEventListener('contextmenu', (event) => {
-                if (this.toolTitlebarMode !== BLACKSMITH_TOOL_TITLEBARS.MICRO) return;
-                event.preventDefault();
-                event.stopPropagation();
-                this.bringToFront();
-                void this.toggleControls(true);
+                this._showToolContextMenu(event);
             });
         }
 
-        // Inspect the rendered dropdown so controls contributed by Foundry hooks or
-        // other modules count too, not only controls returned by this application.
-        const hasDropdownControls = Boolean(
-            frame.querySelector('.controls-dropdown')?.children?.length
-        );
-        frame.classList.toggle('blacksmith-window-tool-has-menu', hasDropdownControls);
+        frame.classList.add('blacksmith-window-tool-has-menu');
     }
 
     _applyToolWindowModeClasses(frame) {

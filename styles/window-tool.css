@@ -77,7 +77,7 @@
 
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
     > .window-header
-    > [data-action="toggleControls"] {
+    > .blacksmith-window-tool-menu-trigger {
     --button-size: 14px;
     display: inline-flex;
     margin-left: auto;
@@ -89,20 +89,17 @@
 
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
     > .window-header:hover
-    > [data-action="toggleControls"],
+    > .blacksmith-window-tool-menu-trigger,
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
     > .window-header
-    > [data-action="toggleControls"]:focus-visible,
-.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
-    > .window-header
-    > [data-action="toggleControls"][aria-expanded="true"] {
+    > .blacksmith-window-tool-menu-trigger:focus-visible {
     opacity: 1;
 }
 
-.application.blacksmith-window-tool:not(.blacksmith-window-tool-has-menu)
+.application.blacksmith-window-tool
     > .window-header
     > [data-action="toggleControls"] {
-    display: none;
+    display: none !important;
 }
 
 .application.blacksmith-window-tool > .window-content:has(.blacksmith-window-tool-root) {
