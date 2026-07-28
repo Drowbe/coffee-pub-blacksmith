@@ -196,7 +196,11 @@ export function formatTime(ms, format = "colon") {
 // ** UTILITY Convert Seconds
 // ************************************
 export function convertSecondsToRounds(numSeconds) {
-    if (numSeconds === "0" || isNaN(numSeconds)) {
+    // Zero means permanent (the injury-card contract this pair was built for).
+    // Coerce first: the old string-only "0" check made "Permanent" depend on
+    // whether the caller's JSON carried the duration as a string or a number.
+    numSeconds = Number(numSeconds);
+    if (!Number.isFinite(numSeconds) || numSeconds === 0) {
         return "Permanent";
     }
     return Math.floor(numSeconds / 6);
@@ -212,7 +216,9 @@ export function convertSecondsToRounds(numSeconds) {
  * @returns {string} - Formatted time string (e.g., "2 HR 30 MIN (25 ROUNDS)")
  */
 export function convertSecondsToString(numSeconds) {
-    if (numSeconds === "0" || isNaN(numSeconds)) {
+    // Same zero-is-permanent contract and coercion as convertSecondsToRounds.
+    numSeconds = Number(numSeconds);
+    if (!Number.isFinite(numSeconds) || numSeconds === 0) {
         return "Permanent";
     }
     // Calculate the total number of rounds

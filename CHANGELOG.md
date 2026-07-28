@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Fixed
+
+- **Injury prompt contradictions and the duration "Permanent" type trap** (`prompts/prompt-injuries.txt`, `scripts/api-core.js`): the legacy injuries prompt gave the model two conflicting IMAGE instructions — "set this to none" and, twelve lines later, the category-to-image mapping — so whether an imported injury card rendered art was a coin flip; the IMAGE field now defers to the mapping (with "none" only for unmapped categories). The prompt also left STATUSEFFECT unspecified when no effect applies (now explicitly an empty string), claimed Foundry "version 11" on a v13-minimum module, and had its typos corrected; it now also states that all JSON values stay quoted strings. On the code side, `convertSecondsToRounds` and `convertSecondsToString` (`api-core.js`, also exposed via the utils API) only recognized the *string* `"0"` as "Permanent" — a numeric `0` from properly-typed JSON would have rendered an injury as lasting "0" rounds; both now coerce with `Number()` first, so `"0"`, `0`, and empty or non-numeric durations all read as Permanent, and real values convert as before (`"18"` → 3 rounds). Verify: import an injury JSON with `"duration": "0"` and another with `"duration": 0` — both cards read Permanent; `"duration": "18"` reads 3 rounds; generate an injury with the updated prompt — the card carries the category image and the JSON contains `"statuseffect": ""` when no effect was chosen.
+
 ## [13.11.5]
 
 ### Added
