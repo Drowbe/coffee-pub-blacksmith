@@ -37,6 +37,41 @@
     --blacksmith-tool-accent: var(--blacksmith-window-accent-color, #ac9f81);
 }
 
+/* Glass theme styles */
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-glass {
+    --blacksmith-tool-background: rgba(0, 0, 0, 0.05);
+    --blacksmith-tool-titlebar-background: rgba(0, 0, 0, 0.4);
+    --blacksmith-tool-border: rgba(0, 0, 0, 0.16);
+    --blacksmith-tool-divider: rgba(255, 255, 255, 0.05);
+    --blacksmith-tool-text: rgba(255, 255, 255, 0.9);
+    --blacksmith-tool-accent: rgba(236, 215, 178, 0.9);
+    -webkit-backdrop-filter: blur(8px) saturate(115%);
+    backdrop-filter: blur(8px) saturate(115%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.34);
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-glass
+    > .window-header {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-glass.blacksmith-window-tool-titlebar-micro
+    > .window-header {
+    background: rgba(8, 8, 8, 0.22);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-glass.blacksmith-window-tool-titlebar-micro
+    > .window-header:hover,
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-glass.blacksmith-window-tool-titlebar-micro
+    > .window-header:focus-within {
+    background: rgba(8, 8, 8, 0.56);
+    border-bottom-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Title bar styles */
+
 .application.blacksmith-window-tool > .window-header .window-title {
     color: var(--blacksmith-tool-accent);
     font-family: "Modesto Condensed", "Palatino Linotype", serif;

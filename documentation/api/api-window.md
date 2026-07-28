@@ -101,17 +101,17 @@ Both modes also include a mode-switch entry: **Use Micro Title Bar** in Full mod
 
 ### Tool themes
 
-Tool windows support `"light"` (the default parchment presentation) and `"dark"` (the established Blacksmith dark-window family). The shared context menu includes **Use Dark Mode** or **Use Light Mode**, and remembers the user's selection independently for each tool. The theme applies to the shared frame, title bar, body surface, border, dividers, toolbar, footer, controls, and inherited text. Consumer content should inherit the exposed Tool variables rather than hard-coding a conflicting surface.
+Tool windows support `"light"` (the default parchment presentation), `"dark"` (the established Blacksmith dark-window family), and `"glass"` (a translucent, lightly frosted floating-tool shell). The shared context menu exposes all three under **Theme** and remembers the user's selection independently for each tool. Glass makes the shared shell translucent while leaving consumer-owned content free to remain opaque for readability. Consumer content should inherit the exposed Tool variables rather than hard-coding a conflicting surface.
 
 Consumers may set the initial theme with `toolTheme`, read `app.toolTheme`, or change it at runtime with:
 
 ```javascript
-await app.setToolTheme(api.toolThemes.DARK);
+await app.setToolTheme(api.toolThemes.GLASS);
 ```
 
 As with title-bar mode, finalized Application V2 options are immutable; do not assign to `app.options.toolTheme`.
 
-Every render also receives `toolTheme` (`"light"` or `"dark"`) and `toolThemeIsDark` in its Handlebars context. For JavaScript-driven presentation, a consumer may override the post-change lifecycle callback:
+Every render also receives `toolTheme` (`"light"`, `"dark"`, or `"glass"`), `toolThemeIsDark`, and `toolThemeIsGlass` in its Handlebars context. For JavaScript-driven presentation, a consumer may override the post-change lifecycle callback:
 
 ```javascript
 async onToolThemeChanged(theme, previousTheme) {
@@ -128,7 +128,7 @@ Hooks.on('blacksmith.toolWindowThemeChanged', (app, theme, previousTheme) => {
 });
 ```
 
-The callback and hook fire after the shared frame state and requested rerender have completed. They fire only for an actual runtime change, not when the saved initial theme is restored during construction. CSS-driven content normally needs neither: it should inherit `--blacksmith-tool-*`, or select the frame's `data-tool-theme` / `.blacksmith-window-tool-theme-light|dark` state.
+The callback and hook fire after the shared frame state and requested rerender have completed. They fire only for an actual runtime change, not when the saved initial theme is restored during construction. CSS-driven content normally needs neither: it should inherit `--blacksmith-tool-*`, or select the frame's `data-tool-theme` / `.blacksmith-window-tool-theme-light|dark|glass` state.
 
 ```javascript
 static DEFAULT_OPTIONS = foundry.utils.mergeObject(
@@ -196,7 +196,7 @@ class MyCanvasTool extends ToolBase {
 
 Tool windows remember their last position per user by default. Set `rememberPosition: false` for transient instances, or set `windowPositionKey` when several instances should share one saved position. The same options also work on the standard base.
 
-`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. `api.toolTitlebars` exposes `FULL` (`"full"`) and `MICRO` (`"micro"`), while `api.toolThemes` exposes `LIGHT` (`"light"`) and `DARK` (`"dark"`). The registry remains presentation-agnostic: either style, Tool title-bar mode, and Tool theme can be registered and opened through `registerWindow` / `openWindow`.
+`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. `api.toolTitlebars` exposes `FULL` (`"full"`) and `MICRO` (`"micro"`), while `api.toolThemes` exposes `LIGHT` (`"light"`), `DARK` (`"dark"`), and `GLASS` (`"glass"`). The registry remains presentation-agnostic: any style, Tool title-bar mode, and Tool theme can be registered and opened through `registerWindow` / `openWindow`.
 
 Consumers may control mode switching and persistence with:
 
@@ -205,8 +205,8 @@ Consumers may control mode switching and persistence with:
 | `allowTitlebarModeToggle` | `true` | Include the Full/Micro switch in the controls menu. Set `false` to lock the configured mode and ignore saved user choices. |
 | `rememberTitlebarMode` | `true` | Persist the user's selected mode in local storage. |
 | `toolTitlebarPreferenceKey` | derived | Optional stable storage key. By default it is derived from `windowPositionKey` or the window class. |
-| `toolTheme` | `"light"` | Initial shared Tool-shell theme: `"light"` or `"dark"`. |
-| `allowToolThemeToggle` | `true` | Include the Light/Dark switch in the shared context menu. Set `false` to lock the configured theme and ignore saved user choices. |
+| `toolTheme` | `"light"` | Initial shared Tool-shell theme: `"light"`, `"dark"`, or `"glass"`. |
+| `allowToolThemeToggle` | `true` | Include the Light/Dark/Glass chooser in the shared context menu. Set `false` to lock the configured theme and ignore saved user choices. |
 | `rememberToolTheme` | `true` | Persist the user's selected theme in local storage. |
 | `toolThemePreferenceKey` | derived | Optional stable theme-storage key. By default it is derived from `windowPositionKey` or the window class. |
 

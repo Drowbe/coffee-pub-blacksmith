@@ -20,7 +20,8 @@ export const BLACKSMITH_TOOL_TITLEBARS = Object.freeze({
 
 export const BLACKSMITH_TOOL_THEMES = Object.freeze({
     LIGHT: 'light',
-    DARK: 'dark'
+    DARK: 'dark',
+    GLASS: 'glass'
 });
 
 export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
@@ -62,8 +63,8 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         this._toolTitlebarMode = this.options?.toolTitlebar === BLACKSMITH_TOOL_TITLEBARS.MICRO
             ? BLACKSMITH_TOOL_TITLEBARS.MICRO
             : BLACKSMITH_TOOL_TITLEBARS.FULL;
-        this._toolTheme = this.options?.toolTheme === BLACKSMITH_TOOL_THEMES.DARK
-            ? BLACKSMITH_TOOL_THEMES.DARK
+        this._toolTheme = Object.values(BLACKSMITH_TOOL_THEMES).includes(this.options?.toolTheme)
+            ? this.options.toolTheme
             : BLACKSMITH_TOOL_THEMES.LIGHT;
         this._loadToolTitlebarPreference();
         this._loadToolThemePreference();
@@ -75,6 +76,7 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         context.windowStyle = BLACKSMITH_WINDOW_STYLES.TOOL;
         context.toolTheme = this.toolTheme;
         context.toolThemeIsDark = this.toolTheme === BLACKSMITH_TOOL_THEMES.DARK;
+        context.toolThemeIsGlass = this.toolTheme === BLACKSMITH_TOOL_THEMES.GLASS;
         context.showToolBar ??= Boolean(context.toolBarLeft || context.toolBarRight);
         context.showToolFooter ??= Boolean(context.toolFooterLeft || context.toolFooterRight);
         return context;
@@ -108,8 +110,8 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
     }
 
     get toolTheme() {
-        return this._toolTheme === BLACKSMITH_TOOL_THEMES.DARK
-            ? BLACKSMITH_TOOL_THEMES.DARK
+        return Object.values(BLACKSMITH_TOOL_THEMES).includes(this._toolTheme)
+            ? this._toolTheme
             : BLACKSMITH_TOOL_THEMES.LIGHT;
     }
 
@@ -169,8 +171,8 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
     }
 
     async setToolTheme(theme, { persist = true, render = true } = {}) {
-        const normalized = theme === BLACKSMITH_TOOL_THEMES.DARK
-            ? BLACKSMITH_TOOL_THEMES.DARK
+        const normalized = Object.values(BLACKSMITH_TOOL_THEMES).includes(theme)
+            ? theme
             : BLACKSMITH_TOOL_THEMES.LIGHT;
         const previousTheme = this.toolTheme;
         if (normalized === previousTheme) return this;
@@ -198,8 +200,8 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
      * Override for JavaScript work that cannot be expressed through the shared
      * CSS variables, frame classes, data attribute, or template context.
      *
-     * @param {'light'|'dark'} theme
-     * @param {'light'|'dark'} previousTheme
+     * @param {'light'|'dark'|'glass'} theme
+     * @param {'light'|'dark'|'glass'} previousTheme
      * @returns {Promise<void>|void}
      */
     async onToolThemeChanged(_theme, _previousTheme) {}
@@ -257,15 +259,26 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         }
 
         if (this.options?.allowToolThemeToggle !== false) {
-            const useLight = this.toolTheme === BLACKSMITH_TOOL_THEMES.DARK;
             items.push({
-                name: localize(useLight
-                    ? 'coffee-pub-blacksmith.ToolWindowUseLightTheme'
-                    : 'coffee-pub-blacksmith.ToolWindowUseDarkTheme'),
-                icon: useLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon',
-                callback: () => this.setToolTheme(
-                    useLight ? BLACKSMITH_TOOL_THEMES.LIGHT : BLACKSMITH_TOOL_THEMES.DARK
-                )
+                name: localize('coffee-pub-blacksmith.ToolWindowTheme'),
+                icon: 'fa-solid fa-palette',
+                submenu: [
+                    {
+                        name: `${this.toolTheme === BLACKSMITH_TOOL_THEMES.LIGHT ? '✓ ' : ''}${localize('coffee-pub-blacksmith.ToolWindowLightTheme')}`,
+                        icon: 'fa-solid fa-sun',
+                        callback: () => this.setToolTheme(BLACKSMITH_TOOL_THEMES.LIGHT)
+                    },
+                    {
+                        name: `${this.toolTheme === BLACKSMITH_TOOL_THEMES.DARK ? '✓ ' : ''}${localize('coffee-pub-blacksmith.ToolWindowDarkTheme')}`,
+                        icon: 'fa-solid fa-moon',
+                        callback: () => this.setToolTheme(BLACKSMITH_TOOL_THEMES.DARK)
+                    },
+                    {
+                        name: `${this.toolTheme === BLACKSMITH_TOOL_THEMES.GLASS ? '✓ ' : ''}${localize('coffee-pub-blacksmith.ToolWindowGlassTheme')}`,
+                        icon: 'fa-regular fa-gem',
+                        callback: () => this.setToolTheme(BLACKSMITH_TOOL_THEMES.GLASS)
+                    }
+                ]
             });
         }
 
@@ -427,6 +440,10 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         frame.classList.toggle(
             'blacksmith-window-tool-theme-dark',
             this.toolTheme === BLACKSMITH_TOOL_THEMES.DARK
+        );
+        frame.classList.toggle(
+            'blacksmith-window-tool-theme-glass',
+            this.toolTheme === BLACKSMITH_TOOL_THEMES.GLASS
         );
         frame.dataset.toolTitlebar = this.toolTitlebarMode;
         frame.dataset.toolTheme = this.toolTheme;

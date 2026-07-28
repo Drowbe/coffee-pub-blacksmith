@@ -338,6 +338,10 @@
 				"ToolWindowUseMicroTitlebar": "Use Micro Title Bar",
 				"ToolWindowUseLightTheme": "Use Light Mode",
 				"ToolWindowUseDarkTheme": "Use Dark Mode",
+				"ToolWindowTheme": "Theme",
+				"ToolWindowLightTheme": "Light",
+				"ToolWindowDarkTheme": "Dark",
+				"ToolWindowGlassTheme": "Glass",
 
 
 		"headingH2Statistics-Label": "Statistics",
