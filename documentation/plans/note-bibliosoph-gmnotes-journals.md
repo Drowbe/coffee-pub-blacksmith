@@ -4,6 +4,30 @@
 **To:** Bibliosoph dev  
 **Re:** JournalPage GM Notes integration
 
+## Multi-contributor update
+
+The shared component now owns the entire GM Notes area. Bibliosoph should remove its separate “Running This Injury” block and register that content as a live provider:
+
+```js
+const gmNotes = game.modules.get("coffee-pub-blacksmith")?.api?.gmNotes;
+
+this._unregisterGmNotesProvider ??= gmNotes?.registerProvider(
+  "coffee-pub-bibliosoph",
+  async document => {
+    const html = document?.system?.gmnotes;
+    return html ? [{
+      id: "running-this-injury",
+      label: "Running This Injury",
+      html,
+      icon: "fa-solid fa-masks-theater",
+      weight: 100
+    }] : [];
+  }
+);
+```
+
+Register once during module initialization, not once per sheet. The existing `createField(page)` mount automatically renders General plus this contributed section. The provider content is read-only and never stored in Blacksmith flags. If Bibliosoph later needs a genuinely stored annotation, use `setSection(page, "coffee-pub-bibliosoph", sectionId, data)` instead.
+
 Thank you for the detailed review. We agree with the direction and are extending Blacksmith's GM Notes API around the journal and compendium requirements you identified.
 
 Bibliosoph can prepare its Injury Page sheet now without creating temporary storage or a second notes convention. The integration should continue to treat the Injury `JournalEntryPage` as the annotated document.
@@ -114,7 +138,7 @@ The future Importer update-in-place contract will support preservation paths, wi
 
 ```js
 preserveOnReimport: [
-  "flags.coffee-pub-blacksmith.gmNotes"
+  ...gmNotes.PRESERVE_ON_REIMPORT
 ]
 ```
 

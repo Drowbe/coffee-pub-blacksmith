@@ -21,11 +21,12 @@ import { postConsoleAndNotification } from './api-core.js';
 const NOTES_FLAG = 'gmNotes';
 
 // Envelope schema version. Bump when the shape changes; migrate on read.
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 // Public event fired after every write. Consumers (future search index,
 // sheet "has notes" badges) subscribe via Hooks.on(GMNotesManager.CHANGE_HOOK, ...).
 const CHANGE_HOOK = 'blacksmith.gmNotesChanged';
+const PROVIDERS_HOOK = 'blacksmith.gmNotesProvidersChanged';
 const NOTE_FIELDS = new Set(['schemaVersion', 'html', 'text', 'pinned', 'updatedAt']);
 
 export class GMNotesWriteError extends Error {
@@ -47,6 +48,9 @@ export class GMNotesWriteError extends Error {
 export class GMNotesManager {
 
     static get CHANGE_HOOK() { return CHANGE_HOOK; }
+    static get PROVIDERS_HOOK() { return PROVIDERS_HOOK; }
+    static _providers = new Map();
+    static _providerOrder = 0;
 
     static isAvailable() {
         return !!game?.user;
@@ -87,7 +91,14 @@ export class GMNotesManager {
 
     /** A fresh, empty envelope. */
     static _emptyEnvelope() {
-        return { schemaVersion: SCHEMA_VERSION, html: '', text: '', pinned: false, updatedAt: 0 };
+        return {
+            schemaVersion: SCHEMA_VERSION,
+            html: '',
+            text: '',
+            pinned: false,
+            updatedAt: 0,
+            sections: {}
+        };
     }
 
     /** Normalize any stored value into the current envelope shape. */
@@ -100,8 +111,58 @@ export class GMNotesManager {
             html: typeof raw.html === 'string' ? raw.html : '',
             text: typeof raw.text === 'string' ? raw.text : this._stripHtml(raw.html),
             pinned: !!raw.pinned,
-            updatedAt: Number(raw.updatedAt) || 0
+            updatedAt: Number(raw.updatedAt) || 0,
+            sections: this._migrateSections(raw.sections)
         };
+    }
+
+    static _migrateSections(rawSections) {
+        if (!rawSections || typeof rawSections !== 'object' || Array.isArray(rawSections)) return {};
+        const sections = {};
+        for (const [moduleId, moduleSections] of Object.entries(rawSections)) {
+            if (!moduleId || !moduleSections || typeof moduleSections !== 'object' || Array.isArray(moduleSections)) continue;
+            const normalized = {};
+            for (const [sectionId, raw] of Object.entries(moduleSections)) {
+                if (!sectionId || !raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
+                const html = typeof raw.html === 'string' ? raw.html : '';
+                normalized[sectionId] = {
+                    ...foundry.utils.deepClone(raw),
+                    id: sectionId,
+                    moduleId,
+                    label: typeof raw.label === 'string' && raw.label.trim() ? raw.label.trim() : sectionId,
+                    html,
+                    text: typeof raw.text === 'string' ? raw.text : this._stripHtml(html),
+                    icon: typeof raw.icon === 'string' ? raw.icon : '',
+                    weight: Number.isFinite(Number(raw.weight)) ? Number(raw.weight) : 100,
+                    updatedAt: Number(raw.updatedAt) || 0
+                };
+            }
+            if (Object.keys(normalized).length) sections[moduleId] = normalized;
+        }
+        return sections;
+    }
+
+    static _normalizeSection(moduleId, sectionId, data = {}) {
+        const html = typeof data.html === 'string' ? data.html : '';
+        return {
+            id: sectionId,
+            moduleId,
+            label: typeof data.label === 'string' && data.label.trim() ? data.label.trim() : sectionId,
+            html,
+            text: this._stripHtml(html),
+            icon: typeof data.icon === 'string' ? data.icon : '',
+            weight: Number.isFinite(Number(data.weight)) ? Number(data.weight) : 100,
+            updatedAt: Date.now()
+        };
+    }
+
+    static _validateSectionIdentity(moduleId, sectionId) {
+        const owner = String(moduleId ?? '').trim();
+        const id = String(sectionId ?? '').trim();
+        if (!owner || !id) {
+            throw new TypeError('GM Notes sections require non-empty moduleId and sectionId values.');
+        }
+        return { moduleId: owner, sectionId: id };
     }
 
     /** Derive the plain-text search mirror from rich HTML. */
@@ -187,6 +248,203 @@ export class GMNotesManager {
             return [key, await this.getNoteAsync(target)];
         }));
         return new Map(pairs.filter(([key]) => !!key));
+    }
+
+    // ============================================================
+    // Persisted module sections
+    // ============================================================
+
+    static async getPersistedSections(uuidOrDoc) {
+        const note = await this.getNoteAsync(uuidOrDoc);
+        if (!note) return [];
+        return Object.values(note.sections ?? {})
+            .flatMap(moduleSections => Object.values(moduleSections ?? {}))
+            .map(section => ({ ...foundry.utils.deepClone(section), source: 'persisted' }))
+            .sort(this._sortSections);
+    }
+
+    static async getSection(uuidOrDoc, moduleId, sectionId) {
+        const identity = this._validateSectionIdentity(moduleId, sectionId);
+        const note = await this.getNoteAsync(uuidOrDoc);
+        const section = note?.sections?.[identity.moduleId]?.[identity.sectionId];
+        return section ? foundry.utils.deepClone(section) : null;
+    }
+
+    static async setSection(uuidOrDoc, moduleId, sectionId, data = {}) {
+        try {
+            return await this.setSectionOrThrow(uuidOrDoc, moduleId, sectionId, data);
+        } catch (err) {
+            postConsoleAndNotification(
+                MODULE.NAME,
+                'BLACKSMITH | NOTES setSection: write failed',
+                err?.message || err,
+                false,
+                err?.reason !== 'unresolved'
+            );
+            return null;
+        }
+    }
+
+    static async setSectionOrThrow(uuidOrDoc, moduleId, sectionId, data = {}) {
+        const identity = this._validateSectionIdentity(moduleId, sectionId);
+        const capability = await this.canSet(uuidOrDoc);
+        if (!capability.allowed) {
+            throw new GMNotesWriteError(capability.reason, capability.message, {
+                document: capability.document,
+                uuid: typeof uuidOrDoc === 'string' ? uuidOrDoc : uuidOrDoc?.uuid
+            });
+        }
+
+        const doc = capability.document;
+        const current = this.getNote(doc) ?? this._emptyEnvelope();
+        const existing = current.sections?.[identity.moduleId]?.[identity.sectionId] ?? {};
+        const section = this._normalizeSection(
+            identity.moduleId,
+            identity.sectionId,
+            { ...existing, ...data }
+        );
+        const envelope = {
+            ...current,
+            schemaVersion: SCHEMA_VERSION,
+            sections: {
+                ...(current.sections ?? {}),
+                [identity.moduleId]: {
+                    ...(current.sections?.[identity.moduleId] ?? {}),
+                    [identity.sectionId]: section
+                }
+            },
+            updatedAt: Date.now()
+        };
+
+        try {
+            await doc.update({ [`flags.${MODULE.ID}.${NOTES_FLAG}`]: envelope }, { render: false });
+        } catch (err) {
+            throw new GMNotesWriteError('write-failed', err?.message || 'The GM Notes section could not be saved.', {
+                document: doc,
+                cause: err
+            });
+        }
+
+        Hooks.callAll(CHANGE_HOOK, {
+            ...this._buildChangePayload(doc, envelope),
+            section: { ...section, source: 'persisted' },
+            changeType: 'section-set'
+        });
+        return section;
+    }
+
+    static async clearSection(uuidOrDoc, moduleId, sectionId) {
+        const identity = this._validateSectionIdentity(moduleId, sectionId);
+        const capability = await this.canSet(uuidOrDoc);
+        if (!capability.allowed) return false;
+        const doc = capability.document;
+        const current = this.getNote(doc);
+        if (!current?.sections?.[identity.moduleId]?.[identity.sectionId]) return true;
+
+        const sections = foundry.utils.deepClone(current.sections);
+        delete sections[identity.moduleId][identity.sectionId];
+        if (!Object.keys(sections[identity.moduleId]).length) delete sections[identity.moduleId];
+        const envelope = { ...current, sections, updatedAt: Date.now() };
+        try {
+            await doc.update({ [`flags.${MODULE.ID}.${NOTES_FLAG}`]: envelope }, { render: false });
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | NOTES clearSection: write failed', err?.message || err, false, true);
+            return false;
+        }
+        Hooks.callAll(CHANGE_HOOK, {
+            ...this._buildChangePayload(doc, envelope),
+            section: {
+                id: identity.sectionId,
+                moduleId: identity.moduleId,
+                source: 'persisted'
+            },
+            changeType: 'section-clear'
+        });
+        return true;
+    }
+
+    // ============================================================
+    // Live contributed sections
+    // ============================================================
+
+    static registerProvider(moduleId, provider, options = {}) {
+        const owner = String(moduleId ?? '').trim();
+        if (!owner) throw new TypeError('GM Notes provider moduleId is required.');
+        if (typeof provider !== 'function') throw new TypeError('GM Notes provider must be a function.');
+        const providerId = String(options.id ?? 'default').trim() || 'default';
+        const key = `${owner}:${providerId}`;
+        const record = {
+            key,
+            moduleId: owner,
+            providerId,
+            provider,
+            weight: Number.isFinite(Number(options.weight)) ? Number(options.weight) : 100,
+            order: this._providerOrder++
+        };
+        this._providers.set(key, record);
+        Hooks.callAll(PROVIDERS_HOOK, { action: 'register', moduleId: owner, providerId });
+        return () => this.unregisterProvider(owner, providerId);
+    }
+
+    static unregisterProvider(moduleId, providerId = 'default') {
+        const key = `${String(moduleId ?? '').trim()}:${String(providerId ?? 'default').trim() || 'default'}`;
+        const removed = this._providers.delete(key);
+        if (removed) {
+            Hooks.callAll(PROVIDERS_HOOK, {
+                action: 'unregister',
+                moduleId: String(moduleId ?? '').trim(),
+                providerId: String(providerId ?? 'default').trim() || 'default'
+            });
+        }
+        return removed;
+    }
+
+    static async getContributedSections(uuidOrDoc) {
+        const doc = await this._resolveDocAsync(uuidOrDoc);
+        if (!doc) return [];
+        const records = [...this._providers.values()].sort((a, b) => a.order - b.order);
+        const groups = await Promise.all(records.map(async record => {
+            try {
+                const supplied = await record.provider(doc);
+                const rows = Array.isArray(supplied) ? supplied : (supplied ? [supplied] : []);
+                return rows.map((raw, index) => {
+                    const id = String(raw?.id ?? `${record.providerId}-${index + 1}`).trim();
+                    const html = typeof raw?.html === 'string' ? raw.html : '';
+                    return {
+                        id,
+                        moduleId: record.moduleId,
+                        providerId: record.providerId,
+                        label: typeof raw?.label === 'string' && raw.label.trim() ? raw.label.trim() : id,
+                        html,
+                        text: this._stripHtml(html),
+                        icon: typeof raw?.icon === 'string' ? raw.icon : '',
+                        weight: Number.isFinite(Number(raw?.weight)) ? Number(raw.weight) : record.weight,
+                        order: record.order,
+                        source: 'contributed',
+                        readOnly: true
+                    };
+                }).filter(section => section.id && (section.html || section.text));
+            } catch (err) {
+                console.error(`${MODULE.ID} | GM Notes provider "${record.key}" failed`, err);
+                return [];
+            }
+        }));
+        return groups.flat().sort(this._sortSections);
+    }
+
+    static async getSections(uuidOrDoc, { includePersisted = true, includeContributed = true } = {}) {
+        const [persisted, contributed] = await Promise.all([
+            includePersisted ? this.getPersistedSections(uuidOrDoc) : [],
+            includeContributed ? this.getContributedSections(uuidOrDoc) : []
+        ]);
+        return [...persisted, ...contributed].sort(this._sortSections);
+    }
+
+    static _sortSections(left, right) {
+        return (Number(left?.weight) || 100) - (Number(right?.weight) || 100)
+            || (Number(left?.order) || 0) - (Number(right?.order) || 0)
+            || String(left?.moduleId ?? '').localeCompare(String(right?.moduleId ?? ''))
+            || String(left?.id ?? '').localeCompare(String(right?.id ?? ''));
     }
 
     // ============================================================
@@ -335,7 +593,7 @@ export class GMNotesManager {
         return envelope;
     }
 
-    /** Remove all note data from a document. */
+    /** Clear the GM's General note while preserving module sections. */
     static async clearNote(uuidOrDoc) {
         const capability = await this.canSet(uuidOrDoc);
         if (!capability.allowed) return false;
@@ -343,7 +601,11 @@ export class GMNotesManager {
         const raw = doc.getFlag(MODULE.ID, NOTES_FLAG);
         const extras = raw && typeof raw === 'object'
             ? Object.fromEntries(Object.entries(foundry.utils.deepClone(raw))
-                .filter(([key]) => !NOTE_FIELDS.has(key)))
+                .filter(([key, value]) => {
+                    if (NOTE_FIELDS.has(key)) return false;
+                    if (key === 'sections') return value && Object.keys(value).length > 0;
+                    return true;
+                }))
             : {};
         const hasExtras = Object.keys(extras).length > 0;
         const cleared = hasExtras

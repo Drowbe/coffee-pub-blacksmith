@@ -12,7 +12,9 @@ The target Document owns:
 flags.coffee-pub-blacksmith.gmNotes
 ```
 
-The schema-versioned envelope currently owns `html`, derived `text`, `pinned`, and `updatedAt`. Migration and partial writes preserve unknown fields so the flag can safely acquire future metadata. `clear()` deletes the flag when it contains only note fields; if future fields exist, it clears the note-owned fields and leaves the broader metadata intact.
+The schema-versioned envelope owns the GM's General `html`, derived `text`, `pinned`, `updatedAt`, and a `sections` map keyed by module id and section id. General writes never replace sections; section writes never replace General or a sibling namespace. `clear()` clears General while preserving sections; `clearSection()` removes only its addressed section.
+
+Live contributed sections are held in an in-memory provider registry and are never copied into document flags. Providers receive the resolved Document at render time, so shipped guidance versions with its owning module without creating a drifting second copy.
 
 Storage is UI-gated, not encrypted. Any client receiving the underlying Document may inspect its flags.
 
@@ -36,17 +38,16 @@ Bulk reads resolve concurrently and return a UUID-keyed Map.
 
 `GMNotesSheetUI` retains the automatic dnd5e Item/Container read-card integration.
 
-`GMNotesFieldController` is the supported inversion-of-control path for module-owned sheets. The owner supplies a host; the controller handles async loading, GM gating, enrichment, capability/read-only state, collapse memory, canonical editor launch, live refresh, and cleanup.
+`GMNotesFieldController` is the supported inversion-of-control path for module-owned sheets. The owner supplies one host; the controller renders General first, persisted sections second, and contributed sections third. Module sections are attributed and read-only, with per-user collapse/hide state. The controller also handles async loading, GM gating, enrichment, capability/read-only state, canonical editor launch, live refresh, and cleanup.
 
 The canonical `GMNotesWindow` uses Blacksmith's Application V2 base and Foundry ProseMirror. Each window binds its own actions, avoiding the base class's legacy single-static-reference limitation when multiple note editors are open. Locked or non-writable documents open read-only with an explanation.
 
 ## Importers
 
-GM Notes is user-authored state and must be preserved by any future update-in-place importer:
+General GM Notes are user-authored state and must be preserved by any future update-in-place importer. Persisted sections merge by `[moduleId][sectionId]`, with incoming content replacing only the same owned key. Contributed sections are not stored and take no part in import:
 
 ```text
-flags.coffee-pub-blacksmith.gmNotes
+flags.coffee-pub-blacksmith.gmNotes.{html,text,pinned,updatedAt}
 ```
 
 Current JSON importers create new Documents, so no executable re-import merge stage exists yet. `GMNotesAPI.PRESERVE_ON_REIMPORT` publishes the required default for that future stage.
-

@@ -12,7 +12,7 @@ const gmNotes = game.modules.get('coffee-pub-blacksmith')?.api?.gmNotes;
 
 ## Storage & privacy
 
-Notes are stored on the **target document's own flags** (`flags["coffee-pub-blacksmith"].gmNotes`), addressed by **document UUID** at the API boundary. This is UI-gated, not encrypted: the panel only renders for `game.user.isGM`, but the underlying flag travels to any client that can observe the document. This is an intentional project decision — do not store true secrets here that a determined, console-using player must never see.
+Notes are stored on the **target document's own flags** (`flags["coffee-pub-blacksmith"].gmNotes`), addressed by **document UUID** at the API boundary. The envelope contains the GM's unowned General note and optional namespaced persisted module sections. Live contributed sections are never stored. This is UI-gated, not encrypted: the panel only renders for `game.user.isGM`, but the underlying flag travels to any client that can observe the document.
 
 Blacksmith automatically injects its legacy read card into dnd5e `ItemSheet5e` and `ContainerSheet`. Module-owned Actor, Journal, JournalPage, and other custom sheets should mount the reusable field/controller described below rather than waiting for Blacksmith to recognize their sheet class.
 
@@ -20,11 +20,25 @@ Blacksmith automatically injects its legacy read card into dnd5e `ItemSheet5e` a
 
 ```js
 {
-    schemaVersion: 1,
+    schemaVersion: 2,
     html: "<p>Rich note body…</p>",  // authored content
     text: "Rich note body…",          // plain-text mirror (search index)
     pinned: false,
-    updatedAt: 1719763200000          // ms epoch of last write
+    updatedAt: 1719763200000,         // ms epoch of last write
+    sections: {
+        "coffee-pub-squire": {
+            "quest-guidance": {
+                id: "quest-guidance",
+                moduleId: "coffee-pub-squire",
+                label: "Quest Guidance",
+                html: "<p>Module-owned annotation.</p>",
+                text: "Module-owned annotation.",
+                icon: "fa-solid fa-flag",
+                weight: 100,
+                updatedAt: 1719763200000
+            }
+        }
+    }
 }
 ```
 
@@ -45,9 +59,18 @@ Blacksmith automatically injects its legacy read card into dnd5e `ItemSheet5e` a
 | `hasAsync(uuid)` | `Promise<boolean>` | Async existence check. |
 | `getMany(targets)` | `Promise<Map>` | Resolve UUIDs/Documents concurrently. Map keys are requested UUIDs (or live Document UUIDs); values are envelopes or `null`. |
 | `canSet(uuid)` | `Promise<object>` | Resolve the target and report `{ allowed, reason, message, document }`. |
+| `getSection(uuid, moduleId, sectionId)` | `Promise<object \| null>` | Read one stored, namespaced module section. |
+| `getSections(uuid, options?)` | `Promise<object[]>` | Read stored and live contributed sections. Options may disable either source. |
+| `getPersistedSections(uuid)` | `Promise<object[]>` | Read only stored module sections. |
+| `getContributedSections(uuid)` | `Promise<object[]>` | Execute registered providers and return their live sections. |
 | `set(uuid, data)` | `Promise<object \| null>` | **Update** the note — a partial merge, not a replace. `data`: `{ html?, pinned? }`; **any field you omit keeps its current value**, so `set(uuid, { pinned: true })` preserves the existing `html` rather than clearing it. Regenerates `text`, stamps `updatedAt`, writes with `render:false`, fires the change hook. Resolves to the stored envelope, or `null` on failure. To actually empty a note, pass `{ html: '' }` — or use `clear()` to remove the note data entirely. |
 | `setOrThrow(uuid, data)` | `Promise<object>` | Same write, but throws `gmNotes.WriteError` with a typed `reason` instead of returning `null`. |
-| `clear(uuid)` | `Promise<boolean>` | Remove all note data from the document. |
+| `clear(uuid)` | `Promise<boolean>` | Clear the GM's General note while preserving module sections. |
+| `setSection(uuid, moduleId, sectionId, data)` | `Promise<object \| null>` | Create/update only the caller's stored section. |
+| `setSectionOrThrow(uuid, moduleId, sectionId, data)` | `Promise<object>` | Typed-error variant of `setSection()`. |
+| `clearSection(uuid, moduleId, sectionId)` | `Promise<boolean>` | Remove only the addressed stored section. |
+| `registerProvider(moduleId, provider, options?)` | `Function` | Register live read-only sections and return an unregister function. |
+| `unregisterProvider(moduleId, providerId?)` | `boolean` | Remove a registered provider. |
 | `createField(uuid, options)` | `Promise<GMNotesFieldController>` | Create the reusable GM-only field/controller. |
 | `renderField(uuid, options)` | `Promise<GMNotesFieldController>` | Compatibility alias for `createField()`. New integrations should use `createField()`. |
 
@@ -115,6 +138,43 @@ The controller exposes:
 
 It resolves compendium documents asynchronously, hides itself from non-GMs, renders enriched read content, opens Blacksmith's canonical ProseMirror editor, disables editing with an explanation and remedy for locked/no-permission targets, remembers collapse state locally, and refreshes from the shared change hook. It also sets `.read-only` and `data-gm-notes-read-only="true|false"` on its root so hosts can adapt layout without JavaScript.
 
+The field is the canonical shared surface. It renders the GM's General note first, then persisted module sections, then live contributed sections. Module sections are attributed, read-only, and independently collapsible/hideable per user.
+
+## Module sections
+
+Use a provider when the content already lives in your module's document data and should always reflect that source:
+
+```js
+const unregister = gmNotes.registerProvider(
+    'coffee-pub-bibliosoph',
+    async document => {
+        const html = document?.system?.gmnotes;
+        return html ? [{
+            id: 'running-this-injury',
+            label: 'Running This Injury',
+            html,
+            icon: 'fa-solid fa-masks-theater',
+            weight: 100
+        }] : [];
+    }
+);
+```
+
+Providers may return one object, an array, or nothing. Provider failures are isolated and logged; they do not prevent General notes or other providers from rendering. Call the returned function during module teardown if the registration should be removed.
+
+Use persisted sections only for annotations the module genuinely owns:
+
+```js
+await gmNotes.setSection(page, 'coffee-pub-squire', 'quest-guidance', {
+    label: 'Quest Guidance',
+    html: '<p>Stored module annotation.</p>',
+    icon: 'fa-solid fa-flag',
+    weight: 100
+});
+```
+
+Modules must never write the General note and must not write another module's namespace.
+
 Destroy the controller before replacing its host on rerender and when the owning sheet closes:
 
 ```js
@@ -123,7 +183,7 @@ this._gmNotesField?.destroy();
 
 ## Change event
 
-Every `set` / `clear` fires a global hook so consumers (a future search index, sheet badges) can react:
+Every General or persisted-section write/clear fires the global change hook. Section events additionally contain `section` and `changeType`.
 
 ```js
 Hooks.on(game.modules.get('coffee-pub-blacksmith').api.gmNotes.CHANGE_HOOK, ({
@@ -161,7 +221,9 @@ GM-authored notes are user data. Importers that update documents in place must p
 
 ```js
 gmNotes.PRESERVE_ON_REIMPORT
-// ["flags.coffee-pub-blacksmith.gmNotes"]
+// General-note field paths; inspect the value at runtime.
 ```
 
 Blacksmith's current JSON importers create new documents and do not yet expose update-in-place conflict handling. The preservation path is the required default for that future stage. Locked module packs remain unsuitable for durable user-authored notes; copy shipped content into a world-owned compendium when notes must survive module replacement.
+
+`REIMPORT_POLICY` further specifies that General note fields are preserved, persisted sections merge by `[moduleId][sectionId]` with incoming data winning only at the same key, and contributed sections are never stored.

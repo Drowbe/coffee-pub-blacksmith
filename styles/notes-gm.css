@@ -161,6 +161,77 @@
 }
 
 .blacksmith-gm-notes-field.collapsed .blacksmith-gm-notes-field-status,
-.blacksmith-gm-notes-field.collapsed .blacksmith-gm-notes-field-content {
+.blacksmith-gm-notes-field.collapsed .blacksmith-gm-notes-field-body {
     display: none;
+}
+
+.blacksmith-gm-notes-field-body,
+.blacksmith-gm-notes-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+.blacksmith-gm-notes-sections:empty {
+    display: none;
+}
+
+.blacksmith-gm-notes-section {
+    border: 1px solid var(--blacksmith-window-border-color, rgba(128, 128, 128, 0.35));
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.blacksmith-gm-notes-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 30px;
+    padding: 3px 6px;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.blacksmith-gm-notes-section-collapse,
+.blacksmith-gm-notes-section-visibility {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 26px;
+    padding: 2px 5px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+}
+
+.blacksmith-gm-notes-section-collapse {
+    flex: 1;
+    justify-content: flex-start;
+    font-weight: 700;
+    text-align: left;
+}
+
+.blacksmith-gm-notes-section-attribution {
+    max-width: 35%;
+    overflow: hidden;
+    opacity: 0.62;
+    font-size: 0.78em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-gm-notes-section-content {
+    padding: 8px 10px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.blacksmith-gm-notes-section.collapsed .blacksmith-gm-notes-section-content,
+.blacksmith-gm-notes-section.hidden-content .blacksmith-gm-notes-section-content {
+    display: none;
+}
+
+.blacksmith-gm-notes-section.hidden-content {
+    opacity: 0.58;
 }

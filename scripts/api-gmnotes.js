@@ -12,7 +12,21 @@ import { GMNotesFieldController } from './ui-gmnotes-field.js';
 export class GMNotesAPI {
 
     static get PRESERVE_ON_REIMPORT() {
-        return Object.freeze([`flags.coffee-pub-blacksmith.gmNotes`]);
+        const root = 'flags.coffee-pub-blacksmith.gmNotes';
+        return Object.freeze([
+            `${root}.html`,
+            `${root}.text`,
+            `${root}.pinned`,
+            `${root}.updatedAt`
+        ]);
+    }
+
+    static get REIMPORT_POLICY() {
+        return Object.freeze({
+            general: 'preserve',
+            persistedSections: 'merge-by-module-and-section-id-incoming-wins',
+            contributedSections: 'not-stored'
+        });
     }
 
     static get WriteError() {
@@ -26,6 +40,11 @@ export class GMNotesAPI {
     /** Hook name fired after every note write/clear. */
     static get CHANGE_HOOK() {
         return GMNotesManager.CHANGE_HOOK;
+    }
+
+    /** Hook fired when a live contributed-section provider is added or removed. */
+    static get PROVIDERS_HOOK() {
+        return GMNotesManager.PROVIDERS_HOOK;
     }
 
     // ============================================================
@@ -72,6 +91,22 @@ export class GMNotesAPI {
         return GMNotesManager.getMany(uuids);
     }
 
+    static getSection(uuid, moduleId, sectionId) {
+        return GMNotesManager.getSection(uuid, moduleId, sectionId);
+    }
+
+    static getSections(uuid, options = {}) {
+        return GMNotesManager.getSections(uuid, options);
+    }
+
+    static getPersistedSections(uuid) {
+        return GMNotesManager.getPersistedSections(uuid);
+    }
+
+    static getContributedSections(uuid) {
+        return GMNotesManager.getContributedSections(uuid);
+    }
+
     static canSet(uuid) {
         return GMNotesManager.canSet(uuid);
     }
@@ -89,9 +124,33 @@ export class GMNotesAPI {
         return GMNotesManager.setNoteOrThrow(uuid, data);
     }
 
-    /** Remove all note data from the document. */
+    /** Clear the GM's General note while preserving module sections. */
     static clear(uuid) {
         return GMNotesManager.clearNote(uuid);
+    }
+
+    static setSection(uuid, moduleId, sectionId, data = {}) {
+        return GMNotesManager.setSection(uuid, moduleId, sectionId, data);
+    }
+
+    static setSectionOrThrow(uuid, moduleId, sectionId, data = {}) {
+        return GMNotesManager.setSectionOrThrow(uuid, moduleId, sectionId, data);
+    }
+
+    static clearSection(uuid, moduleId, sectionId) {
+        return GMNotesManager.clearSection(uuid, moduleId, sectionId);
+    }
+
+    /**
+     * Register live, read-only GM Notes content. Returns an unregister function.
+     * Providers receive the resolved Document and return one section or an array.
+     */
+    static registerProvider(moduleId, provider, options = {}) {
+        return GMNotesManager.registerProvider(moduleId, provider, options);
+    }
+
+    static unregisterProvider(moduleId, providerId = 'default') {
+        return GMNotesManager.unregisterProvider(moduleId, providerId);
     }
 
     /**
