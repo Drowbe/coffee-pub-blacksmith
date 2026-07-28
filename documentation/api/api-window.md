@@ -67,6 +67,25 @@ See **documentation/applicationv2-window/blacksmith-windows-zones.webp** for the
 
 Use `BlacksmithToolWindowBaseV2` for small utilities that should remain open over the canvas: dice trays, health controls, macro palettes, trackers, and similar tools. It uses Foundry's native Application V2 frame, so dragging, focus/z-order, minimizing, closing, and window lifecycle remain standard. It deliberately omits the full editor header and five-zone layout.
 
+The base supplies the complete shared visual shell even when the consumer returns an empty body: parchment surface, gold border, display-type title bar, matching controls, and compact window shadow. No additional parchment class is required. Consumers own only their body content and may override these public custom properties when a deliberate tool-specific variation is required:
+
+| Property | Purpose |
+|----------|---------|
+| `--blacksmith-tool-background` | Shared frame, title-bar, and empty-body surface. May be a color or gradient. |
+| `--blacksmith-tool-border` | Outer frame border. |
+| `--blacksmith-tool-divider` | Title/toolbar/footer dividers. |
+| `--blacksmith-tool-text` | Default body and control text. |
+| `--blacksmith-tool-accent` | Title text and primary frame accent. |
+
+Scope any override to the consumer's own application class. Do not copy Blacksmith's combatant-card CSS:
+
+```css
+.application.blacksmith-window-tool.my-module-tool-window {
+    --blacksmith-tool-background: #111;
+    --blacksmith-tool-text: #eee;
+}
+```
+
 The tool template accepts:
 
 | Key | Type | Description |

@@ -241,7 +241,7 @@ The registry does not enforce singleton behavior. `SquireHealthController.open()
 
 ## Styling boundary
 
-Blacksmith styles the outer Application V2 frame and compact title bar. Squire should scope its content rules beneath `.squire-health-tool-window` or `.squire-health-tool`.
+Blacksmith styles the complete Application V2 shell: parchment title bar and body surface, display typography, gold border, shadow, and title controls. Squire should scope its interior content rules beneath `.squire-health-tool-window` or `.squire-health-tool`.
 
 Do not override generic Foundry selectors such as `.application`, `.window-header`, or `.window-content` globally. If Health needs a deliberate variation, scope it:
 
@@ -255,7 +255,28 @@ Do not override generic Foundry selectors such as `.application`, `.window-heade
 }
 ```
 
-The compact Blacksmith frame is intentionally neutral. The specialized parchment combatant-card title bar is a Blacksmith consumer-specific variation, not the default Tool API appearance.
+The parchment surface, gold border, display-type title bar, controls, and shadow are core Tool API styling. Squire should receive that complete shell even with an empty `bodyContent`; it only needs to style the Health controls inside the body. Tool-specific frame changes should override the scoped `--blacksmith-tool-*` custom properties rather than replacing the shared frame CSS.
+
+### First-consumer correction
+
+The initial Blacksmith implementation exposed a dark generic Tool shell and kept the parchment shell under the private `.blacksmith-combatant-tool-window` consumer class. Squire correctly identified that this would force consumers either to copy private CSS or invent a parallel theme. Blacksmith has corrected the API:
+
+- parchment is now the default `.blacksmith-window-tool` shell;
+- no `blacksmith-window-tool-parchment` class is required or supported;
+- the combatant card no longer owns a private frame theme;
+- Squire should remove redundant Dice Tray frame/body backgrounds when it wants the shared parchment surface;
+- Squire should retain only the CSS needed to lay out and style its dice controls;
+- a deliberately dark Squire tool may opt out by overriding the public `--blacksmith-tool-*` properties on its own scoped application class.
+
+Therefore the expected Squire class list is simply:
+
+```javascript
+classes: [
+    'squire-dicetray-tool-window'
+]
+```
+
+The inherited base contributes `blacksmith-window-tool`; Squire does not need to repeat it.
 
 ## Live verification checklist
 
