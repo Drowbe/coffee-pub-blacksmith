@@ -111,6 +111,25 @@ await app.setToolTheme(api.toolThemes.DARK);
 
 As with title-bar mode, finalized Application V2 options are immutable; do not assign to `app.options.toolTheme`.
 
+Every render also receives `toolTheme` (`"light"` or `"dark"`) and `toolThemeIsDark` in its Handlebars context. For JavaScript-driven presentation, a consumer may override the post-change lifecycle callback:
+
+```javascript
+async onToolThemeChanged(theme, previousTheme) {
+    await super.onToolThemeChanged(theme, previousTheme);
+    // Update canvas, chart, or third-party UI that cannot inherit CSS variables.
+}
+```
+
+Blacksmith then broadcasts:
+
+```javascript
+Hooks.on('blacksmith.toolWindowThemeChanged', (app, theme, previousTheme) => {
+    // Observe theme changes across Tool Window consumers.
+});
+```
+
+The callback and hook fire after the shared frame state and requested rerender have completed. They fire only for an actual runtime change, not when the saved initial theme is restored during construction. CSS-driven content normally needs neither: it should inherit `--blacksmith-tool-*`, or select the frame's `data-tool-theme` / `.blacksmith-window-tool-theme-light|dark` state.
+
 ```javascript
 static DEFAULT_OPTIONS = foundry.utils.mergeObject(
     foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),

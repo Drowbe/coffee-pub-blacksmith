@@ -73,6 +73,8 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         const context = await super._prepareContext(options);
         context.appId ??= this.id;
         context.windowStyle = BLACKSMITH_WINDOW_STYLES.TOOL;
+        context.toolTheme = this.toolTheme;
+        context.toolThemeIsDark = this.toolTheme === BLACKSMITH_TOOL_THEMES.DARK;
         context.showToolBar ??= Boolean(context.toolBarLeft || context.toolBarRight);
         context.showToolFooter ??= Boolean(context.toolFooterLeft || context.toolFooterRight);
         return context;
@@ -170,12 +172,37 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         const normalized = theme === BLACKSMITH_TOOL_THEMES.DARK
             ? BLACKSMITH_TOOL_THEMES.DARK
             : BLACKSMITH_TOOL_THEMES.LIGHT;
+        const previousTheme = this.toolTheme;
+        if (normalized === previousTheme) return this;
+
         this._toolTheme = normalized;
         if (persist) this._saveToolThemePreference(normalized);
         this._applyToolWindowModeClasses(this.element);
         if (render && this.rendered) await this.render(false);
+
+        try {
+            await this.onToolThemeChanged(normalized, previousTheme);
+        } finally {
+            Hooks.callAll(
+                'blacksmith.toolWindowThemeChanged',
+                this,
+                normalized,
+                previousTheme
+            );
+        }
         return this;
     }
+
+    /**
+     * Consumer lifecycle callback invoked after a runtime Tool theme change.
+     * Override for JavaScript work that cannot be expressed through the shared
+     * CSS variables, frame classes, data attribute, or template context.
+     *
+     * @param {'light'|'dark'} theme
+     * @param {'light'|'dark'} previousTheme
+     * @returns {Promise<void>|void}
+     */
+    async onToolThemeChanged(_theme, _previousTheme) {}
 
     _configureRenderOptions(options) {
         super._configureRenderOptions(options);

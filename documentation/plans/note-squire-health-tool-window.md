@@ -297,6 +297,8 @@ The menu also lets the user switch back to Full mode; Full mode's ellipsis offer
 
 The same menu offers Blacksmith's shared Light/Dark Tool-shell switch. Blacksmith persists it per Squire tool; Squire should inherit the Tool theme variables and avoid replacing the frame/title/body surface with a competing hard-coded theme.
 
+If Dice Tray or Health maintains JavaScript-rendered colors that cannot inherit those variables, override `onToolThemeChanged(theme, previousTheme)` on that Tool Window. Cross-window observers may instead listen for `blacksmith.toolWindowThemeChanged`; normal CSS/template consumers do not need a listener.
+
 ## Live verification checklist
 
 Before calling the conversion complete:
