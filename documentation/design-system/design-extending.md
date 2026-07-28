@@ -135,6 +135,7 @@ Blacksmith moves it:
 ```js
 const api = await BlacksmithAPI.get();
 const Base = api.BlacksmithWindowBaseV2;      // also api.getWindowBaseV2()
+const ToolBase = api.BlacksmithToolWindowBaseV2; // also api.getToolWindowBaseV2()
 ```
 
 Subclasses use the ApplicationV2 shape -- `static DEFAULT_OPTIONS` and `static PARTS`. All 14 window

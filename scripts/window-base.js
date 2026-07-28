@@ -74,7 +74,10 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
      */
     _applyWindowSizeConstraints() {
         const constraints = this.options?.windowSizeConstraints ?? {};
-        const win = this.element?.closest?.('.window') ?? document.getElementById(this.id)?.closest?.('.window');
+        const element = this.element ?? document.getElementById(this.id);
+        const win = element?.matches?.('.window, .application')
+            ? element
+            : element?.closest?.('.window, .application');
         if (!win || typeof win.style === 'undefined') return;
         const apply = (key, styleKey) => {
             const v = constraints[key];
@@ -89,10 +92,11 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     // ---- Position / size persistence ----------------------------------------
 
     get _positionKey() {
-        return `blacksmith-win-pos-${this.constructor.name}`;
+        return this.options?.windowPositionKey || `blacksmith-win-pos-${this.constructor.name}`;
     }
 
     _saveWindowPosition() {
+        if (this.options?.rememberPosition === false) return;
         try {
             const pos = this.position;
             if (!pos || pos.left == null) return;
@@ -103,6 +107,7 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     }
 
     _loadWindowPosition() {
+        if (this.options?.rememberPosition === false) return null;
         try {
             const raw = localStorage.getItem(this._positionKey);
             return raw ? JSON.parse(raw) : null;

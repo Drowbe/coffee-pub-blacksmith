@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+
+- **Lightweight Application V2 tool/palette window style** (`scripts/window-tool-base.js`, `templates/window-tool-template.hbs`, `styles/window-tool.css`, `scripts/window-base.js`, `scripts/blacksmith.js`, `documentation/api/api-window.md`, `documentation/architecture/architecture-window.md`): modules can now extend `api.BlacksmithToolWindowBaseV2` (or `getToolWindowBaseV2()`) for compact utilities that remain open over the canvas without inheriting Blacksmith's full editor layout. Tool windows retain Foundry's native dragging, focus/z-order, minimize, close, and lifecycle behavior; provide an optional compact toolbar and footer around a scrollable body; support direct icon actions in the native title bar through `getToolHeaderActions()`; and remember their user position by default. `api.windowStyles` exposes stable `STANDARD` and `TOOL` identifiers. The common base now applies size constraints to Application V2's actual `.application` frame and supports `rememberPosition` / `windowPositionKey`. Blacksmith dogfoods the new style by migrating persistent combatant hover-card pop-outs from custom floating DOM to the shared tool base while preserving multiple cards, live effect/stat refresh, Follow Combat, and per-card close behavior. Verify: pop out two combatants, drag/minimize/restore them, enable Follow Combat on one, and advance turns — only the following card changes and both remain native, independently closable Application V2 windows; then subclass the tool base externally and confirm body, optional toolbar/footer, title action state, and saved position.
+
 ## [13.11.6]
 
 ### Added

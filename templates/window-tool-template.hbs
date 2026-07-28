@@ -1,0 +1,32 @@
+{{!--
+  Lightweight Application V2 tool/palette template.
+  Uses Foundry's native title bar and BlacksmithToolWindowBaseV2.
+--}}
+<div class="blacksmith-window-tool-root" id="{{appId}}">
+    {{#if showToolBar}}
+    <div class="blacksmith-window-tool-bar">
+        <div class="blacksmith-window-tool-bar-left">
+            {{#if toolBarLeft}}{{{toolBarLeft}}}{{/if}}
+        </div>
+        <div class="blacksmith-window-tool-bar-right">
+            {{#if toolBarRight}}{{{toolBarRight}}}{{/if}}
+        </div>
+    </div>
+    {{/if}}
+
+    <div class="blacksmith-window-tool-body">
+        {{#if bodyContent}}{{{bodyContent}}}{{/if}}
+    </div>
+
+    {{#if showToolFooter}}
+    <footer class="blacksmith-window-tool-footer">
+        <div class="blacksmith-window-tool-footer-left">
+            {{#if toolFooterLeft}}{{{toolFooterLeft}}}{{/if}}
+        </div>
+        <div class="blacksmith-window-tool-footer-right">
+            {{#if toolFooterRight}}{{{toolFooterRight}}}{{/if}}
+        </div>
+    </footer>
+    {{/if}}
+</div>
+

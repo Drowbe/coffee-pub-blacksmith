@@ -501,52 +501,57 @@
     line-height: 1.1;
 }
 
-.blacksmith-combat-popout-card {
-    cursor: default;
-    resize: none;
-}
-
-.blacksmith-combat-popout-card .combat-hover-header {
-    cursor: move;
-    user-select: none;
-}
-
-.blacksmith-combat-hover-card .combat-hover-popout-controls {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 2px;
-    margin-left: 8px;
-}
-
-.blacksmith-combat-hover-card .combat-hover-popout-close,
-.blacksmith-combat-hover-card .combat-hover-popout-follow {
-    display: inline-flex;
-    flex: 0 0 24px;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    margin: -2px 0;
+.blacksmith-window-tool-body > .blacksmith-combat-tool-card {
+    position: static;
+    width: auto;
+    max-height: none;
+    padding: 8px;
     border: 0;
-    border-radius: 4px;
-    background: transparent;
-    color: rgba(56, 41, 26, 0.72);
-    cursor: pointer;
+    border-radius: 0;
+    overflow: visible;
+    background: linear-gradient(180deg, rgba(247, 236, 216, 0.98), rgba(228, 215, 193, 0.98));
+    box-shadow: none;
+    opacity: 1;
+    transform: none;
+    transition: none;
 }
 
-.blacksmith-combat-hover-card .combat-hover-popout-close:hover,
-.blacksmith-combat-hover-card .combat-hover-popout-close:focus-visible,
-.blacksmith-combat-hover-card .combat-hover-popout-follow:hover,
-.blacksmith-combat-hover-card .combat-hover-popout-follow:focus-visible {
-    background: rgba(127, 47, 30, 0.14);
-    color: #7f2f1e;
+.application.blacksmith-combatant-tool-window {
+    --header-height: 42px;
+    border-color: rgba(233, 198, 142, 0.85);
 }
 
-.blacksmith-combat-hover-card .combat-hover-popout-follow.is-active {
-    background: rgba(127, 47, 30, 0.2);
-    color: #7f2f1e;
-    box-shadow: inset 0 0 0 1px rgba(127, 47, 30, 0.28);
+.application.blacksmith-combatant-tool-window > .window-header {
+    padding: 0 8px;
+    border-bottom: 1px solid rgba(112, 85, 49, 0.34);
+    background:
+        linear-gradient(180deg, rgba(247, 236, 216, 0.99), rgba(228, 215, 193, 0.99));
+    color: #2f241a;
+}
+
+.application.blacksmith-combatant-tool-window > .window-header .window-title {
+    color: #2f241a;
+    font-family: "Modesto Condensed", "Palatino Linotype", serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+}
+
+.application.blacksmith-combatant-tool-window > .window-header button.header-control {
+    --button-text-color: rgba(67, 49, 32, 0.78);
+}
+
+.application.blacksmith-combatant-tool-window > .window-header button.header-control:hover,
+.application.blacksmith-combatant-tool-window > .window-header button.header-control:focus-visible,
+.application.blacksmith-combatant-tool-window
+    > .window-header
+    button.blacksmith-window-tool-header-action.is-active {
+    --button-text-color: #2f241a;
+    background: rgba(112, 85, 49, 0.14);
+}
+
+.blacksmith-combat-tool-card .combat-hover-header {
+    display: none;
 }
 
 .blacksmith-combat-hover-card .combat-hover-image-wrap {

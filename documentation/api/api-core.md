@@ -102,7 +102,7 @@ Function groups on `api` directly:
 |---|---|---|
 | Module registration | `registerModule`, `isModuleActive`, `getModuleFeatures` | this document |
 | Toolbar | `registerToolbarTool`, `unregisterToolbarTool`, `getRegisteredTools`, `getToolsByModule`, `isToolRegistered`, `getToolbarSettings`, `setToolbarSettings` | `api-toolbar.md` |
-| Windows | `registerWindow`, `unregisterWindow`, `openWindow`, `getRegisteredWindows`, `isWindowRegistered`, `getWindowBaseV2`, `BlacksmithWindowBaseV2` | `api-window.md` |
+| Windows | `registerWindow`, `unregisterWindow`, `openWindow`, `getRegisteredWindows`, `isWindowRegistered`, `getWindowBaseV2`, `BlacksmithWindowBaseV2`, `getToolWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `windowStyles` | `api-window.md` |
 | Menubar | `registerMenubarTool`, `unregisterMenubarTool`, `getRegisteredMenubarTools`, `getMenubarToolsByModule`, `getMenubarToolsByZone`, `isMenubarToolRegistered`, `renderMenubar`, `updateMenubarToolActive` | `api-menubar.md` |
 | Menubar notifications | `addNotification`, `updateNotification`, `removeNotification`, `clearNotificationsByModule`, `clearAllNotifications`, `getActiveNotifications`, `getNotificationIdsByModule` | `api-menubar.md` |
 | Secondary bars | `registerSecondaryBarType`, `registerSecondaryBarItem`, `registerSecondaryBarTool`, `unregisterSecondaryBarItem`, `updateSecondaryBarItemActive`, `updateSecondaryBarItemInfo`, `getSecondaryBarItems`, `openSecondaryBar`, `closeSecondaryBar`, `toggleSecondaryBar` | `api-menubar.md` |

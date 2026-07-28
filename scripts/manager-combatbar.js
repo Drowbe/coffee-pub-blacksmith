@@ -6,6 +6,105 @@ import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
 import { broadcastToast } from './api-toast.js';
 import { EffectsAPI } from './api-effects.js';
+import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
+
+class CombatantCardToolWindow extends BlacksmithToolWindowBaseV2 {
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            classes: ['blacksmith-window-tool', 'blacksmith-combatant-tool-window'],
+            position: { width: 300, height: 'auto' },
+            window: {
+                title: 'Combatant',
+                resizable: false,
+                minimizable: true
+            },
+            windowSizeConstraints: {
+                minWidth: 260,
+                maxWidth: 420,
+                maxHeight: 'calc(100vh - 16px)'
+            }
+        }
+    );
+
+    constructor({ popoutId, menuBar, combatantId, followCombat = false, position = {} } = {}) {
+        super({
+            id: popoutId,
+            rememberPosition: false,
+            position: {
+                width: 300,
+                height: 'auto',
+                ...position
+            }
+        });
+        this.popoutId = popoutId;
+        this.menuBar = menuBar;
+        this.combatantId = combatantId;
+        this.followCombat = Boolean(followCombat);
+        this.renderVersion = 0;
+    }
+
+    get title() {
+        return game.combats?.active?.combatants?.get(this.combatantId)?.name
+            ?? super.title;
+    }
+
+    _configureRenderOptions(options) {
+        super._configureRenderOptions(options);
+        options.window ??= {};
+        options.window.title = this.title;
+    }
+
+    getToolHeaderActions() {
+        return [{
+            id: 'follow-combat',
+            icon: 'fa-solid fa-crosshairs',
+            label: `${MODULE.ID}.CombatHoverPopoutFollow`,
+            active: this.followCombat,
+            onClick: async () => {
+                this.followCombat = !this.followCombat;
+                if (this.followCombat) await CombatBarManager.syncFollowingCombatPopouts(this.menuBar);
+                else await this.render(false);
+            }
+        }];
+    }
+
+    async getData() {
+        const combatantId = this.combatantId;
+        const renderVersion = ++this.renderVersion;
+        const combatant = game.combats?.active?.combatants?.get(combatantId);
+        if (!combatant) {
+            queueMicrotask(() => { void this.close({ animate: false }); });
+            return {
+                appId: this.id,
+                bodyContent: ''
+            };
+        }
+
+        const hoverData = CombatBarManager.getCombatantHoverData(combatant);
+        if (!hoverData) return { appId: this.id, bodyContent: '' };
+        try {
+            hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
+        } catch (error) {
+            console.warn(`${MODULE.NAME} | Unable to build combatant tool window`, error);
+            hoverData.effects = [];
+        }
+        if (renderVersion !== this.renderVersion || combatantId !== this.combatantId) {
+            return { appId: this.id, bodyContent: '' };
+        }
+
+        const content = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
+        return {
+            appId: this.id,
+            bodyContent: `<div class="blacksmith-combat-hover-card blacksmith-combat-tool-card is-visible">${content}</div>`
+        };
+    }
+
+    _onClose(options) {
+        super._onClose?.(options);
+        CombatBarManager._combatantPopoutCards.delete(this.popoutId);
+    }
+}
 
 export class CombatBarManager {
     static playUiSound(soundPath, volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7) {
@@ -1241,142 +1340,57 @@ export class CombatBarManager {
     }
 
     static _combatantPopoutCards = new Map();
-    static _combatantPopoutZIndex = 130;
     static _combatantPopoutSequence = 0;
 
     static async showCombatantPopoutCard(menuBar, combatantId, x = 120, y = 120) {
         const existing = Array.from(CombatBarManager._combatantPopoutCards.values())
-            .find((record) => record.combatantId === combatantId && !record.followCombat);
-        if (existing?.element?.isConnected) {
-            existing.element.style.zIndex = String(++CombatBarManager._combatantPopoutZIndex);
-            return existing.element;
+            .find((windowInstance) => windowInstance.combatantId === combatantId && !windowInstance.followCombat);
+        if (existing?.rendered) {
+            existing.bringToFront();
+            return existing;
         }
 
         const combatant = game.combats?.active?.combatants?.get(combatantId);
         if (!combatant) return null;
-        const hoverData = CombatBarManager.getCombatantHoverData(combatant);
-        if (!hoverData) return null;
-        hoverData.isPopout = true;
-        hoverData.followCombat = false;
-        try {
-            hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
-        } catch (error) {
-            console.warn(`${MODULE.NAME} | Unable to build popped-out combatant card`, error);
-            hoverData.effects = [];
-        }
-
-        const card = document.createElement('div');
-        const popoutId = `combatant-popout-${++CombatBarManager._combatantPopoutSequence}`;
-        card.className = 'blacksmith-combat-hover-card blacksmith-combat-popout-card is-visible';
-        card.dataset.combatantId = combatantId;
-        card.dataset.popoutId = popoutId;
-        card.style.zIndex = String(++CombatBarManager._combatantPopoutZIndex);
-        card.innerHTML = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
-        document.body.appendChild(card);
-
-        const left = Math.max(8, Math.min(Number(x) || 120, window.innerWidth - card.offsetWidth - 8));
-        const top = Math.max(8, Math.min(Number(y) || 120, window.innerHeight - card.offsetHeight - 8));
-        card.style.left = `${left}px`;
-        card.style.top = `${top}px`;
-
-        const record = { id: popoutId, combatantId, followCombat: false, element: card, menuBar };
-        CombatBarManager._combatantPopoutCards.set(popoutId, record);
-        CombatBarManager.attachCombatantPopoutInteractions(record);
-        CombatBarManager.makeCombatantPopoutDraggable(card);
-        return card;
-    }
-
-    static attachCombatantPopoutInteractions(record) {
-        record?.element?.querySelector('[data-action="close-combatant-popout"]')?.addEventListener('click', () => {
-            CombatBarManager.closeCombatantPopoutCard(record.id);
-        });
-        record?.element?.querySelector('[data-action="toggle-combat-follow"]')?.addEventListener('click', async (event) => {
-            record.followCombat = !record.followCombat;
-            event.currentTarget?.setAttribute?.('aria-pressed', String(record.followCombat));
-            event.currentTarget?.classList?.toggle?.('is-active', record.followCombat);
-            if (record.followCombat) {
-                await CombatBarManager.syncFollowingCombatPopouts(record.menuBar);
-            } else {
-                await CombatBarManager.refreshCombatantPopoutCard(record.menuBar, record.id);
+        const popoutId = `blacksmith-combatant-card-${++CombatBarManager._combatantPopoutSequence}`;
+        const windowInstance = new CombatantCardToolWindow({
+            popoutId,
+            menuBar,
+            combatantId,
+            position: {
+                left: Math.max(8, Number(x) || 120),
+                top: Math.max(8, Number(y) || 120)
             }
         });
-    }
-
-    static makeCombatantPopoutDraggable(card) {
-        const header = card?.querySelector('.combat-hover-header');
-        if (!header) return;
-        header.addEventListener('pointerdown', (event) => {
-            if (event.button !== 0 || event.target?.closest?.('button')) return;
-            event.preventDefault();
-            card.style.zIndex = String(++CombatBarManager._combatantPopoutZIndex);
-            const rect = card.getBoundingClientRect();
-            const offsetX = event.clientX - rect.left;
-            const offsetY = event.clientY - rect.top;
-
-            const move = (moveEvent) => {
-                const maxX = Math.max(8, window.innerWidth - card.offsetWidth - 8);
-                const maxY = Math.max(8, window.innerHeight - card.offsetHeight - 8);
-                const left = Math.max(8, Math.min(moveEvent.clientX - offsetX, maxX));
-                const top = Math.max(8, Math.min(moveEvent.clientY - offsetY, maxY));
-                card.style.left = `${left}px`;
-                card.style.top = `${top}px`;
-            };
-            const stop = () => {
-                document.removeEventListener('pointermove', move);
-                document.removeEventListener('pointerup', stop);
-                document.removeEventListener('pointercancel', stop);
-            };
-            document.addEventListener('pointermove', move);
-            document.addEventListener('pointerup', stop);
-            document.addEventListener('pointercancel', stop);
-        });
+        CombatBarManager._combatantPopoutCards.set(popoutId, windowInstance);
+        await windowInstance.render(true);
+        return windowInstance;
     }
 
     static closeCombatantPopoutCard(popoutId) {
         if (!popoutId) return;
-        const record = CombatBarManager._combatantPopoutCards.get(popoutId);
-        record?.element?.remove();
-        CombatBarManager._combatantPopoutCards.delete(popoutId);
+        const windowInstance = CombatBarManager._combatantPopoutCards.get(popoutId);
+        if (windowInstance) void windowInstance.close({ animate: false });
     }
 
     static closeAllCombatantPopoutCards() {
-        for (const record of CombatBarManager._combatantPopoutCards.values()) record?.element?.remove();
+        for (const windowInstance of CombatBarManager._combatantPopoutCards.values()) {
+            void windowInstance.close({ animate: false });
+        }
         CombatBarManager._combatantPopoutCards.clear();
     }
 
-    static async refreshCombatantPopoutCard(menuBar, popoutId) {
-        const record = CombatBarManager._combatantPopoutCards.get(popoutId);
-        if (!record?.element?.isConnected) return;
-        const combatantId = record.combatantId;
-        const renderVersion = (record.renderVersion ?? 0) + 1;
-        record.renderVersion = renderVersion;
-        const combatant = game.combats?.active?.combatants?.get(combatantId);
-        if (!combatant) {
-            if (!record.followCombat) CombatBarManager.closeCombatantPopoutCard(popoutId);
-            return;
-        }
-        const hoverData = CombatBarManager.getCombatantHoverData(combatant);
-        if (!hoverData) return;
-        hoverData.isPopout = true;
-        hoverData.followCombat = record.followCombat;
-        try {
-            hoverData.effects = await CombatBarManager.getCombatantHoverEffects(combatant, hoverData);
-        } catch (error) {
-            console.warn(`${MODULE.NAME} | Unable to refresh popped-out combatant card`, error);
-            hoverData.effects = [];
-        }
-        if (!record.element.isConnected || record.renderVersion !== renderVersion || record.combatantId !== combatantId) return;
-        record.element.dataset.combatantId = record.combatantId;
-        record.element.innerHTML = CombatBarManager.buildCombatantHoverCardHtml(hoverData);
-        CombatBarManager.attachCombatantPopoutInteractions(record);
-        CombatBarManager.makeCombatantPopoutDraggable(record.element);
+    static async refreshCombatantPopoutCard(_menuBar, popoutId) {
+        const windowInstance = CombatBarManager._combatantPopoutCards.get(popoutId);
+        if (!windowInstance?.rendered) return;
+        await windowInstance.render(false);
     }
 
     static async refreshCombatantPopoutCardsForActor(menuBar, actor) {
         if (!actor) return;
         const refreshes = [];
-        for (const [popoutId, record] of CombatBarManager._combatantPopoutCards) {
-            const combatant = game.combats?.active?.combatants?.get(record.combatantId);
+        for (const [popoutId, windowInstance] of CombatBarManager._combatantPopoutCards) {
+            const combatant = game.combats?.active?.combatants?.get(windowInstance.combatantId);
             if (combatant?.actor?.uuid === actor.uuid || combatant?.actor?.id === actor.id) {
                 refreshes.push(CombatBarManager.refreshCombatantPopoutCard(menuBar, popoutId));
             }
@@ -1388,7 +1402,7 @@ export class CombatBarManager {
         if (!combatantId) return;
         await Promise.all(
             Array.from(CombatBarManager._combatantPopoutCards.entries())
-                .filter(([, record]) => record.combatantId === combatantId)
+                .filter(([, windowInstance]) => windowInstance.combatantId === combatantId)
                 .map(([popoutId]) => CombatBarManager.refreshCombatantPopoutCard(menuBar, popoutId))
         );
     }
@@ -1404,9 +1418,9 @@ export class CombatBarManager {
         const activeCombatantId = game.combats?.active?.combatant?.id ?? game.combat?.combatant?.id;
         if (!activeCombatantId) return;
         const refreshes = [];
-        for (const [popoutId, record] of CombatBarManager._combatantPopoutCards) {
-            if (!record.followCombat) continue;
-            record.combatantId = activeCombatantId;
+        for (const [popoutId, windowInstance] of CombatBarManager._combatantPopoutCards) {
+            if (!windowInstance.followCombat) continue;
+            windowInstance.combatantId = activeCombatantId;
             refreshes.push(CombatBarManager.refreshCombatantPopoutCard(menuBar, popoutId));
         }
         await Promise.all(refreshes);
@@ -1414,9 +1428,9 @@ export class CombatBarManager {
 
     static handleDeletedCombatantPopouts(menuBar, combatantId) {
         if (!combatantId) return;
-        for (const [popoutId, record] of Array.from(CombatBarManager._combatantPopoutCards.entries())) {
-            if (record.combatantId !== combatantId) continue;
-            if (record.followCombat) continue;
+        for (const [popoutId, windowInstance] of Array.from(CombatBarManager._combatantPopoutCards.entries())) {
+            if (windowInstance.combatantId !== combatantId) continue;
+            if (windowInstance.followCombat) continue;
             CombatBarManager.closeCombatantPopoutCard(popoutId);
         }
         setTimeout(() => { void CombatBarManager.syncFollowingCombatPopouts(menuBar); }, 0);
@@ -1514,25 +1528,6 @@ export class CombatBarManager {
         const bloodOverlayHtml = data.bloodOverlay
             ? `<img class="combat-hover-blood" src="${esc(data.bloodOverlay)}" alt="" aria-hidden="true">`
             : '';
-        const popoutControlsHtml = data.isPopout
-            ? `<div class="combat-hover-popout-controls">
-                    <button type="button"
-                        class="combat-hover-popout-follow${data.followCombat ? ' is-active' : ''}"
-                        data-action="toggle-combat-follow"
-                        data-tooltip="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutFollow`))}"
-                        aria-label="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutFollow`))}"
-                        aria-pressed="${data.followCombat ? 'true' : 'false'}">
-                        <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
-                    </button>
-                    <button type="button"
-                        class="combat-hover-popout-close"
-                        data-action="close-combatant-popout"
-                        data-tooltip="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutClose`))}"
-                        aria-label="${esc(game.i18n.localize(`${MODULE.ID}.CombatHoverPopoutClose`))}">
-                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-                    </button>
-                </div>`
-            : '';
         const effectsHtml = (data.effects || []).length
             ? `
                 <section class="combat-hover-effects" aria-label="${esc(game.i18n.localize(`${MODULE.ID}.ActiveEffectsGroup`))}">
@@ -1559,7 +1554,6 @@ export class CombatBarManager {
             return `
                 <div class="combat-hover-header">
                     <span class="combat-hover-name">${esc(data.name)}</span>
-                    ${popoutControlsHtml}
                 </div>
                 <div class="combat-hover-image-wrap">
                     <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">
@@ -1576,7 +1570,6 @@ export class CombatBarManager {
         return `
             <div class="combat-hover-header">
                 <span class="combat-hover-name">${esc(data.name)}</span>
-                ${popoutControlsHtml}
             </div>
             <div class="combat-hover-image-wrap">
                 <img class="combat-hover-image" src="${esc(data.portrait)}" alt="${esc(data.name)}">

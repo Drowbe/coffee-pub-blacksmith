@@ -1,0 +1,103 @@
+/* Lightweight Application V2 tool/palette window style. */
+
+.application.blacksmith-window-tool {
+    --header-height: 30px;
+    --blacksmith-tool-background: rgba(8, 8, 8, 0.96);
+    --blacksmith-tool-border: rgba(172, 159, 129, 0.58);
+    --blacksmith-tool-accent: #ac9f81;
+    border: 1px solid var(--blacksmith-tool-border);
+    border-radius: 5px;
+    background: var(--blacksmith-tool-background);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.62);
+    color: rgba(232, 232, 232, 0.92);
+}
+
+.application.blacksmith-window-tool > .window-header {
+    padding: 0 6px 0 9px;
+    background: rgba(0, 0, 0, 0.92);
+    border-bottom: 1px solid var(--blacksmith-tool-border);
+    color: var(--blacksmith-tool-accent);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.application.blacksmith-window-tool > .window-header .window-title {
+    color: var(--blacksmith-tool-accent);
+}
+
+.application.blacksmith-window-tool > .window-header button.header-control {
+    --button-size: 22px;
+    --button-text-color: rgba(210, 201, 180, 0.82);
+}
+
+.application.blacksmith-window-tool > .window-header button.header-control:hover,
+.application.blacksmith-window-tool > .window-header button.header-control:focus-visible,
+.application.blacksmith-window-tool > .window-header button.blacksmith-window-tool-header-action.is-active {
+    --button-text-color: #fff;
+    background: rgba(172, 159, 129, 0.18);
+}
+
+.application.blacksmith-window-tool:not(.blacksmith-window-tool-has-menu)
+    > .window-header
+    > [data-action="toggleControls"] {
+    display: none;
+}
+
+.application.blacksmith-window-tool > .window-content:has(.blacksmith-window-tool-root) {
+    min-height: 0;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.blacksmith-window-tool-root {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    max-height: calc(100vh - 48px);
+    overflow: hidden;
+    background: var(--blacksmith-tool-background);
+    color: inherit;
+    font-family: "Signika", sans-serif;
+}
+
+.blacksmith-window-tool-bar,
+.blacksmith-window-tool-footer {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 30px;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.blacksmith-window-tool-bar {
+    border-bottom: 1px solid rgba(172, 159, 129, 0.28);
+}
+
+.blacksmith-window-tool-footer {
+    border-top: 1px solid rgba(172, 159, 129, 0.28);
+}
+
+.blacksmith-window-tool-bar-left,
+.blacksmith-window-tool-bar-right,
+.blacksmith-window-tool-footer-left,
+.blacksmith-window-tool-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.blacksmith-window-tool-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+}
+

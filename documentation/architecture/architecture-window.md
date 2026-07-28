@@ -8,11 +8,12 @@ This document describes the Application V2 window system: the zone contract, the
 
 ## 1. Overview
 
-Blacksmith's own windows use Foundry Application V2 (v13+), and Blacksmith provides a window API so other modules can open consistent, well-behaved windows that follow the same layout contract. The design mirrors the toolbar API: modules register window types with Blacksmith; Blacksmith provides the contract (zones, behaviour) and shared infrastructure (base class, scroll/delegation helpers). Consumers keep full control of what goes in the header and body; Blacksmith does not inject content into their templates.
+Blacksmith's own windows use Foundry Application V2 (v13+), and Blacksmith provides a window API so other modules can open consistent, well-behaved windows. The design mirrors the toolbar API: modules register window types with Blacksmith; Blacksmith provides two presentation contracts and shared infrastructure. Consumers keep full control of their content.
 
 Design principles:
 
-- **Zone contract** — five zones (title bar, option bar, header, body, action bar); only body is required. The optional zones let minimal windows (e.g. Macros, Dice Tray) and full windows (e.g. Quick Encounter, Request a Roll) both fit.
+- **Standard contract** — five zones (title bar, option bar, header, body, action bar) for forms, editors, and larger workflows.
+- **Tool contract** — a compact native title bar plus optional toolbar, body, and footer for persistent canvas utilities and palettes.
 - **Registration** — `registerWindow(windowId, descriptor)` and `openWindow(windowId, options)` so toolbars, macros, and other modules can open windows by id without knowing the implementing class.
 - **Consumer-owned content** — the module that registers a window owns the Application V2 class, Handlebars template, `getData`, and actions.
 
@@ -59,7 +60,9 @@ There is no module-unload cleanup hook. `unloadModule` is a dead name (see [api-
 ### 3.2 Base class
 
 - **`BlacksmithWindowBaseV2`** (`scripts/window-base.js:13`) encapsulates the Application V2 patterns so each window does not reimplement them: `_getRoot()`, scroll save/restore across `render()`, document-level delegation for `data-action`, and a central window ref so static actions do not need a per-app module-level ref.
-- **Every window class in `scripts/` extends it.**
+- **`BlacksmithToolWindowBaseV2`** (`scripts/window-tool-base.js`) extends the same lifecycle with compact defaults, a dedicated tool template, optional inline native-title actions, tool-body scroll preservation, and position persistence.
+- Tool consumers override `getToolHeaderActions()` for compact title controls and return `bodyContent` plus optional `toolBarLeft` / `toolBarRight` and `toolFooterLeft` / `toolFooterRight`.
+- The combatant pop-out card dogfoods the tool base; its Follow Combat control is a tool header action rather than custom draggable DOM.
 - **Consumer responsibility:** extend the base, supply template path, `getData`, and action handlers; the template follows the zone contract (include only the zones the window needs).
 
 ### 3.3 Migration status
@@ -77,7 +80,7 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 
 ### 4.2 API exposure
 
-- **`module.api`** (in `blacksmith.js`) exposes `registerWindow`, `unregisterWindow`, `openWindow`, `getRegisteredWindows`, and `isWindowRegistered`.
+- **`module.api`** (in `blacksmith.js`) exposes the registry, both base classes and getters, and `windowStyles` (`STANDARD` / `TOOL`).
 - **`api/blacksmith-api.js`** is the external bridge, providing timing-safe access to `module.api` for other modules.
 
 ### 4.3 Documentation and assets
@@ -96,5 +99,8 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 | **documentation/applicationv2-window/example-window.hbs** | Example template with all five zones (consumer omits what they do not need). |
 | **documentation/applicationv2-window/example-window.js** | Example Application V2 class (delegation, scroll save/restore, static actions). |
 | **templates/window-template.hbs** | Canonical core template for the zone contract; uses `blacksmith-window-v2-*` classes. New windows copy from here or the doc example. |
+| **scripts/window-tool-base.js** | Compact tool/palette Application V2 base and stable style identifiers. |
+| **templates/window-tool-template.hbs** | Lightweight tool template: optional toolbar, body, optional footer. |
+| **styles/window-tool.css** | Compact native-frame and tool-layout presentation. |
 | **documentation/applicationv2-window/README.md** | Quick start for the example. |
 | **documentation/api/api-window.md** | Public API for registering and opening windows. |

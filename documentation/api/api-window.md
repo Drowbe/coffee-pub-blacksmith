@@ -2,7 +2,7 @@
 
 **Audience:** Developers integrating with Blacksmith and opening or registering Application V2–style windows.
 
-This document describes the **Window API**: how to register a window type with Blacksmith and how to open a window by id. It follows the same registration pattern as the Toolbar API: you register a **window type** (id + descriptor); Blacksmith routes "open this window" to your opener. **You keep full control** of header and body content; Blacksmith provides the zone contract and optional base behavior.
+This document describes the **Window API**: how to build standard editor windows or lightweight tool windows, register a window type with Blacksmith, and open it by id. It follows the same registration pattern as the Toolbar API: you register a **window type** (id + descriptor); Blacksmith routes "open this window" to your opener. **You keep full control** of content; Blacksmith provides the presentation contract and shared Application V2 behavior.
 
 **Status:** The Window API is exposed on `game.modules.get('coffee-pub-blacksmith').api`. Use this document as the contract for integration.
 
@@ -32,14 +32,15 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 | Surface | Purpose |
 |---------|---------|
 | **Registry** (`registerWindow`, `openWindow`, `unregisterWindow`, …) | Register an **id** and an **opener** so toolbars, macros, and other modules can open your window **without importing your class**. |
-| **Base class** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith's Application V2 base when you build a window that uses the zone template and shared behavior (scroll save/restore, optional `data-action` delegation, window size constraints). |
+| **Standard base** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith's full Application V2 base for editors, forms, and other windows that use the five-zone template. |
+| **Tool base** (`BlacksmithToolWindowBaseV2`, or `getToolWindowBaseV2()`) | **Subclass** the compact Application V2 presentation for lightweight, persistent canvas tools and palettes. |
 
 - Use the **registry** when something else (Blacksmith toolbar, another module, a macro) should call `openWindow('your-id')`.
-- Use **`api.BlacksmithWindowBaseV2`** (recommended) or **`api.getWindowBaseV2()`** when your module defines `class MyWindow extends BlacksmithWindowBaseV2`. **Do not** deep-link `scripts/window-base.js` from another module's manifest — use **`module.api`**; file paths are not the stable contract.
+- Use **`api.BlacksmithWindowBaseV2`** for standard windows and **`api.BlacksmithToolWindowBaseV2`** for compact tools. **Do not** deep-link Blacksmith script files from another module's manifest — use **`module.api`**; file paths are not the stable contract.
 
 **Availability timing**
 
-- **`BlacksmithWindowBaseV2` / `getWindowBaseV2()`** — Also patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level** (e.g. `class X extends resolveBase()`).
+- **Both base classes and getters** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, and `windowStyles` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level**.
 - **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith's **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
 - **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith's `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith's **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture/architecture-blacksmith.md** §3.2–3.3.
 
@@ -59,6 +60,66 @@ Windows that follow the Blacksmith contract use up to **five zones**. Only **Bod
 | **Action bar** | Optional | Bottom bar: secondary left, primary right. |
 
 See **documentation/applicationv2-window/blacksmith-windows-zones.webp** for the layout diagram and **window-samples.png** for real-window variability.
+
+---
+
+## Lightweight tool/palette style
+
+Use `BlacksmithToolWindowBaseV2` for small utilities that should remain open over the canvas: dice trays, health controls, macro palettes, trackers, and similar tools. It uses Foundry's native Application V2 frame, so dragging, focus/z-order, minimizing, closing, and window lifecycle remain standard. It deliberately omits the full editor header and five-zone layout.
+
+The tool template accepts:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| **appId** | string | Application instance id. |
+| **bodyContent** | string (HTML) | Main tool content. |
+| **toolBarLeft** / **toolBarRight** | string (HTML) | Optional compact toolbar content. |
+| **showToolBar** | boolean | Override automatic toolbar visibility. |
+| **toolFooterLeft** / **toolFooterRight** | string (HTML) | Optional compact footer content. |
+| **showToolFooter** | boolean | Override automatic footer visibility. |
+
+Subclass `getToolHeaderActions()` to add direct icon controls beside Foundry's native title controls. Each entry accepts `{ id, icon, label, active, disabled, onClick }`. `label` may be a localization key. Blacksmith renders it as `data-tooltip` and an accessible label.
+
+```javascript
+const api = game.modules.get('coffee-pub-blacksmith')?.api;
+const ToolBase = api.BlacksmithToolWindowBaseV2;
+
+class MyCanvasTool extends ToolBase {
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: 'my-module-canvas-tool',
+            position: { width: 340, height: 'auto' },
+            window: { title: 'My Tool', resizable: false }
+        }
+    );
+
+    getToolHeaderActions() {
+        return [{
+            id: 'follow',
+            icon: 'fa-solid fa-crosshairs',
+            label: 'Follow selection',
+            active: this.followSelection,
+            onClick: () => {
+                this.followSelection = !this.followSelection;
+                return this.render(false);
+            }
+        }];
+    }
+
+    async getData() {
+        return {
+            appId: this.id,
+            toolBarLeft: '<strong>TOOLS</strong>',
+            bodyContent: '<div>Persistent canvas utility content</div>'
+        };
+    }
+}
+```
+
+Tool windows remember their last position per user by default. Set `rememberPosition: false` for transient instances, or set `windowPositionKey` when several instances should share one saved position. The same options also work on the standard base.
+
+`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. The registry remains presentation-agnostic: either style can be registered and opened through `registerWindow` / `openWindow`.
 
 ---
 

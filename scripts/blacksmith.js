@@ -99,11 +99,13 @@ import { EffectsAPI } from './api-effects.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
 import { extractActiveD20, classifyCritFumble } from './utility-roll-classification.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { BlacksmithToolWindowBaseV2, BLACKSMITH_WINDOW_STYLES } from './window-tool-base.js';
 import './sidebar-combat.js';
 import './ui-combat-tools.js';
 
 // Expose Application V2 base as soon as this module script runs (before hooks), so dependent modules
-// that resolve a superclass at load time (e.g. Regent window-query.js) see api.BlacksmithWindowBaseV2
+// that resolve a superclass at load time (e.g. Regent window-query.js) see the
+// standard and lightweight tool base classes before Foundry's init lifecycle.
 // without waiting for ready. Registry methods (registerWindow / openWindow) still attach in ready.
 try {
     const _bsMod = typeof game !== 'undefined' && game?.modules?.get?.(MODULE.ID);
@@ -111,6 +113,9 @@ try {
         if (!_bsMod.api) _bsMod.api = {};
         _bsMod.api.BlacksmithWindowBaseV2 = BlacksmithWindowBaseV2;
         _bsMod.api.getWindowBaseV2 = () => BlacksmithWindowBaseV2;
+        _bsMod.api.BlacksmithToolWindowBaseV2 = BlacksmithToolWindowBaseV2;
+        _bsMod.api.getToolWindowBaseV2 = () => BlacksmithToolWindowBaseV2;
+        _bsMod.api.windowStyles = BLACKSMITH_WINDOW_STYLES;
     }
 } catch {
     /* non-Foundry / test */
@@ -913,6 +918,9 @@ Hooks.once('init', async function() {
         /** @see documentation/api-window.md — available from module load; same references re-applied here. */
         BlacksmithWindowBaseV2,
         getWindowBaseV2: () => BlacksmithWindowBaseV2,
+        BlacksmithToolWindowBaseV2,
+        getToolWindowBaseV2: () => BlacksmithToolWindowBaseV2,
+        windowStyles: BLACKSMITH_WINDOW_STYLES,
         registerMenubarTool: null,
         unregisterMenubarTool: null,
         getRegisteredMenubarTools: null,

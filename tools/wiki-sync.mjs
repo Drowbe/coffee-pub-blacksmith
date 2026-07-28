@@ -90,6 +90,7 @@ const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
 
 // Clean sidebar label: strip the api-/architecture- prefix, kebab -> Sentence case.
 function label(rel) {
+  if (rel === 'api/api-effects.md') return 'Active Effects';
   const base = pageName(rel).replace(/^(api|architecture|design)-/, '');
   const spaced = base.replace(/-/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
