@@ -295,6 +295,8 @@ Micro mode is a thin native drag rail with an ellipsis on hover/focus. The same 
 
 The menu also lets the user switch back to Full mode; Full mode's ellipsis offers the inverse switch to Micro. Blacksmith remembers that choice for the specific Squire tool. Squire should leave `allowTitlebarModeToggle` and `rememberTitlebarMode` at their default `true` unless a tool has a concrete reason to lock its chrome.
 
+The same menu offers Blacksmith's shared Light/Dark Tool-shell switch. Blacksmith persists it per Squire tool; Squire should inherit the Tool theme variables and avoid replacing the frame/title/body surface with a competing hard-coded theme.
+
 ## Live verification checklist
 
 Before calling the conversion complete:

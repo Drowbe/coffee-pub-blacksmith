@@ -102,7 +102,8 @@ import { BlacksmithWindowBaseV2 } from './window-base.js';
 import {
     BlacksmithToolWindowBaseV2,
     BLACKSMITH_WINDOW_STYLES,
-    BLACKSMITH_TOOL_TITLEBARS
+    BLACKSMITH_TOOL_TITLEBARS,
+    BLACKSMITH_TOOL_THEMES
 } from './window-tool-base.js';
 import './sidebar-combat.js';
 import './ui-combat-tools.js';
@@ -121,6 +122,7 @@ try {
         _bsMod.api.getToolWindowBaseV2 = () => BlacksmithToolWindowBaseV2;
         _bsMod.api.windowStyles = BLACKSMITH_WINDOW_STYLES;
         _bsMod.api.toolTitlebars = BLACKSMITH_TOOL_TITLEBARS;
+        _bsMod.api.toolThemes = BLACKSMITH_TOOL_THEMES;
     }
 } catch {
     /* non-Foundry / test */
@@ -927,6 +929,7 @@ Hooks.once('init', async function() {
         getToolWindowBaseV2: () => BlacksmithToolWindowBaseV2,
         windowStyles: BLACKSMITH_WINDOW_STYLES,
         toolTitlebars: BLACKSMITH_TOOL_TITLEBARS,
+        toolThemes: BLACKSMITH_TOOL_THEMES,
         registerMenubarTool: null,
         unregisterMenubarTool: null,
         getRegisteredMenubarTools: null,

@@ -336,6 +336,8 @@
 				"ToolWindowMenu": "Tool Window Menu",
 				"ToolWindowUseFullTitlebar": "Use Full Title Bar",
 				"ToolWindowUseMicroTitlebar": "Use Micro Title Bar",
+				"ToolWindowUseLightTheme": "Use Light Mode",
+				"ToolWindowUseDarkTheme": "Use Dark Mode",
 
 
 		"headingH2Statistics-Label": "Statistics",

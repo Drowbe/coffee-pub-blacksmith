@@ -40,7 +40,7 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 
 **Availability timing**
 
-- **Both base classes, getters, and style constants** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, `windowStyles`, and `toolTitlebars` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level**.
+- **Both base classes, getters, and style constants** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, `windowStyles`, `toolTitlebars`, and `toolThemes` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level**.
 - **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith's **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
 - **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith's `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith's **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture/architecture-blacksmith.md** §3.2–3.3.
 
@@ -98,6 +98,18 @@ Tool windows support two chrome modes through the top-level `toolTitlebar` optio
 The menu is rendered at the document level by Blacksmith's shared `UIContextMenu`, not inside the Application frame, so it remains usable even when the tool window is very small. It contains the consumer's `getToolHeaderActions()`, inherited Application V2 header controls, Minimize/Restore (when enabled), Reset Position, and Close. Active actions receive a checkmark in their menu label.
 
 Both modes also include a mode-switch entry: **Use Micro Title Bar** in Full mode and **Use Full Title Bar** in Micro mode. The user's selection is remembered per tool using the same stable identity as position persistence, so reopening that tool restores the chosen mode.
+
+### Tool themes
+
+Tool windows support `"light"` (the default parchment presentation) and `"dark"` (the established Blacksmith dark-window family). The shared context menu includes **Use Dark Mode** or **Use Light Mode**, and remembers the user's selection independently for each tool. The theme applies to the shared frame, title bar, body surface, border, dividers, toolbar, footer, controls, and inherited text. Consumer content should inherit the exposed Tool variables rather than hard-coding a conflicting surface.
+
+Consumers may set the initial theme with `toolTheme`, read `app.toolTheme`, or change it at runtime with:
+
+```javascript
+await app.setToolTheme(api.toolThemes.DARK);
+```
+
+As with title-bar mode, finalized Application V2 options are immutable; do not assign to `app.options.toolTheme`.
 
 ```javascript
 static DEFAULT_OPTIONS = foundry.utils.mergeObject(
@@ -165,7 +177,7 @@ class MyCanvasTool extends ToolBase {
 
 Tool windows remember their last position per user by default. Set `rememberPosition: false` for transient instances, or set `windowPositionKey` when several instances should share one saved position. The same options also work on the standard base.
 
-`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. `api.toolTitlebars` similarly exposes `FULL` (`"full"`) and `MICRO` (`"micro"`). The registry remains presentation-agnostic: either style and either Tool title-bar mode can be registered and opened through `registerWindow` / `openWindow`.
+`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. `api.toolTitlebars` exposes `FULL` (`"full"`) and `MICRO` (`"micro"`), while `api.toolThemes` exposes `LIGHT` (`"light"`) and `DARK` (`"dark"`). The registry remains presentation-agnostic: either style, Tool title-bar mode, and Tool theme can be registered and opened through `registerWindow` / `openWindow`.
 
 Consumers may control mode switching and persistence with:
 
@@ -174,6 +186,10 @@ Consumers may control mode switching and persistence with:
 | `allowTitlebarModeToggle` | `true` | Include the Full/Micro switch in the controls menu. Set `false` to lock the configured mode and ignore saved user choices. |
 | `rememberTitlebarMode` | `true` | Persist the user's selected mode in local storage. |
 | `toolTitlebarPreferenceKey` | derived | Optional stable storage key. By default it is derived from `windowPositionKey` or the window class. |
+| `toolTheme` | `"light"` | Initial shared Tool-shell theme: `"light"` or `"dark"`. |
+| `allowToolThemeToggle` | `true` | Include the Light/Dark switch in the shared context menu. Set `false` to lock the configured theme and ignore saved user choices. |
+| `rememberToolTheme` | `true` | Persist the user's selected theme in local storage. |
+| `toolThemePreferenceKey` | derived | Optional stable theme-storage key. By default it is derived from `windowPositionKey` or the window class. |
 
 The public `setToolTitlebarMode(mode, options?)` method switches modes programmatically. It accepts `{ persist = true, render = true }`.
 
@@ -406,7 +422,7 @@ Both are exposed on `module.api`.
 ## Version History
 
 - **Implemented** — Window registry (`api-windows.js`), standard template/base (`window-template.hbs`, `window-base.js`), and Tool template/base (`window-tool-template.hbs`, `window-tool-base.js`).
-- **Public API** — Both base classes/getters, `windowStyles`, and `toolTitlebars` are exposed on `module.api` so consumers never import Blacksmith implementation scripts directly.
+- **Public API** — Both base classes/getters, `windowStyles`, `toolTitlebars`, and `toolThemes` are exposed on `module.api` so consumers never import Blacksmith implementation scripts directly.
 - **Tool chrome** — Full and Micro title bars, native menu actions, mode switching, per-tool preference persistence, position reset, and frozen-options-safe runtime state were live-verified on the combatant card on 2026-07-28.
 - **Canonical file** — `scripts/window-base.js`. The old `window-base-v2.js` re-export shim has been removed; use `module.api`, not a file path.
 
