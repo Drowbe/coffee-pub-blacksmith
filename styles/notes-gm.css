@@ -96,9 +96,9 @@
 .blacksmith-gm-notes-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
-    padding: 10px;
+    padding: 0;
     color: inherit;
 }
 
@@ -106,8 +106,9 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 28px;
-    border-bottom: 1px solid var(--blacksmith-window-border-color, rgba(128, 128, 128, 0.35));
+    min-height: 32px;
+    padding: 0 4px;
+    border-bottom: 0;
 }
 
 .blacksmith-gm-notes-field-collapse,
@@ -132,8 +133,18 @@
     text-align: left;
 }
 
+.blacksmith-gm-notes-collapse-icon {
+    width: 12px;
+    font-size: 0.72em;
+    transition: transform 120ms ease;
+}
+
+.blacksmith-gm-notes-field.collapsed .blacksmith-gm-notes-collapse-icon {
+    transform: rotate(-90deg);
+}
+
 .blacksmith-gm-notes-field.has-notes .blacksmith-gm-notes-field-collapse {
-    color: var(--blacksmith-window-accent-color, #d9a441);
+    color: inherit;
 }
 
 .blacksmith-gm-notes-field-edit:disabled,
@@ -171,7 +182,7 @@
 .blacksmith-gm-notes-sections {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
 }
 
@@ -180,10 +191,10 @@
 }
 
 .blacksmith-gm-notes-section {
-    border: 1px solid var(--blacksmith-window-border-color, rgba(128, 128, 128, 0.35));
-    border-radius: 5px;
-    background: rgba(0, 0, 0, 0.08);
-    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
 }
 
 .blacksmith-gm-notes-section-header {
@@ -191,8 +202,10 @@
     align-items: center;
     gap: 8px;
     min-height: 30px;
-    padding: 3px 6px;
-    background: rgba(0, 0, 0, 0.08);
+    padding: 3px 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
 .blacksmith-gm-notes-section-title,
@@ -224,15 +237,15 @@
 }
 
 .blacksmith-gm-notes-section-content {
-    padding: 8px 10px;
+    padding: 7px 0 4px;
     line-height: 1.45;
     overflow-wrap: anywhere;
 }
 
 .blacksmith-gm-notes-section-source-hint {
     margin: 8px 0 0;
-    padding-top: 6px;
-    border-top: 1px solid var(--blacksmith-window-border-color, rgba(128, 128, 128, 0.25));
+    padding-top: 0;
+    border: 0;
     opacity: 0.65;
     font-size: 0.82em;
     font-style: italic;

@@ -47,7 +47,6 @@ export class GMNotesFieldController {
         const extraClass = String(this.options.className || '').trim();
         this.element.className = [
             'blacksmith-gm-notes-field',
-            'blacksmith-window-section',
             extraClass
         ].filter(Boolean).join(' ');
         if (this.document?.uuid) this.element.dataset.docUuid = this.document.uuid;
@@ -55,7 +54,7 @@ export class GMNotesFieldController {
             <header class="blacksmith-gm-notes-field-header">
                 <button type="button" class="blacksmith-gm-notes-field-collapse"
                         data-tooltip="Toggle GM Notes" aria-expanded="true">
-                    <i class="fa-solid fa-feather" inert></i>
+                    <i class="fa-solid fa-chevron-down blacksmith-gm-notes-collapse-icon" inert></i>
                     <span></span>
                 </button>
             </header>
@@ -67,7 +66,7 @@ export class GMNotesFieldController {
                         <span class="blacksmith-gm-notes-section-attribution">Blacksmith</span>
                         <button type="button" class="blacksmith-gm-notes-field-edit"
                                 data-tooltip="Edit General GM Notes" aria-label="Edit General GM Notes">
-                            <i class="fa-solid fa-pen-to-square" inert></i>
+                            <i class="fa-solid fa-feather" inert></i>
                         </button>
                     </header>
                     <div class="blacksmith-gm-notes-field-content"></div>
@@ -210,7 +209,7 @@ export class GMNotesFieldController {
                 edit.dataset.tooltip = mayEdit ? `Edit ${section.label || section.id}` : this.capability?.message;
                 edit.setAttribute('aria-label', edit.dataset.tooltip);
                 edit.disabled = !mayEdit;
-                edit.innerHTML = '<i class="fa-solid fa-pen-to-square" inert></i>';
+                edit.innerHTML = '<i class="fa-solid fa-feather" inert></i>';
                 edit.addEventListener('click', () => this.openSectionEditor(section));
                 header.append(edit);
             }
