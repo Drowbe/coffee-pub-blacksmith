@@ -134,6 +134,8 @@ export class GMNotesManager {
                     text: typeof raw.text === 'string' ? raw.text : this._stripHtml(html),
                     icon: typeof raw.icon === 'string' ? raw.icon : '',
                     weight: Number.isFinite(Number(raw.weight)) ? Number(raw.weight) : 100,
+                    editable: raw.editable === true,
+                    sourceHint: typeof raw.sourceHint === 'string' ? raw.sourceHint : '',
                     updatedAt: Number(raw.updatedAt) || 0
                 };
             }
@@ -152,6 +154,8 @@ export class GMNotesManager {
             text: this._stripHtml(html),
             icon: typeof data.icon === 'string' ? data.icon : '',
             weight: Number.isFinite(Number(data.weight)) ? Number(data.weight) : 100,
+            editable: data.editable === true,
+            sourceHint: typeof data.sourceHint === 'string' ? data.sourceHint : '',
             updatedAt: Date.now()
         };
     }
@@ -419,6 +423,8 @@ export class GMNotesManager {
                         text: this._stripHtml(html),
                         icon: typeof raw?.icon === 'string' ? raw.icon : '',
                         weight: Number.isFinite(Number(raw?.weight)) ? Number(raw.weight) : record.weight,
+                        editable: false,
+                        sourceHint: typeof raw?.sourceHint === 'string' ? raw.sourceHint : '',
                         order: record.order,
                         source: 'contributed',
                         readOnly: true

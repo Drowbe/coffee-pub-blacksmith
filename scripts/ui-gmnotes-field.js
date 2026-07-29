@@ -58,14 +58,20 @@ export class GMNotesFieldController {
                     <i class="fa-solid fa-feather" inert></i>
                     <span></span>
                 </button>
-                <button type="button" class="blacksmith-gm-notes-field-edit"
-                        data-tooltip="Edit GM Notes" aria-label="Edit GM Notes">
-                    <i class="fa-solid fa-pen-to-square" inert></i>
-                </button>
             </header>
             <div class="blacksmith-gm-notes-field-status" role="status"></div>
             <div class="blacksmith-gm-notes-field-body">
-                <div class="blacksmith-gm-notes-field-content"></div>
+                <section class="blacksmith-gm-notes-section blacksmith-gm-notes-general">
+                    <header class="blacksmith-gm-notes-section-header">
+                        <span class="blacksmith-gm-notes-section-title">General</span>
+                        <span class="blacksmith-gm-notes-section-attribution">Blacksmith</span>
+                        <button type="button" class="blacksmith-gm-notes-field-edit"
+                                data-tooltip="Edit General GM Notes" aria-label="Edit General GM Notes">
+                            <i class="fa-solid fa-pen-to-square" inert></i>
+                        </button>
+                    </header>
+                    <div class="blacksmith-gm-notes-field-content"></div>
+                </section>
                 <div class="blacksmith-gm-notes-sections"></div>
             </div>
         `;
@@ -165,32 +171,26 @@ export class GMNotesFieldController {
         content.innerHTML = hasContent
             ? await this._enrich(note.html)
             : '<p class="blacksmith-gm-notes-field-empty">No GM notes.</p>';
-        await this._renderSections(sectionsHost, sections);
+        await this._renderSections(sectionsHost, sections, mayEdit);
         return this;
     }
 
-    async _renderSections(host, sections) {
+    async _renderSections(host, sections, mayEdit) {
         host.replaceChildren();
         const ordered = [
             ...sections.filter(section => section.source === 'persisted'),
             ...sections.filter(section => section.source === 'contributed')
         ];
         for (const section of ordered) {
-            const state = this._getSectionState(section);
             const card = document.createElement('section');
             card.className = 'blacksmith-gm-notes-section';
             card.dataset.moduleId = section.moduleId;
             card.dataset.sectionId = section.id;
-            card.classList.toggle('collapsed', state.collapsed);
-            card.classList.toggle('hidden-content', state.hidden);
 
             const header = document.createElement('header');
             header.className = 'blacksmith-gm-notes-section-header';
-            const title = document.createElement('button');
-            title.type = 'button';
-            title.className = 'blacksmith-gm-notes-section-collapse';
-            title.dataset.tooltip = 'Collapse or expand this section';
-            title.setAttribute('aria-expanded', String(!state.collapsed));
+            const title = document.createElement('span');
+            title.className = 'blacksmith-gm-notes-section-title';
             const icon = document.createElement('i');
             icon.className = this._iconClasses(section.icon);
             icon.setAttribute('inert', '');
@@ -201,31 +201,29 @@ export class GMNotesFieldController {
             const attribution = document.createElement('span');
             attribution.className = 'blacksmith-gm-notes-section-attribution';
             attribution.textContent = game.modules?.get(section.moduleId)?.title ?? section.moduleId;
-            const visibility = document.createElement('button');
-            visibility.type = 'button';
-            visibility.className = 'blacksmith-gm-notes-section-visibility';
-            visibility.dataset.tooltip = state.hidden ? 'Show this section' : 'Hide this section';
-            visibility.setAttribute('aria-label', visibility.dataset.tooltip);
-            visibility.innerHTML = `<i class="fa-solid ${state.hidden ? 'fa-eye-slash' : 'fa-eye'}" inert></i>`;
-            header.append(title, attribution, visibility);
+            header.append(title, attribution);
+
+            if (section.editable === true && section.source === 'persisted') {
+                const edit = document.createElement('button');
+                edit.type = 'button';
+                edit.className = 'blacksmith-gm-notes-section-edit';
+                edit.dataset.tooltip = mayEdit ? `Edit ${section.label || section.id}` : this.capability?.message;
+                edit.setAttribute('aria-label', edit.dataset.tooltip);
+                edit.disabled = !mayEdit;
+                edit.innerHTML = '<i class="fa-solid fa-pen-to-square" inert></i>';
+                edit.addEventListener('click', () => this.openSectionEditor(section));
+                header.append(edit);
+            }
 
             const body = document.createElement('div');
             body.className = 'blacksmith-gm-notes-section-content';
             body.innerHTML = await this._enrich(section.html);
-            title.addEventListener('click', () => {
-                const collapsed = !card.classList.contains('collapsed');
-                card.classList.toggle('collapsed', collapsed);
-                title.setAttribute('aria-expanded', String(!collapsed));
-                this._setSectionState(section, { ...this._getSectionState(section), collapsed });
-            });
-            visibility.addEventListener('click', () => {
-                const hidden = !card.classList.contains('hidden-content');
-                card.classList.toggle('hidden-content', hidden);
-                visibility.dataset.tooltip = hidden ? 'Show this section' : 'Hide this section';
-                visibility.setAttribute('aria-label', visibility.dataset.tooltip);
-                visibility.innerHTML = `<i class="fa-solid ${hidden ? 'fa-eye-slash' : 'fa-eye'}" inert></i>`;
-                this._setSectionState(section, { ...this._getSectionState(section), hidden });
-            });
+            if (section.sourceHint) {
+                const hint = document.createElement('p');
+                hint.className = 'blacksmith-gm-notes-section-source-hint';
+                hint.textContent = section.sourceHint;
+                body.append(hint);
+            }
             card.append(header, body);
             host.append(card);
         }
@@ -237,24 +235,6 @@ export class GMNotesFieldController {
         if (!classes.some(value => value.startsWith('fa-'))) classes.unshift('fa-solid');
         else if (!classes.some(value => ['fa-solid', 'fa-regular', 'fa-brands'].includes(value))) classes.unshift('fa-solid');
         return classes.join(' ');
-    }
-
-    _sectionStateKey(section) {
-        return `blacksmith-gm-notes-section-${this.document?.uuid}-${section.moduleId}-${section.id}`;
-    }
-
-    _getSectionState(section) {
-        try {
-            return JSON.parse(localStorage.getItem(this._sectionStateKey(section))) || {};
-        } catch (_) {
-            return {};
-        }
-    }
-
-    _setSectionState(section, state) {
-        try {
-            localStorage.setItem(this._sectionStateKey(section), JSON.stringify(state));
-        } catch (_) {}
     }
 
     async _enrich(html) {
@@ -272,6 +252,21 @@ export class GMNotesFieldController {
         const app = new GMNotesWindow({
             uuid: this.document.uuid,
             title: this.document.name
+        });
+        app.render(true);
+        return app;
+    }
+
+    openSectionEditor(section) {
+        if (!this.document || !this.capability?.allowed || section?.editable !== true || section?.source !== 'persisted') {
+            return null;
+        }
+        const app = new GMNotesWindow({
+            uuid: this.document.uuid,
+            title: `${this.document.name} — ${section.label || section.id}`,
+            moduleId: section.moduleId,
+            sectionId: section.id,
+            sectionLabel: section.label || section.id
         });
         app.render(true);
         return app;

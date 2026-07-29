@@ -12,7 +12,7 @@ const gmNotes = game.modules.get('coffee-pub-blacksmith')?.api?.gmNotes;
 
 ## Storage & privacy
 
-Notes are stored on the **target document's own flags** (`flags["coffee-pub-blacksmith"].gmNotes`), addressed by **document UUID** at the API boundary. The envelope contains the GM's unowned General note and optional namespaced persisted module sections. Live contributed sections are never stored. This is UI-gated, not encrypted: the panel only renders for `game.user.isGM`, but the underlying flag travels to any client that can observe the document.
+Notes are stored on the **target document's own flags** (`flags["coffee-pub-blacksmith"].gmNotes`), addressed by **document UUID** at the API boundary. The envelope contains Blacksmith's **General** section and optional namespaced persisted module sections. Live contributed sections are never stored. This is UI-gated, not encrypted: the panel only renders for `game.user.isGM`, but the underlying flag travels to any client that can observe the document.
 
 Blacksmith automatically injects its legacy read card into dnd5e `ItemSheet5e` and `ContainerSheet`. Module-owned Actor, Journal, JournalPage, and other custom sheets should mount the reusable field/controller described below rather than waiting for Blacksmith to recognize their sheet class.
 
@@ -35,6 +35,8 @@ Blacksmith automatically injects its legacy read card into dnd5e `ItemSheet5e` a
                 text: "Module-owned annotation.",
                 icon: "fa-solid fa-flag",
                 weight: 100,
+                editable: true,
+                sourceHint: "",
                 updatedAt: 1719763200000
             }
         }
@@ -138,7 +140,13 @@ The controller exposes:
 
 It resolves compendium documents asynchronously, hides itself from non-GMs, renders enriched read content, opens Blacksmith's canonical ProseMirror editor, disables editing with an explanation and remedy for locked/no-permission targets, remembers collapse state locally, and refreshes from the shared change hook. It also sets `.read-only` and `data-gm-notes-read-only="true|false"` on its root so hosts can adapt layout without JavaScript.
 
-The field is the canonical shared surface. It renders the GM's General note first, then persisted module sections, then live contributed sections. Module sections are attributed, read-only, and independently collapsible/hideable per user.
+The field is the canonical shared surface. Its **GM NOTES** header expands or collapses the whole group and has no edit action. Inside it, every row is an ownership-first section:
+
+1. **General — Blacksmith**, editable when the document is writable.
+2. Persisted module sections.
+3. Live contributed module sections.
+
+All sections are expanded by default. There is no per-section collapse or hide state. A persisted section gets a pencil only when it declares `editable: true`; contributed sections are always read-only.
 
 ## Module sections
 
@@ -154,7 +162,8 @@ const unregister = gmNotes.registerProvider(
             label: 'Running This Injury',
             html,
             icon: 'fa-solid fa-masks-theater',
-            weight: 100
+            weight: 100,
+            sourceHint: 'Edit this guidance in the Bibliosoph injury definition.'
         }] : [];
     }
 );
@@ -169,11 +178,14 @@ await gmNotes.setSection(page, 'coffee-pub-squire', 'quest-guidance', {
     label: 'Quest Guidance',
     html: '<p>Stored module annotation.</p>',
     icon: 'fa-solid fa-flag',
-    weight: 100
+    weight: 100,
+    editable: true
 });
 ```
 
-Modules must never write the General note and must not write another module's namespace.
+Set `editable: false` or omit it for stored content that should only be changed through the owning module's workflow. `sourceHint` adds a short read-only explanation beneath the section body.
+
+Modules must never write General and must pass their own module id to section writes. This is an API ownership contract, not a security sandbox: JavaScript modules execute in the same client and could impersonate another namespace if malicious.
 
 Destroy the controller before replacing its host on rerender and when the owning sheet closes:
 

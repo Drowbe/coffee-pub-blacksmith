@@ -12,7 +12,7 @@ The target Document owns:
 flags.coffee-pub-blacksmith.gmNotes
 ```
 
-The schema-versioned envelope owns the GM's General `html`, derived `text`, `pinned`, `updatedAt`, and a `sections` map keyed by module id and section id. General writes never replace sections; section writes never replace General or a sibling namespace. `clear()` clears General while preserving sections; `clearSection()` removes only its addressed section.
+The schema-versioned envelope owns Blacksmith's General `html`, derived `text`, `pinned`, `updatedAt`, and a `sections` map keyed by module id and section id. General writes never replace sections; section writes never replace General or a sibling namespace. `clear()` clears General while preserving sections; `clearSection()` removes only its addressed section. Persisted sections declare `editable`; live provider sections are always read-only. Namespace ownership is a cooperative API boundary, not isolation between JavaScript packages.
 
 Live contributed sections are held in an in-memory provider registry and are never copied into document flags. Providers receive the resolved Document at render time, so shipped guidance versions with its owning module without creating a drifting second copy.
 
@@ -38,7 +38,7 @@ Bulk reads resolve concurrently and return a UUID-keyed Map.
 
 `GMNotesSheetUI` retains the automatic dnd5e Item/Container read-card integration.
 
-`GMNotesFieldController` is the supported inversion-of-control path for module-owned sheets. The owner supplies one host; the controller renders General first, persisted sections second, and contributed sections third. Module sections are attributed and read-only, with per-user collapse/hide state. The controller also handles async loading, GM gating, enrichment, capability/read-only state, canonical editor launch, live refresh, and cleanup.
+`GMNotesFieldController` is the supported inversion-of-control path for module-owned sheets. The owner supplies one host. A single group header controls expansion of the entire GM NOTES area; beneath it the controller renders a flat list: Blacksmith-owned General, persisted sections, then contributed sections. Sections are expanded by default and attributed to their owning module. General and persisted sections declaring `editable: true` open the canonical editor; derived provider sections remain read-only and may explain their source with `sourceHint`. The controller also handles async loading, GM gating, enrichment, capability/read-only state, live refresh, and cleanup.
 
 The canonical `GMNotesWindow` uses Blacksmith's Application V2 base and Foundry ProseMirror. Each window binds its own actions, avoiding the base class's legacy single-static-reference limitation when multiple note editors are open. Locked or non-writable documents open read-only with an explanation.
 

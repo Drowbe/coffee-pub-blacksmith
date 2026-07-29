@@ -43,6 +43,9 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         }
         super(opts);
         this.targetUuid = options.uuid ?? null;
+        this.sectionModuleId = options.moduleId ?? null;
+        this.sectionId = options.sectionId ?? null;
+        this.sectionLabel = options.sectionLabel ?? null;
         this.targetDocument = null;
         this._editor = null;
     }
@@ -84,14 +87,14 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
                 event.preventDefault();
                 void this.close();
             });
-        if (this.writeCapability?.allowed) this._mountEditor(root);
+        if (this.writeCapability?.allowed) await this._mountEditor(root);
         else await this._renderReadOnly(root);
     }
 
     async _renderReadOnly(root) {
         const host = root.querySelector('.blacksmith-notes-editor-host');
         if (!host) return;
-        const html = await GMNotesManager.getHtmlAsync(this.targetDocument ?? this.targetUuid);
+        const html = await this._getCurrentHtml();
         if (!html) {
             host.innerHTML = '<p class="blacksmith-gm-notes-readonly-empty">No GM notes.</p>';
             return;
@@ -108,7 +111,7 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         }
     }
 
-    _mountEditor(root) {
+    async _mountEditor(root) {
         const host = root.querySelector('.blacksmith-notes-editor-host');
         if (!host || host.querySelector('prose-mirror')) return;
 
@@ -121,7 +124,7 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         // Config mirrors Squire's verified-working note editor.
         const config = {
             name: 'content',
-            value: GMNotesManager.getHtml(this.targetDocument ?? this.targetUuid) || '',
+            value: await this._getCurrentHtml(),
             compact: true
         };
         if (this.targetUuid) config.documentUUID = this.targetUuid;
@@ -143,7 +146,7 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         // The editor toolbar's own Save (floppy) autosaves without closing.
         editor.addEventListener('change', async (ev) => {
             ev.stopPropagation();
-            await GMNotesManager.setNote(this.targetDocument ?? this.targetUuid, { html: editor.value ?? '' });
+            await this._writeHtml(editor.value ?? '');
         });
 
         host.replaceChildren(editor);
@@ -151,10 +154,27 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _save() {
-        const saved = await GMNotesManager.setNote(
-            this.targetDocument ?? this.targetUuid,
-            { html: this._editor?.value ?? '' }
-        );
+        const saved = await this._writeHtml(this._editor?.value ?? '');
         if (saved) this.close();
+    }
+
+    async _getCurrentHtml() {
+        const target = this.targetDocument ?? this.targetUuid;
+        if (this.sectionModuleId && this.sectionId) {
+            return (await GMNotesManager.getSection(target, this.sectionModuleId, this.sectionId))?.html ?? '';
+        }
+        return GMNotesManager.getHtmlAsync(target);
+    }
+
+    async _writeHtml(html) {
+        const target = this.targetDocument ?? this.targetUuid;
+        if (this.sectionModuleId && this.sectionId) {
+            return GMNotesManager.setSection(target, this.sectionModuleId, this.sectionId, {
+                label: this.sectionLabel ?? this.sectionId,
+                html,
+                editable: true
+            });
+        }
+        return GMNotesManager.setNote(target, { html });
     }
 }

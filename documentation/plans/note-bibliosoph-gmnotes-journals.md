@@ -20,13 +20,14 @@ this._unregisterGmNotesProvider ??= gmNotes?.registerProvider(
       label: "Running This Injury",
       html,
       icon: "fa-solid fa-masks-theater",
-      weight: 100
+      weight: 100,
+      sourceHint: "Edit this guidance in the Bibliosoph injury definition."
     }] : [];
   }
 );
 ```
 
-Register once during module initialization, not once per sheet. The existing `createField(page)` mount automatically renders General plus this contributed section. The provider content is read-only and never stored in Blacksmith flags. If Bibliosoph later needs a genuinely stored annotation, use `setSection(page, "coffee-pub-bibliosoph", sectionId, data)` instead.
+Register once during module initialization, not once per sheet. The existing `createField(page)` mount automatically renders one flat GM NOTES group containing **General — Blacksmith** followed by **Running This Injury — Bibliosoph**. The group header alone controls collapse. Sections open by default and have no individual hide/collapse controls. Remove the earlier `collapsed: true` mount option (or explicitly use `false`) so the group initially opens. Provider content is read-only and never stored in Blacksmith flags; `sourceHint` tells the GM where it is authored. If Bibliosoph later needs a genuinely stored annotation, use `setSection(page, "coffee-pub-bibliosoph", sectionId, { ..., editable: true })` instead.
 
 Thank you for the detailed review. We agree with the direction and are extending Blacksmith's GM Notes API around the journal and compendium requirements you identified.
 
@@ -109,7 +110,6 @@ The public factory is:
 ```js
 const controller = await gmNotes.createField(pageOrUuid, {
   label: "GM Notes",
-  collapsed: true,
   editable: true,
   replace: true,
   className: "bibliosoph-injury-gm-notes"
@@ -190,8 +190,7 @@ The adapter should prefer `createField()` and retain the fallback only for older
 ```js
 if (typeof gmNotes.createField === "function") {
   const controller = await gmNotes.createField(pageOrUuid, {
-    label: "GM Notes",
-    collapsed: true
+    label: "GM Notes"
   });
   controller.mount(host);
   return controller;
