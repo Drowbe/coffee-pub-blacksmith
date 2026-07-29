@@ -387,7 +387,12 @@ export class GMNotesManager {
         };
         this._providers.set(key, record);
         Hooks.callAll(PROVIDERS_HOOK, { action: 'register', moduleId: owner, providerId });
-        return () => this.unregisterProvider(owner, providerId);
+        // A stale disposer from an earlier registration must not remove a newer
+        // provider that intentionally reused the same module/id pair.
+        return () => {
+            if (this._providers.get(key) !== record) return false;
+            return this.unregisterProvider(owner, providerId);
+        };
     }
 
     static unregisterProvider(moduleId, providerId = 'default') {
@@ -439,9 +444,11 @@ export class GMNotesManager {
     }
 
     static async getSections(uuidOrDoc, { includePersisted = true, includeContributed = true } = {}) {
+        const document = await this._resolveDocAsync(uuidOrDoc);
+        if (!document) return [];
         const [persisted, contributed] = await Promise.all([
-            includePersisted ? this.getPersistedSections(uuidOrDoc) : [],
-            includeContributed ? this.getContributedSections(uuidOrDoc) : []
+            includePersisted ? this.getPersistedSections(document) : [],
+            includeContributed ? this.getContributedSections(document) : []
         ]);
         return [...persisted, ...contributed].sort(this._sortSections);
     }

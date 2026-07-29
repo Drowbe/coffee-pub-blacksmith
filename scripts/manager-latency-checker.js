@@ -12,6 +12,7 @@ export class LatencyChecker {
     static #startTimes = new Map();
     static #initialized = false;
     static #checkInterval = null;
+    static #initialCheckTimeout = null;
     static #playerListHookId = null;
     
     static isInitialized() {
@@ -73,6 +74,11 @@ export class LatencyChecker {
         // Clear any existing interval
         if (this.#checkInterval) {
             clearInterval(this.#checkInterval);
+            this.#checkInterval = null;
+        }
+        if (this.#initialCheckTimeout) {
+            clearTimeout(this.#initialCheckTimeout);
+            this.#initialCheckTimeout = null;
         }
 
         // Get interval from settings (convert from seconds to milliseconds)
@@ -84,7 +90,9 @@ export class LatencyChecker {
         this.#updateLatencyDisplay();
         
         // Wait for the full interval before doing the first check
-        setTimeout(() => {
+        this.#initialCheckTimeout = setTimeout(() => {
+            this.#initialCheckTimeout = null;
+            if (!this.#initialized) return;
             // Initial check after waiting
             this.#checkAllUsers();
             
@@ -332,11 +340,17 @@ export class LatencyChecker {
             clearInterval(this.#checkInterval);
             this.#checkInterval = null;
         }
+        if (this.#initialCheckTimeout) {
+            clearTimeout(this.#initialCheckTimeout);
+            this.#initialCheckTimeout = null;
+        }
         if (this.#playerListHookId) {
             HookManager.unregisterHook('renderPlayerList', this.#playerListHookId);
             this.#playerListHookId = null;
         }
         this.#initialized = false;
+        this.#latencyData.clear();
+        this.#startTimes.clear();
         this.#stripLatencyUi();
     }
 } 

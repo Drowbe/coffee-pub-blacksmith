@@ -17,6 +17,9 @@ export class JournalDomWatchdog {
     /** @type {MutationObserver|null} */
     static _observer = null;
 
+    /** Attribute observers are scoped to known journal roots, not the whole Foundry DOM. */
+    static _sheetObservers = new Map();
+
     /** @type {number|null} */
     static _activePageIntervalId = null;
 
@@ -59,24 +62,12 @@ export class JournalDomWatchdog {
                     }
                 }
 
-                // Detect active page changes on journal-entry-page ARTICLE nodes.
-                if (mutation.type === 'attributes' && mutation.target instanceof HTMLElement) {
-                    const t = mutation.target;
-                    if (t.tagName !== 'ARTICLE') continue;
-                    if (!t.classList?.contains('journal-entry-page')) continue;
-                    const sheet = t.closest?.('.journal-sheet, .journal-entry') ?? null;
-                    if (!sheet) continue;
-                    this._trackSheet(sheet);
-                    this._emitPage(sheet);
-                }
             }
         });
 
         this._observer.observe(document.body, {
             childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['class', 'data-page-id', 'style']
+            subtree: true
         });
 
         // Scan existing sheets once so late subscribers still get covered.
@@ -104,6 +95,13 @@ export class JournalDomWatchdog {
             if (this._observer) this._observer.disconnect();
         } catch (_e) { /* non-fatal */ }
         this._observer = null;
+
+        for (const record of this._sheetObservers.values()) {
+            try {
+                record.observer.disconnect();
+            } catch (_e) { /* non-fatal */ }
+        }
+        this._sheetObservers.clear();
 
         try {
             if (this._activePageIntervalId != null) window.clearInterval(this._activePageIntervalId);
@@ -156,6 +154,11 @@ export class JournalDomWatchdog {
         for (const sheet of [...this._knownSheets]) {
             if (!sheet || !document.body.contains(sheet)) {
                 this._knownSheets.delete(sheet);
+                const record = this._sheetObservers.get(sheet);
+                try {
+                    record?.observer?.disconnect();
+                } catch (_e) { /* non-fatal */ }
+                this._sheetObservers.delete(sheet);
                 try {
                     this._lastActivePageBySheet.delete(sheet);
                 } catch (_e) { /* non-fatal */ }
@@ -168,6 +171,47 @@ export class JournalDomWatchdog {
         this._knownSheets.add(sheetEl);
         const pageId = this._getActivePageIdFromSheet(sheetEl);
         if (pageId) this._lastActivePageBySheet.set(sheetEl, pageId);
+        if (this._sheetObservers.has(sheetEl)) return;
+
+        const record = { observer: null, queued: false, pageDomDirty: false };
+        record.observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'attributes'
+                    && mutation.target?.matches?.('article.journal-entry-page')) {
+                    record.pageDomDirty = true;
+                    break;
+                }
+                if (mutation.type !== 'childList') continue;
+                const changedNodes = [...mutation.addedNodes, ...mutation.removedNodes];
+                if (changedNodes.some(node => node?.matches?.('article.journal-entry-page')
+                    || node?.querySelector?.('article.journal-entry-page'))) {
+                    record.pageDomDirty = true;
+                    break;
+                }
+            }
+            if (!record.pageDomDirty) return;
+            if (record.queued) return;
+            record.queued = true;
+            queueMicrotask(() => {
+                record.queued = false;
+                if (!document.body.contains(sheetEl) || !this._knownSheets.has(sheetEl)) return;
+                const nextPageId = this._getActivePageIdFromSheet(sheetEl);
+                const lastPageId = this._lastActivePageBySheet.get(sheetEl);
+                const shouldEmit = record.pageDomDirty || (nextPageId && nextPageId !== lastPageId);
+                record.pageDomDirty = false;
+                if (nextPageId && shouldEmit) {
+                    this._lastActivePageBySheet.set(sheetEl, nextPageId);
+                    this._emitPage(sheetEl);
+                }
+            });
+        });
+        record.observer.observe(sheetEl, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'data-page-id', 'style']
+        });
+        this._sheetObservers.set(sheetEl, record);
     }
 
     static _emitSheet(sheetEl) {
@@ -217,4 +261,3 @@ export class JournalDomWatchdog {
         return journalPage.getAttribute('data-page-id') ?? journalPage.dataset?.pageId ?? null;
     }
 }
-

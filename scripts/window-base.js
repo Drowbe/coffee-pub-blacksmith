@@ -157,6 +157,13 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
         }
     }
 
+    _onClose(options) {
+        clearTimeout(this._positionSaveTimer);
+        this._positionSaveTimer = null;
+        if (this.constructor._ref === this) this.constructor._ref = null;
+        return super._onClose?.(options);
+    }
+
     activateListeners(html) {
         super.activateListeners(html);
         this._attachDelegationOnce();

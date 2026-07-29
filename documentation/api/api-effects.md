@@ -84,6 +84,15 @@ const label = effects.getConditionLabel('charmed');
 ```
 
 Labels are resolved from `CONFIG.statusEffects` and `CONFIG.DND5E.conditionTypes`, then localized.
+The normalized condition index is cached for the session. A module that intentionally changes
+either configuration collection at runtime should invalidate it after making those changes:
+
+```javascript
+effects.refreshConditionIndex();
+```
+
+The next condition lookup rebuilds the index. Ordinary Active Effect creation, updates, and
+deletion do not require invalidation because they do not change the condition definitions.
 
 ## Classifiers
 

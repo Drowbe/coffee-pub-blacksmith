@@ -67,8 +67,9 @@ class PinDOMElement {
     static _container = null; // Container div for all pins
     static _updateThrottle = null;
     static _isInitialized = false;
-    static _hookIds = []; // Store hook IDs for cleanup
+    static _hookIds = []; // Store { name, id } records for cleanup
     static _resizeListener = null; // Store resize listener for cleanup
+    static _sceneLoadTimeout = null;
     static _reusablePoint = null; // Reusable PIXI.Point to avoid allocations (for coordinate conversion)
     static _reusableDragPoint = null; // Reusable PIXI.Point for drag operations
 
@@ -95,25 +96,28 @@ class PinDOMElement {
         this._container = container;
 
         // Hook into canvas pan to update positions (store hook IDs for cleanup)
-        this._hookIds.push(
-            Hooks.on('canvasPan', () => {
+        this._hookIds.push({
+            name: 'canvasPan',
+            id: Hooks.on('canvasPan', () => {
                 this._scheduleUpdate();
             })
-        );
+        });
         
-        this._hookIds.push(
-            Hooks.on('updateScene', () => {
+        this._hookIds.push({
+            name: 'updateScene',
+            id: Hooks.on('updateScene', () => {
                 // When scene changes, load pins for the new scene
                 this._scheduleSceneLoad();
             })
-        );
+        });
         
-        this._hookIds.push(
-            Hooks.on('canvasReady', () => {
+        this._hookIds.push({
+            name: 'canvasReady',
+            id: Hooks.on('canvasReady', () => {
                 // When canvas becomes ready, load pins for current scene and update positions
                 this._scheduleSceneLoad();
             })
-        );
+        });
         
         // Update on window resize (store listener for cleanup)
         this._resizeListener = () => this._scheduleUpdate();
@@ -187,7 +191,10 @@ class PinDOMElement {
      */
     static _scheduleSceneLoad() {
         // Use a small delay to ensure scene is fully activated
-        setTimeout(async () => {
+        if (this._sceneLoadTimeout != null) clearTimeout(this._sceneLoadTimeout);
+        this._sceneLoadTimeout = setTimeout(async () => {
+            this._sceneLoadTimeout = null;
+            if (!this._isInitialized) return;
             if (!canvas?.scene) return;
             
             try {
@@ -469,7 +476,7 @@ class PinDOMElement {
             Hooks.once('canvasReady', () => {
                 setTimeout(() => {
                     this.updatePosition(pinId, pinData);
-                }, 100);
+        }, 100);
             });
         }
     }
@@ -1994,8 +2001,8 @@ class PinDOMElement {
         }
         
         // Remove all hook listeners
-        for (const hookId of this._hookIds) {
-            Hooks.off(hookId);
+        for (const hook of this._hookIds) {
+            Hooks.off(hook.name, hook.id);
         }
         this._hookIds = [];
         
@@ -2007,6 +2014,10 @@ class PinDOMElement {
         if (this._updateThrottle) {
             cancelAnimationFrame(this._updateThrottle);
             this._updateThrottle = null;
+        }
+        if (this._sceneLoadTimeout != null) {
+            clearTimeout(this._sceneLoadTimeout);
+            this._sceneLoadTimeout = null;
         }
         
         this._isInitialized = false;

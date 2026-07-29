@@ -58,11 +58,17 @@ export class RollsAPI {
      */
     static on(event, callback, options = {}) {
         const hookName = ROLLS_HOOKS[event] ?? event;
-        Hooks.on(hookName, callback);
-        const disposer = () => Hooks.off(hookName, callback);
-        if (options.signal) {
-            options.signal.addEventListener('abort', disposer, { once: true });
-        }
+        const hookId = Hooks.on(hookName, callback);
+        let active = true;
+        const abortHandler = () => disposer();
+        const disposer = () => {
+            if (!active) return false;
+            active = false;
+            options.signal?.removeEventListener?.('abort', abortHandler);
+            return Hooks.off(hookName, hookId);
+        };
+        if (options.signal?.aborted) disposer();
+        else options.signal?.addEventListener?.('abort', abortHandler, { once: true });
         return disposer;
     }
 

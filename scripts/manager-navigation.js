@@ -9,6 +9,8 @@ import { HookManager } from './manager-hooks.js';
 export class NavigationManager {
     static _singleClickTimeouts = new Map();
     static _renderTimeouts = []; // Track setTimeout IDs from render hooks
+    static _initializationTimeout = null;
+    static _hookIds = [];
 
     /**
      * Initialize scene navigation hooks
@@ -17,29 +19,31 @@ export class NavigationManager {
         
         // Use setTimeout to delay execution until after module loading phase
         // All early hooks (init, ready, canvasReady, updateScene) have already fired
-        setTimeout(() => {
+        if (this._initializationTimeout != null) clearTimeout(this._initializationTimeout);
+        this._initializationTimeout = setTimeout(() => {
+            this._initializationTimeout = null;
             NavigationManager._onReady();
         }, 1000); // 1 second delay to ensure module loading is complete
         
         // Register renderSceneDirectory hook
-        HookManager.registerHook({
+        this._hookIds.push(HookManager.registerHook({
             name: 'renderSceneDirectory',
             description: 'Scene Navigation: Attach click listeners to scene directory',
             context: 'Module',
             priority: 3,
             key: 'scene-navigation-directory',
             callback: NavigationManager._onRenderSceneDirectory
-        });
+        }));
         
         // Register renderSceneNavigation hook
-        HookManager.registerHook({
+        this._hookIds.push(HookManager.registerHook({
             name: 'renderSceneNavigation',
             description: 'Scene Navigation: Attach click listeners to scene navigation bar',
             context: 'Module',
             priority: 3,
             key: 'scene-navigation-bar',
             callback: NavigationManager._onRenderSceneNavigation
-        });
+        }));
         
     }
 
@@ -73,20 +77,15 @@ export class NavigationManager {
      * @private
      */
     static cleanup() {
+        if (NavigationManager._initializationTimeout != null) {
+            clearTimeout(NavigationManager._initializationTimeout);
+            NavigationManager._initializationTimeout = null;
+        }
         
-        // Unregister hooks via HookManager
-        HookManager.unregisterHook({
-            name: 'ready',
-            callbackId: 'scene-navigation-ready-debug'
-        });
-        HookManager.unregisterHook({
-            name: 'renderSceneDirectory',
-            callbackId: 'scene-navigation-directory'
-        });
-        HookManager.unregisterHook({
-            name: 'renderSceneNavigation',
-            callbackId: 'scene-navigation-bar'
-        });
+        for (const callbackId of NavigationManager._hookIds) {
+            HookManager.removeCallback(callbackId);
+        }
+        NavigationManager._hookIds = [];
         
         // Clear any pending single-click timeouts
         if (NavigationManager._singleClickTimeouts) {
@@ -295,4 +294,3 @@ export class NavigationManager {
         });
     }
 }
-

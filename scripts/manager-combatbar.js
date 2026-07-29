@@ -580,14 +580,23 @@ export class CombatBarManager {
         portraits.dataset.scrollListenerAttached = 'true';
         portraits.addEventListener('scroll', () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), { passive: true });
         if (wrapper) {
+            menuBar._combatBarResizeObserver?.disconnect();
             const ro = new ResizeObserver(() => {
                 requestAnimationFrame(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar));
             });
             ro.observe(wrapper);
+            menuBar._combatBarResizeObserver = ro;
         }
     }
 
     static cleanupCombatBarEvents(menuBar) {
+        menuBar._combatBarResizeObserver?.disconnect();
+        menuBar._combatBarResizeObserver = null;
+        if (menuBar._combatHoverMoveRaf != null) {
+            cancelAnimationFrame(menuBar._combatHoverMoveRaf);
+            menuBar._combatHoverMoveRaf = null;
+        }
+        menuBar._combatHoverMoveEvent = null;
         if (menuBar._combatBarClickHandler) {
             document.removeEventListener('click', menuBar._combatBarClickHandler);
             menuBar._combatBarClickHandler = null;
@@ -1184,27 +1193,39 @@ export class CombatBarManager {
         document.addEventListener('dblclick', menuBar._combatBarDblClickHandler);
 
         menuBar._combatBarHoverMoveHandler = (event) => {
-            if (CombatBarManager._initiativeDrag?.active) {
-                CombatBarManager.hideCombatantHoverCard(menuBar);
-                return;
-            }
-            if (event.target?.closest?.('#blacksmith-combat-hover-card')) return;
-            const portrait = event.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
-            if (!portrait || !CombatBarManager.isCombatBarActive(menuBar)) {
-                CombatBarManager.hideCombatantHoverCard(menuBar);
-                return;
-            }
-            const combatantId = portrait.getAttribute('data-combatant-id');
-            if (!combatantId) {
-                CombatBarManager.hideCombatantHoverCard(menuBar);
-                return;
-            }
-            menuBar._combatHoverCardPointer = { clientX: event.clientX, clientY: event.clientY };
-            if (menuBar._combatHoverCardCombatantId !== combatantId || !menuBar._combatHoverCardEl) {
-                void CombatBarManager.showCombatantHoverCard(menuBar, combatantId, event);
-            } else {
-                CombatBarManager.positionCombatantHoverCard(menuBar, event);
-            }
+            menuBar._combatHoverMoveEvent = {
+                target: event.target,
+                clientX: event.clientX,
+                clientY: event.clientY
+            };
+            if (menuBar._combatHoverMoveRaf != null) return;
+            menuBar._combatHoverMoveRaf = requestAnimationFrame(() => {
+                menuBar._combatHoverMoveRaf = null;
+                const latest = menuBar._combatHoverMoveEvent;
+                menuBar._combatHoverMoveEvent = null;
+                if (!latest) return;
+                if (CombatBarManager._initiativeDrag?.active || !CombatBarManager.isCombatBarActive(menuBar)) {
+                    CombatBarManager.hideCombatantHoverCard(menuBar);
+                    return;
+                }
+                if (latest.target?.closest?.('#blacksmith-combat-hover-card')) return;
+                const portrait = latest.target?.closest?.('.blacksmith-menubar-secondary .combat-portrait-container[data-combatant-id]');
+                if (!portrait) {
+                    CombatBarManager.hideCombatantHoverCard(menuBar);
+                    return;
+                }
+                const combatantId = portrait.getAttribute('data-combatant-id');
+                if (!combatantId) {
+                    CombatBarManager.hideCombatantHoverCard(menuBar);
+                    return;
+                }
+                menuBar._combatHoverCardPointer = { clientX: latest.clientX, clientY: latest.clientY };
+                if (menuBar._combatHoverCardCombatantId !== combatantId || !menuBar._combatHoverCardEl) {
+                    void CombatBarManager.showCombatantHoverCard(menuBar, combatantId, latest);
+                } else {
+                    CombatBarManager.positionCombatantHoverCard(menuBar, latest);
+                }
+            });
         };
         document.addEventListener('mousemove', menuBar._combatBarHoverMoveHandler);
 

@@ -53,6 +53,9 @@ const stop = rolls.on('resolved', (outcome) => {
 
 You may also use `Hooks.on('blacksmith.rolls.resolved', ...)` directly.
 
+`rolls.on()` returns an idempotent disposer. When an `AbortSignal` is supplied, aborting removes
+both the Foundry hook and Blacksmith's abort listener; calling the disposer does the same.
+
 **Visibility:** Hidden/blind/GM-only rolls do not deliver payloads to clients who should not see the roll. GMs always receive outcomes on the GM client.
 
 **Midi-QOL is optional.** Blacksmith is fully functional without it: the core dnd5e lanes cover attacks and damage on their own. When Midi is installed, its workflows are leveraged for authoritative hit/miss and crit detection — gated by the Midi-QOL Integration world setting (`enableMidiIntegration`, Roll System > Integrations, default on, applies live). With the setting off, Blacksmith ignores Midi workflows and the core lanes process Midi-generated messages too.

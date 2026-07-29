@@ -11,6 +11,24 @@ import { BlacksmithWindowBaseV2 } from './window-base.js';
 export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
     /** @type {Map<string, Function>} Pending onRollComplete callbacks by message ID (for API callers) */
     static _pendingRollCallbacks = new Map();
+    static _pendingRollCallbackDeleteHookId = null;
+    static MAX_PENDING_ROLL_CALLBACKS = 100;
+
+    static _registerRollCompleteCallback(messageId, callback) {
+        if (!messageId || typeof callback !== 'function') return;
+        if (this._pendingRollCallbackDeleteHookId == null) {
+            this._pendingRollCallbackDeleteHookId = Hooks.on('deleteChatMessage', (message) => {
+                if (message?.id) this._pendingRollCallbacks.delete(message.id);
+            });
+        }
+        this._pendingRollCallbacks.delete(messageId);
+        this._pendingRollCallbacks.set(messageId, callback);
+        while (this._pendingRollCallbacks.size > this.MAX_PENDING_ROLL_CALLBACKS) {
+            const oldest = this._pendingRollCallbacks.keys().next().value;
+            if (!oldest) break;
+            this._pendingRollCallbacks.delete(oldest);
+        }
+    }
 
     static ROOT_CLASS = 'skill-check-dialog';
 
@@ -1454,7 +1472,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
             // Register API callback so the calling module receives roll results when players roll
             if (typeof this.onRollComplete === 'function') {
-                SkillCheckDialog._pendingRollCallbacks.set(message.id, this.onRollComplete);
+                SkillCheckDialog._registerRollCompleteCallback(message.id, this.onRollComplete);
             }
 
             // Play sound for roll request posted to chat
@@ -2243,7 +2261,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         });
 
         if (typeof options.onRollComplete === 'function') {
-            SkillCheckDialog._pendingRollCallbacks.set(message.id, options.onRollComplete);
+            SkillCheckDialog._registerRollCompleteCallback(message.id, options.onRollComplete);
         }
 
         const postedSound = await resolveRequestRollSound('SOUNDREQUESTROLLPOSTED');

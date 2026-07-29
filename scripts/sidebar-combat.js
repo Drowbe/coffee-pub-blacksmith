@@ -9,6 +9,17 @@ import { getSettingSafely } from "./api-core.js";
 const TAB_ID = "cpb-chat-combat";
 const SETTING_SPLIT = "chatCombatSplit";
 const SETTING_ENABLED = "sidebarCombatChatEnabled";
+let activeChatObserver = null;
+let activeChatRoot = null;
+let chatSyncRaf = null;
+
+function disconnectActiveChatObserver() {
+  activeChatObserver?.disconnect();
+  activeChatObserver = null;
+  activeChatRoot = null;
+  if (chatSyncRaf != null) cancelAnimationFrame(chatSyncRaf);
+  chatSyncRaf = null;
+}
 
 try {
   Hooks.once("init", () => {
@@ -71,6 +82,7 @@ try {
       if (!(root instanceof HTMLElement)) {
         return;
       }
+      if (activeChatRoot && activeChatRoot !== root) disconnectActiveChatObserver();
 
       const sidebarTabs = root.querySelector("#sidebar-tabs");
       const sidebarContent = root.querySelector("#sidebar-content");
@@ -404,8 +416,12 @@ try {
       scrollToBottom(chatClone);
       
       // Sync updates: watch for new messages and update clone
+      disconnectActiveChatObserver();
       const observer = new MutationObserver(() => {
-        if (chatLogMount.dataset.mounted === "true" && chatScroll.parentElement) {
+        if (chatSyncRaf != null) return;
+        chatSyncRaf = requestAnimationFrame(() => {
+          chatSyncRaf = null;
+          if (root.isConnected && chatLogMount.dataset.mounted === "true" && chatScroll.parentElement) {
           // Only update if original is still in place (not moved)
           const currentClone = chatLogMount.querySelector('.chat-scroll');
           if (currentClone) {
@@ -453,10 +469,13 @@ try {
             scrollToBottom(newClone);
           }
         }
+        });
       });
       observer.observe(chatScroll, { childList: true, subtree: true });
       // Store observer reference on mount element for cleanup
       chatLogMount._chatObserver = observer;
+      activeChatObserver = observer;
+      activeChatRoot = root;
     }
 
     // Mount the ENTIRE combat section so Foundry's #combat/.combat-sidebar CSS still applies
@@ -491,6 +510,7 @@ try {
         chatLogMount._chatObserver.disconnect();
         chatLogMount._chatObserver = null;
       }
+      if (activeChatRoot === root) disconnectActiveChatObserver();
       // Clear the clone
       chatLogMount.innerHTML = '';
       chatLogMount.dataset.mounted = "false";

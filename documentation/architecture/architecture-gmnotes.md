@@ -40,6 +40,8 @@ Bulk reads resolve concurrently and return a UUID-keyed Map.
 
 `GMNotesFieldController` is the supported inversion-of-control path for module-owned sheets. The owner supplies one host. A single group header controls expansion of the entire GM NOTES area; beneath it the controller renders a flat list: Blacksmith-owned General, persisted sections, then contributed sections. Sections are expanded by default and attributed to their owning module. General and persisted sections declaring `editable: true` open the canonical editor; derived provider sections remain read-only and may explain their source with `sourceHint`. The controller also handles async loading, GM gating, enrichment, capability/read-only state, live refresh, and cleanup.
 
+Refreshes are single-flight and coalesced. Async completions carry a generation guard so a destroyed controller cannot repaint retained DOM, and section enrichment runs concurrently after provider resolution. The editor debounces and serializes ProseMirror autosaves, flushing the latest value on explicit save or close rather than writing the target Document once per keystroke.
+
 The canonical `GMNotesWindow` uses Blacksmith's Application V2 base and Foundry ProseMirror. Each window binds its own actions, avoiding the base class's legacy single-static-reference limitation when multiple note editors are open. Locked or non-writable documents open read-only with an explanation.
 
 ## Importers

@@ -2,6 +2,7 @@ import { MODULE } from './const.js';
 
 const CLASSIFIERS = new Map();
 let classifierSequence = 0;
+let conditionIndexCache = null;
 
 function localize(key, fallback) {
     const value = game?.i18n?.localize?.(`${MODULE.ID}.${key}`);
@@ -36,6 +37,7 @@ function getFlag(effect, scope, key) {
 }
 
 function getConditionIndex() {
+    if (conditionIndexCache) return conditionIndexCache;
     const byId = new Map();
     const byName = new Map();
     const add = (id, label) => {
@@ -51,7 +53,8 @@ function getConditionIndex() {
     for (const [id, condition] of Object.entries(CONFIG?.DND5E?.conditionTypes || {})) {
         add(id, condition?.label ?? condition?.name ?? condition);
     }
-    return { byId, byName };
+    conditionIndexCache = { byId, byName };
+    return conditionIndexCache;
 }
 
 function getBibliosophOutcome(effect) {
@@ -87,6 +90,7 @@ export class EffectsAPI {
 
     static initialize() {
         if (EffectsAPI._hookIds) return;
+        conditionIndexCache = null;
         EffectsAPI._hookIds = {};
         for (const operation of ['create', 'update', 'delete']) {
             EffectsAPI._hookIds[operation] = Hooks.on(`${operation}ActiveEffect`, (effect) => {
@@ -129,6 +133,11 @@ export class EffectsAPI {
 
     static getConditionLabel(conditionId) {
         return getConditionIndex().byId.get(String(conditionId ?? '')) ?? String(conditionId ?? '');
+    }
+
+    /** Rebuild condition labels after a module changes CONFIG status definitions at runtime. */
+    static refreshConditionIndex() {
+        conditionIndexCache = null;
     }
 
     static getActiveEffects(actor, options = {}) {

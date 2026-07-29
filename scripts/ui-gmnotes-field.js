@@ -28,6 +28,9 @@ export class GMNotesFieldController {
         this._hookId = null;
         this._providersHookId = null;
         this._destroyed = false;
+        this._refreshPromise = null;
+        this._refreshQueued = false;
+        this._refreshGeneration = 0;
     }
 
     async initialize() {
@@ -128,6 +131,22 @@ export class GMNotesFieldController {
 
     async refresh() {
         if (this._destroyed) return this;
+        if (this._refreshPromise) {
+            this._refreshQueued = true;
+            return this._refreshPromise;
+        }
+        this._refreshPromise = this._performRefresh().finally(() => {
+            this._refreshPromise = null;
+            if (this._refreshQueued && !this._destroyed) {
+                this._refreshQueued = false;
+                void this.refresh();
+            }
+        });
+        return this._refreshPromise;
+    }
+
+    async _performRefresh() {
+        const generation = ++this._refreshGeneration;
         const content = this.element.querySelector('.blacksmith-gm-notes-field-content');
         const sectionsHost = this.element.querySelector('.blacksmith-gm-notes-sections');
         const status = this.element.querySelector('.blacksmith-gm-notes-field-status');
@@ -149,6 +168,7 @@ export class GMNotesFieldController {
         }
 
         this.capability = await GMNotesManager.canSet(this.document);
+        if (this._destroyed || generation !== this._refreshGeneration) return this;
         this._applyReadOnlyState();
         const mayEdit = this.options.editable !== false && this.capability.allowed;
         const unavailableMessage = this.options.editable === false
@@ -163,6 +183,7 @@ export class GMNotesFieldController {
             GMNotesManager.getNoteAsync(this.document),
             GMNotesManager.getSections(this.document)
         ]);
+        if (this._destroyed || generation !== this._refreshGeneration) return this;
         const hasContent = !!(note?.text?.trim() || note?.html?.trim());
         const hasSections = sections.length > 0;
         this.element.classList.toggle('has-notes', hasContent || hasSections);
@@ -170,17 +191,19 @@ export class GMNotesFieldController {
         content.innerHTML = hasContent
             ? await this._enrich(note.html)
             : '<p class="blacksmith-gm-notes-field-empty">No GM notes.</p>';
-        await this._renderSections(sectionsHost, sections, mayEdit);
+        await this._renderSections(sectionsHost, sections, mayEdit, generation);
         return this;
     }
 
-    async _renderSections(host, sections, mayEdit) {
+    async _renderSections(host, sections, mayEdit, generation) {
         host.replaceChildren();
         const ordered = [
             ...sections.filter(section => section.source === 'persisted'),
             ...sections.filter(section => section.source === 'contributed')
         ];
-        for (const section of ordered) {
+        const enriched = await Promise.all(ordered.map(section => this._enrich(section.html)));
+        if (this._destroyed || generation !== this._refreshGeneration) return;
+        for (const [index, section] of ordered.entries()) {
             const card = document.createElement('section');
             card.className = 'blacksmith-gm-notes-section';
             card.dataset.moduleId = section.moduleId;
@@ -216,7 +239,7 @@ export class GMNotesFieldController {
 
             const body = document.createElement('div');
             body.className = 'blacksmith-gm-notes-section-content';
-            body.innerHTML = await this._enrich(section.html);
+            body.innerHTML = enriched[index];
             if (section.sourceHint) {
                 const hint = document.createElement('p');
                 hint.className = 'blacksmith-gm-notes-section-source-hint';
@@ -283,6 +306,8 @@ export class GMNotesFieldController {
     destroy() {
         if (this._destroyed) return;
         this._destroyed = true;
+        this._refreshGeneration++;
+        this._refreshQueued = false;
         if (this._hookId != null) Hooks.off(GMNotesManager.CHANGE_HOOK, this._hookId);
         if (this._providersHookId != null) Hooks.off(GMNotesManager.PROVIDERS_HOOK, this._providersHookId);
         this._hookId = null;

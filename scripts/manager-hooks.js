@@ -373,6 +373,13 @@ export class HookManager {
      */
     static cleanup() {
         this.hooks.forEach((hook, name) => {
+            for (const callback of hook.callbacks ?? []) {
+                try {
+                    callback.teardown?.();
+                } catch (error) {
+                    console.error(`Error tearing down callback for ${name}:`, error);
+                }
+            }
             if (hook.hookId) {
                 Hooks.off(name, hook.hookId);
             }

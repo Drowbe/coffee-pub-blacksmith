@@ -138,7 +138,7 @@ The controller exposes:
 - `openEditor()`
 - `destroy()`
 
-It resolves compendium documents asynchronously, hides itself from non-GMs, renders enriched read content, opens Blacksmith's canonical ProseMirror editor, disables editing with an explanation and remedy for locked/no-permission targets, remembers collapse state locally, and refreshes from the shared change hook. It also sets `.read-only` and `data-gm-notes-read-only="true|false"` on its root so hosts can adapt layout without JavaScript.
+It resolves compendium documents asynchronously, hides itself from non-GMs, renders enriched read content, opens Blacksmith's canonical ProseMirror editor, disables editing with an explanation and remedy for locked/no-permission targets, remembers collapse state locally, and refreshes from the shared change hook. Refresh requests are coalesced, stale work is discarded after destruction, and editor autosaves are debounced/serialized with the final value flushed on close. It also sets `.read-only` and `data-gm-notes-read-only="true|false"` on its root so hosts can adapt layout without JavaScript.
 
 The field is the canonical shared surface. Its **GM NOTES** header expands or collapses the whole group and has no edit action. Inside it, every row is an ownership-first section:
 

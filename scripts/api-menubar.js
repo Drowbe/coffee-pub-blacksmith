@@ -75,6 +75,7 @@ class MenuBar {
     // Timer interval tracking for cleanup
     static _timerDisplayInterval = null;
     static _timerSyncInterval = null;
+    static _timerStartTimeout = null;
     
     // Event listener reference tracking for cleanup
     static _clickHandler = null;
@@ -498,7 +499,11 @@ class MenuBar {
         await this.loadLeader();
         await this.loadTimer();
         this.isLoading = false;
-        setTimeout(() => this.startTimerUpdates(), 1000);
+        if (this._timerStartTimeout != null) clearTimeout(this._timerStartTimeout);
+        this._timerStartTimeout = setTimeout(() => {
+            this._timerStartTimeout = null;
+            this.startTimerUpdates();
+        }, 1000);
         this.registerDefaultTools();
         await this.registerSecondaryBarTypes();
         this.renderMenubar();
@@ -4287,6 +4292,10 @@ class MenuBar {
      * @private
      */
     static _stopTimerUpdates() {
+        if (this._timerStartTimeout != null) {
+            clearTimeout(this._timerStartTimeout);
+            this._timerStartTimeout = null;
+        }
         if (this._timerDisplayInterval) {
             clearInterval(this._timerDisplayInterval);
             this._timerDisplayInterval = null;

@@ -17,6 +17,7 @@ Hooks.once('ready', () => {
         context: 'combat-tools',
         priority: 3, // Normal priority - UI enhancements
         callback: (app, html, data) => {
+        CombatTools.disconnectPortraitObserver(app);
         // Apply resizable functionality if enabled
         CombatTools.applyResizableSettings(html);
         
@@ -48,6 +49,7 @@ Hooks.once('ready', () => {
                     attributes: true,
                     attributeFilter: ['src']
                 });
+                CombatTools.setPortraitObserver(app, observer);
             }
         }
 
@@ -391,6 +393,14 @@ Hooks.once('ready', () => {
         },
         context: 'combat-tools' // For cleanup
     });
+
+    HookManager.registerHook({
+        name: 'closeApplication',
+        description: 'Combat Tools: Disconnect portrait observer when the tracker closes',
+        context: 'combat-tools-close',
+        priority: 3,
+        callback: (app) => CombatTools.disconnectPortraitObserver(app)
+    });
     
     // Log hook registration
     postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderCombatTracker", "combat-tools", true, false);
@@ -436,6 +446,21 @@ const calculateNewInitiative = (combatants, dropIndex, draggedId) => {
 // ================================================================== 
 
 class CombatTools {
+    static _portraitObservers = new WeakMap();
+
+    static setPortraitObserver(app, observer) {
+        if (!app || !observer) return;
+        this.disconnectPortraitObserver(app);
+        this._portraitObservers.set(app, observer);
+    }
+
+    static disconnectPortraitObserver(app) {
+        if (!app) return;
+        const observer = this._portraitObservers.get(app);
+        observer?.disconnect();
+        this._portraitObservers.delete(app);
+    }
+
     /**
      * Apply resizable settings to the combat tracker
      * @param {jQuery} html - The combat tracker HTML

@@ -1560,6 +1560,21 @@ postConsoleAndNotification(MODULE.NAME, "Hook Manager | preCreateNote", "blacksm
 // ** UTILITY Double-click Edit Journal
 // ***************************************************
 
+function _cleanupJournalDoubleClickElement(root) {
+    if (!root?.querySelectorAll) return;
+    const elements = [root, ...root.querySelectorAll('*')];
+    for (const element of elements) {
+        element._journalEditModeObserver?.disconnect();
+        element._journalEditModeObserver = null;
+        for (const key of ['_journalDoubleClickHandler', '_journalEditModeImageHandler']) {
+            const handler = element[key];
+            if (!handler) continue;
+            element.removeEventListener('dblclick', handler, { capture: false });
+            delete element[key];
+        }
+    }
+}
+
 // Unified callback for journal double-click editing (used by both hooks)
 function _onRenderJournalDoubleClick(app, html, data) {
     // BEGIN - HOOKMANAGER CALLBACK
@@ -1617,6 +1632,11 @@ function _onRenderJournalDoubleClick(app, html, data) {
                 `Type: ${nativeHtml?.constructor?.name}`, false, true);
             return;
         }
+
+        // A rerender may replace the content before edit mode ever activates.
+        // Disconnect the old observer instead of retaining the previous sheet DOM.
+        nativeHtml._journalEditModeObserver?.disconnect();
+        nativeHtml._journalEditModeObserver = null;
         
         // Check if already in edit mode
         const isEditMode = nativeHtml.querySelector('.editor-container');
@@ -1916,6 +1936,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
                         }
                         
                         editModeObserver.disconnect();
+                        nativeHtml._journalEditModeObserver = null;
                         postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit mode activated - switching to image double-click handler", "", true, false);
                         
                         // Attach edit mode handler for image double-clicks
@@ -1935,6 +1956,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
             attributes: true,
             attributeFilter: ['class']
         });
+        nativeHtml._journalEditModeObserver = editModeObserver;
         
         // Only log when called from hook (not periodic checker)
         if (isFromHook) {
@@ -1962,6 +1984,21 @@ Hooks.once('ready', () => {
         context: 'blacksmith-journal-double-click-page',
         priority: 3,
         callback: _onRenderJournalDoubleClick
+    });
+
+    HookManager.registerHook({
+        name: 'closeApplication',
+        description: 'Blacksmith: Clean up journal double-click observers and handlers',
+        context: 'blacksmith-journal-double-click-close',
+        priority: 3,
+        callback: (app) => {
+            let element = app?.element;
+            if (element?.jquery) element = element[0];
+            if (element?.matches?.('.journal-sheet, .journal-entry')
+                || element?.querySelector?.('.journal-sheet, .journal-entry')) {
+                _cleanupJournalDoubleClickElement(element);
+            }
+        }
     });
 
     

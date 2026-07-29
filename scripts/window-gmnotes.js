@@ -48,6 +48,10 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         this.sectionLabel = options.sectionLabel ?? null;
         this.targetDocument = null;
         this._editor = null;
+        this._autosaveTimer = null;
+        this._pendingHtml = null;
+        this._lastSavedHtml = null;
+        this._writeChain = Promise.resolve();
     }
 
     async getData() {
@@ -122,11 +126,13 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
         }
 
         // Config mirrors Squire's verified-working note editor.
+        const initialHtml = await this._getCurrentHtml();
         const config = {
             name: 'content',
-            value: await this._getCurrentHtml(),
+            value: initialHtml,
             compact: true
         };
+        this._lastSavedHtml = initialHtml;
         if (this.targetUuid) config.documentUUID = this.targetUuid;
 
         const editor = Cls.create(config);
@@ -143,10 +149,11 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
             });
         }, { once: true });
 
-        // The editor toolbar's own Save (floppy) autosaves without closing.
-        editor.addEventListener('change', async (ev) => {
+        // ProseMirror can emit change events on every keystroke. Coalesce them
+        // so rich-text editing does not issue overlapping document updates.
+        editor.addEventListener('change', (ev) => {
             ev.stopPropagation();
-            await this._writeHtml(editor.value ?? '');
+            this._scheduleAutosave(editor.value ?? '');
         });
 
         host.replaceChildren(editor);
@@ -154,8 +161,54 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _save() {
-        const saved = await this._writeHtml(this._editor?.value ?? '');
-        if (saved) this.close();
+        this._pendingHtml = this._editor?.value ?? '';
+        const saved = await this._flushAutosave();
+        if (saved) return this.close();
+        return null;
+    }
+
+    _scheduleAutosave(html) {
+        if (html === this._lastSavedHtml) return;
+        this._pendingHtml = html;
+        if (this._autosaveTimer != null) window.clearTimeout(this._autosaveTimer);
+        this._autosaveTimer = window.setTimeout(() => {
+            this._autosaveTimer = null;
+            void this._flushAutosave();
+        }, 350);
+    }
+
+    async _flushAutosave() {
+        if (this._autosaveTimer != null) {
+            window.clearTimeout(this._autosaveTimer);
+            this._autosaveTimer = null;
+        }
+        if (this._pendingHtml == null || this._pendingHtml === this._lastSavedHtml) {
+            this._pendingHtml = null;
+            return true;
+        }
+        const html = this._pendingHtml;
+        this._pendingHtml = null;
+        this._writeChain = this._writeChain.then(async () => {
+            const saved = await this._writeHtml(html);
+            if (saved) this._lastSavedHtml = html;
+            else if (this._pendingHtml == null) this._pendingHtml = html;
+            return saved;
+        });
+        return this._writeChain;
+    }
+
+    async close(options = {}) {
+        if (this._editor && this.writeCapability?.allowed) {
+            const current = this._editor.value ?? '';
+            if (current !== this._lastSavedHtml) this._pendingHtml = current;
+            await this._flushAutosave();
+        }
+        if (this._autosaveTimer != null) {
+            window.clearTimeout(this._autosaveTimer);
+            this._autosaveTimer = null;
+        }
+        this._editor = null;
+        return super.close(options);
     }
 
     async _getCurrentHtml() {
