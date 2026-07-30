@@ -14,6 +14,9 @@
 @import "overrides-foundry.css"; 
 @import "overrides-modules.css"; 
 
+/* --- Shared UI components ------- */
+@import "entity-list.css";
+
 /* --- Dialogue Boxes / Windows --- */
 @import "dialog.css";
 @import "window-common.css";

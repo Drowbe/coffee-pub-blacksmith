@@ -507,3 +507,55 @@
     pointer-events: none;
 }
 
+
+/* ==================================================================
+   ===== QUANTITY SPLIT (api.quantitySplit) =========================
+   ==================================================================
+   Give / Keep split around a range input. Contributed by Squire and
+   adapted to inherit the Tool-window variables, so a control hosted in
+   a Light/Dark/Glass Tool window follows that shell instead of painting
+   its own surface. Outside a Tool window the fallbacks apply.
+   ================================================================== */
+
+.blacksmith-quantity-split {
+    display: grid;
+    grid-template-columns: 48px minmax(100px, 1fr) 48px;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 3px 8px;
+    width: 100%;
+}
+
+.blacksmith-quantity-split input[type="range"] {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.blacksmith-quantity-split-value {
+    min-width: 0;
+    padding: var(--blacksmith-space-sm);
+    border: 1px solid var(--blacksmith-tool-border, var(--blacksmith-surface-dark-3));
+    border-radius: var(--blacksmith-radius-sm);
+    background: var(--blacksmith-tool-background, rgba(0, 0, 0, 0.12));
+    color: var(--blacksmith-tool-text, currentColor);
+    font-weight: var(--blacksmith-font-weight-bold);
+    line-height: 1;
+    text-align: center;
+}
+
+.blacksmith-quantity-split-caption {
+    overflow: hidden;
+    color: var(--blacksmith-tool-text, currentColor);
+    opacity: 0.75;
+    font-size: 0.65em;
+    line-height: 1;
+    text-align: center;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.blacksmith-quantity-split-caption-amount {
+    font-size: 0.7em;
+}

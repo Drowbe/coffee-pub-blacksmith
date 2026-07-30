@@ -12,6 +12,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { ToastManager, sendToastToUsers, broadcastToast, isToastExcludedUser } from './api-toast.js';
+import { EntityListAPI } from './api-entity-list.js';
 
 const APP_ID = 'blacksmith-toast-send-window';
 const PREFS_SETTING = 'toastSendPreferences';
@@ -93,17 +94,19 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         body: { template: `modules/${MODULE.ID}/templates/window-template.hbs` }
     };
 
+    // Handlers receive the instance as their third argument (and as `this`), so
+    // they never resolve a shared static reference. See window-base.js.
     static ACTION_HANDLERS = {
-        'toast-send': () => ToastSendWindow._ref?._send(),
-        'toast-cancel': () => ToastSendWindow._ref?.close(),
-        'toast-browse-image': () => ToastSendWindow._ref?._browseImage('toast-image'),
-        'toast-browse-background': () => ToastSendWindow._ref?._browseImage('toast-background'),
-        'toast-clear-image': () => ToastSendWindow._ref?._clearImage('toast-image'),
-        'toast-clear-background': () => ToastSendWindow._ref?._clearImage('toast-background'),
-        'toast-select-icon': (_event, target) => ToastSendWindow._ref?._selectIcon(target),
-        'toast-template-save': () => ToastSendWindow._ref?._saveTemplateAs(),
-        'toast-template-delete': () => ToastSendWindow._ref?._deleteTemplate(),
-        'toast-preview-sound': () => ToastSendWindow._ref?._previewSound()
+        'toast-send': (_event, _target, win) => win?._send(),
+        'toast-cancel': (_event, _target, win) => win?.close(),
+        'toast-browse-image': (_event, _target, win) => win?._browseImage('toast-image'),
+        'toast-browse-background': (_event, _target, win) => win?._browseImage('toast-background'),
+        'toast-clear-image': (_event, _target, win) => win?._clearImage('toast-image'),
+        'toast-clear-background': (_event, _target, win) => win?._clearImage('toast-background'),
+        'toast-select-icon': (_event, target, win) => win?._selectIcon(target),
+        'toast-template-save': (_event, _target, win) => win?._saveTemplateAs(),
+        'toast-template-delete': (_event, _target, win) => win?._deleteTemplate(),
+        'toast-preview-sound': (_event, _target, win) => win?._previewSound()
     };
 
     constructor(options = {}) {
@@ -127,17 +130,31 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         // Users on the toastExcludedUsers list are left out entirely — the
         // receipt-side gate in show() would drop the toast anyway; hiding them
         // keeps the list honest about who can be reached.
-        const recipientRows = game.users
-            .filter(u => !u.isGM && !isToastExcludedUser(u))
-            .map(u => `
-                <label class="blacksmith-toast-send-recipient${u.active ? '' : ' offline'}">
-                    <input type="checkbox" name="toast-recipient" value="${esc(u.id)}"
-                        ${u.active && (prefs.party || !Array.isArray(prefs.recipients) || prefs.recipients.includes(u.id)) ? 'checked' : ''}
-                        ${u.active ? '' : 'disabled'}>
-                    <img src="${esc(u.character?.img || u.avatar || 'icons/svg/mystery-man.svg')}" alt="">
-                    <span>${esc(u.character?.name || u.name)}${u.active ? '' : ' (offline)'}</span>
-                </label>`)
-            .join('');
+        // Rendered through the shared entity list, but deliberately keeping the
+        // `toast-recipient` input name and the toast-send row class: the send
+        // path and the party-toggle handler read that contract directly, and
+        // window-toast-send.css skins it.
+        const recipientUsers = game.users
+            .filter(u => !u.isGM && !isToastExcludedUser(u));
+        this._recipientList = EntityListAPI.create({
+            entities: recipientUsers.map(u => ({
+                id: u.id,
+                name: u.character?.name || u.name,
+                img: u.character?.img || u.avatar || 'icons/svg/mystery-man.svg',
+                disabled: !u.active,
+                disabledReason: u.active ? null : 'Offline',
+                className: u.active ? null : 'offline'
+            })),
+            mode: EntityListAPI.MODES.MULTI,
+            inputName: 'toast-recipient',
+            itemClass: 'blacksmith-toast-send-recipient',
+            listClass: 'blacksmith-toast-send-recipients',
+            selected: recipientUsers
+                .filter(u => u.active && (prefs.party || !Array.isArray(prefs.recipients) || prefs.recipients.includes(u.id)))
+                .map(u => u.id),
+            emptyMessage: 'No players in this world.'
+        });
+        const recipientRows = this._recipientList.html;
 
         const templates = this._getTemplates();
         const selectedTemplate = prefs.template === CUSTOM_TEMPLATE ? CUSTOM_TEMPLATE
@@ -168,7 +185,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                         <i class="fa-solid fa-people-group"></i>
                         <span>Entire Party (everyone online)</span>
                     </label>
-                    <div class="blacksmith-toast-send-recipients">${recipientRows || '<em>No players in this world.</em>'}</div>
+                    ${recipientRows}
                 </div>
 
                 <div class="blacksmith-window-section">
@@ -324,10 +341,18 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         };
     }
 
+    _onClose(options) {
+        this._recipientList?.destroy();
+        return super._onClose?.(options);
+    }
+
     async _onRender(context, options) {
         await super._onRender?.(context, options);
         const root = this._getRoot();
         if (!root) return;
+        // Rebind the shared list to the freshly rendered rows. attach() releases
+        // the previous listener itself, so repeated renders do not stack them.
+        this._recipientList?.attach(root);
         // "Entire Party" overrides the individual picks: checking it checks and locks
         // every online player's box; unchecking restores individual control.
         const party = root.querySelector('[name="toast-party"]');

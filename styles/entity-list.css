@@ -1,0 +1,93 @@
+/* ==================================================================
+   ===== ENTITY LIST (api.entityList) ===============================
+   ==================================================================
+
+   Shared single/multi-select entity rows. Hosts may add their own class
+   via itemClass/listClass and skin on top; these rules are the baseline
+   so an unskinned list is already usable.
+
+   Surfaces come from the Tool-window variables when present so a list
+   hosted in a Light/Dark/Glass Tool window inherits its shell rather
+   than punching an opaque panel through it. Outside a Tool window those
+   variables are undefined and the fallbacks apply.
+   ================================================================== */
+
+.blacksmith-entity-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-sm);
+}
+
+.blacksmith-entity {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-space-md);
+    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
+    border: 1px solid var(--blacksmith-tool-divider, var(--blacksmith-surface-dark-3));
+    border-radius: var(--blacksmith-radius-md);
+    color: var(--blacksmith-tool-text, var(--blacksmith-text-light));
+    cursor: pointer;
+}
+
+.blacksmith-entity:hover:not(.disabled) {
+    border-color: var(--blacksmith-color-brand-accent);
+}
+
+/* Selection is driven by the native input, so the ring follows :checked
+   rather than a JS-applied class. */
+.blacksmith-entity:has(input:checked) {
+    border-color: var(--blacksmith-color-brand-accent);
+    background: var(--blacksmith-variant-warning-bg);
+}
+
+.blacksmith-entity:focus-within {
+    outline: 2px solid var(--blacksmith-color-brand-accent);
+    outline-offset: 1px;
+}
+
+.blacksmith-entity.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.blacksmith-entity-img {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border: none;
+    border-radius: var(--blacksmith-radius-sm);
+}
+
+.blacksmith-entity-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.blacksmith-entity-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-entity-type,
+.blacksmith-entity-reason {
+    font-size: var(--blacksmith-font-size-xs);
+    color: var(--blacksmith-tool-text, var(--blacksmith-text-muted));
+    opacity: 0.75;
+}
+
+.blacksmith-entity-badges {
+    display: flex;
+    flex: 0 0 auto;
+    gap: var(--blacksmith-space-sm);
+}
+
+.blacksmith-entity-empty {
+    padding: var(--blacksmith-space-md);
+    color: var(--blacksmith-tool-text, var(--blacksmith-text-muted));
+    font-size: var(--blacksmith-font-size-sm);
+    font-style: italic;
+}

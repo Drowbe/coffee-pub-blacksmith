@@ -26,7 +26,9 @@ This contract is the reason to use these helpers instead of `DialogV2` directly:
 
 Every helper takes `content` as `string | HTMLElement | Promise<string | HTMLElement>`.
 
-A string is passed to DialogV2, which sanitizes it with `foundry.utils.cleanHTML`. An `HTMLElement` is passed as a node, so its identity and any listeners attached to it survive and nothing is sanitized away — use this when content must stay literal rather than be parsed as markup, as `utility-common.js:808` does for a copyable snippet. A node that is not a `div` is wrapped in one, because that is the type DialogV2 accepts.
+A string is passed to DialogV2, which sanitizes it with `foundry.utils.cleanHTML`. An `HTMLElement` is passed as a node, so its identity and any listeners attached to it survive and nothing is sanitized away — use this when content must stay literal rather than be parsed as markup, as `utility-common.js:808` does for a copyable snippet.
+
+Any node you pass is moved into a fresh wrapper `div`. DialogV2 rejects a content element that carries **any** attributes, so a `<div class="my-thing">` handed over directly would throw; wrapping means you can put whatever attributes you like on your own element. Appending moves the node rather than copying it, so listeners bound to it still fire.
 
 Render your own Handlebars first and pass the result. These helpers do not load templates.
 

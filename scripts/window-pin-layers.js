@@ -82,10 +82,12 @@ class BulkPinTagsWindow extends BlacksmithWindowBaseV2 {
         }
     };
 
+    // Instance arrives as the third argument; the module-level refs remain only
+    // for cross-window refresh, not for routing this window's own actions.
     static ACTION_HANDLERS = {
-        cancel: () => _bulkPinTagsWindowRef?.close(),
-        deleteAllTags: () => _bulkPinTagsWindowRef?._deleteAllTags(),
-        updateTags: () => _bulkPinTagsWindowRef?._updateTags()
+        cancel: (_event, _target, win) => win?.close(),
+        deleteAllTags: (_event, _target, win) => win?._deleteAllTags(),
+        updateTags: (_event, _target, win) => win?._updateTags()
     };
 
     constructor(options = {}) {
@@ -374,13 +376,13 @@ class ManageCustomPinTagsWindow extends BlacksmithWindowBaseV2 {
     };
 
     static ACTION_HANDLERS = {
-        close: () => _customPinTagsWindowRef?.close(),
-        refreshCustomTags: () => _customPinTagsWindowRef?.render(true),
-        addCustomTag: () => _customPinTagsWindowRef?._addCustomTag(),
-        renameCustomTag: (_event, target) => _customPinTagsWindowRef?._renameTag(target),
-        stripCustomTagCurrentScene: (_event, target) => _customPinTagsWindowRef?._stripTagFromCurrentScene(target),
-        stripCustomTagAllScenes: (_event, target) => _customPinTagsWindowRef?._stripTagFromAllScenes(target),
-        deleteCustomTagGlobal: (_event, target) => _customPinTagsWindowRef?._deleteTagGlobally(target)
+        close: (_event, _target, win) => win?.close(),
+        refreshCustomTags: (_event, _target, win) => win?.render(true),
+        addCustomTag: (_event, _target, win) => win?._addCustomTag(),
+        renameCustomTag: (_event, target, win) => win?._renameTag(target),
+        stripCustomTagCurrentScene: (_event, target, win) => win?._stripTagFromCurrentScene(target),
+        stripCustomTagAllScenes: (_event, target, win) => win?._stripTagFromAllScenes(target),
+        deleteCustomTagGlobal: (_event, target, win) => win?._deleteTagGlobally(target)
     };
 
     constructor(options = {}) {
@@ -715,31 +717,31 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     };
 
     static ACTION_HANDLERS = {
-        selectTab:     (_event, target) => _pinLayersWindowRef?._selectTab(target),
-        refresh:       () => _pinLayersWindowRef?._refresh(),
-        hideAll:       () => _pinLayersWindowRef?._hideAll(),
-        showAll:       () => _pinLayersWindowRef?._showAll(),
-        saveProfile:   () => _pinLayersWindowRef?._saveProfile(),
-        updateProfile: () => _pinLayersWindowRef?._updateProfile(),
-        deleteProfile: () => _pinLayersWindowRef?._deleteProfile(),
-        clearBrowse:   () => { if (_pinLayersWindowRef) { _pinLayersWindowRef.browseQuery = ''; _pinLayersWindowRef.render(true); } },
-        panToPin:      (_event, target) => _pinLayersWindowRef?._panToPin(target),
-        toggleBrowseSelectMode: () => _pinLayersWindowRef?._toggleBrowseSelectMode(),
-        selectVisibleBrowsePins: () => _pinLayersWindowRef?._selectVisibleBrowsePins(),
-        clearBrowseSelection: () => _pinLayersWindowRef?._clearBrowseSelection(),
-        bulkEditSelectedTags: () => _pinLayersWindowRef?._bulkEditSelectedTags(),
-        toggleType:    (_event, target) => _pinLayersWindowRef?._toggleType(target),
-        toggleTag:       (_event, target) => _pinLayersWindowRef?._toggleTag(target),
-        toggleTaxonomyGroup:     (_event, target) => _pinLayersWindowRef?._toggleTaxonomyGroup(target),
-        deleteType:      (_event, target) => _pinLayersWindowRef?._deleteType(target),
-        openCustomPinTags: () => _pinLayersWindowRef?._openCustomPinTags(),
-        toggleTypeTag:           (_event, target) => _pinLayersWindowRef?._toggleTypeTag(target),
-        deleteAllPins:         () => _pinLayersWindowRef?._deleteAllPins(),
-        configurePin:          (_event, target) => _pinLayersWindowRef?._configurePin(target),
-        deleteBrowsePin:       (_event, target) => _pinLayersWindowRef?._deleteBrowsePin(target),
-        setBrowsePinVisibility:(_event, target) => _pinLayersWindowRef?._setBrowsePinVisibility(target),
-        setBrowsePinAccess: (_event, target) => _pinLayersWindowRef?._setBrowsePinAccess(target),
-        cycleBrowseView: () => _pinLayersWindowRef?._cycleBrowseView()
+        selectTab:     (_event, target, win) => win?._selectTab(target),
+        refresh:       (_event, _target, win) => win?._refresh(),
+        hideAll:       (_event, _target, win) => win?._hideAll(),
+        showAll:       (_event, _target, win) => win?._showAll(),
+        saveProfile:   (_event, _target, win) => win?._saveProfile(),
+        updateProfile: (_event, _target, win) => win?._updateProfile(),
+        deleteProfile: (_event, _target, win) => win?._deleteProfile(),
+        clearBrowse:   (_event, _target, win) => { if (win) { win.browseQuery = ''; win.render(true); } },
+        panToPin:      (_event, target, win) => win?._panToPin(target),
+        toggleBrowseSelectMode: (_event, _target, win) => win?._toggleBrowseSelectMode(),
+        selectVisibleBrowsePins: (_event, _target, win) => win?._selectVisibleBrowsePins(),
+        clearBrowseSelection: (_event, _target, win) => win?._clearBrowseSelection(),
+        bulkEditSelectedTags: (_event, _target, win) => win?._bulkEditSelectedTags(),
+        toggleType:    (_event, target, win) => win?._toggleType(target),
+        toggleTag:       (_event, target, win) => win?._toggleTag(target),
+        toggleTaxonomyGroup:     (_event, target, win) => win?._toggleTaxonomyGroup(target),
+        deleteType:      (_event, target, win) => win?._deleteType(target),
+        openCustomPinTags: (_event, _target, win) => win?._openCustomPinTags(),
+        toggleTypeTag:           (_event, target, win) => win?._toggleTypeTag(target),
+        deleteAllPins:         (_event, _target, win) => win?._deleteAllPins(),
+        configurePin:          (_event, target, win) => win?._configurePin(target),
+        deleteBrowsePin:       (_event, target, win) => win?._deleteBrowsePin(target),
+        setBrowsePinVisibility:(_event, target, win) => win?._setBrowsePinVisibility(target),
+        setBrowsePinAccess: (_event, target, win) => win?._setBrowsePinAccess(target),
+        cycleBrowseView: (_event, _target, win) => win?._cycleBrowseView()
     };
 
     constructor(options = {}) {

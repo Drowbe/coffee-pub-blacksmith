@@ -34,13 +34,21 @@
 
 /* The shared window button classes are applied by decorateButtons() in
    api-dialog.js. Dialog buttons share a row, so the fixed width the primary
-   variant carries in window-template.css must not apply here. */
+   variant carries in window-template.css must not apply here.
+
+   `min-width: max-content` with `nowrap` is what stops a label breaking across
+   two lines: the buttons still grow to fill the row, but flex can no longer
+   shrink one below its own text. Without it, two buttons split the row evenly
+   and the longer label ("Delete Profile") wrapped while the shorter one
+   ("Cancel") had room to spare. */
 .application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-primary,
 .application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-secondary,
 .application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-critical {
     width: auto;
     flex: 1 1 auto;
+    min-width: max-content;
     justify-content: center;
+    white-space: nowrap;
 }
 
 /* ----- Validation message -----

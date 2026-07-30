@@ -14,14 +14,23 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     /** Override in subclass: CSS class on the template root. Default matches window-template.hbs. */
     static ROOT_CLASS = 'blacksmith-window-template-root';
 
-    /** Subclass sets: { actionName: staticMethod }. Used by _attachDelegationOnce for data-action routing */
+    /**
+     * Subclass sets: { actionName: handler }. Handlers are invoked as
+     * handler(event, target, instance) with `this` bound to the instance, so a
+     * window with two instances open routes each click to the right one.
+     */
     static ACTION_HANDLERS = null;
 
-    /** Per-class ref for static action callbacks. Set in _attachDelegationOnce. */
+    /**
+     * Per-class reference to the most recently rendered instance.
+     *
+     * DEPRECATED — kept only so consumers whose handlers still read
+     * `MyWindow._ref` keep working while they migrate to the instance argument.
+     * It is wrong by construction with two instances open: it points at
+     * whichever rendered last. Read the third handler argument (or `this`)
+     * instead. See known-issues.md under Windows.
+     */
     static _ref = null;
-
-    /** Per-class: avoid attaching document listener more than once */
-    static _delegationAttached = false;
 
     _getRoot() {
         const byId = document.getElementById(this.id);
@@ -123,28 +132,35 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
 
     // -------------------------------------------------------------------------
 
+    /**
+     * Bind `data-action` routing for this instance.
+     *
+     * Per instance, on `this.element` — not one listener per class on `document`.
+     * The frame is created before parts render and survives part re-renders, so a
+     * listener here still catches late-injected body content, which was the only
+     * reason document-level delegation was used. Binding per instance also means
+     * two open instances of one class cannot steal each other's clicks, and the
+     * listener dies with the element instead of leaking for the session.
+     */
     _attachDelegationOnce() {
+        // Deprecated compatibility shim; see the _ref docblock above.
         this.constructor._ref = this;
-        const Ctor = this.constructor;
-        if (Ctor._delegationAttached) return;
-        Ctor._delegationAttached = true;
-        const handlers = Ctor.ACTION_HANDLERS;
+        const handlers = this.constructor.ACTION_HANDLERS;
         if (!handlers || typeof handlers !== 'object') return;
-        document.addEventListener('click', (e) => {
-            const w = Ctor._ref;
-            if (!w) return;
-            const root = w._getRoot();
-            const inRoot = root?.contains?.(e.target);
-            const inApp = w.element?.contains?.(e.target);
-            if (!inRoot && !inApp) return;
+        const root = this.element;
+        if (!root) return;
+        // Track the element rather than a boolean: the frame is expected to
+        // persist across part re-renders, but if it is ever replaced we must
+        // rebind rather than silently lose every action.
+        if (this._delegationBoundTo === root) return;
+        this._delegationBoundTo = root;
+        root.addEventListener('click', (e) => {
             const btn = e.target.closest?.('[data-action]');
-            if (!btn) return;
-            const action = btn.dataset.action;
-            const fn = handlers[action];
-            if (typeof fn === 'function') {
-                e.preventDefault?.();
-                fn(e, btn);
-            }
+            if (!btn || !root.contains(btn)) return;
+            const fn = handlers[btn.dataset.action];
+            if (typeof fn !== 'function') return;
+            e.preventDefault?.();
+            fn.call(this, e, btn, this);
         }, true);
     }
 
@@ -160,6 +176,9 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     _onClose(options) {
         clearTimeout(this._positionSaveTimer);
         this._positionSaveTimer = null;
+        // The click listener dies with the frame element; drop our reference to
+        // it so a reopened instance rebinds against the new frame.
+        this._delegationBoundTo = null;
         if (this.constructor._ref === this) this.constructor._ref = null;
         return super._onClose?.(options);
     }

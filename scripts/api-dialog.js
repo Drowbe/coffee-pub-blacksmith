@@ -53,16 +53,21 @@ const CANCEL_ACTION = 'cancel';
 
 /**
  * Normalize content for DialogV2, which accepts `string | HTMLDivElement`.
+ *
  * A string is passed through and Foundry sanitizes it with cleanHTML. A DOM
- * node is passed as a node so its identity and listeners survive — wrapped in
- * a div when it is not already one, because that is the type DialogV2 takes.
+ * node is always moved into a freshly created, attribute-free wrapper div:
+ * DialogV2 rejects a content element carrying any attributes at all
+ * ("config.content element must have no attributes"), so handing a consumer's
+ * `<div class="...">` straight through would throw. Appending moves the node
+ * rather than copying it, so its identity and any attached listeners survive,
+ * which is the whole point of accepting DOM.
+ *
  * @param {string|HTMLElement|Promise<string|HTMLElement>} content
  * @returns {Promise<string|HTMLDivElement>}
  */
 async function resolveContent(content) {
     const value = await content;
     if (value == null) return '';
-    if (value instanceof HTMLDivElement) return value;
     if (value instanceof HTMLElement) {
         const wrapper = document.createElement('div');
         wrapper.append(value);
@@ -102,6 +107,38 @@ function compact(object) {
         if (value !== undefined && value !== null) out[key] = value;
     }
     return out;
+}
+
+/**
+ * Make Enter activate the button marked `default`.
+ *
+ * HTML implicit submission activates the FIRST submit button in DOM order, not
+ * the one flagged default. `prompt` renders Cancel first so the row reads
+ * left-to-right, which meant Enter in a text field cancelled the dialog —
+ * silently, and looking exactly like the user choosing to cancel. Intercepting
+ * keydown and clicking the intended button is the smallest fix that depends on
+ * neither button order nor DialogV2's internal button rendering.
+ *
+ * Textareas and contenteditable are left alone: Enter is a newline there.
+ */
+function bindEnterToDefault(dialog, buttons) {
+    const root = dialog?.element;
+    if (!root || root.dataset.blacksmithEnterBound) return;
+    const fallback = buttons.find(button => button.default);
+    if (!fallback) return;
+    root.dataset.blacksmithEnterBound = 'true';
+    root.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        if (event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+        const target = event.target;
+        const tag = target?.tagName;
+        if (tag === 'TEXTAREA' || tag === 'BUTTON' || target?.isContentEditable) return;
+        const button = root.querySelector(`button[data-action="${CSS.escape(fallback.action)}"]`);
+        if (!button || button.disabled) return;
+        event.preventDefault();
+        event.stopPropagation();
+        button.click();
+    });
 }
 
 /**
@@ -159,6 +196,7 @@ async function openDialog({
         })),
         render: (_event, dialog) => {
             decorateButtons(dialog, buttons);
+            bindEnterToDefault(dialog, buttons);
             if (focusSelector) {
                 dialog.element?.querySelector?.(focusSelector)?.focus?.();
             }

@@ -189,6 +189,21 @@ because children set `background: var(--blacksmith-window-background, #232323)` 
 background -- that background is load-bearing for anyone reimplementing the layout. Children set
 `overflow: hidden`.
 
+## Selectable entity list
+
+`.blacksmith-entity-list` containing `.blacksmith-entity` rows, each a `<label>` wrapping a native radio or
+checkbox plus `.blacksmith-entity-img`, `.blacksmith-entity-body` (`-name`, `-type`, `-reason`), and optional
+`.blacksmith-entity-badges` (`styles/entity-list.css`). Selection styling follows `:has(input:checked)`
+rather than a JS-applied class, so it cannot drift from the inputs. Surfaces read `--blacksmith-tool-*` with
+fallbacks, so a list inside a Tool window inherits that shell. Markup is generated — see `api-entity-list.md`.
+
+## Quantity split
+
+`.blacksmith-quantity-split` — a three-column grid of `.blacksmith-quantity-split-value` (Give), a native
+`input[type="range"]`, and a second value box (Keep), with `.blacksmith-quantity-split-caption` labels
+beneath (`styles/window-form-controls.css`). Keep is always `max - give`. Same Tool-variable inheritance as
+the entity list. Markup is generated — see `api-quantity-split.md`.
+
 ## Tooltip
 
 `.tooltip-item` wrapping `.tooltiptext` (`styles/window-common.css:485, 499`). 250px wide, positioned

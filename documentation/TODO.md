@@ -11,6 +11,13 @@
 
 ## Item import expansion
 
+**A consumer is now waiting on this (2026-07-30).** Squire has finished its `api.dialog` migration and needs
+`api.importer` to replace its own Codex/Quest import code. The publish gate on `api-importer.md` and
+`architecture-importer.md` (`tools/wiki-sync.mjs:83`) is exactly the first item below, so verifying that batch
+unblocks publishing the docs and exposing the namespace. Squire's Quest import additionally needs validation
+reporting, progress/error reporting, and scene-pin handling extension points — scope those when the API is
+designed. Detail in `TODO-GLOBAL.md`.
+
 - **Live-verify the shipped 13.10.0 batch**: native Item/inline NPC ingestion, Feature/Spell profiles, activity targeting/effects, Full Prompt / JSON Template delivery, Equipment passive effects Phase 1, and the shared Validate/results flow are implemented and recorded in `CHANGELOG.md` [13.10.0], each entry carrying its own live-verification steps; run them in a live world. For the shared validation flow: verify one valid fixture, malformed JSON, a mixed valid/invalid two-entry batch, Open/Open All, Edit and Retry, Retry Failed without duplicate creation, and importer switching after results.
 - **Optional Midi-QOL activity import support (later)**: extend the friendly Feature/Spell activity schema with an explicitly optional Midi-QOL integration block (starting with `midiProperties.magicEffect`, and auditing the remaining activity automation fields). Core dnd5e imports must remain valid and unchanged when Midi-QOL is absent; only emit Midi-QOL data when the JSON explicitly requests it, preserve it through native Foundry Item passthrough, and verify behavior both with and without Midi-QOL installed before shipping.
 - **Passive equipped effects for physical Items — later phases**: Phase 1 (friendly transfer effects limited to reminder text and standard statuses, `changes: []` enforced) shipped in 13.10.0. Later: define and whitelist safe core dnd5e change keys, stacking behavior, and evaluate other physical Item profiles plus optional DAE/Midi-QOL integration. Native Item effects remain the lossless escape hatch.
@@ -137,33 +144,13 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 
 ### High Priority
 
-#### `api.dialog` — IMPLEMENTED, awaiting live verification
+#### Grow the test harness as APIs get touched
 
-Code, styles, docs, and the `window-pin-layers.js` conversion are written (`scripts/api-dialog.js`,
-`styles/dialog.css` + its `@import`, `documentation/api/api-dialog.md`, `PUBLISH` entry, CHANGELOG under
-13.12.2). Nothing here has run in Foundry. **Delete this item once the checks below pass**; the design
-rationale is in `plans/plan-dialog-and-shared-components.md` and the behavior contract in `api-dialog.md`.
-
-- **Verify the converted cluster**: from the Pin Layers window exercise each of the 13 converted dialogs (11 confirms, 2 prompts) for accept, cancel, Escape, and title-bar close. No path may throw an uncaught rejection into the console — that is the whole contract.
-- **Verify the prompts specifically**: the input is focused on open; an empty value shows the inline error and keeps the dialog open; a valid value applies as before. Both are now modal where they previously were not, and both now refuse empty input inline instead of returning an empty string — confirm neither change is unwelcome in use.
-- **Verify styling landed**: dialogs carry Blacksmith button styling and the destructive treatment on the ten delete/strip/overwrite confirmations. If they render as plain Foundry buttons, the cause is `styleButtons()` in `api-dialog.js` not finding `button[data-action="yes"|"no"]` — the action names Foundry's `DialogV2.confirm` gives its buttons could not be verified from source, and that lookup is the one unproven assumption in the change. Styling degrades gracefully; nothing breaks functionally.
-- **`choose` has no Blacksmith call site and is therefore unproven.** The pin-layers cluster is all yes/no confirms and prompts, and no multi-way choice exists anywhere in the repo (`token-movement.js:199`/`:271` are two-button async dialogs, not choices). Exercise it from the console before Squire depends on it — this is exactly the dogfooding failure named in the 2026-07-16 audit above. A real consumer would be better than a console check: the natural candidate is merging the separate "Strip Tag From Current Scene" / "Strip Tag From All Scenes" context actions into one scope choice, which is a UX change and needs the author's call.
-- **Remaining raw DialogV2 in Blacksmith**: 20 call sites across 10 files (`api-menubar.js` 4 hand-built, `window-stats-party.js` 4, `window-pin-configuration.js`, `window-gmtools.js`, `window-toast-send.js`, `ui-journal-pins.js`, `utility-common.js`, `token-movement.js`, `manager-vote.js`, `window-vote-config.js`). Migrating them is follow-on work, not part of this change. `utility-common.js:808` is the one that must keep DOM content.
-
-#### Shared selectable-entity component
-
-- **Context**: same plan doc. Presentation only — no sockets, no document mutation, no ownership change, no notifications.
-- **Descriptor**: `{ id, uuid, name, img, type, disabled, disabledReason, badges, metadata }`. Single- and multi-select, image plus name, optional badges/metadata, disabled entries with an accessible reason, keyboard navigation, consumer filtering, empty state. Build compact/list/grid variants only when a real in-repo consumer needs one.
-- **Embedded component, not a picker**: an embedded component has no submit and no close, so it exposes `onSelectionChange({ selected, changed, sourceEvent })`, `getSelection()`, and `setSelection(ids)` — and **no** `action` vocabulary. Single-select yields zero or one entity; multi-select may yield many. A dialog-opening picker helper that resolves with the shared vocabulary is deferred until a second consumer needs it; `showLeaderDialog` composes the component and `api.dialog` by hand, which is why it is the verification target.
-- **How to verify — single-select first**, because that is the mode Squire's transfer needs and `window-toast-send.js` cannot exercise it. Convert `MenuBar.showLeaderDialog` (`api-menubar.js:4129-4190`), today a bare `<select>` in a raw DialogV2, to `api.dialog` plus the component: verify setting a leader, clearing to None, and that the stored `partyLeader` shape is unchanged. Then multi-select via the user list at `window-toast-send.js:130-171` — party toggle, offline dimming, per-user checkboxes, and a send still addressing the right users. Separately confirm a disabled entry cannot be selected by mouse or keyboard and surfaces its reason.
-- **Third surface, or it ships unverified**: both targets above are non-Tool surfaces (`showLeaderDialog` is a DialogV2; `ToastSendWindow` extends the standard base, `window-toast-send.js:73`), but Squire hosts the component in a **Tool window under Light, Dark, and Glass**. Render it in a scratch Tool window in all three themes and confirm portraits, names, badges, and selected state stay legible on the translucent Glass surface. The component must inherit `--blacksmith-tool-*` rather than hard-coding a surface.
-- **Not a target**: `window-skillcheck.js`. It does extend `BlacksmithWindowBaseV2` (`:11`), but at ~2,700 lines with level/class/type/HP rows and four filters (`templates/window-skillcheck.hbs:48-59`) converting it is a refactor of that window, not a validation of a list. Later opportunistic only — along with `window-stats-party.js`. While in that template, note it uses the `cpb-` prefix rather than `blacksmith-`.
-
-#### Shared quantity/split control
-
-- **Context**: same plan doc. Squire contributes its existing markup and CSS upstream rather than Blacksmith recreating it from a description — that is the only way the "no degradation" acceptance criterion is actually guaranteed. **Blocked on Squire's contribution.**
-- **Ownership**: Blacksmith owns the naming, the shared markup contract, `styles/window-form-controls.css`, the documentation in `design-system/design-components.md`, and any value/update helper. Consumers own min/max/initial values, labels, domain validation, and what the number means. Squire's illustrative shape wraps an existing `.blacksmith-slider` with `data-quantity-give` / `data-quantity-keep` readouts; final naming is ours.
-- **How to verify**: reproduce Squire's current interaction with the contributed markup before Squire removes its local version — bounds, singular/plural, keyboard access, immediate visual update, and give+keep always summing to the stack.
+- **Landed 2026-07-30**: `utilities/test-harness.js` plus suites for `api.dialog`, `api.entityList`, `api.quantitySplit`, and window delegation — 83 headless assertions, all passing. Two tiers: headless assertions behind a "Run All Headless" button, and interactive checks for what only a person can judge. Contract and suite shape are documented in `utilities/tests/harness-lib.js`.
+- **The rule that keeps it honest**: a harness asserting a stale contract is worse than none, because it manufactures confidence. Update the relevant suite **as part of** the change that alters an API, the same way the workflow already treats the docs. If it is optional, it rots.
+- **Next suites, in priority order**: `hookManager` and `sockets` — the two siblings actually break against, and `sockets` is already the #1 post-reset rewrite, so a suite written before that rewrite gives it a regression net. Then `compendiums`, `tags`, `toast`. Do not port all twenty APIs speculatively; add a suite when its API is next touched.
+- **Not yet covered anywhere**: cross-client behavior. Every current check runs on one client, so socket targeting and receipt-side filtering still need a second connected client and cannot be asserted headlessly. Worth stating in the sockets suite when it lands rather than implying coverage it does not have.
+- **Candidate to absorb**: `utilities/api-toolbar-test.js` and `utilities/toolbar-targeting-test.js` predate the harness and duplicate its role. Fold them into a `toolbar` suite when the toolbar API is next touched.
 
 #### Dead `render` option on directly-constructed DialogV2 instances
 

@@ -65,7 +65,13 @@ add to a category by inventing a parallel file.
 |---|---|---|---|
 | **Overview** | `README.md` (users), Home (devs) | README: someone deciding whether to *use* the module. Overview: a developer building *against* it. | Neither mentions architecture or internals. |
 | **TODO** | `documentation/TODO.md` | us | **Single source of truth for what we will do.** When it's done, it is **deleted** from here and lives only in `CHANGELOG.md`. Never keep a done item "for reference". |
-| **CHANGELOG** | `CHANGELOG.md` | everyone | What we did and fixed. Keep-a-Changelog + SemVer; long prose entries citing file paths. Match the existing style. **Code changes are the priority — be rigorous there.** Doc changes are nice to note but not the point: the docs themselves are what matter, and a reader can just go read them. A one-line mention beats a paragraph reconstructing the doc. |
+| **CHANGELOG** | `CHANGELOG.md` | everyone | What we did and fixed. Keep-a-Changelog + SemVer; long prose entries citing file paths. Match the existing style. **Code changes are the priority — be rigorous there.** Doc changes are nice to note but not the point: the docs themselves are what matter, and a reader can just go read them. A one-line mention beats a paragraph reconstructing the doc. **Never add to a version that has already shipped** — see the section rule below. |
+
+**Never write into a released version's section.** The top section is only open until its `BUILD x.y.z`
+commit lands; after that it is history. The moment work starts again, new entries go under a fresh
+**`## [Unreleased]`** heading at the top, and the author renames it to the real number at BUILD time. If you
+find yourself appending to the version in `module.json`, that version has almost certainly already been
+pushed and you are editing published history. Check `git log` for its BUILD commit before adding anything.
 | **Architecture** | `documentation/architecture/` | us, and the other Coffee Pub modules | How the module is built and why. **This is the anti-crawl artifact** — the place for things you can only learn by reading code. `architecture-blacksmith.md` is the map. |
 | **API** | `documentation/api/` | anyone leveraging Blacksmith — mostly the other Coffee Pub modules, and Blacksmith itself | The public surface. Authoritative. Update it when you change the surface. |
 

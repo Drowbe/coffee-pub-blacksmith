@@ -86,6 +86,35 @@ Scope any override to the consumer's own application class. Do not copy Blacksmi
 }
 ```
 
+### Ephemeral tools: no registration required
+
+Nothing in either base assumes a Tool window is registered or persistent. There is no menubar coupling, no
+singleton enforcement, no static instance tracking, and no fixed `id` in `DEFAULT_OPTIONS`. Constructing and
+rendering directly is the supported path, and it is how Blacksmith opens its own Send Toast window
+(`api-menubar.js`):
+
+```javascript
+await new MyTransferTool({ id: `my-transfer-${foundry.utils.randomID()}` }).render({ force: true });
+```
+
+Register a window only when *something else* — a toolbar tool, a macro, another module — needs to open it by
+id. A tool that only ever opens from an in-flow action gains nothing from registration.
+
+Four things matter for a tool that is ephemeral or can have several instances open at once:
+
+- **Give each instance a distinct `id`.** Two Application V2 instances sharing an id collide in the DOM.
+- **Set `rememberPosition: false`.** `windowPositionKey` defaults to the class name, so sibling instances
+  share one key and overwrite each other's saved position — the second opens on top of the first. This does
+  not cost theme persistence: the theme and title-bar keys are gated by their own `rememberToolTheme` /
+  `rememberTitlebarMode` flags, so a user's Glass choice still persists.
+- **Options are frozen.** Use `setToolTheme()` / `setToolTitlebarMode()`; never assign `this.options.toolTheme`.
+- **Watch the growth axis.** `height: 'auto'` with `resizable: false` is the Tool default; the body scrolls
+  and the base clamps to `maxHeight: calc(100vh - 16px)`. If your content is a list that can get long, check
+  it at realistic sizes.
+
+`ACTION_HANDLERS` is safe for multi-instance tools as long as handlers read the instance from their third
+argument — see "`ACTION_HANDLERS` and the instance argument" below.
+
 ### Title-bar modes
 
 Tool windows support two chrome modes through the top-level `toolTitlebar` option:
@@ -420,10 +449,26 @@ Both are exposed on `module.api`.
 4. **Own your content** — Your template/`getData` owns the standard window's content; Tool consumers provide `bodyContent` and optional toolbar/footer content while Blacksmith owns the shared frame.
 5. **Application V2 only** — Build your window with `HandlebarsApplicationMixin(ApplicationV2)` and the patterns in the guidance doc (delegation, scroll save/restore, unique instance id).
 
+### `ACTION_HANDLERS` and the instance argument
+
+Set `static ACTION_HANDLERS = { actionName: handler }` on your window class and mark up controls with `data-action="actionName"`. The base binds one click listener **per instance** on the window frame and invokes:
+
+```javascript
+static ACTION_HANDLERS = {
+    save: (event, target, win) => win.save(),
+    // `this` is the instance too, so a regular function works as well:
+    cancel(event, target) { return this.close(); }
+};
+```
+
+**Always use the instance argument (or `this`).** Do not resolve the instance from a shared reference — a class static, a module-level `let`, or `MyWindow._ref`. Those are wrong whenever two instances of the class are open at once: they point at whichever rendered last, so a click in one window acts on the other.
+
+`MyWindow._ref` still exists and still tracks the most recently rendered instance, but only so unmigrated consumers keep working. It is deprecated; migrate to the third argument.
+
 ### Application V2: Body injection and scripts
 
-- **Scripts in body/partials do not run.** When Application V2 injects the body part (e.g. from Handlebars), it does **not** execute `<script>` tags inside the injected HTML. Any logic you put in a `<script>` block in a partial will never run. Do not rely on inline `onclick="someFunction()"` unless that function is already defined on `window` by a **module script that runs at load** (e.g. a separate `.js` file in your module's `esmodules` that assigns `window.someFunction = ...`). Prefer **document-level delegation** and `data-action` so handlers are attached in JS and work regardless of when the body is injected.
-- **Body controls (buttons, drop zones)** — If your body contains buttons, drop zones, or other interactive elements, attach their behavior via **document-level** (or stable-wrapper) delegation (e.g. in `_attachDelegationOnce()`), not by querying the body in `activateListeners(html)`. Application V2 may call `activateListeners` with a wrapper element that does not contain the body part, or the body may be injected later; delegation on `document` (with a check that the event target is inside your app root or a known wrapper) ensures clicks are handled regardless.
+- **Scripts in body/partials do not run.** When Application V2 injects the body part (e.g. from Handlebars), it does **not** execute `<script>` tags inside the injected HTML. Any logic you put in a `<script>` block in a partial will never run. Do not rely on inline `onclick="someFunction()"` unless that function is already defined on `window` by a **module script that runs at load** (e.g. a separate `.js` file in your module's `esmodules` that assigns `window.someFunction = ...`). Prefer `data-action` with `ACTION_HANDLERS` so handlers are attached in JS and work regardless of when the body is injected.
+- **Body controls (buttons, drop zones)** — Use `ACTION_HANDLERS`, or bind on `this.element` in `_onRender`. Do not query the body in `activateListeners(html)`: Application V2 may call it with a wrapper that does not contain the body part, or the body may be injected later. `this.element` is the frame, created before parts render and retained across part re-renders, so a listener there catches late-injected content — which is why per-instance binding is sufficient and document-level delegation is not needed.
 - **Legacy inline onclick** — If you have many existing inline `onclick` handlers (e.g. a complex worksheet), you can either: (1) **Migrate** to `data-action` and document-level delegation (recommended long term), or (2) **Keep inline onclick** by moving the handler implementations into a module script that runs at load and assigns them to `window`, so the same attribute strings resolve when the body is injected. With option 2, a module script registers the globals at load and each global delegates to the app instance via a ref.
 
 ---
@@ -433,7 +478,8 @@ Both are exposed on `module.api`.
 - **`registerWindow` / `openWindow` undefined** — Window API not loaded yet. Wait for `ready` and check `game.modules.get('coffee-pub-blacksmith')?.api?.registerWindow`.
 - **Window doesn't open** — Ensure the window type is registered before calling `openWindow`. Check that `descriptor.open` returns or resolves to the Application instance if you need a reference.
 - **Layout or behavior issues** — Follow **documentation/applicationv2-window/guidance-applicationv2.md** (delegation, scroll save/restore, `_getRoot()`, safe merge of `DEFAULT_OPTIONS`).
-- **Buttons or controls in the body do nothing** — Application V2 may not run `<script>` inside injected body HTML, and `activateListeners(html)` may not receive the body part. Use document-level delegation for body controls (see "Application V2: Body injection and scripts" under Best Practices) or ensure handlers are on `window` from a module that loads before the window opens.
+- **Buttons or controls in the body do nothing** — Application V2 may not run `<script>` inside injected body HTML, and `activateListeners(html)` may not receive the body part. Use `data-action` with `ACTION_HANDLERS` (see "Application V2: Body injection and scripts" under Best Practices) or bind on `this.element` in `_onRender`.
+- **A control acts on the wrong window** — two instances of the class are open and the handler is resolving the instance from a shared reference instead of its third argument. See "`ACTION_HANDLERS` and the instance argument".
 - **`Cannot assign to read only property 'toolTitlebar'`** — Foundry freezes finalized Application V2 options. Do not mutate `this.options.toolTitlebar`; call `await app.setToolTitlebarMode('full' | 'micro')`.
 
 ---

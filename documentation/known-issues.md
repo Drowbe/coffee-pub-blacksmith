@@ -59,18 +59,16 @@ A tool's `visible` (including a `visible: () => false` function) is honored on B
 
 ## Windows
 
-### `ACTION_HANDLERS` delegation breaks when two instances of one window class are open
+### A consumer's `ACTION_HANDLERS` acting on the wrong window instance
 
-`BlacksmithWindowBaseV2` routes `data-action` clicks through per-**class** static state, not per-instance: `static _ref` and `static _delegationAttached` (`window-base.js:21`, `:24`). The document listener is attached once per class (`:129-130`) and dispatches to `Ctor._ref`, which `_attachDelegationOnce()` overwrites with `this` on every render (`:127`). So with two instances of the same class open at once, every `data-action` click in **either** window is handled against whichever instance rendered last.
+The base is fixed as of 13.12.2 — `BlacksmithWindowBaseV2` now binds one click listener **per instance** on the window frame and invokes handlers as `fn.call(instance, event, target, instance)`. A consumer that reads the instance from its third argument (or `this`) is correct with any number of instances open.
 
-Closing makes it worse: `_onClose` nulls `_ref` only when it points at the closing instance (`:163`), so closing the newer window leaves `_ref` null and the older window's buttons go dead until it re-renders.
+**A consumer that still resolves the instance from a shared reference is not.** `MyWindow._ref`, a class static, or a module-level `let` all point at whichever instance rendered last, so with two open, a click in one window acts on the other. `_ref` is retained as a deprecated compatibility shim and still behaves that way by design; it is not a bug in the base.
 
-This affects `BlacksmithToolWindowBaseV2` identically — it extends the same base (`window-tool-base.js:27`). Nothing in Blacksmith has hit it, because all 13 `ACTION_HANDLERS` consumers are effectively single-instance and the one Tool consumer (`CombatantCardToolWindow`) does not use `ACTION_HANDLERS` at all.
+This applies equally to `BlacksmithToolWindowBaseV2`, which extends the same base (`window-tool-base.js:27`).
 
-The root cause is the handler signature: `ACTION_HANDLERS` entries are invoked as `fn(event, target)` (`:146`) and never receive the instance, so every consumer has to invent its own instance lookup — and every invention so far is a singleton. Blacksmith alone has three spellings: `ClassName._ref` (`window-toast-send.js:97`, `window-json-import.js:33`) and module-level `let _bulkPinTagsWindowRef` (`window-pin-layers.js:15`). Removing the static `_ref` therefore fixes dispatch but not the consumers; the handler bodies have to stop reading a singleton too.
-
-- **Workaround:** for a window class that can have two instances open simultaneously, do not use `ACTION_HANDLERS`. Bind listeners per instance on `this.element` in `_onRender` and scope every lookup to that root.
-- **Fix:** invert the mechanism instead of patching the ref. Drop `_ref` and `_delegationAttached` entirely; bind the click listener **per instance** on `this.element` (the frame, which is created before parts render and survives part re-renders, so it catches late-injected body content — document level was never required for that), and invoke handlers as `fn.call(instance, event, target, instance)` so both `function` and arrow styles can read the instance. This is less code than the current version and also fixes a second defect: the per-class document listener is added (`:133`) and never removed, so it leaks one permanent listener per window class per session. Migrating consumer handler bodies off their singletons is part of the change.
+- **Workaround:** none needed beyond migrating. Change `MyWindow._ref?.doThing()` to `(event, target, win) => win.doThing()`.
+- **Fix (consumer side):** migrate handler bodies to the instance argument. See "`ACTION_HANDLERS` and the instance argument" in `api-window.md`. Sibling modules known to still read a singleton are tracked in `TODO-GLOBAL.md`.
 
 ## Canvas
 

@@ -91,6 +91,8 @@ import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
+import { EntityListAPI } from './api-entity-list.js';
+import { QuantitySplitAPI } from './api-quantity-split.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
@@ -967,6 +969,8 @@ Hooks.once('init', async function() {
         chatCards: ChatCardsAPI,
         toast: ToastAPI,
         dialog: DialogAPI,
+        entityList: EntityListAPI,
+        quantitySplit: QuantitySplitAPI,
         campaign: CampaignAPI,
         compendiums: CompendiumsAPI,
         rolls: RollsAPI,

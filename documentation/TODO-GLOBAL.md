@@ -263,11 +263,19 @@ Uses today: `openRequestRollDialog`, `api.compendiums` (awareness / quick encoun
 Blacksmith's `BlacksmithWindowBaseV2` dispatches `data-action` clicks to the **last-rendered** instance of a
 class, because handlers are invoked as `fn(event, target)` with no instance and dispatch trusts a single
 `static _ref`. Consumer-facing detail is in Blacksmith's `known-issues.md` (Windows); the fix and Blacksmith's
-own migration are in `plans/plan-action-handlers-delegation.md`.
+own migration shipped in 13.12.2 — see `CHANGELOG.md`, and `api-window.md` for the consumer contract.
 
 Root cause worth stating suite-wide: because the handler signature never passes the instance, **every**
 consumer invented its own instance lookup, and all six inventions are singletons. That is why a Blacksmith-side
 fix alone changes nothing for a consumer — each handler body must also stop reading a singleton.
+
+**Blacksmith side is done** (implemented 2026-07-30, awaiting live verification): handlers now receive the
+instance as their third argument and as `this`, and the listener binds per instance on the window frame.
+`static _ref` survives as a deprecated shim so nothing below breaks before it migrates. Consumer migration is
+one edit per handler: `MyWindow._ref?.doThing()` becomes `(event, target, win) => win.doThing()`.
+
+**Ready-to-send notes** live alongside this file: `plans/note-regent-window-base-fork.md` and
+`plans/note-suite-dialog-migration.md`.
 
 ### Exposure by module
 
@@ -299,12 +307,70 @@ names finishing the V2 migration for remaining dialogs as a v14 forcing function
 | **Blacksmith** | **33** | **0** |
 
 ~43 legacy V1 call sites across the siblings; Blacksmith is already clean. Blacksmith is building
-`api.dialog` (`plans/plan-dialog-and-shared-components.md`, and the item in `TODO.md`).
+`api.dialog` — shipped in 13.12.2; the contract is `documentation/api/api-dialog.md`.
 
 - **Tell Monarch and Squire before they migrate.** Both are entirely on V1 and would otherwise each port to
   raw `DialogV2` independently — work that `api.dialog` would then undo. Squire is already engaged on the
   dialog API but has not been told its own code is 21 V1 sites with zero V2.
 - Sequencing: `api.dialog` ships before the delegation fix above, because its audience is much wider.
+
+## Decision: Blacksmith does not own a Transfer/Share workflow window (2026-07-29)
+
+Squire originally proposed a hub-owned Transfer/Share window — `transfer.open`, a mode enum, approval
+orchestration, and a separate transfer-flow registry. **Rejected**, and the reasons are recorded here so it is
+not re-proposed from scratch:
+
+- The consumer would supply the subject data, the configuration template, `getValue`, `validate`, the
+  recipient list, `onSubmit`, the sockets, the permission checks, the revalidation, and the notifications —
+  leaving Blacksmith a header, three section wrappers, a list, and an action bar. Everything but the list
+  already existed in the window bases and the shared form controls.
+- Blacksmith has no way to verify a transfer flow. There is no test framework, verification is running
+  Foundry, and the hub has no item-transfer domain to exercise — so every shell bug would surface in Squire
+  and be debugged across two repos.
+- Approval requires the window to open on a *different* client than the one that called it. Either the
+  consumer constructs it there (in which case Blacksmith contributed only the components), or Blacksmith
+  listens on sockets and opens windows on modules' behalf, which puts the hub in the transfer business.
+
+What shipped instead: `api.dialog`, `api.entityList`, `api.quantitySplit`, and the per-instance
+`ACTION_HANDLERS` fix — all reusable by any module, none of them knowing what a transfer is. Revisit a shared
+workflow shell only if two or more modules provably duplicate meaningful shell code.
+
+## Squire integration — what Blacksmith still owes (2026-07-30)
+
+Squire has migrated all 22 legacy `Dialog` call sites to `api.dialog` and live-tested them; a source audit
+confirms zero `new Dialog` / `Dialog.confirm` / `Dialog.prompt` / `Dialog.wait` remain. Their five transfer
+surfaces run on `api.dialog` as an **interim** state; the end state is still one ephemeral Squire-owned
+`BlacksmithToolWindowBaseV2` Transfer Tool. Four Blacksmith surfaces remain between here and there:
+
+| Ask | State |
+|---|---|
+| Selectable-entity component | **Implemented, unverified.** `api.entityList`, both modes, with the Tool-window Light/Dark/Glass check in the harness still to run. That check is the one Squire specifically named. |
+| Per-instance action delegation | **Done and verified 2026-07-30.** 7 headless assertions in the harness's Window Delegation suite plus a two-window interactive check: two instances each handle their own clicks, the older survives the newer's close, and a reopened instance rebinds. Squire had already removed static `_ref` routing on their side. |
+| Quantity/split control | **Delivered and implemented, unverified.** Squire contributed it 2026-07-30; landed as `api.quantitySplit`. Once verified, tell Squire to delete their local copy — the round-trip is not finished while both exist. |
+| Public importer API | **Gated, not started.** See below. |
+
+### Importer API — the gate is real and already tracked
+
+Squire is correct that `documentation/api/api-importer.md` still reads "Proposed contract", and that
+`api.importer` does not exist on `module.api` — there are zero references in `blacksmith.js`. This is
+deliberate, not an oversight: `tools/wiki-sync.mjs:83` holds both `api-importer.md` and
+`architecture-importer.md` out of the publish set with an explicit gate, **"JSON import verified"**, which is
+the "Live-verify the shipped 13.10.0 batch" item at the top of `TODO.md`.
+
+So the sequence is: verify the 13.10.0 import batch in a live world -> publish the two importer docs ->
+expose `api.importer`. Squire now being a waiting consumer raises that item's priority, and adds three
+requirements to scope when it is designed: **validation reporting**, **progress/error reporting**, and
+**scene-pin handling extension points** for Quest import. Until then Squire keeps its own import behavior
+rather than deep-importing Blacksmith internals, which is the right call.
+
+### Squire deep-imports Blacksmith script paths — RESOLVED 2026-07-30
+
+Four Squire files resolved the window base with a `/modules/coffee-pub-blacksmith/scripts/window-base.js`
+path fallback. Flagged, and Squire removed all four the same day. (`squire.js:38` importing
+`/modules/coffee-pub-blacksmith/api/blacksmith-api.js` was never a problem — that is a real published entry
+point.) Keep the rule in mind for the next consumer: `api-window.md` is explicit that file paths are not the
+stable contract, and the base classes are on `module.api` before `init`, so a path fallback buys nothing and
+breaks silently if a file moves.
 
 ## Open questions for Drowbe
 

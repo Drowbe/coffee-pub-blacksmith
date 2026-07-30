@@ -1,5 +1,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, isCurrentUserPartyLeader } from './api-core.js';
+import { DialogAPI } from './api-dialog.js';
+import { EntityListAPI } from './api-entity-list.js';
 import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
@@ -4127,66 +4129,66 @@ class MenuBar {
     }
 
     static async showLeaderDialog() {
-
         const characterEntries = this._getLeaderEntries();
+        const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
+        const currentActorId = leaderData?.actorId || '';
+        const NO_LEADER = '__blacksmith_no_leader__';
+        const INPUT_NAME = 'blacksmith-leader';
 
-
-
-        const DialogV2 = foundry.applications.api.DialogV2;
-        const content = `
-            <div class="form-group">
-                <label>Select Party Leader:</label>
-                <select name="leader" id="leader-select">
-                    <option value="">None</option>
-                    ${characterEntries.map(entry => {
-                        const isCurrentLeader = this.currentLeader === entry.actor.name;
-                        const optLabel = entry.labelUser
-                            ? `${entry.actor.name} (${entry.labelUser.name})`
-                            : entry.actor.name;
-                        return `<option value="${entry.actor.id}|${entry.owner.id}" ${isCurrentLeader ? 'selected' : ''}>
-                            ${optLabel}
-                        </option>`;
-                    }).join('')}
-                </select>
-            </div>
-        `;
-
-        let leaderDlg;
-        leaderDlg = new DialogV2({
-            window: { title: 'Set Party Leader' },
-            position: { width: 400 },
-            content,
-            buttons: [
+        // Entity ids carry the same actorId|ownerId pairing the old <select>
+        // used, so setNewLeader's contract is unchanged.
+        const list = EntityListAPI.create({
+            entities: [
                 {
-                    action: 'cancel',
-                    label: 'Cancel',
-                    icon: 'fa-solid fa-xmark',
-                    callback: () => {
-                        void leaderDlg.close();
-                    }
+                    id: NO_LEADER,
+                    name: 'No leader',
+                    img: 'icons/svg/cancel.svg',
+                    type: 'Clear the current party leader'
                 },
-                {
-                    action: 'set',
-                    label: 'Set Leader',
-                    icon: 'fa-solid fa-check',
-                    default: true,
-                    callback: async (event, button, dialog) => {
-                        const leaderSelect = dialog.form?.querySelector('#leader-select');
-                        const selectedValue = leaderSelect?.value ?? '';
-                        if (selectedValue) {
-                            const [actorId, userId] = selectedValue.split('|');
-                            await MenuBar.setNewLeader({ userId, actorId }, true);
-                        } else {
-                            await setSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
-                            this.currentLeader = null;
-                            await this.updateLeader(null);
-                        }
-                        void dialog.close();
-                    }
-                }
-            ]
+                ...characterEntries.map(entry => ({
+                    id: `${entry.actor.id}|${entry.owner.id}`,
+                    uuid: entry.actor.uuid,
+                    name: entry.actor.name,
+                    img: entry.actor.img,
+                    type: entry.labelUser?.name ?? null
+                }))
+            ],
+            mode: EntityListAPI.MODES.SINGLE,
+            inputName: INPUT_NAME,
+            // Preselect by actorId from the setting rather than by matching the
+            // leader's display name, which duplicate actor names would break.
+            selected: characterEntries.some(entry => entry.actor.id === currentActorId)
+                ? `${currentActorId}|${characterEntries.find(entry => entry.actor.id === currentActorId).owner.id}`
+                : NO_LEADER,
+            emptyMessage: 'No player-owned characters to choose from.'
         });
-        await leaderDlg.render({ force: true });
+
+        const outcome = await DialogAPI.prompt({
+            title: 'Set Party Leader',
+            content: `
+                <div class="blacksmith-field">
+                    <span class="blacksmith-field-label">Party leader</span>
+                    ${list.html}
+                </div>`,
+            submitLabel: 'Set Leader',
+            position: { width: 400 },
+            getValue: (root) => root?.querySelector(`input[name="${INPUT_NAME}"]:checked`)?.value ?? '',
+            onRender: (root) => list.attach(root),
+            cancelValue: '',
+            closeValue: ''
+        });
+
+        list.destroy();
+        if (outcome.action !== DialogAPI.ACTIONS.SUBMIT || !outcome.value) return;
+
+        if (outcome.value === NO_LEADER) {
+            await setSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
+            this.currentLeader = null;
+            await this.updateLeader(null);
+            return;
+        }
+        const [actorId, userId] = outcome.value.split('|');
+        await MenuBar.setNewLeader({ userId, actorId }, true);
     }
 
     static async loadLeader() {

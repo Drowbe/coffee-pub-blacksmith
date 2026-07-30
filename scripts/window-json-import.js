@@ -29,20 +29,22 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         }
     };
 
+    // Handlers receive the instance as their third argument (and as `this`), so
+    // they never resolve a shared static reference. See window-base.js.
     static ACTION_HANDLERS = {
-        selectTab: (_event, target) => JsonImportWindow._ref?._selectTab(target),
-        copyTemplate: () => JsonImportWindow._ref?._copyTemplate(),
-        saveTemplate: () => JsonImportWindow._ref?._saveTemplate(),
-        selectFile: () => JsonImportWindow._ref?._selectFile(),
-        validateJson: () => JsonImportWindow._ref?._validateJson(),
-        importJson: () => JsonImportWindow._ref?._importJson(),
-        editJson: () => JsonImportWindow._ref?._editJson(),
-        importAnother: () => JsonImportWindow._ref?._importAnother(),
-        retryFailed: () => JsonImportWindow._ref?._retryFailed(),
-        copyReport: () => JsonImportWindow._ref?._copyReport(),
-        copyEntryIssues: (_event, target) => JsonImportWindow._ref?._copyEntryIssues(target),
-        openAllDocuments: () => JsonImportWindow._ref?._openAllDocuments(),
-        openDocument: (_event, target) => JsonImportWindow._ref?._openDocument(target)
+        selectTab: (_event, target, win) => win?._selectTab(target),
+        copyTemplate: (_event, _target, win) => win?._copyTemplate(),
+        saveTemplate: (_event, _target, win) => win?._saveTemplate(),
+        selectFile: (_event, _target, win) => win?._selectFile(),
+        validateJson: (_event, _target, win) => win?._validateJson(),
+        importJson: (_event, _target, win) => win?._importJson(),
+        editJson: (_event, _target, win) => win?._editJson(),
+        importAnother: (_event, _target, win) => win?._importAnother(),
+        retryFailed: (_event, _target, win) => win?._retryFailed(),
+        copyReport: (_event, _target, win) => win?._copyReport(),
+        copyEntryIssues: (_event, target, win) => win?._copyEntryIssues(target),
+        openAllDocuments: (_event, _target, win) => win?._openAllDocuments(),
+        openDocument: (_event, target, win) => win?._openDocument(target)
     };
 
     constructor(options = {}) {
