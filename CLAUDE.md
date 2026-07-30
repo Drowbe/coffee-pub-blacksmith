@@ -67,11 +67,15 @@ add to a category by inventing a parallel file.
 | **TODO** | `documentation/TODO.md` | us | **Single source of truth for what we will do.** When it's done, it is **deleted** from here and lives only in `CHANGELOG.md`. Never keep a done item "for reference". |
 | **CHANGELOG** | `CHANGELOG.md` | everyone | What we did and fixed. Keep-a-Changelog + SemVer; long prose entries citing file paths. Match the existing style. **Code changes are the priority — be rigorous there.** Doc changes are nice to note but not the point: the docs themselves are what matter, and a reader can just go read them. A one-line mention beats a paragraph reconstructing the doc. **Never add to a version that has already shipped** — see the section rule below. |
 
-**Never write into a released version's section.** The top section is only open until its `BUILD x.y.z`
-commit lands; after that it is history. The moment work starts again, new entries go under a fresh
-**`## [Unreleased]`** heading at the top, and the author renames it to the real number at BUILD time. If you
-find yourself appending to the version in `module.json`, that version has almost certainly already been
-pushed and you are editing published history. Check `git log` for its BUILD commit before adding anything.
+**Never write into a released version's section.** A section is open only until its `BUILD x.y.z` commit
+lands; after that it is published history. When work starts again, open a fresh heading at the top —
+**`## [Unreleased]`**, or the next version number if the author has already named it — and the author
+settles the number at BUILD time.
+
+**Do not use `module.json` to decide which section to write into.** The version there deliberately lags,
+sitting at the last *shipped* number for the whole of development, so the section matching it is exactly the
+one you must not touch. Check `git log --oneline | grep BUILD` instead: if the top section already has a
+BUILD commit, open a new heading above it.
 | **Architecture** | `documentation/architecture/` | us, and the other Coffee Pub modules | How the module is built and why. **This is the anti-crawl artifact** — the place for things you can only learn by reading code. `architecture-blacksmith.md` is the map. |
 | **API** | `documentation/api/` | anyone leveraging Blacksmith — mostly the other Coffee Pub modules, and Blacksmith itself | The public surface. Authoritative. Update it when you change the surface. |
 
@@ -260,12 +264,26 @@ Do not commit or push to the main repo unless asked. The author reviews diffs in
 this covers both the milestone check-ins and the final release commit in the workflow above. Claude stages
 reviewable changes; the author commits.
 
-**Never bump the version in `module.json`.** The author bumps it and makes the release commit himself, after
-his own final tests. **The `BUILD x.y.z` commit bundles the final doc updates, `CHANGELOG.md`, and todo
-deletions together with the version bump** — one commit per release. (Changed 2026-07-17. It used to be a
-*lone* single-change bump for a clean history marker; the author folded the final doc pass into it. Do not
-"restore" the lone-bump rule — this supersedes it.) Claude writes the CHANGELOG entry and stages the final
-doc changes; the author makes the BUILD commit and the tag.
+**Never bump the version in `module.json`.** The version stays at the last shipped number for the whole of
+development; the author bumps it himself when he decides a release is ready, after his own final tests.
+
+**The `BUILD x.y.z` commit is the version bump alone** — `module.json` and nothing else — as a clean
+bookkeeping marker in the history. The final doc pass, `CHANGELOG.md`, and todo deletions go in the commit
+*before* it:
+
+```
+BUILD 13.12.3                          <- module.json only
+Docs, CHANGELOG, TODO cleanup for 13.12.3
+Implement api.quantitySplit
+```
+
+(Reverted to the lone bump 2026-07-30 by the author, superseding the 2026-07-17 change that had folded the
+final doc pass into it. This entry has now flipped twice — do not flip it again without being asked
+directly.)
+
+Claude writes the CHANGELOG entry and stages the final doc changes; the author makes the BUILD commit and
+the tag. Because the version in `module.json` lags the work in progress, it is **not** a signal for which
+CHANGELOG section to write into — see the CHANGELOG rule above.
 
 **Releases are the author's.** Tagging (`v*` fires `.github/workflows/release.yml`), pushing the main repo,
 and anything that publishes to GitHub are his. The workflow runs no lint, tests, or build — the tag is the
