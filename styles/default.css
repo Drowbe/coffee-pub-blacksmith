@@ -15,6 +15,7 @@
 @import "overrides-modules.css"; 
 
 /* --- Dialogue Boxes / Windows --- */
+@import "dialog.css";
 @import "window-common.css";
 @import "window-gmtools.css";
 @import "window-skillcheck.css";

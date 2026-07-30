@@ -1,0 +1,58 @@
+/* ==================================================================
+   ===== DIALOG (api.dialog) ========================================
+   ==================================================================
+
+   Styling for dialogs opened through module.api.dialog. Deliberately
+   restrained: Foundry owns the DialogV2 frame, and this only makes the
+   button row, spacing, and validation message consistent with Blacksmith
+   windows. It does not re-skin the frame.
+
+   Values come from vars.css tokens — no raw literals (see the token
+   adoption item in TODO.md).
+   ================================================================== */
+
+.application.blacksmith-dialog .window-content {
+    padding: var(--blacksmith-space-lg);
+}
+
+.application.blacksmith-dialog p {
+    margin: 0 0 var(--blacksmith-space-md) 0;
+    line-height: 1.5;
+}
+
+.application.blacksmith-dialog p:last-of-type {
+    margin-bottom: 0;
+}
+
+/* ----- Button row ----- */
+
+.application.blacksmith-dialog .dialog-buttons {
+    display: flex;
+    gap: var(--blacksmith-space-md);
+    margin-top: var(--blacksmith-space-lg);
+}
+
+/* The shared window button classes are applied by decorateButtons() in
+   api-dialog.js. Dialog buttons share a row, so the fixed width the primary
+   variant carries in window-template.css must not apply here. */
+.application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-primary,
+.application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-secondary,
+.application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-critical {
+    width: auto;
+    flex: 1 1 auto;
+    justify-content: center;
+}
+
+/* ----- Validation message -----
+   DialogV2 cannot stay open after a button is clicked, so prompt() reopens
+   the dialog with this banner prepended to the content. */
+
+.application.blacksmith-dialog .blacksmith-dialog-error {
+    margin-bottom: var(--blacksmith-space-lg);
+    padding: var(--blacksmith-space-md) var(--blacksmith-space-lg);
+    border: 1px solid var(--blacksmith-variant-danger-border);
+    border-radius: var(--blacksmith-radius-md);
+    background: var(--blacksmith-variant-danger-bg);
+    color: var(--blacksmith-text-light);
+    font-size: var(--blacksmith-font-size-sm);
+}

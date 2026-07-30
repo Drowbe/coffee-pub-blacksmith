@@ -2,6 +2,7 @@ import { MODULE } from './const.js';
 import { PinManager } from './manager-pins.js';
 import { normalizePinTags, normalizeBlacksmithAccess, normalizeBlacksmithVisibility } from './pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { DialogAPI } from './api-dialog.js';
 import { HookManager } from './manager-hooks.js';
 import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './pin-permission-icons.js';
 
@@ -298,13 +299,12 @@ class BulkPinTagsWindow extends BlacksmithWindowBaseV2 {
     async _deleteAllTags() {
         const selectedPins = this._getSelectedPins();
         if (!selectedPins.length) return;
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete All Tags' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete All Tags',
             content: `<p>Delete <strong>all tags</strong> from <strong>${selectedPins.length}</strong> selected pin${selectedPins.length !== 1 ? 's' : ''}?</p><p>This cannot be undone.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Delete All Tags',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
         });
         if (!confirmed) return;
         await this._applyBulkTagSet(selectedPins.map(pin => pin.id), []);
@@ -316,13 +316,11 @@ class BulkPinTagsWindow extends BlacksmithWindowBaseV2 {
         if (!selectedPins.length) return;
         const root = this._getRoot();
         const tags = normalizePinTags(root?.querySelector('.blacksmith-pin-layers-bulk-tags')?.value || '');
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Confirm Bulk Tag Edit' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Confirm Bulk Tag Edit',
             content: `<p>Replace tags on <strong>${selectedPins.length}</strong> selected pin${selectedPins.length !== 1 ? 's' : ''} with:</p><p><strong>${tags.length ? esc(tags.join(', ')) : 'No tags'}</strong></p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Replace Tags',
+            confirmIcon: 'fa-solid fa-tags'
         });
         if (!confirmed) return;
         await this._applyBulkTagSet(selectedPins.map(pin => pin.id), tags);
@@ -606,31 +604,22 @@ class ManageCustomPinTagsWindow extends BlacksmithWindowBaseV2 {
     async _promptRenameTag(tag) {
         const current = normalizePinTags(tag)[0] || '';
         if (!current) return '';
-        const content = `
-            <form>
+        // DialogV2 wraps content in its own form, so this must not add one.
+        const outcome = await DialogAPI.prompt({
+            title: 'Rename Pin Tag Globally',
+            content: ({ value }) => `
                 <div class="blacksmith-field">
                     <span class="blacksmith-field-label">New tag name</span>
-                    <input type="text" class="blacksmith-input blacksmith-custom-pin-tags-rename-input" value="${esc(current)}">
-                </div>
-            </form>`;
-        return foundry.applications.api.DialogV2.wait({
-            window: { title: 'Rename Pin Tag Globally' },
-            content,
-            rejectClose: false,
-            buttons: [
-                { action: 'cancel', label: 'Cancel', icon: 'fa-solid fa-xmark', callback: () => '' },
-                {
-                    action: 'rename',
-                    label: 'Rename',
-                    icon: 'fa-solid fa-check',
-                    default: true,
-                    callback: (_event, _button, dialog) => {
-                        const root = dialog.form || dialog.element;
-                        return normalizePinTags(root?.querySelector('.blacksmith-custom-pin-tags-rename-input')?.value || '')[0] || '';
-                    }
-                }
-            ]
+                    <input type="text" class="blacksmith-input blacksmith-custom-pin-tags-rename-input" value="${esc(value ?? current)}">
+                </div>`,
+            submitLabel: 'Rename',
+            focusSelector: '.blacksmith-custom-pin-tags-rename-input',
+            getValue: (root) => normalizePinTags(root?.querySelector('.blacksmith-custom-pin-tags-rename-input')?.value || '')[0] || '',
+            validate: (value) => value ? null : 'Enter a tag name.',
+            cancelValue: '',
+            closeValue: ''
         });
+        return outcome.value ?? '';
     }
 
     async _renameTag(target) {
@@ -638,13 +627,11 @@ class ManageCustomPinTagsWindow extends BlacksmithWindowBaseV2 {
         if (!tag) return;
         const next = await this._promptRenameTag(tag);
         if (!next || next === tag) return;
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Rename Pin Tag Globally' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Rename Pin Tag Globally',
             content: `<p>Rename <strong>${esc(tag)}</strong> to <strong>${esc(next)}</strong> on all pins and saved tag records?</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Rename Everywhere',
+            confirmIcon: 'fa-solid fa-pen'
         });
         if (!confirmed) return;
         await PinManager.renameTagGlobally(tag, next);
@@ -657,13 +644,12 @@ class ManageCustomPinTagsWindow extends BlacksmithWindowBaseV2 {
         const sceneId = this.sceneId ?? canvas?.scene?.id;
         if (!tag || !sceneId) return;
         const scene = game.scenes?.get(sceneId);
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Strip Tag From Current Scene' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Strip Tag From Current Scene',
             content: `<p>Remove <strong>${esc(tag)}</strong> from all pins on <strong>${esc(scene?.name || 'this scene')}</strong>?</p><p>The tag remains available globally.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Strip From Scene',
+            confirmIcon: 'fa-solid fa-eraser',
+            destructive: true
         });
         if (!confirmed) return;
         const key = normalizePinTags(tag)[0];
@@ -676,13 +662,12 @@ class ManageCustomPinTagsWindow extends BlacksmithWindowBaseV2 {
     async _stripTagFromAllScenes(target) {
         const tag = target?.dataset?.tag || '';
         if (!tag) return;
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Strip Tag From All Scenes' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Strip Tag From All Scenes',
             content: `<p>Remove <strong>${esc(tag)}</strong> from all pins on all scenes?</p><p>The tag remains available globally.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Strip Everywhere',
+            confirmIcon: 'fa-solid fa-eraser',
+            destructive: true
         });
         if (!confirmed) return;
         const key = normalizePinTags(tag)[0];
@@ -695,13 +680,12 @@ class ManageCustomPinTagsWindow extends BlacksmithWindowBaseV2 {
     async _deleteTagGlobally(target) {
         const tag = target?.dataset?.tag || '';
         if (!tag) return;
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete Pin Tag Globally' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete Pin Tag Globally',
             content: `<p>Delete <strong>${esc(tag)}</strong> from the tag registry and all pins on all scenes?</p><p>This cannot be undone.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Delete Everywhere',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
         });
         if (!confirmed) return;
         await PinManager.deleteTagGlobally(tag);
@@ -1660,31 +1644,23 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _promptProfileName(defaultName = '') {
-        const content = `
-            <form>
+        // DialogV2 wraps content in its own form, so this must not add one.
+        const outcome = await DialogAPI.prompt({
+            title: 'New Pin Visibility Profile',
+            content: ({ value }) => `
                 <div class="blacksmith-field">
                     <span class="blacksmith-field-label">Profile name</span>
-                    <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="${esc(defaultName)}" placeholder="Custom profile name">
-                </div>
-            </form>`;
-        return foundry.applications.api.DialogV2.wait({
-            window: { title: 'New Pin Visibility Profile' },
-            content,
-            rejectClose: false,
-            buttons: [
-                { action: 'cancel', label: 'Cancel', icon: 'fa-solid fa-xmark', callback: () => '' },
-                {
-                    action: 'save',
-                    label: 'Save',
-                    icon: 'fa-solid fa-floppy-disk',
-                    default: true,
-                    callback: (_event, _button, dialog) => {
-                        const root = dialog.form || dialog.element;
-                        return root?.querySelector('.blacksmith-pin-layers-profile-name')?.value?.trim() || '';
-                    }
-                }
-            ]
+                    <input type="text" class="blacksmith-input blacksmith-pin-layers-profile-name" value="${esc(value ?? defaultName)}" placeholder="Custom profile name">
+                </div>`,
+            submitLabel: 'Save',
+            submitIcon: 'fa-solid fa-floppy-disk',
+            focusSelector: '.blacksmith-pin-layers-profile-name',
+            getValue: (root) => root?.querySelector('.blacksmith-pin-layers-profile-name')?.value?.trim() || '',
+            validate: (value) => value ? null : 'Enter a profile name.',
+            cancelValue: '',
+            closeValue: ''
         });
+        return outcome.value ?? '';
     }
 
     async _saveProfile() {
@@ -1696,13 +1672,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         }
         const existing = PinManager.getVisibilityProfile(name);
         if (existing) {
-            const confirmed = await foundry.applications.api.DialogV2.confirm({
-                window: { title: 'Overwrite Pin Profile' },
+            const confirmed = await DialogAPI.confirm({
+                title: 'Overwrite Pin Profile',
                 content: `<p>A pin visibility profile named <strong>${esc(name)}</strong> already exists.</p><p>Overwrite it with the current layer visibility?</p>`,
-                rejectClose: false,
-                modal: true,
-                yes: { default: false },
-                no: { default: true }
+                confirmLabel: 'Overwrite',
+                confirmIcon: 'fa-solid fa-floppy-disk',
+                destructive: true
             });
             if (!confirmed) return;
         }
@@ -1727,13 +1702,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const name = this._selectedProfileValue;
         if (!name) { ui.notifications?.warn('Choose a saved profile to delete.'); return; }
         if (this._isSystemProfile(name)) { ui.notifications?.warn('Built-in profiles cannot be deleted.'); return; }
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete Pin Profile' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete Pin Profile',
             content: `<p>Delete saved pin visibility profile <strong>${esc(name)}</strong>?</p><p>The current layer visibility will not be changed.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Delete Profile',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
         });
         if (!confirmed) return;
         const removed = await PinManager.deleteVisibilityProfile(name);
@@ -1755,13 +1729,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const sceneId = this.sceneId ?? canvas?.scene?.id;
         if (!sceneId) return;
         const friendlyName = PinManager.getPinTypeLabel(moduleId, type) || type;
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete Pin Type' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete Pin Type',
             content: `<p>Delete all <strong>${friendlyName}</strong> pins on this scene? This cannot be undone.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Delete Pins',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
         });
         if (!confirmed) return;
         const count = await PinManager.deleteAllByType(type, { sceneId, moduleId });
@@ -1777,13 +1750,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     }
 
     async _deleteAllPins() {
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete All Pins' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete All Pins',
             content: '<p>Are you sure you want to delete <strong>ALL</strong> pins on this scene?</p><p>This action cannot be undone.</p>',
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Delete All Pins',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
         });
         if (!confirmed) return;
         const count = await PinManager.deleteAll({ sceneId: this.sceneId });
@@ -1803,13 +1775,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!pinId) return;
         const pin = PinManager.get(pinId);
         const label = pin?.text || 'this pin';
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete Pin' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete Pin',
             content: `<p>Delete <strong>${label}</strong>? This cannot be undone.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Delete Pin',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
         });
         if (!confirmed) return;
         await PinManager.delete(pinId);

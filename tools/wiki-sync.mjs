@@ -40,6 +40,7 @@ const PUBLISH = [
   'api/api-canvas.md',
   'api/api-chatcards.md',
   'api/api-compendiums.md',
+  'api/api-dialog.md',
   'api/api-effects.md',
   'api/api-core.md',
   'api/api-create-journal-entry.md',

@@ -256,6 +256,56 @@ Uses today: `openRequestRollDialog`, `api.compendiums` (awareness / quick encoun
 
 - **Bibliosoph registers the deprecated `renderChatMessage` hook** (`coffee-pub-bibliosoph/scripts/bibliosoph.js`, raw `Hooks.on`): Foundry v13 logs "The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead" on every chat message render; support is removed in v15. Not a rename-only fix — `renderChatMessageHTML` passes an `HTMLElement` where the old hook passed jQuery, so the callback body must drop jQuery calls (or wrap the element itself). Fix belongs in the Bibliosoph repo with its own verification. (Blacksmith is clean: its `HookManager` remaps legacy `renderChatMessage` registrations to `renderChatMessageHTML` automatically, and the module's own `CHAT_MESSAGE_TYPES` uses were removed 2026-07-24 — see Blacksmith `CHANGELOG.md`.)
 
+---
+
+## Window base: `ACTION_HANDLERS` delegation (found 2026-07-30)
+
+Blacksmith's `BlacksmithWindowBaseV2` dispatches `data-action` clicks to the **last-rendered** instance of a
+class, because handlers are invoked as `fn(event, target)` with no instance and dispatch trusts a single
+`static _ref`. Consumer-facing detail is in Blacksmith's `known-issues.md` (Windows); the fix and Blacksmith's
+own migration are in `plans/plan-action-handlers-delegation.md`.
+
+Root cause worth stating suite-wide: because the handler signature never passes the instance, **every**
+consumer invented its own instance lookup, and all six inventions are singletons. That is why a Blacksmith-side
+fix alone changes nothing for a consumer — each handler body must also stop reading a singleton.
+
+### Exposure by module
+
+| Module | Uses `ACTION_HANDLERS` | Multi-instance today | Action |
+|---|---|---|---|
+| **Squire** | 4 files | **Yes — live defect** | `window-codex.js` gives each instance a random id (`:44`) with no singleton guard in `openCodexWindow`, and `_actionSave` reads `CodexWindow._ref` (`:1226`). Open two codex entries, edit the first, Save → submits the **second** window's form; the first window's edits are silently discarded. Notified 2026-07-30. Fix is Squire's, in the Squire repo. |
+| **Regent** | 2 files | Unconfirmed | **Forked the base instead of subclassing it.** `regent-window-base-v2.js:11` is an independent `HandlebarsApplicationMixin(ApplicationV2)` subclass, 110 lines, carrying its own `_ref`, `_delegationAttached`, and the same `document.addEventListener` block (`:83`). A Blacksmith fix does not reach Regent. Ask them to delete the fork and subclass `module.api.BlacksmithWindowBaseV2` — same pattern as the Curator HookManager fork below. |
+| **Minstrel** | 1 file | Unconfirmed | `MinstrelWindow._withWindow(...)` across ~10 handlers (`window-minstrel.js:717+`), constructed at `manager-minstrel.js:938`. Whether a second instance is possible was not verified. Heads-up so a second instance is not added unknowingly. |
+| **Curator** | No | n/a | Not exposed to the dispatch bug, but hand-rolls the same singleton for its own listeners: `TileImageWindow._ref = this` (`tile-image-window.js:179`), `TokenImageReplacementWindow._ref = this` (`token-image-replacement.js:537`). Lowest priority. |
+| **Bibliosoph** | 1 file | No — singleton by design | `openMessagesWindow` returns `MessagesWindow.current ?? new MessagesWindow(...)` (`window-messages.js:80`) and `static current` is documented as the singleton. Correct as written. Only becomes a defect if a second instance is ever allowed. |
+
+Crier, Scribe, Vault, Monarch, Herald, Artificer, Cartographer: no `ACTION_HANDLERS`, no base subclassing —
+unaffected.
+
+## Suite legacy `Dialog` migration — `api.dialog` is the vehicle
+
+Counted 2026-07-30. Application V1 `Dialog` is deprecated in v13, and `plans/migration-v14.md:158` already
+names finishing the V2 migration for remaining dialogs as a v14 forcing function.
+
+| Module | `DialogV2` | legacy `Dialog` |
+|---|---|---|
+| Squire | 0 | **21** |
+| Monarch | 0 | **12** |
+| Curator | 2 | 3 |
+| Bibliosoph | 2 | 2 |
+| Artificer | 1 | 2 |
+| Regent | 0 | 2 |
+| Scribe | 0 | 1 |
+| **Blacksmith** | **33** | **0** |
+
+~43 legacy V1 call sites across the siblings; Blacksmith is already clean. Blacksmith is building
+`api.dialog` (`plans/plan-dialog-and-shared-components.md`, and the item in `TODO.md`).
+
+- **Tell Monarch and Squire before they migrate.** Both are entirely on V1 and would otherwise each port to
+  raw `DialogV2` independently — work that `api.dialog` would then undo. Squire is already engaged on the
+  dialog API but has not been told its own code is 21 V1 sites with zero V2.
+- Sequencing: `api.dialog` ships before the delegation fix above, because its audience is much wider.
+
 ## Open questions for Drowbe
 
 1. **Mirror scope** — all 48 docs, or only the consumer-facing API surface + README-as-Home?
