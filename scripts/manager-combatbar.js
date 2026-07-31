@@ -979,14 +979,6 @@ export class CombatBarManager {
                 event.stopPropagation();
                 return;
             }
-            if (event.target.closest('.combatbar-button[data-control="toggleTracker"]')) {
-                event.preventDefault();
-                event.stopPropagation();
-                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
-                await CombatBarManager.toggleCombatTracker();
-                return;
-            }
-
             const initiativeMenuBtn = event.target.closest('.combatbar-button[data-control="initiativeMenu"]');
             if (initiativeMenuBtn) {
                 event.preventDefault();
@@ -1865,6 +1857,24 @@ export class CombatBarManager {
                 }
             },
             {
+                // The mirror of core's rollNPC: everything it excludes. There
+                // is no core rollPC, so the id list is built the same way.
+                name: 'Roll Party',
+                icon: 'fa-solid fa-users',
+                disabled: !combat.combatants.some(c => !c.isNPC && c.initiative === null),
+                callback: async () => {
+                    try {
+                        const ids = combat.combatants.reduce((ids, c) => {
+                            if (c.isOwner && !c.isNPC && (c.initiative === null)) ids.push(c.id);
+                            return ids;
+                        }, []);
+                        if (ids.length) await combat.rollInitiative(ids);
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error rolling party initiatives', error?.message || error, false, false);
+                    }
+                }
+            },
+            {
                 name: 'Roll NPCs',
                 icon: 'fa-solid fa-dragon',
                 disabled: !combat.combatants.some(c => c.isNPC && c.initiative === null),
@@ -1912,6 +1922,14 @@ export class CombatBarManager {
         const isLinked = !!combat.scene;
 
         const gm = [
+            {
+                name: CombatTracker.isCombatTrackerOpen() ? 'Hide Combat Tracker' : 'Show Combat Tracker',
+                icon: 'fa-solid fa-list',
+                callback: async () => {
+                    await CombatBarManager.toggleCombatTracker();
+                }
+            },
+            { separator: true },
             {
                 name: 'Clear Movement Histories',
                 icon: 'fa-solid fa-shoe-prints',

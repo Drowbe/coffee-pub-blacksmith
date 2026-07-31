@@ -10,28 +10,19 @@
     <div class="combat-portraits-group">
         {{!-- All controls in one row: Tracker | prev | left arrow | portraits | right arrow | next | Action --}}
         <div class="combat-portraits-scroll-wrapper">
-        <div class="combatbar-button-control-container action-button tracker-button combat-bar-edge-button">
-            <a class="combatbar-button action-type-general"
-               aria-label="Tracker"
-               role="button"
-               data-tooltip="Show/Hide Combat Tracker"
-               data-control="toggleTracker">
-                <i class="fas fa-list"></i>
-            </a>
-        </div>
-
         {{!-- Encounter-level menus (GM). Not gated on isActive: rolling
-              initiative is what you do *before* combat starts. --}}
+              initiative is what you do *before* combat starts. Show/Hide
+              Combat Tracker lives in the Encounter menu. --}}
         {{#if isGM}}
-        <div class="combatbar-button-control-container combat-bar-menu-buttons">
-            <a class="combatbar-button"
+        <div class="combatbar-button-control-container action-button combat-bar-edge-button">
+            <a class="combatbar-button action-type-general"
                aria-label="Initiatives"
                role="button"
                data-tooltip="Initiatives"
                data-control="initiativeMenu">
                 <i class="fas fa-dice-d20"></i>
             </a>
-            <a class="combatbar-button"
+            <a class="combatbar-button action-type-general"
                aria-label="Encounter"
                role="button"
                data-tooltip="Encounter"
