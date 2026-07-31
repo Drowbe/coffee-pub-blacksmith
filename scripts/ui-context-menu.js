@@ -52,6 +52,7 @@ export class UIContextMenu {
             if (!items?.length) return;
             const zone = doc.createElement('div');
             zone.className = `context-menu-zone context-menu-zone-${zoneName}`;
+            zone.dataset.zoneName = zoneName;
             items.forEach((item) => {
                 this._appendItem(zone, item, menu, id, doc);
             });
@@ -156,9 +157,13 @@ export class UIContextMenu {
             arrow.textContent = '›';
             menuItemEl.appendChild(arrow);
 
+            // A flyout keeps its parent zone's tint — a GM-zone submenu that
+            // rendered in the core colour would read as a different class of
+            // action than the row that opened it.
+            const zoneName = zoneEl.dataset?.zoneName || 'core';
             menuItemEl.addEventListener('mouseenter', () => {
                 this._closeSubmenu(rootMenu);
-                const submenu = this._buildSubmenu(menuItemEl, item.submenu, rootId);
+                const submenu = this._buildSubmenu(menuItemEl, item.submenu, rootId, zoneName);
                 rootMenu._activeSubmenu = submenu;
             });
         } else if (!item.disabled) {
@@ -177,7 +182,7 @@ export class UIContextMenu {
         zoneEl.appendChild(menuItemEl);
     }
 
-    static _buildSubmenu(anchorEl, items, rootId) {
+    static _buildSubmenu(anchorEl, items, rootId, zoneName = 'core') {
         const doc = anchorEl.ownerDocument || document;
         const submenu = doc.createElement('div');
         submenu.className = 'context-menu context-menu-submenu';
@@ -186,7 +191,8 @@ export class UIContextMenu {
         submenu.style.top = '0px';
 
         const zone = doc.createElement('div');
-        zone.className = 'context-menu-zone context-menu-zone-core';
+        zone.className = `context-menu-zone context-menu-zone-${zoneName}`;
+        zone.dataset.zoneName = zoneName;
         items.forEach((item) => {
             this._appendItem(zone, item, submenu, rootId, doc);
         });

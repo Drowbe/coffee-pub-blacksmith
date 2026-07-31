@@ -1724,6 +1724,75 @@ export class CombatBarManager {
         }
     }
 
+    /**
+     * Open Foundry's own combatant sheet (CombatantConfig) — name, image,
+     * initiative, hidden/defeated. Same document the tracker's "Update
+     * Combatant" opens, so edits made here are edits the tracker agrees with.
+     */
+    static async openCombatantConfig(_menuBar, combatantId) {
+        try {
+            const context = CombatBarManager.getCombatantContext(combatantId);
+            if (!context?.combatant) return;
+            const sheet = context.combatant.sheet;
+            if (sheet) {
+                sheet.render(true);
+                return;
+            }
+            // Fallback if the document has no registered sheet for some reason.
+            new foundry.applications.sheets.CombatantConfig({ document: context.combatant }).render(true);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Error opening combatant sheet', error?.message || error, false, false);
+        }
+    }
+
+    static async clearCombatantInitiative(_menuBar, combatantId) {
+        try {
+            const context = CombatBarManager.getCombatantContext(combatantId);
+            if (!context?.combatant) return;
+            await context.combatant.update({ initiative: null });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Error clearing combatant initiative', error?.message || error, false, false);
+        }
+    }
+
+    static async rerollCombatantInitiative(_menuBar, combatantId) {
+        try {
+            const context = CombatBarManager.getCombatantContext(combatantId);
+            if (!context?.combat) return;
+            // updateTurn: false — rerolling reorders the list, and moving the
+            // active turn along with it is not what "reroll this one" means.
+            await context.combat.rollInitiative([combatantId], { updateTurn: false });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Error rerolling combatant initiative', error?.message || error, false, false);
+        }
+    }
+
+    /**
+     * Mirror the core tracker's defeated toggle: the combatant flag AND the
+     * actor's defeated status effect. Setting only the flag leaves the token
+     * without its overlay, which is the half-state players actually see.
+     */
+    static async toggleCombatantDefeated(_menuBar, combatantId) {
+        try {
+            const context = CombatBarManager.getCombatantContext(combatantId);
+            if (!context?.combatant) return;
+            const { combatant, actor } = context;
+            const isDefeated = !combatant.isDefeated;
+            await combatant.update({ defeated: isDefeated });
+
+            const statusId = CONFIG.specialStatusEffects?.DEFEATED;
+            if (!statusId || !actor) return;
+            const existing = actor.effects.find(e => e.statuses?.has(statusId));
+            if (isDefeated && !existing) {
+                await actor.toggleStatusEffect(statusId, { overlay: true, active: true });
+            } else if (!isDefeated && existing) {
+                await existing.delete();
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Error toggling defeated status', error?.message || error, false, false);
+        }
+    }
+
     static showCombatantPortraitContextMenu(menuBar, combatantId, x, y) {
         const context = CombatBarManager.getCombatantContext(combatantId);
         if (!context?.combatant) return;
@@ -1732,74 +1801,38 @@ export class CombatBarManager {
         const canViewSheet = CombatBarManager.canOpenCombatantSheet(actor);
         const isGM = game.user.isGM;
 
-        // Flat item list with explicit separators (author layout 2026-07-24):
-        // token actions | nudges | sheet & imagery (Curator's replace items
-        // land here) | GM combat control.
-        const items = [];
+        // Two zones (author layout 2026-07-31): everyday actions in `core`,
+        // and everything that edits the encounter in `gm`, which the shared
+        // menu tints red. Grouped actions are submenus rather than flat rows —
+        // the flat list had grown past the point where it read at a glance.
+        const core = [];
+        const gm = [];
 
-        items.push({
-            name: 'Pan to Token',
-            icon: 'fa-solid fa-location-crosshairs',
-            disabled: !canvasToken,
-            callback: async () => {
-                CombatBarManager.panToCombatant(menuBar, combatantId, { selectToken: game.user.isGM });
-            }
-        });
+        // Locating someone else's monster is a GM action; a player pinging one
+        // announces a token they may not be meant to know about.
+        const canLocate = isGM || !!actor?.hasPlayerOwner;
 
-        items.push({
-            name: 'Ping Token',
-            icon: 'fa-solid fa-signal-stream',
-            disabled: !canvasToken,
-            callback: async () => {
-                await CombatBarManager.pingCombatant(menuBar, combatantId);
-            }
-        });
+        if (canLocate) {
+            core.push({
+                name: 'Pan to Token',
+                icon: 'fa-solid fa-location-crosshairs',
+                disabled: !canvasToken,
+                callback: async () => {
+                    CombatBarManager.panToCombatant(menuBar, combatantId, { selectToken: game.user.isGM });
+                }
+            });
 
-        items.push({ separator: true });
+            core.push({
+                name: 'Ping Token',
+                icon: 'fa-solid fa-signal-stream',
+                disabled: !canvasToken,
+                callback: async () => {
+                    await CombatBarManager.pingCombatant(menuBar, combatantId);
+                }
+            });
+        }
 
-        items.push({
-            name: 'Hurry Up (Player)',
-            icon: 'fa-solid fa-rabbit-running',
-            callback: async () => {
-                await CombatBarManager.sendHurryUp(menuBar, combatantId, 'direct');
-            }
-        });
-
-        items.push({
-            name: 'Hurry Up (Party)',
-            icon: 'fa-solid fa-bullhorn',
-            callback: async () => {
-                await CombatBarManager.sendHurryUp(menuBar, combatantId, 'blast');
-            }
-        });
-
-        items.push({ separator: true });
-
-        items.push({
-            name: 'View Character Sheet',
-            icon: 'fa-solid fa-user',
-            disabled: !canViewSheet,
-            callback: async () => {
-                if (!canViewSheet || !actor?.sheet) return;
-                actor.sheet.render(true);
-            }
-        });
-
-        const portraitSrc = actor?.img || canvasToken?.document?.texture?.src || null;
-        items.push({
-            name: 'View Portrait',
-            icon: 'fa-solid fa-image-portrait',
-            disabled: !portraitSrc,
-            callback: async () => {
-                if (!portraitSrc) return;
-                new foundry.applications.apps.ImagePopout({
-                    src: portraitSrc,
-                    window: { title: combatant.name || 'Portrait' }
-                }).render(true);
-            }
-        });
-
-        items.push({
+        core.push({
             name: 'Pop Out Combatant Card',
             icon: 'fa-solid fa-up-right-from-square',
             callback: async () => {
@@ -1807,32 +1840,105 @@ export class CombatBarManager {
             }
         });
 
+        core.push({
+            name: 'Hurry Up',
+            icon: 'fa-solid fa-rabbit-running',
+            submenu: [
+                {
+                    name: 'Send to Player',
+                    icon: 'fa-solid fa-user-clock',
+                    callback: async () => {
+                        await CombatBarManager.sendHurryUp(menuBar, combatantId, 'direct');
+                    }
+                },
+                {
+                    name: 'Send to Party',
+                    icon: 'fa-solid fa-bullhorn',
+                    callback: async () => {
+                        await CombatBarManager.sendHurryUp(menuBar, combatantId, 'blast');
+                    }
+                }
+            ]
+        });
+
+        const portraitSrc = actor?.img || canvasToken?.document?.texture?.src || null;
+        const characterItems = [
+            {
+                name: 'View Character Sheet',
+                icon: 'fa-solid fa-user',
+                disabled: !canViewSheet,
+                callback: async () => {
+                    if (!canViewSheet || !actor?.sheet) return;
+                    actor.sheet.render(true);
+                }
+            },
+            {
+                name: 'View Portrait',
+                icon: 'fa-solid fa-image-portrait',
+                disabled: !portraitSrc,
+                callback: async () => {
+                    if (!portraitSrc) return;
+                    new foundry.applications.apps.ImagePopout({
+                        src: portraitSrc,
+                        window: { title: combatant.name || 'Portrait' }
+                    }).render(true);
+                }
+            }
+        ];
+
         if (isGM) {
-            // Curator's image-replacement items belong with the imagery group.
+            // Curator supplies its own image-replacement rows; we only decide
+            // where they sit. However many it returns, they land here.
             const curatorApi = game.modules.get('coffee-pub-curator')?.api;
             if (curatorApi?.getCombatContextMenuItems) {
                 const curatorContext = { combat, combatantId, canvasToken, x, y };
                 const curatorItems = curatorApi.getCombatContextMenuItems(curatorContext);
                 if (Array.isArray(curatorItems)) {
-                    for (const item of curatorItems) {
-                        items.push(item);
-                    }
+                    characterItems.push(...curatorItems);
                 }
             }
+        }
 
-            items.push({ separator: true });
+        core.push({
+            name: 'Character',
+            icon: 'fa-solid fa-address-card',
+            submenu: characterItems
+        });
 
-            // Two distinct hides: the combatant's tracker entry vs the token
-            // on canvas (the one that actually conceals them from players).
-            items.push({
-                name: 'Toggle Combat Visibility',
-                icon: combatant.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+        if (isGM) {
+            gm.push({
+                name: 'Update Participant',
+                icon: 'fa-solid fa-pen-to-square',
                 callback: async () => {
-                    await combatant.update({ hidden: !combatant.hidden });
+                    await CombatBarManager.openCombatantConfig(menuBar, combatantId);
                 }
             });
 
-            items.push({
+            gm.push({
+                name: 'Initiative',
+                icon: 'fa-solid fa-dice-d20',
+                submenu: [
+                    {
+                        name: 'Clear Initiative',
+                        icon: 'fa-solid fa-eraser',
+                        disabled: combatant.initiative === null,
+                        callback: async () => {
+                            await CombatBarManager.clearCombatantInitiative(menuBar, combatantId);
+                        }
+                    },
+                    {
+                        name: 'Reroll Initiative',
+                        icon: 'fa-solid fa-rotate',
+                        callback: async () => {
+                            await CombatBarManager.rerollCombatantInitiative(menuBar, combatantId);
+                        }
+                    }
+                ]
+            });
+
+            // Two distinct hides: the token on canvas (the one that actually
+            // conceals them from players) vs the combatant's tracker entry.
+            gm.push({
                 name: 'Toggle Canvas Visibility',
                 icon: 'fa-solid fa-ghost',
                 disabled: !canvasToken,
@@ -1842,7 +1948,15 @@ export class CombatBarManager {
                 }
             });
 
-            items.push({
+            gm.push({
+                name: 'Toggle Combat Visibility',
+                icon: combatant.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+                callback: async () => {
+                    await combatant.update({ hidden: !combatant.hidden });
+                }
+            });
+
+            gm.push({
                 name: 'Set As Current Combatant',
                 icon: 'fa-solid fa-crosshairs',
                 callback: async () => {
@@ -1850,11 +1964,19 @@ export class CombatBarManager {
                 }
             });
 
+            gm.push({
+                name: combatant.isDefeated ? 'Clear Defeated' : 'Mark Defeated',
+                icon: 'fa-solid fa-skull',
+                callback: async () => {
+                    await CombatBarManager.toggleCombatantDefeated(menuBar, combatantId);
+                }
+            });
+
             // v13 combatant groups: the bar deliberately never renders a group
             // row (portraits are always individual combatants); this is the
             // escape hatch for members the tracker has folded into one.
             if (combatant.group) {
-                items.push({
+                gm.push({
                     name: 'Remove from Group',
                     icon: 'fa-solid fa-object-ungroup',
                     callback: async () => {
@@ -1863,7 +1985,7 @@ export class CombatBarManager {
                 });
             }
 
-            items.push({
+            gm.push({
                 name: 'Remove from Combat',
                 icon: 'fa-solid fa-trash',
                 callback: async () => {
@@ -1876,8 +1998,7 @@ export class CombatBarManager {
             id: 'blacksmith-combat-portrait-context-menu',
             x,
             y,
-            zones: items,
-            zoneClass: 'core'
+            zones: { core, gm }
         });
     }
 
