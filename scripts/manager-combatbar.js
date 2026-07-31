@@ -1887,6 +1887,14 @@ export class CombatBarManager {
         ];
 
         if (isGM) {
+            characterItems.push({
+                name: 'Update Participant',
+                icon: 'fa-solid fa-pen-to-square',
+                callback: async () => {
+                    await CombatBarManager.openCombatantConfig(menuBar, combatantId);
+                }
+            });
+
             // Curator supplies its own image-replacement rows; we only decide
             // where they sit. However many it returns, they land here.
             const curatorApi = game.modules.get('coffee-pub-curator')?.api;
@@ -1906,14 +1914,6 @@ export class CombatBarManager {
         });
 
         if (isGM) {
-            gm.push({
-                name: 'Update Participant',
-                icon: 'fa-solid fa-pen-to-square',
-                callback: async () => {
-                    await CombatBarManager.openCombatantConfig(menuBar, combatantId);
-                }
-            });
-
             gm.push({
                 name: 'Initiative',
                 icon: 'fa-solid fa-dice-d20',
@@ -1936,24 +1936,30 @@ export class CombatBarManager {
                 ]
             });
 
-            // Two distinct hides: the token on canvas (the one that actually
-            // conceals them from players) vs the combatant's tracker entry.
+            // Two distinct hides, which is why they share a submenu rather than
+            // one row: the token on canvas (the one that actually conceals them
+            // from players) vs the combatant's tracker entry.
             gm.push({
-                name: 'Toggle Canvas Visibility',
-                icon: 'fa-solid fa-ghost',
-                disabled: !canvasToken,
-                callback: async () => {
-                    const tokenDoc = canvasToken?.document;
-                    if (tokenDoc) await tokenDoc.update({ hidden: !tokenDoc.hidden });
-                }
-            });
-
-            gm.push({
-                name: 'Toggle Combat Visibility',
-                icon: combatant.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
-                callback: async () => {
-                    await combatant.update({ hidden: !combatant.hidden });
-                }
+                name: 'Visibility',
+                icon: 'fa-solid fa-eye',
+                submenu: [
+                    {
+                        name: 'Toggle Canvas Visibility',
+                        icon: 'fa-solid fa-ghost',
+                        disabled: !canvasToken,
+                        callback: async () => {
+                            const tokenDoc = canvasToken?.document;
+                            if (tokenDoc) await tokenDoc.update({ hidden: !tokenDoc.hidden });
+                        }
+                    },
+                    {
+                        name: 'Toggle Combat Visibility',
+                        icon: combatant.hidden ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+                        callback: async () => {
+                            await combatant.update({ hidden: !combatant.hidden });
+                        }
+                    }
+                ]
             });
 
             gm.push({
@@ -1965,7 +1971,7 @@ export class CombatBarManager {
             });
 
             gm.push({
-                name: combatant.isDefeated ? 'Clear Defeated' : 'Mark Defeated',
+                name: 'Toggle Defeated',
                 icon: 'fa-solid fa-skull',
                 callback: async () => {
                     await CombatBarManager.toggleCombatantDefeated(menuBar, combatantId);
