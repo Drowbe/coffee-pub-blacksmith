@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Fixed
+
+- **Combat bar order now follows the combat tracker on tied initiative** (`scripts/manager-combatbar.js`): the bar built its list by iterating `combat.combatants` and then sorting it with `b.initiative - a.initiative`. `Array.prototype.sort` is stable, so combatants with equal initiative kept the order of the source collection — roughly the order they were added to the encounter — while the tracker renders `combat.turns`, which Foundry sorts through `Combat._sortCombatants` and which the system may override with its own tiebreak. Two independent orderings that agreed only when no initiatives tied, and the tracker is the one Foundry actually advances turns through: "next turn" follows `combat.turns` regardless of what the bar shows, so a tie made the bar disagree with the turn that was about to happen. `getCombatData` now maps over `combat.turns` and does not re-sort, falling back to the collection only if `turns` is empty (before `setupTurns` has run). Two related symptoms go with it: un-rolled combatants read `combatant.initiative || 0`, which placed them among the zeros rather than last where the tracker puts them, and the drag-to-reorder handler derives a dropped portrait's new initiative from its DOM neighbours, so it was interpolating against the wrong neighbours whenever a tie sat nearby. **Verify live**: give two combatants the same initiative and confirm the bar's left-to-right order matches the tracker's top-to-bottom order, that advancing turns highlights the bar portraits in that same order, and that adding a third combatant to the tie does not change either list's agreement; then add a combatant without rolling initiative and confirm it sits last in both; then drag a portrait between two tied portraits and confirm it lands where dropped in the tracker as well.
+
 ## [13.12.4]
 
 ### Added

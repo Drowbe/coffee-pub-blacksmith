@@ -690,7 +690,15 @@ export class CombatBarManager {
             const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
             const isGM = game.user.isGM;
 
-            const combatants = combat.combatants.map(combatant => {
+            // Turn order is the combat tracker's, never ours. combat.turns is the
+            // sequence Foundry itself advances through (and the system may override
+            // its tiebreak), so reading it is the only way equal initiatives resolve
+            // the same way in the bar as in the tracker. Do not re-sort the result.
+            const orderedCombatants = Array.isArray(combat.turns) && combat.turns.length
+                ? combat.turns
+                : Array.from(combat.combatants);
+
+            const combatants = orderedCombatants.map(combatant => {
                 const token = combatant.token;
                 const actor = combatant.actor;
                 const isHidden = combatant.hidden || token?.hidden;
@@ -763,8 +771,6 @@ export class CombatBarManager {
                     isHidden
                 };
             }).filter(combatant => combatant !== null);
-
-            combatants.sort((a, b) => b.initiative - a.initiative);
 
             let actionButton = null;
             if (game.user.isGM) {
