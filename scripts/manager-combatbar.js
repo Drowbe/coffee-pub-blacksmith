@@ -637,6 +637,7 @@ export class CombatBarManager {
         UIContextMenu.close('blacksmith-combat-portrait-context-menu');
         UIContextMenu.close('blacksmith-combat-initiative-menu');
         UIContextMenu.close('blacksmith-combat-encounter-menu');
+        UIContextMenu.close('blacksmith-combat-graveyard-menu');
         menuBar.removeClickHandlers();
         menuBar._stopTimerUpdates();
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers and timer intervals cleaned up", "", true, false);
@@ -702,7 +703,7 @@ export class CombatBarManager {
                 ? combat.turns
                 : Array.from(combat.combatants);
 
-            const combatants = orderedCombatants.map(combatant => {
+            const visibleCombatants = orderedCombatants.map(combatant => {
                 const token = combatant.token;
                 const actor = combatant.actor;
                 const isHidden = combatant.hidden || token?.hidden;
@@ -744,13 +745,7 @@ export class CombatBarManager {
                     else healthClass = 'combat-portrait-ring-critical';
                 }
 
-                let isActuallyDead = false;
-                if (actor) {
-                    if (actor.type === "character") isActuallyDead = combatant.isDefeated || false;
-                    else isActuallyDead = (actor.system?.attributes?.hp?.value || 0) <= 0;
-                }
-
-                if (hideDeadCombatants && isActuallyDead) return null;
+                const isActuallyDead = CombatBarManager.isCombatantDead(combatant);
 
                 return {
                     id: combatant.id,
@@ -775,6 +770,15 @@ export class CombatBarManager {
                     isHidden
                 };
             }).filter(combatant => combatant !== null);
+
+            // "Hide dead" moves the dead out of the strip rather than dropping
+            // them: they come back under the Graveyard button, which is the
+            // only way to reach a hidden combatant's actions. With the setting
+            // off they stay in the strip and the graveyard is empty.
+            const graveyard = hideDeadCombatants ? visibleCombatants.filter(c => c.isDefeated) : [];
+            const combatants = hideDeadCombatants
+                ? visibleCombatants.filter(c => !c.isDefeated)
+                : visibleCombatants;
 
             let actionButton = null;
             if (game.user.isGM) {
@@ -801,6 +805,9 @@ export class CombatBarManager {
 
             return {
                 combatants,
+                graveyard,
+                hasGraveyard: graveyard.length > 0,
+                graveyardCount: graveyard.length,
                 actionButton,
                 currentRound,
                 currentTurn,
@@ -994,6 +1001,15 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 CombatBarManager.showEncounterMenu(menuBar, encounterMenuBtn);
+                return;
+            }
+
+            const graveyardMenuBtn = event.target.closest('.combatbar-button[data-control="graveyardMenu"]');
+            if (graveyardMenuBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                CombatBarManager.showGraveyardMenu(menuBar, graveyardMenuBtn);
                 return;
             }
 
@@ -1683,6 +1699,68 @@ export class CombatBarManager {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error panning to combatant", error, false, false);
         }
+    }
+
+    /**
+     * Whether a combatant counts as dead for the bar's purposes. PCs are dead
+     * only when marked defeated (three failed death saves), NPCs when their HP
+     * hits zero. Shared by the strip and the Graveyard so the two can never
+     * disagree about who is dead — a disagreement would drop someone from both.
+     */
+    static isCombatantDead(combatant) {
+        const actor = combatant?.actor;
+        if (!actor) return false;
+        if (actor.type === 'character') return combatant.isDefeated || false;
+        return (actor.system?.attributes?.hp?.value || 0) <= 0;
+    }
+
+    /**
+     * The dead who are currently hidden from the strip. Empty unless the
+     * "hide dead" setting is on, since otherwise they are still on the bar.
+     */
+    static getGraveyardCombatants() {
+        const combat = game.combat;
+        if (!combat) return [];
+        if (!getSettingSafely(MODULE.ID, 'menubarCombatHideDead', false)) return [];
+        const isGM = game.user.isGM;
+        const ordered = Array.isArray(combat.turns) && combat.turns.length
+            ? combat.turns
+            : Array.from(combat.combatants);
+        return ordered.filter(c => {
+            if (!isGM && (c.hidden || c.token?.hidden)) return false;
+            return CombatBarManager.isCombatantDead(c);
+        });
+    }
+
+    /**
+     * The Graveyard list. Each row stands in for a portrait that is not on the
+     * bar, so clicking one opens that combatant's own menu — the same menu a
+     * right-click on its portrait would give, Pan to Token included.
+     */
+    static showGraveyardMenu(menuBar, anchorEl) {
+        const dead = CombatBarManager.getGraveyardCombatants();
+        if (!dead.length) return;
+
+        const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
+        const core = dead.map(combatant => {
+            const actor = combatant.actor;
+            const portrait = actor?.img || combatant.token?.texture?.src
+                || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp';
+            return {
+                name: combatant.token?.name || actor?.name || 'Unknown',
+                icon: `<img class="context-menu-item-portrait" src="${portrait}" alt="">`,
+                callback: async () => {
+                    CombatBarManager.showCombatantPortraitContextMenu(menuBar, combatant.id, x, y);
+                }
+            };
+        });
+
+        UIContextMenu.show({
+            id: 'blacksmith-combat-graveyard-menu',
+            x,
+            y,
+            zones: { core }
+        });
     }
 
     static getCombatantContext(combatantId) {

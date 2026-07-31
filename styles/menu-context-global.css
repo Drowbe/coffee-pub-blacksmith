@@ -66,6 +66,18 @@
     background-color: transparent;
 }
 
+/* Portrait thumbnail for rows that stand in for a combatant (Graveyard).
+   Foundry's core img rule adds a border, hence the explicit reset. */
+.context-menu .context-menu-item-portrait {
+    display: block;
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    border: none;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}
+
 .context-menu .context-menu-item-content {
     display: flex;
     flex-direction: column;
