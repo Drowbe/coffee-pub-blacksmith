@@ -63,6 +63,37 @@ skillcheck dialog -> chat card -> roll button -> roll window -> orchestrateRoll 
 
 **Cinema mode.** Same flow, plus a full-screen overlay. `orchestrateRoll` sets the cinema flag; `showCinemaOverlay` (`:1343`) builds the overlay; `updateCinemaOverlay` (`:1408`) writes results into it, detects crits (d20 = 20) and fumbles (d20 = 1), plays sound and CSS effects, shows group success/failure, and manages auto-close.
 
+## Requester-supplied roll parameters
+
+A roll request can carry parameters the roller did not choose: `situationalBonus`, `customModifier`,
+`rollAdvantage`, and `lockRollAdvantage`. They all travel the same channel, and it is the **chat message
+flags**, not a function argument — the request is created on one client and the roll happens later on
+another, so the ChatMessage is the only thing both sides share.
+
+```
+API options -> messageData (flags: request-level + per entry of flags.actors)
+            -> handleChatMessageClick reads the flags back  (window-skillcheck.js:2694)
+            -> orchestrateRoll(rollDetails)                 (manager-rolls.js:212)
+            -> showRollWindow / _showCinematicDisplay
+            -> { advantage, disadvantage, situationalBonus, customModifier } into processRoll
+```
+
+Each parameter is written twice: request-level on `messageData`, and per actor on each entry of
+`messageData.actors`. The per-actor value wins, which is what lets one request give two actors different
+conditions. `SkillCheckDialog.resolveRollAdvantage(actorData, flags)` (`window-skillcheck.js:154`) is the
+single place that resolution happens; both roll surfaces call it rather than repeating the fallback.
+
+`rollAdvantage` is one field taking `advantage` / `disadvantage` / `normal` rather than two booleans,
+because `normal` has to be requestable — a requester whose modifiers cancelled out is asking for a straight
+`1d20`, which two false booleans cannot distinguish from an unspecified request. `normalizeRollAdvantage`
+(`window-skillcheck.js:114`) maps anything else to null, meaning unrestricted.
+
+Enforcement lives at the buttons, not in the roll path. `processRoll` still receives only the
+`{ advantage, disadvantage }` pair built from whichever button was clicked, and knows nothing about what was
+requested. A request that sets `lockRollAdvantage` renders only the requested button in both surfaces; the
+click handlers additionally refuse a mismatched mode, which matters only when a click reaches them through
+stale DOM.
+
 ## Sockets
 
 The system uses SocketLib (via `SocketManager.getSocket()`). Live socket events:

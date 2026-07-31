@@ -97,6 +97,16 @@
     margin-top: 10px;
 }
 
+/* Requester-authored explanation (options.explanation) */
+.cpb-cinematic-roll-explanation {
+    font-size: 1.0em;
+    margin: 6px 0 0 0;
+    padding: 0;
+    opacity: 0.85;
+    font-weight: 400;
+    max-width: 60ch;
+}
+
 /* CINEMATIC ACTORS CONTAINER */
 
 .cpb-cinematic-actors-container {
@@ -418,6 +428,14 @@
 
 .cpb-cinematic-roll-mod-btn i {
     /* Icon is centered via flexbox, no padding needed */
+}
+
+/* Requesting module asked for this mode. When the request also locked it, this is the only
+   button rendered on the card. */
+.cpb-cinematic-roll-btn.is-requested,
+.cpb-cinematic-roll-mod-btn.is-requested {
+    border-color: #ffc107;
+    box-shadow: 0 0 10px #ffc107;
 }
 
 .cpb-cinematic-roll-btn:hover,

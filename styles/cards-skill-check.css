@@ -45,6 +45,38 @@
     margin-right: 3px;
     padding-top: 2px;
 }
+/* Advantage mode asked for by the requesting module (rollAdvantage / lockRollAdvantage) */
+.cpb-roll-requested-mode {
+    text-align: center;
+    font-weight: 900;
+    font-size: 0.95em;
+    text-transform: uppercase;
+    padding: 4px 6px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.08);
+    border: 1px dotted rgba(0, 0, 0, 0.3);
+    color: #481515;
+}
+.cpb-roll-requested-mode i {
+    margin-right: 4px;
+}
+.cpb-roll-requested-mode.advantage {
+    border-color: rgba(22, 77, 11, 0.6);
+}
+.cpb-roll-requested-mode.disadvantage {
+    border-color: rgba(148, 9, 9, 0.6);
+}
+.cpb-roll-requested-mode.locked {
+    border-style: solid;
+}
+
+/* Requester-authored explanation (options.explanation) */
+.cpb-roll-explanation {
+    font-style: italic;
+}
+
 .cpb-skill-roll {
     background: #782e22;
     color: #fff;

@@ -209,6 +209,11 @@ export async function orchestrateRoll(rollDetails, existingMessageId = null) {
         rollData.rollMode = rollDetails.rollMode || 'roll';
         if (rollDetails.situationalBonus != null) rollData.situationalBonus = rollDetails.situationalBonus;
         if (rollDetails.customModifier != null) rollData.customModifier = rollDetails.customModifier;
+        const requestedAdvantage = SkillCheckDialog.normalizeRollAdvantage(rollDetails.rollAdvantage);
+        if (requestedAdvantage != null) {
+            rollData.rollAdvantage = requestedAdvantage;
+            rollData.lockRollAdvantage = !!rollDetails.lockRollAdvantage;
+        }
         
         // Get defender skill name properly formatted
         if (rollDetails.defenderRollType && rollDetails.defenderRollValue) {
@@ -1019,6 +1024,24 @@ async function showRollWindow(rollData) {
         }
         if (rollData.situationalBonus != null) dialogRollData.situationalBonus = rollData.situationalBonus;
         if (rollData.customModifier != null) dialogRollData.customModifier = rollData.customModifier;
+
+        // Requested advantage mode: pre-selects (and optionally locks) the footer buttons
+        const requestedAdvantage = SkillCheckDialog.normalizeRollAdvantage(rollData.rollAdvantage);
+        if (requestedAdvantage != null) {
+            dialogRollData.rollAdvantage = requestedAdvantage;
+            dialogRollData.lockRollAdvantage = !!rollData.lockRollAdvantage;
+            dialogRollData.rollAdvantageLabel = SkillCheckDialog.rollAdvantageLabel(requestedAdvantage);
+            dialogRollData.isAdvantageRequested = requestedAdvantage === 'advantage';
+            dialogRollData.isDisadvantageRequested = requestedAdvantage === 'disadvantage';
+            dialogRollData.isNormalRequested = requestedAdvantage === 'normal';
+            dialogRollData.showAdvantageButton = !dialogRollData.lockRollAdvantage || requestedAdvantage === 'advantage';
+            dialogRollData.showDisadvantageButton = !dialogRollData.lockRollAdvantage || requestedAdvantage === 'disadvantage';
+            dialogRollData.showNormalButton = !dialogRollData.lockRollAdvantage || requestedAdvantage === 'normal';
+        } else {
+            dialogRollData.showAdvantageButton = true;
+            dialogRollData.showDisadvantageButton = true;
+            dialogRollData.showNormalButton = true;
+        }
         
         // Add actor portrait
         const actor = game.actors.get(rollData.actorId);
@@ -1168,6 +1191,15 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             const element = this.element;
             if (!element?.querySelectorAll) {
                 postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Invalid this.element`, null, true, false);
+                return;
+            }
+
+            // A locked request removes the other buttons; this is the backstop for a click that
+            // reaches the handler anyway (stale DOM, a macro, a modified template).
+            const lockedMode = this.rollData.lockRollAdvantage ? this.rollData.rollAdvantage : null;
+            if (lockedMode && rollType !== lockedMode) {
+                postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Ignoring ${rollType} roll; this request locks the roll to ${lockedMode}`, null, true, false);
+                ui.notifications.warn(`This roll was requested with ${lockedMode === 'normal' ? 'no advantage or disadvantage' : lockedMode}.`);
                 return;
             }
 

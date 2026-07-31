@@ -68,6 +68,14 @@
             {{/if}}
             {{/if}}
 
+            {{!-- Requested advantage mode (request-level; per-actor modes are not summarized here) --}}
+            {{#if rollAdvantageLabel}}
+                <div class="cpb-roll-requested-mode {{rollAdvantage}}{{#if lockRollAdvantage}} locked{{/if}}">
+                    <i class="fas fa-{{#if lockRollAdvantage}}lock{{else}}circle-info{{/if}}"></i>
+                    {{rollAdvantageLabel}} {{#if lockRollAdvantage}}required{{else}}requested{{/if}}
+                </div>
+            {{/if}}
+
             {{!-- Group 1 Players --}}
             {{#if hasMultipleGroups}}
                 <div class="cpb-card-section-header"><i class="fas fa-swords" data-tooltip="Challengers"></i> Challengers</div>
@@ -186,8 +194,16 @@
 
         {{!-- ROLL DETAILS --}}  
 
-        {{#if skillDescription}}
+        {{!-- Requester-authored explanation (options.explanation), independent of showRollExplanation --}}
+        {{#if explanation}}
         <div class="cpb-card-section-header">About this Roll</div>
+        <div class="cpb-skill-description cpb-roll-explanation">
+            <p>{{explanation}}</p>
+        </div>
+        {{/if}}
+
+        {{#if skillDescription}}
+        {{#unless explanation}}<div class="cpb-card-section-header">About this Roll</div>{{/unless}}
         <div class="cpb-skill-description">
             <p>{{{skillDescription}}}</p>
             {{#if skillLink}}<p>{{{skillLink}}}</p>{{/if}}

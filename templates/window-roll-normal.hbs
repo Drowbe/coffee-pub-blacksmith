@@ -16,6 +16,13 @@
   <div class="roll-summary-row">
     <div class="roll-summary-item"><span class="label-small">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
   </div>
+
+  {{#if rollAdvantageLabel}}
+  <div class="roll-requested-mode{{#if lockRollAdvantage}} locked{{/if}}">
+    <i class="fas fa-{{#if lockRollAdvantage}}lock{{else}}circle-info{{/if}}"></i>
+    <span>Requested: <strong>{{rollAdvantageLabel}}</strong>{{#unless lockRollAdvantage}} (you may still choose){{/unless}}</span>
+  </div>
+  {{/if}}
   
   <div class="roll-body-scroll">
     <div class="roll-section">
@@ -56,8 +63,14 @@
   </div>
   
   <div class="roll-footer">
-    <button type="button" class="roll-btn roll-disadvantage"><i class="fas fa-circle-minus"></i> Disadvantage</button>
-    <button type="button" class="roll-btn roll-normal"><i class="fas fa-dice-d20"></i> Normal</button>
-    <button type="button" class="roll-btn roll-advantage"><i class="fas fa-circle-plus"></i> Advantage</button>
+    {{#if showDisadvantageButton}}
+    <button type="button" class="roll-btn roll-disadvantage{{#if isDisadvantageRequested}} is-requested{{/if}}"><i class="fas fa-circle-minus"></i> Disadvantage</button>
+    {{/if}}
+    {{#if showNormalButton}}
+    <button type="button" class="roll-btn roll-normal{{#if isNormalRequested}} is-requested{{/if}}"><i class="fas fa-dice-d20"></i> Normal</button>
+    {{/if}}
+    {{#if showAdvantageButton}}
+    <button type="button" class="roll-btn roll-advantage{{#if isAdvantageRequested}} is-requested{{/if}}"><i class="fas fa-circle-plus"></i> Advantage</button>
+    {{/if}}
   </div>
 </div>

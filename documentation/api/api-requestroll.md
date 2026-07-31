@@ -21,6 +21,8 @@ Use this API when your module needs to:
 - Set a default DC or actor filter (selected tokens vs party)
 - Pre-check the "Group roll" option (e.g. for party group checks)
 - Override the dialog title for context (e.g. "Spot the trap")
+- State the advantage or disadvantage the roll is made under, globally or per actor
+- Put your own explanation of the roll's conditions on the request card
 
 ## Getting Started
 
@@ -78,9 +80,12 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options.groupRoll` | `boolean` | If `true`, the "Group roll" checkbox is checked (multiple challengers roll as a group); if `false`, it is unchecked. **When omitted:** in **dialog** mode the checkbox is unchecked; in **silent** mode, if multiple actors are supplied (via `actors` or `initialFilter`), group roll defaults to `true` unless you pass `groupRoll: false`. |
 | `options.situationalBonus` | `number` | Optional. Pre-filled in the **Roll Configuration** window's "Situational Bonus" field. When using `initialFilter` or the dialog, this value applies to **all** actors. When using `options.actors`, this is the **default** for any actor that does not specify its own `situationalBonus`. |
 | `options.customModifier` | `string` | Optional. Pre-filled in the **Roll Configuration** window's "Custom Modifier" field (e.g. `"+2"`, `"-1"`). Same scope as `situationalBonus`: all actors when using filter/dialog, or default when using `options.actors`. |
+| `options.rollAdvantage` | `string` | Optional. The advantage mode the request asks for: `'advantage'`, `'disadvantage'`, or `'normal'`. Applies to all actors when using the dialog or `initialFilter`, and is the default for any actor in `options.actors` that does not set its own. The requested button is pre-selected and marked in both the Roll Configuration window and the cinematic overlay, and the mode is shown on the chat card; all three buttons stay live unless `lockRollAdvantage` is also set. Unrecognized values are ignored, leaving the roll unrestricted. Note this is unrelated to `options.rollMode`, which is Foundry's roll privacy. |
+| `options.lockRollAdvantage` | `boolean` | Optional. When `true` and `rollAdvantage` is set, only the requested button is rendered in the Roll Configuration window and the cinematic overlay, and a roll of any other mode is refused with a warning notification. Request-level only; it applies to every actor's requested mode, including per-actor overrides. Default `false` (pre-select without restricting). |
+| `options.explanation` | `string` | Optional. Requester-authored prose rendered on the chat card under an "About this Roll" header, and under the title in cinematic mode. Independent of `showRollExplanation`: set either, both, or neither. Rendered as plain text — markup is escaped, not interpreted. |
 | `options.callback` | `Function` | **Not implemented — does nothing.** The value is stored on the dialog and never invoked anywhere. Use `options.onRollComplete` or the `blacksmith.requestRollComplete` hook instead. |
 | `options.onRollComplete` | `Function` | Callback invoked each time a roll result is delivered to the chat card on the local client that registered it. Receives one argument: `(payload)` where `payload` is `{ messageId, message, messageData, tokenId, result, allComplete, requesterId, rollerUserId }`. Called once per roll; unregistered when `allComplete` is true or its request ChatMessage is deleted. Blacksmith retains at most 100 incomplete local callbacks as a final abandoned-card safeguard. For cross-client/GM-authoritative handling, use the global hook `Hooks.on('blacksmith.requestRollComplete', ...)`. |
-| `options.actors` | `Array` | Optional actor list. When **silent** mode is used, this is the preferred way to supply actors. Each element may be **(1)** a Foundry **Actor document** (or `{ id: actorId, name? }`), or **(2)** a token-centric object `{ tokenId, actorId, name?, group?, situationalBonus?, customModifier? }`. **Form (2) must use a `tokenId` key** — the token branch is selected by `if (a.tokenId != null && a.actorId != null)`. An object shaped `{ id: tokenId, actorId }` does **not** match: it falls back to matching *every* placeable for that actor, so an actor with two tokens on the scene silently produces **two roll rows instead of the one you named**. (Earlier versions of this table said `{ id: tokenId, ... }`; the worked example below was always correct.) **Per-actor modifiers:** when you pass an array of actor objects, each may include `situationalBonus` (number) and `customModifier` (string) for that actor only. If omitted for an actor, the global `options.situationalBonus` and `options.customModifier` are used. Use this when only some actors get a bonus (e.g. one of two players has +2 for harvest). **Silent mode only** — in dialog mode `actors` is stored and never read, so it does not pre-fill anything. Use `initialFilter` to influence the dialog's actor list. |
+| `options.actors` | `Array` | Optional actor list. When **silent** mode is used, this is the preferred way to supply actors. Each element may be **(1)** a Foundry **Actor document** (or `{ id: actorId, name? }`), or **(2)** a token-centric object `{ tokenId, actorId, name?, group?, situationalBonus?, customModifier? }`. **Form (2) must use a `tokenId` key** — the token branch is selected by `if (a.tokenId != null && a.actorId != null)`. An object shaped `{ id: tokenId, actorId }` does **not** match: it falls back to matching *every* placeable for that actor, so an actor with two tokens on the scene silently produces **two roll rows instead of the one you named**. (Earlier versions of this table said `{ id: tokenId, ... }`; the worked example below was always correct.) **Per-actor modifiers:** when you pass an array of actor objects, each may include `situationalBonus` (number), `customModifier` (string), and `rollAdvantage` (string) for that actor only. If omitted for an actor, the global `options.situationalBonus`, `options.customModifier`, and `options.rollAdvantage` are used. Use this when only some actors get a bonus (e.g. one of two players has +2 for harvest), or when two actors roll under different conditions (e.g. one has advantage and one does not). **Silent mode only** — in dialog mode `actors` is stored and never read, so it does not pre-fill anything. Use `initialFilter` to influence the dialog's actor list. |
 
 **Returns**
 
@@ -180,7 +185,56 @@ const { message, messageId } = await BlacksmithAPI.openRequestRollDialog({
 });
 ```
 
-Silent mode supports the same options as the dialog (e.g. `dc`, `title`, `groupRoll`, `showDC`, `showRollExplanation`, `isCinematic`, `rollMode`, `onRollComplete`). It does not support contested rolls or tool proficiencies; use the full dialog for those.
+Silent mode supports the same options as the dialog (e.g. `dc`, `title`, `groupRoll`, `showDC`, `showRollExplanation`, `explanation`, `isCinematic`, `rollMode`, `rollAdvantage`, `lockRollAdvantage`, `onRollComplete`). It does not support contested rolls or tool proficiencies; use the full dialog for those.
+
+### Requesting advantage or disadvantage
+
+A module that computes the roll conditions under its own rules can state the resulting mode on the request
+rather than describing it in the title. `rollAdvantage` takes `'advantage'`, `'disadvantage'`, or `'normal'`,
+at the request level and per actor, and the per-actor value wins.
+
+```javascript
+// Treating an injury: the healer has a kit (advantage, DC -2); the patient treats themselves (disadvantage)
+const api = game.modules.get('coffee-pub-blacksmith')?.api;
+await api.openRequestRollDialog({
+    silent: true,
+    title: 'Treat Injury',
+    initialType: 'skill',
+    initialValue: 'medicine',
+    dc: 13,
+    rollAdvantage: 'normal',
+    explanation: "A Healer's Kit grants Advantage and lowers the DC by 2. Treating your own injuries is done at Disadvantage.",
+    actors: [
+        { actorId: healer.id, tokenId: healerToken.id, name: 'Alice', rollAdvantage: 'advantage' },
+        { actorId: patient.id, tokenId: patientToken.id, name: 'Bob', rollAdvantage: 'disadvantage' }
+    ]
+});
+```
+
+`'normal'` is a requestable value, not just the absence of one: it is how a requester says two effects
+cancelled out, and it is the mode `lockRollAdvantage` enforces when a roll must be a straight `1d20`.
+
+By default the requested mode is pre-selected and marked, and the roller can still choose another — the
+request is guidance. Add `lockRollAdvantage: true` to render only the requested button in the Roll
+Configuration window and the cinematic overlay, in which case a roll of any other mode is refused with a
+warning notification.
+
+```javascript
+await api.openRequestRollDialog({
+    silent: true,
+    title: 'Poisoned',
+    initialType: 'save',
+    initialValue: 'con',
+    dc: 12,
+    initialFilter: 'party',
+    rollAdvantage: 'disadvantage',
+    lockRollAdvantage: true
+});
+```
+
+The rolled formula reflects the mode the roller actually used: `2d20kh` for advantage, `2d20kl` for
+disadvantage, `1d20` otherwise. The requested mode is carried on the request ChatMessage flags as
+`rollAdvantage` and `lockRollAdvantage`, and per actor on each entry of `flags.actors`.
 
 **Receiving roll results in your module (onRollComplete)**
 

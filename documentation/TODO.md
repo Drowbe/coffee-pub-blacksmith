@@ -144,6 +144,17 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 
 ### High Priority
 
+#### Request-side roll modes and explainer (Bibliosoph request #5, 2026-07-30)
+
+Both shipped and are recorded in `CHANGELOG.md` under `[Unreleased]`; what remains is the live verification
+below. Design is in `architecture/architecture-rolls.md` ("Requester-supplied roll parameters") and the
+surface in `api/api-requestroll.md`. Consumer waiting: Bibliosoph's treatment rolls currently state the
+required mode in the request title and detect what was actually rolled by sniffing the formula for `2d20kh` /
+`2d20kl`; both items below exist to let them delete that.
+
+- **`rollAdvantage` on the request**: `'advantage' | 'disadvantage' | 'normal'`, global and per-actor (per-actor wins), honoured in the Roll Configuration window and the cinematic overlay. Pre-selects and marks the requested button; `lockRollAdvantage: true` removes the other two. **How to verify live**: silent request with `rollAdvantage: 'advantage'` — the card shows an Advantage badge, the roll window opens with Advantage marked, and clicking it produces a `2d20kh` formula in the result tooltip; the same request with `lockRollAdvantage: true` shows only the Advantage button in both the roll window and (with `isCinematic: true`) the cinematic overlay; a two-actor request giving one actor `'disadvantage'` per-actor and the other nothing produces `2d20kl` for the first and the global mode for the second; `rollAdvantage: 'normal'` with the lock leaves exactly one button and rolls `1d20`; a request with no `rollAdvantage` behaves exactly as today, three live buttons and nothing marked.
+- **`explanation` on the request card**: requester-authored prose rendered on the chat card independent of `showRollExplanation`. **How to verify live**: silent request with `explanation` set and `showRollExplanation: false` — the prose appears alone; with `showRollExplanation: true` both the explanation and the SRD skill description appear, explanation first; with neither, the card is unchanged from today.
+
 #### Grow the test harness as APIs get touched
 
 - **Landed 2026-07-30**: `utilities/test-harness.js` plus suites for `api.dialog`, `api.entityList`, `api.quantitySplit`, and window delegation — 83 headless assertions, all passing. Two tiers: headless assertions behind a "Run All Headless" button, and interactive checks for what only a person can judge. Contract and suite shape are documented in `utilities/tests/harness-lib.js`.

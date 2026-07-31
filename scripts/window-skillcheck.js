@@ -81,6 +81,11 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         // API: optional pre-fill for Roll Configuration window (e.g. harvest +2)
         this.initialSituationalBonus = data.situationalBonus != null ? data.situationalBonus : null;
         this.initialCustomModifier = data.customModifier != null ? String(data.customModifier) : null;
+        // API: requested advantage/disadvantage for the roll surfaces ('advantage'|'disadvantage'|'normal')
+        this.initialRollAdvantage = SkillCheckDialog.normalizeRollAdvantage(data.rollAdvantage);
+        this.initialLockRollAdvantage = !!data.lockRollAdvantage;
+        // API: requester-authored prose shown on the chat card (independent of showRollExplanation)
+        this.initialExplanation = (data.explanation != null && data.explanation !== '') ? String(data.explanation) : null;
         /** When set, activateListeners runs this favorite once the dialog DOM is ready (e.g. menubar context menu). */
         this._pendingFavoriteRec = data.pendingFavoriteRec ?? null;
 
@@ -95,6 +100,61 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         if (!Array.isArray(this.userPreferences.requestRollFavorites)) {
             this.userPreferences.requestRollFavorites = [];
         }
+    }
+
+    // ===== REQUESTED ROLL ADVANTAGE ===================================
+
+    /**
+     * Normalize a requested advantage mode to the stored vocabulary.
+     * Anything unrecognized (including undefined) becomes null, meaning "not requested" — the roller
+     * keeps the three live buttons they have always had.
+     * @param {*} value - Raw value from an API caller or message flags
+     * @returns {'advantage'|'disadvantage'|'normal'|null}
+     */
+    static normalizeRollAdvantage(value) {
+        if (value == null) return null;
+        const mode = String(value).trim().toLowerCase();
+        return ['advantage', 'disadvantage', 'normal'].includes(mode) ? mode : null;
+    }
+
+    /**
+     * Convert a requested advantage mode into the { advantage, disadvantage } pair the roll
+     * execution path consumes.
+     * @param {string|null} mode - Normalized mode
+     * @returns {{advantage: boolean, disadvantage: boolean}}
+     */
+    static rollAdvantageToOptions(mode) {
+        return {
+            advantage: mode === 'advantage',
+            disadvantage: mode === 'disadvantage'
+        };
+    }
+
+    /**
+     * Display label for a requested advantage mode.
+     * @param {string|null} mode - Normalized mode
+     * @returns {string|null}
+     */
+    static rollAdvantageLabel(mode) {
+        switch (mode) {
+            case 'advantage': return 'Advantage';
+            case 'disadvantage': return 'Disadvantage';
+            case 'normal': return 'Normal';
+            default: return null;
+        }
+    }
+
+    /**
+     * Resolve the advantage mode that applies to one actor row, per-actor value winning over the
+     * request-level value.
+     * @param {object} actorData - Actor entry from the message flags
+     * @param {object} flags - Message flags
+     * @returns {{mode: string|null, locked: boolean}}
+     */
+    static resolveRollAdvantage(actorData, flags) {
+        const mode = SkillCheckDialog.normalizeRollAdvantage(actorData?.rollAdvantage)
+            ?? SkillCheckDialog.normalizeRollAdvantage(flags?.rollAdvantage);
+        return { mode, locked: mode != null && !!flags?.lockRollAdvantage };
     }
 
     /**
@@ -1451,6 +1511,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             };
             if (this.initialSituationalBonus != null) messageData.situationalBonus = this.initialSituationalBonus;
             if (this.initialCustomModifier != null) messageData.customModifier = this.initialCustomModifier;
+            if (this.initialRollAdvantage != null) {
+                messageData.rollAdvantage = this.initialRollAdvantage;
+                messageData.lockRollAdvantage = this.initialLockRollAdvantage;
+                messageData.rollAdvantageLabel = SkillCheckDialog.rollAdvantageLabel(this.initialRollAdvantage);
+            }
+            if (this.initialExplanation != null) messageData.explanation = this.initialExplanation;
             messageData.actors.forEach(a => {
                 if (messageData.situationalBonus != null) a.situationalBonus = messageData.situationalBonus;
                 if (messageData.customModifier != null) a.customModifier = messageData.customModifier;
@@ -2121,7 +2187,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
     /**
      * Create a roll request chat card without opening the dialog (silent mode).
-     * @param {object} options - initialType, initialValue/initialSkill, initialFilter or actors, dc, title, groupRoll, showDC, showRollExplanation, isCinematic, rollMode, onRollComplete
+     * @param {object} options - initialType, initialValue/initialSkill, initialFilter or actors, dc, title, groupRoll, showDC, showRollExplanation, explanation, isCinematic, rollMode, rollAdvantage, lockRollAdvantage, onRollComplete
      * Also emits Hooks event 'blacksmith.requestRollComplete' with { messageId, tokenId, result, allComplete, messageData, requesterId, rollerUserId }.
      * @returns {Promise<{ message: ChatMessage, messageId: string }>}
      */
@@ -2141,6 +2207,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 const group = a.group ?? 1;
                 const perActorBonus = a.situationalBonus ?? options.situationalBonus;
                 const perActorMod = a.customModifier ?? options.customModifier;
+                const perActorAdvantage = SkillCheckDialog.normalizeRollAdvantage(a.rollAdvantage);
                 if (a.tokenId != null && a.actorId != null) {
                     processedActors.push({
                         id: a.tokenId ?? a.id,
@@ -2148,7 +2215,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         name: a.name ?? name,
                         group,
                         ...(perActorBonus != null && { situationalBonus: perActorBonus }),
-                        ...(perActorMod != null && { customModifier: perActorMod })
+                        ...(perActorMod != null && { customModifier: perActorMod }),
+                        ...(perActorAdvantage != null && { rollAdvantage: perActorAdvantage })
                     });
                 } else {
                     const tokensForActor = placeables.filter(t => t.actor?.id === actorId);
@@ -2159,7 +2227,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                             name: t.name,
                             group,
                             ...(perActorBonus != null && { situationalBonus: perActorBonus }),
-                            ...(perActorMod != null && { customModifier: perActorMod })
+                            ...(perActorMod != null && { customModifier: perActorMod }),
+                            ...(perActorAdvantage != null && { rollAdvantage: perActorAdvantage })
                         });
                     }
                     if (tokensForActor.length === 0) {
@@ -2169,7 +2238,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                             name,
                             group,
                             ...(perActorBonus != null && { situationalBonus: perActorBonus }),
-                            ...(perActorMod != null && { customModifier: perActorMod })
+                            ...(perActorMod != null && { customModifier: perActorMod }),
+                            ...(perActorAdvantage != null && { rollAdvantage: perActorAdvantage })
                         });
                     }
                 }
@@ -2249,6 +2319,15 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         };
         if (options.situationalBonus != null) messageData.situationalBonus = options.situationalBonus;
         if (options.customModifier != null) messageData.customModifier = options.customModifier;
+        const requestedAdvantage = SkillCheckDialog.normalizeRollAdvantage(options.rollAdvantage);
+        if (requestedAdvantage != null) {
+            messageData.rollAdvantage = requestedAdvantage;
+            messageData.lockRollAdvantage = !!options.lockRollAdvantage;
+            messageData.rollAdvantageLabel = SkillCheckDialog.rollAdvantageLabel(requestedAdvantage);
+        }
+        if (options.explanation != null && options.explanation !== '') {
+            messageData.explanation = String(options.explanation);
+        }
 
         const content = await SkillCheckDialog.formatChatMessage(messageData);
         const message = await ChatMessage.create({
@@ -2316,17 +2395,30 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
             let rollAreaHtml;
             if (hasPermission && !result) {
+                // Requested advantage mode for this row: marked, and the only button rendered when locked
+                const requested = SkillCheckDialog.resolveRollAdvantage(actor, messageData);
+                const show = (mode) => !requested.locked || requested.mode === mode;
+                const mark = (mode) => requested.mode === mode ? ' is-requested' : '';
+                const suffix = (mode) => requested.mode === mode
+                    ? (requested.locked ? ' (required)' : ' (requested)')
+                    : '';
+                const buttons = [
+                    show('disadvantage') ? `
+                        <button class="cpb-cinematic-roll-mod-btn disadvantage${mark('disadvantage')}" data-roll-type="disadvantage" title="Roll with Disadvantage${suffix('disadvantage')}">
+                            <i class="fas fa-minus"></i>
+                        </button>` : '',
+                    show('normal') ? `
+                        <button class="cpb-cinematic-roll-btn${mark('normal')}" data-roll-type="normal" title="Roll Normal${suffix('normal')}">
+                            <i class="fas fa-dice-d20"></i>
+                        </button>` : '',
+                    show('advantage') ? `
+                        <button class="cpb-cinematic-roll-mod-btn advantage${mark('advantage')}" data-roll-type="advantage" title="Roll with Advantage${suffix('advantage')}">
+                            <i class="fas fa-plus"></i>
+                        </button>` : ''
+                ].join('');
                 rollAreaHtml = `
                     <div class="cpb-cinematic-roll-area">
-                        <button class="cpb-cinematic-roll-mod-btn disadvantage" data-roll-type="disadvantage" title="Roll with Disadvantage">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <button class="cpb-cinematic-roll-btn" data-roll-type="normal" title="Roll Normal">
-                            <i class="fas fa-dice-d20"></i>
-                        </button>
-                        <button class="cpb-cinematic-roll-mod-btn advantage" data-roll-type="advantage" title="Roll with Advantage">
-                            <i class="fas fa-plus"></i>
-                        </button>
+                        ${buttons}
                     </div>
                 `;
             } else if (!hasPermission && !result) {
@@ -2427,12 +2519,24 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         if (messageData.isGroupRoll && !messageData.hasMultipleGroups) {
             subtitleParts.push(`Group Roll`);
         }
-        
+
+        // Requested advantage mode (request-level; per-actor modes are marked on their own cards)
+        const requestedMode = SkillCheckDialog.normalizeRollAdvantage(messageData.rollAdvantage);
+        if (requestedMode) {
+            const label = SkillCheckDialog.rollAdvantageLabel(requestedMode);
+            subtitleParts.push(messageData.lockRollAdvantage ? `${label} (required)` : `${label} (requested)`);
+        }
+
         // Add subtitle if we have any parts
         if (subtitleParts.length > 0) {
             rollDetailsHtml += `<p class="cpb-cinematic-roll-subtext">${subtitleParts.join(' • ')}</p>`;
         }
-        
+
+        // Requester-authored explanation
+        if (messageData.explanation) {
+            rollDetailsHtml += `<p class="cpb-cinematic-roll-explanation">${foundry.utils.escapeHTML(String(messageData.explanation))}</p>`;
+        }
+
         rollDetailsHtml += `</div>`;
 
         const containerClass = `cpb-cinematic-actors-container ${messageData.hasMultipleGroups ? 'contested' : ''}`;
@@ -2474,6 +2578,15 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             if (!actorData) return;
             
             const rollButtonType = button.dataset.rollType;
+
+            // A locked request renders only the required button; this is the backstop for a click
+            // that reaches the handler anyway (stale overlay, a modified DOM).
+            const requested = SkillCheckDialog.resolveRollAdvantage(actorData, messageData);
+            if (requested.locked && rollButtonType !== requested.mode) {
+                ui.notifications.warn(`This roll was requested with ${requested.mode === 'normal' ? 'no advantage or disadvantage' : requested.mode}.`);
+                return;
+            }
+
             const options = {
                 advantage: rollButtonType === 'advantage',
                 disadvantage: rollButtonType === 'disadvantage',
@@ -2612,6 +2725,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     ui.notifications.warn("You don't have permission to roll for this character.");
                     return;
                 }
+                // Requested advantage mode for this row (per-actor wins over the request-level value)
+                const requested = SkillCheckDialog.resolveRollAdvantage(actorData, flags);
+
                 // Use the new unified system directly - pass existing messageId to prevent duplicate cards
                 const { orchestrateRoll } = await import('./manager-rolls.js');
                 await orchestrateRoll({
@@ -2627,6 +2743,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     rollMode: flags.rollMode || 'roll',
                     situationalBonus: actorData.situationalBonus ?? flags.situationalBonus,
                     customModifier: actorData.customModifier ?? flags.customModifier,
+                    rollAdvantage: requested.mode,
+                    lockRollAdvantage: requested.locked,
                     isCinematic: false, // This is window mode
                     showRollExplanation: false
                 }, message.id); // Pass existing messageId to prevent duplicate card creation

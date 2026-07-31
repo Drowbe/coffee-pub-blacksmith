@@ -369,6 +369,30 @@ div#roll-window .window-content {
   border-color: rgba(71, 125, 198, 1.0);
 }
 
+/* Requesting module asked for this mode: marked, but still one of several live buttons
+   unless the request also locked it (in which case it is the only button rendered). */
+.roll-btn.is-requested {
+  box-shadow: 0 0 0 2px rgba(235, 233, 225, 0.9);
+}
+
+.roll-requested-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0 1em 0.5em 1em;
+  padding: 0.4em 0.6em;
+  border: 1px solid rgba(71, 125, 198, 1.0);
+  border-radius: 4px;
+  background: rgba(71, 125, 198, 0.15);
+  color: #e0e0e0;
+  font-size: 0.9em;
+}
+
+.roll-requested-mode.locked {
+  border-color: rgba(198, 155, 71, 1.0);
+  background: rgba(198, 155, 71, 0.15);
+}
+
 
 /* Sticky header and summary */
 .roll-header-sticky {
