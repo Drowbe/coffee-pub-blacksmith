@@ -632,7 +632,11 @@ export class CombatBarManager {
         CombatBarManager._teardownInitiativeDrag();
 
         CombatBarManager.hideCombatantHoverCard(menuBar);
+        // These live on document.body, so tearing down the bar does not take
+        // them with it — they have to be closed explicitly.
         UIContextMenu.close('blacksmith-combat-portrait-context-menu');
+        UIContextMenu.close('blacksmith-combat-initiative-menu');
+        UIContextMenu.close('blacksmith-combat-encounter-menu');
         menuBar.removeClickHandlers();
         menuBar._stopTimerUpdates();
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers and timer intervals cleaned up", "", true, false);
@@ -980,6 +984,24 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 await CombatBarManager.toggleCombatTracker();
+                return;
+            }
+
+            const initiativeMenuBtn = event.target.closest('.combatbar-button[data-control="initiativeMenu"]');
+            if (initiativeMenuBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                CombatBarManager.showInitiativeMenu(menuBar, initiativeMenuBtn);
+                return;
+            }
+
+            const encounterMenuBtn = event.target.closest('.combatbar-button[data-control="encounterMenu"]');
+            if (encounterMenuBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                CombatBarManager.showEncounterMenu(menuBar, encounterMenuBtn);
                 return;
             }
 
@@ -1791,6 +1813,150 @@ export class CombatBarManager {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Menubar: Error toggling defeated status', error?.message || error, false, false);
         }
+    }
+
+    /**
+     * Anchor a dropdown under a bar button rather than at the pointer, so the
+     * menu reads as belonging to the button that opened it.
+     * @returns {{x: number, y: number}}
+     */
+    static _anchorPointFor(anchorEl) {
+        const rect = anchorEl?.getBoundingClientRect?.();
+        if (!rect) return { x: 0, y: 0 };
+        return { x: rect.left, y: rect.bottom + 4 };
+    }
+
+    /**
+     * Initiative actions, mirroring the combat tracker's header buttons plus
+     * Reset from its overflow menu. Every entry is GM-only, so the whole menu
+     * uses the tinted `gm` zone.
+     */
+    static showInitiativeMenu(_menuBar, anchorEl) {
+        const combat = game.combat;
+        if (!combat || !game.user.isGM) return;
+
+        const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
+        const unrolled = combat.combatants.filter(c => c.initiative === null).length;
+
+        const gm = [
+            {
+                name: 'Roll All',
+                icon: 'fa-solid fa-dice',
+                disabled: !unrolled,
+                callback: async () => {
+                    try {
+                        await combat.rollAll();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error rolling all initiatives', error?.message || error, false, false);
+                    }
+                }
+            },
+            {
+                name: 'Roll Remaining',
+                icon: 'fa-solid fa-users-medical',
+                disabled: !unrolled,
+                callback: async () => {
+                    try {
+                        const CT = await import('./ui-combat-tracker.js');
+                        await CT.CombatTracker._rollRemainingInitiatives();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error rolling remaining initiatives', error?.message || error, false, false);
+                    }
+                }
+            },
+            {
+                name: 'Roll NPCs',
+                icon: 'fa-solid fa-dragon',
+                disabled: !combat.combatants.some(c => c.isNPC && c.initiative === null),
+                callback: async () => {
+                    try {
+                        await combat.rollNPC();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error rolling NPC initiatives', error?.message || error, false, false);
+                    }
+                }
+            },
+            { separator: true },
+            {
+                name: 'Reset Initiative',
+                icon: 'fa-solid fa-arrow-rotate-left',
+                disabled: !combat.turns?.length,
+                callback: async () => {
+                    try {
+                        await combat.resetAll();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error resetting initiative', error?.message || error, false, false);
+                    }
+                }
+            }
+        ];
+
+        UIContextMenu.show({
+            id: 'blacksmith-combat-initiative-menu',
+            x,
+            y,
+            zones: { gm }
+        });
+    }
+
+    /**
+     * Encounter-level actions from the tracker's overflow menu. Delete goes
+     * through combat.endCombat() rather than combat.delete() because that is
+     * the path carrying core's confirmation prompt.
+     */
+    static showEncounterMenu(_menuBar, anchorEl) {
+        const combat = game.combat;
+        if (!combat || !game.user.isGM) return;
+
+        const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
+        const isLinked = !!combat.scene;
+
+        const gm = [
+            {
+                name: 'Clear Movement Histories',
+                icon: 'fa-solid fa-shoe-prints',
+                disabled: !combat.combatants.size,
+                callback: async () => {
+                    try {
+                        await combat.clearMovementHistories();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error clearing movement histories', error?.message || error, false, false);
+                    }
+                }
+            },
+            {
+                // One toggle, two truths — an unlinked encounter needs the
+                // inverse label or the row lies about what it will do.
+                name: isLinked ? 'Unlink from Scene' : 'Link to Scene',
+                icon: isLinked ? 'fa-solid fa-unlink' : 'fa-solid fa-link',
+                callback: async () => {
+                    try {
+                        await combat.toggleSceneLink();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error toggling scene link', error?.message || error, false, false);
+                    }
+                }
+            },
+            { separator: true },
+            {
+                name: 'Delete Encounter',
+                icon: 'fa-solid fa-trash',
+                callback: async () => {
+                    try {
+                        await combat.endCombat();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error deleting encounter', error?.message || error, false, false);
+                    }
+                }
+            }
+        ];
+
+        UIContextMenu.show({
+            id: 'blacksmith-combat-encounter-menu',
+            x,
+            y,
+            zones: { gm }
+        });
     }
 
     static showCombatantPortraitContextMenu(menuBar, combatantId, x, y) {

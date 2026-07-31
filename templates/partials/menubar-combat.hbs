@@ -20,6 +20,27 @@
             </a>
         </div>
 
+        {{!-- Encounter-level menus (GM). Not gated on isActive: rolling
+              initiative is what you do *before* combat starts. --}}
+        {{#if isGM}}
+        <div class="combatbar-button-control-container combat-bar-menu-buttons">
+            <a class="combatbar-button"
+               aria-label="Initiatives"
+               role="button"
+               data-tooltip="Initiatives"
+               data-control="initiativeMenu">
+                <i class="fas fa-dice-d20"></i>
+            </a>
+            <a class="combatbar-button"
+               aria-label="Encounter"
+               role="button"
+               data-tooltip="Encounter"
+               data-control="encounterMenu">
+                <i class="fas fa-swords"></i>
+            </a>
+        </div>
+        {{/if}}
+
         {{#if isGM}}
         {{#if isActive}}
             <div class="combatbar-button-control-container combat-bar-prev-buttons">

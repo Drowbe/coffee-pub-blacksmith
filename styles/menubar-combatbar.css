@@ -118,6 +118,7 @@
    
    .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-prev-buttons,
    .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-next-buttons,
+   .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-menu-buttons,
    .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper .combat-bar-edge-button {
     flex-shrink: 0;
    }
