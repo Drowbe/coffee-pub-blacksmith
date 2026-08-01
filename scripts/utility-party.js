@@ -5,6 +5,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { deployTokens, deployTokensSequential } from './api-tokens.js';
+import { ToastAPI } from './api-toast.js';
 
 /**
  * Utility functions for party management
@@ -114,21 +115,32 @@ export async function clearPartyFromCanvas() {
         postConsoleAndNotification(MODULE.NAME, "Party Tools: Only GMs can clear party tokens", "", false, false);
         return 0;
     }
+    // Same toast stack as the other canvas token actions (manager-encounter.js)
+    // so consecutive clears replace one another rather than stacking up.
+    const toast = (subtitle, icon = 'fa-solid fa-users-slash') => ToastAPI.show({
+        title: 'Remove Party',
+        subtitle,
+        icon,
+        duration: 4,
+        moduleId: 'blacksmith-core',
+        stackKey: 'blacksmith-encounter-tokens'
+    });
+
     const scene = canvas?.scene;
     if (!scene) {
-        ui.notifications.warn("No active scene.");
+        toast('No active scene.', 'fa-solid fa-triangle-exclamation');
         return 0;
     }
     const partyMembers = getPartyMembers();
     const partyActorIds = new Set(partyMembers.map(a => a.id));
     const toRemove = scene.tokens.filter(t => t.actorId && partyActorIds.has(t.actorId)).map(t => t.id);
     if (toRemove.length === 0) {
-        ui.notifications.info("No party tokens on the canvas.");
+        toast('No party tokens on the canvas.');
         return 0;
     }
     await scene.deleteEmbeddedDocuments('Token', toRemove);
     postConsoleAndNotification(MODULE.NAME, "Party Tools: Cleared party from canvas", `${toRemove.length} token(s) removed`, false, false);
-    ui.notifications.info(`Removed ${toRemove.length} party token(s) from the canvas.`);
+    toast(`${toRemove.length} party token(s) removed.`);
     return toRemove.length;
 }
 

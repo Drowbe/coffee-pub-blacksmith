@@ -6,6 +6,7 @@
 import { MODULE, BLACKSMITH } from './const.js';
 import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { ToastAPI } from './api-toast.js';
 
 /**
  * CombatTracker - Handles combat management functionality for player characters
@@ -844,7 +845,14 @@ class CombatTracker {
         const remainingCombatants = combat.combatants.filter(c => c.initiative === null);
         
         if (remainingCombatants.length === 0) {
-            ui.notifications.info("All combatants have already rolled initiative!");
+            ToastAPI.show({
+                title: 'Roll Remaining',
+                subtitle: 'Every combatant has already rolled initiative.',
+                icon: 'fa-solid fa-dice-d20',
+                duration: 4,
+                moduleId: 'blacksmith-core',
+                stackKey: 'blacksmith-roll-initiative'
+            });
             return;
         }
 

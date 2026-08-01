@@ -4,7 +4,7 @@ import { RoundTimer } from './timer-round.js';
 import { CombatTracker } from './ui-combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
-import { broadcastToast } from './api-toast.js';
+import { broadcastToast, ToastAPI } from './api-toast.js';
 import { EffectsAPI } from './api-effects.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 
@@ -165,7 +165,7 @@ export class CombatBarManager {
         menuBar.secondaryBarToolMapping.set('combat', 'combat-bar');
         this.registerCombatHooks(menuBar);
         this.registerCombatBarEvents(menuBar);
-        this.checkActiveCombatOnLoad(menuBar);
+        this.openCombatBarOnLoad(menuBar);
         this.registerCombatPartial().catch((error) => {
             postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering combat partial", error?.message || error, true, false);
         });
@@ -203,15 +203,7 @@ export class CombatBarManager {
                 // (hook-driven auto-open). Otherwise the menubar button can fail when toggleSecondaryBar
                 // is not the patched wrapper (e.g. stale api binding) and the flag is never cleared.
                 const combat = game.combats?.active ?? game.combat;
-                const data = combat ? CombatBarManager.getCombatData(combat) : {
-                    combatants: [],
-                    currentRound: 0,
-                    currentTurn: 0,
-                    currentCombatant: '',
-                    isGM: game.user.isGM,
-                    isActive: false,
-                    actionButton: null
-                };
+                const data = CombatBarManager.getCombatData(combat);
                 // The bar's own height must ride along on every open. Without
                 // it the base method falls back to `barType.height`, which was
                 // frozen at registration from the CSS default — so the size
@@ -257,17 +249,16 @@ export class CombatBarManager {
         const originalPrepareSecondaryBarData = menuBar._prepareSecondaryBarData.bind(menuBar);
         menuBar._prepareSecondaryBarData = function () {
             const data = originalPrepareSecondaryBarData();
-            if (data?.isOpen && data.type === 'combat' && !data.data) {
+            // The base method assigns `data.data = {}` for custom templates
+            // before this runs, so testing `!data.data` never fired and a bar
+            // whose payload had gone missing rendered from an empty object —
+            // no isGM, no isInCombat, and therefore a tray with nothing in it.
+            // Treat an empty object as missing.
+            const payload = data?.data;
+            const isMissing = !payload || Object.keys(payload).length === 0;
+            if (data?.isOpen && data.type === 'combat' && isMissing) {
                 const combat = game.combats?.active ?? game.combat;
-                data.data = combat ? CombatBarManager.getCombatData(combat) : {
-                    combatants: [],
-                    currentRound: 0,
-                    currentTurn: 0,
-                    currentCombatant: '',
-                    isGM: game.user.isGM,
-                    isActive: false,
-                    actionButton: null
-                };
+                data.data = CombatBarManager.getCombatData(combat);
             }
             return data;
         };
@@ -321,10 +312,11 @@ export class CombatBarManager {
             moduleId: "blacksmith-core",
             gmOnly: false,
             leaderOnly: false,
-            visible: () => {
-                const activeCombat = game.combats?.active;
-                return activeCombat != null && activeCombat.combatants?.size > 0;
-            },
+            // Always available. Gating this on an active combat took the only
+            // control that reopens the bar away for exactly the stretch the bar
+            // is now meant to cover, so a bar dismissed out of combat could not
+            // be brought back until someone started an encounter.
+            visible: true,
             toggleable: true,
             active: false,
             iconColor: null,
@@ -411,7 +403,8 @@ export class CombatBarManager {
             priority: 3,
             callback: () => {
                 CombatBarManager.closeAllCombatantPopoutCards();
-                CombatBarManager.closeCombatBar(menuBar);
+                // Ending an encounter empties the bar; it does not remove it.
+                CombatBarManager.updateCombatBar(menuBar);
             }
         });
 
@@ -657,22 +650,24 @@ export class CombatBarManager {
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat bar event handlers and timer intervals cleaned up", "", true, false);
     }
 
-    static checkActiveCombatOnLoad(menuBar) {
+    /**
+     * Open the bar at startup when the setting allows it, whether or not a
+     * combat exists. Previously this only fired for a combat that already had
+     * combatants, which is why the bar was absent for the part of a session
+     * where you most want Create Combat.
+     */
+    static openCombatBarOnLoad(menuBar) {
         try {
-            const combat = game.combats.active;
-            if (combat && combat.combatants.size > 0) {
-                postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat with combatants found on load", "", true, false);
-                setTimeout(async () => {
-                    const shouldShowCombatBar = getSettingSafely(MODULE.ID, 'menubarCombatShow', false);
-                    if (!shouldShowCombatBar) return;
-                    if (!menuBar.secondaryBarTypes?.has?.('combat')) {
-                        await CombatBarManager.registerCombatBarType(menuBar);
-                    }
-                    CombatBarManager.openCombatBar(menuBar);
-                }, 500);
-            }
+            setTimeout(async () => {
+                const shouldShowCombatBar = getSettingSafely(MODULE.ID, 'menubarCombatShow', false);
+                if (!shouldShowCombatBar) return;
+                if (!menuBar.secondaryBarTypes?.has?.('combat')) {
+                    await CombatBarManager.registerCombatBarType(menuBar);
+                }
+                CombatBarManager.openCombatBar(menuBar);
+            }, 500);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error checking active combat on load", { error }, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error opening combat bar on load", { error }, false, false);
         }
     }
 
@@ -688,9 +683,10 @@ export class CombatBarManager {
             if (menuBar._isUserExcluded(game.user)) return false;
             if (!menuBar.secondaryBar.isOpen || menuBar.secondaryBar.type !== 'combat') return false;
 
+            // No combat is a content state, not a reason to close. The bar
+            // falls back to its idle shape and keeps the Encounter and Tokens
+            // menus reachable, which is the whole point of them living here.
             const combat = game.combats.active;
-            if (!combat) return CombatBarManager.closeCombatBar(menuBar);
-
             const data = combatData || CombatBarManager.getCombatData(combat);
             CombatBarManager.hideCombatantHoverCard(menuBar);
             return menuBar.updateSecondaryBar(data);
@@ -700,9 +696,34 @@ export class CombatBarManager {
         }
     }
 
+    /**
+     * The bar's shape with no combat running. The bar itself is no longer tied
+     * to a combat existing — combat state decides what it *contains*, not
+     * whether it is there — so every path that used to close the bar or hand
+     * back an empty object renders this instead.
+     */
+    static getIdleBarData() {
+        return {
+            combatants: [],
+            graveyard: [],
+            hasGraveyard: false,
+            graveyardCount: 0,
+            actionButton: null,
+            currentRound: 0,
+            currentTurn: 0,
+            totalTurns: 0,
+            currentCombatant: '',
+            totalCombatDuration: formatTime(0, 'hh:mm:ss'),
+            currentRoundDuration: formatTime(0, 'hh:mm:ss'),
+            isGM: game.user.isGM,
+            isActive: false,
+            isInCombat: false
+        };
+    }
+
     static getCombatData(combat) {
         try {
-            if (!combat) return {};
+            if (!combat) return CombatBarManager.getIdleBarData();
 
             const hideNpcHealthSetting = game.settings.get(MODULE.ID, 'menubarCombatHideHealthBars');
             const hideDeadCombatants = game.settings.get(MODULE.ID, 'menubarCombatHideDead');
@@ -830,11 +851,14 @@ export class CombatBarManager {
                 totalCombatDuration: formatTime(totalCombatDurationMs || 0, 'hh:mm:ss'),
                 currentRoundDuration: formatTime(currentRoundDurationMs || 0, 'hh:mm:ss'),
                 isGM: game.user.isGM,
-                isActive: combat.started || false
+                isActive: combat.started || false,
+                isInCombat: true
             };
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error gathering combat data", { error }, false, false);
-            return {};
+            // Idle rather than empty: an exception here used to blank the bar
+            // into an unrecoverable shell with no buttons at all.
+            return CombatBarManager.getIdleBarData();
         }
     }
 
@@ -916,8 +940,9 @@ export class CombatBarManager {
             if (menuBar.__combatBarUserClosed) return false;
             const combatHeight = game.settings.get(MODULE.ID, 'menubarCombatSize');
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
+            // Opens with or without a combat — getCombatData falls back to the
+            // idle shape, and the bar is meant to be present either way.
             const combat = game.combats.active;
-            if (!combat) return false;
             const data = combatData || CombatBarManager.getCombatData(combat);
             return menuBar.openSecondaryBar('combat', { data, persistence: 'manual' });
         } catch (_error) {
@@ -957,7 +982,14 @@ export class CombatBarManager {
             if (!combatant?.actor) return;
 
             if (!combatant.isOwner && !game.user.isGM) {
-                ui.notifications.warn(`You don't have permission to roll initiative for ${combatant.name}`);
+                ToastAPI.show({
+                    title: 'Roll Initiative',
+                    subtitle: `You do not have permission to roll for ${combatant.name}.`,
+                    icon: 'fa-solid fa-triangle-exclamation',
+                    duration: 4,
+                    moduleId: 'blacksmith-core',
+                    stackKey: 'blacksmith-roll-initiative'
+                });
                 return;
             }
 

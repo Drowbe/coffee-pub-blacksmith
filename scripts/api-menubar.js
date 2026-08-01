@@ -159,9 +159,10 @@ class MenuBar {
             priority: 3,
             callback: () => {
                 if (this.secondaryBar?.isOpen && this.secondaryBar?.type === 'combat') {
-                    const activeCombat = game.combats?.active;
-                    const hasCombat = activeCombat != null && activeCombat.combatants?.size > 0;
-                    if (!hasCombat) CombatBarManager.closeCombatBar(this);
+                    // Rebuild rather than close: the combat bar outlives any
+                    // one combat now, so a scene with no encounter shows it in
+                    // its idle form instead of losing it.
+                    CombatBarManager.updateCombatBar(this);
                 }
                 if (this.secondaryBar?.isOpen && this.secondaryBar?.type === 'party') {
                     this._refreshPartyBarInfo();
@@ -3729,11 +3730,27 @@ class MenuBar {
     /**
      * Create combat encounter with selected tokens or all tokens on canvas
      */
+    /**
+     * Local toast for combat creation feedback. One stack key so a run of
+     * Create/Add presses replaces rather than piles up.
+     * @private
+     */
+    static _combatToast(title, subtitle, icon) {
+        ToastAPI.show({
+            title,
+            subtitle,
+            icon,
+            duration: 4,
+            moduleId: 'blacksmith-core',
+            stackKey: 'blacksmith-create-combat'
+        });
+    }
+
     static async createCombat() {
         try {
             // Check if user has permission to create combat
             if (!game.user.isGM) {
-                ui.notifications.warn("Only GMs can create combat encounters.");
+                this._combatToast('Create Combat', 'Only GMs can create combat encounters.', 'fa-solid fa-triangle-exclamation');
                 return;
             }
 
@@ -3747,13 +3764,14 @@ class MenuBar {
             tokensToAdd = tokensToAdd.filter(token => token.actor);
 
             if (tokensToAdd.length === 0) {
-                ui.notifications.warn("No tokens with actors found on the canvas.");
+                this._combatToast('Create Combat', 'No tokens with actors found on the canvas.', 'fa-solid fa-triangle-exclamation');
                 return;
             }
 
             // Check if there's already an active combat encounter
             let combat = game.combats.active;
-            
+            const createdNew = !combat;
+
             if (!combat) {
                 // Create a new combat encounter if none exists
                 combat = await Combat.create({
@@ -3788,16 +3806,23 @@ class MenuBar {
                 }
             }
 
-            // Show success notification
+            // The wording has to follow which branch ran above: this same call
+            // both creates an encounter and folds tokens into a running one,
+            // and reporting "created" for an add is how the combat bar's
+            // "Add to Combat" row would end up contradicting itself.
             if (addedCount > 0) {
-                ui.notifications.info(`Combat created with ${addedCount} token(s).`);
+                this._combatToast(
+                    createdNew ? 'Combat Created' : 'Added to Combat',
+                    `${addedCount} token(s) ${createdNew ? 'in the new encounter' : 'added'}.`,
+                    'fa-solid fa-swords'
+                );
             } else {
-                ui.notifications.info("All selected tokens are already in combat.");
+                this._combatToast('Add to Combat', 'Every selected token is already in combat.', 'fa-solid fa-swords');
             }
 
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error creating combat:", error, false, false);
-            ui.notifications.error("Failed to create combat encounter.");
+            this._combatToast('Combat', 'Could not create the encounter. See the console.', 'fa-solid fa-circle-exclamation');
         }
     }
 

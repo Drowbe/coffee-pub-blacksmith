@@ -6,6 +6,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { ToastAPI } from './api-toast.js';
 
 export class EncounterManager {
     /**
@@ -170,11 +171,13 @@ export class EncounterManager {
             const scene = canvas?.scene;
             if (!scene) {
                 postConsoleAndNotification(MODULE.NAME, 'No active scene.', '', false, false);
+                EncounterManager._toast('Reveal Hidden', 'No active scene.', 'fa-solid fa-triangle-exclamation');
                 return;
             }
             const allTokens = canvas?.tokens?.placeables ?? [];
             if (allTokens.length === 0) {
                 postConsoleAndNotification(MODULE.NAME, 'No tokens found on the canvas.', '', false, false);
+                EncounterManager._toast('Reveal Hidden', 'No tokens on the canvas.', 'fa-solid fa-triangle-exclamation');
                 return;
             }
             // Include any hidden token that is not player-owned (NPCs and unowned actors); disposition not required
@@ -185,6 +188,7 @@ export class EncounterManager {
             );
             if (hiddenMonsterTokens.length === 0) {
                 postConsoleAndNotification(MODULE.NAME, 'No hidden NPC tokens found on the canvas.', '', false, false);
+                EncounterManager._toast('Reveal Hidden', 'Nothing is hidden on the canvas.', 'fa-solid fa-eye');
                 return;
             }
             // Update via scene so the canvas and all clients receive the change; tokens become visible on the canvas
@@ -198,8 +202,10 @@ export class EncounterManager {
                 if (typeof token.refresh === 'function') token.refresh();
             }
             postConsoleAndNotification(MODULE.NAME, 'Reveal: made tokens visible', `${hiddenMonsterTokens.length} token(s)`, true, false);
+            EncounterManager._toast('Reveal Hidden', `${hiddenMonsterTokens.length} token(s) revealed.`, 'fa-solid fa-eye');
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'EncounterManager: Error revealing tokens', error?.message ?? error, false, true);
+            postConsoleAndNotification(MODULE.NAME, 'EncounterManager: Error revealing tokens', error?.message ?? error, false, false);
+            EncounterManager._toast('Reveal Hidden', 'Could not reveal tokens. See the console.', 'fa-solid fa-circle-exclamation');
         }
     }
 
@@ -217,7 +223,7 @@ export class EncounterManager {
         }
         const scene = canvas?.scene;
         if (!scene) {
-            ui.notifications.warn('No active scene.');
+            EncounterManager._toast('Clear Tokens', 'No active scene.', 'fa-solid fa-triangle-exclamation');
             return 0;
         }
         const humanoidType = 'humanoid';
@@ -229,12 +235,12 @@ export class EncounterManager {
             return creatureType.toLowerCase() !== humanoidType;
         }).map(t => t.id);
         if (toRemove.length === 0) {
-            ui.notifications.info('No monster tokens on the canvas.');
+            EncounterManager._toast('Remove Monsters', 'No monster tokens on the canvas.', 'fa-solid fa-dragon');
             return 0;
         }
         await scene.deleteEmbeddedDocuments('Token', toRemove);
         postConsoleAndNotification(MODULE.NAME, 'Clear Monsters: Cleared non-humanoid NPCs from canvas', `${toRemove.length} token(s) removed`, false, false);
-        ui.notifications.info(`Removed ${toRemove.length} monster token(s) from the canvas.`);
+        EncounterManager._toast('Remove Monsters', `${toRemove.length} monster token(s) removed.`, 'fa-solid fa-dragon');
         return toRemove.length;
     }
 
@@ -252,7 +258,7 @@ export class EncounterManager {
         }
         const scene = canvas?.scene;
         if (!scene) {
-            ui.notifications.warn('No active scene.');
+            EncounterManager._toast('Clear Tokens', 'No active scene.', 'fa-solid fa-triangle-exclamation');
             return 0;
         }
         const humanoidType = 'humanoid';
@@ -263,12 +269,30 @@ export class EncounterManager {
             return creatureType.toLowerCase() === humanoidType;
         }).map(t => t.id);
         if (toRemove.length === 0) {
-            ui.notifications.info('No humanoid NPC tokens on the canvas.');
+            EncounterManager._toast('Remove NPCs', 'No humanoid NPC tokens on the canvas.', 'fa-solid fa-people-line');
             return 0;
         }
         await scene.deleteEmbeddedDocuments('Token', toRemove);
         postConsoleAndNotification(MODULE.NAME, 'Clear NPCs: Cleared humanoid NPCs from canvas', `${toRemove.length} token(s) removed`, false, false);
-        ui.notifications.info(`Removed ${toRemove.length} NPC token(s) from the canvas.`);
+        EncounterManager._toast('Remove NPCs', `${toRemove.length} NPC token(s) removed.`, 'fa-solid fa-people-line');
         return toRemove.length;
+    }
+
+    /**
+     * Local toast for canvas token actions. These are GM-only bookkeeping
+     * actions, so the feedback stays on the GM's own client rather than
+     * broadcasting; one stack key means repeated clicks replace rather than
+     * pile up.
+     * @private
+     */
+    static _toast(title, subtitle, icon) {
+        ToastAPI.show({
+            title,
+            subtitle,
+            icon,
+            duration: 4,
+            moduleId: 'blacksmith-core',
+            stackKey: 'blacksmith-encounter-tokens'
+        });
     }
 }

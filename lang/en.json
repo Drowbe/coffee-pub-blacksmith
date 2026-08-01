@@ -309,7 +309,7 @@
 			"headingH3CombatMenubar-Hint": "Settings for the combat menubar that appears at the top of foundry's interface.",
 
 				"menubarCombatShow-Label": "Automatically Show",
-				"menubarCombatShow-Hint": "",
+				"menubarCombatShow-Hint": "Show the combat menubar on load and whenever an encounter starts. The bar stays up between encounters, showing its encounter and token tools; the portraits, round, and turn controls appear only while combat is running.",
 				"menubarCombatShowEffects-Label": "Show Status and Conditions",
 				"menubarCombatShowEffects-Hint": "Show active statuses, conditions, temporary effects, and registered outcome effects on combatant hover cards.",
 

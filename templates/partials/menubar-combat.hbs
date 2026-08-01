@@ -1,11 +1,14 @@
 {{!-- Combat Tracker Secondary Bar --}}
 <div class="combat-tracker-bar">
-    {{!-- Combat Info --}}
+    {{!-- Combat Info. The endcaps describe a running encounter, so they are
+          absent when there is not one; the bar itself stays. --}}
+    {{#if isInCombat}}
     <div class="combat-endcap-left">
         <span class="combat-endcap-top">Round</span>
         <span class="combat-endcap-bottom">{{currentRound}}</span>
     </div>
-    
+    {{/if}}
+
     {{!-- Combat Controls and Portraits Group --}}
     <div class="combat-portraits-group">
         {{!-- All controls in one row: Tracker | prev | left arrow | portraits | right arrow | next | Action --}}
@@ -15,6 +18,7 @@
               Combat Tracker lives in the Encounter menu. --}}
         {{#if isGM}}
         <div class="combatbar-button-control-container action-button combat-bar-edge-button">
+            {{#if isInCombat}}
             <a class="combatbar-button action-type-general"
                aria-label="Initiatives"
                role="button"
@@ -22,6 +26,7 @@
                data-control="initiativeMenu">
                 <i class="fas fa-dice-d20"></i>
             </a>
+            {{/if}}
             <a class="combatbar-button action-type-general"
                aria-label="Encounter"
                role="button"
@@ -74,6 +79,10 @@
             </div>
         {{/if}}
         {{/if}}
+        {{!-- The portrait strip and its scroll arrows only mean anything with
+              combatants to show. Out of combat the bar keeps its menus and
+              drops the strip entirely. --}}
+        {{#if isInCombat}}
             <button type="button" class="combat-scroll-arrow combat-scroll-left" aria-label="Scroll combatants left" data-tooltip="Scroll combatants left" data-control="scrollCombatantsLeft">
                 <i class="fa-solid fa-arrow-left-from-arc"></i>
             </button>
@@ -151,6 +160,7 @@
             <button type="button" class="combat-scroll-arrow combat-scroll-right" aria-label="Scroll combatants right" data-tooltip="Scroll combatants right" data-control="scrollCombatantsRight">
                 <i class="fa-solid fa-arrow-right-from-arc"></i>
             </button>
+        {{/if}}
 
         {{#if isGM}}
         {{#if isActive}}
@@ -206,8 +216,10 @@
     </div>
 
     {{!-- Combat Status --}}
+    {{#if isInCombat}}
     <div class="combat-endcap-right">
         <span class="combat-endcap-top">Combatant</span>
         <span class="combat-endcap-bottom">{{currentCombatant}}</span>
     </div>
+    {{/if}}
 </div>

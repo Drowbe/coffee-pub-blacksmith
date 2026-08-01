@@ -1,6 +1,6 @@
 # Plan: Merge the Encounter Bar into the Combat Bar
 
-**Status: Implemented (phase 1). Phases 2-5 pending.**
+**Status: Implemented (phases 1-2). Phases 3-5 pending.**
 
 Fold the encounter secondary bar's tools and readouts into the combat bar, retire the encounter bar,
 and relabel the result "Encounter". The merged bar is always present and adapts its contents to whether
@@ -102,15 +102,37 @@ Combat and Quick Encounter, and a Tokens button now carries Reveal Hidden and th
 actions. All of them call the same handlers the encounter bar's items call. The encounter bar is untouched
 and still registered, so the two overlap and can be compared directly.
 
-Phase 1 is deliberately half a feature, and it will read oddly until phase 2 lands. The combat bar still
-only appears when a combat exists, so Create Combat is mostly reachable in its Add to Combat form, and the
-canvas-clearing actions are visible during combat — the state in which the plan eventually wants them
-hidden. Hiding them now would make them unreachable entirely, since there is no out-of-combat bar yet to
-show them on. Both resolve in phase 2, and neither should be "fixed" before then.
+**Phase 2 — Always-on lifecycle. Done.** The bar's existence no longer depends on a combat existing;
+combat state decides what it contains. `getIdleBarData()` is the out-of-combat payload, returned by
+`getCombatData(null)` and also by its `catch`, so a thrown error degrades to a working bar instead of an
+empty shell. `isInCombat` gates the portrait strip and its scroll arrows, both endcaps, and the Initiatives
+button; the Graveyard and the Begin/End Combat button were already gated on data that is empty when idle.
 
-**Phase 2 — Always-on lifecycle.** Rework `openCombatBar` and `updateCombatBar` so the bar persists
-without an active combat, and the in-combat elements (portrait strip, endcaps, Initiatives, Graveyard)
-appear and disappear with combat rather than the bar doing so.
+Seven separate places assumed a combat exists, and all of them had to change together — any one left
+behind reintroduces the disappearance, in a different form each time:
+
+- `openCombatBar` returned false with no active combat
+- `updateCombatBar` called `closeCombatBar` when `game.combats.active` was gone
+- the `deleteCombat` hook closed the bar outright
+- `canvasReady` in `api-menubar.js` closed it on any scene with no combatants
+- `checkActiveCombatOnLoad` only opened for a combat that already had combatants
+- the `combat-bar` menubar tool's `visible` predicate required an active combat with combatants, so the
+  only control that reopens the bar vanished for exactly the stretch the bar now covers
+- the `_prepareSecondaryBarData` patch guarded on `!data.data`, which the base method makes unreachable by
+  assigning `data.data = {}` for custom templates first; a bar whose payload went missing therefore
+  rendered from an empty object, producing a tray with nothing in it
+
+The fifth is now `openCombatBarOnLoad` and opens whenever `menubarCombatShow` allows, which is what makes
+the bar present at the start of a session. `closeCombatBar` remains as a deliberate API action; nothing
+calls it automatically any more.
+
+The last two were found only by testing out of combat, which is worth remembering for phases 3-5: the
+in-combat path exercises almost none of this, so every change here needs checking in both states. The canvas-clearing actions still show during combat — hiding them is a
+presentation decision the plan can take at any point, not a lifecycle one, and it is no longer load-bearing
+now that they are reachable out of combat.
+
+The bar is visibly thin out of combat: the Encounter and Tokens menus and nothing else. Phase 4 fills that
+space with Challenge Rating.
 
 **Phase 3 — Two sizes.** Add the out-of-combat size setting beside `menubarCombatSize`, and apply the
 correct one on every combat-state transition. Verify the offset of the elements below the menubar in both
