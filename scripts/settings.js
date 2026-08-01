@@ -2279,13 +2279,12 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.menubarCombatSize-Hint',
 		scope: "user",
 		config: true,
-		requiresReload: true,	
 		type: Number,
 		default: 60,
 		range: {
 			min: 30,
 			max: 120,
-			step: 2,		
+			step: 2,
 		},
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
@@ -2305,7 +2304,7 @@ export const registerSettings = () => {
 	game.settings.register(MODULE.ID, 'menubarCombatHideDead', {
 		name: MODULE.ID + '.menubarCombatHideDead-Label',
 		hint: MODULE.ID + '.menubarCombatHideDead-Hint',
-		scope: 'user',
+		scope: 'world',
 		config: true,
 		type: Boolean,
 		default: false,

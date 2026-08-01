@@ -212,7 +212,15 @@ export class CombatBarManager {
                     isActive: false,
                     actionButton: null
                 };
-                const result = originalOpenSecondaryBar(typeId, { ...options, data });
+                // The bar's own height must ride along on every open. Without
+                // it the base method falls back to `barType.height`, which was
+                // frozen at registration from the CSS default — so the size
+                // setting moved only the health rings (drawn from the combat
+                // height variable in JS) while the bar, and every screen
+                // element the menubar offsets below it, stayed put.
+                const combatHeight = getSettingSafely(MODULE.ID, 'menubarCombatSize', 60);
+                document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
+                const result = originalOpenSecondaryBar(typeId, { height: combatHeight, ...options, data });
                 if (result) menuBar.__combatBarUserClosed = false;
                 return result;
             }
@@ -470,6 +478,11 @@ export class CombatBarManager {
                 if (module !== MODULE.ID || key !== 'menubarCombatSize') return;
                 document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${value}px`);
                 if (game.combat && menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                    // Resize the live bar too. `--blacksmith-menubar-total-height`
+                    // is a calc() over this variable, so the elements the menubar
+                    // pushes down follow without being set again here.
+                    menuBar.secondaryBar.height = value;
+                    document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${value}px`);
                     CombatBarManager.updateCombatBar(menuBar);
                 }
             }

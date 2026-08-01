@@ -319,7 +319,7 @@
 				"menubarCombatHideHealthBars-Label": "Hide Enemy Health Bars",
 				"menubarCombatHideHealthBars-Hint": "When enabled, the health bars of enemy combatants will be hidden from players in the combat menubar.",
 				"menubarCombatHideDead-Label": "Hide the Dead",
-				"menubarCombatHideDead-Hint": "When enabled, defeated or dead combatants remain in the combat tracker but are hidden from the combat menubar.",
+				"menubarCombatHideDead-Hint": "When enabled, defeated or dead combatants are moved out of the combat menubar and into the Graveyard button at the end of the bar, for every player. They remain in the combat tracker.",
 
 				"ActiveEffectsGroup": "Status and Conditions",
 				"ActiveEffectType-Effect": "Effect",
