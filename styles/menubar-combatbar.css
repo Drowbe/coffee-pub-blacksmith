@@ -55,45 +55,46 @@
     border: 1px solid rgba(0, 0, 0, 0.7);
     border-radius: 0px 2px 2px 0px;
   }
-  .blacksmith-menubar-secondary .combat-endcap-right {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-end;
-    gap: 2px;
-    width: 175px;
-    min-width: 175px;
-    flex: 0 0 175px;
-    height: 100%;
-    padding: 0px 8px;
-    background-color: rgba(0, 0, 0, 0.0);
-    border-left: 0px solid rgba(17, 17, 17, 0.1);
-  }
-  
-  .blacksmith-menubar-secondary .combat-endcap-right .combat-endcap-top,
+  /* The endcap carries round above turn rather than a label above a value, so
+     the emphasis is inverted from the original: round is the headline, the
+     turn count the supporting line. */
   .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-top {
+      font-weight: 900;
+      text-transform: uppercase;
+      white-space: nowrap;
+      font-size: var(--combatbar-text-font-size);
+      color: var(--blacksmith-menubar-secondary-fontcolor);
+  }
+
+  .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-bottom {
       opacity: 0.6;
+      white-space: nowrap;
       font-size: var(--combatbar-subtext-font-size);
       color: var(--blacksmith-menubar-secondary-fontcolor);
   }
-  
-  .blacksmith-menubar-secondary .combat-endcap-right .combat-endcap-bottom,
-  .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-bottom  {
-      font-weight: 900;
-      text-transform: uppercase;
-      font-size: var(--combatbar-text-font-size);
-      color: var(--blacksmith-menubar-secondary-fontcolor);
-      margin: 0px 0px .2em 0px;
-  }
 
-  .blacksmith-menubar-secondary .combat-endcap-right .combat-endcap-bottom {
-      display: block;
-      width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: right;
-  }
+/* READOUT ITEMS - registered items, sharing the row with the portraits.
+   Sizes to its contents so an empty set costs nothing and the portraits keep
+   the space. */
+.blacksmith-menubar-secondary .combat-readout-items {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    height: 100%;
+}
+
+/* The shared toolbar assumes it owns the whole bar; here it owns one end of
+   it, so it takes its natural width instead of stretching. */
+.blacksmith-menubar-secondary .combat-readout-items .secondary-bar-toolbar {
+    width: auto;
+    justify-content: flex-end;
+    padding-left: 0;
+}
+
+.blacksmith-menubar-secondary .combat-readout-items .secondary-bar-zone:empty {
+    display: none;
+}
 
 /* COMBAT PORTRAITS - Container */
 

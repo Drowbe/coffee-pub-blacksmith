@@ -5,6 +5,7 @@ import { CombatTracker } from './ui-combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
 import { broadcastToast, ToastAPI } from './api-toast.js';
+import { EncounterManager } from './manager-encounter.js';
 import { EffectsAPI } from './api-effects.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 
@@ -211,7 +212,7 @@ export class CombatBarManager {
                 // which was frozen at registration from the CSS default — so the
                 // size setting moved only the health rings while the bar, and
                 // every screen element the menubar offsets below it, stayed put.
-                const combatHeight = CombatBarManager.applyBarHeight(menuBar, CombatBarManager.resolveBarHeight(!!combat));
+                const combatHeight = CombatBarManager.applyBarHeight(menuBar, !!combat);
                 const data = CombatBarManager.getCombatData(combat);
                 const result = originalOpenSecondaryBar(typeId, { height: combatHeight, ...options, data });
                 if (result) menuBar.__combatBarUserClosed = false;
@@ -291,9 +292,110 @@ export class CombatBarManager {
             height: menuBar.getSecondaryBarHeight('combat'),
             persistence: 'manual',
             autoCloseDelay: 10000,
-            templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs'
+            templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs',
+            // Bespoke markup for the portrait strip, registered items for the
+            // readouts. The strip is the only thing here the item vocabulary
+            // cannot express; challenge rating, health, balance, and timers
+            // are all info/progressbar/balancebar and belong as items.
+            hybridItems: true,
+            // Banners match the other secondary bars in the suite (Broadcast,
+            // Cartographer): grouped, labelled sections rather than loose icons.
+            groupBannerEnabled: true,
+            groupBannerColor: 'rgba(62, 62, 163, 0.9)',
+            groups: {
+                'challenge': { mode: 'default', order: 10 }
+            }
         });
         api.registerSecondaryBarTool?.('combat', 'combat-bar');
+        CombatBarManager.registerReadoutItems(api);
+    }
+
+    /**
+     * Readout items for the bar's right-hand zone. GM-only: challenge rating
+     * tells a player how dangerous the fight they are in was designed to be.
+     */
+    static registerReadoutItems(api) {
+        if (!api?.registerSecondaryBarItem) return;
+        const gmOnly = () => game.user.isGM;
+
+        api.registerSecondaryBarItem('combat', 'party-cr', {
+            kind: 'info',
+            zone: 'right',
+            group: 'challenge',
+            order: 0,
+            icon: 'fas fa-helmet-battle',
+            label: 'Party',
+            value: '0',
+            tooltip: 'Party challenge rating',
+            visible: gmOnly
+        });
+        api.registerSecondaryBarItem('combat', 'monster-cr', {
+            kind: 'info',
+            zone: 'right',
+            group: 'challenge',
+            order: 1,
+            icon: 'fas fa-dragon',
+            label: 'Monster',
+            value: '0',
+            tooltip: 'Monster challenge rating',
+            visible: gmOnly
+        });
+        api.registerSecondaryBarItem('combat', 'difficulty', {
+            kind: 'info',
+            zone: 'right',
+            group: 'challenge',
+            order: 2,
+            icon: 'fa-solid fa-swords',
+            label: '',
+            value: 'None',
+            tooltip: 'Encounter difficulty',
+            visible: gmOnly
+        });
+
+        CombatBarManager.refreshReadoutItems();
+    }
+
+    static _readoutRefreshTimer = null;
+
+    /**
+     * Debounced refresh. Dropping a dozen tokens fires a dozen hooks, and the
+     * assessment walks every placeable each time.
+     */
+    static scheduleReadoutRefresh(menuBar) {
+        if (CombatBarManager._readoutRefreshTimer) {
+            clearTimeout(CombatBarManager._readoutRefreshTimer);
+        }
+        CombatBarManager._readoutRefreshTimer = setTimeout(() => {
+            CombatBarManager._readoutRefreshTimer = null;
+            CombatBarManager.refreshReadoutItems();
+            if (menuBar?.secondaryBar?.isOpen && menuBar.secondaryBar.type === 'combat') {
+                CombatBarManager.updateCombatBar(menuBar);
+            }
+        }, 250);
+    }
+
+    /**
+     * Recompute the challenge rating readouts. Canvas-scoped, matching what
+     * the numbers have always meant: they answer whether the fight in front of
+     * you is fair, not who is currently in the tracker.
+     */
+    static refreshReadoutItems() {
+        try {
+            if (!game.user.isGM) return;
+            const api = game.modules.get(MODULE.ID)?.api;
+            if (!api?.updateSecondaryBarItemInfo) return;
+            const assessment = EncounterManager.getCombatAssessment({});
+            api.updateSecondaryBarItemInfo('combat', 'party-cr', { value: assessment.partyCRDisplay });
+            api.updateSecondaryBarItemInfo('combat', 'monster-cr', { value: assessment.monsterCRDisplay });
+            api.updateSecondaryBarItemInfo('combat', 'difficulty', {
+                value: assessment.difficulty,
+                label: '',
+                iconColor: EncounterManager.getDifficultyBorderColor(assessment.difficultyClass),
+                borderColor: null
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error refreshing challenge rating', error?.message || error, false, false);
+        }
     }
 
     static registerCombatMenubarTool() {
@@ -396,6 +498,22 @@ export class CombatBarManager {
                 }
             }
         });
+
+        // Challenge rating is canvas-derived, so it follows token changes, not
+        // combat events. These are the bar's own hooks rather than a reuse of
+        // EncounterToolbar's: those are registered only when
+        // `enableJournalEncounterToolbarRealTimeUpdates` is on, and a readout
+        // on a permanently visible bar must not go stale because a setting
+        // named after journal toolbars was switched off.
+        for (const hookName of ['createToken', 'updateToken', 'deleteToken']) {
+            HookManager.registerHook({
+                name: hookName,
+                description: `MenuBar: Refresh combat bar challenge rating on ${hookName}`,
+                context: 'menubar-combat-cr',
+                priority: 3,
+                callback: () => CombatBarManager.scheduleReadoutRefresh(menuBar)
+            });
+        }
 
         const combatDeleteHookId = HookManager.registerHook({
             name: 'deleteCombat',
@@ -690,7 +808,7 @@ export class CombatBarManager {
             // resizing here is what keeps the two sizes in step — and it has to
             // happen before the data is built, since portrait rings are sized
             // from the height variable as getCombatData runs.
-            CombatBarManager.applyBarHeight(menuBar, CombatBarManager.resolveBarHeight(!!combat));
+            CombatBarManager.applyBarHeight(menuBar, !!combat);
             const data = combatData || CombatBarManager.getCombatData(combat);
             CombatBarManager.hideCombatantHoverCard(menuBar);
             return menuBar.updateSecondaryBar(data);
@@ -710,7 +828,9 @@ export class CombatBarManager {
 
     /**
      * The bar's height for the given combat state. Two settings, because the
-     * bar carries portraits during an encounter and only menus between them.
+     * bar carries portraits during an encounter and only menus and readouts
+     * between them. One row either way — readouts sit beside the portraits in
+     * zones, which is how every other secondary bar in the suite is laid out.
      */
     static resolveBarHeight(isInCombat) {
         return isInCombat
@@ -725,11 +845,12 @@ export class CombatBarManager {
      * `--blacksmith-menubar-total-height` is a calc() over the former, so the
      * Foundry UI beneath the menubar follows without being written again.
      *
-     * Call this BEFORE building bar data — the ring geometry is computed from
-     * the variable at that moment, so setting it afterwards sizes the rings
+     * Call this BEFORE building bar data: the ring geometry is read from the
+     * variable as getCombatData runs, so setting it afterwards sizes the rings
      * from the previous state.
      */
-    static applyBarHeight(menuBar, height) {
+    static applyBarHeight(menuBar, isInCombat) {
+        const height = CombatBarManager.resolveBarHeight(isInCombat);
         document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${height}px`);
         if (menuBar?.secondaryBar?.isOpen && menuBar.secondaryBar.type === 'combat') {
             menuBar.secondaryBar.height = height;
@@ -983,7 +1104,7 @@ export class CombatBarManager {
             // Opens with or without a combat — getCombatData falls back to the
             // idle shape, and the bar is meant to be present either way.
             const combat = CombatBarManager.getActiveCombat();
-            CombatBarManager.applyBarHeight(menuBar, CombatBarManager.resolveBarHeight(!!combat));
+            CombatBarManager.applyBarHeight(menuBar, !!combat);
             const data = combatData || CombatBarManager.getCombatData(combat);
             return menuBar.openSecondaryBar('combat', { data, persistence: 'manual' });
         } catch (_error) {

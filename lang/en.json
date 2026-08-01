@@ -316,7 +316,7 @@
 				"menubarCombatSize-Label": "Size In Combat",
 				"menubarCombatSize-Hint": "The vertical size of the combat menubar while an encounter is running. This also sets how large the combatant portraits and their health rings are drawn.",
 				"menubarCombatSizeIdle-Label": "Size Out of Combat",
-				"menubarCombatSizeIdle-Hint": "The vertical size of the combat menubar between encounters, when it carries only the encounter and token menus and no portraits. The bar switches between the two sizes as combat starts and ends.",
+				"menubarCombatSizeIdle-Hint": "The vertical size of the combat menubar between encounters, when it carries no portraits. The bar switches between the two sizes as combat starts and ends.",
 
 				"menubarCombatHideHealthBars-Label": "Hide Enemy Health Bars",
 				"menubarCombatHideHealthBars-Hint": "When enabled, the health bars of enemy combatants will be hidden from players in the combat menubar.",

@@ -1,6 +1,6 @@
 # Plan: Merge the Encounter Bar into the Combat Bar
 
-**Status: Implemented (phases 1-3). Phases 4-8 pending.**
+**Status: Implemented (phases 1-4, phase 5 partly). Phases 5-8 pending.**
 
 Fold the encounter secondary bar's tools and readouts into the combat bar, retire the encounter bar, and
 relabel the result "Encounter". The merged bar is always present, adapts its contents to whether combat is
@@ -25,16 +25,9 @@ Only the Clear buttons are genuinely out-of-combat tools.
 
 ## Target state
 
-One always-present bar, labelled Encounter, in two rows.
+One always-present bar, labelled Encounter, in a single row.
 
-**Row 1, the readout row** — always present, directly under the primary menubar. Item-driven (see the
-hybrid-rendering constraint below), so contributions are declarative and siblings can add to it.
-
-**Row 2, the portrait strip** — present only during combat. Bespoke markup: scrolling, health rings,
-drag-to-reorder, hover cards.
-
-Row 1 sits above row 2 so that the readouts never move. If they sat below, every combat start would shove
-them down by the height of the portrait strip and every combat end would yank them back.
+**One row, not two.** The readouts sit beside the portraits in the item zones, grouped with labelled banners, which is how every other secondary bar in the suite is laid out (Broadcast, Cartographer). Vertical space is the scarce resource on a wide screen and stacking rows spends it; horizontal space is plentiful. An earlier attempt at a second row shrank the action buttons to fit and was reverted.
 
 Contents by state:
 
@@ -87,7 +80,7 @@ rebuilding what already exists, styled and wired.
 
 **The blocker is that rendering treats the two modes as exclusive.** `_prepareSecondaryBarData` returns
 early for a custom template and never prepares zones or items (`api-menubar.js:2684`). The combat bar
-therefore gets its custom payload or items, never both. Making row 1 item-driven means teaching that method
+therefore gets its custom payload or items, never both. Making the readouts item-driven means teaching that method
 to do both for a bar that asks for it. This is a contained change to one method, and it is the substance of
 phase 4 — not Challenge Rating, which rides on top of it.
 
@@ -126,10 +119,15 @@ are not.
 (`ui-journal-encounter.js:1573`), so another module supplies the capability. Confirm which one owns it, and
 whether it adds monsters to the *current* encounter or only creates new ones, before moving it.
 
-**Height is load-bearing, and a second row changes what the size settings mean.**
-`--blacksmith-menubar-total-height` offsets the Foundry UI below the menubar, so a wrong height misplaces
-every element under it. With two rows, `menubarCombatSize` and `menubarCombatSizeIdle` have to be redefined
-as either the whole bar or the portrait row alone. Phase 4 has to decide and say which.
+**Height is load-bearing.** `--blacksmith-menubar-total-height` offsets the Foundry UI below the menubar,
+so a wrong height misplaces every element under it. `menubarCombatSize` and `menubarCombatSizeIdle` size
+the whole bar, which stays one row.
+
+**Read `documentation/api/api-menubar.md` before designing bar layout.** The house pattern is documented
+there and the other suite bars follow it: one row, items in left/middle/right zones, grouped with labelled
+banners via `groupBannerEnabled`, banners sized at 20% of bar height and progressbars at 40%. Phase 4 was
+first built as a second row with shrunken buttons because that doc was not read; it was reverted. Grepping
+the code shows what the machinery can do, not what the suite has decided to look like.
 
 **Test both states, every time.** Two of the seven phase-2 defects were only reachable out of combat, and
 the in-combat path exercises almost none of that code.
@@ -184,17 +182,43 @@ Two things about this are easy to get wrong and are worth not rediscovering:
   menubar. `--blacksmith-menubar-secondary-combat-height` is read only by the ring math in JS. Writing one
   and not the other is what made the size setting appear to do nothing but resize health rings.
 
-**Phase 4 — The readout row.** Teach `_prepareSecondaryBarData` to prepare items *and* pass a custom
-payload for a bar that asks for both, then add row 1 to the combat template as an item-rendered zone set.
-Decide and document what the two size settings mean once there are two rows. Rework the endcaps in the same
-pass, since they are the same markup: fold turn into the round endcap on the left, and delete the combatant
-name endcap. Ship the row with no occupants other than the endcaps to prove the rendering before anything
-depends on it.
+**Phase 4 — Readouts as registered items. Done.** A bar type may now declare `hybridItems: true`, which makes
+`_prepareSecondaryBarData` fall through to the zone preparation instead of returning early for a custom
+template. Because `menubar.hbs` invokes a custom partial with `secondaryBar.data` as its context, the
+prepared zones and banner settings are copied onto `data.data`, which lets the combat template hand its own
+context straight to `menubar-secondary-default` and reuse the entire item rendering rather than restating
+it.
 
-**Phase 5 — Challenge Rating.** Register Party CR, Monster CR, and Difficulty as `info` items on row 1,
-GM-gated, with the merged bar registering its own debounced token hooks rather than borrowing
-`EncounterToolbar`'s. Heading becomes "Challenge Rating" and the labels lose the "CR", which the heading
-makes redundant. Hide the CR pair in combat; keep Difficulty as a tinted chip.
+The items render in the space the combatant-name endcap used to occupy, sharing the single row with the
+portraits. The bar keeps one height and the action buttons keep their size.
+
+This was first built as a second row, with the action buttons moved into it and shrunk to fit, and the size
+settings redefined as "portrait row only". That was wrong on the fundamental tradeoff: vertical space is the
+scarce resource on a wide screen while horizontal space is plentiful, and it was invented against a
+documented house pattern — one row, zones, banner-labelled groups — that the other suite bars already
+follow. It was reverted. `menubarCombatSize` and `menubarCombatSizeIdle` keep their phase-3 meaning of the
+whole bar.
+
+The endcap rework rode along, since it is the same markup: round and turn are one endcap on the left, and
+the combatant-name endcap on the right is gone. Its label-above-value emphasis was inverted for the new
+content, so the left endcap's two lines now read headline-above-detail.
+
+Found while removing the right endcap: `timer-round.js` caches `.combat-endcap-left .combat-time-round` and
+`.combat-endcap-right .combat-time-total`, but those classes exist only in `templates/timer-round.hbs` and
+never in the combat bar. Both cache entries have always been empty. The combat bar was evidently meant to
+show the round and total timers in its endcaps and never did, which is also why `getCombatData` computes
+`totalCombatDuration` and `currentRoundDuration` and the template ignores them. Phase 7 should either wire
+them up or delete the dead cache entries.
+
+**Phase 5 — Challenge Rating. Partly done.** Party CR, Monster CR, and Difficulty are registered as `info`
+items in a banner-labelled `challenge` group, GM-gated, refreshed by the bar's own debounced
+`createToken` / `updateToken` / `deleteToken` hooks rather than `EncounterToolbar`'s. Labels are "Party" and
+"Monster" with the banner carrying the heading, so the values lose the "CR". Landed early so the row had
+something real in it to review — an empty row cannot be judged.
+
+Still to do: hide the CR pair once combat starts and keep Difficulty alone as a tinted chip, per the
+design-time/run-time split. Deferred until the balance bar exists to take the space, since hiding them
+first would just leave a gap.
 
 **Phase 6 — Health.** Party health as a `progressbar` reusing the party bar's calculation; monster health as
 a new mirror of it. Canvas-scoped out of combat, tracker-scoped in combat.

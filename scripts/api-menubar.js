@@ -1839,6 +1839,11 @@ class MenuBar {
                 autoCloseDelay: config.autoCloseDelay || 10000,
                 templatePath: config.templatePath || null,
                 hasCustomTemplate: !!config.templatePath,
+                // A hybrid bar renders registered items *and* its own markup.
+                // Custom template and item rendering were mutually exclusive,
+                // which left a bespoke bar unable to use info/progressbar/
+                // balancebar items even though they are exactly what it needs.
+                hybridItems: config.hybridItems === true,
                 groupBannerEnabled: config.groupBannerEnabled === true,
                 groupBannerColor: config.groupBannerColor || 'rgba(62, 62, 163, 0.9)'
             };
@@ -2685,7 +2690,9 @@ class MenuBar {
             if (!data.data) {
                 data.data = {};
             }
-            return data;
+            // A hybrid bar falls through to the zone preparation below so its
+            // template can render registered items alongside its own markup.
+            if (!barType.hybridItems) return data;
         }
 
         // For default template, prepare items organized by zones (left, middle, right) then by groups
@@ -2871,6 +2878,17 @@ class MenuBar {
             middle: processZoneGroups(itemsByZone.middle),
             right: processZoneGroups(itemsByZone.right)
         };
+
+        // menubar.hbs invokes a custom partial with `secondaryBar.data` as its
+        // context, so a hybrid bar's zones have to travel there to be reachable
+        // at all. Carrying the banner settings across too means the custom
+        // template can hand its context straight to menubar-secondary-default
+        // and reuse the whole item rendering rather than restating it.
+        if (barType.hasCustomTemplate && barType.hybridItems && data.data) {
+            data.data.zones = data.zones;
+            data.data.groupBannerEnabled = data.groupBannerEnabled;
+            data.data.groupBannerColor = data.groupBannerColor;
+        }
 
         return data;
     }
