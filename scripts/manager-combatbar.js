@@ -6,6 +6,7 @@ import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
 import { broadcastToast, ToastAPI } from './api-toast.js';
 import { EncounterManager } from './manager-encounter.js';
+import { getActorHP } from './utility-health.js';
 import { EffectsAPI } from './api-effects.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 
@@ -307,6 +308,7 @@ export class CombatBarManager {
             groupBannerEnabled: false,
             groups: {
                 'encounter': { mode: 'default', order: 0 },
+                'health': { mode: 'default', order: 5 },
                 'challenge': { mode: 'default', order: 10 }
             }
         });
@@ -349,6 +351,45 @@ export class CombatBarManager {
             visible: inCombat
         });
 
+        // Health. Party is everyone's business; monster totals are not, in the
+        // same way the challenge rating is not.
+        const health = CombatBarManager.getHealthSummaries();
+        api.registerSecondaryBarItem('combat', 'party-health', {
+            kind: 'progressbar',
+            zone: 'right',
+            group: 'health',
+            order: 0,
+            width: 150,
+            icon: '',
+            title: '',
+            borderColor: 'rgba(0,0,0,0.5)',
+            barColor: '#2d5016',
+            progressColor: '#4a7c23',
+            leftIcon: 'fa-solid fa-shield-halved',
+            percentProgress: health.party.percent,
+            leftLabel: String(health.party.current),
+            rightLabel: String(health.party.max),
+            tooltip: 'Party total HP'
+        });
+        api.registerSecondaryBarItem('combat', 'monster-health', {
+            kind: 'progressbar',
+            zone: 'right',
+            group: 'health',
+            order: 1,
+            width: 150,
+            icon: '',
+            title: '',
+            borderColor: 'rgba(0,0,0,0.5)',
+            barColor: '#4a0a0a',
+            progressColor: '#a02020',
+            leftIcon: 'fa-solid fa-dragon',
+            percentProgress: health.monster.percent,
+            leftLabel: String(health.monster.current),
+            rightLabel: String(health.monster.max),
+            tooltip: 'Monster total HP',
+            visible: gmOnly
+        });
+
         api.registerSecondaryBarItem('combat', 'party-cr', {
             kind: 'info',
             zone: 'right',
@@ -386,6 +427,69 @@ export class CombatBarManager {
         CombatBarManager.refreshReadoutItems();
     }
 
+    /**
+     * Total HP across a set of tokens or combatants, via the shared
+     * `getActorHP` rather than another local copy of the HP shape lookup.
+     *
+     * Linked tokens are counted once per actor: five goblins from an unlinked
+     * prototype are five separate HP pools, but two tokens of the same linked
+     * PC are one, and summing per token would double that character's health.
+     *
+     * @param {Array<{actor: Actor|null, linked: boolean}>} entries
+     */
+    static _sumHealth(entries) {
+        let current = 0;
+        let max = 0;
+        const seenLinked = new Set();
+        for (const { actor, linked } of entries) {
+            if (!actor) continue;
+            if (linked) {
+                if (seenLinked.has(actor.id)) continue;
+                seenLinked.add(actor.id);
+            }
+            const hp = getActorHP(actor);
+            if (!hp) continue;
+            current += hp.value;
+            max += hp.max;
+        }
+        const percent = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
+        return { current, max, percent: Math.round(percent) };
+    }
+
+    /**
+     * Party and monster health, scoped to match what the bar is answering.
+     * Out of combat that is "is the fight in front of me winnable", so it reads
+     * the canvas — the same scope the challenge rating uses. In combat it is
+     * "how is this fight going", so it reads the tracker.
+     */
+    static getHealthSummaries() {
+        const combat = CombatBarManager.getActiveCombat();
+        const party = [];
+        const monsters = [];
+
+        if (combat) {
+            const combatants = Array.isArray(combat.turns) && combat.turns.length
+                ? combat.turns
+                : Array.from(combat.combatants);
+            for (const c of combatants) {
+                const entry = { actor: c.actor || null, linked: !!c.token?.actorLink };
+                (c.isNPC ? monsters : party).push(entry);
+            }
+        } else {
+            for (const token of (canvas?.tokens?.placeables ?? [])) {
+                const actor = token.actor;
+                if (!actor) continue;
+                const entry = { actor, linked: !!token.document?.actorLink };
+                (actor.hasPlayerOwner ? party : monsters).push(entry);
+            }
+        }
+
+        return {
+            party: CombatBarManager._sumHealth(party),
+            monster: CombatBarManager._sumHealth(monsters)
+        };
+    }
+
     static _readoutRefreshTimer = null;
 
     /**
@@ -421,6 +525,18 @@ export class CombatBarManager {
                 api.updateSecondaryBarItemInfo('combat', 'round', { value: String(combat.round || 0) });
                 api.updateSecondaryBarItemInfo('combat', 'turn', { value: `${currentTurn} of ${totalTurns}` });
             }
+
+            const health = CombatBarManager.getHealthSummaries();
+            api.updateSecondaryBarItemInfo('combat', 'party-health', {
+                percentProgress: health.party.percent,
+                leftLabel: String(health.party.current),
+                rightLabel: String(health.party.max)
+            });
+            api.updateSecondaryBarItemInfo('combat', 'monster-health', {
+                percentProgress: health.monster.percent,
+                leftLabel: String(health.monster.current),
+                rightLabel: String(health.monster.max)
+            });
 
             if (!game.user.isGM) return;
             const assessment = EncounterManager.getCombatAssessment({});
@@ -594,6 +710,9 @@ export class CombatBarManager {
             callback: (actor, updateData) => {
                 if (CombatBarManager.isCombatBarActive(menuBar)) CombatBarManager.handleActorHpChange(menuBar, actor, updateData);
                 void CombatBarManager.refreshCombatantPopoutCardsForActor(menuBar, actor);
+                // The health readouts cover the canvas out of combat, so they
+                // follow any actor's HP and not only a combatant's.
+                CombatBarManager.scheduleReadoutRefresh(menuBar);
                 if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'party') {
                     menuBar._refreshPartyBarInfo();
                 }
@@ -607,6 +726,7 @@ export class CombatBarManager {
             priority: 3,
             callback: (token, updateData) => {
                 if (CombatBarManager.isCombatBarActive(menuBar)) CombatBarManager.handleTokenHpChange(menuBar, token, updateData);
+                CombatBarManager.scheduleReadoutRefresh(menuBar);
             }
         });
 
@@ -874,7 +994,7 @@ export class CombatBarManager {
      * from the bar height, and the combat row has to scale for portraits.
      * A slider here would reintroduce exactly the problem the row solves.
      */
-    static DATA_ROW_HEIGHT = 38;
+    static DATA_ROW_HEIGHT = 30;
 
     /**
      * The combat row's height — portraits, controls, the part the user scales.

@@ -1,6 +1,6 @@
 # Plan: Merge the Encounter Bar into the Combat Bar
 
-**Status: Implemented (phases 1-4, phase 5 partly). Phases 5-8 pending.**
+**Status: Implemented (phases 1-4, 6; phase 5 partly). Phases 5, 7, 8 pending.**
 
 Fold the encounter secondary bar's tools and readouts into the combat bar, retire the encounter bar, and
 relabel the result "Encounter". The merged bar is always present, adapts its contents to whether combat is
@@ -120,8 +120,9 @@ scene and `getMonsterCR({monsters: []})` does the canvas-only calculation (`mana
 are about to have is fair. Health and the balance bar should follow the same scoping out of combat and
 switch to tracker-scoped once combat starts, since that is what "how is this going" means.
 
-**Monster health does not exist.** Party health is `_refreshPartyBarInfo` (`api-menubar.js:540`). The
-monster mirror has to be written, and the balance bar needs both sides.
+**HP totals need a linked/unlinked distinction.** Summing per token double-counts a linked PC with two
+tokens on the scene; deduping by actor id collapses five unlinked goblins into one, because unlinked
+synthetic actors share the prototype's id. Dedupe by actor id for linked tokens only.
 
 **Two timer sources, two states of readiness.** `getCombatData` already computes `totalCombatDuration` and
 `currentRoundDuration` and passes both to the template, which ignores them — those need markup, not
@@ -265,8 +266,21 @@ Still to do: hide the CR pair once combat starts and keep Difficulty alone as a 
 design-time/run-time split. Deferred until the balance bar exists to take the space, since hiding them
 first would just leave a gap.
 
-**Phase 6 — Health.** Party health as a `progressbar` reusing the party bar's calculation; monster health as
-a new mirror of it. Canvas-scoped out of combat, tracker-scoped in combat.
+**Phase 6 — Health. Done.** Party and monster health as `progressbar` items in a `health` group, party
+visible to everyone and monster GM-only on the same reasoning as the challenge rating. Scoping follows what
+the bar is answering: the canvas out of combat, matching the challenge rating, and the tracker in combat.
+
+Built on the shared `getActorHP` from `utility-health.js` rather than a fourth private copy of the HP shape
+lookup — `TODO.md` has an item to move the combat bar and party bar onto that helper, and this is its first
+consumer.
+
+**Linked tokens are counted once per actor.** Five goblins from an unlinked prototype are five HP pools, but
+two tokens of one linked PC are a single pool, and summing per token would double that character's health.
+The dedupe keys on actor id and applies only to linked tokens, which is why it cannot simply dedupe
+everything: unlinked synthetic actors share the prototype's id.
+
+Health follows `updateActor` and `updateToken` through the existing debounced readout refresh, not the
+combat-bar HP handlers, which only fire for combatants — out of combat the readouts cover the canvas.
 
 **Phase 7 — Balance and timers.** The party-versus-monster `balancebar`, then the round and combat timers
 (already in the payload, unused), then the turn and planning timers fed from `timer-combat.js` and

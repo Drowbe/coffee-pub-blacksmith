@@ -14,7 +14,7 @@
    off 60px inside a row scaled to the real setting, leaving the difference as
    dead space. They exist only to keep the bar sane before the first render. */
 :root {
-    --blacksmith-combatbar-data-height: 38px;
+    --blacksmith-combatbar-data-height: 30px;
     --blacksmith-combatbar-combat-height: 60px;
 }
 
@@ -68,13 +68,13 @@
 
     --secondary-bar-item-font-size: clamp(
         10px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.36),
-        15px
+        calc(var(--blacksmith-combatbar-data-height) * 0.42),
+        14px
     );
     --secondary-bar-item-icon-size: clamp(
         8px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.36),
-        15px
+        calc(var(--blacksmith-combatbar-data-height) * 0.42),
+        14px
     );
     --secondary-bar-item-padding-hor: clamp(
         4px,
