@@ -31,15 +31,6 @@
               Combat Tracker lives in the Encounter menu. --}}
         {{#if isGM}}
         <div class="combatbar-button-control-container action-button combat-bar-edge-button">
-            {{#if isInCombat}}
-            <a class="combatbar-button action-type-general"
-               aria-label="Initiatives"
-               role="button"
-               data-tooltip="Initiatives"
-               data-control="initiativeMenu">
-                <i class="fas fa-dice-d20"></i>
-            </a>
-            {{/if}}
             <a class="combatbar-button action-type-general"
                aria-label="Encounter"
                role="button"
@@ -54,6 +45,15 @@
                data-control="tokensMenu">
                 <i class="fa-solid fa-users-viewfinder"></i>
             </a>
+            {{#if isInCombat}}
+            <a class="combatbar-button action-type-general"
+               aria-label="Initiatives"
+               role="button"
+               data-tooltip="Initiatives"
+               data-control="initiativeMenu">
+                <i class="fas fa-dice-d20"></i>
+            </a>
+            {{/if}}
         </div>
         {{/if}}
 
@@ -175,6 +175,22 @@
             </button>
         {{/if}}
 
+        {{!-- Graveyard: the dead that "hide dead" has taken off the strip.
+              Sits beside the portraits, before the turn navigation, because it
+              holds portraits rather than being a control. Absent when the
+              setting is off, since they are still on the bar. --}}
+        {{#if hasGraveyard}}
+        <div class="combatbar-button-control-container action-button combat-bar-edge-button">
+            <a class="combatbar-button action-type-general"
+               aria-label="Graveyard"
+               role="button"
+               data-tooltip="Graveyard ({{graveyardCount}})"
+               data-control="graveyardMenu">
+                <i class="fa-solid fa-skull"></i>
+            </a>
+        </div>
+        {{/if}}
+
         {{#if isGM}}
         {{#if isActive}}
         <div class="combatbar-button-control-container combat-bar-next-buttons">
@@ -196,20 +212,6 @@
             </a>
         </div>
         {{/if}}
-        {{/if}}
-
-        {{!-- Graveyard: the dead that "hide dead" has taken off the strip.
-              Absent when the setting is off, since they are still on the bar. --}}
-        {{#if hasGraveyard}}
-        <div class="combatbar-button-control-container action-button combat-bar-edge-button">
-            <a class="combatbar-button action-type-general"
-               aria-label="Graveyard"
-               role="button"
-               data-tooltip="Graveyard ({{graveyardCount}})"
-               data-control="graveyardMenu">
-                <i class="fa-solid fa-skull"></i>
-            </a>
-        </div>
         {{/if}}
 
         {{!-- Action Button (End Combat, Begin Combat, etc.) - inside scroll wrapper --}}

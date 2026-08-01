@@ -16,6 +16,12 @@
 :root {
     --blacksmith-combatbar-data-height: 30px;
     --blacksmith-combatbar-combat-height: 60px;
+
+    /* COLOUR TUNABLES — the bar's whole colour treatment lives here.
+       The data row sits over the combat row's background and over the scene,
+       so keep it translucent: at full opacity it reads as a separate window
+       stuck to the menubar rather than part of the bar. */
+    --blacksmith-combatbar-data-background: rgba(110, 41, 35, 0.7);
 }
 
    .blacksmith-menubar-secondary {
@@ -71,10 +77,13 @@
         calc(var(--blacksmith-combatbar-data-height) * 0.42),
         14px
     );
+    /* Icons run smaller than the text here. They label a value or flank a
+       bar, so at the same size as the text they compete with it — and beside
+       an 18px bar they read as a second element rather than an adornment. */
     --secondary-bar-item-icon-size: clamp(
         8px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.42),
-        14px
+        calc(var(--blacksmith-combatbar-data-height) * 0.32),
+        11px
     );
     --secondary-bar-item-padding-hor: clamp(
         4px,
@@ -92,13 +101,23 @@
         7px
     );
 
+    /* One size for every label that sits INSIDE a bar — health, timer,
+       balance. The shared rules give each kind its own font-size, so without
+       this they drift apart; and text over a coloured fill wants to be smaller
+       than the chip text beside it, not equal to it. */
+    --blacksmith-combatbar-bar-font-size: clamp(
+        8px,
+        calc(var(--blacksmith-combatbar-data-height) * 0.30),
+        10px
+    );
+
     display: flex;
     align-items: center;
     width: 100%;
     height: var(--blacksmith-combatbar-data-height);
     flex: 0 0 var(--blacksmith-combatbar-data-height);
     overflow: hidden;
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: var(--blacksmith-combatbar-data-background);
 }
 
 .blacksmith-menubar-secondary .combat-data-row .secondary-bar-toolbar {
@@ -174,15 +193,23 @@
     background-color: var(--blacksmith-turn-timer-expired);
 }
 
-/* The timer's text sits over its bar rather than beside it, as in the tracker. */
-.blacksmith-menubar-secondary .combat-data-row
-    .secondary-bar-item-progressbar[data-item-id$="-timer"] .secondary-bar-item-progressbar-left-label {
-    position: absolute;
-    left: 0;
-    right: 0;
-    text-align: center;
+/* Every label inside a bar, at one size. Health, timer, and balance labels are
+   styled by separate shared rules that each set their own font-size, so they
+   are pulled together here rather than left to drift. */
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item-progressbar-left-label,
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item-progressbar-right-label,
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item-balancebar-left-label,
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item-balancebar-right-label {
+    font-size: var(--blacksmith-combatbar-bar-font-size);
     white-space: nowrap;
     pointer-events: none;
+}
+
+/* The timer's text sits over its bar, left-aligned like the rest of the left
+   zone. It keeps the shared label's positioning and size; only weight and
+   legibility over a moving coloured fill are added. */
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id$="-timer"] .secondary-bar-item-progressbar-left-label {
     text-transform: uppercase;
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);

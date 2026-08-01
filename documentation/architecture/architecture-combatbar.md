@@ -102,7 +102,45 @@ Registered in `registerReadoutItems`, refreshed by `refreshReadoutItems`, both i
 Readouts strip the shared item chrome — fill, border, radius, pointer cursor, hover lift, square minimum
 width — because the shared rule styles every item as a button, which on a default bar every item is.
 
-**Challenge rating and monster health are GM-only.** Round, turn, party health and the timers are not.
+**Challenge rating and monster health are GM-only.** Round, turn, party health, the timers, and the balance
+bar are not — the balance bar reports a relationship ("the party is ahead") rather than a quantity, so it
+gives the table the boss-bar read without disclosing what a monster has left.
+
+**The challenge rating pair is design-time only.** Party CR and Monster CR answer whether a fight should be
+run and stop changing once it starts; the live answer to the same question is the balance bar, so the pair
+hides in combat and its space goes to the balance. Difficulty stays in both states as a one-chip reminder of
+what the fight was expected to be.
+
+The balance bar's value is `partyPercent - monsterPercent`, so zero means both sides are equally worn and
++100 means the monsters are down with the party untouched. Percentages rather than raw HP, so a big-pool
+boss and a swarm read on the same scale. The shared marker maths is `50 + (p / 2)`, which puts negative left
+and positive right — hence left is the monsters' side. It carries **no labels**: it is a measure of balance,
+not a second place to read the health numbers, which the two health bars already give.
+
+Zones: the left zone holds round, turn, and the timer slot; the right zone holds health, balance, and
+challenge rating. Groups within a zone are separated by dividers automatically, so the grouping is what
+produces the pipes.
+
+Three text and icon sizes are declared for this row, all from the data row's height:
+
+| Variable | Applies to |
+|---|---|
+| `--secondary-bar-item-font-size` | chip text — round, turn, challenge rating |
+| `--blacksmith-combatbar-bar-font-size` | every label *inside* a bar — health, timer, balance |
+| `--secondary-bar-item-icon-size` | all icons |
+
+Labels inside a bar need their own variable because the shared rules style progressbar and balancebar labels
+separately and each sets its own `font-size`, so without pulling them together they drift. They also sit on a
+coloured fill rather than the row, and want to be a step smaller than the chip text rather than equal to it.
+Icons run smaller again: at text size they compete with the value they label, and beside an 18px bar they
+stop reading as adornment.
+
+The party is `fa-helmet-battle` everywhere it appears — health, balance, and challenge rating — and the
+monsters `fa-dragon`.
+
+Combat row order is Encounter, Tokens, Initiatives (Initiatives only in combat), then turn navigation, the
+portrait strip, the graveyard, the remaining navigation, and the begin/end button. The graveyard sits with
+the portraits rather than with the controls, because it holds portraits the strip is hiding.
 
 **Challenge rating and health are canvas-scoped out of combat and tracker-scoped in combat**, which follows
 what the bar is being asked: whether the fight in front of you is fair, versus how the running fight is

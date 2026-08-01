@@ -1,6 +1,6 @@
 # Plan: Merge the Encounter Bar into the Combat Bar
 
-**Status: Implemented (phases 1-4, 6, 7 partly). Phases 5, 7, 8 pending.**
+**Status: Implemented (phases 1-7). Phase 8 pending.**
 
 Fold the encounter secondary bar's tools and readouts into the combat bar, retire the encounter bar, and
 relabel the result "Encounter". The merged bar is always present, adapts its contents to whether combat is
@@ -70,8 +70,8 @@ Contents by state:
 | Party health | shown | shown |
 | Monster health | shown | shown |
 | Party-vs-monster balance | shown | shown |
-| Turn and planning timers | absent | shown |
-| Round and combat timers | absent | shown |
+| Turn and planning timers | absent | one shared slot |
+| Round and combat timers | not built — elapsed counters have no percentage to fill | |
 
 **Challenge Rating is a design-time readout; the balance bar is its run-time successor.** CR answers "should
 I run this fight" and stops changing once the fight starts. During combat the same question is answered
@@ -256,15 +256,15 @@ entries, the custom-template gate on secondary bar item clicks, the row height a
 canvas-clearing actions hide during combat, and Quick Encounter's owner — are tracked in `TODO.md` under
 "Combat bar (encounter bar merge)" so they outlive this plan.
 
-**Phase 5 — Challenge Rating. Partly done.** Party CR, Monster CR, and Difficulty are registered as `info`
+**Phase 5 — Challenge Rating. Done.** Party CR, Monster CR, and Difficulty are registered as `info`
 items in a `challenge` group, GM-gated, refreshed by the bar's own debounced
 `createToken` / `updateToken` / `deleteToken` hooks rather than `EncounterToolbar`'s. Each item carries its
 own label, so the values drop the redundant "CR". Landed early so the row had something real in it to
 review — an empty row cannot be judged.
 
-Still to do: hide the CR pair once combat starts and keep Difficulty alone as a tinted chip, per the
-design-time/run-time split. Deferred until the balance bar exists to take the space, since hiding them
-first would just leave a gap.
+The CR pair now hides once combat starts, per the design-time/run-time split, with Difficulty staying in
+both states. This waited for the balance bar to exist to take the space, since hiding them earlier would
+only have left a gap.
 
 **Phase 6 — Health. Done.** Party and monster health as `progressbar` items in a `health` group, party
 visible to everyone and monster GM-only on the same reasoning as the challenge rating. Scoping follows what
@@ -282,7 +282,7 @@ everything: unlinked synthetic actors share the prototype's id.
 Health follows `updateActor` and `updateToken` through the existing debounced readout refresh, not the
 combat-bar HP handlers, which only fire for combatants — out of combat the readouts cover the canvas.
 
-**Phase 7 — Balance and timers. Timers done; balance pending.** One timer slot, two items: planning and
+**Phase 7 — Balance and timers. Done.** One timer slot, two items: planning and
 turn, mutually exclusive through their `visible` predicates, since planning hands off to the turn timer when
 it expires and the two are never live at once. The round and total elapsed timers are deliberately NOT
 included: they count up with no maximum, so they have no percentage to fill and belong as text chips rather

@@ -334,6 +334,12 @@ export class CombatBarManager {
         if (!api?.registerSecondaryBarItem) return;
         const gmOnly = () => game.user.isGM;
         const inCombat = () => !!CombatBarManager.getActiveCombat();
+        // The party and monster challenge ratings answer "should I run this
+        // fight". Once it starts they stop changing and stop being actionable,
+        // and the live answer to the same question is the balance bar — so they
+        // give up their space when combat begins. Difficulty stays, as a
+        // one-chip reminder of what the fight was expected to be.
+        const designTimeOnly = () => game.user.isGM && !inCombat();
 
         // Round and turn are readouts, so they live in the data row with the
         // rest rather than in an endcap beside the portraits. Everyone sees
@@ -368,7 +374,7 @@ export class CombatBarManager {
         // label spans behind {{#if}}, and per-tick DOM writes need them to exist.
         const timerItem = (itemId, tooltip, visible) => ({
             kind: 'progressbar',
-            zone: 'middle',
+            zone: 'left',
             group: 'timer',
             order: 0,
             width: 190,
@@ -426,7 +432,7 @@ export class CombatBarManager {
             borderColor: 'rgba(0,0,0,0.5)',
             barColor: '#2d5016',
             progressColor: '#4a7c23',
-            leftIcon: 'fa-solid fa-shield-halved',
+            leftIcon: 'fa-solid fa-helmet-battle',
             percentProgress: health.party.percent,
             leftLabel: String(health.party.current),
             rightLabel: String(health.party.max),
@@ -452,6 +458,34 @@ export class CombatBarManager {
             visible: gmOnly
         });
 
+        // The balance between the two sides. Positive means the party is
+        // ahead, which the shared marker maths puts right of centre — so left
+        // is the monsters' side and right is the party's.
+        //
+        // Visible to everyone, unlike monster health. It reports a relationship
+        // ("you are ahead") rather than a quantity, so it gives the table the
+        // boss-bar read without disclosing what a monster actually has left.
+        api.registerSecondaryBarItem('combat', 'balance', {
+            kind: 'balancebar',
+            zone: 'right',
+            group: 'health',
+            order: 2,
+            width: 150,
+            height: 18,
+            icon: '',
+            title: '',
+            borderColor: 'rgba(0,0,0,0.5)',
+            barColorLeft: '#4a0a0a',
+            barColorRight: '#2d5016',
+            markerColor: 'rgba(240, 240, 224, 0.95)',
+            leftIcon: 'fa-solid fa-dragon',
+            rightIcon: 'fa-solid fa-helmet-battle',
+            percentProgress: 0,
+            // No labels: this is a measure of balance, not a second place to
+            // read the health numbers. The two health bars carry those.
+            tooltip: 'Encounter balance'
+        });
+
         api.registerSecondaryBarItem('combat', 'party-cr', {
             kind: 'info',
             zone: 'right',
@@ -461,7 +495,7 @@ export class CombatBarManager {
             label: 'Party',
             value: '0',
             tooltip: 'Party challenge rating',
-            visible: gmOnly
+            visible: designTimeOnly
         });
         api.registerSecondaryBarItem('combat', 'monster-cr', {
             kind: 'info',
@@ -472,7 +506,7 @@ export class CombatBarManager {
             label: 'Monster',
             value: '0',
             tooltip: 'Monster challenge rating',
-            visible: gmOnly
+            visible: designTimeOnly
         });
         api.registerSecondaryBarItem('combat', 'difficulty', {
             kind: 'info',
@@ -695,6 +729,13 @@ export class CombatBarManager {
                 percentProgress: health.monster.percent,
                 leftLabel: String(health.monster.current),
                 rightLabel: String(health.monster.max)
+            });
+            // Difference of the two percentages: 0 when both sides are equally
+            // worn, +100 when the monsters are down and the party untouched.
+            // Percentages rather than raw HP, so a big-pool boss and a swarm
+            // are read on the same scale.
+            api.updateSecondaryBarItemInfo('combat', 'balance', {
+                percentProgress: health.party.percent - health.monster.percent
             });
 
             if (!game.user.isGM) return;
