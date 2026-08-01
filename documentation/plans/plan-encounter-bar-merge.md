@@ -250,12 +250,10 @@ The endcap rework rode along, since it is the same markup: round and turn are on
 the combatant-name endcap on the right is gone. Its label-above-value emphasis was inverted for the new
 content, so the left endcap's two lines now read headline-above-detail.
 
-Found while removing the right endcap: `timer-round.js` caches `.combat-endcap-left .combat-time-round` and
-`.combat-endcap-right .combat-time-total`, but those classes exist only in `templates/timer-round.hbs` and
-never in the combat bar. Both cache entries have always been empty. The combat bar was evidently meant to
-show the round and total timers in its endcaps and never did, which is also why `getCombatData` computes
-`totalCombatDuration` and `currentRoundDuration` and the template ignores them. Phase 7 should either wire
-them up or delete the dead cache entries.
+Loose ends found during this phase that sit outside the phase list — the dead `timer-round.js` DOM cache
+entries, the custom-template gate on secondary bar item clicks, the row height and font tuning, whether the
+canvas-clearing actions hide during combat, and Quick Encounter's owner — are tracked in `TODO.md` under
+"Combat bar (encounter bar merge)" so they outlive this plan.
 
 **Phase 5 — Challenge Rating. Partly done.** Party CR, Monster CR, and Difficulty are registered as `info`
 items in a `challenge` group, GM-gated, refreshed by the bar's own debounced

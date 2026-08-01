@@ -1076,12 +1076,19 @@ The **default tool system** (no custom template) supports:
 
 ### Registering a Secondary Bar Type
 
-Before you can open a secondary bar, you must register its type. The system supports two approaches:
+Before you can open a secondary bar, you must register its type. The system supports three approaches:
 
 1. **Default Tool System** (recommended - use this unless custom template is absolutely necessary) - Register individual tools/items
 2. **Custom Template** (only when default system cannot meet your needs) - Provide a custom Handlebars template
+3. **Hybrid** (`templatePath` plus `hybridItems: true`) - Your template draws the bar and also renders registered items
 
-**Bar type modes are mutually exclusive:** Each bar type is either fully default (zones + buttons/info) or fully custom (your template replaces the entire bar). You cannot use a custom template for only some zones; it is all-or-nothing per bar type.
+**Default and custom are mutually exclusive; hybrid combines them.** A bar with only `templatePath` replaces the entire bar and rejects `registerSecondaryBarItem` calls. Adding `hybridItems: true` makes the bar accept items, prepares the zones alongside the custom payload, and puts `zones`, `groupBannerEnabled`, and `groupBannerColor` on the object your template receives - so the template can render items by passing its own context to the shared partial:
+
+```handlebars
+{{> "menubar-secondary-default" this}}
+```
+
+Reach for hybrid when part of the bar cannot be expressed as items and the rest is better off as items - the combat bar's portrait strip needs custom markup, while its readouts are `info`, `progressbar`, and `balancebar` items.
 
 **Choose the default tool system unless you need:**
 - Complex nested HTML structures
@@ -1138,7 +1145,8 @@ if (success) {
   - `persistence` (string, optional): `'manual'` or `'auto'` (default: `'manual'`)
   - `autoCloseDelay` (number, optional): Auto-close delay in milliseconds (default: 10000)
   - `templatePath` (string, optional): Path to custom Handlebars template partial. If not provided, uses the default tool system.
-  - `groupBannerEnabled` (boolean, optional): Enable group banners above each button group (default: `false`)
+  - `hybridItems` (boolean, optional): With `templatePath`, also accept registered items and prepare their zones (default: `false`). The template receives `zones`, `groupBannerEnabled`, and `groupBannerColor` on its context and renders them by passing that context to the `menubar-secondary-default` partial. Without this flag a custom-template bar rejects `registerSecondaryBarItem`. Ignored when there is no `templatePath`.
+  - `groupBannerEnabled` (boolean, optional): Enable group banners above each button group (default: `false`). A banner captions a cluster of otherwise unlabelled buttons; leave it off for groups of readouts, which carry their own labels.
   - `groupBannerColor` (string, optional): Background color for group banners - any valid CSS color (default: `'rgba(62, 62, 163, 0.9)'`)
   - `groups` (Object, optional): Group configuration object. Maps group IDs to group configs:
     - `groupId` (string): Unique identifier for the group (e.g., 'line-size', 'colors')
@@ -1342,7 +1350,7 @@ await blacksmith.registerSecondaryBarType('cartographer', {
 
 ### Registering Secondary Bar Items (Default Tool System)
 
-For simple toolbars, use the default tool registration system. This avoids needing to create custom templates:
+For simple toolbars, use the default tool registration system. This avoids needing to create custom templates. Items are also accepted by a custom-template bar registered with `hybridItems: true`; a custom-template bar without that flag rejects them.
 
 ```javascript
 // Register items for a secondary bar (default tool system)
