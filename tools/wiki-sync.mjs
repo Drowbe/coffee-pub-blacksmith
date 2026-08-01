@@ -61,6 +61,7 @@ const PUBLISH = [
   // Architecture
   'architecture/architecture-blacksmith.md',
   'architecture/architecture-chatcards.md',
+  'architecture/architecture-combatbar.md',
   'architecture/architecture-gmnotes.md',
   'architecture/architecture-hookmanager.md',
   'architecture/architecture-pins.md',
@@ -68,6 +69,7 @@ const PUBLISH = [
   'architecture/architecture-stats.md',
   'architecture/architecture-socketmanager.md',
   'architecture/architecture-tags.md',
+  'architecture/architecture-timers.md',
   'architecture/architecture-toast.md',
   'architecture/architecture-token-naming.md',
   'architecture/architecture-toolbarmanager.md',

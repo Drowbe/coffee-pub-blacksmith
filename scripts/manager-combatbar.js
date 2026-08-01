@@ -391,8 +391,13 @@ export class CombatBarManager {
         // CombatTimer.shouldDisplay(), which is the same test the tracker uses
         // — deliberately not `state.isActive`, which only resumeTimer ever sets
         // and so is false for a timer that started normally.
+        // verifyTimerConditions() is the planning timer's own gate and the one
+        // the tracker renders behind: enabled, combat started, TURN 0, not
+        // expired, GM-only respected, turns built, every initiative rolled.
+        // `isActive` alone is not that gate — it stays true past turn 0, which
+        // is why the bar kept showing planning mid-round.
         const planningVisible = () =>
-            getSettingSafely(MODULE.ID, 'planningTimerEnabled', true) && !!PlanningTimer?.state?.isActive;
+            !!PlanningTimer?.verifyTimerConditions?.() && !!PlanningTimer?.state?.isActive;
 
         api.registerSecondaryBarItem('combat', 'planning-timer', timerItem(
             'planning-timer',
@@ -570,6 +575,21 @@ export class CombatBarManager {
 
         const fill = item.querySelector('.secondary-bar-item-progressbar-fill');
         if (fill) {
+            // A re-rendered item is built from the registered percentProgress,
+            // which is 0 — so the first write after any render is a jump from
+            // 0 to the real value, and the 1s transition turns that jump into a
+            // second of the bar sweeping up to where it should already be. The
+            // tracker never shows this because its markup persists between
+            // renders; ours is rebuilt by the menubar. Land the first write
+            // without a transition, then restore it so subsequent ticks glide.
+            if (item.dataset.blacksmithTimerPrimed !== '1') {
+                const previous = fill.style.transition;
+                fill.style.transition = 'none';
+                fill.style.width = `${display.percent}%`;
+                void fill.offsetWidth; // force the value to settle before transitions resume
+                fill.style.transition = previous;
+                item.dataset.blacksmithTimerPrimed = '1';
+            }
             fill.style.width = `${display.percent}%`;
             // The partial writes `background-color: {{progressColor}}` inline,
             // and an inline declaration beats the stylesheet — so the state
@@ -593,7 +613,7 @@ export class CombatBarManager {
      */
     static syncAllTimerReadouts() {
         try {
-            if (PlanningTimer?.state?.isActive) {
+            if (PlanningTimer?.verifyTimerConditions?.() && PlanningTimer?.state?.isActive) {
                 CombatBarManager.syncTimerReadout('planning-timer', PlanningTimer.getDisplayState());
             }
             if (CombatTimer?.shouldDisplay?.()) {

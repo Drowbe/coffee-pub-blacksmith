@@ -123,6 +123,7 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 ### 4.2 UI and Canvas
 
 - **MenuBar** (`api-menubar.js`) — Global menubar: tools, notifications, secondary bar, combat bar. External modules register tools via `module.api.registerMenubarTool` etc. See **documentation/api/api-menubar.md**.
+- **Combat bar** (`manager-combatbar.js`) — The always-present combat secondary bar: two rows, hybrid custom-template-plus-registered-items rendering, readouts, and the portrait strip. See **documentation/architecture/architecture-combatbar.md**.
 - **Toolbar** (`manager-toolbar.js`) — Encounter toolbar tools; `registerToolbarTool`, etc. See **documentation/architecture/architecture-toolbarmanager.md**, **documentation/api/api-toolbar.md**.
 - **BlacksmithLayer** (`canvas-layer.js`) — Custom canvas layer (`blacksmith-utilities-layer`) for pins and other canvas UI.
 - **CanvasTools** (`manager-canvas.js`) — Canvas-related helpers. See **documentation/api/api-canvas.md**.
@@ -133,7 +134,7 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 - **Rolls** — **manager-rolls.js**: internal orchestration (`orchestrateRoll`, `processRoll`, `deliverRollResults`). **Public:** `openRequestRollDialog` on `module.api` and **`module.api.rolls`** (`api-rolls.js`) for outcome classification and hooks. Legacy `BLACKSMITH.rolls.execute` was removed in 13.9.x. See **architecture-rolls.md**, **api-rolls.md**, **plan-rolls-classification.md**.
 - **Active Effects** — **api-effects.js**: read-only filtering, dnd5e condition normalization, permission-safe display data, and a classifier registry shared by sibling modules. Blacksmith's combat hover card consumes the same public `module.api.effects` contract. See **architecture-effects.md** and **api-effects.md**.
 - **Stats** — **CombatStats** (`stats-combat.js`), **CPBPlayerStats** (`stats-player.js`), **StatsAPI** (`api-stats.js`). See **documentation/architecture/architecture-stats.md**, **documentation/api/api-stats.md**.
-- **Timers** — **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`).
+- **Timers** — **CombatTimer** (`timer-combat.js`), **PlanningTimer** (`timer-planning.js`), **RoundTimer** (`timer-round.js`). Countdown timers expose `getDisplayState()` as the one display contract and their own visibility gate; `state.isActive` is not that gate. See **documentation/architecture/architecture-timers.md**.
 - **Chat cards** — **ChatCardsAPI** (`api-chat-cards.js`): themes and rendering contract. See **documentation/architecture/architecture-chatcards.md**, **documentation/api/api-chatcards.md**.
 - **XP** — **XpManager** (`xp-manager.js`). See **documentation/architecture/architecture-xp.md**.
 - **Voting** — **VoteManager** (`manager-vote.js`), **VoteConfig** (`window-vote-config.js`).
