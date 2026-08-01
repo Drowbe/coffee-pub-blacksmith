@@ -300,31 +300,27 @@ class CombatTimer {
         }
     }
 
+    /**
+     * Whether this timer should be on screen at all, for any surface that
+     * draws it. Note this is NOT `state.isActive` — that flag is only ever set
+     * by resumeTimer, so it means "has been resumed", not "is running", and a
+     * timer started normally never sets it.
+     * @returns {boolean}
+     */
+    static shouldDisplay() {
+        if (!game.combat?.started || game.combat.round === 0) return false;
+        if (!getSettingSafely(MODULE.ID, 'combatTimerEnabled', true)) return false;
+        if (getSettingSafely(MODULE.ID, 'combatTimerGMOnly', false) && !game.user.isGM) return false;
+        // Not all initiatives rolled yet - don't show timer
+        const combatants = game.combat.turns || [];
+        return !combatants.some(c => c.initiative === null && !c.isDefeated);
+    }
+
     static async _onRenderCombatTracker(app, html, data) {
         try {
-
-            if (!game.combat?.started || game.combat.round === 0) {
-                return;
-            }
+            if (!this.shouldDisplay()) return;
 
             const isEnabled = getSettingSafely(MODULE.ID, 'combatTimerEnabled', true);
-            const isGMOnly = getSettingSafely(MODULE.ID, 'combatTimerGMOnly', false);
-
-
-            if (isGMOnly && !game.user.isGM) {
-                return;
-            }
-
-            // Check if all combatants have rolled initiative before showing combat timer
-            const combatants = game.combat.turns || [];
-            const combatantsNeedingInitiative = combatants.filter(c => 
-                c.initiative === null && !c.isDefeated
-            );
-            if (combatantsNeedingInitiative.length > 0) {
-                // Not all initiatives rolled yet - don't show timer
-                return;
-            }
-            
 
             const timerHtml = await foundry.applications.handlebars.renderTemplate(
                 'modules/coffee-pub-blacksmith/templates/timer-combat.hbs',

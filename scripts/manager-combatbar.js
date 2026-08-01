@@ -386,15 +386,23 @@ export class CombatBarManager {
             visible
         });
 
+        // Planning wins the slot while it is running; the turn timer takes it
+        // afterwards. The turn timer's own visibility comes from
+        // CombatTimer.shouldDisplay(), which is the same test the tracker uses
+        // — deliberately not `state.isActive`, which only resumeTimer ever sets
+        // and so is false for a timer that started normally.
+        const planningVisible = () =>
+            getSettingSafely(MODULE.ID, 'planningTimerEnabled', true) && !!PlanningTimer?.state?.isActive;
+
         api.registerSecondaryBarItem('combat', 'planning-timer', timerItem(
             'planning-timer',
             'Planning timer',
-            () => getSettingSafely(MODULE.ID, 'planningTimerEnabled', true) && !!PlanningTimer?.state?.isActive
+            planningVisible
         ));
         api.registerSecondaryBarItem('combat', 'turn-timer', timerItem(
             'turn-timer',
             'Turn timer',
-            () => getSettingSafely(MODULE.ID, 'combatTimerEnabled', true) && !!CombatTimer?.state?.isActive
+            () => !planningVisible() && CombatTimer.shouldDisplay()
         ));
 
         // Health. Party is everyone's business; monster totals are not, in the
@@ -588,7 +596,7 @@ export class CombatBarManager {
             if (PlanningTimer?.state?.isActive) {
                 CombatBarManager.syncTimerReadout('planning-timer', PlanningTimer.getDisplayState());
             }
-            if (CombatTimer?.state?.isActive) {
+            if (CombatTimer?.shouldDisplay?.()) {
                 CombatBarManager.syncTimerReadout('turn-timer', CombatTimer.getDisplayState());
             }
         } catch (error) {
