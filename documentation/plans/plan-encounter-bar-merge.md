@@ -1,6 +1,6 @@
 # Plan: Merge the Encounter Bar into the Combat Bar
 
-**Status: Implemented (phases 1-2). Phases 3-5 pending.**
+**Status: Implemented (phases 1-3). Phases 4-5 pending.**
 
 Fold the encounter secondary bar's tools and readouts into the combat bar, retire the encounter bar,
 and relabel the result "Encounter". The merged bar is always present and adapts its contents to whether
@@ -134,9 +134,20 @@ now that they are reachable out of combat.
 The bar is visibly thin out of combat: the Encounter and Tokens menus and nothing else. Phase 4 fills that
 space with Challenge Rating.
 
-**Phase 3 — Two sizes.** Add the out-of-combat size setting beside `menubarCombatSize`, and apply the
-correct one on every combat-state transition. Verify the offset of the elements below the menubar in both
-states, since that is the failure this most easily reintroduces.
+**Phase 3 — Two sizes. Done.** `menubarCombatSizeIdle` (default 40) sits beside `menubarCombatSize`
+(default 60), and `resolveBarHeight(isInCombat)` is the only reader of either. `applyBarHeight` is the only
+writer of the height variables, and `updateCombatBar` calls both on every render — which is what keeps the
+sizes in step, since every combat-state transition already routes through it.
+
+Two things about this are easy to get wrong and are worth not rediscovering:
+
+- **Order matters.** Portrait ring geometry is computed inside `getCombatData` by reading
+  `--blacksmith-menubar-secondary-combat-height` through `getComputedStyle`. Applying the height after
+  building the data sizes the rings from the previous state. Height first, always.
+- **Two variables, two jobs.** `--blacksmith-menubar-secondary-height` drives the layout — portrait sizes,
+  button sizes, font sizes, and `--blacksmith-menubar-total-height`, which offsets the Foundry UI below the
+  menubar. `--blacksmith-menubar-secondary-combat-height` is read only by the ring math in JS. Writing one
+  and not the other is what made the size setting appear to do nothing but resize health rings.
 
 **Phase 4 — Challenge Rating.** Move Party CR, Monster CR, and Difficulty into the merged bar as template
 fields with their own refresh path. Retitle to "Challenge Rating" and drop the "CR" prefix from the values,

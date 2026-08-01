@@ -202,16 +202,17 @@ export class CombatBarManager {
                 // Do not block manual opens here: __combatBarUserClosed is enforced in openCombatBar() only
                 // (hook-driven auto-open). Otherwise the menubar button can fail when toggleSecondaryBar
                 // is not the patched wrapper (e.g. stale api binding) and the flag is never cleared.
-                const combat = game.combats?.active ?? game.combat;
+                const combat = CombatBarManager.getActiveCombat();
+                // Height first, data second: the ring geometry is read from the
+                // height variable while getCombatData runs.
+                //
+                // The height must also ride along in the options on every open.
+                // Without it the base method falls back to `barType.height`,
+                // which was frozen at registration from the CSS default — so the
+                // size setting moved only the health rings while the bar, and
+                // every screen element the menubar offsets below it, stayed put.
+                const combatHeight = CombatBarManager.applyBarHeight(menuBar, CombatBarManager.resolveBarHeight(!!combat));
                 const data = CombatBarManager.getCombatData(combat);
-                // The bar's own height must ride along on every open. Without
-                // it the base method falls back to `barType.height`, which was
-                // frozen at registration from the CSS default — so the size
-                // setting moved only the health rings (drawn from the combat
-                // height variable in JS) while the bar, and every screen
-                // element the menubar offsets below it, stayed put.
-                const combatHeight = getSettingSafely(MODULE.ID, 'menubarCombatSize', 60);
-                document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
                 const result = originalOpenSecondaryBar(typeId, { height: combatHeight, ...options, data });
                 if (result) menuBar.__combatBarUserClosed = false;
                 return result;
@@ -464,18 +465,16 @@ export class CombatBarManager {
         });
 
         const combatSizeSettingHookId = HookManager.registerSettingChangeCallback({
-            description: 'MenuBar: Refresh combat bar when combat size changes',
+            description: 'MenuBar: Refresh combat bar when either bar size changes',
             context: 'menubar-combat-size-change',
             priority: 3,
-            callback: (module, key, value) => {
-                if (module !== MODULE.ID || key !== 'menubarCombatSize') return;
-                document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${value}px`);
-                if (game.combat && menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
-                    // Resize the live bar too. `--blacksmith-menubar-total-height`
-                    // is a calc() over this variable, so the elements the menubar
-                    // pushes down follow without being set again here.
-                    menuBar.secondaryBar.height = value;
-                    document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${value}px`);
+            callback: (module, key) => {
+                if (module !== MODULE.ID) return;
+                if (key !== 'menubarCombatSize' && key !== 'menubarCombatSizeIdle') return;
+                // updateCombatBar resolves and applies the height for the
+                // current combat state, so changing whichever size is not in
+                // force right now correctly leaves the bar alone.
+                if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
                     CombatBarManager.updateCombatBar(menuBar);
                 }
             }
@@ -686,7 +685,12 @@ export class CombatBarManager {
             // No combat is a content state, not a reason to close. The bar
             // falls back to its idle shape and keeps the Encounter and Tokens
             // menus reachable, which is the whole point of them living here.
-            const combat = game.combats.active;
+            const combat = CombatBarManager.getActiveCombat();
+            // Every combat-state transition already routes through here, so
+            // resizing here is what keeps the two sizes in step — and it has to
+            // happen before the data is built, since portrait rings are sized
+            // from the height variable as getCombatData runs.
+            CombatBarManager.applyBarHeight(menuBar, CombatBarManager.resolveBarHeight(!!combat));
             const data = combatData || CombatBarManager.getCombatData(combat);
             CombatBarManager.hideCombatantHoverCard(menuBar);
             return menuBar.updateSecondaryBar(data);
@@ -694,6 +698,44 @@ export class CombatBarManager {
             postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error updating combat bar", { error }, false, false);
             return false;
         }
+    }
+
+    /**
+     * The one combat the bar reflects. Height and contents must agree on this,
+     * so both ask the same question rather than each testing for themselves.
+     */
+    static getActiveCombat() {
+        return game.combats?.active ?? game.combat ?? null;
+    }
+
+    /**
+     * The bar's height for the given combat state. Two settings, because the
+     * bar carries portraits during an encounter and only menus between them.
+     */
+    static resolveBarHeight(isInCombat) {
+        return isInCombat
+            ? getSettingSafely(MODULE.ID, 'menubarCombatSize', 60)
+            : getSettingSafely(MODULE.ID, 'menubarCombatSizeIdle', 40);
+    }
+
+    /**
+     * Apply a height to the live bar. Both variables are written because they
+     * serve different consumers: the layout derives from the secondary height,
+     * while getCombatData reads the combat height to size portrait rings.
+     * `--blacksmith-menubar-total-height` is a calc() over the former, so the
+     * Foundry UI beneath the menubar follows without being written again.
+     *
+     * Call this BEFORE building bar data — the ring geometry is computed from
+     * the variable at that moment, so setting it afterwards sizes the rings
+     * from the previous state.
+     */
+    static applyBarHeight(menuBar, height) {
+        document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${height}px`);
+        if (menuBar?.secondaryBar?.isOpen && menuBar.secondaryBar.type === 'combat') {
+            menuBar.secondaryBar.height = height;
+            document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${height}px`);
+        }
+        return height;
     }
 
     /**
@@ -938,11 +980,10 @@ export class CombatBarManager {
             if (menuBar._isUserExcluded(game.user)) return false;
             // Respect "user dismissed" for automatic opens only; menubar button uses openSecondaryBar directly.
             if (menuBar.__combatBarUserClosed) return false;
-            const combatHeight = game.settings.get(MODULE.ID, 'menubarCombatSize');
-            document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatHeight}px`);
             // Opens with or without a combat — getCombatData falls back to the
             // idle shape, and the bar is meant to be present either way.
-            const combat = game.combats.active;
+            const combat = CombatBarManager.getActiveCombat();
+            CombatBarManager.applyBarHeight(menuBar, CombatBarManager.resolveBarHeight(!!combat));
             const data = combatData || CombatBarManager.getCombatData(combat);
             return menuBar.openSecondaryBar('combat', { data, persistence: 'manual' });
         } catch (_error) {
