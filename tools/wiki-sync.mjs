@@ -61,7 +61,7 @@ const PUBLISH = [
   // Architecture
   'architecture/architecture-blacksmith.md',
   'architecture/architecture-chatcards.md',
-  'architecture/architecture-combatbar.md',
+  'architecture/architecture-encounter.md',
   'architecture/architecture-gmnotes.md',
   'architecture/architecture-hookmanager.md',
   'architecture/architecture-pins.md',

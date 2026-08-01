@@ -379,16 +379,7 @@ class CombatTimer {
         
         // Left click for pause/unpause (GM only) (v13: native DOM)
         nativeHtml.querySelectorAll('.combat-timer-progress').forEach(el => {
-            el.addEventListener('click', (event) => {
-                if (!game.user.isGM) return;
-                if (event.button === 0) {
-                    this.state.showingMessage = false;
-                    // v13: native DOM
-                    const timerText = document.querySelector('.combat-timer-text');
-                    if (timerText) timerText.textContent = '';
-                    this.state.isPaused ? this.resumeTimer() : this.pauseTimer();
-                }
-            });
+            el.addEventListener('click', (event) => this.handleTimerClick(event));
         });
 
         // Right click for time adjustment (GM only) (v13: native DOM)
@@ -443,6 +434,19 @@ class CombatTimer {
                 progress.classList.add('other-player-turn');
             }
         }
+    }
+
+    /**
+     * Left click toggles pause. Extracted so every surface drawing this timer
+     * binds the same behaviour — the tracker and the combat bar's readout.
+     */
+    static handleTimerClick(event) {
+        if (!game.user.isGM) return;
+        if (event.button !== 0) return;
+        this.state.showingMessage = false;
+        const timerText = document.querySelector('.combat-timer-text');
+        if (timerText) timerText.textContent = '';
+        this.state.isPaused ? this.resumeTimer() : this.pauseTimer();
     }
 
     static handleRightClick(event) {

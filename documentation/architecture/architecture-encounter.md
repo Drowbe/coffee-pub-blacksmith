@@ -1,19 +1,44 @@
-# Combat Bar — Architecture
+# Encounter — Architecture
 
 **Audience:** Contributors to the Blacksmith codebase.
 
-The combat bar is a secondary menubar that is always present and changes its contents according to whether
-an encounter is running. It is the only secondary bar that renders custom markup and registered items at
-once. The public registration surface it uses is documented in **documentation/api/api-menubar.md**.
+Blacksmith presents an encounter through two surfaces: Foundry's combat tracker, which it augments, and the
+combat bar, a secondary menubar it owns outright. They draw the same encounter and share several contracts,
+so they are documented together — the coordination between them is the part that has no other home. The
+public registration surface the bar uses is documented in **documentation/api/api-menubar.md**; the timers
+both surfaces draw are in **documentation/architecture/architecture-timers.md**.
 
 **Files:**
 
 | File | Role |
 |---|---|
-| `scripts/manager-combatbar.js` | `CombatBarManager` — data, menus, readout items, height, hooks |
-| `templates/partials/menubar-combat.hbs` | The two rows |
+| `scripts/manager-combatbar.js` | `CombatBarManager` — bar data, menus, readout items, height, hooks |
+| `templates/partials/menubar-combat.hbs` | The bar's two rows |
 | `styles/menubar-combatbar.css` | Row layout, portrait sizing, readout overrides |
+| `scripts/ui-combat-tracker.js` | `CombatTracker` — Blacksmith's additions to Foundry's tracker |
+| `scripts/manager-encounter.js` | `EncounterManager` — challenge rating, canvas token actions |
 | `scripts/api-menubar.js` | Secondary bar machinery, including hybrid rendering |
+
+## The tracker is the authority
+
+**Turn order is the tracker's, never the bar's.** `getCombatData` maps `combat.turns` and does not sort.
+Foundry sequences turns through that array, and its order includes the system's tiebreak, so any local sort
+disagrees with the tracker whenever initiative ties — and the tracker is what "next turn" actually follows.
+This applies to anything else that orders combatants.
+
+Blacksmith's additions to the tracker live in `ui-combat-tracker.js`: a Roll Remaining button injected
+beside Foundry's roll controls, automatic initiative rolling for players and non-players on round changes,
+turn-change token selection, and open/close control used by the bar's Encounter menu. The two countdown
+timers inject themselves separately, from their own modules.
+
+## What each surface is for
+
+The tracker is the full list: every combatant, every control, initiative editing. The bar is the glanceable
+subset plus the encounter-level actions, and it is always on screen. Where both can do a thing, the bar
+calls the same code rather than reimplementing it — `_rollRemainingInitiatives`, `toggleCombatTracker`, the
+timers' display and click handlers, `EncounterManager`'s challenge rating and canvas actions.
+
+The intent is that the bar carries enough that the tracker need not be opened during play.
 
 ## Two rows, two jobs
 
@@ -106,10 +131,12 @@ width — because the shared rule styles every item as a button, which on a defa
 bar are not — the balance bar reports a relationship ("the party is ahead") rather than a quantity, so it
 gives the table the boss-bar read without disclosing what a monster has left.
 
-**The challenge rating pair is design-time only.** Party CR and Monster CR answer whether a fight should be
-run and stop changing once it starts; the live answer to the same question is the balance bar, so the pair
-hides in combat and its space goes to the balance. Difficulty stays in both states as a one-chip reminder of
-what the fight was expected to be.
+**Challenge rating scopes with combat, it does not hide.** Out of combat it rates the fight as designed —
+everything on the canvas. In combat it rates the party against what is actually in the encounter, so a fight
+can be scaled while it runs by adding or removing combatants and watching the number move. Same rule as
+health, same reason. `EncounterManager.getPartyCR`, `getMonsterCR`, and `getCombatAssessment` each take an
+optional token-or-combatant list for this, defaulting to the canvas so the encounter bar and the journal
+toolbars are unaffected.
 
 The balance bar's value is `partyPercent - monsterPercent`, so zero means both sides are equally worn and
 +100 means the monsters are down with the party untouched. Percentages rather than raw HP, so a big-pool
@@ -118,8 +145,25 @@ and positive right — hence left is the monsters' side. It carries **no labels*
 not a second place to read the health numbers, which the two health bars already give.
 
 Zones: the left zone holds round, turn, and the timer slot; the right zone holds health, balance, and
-challenge rating. Groups within a zone are separated by dividers automatically, so the grouping is what
-produces the pipes.
+challenge rating. **The middle zone is deliberately empty**, reserved for real-time stats. Groups within a
+zone are separated by dividers automatically, so the grouping is what produces the pipes.
+
+Bar widths are CSS `clamp()` strings rather than pixel numbers — the item preparation passes a string
+`width` through to the inline style verbatim, so a clamp gives "as wide as the space allows, down to a
+floor" without needing `!important` to beat that inline value.
+
+When the row still cannot fit, `applyReadoutOverflow` hides readouts in a fixed order rather than letting
+everything squeeze: party health, then monster health, then the timer. It measures `scrollWidth` against
+`clientWidth` after render and clears all suppression first, so the row recovers as it widens. This is
+measured rather than expressed in CSS because "hide this one first" is an ordering CSS cannot state, and a
+media query would be guessing at the row's width rather than reading it.
+
+The balance marker is a full-height rule, not the shared 10px circle: a circle reads as a draggable handle
+and invites a grab that does nothing.
+
+Difficulty uses `CombatBarManager.getDifficultyChipColor`, not `EncounterManager.getDifficultyBorderColor`.
+The latter's palette was picked as a *border* against the encounter bar's near-black background; as text on
+this bar's warm translucent row those values read fluorescent, the greens worst.
 
 Three text and icon sizes are declared for this row, all from the data row's height:
 
@@ -182,9 +226,6 @@ Six paths previously tied the bar's life to a combat's and all had to change tog
 `updateCombatBar`, the `deleteCombat` hook, the `canvasReady` handler in `api-menubar.js`, the load-time
 open, and the `combat-bar` menubar tool's `visible` predicate. `closeCombatBar` remains as a deliberate API
 action; nothing calls it automatically.
-
-Ordering is the combat tracker's. `getCombatData` maps `combat.turns` and does not sort — Foundry's own
-turn order includes the system's tiebreak, and any local sort disagrees with it whenever initiative ties.
 
 **Test both states.** The in-combat path exercises almost none of the out-of-combat code, and several
 defects here were only ever reachable outside an encounter.

@@ -9,6 +9,52 @@
 - **Single-click selects a pin (selection state + keyboard actions)**: clicking a pin should put it in a selected state with a visible ring so keyboard actions can operate on it — first milestone: Delete/Backspace removes the selected pin via `PinManager.delete` with a permission check. Currently a single click only invokes registered `click` handlers (`pins-renderer.js:994` editable path, `pins-renderer.js:743` non-editable path); there is no selection concept. Design validated; no performance concern — pins are a pure DOM overlay, so one delegated `pointerdown` listener on `#blacksmith-pins-overlay` plus a `document` `keydown` handler suffices. Implementation: track the selected pin id in the renderer (`PinDOMElement._selectedPinId`); apply an `is-selected` class styled in `styles/pins.css`; `pointerdown` on a pin element selects, on the overlay container deselects; `keydown` Delete/Backspace deletes (scoped so it does not fire while typing in inputs), Escape deselects; expose `pins.getSelectedPin()` / `selectPin()` / `deselectPin()` on the public API and fire `blacksmith.pins.selected` / `blacksmith.pins.deselected` hooks so other modules can react. Verify live: click a pin and see the ring; press Delete and confirm the pin is removed (with its delete animation if configured); click empty canvas or Escape deselects; Delete does nothing when no pin is selected and does not fire while typing in a text field.
 - **Double-click sometimes lands in drag mode instead of firing**: for editable pins, mousedown enters the drag system and any movement beyond `DRAG_THRESHOLD` (10px screen space, `pins-renderer.js:856`) makes the release count as a drag (`pins-renderer.js:943`), so a slightly jittery double-click gets swallowed as a tiny drag and the second click never reaches the double-click counter (`pins-renderer.js:1004`). Candidate fixes: track movement per press instead of cumulatively, treat a second press arriving within the 300ms click window as a double-click before the drag decision, or require both distance and a minimum hold time before committing to drag. Verify live: rapidly double-click an editable pin ~20 times with normal hand jitter and confirm the double-click action fires every time and the pin does not shift position; confirm a real drag (press, move, release) still moves the pin and a deliberate slow click still fires the single-click action.
 
+## Contributed actions by subject (menubar routing)
+
+Let a module declare that an action belongs to a **subject**, and let a surface declare that it displays
+that subject; Blacksmith matches the two and offers the action wherever the subject appears. Squire
+registering a party-health tool would then also reach the combat bar's party health bar, without Blacksmith
+knowing what Squire or health are. The test for the implementation: if it ever needs an
+`if (subject === 'health')` branch, the design has gone wrong — this is routing, not knowledge.
+
+**Declared, never inferred.** Matching on names, icons, or tool ids would guess, and would guess wrong
+exactly where it matters: "health" means party health on the combat bar, one actor's health on a portrait
+hover card, and monster health on a third item. A wrong wire is not cosmetic, it is a control acting on the
+wrong target. Both sides naming a subject cannot mis-fire, and it mirrors the existing `zone` / `group`
+system — placement by declaration.
+
+**Do not surface the contributing module in the UI.** Players have no awareness of installed modules, their
+names, or their capabilities, and no reason to acquire any. Their economy is *action and context*: they know
+the thing they want to do, not what provides it. Group and label contributed actions by what they do, the
+way pins group by category rather than by owning module. Naming the provider is a developer's mental model
+leaking into a player's surface.
+
+Error isolation is already handled: `UIContextMenu` wraps every item callback in its own try/catch
+(`ui-context-menu.js:172`), and the existing provider call sits in a try. Nothing further is needed there —
+and the framing that a user should be able to attribute a failure to a module is the same fallacy as above.
+
+**Prerequisite**: confirm the `hasCustomTemplate` gate on the secondary-bar context-menu path
+(`api-menubar.js:3420`, `:3431`) works for hybrid bars — the combat bar is the hybrid one, so nothing here
+lands without it. Tracked separately below.
+
+**Fold in the existing hand-wired exceptions** when the registry exists; each is this feature special-cased
+for one module:
+
+- `manager-combatbar.js:2950` calls `getCombatContextMenuItems` on `coffee-pub-curator` by name to get the
+  portrait menu's image-replacement rows. This is the closest precedent and the natural proving ground —
+  generalising it removes a hard-coded sibling reference from the hub even if no second consumer appears.
+- `api-effects.js:61`, `:278` read a `coffee-pub-bibliosoph` flag (`outcomeBurst`) directly to classify an
+  effect. Different shape — data rather than action — but the same coupling.
+- Quick Encounter reaches its provider through `hasQuickEncounterTool()` / `openQuickEncounterWindow()`,
+  which is looser but still a named capability rather than a declared subject.
+
+**Wanted wiring, once it exists**: clicking the combat bar's party health bar should open whatever the
+party-health tool provides. Called out as very handy — it is the case that motivated the idea.
+
+## Design system
+
+- **Record the "players do not know about modules" rule in `design-system/design-patterns.md`**: module identity is a developer concept and must not appear in player-facing UI. Players have no awareness of which modules are installed, what they are called, or what each provides, and no reason to acquire any — their economy is action and context. Group and label by what a thing *does*, never by what supplies it; pins are the existing model, grouped by category rather than by owning module. The rule has a second face worth stating explicitly: the argument that a user should be able to **attribute a failure** to the responsible module is the same fallacy, because a broken control simply reads as broken whoever owns it. Error isolation still matters so one provider cannot break a shared surface, but attribution is not a user-facing requirement and must not shape the UI. This came out of the contributed-actions design above (2026-08-01) and governs far more than that feature, which is why it belongs in the published design docs rather than only in a backlog entry. Verify: the rule appears in `design-patterns.md` and reads as a constraint on new UI, not as a note about one feature.
+
 ## Combat bar (encounter bar merge)
 
 Phase work lives in `documentation/plans/plan-encounter-bar-merge.md`; these are the loose ends that fall

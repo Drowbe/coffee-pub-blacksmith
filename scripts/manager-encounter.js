@@ -13,10 +13,16 @@ export class EncounterManager {
      * Get party CR from current scene (player character tokens).
      * @returns {string} Formatted CR string (e.g. "63", "1/2")
      */
-    static getPartyCR() {
+    /**
+     * @param {Array<{actor: Actor|null}>} [source] - Tokens or combatants to
+     *   measure. Defaults to the canvas. Pass a combat's turns to scope the
+     *   rating to who is actually in the fight rather than who is on the scene.
+     */
+    static getPartyCR(source = null) {
         try {
-            if (!canvas?.tokens?.placeables) return '0';
-            const playerTokens = canvas.tokens.placeables.filter(
+            const tokens = source ?? canvas?.tokens?.placeables;
+            if (!tokens) return '0';
+            const playerTokens = tokens.filter(
                 (token) => token.actor && token.actor.type === 'character' && token.actor.hasPlayerOwner
             );
             if (playerTokens.length === 0) return '0';
@@ -52,10 +58,11 @@ export class EncounterManager {
      * @param {Object} [metadata] - Optional { monsters: uuid[], npcs: uuid[] }; if omitted, uses canvas tokens only.
      * @returns {string} Formatted CR string
      */
-    static getMonsterCR(metadata = {}) {
+    static getMonsterCR(metadata = {}, source = null) {
         try {
-            if (!canvas?.tokens?.placeables) return '0';
-            const monsterTokens = canvas.tokens.placeables.filter(
+            const tokens = source ?? canvas?.tokens?.placeables;
+            if (!tokens) return '0';
+            const monsterTokens = tokens.filter(
                 (token) => token.actor
                     && token.actor.type === 'npc'
                     && !token.actor.hasPlayerOwner
@@ -112,9 +119,14 @@ export class EncounterManager {
      * @param {Object} [metadata] - Optional encounter metadata for getMonsterCR
      * @returns {{ partyCR: number, monsterCR: number, partyCRDisplay: string, monsterCRDisplay: string, difficulty: string, difficultyClass: string }}
      */
-    static getCombatAssessment(metadata = {}) {
-        const partyCRDisplay = this.getPartyCR();
-        const monsterCRDisplay = this.getMonsterCR(metadata);
+    /**
+     * @param {Object} [metadata]
+     * @param {Array<{actor: Actor|null}>} [source] - Tokens or combatants to
+     *   measure; defaults to the canvas. See `getPartyCR`.
+     */
+    static getCombatAssessment(metadata = {}, source = null) {
+        const partyCRDisplay = this.getPartyCR(source);
+        const monsterCRDisplay = this.getMonsterCR(metadata, source);
         const partyCR = this.parseCR(partyCRDisplay);
         const monsterCR = this.parseCR(monsterCRDisplay);
         const { difficulty, difficultyClass } = this.calculateEncounterDifficulty(partyCR, monsterCR);

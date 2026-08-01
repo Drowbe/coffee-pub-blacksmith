@@ -91,7 +91,17 @@ transitions, which the timers announce separately.
 | `endPlanningTimer` | `CombatTimer` | ask the planning timer to stop |
 | `combatTimerCleanup` | `PlanningTimer` | teardown |
 
+## Interaction
+
+Left click toggles pause; right click sets the remaining time from the click position. Both are GM-only and
+both are shared: `CombatTimer.handleTimerClick` / `handleRightClick` and `PlanningTimer._onTimerClick` /
+`_onTimerRightClick`.
+
+Both right-click handlers measure `event.currentTarget.getBoundingClientRect()`, so **they must be bound
+directly to the bar element, never through a delegated listener** — delegation hands them the delegate root
+and the click scrubs to a wrong time.
+
 ## Consumers
 
 The combat tracker draws all three. The combat bar draws the two countdowns in one shared slot — see
-**documentation/architecture/architecture-combatbar.md**.
+**documentation/architecture/architecture-encounter.md**.

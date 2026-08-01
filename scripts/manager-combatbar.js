@@ -283,6 +283,7 @@ export class CombatBarManager {
                     // The timer bars are written per tick, so a fresh render
                     // starts empty until the next one — fill them immediately.
                     CombatBarManager.syncAllTimerReadouts();
+                    CombatBarManager.applyReadoutOverflow();
                     setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 100);
                 });
             }
@@ -334,12 +335,6 @@ export class CombatBarManager {
         if (!api?.registerSecondaryBarItem) return;
         const gmOnly = () => game.user.isGM;
         const inCombat = () => !!CombatBarManager.getActiveCombat();
-        // The party and monster challenge ratings answer "should I run this
-        // fight". Once it starts they stop changing and stop being actionable,
-        // and the live answer to the same question is the balance bar — so they
-        // give up their space when combat begins. Difficulty stays, as a
-        // one-chip reminder of what the fight was expected to be.
-        const designTimeOnly = () => game.user.isGM && !inCombat();
 
         // Round and turn are readouts, so they live in the data row with the
         // rest rather than in an endcap beside the portraits. Everyone sees
@@ -377,7 +372,7 @@ export class CombatBarManager {
             zone: 'left',
             group: 'timer',
             order: 0,
-            width: 190,
+            width: 'clamp(170px, 22vw, 340px)',
             height: 18,
             icon: '',
             title: '',
@@ -443,7 +438,7 @@ export class CombatBarManager {
             zone: 'right',
             group: 'health',
             order: 1,
-            width: 150,
+            width: 'clamp(110px, 14vw, 230px)',
             height: 18,
             icon: '',
             title: '',
@@ -470,7 +465,7 @@ export class CombatBarManager {
             zone: 'right',
             group: 'health',
             order: 2,
-            width: 150,
+            width: 'clamp(90px, 10vw, 170px)',
             height: 18,
             icon: '',
             title: '',
@@ -492,10 +487,11 @@ export class CombatBarManager {
             group: 'challenge',
             order: 0,
             icon: 'fas fa-helmet-battle',
-            label: 'Party',
+            // Icon only: the icon already says which side, and the row is tight.
+            label: '',
             value: '0',
             tooltip: 'Party challenge rating',
-            visible: designTimeOnly
+            visible: gmOnly
         });
         api.registerSecondaryBarItem('combat', 'monster-cr', {
             kind: 'info',
@@ -503,10 +499,10 @@ export class CombatBarManager {
             group: 'challenge',
             order: 1,
             icon: 'fas fa-dragon',
-            label: 'Monster',
+            label: '',
             value: '0',
             tooltip: 'Monster challenge rating',
-            visible: designTimeOnly
+            visible: gmOnly
         });
         api.registerSecondaryBarItem('combat', 'difficulty', {
             kind: 'info',
@@ -616,6 +612,42 @@ export class CombatBarManager {
             // tracker never shows this because its markup persists between
             // renders; ours is rebuilt by the menubar. Land the first write
             // without a transition, then restore it so subsequent ticks glide.
+            // Bind the tracker's own click behaviour to this copy of the bar:
+            // left toggles pause, right sets the remaining time from the click
+            // position. Bound directly to the track rather than delegated,
+            // because both handlers measure `event.currentTarget` — a delegated
+            // listener would hand them the wrong element and scrub to a wrong
+            // time. Re-bound per render, since the element is rebuilt.
+            const track = item.querySelector('.secondary-bar-item-progressbar-bar');
+
+            // Expired colours the whole track, not the fill — at zero the fill
+            // has no width, so a fill-only colour leaves the bar reading as an
+            // empty track. The tracker does the same thing via
+            // `.combat-timer-progress.expired`; this mirrors it.
+            //
+            // The inline `background-color` the partial writes from `barColor`
+            // has to go for the class to be able to colour anything: an inline
+            // declaration beats the stylesheet. Same reason the fill clears
+            // its own. CSS then owns both the normal and expired track colour.
+            if (track) {
+                if (track.style.backgroundColor) track.style.backgroundColor = '';
+                track.classList.toggle('expired', !!display.isExpired);
+            }
+
+            if (track && track.dataset.blacksmithTimerBound !== '1') {
+                const timer = itemId === 'planning-timer' ? PlanningTimer : CombatTimer;
+                const onClick = itemId === 'planning-timer'
+                    ? (event) => timer._onTimerClick(event)
+                    : (event) => timer.handleTimerClick(event);
+                const onContext = itemId === 'planning-timer'
+                    ? (event) => { event.preventDefault(); timer._onTimerRightClick(event); }
+                    : (event) => { event.preventDefault(); timer.handleRightClick(event); };
+                track.addEventListener('click', onClick);
+                track.addEventListener('contextmenu', onContext);
+                track.style.cursor = game.user.isGM ? 'pointer' : '';
+                track.dataset.blacksmithTimerBound = '1';
+            }
+
             if (item.dataset.blacksmithTimerPrimed !== '1') {
                 const previous = fill.style.transition;
                 fill.style.transition = 'none';
@@ -638,6 +670,58 @@ export class CombatBarManager {
 
         const label = item.querySelector('.secondary-bar-item-progressbar-left-label');
         if (label && label.textContent !== display.text) label.textContent = display.text;
+    }
+
+    /**
+     * Difficulty chip colour for this bar. Deliberately not
+     * `EncounterManager.getDifficultyBorderColor`, whose palette was chosen as
+     * a border against the encounter bar's near-black background; used as text
+     * on the combat bar's warm translucent row those read fluorescent,
+     * the greens worst. Muted and warmed to sit on that row instead.
+     */
+    static getDifficultyChipColor(difficultyClass) {
+        const colors = {
+            trivial: '#9db89d',
+            easy: '#a8c9a0',
+            medium: '#dcc36a',
+            hard: '#e39a6a',
+            deadly: '#e07070',
+            impossible: '#c98f8f',
+            none: 'rgba(240, 240, 224, 0.55)'
+        };
+        return colors[difficultyClass] ?? colors.none;
+    }
+
+    /**
+     * Readouts dropped, in order, when the data row cannot fit them. Squeezing
+     * them all makes every one unreadable; dropping the least urgent keeps the
+     * rest legible. Party health goes first, then monster health, then the
+     * timer — the timer is the one you are watching a clock on.
+     */
+    static READOUT_SUPPRESSION_ORDER = ['party-health', 'monster-health', 'planning-timer', 'turn-timer'];
+
+    /**
+     * Hide readouts until the row fits. Measured rather than expressed in CSS,
+     * because "hide this one first" is an ordering CSS cannot state — a media
+     * query would also be guessing at the row's width rather than reading it.
+     */
+    static applyReadoutOverflow() {
+        const row = document.querySelector('.combat-data-row');
+        const toolbar = row?.querySelector('.secondary-bar-toolbar');
+        if (!toolbar) return;
+
+        const suppressed = [];
+        for (const itemId of CombatBarManager.READOUT_SUPPRESSION_ORDER) {
+            const el = toolbar.querySelector(`.secondary-bar-item[data-item-id="${itemId}"]`);
+            if (el) suppressed.push(el);
+        }
+        // Start from everything visible so the row recovers as it widens.
+        for (const el of suppressed) el.classList.remove('is-suppressed');
+
+        for (const el of suppressed) {
+            if (toolbar.scrollWidth <= toolbar.clientWidth) break;
+            el.classList.add('is-suppressed');
+        }
     }
 
     /**
@@ -739,13 +823,21 @@ export class CombatBarManager {
             });
 
             if (!game.user.isGM) return;
-            const assessment = EncounterManager.getCombatAssessment({});
+            // Same scoping rule as health, and for the same reason. Out of
+            // combat the rating is the fight as designed — everything on the
+            // canvas. In combat it is the party against what is actually in
+            // the encounter, so an encounter can be scaled while it runs by
+            // adding or removing combatants and watching the number move.
+            const crSource = combat
+                ? (Array.isArray(combat.turns) && combat.turns.length ? combat.turns : Array.from(combat.combatants))
+                : null;
+            const assessment = EncounterManager.getCombatAssessment({}, crSource);
             api.updateSecondaryBarItemInfo('combat', 'party-cr', { value: assessment.partyCRDisplay });
             api.updateSecondaryBarItemInfo('combat', 'monster-cr', { value: assessment.monsterCRDisplay });
             api.updateSecondaryBarItemInfo('combat', 'difficulty', {
                 value: assessment.difficulty,
                 label: '',
-                iconColor: EncounterManager.getDifficultyBorderColor(assessment.difficultyClass),
+                iconColor: CombatBarManager.getDifficultyChipColor(assessment.difficultyClass),
                 borderColor: null
             });
         } catch (error) {
