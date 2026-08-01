@@ -2036,8 +2036,10 @@ class MenuBar {
                 return true;
             }
 
-            // Bar type exists - check if it supports items (not custom template)
-            if (barType.hasCustomTemplate) {
+            // Bar type exists - check if it supports items. A custom template
+            // normally means the bar draws itself and items have nowhere to go;
+            // a hybrid bar renders both, so it accepts them.
+            if (barType.hasCustomTemplate && !barType.hybridItems) {
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Cannot register items to custom template bar",
                     { barTypeId, itemId }, false, false);
                 return false;
@@ -2885,9 +2887,16 @@ class MenuBar {
         // template can hand its context straight to menubar-secondary-default
         // and reuse the whole item rendering rather than restating it.
         if (barType.hasCustomTemplate && barType.hybridItems && data.data) {
-            data.data.zones = data.zones;
-            data.data.groupBannerEnabled = data.groupBannerEnabled;
-            data.data.groupBannerColor = data.groupBannerColor;
+            // A render-only copy, deliberately not a mutation of
+            // `this.secondaryBar.data`: the value fingerprint JSON-stringifies
+            // that object, and folding the zones into it would stringify every
+            // item on every render.
+            data.data = {
+                ...data.data,
+                zones: data.zones,
+                groupBannerEnabled: data.groupBannerEnabled,
+                groupBannerColor: data.groupBannerColor
+            };
         }
 
         return data;
@@ -2971,11 +2980,17 @@ class MenuBar {
         const sb = this.secondaryBar;
         if (!sb?.isOpen || !sb?.type) return '';
         const barType = this.secondaryBarTypes.get(sb.type);
+        let customPart = '';
         if (barType?.hasCustomTemplate) {
             const data = sb.data && typeof sb.data === 'object' ? sb.data : {};
             const combatId = data.combat?.id ?? data.combatId ?? '';
             const sceneId = typeof canvas !== 'undefined' && canvas?.scene?.id ? canvas.scene.id : '';
-            return `${sb.type}|custom|${combatId}|${sceneId}|${sb.height ?? ''}`;
+            customPart = `custom|${combatId}|${sceneId}`;
+            // A hybrid bar renders items too, so its structure changes when
+            // they do — falling through picks up the item signature below.
+            // Returning here would leave an item appearing or changing
+            // visibility unable to trigger a rebuild.
+            if (!barType.hybridItems) return `${sb.type}|${customPart}|${sb.height ?? ''}`;
         }
         const items = this.getSecondaryBarItems(sb.type);
         const parts = [];
@@ -2991,7 +3006,7 @@ class MenuBar {
             parts.push(`${item.itemId}:${item.kind || ''}:${item.zone || 'middle'}`);
         }
         parts.sort();
-        return `${sb.type}|${parts.join(',')}|h${sb.height ?? ''}`;
+        return `${sb.type}|${customPart}|${parts.join(',')}|h${sb.height ?? ''}`;
     }
 
     /**
