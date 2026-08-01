@@ -25,16 +25,39 @@ Only the Clear buttons are genuinely out-of-combat tools.
 
 ## Target state
 
-One always-present bar, labelled Encounter, in a single row.
+One always-present bar, labelled Encounter, in two rows with different jobs.
 
-**One row, not two.** The readouts sit beside the portraits in the item zones, grouped with labelled banners, which is how every other secondary bar in the suite is laid out (Broadcast, Cartographer). Vertical space is the scarce resource on a wide screen and stacking rows spends it; horizontal space is plentiful. An earlier attempt at a second row shrank the action buttons to fit and was reverted.
+**Data row** — fixed height, on top. Readouts only: round and turn, challenge rating, health, balance,
+timers. Registered items in zones, grouped for divider separation. **No group banners**: a banner captions
+a cluster of otherwise unlabelled buttons, which is what Broadcast and Cartographer need; a readout carries
+its own label, so a banner above it only repeats the word.
+
+**Combat row** — scales with the user's size setting because portraits need it. Controls only: the menu
+buttons, turn navigation, the portrait strip, graveyard, and the begin/end button.
+
+The split exists because **item sizing is pinned to bar height and the combat row has to scale**. Group
+banners are 20% of bar height, item minimums are bar height minus chrome applied to width as well as
+height, and progressbar height is 40% of bar height. At a portrait-sized row those inflate: chips become
+large squares and progress bars become slabs. A fixed row gives them a constant basis.
+
+The mechanism is one line of CSS: the data row redeclares `--blacksmith-menubar-secondary-height` as its
+own height. Custom properties inherit, so the whole item subtree re-bases — including the progressbar
+height, which is an inline `calc()` resolved in the element's own context. Neither the shared partial nor
+the item JS needs to know rows exist.
+
+Data on top so it never moves when the combat row resizes or the portrait strip appears. The row is present
+for players too, not only GMs.
+
+**The menu buttons stay in the combat row.** An earlier attempt moved them into the fixed row and shrank
+them to fit; that was the mistake, not the existence of two rows. Nothing about a fixed readout row
+requires touching the controls.
 
 Contents by state:
 
 | Element | Out of combat | In combat |
 |---|---|---|
 | Portrait strip | absent | full strip |
-| Round / Turn endcap | absent | Round with turn folded in |
+| Round and turn readouts | absent | data row, left zone |
 | Combatant name endcap | removed | removed — the highlighted portrait already says it |
 | Initiatives button | hidden | shown, menu unchanged |
 | Encounter button | shown | shown, per-item adaptation |
@@ -121,11 +144,13 @@ whether it adds monsters to the *current* encounter or only creates new ones, be
 
 **Height is load-bearing.** `--blacksmith-menubar-total-height` offsets the Foundry UI below the menubar,
 so a wrong height misplaces every element under it. `menubarCombatSize` and `menubarCombatSizeIdle` size
-the whole bar, which stays one row.
+the **combat row**; the bar total is that plus the fixed data row. Portrait and button dimensions derive
+from the combat row's variable, never the total, or they would grow whenever the data row did.
 
 **Read `documentation/api/api-menubar.md` before designing bar layout.** The house pattern is documented
-there and the other suite bars follow it: one row, items in left/middle/right zones, grouped with labelled
-banners via `groupBannerEnabled`, banners sized at 20% of bar height and progressbars at 40%. Phase 4 was
+there and the other suite bars follow it: items in left/middle/right zones, grouped with labelled
+banners via `groupBannerEnabled` where the group is a set of buttons, banners sized at 20% of bar height
+and progressbars at 40%. Phase 4 was
 first built as a second row with shrunken buttons because that doc was not read; it was reverted. Grepping
 the code shows what the machinery can do, not what the suite has decided to look like.
 
@@ -189,15 +214,21 @@ prepared zones and banner settings are copied onto `data.data`, which lets the c
 context straight to `menubar-secondary-default` and reuse the entire item rendering rather than restating
 it.
 
-The items render in the space the combatant-name endcap used to occupy, sharing the single row with the
-portraits. The bar keeps one height and the action buttons keep their size.
+The items render in a fixed-height data row above the combat row, which shadows
+`--blacksmith-menubar-secondary-height` to its own height so the item subtree re-bases. Round and turn moved
+into it as `info` items, so the combat row holds controls and portraits only and the endcaps are gone.
 
-This was first built as a second row, with the action buttons moved into it and shrunk to fit, and the size
-settings redefined as "portrait row only". That was wrong on the fundamental tradeoff: vertical space is the
-scarce resource on a wide screen while horizontal space is plentiful, and it was invented against a
-documented house pattern — one row, zones, banner-labelled groups — that the other suite bars already
-follow. It was reverted. `menubarCombatSize` and `menubarCombatSizeIdle` keep their phase-3 meaning of the
-whole bar.
+Two false starts are worth recording, because both were reverted and neither should be retried. The first
+built a second row and moved the action buttons into it, shrinking them to fit; the buttons belong in the
+scaling row and nothing about a fixed readout row requires moving them. The second put the items in the
+single combat row beside the portraits, which is accurate but looks wrong: item sizing is pinned to bar
+height, so at portrait scale the chips inflate into large squares and progress bars would become slabs.
+The fixed row is the resolution — it was the right idea for the second reason, not the first.
+
+Registration needed the same treatment as rendering: `registerSecondaryBarItem` rejected items for any
+custom-template bar (`api-menubar.js:2040`) and now allows them for a hybrid one. `_secondaryBarStructureSignature`
+also returned early for custom templates and skipped the item signature, so an item appearing or changing
+visibility could not trigger a rebuild; hybrid bars now include both parts.
 
 The endcap rework rode along, since it is the same markup: round and turn are one endcap on the left, and
 the combatant-name endcap on the right is gone. Its label-above-value emphasis was inverted for the new
@@ -211,10 +242,10 @@ show the round and total timers in its endcaps and never did, which is also why 
 them up or delete the dead cache entries.
 
 **Phase 5 — Challenge Rating. Partly done.** Party CR, Monster CR, and Difficulty are registered as `info`
-items in a banner-labelled `challenge` group, GM-gated, refreshed by the bar's own debounced
-`createToken` / `updateToken` / `deleteToken` hooks rather than `EncounterToolbar`'s. Labels are "Party" and
-"Monster" with the banner carrying the heading, so the values lose the "CR". Landed early so the row had
-something real in it to review — an empty row cannot be judged.
+items in a `challenge` group, GM-gated, refreshed by the bar's own debounced
+`createToken` / `updateToken` / `deleteToken` hooks rather than `EncounterToolbar`'s. Each item carries its
+own label, so the values drop the redundant "CR". Landed early so the row had something real in it to
+review — an empty row cannot be judged.
 
 Still to do: hide the CR pair once combat starts and keep Difficulty alone as a tinted chip, per the
 design-time/run-time split. Deferred until the balance bar exists to take the space, since hiding them

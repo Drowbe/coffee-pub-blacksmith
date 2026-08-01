@@ -7,25 +7,94 @@
    Combat Bar Tunables
    ========================= */
    .blacksmith-menubar-secondary {
-    /* Scale everything based on bar height */
-    --portrait-container-height: calc(var(--blacksmith-menubar-secondary-height) - 4px);
-    --portrait-container-width: calc(var(--blacksmith-menubar-secondary-height) + 4px);
+    /* Written by CombatBarManager.applyBarHeight; the fallbacks match the
+       constant and the setting default so the bar is sane before first render.
+       Everything below scales from the COMBAT row, not the bar total — the
+       total now includes the data row, and portraits must not grow when that
+       row is present. */
+    --blacksmith-combatbar-data-height: 38px;
+    --blacksmith-combatbar-combat-height: 60px;
+
+    --portrait-container-height: calc(var(--blacksmith-combatbar-combat-height) - 4px);
+    --portrait-container-width: calc(var(--blacksmith-combatbar-combat-height) + 4px);
     --healthbar-size: calc(var(--portrait-container-height) - 8px);
     --portrait-size: calc(var(--healthbar-size) - 10px);
     --action-icon-size: calc(var(--healthbar-size) - 10px);
     --action-icon-font-size: calc(var(--healthbar-size) * 0.6);
-    
-    --combatbar-button-ends-height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
-    --combatbar-button-ends-width: calc(var(--blacksmith-menubar-secondary-height) * 0.4);  
-    
+
+    --combatbar-button-ends-height: calc(var(--blacksmith-combatbar-combat-height) * 0.6);
+    --combatbar-button-ends-width: calc(var(--blacksmith-combatbar-combat-height) * 0.4);
+
     --combatbar-endcaps-minwidth: 5%;
-    
+
     /* Thickness of the SVG stroke */
     --ring-thickness: 3px;
     --gap: 2px;
-    --combatbar-button-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.25);
-    --combatbar-text-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.22);
-    --combatbar-subtext-font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.13);
+    --combatbar-button-font-size: calc(var(--blacksmith-combatbar-combat-height) * 0.25);
+    --combatbar-text-font-size: calc(var(--blacksmith-combatbar-combat-height) * 0.22);
+    --combatbar-subtext-font-size: calc(var(--blacksmith-combatbar-combat-height) * 0.13);
+}
+
+/* ROWS */
+
+.blacksmith-menubar-secondary .combat-bar-rows {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+/* The data row re-bases the item sizing for its subtree.
+   Shadowing --blacksmith-menubar-secondary-height alone is NOT enough: custom
+   properties substitute at computed-value time on the element that declares
+   them, so the font/icon/padding/gap variables in menubar.css resolve against
+   the ROOT height (now the bar total) and inherit down already resolved. They
+   have to be redeclared here to be recomputed against the data row's height.
+   What the shadow does still cover is anything declared *inside* this subtree
+   or resolved at point of use: the group banner height and available-height,
+   and the progressbar/balancebar heights, which JS sets as an inline calc(). */
+.blacksmith-menubar-secondary .combat-data-row {
+    --blacksmith-menubar-secondary-height: var(--blacksmith-combatbar-data-height);
+
+    --secondary-bar-item-font-size: clamp(
+        10px,
+        calc(var(--blacksmith-combatbar-data-height) * 0.36),
+        15px
+    );
+    --secondary-bar-item-icon-size: clamp(
+        8px,
+        calc(var(--blacksmith-combatbar-data-height) * 0.36),
+        15px
+    );
+    --secondary-bar-item-padding-hor: clamp(
+        4px,
+        calc(var(--blacksmith-combatbar-data-height) * 0.12),
+        9px
+    );
+    --secondary-bar-item-padding-ver: clamp(
+        1px,
+        calc(var(--blacksmith-combatbar-data-height) * 0.06),
+        4px
+    );
+    --secondary-bar-item-gap: clamp(
+        3px,
+        calc(var(--blacksmith-combatbar-data-height) * 0.10),
+        7px
+    );
+
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: var(--blacksmith-combatbar-data-height);
+    flex: 0 0 var(--blacksmith-combatbar-data-height);
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-toolbar {
+    width: 100%;
+    height: 100%;
+    padding: 0 8px;
 }
 
 /* Combat bar background */
@@ -33,67 +102,14 @@
     background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
 }
 
+/* The combat row: controls and portraits, scaling with the size setting. */
 .blacksmith-menubar-secondary .combat-tracker-bar {
     display: flex;
     align-items: center;
     gap: 0px;
     width: 100%;
-    height: 100%;
-}
-
-/* ENDCAPS */
-
-.blacksmith-menubar-secondary .combat-endcap-left {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 2px;
-    height: 100%;
-    padding: 0px 8px;
-    background-color: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(0, 0, 0, 0.7);
-    border-radius: 0px 2px 2px 0px;
-  }
-  /* The endcap carries round above turn rather than a label above a value, so
-     the emphasis is inverted from the original: round is the headline, the
-     turn count the supporting line. */
-  .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-top {
-      font-weight: 900;
-      text-transform: uppercase;
-      white-space: nowrap;
-      font-size: var(--combatbar-text-font-size);
-      color: var(--blacksmith-menubar-secondary-fontcolor);
-  }
-
-  .blacksmith-menubar-secondary .combat-endcap-left .combat-endcap-bottom {
-      opacity: 0.6;
-      white-space: nowrap;
-      font-size: var(--combatbar-subtext-font-size);
-      color: var(--blacksmith-menubar-secondary-fontcolor);
-  }
-
-/* READOUT ITEMS - registered items, sharing the row with the portraits.
-   Sizes to its contents so an empty set costs nothing and the portraits keep
-   the space. */
-.blacksmith-menubar-secondary .combat-readout-items {
-    display: flex;
-    align-items: center;
-    flex: 0 1 auto;
-    min-width: 0;
-    height: 100%;
-}
-
-/* The shared toolbar assumes it owns the whole bar; here it owns one end of
-   it, so it takes its natural width instead of stretching. */
-.blacksmith-menubar-secondary .combat-readout-items .secondary-bar-toolbar {
-    width: auto;
-    justify-content: flex-end;
-    padding-left: 0;
-}
-
-.blacksmith-menubar-secondary .combat-readout-items .secondary-bar-zone:empty {
-    display: none;
+    height: var(--blacksmith-combatbar-combat-height);
+    flex: 0 0 var(--blacksmith-combatbar-combat-height);
 }
 
 /* COMBAT PORTRAITS - Container */

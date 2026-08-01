@@ -1,13 +1,26 @@
-{{!-- Combat Tracker Secondary Bar --}}
+{{!-- Two rows with different jobs.
+
+     The DATA ROW is a fixed height and holds readouts only — round and turn,
+     challenge rating, and later health, balance, and timers. It is fixed
+     because every registered item sizes itself from
+     `--blacksmith-menubar-secondary-height`, which the row shadows to its own
+     height: at the combat row's scale those items inflate (item minimums are
+     bar height minus chrome, applied to width as well as height) and progress
+     bars become slabs. Giving them a constant basis is the whole point.
+
+     The COMBAT ROW scales with the user's size setting because portraits need
+     it, and holds the controls: menus, turn navigation, portraits, graveyard,
+     and the begin/end button.
+
+     Data on top so it never moves when the combat row resizes or the portrait
+     strip comes and goes. --}}
+<div class="combat-bar-rows">
+
+<div class="combat-data-row">
+    {{> "menubar-secondary-default" this}}
+</div>
+
 <div class="combat-tracker-bar">
-    {{!-- Round, with the turn count folded in. Describes a running encounter,
-          so it is absent when there is not one; the bar itself stays. --}}
-    {{#if isInCombat}}
-    <div class="combat-endcap-left">
-        <span class="combat-endcap-top">Round {{currentRound}}</span>
-        <span class="combat-endcap-bottom">Turn {{currentTurn}} of {{totalTurns}}</span>
-    </div>
-    {{/if}}
 
     {{!-- Combat Controls and Portraits Group --}}
     <div class="combat-portraits-group">
@@ -215,12 +228,6 @@
 
     </div>
 
-    {{!-- Readouts. Registered items rendered by the shared secondary bar
-          partial, in the space the combatant-name endcap used to take: the
-          highlighted portrait already says whose turn it is, so that endcap
-          was the redundant one. The combat bar type is registered with
-          hybridItems, which is what puts `zones` on this context. --}}
-    <div class="combat-readout-items">
-        {{> "menubar-secondary-default" this}}
-    </div>
+</div>
+
 </div>

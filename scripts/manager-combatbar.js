@@ -300,9 +300,13 @@ export class CombatBarManager {
             hybridItems: true,
             // Banners match the other secondary bars in the suite (Broadcast,
             // Cartographer): grouped, labelled sections rather than loose icons.
-            groupBannerEnabled: true,
-            groupBannerColor: 'rgba(62, 62, 163, 0.9)',
+            // No group banners: those caption a cluster of otherwise unlabelled
+            // buttons, which is what the Broadcast and Cartographer bars need.
+            // These items carry their own labels, so a banner would only repeat
+            // them. Groups still earn their keep as divider boundaries.
+            groupBannerEnabled: false,
             groups: {
+                'encounter': { mode: 'default', order: 0 },
                 'challenge': { mode: 'default', order: 10 }
             }
         });
@@ -317,6 +321,33 @@ export class CombatBarManager {
     static registerReadoutItems(api) {
         if (!api?.registerSecondaryBarItem) return;
         const gmOnly = () => game.user.isGM;
+        const inCombat = () => !!CombatBarManager.getActiveCombat();
+
+        // Round and turn are readouts, so they live in the data row with the
+        // rest rather than in an endcap beside the portraits. Everyone sees
+        // these; only the challenge rating below is GM information.
+        api.registerSecondaryBarItem('combat', 'round', {
+            kind: 'info',
+            zone: 'left',
+            group: 'encounter',
+            order: 0,
+            icon: 'fa-solid fa-hourglass-half',
+            label: 'Round',
+            value: '0',
+            tooltip: 'Current round',
+            visible: inCombat
+        });
+        api.registerSecondaryBarItem('combat', 'turn', {
+            kind: 'info',
+            zone: 'left',
+            group: 'encounter',
+            order: 1,
+            icon: 'fa-solid fa-user-clock',
+            label: 'Turn',
+            value: '0 of 0',
+            tooltip: 'Current turn',
+            visible: inCombat
+        });
 
         api.registerSecondaryBarItem('combat', 'party-cr', {
             kind: 'info',
@@ -367,10 +398,8 @@ export class CombatBarManager {
         }
         CombatBarManager._readoutRefreshTimer = setTimeout(() => {
             CombatBarManager._readoutRefreshTimer = null;
-            CombatBarManager.refreshReadoutItems();
-            if (menuBar?.secondaryBar?.isOpen && menuBar.secondaryBar.type === 'combat') {
-                CombatBarManager.updateCombatBar(menuBar);
-            }
+            // updateCombatBar refreshes the readouts itself before rendering.
+            CombatBarManager.updateCombatBar(menuBar);
         }, 250);
     }
 
@@ -381,9 +410,19 @@ export class CombatBarManager {
      */
     static refreshReadoutItems() {
         try {
-            if (!game.user.isGM) return;
             const api = game.modules.get(MODULE.ID)?.api;
             if (!api?.updateSecondaryBarItemInfo) return;
+
+            // Round and turn are everyone's; the challenge rating below is not.
+            const combat = CombatBarManager.getActiveCombat();
+            if (combat) {
+                const totalTurns = Array.isArray(combat.turns) ? combat.turns.length : combat.combatants.size;
+                const currentTurn = Math.min((typeof combat.turn === 'number' ? combat.turn : 0) + 1, Math.max(totalTurns, 1));
+                api.updateSecondaryBarItemInfo('combat', 'round', { value: String(combat.round || 0) });
+                api.updateSecondaryBarItemInfo('combat', 'turn', { value: `${currentTurn} of ${totalTurns}` });
+            }
+
+            if (!game.user.isGM) return;
             const assessment = EncounterManager.getCombatAssessment({});
             api.updateSecondaryBarItemInfo('combat', 'party-cr', { value: assessment.partyCRDisplay });
             api.updateSecondaryBarItemInfo('combat', 'monster-cr', { value: assessment.monsterCRDisplay });
@@ -809,6 +848,9 @@ export class CombatBarManager {
             // happen before the data is built, since portrait rings are sized
             // from the height variable as getCombatData runs.
             CombatBarManager.applyBarHeight(menuBar, !!combat);
+            // Readout values are item state, not template data, so they have to
+            // be pushed before the render that reads them.
+            CombatBarManager.refreshReadoutItems();
             const data = combatData || CombatBarManager.getCombatData(combat);
             CombatBarManager.hideCombatantHoverCard(menuBar);
             return menuBar.updateSecondaryBar(data);
@@ -827,36 +869,57 @@ export class CombatBarManager {
     }
 
     /**
-     * The bar's height for the given combat state. Two settings, because the
-     * bar carries portraits during an encounter and only menus and readouts
-     * between them. One row either way — readouts sit beside the portraits in
-     * zones, which is how every other secondary bar in the suite is laid out.
+     * The data row's height. Deliberately a constant and not a setting: the
+     * whole reason the row exists is that the item vocabulary sizes itself
+     * from the bar height, and the combat row has to scale for portraits.
+     * A slider here would reintroduce exactly the problem the row solves.
      */
-    static resolveBarHeight(isInCombat) {
+    static DATA_ROW_HEIGHT = 38;
+
+    /**
+     * The combat row's height — portraits, controls, the part the user scales.
+     * Two settings because that row carries portraits during an encounter and
+     * only the menus between them.
+     */
+    static resolveCombatRowHeight(isInCombat) {
         return isInCombat
             ? getSettingSafely(MODULE.ID, 'menubarCombatSize', 60)
             : getSettingSafely(MODULE.ID, 'menubarCombatSizeIdle', 40);
     }
 
     /**
-     * Apply a height to the live bar. Both variables are written because they
-     * serve different consumers: the layout derives from the secondary height,
-     * while getCombatData reads the combat height to size portrait rings.
-     * `--blacksmith-menubar-total-height` is a calc() over the former, so the
-     * Foundry UI beneath the menubar follows without being written again.
+     * Size the bar. Three variables, three consumers:
      *
-     * Call this BEFORE building bar data: the ring geometry is read from the
+     * - `--blacksmith-combatbar-data-height` sizes the data row, and the row's
+     *   CSS shadows `--blacksmith-menubar-secondary-height` to it so every
+     *   registered item inside re-bases without the shared partial or the item
+     *   JS knowing anything about rows.
+     * - `--blacksmith-combatbar-combat-height` sizes the combat row, and every
+     *   portrait and button dimension derives from it rather than the total.
+     * - `--blacksmith-menubar-secondary-height` is the total, which the layout
+     *   and `--blacksmith-menubar-total-height` work from, so the Foundry UI
+     *   beneath the menubar follows without a second write.
+     *
+     * `--blacksmith-menubar-secondary-combat-height` stays the combat row's
+     * height: getCombatData reads it for ring geometry.
+     *
+     * Call this BEFORE building bar data — the ring geometry is read from that
      * variable as getCombatData runs, so setting it afterwards sizes the rings
      * from the previous state.
      */
     static applyBarHeight(menuBar, isInCombat) {
-        const height = CombatBarManager.resolveBarHeight(isInCombat);
-        document.documentElement.style.setProperty('--blacksmith-menubar-secondary-combat-height', `${height}px`);
+        const combatRow = CombatBarManager.resolveCombatRowHeight(isInCombat);
+        const dataRow = CombatBarManager.DATA_ROW_HEIGHT;
+        const total = combatRow + dataRow;
+        const root = document.documentElement.style;
+        root.setProperty('--blacksmith-combatbar-data-height', `${dataRow}px`);
+        root.setProperty('--blacksmith-combatbar-combat-height', `${combatRow}px`);
+        root.setProperty('--blacksmith-menubar-secondary-combat-height', `${combatRow}px`);
         if (menuBar?.secondaryBar?.isOpen && menuBar.secondaryBar.type === 'combat') {
-            menuBar.secondaryBar.height = height;
-            document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${height}px`);
+            menuBar.secondaryBar.height = total;
+            root.setProperty('--blacksmith-menubar-secondary-height', `${total}px`);
         }
-        return height;
+        return total;
     }
 
     /**
