@@ -107,6 +107,31 @@
     padding: 0 8px;
 }
 
+/* Everything in this row is a readout, never a button. The shared item rule
+   gives each item a fill, a border, a 6px radius, a pointer cursor and a hover
+   lift, because on a default bar every item is a button — here that chrome
+   boxes a value that cannot be clicked and offers an affordance that does
+   nothing. The square min-width goes too: a number should be as wide as the
+   number. */
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item {
+    background-color: transparent;
+    border-color: transparent;
+    border-radius: 0;
+    cursor: default;
+    min-width: 0;
+    min-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    transition: none;
+}
+
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item:hover,
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item:active {
+    background-color: transparent;
+    border-color: transparent;
+    transform: none;
+}
+
 /* Combat bar background */
 .blacksmith-menubar-secondary[data-bar-type="combat"] {
     background-color: var(--blacksmith-menubar-secondary-backgroundcolor);

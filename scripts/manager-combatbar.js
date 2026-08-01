@@ -360,6 +360,8 @@ export class CombatBarManager {
             group: 'health',
             order: 0,
             width: 150,
+            // 40% of the row would be 12px; a health bar wants more presence.
+            height: 18,
             icon: '',
             title: '',
             borderColor: 'rgba(0,0,0,0.5)',
@@ -377,6 +379,7 @@ export class CombatBarManager {
             group: 'health',
             order: 1,
             width: 150,
+            height: 18,
             icon: '',
             title: '',
             borderColor: 'rgba(0,0,0,0.5)',
