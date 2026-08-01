@@ -11,7 +11,15 @@
     /* Menubar Container */
     --blacksmith-menubar-primary-height: 30px;
     --blacksmith-menubar-secondary-height: 0px;
-    --blacksmith-menubar-total-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height));
+    /* The primary menubar casts `0 0 20px 4px` with no offset, so it bleeds
+       down over the top of whatever secondary bar sits beneath it — darkening
+       the first few pixels, most visibly on bars whose content starts at the
+       top edge, like Cartographer's group banners. This buffer pushes every
+       secondary bar's content clear of it. It is content padding, not part of
+       the height setting: a bar's configured height stays the height its
+       content gets, and the offset is added on top here and in the total. */
+    --blacksmith-menubar-secondary-shadow-offset: 4px;
+    --blacksmith-menubar-total-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height) + var(--blacksmith-menubar-secondary-shadow-offset));
     --blacksmith-menubar-zone-height: calc(var(--blacksmith-menubar-primary-height) - 2px);
     --blacksmith-menubar-interface-offset: calc(var(--blacksmith-menubar-total-height) + 2px);
     --blacksmith-menubar-divider-height: calc(var(--blacksmith-menubar-primary-height) - 12px);
@@ -608,7 +616,10 @@
     box-shadow: 0 0 20px 4px var(--color-shadow-dark);
     display: flex;
     align-items: center;
-    padding: 0;
+    /* content-box so the padding is added to the configured height rather than
+       eaten out of it — a bar asking for 60px still gets 60px of content. */
+    box-sizing: content-box;
+    padding: var(--blacksmith-menubar-secondary-shadow-offset) 0 0 0;
     overflow: hidden;
     /* Remove base font-size - let items set their own sizes */
 }

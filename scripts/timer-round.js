@@ -25,30 +25,24 @@ export class RoundTimer {
     /** Cached text nodes — refreshed when combat tracker renders or when refs go stale */
     static _roundTimerDomCache = {
         round: [],
-        combatbarRound: [],
-        total: [],
-        combatbarTotal: []
+        total: []
     };
 
     static _refreshRoundTimerDomCache() {
         const c = this._roundTimerDomCache;
         c.round = Array.from(document.querySelectorAll('.round-timer-container .combat-time-round'));
-        c.combatbarRound = Array.from(document.querySelectorAll('.combat-endcap-left .combat-time-round'));
         c.total = Array.from(document.querySelectorAll('.round-timer-container .combat-time-total'));
-        c.combatbarTotal = Array.from(document.querySelectorAll('.combat-endcap-right .combat-time-total'));
     }
 
     static _clearRoundTimerDomCache() {
         const c = this._roundTimerDomCache;
         c.round = [];
-        c.combatbarRound = [];
         c.total = [];
-        c.combatbarTotal = [];
     }
 
     static _isRoundTimerDomCacheStale() {
         const c = this._roundTimerDomCache;
-        for (const key of ['round', 'combatbarRound', 'total', 'combatbarTotal']) {
+        for (const key of ['round', 'total']) {
             for (const el of c[key]) {
                 if (!el.isConnected) return true;
             }
@@ -144,9 +138,7 @@ export class RoundTimer {
                     
                     const c = this._roundTimerDomCache;
                     c.round.forEach((el) => { el.textContent = formattedRoundTime; });
-                    c.combatbarRound.forEach((el) => { el.textContent = formattedRoundTime; });
                     c.total.forEach((el) => { el.textContent = formattedTotalTime; });
-                    c.combatbarTotal.forEach((el) => { el.textContent = formattedTotalTime; });
                 }
             }, 1000); // Update every second
         });

@@ -852,8 +852,8 @@ export class CombatBarManager {
         api.registerMenubarTool('combat-bar', {
             icon: "fas fa-swords",
             name: "combat-bar",
-            title: () => "Combat Bar",
-            tooltip: "Show combat tracker secondary bar",
+            title: () => "Encounter",
+            tooltip: "Show the encounter bar",
             onClick: () => api.toggleSecondaryBar('combat'),
             zone: "middle",
             group: "combat",
@@ -2412,6 +2412,18 @@ export class CombatBarManager {
             }
         };
 
+        // The removals delete tokens from the scene and there is no undo, so
+        // each asks first. Reveal does not — it is reversible and used mid-turn.
+        const confirmThenRun = (label, question, fn) => async () => {
+            const ok = await foundry.applications.api.DialogV2.confirm({
+                window: { title: label },
+                content: `<p>${question}</p>`,
+                modal: true
+            });
+            if (!ok) return;
+            await run(label, fn);
+        };
+
         const gm = [
             {
                 name: 'Reveal Hidden',
@@ -2425,26 +2437,38 @@ export class CombatBarManager {
             {
                 name: 'Remove Party from Canvas',
                 icon: 'fa-solid fa-users-slash',
-                callback: () => run('Remove Party from Canvas', async () => {
-                    const { clearPartyFromCanvas } = await import('./utility-party.js');
-                    await clearPartyFromCanvas();
-                })
+                callback: confirmThenRun(
+                    'Remove Party from Canvas',
+                    'Delete every party token from this scene?',
+                    async () => {
+                        const { clearPartyFromCanvas } = await import('./utility-party.js');
+                        await clearPartyFromCanvas();
+                    }
+                )
             },
             {
                 name: 'Remove Monsters from Canvas',
                 icon: 'fa-solid fa-dragon',
-                callback: () => run('Remove Monsters from Canvas', async () => {
-                    const { EncounterManager } = await import('./manager-encounter.js');
-                    await EncounterManager.clearMonstersFromCanvas();
-                })
+                callback: confirmThenRun(
+                    'Remove Monsters from Canvas',
+                    'Delete every monster token from this scene? Humanoid NPCs are left in place.',
+                    async () => {
+                        const { EncounterManager } = await import('./manager-encounter.js');
+                        await EncounterManager.clearMonstersFromCanvas();
+                    }
+                )
             },
             {
                 name: 'Remove NPCs from Canvas',
                 icon: 'fa-solid fa-people-line',
-                callback: () => run('Remove NPCs from Canvas', async () => {
-                    const { EncounterManager } = await import('./manager-encounter.js');
-                    await EncounterManager.clearNpcsFromCanvas();
-                })
+                callback: confirmThenRun(
+                    'Remove NPCs from Canvas',
+                    'Delete every humanoid NPC token from this scene? Party and monsters are left in place.',
+                    async () => {
+                        const { EncounterManager } = await import('./manager-encounter.js');
+                        await EncounterManager.clearNpcsFromCanvas();
+                    }
+                )
             }
         ];
 

@@ -382,7 +382,6 @@ class MenuBar {
 
 
         // Map secondary bars to their toggle tools for button state syncing
-        this.secondaryBarToolMapping.set('encounter', 'encounter');
         this.secondaryBarToolMapping.set('party', 'party');
 
         // **************** RIGHT ZONE ****************
@@ -2380,7 +2379,9 @@ class MenuBar {
 
             // Set the CSS variables for secondary bar height and total height
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${this.secondaryBar.height}px`);
-            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height))`);
+            // Includes the shadow offset the secondary bar pads itself with, or
+            // the interface below would sit that many pixels too high.
+            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height) + var(--blacksmith-menubar-secondary-shadow-offset))`);
 
             // Set up auto-close if needed
             if (this.secondaryBar.persistence === 'auto') {

@@ -240,8 +240,6 @@ export class EncounterToolbar {
                 }
             }
 
-            // Refresh menubar encounter bar if registered (updates info items with current CR/difficulty)
-            this._refreshEncounterBarInfo();
         } catch (error) {
             // CR update failed; toolbar may still work
         }
@@ -300,23 +298,6 @@ export class EncounterToolbar {
         }
     }
 
-    /**
-     * Refresh menubar encounter bar info items with current CR/difficulty.
-     * Called from _updateAllToolbarCRs and on initial bar registration.
-     */
-    static _refreshEncounterBarInfo() {
-        const api = game.modules.get(MODULE.ID)?.api;
-        if (!api?.updateSecondaryBarItemInfo) return;
-        const assessment = EncounterManager.getCombatAssessment({});
-        api.updateSecondaryBarItemInfo('encounter', 'party-cr', { value: assessment.partyCRDisplay });
-        api.updateSecondaryBarItemInfo('encounter', 'monster-cr', { value: assessment.monsterCRDisplay });
-        api.updateSecondaryBarItemInfo('encounter', 'difficulty', {
-            value: assessment.difficulty,
-            label: '',
-            iconColor: EncounterManager.getDifficultyBorderColor(assessment.difficultyClass),
-            borderColor: null
-        });
-    }
 
     // Hook for journal sheet rendering (normal view only)
     static async _onRenderJournalSheet(app, html, data) {
@@ -1509,152 +1490,4 @@ export class EncounterToolbar {
     }
 }
 
-// Register encounter bar and menubar tool via API (owns encounter secondary bar)
-Hooks.once('ready', async () => {
-    const api = game.modules.get(MODULE.ID)?.api;
-    if (!api?.registerMenubarTool) return;
 
-    // Register encounter secondary bar type (default tool system – no custom template)
-    await api.registerSecondaryBarType('encounter', {
-        height: 40,
-        persistence: 'manual'
-    });
-
-    // Right zone: info items (Party CR, Monster CR, Difficulty)
-    api.registerSecondaryBarItem('encounter', 'party-cr', {
-        kind: 'info',
-        zone: 'right',
-        icon: 'fas fa-helmet-battle',
-        label: 'Party CR',
-        value: '0',
-        group: 'cr',
-        order: 0,
-        tooltip: 'Party CR'
-    });
-    api.registerSecondaryBarItem('encounter', 'monster-cr', {
-        kind: 'info',
-        zone: 'right',
-        icon: 'fas fa-dragon',
-        label: 'Monster CR',
-        value: '0',
-        group: 'cr',
-        order: 1,
-        tooltip: 'Monster CR'
-    });
-    api.registerSecondaryBarItem('encounter', 'difficulty', {
-        kind: 'info',
-        zone: 'right',
-        icon: 'fa-solid fa-swords',
-        label: '',
-        value: 'None',
-        group: 'cr',
-        order: 2,
-        tooltip: 'Difficulty'
-    });
-
-    // Middle zone: action buttons (GM only)
-    api.registerSecondaryBarItem('encounter', 'create-combat', {
-        zone: 'middle',
-        icon: 'fas fa-swords',
-        label: 'Create Combat',
-        tooltip: 'Create combat encounter with selected or all tokens on canvas',
-        group: 'actions',
-        order: 0,
-        visible: () => game.user.isGM,
-        onClick: () => api.createCombat?.()
-    });
-    api.registerSecondaryBarItem('encounter', 'quick-encounter', {
-        zone: 'middle',
-        icon: 'fa-solid fa-dice',
-        label: 'Quick Encounter',
-        tooltip: 'Open Quick Encounter',
-        group: 'actions',
-        order: 1,
-        visible: () => game.user.isGM && !!api.hasQuickEncounterTool?.(),
-        onClick: () => api.openQuickEncounterWindow?.()
-    });
-    api.registerSecondaryBarItem('encounter', 'reveal', {
-        zone: 'middle',
-        icon: 'fas fa-eye',
-        label: 'Reveal',
-        tooltip: 'Reveal hidden NPC tokens on the canvas',
-        group: 'actions',
-        order: 2,
-        visible: () => game.user.isGM,
-        onClick: () => EncounterManager.revealHiddenTokens()
-    });
-    api.registerSecondaryBarItem('encounter', 'clear-party', {
-        zone: 'middle',
-        icon: 'fas fa-users-slash',
-        label: 'Clear Party',
-        tooltip: 'Remove all party member tokens from the canvas',
-        group: 'actions',
-        order: 3,
-        visible: () => game.user.isGM,
-        onClick: async () => {
-            try {
-                await clearPartyFromCanvas();
-            } catch (e) {
-                console.error('Encounter bar: Clear Party', e);
-            }
-        }
-    });
-    api.registerSecondaryBarItem('encounter', 'clear-monsters', {
-        zone: 'middle',
-        icon: 'fas fa-dragon',
-        label: 'Clear Monsters',
-        tooltip: 'Remove all monster (non-humanoid) NPC tokens. Humanoid NPCs (e.g. merchants) are left.',
-        group: 'actions',
-        order: 4,
-        visible: () => game.user.isGM,
-        onClick: async () => {
-            try {
-                await EncounterManager.clearMonstersFromCanvas();
-            } catch (e) {
-                console.error('Encounter bar: Clear Monsters', e);
-            }
-        }
-    });
-    api.registerSecondaryBarItem('encounter', 'clear-npcs', {
-        zone: 'middle',
-        icon: 'fas fa-people-line',
-        label: 'Clear NPCs',
-        tooltip: 'Remove humanoid NPC tokens (e.g. merchants, guards). Party and monsters are not removed.',
-        group: 'actions',
-        order: 5,
-        visible: () => game.user.isGM,
-        onClick: async () => {
-            try {
-                await EncounterManager.clearNpcsFromCanvas();
-            } catch (e) {
-                console.error('Encounter bar: Clear NPCs', e);
-            }
-        }
-    });
-
-    api.registerSecondaryBarTool?.('encounter', 'encounter');
-
-    // Initial refresh of info items
-    EncounterToolbar._refreshEncounterBarInfo();
-
-    api.registerMenubarTool('encounter', {
-        icon: "fas fa-swords",
-        name: "encounter",
-        title: "Encounter",
-        tooltip: "Show encounter bar (CR, Reveal)",
-        onClick: () => api.toggleSecondaryBar('encounter'),
-        zone: "middle",
-        group: "combat",
-        groupOrder: 1,
-        order: 0,
-        moduleId: "blacksmith-core",
-        gmOnly: true,
-        leaderOnly: false,
-        visible: true,
-        toggleable: true,
-        active: false,
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null
-    });
-});

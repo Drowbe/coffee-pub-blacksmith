@@ -675,6 +675,13 @@ class CombatTimer {
             this.state.remaining = duration;
             this.state.duration = duration;  // Store duration in state
             this.state.hasHandledCritical = false;
+            // Starting makes the timer active. Previously only resumeTimer set
+            // this, so the flag meant "has been resumed" while the
+            // combatTimerStateChange payload emitted below already claimed
+            // isActive: true — the hook and the state disagreed, and the
+            // DOM-cache self-heal in updateUI that reads it could never fire
+            // for a normally-started timer.
+            this.state.isActive = true;
             
             if (this.timer) clearInterval(this.timer);
             

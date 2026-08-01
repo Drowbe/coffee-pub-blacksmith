@@ -19,6 +19,9 @@ both surfaces draw are in **documentation/architecture/architecture-timers.md**.
 | `scripts/manager-encounter.js` | `EncounterManager` — challenge rating, canvas token actions |
 | `scripts/api-menubar.js` | Secondary bar machinery, including hybrid rendering |
 
+There is no separate encounter bar. It was merged into this one and retired; its tools, challenge rating,
+and canvas actions all live here now.
+
 ## The tracker is the authority
 
 **Turn order is the tracker's, never the bar's.** `getCombatData` maps `combat.turns` and does not sort.
