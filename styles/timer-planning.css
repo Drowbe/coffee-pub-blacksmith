@@ -68,16 +68,25 @@
     transition: width 1s linear, background-color 0.5s ease;
 }
 
+/* Declared as custom properties so the combat menubar's copy of this timer
+   draws from the same values instead of a second set of hex codes that would
+   drift. Anything rendering this timer reads these; nothing redefines them. */
+:root {
+    --blacksmith-planning-timer-high: #3a79c2;
+    --blacksmith-planning-timer-medium: #1f5899;
+    --blacksmith-planning-timer-low: #032c5c;
+}
+
 .planning-timer-bar.high {
-    background-color: #3a79c2;
+    background-color: var(--blacksmith-planning-timer-high);
 }
 
 .planning-timer-bar.medium {
-    background-color: #1f5899;
+    background-color: var(--blacksmith-planning-timer-medium);
 }
 
 .planning-timer-bar.low {
-    background-color: #032c5c;
+    background-color: var(--blacksmith-planning-timer-low);
     /* Use brightness pulse — opacity pulse on a narrow bar bleeds the track / layout and reads as a wrong edge stripe */
     animation: planning-timer-low-pulse 2s ease-in-out infinite;
 }

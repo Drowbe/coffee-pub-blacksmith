@@ -7,6 +7,11 @@ import { HookManager } from './manager-hooks.js';
 import { broadcastToast, ToastAPI } from './api-toast.js';
 import { EncounterManager } from './manager-encounter.js';
 import { getActorHP } from './utility-health.js';
+// Static imports are safe here: neither timer module imports this one, so
+// there is no cycle, and `visible` predicates run per render — too often to
+// pay for a dynamic import each time.
+import { PlanningTimer } from './timer-planning.js';
+import { CombatTimer } from './timer-combat.js';
 import { EffectsAPI } from './api-effects.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 
@@ -167,6 +172,7 @@ export class CombatBarManager {
         menuBar.secondaryBarToolMapping.set('combat', 'combat-bar');
         this.registerCombatHooks(menuBar);
         this.registerCombatBarEvents(menuBar);
+        this.registerTimerReadoutHooks(menuBar);
         this.openCombatBarOnLoad(menuBar);
         this.registerCombatPartial().catch((error) => {
             postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering combat partial", error?.message || error, true, false);
@@ -308,6 +314,7 @@ export class CombatBarManager {
             groupBannerEnabled: false,
             groups: {
                 'encounter': { mode: 'default', order: 0 },
+                'timer': { mode: 'default', order: 3 },
                 'health': { mode: 'default', order: 5 },
                 'challenge': { mode: 'default', order: 10 }
             }
@@ -350,6 +357,42 @@ export class CombatBarManager {
             tooltip: 'Current turn',
             visible: inCombat
         });
+
+        // One timer slot, two items. The planning timer hands off to the turn
+        // timer when it expires, so they are never both live — the `visible`
+        // predicates express that and nothing has to switch identities.
+        // Registered with non-empty labels on purpose: the partial renders the
+        // label spans behind {{#if}}, and per-tick DOM writes need them to exist.
+        const timerItem = (itemId, tooltip, visible) => ({
+            kind: 'progressbar',
+            zone: 'middle',
+            group: 'timer',
+            order: 0,
+            width: 190,
+            height: 18,
+            icon: '',
+            title: '',
+            borderColor: 'rgba(0,0,0,0.5)',
+            barColor: 'rgba(0,0,0,0.45)',
+            // Overridden per tick by a state class; the colours live with the
+            // tracker's timer styles so the two surfaces cannot diverge.
+            progressColor: 'transparent',
+            percentProgress: 0,
+            leftLabel: ' ',
+            tooltip,
+            visible
+        });
+
+        api.registerSecondaryBarItem('combat', 'planning-timer', timerItem(
+            'planning-timer',
+            'Planning timer',
+            () => getSettingSafely(MODULE.ID, 'planningTimerEnabled', true) && !!PlanningTimer?.state?.isActive
+        ));
+        api.registerSecondaryBarItem('combat', 'turn-timer', timerItem(
+            'turn-timer',
+            'Turn timer',
+            () => getSettingSafely(MODULE.ID, 'combatTimerEnabled', true) && !!CombatTimer?.state?.isActive
+        ));
 
         // Health. Party is everyone's business; monster totals are not, in the
         // same way the challenge rating is not.
@@ -491,6 +534,63 @@ export class CombatBarManager {
             party: CombatBarManager._sumHealth(party),
             monster: CombatBarManager._sumHealth(monsters)
         };
+    }
+
+    /**
+     * Draw a timer's current state straight into its rendered bar.
+     *
+     * Deliberately NOT `updateSecondaryBarItemInfo` + a re-render: the timers
+     * tick once a second, and rebuilding the menubar at that rate for the whole
+     * of every combat is exactly the cost the menubar fingerprint exists to
+     * avoid. The tracker's own timers write to cached DOM for the same reason.
+     *
+     * The fill's colour comes from a state class rather than an inline colour,
+     * so it resolves against the same custom properties the tracker's bars use.
+     *
+     * @param {string} itemId 'planning-timer' | 'turn-timer'
+     * @param {{percent: number, state: string, text: string}} display
+     */
+    static syncTimerReadout(itemId, display) {
+        if (!display) return;
+        const item = document.querySelector(
+            `.combat-data-row .secondary-bar-item-progressbar[data-item-id="${itemId}"]`
+        );
+        if (!item) return;
+
+        const fill = item.querySelector('.secondary-bar-item-progressbar-fill');
+        if (fill) {
+            fill.style.width = `${display.percent}%`;
+            fill.classList.remove('high', 'medium', 'low', 'expired');
+            if (display.state) fill.classList.add(display.state);
+        }
+
+        const label = item.querySelector('.secondary-bar-item-progressbar-left-label');
+        if (label && label.textContent !== display.text) label.textContent = display.text;
+    }
+
+    /**
+     * Whichever timer is live changes which item is visible, and that is a
+     * structural change the fingerprint has to see — so state transitions
+     * rebuild once, while the per-second values do not.
+     */
+    static registerTimerReadoutHooks(menuBar) {
+        HookManager.registerHook({
+            name: 'blacksmithTimerDisplay',
+            description: 'MenuBar: Draw timer state into the combat bar readout',
+            context: 'menubar-combat-timer-readout',
+            priority: 3,
+            callback: (itemId, display) => CombatBarManager.syncTimerReadout(itemId, display)
+        });
+
+        for (const hookName of ['combatTimerStateChange', 'planningTimerExpired', 'endPlanningTimer']) {
+            HookManager.registerHook({
+                name: hookName,
+                description: `MenuBar: Rebuild combat bar when the timer slot changes owner (${hookName})`,
+                context: 'menubar-combat-timer-transition',
+                priority: 3,
+                callback: () => CombatBarManager.updateCombatBar(menuBar)
+            });
+        }
     }
 
     static _readoutRefreshTimer = null;

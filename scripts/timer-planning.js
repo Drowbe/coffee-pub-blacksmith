@@ -449,9 +449,6 @@ export class PlanningTimer {
             }
         }
 
-        // Get label from settings
-        const label = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
-        const expiredMessage = getSettingSafely(MODULE.ID, 'planningTimerExpiredMessage', 'Planning Timer Expired');
         
         // Ensure state has valid duration
         if (!this.state.duration || this.state.duration === 0) {
@@ -480,33 +477,15 @@ export class PlanningTimer {
             this._beginCountdown();
         }
 
-        const timeLimit = this._planningBarDenominatorSeconds();
-        const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
-        let barClass = 'high';
-        if (this.state.remaining <= 0) {
-            barClass = 'expired';
-        } else if (percentage <= 25) {
-            barClass = 'low';
-        } else if (percentage <= 50) {
-            barClass = 'medium';
-        }
+        const display = this.getDisplayState();
 
-        let textContent;
-        if (this.state.remaining <= 0) {
-            textContent = expiredMessage;
-        } else if (this.state.isPaused) {
-            textContent = `${label} TIMER PAUSED`;
-        } else {
-            textContent = `${this.formatTime(this.state.remaining)} ${label}`;
-        }
-        
         const timerHtml = await foundry.applications.handlebars.renderTemplate(
             'modules/coffee-pub-blacksmith/templates/timer-planning.hbs',
             {
-                textContent,
-                barClass,
-                barWidth: Math.max(0, Math.min(100, percentage)),
-                isExpired: this.state.remaining <= 0
+                textContent: display.text,
+                barClass: display.state,
+                barWidth: display.percent,
+                isExpired: display.isExpired
             }
         );
         
@@ -877,59 +856,70 @@ export class PlanningTimer {
                 this._refreshPlanningDomCache();
             }
 
-            const timeLimit = this._planningBarDenominatorSeconds();
-            const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
-
             const allBars = this._planningDomCache.bars;
             const allTexts = this._planningDomCache.texts;
             const allProgressElements = this._planningDomCache.progress;
             
+            const display = this.getDisplayState();
+
             // Update all bars
             allBars.forEach(bar => {
-                bar.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
-                
-                // Update color classes based on percentage
+                bar.style.width = `${display.percent}%`;
                 bar.classList.remove('high', 'medium', 'low', 'expired');
-                if (this.state.remaining <= 0) {
-                    bar.classList.add('expired');
-                } else if (percentage <= 25) {
-                    bar.classList.add('low');
-                } else if (percentage <= 50) {
-                    bar.classList.add('medium');
-                } else {
-                    bar.classList.add('high');
-                }
+                bar.classList.add(display.state);
             });
-            
+
             // Update progress elements
             allProgressElements.forEach(el => {
-                el.classList.remove('expired');
-                if (this.state.remaining <= 0) {
-                    el.classList.add('expired');
-                }
+                el.classList.toggle('expired', display.isExpired);
             });
+
+            // Announce for any other surface drawing this timer — the combat
+            // bar listens. A hook rather than a direct call: these timers
+            // already talk this way, and it keeps the bar out of the timer's
+            // import graph.
+            Hooks.callAll('blacksmithTimerDisplay', 'planning-timer', display);
 
             if (this.state.showingMessage) return;
 
-            // Update all text elements
-            const label = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
-            let textContent;
-            
-            if (this.state.remaining <= 0) {
-                textContent = getSettingSafely(MODULE.ID, 'planningTimerExpiredMessage', 'Planning Timer Expired');
-            } else if (this.state.isPaused) {
-                textContent = `${label} TIMER PAUSED`;
-            } else {
-                const timeString = this.formatTime(this.state.remaining);
-                textContent = `${timeString} ${label}`;
-            }
-            
             allTexts.forEach(timerText => {
-                timerText.textContent = textContent;
+                timerText.textContent = display.text;
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Planning Timer | Error updating UI:", error, false, false);
         }
+    }
+
+    /**
+     * The timer's display state: how full the bar is, which colour band it is
+     * in, and the text across it. Single source of truth for every surface that
+     * draws this timer — the combat tracker render, the tracker's per-tick DOM
+     * update, and the combat bar's readout. Three copies of these thresholds
+     * would eventually disagree, and the disagreement would be silent.
+     * @returns {{percent: number, state: 'high'|'medium'|'low'|'expired', text: string, isExpired: boolean}}
+     */
+    static getDisplayState() {
+        const timeLimit = this._planningBarDenominatorSeconds();
+        const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
+        const percent = Math.max(0, Math.min(100, percentage));
+        const isExpired = this.state.remaining <= 0;
+
+        let state = 'high';
+        if (isExpired) state = 'expired';
+        else if (percentage <= 25) state = 'low';
+        else if (percentage <= 50) state = 'medium';
+
+        const label = getSettingSafely(MODULE.ID, 'planningTimerLabel', 'Planning');
+        let text;
+        if (isExpired) {
+            text = getSettingSafely(MODULE.ID, 'planningTimerExpiredMessage', 'Planning Timer Expired');
+        } else if (this.state.isPaused) {
+            text = `${label} TIMER PAUSED`;
+        } else {
+            text = `${this.formatTime(this.state.remaining)} ${label}`;
+        }
+
+        return { percent, state, text, isExpired };
     }
 
     static formatTime(seconds) {

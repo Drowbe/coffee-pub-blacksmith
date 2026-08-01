@@ -88,11 +88,21 @@
     display: flex;
 }
 
-/* Timer Bar Colors */
-.combat-timer-bar.high { background-color: #0e8a0e; }
-.combat-timer-bar.medium { background-color: #b6b630; }
-.combat-timer-bar.low { background-color: #920e0e; }
-.combat-timer-bar.expired { background-color: #4a0707; }
+/* Timer Bar Colors.
+   Declared as custom properties so the combat menubar's copy of this timer
+   draws from the same values instead of a second set of hex codes that would
+   drift. Anything rendering this timer reads these; nothing redefines them. */
+:root {
+    --blacksmith-turn-timer-high: #0e8a0e;
+    --blacksmith-turn-timer-medium: #b6b630;
+    --blacksmith-turn-timer-low: #920e0e;
+    --blacksmith-turn-timer-expired: #4a0707;
+}
+
+.combat-timer-bar.high { background-color: var(--blacksmith-turn-timer-high); }
+.combat-timer-bar.medium { background-color: var(--blacksmith-turn-timer-medium); }
+.combat-timer-bar.low { background-color: var(--blacksmith-turn-timer-low); }
+.combat-timer-bar.expired { background-color: var(--blacksmith-turn-timer-expired); }
 
 /* Progress Bar States */
 .combat-timer-progress.expired { background-color: #4a0707; }

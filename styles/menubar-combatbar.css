@@ -132,6 +132,62 @@
     transform: none;
 }
 
+/* TIMER READOUTS - the same two timers the combat tracker draws.
+   The fill takes its colour from a state class written per tick, resolving to
+   the properties declared beside the tracker's own bars (timer-planning.css,
+   timer-combat.css). One set of values, two surfaces. */
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="planning-timer"] .secondary-bar-item-progressbar-fill {
+    transition: width 1s linear, background-color 0.5s ease;
+}
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="planning-timer"] .secondary-bar-item-progressbar-fill.high {
+    background-color: var(--blacksmith-planning-timer-high);
+}
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="planning-timer"] .secondary-bar-item-progressbar-fill.medium {
+    background-color: var(--blacksmith-planning-timer-medium);
+}
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="planning-timer"] .secondary-bar-item-progressbar-fill.low {
+    background-color: var(--blacksmith-planning-timer-low);
+}
+
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="turn-timer"] .secondary-bar-item-progressbar-fill {
+    transition: width 1s linear, background-color 0.5s ease;
+}
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="turn-timer"] .secondary-bar-item-progressbar-fill.high {
+    background-color: var(--blacksmith-turn-timer-high);
+}
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="turn-timer"] .secondary-bar-item-progressbar-fill.medium {
+    background-color: var(--blacksmith-turn-timer-medium);
+}
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="turn-timer"] .secondary-bar-item-progressbar-fill.low {
+    background-color: var(--blacksmith-turn-timer-low);
+}
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id="turn-timer"] .secondary-bar-item-progressbar-fill.expired {
+    background-color: var(--blacksmith-turn-timer-expired);
+}
+
+/* The timer's text sits over its bar rather than beside it, as in the tracker. */
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-progressbar[data-item-id$="-timer"] .secondary-bar-item-progressbar-left-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+    text-transform: uppercase;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
 /* Combat bar background */
 .blacksmith-menubar-secondary[data-bar-type="combat"] {
     background-color: var(--blacksmith-menubar-secondary-backgroundcolor);

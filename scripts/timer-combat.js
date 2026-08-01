@@ -496,6 +496,42 @@ class CombatTimer {
         }
     }
 
+    /**
+     * The timer's display state: how full the bar is, which colour band it is
+     * in, and the text across it. Single source of truth for every surface that
+     * draws this timer — the tracker's per-tick DOM update and the combat bar's
+     * readout. Note the precedence differs from the planning timer's: paused
+     * wins over expired here, which is the existing behaviour and is kept.
+     * @returns {{percent: number, state: 'high'|'medium'|'low'|'expired', text: string, isExpired: boolean}}
+     */
+    static getDisplayState() {
+        // Denominator: configured max (same as tick/critical thresholds) so remaining never exceeds a stale DEFAULTS.duration
+        const configuredLimit = getSettingSafely(MODULE.ID, 'combatTimerDuration', this.DEFAULTS.timeLimit);
+        const timeLimit = Math.max(configuredLimit, this.state.duration || 0);
+        const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
+        const percent = Math.max(0, Math.min(100, percentage));
+        const isExpired = this.state.remaining <= 0;
+
+        let state = 'high';
+        if (isExpired) state = 'expired';
+        else if (percentage <= 25) state = 'low';
+        else if (percentage <= 50) state = 'medium';
+
+        let text;
+        if (this.state.isPaused) {
+            text = 'COMBAT TIMER PAUSED';
+        } else if (isExpired) {
+            text = (getSettingSafely(MODULE.ID, 'combatTimerExpiredMessage', '') || '')
+                .replace('{name}', game.combat?.combatant?.name || '');
+        } else {
+            const minutes = Math.floor(this.state.remaining / 60);
+            const seconds = this.state.remaining % 60;
+            text = `${minutes}:${seconds.toString().padStart(2, '0')} REMAINING`;
+        }
+
+        return { percent, state, text, isExpired };
+    }
+
     static formatTime(seconds) {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
@@ -860,40 +896,29 @@ class CombatTimer {
                 this._refreshCombatTimerDomCache();
             }
 
-            // Denominator: configured max (same as tick/critical thresholds) so remaining never exceeds a stale DEFAULTS.duration
-            const configuredLimit = game.settings.get(MODULE.ID, 'combatTimerDuration') ?? this.DEFAULTS.timeLimit;
-            const timeLimit = Math.max(configuredLimit, this.state.duration || 0);
-            const percentage = timeLimit > 0 ? (this.state.remaining / timeLimit) * 100 : 0;
+            const display = this.getDisplayState();
+
+            // Announce for any other surface drawing this timer — the combat
+            // bar listens. Fired before the early return below so the bar keeps
+            // ticking even when the tracker has no bars to write to.
+            Hooks.callAll('blacksmithTimerDisplay', 'turn-timer', display);
 
             const allBars = this._combatTimerDomCache.bars;
             const allTexts = this._combatTimerDomCache.texts;
             const allProgressElements = this._combatTimerDomCache.progress;
-            
+
             if (allBars.length === 0) return; // No timer bars found
-            
+
             // Update all bars
             allBars.forEach(bar => {
-                bar.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
-                
-                // Update bar color based on percentage
+                bar.style.width = `${display.percent}%`;
                 bar.classList.remove('high', 'medium', 'low', 'expired');
-                if (this.state.remaining <= 0) {
-                    bar.classList.add('expired');
-                } else if (percentage <= 25) {
-                    bar.classList.add('low');
-                } else if (percentage <= 50) {
-                    bar.classList.add('medium');
-                } else {
-                    bar.classList.add('high');
-                }
+                bar.classList.add(display.state);
             });
 
             // Update progress elements
             allProgressElements.forEach(el => {
-                el.classList.remove('expired');
-                if (this.state.remaining <= 0) {
-                    el.classList.add('expired');
-                }
+                el.classList.toggle('expired', display.isExpired);
             });
 
             // Don't update text if we're showing a message
@@ -909,22 +934,8 @@ class CombatTimer {
                 return;
             }
             
-            // Update all timer text elements
-            let textContent;
-            if (this.state.isPaused) {
-                textContent = 'COMBAT TIMER PAUSED';
-            } else if (this.state.remaining <= 0) {
-                const message = game.settings.get(MODULE.ID, 'combatTimerExpiredMessage')
-                    .replace('{name}', game.combat?.combatant?.name || '');
-                textContent = message;
-            } else {
-                const minutes = Math.floor(this.state.remaining / 60);
-                const seconds = this.state.remaining % 60;
-                textContent = `${minutes}:${seconds.toString().padStart(2, '0')} REMAINING`;
-            }
-            
             allTexts.forEach(timerText => {
-                timerText.textContent = textContent;
+                timerText.textContent = display.text;
             });
 
         } catch (error) {

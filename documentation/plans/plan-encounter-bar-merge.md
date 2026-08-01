@@ -1,6 +1,6 @@
 # Plan: Merge the Encounter Bar into the Combat Bar
 
-**Status: Implemented (phases 1-4, 6; phase 5 partly). Phases 5, 7, 8 pending.**
+**Status: Implemented (phases 1-4, 6, 7 partly). Phases 5, 7, 8 pending.**
 
 Fold the encounter secondary bar's tools and readouts into the combat bar, retire the encounter bar, and
 relabel the result "Encounter". The merged bar is always present, adapts its contents to whether combat is
@@ -282,9 +282,33 @@ everything: unlinked synthetic actors share the prototype's id.
 Health follows `updateActor` and `updateToken` through the existing debounced readout refresh, not the
 combat-bar HP handlers, which only fire for combatants — out of combat the readouts cover the canvas.
 
-**Phase 7 — Balance and timers.** The party-versus-monster `balancebar`, then the round and combat timers
-(already in the payload, unused), then the turn and planning timers fed from `timer-combat.js` and
-`timer-planning.js`. At the end of this phase the bar should carry everything the combat tracker shows.
+**Phase 7 — Balance and timers. Timers done; balance pending.** One timer slot, two items: planning and
+turn, mutually exclusive through their `visible` predicates, since planning hands off to the turn timer when
+it expires and the two are never live at once. The round and total elapsed timers are deliberately NOT
+included: they count up with no maximum, so they have no percentage to fill and belong as text chips rather
+than bars — and they are not wanted yet.
+
+**The display logic is shared, not reimplemented.** `PlanningTimer.getDisplayState()` and
+`CombatTimer.getDisplayState()` return `{percent, state, text, isExpired}` and are the single source of
+truth for every surface drawing that timer. Each previously computed the same thresholds and text in two or
+three places; those are now one apiece. The band colours moved into custom properties declared beside the
+tracker's own bar styles, and the combat bar's fill takes a state class instead of an inline colour, so one
+set of values serves both surfaces. Note the two timers' text precedence genuinely differs — paused wins
+over expired for the turn timer, the reverse for planning — and that difference is preserved rather than
+normalised, because it is existing behaviour.
+
+**Ticks write DOM; they do not re-render.** The timers tick every second, and routing that through
+`updateSecondaryBarItemInfo` plus a menubar rebuild would rebuild the bar once a second for the whole of
+every combat — the cost the menubar fingerprint exists to avoid, and the reason the tracker's own timers
+write into cached DOM. The timers fire `blacksmithTimerDisplay` and the bar writes straight into the
+rendered fill and label. Only transitions — pause, resume, expiry, handoff — trigger a rebuild, since those
+change which item is visible, which is structural and the fingerprint has to see it.
+
+Two details that would otherwise be discovered the hard way: the items are registered with non-empty labels
+because the partial renders the label spans behind `{{#if}}`, and a span that never rendered cannot be
+written to; and a hook rather than a direct call carries the tick, keeping the bar out of the timers' import
+graph — `manager-combatbar` already imports both timer modules for their state, so a call back the other way
+would close a cycle.
 
 **Phase 8 — Retire the encounter bar.** Remove the `registerSecondaryBarType('encounter')` block and its
 items, drop the encounter menubar tool, and relabel the merged bar. Identifiers stay as they are.
