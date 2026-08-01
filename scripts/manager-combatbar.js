@@ -650,6 +650,7 @@ export class CombatBarManager {
         UIContextMenu.close('blacksmith-combat-portrait-context-menu');
         UIContextMenu.close('blacksmith-combat-initiative-menu');
         UIContextMenu.close('blacksmith-combat-encounter-menu');
+        UIContextMenu.close('blacksmith-combat-tokens-menu');
         UIContextMenu.close('blacksmith-combat-graveyard-menu');
         menuBar.removeClickHandlers();
         menuBar._stopTimerUpdates();
@@ -1014,6 +1015,15 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 CombatBarManager.showEncounterMenu(menuBar, encounterMenuBtn);
+                return;
+            }
+
+            const tokensMenuBtn = event.target.closest('.combatbar-button[data-control="tokensMenu"]');
+            if (tokensMenuBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                CombatBarManager.showTokensMenu(menuBar, tokensMenuBtn);
                 return;
             }
 
@@ -1715,6 +1725,69 @@ export class CombatBarManager {
     }
 
     /**
+     * Canvas-wide token actions, moved here from the encounter bar. These act
+     * on the canvas rather than on the encounter, so they are useful whether or
+     * not a combat is running — Reveal Hidden especially, which is a mid-combat
+     * action. Loaded on demand to keep this module off the encounter graph.
+     */
+    static showTokensMenu(_menuBar, anchorEl) {
+        if (!game.user.isGM) return;
+
+        const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
+
+        const run = async (label, fn) => {
+            try {
+                await fn();
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error running ${label}`, error?.message || error, false, false);
+            }
+        };
+
+        const gm = [
+            {
+                name: 'Reveal Hidden',
+                icon: 'fa-solid fa-eye',
+                callback: () => run('Reveal Hidden', async () => {
+                    const { EncounterManager } = await import('./manager-encounter.js');
+                    await EncounterManager.revealHiddenTokens();
+                })
+            },
+            { separator: true },
+            {
+                name: 'Remove Party from Canvas',
+                icon: 'fa-solid fa-users-slash',
+                callback: () => run('Remove Party from Canvas', async () => {
+                    const { clearPartyFromCanvas } = await import('./utility-party.js');
+                    await clearPartyFromCanvas();
+                })
+            },
+            {
+                name: 'Remove Monsters from Canvas',
+                icon: 'fa-solid fa-dragon',
+                callback: () => run('Remove Monsters from Canvas', async () => {
+                    const { EncounterManager } = await import('./manager-encounter.js');
+                    await EncounterManager.clearMonstersFromCanvas();
+                })
+            },
+            {
+                name: 'Remove NPCs from Canvas',
+                icon: 'fa-solid fa-people-line',
+                callback: () => run('Remove NPCs from Canvas', async () => {
+                    const { EncounterManager } = await import('./manager-encounter.js');
+                    await EncounterManager.clearNpcsFromCanvas();
+                })
+            }
+        ];
+
+        UIContextMenu.show({
+            id: 'blacksmith-combat-tokens-menu',
+            x,
+            y,
+            zones: { gm }
+        });
+    }
+
+    /**
      * Whether a combatant counts as dead for the bar's purposes. PCs are dead
      * only when marked defeated (three failed death saves), NPCs when their HP
      * hits zero. Shared by the strip and the Graveyard so the two can never
@@ -2006,11 +2079,14 @@ export class CombatBarManager {
      * the path carrying core's confirmation prompt.
      */
     static showEncounterMenu(_menuBar, anchorEl) {
+        if (!game.user.isGM) return;
+        // No early return on a missing combat: Create Combat is precisely the
+        // row you want when there is not one yet. Rows that need a combat drop
+        // out instead, so the menu shrinks to what currently applies.
         const combat = game.combat;
-        if (!combat || !game.user.isGM) return;
 
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
-        const isLinked = !!combat.scene;
+        const api = game.modules.get(MODULE.ID)?.api;
 
         const gm = [
             {
@@ -2019,9 +2095,13 @@ export class CombatBarManager {
                 callback: async () => {
                     await CombatBarManager.toggleCombatTracker();
                 }
-            },
-            { separator: true },
-            {
+            }
+        ];
+
+        if (combat) {
+            const isLinked = !!combat.scene;
+            gm.push({ separator: true });
+            gm.push({
                 name: 'Clear Movement Histories',
                 icon: 'fa-solid fa-shoe-prints',
                 disabled: !combat.combatants.size,
@@ -2032,8 +2112,8 @@ export class CombatBarManager {
                         postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error clearing movement histories', error?.message || error, false, false);
                     }
                 }
-            },
-            {
+            });
+            gm.push({
                 // One toggle, two truths — an unlinked encounter needs the
                 // inverse label or the row lies about what it will do.
                 name: isLinked ? 'Unlink from Scene' : 'Link to Scene',
@@ -2045,9 +2125,44 @@ export class CombatBarManager {
                         postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error toggling scene link', error?.message || error, false, false);
                     }
                 }
-            },
-            { separator: true },
-            {
+            });
+        }
+
+        gm.push({ separator: true });
+
+        gm.push({
+            // One handler for both labels: MenuBar.createCombat already creates
+            // an encounter when there is none and otherwise folds the tokens
+            // into the running one, skipping those already in the tracker. The
+            // label changes because the outcome does, not the code path.
+            name: combat ? 'Add to Combat' : 'Create Combat',
+            icon: 'fa-solid fa-swords',
+            callback: async () => {
+                try {
+                    await api?.createCombat?.();
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error creating combat', error?.message || error, false, false);
+                }
+            }
+        });
+
+        if (api?.hasQuickEncounterTool?.()) {
+            gm.push({
+                name: 'Quick Encounter',
+                icon: 'fa-solid fa-dice',
+                callback: async () => {
+                    try {
+                        await api.openQuickEncounterWindow?.();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error opening Quick Encounter', error?.message || error, false, false);
+                    }
+                }
+            });
+        }
+
+        if (combat) {
+            gm.push({ separator: true });
+            gm.push({
                 name: 'Delete Encounter',
                 icon: 'fa-solid fa-trash',
                 callback: async () => {
@@ -2057,8 +2172,8 @@ export class CombatBarManager {
                         postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error deleting encounter', error?.message || error, false, false);
                     }
                 }
-            }
-        ];
+            });
+        }
 
         UIContextMenu.show({
             id: 'blacksmith-combat-encounter-menu',

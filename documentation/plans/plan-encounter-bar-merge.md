@@ -1,6 +1,6 @@
 # Plan: Merge the Encounter Bar into the Combat Bar
 
-**Status: Planned. No phase implemented.**
+**Status: Implemented (phase 1). Phases 2-5 pending.**
 
 Fold the encounter secondary bar's tools and readouts into the combat bar, retire the encounter bar,
 and relabel the result "Encounter". The merged bar is always present and adapts its contents to whether
@@ -97,10 +97,16 @@ and whether it adds monsters to the *current* encounter or only creates new ones
 
 ## Phases
 
-**Phase 1 — Buttons alongside the existing bar.** Add the Encounter and Tokens buttons to the combat bar,
-calling the same handlers the encounter bar's items call. Leave the encounter bar registered and working.
-Create Combat becomes Add to Combat while combat is running. Nothing is removed, so the two bars overlap
-and can be compared directly.
+**Phase 1 — Buttons alongside the existing bar. Done.** The Encounter menu gained Create Combat / Add to
+Combat and Quick Encounter, and a Tokens button now carries Reveal Hidden and the three canvas-clearing
+actions. All of them call the same handlers the encounter bar's items call. The encounter bar is untouched
+and still registered, so the two overlap and can be compared directly.
+
+Phase 1 is deliberately half a feature, and it will read oddly until phase 2 lands. The combat bar still
+only appears when a combat exists, so Create Combat is mostly reachable in its Add to Combat form, and the
+canvas-clearing actions are visible during combat — the state in which the plan eventually wants them
+hidden. Hiding them now would make them unreachable entirely, since there is no out-of-combat bar yet to
+show them on. Both resolve in phase 2, and neither should be "fixed" before then.
 
 **Phase 2 — Always-on lifecycle.** Rework `openCombatBar` and `updateCombatBar` so the bar persists
 without an active combat, and the in-combat elements (portrait strip, endcaps, Initiatives, Graveyard)
