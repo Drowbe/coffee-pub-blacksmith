@@ -280,6 +280,9 @@ export class CombatBarManager {
                     CombatBarManager.updateCombatPortraitScrollArrows(menuBar);
                     CombatBarManager.attachCombatPortraitScrollListener(menuBar);
                     CombatBarManager.ensureCurrentCombatantVisible(menuBar);
+                    // The timer bars are written per tick, so a fresh render
+                    // starts empty until the next one — fill them immediately.
+                    CombatBarManager.syncAllTimerReadouts();
                     setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 100);
                 });
             }
@@ -560,12 +563,37 @@ export class CombatBarManager {
         const fill = item.querySelector('.secondary-bar-item-progressbar-fill');
         if (fill) {
             fill.style.width = `${display.percent}%`;
+            // The partial writes `background-color: {{progressColor}}` inline,
+            // and an inline declaration beats the stylesheet — so the state
+            // class could never colour the fill until the inline one is gone.
+            // Clearing it hands the colour back to CSS, which is what lets the
+            // band values live beside the tracker's rather than being repeated
+            // here as hex.
+            if (fill.style.backgroundColor) fill.style.backgroundColor = '';
             fill.classList.remove('high', 'medium', 'low', 'expired');
             if (display.state) fill.classList.add(display.state);
         }
 
         const label = item.querySelector('.secondary-bar-item-progressbar-left-label');
         if (label && label.textContent !== display.text) label.textContent = display.text;
+    }
+
+    /**
+     * Push both timers' current state into a freshly rendered bar. Without
+     * this the bar would show an empty track until the next tick, up to a
+     * second after every render — most visibly right after the item appears.
+     */
+    static syncAllTimerReadouts() {
+        try {
+            if (PlanningTimer?.state?.isActive) {
+                CombatBarManager.syncTimerReadout('planning-timer', PlanningTimer.getDisplayState());
+            }
+            if (CombatTimer?.state?.isActive) {
+                CombatBarManager.syncTimerReadout('turn-timer', CombatTimer.getDisplayState());
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error syncing timer readouts', error?.message || error, false, false);
+        }
     }
 
     /**
