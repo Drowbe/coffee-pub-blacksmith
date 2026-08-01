@@ -157,6 +157,22 @@ the code shows what the machinery can do, not what the suite has decided to look
 **Test both states, every time.** Two of the seven phase-2 defects were only reachable out of combat, and
 the in-combat path exercises almost none of that code.
 
+**Custom properties bit twice in phase 4; both traps are about *where* a variable is declared.**
+
+- A variable declared on an element beats the value it would inherit. The row-height fallbacks were
+  declared on `.blacksmith-menubar-secondary`, so the bar used them permanently and ignored what
+  `applyBarHeight` wrote to the document element — portraits sized off the 60px fallback inside a row
+  scaled to the real setting, and the difference showed as dead space. Fallbacks for JS-written variables
+  belong on `:root`.
+- A variable's value substitutes at computed-value time on the element that declares it. The item font,
+  icon, padding, and gap variables are declared at `:root` in terms of the bar height, so they resolve
+  there and inherit down already resolved. Redeclaring the bar height further down does not reach them;
+  they have to be redeclared themselves.
+
+Between them these mean: shadowing a height reaches anything resolved at point of use or declared inside
+the subtree, and nothing else. Read the diagnostic table off the DOM rather than the document element when
+checking — the two disagreeing is exactly the symptom.
+
 ## Phases
 
 **Phase 1 — Buttons alongside the existing bar. Done.** The Encounter menu gained Create Combat / Add to

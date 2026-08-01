@@ -6,15 +6,22 @@
 /* =========================
    Combat Bar Tunables
    ========================= */
-   .blacksmith-menubar-secondary {
-    /* Written by CombatBarManager.applyBarHeight; the fallbacks match the
-       constant and the setting default so the bar is sane before first render.
-       Everything below scales from the COMBAT row, not the bar total — the
-       total now includes the data row, and portraits must not grow when that
-       row is present. */
+/* Row heights, written by CombatBarManager.applyBarHeight as inline styles on
+   the document element. These fallbacks MUST be declared on :root and NOT on
+   .blacksmith-menubar-secondary: a custom property declared on an element is
+   that element's own value and beats the inherited one, so declaring them on
+   the bar pinned it to these numbers permanently — the portraits kept sizing
+   off 60px inside a row scaled to the real setting, leaving the difference as
+   dead space. They exist only to keep the bar sane before the first render. */
+:root {
     --blacksmith-combatbar-data-height: 38px;
     --blacksmith-combatbar-combat-height: 60px;
+}
 
+   .blacksmith-menubar-secondary {
+    /* Everything below scales from the COMBAT row, not the bar total — the
+       total includes the data row, and portraits must not grow when that row
+       is present. */
     --portrait-container-height: calc(var(--blacksmith-combatbar-combat-height) - 4px);
     --portrait-container-width: calc(var(--blacksmith-combatbar-combat-height) + 4px);
     --healthbar-size: calc(var(--portrait-container-height) - 8px);
@@ -42,6 +49,9 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
+    /* The parent centres its children; without this the rows sit centred at
+       their content height and any shortfall shows as space above and below. */
+    align-self: stretch;
 }
 
 /* The data row re-bases the item sizing for its subtree.
@@ -102,14 +112,18 @@
     background-color: var(--blacksmith-menubar-secondary-backgroundcolor);
 }
 
-/* The combat row: controls and portraits, scaling with the size setting. */
+/* The combat row: controls and portraits, scaling with the size setting.
+   It ABSORBS the remainder rather than taking a fixed height. The bar total is
+   computed as data row + combat row, so the two should agree exactly — but if
+   anything ever sizes the bar independently, a fixed height here would leave
+   the difference as dead space at the bottom, whereas growing absorbs it. */
 .blacksmith-menubar-secondary .combat-tracker-bar {
     display: flex;
     align-items: center;
     gap: 0px;
     width: 100%;
-    height: var(--blacksmith-combatbar-combat-height);
-    flex: 0 0 var(--blacksmith-combatbar-combat-height);
+    flex: 1 1 auto;
+    min-height: var(--blacksmith-combatbar-combat-height);
 }
 
 /* COMBAT PORTRAITS - Container */
