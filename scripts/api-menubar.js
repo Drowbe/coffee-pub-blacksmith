@@ -42,6 +42,23 @@ class MenuBar {
         GENERAL: 999  // Always last
     };
     
+    /**
+     * The sizes a secondary bar may ask for, in pixels.
+     *
+     * `default` is null so it resolves through the stylesheet variable rather than being
+     * duplicated here — CSS stays the single source of the house default. The rest are
+     * fixed steps, deliberately few: height scales every font, icon, gap, and padding in
+     * the bar, so a bespoke number is a typography decision disguised as a layout one.
+     *
+     * A bar that needs room for group banners should not size up for it — banners are
+     * added on top of the bar's height, not taken out of it.
+     */
+    static SECONDARY_BAR_SIZES = {
+        default: null,
+        large: 45,
+        xlarge: 60
+    };
+
     static BLACKSMITH_MODULE_ID = 'blacksmith-core';
     static MAX_GROUP_ORDER = 999;  // Maximum supported group order
     static notifications = new Map(); // Store active notifications;
@@ -481,12 +498,72 @@ class MenuBar {
     }
 
     /**
-     * Get the appropriate height variable for a secondary bar type
+     * Resolve the height a secondary bar type should render at, in pixels.
+     *
+     * A type may claim its own variable (`--blacksmith-menubar-secondary-{typeId}-height`);
+     * everything else gets the house default from the stylesheet. The final `|| 30` is a
+     * belt-and-braces guard for the case where the stylesheet has not loaded yet.
+     *
+     * Height is a master scale factor, not just a dimension — see the note beside
+     * `--blacksmith-menubar-secondary-default-height` in `styles/menubar.css`.
+     *
+     * @param {string} typeId
+     * @returns {number} Height in pixels.
      */
     static getSecondaryBarHeight(typeId) {
-        const heightVar = `--blacksmith-menubar-secondary-${typeId}-height`;
-        const height = parseInt(getComputedStyle(document.documentElement).getPropertyValue(heightVar));
-        return height || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-menubar-secondary-default-height')) || 30;
+        const styles = getComputedStyle(document.documentElement);
+        const typeHeight = parseInt(styles.getPropertyValue(`--blacksmith-menubar-secondary-${typeId}-height`));
+        if (typeHeight) return typeHeight;
+        return parseInt(styles.getPropertyValue('--blacksmith-menubar-secondary-default-height')) || 30;
+    }
+
+    /**
+     * Write the space a bar's group banners occupy, so the bar can reserve it rather
+     * than take it out of the height its items were promised.
+     *
+     * Banners used to be subtractive: the CSS derived an `--available-height` by taking
+     * the banner and its gap out of the bar height, so a 30px bar left 6px for buttons.
+     * The only remedy available to a module was to inflate its bar, which also inflated
+     * its type — which is how the suite arrived at five bars of five different sizes.
+     *
+     * The banner height stays proportional to the bar so it reads in scale, but it is
+     * added on top. Both the banner rule and the bar's bottom padding read these
+     * variables, so there is one number rather than two that must agree.
+     *
+     * @param {Object|null} barType Registered bar type, or null to clear the allowance.
+     */
+    static _applyBannerAllowance(barType) {
+        const root = document.documentElement.style;
+        if (!barType?.groupBannerEnabled) {
+            root.setProperty('--blacksmith-menubar-secondary-banner-height', '0px');
+            root.setProperty('--blacksmith-menubar-secondary-banner-allowance', '0px');
+            return;
+        }
+
+        const height = this.secondaryBar?.height || this.getSecondaryBarHeight(barType.typeId);
+        const bannerHeight = Math.round(Math.min(20, Math.max(10, height * 0.20)));
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-menubar-secondary-banner-gap')) || 2;
+
+        root.setProperty('--blacksmith-menubar-secondary-banner-height', `${bannerHeight}px`);
+        root.setProperty('--blacksmith-menubar-secondary-banner-allowance', `${bannerHeight + gap}px`);
+    }
+
+    /**
+     * Resolve a registered size preset to a height in pixels.
+     *
+     * Presets exist so a bar that needs more room asks for a shape rather than inventing a
+     * number — five bars at five bespoke heights is exactly how the suite ended up
+     * inconsistent. `default` matches the primary menubar.
+     *
+     * @param {string} size
+     * @returns {number|null} Height in pixels, or null if the name is not a preset.
+     */
+    static getSecondaryBarSizePreset(size) {
+        if (typeof size !== 'string') return null;
+        const key = size.trim().toLowerCase();
+        if (!Object.prototype.hasOwnProperty.call(MenuBar.SECONDARY_BAR_SIZES, key)) return null;
+        const preset = MenuBar.SECONDARY_BAR_SIZES[key];
+        return preset === null ? MenuBar.getSecondaryBarHeight('default') : preset;
     }
 
     /**
@@ -516,8 +593,9 @@ class MenuBar {
         // Encounter bar type is registered by ui-journal-encounter.js with info items + buttons
 
         // Register party secondary bar (default tool system)
+        // No size: the party bar is a row of buttons and readouts with nothing
+        // that needs the room, so it takes the house default like anything else.
         await this.registerSecondaryBarType('party', {
-            height: this.getSecondaryBarHeight('party'),
             persistence: 'manual'
         });
 
@@ -1814,7 +1892,12 @@ class MenuBar {
      * Register a secondary bar type
      * @param {string} typeId - Unique identifier for the bar type
      * @param {Object} config - Configuration object
-     * @param {number} config.height - Height of the secondary bar
+     * @param {string} [config.size] - Size preset: 'default' (matches the primary menubar),
+     *   'large', or 'xlarge'. Prefer this over `height`.
+     * @param {number} [config.height] - Explicit height in pixels. An escape hatch, not the
+     *   normal path: height scales every font, icon, gap, and padding in the bar, so a
+     *   bespoke number sets the bar's typography as well as its size. Omit both and the
+     *   bar gets the house default.
      * @param {string} config.persistence - 'manual' or 'auto'
      * @param {number} config.autoCloseDelay - Delay in ms for auto-close (default: 10000)
      * @returns {boolean} Success status
@@ -1831,9 +1914,17 @@ class MenuBar {
                 return false;
             }
 
+            // Size preset first, then an explicit height, then the house default.
+            // The old fallback was a hardcoded 50 — nowhere near the primary bar's 30,
+            // and the reason unstyled bars looked nothing like the menubar above them.
+            const presetHeight = MenuBar.getSecondaryBarSizePreset(config.size);
+            if (config.size && presetHeight === null) {
+                postConsoleAndNotification(MODULE.NAME, `Secondary Bar: Unknown size preset '${config.size}', using the default height`, { typeId, valid: Object.keys(MenuBar.SECONDARY_BAR_SIZES) }, false, false);
+            }
+
             const barType = {
                 typeId: typeId,
-                height: config.height || 50,
+                height: presetHeight || config.height || MenuBar.getSecondaryBarHeight(typeId),
                 persistence: config.persistence || 'manual',
                 autoCloseDelay: config.autoCloseDelay || 10000,
                 templatePath: config.templatePath || null,
@@ -2379,9 +2470,11 @@ class MenuBar {
 
             // Set the CSS variables for secondary bar height and total height
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${this.secondaryBar.height}px`);
-            // Includes the shadow offset the secondary bar pads itself with, or
-            // the interface below would sit that many pixels too high.
-            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height) + var(--blacksmith-menubar-secondary-shadow-offset))`);
+            this._applyBannerAllowance(barType);
+            // Includes the padding the secondary bar adds around its content — the
+            // shadow offset above and the banner allowance below — or the interface
+            // beneath would sit that many pixels too high.
+            document.documentElement.style.setProperty('--blacksmith-menubar-total-height', `calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height) + var(--blacksmith-menubar-secondary-shadow-offset) + var(--blacksmith-menubar-secondary-banner-allowance))`);
 
             // Set up auto-close if needed
             if (this.secondaryBar.persistence === 'auto') {
@@ -2435,6 +2528,7 @@ class MenuBar {
 
             // Reset the CSS variables for secondary bar height and total height
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
+            this._applyBannerAllowance(null);
             document.documentElement.style.setProperty('--blacksmith-menubar-total-height', 'var(--blacksmith-menubar-primary-height)');
 
             postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Closed", "", true, false);
@@ -2464,6 +2558,7 @@ class MenuBar {
             });
             // Reset CSS variables when cleaning up
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
+            this._applyBannerAllowance(null);
             document.documentElement.style.setProperty('--blacksmith-menubar-total-height', 'var(--blacksmith-menubar-primary-height)');
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error cleaning up DOM", { error }, false, false);
@@ -2659,6 +2754,7 @@ class MenuBar {
         // Set all height variables to 0 to prevent content from being pushed down
         document.documentElement.style.setProperty('--blacksmith-menubar-primary-height', '0px');
         document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', '0px');
+        this._applyBannerAllowance(null);
         document.documentElement.style.setProperty('--blacksmith-menubar-total-height', '0px');
     }
 

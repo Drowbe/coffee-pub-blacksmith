@@ -1041,7 +1041,8 @@ The menubar supports **secondary bars** - additional toolbars that appear below 
 
 | Method | Purpose |
 |--------|---------|
-| `registerSecondaryBarType(typeId, config)` | Define a bar type (height, persistence, groups). Call this first. |
+| `registerSecondaryBarType(typeId, config)` | Define a bar type (size, persistence, groups). Call this first. |
+| `getSecondaryBarHeight(typeId)` | The height in pixels a bar type renders at, including the house default. |
 | `registerSecondaryBarItem(barTypeId, itemId, itemData)` | Add a button or info item to a bar (zone, group, icon/onClick or label/value). |
 | `registerSecondaryBarTool(barTypeId, toolId)` | Optional. Link a menubar tool to this bar so the menubar syncs the tool's active state when the bar opens/closes. |
 | `unregisterSecondaryBarItem(barTypeId, itemId)` | Remove an item from a bar. |
@@ -1063,7 +1064,36 @@ The menubar supports **secondary bars** - additional toolbars that appear below 
 - **Tab-like behavior**: Only one secondary bar can be open at a time
 - **Automatic switching**: Opening a new secondary bar closes the currently open one
 - **Persistence modes**: `'manual'` (user closes) or `'auto'` (auto-closes after delay)
-- **Height customization**: Each bar type can have its own height
+- **Sizing**: a bar type asks for a size preset; a bar that asks for nothing gets the house default, which is the same height as the primary menubar
+
+### Secondary Bar Sizing
+
+A bar's height is a **master scale factor**, not just a dimension. Every font size, icon size, gap, and
+padding inside the bar is derived from it, so raising the height to fit content also enlarges the type. Bars
+that each picked their own number therefore do not read as one system, which is why sizing is expressed as a
+preset rather than a pixel value. The mechanism is described in
+`../architecture/architecture-menubar.md`.
+
+`config.size` accepts:
+
+| Preset | Height | Use |
+|---|---|---|
+| `'default'` | 30px, matching the primary menubar | Everything, unless there is a reason not to |
+| `'large'` | 45px | Bars whose content genuinely needs the room |
+| `'xlarge'` | 60px | Bars meant to be read at a distance, or holding portraits |
+
+Omitting `size` gives `'default'`. An unrecognised preset name logs a warning and falls back to the default.
+
+`config.height` still accepts a pixel value and overrides the preset. It is an escape hatch, not the normal
+path: a bespoke height sets the bar's typography as well as its size, and a bar that uses one will not track
+future changes to the house default.
+
+**Group banners do not come out of the height.** A bar with `groupBannerEnabled: true` gets its banner space
+added on top, so its buttons are the same size as an identically-sized bar without banners. Do not size a bar
+up to make room for banners.
+
+`getSecondaryBarHeight(typeId)` returns the height in pixels a given type renders at, resolving the type's
+own CSS variable if it declares one and the house default otherwise.
 
 ### Default Bar Zones and Item Kinds
 
@@ -1106,7 +1136,7 @@ const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 
 // Option 1: Register a bar type using the default tool system (no template needed)
 const success = await blacksmith.registerSecondaryBarType('cartographer', {
-    height: 60,                    // Height in pixels
+    size: 'default',               // 'default', 'large', or 'xlarge'
     persistence: 'manual',         // 'manual' or 'auto'
     autoCloseDelay: 10000,         // Auto-close delay in ms (if persistence is 'auto')
     groups: {                      // Optional: Group configuration
@@ -1128,7 +1158,7 @@ const success = await blacksmith.registerSecondaryBarType('cartographer', {
 
 // Option 2: Register a bar type with a custom template (for complex UIs)
 const success = blacksmith.registerSecondaryBarType('combat', {
-    height: 60,
+    size: 'xlarge',
     persistence: 'manual',
     templatePath: 'modules/my-module/templates/menubar-combat.hbs'  // Custom template path
 });
@@ -1141,7 +1171,8 @@ if (success) {
 **Parameters:**
 - `typeId` (string, required): Unique identifier for the bar type (e.g., 'cartographer', 'combat')
 - `config` (Object, required): Configuration object
-  - `height` (number, optional): Height in pixels (default: 50)
+  - `size` (string, optional): Size preset - `'default'`, `'large'`, or `'xlarge'` (default: `'default'`). See Secondary Bar Sizing above.
+  - `height` (number, optional): Explicit height in pixels, overriding `size`. An escape hatch; prefer `size`.
   - `persistence` (string, optional): `'manual'` or `'auto'` (default: `'manual'`)
   - `autoCloseDelay` (number, optional): Auto-close delay in milliseconds (default: 10000)
   - `templatePath` (string, optional): Path to custom Handlebars template partial. If not provided, uses the default tool system.
@@ -1172,7 +1203,7 @@ if (success) {
 - Banner height scales proportionally with the secondary bar height (20% of bar height, clamped 10-20px)
 - Banner text is automatically scaled to match (10% of bar height, clamped 8-14px)
 - Banner text color is always `rgba(255, 255, 255, 0.9)` for consistency
-- Button sizes automatically adjust when banners are enabled to fit in the remaining space
+- Banners are additive: the banner and its gap are added to the bar's height rather than taken out of it, so buttons on a bannered bar are the same size as buttons on an identically-sized bar without banners. The extra space is included in `--blacksmith-menubar-total-height`, so the interface below the menubar moves down to match
 - Use group banners to provide visual organization and labeling for button groups
 
 ### Opening a Secondary Bar
@@ -1587,7 +1618,7 @@ If you create a main toolbar button to toggle your secondary bar, register it so
 ```javascript
 // 1. Register your secondary bar type
 await blacksmith.registerSecondaryBarType('cartographer', {
-    height: 60,
+    size: 'default',
     persistence: 'manual'
 });
 
@@ -1678,7 +1709,10 @@ The default secondary bar items use CSS classes that you can override in your mo
 - `--blacksmith-menubar-fontcolor` - Primary bar text color
 - `--blacksmith-menubar-fontsize` - Primary bar font size
 - `--blacksmith-menubar-iconsize` - Primary bar icon size
-- `--blacksmith-menubar-secondary-height` - Secondary bar height
+- `--blacksmith-menubar-secondary-height` - Secondary bar height, and the factor every size inside the bar scales from
+- `--blacksmith-menubar-secondary-default-height` - The house default height a bar gets when it asks for no size
+- `--blacksmith-menubar-secondary-banner-allowance` - Extra height a bar with group banners occupies, added on top of its height
+- `--blacksmith-menubar-total-height` - Primary bar plus secondary bar plus the shadow offset and banner allowance; what the interface below the menubar is offset by
 - `--blacksmith-menubar-secondary-fontcolor` - Secondary bar text color
 - `--blacksmith-menubar-secondary-fontsize` - Secondary bar font size
 - `--blacksmith-menubar-secondary-iconsize` - Secondary bar icon size
@@ -1731,7 +1765,7 @@ templates/partials/menubar-{your-type-id}.hbs
 2. **Register the bar type with `templatePath`:**
 ```javascript
 await blacksmith.registerSecondaryBarType('my-complex-bar', {
-    height: 80,
+    size: 'xlarge',
     persistence: 'manual',
     templatePath: 'modules/my-module/templates/partials/menubar-my-complex-bar.hbs'
 });

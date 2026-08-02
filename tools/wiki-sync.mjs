@@ -64,6 +64,7 @@ const PUBLISH = [
   'architecture/architecture-encounter.md',
   'architecture/architecture-gmnotes.md',
   'architecture/architecture-hookmanager.md',
+  'architecture/architecture-menubar.md',
   'architecture/architecture-pins.md',
   'architecture/architecture-rolls.md',
   'architecture/architecture-stats.md',

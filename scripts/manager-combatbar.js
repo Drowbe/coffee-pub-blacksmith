@@ -300,6 +300,10 @@ export class CombatBarManager {
         const api = game.modules.get(MODULE.ID)?.api;
         if (!api?.registerSecondaryBarType) return;
         await api.registerSecondaryBarType('combat', {
+            // The only bar that sizes itself rather than taking a preset: its
+            // height is two rows summed per combat state, written by
+            // applyBarHeight on every render. Whatever is registered here is
+            // replaced before the bar is first drawn.
             height: menuBar.getSecondaryBarHeight('combat'),
             persistence: 'manual',
             autoCloseDelay: 10000,
@@ -309,8 +313,6 @@ export class CombatBarManager {
             // cannot express; challenge rating, health, balance, and timers
             // are all info/progressbar/balancebar and belong as items.
             hybridItems: true,
-            // Banners match the other secondary bars in the suite (Broadcast,
-            // Cartographer): grouped, labelled sections rather than loose icons.
             // No group banners: those caption a cluster of otherwise unlabelled
             // buttons, which is what the Broadcast and Cartographer bars need.
             // These items carry their own labels, so a banner would only repeat
@@ -1306,16 +1308,17 @@ export class CombatBarManager {
         if (!CombatBarManager.showsCombatRow(isInCombat)) return 0;
         // Only the in-combat height is configurable, because only in combat
         // does this row contain anything that scales — the portraits. Out of
-        // combat it is a strip of buttons, so it takes the menubar's own
-        // default height for a secondary bar and is not worth a setting.
-        // Mirrors the fallback in MenuBar.getSecondaryBarHeight.
+        // combat it is a strip of buttons, so it takes the house default for a
+        // secondary bar and is not worth a setting. Read from CSS rather than
+        // MenuBar.getSecondaryBarHeight because importing MenuBar here would
+        // close a cycle; the stylesheet is the source either way.
         if (!isInCombat) {
-            const fallback = parseInt(
+            const houseDefault = parseInt(
                 getComputedStyle(document.documentElement)
                     .getPropertyValue('--blacksmith-menubar-secondary-default-height'),
                 10
             );
-            return fallback || 30;
+            return houseDefault || 30;
         }
         return getSettingSafely(MODULE.ID, 'menubarCombatSize', 60);
     }

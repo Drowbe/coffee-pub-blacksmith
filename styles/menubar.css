@@ -19,7 +19,15 @@
        the height setting: a bar's configured height stays the height its
        content gets, and the offset is added on top here and in the total. */
     --blacksmith-menubar-secondary-shadow-offset: 4px;
-    --blacksmith-menubar-total-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height) + var(--blacksmith-menubar-secondary-shadow-offset));
+
+    /* Room a group banner adds ON TOP of the bar's height, written by MenuBar
+       when a bar with banners opens and 0 otherwise. A banner must not be paid
+       for out of the items' height — see the note beside the banner rules. */
+    --blacksmith-menubar-secondary-banner-height: 0px;
+    --blacksmith-menubar-secondary-banner-gap: 2px;
+    --blacksmith-menubar-secondary-banner-allowance: 0px;
+
+    --blacksmith-menubar-total-height: calc(var(--blacksmith-menubar-primary-height) + var(--blacksmith-menubar-secondary-height) + var(--blacksmith-menubar-secondary-shadow-offset) + var(--blacksmith-menubar-secondary-banner-allowance));
     --blacksmith-menubar-zone-height: calc(var(--blacksmith-menubar-primary-height) - 2px);
     --blacksmith-menubar-interface-offset: calc(var(--blacksmith-menubar-total-height) + 2px);
     --blacksmith-menubar-divider-height: calc(var(--blacksmith-menubar-primary-height) - 12px);
@@ -52,8 +60,18 @@
     
     --blacksmith-menubar-secondary-combat-height: 60px;
     
-    /* Default toolbar */
-    --blacksmith-menubar-secondary-default-height: 0px;
+    /* THE HOUSE DEFAULT for a secondary bar, and deliberately the same height as
+       the primary bar so the two read as one system. A bar that registers without
+       a `height` gets this. It was 0px — falsy, so every read fell through to a
+       hardcoded 30 and this variable did nothing; setting it to 30 makes the
+       stylesheet the single place the default lives.
+
+       Overriding it is an exception that needs a reason (Herald's broadcast bar
+       is meant to be read across a room), not a starting point to tune from.
+       Height is a master scale factor here: every font, icon, gap, and padding
+       is derived from it, so a bar that raises it to fit content grows its type
+       as a side effect. Fit content with a preset, not with a bespoke number. */
+    --blacksmith-menubar-secondary-default-height: 30px;
     --blacksmith-menubar-secondary-top-paddding-offset: 4px;
     --blacksmith-menubar-secondary-edge-offset: 10px;
     --blacksmith-menubar-secondary-fontcolor: rgba(240, 240, 224, 0.8);
@@ -75,7 +93,8 @@
         50px
     );
 
-    /* Default toolbar IMAGE SIZE - Proportional to button size (will be overridden when banners present) */
+    /* Default toolbar IMAGE SIZE - Proportional to button size. Banners no longer
+       override this; a bannered item is sized like any other. */
     --secondary-bar-item-image-size: 100%;
 
     /* Default toolbar HORIZANTAL PADDING */
@@ -617,9 +636,16 @@
     display: flex;
     align-items: center;
     /* content-box so the padding is added to the configured height rather than
-       eaten out of it — a bar asking for 60px still gets 60px of content. */
+       eaten out of it — a bar asking for 60px still gets 60px of content.
+       Top clears the primary bar's shadow; bottom reserves room for group
+       banners so they do not come out of the items' share. Both are folded
+       into --blacksmith-menubar-total-height, or the interface below overlaps. */
     box-sizing: content-box;
-    padding: var(--blacksmith-menubar-secondary-shadow-offset) 0 0 0;
+    padding:
+        var(--blacksmith-menubar-secondary-shadow-offset)
+        0
+        var(--blacksmith-menubar-secondary-banner-allowance, 0px)
+        0;
     overflow: hidden;
     /* Remove base font-size - let items set their own sizes */
 }
@@ -636,7 +662,14 @@
     justify-content: space-between;
     gap: 8px;
     width: 100%;
-    height: 100%;
+    /* Reaches down into the bar's bottom padding so group banners have somewhere
+       to go. The bar reserves that strip; without this the toolbar would still
+       stop at the content edge and the banner would be clipped instead.
+       Top-aligned rather than centred, or the extra height would spill upward
+       into the shadow offset as well. The allowance is 0 for a bar without
+       banners, which makes this an exact no-op there. */
+    height: calc(100% + var(--blacksmith-menubar-secondary-banner-allowance, 0px));
+    align-self: flex-start;
     padding: var(--blacksmith-menubar-secondary-top-paddding-offset) 8px 4px 8px;
 }
 
@@ -922,7 +955,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: var(--blacksmith-menubar-secondary-banner-gap, 2px);
 }
 
 /* Secondary Bar Group Items Container */
@@ -935,11 +968,9 @@
 /* Secondary Bar Group Banner */
 .blacksmith-menubar-secondary .secondary-bar-group-banner {
     width: 100%;
-    height: clamp(
-        10px,
-        calc(var(--blacksmith-menubar-secondary-height) * 0.20),
-        20px
-    );
+    /* Written by MenuBar when a bar with banners opens, so the same number
+       drives the banner and the height allowance made for it. */
+    height: var(--blacksmith-menubar-secondary-banner-height, 10px);
     font-size: clamp(
         8px,
         calc(var(--blacksmith-menubar-secondary-height) * 0.10),
@@ -963,29 +994,17 @@
     font-family: var(--font-primary), sans-serif; /* Proportional font */
 }
 
-/* Adjust button sizes when banners are present */
-.blacksmith-menubar-secondary .secondary-bar-group-container:has(.secondary-bar-group-banner) {
-    /* Calculate available height: bar height minus banner height and gap */
-    --banner-height: clamp(
-        10px,
-        calc(var(--blacksmith-menubar-secondary-height) * 0.20),
-        20px
-    );
-    --banner-gap: 2px;
-    --available-height: calc(var(--blacksmith-menubar-secondary-height) - var(--banner-height) - var(--banner-gap) - 12px);
-}
-
-/* Reduce button size when banners are present */
-.blacksmith-menubar-secondary .secondary-bar-group-container:has(.secondary-bar-group-banner) .secondary-bar-item {
-    min-height: var(--available-height);
-    min-width: var(--available-height);
-}
-
-/* Adjust image size when banners are present - make it proportional to the smaller button */
-.blacksmith-menubar-secondary .secondary-bar-group-container:has(.secondary-bar-group-banner) .secondary-bar-item-image {
-    width: var(--available-height);
-    height: var(--available-height);
-}
+/* A BANNER IS ADDITIVE, NOT SUBTRACTIVE, and there is no rule here because of it.
+   Bannered items used to get their own --available-height, the bar height minus
+   the banner and gap, which at the default 30px left buttons 6px tall. Since
+   every font, icon, and padding scales off that same height, the only way for a
+   module to get its buttons back was to inflate the whole bar — which inflated
+   its type as a side effect. That is how the suite ended up with bars at five
+   different heights: nobody wanted large text, they wanted room under a banner.
+   A bannered item is now sized by the ordinary .secondary-bar-item rule, and the
+   banner's space is added on top by MenuBar._applyBannerAllowance, which writes
+   --blacksmith-menubar-secondary-banner-height and -banner-allowance when a bar
+   with banners opens. Do not reintroduce a subtraction here. */
 
 .blacksmith-menubar-secondary .secondary-bar-group-banner-text {
     display: block;

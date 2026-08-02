@@ -258,6 +258,34 @@ Uses today: `openRequestRollDialog`, `api.compendiums` (awareness / quick encoun
 
 ---
 
+## Secondary bar sizing — sibling adoption (Blacksmith side shipped, 2026-08-01)
+
+Every module's secondary bar was a different height, and the cause was on Blacksmith's side: the house
+default variable was `0px` (falsy, so unused), `registerSecondaryBarType` defaulted to an unrelated `50`,
+and **group banners were subtractive** — a banner took its space out of the bar's height, leaving 6px
+buttons at the 30px default. Since bar height is a master scale factor (every font, icon, gap, and padding
+resolves from it), the only remedy a module had was to inflate the bar, which inflated its type. See
+`CHANGELOG.md` and `documentation/architecture/architecture-menubar.md`.
+
+Blacksmith now ships a real 30px default matching the primary menubar, additive banners, and a `size`
+preset (`'default'` 30 / `'large'` 45 / `'xlarge'` 60). `height` still works as an escape hatch.
+
+**Bars that set an explicit height will change size on this release, and that is the migration signal** —
+decided 2026-08-01. A bar that still looks wrong after adopting a preset is a bar that has not migrated.
+
+| Module | Today | Banners | Action |
+|---|---|---|---|
+| **Artificer** | No height — already correct | Yes | Nothing. Its comment already states the rule. Confirm its buttons grew now that banners are additive. |
+| **Cartographer** | `toolbar.height` setting, default 38 (`manager-toolbar.js:66`) | Yes | Drop to `size: 'default'`. The 38 was buying banner room, which is now free — at 38 its items were 14px and are now 26px without it changing a line. **The setting should not survive as a free number**: it is a client-scoped slider with range 15-100 (`settings.js:179`), which under the scale-factor model is a typography control mislabelled as a height, and being client-scoped it gives two people at the same table different-sized text. Remove it, or offer the presets. |
+| **Herald** | `broadcastBarHeight` setting, default 60 | Yes | `size: 'xlarge'` if the broadcast bar is genuinely meant to be read across a room, which is the one good reason to be large. Keep or drop the setting as the author prefers. |
+| **Minstrel** | `height: 36` | No | `size: 'default'`. No banners, so 36 was a bespoke number with nothing behind it. |
+
+Each fix belongs in that module's repo with its own verification: open the bar, confirm it is as tall as the
+menubar above it (or deliberately taller), that its text matches the menubar's, and that the canvas below
+clears it with no overlap or gap.
+
+---
+
 ## Window base: `ACTION_HANDLERS` delegation (found 2026-07-30)
 
 Blacksmith's `BlacksmithWindowBaseV2` dispatches `data-action` clicks to the **last-rendered** instance of a

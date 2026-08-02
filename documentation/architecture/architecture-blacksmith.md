@@ -122,7 +122,7 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 
 ### 4.2 UI and Canvas
 
-- **MenuBar** (`api-menubar.js`) — Global menubar: tools, notifications, secondary bar, combat bar. External modules register tools via `module.api.registerMenubarTool` etc. See **documentation/api/api-menubar.md**.
+- **MenuBar** (`api-menubar.js`) — Global menubar: tools, notifications, secondary bar, combat bar. External modules register tools via `module.api.registerMenubarTool` etc. Bar height is a master scale factor rather than a dimension, which is why sizing is a preset; see **documentation/architecture/architecture-menubar.md** and **documentation/api/api-menubar.md**.
 - **Combat bar** (`manager-combatbar.js`) — The always-present combat secondary bar: two rows, hybrid custom-template-plus-registered-items rendering, readouts, and the portrait strip. See **documentation/architecture/architecture-encounter.md**.
 - **Toolbar** (`manager-toolbar.js`) — Encounter toolbar tools; `registerToolbarTool`, etc. See **documentation/architecture/architecture-toolbarmanager.md**, **documentation/api/api-toolbar.md**.
 - **BlacksmithLayer** (`canvas-layer.js`) — Custom canvas layer (`blacksmith-utilities-layer`) for pins and other canvas UI.

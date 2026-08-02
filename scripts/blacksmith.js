@@ -370,6 +370,7 @@ Hooks.once('ready', async () => {
             clearAllNotifications: MenuBar.clearAllNotifications.bind(MenuBar),
             getNotificationIdsByModule: MenuBar.getNotificationIdsByModule.bind(MenuBar),
             registerSecondaryBarType: MenuBar.registerSecondaryBarType.bind(MenuBar),
+            getSecondaryBarHeight: MenuBar.getSecondaryBarHeight.bind(MenuBar),
             registerSecondaryBarItem: MenuBar.registerSecondaryBarItem.bind(MenuBar),
             unregisterSecondaryBarItem: MenuBar.unregisterSecondaryBarItem.bind(MenuBar),
             updateSecondaryBarItemActive: MenuBar.updateSecondaryBarItemActive.bind(MenuBar),
@@ -956,6 +957,7 @@ Hooks.once('init', async function() {
         clearAllNotifications: null,
         getNotificationIdsByModule: null,
         registerSecondaryBarType: null,
+        getSecondaryBarHeight: null,
         openSecondaryBar: null,
         closeSecondaryBar: null,
         sockets: null,
@@ -1027,6 +1029,7 @@ Hooks.once('init', async function() {
             clearAllNotifications: MenuBar.clearAllNotifications.bind(MenuBar),
             getNotificationIdsByModule: MenuBar.getNotificationIdsByModule.bind(MenuBar),
             registerSecondaryBarType: MenuBar.registerSecondaryBarType.bind(MenuBar),
+            getSecondaryBarHeight: MenuBar.getSecondaryBarHeight.bind(MenuBar),
             registerSecondaryBarItem: MenuBar.registerSecondaryBarItem.bind(MenuBar),
             unregisterSecondaryBarItem: MenuBar.unregisterSecondaryBarItem.bind(MenuBar),
             updateSecondaryBarItemActive: MenuBar.updateSecondaryBarItemActive.bind(MenuBar),
@@ -1303,6 +1306,7 @@ Hooks.once('init', async function() {
         
         // Secondary Bar API
         module.api.registerSecondaryBarType = MenuBar.registerSecondaryBarType.bind(MenuBar);
+        module.api.getSecondaryBarHeight = MenuBar.getSecondaryBarHeight.bind(MenuBar);
         module.api.registerSecondaryBarItem = MenuBar.registerSecondaryBarItem.bind(MenuBar);
         module.api.unregisterSecondaryBarItem = MenuBar.unregisterSecondaryBarItem.bind(MenuBar);
         module.api.updateSecondaryBarItemActive = MenuBar.updateSecondaryBarItemActive.bind(MenuBar);
