@@ -268,10 +268,14 @@ resolves from it), the only remedy a module had was to inflate the bar, which in
 `CHANGELOG.md` and `documentation/architecture/architecture-menubar.md`.
 
 Blacksmith now ships a real 30px default matching the primary menubar, additive banners, and a `size`
-preset (`'default'` 30 / `'large'` 45 / `'xlarge'` 60). `height` still works as an escape hatch.
+preset (`'default'` 30 / `'large'` 45 / `'xlarge'` 60). **`height` is no longer accepted** — it is ignored
+with a warning naming the presets. Decided 2026-08-01, on the observation that every module in the suite had
+taken the escape hatch and that all four bars map onto a preset exactly, so nothing is lost by closing it.
 
-**Bars that set an explicit height will change size on this release, and that is the migration signal** —
-decided 2026-08-01. A bar that still looks wrong after adopting a preset is a bar that has not migrated.
+**Every bar that set an explicit height changes size on this release**, since the value is now ignored
+rather than merely discouraged. That is the migration signal. Note that a custom template is not an
+alternative route to a bespoke size: `templatePath` controls markup only, and the bar still scales from the
+same variable.
 
 | Module | Today | Banners | Action |
 |---|---|---|---|

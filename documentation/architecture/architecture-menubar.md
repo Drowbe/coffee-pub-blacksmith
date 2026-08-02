@@ -47,8 +47,19 @@ Two consequences follow, and both have bitten:
 - **A module that wants room asks for the wrong thing.** It raises `height`, the type grows with it, and
   the bar stops matching every other bar. Repeat across the suite and there is no house style left.
 - **Height must be treated as a design token, not a layout knob.** Which is why the API takes a *preset*
-  (`size: 'default' | 'large' | 'xlarge'`, resolved by `MenuBar.getSecondaryBarSizePreset`) and `height`
-  survives only as an escape hatch.
+  (`size: 'default' | 'large' | 'xlarge'`, resolved by `MenuBar.getSecondaryBarSizePreset`) and takes no
+  pixel value at all. `config.height` used to be accepted as an escape hatch; every module in the suite
+  took it, which is the argument against having one. It is now ignored with a warning. A token with a
+  per-caller override is not a token.
+
+A custom template does not change any of this. `templatePath` controls markup; the bar still renders inside
+`.blacksmith-menubar-secondary`, still takes its height from the same variable, and still scales its type
+from it. The encounter bar sizes itself not because it has a template but because `applyBarHeight` writes
+the height variables directly, which is not a public path.
+
+`openSecondaryBar(typeId, {height})` survives and is a different mechanism: it re-opens a bar at a height
+*that bar* recomputed, which is what a bar whose height changes with its own state needs. The encounter bar
+is the only caller. It is not a way to choose a size, and a bar with one fixed appearance has no use for it.
 
 The house default lives in CSS as `--blacksmith-menubar-secondary-default-height` and is deliberately equal
 to `--blacksmith-menubar-primary-height`, so the two bars read as one component. It was `0px` for a long

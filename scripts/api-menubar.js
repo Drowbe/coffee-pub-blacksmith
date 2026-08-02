@@ -1893,11 +1893,8 @@ class MenuBar {
      * @param {string} typeId - Unique identifier for the bar type
      * @param {Object} config - Configuration object
      * @param {string} [config.size] - Size preset: 'default' (matches the primary menubar),
-     *   'large', or 'xlarge'. Prefer this over `height`.
-     * @param {number} [config.height] - Explicit height in pixels. An escape hatch, not the
-     *   normal path: height scales every font, icon, gap, and padding in the bar, so a
-     *   bespoke number sets the bar's typography as well as its size. Omit both and the
-     *   bar gets the house default.
+     *   'large', or 'xlarge'. Omit for the house default. There is no pixel option — see
+     *   MenuBar.SECONDARY_BAR_SIZES.
      * @param {string} config.persistence - 'manual' or 'auto'
      * @param {number} config.autoCloseDelay - Delay in ms for auto-close (default: 10000)
      * @returns {boolean} Success status
@@ -1914,17 +1911,25 @@ class MenuBar {
                 return false;
             }
 
-            // Size preset first, then an explicit height, then the house default.
-            // The old fallback was a hardcoded 50 — nowhere near the primary bar's 30,
-            // and the reason unstyled bars looked nothing like the menubar above them.
+            // A size preset, or the house default. There is deliberately no pixel
+            // option: height scales every font, icon, gap, and padding in the bar, so a
+            // bespoke number is a typography decision disguised as a layout one, and an
+            // escape hatch documented as "do not use this" is still the path of least
+            // resistance. `config.height` was that hatch, every module in the suite took
+            // it, and the result was five bars at five sizes. It is now ignored and said
+            // so out loud. The old fallback here was a hardcoded 50 — nowhere near the
+            // primary bar's 30 — which is why even an unstyled bar looked wrong.
             const presetHeight = MenuBar.getSecondaryBarSizePreset(config.size);
             if (config.size && presetHeight === null) {
                 postConsoleAndNotification(MODULE.NAME, `Secondary Bar: Unknown size preset '${config.size}', using the default height`, { typeId, valid: Object.keys(MenuBar.SECONDARY_BAR_SIZES) }, false, false);
             }
+            if (config.height !== undefined) {
+                postConsoleAndNotification(MODULE.NAME, `Secondary Bar: 'height' is no longer accepted and was ignored — use size: 'default' | 'large' | 'xlarge'`, { typeId, ignored: config.height, using: presetHeight || MenuBar.getSecondaryBarHeight(typeId) }, false, false);
+            }
 
             const barType = {
                 typeId: typeId,
-                height: presetHeight || config.height || MenuBar.getSecondaryBarHeight(typeId),
+                height: presetHeight || MenuBar.getSecondaryBarHeight(typeId),
                 persistence: config.persistence || 'manual',
                 autoCloseDelay: config.autoCloseDelay || 10000,
                 templatePath: config.templatePath || null,
@@ -2428,7 +2433,10 @@ class MenuBar {
      * @param {Object} options - Options for the bar
      * @param {Object} options.data - Data to pass to the bar template
      * @param {string} options.persistence - Override persistence mode
-     * @param {number} options.height - Override height
+     * @param {number} [options.height] - Re-open at a height the bar recomputed for itself,
+     *   for a bar whose height changes with its own state (the encounter bar is the only
+     *   one). Not a way to choose a size — registration takes a `size` preset and no pixel
+     *   value, and this is not the way around that.
      * @returns {boolean} Success status
      */
     static openSecondaryBar(typeId, options = {}) {
@@ -2682,7 +2690,7 @@ class MenuBar {
             
             // Test 1: Register a test secondary bar type
             const success = this.registerSecondaryBarType('test-bar', {
-                height: 60,
+                size: 'xlarge',
                 persistence: 'manual',
                 autoCloseDelay: 5000
             });

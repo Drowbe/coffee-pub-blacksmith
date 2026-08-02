@@ -1084,9 +1084,17 @@ preset rather than a pixel value. The mechanism is described in
 
 Omitting `size` gives `'default'`. An unrecognised preset name logs a warning and falls back to the default.
 
-`config.height` still accepts a pixel value and overrides the preset. It is an escape hatch, not the normal
-path: a bespoke height sets the bar's typography as well as its size, and a bar that uses one will not track
-future changes to the house default.
+**There is no pixel option.** `config.height` is ignored and logs a warning saying so. A bespoke number sets
+the bar's typography as well as its size and stops tracking the house default, and every module in the suite
+took that option when it existed. If none of the presets fit, the answer is a new preset in Blacksmith --
+a suite-wide decision -- not a local number.
+
+A custom template (`templatePath`) does not change this. It controls the bar's markup; the bar still renders
+inside the same element, still takes its height from the same variable, and still scales its type from it.
+
+`openSecondaryBar(typeId, { height })` is a different thing and is not a way to pick a size: it re-opens a bar
+at a height that bar recomputed for itself. The encounter bar uses it because it is two rows whose combined
+height changes with combat state. A bar with one fixed appearance has no use for it.
 
 **Group banners do not come out of the height.** A bar with `groupBannerEnabled: true` gets its banner space
 added on top, so its buttons are the same size as an identically-sized bar without banners. Do not size a bar
@@ -1171,8 +1179,7 @@ if (success) {
 **Parameters:**
 - `typeId` (string, required): Unique identifier for the bar type (e.g., 'cartographer', 'combat')
 - `config` (Object, required): Configuration object
-  - `size` (string, optional): Size preset - `'default'`, `'large'`, or `'xlarge'` (default: `'default'`). See Secondary Bar Sizing above.
-  - `height` (number, optional): Explicit height in pixels, overriding `size`. An escape hatch; prefer `size`.
+  - `size` (string, optional): Size preset - `'default'`, `'large'`, or `'xlarge'` (default: `'default'`). See Secondary Bar Sizing above. There is no pixel equivalent; `height` is ignored and warns.
   - `persistence` (string, optional): `'manual'` or `'auto'` (default: `'manual'`)
   - `autoCloseDelay` (number, optional): Auto-close delay in milliseconds (default: 10000)
   - `templatePath` (string, optional): Path to custom Handlebars template partial. If not provided, uses the default tool system.
@@ -1216,7 +1223,6 @@ const success = blacksmith.openSecondaryBar('cartographer', {
         tools: ['pencil', 'eraser', 'line'],
         activeTool: 'pencil'
     },
-    height: 60,                    // Optional: override registered height
     persistence: 'manual'          // Optional: override registered persistence
 });
 
@@ -1229,7 +1235,7 @@ if (success) {
 - `typeId` (string, required): The registered bar type ID
 - `options` (Object, optional): Options for the bar
   - `data` (Object, optional): Data to pass to the bar template
-  - `height` (number, optional): Override the registered height
+  - `height` (number, optional): Re-open at a height the bar recomputed for itself, for a bar whose height changes with its own state. Not a way to choose a size - see Secondary Bar Sizing.
   - `persistence` (string, optional): Override the registered persistence mode
 
 **Returns:** `boolean` - Success status

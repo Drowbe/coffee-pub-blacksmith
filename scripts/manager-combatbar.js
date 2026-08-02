@@ -299,12 +299,11 @@ export class CombatBarManager {
     static async registerCombatBarType(menuBar) {
         const api = game.modules.get(MODULE.ID)?.api;
         if (!api?.registerSecondaryBarType) return;
+        // No size: this is the one bar that sizes itself rather than taking a
+        // preset. Its height is two rows summed per combat state, written by
+        // applyBarHeight before every render and passed as the open-time
+        // override, so anything registered here would be replaced unread.
         await api.registerSecondaryBarType('combat', {
-            // The only bar that sizes itself rather than taking a preset: its
-            // height is two rows summed per combat state, written by
-            // applyBarHeight on every render. Whatever is registered here is
-            // replaced before the bar is first drawn.
-            height: menuBar.getSecondaryBarHeight('combat'),
             persistence: 'manual',
             autoCloseDelay: 10000,
             templatePath: 'modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs',
