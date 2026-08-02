@@ -41,8 +41,8 @@
  * live references into the accumulator, and the handlers write through them.
  * The shape that wants is an event this file returns and the tracker applies,
  * with every mutation owned by one side. That is a behaviour change rather than
- * a move, so it is deliberately not done here; see
- * `documentation/plans/plan-stats-decomposition.md`.
+ * a move, so it is deliberately not done here; it is tracked in `TODO.md` and
+ * described in `documentation/architecture/architecture-stats.md`.
  *
  * The `_process*` calls are already the right shape and should stay: they say
  * what happened and let the tracker decide what it means.

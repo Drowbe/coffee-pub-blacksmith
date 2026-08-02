@@ -24,8 +24,7 @@
  * several tracker helpers are called across the boundary. That entanglement is
  * unchanged; it is only visible now, spelled `CombatStats.` instead of hidden
  * behind `this.`. Handing these methods their data instead of letting them
- * reach for it is the phase 4 question in
- * `documentation/plans/plan-stats-decomposition.md`.
+ * reach for it is still open; see `documentation/architecture/architecture-stats.md`.
  */
 
 import { MODULE } from './const.js';

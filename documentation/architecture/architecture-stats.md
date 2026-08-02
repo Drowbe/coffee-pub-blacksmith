@@ -53,6 +53,42 @@ consolidating, tracked in `TODO.md` rather than here.
 per-combat, so anything party-wide has to be reduced, and that reduction should have exactly one
 implementation.
 
+## The adapter owns correlation; the tracker owns the numbers
+
+One attack can reach us three ways — a dnd5e roll hook, a midi-qol workflow, and a chat message — in any
+order, sometimes more than once, and which of them fire depends on what the world has installed. Working out
+that several arrivals describe one swing, and that one of them already counted, is **translation**. It lives
+in `stats-sources.js` with the handlers that need it: `_attackCache` and `ATTACK_TTL_MS`, `_pendingMidiCrit`,
+`_midiDedupe`, `_chatDedupe`, `_roundOffenseCache`, and `_lastRollWasCritical`.
+
+All of those used to sit on `CombatStats`, which mostly never touched them. The tracker now reaches back for
+exactly three things, through named methods rather than by poking at fields:
+
+| Call | When |
+|---|---|
+| `CombatSources.getCachedAttack(key)` | Correlating a damage event to the attack that caused it |
+| `CombatSources.resetRound()` | A round boundary, which the tracker owns and the adapter needs told |
+| `CombatSources.noteAttackCritical(crit)` | After processing an attack, so the damage event that follows knows |
+
+Three is the budget. If that list grows, the boundary is being eroded again.
+
+`_lastRollWasCritical` is the one worth understanding, because it looks like tracker state and is not. The
+non-midi path splits one attack across two unrelated system events, so something has to carry crit-ness
+forward. The tracker **wrote that field and never read it** — it was pushing state to the adapter through a
+shared mutable variable. It is now an explicit hand-off in the direction the data actually flows.
+
+**`stats-combat.js` imports nothing from `utility-message-resolution.js` or `utility-midi-resolution.js`,
+and that is a load-bearing invariant.** midi-qol is optional by long-standing requirement — it is absent from
+`module.json`'s `requires`, its hooks register only inside `if (game.modules.get("midi-qol")?.active)`, and
+handlers on both paths re-check `isMidiIntegrationEnabled()` with opposite polarity so exactly one path counts
+any given attack. The accumulator being unable to name midi-qol is what makes that requirement structural
+rather than a convention. An import from either utility reappearing in `stats-combat.js` means event
+translation has leaked back in.
+
+Still outstanding: `_ensureParticipantStats` and `_ensureCombatTotals` hand back live references into the
+accumulator that the handlers write through. That is the last of the reaching-in, and it is tracked in
+`TODO.md`.
+
 ## The tiers
 
 - **Round** (`CombatStats.currentStats`) — in memory for the active round, mirrored to the combat `stats` flag. Reset when a new round begins.

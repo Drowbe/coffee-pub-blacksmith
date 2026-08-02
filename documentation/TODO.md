@@ -9,20 +9,23 @@
 - **Single-click selects a pin (selection state + keyboard actions)**: clicking a pin should put it in a selected state with a visible ring so keyboard actions can operate on it — first milestone: Delete/Backspace removes the selected pin via `PinManager.delete` with a permission check. Currently a single click only invokes registered `click` handlers (`pins-renderer.js:994` editable path, `pins-renderer.js:743` non-editable path); there is no selection concept. Design validated; no performance concern — pins are a pure DOM overlay, so one delegated `pointerdown` listener on `#blacksmith-pins-overlay` plus a `document` `keydown` handler suffices. Implementation: track the selected pin id in the renderer (`PinDOMElement._selectedPinId`); apply an `is-selected` class styled in `styles/pins.css`; `pointerdown` on a pin element selects, on the overlay container deselects; `keydown` Delete/Backspace deletes (scoped so it does not fire while typing in inputs), Escape deselects; expose `pins.getSelectedPin()` / `selectPin()` / `deselectPin()` on the public API and fire `blacksmith.pins.selected` / `blacksmith.pins.deselected` hooks so other modules can react. Verify live: click a pin and see the ring; press Delete and confirm the pin is removed (with its delete animation if configured); click empty canvas or Escape deselects; Delete does nothing when no pin is selected and does not fire while typing in a text field.
 - **Double-click sometimes lands in drag mode instead of firing**: for editable pins, mousedown enters the drag system and any movement beyond `DRAG_THRESHOLD` (10px screen space, `pins-renderer.js:856`) makes the release count as a drag (`pins-renderer.js:943`), so a slightly jittery double-click gets swallowed as a tiny drag and the second click never reaches the double-click counter (`pins-renderer.js:1004`). Candidate fixes: track movement per press instead of cumulatively, treat a second press arriving within the 300ms click window as a double-click before the drag decision, or require both distance and a minimum hold time before committing to drag. Verify live: rapidly double-click an editable pin ~20 times with normal hand jitter and confirm the double-click action fires every time and the pin does not shift position; confirm a real drag (press, move, release) still moves the pin and a deliberate slow click still fires the single-click action.
 
-## Decompose the stats tracker
+## Stats adapters still write tracker state through live references
 
-**Phases 1-3 implemented and verified live 2026-08-02. Phase 4 not started.** See
-`documentation/plans/plan-stats-decomposition.md`.
+The last of the reaching-in, and all that remains of the stats decomposition, which is otherwise complete
+(see `CHANGELOG.md`; the design lives in `architecture/architecture-stats.md`).
 
-`stats-combat.js` went from 5,264 lines to 2,849; `stats-cards.js` (872), `stats-sources.js` (1,034), and
-`stats-mvp.js` (634) now hold presentation, system integration, and MVP scoring respectively. The public API
-did not move and is unchanged.
+`CombatStats._ensureParticipantStats` and `_ensureCombatTotals` return live references into `currentStats`
+and `combatStats`, and the handlers in `stats-sources.js` write through them — six and two call sites
+respectively, plus two direct `combatStats` reads. So mutation of the accumulator is authored in two files
+and ordered by whichever handler happens to run.
 
-Verified live including the socket forward path with a player connected, which is the part a GM-only test
-cannot reach.
+The shape this wants: the adapter returns an event describing what happened, and the tracker applies it,
+owning every write. The `_process*` calls are already that shape and should be the model.
 
-Phase 4 — decide whether the ~2,800 lines remaining want a further split, and whether the integration
-adapters should return events for the tracker to apply rather than reaching in and mutating it.
+**This is a behaviour change, not a move** — mutation order and timing shift, and it sits on the distributed
+socket path where a player's roll reaches the GM. It wants its own change and its own verification pass:
+a multi-round combat with midi-qol active, one with `enableMidiIntegration` off, and one with a player
+rolling. A correlation or ordering break shows as inflated or missing hit counts rather than an error.
 
 `stats-player.js` (2,606 lines) wants its own audit and is deliberately not bundled into this.
 
