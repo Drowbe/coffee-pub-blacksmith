@@ -211,6 +211,19 @@ export default {
             note: 'Run as GM. Every client, GM included, reads the mirrored flag — this is the check that it is not stale.',
             run: async ({ expect, log }) => {
                 const { stats } = requireApi('stats.combat.getRunningStats');
+
+                // Skip on combat state, not on whether the accumulator exists.
+                // `initialize()` assigns `combatStats` a deep clone of the defaults on
+                // every GM client with tracking on, so it is truthy from load onward and
+                // says nothing about whether a fight is happening — guarding on it made
+                // this check assert that a flag existed when there was no combat to
+                // carry one, and fail every run with the world idle.
+                if (!game.combat?.started) {
+                    log('No combat running, so there is no mirror to compare. Start one, land an attack, then re-run as GM.');
+                    expect.ok('skipped: no combat running', true);
+                    return;
+                }
+
                 const live = stats.combat.getRunningStats();
 
                 // The flag is what getRunningStats() reads on every client, so comparing
@@ -220,9 +233,7 @@ export default {
                 // whole table is looking at the wrong numbers.
                 const memory = stats.CombatStats.combatStats;
                 if (!memory) {
-                    log(live
-                        ? 'Not the GM (or tracking is off), so there is no in-memory copy to compare against. The mirror itself reads fine.'
-                        : 'No combat is being tracked. Start one and land an attack, then re-run as GM.');
+                    log('No in-memory accumulator on this client — not the GM, or tracking is off. The mirror itself reads fine.');
                     expect.ok('skipped: no in-memory accumulator on this client', true);
                     return;
                 }
