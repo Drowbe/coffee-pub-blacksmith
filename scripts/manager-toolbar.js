@@ -390,6 +390,26 @@ async function registerDefaultTools() {
         order: 41
     });
 
+    // Deliberately not gmOnly: a player dragging gear onto their own sheet is the
+    // main case. Players only ever see packs they have permission on, since the
+    // search reads game.packs, which is already filtered per user.
+    registerTool('compendium-search', {
+        icon: "fa-solid fa-book-atlas",
+        name: "compendium-search",
+        title: "Compendium Search",
+        button: true,
+        visible: true,
+        onCoffeePub: true,
+        onFoundry: false,
+        onClick: async () => {
+            const { CompendiumSearchWindow } = await import('./window-compendium-search.js');
+            await CompendiumSearchWindow.open();
+        },
+        moduleId: 'blacksmith-core',
+        zone: 'utilities',
+        order: 10
+    });
+
     registerTool('vote', {
         icon: "fa-solid fa-vote-yea",
         name: "vote",

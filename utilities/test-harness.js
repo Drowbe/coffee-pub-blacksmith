@@ -37,6 +37,7 @@
 const BASE = '/modules/coffee-pub-blacksmith/utilities/tests';
 
 const SUITES = [
+    `${BASE}/suite-compendiums.js`,
     `${BASE}/suite-dialog.js`,
     `${BASE}/suite-entity-list.js`,
     `${BASE}/suite-quantity-split.js`,

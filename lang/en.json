@@ -225,6 +225,12 @@
 			"keybindingQuickViewToggle-Name": "Toggle Quickview",
 			"keybindingQuickViewToggle-Hint": "Turn GM Quickview (clarity mode) on or off.",
 
+			"keybindingCompendiumSearch-Name": "Open Compendium Search",
+			"keybindingCompendiumSearch-Hint": "Open the Compendium Search palette, or bring it to the front if it is already open. Type to search your mapped compendiums, then drag a result onto a character sheet. Default: Ctrl+Space. Some systems use Ctrl+Space to switch keyboard layouts — rebind it here if yours does.",
+
+			"compendiumSearchShowInMenubar-Label": "Compendium Search in Menubar",
+			"compendiumSearchShowInMenubar-Hint": "Show the Compendium Search button in the menubar. It is always available from the Blacksmith scene-controls toolbar and from its keyboard shortcut (default Ctrl+Space).",
+
 			"quickViewMenubar-StateOn": "GM Quickview On",
 			"quickViewMenubar-StateOff": "GM Quickview Off",
 

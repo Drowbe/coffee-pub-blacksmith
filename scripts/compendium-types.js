@@ -229,16 +229,16 @@ export function getMappedTypes(compendiumData = []) {
 }
 
 /**
- * Human-readable pack label including its source package, e.g. "dnd5e: Monsters (SRD)".
- * This is THE label format for compendiums across Blacksmith -- settings dropdowns
- * and import pickers both use it, so they can't drift apart.
+ * The human title of the PACKAGE a pack came from, on its own -- "Dungeons & Dragons
+ * Player's Handbook", "World: Burden of Knowledge". Discrete from the pack's own
+ * `metadata.label`, so a caller that needs to lay the two out separately (a grouped
+ * result list, a two-line header) is not left splitting a composed string.
  * @param {object} pack - A game.packs entry
- * @param {string} [fallbackId] - Returned when the pack has no metadata
- * @returns {string}
+ * @returns {string} Empty string when the pack has no metadata
  */
-export function formatPackLabel(pack, fallbackId = '') {
+export function getPackPackageLabel(pack) {
     const meta = pack?.metadata;
-    if (!meta) return fallbackId;
+    if (!meta) return '';
 
     const worldOwned = meta.packageType === 'world'
         || String(meta.id || '').startsWith('world.')
@@ -246,11 +246,27 @@ export function formatPackLabel(pack, fallbackId = '') {
     const packageId = meta.packageName || meta.package || meta.id?.split('.')[0] || '';
     const manifestTitle = globalThis.game?.modules?.get?.(packageId)?.title
         || (packageId === globalThis.game?.system?.id ? globalThis.game.system.title : '');
-    let packageLabel = worldOwned
+    const packageLabel = worldOwned
         ? `World: ${globalThis.game?.world?.title || globalThis.game?.world?.id || 'Current World'}`
         : manifestTitle || meta.packageLabel || meta.package || meta.packageName
             || meta.system || meta.id?.split('.')[0] || 'Unknown Source';
-    if (packageLabel === 'world') packageLabel = 'World';
+    return packageLabel === 'world' ? 'World' : packageLabel;
+}
 
-    return `${packageLabel}: ${meta.label}`;
+/**
+ * Human-readable pack label including its source package, e.g. "dnd5e: Monsters (SRD)".
+ * This is THE label format for compendiums across Blacksmith -- settings dropdowns
+ * and import pickers both use it, so they can't drift apart.
+ *
+ * It is a DISPLAY string, composed of two facts. Anything laying those out itself
+ * should call getPackPackageLabel() and read `pack.metadata.label` rather than
+ * splitting this apart.
+ * @param {object} pack - A game.packs entry
+ * @param {string} [fallbackId] - Returned when the pack has no metadata
+ * @returns {string}
+ */
+export function formatPackLabel(pack, fallbackId = '') {
+    const meta = pack?.metadata;
+    if (!meta) return fallbackId;
+    return `${getPackPackageLabel(pack)}: ${meta.label}`;
 }

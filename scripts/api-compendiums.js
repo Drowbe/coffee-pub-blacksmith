@@ -4,9 +4,10 @@
  * Exposed as `game.modules.get('coffee-pub-blacksmith').api.compendiums`
  * and `BlacksmithAPI.getCompendiums()`.
  *
- * Two things live here:
+ * Three things live here:
  *  1. READ the GM's compendium mapping (which packs, in what priority, for what type).
  *  2. RESOLVE plain text to a well-formed UUID using that mapping.
+ *  3. SEARCH that mapping for many candidates at once, for browsable pickers.
  *
  * Consuming modules should never read `monsterCompendium1` / `numCompendiumsActor`
  * or hand-build `@UUID[...]` strings -- the key names carry backward-compat quirks
@@ -115,6 +116,49 @@ export const CompendiumsAPI = {
      * @returns {Promise<Document|null>}
      */
     resolveDocument: (name, type, options) => compendiumManager.resolveDocument(name, type, options),
+
+    // ===== BROWSING =====
+
+    /**
+     * Browsable multi-result lookup for search-as-you-type pickers: one query in,
+     * many candidates out. Reuses the same cached pack indexes and configured
+     * sources as resolve(), so a consumer never has to build a second index cache.
+     *
+     * Ordering is by SOURCE in configured priority order, tier-sorted within each
+     * source (and alphabetical within a tier). That is the deliberate inverse of
+     * resolve(), which exhausts a tier across all sources to pick one winner --
+     * interleaving packs would destroy the grouping a picker renders.
+     *
+     * Also unlike resolve(): `fuzzy` defaults to true, and `itemType` filters
+     * rather than merely preferring, so a weapon picker never lists potions.
+     *
+     * `limit` stops the scan as well as capping the output, so a low limit
+     * truncates the tail of the priority order rather than sampling across it.
+     *
+     * Source identity comes back as three DISCRETE fields -- `source` (the id),
+     * `sourceLabel` (the pack's own name), and `sourcePackage` (the owning module,
+     * system, or world). Compose them however your layout wants. Do NOT use
+     * getChoices() for this: those labels are settings-dropdown strings that glue
+     * the package, the pack, and a content summary into one line.
+     *
+     * @param {string} query - Partial text, e.g. "long"
+     * @param {string} type - Same type tokens as resolve()
+     * @param {object} [options]
+     * @param {string}  [options.itemType=null]  - Restrict to a document subtype, e.g. "weapon"
+     * @param {number}  [options.limit=50]       - Cap total results
+     * @param {string[]} [options.sources=null]  - Restrict to configured source ids (`world` or pack ids)
+     * @param {number}  [options.minLength=2]    - Return [] without scanning below this query length
+     * @param {boolean} [options.fuzzy=true]     - Include the loose "includes" tier
+     * @returns {Promise<Array<{uuid: string, name: string, type: string|null, img: string|null,
+     *                          source: string, sourceLabel: string, sourcePackage: string,
+     *                          matchType: string}>>}
+     *
+     * @example
+     * const results = await api.compendiums.search('long', 'Item', { itemType: 'weapon', limit: 40 });
+     * // group by result.source; header from result.sourceLabel with result.sourcePackage
+     * // as its subtitle; render name + img; add via result.uuid
+     */
+    search: (query, type, options) => compendiumManager.search(query, type, options),
 
     // ===== UTILITIES =====
 

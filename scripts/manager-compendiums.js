@@ -17,6 +17,11 @@
  *   3. includes   - candidate name contains the query     (opt in with {fuzzy: true})
  *
  * Every result reports which tier matched so callers can flag low-confidence links.
+ *
+ * search() answers the other question -- "what matches this text?" -- returning many
+ * candidates for one query, for search-as-you-type pickers. It reuses the same cached
+ * indexes and configured sources, but groups by source rather than exhausting tiers
+ * across sources; see the note on the method.
  */
 
 import { MODULE, BLACKSMITH } from './const.js';
@@ -32,7 +37,8 @@ import {
     getTypeLabel,
     getWorldCollection,
     getMappedTypes,
-    isSyntheticType
+    isSyntheticType,
+    getPackPackageLabel
 } from './compendium-types.js';
 import { isNativeFoundryItemData, parseFlatItemToFoundry } from './parsers/parse-item.js';
 import {
@@ -309,6 +315,122 @@ export class CompendiumManager {
     }
 
     // ==============================================================
+    // ===== BROWSING ===============================================
+    // ==============================================================
+
+    /**
+     * Browsable multi-result lookup: one query in, many candidates out.
+     *
+     * This is the inverse question from resolve(). resolve() picks a single winner and
+     * therefore exhausts the exact tier across every source before trying startsWith
+     * anywhere. search() feeds a list a human reads, so it walks sources in configured
+     * priority order and sorts by tier WITHIN each source, keeping every compendium's
+     * hits together for grouping. That ordering difference is deliberate.
+     *
+     * Two other deliberate differences from resolve():
+     *  - `fuzzy` defaults to TRUE here. A picker wants "sword" to surface "Longsword".
+     *  - `itemType` FILTERS rather than merely preferring. resolve() falls back to the
+     *    unfiltered set when a subtype yields nothing, which is right for one winner and
+     *    wrong for a list -- a weapon picker must not quietly list potions.
+     *
+     * `limit` caps the total and stops the scan: once it is reached, remaining sources
+     * are never indexed. A low limit therefore truncates the tail of the priority order.
+     *
+     * @param {string} query - Partial text, e.g. "long"
+     * @param {string} type - Type token, same as resolve()
+     * @param {object} [options]
+     * @param {string}  [options.itemType=null]  - Restrict to this document subtype, e.g. "weapon"
+     * @param {number}  [options.limit=50]       - Cap total results (Infinity or <=0 for uncapped)
+     * @param {string[]} [options.sources=null]  - Optional subset of configured source ids
+     * @param {number}  [options.minLength=2]    - Return [] without scanning below this query length
+     * @param {boolean} [options.fuzzy=true]     - Include the loose "includes" tier
+     * @returns {Promise<Array<{uuid: string, name: string, type: string|null, img: string|null,
+     *                          source: string, sourceLabel: string, sourcePackage: string,
+     *                          matchType: string}>>}
+     */
+    async search(query, type, options = {}) {
+        const {
+            itemType = null,
+            limit = 50,
+            sources = null,
+            minLength = 2,
+            fuzzy = true
+        } = options;
+
+        const needle = String(query ?? '').trim().toLowerCase();
+        if (needle.length < minLength) return [];
+
+        const canonical = normalizeType(type);
+        const mapping = this.getMapping(canonical);
+        const requestedSources = Array.isArray(sources) ? [...new Set(sources.filter(Boolean))] : null;
+        const searchOrder = requestedSources
+            ? requestedSources.filter(source => source === 'world' || mapping.packIds.includes(source))
+            : mapping.searchOrder;
+        if (!searchOrder.length) {
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | No sources configured for type`, canonical, true, false);
+            return [];
+        }
+
+        const cap = Number.isFinite(limit) && limit > 0 ? limit : Infinity;
+        const tiers = fuzzy ? MATCH_TIERS : ['exact', 'startsWith'];
+        const results = [];
+
+        for (const source of searchOrder) {
+            if (results.length >= cap) break;
+
+            let entries;
+            try {
+                entries = source === 'world'
+                    ? this._getWorldEntries(canonical)
+                    : await this._getPackEntries(source, canonical);
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error searching ${source}`, error, false, false);
+                continue;
+            }
+            if (!entries?.length) continue;
+            if (itemType) entries = entries.filter(e => e.type === itemType);
+
+            const buckets = { exact: [], startsWith: [], includes: [] };
+            for (const entry of entries) {
+                const tier = classifyMatch(entry.name, needle);
+                if (tier) buckets[tier].push(entry);
+            }
+
+            // Two DISCRETE fields, never one composed string. getChoices() looks like the
+            // obvious source and is not: those labels are built for a settings dropdown
+            // and read "Package: Pack -- 42 Weapons, 59 Equipment, ...", which is three
+            // facts glued together and unusable as a heading.
+            const pack = source === 'world' ? null : game.packs.get(source);
+            const sourceLabel = source === 'world' ? 'World' : (pack?.metadata?.label ?? source);
+            const sourcePackage = source === 'world'
+                ? (game.world?.title ?? 'World')
+                : (getPackPackageLabel(pack) || '');
+
+            for (const tier of tiers) {
+                for (const entry of buckets[tier].sort((a, b) => a.name.localeCompare(b.name))) {
+                    if (results.length >= cap) break;
+                    results.push({
+                        uuid: entry.uuid,
+                        name: entry.name,
+                        type: entry.type ?? null,
+                        img: entry.img ?? null,
+                        source,
+                        sourceLabel,
+                        sourcePackage,
+                        matchType: tier
+                    });
+                }
+                if (results.length >= cap) break;
+            }
+        }
+
+        postConsoleAndNotification(MODULE.NAME,
+            `Compendium Manager | Searched ${canonical} "${needle}"`,
+            `${results.length} result(s)`, true, false);
+        return results;
+    }
+
+    // ==============================================================
     // ===== INTERNAL: MATCHING =====================================
     // ==============================================================
 
@@ -347,7 +469,7 @@ export class CompendiumManager {
     _getWorldEntries(type) {
         const docs = getWorldCollection(type);
         if (!docs) return [];
-        return docs.map(d => ({ name: d.name, uuid: d.uuid, type: d.type }));
+        return docs.map(d => ({ name: d.name, uuid: d.uuid, type: d.type, img: d.img ?? null }));
     }
 
     /**
@@ -366,7 +488,9 @@ export class CompendiumManager {
      * Load and cache a pack's index as normalized entries with UUIDs attached.
      * Concurrent callers share one in-flight promise.
      * @private
-     * @returns {Promise<Array<{name: string, uuid: string, type: string}>|null>}
+     * `img` comes free -- it is already in Foundry's default index fields for the
+     * document types that have one -- and spares picker consumers a per-row document load.
+     * @returns {Promise<Array<{name: string, uuid: string, type: string, img: string|null}>|null>}
      */
     _getPackIndex(packId) {
         this._ensureCacheHooks();
@@ -385,6 +509,7 @@ export class CompendiumManager {
             return Array.from(index).map(e => ({
                 name: e.name,
                 type: e.type,
+                img: e.img ?? null,
                 uuid: e.uuid ?? `Compendium.${packId}.${docClass}.${e._id}`
             }));
         })();
@@ -809,6 +934,22 @@ function matchEntries(entries, query, tier) {
         default:
             return null;
     }
+}
+
+/**
+ * The best tier a single candidate name matches at, or null for no match.
+ * Tiers are mutually exclusive here so a candidate appears once in a search result.
+ * @param {string} name
+ * @param {string} needle - Already trimmed and lower-cased
+ * @returns {'exact'|'startsWith'|'includes'|null}
+ */
+function classifyMatch(name, needle) {
+    const candidate = String(name ?? '').toLowerCase();
+    if (!candidate) return null;
+    if (candidate === needle) return 'exact';
+    if (candidate.startsWith(needle)) return 'startsWith';
+    if (candidate.includes(needle)) return 'includes';
+    return null;
 }
 
 /**

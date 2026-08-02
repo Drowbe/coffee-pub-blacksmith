@@ -4,6 +4,24 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Live-verify the Compendium Search tool window
+
+`api.compendiums.search()` itself is verified — 57/57 headless assertions, grouping proven across 10 sources (`utilities/tests/suite-compendiums.js`). The palette built on it is not. There are three ways in — the Blacksmith scene-controls toolbar (Utilities zone, `fa-book-atlas`), the menubar left zone (magnifying glass, beside menu/settings/refresh), and Ctrl+Space. Confirm all three reach the same single window rather than opening duplicates, then check:
+
+- **Drag lands on a character sheet.** Drag an Item row onto an open dnd5e character sheet and confirm the item is added. Then drag an Actor row onto the canvas and confirm a token is placed. Both ride Foundry's native `{type, uuid}` drop contract, so a failure here means the payload is wrong, not the sheet.
+- **Drag as a player.** Log in as a player who owns a character and repeat. The tool is not GM-only, and a player sees only the packs they have permission on.
+- **Type switching.** Switching type re-renders (the subtype list belongs to the type) — confirm focus returns to the search field and the subtype list is the new type's. Synthetic types (Spell, Feature, Class) should show no subtype selector at all, since their subtype is already fixed by the mapping.
+- **Themes.** Cycle Light / Dark / Glass from the title-bar menu. The sticky source headers paint their own background so rows do not show through them; that background is `--blacksmith-tool-background`, so check it in all three.
+- **Long lists.** Search a single letter with `minLength` reached (e.g. "ar") and scroll. Confirm sticky headers behave and the window's fixed 620px height with `resizable: true` is sensible.
+- **Group headers.** Confirm each header shows the pack's own name on the left and its package quietly on the right, with no counts and no "Package: Pack" run-on. Search something that hits two different packages' "Equipment" packs and confirm the two headers are distinguishable.
+- **Reload indexes.** The title-bar refresh action calls `clearCache()`. Edit a compendium item's name, hit refresh, confirm the new name appears.
+- **Ctrl+Space.** Confirm it opens the palette, and that pressing it again with the window already open focuses it rather than opening a second. Confirm it appears in Configure Controls under Blacksmith so it can be rebound — Ctrl+Space is the keyboard-layout switcher on some Windows and macOS setups, and on such a machine the OS will eat it. Also confirm it does *not* fire while you are typing in a chat box or another text field.
+- **Menubar toggle.** Turn off Compendium Search in Menubar (Manage Content settings group) and confirm the menubar button disappears while the toolbar tool and keybinding still work.
+
+Also confirm a JSON character import still works — the only consumer of the changed index shape (`_getPackIndex()` entries gained `img`) that the harness suite does not exercise.
+
+Once the drag path is confirmed, update the Squire row in `TODO-GLOBAL.md`.
+
 ## Pins
 
 - **Single-click selects a pin (selection state + keyboard actions)**: clicking a pin should put it in a selected state with a visible ring so keyboard actions can operate on it — first milestone: Delete/Backspace removes the selected pin via `PinManager.delete` with a permission check. Currently a single click only invokes registered `click` handlers (`pins-renderer.js:994` editable path, `pins-renderer.js:743` non-editable path); there is no selection concept. Design validated; no performance concern — pins are a pure DOM overlay, so one delegated `pointerdown` listener on `#blacksmith-pins-overlay` plus a `document` `keydown` handler suffices. Implementation: track the selected pin id in the renderer (`PinDOMElement._selectedPinId`); apply an `is-selected` class styled in `styles/pins.css`; `pointerdown` on a pin element selects, on the overlay container deselects; `keydown` Delete/Backspace deletes (scoped so it does not fire while typing in inputs), Escape deselects; expose `pins.getSelectedPin()` / `selectPin()` / `deselectPin()` on the public API and fire `blacksmith.pins.selected` / `blacksmith.pins.deselected` hooks so other modules can react. Verify live: click a pin and see the ring; press Delete and confirm the pin is removed (with its delete animation if configured); click empty canvas or Escape deselects; Delete does nothing when no pin is selected and does not fire while typing in a text field.
@@ -307,7 +325,8 @@ required mode in the request title and detect what was actually rolled by sniffi
 
 - **Landed 2026-07-30**: `utilities/test-harness.js` plus suites for `api.dialog`, `api.entityList`, `api.quantitySplit`, and window delegation — 83 headless assertions, all passing. Two tiers: headless assertions behind a "Run All Headless" button, and interactive checks for what only a person can judge. Contract and suite shape are documented in `utilities/tests/harness-lib.js`.
 - **The rule that keeps it honest**: a harness asserting a stale contract is worse than none, because it manufactures confidence. Update the relevant suite **as part of** the change that alters an API, the same way the workflow already treats the docs. If it is optional, it rots.
-- **Next suites, in priority order**: `hookManager` and `sockets` — the two siblings actually break against, and `sockets` is already the #1 post-reset rewrite, so a suite written before that rewrite gives it a regression net. Then `compendiums`, `tags`, `toast`. Do not port all twenty APIs speculatively; add a suite when its API is next touched.
+- **`compendiums` suite added** when `search()` landed, per the rule below — it derives every fixture from the live world rather than naming content, which is the pattern any suite over user-configurable data should follow.
+- **Next suites, in priority order**: `hookManager` and `sockets` — the two siblings actually break against, and `sockets` is already the #1 post-reset rewrite, so a suite written before that rewrite gives it a regression net. Then `tags`, `toast`. Do not port all twenty APIs speculatively; add a suite when its API is next touched.
 - **Not yet covered anywhere**: cross-client behavior. Every current check runs on one client, so socket targeting and receipt-side filtering still need a second connected client and cannot be asserted headlessly. Worth stating in the sockets suite when it lands rather than implying coverage it does not have.
 - **Candidate to absorb**: `utilities/api-toolbar-test.js` and `utilities/toolbar-targeting-test.js` predate the harness and duplicate its role. Fold them into a `toolbar` suite when the toolbar API is next touched.
 

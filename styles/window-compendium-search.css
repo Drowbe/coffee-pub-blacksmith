@@ -1,0 +1,188 @@
+/* ==================================================================
+   COMPENDIUM SEARCH TOOL WINDOW (window-compendium-search.js)
+   ==================================================================
+   Everything is scoped to .blacksmith-compendium-search-window so the
+   shared Tool shell is untouched, and colors are drawn from the
+   --blacksmith-tool-* custom properties rather than hard-coded, so the
+   window follows the Light / Dark / Glass theme the user picks.
+   ================================================================== */
+
+/* The tool bar is a left/right flex row by default; this window has no
+   right-hand content and its controls want the full width. */
+.blacksmith-compendium-search-window .blacksmith-window-tool-bar-left {
+    flex: 1 1 auto;
+}
+
+.blacksmith-compendium-search-window .blacksmith-window-tool-bar {
+    align-items: stretch;
+}
+
+.blacksmith-compendium-search-window .bcs-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 100%;
+    padding: 2px 0;
+}
+
+.blacksmith-compendium-search-window .bcs-filters {
+    display: flex;
+    gap: 5px;
+}
+
+.blacksmith-compendium-search-window .bcs-filters > select {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.blacksmith-compendium-search-window .bcs-query {
+    width: 100%;
+}
+
+/* ===== RESULTS ================================================== */
+
+.blacksmith-compendium-search-window .bcs-results {
+    padding: 4px 6px 8px 6px;
+}
+
+/* Source header. Sticky because the whole point of the grouping is knowing
+   which compendium you are looking at, and a long group scrolls its own
+   header away otherwise. */
+.blacksmith-compendium-search-window .bcs-group {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 8px 0 3px 0;
+    padding: 3px 2px;
+    background: var(--blacksmith-tool-background);
+    border-bottom: 1px solid var(--blacksmith-tool-divider);
+}
+
+/* The pack's own name carries the heading; the package is context. Both are
+   discrete fields off the search result, laid out here rather than arriving
+   pre-concatenated, so this rule is the only thing deciding how they read. */
+.blacksmith-compendium-search-window .bcs-group-pack {
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--blacksmith-tool-accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.blacksmith-compendium-search-window .bcs-group-package {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    color: var(--blacksmith-tool-text);
+    font-size: 0.68rem;
+    font-weight: 400;
+    text-transform: none;
+    opacity: 0.5;
+}
+
+.blacksmith-compendium-search-window .bcs-results > .bcs-group:first-child {
+    margin-top: 0;
+}
+
+.blacksmith-compendium-search-window .bcs-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 4px;
+    border-radius: 3px;
+    color: var(--blacksmith-tool-text);
+    cursor: grab;
+}
+
+.blacksmith-compendium-search-window .bcs-row:hover {
+    background: rgba(112, 85, 49, 0.16);
+}
+
+.blacksmith-compendium-search-window .bcs-row:active {
+    cursor: grabbing;
+}
+
+.blacksmith-compendium-search-window .bcs-thumb {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border: none;
+    border-radius: 2px;
+    /* The row is the drag source, so the image must not start its own
+       native image drag and hand the drop target a file URL instead of
+       the {type, uuid} payload. */
+    pointer-events: none;
+}
+
+.blacksmith-compendium-search-window .bcs-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* An exact hit is what you almost always meant; it is already sorted first
+   within its source, and this makes it findable at a glance. */
+.blacksmith-compendium-search-window .bcs-tier-exact .bcs-name {
+    font-weight: 700;
+}
+
+.blacksmith-compendium-search-window .bcs-type-badge {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    opacity: 0.55;
+    text-transform: lowercase;
+    pointer-events: none;
+}
+
+/* ===== EMPTY AND STATUS ========================================= */
+
+.blacksmith-compendium-search-window .bcs-empty {
+    padding: 18px 12px;
+    color: var(--blacksmith-tool-text);
+    font-style: italic;
+    text-align: center;
+    opacity: 0.6;
+}
+
+.blacksmith-compendium-search-window .bcs-unmapped {
+    font-style: normal;
+    opacity: 0.85;
+}
+
+.blacksmith-compendium-search-window .bcs-unmapped i {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 1.6rem;
+    opacity: 0.7;
+}
+
+.blacksmith-compendium-search-window .bcs-unmapped p {
+    margin: 0 0 4px 0;
+}
+
+.blacksmith-compendium-search-window .bcs-empty-hint {
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+.blacksmith-compendium-search-window .bcs-status,
+.blacksmith-compendium-search-window .bcs-hint {
+    color: var(--blacksmith-tool-text);
+    font-size: 0.75rem;
+    opacity: 0.6;
+    white-space: nowrap;
+}

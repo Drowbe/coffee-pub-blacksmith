@@ -1158,6 +1158,28 @@ export const registerSettings = () => {
 		default: {}
 	});
 
+	// Compendium Search palette: last {type, subtype}. Client scope — this is one
+	// user's browsing state, not world configuration. The query itself is
+	// deliberately not stored; a stale search waiting on open is noise.
+	game.settings.register(MODULE.ID, 'compendiumSearchPreferences', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
+	// -- Show Compendium Search in Menubar --
+	game.settings.register(MODULE.ID, 'compendiumSearchShowInMenubar', {
+		name: MODULE.ID + '.compendiumSearchShowInMenubar-Label',
+		hint: MODULE.ID + '.compendiumSearchShowInMenubar-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
 	// Saved Send Toast templates: { [name]: appearance + target bundle }. World
 	// scope — the template library is shared by all GMs; built-in templates are
 	// code-side and never stored here.

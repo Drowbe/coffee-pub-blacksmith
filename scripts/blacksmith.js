@@ -66,6 +66,10 @@ import { JournalPagePins } from './ui-journal-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
+// Imported for its side effects, not its export: the module-scope `init` keybinding
+// and `ready` menubar registration only run if this file is on the static import
+// graph. The toolbar's dynamic import then resolves from the module cache.
+import './window-compendium-search.js';
 import { attachJsonImportButton, registerJsonImportKind } from './registry-json-import.js';
 import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';

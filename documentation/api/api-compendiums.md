@@ -1,6 +1,6 @@
 # Compendiums API
 
-Blacksmith owns the **Compendium Mapping** the GM configures (which compendiums to use for monsters, items, spells, features, species/races, backgrounds, classes, subclasses, journals, roll tables, and in what priority order), and exposes both that mapping and a name-to-UUID resolver built on top of it.
+Blacksmith owns the **Compendium Mapping** the GM configures (which compendiums to use for monsters, items, spells, features, species/races, backgrounds, classes, subclasses, journals, roll tables, and in what priority order), and exposes that mapping, a name-to-UUID resolver built on top of it, and a multi-result search over the same indexes for browsable pickers.
 
 The enabled-source checkboxes independently define which installed Foundry packages may appear in mappings. **Auto-map Compendiums on Next Load** is a one-shot initializer: on the next active-GM load it replaces the ordinary priority settings from those enabled sources, clears itself, and leaves a fully manual configuration. `getMapping()`, `getSelected()`, `getSearchOrder()`, and all resolver methods always report and use that saved configuration; there is no separate automatic runtime mapping.
 
@@ -119,6 +119,65 @@ await compendiums.resolveMany(
 );
 ```
 
+## Browsing: text in, candidates out
+
+`resolve()` answers "what is this thing?" — one name in, one best match out. `search()` answers the other question — "what matches this text?" — one query in, many candidates out, for an incremental search-as-you-type picker.
+
+```js
+const results = await compendiums.search('long', 'Item', { itemType: 'weapon', limit: 40 });
+// [
+//   {
+//     uuid: 'Compendium.dnd5e.items.Item.abc123',
+//     name: 'Longbow',
+//     type: 'weapon',                        // document subtype
+//     img: 'icons/weapons/bows/longbow.webp',
+//     source: 'dnd5e.items',                 // 'world' or a pack id
+//     sourceLabel: 'Items (SRD)',            // the pack's own name
+//     sourcePackage: 'DnD5e System',         // the module, system, or world it came from
+//     matchType: 'startsWith'                // 'exact' | 'startsWith' | 'includes'
+//   },
+//   ...
+// ]
+```
+
+Group by `source`, render `name` + `img`, add via `uuid`. Nothing else is needed to build a picker.
+
+### Source identity is three discrete fields
+
+`source` is the id, `sourceLabel` is the pack's own name, and `sourcePackage` is the module, system, or world that ships it. They arrive separate so a consumer can lay them out — a heading with a quiet subtitle, two columns, one and not the other — rather than parsing a composed string apart.
+
+`sourceLabel` alone is ambiguous by design: several packages ship a pack called "Equipment", so a picker that groups by `source` should show `sourcePackage` alongside. For a world hit, `sourceLabel` is `'World'` and `sourcePackage` is the world's title.
+
+**Do not use `getChoices()` for this.** Those labels are built for a settings dropdown and glue three facts into one line — `"Dungeons & Dragons Player's Handbook: Equipment — 42 Weapons, 59 Equipment, 55 Consumables, ..."`. Correct in a `<select>`, unusable as a heading. If you do want the composed `"Package: Pack"` form, `formatPackLabel(pack)` in `compendium-types.js:239` is it, and `getPackPackageLabel(pack)` is the package half on its own.
+
+### Options
+
+```js
+await compendiums.search(query, type, {
+  itemType: null,   // restrict to a document subtype, e.g. 'weapon'
+  limit: 50,        // cap total results
+  sources: null,    // configured-source subset, as in resolve()
+  minLength: 2,     // shorter queries return [] without scanning
+  fuzzy: true       // include the loose 'includes' tier
+});
+```
+
+### How search() differs from resolve()
+
+These three differences are deliberate, not oversights.
+
+| | `resolve()` | `search()` |
+|---|---|---|
+| Ordering | Tier first, then source — an exact hit in Priority 3 beats a prefix hit in Priority 1 | Source first, then tier — sources in configured priority order, tier-sorted within each, alphabetical within a tier |
+| `fuzzy` | `false` | `true` |
+| `itemType` | Prefers the subtype, falls back to the unfiltered set | Filters strictly |
+
+Ordering is inverted because picking a single winner and rendering a browsable list want opposite things: exact-first-everywhere is right for one answer, but it interleaves packs and destroys the grouping a list is read by. Fuzzy is on because a picker should surface "Longsword" for "sword". `itemType` filters strictly because a weapon picker must not quietly list potions when a pack has no matching weapon.
+
+`limit` stops the scan as well as capping the output — once it is reached, remaining sources are never indexed. A low limit therefore truncates the tail of the priority order rather than sampling across it.
+
+`matchType` is reported for each result but tiers are mutually exclusive, so a candidate appears once.
+
 ## Type tokens
 
 Every method accepts any of these, case-insensitively. They normalize to a canonical type:
@@ -160,10 +219,10 @@ compendiums.getMapping('actor');
 compendiums.getSelected('actor');     // ['dnd5e.monsters', 'my-module.custom-npcs']
 compendiums.getSearchOrder('actor');  // ['dnd5e.monsters', ..., 'world']
 compendiums.getTypes();               // ['Actor', 'Item', ..., 'Spell', 'Feature', 'Species', 'Background', 'Class', 'Subclass']
-compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters': 'D&D 5e: Monsters (SRD)', ... }
+compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters': 'D&D 5e: Monsters (SRD) — 143 Actors', ... }
 ```
 
-`getChoices()` is useful if you want to build your own compendium picker that mirrors Blacksmith's.
+`getChoices()` is useful if you want to build your own settings dropdown that mirrors Blacksmith's. Its values are **display strings for a `<select>`** — package, pack, and a summary of contents, composed into one line. They are not a source of structured data: to label a pack anywhere else, read `pack.metadata.label` and `getPackPackageLabel(pack)`, or take `sourceLabel` / `sourcePackage` off a `search()` result.
 
 ## Methods
 
@@ -186,6 +245,12 @@ compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters
 | `resolveLink(name, type, options?)` | `Promise<string>` | Enricher link, or plain name on miss |
 | `resolveDocument(name, type, options?)` | `Promise<Document\|null>` | Loads the document |
 
+### Browsing
+
+| Method | Returns | Notes |
+|---|---|---|
+| `search(query, type, options?)` | `Promise<Result[]>` | Many candidates for one query; grouped by source |
+
 ### Utilities
 
 | Method | Returns | Notes |
@@ -198,9 +263,11 @@ compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters
 
 ## Performance
 
-Pack indexes are cached after first read and invalidated automatically on `updateCompendium`. World collections are read live (they are already in memory), so they never go stale.
+Pack indexes are cached after first read and invalidated automatically on `updateCompendium`. World collections are read live (they are already in memory), so they never go stale. Cached index entries carry `name`, `type`, `uuid`, and `img` — `img` is part of Foundry's default index fields, so a picker gets thumbnails without loading a single document.
 
 Prefer `resolveMany` for lists — it warms every pack index concurrently once, rather than per name. Call `clearCache()` only if you bulk-edit compendium contents in a way that doesn't fire `updateCompendium`.
+
+Use `search()` rather than reading pack indexes yourself. A consumer that calls `getSelected()` and indexes the packs directly builds a second cache over the same data with its own invalidation, which drifts from this one after any compendium edit.
 
 ## Console testing
 
@@ -214,12 +281,16 @@ console.log('Search order:', c.getSearchOrder('actor'));
 await c.resolve('Goblin', 'actor');
 await c.resolveLink('Longsword', 'item');
 await c.resolveMany(['Goblin', 'Orc', 'Nothing Here'], 'actor');
+
+await c.search('long', 'Item', { itemType: 'weapon', limit: 40 });
+await c.search('l', 'Item');                        // [] -- below minLength
+await c.search('l', 'Item', { minLength: 1 });      // scans
 ```
 
 ## Notes
 
 - The API is read-only with respect to settings. It never writes the GM's mapping.
-- `resolve()` never throws for a missing name, an unconfigured type, or a missing pack — it returns a structured not-found result. Check `.found`.
+- `resolve()` never throws for a missing name, an unconfigured type, or a missing pack — it returns a structured not-found result. Check `.found`. `search()` behaves the same way, returning an empty array.
 - Returned UUIDs are always bare (`Compendium.pack.Actor.id` or `Actor.id`) and always accepted by Foundry's `fromUuid()`. The legacy `@Compendium[...]` enricher format is no longer produced.
 - Modules should prefer this API over direct `game.settings.get('coffee-pub-blacksmith', ...)` reads for anything compendium-related.
 
