@@ -321,6 +321,7 @@ export class CombatBarManager {
                 'encounter': { mode: 'default', order: 0 },
                 'timer': { mode: 'default', order: 3 },
                 'health': { mode: 'default', order: 5 },
+                'stats': { mode: 'default', order: 7 },
                 'challenge': { mode: 'default', order: 10 }
             }
         });
@@ -517,6 +518,94 @@ export class CombatBarManager {
             visible: gmOnly
         });
 
+        // ===== PARTY STATISTICS =====
+        //
+        // Two sets of three sharing the middle zone, swapped by combat state.
+        // Between fights the bar shows the standings — figures that change only
+        // when a combat ends. During one it shows the fight in progress.
+        //
+        // The two sets are gated differently, and not by preference:
+        //
+        // Lifetime figures come from `stats.party`, which reduces actor flags
+        // and the stored combat history — a world setting — so they exist on
+        // every client and everyone sees them. They are the party's own record.
+        //
+        // Running figures come from `stats.combat.getRunningStats()`, and combat
+        // tracking is GM-gated at the source: a player client accumulates
+        // nothing, so `getRunningStats()` returns null there. GM-only is
+        // therefore what the data supports rather than a policy choice, and
+        // showing the items to players would show them three blanks.
+        const liveStatsVisible = () => game.user.isGM && !!CombatBarManager.getActiveCombat();
+        const lifetimeStatsVisible = () => !CombatBarManager.getActiveCombat();
+
+        api.registerSecondaryBarItem('combat', 'stat-biggest-hitter', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 0,
+            icon: 'fa-solid fa-burst',
+            label: '',
+            value: '-',
+            tooltip: 'Biggest hit on record',
+            visible: lifetimeStatsVisible
+        });
+        api.registerSecondaryBarItem('combat', 'stat-most-fumbles', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 1,
+            icon: 'fa-solid fa-face-dizzy',
+            label: '',
+            value: '-',
+            tooltip: 'Most fumbles on record',
+            visible: lifetimeStatsVisible
+        });
+        api.registerSecondaryBarItem('combat', 'stat-top-mvp', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 2,
+            icon: 'fa-solid fa-trophy',
+            label: '',
+            value: '-',
+            tooltip: 'Top MVP on record',
+            visible: lifetimeStatsVisible
+        });
+
+        api.registerSecondaryBarItem('combat', 'stat-damage-dealt', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 3,
+            icon: 'fa-solid fa-hand-fist',
+            label: '',
+            value: '0',
+            tooltip: 'Party damage dealt this combat',
+            visible: liveStatsVisible
+        });
+        api.registerSecondaryBarItem('combat', 'stat-hit-rate', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 4,
+            icon: 'fa-solid fa-bullseye',
+            label: '',
+            value: '0%',
+            tooltip: 'Party hit rate this combat',
+            visible: liveStatsVisible
+        });
+        api.registerSecondaryBarItem('combat', 'stat-combat-biggest', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 5,
+            icon: 'fa-solid fa-explosion',
+            label: '',
+            value: '-',
+            tooltip: 'Biggest hit this combat',
+            visible: liveStatsVisible
+        });
+
         CombatBarManager.refreshReadoutItems();
     }
 
@@ -699,7 +788,15 @@ export class CombatBarManager {
      * rest legible. Party health goes first, then monster health, then the
      * timer — the timer is the one you are watching a clock on.
      */
-    static READOUT_SUPPRESSION_ORDER = ['party-health', 'monster-health', 'planning-timer', 'turn-timer'];
+    static READOUT_SUPPRESSION_ORDER = [
+        // Statistics go first: they are the only readouts nothing depends on in
+        // the moment. Within each set the least operational goes first, so what
+        // survives longest is the biggest hit on record out of combat and the
+        // damage total in one — the two anyone actually watches.
+        'stat-most-fumbles', 'stat-top-mvp', 'stat-biggest-hitter',
+        'stat-hit-rate', 'stat-combat-biggest', 'stat-damage-dealt',
+        'party-health', 'monster-health', 'planning-timer', 'turn-timer'
+    ];
 
     /**
      * Hide readouts until the row fits. Measured rather than expressed in CSS,
@@ -823,6 +920,8 @@ export class CombatBarManager {
                 percentProgress: health.party.percent - health.monster.percent
             });
 
+            CombatBarManager.refreshStatReadouts(combat);
+
             if (!game.user.isGM) return;
             // Same scoping rule as health, and for the same reason. Out of
             // combat the rating is the fight as designed — everything on the
@@ -844,6 +943,91 @@ export class CombatBarManager {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error refreshing challenge rating', error?.message || error, false, false);
         }
+    }
+
+    /**
+     * A name short enough for a bar chip: the first word, so "Favia Gita"
+     * reads as "Favia". The middle zone is `flex: 1 1 0`, so a long name
+     * pushes the readouts either side of it around; the full name is in the
+     * tooltip, where there is room for it.
+     */
+    static shortenName(name) {
+        const trimmed = String(name ?? '').trim();
+        if (!trimmed) return '-';
+        const first = trimmed.split(/\s+/)[0];
+        return first.length > 14 ? `${first.slice(0, 13)}...` : first;
+    }
+
+    /**
+     * Draw the party statistics readouts.
+     *
+     * The bar never reduces anything here — it asks `stats.party` for the
+     * standings and `stats.combat` for the fight in progress, both of which are
+     * single reductions shared with the Party Statistics window and the
+     * end-of-combat card. A figure on the bar that disagreed with the card
+     * afterwards would be worse than no figure at all.
+     */
+    static refreshStatReadouts(combat) {
+        const api = game.modules.get(MODULE.ID)?.api;
+        if (!api?.updateSecondaryBarItemInfo || !api?.stats) return;
+
+        if (combat) {
+            // Players accumulate nothing, so there is nothing to draw for them
+            // and the items are hidden anyway.
+            if (!game.user.isGM) return;
+            const running = api.stats.combat.getRunningStats();
+            const totals = running?.totals;
+            const biggest = running?.notableMoments?.biggestHit;
+            api.updateSecondaryBarItemInfo('combat', 'stat-damage-dealt', {
+                value: String(totals?.damageDealt ?? 0)
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-hit-rate', {
+                // hitRate is already a one-decimal string, and is the number 0
+                // rather than "0.0" before any attack has been rolled.
+                value: `${totals?.hitRate ?? 0}%`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-combat-biggest', {
+                label: biggest ? CombatBarManager.shortenName(biggest.attacker) : '',
+                value: biggest ? String(biggest.amount) : '-',
+                tooltip: biggest
+                    ? `Biggest hit this combat: ${biggest.attacker} hit ${biggest.target} for ${biggest.amount}`
+                    : 'Biggest hit this combat'
+            });
+            return;
+        }
+
+        // Out of combat. The cache is warm almost always — it only rebuilds
+        // when a combat ends or an actor changes — so the synchronous read is
+        // the normal path and the promise is the cold-start fallback rather
+        // than the mechanism. Writing on both keeps this method synchronous
+        // for its caller, which runs inside the render path.
+        const write = (aggregate) => {
+            if (!aggregate) return;
+            api.updateSecondaryBarItemInfo('combat', 'stat-biggest-hitter', {
+                label: CombatBarManager.shortenName(aggregate.biggestHit?.name),
+                value: String(aggregate.biggestHit?.amount ?? 0),
+                tooltip: `Biggest hit on record: ${aggregate.biggestHit?.name ?? 'nobody'} for ${aggregate.biggestHit?.amount ?? 0}`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-most-fumbles', {
+                label: CombatBarManager.shortenName(aggregate.mostFumbles?.name),
+                value: String(aggregate.mostFumbles?.count ?? 0),
+                tooltip: `Most fumbles on record: ${aggregate.mostFumbles?.name ?? 'nobody'} with ${aggregate.mostFumbles?.count ?? 0}`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-top-mvp', {
+                label: '',
+                value: CombatBarManager.shortenName(aggregate.topMvp?.name),
+                tooltip: `Top MVP on record: ${aggregate.topMvp?.name ?? 'nobody'}`
+            });
+        };
+
+        const cached = api.stats.party.getAggregateSync();
+        if (cached) {
+            write(cached);
+            return;
+        }
+        api.stats.party.getAggregate()
+            .then(write)
+            .catch((error) => postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error reading party stats', error?.message || error, false, false));
     }
 
     static registerCombatMenubarTool() {
@@ -962,6 +1146,21 @@ export class CombatBarManager {
                 callback: () => CombatBarManager.scheduleReadoutRefresh(menuBar)
             });
         }
+
+        // The standings move exactly once per combat, when the summary is
+        // stored and lifetime figures are written. `stats.party` invalidates on
+        // the same hook, so this refresh is what makes the bar re-read the
+        // rebuilt aggregate rather than keep whatever it drew before the fight.
+        // Without it the bar would still correct itself on the next update,
+        // which for a table that has just finished a combat is the wrong moment
+        // to be showing the previous combat's standings.
+        HookManager.registerHook({
+            name: 'blacksmith.combatSummaryReady',
+            description: 'MenuBar: Refresh combat bar party statistics when a combat ends',
+            context: 'menubar-combat-stats',
+            priority: 3,
+            callback: () => CombatBarManager.scheduleReadoutRefresh(menuBar)
+        });
 
         const combatDeleteHookId = HookManager.registerHook({
             name: 'deleteCombat',

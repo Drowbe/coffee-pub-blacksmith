@@ -2279,8 +2279,13 @@ class MenuBar {
      */
     static updateSecondaryBarItemInfo(barTypeId, itemId, updates) {
         try {
+            // `tooltip` counts as an info update. A readout whose value changes
+            // usually wants the explanation to change with it — the combat bar's
+            // biggest-hit chip shows an amount and names who landed it on whom —
+            // and a tooltip that could only be set at registration made that
+            // impossible, silently: the update was accepted and dropped.
             const hasInfoUpdate = updates && (updates.value !== undefined || updates.label !== undefined || updates.borderColor !== undefined ||
-                updates.buttonColor !== undefined || updates.iconColor !== undefined);
+                updates.buttonColor !== undefined || updates.iconColor !== undefined || updates.tooltip !== undefined);
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
@@ -2297,6 +2302,7 @@ class MenuBar {
             const existing = map.get(itemId) || {};
             if (updates.value !== undefined) existing.value = updates.value;
             if (updates.label !== undefined) existing.label = updates.label;
+            if (updates.tooltip !== undefined) existing.tooltip = updates.tooltip;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
             if (updates.iconColor !== undefined) existing.iconColor = updates.iconColor;
@@ -2840,6 +2846,7 @@ class MenuBar {
                 if (u.borderColor !== undefined) item.borderColor = u.borderColor;
                 if (u.buttonColor !== undefined) item.buttonColor = u.buttonColor;
                 if (u.iconColor !== undefined) item.iconColor = u.iconColor;
+                if (u.tooltip !== undefined) item.tooltip = u.tooltip;
             } else if (item.kind === 'info') {
                 item.displayValue = item.value;
                 item.displayLabel = item.label;

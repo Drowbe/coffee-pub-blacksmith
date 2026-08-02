@@ -1048,7 +1048,7 @@ The menubar supports **secondary bars** - additional toolbars that appear below 
 | `unregisterSecondaryBarItem(barTypeId, itemId)` | Remove an item from a bar. |
 | `openSecondaryBar(typeId, options)` / `closeSecondaryBar()` / `toggleSecondaryBar(typeId, options)` | Show, hide, or toggle a secondary bar (e.g. from a menubar tool's onClick). |
 | `updateSecondaryBarItemActive(barTypeId, itemId, active)` | Set which button is active on the bar (e.g. radio-style mode buttons). |
-| `updateSecondaryBarItemInfo(barTypeId, itemId, updates)` | Update the value/label of an info item (for dynamic display without re-registering). |
+| `updateSecondaryBarItemInfo(barTypeId, itemId, updates)` | Update the value, label, or tooltip of an info item (for dynamic display without re-registering). |
 | `getSecondaryBarItems(barTypeId)` | Get the list of items for a bar. |
 | `updateSecondaryBar(data)` | Update data for an already-open bar (e.g. custom template content). |
 
@@ -1459,6 +1459,19 @@ blacksmith.registerSecondaryBarItem('my-encounter', 'party-cr', {
     order: 0
 });
 blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '3' });  // update when assessment changes
+```
+
+An info item accepts `value`, `label`, `tooltip`, `borderColor`, `buttonColor`, and `iconColor` through
+`updateSecondaryBarItemInfo`. `tooltip` is worth knowing about: a chip that shows a short figure usually
+wants the explanation behind it to change with the figure, so the tooltip can carry the detail the chip has
+no room for.
+
+```javascript
+blacksmith.updateSecondaryBarItemInfo('my-bar', 'biggest-hit', {
+    label: 'Kar-ahn',
+    value: '26',
+    tooltip: 'Biggest hit this combat: Kar-ahn hit the Ogre for 26'
+});
 ```
 
 **Progressbar item** (`kind: 'progressbar'`): A horizontal progress bar (0–100%). Required: `width`, `borderColor`, `barColor`, `progressColor`, `percentProgress`. Optional: `title`, `icon`, `leftLabel`, `leftIcon`, `rightLabel`, `rightIcon`, `height`. Height defaults to 40% of secondary bar height if omitted. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, ... })`.

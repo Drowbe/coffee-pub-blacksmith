@@ -1,6 +1,6 @@
 # Plan: Stats on the Encounter Bar
 
-**Status: Implemented (phases 1-2). Phases 3-4 pending.**
+**Status: Implemented (phases 1-3). Phase 4 pending — it is the table's call, not a technical one.**
 
 Put party statistics in the encounter bar's middle zone — lifetime standings out of combat, live totals
 during one — reading them from the stats API rather than computing them in the bar.
@@ -82,13 +82,23 @@ event, so a cache would need invalidating more often than it would be read.
 **Verify**: mid-combat, `getRunningStats().totals` tracks damage and hits as they happen; when the combat
 ends, the summary card reports the same numbers the last live read did.
 
-**Phase 3 — the readouts.** Register the chosen stats as items in the bar's middle zone, GM visibility
-decided per stat. Out-of-combat items read `stats.party`; in-combat items read the phase 2 getter. Values
-update on their own events, never on a per-tick re-render, per the rule in `architecture-encounter.md`.
+**Phase 3 — the readouts. Done.** Six `info` items in the bar's middle zone, three visible at a time,
+swapped by combat state through `visible` predicates. Out of combat: biggest hit on record, most fumbles,
+top MVP. In combat: party damage dealt, hit rate, biggest hit so far.
+
+Visibility follows the data rather than a policy. Lifetime figures reduce actor flags and a world setting,
+so they exist everywhere and everyone sees them. Running figures come from GM-gated combat tracking, so
+`getRunningStats()` is null on a player client and those three are GM-only — showing them to a player would
+show three blanks.
+
+The mechanics and reasoning live in `architecture-encounter.md` under Readouts; this plan does not restate
+them. Two things landed alongside: `updateSecondaryBarItemInfo` now accepts `tooltip` (it was silently
+dropped, which made a dynamic chip unable to explain itself), and the overflow suppression order puts the
+statistics ahead of health and the timers.
 
 **Phase 4 — pick the set.** Which numbers actually earn their space is a table decision, not a technical
-one, and is best made looking at the bar with real data in it. Phase 3 should make adding or removing a
-readout a one-line change so this stays cheap.
+one, and is best made looking at the bar with real data in it. Phase 3 made adding or removing a readout a
+registration block plus a write, so this stays cheap.
 
 ## Notes
 

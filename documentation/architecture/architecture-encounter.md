@@ -178,15 +178,47 @@ and positive right — hence left is the monsters' side. It carries **no labels*
 not a second place to read the health numbers, which the two health bars already give.
 
 Zones: the left zone holds round, turn, and the timer slot; the right zone holds health, balance, and
-challenge rating. **The middle zone is deliberately empty**, reserved for real-time stats. Groups within a
-zone are separated by dividers automatically, so the grouping is what produces the pipes.
+challenge rating; the middle zone holds the party statistics. Groups within a zone are separated by
+dividers automatically, so the grouping is what produces the pipes.
+
+### Party statistics
+
+Two sets of three share the middle zone, swapped by combat state through `visible` predicates. Out of
+combat the bar shows the standings — biggest hit on record, most fumbles, top MVP — which change only when
+a combat ends. In combat it shows the fight in progress: party damage dealt, hit rate, and the biggest hit
+so far.
+
+**The bar reduces nothing.** It reads `stats.party.getAggregateSync()` for the standings and
+`stats.combat.getRunningStats()` for the running fight, both of which are single reductions shared with the
+Party Statistics window and the end-of-combat card. A figure on the bar that disagreed with the card a
+moment later would be worse than showing no figure at all — see `architecture-stats.md`.
+
+**The two sets are gated differently, and the gate follows the data rather than a policy.** Lifetime
+figures reduce actor flags and the stored combat history, a world setting, so they exist on every client
+and everyone sees them; they are the party's own record. Running figures come from combat tracking, which
+is GM-gated at the source — a player client accumulates nothing, so `getRunningStats()` returns null there.
+GM-only is what the data supports; showing those items to a player would show three blanks.
+
+The standings read is synchronous by design. `getAggregateSync()` returns the cache when warm, which is
+almost always, since it only rebuilds when a combat ends or an actor changes. The async `getAggregate()`
+fallback exists for the cold start and writes when it lands, which keeps `refreshStatReadouts` synchronous
+for a caller that runs inside the render path. The bar also refreshes on `blacksmith.combatSummaryReady` —
+the same hook `stats.party` invalidates on — because a table that has just finished a fight is looking at
+the bar at exactly the moment the previous combat's standings would still be showing.
+
+Names are shortened to their first word (`shortenName`), so "Favia Gita" reads as "Favia". The middle zone
+is `flex: 1 1 0`, so a long name pushes the readouts either side of it around; the full name goes in the
+tooltip, which carries the detail the chip has no room for — who hit whom for how much.
 
 Bar widths are CSS `clamp()` strings rather than pixel numbers — the item preparation passes a string
 `width` through to the inline style verbatim, so a clamp gives "as wide as the space allows, down to a
 floor" without needing `!important` to beat that inline value.
 
 When the row still cannot fit, `applyReadoutOverflow` hides readouts in a fixed order rather than letting
-everything squeeze: party health, then monster health, then the timer. It measures `scrollWidth` against
+everything squeeze: the statistics first, since nothing in the moment depends on them, then party health,
+then monster health, then the timer. Within each statistics set the least operational goes first, so what
+survives longest is the biggest hit on record out of combat and the damage total in one. It measures
+`scrollWidth` against
 `clientWidth` after render and clears all suppression first, so the row recovers as it widens. This is
 measured rather than expressed in CSS because "hide this one first" is an ordering CSS cannot state, and a
 media query would be guessing at the row's width rather than reading it.
