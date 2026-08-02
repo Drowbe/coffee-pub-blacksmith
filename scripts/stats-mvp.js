@@ -26,6 +26,8 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+// The MVP narrative's sentence templates live in the asset bundle.
+import { assetLookup } from './asset-lookup.js';
 
 export class CombatMvp {
     static _getMvpTuningSettings() {

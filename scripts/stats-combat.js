@@ -31,14 +31,6 @@ import { CombatMvp, MVPDescriptionGenerator } from './stats-mvp.js';
 import { CombatSources } from './stats-sources.js';
 import { assetLookup } from './asset-lookup.js';
 
-// Helper function to get actor portrait
-function getActorPortrait(combatant) {
-    if (!combatant) return "icons/svg/mystery-man.svg";
-    const actor = combatant.actor;
-    if (!actor) return "icons/svg/mystery-man.svg";
-    return getPortraitImage(actor) || "icons/svg/mystery-man.svg";
-}
-
 class CombatStats {
     static currentStats = null;
     static combatStats = null;

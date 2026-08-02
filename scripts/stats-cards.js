@@ -35,6 +35,18 @@ import { CombatStats } from './stats-combat.js';
 // this one is static rather than lazy.
 import { CombatMvp, MVPDescriptionGenerator } from './stats-mvp.js';
 
+/**
+ * A combatant's portrait, or the mystery-man placeholder. Moved here with the
+ * cards: it was a module-level function in stats-combat.js and only the card
+ * code ever called it.
+ */
+function getActorPortrait(combatant) {
+    if (!combatant) return "icons/svg/mystery-man.svg";
+    const actor = combatant.actor;
+    if (!actor) return "icons/svg/mystery-man.svg";
+    return getPortraitImage(actor) || "icons/svg/mystery-man.svg";
+}
+
 export class CombatCards {
     /**
      * Send combat start announcement card when combat is created
