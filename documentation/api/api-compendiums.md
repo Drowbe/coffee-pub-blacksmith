@@ -129,7 +129,8 @@ const results = await compendiums.search('long', 'Item', { itemType: 'weapon', l
 //   {
 //     uuid: 'Compendium.dnd5e.items.Item.abc123',
 //     name: 'Longbow',
-//     type: 'weapon',                        // document subtype
+//     type: 'weapon',                        // document SUBTYPE
+//     documentClass: 'Item',                 // document CLASS — the drag payload wants this
 //     img: 'icons/weapons/bows/longbow.webp',
 //     source: 'dnd5e.items',                 // 'world' or a pack id
 //     sourceLabel: 'Items (SRD)',            // the pack's own name
@@ -141,6 +142,49 @@ const results = await compendiums.search('long', 'Item', { itemType: 'weapon', l
 ```
 
 Group by `source`, render `name` + `img`, add via `uuid`. Nothing else is needed to build a picker.
+
+### `type` is the subtype; `documentClass` is the class
+
+`type` is the document subtype (`weapon`, `spell`, `npc`) and `documentClass` is the Foundry document class (`Item`, `Actor`, `JournalEntry`). Both are on every result because both are needed and they answer different questions: a row badge wants the subtype, a drag payload wants the class.
+
+Synthetic types make the distinction load-bearing — a `Spell` result has `documentClass: 'Item'` and `type: 'spell'`, because spells live in Item packs. Deriving the class from the type token you searched works but is a way to get a drop payload subtly wrong, especially when results from several `search()` calls are merged into one list.
+
+```js
+// Drag-to-sheet: Foundry's native payload, no derivation needed.
+event.dataTransfer.setData('text/plain', JSON.stringify({
+  type: result.documentClass,   // 'Item'
+  uuid: result.uuid
+}));
+```
+
+Every core `_onDrop*` handler reads that through `TextEditor.getDragEventData`, so an Item lands on a character sheet and an Actor lands on the canvas as a token, with no cooperation from the drop target.
+
+### Knowing whether the scan was cut short
+
+`limit` stops the scan, so the array alone cannot distinguish "that pack had no matches" from "that pack was never opened". `searchDetailed()` returns the same results plus what the scan covered:
+
+```js
+const { results, truncated, searchOrder, scannedSources, skippedSources } =
+  await compendiums.searchDetailed('a', 'Item', { limit: 40 });
+
+if (truncated) {
+  showHint(`${skippedSources.length} more compendiums not searched — narrow the query`);
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `results` | Exactly what `search()` returns |
+| `truncated` | The cap stopped the scan while candidates remained |
+| `searchOrder` | Every source that would have been searched, in priority order |
+| `scannedSources` | The ones actually opened and examined |
+| `skippedSources` | The tail never reached, in priority order |
+
+Do not infer truncation from `results.length === limit`. That over-reports: a scan that fills the cap exactly with the last available candidate is complete, not truncated. `truncated` is set only when a further candidate existed and could not be emitted, or when a source was left unopened.
+
+Every field is scoped to **one call**. A consumer that fans out across several types — `Item`, `Spell`, and `Feature` for one query box — gets one report per call, and combining them is the consumer's decision, not something the API can make for it. Union the `skippedSources` and count distinct entries if the claim is "some content in that pack went unsearched"; intersect them if the claim is "that pack was not searched at all". The two give different numbers, and neither is the sum of the per-call counts. A `truncated` in any call means the combined view is incomplete.
+
+`search()` is `searchDetailed().results` — use whichever fits; there is no extra cost to either.
 
 ### Source identity is three discrete fields
 
@@ -174,7 +218,7 @@ These three differences are deliberate, not oversights.
 
 Ordering is inverted because picking a single winner and rendering a browsable list want opposite things: exact-first-everywhere is right for one answer, but it interleaves packs and destroys the grouping a list is read by. Fuzzy is on because a picker should surface "Longsword" for "sword". `itemType` filters strictly because a weapon picker must not quietly list potions when a pack has no matching weapon.
 
-`limit` stops the scan as well as capping the output — once it is reached, remaining sources are never indexed. A low limit therefore truncates the tail of the priority order rather than sampling across it.
+`limit` stops the scan as well as capping the output — once it is reached, remaining sources are never indexed. A low limit therefore truncates the tail of the priority order rather than sampling across it. `searchDetailed()` reports when that happened and which sources were left unopened.
 
 `matchType` is reported for each result but tiers are mutually exclusive, so a candidate appears once.
 
@@ -250,6 +294,7 @@ compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters
 | Method | Returns | Notes |
 |---|---|---|
 | `search(query, type, options?)` | `Promise<Result[]>` | Many candidates for one query; grouped by source |
+| `searchDetailed(query, type, options?)` | `Promise<{results, truncated, searchOrder, scannedSources, skippedSources}>` | The same, plus what the scan covered |
 
 ### Utilities
 

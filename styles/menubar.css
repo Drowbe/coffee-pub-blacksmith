@@ -37,8 +37,12 @@
     --blacksmith-menubar-backgroundcolor-endzones: rgba(16, 8, 8, 0.9);
     --blacksmith-menubar-border-endzones: 1px solid rgba(0, 0, 0, 0.9);
     --blacksmith-menubar-backgroundcolor-divider: rgba(255, 255, 255, 0.3);
-    --blacksmith-menubar-gap-endzones: 12px;
-    
+    /* Left and right are tuned independently: they hold different furniture (client
+       tools on the left, session state on the right) and their padding already
+       differs, so one shared number could only ever suit one of them. */
+    --blacksmith-menubar-gap-left: 8px;
+    --blacksmith-menubar-gap-right: 12px;
+
 
     --blacksmith-menubar-gap-middle: 4px;
     --blacksmith-menubar-fontsize: .9em;
@@ -172,24 +176,26 @@
   padding: 1px 0 0 0;
 }
 
-/* Left / Right stay size-to-content */
+/* Left / Right stay size-to-content. Everything the two zones share lives here;
+   gap does not, so each can be tuned without disturbing the other. */
 .blacksmith-menubar-left,
 .blacksmith-menubar-right {
   background-color: var(--blacksmith-menubar-backgroundcolor-endzones);
   height: var(--blacksmith-menubar-zone-height);
   display: flex;
   align-items: center;
-  gap: var(--blacksmith-menubar-gap-endzones);
   flex: 0 0 auto; /* do not grow */
 }
 
 .blacksmith-menubar-left {
   justify-content: flex-start;
+  gap: var(--blacksmith-menubar-gap-left);
   padding: 0 8px;
   border-right: var(--blacksmith-menubar-border-endzones);
 }
 .blacksmith-menubar-right {
   justify-content: flex-end;
+  gap: var(--blacksmith-menubar-gap-right);
   padding: 0 12px;
   border-left: var(--blacksmith-menubar-border-endzones);
 }

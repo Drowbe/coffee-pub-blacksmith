@@ -186,3 +186,16 @@
     opacity: 0.6;
     white-space: nowrap;
 }
+
+.blacksmith-compendium-search-window .bcs-status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* A capped scan left compendiums unopened. Lifted out of the ambient 0.6 because
+   it is the one status that changes what the user should do — narrow the query. */
+.blacksmith-compendium-search-window .bcs-status.is-truncated {
+    color: var(--blacksmith-tool-accent);
+    opacity: 0.85;
+}

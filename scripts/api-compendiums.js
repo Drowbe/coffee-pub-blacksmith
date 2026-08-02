@@ -134,6 +134,13 @@ export const CompendiumsAPI = {
      *
      * `limit` stops the scan as well as capping the output, so a low limit
      * truncates the tail of the priority order rather than sampling across it.
+     * Use searchDetailed() when you need to know whether that happened -- it is
+     * not inferable from the array, since a scan that fills the cap exactly with
+     * the last available candidate is complete rather than truncated.
+     *
+     * `documentClass` on each result is the Foundry document class ('Item', 'Actor'),
+     * beside `type`, which is the document SUBTYPE ('weapon', 'npc'). A drag payload
+     * wants the class; a badge in the row wants the subtype.
      *
      * Source identity comes back as three DISCRETE fields -- `source` (the id),
      * `sourceLabel` (the pack's own name), and `sourcePackage` (the owning module,
@@ -149,16 +156,44 @@ export const CompendiumsAPI = {
      * @param {string[]} [options.sources=null]  - Restrict to configured source ids (`world` or pack ids)
      * @param {number}  [options.minLength=2]    - Return [] without scanning below this query length
      * @param {boolean} [options.fuzzy=true]     - Include the loose "includes" tier
-     * @returns {Promise<Array<{uuid: string, name: string, type: string|null, img: string|null,
-     *                          source: string, sourceLabel: string, sourcePackage: string,
-     *                          matchType: string}>>}
+     * @returns {Promise<Array<{uuid: string, name: string, type: string|null, documentClass: string,
+     *                          img: string|null, source: string, sourceLabel: string,
+     *                          sourcePackage: string, matchType: string}>>}
      *
      * @example
      * const results = await api.compendiums.search('long', 'Item', { itemType: 'weapon', limit: 40 });
      * // group by result.source; header from result.sourceLabel with result.sourcePackage
      * // as its subtitle; render name + img; add via result.uuid
+     *
+     * @example
+     * // Drag-to-sheet: Foundry's native payload, no derivation needed.
+     * event.dataTransfer.setData('text/plain', JSON.stringify({
+     *     type: result.documentClass,   // 'Item'
+     *     uuid: result.uuid
+     * }));
      */
     search: (query, type, options) => compendiumManager.search(query, type, options),
+
+    /**
+     * search(), plus a report of what the scan actually covered.
+     *
+     * `limit` stops the scan, so the array alone cannot distinguish "that pack had
+     * no matches" from "that pack was never opened". This says which, so a consumer
+     * can tell the user accurately rather than inferring from the result count --
+     * an inference that over-reports, since filling the cap exactly with the last
+     * available candidate is a complete scan, not a truncated one.
+     *
+     * @param {string} query
+     * @param {string} type
+     * @param {object} [options] - Same as search()
+     * @returns {Promise<{results: Array<object>, truncated: boolean, searchOrder: string[],
+     *                    scannedSources: string[], skippedSources: string[]}>}
+     *
+     * @example
+     * const { results, truncated, skippedSources } = await api.compendiums.searchDetailed('a', 'Item');
+     * if (truncated) showMore(`${skippedSources.length} more compendiums not searched`);
+     */
+    searchDetailed: (query, type, options) => compendiumManager.searchDetailed(query, type, options),
 
     // ===== UTILITIES =====
 

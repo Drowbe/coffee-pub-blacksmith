@@ -335,6 +335,7 @@ export class CompendiumManager {
      *
      * `limit` caps the total and stops the scan: once it is reached, remaining sources
      * are never indexed. A low limit therefore truncates the tail of the priority order.
+     * Use searchDetailed() when you need to know whether that happened.
      *
      * @param {string} query - Partial text, e.g. "long"
      * @param {string} type - Type token, same as resolve()
@@ -344,11 +345,39 @@ export class CompendiumManager {
      * @param {string[]} [options.sources=null]  - Optional subset of configured source ids
      * @param {number}  [options.minLength=2]    - Return [] without scanning below this query length
      * @param {boolean} [options.fuzzy=true]     - Include the loose "includes" tier
-     * @returns {Promise<Array<{uuid: string, name: string, type: string|null, img: string|null,
-     *                          source: string, sourceLabel: string, sourcePackage: string,
-     *                          matchType: string}>>}
+     * @returns {Promise<Array<{uuid: string, name: string, type: string|null, documentClass: string,
+     *                          img: string|null, source: string, sourceLabel: string,
+     *                          sourcePackage: string, matchType: string}>>}
      */
     async search(query, type, options = {}) {
+        return (await this.searchDetailed(query, type, options)).results;
+    }
+
+    /**
+     * search(), plus a report of what the scan actually covered.
+     *
+     * Because `limit` stops the scan rather than only capping the output, a caller
+     * holding just the array cannot tell "that pack had no matches" from "that pack
+     * was never opened". Inferring it from `results.length === limit` over-reports:
+     * a scan that fills the cap exactly with the last available candidate is complete,
+     * not truncated. This reports it rather than leaving consumers to guess.
+     *
+     * @param {string} query
+     * @param {string} type
+     * @param {object} [options] - Same as search()
+     * @returns {Promise<{results: Array<object>, truncated: boolean, searchOrder: string[],
+     *                    scannedSources: string[], skippedSources: string[]}>}
+     *   - `truncated`  - the cap stopped the scan while candidates remained
+     *   - `searchOrder` - every source that would have been searched, in priority order
+     *   - `scannedSources` - the ones actually opened and examined
+     *   - `skippedSources` - the tail never reached, in priority order
+     *
+     * Every field describes THIS call. A consumer fanning out across several types for
+     * one query gets one report per call and combines them itself -- union the skipped
+     * sources for "some content there went unsearched", intersect for "that pack was
+     * never searched at all". The two differ, and neither is the sum of the counts.
+     */
+    async searchDetailed(query, type, options = {}) {
         const {
             itemType = null,
             limit = 50,
@@ -357,8 +386,13 @@ export class CompendiumManager {
             fuzzy = true
         } = options;
 
+        const empty = (searchOrder = []) => ({
+            results: [], truncated: false, searchOrder,
+            scannedSources: [], skippedSources: [...searchOrder]
+        });
+
         const needle = String(query ?? '').trim().toLowerCase();
-        if (needle.length < minLength) return [];
+        if (needle.length < minLength) return empty();
 
         const canonical = normalizeType(type);
         const mapping = this.getMapping(canonical);
@@ -368,15 +402,27 @@ export class CompendiumManager {
             : mapping.searchOrder;
         if (!searchOrder.length) {
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | No sources configured for type`, canonical, true, false);
-            return [];
+            return empty();
         }
 
         const cap = Number.isFinite(limit) && limit > 0 ? limit : Infinity;
         const tiers = fuzzy ? MATCH_TIERS : ['exact', 'startsWith'];
+        const documentClass = getDocumentClass(canonical);
         const results = [];
+        const scannedSources = [];
+        let truncated = false;
 
+        // Labelled so hitting the cap mid-source leaves both loops at once. Without it
+        // the outer loop would keep going and re-decide truncation per source.
+        outer:
         for (const source of searchOrder) {
-            if (results.length >= cap) break;
+            // Reaching here with the cap already full means this source, and every
+            // source after it, is never opened -- which is exactly the truncation
+            // the caller cannot otherwise see.
+            if (results.length >= cap) {
+                truncated = true;
+                break;
+            }
 
             let entries;
             try {
@@ -387,6 +433,7 @@ export class CompendiumManager {
                 postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error searching ${source}`, error, false, false);
                 continue;
             }
+            scannedSources.push(source);
             if (!entries?.length) continue;
             if (itemType) entries = entries.filter(e => e.type === itemType);
 
@@ -408,11 +455,24 @@ export class CompendiumManager {
 
             for (const tier of tiers) {
                 for (const entry of buckets[tier].sort((a, b) => a.name.localeCompare(b.name))) {
-                    if (results.length >= cap) break;
+                    // The check sits before the push, so reaching it means there WAS
+                    // another candidate to emit -- which is what makes this truncation
+                    // rather than a scan that happened to fill the cap exactly.
+                    if (results.length >= cap) {
+                        truncated = true;
+                        break outer;
+                    }
                     results.push({
                         uuid: entry.uuid,
                         name: entry.name,
                         type: entry.type ?? null,
+                        // The document CLASS, beside the document subtype in `type`.
+                        // Both are needed and they are not the same thing: a drag payload
+                        // wants {type: 'Item'} while the row badge wants 'weapon'. Deriving
+                        // this from the type token searched is easy to get subtly wrong,
+                        // and it is free here -- so every consumer gets it rather than
+                        // each carrying it through their own bookkeeping.
+                        documentClass,
                         img: entry.img ?? null,
                         source,
                         sourceLabel,
@@ -420,14 +480,16 @@ export class CompendiumManager {
                         matchType: tier
                     });
                 }
-                if (results.length >= cap) break;
             }
         }
 
+        const skippedSources = searchOrder.filter(source => !scannedSources.includes(source));
+
         postConsoleAndNotification(MODULE.NAME,
             `Compendium Manager | Searched ${canonical} "${needle}"`,
-            `${results.length} result(s)`, true, false);
-        return results;
+            `${results.length} result(s)${truncated ? `, truncated (${skippedSources.length} source(s) not scanned)` : ''}`,
+            true, false);
+        return { results, truncated, searchOrder, scannedSources, skippedSources };
     }
 
     // ==============================================================

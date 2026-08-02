@@ -28,7 +28,7 @@
 import { requireApi, settingRow } from './harness-lib.js';
 
 const TIER_RANK = { exact: 0, startsWith: 1, includes: 2 };
-const RESULT_KEYS = ['uuid', 'name', 'type', 'img', 'source', 'sourceLabel', 'sourcePackage', 'matchType'];
+const RESULT_KEYS = ['uuid', 'name', 'type', 'documentClass', 'img', 'source', 'sourceLabel', 'sourcePackage', 'matchType'];
 
 /** A subtype no system defines, used to tell "filter" from "prefer". */
 const IMPOSSIBLE_SUBTYPE = 'blacksmith-harness-no-such-subtype';
@@ -139,6 +139,88 @@ export default {
                     results.every(r => RESULT_KEYS.every(k => k in r)));
                 expect.ok('uuids are unique — tiers must be mutually exclusive',
                     new Set(results.map(r => r.uuid)).size === results.length);
+            }
+        },
+        {
+            id: 'document-class',
+            tier: 'headless',
+            group: 'Contract',
+            label: 'documentClass is the class, distinct from the subtype in type',
+            note: 'This is the drag payload field. Getting it confused with `type` silently produces a payload no sheet accepts.',
+            run: async ({ expect }) => {
+                const fixture = await itemFixture();
+                if (!fixture) return expect.ok('fixture available', false);
+                const { compendiums, packId } = fixture;
+
+                const items = await compendiums.search('a', 'Item', { minLength: 1, limit: 10, sources: [packId] });
+                expect.ok('the query matched something to inspect', items.length > 0);
+                expect('every Item result reports documentClass Item',
+                    items.filter(r => r.documentClass !== 'Item').length, 0);
+                expect.ok('documentClass is NOT the subtype',
+                    items.every(r => r.type == null || r.documentClass !== r.type));
+
+                // A synthetic type lives in Item packs, so its class must still be Item
+                // even though the mapping and the subtype say Spell/spell.
+                if (compendiums.getSelected('Spell').length) {
+                    const spells = await compendiums.search('a', 'Spell', { minLength: 1, limit: 10 });
+                    expect('a synthetic type still reports its real document class',
+                        spells.filter(r => r.documentClass !== 'Item').length, 0);
+                    expect('and its subtype is still spell',
+                        spells.filter(r => r.type !== 'spell').length, 0);
+                }
+
+                if (compendiums.getSelected('Actor').length) {
+                    const actors = await compendiums.search('a', 'Actor', { minLength: 1, limit: 10 });
+                    expect('Actor results report documentClass Actor',
+                        actors.filter(r => r.documentClass !== 'Actor').length, 0);
+                }
+            }
+        },
+        {
+            id: 'truncation-report',
+            tier: 'headless',
+            group: 'Bounds',
+            label: 'searchDetailed reports truncation instead of leaving it inferable',
+            note: 'The count===limit inference over-reports. These assertions are the case it gets wrong.',
+            run: async ({ expect, log }) => {
+                const fixture = await itemFixture();
+                if (!fixture) return expect.ok('fixture available', false);
+                const { compendiums } = fixture;
+
+                const full = await compendiums.searchDetailed('a', 'Item', { minLength: 1, limit: 4000 });
+                expect.ok('the query matched something to inspect', full.results.length > 0);
+                expect('a scan that reaches every source is not truncated', full.truncated, false);
+                expect('every configured source was scanned',
+                    full.skippedSources.length, 0);
+                expect('scannedSources and searchOrder agree when nothing is skipped',
+                    full.scannedSources.length, full.searchOrder.length);
+
+                const capped = await compendiums.searchDetailed('a', 'Item', { minLength: 1, limit: 3 });
+                expect('a capped scan is reported truncated', capped.truncated, true);
+                expect('it still returns exactly the cap', capped.results.length, 3);
+                expect.ok('skipped sources are named, not just counted',
+                    Array.isArray(capped.skippedSources));
+                expect.ok('scanned and skipped partition the search order',
+                    capped.scannedSources.length + capped.skippedSources.length === capped.searchOrder.length);
+                expect.ok('nothing appears in both',
+                    !capped.scannedSources.some(s => capped.skippedSources.includes(s)));
+
+                // THE CASE THE INFERENCE GETS WRONG: a cap set to exactly the number of
+                // available results is a complete scan. `results.length === limit` says
+                // truncated; the report says otherwise, and the report is right.
+                const exact = await compendiums.searchDetailed('a', 'Item', {
+                    minLength: 1, limit: full.results.length
+                });
+                expect('a cap that exactly fits is NOT truncated', exact.truncated, false);
+                expect('and it returned everything', exact.results.length, full.results.length);
+                log(`inference would have called this truncated: ${exact.results.length} results, limit ${full.results.length}`);
+
+                const short = await compendiums.searchDetailed('a', 'Item', { minLength: 5 });
+                expect('a query below minLength reports no scan', short.scannedSources.length, 0);
+                expect('and is not truncated — nothing was cut off', short.truncated, false);
+
+                expect('search() returns just the array',
+                    Array.isArray(await compendiums.search('a', 'Item', { minLength: 1, limit: 3 })), true);
             }
         },
         {

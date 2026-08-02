@@ -254,9 +254,9 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         const mine = ++this._token;
         const started = performance.now();
 
-        let results = [];
+        let report = { results: [], truncated: false, skippedSources: [] };
         try {
-            results = await compendiumManager.search(this._query, this._type, {
+            report = await compendiumManager.searchDetailed(this._query, this._type, {
                 itemType: this._subtype || null,
                 limit: RESULT_LIMIT
             });
@@ -265,7 +265,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         }
 
         if (mine !== this._token) return;   // superseded by a later keystroke
-        this._paint(results, Math.round(performance.now() - started));
+        this._paint(report, Math.round(performance.now() - started));
     }
 
     /**
@@ -275,15 +275,16 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
      * names out of whatever compendiums the world has installed, and this window
      * has no business interpreting them as markup.
      *
-     * @param {Array<object>} results
+     * @param {{results: Array<object>, truncated: boolean, skippedSources: string[]}} report
      * @param {number} elapsed - Milliseconds the query took, for the status line
      */
-    _paint(results, elapsed) {
+    _paint(report, elapsed) {
         const root = this._getRoot();
         const list = root?.querySelector('[data-results]');
         const status = root?.querySelector('[data-status]');
         if (!list) return;
 
+        const results = report.results ?? [];
         list.replaceChildren();
 
         if (!results.length) {
@@ -297,7 +298,6 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             return;
         }
 
-        const documentClass = getDocumentClass(normalizeType(this._type));
         let currentSource = null;
 
         for (const result of results) {
@@ -328,7 +328,9 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             row.className = `bcs-row bcs-tier-${result.matchType}`;
             row.draggable = true;
             row.dataset.uuid = result.uuid;
-            row.dataset.documentClass = documentClass;
+            // Straight off the result. Deriving it from the type token searched is a
+            // way to get the drag payload subtly wrong, so the API hands it over.
+            row.dataset.documentClass = result.documentClass;
             row.dataset.tooltip = `${result.name} — click to open, drag to add`;
 
             const thumb = document.createElement('img');
@@ -351,8 +353,14 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
 
         if (status) {
             const sources = new Set(results.map(r => r.source)).size;
-            const capped = results.length >= RESULT_LIMIT ? '+' : '';
-            status.textContent = `${results.length}${capped} in ${sources} source${sources === 1 ? '' : 's'} (${elapsed}ms)`;
+            // Reported, not inferred: `results.length === limit` over-reports, because a
+            // scan that fills the cap exactly with the last available candidate is complete.
+            const skipped = report.skippedSources?.length ?? 0;
+            const more = report.truncated
+                ? ` — more available${skipped ? `, ${skipped} compendium${skipped === 1 ? '' : 's'} not searched` : ''}`
+                : '';
+            status.textContent = `${results.length} in ${sources} source${sources === 1 ? '' : 's'} (${elapsed}ms)${more}`;
+            status.classList.toggle('is-truncated', !!report.truncated);
         }
     }
 
@@ -471,7 +479,9 @@ Hooks.once('ready', () => {
         // the menubar reads as actions, the scene-controls row as subject matter.
         icon: "fa-solid fa-magnifying-glass",
         name: "compendium-search",
-        title: "Compendium Search",
+        // Icon only. An empty title renders no label, the same way the left zone's
+        // menu/settings/refresh tools do; the tooltip carries the meaning on hover.
+        title: "",
         tooltip: "Search your compendiums; drag a result onto a sheet",
         onClick: () => void CompendiumSearchWindow.open(),
         // Left zone, with the other always-available client tools (menu, settings,
