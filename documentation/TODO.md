@@ -26,24 +26,6 @@ adapters should return events for the tracker to apply rather than reaching in a
 
 `stats-player.js` (2,606 lines) wants its own audit and is deliberately not bundled into this.
 
-## Combat stats registers Handlebars helpers the whole module depends on
-
-**Found 2026-08-02 during the decomposition; not fixed there, because that work was a pure move.**
-
-`CombatStats.registerHelpers()` (`stats-combat.js`) registers `round`, `formatDamage`, `formatTime`,
-`multiply`, `divide`, `add`, `subtract`, `eq`, and `gt`. It is called from `initialize()` — **after** the
-`if (!getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;` guard. So turning combat statistics
-off unregisters all of them.
-
-`eq` and `gt` are Foundry built-ins and survive. `formatTime` is not, and `timer-combat.hbs` uses it — so a
-world with the combat timer on and combat stats off has a broken timer template. Eleven non-stats templates
-reference helpers from this set in total.
-
-Global Handlebars registration does not belong to a feature that can be switched off. Move it to a module-level
-registration that runs regardless of the setting, or into whichever file owns shared template helpers. Verify:
-disable `trackCombatStats`, reload, and confirm the combat timer and skill check windows still render their
-numbers.
-
 ## `manager-roll-outcomes.js` duplicates the stats socket forwarder
 
 Both it and `stats-sources.js` define `_forwardToGM`, doing the same job over the same SocketLib socket.

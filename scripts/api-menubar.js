@@ -127,31 +127,11 @@ class MenuBar {
 
         // (Menubar ready logic is registered at module load — see bottom of this file — so it runs when Foundry emits ready.)
         
-        // Register Handlebars helpers
-        Handlebars.registerHelper('or', function() {
-            return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
-        });
-        
-        Handlebars.registerHelper('eq', function(a, b) {
-            return a === b;
-        });
-        
-        Handlebars.registerHelper('gt', function(a, b) {
-            return a > b;
-        });
-        
-        Handlebars.registerHelper('and', function(a, b) {
-            return a && b;
-        });
-        
-        // Helper to check if a string is an image URL
-        Handlebars.registerHelper('isImageUrl', function(str) {
-            if (!str || typeof str !== 'string') return false;
-            // Check if it looks like a URL/path (starts with http://, https://, /, or contains common image extensions)
-            const urlPattern = /^(https?:\/\/|\/|\.\/|modules\/|data\/|assets\/)/i;
-            const imageExtPattern = /\.(png|jpg|jpeg|gif|webp|svg|bmp|ico)(\?.*)?$/i;
-            return urlPattern.test(str) || imageExtPattern.test(str);
-        });
+        // Handlebars helpers (or, eq, gt, and, isImageUrl) moved to
+        // utility-handlebars.js, which registers in `init` and unconditionally.
+        // They were never menubar-specific -- siblings render against them --
+        // and registering them from a subsystem's initialize() tied a
+        // cross-module contract to that subsystem's lifecycle.
 
         // Simple DOM insertion - no complex hooks needed
 

@@ -167,6 +167,31 @@ const theme = utils.getSettingSafely('my-module-id', 'cardTheme', 'theme-default
 
 `markdownToHtml` / `htmlToMarkdown` handle a deliberately small subset; anything else is treated as plain text: `#`/`##`/`###` headings, `---` rules, `**bold**`, `*italic*`, `-`/`*` unordered lists, `1.` ordered lists, and `>` blockquotes.
 
+## Handlebars helpers
+
+Blacksmith registers a set of Handlebars helpers globally, so any module's templates can use them once Blacksmith is active. They are registered during `init`, before anything renders, and **unconditionally** -- no Blacksmith setting or feature switch affects whether they exist.
+
+| Helper | Signature | Returns |
+|---|---|---|
+| `or` | `(...values)` | True if any argument is truthy |
+| `and` | `(a, b)` | `a && b` |
+| `eq` | `(a, b)` | Strict equality |
+| `gt` | `(a, b)` | `a > b` |
+| `add` | `(a, b)` | `a + b` |
+| `subtract` | `(a, b)` | `a - b` |
+| `multiply` | `(a, b)` | `a * b` |
+| `divide` | `(a, b)` | `a / b` |
+| `round` | `(number)` | `Math.round(number)` |
+| `formatDamage` | `(amount)` | The number as a string, or `'0'` when not a number |
+| `formatTime` | `(ms)` | A duration such as `45s` or `2m 30s` |
+| `isImageUrl` | `(string)` | True for a path-like prefix or an image extension |
+
+Foundry provides others (`localize`, `numberFormat`, `lookup`, `ne`, `lt`, `gte`, `not` and more); those are not Blacksmith's and are documented by Foundry.
+
+Two cautions. `formatTime` is **context-sensitive**: inside a template whose data carries `planningDuration` or `turnDuration` it may return `SKIPPED` or `EXPIRED` rather than a duration, which is intended for the combat timer templates. And these helpers exist only while Blacksmith is enabled -- a template using them needs Blacksmith as a dependency, which any Coffee Pub module already has.
+
+Implementation: `scripts/utility-handlebars.js`.
+
 ## Constants
 
 Read constants from the `BlacksmithConstants` global (or `api.BLACKSMITH`). `COFFEEPUB` is an internal export of `scripts/api-core.js` and is **not** exposed to other modules — do not reference it.

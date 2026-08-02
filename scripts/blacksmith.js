@@ -100,6 +100,7 @@ import { CampaignAPI } from './api-campaign.js';
 import { CompendiumsAPI } from './api-compendiums.js';
 import { RollsAPI } from './api-rolls.js';
 import { EffectsAPI } from './api-effects.js';
+import { registerHandlebarsHelpers } from './utility-handlebars.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
 import { extractActiveD20, classifyCritFumble } from './utility-roll-classification.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
@@ -879,6 +880,11 @@ async function _registerUnifiedHeaderPartial() {
 
 // Call the hookCanvas function during the initialization phase
 Hooks.once('init', async function() {
+    // First, and unconditionally. Sibling modules render against these helpers,
+    // so they must exist before anything can render and must not depend on any
+    // Blacksmith feature being switched on. See utility-handlebars.js.
+    registerHandlebarsHelpers();
+
     EffectsAPI.initialize();
     ensureCoreLoadingProgressSettingRegistered();
 

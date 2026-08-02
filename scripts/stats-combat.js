@@ -506,8 +506,9 @@ class CombatStats {
             existingCombatStats
         }, true, false);
 
-        // Register Handlebars helpers
-        this.registerHelpers();
+        // Handlebars helpers are registered in `init` by utility-handlebars.js,
+        // deliberately not from here: this method returns early when
+        // trackCombatStats is off, and those helpers are global.
 
         // Register hooks
         this._registerHooks();
@@ -1464,53 +1465,6 @@ class CombatStats {
         if (!this.combatStats?.rounds) return null;
         const targetRound = round || game.combat?.round || 1;
         return this.combatStats.rounds.find(r => r.round === targetRound) || null;
-    }
-
-    // Register Handlebars helpers
-    static registerHelpers() {
-        // Helper to round numbers
-        Handlebars.registerHelper('round', function(number) {
-            return Math.round(number);
-        });
-
-        // Helper to format damage numbers
-        Handlebars.registerHelper('formatDamage', function(amount, isHealing = false) {
-            if (typeof amount !== 'number') return '0';
-            return `${amount}`;
-        });
-
-        // Helper to format time in a readable way
-        Handlebars.registerHelper('formatTime', CombatStats.formatTime);
-
-        // Helper to multiply numbers
-        Handlebars.registerHelper('multiply', function(a, b) {
-            return a * b;
-        });
-
-        // Helper to divide numbers
-        Handlebars.registerHelper('divide', function(a, b) {
-            return a / b;
-        });
-
-        // Helper to add numbers
-        Handlebars.registerHelper('add', function(a, b) {
-            return a + b;
-        });
-
-        // Helper to subtract numbers
-        Handlebars.registerHelper('subtract', function(a, b) {
-            return a - b;
-        });
-
-        // Helper to check equality
-        Handlebars.registerHelper('eq', function(a, b) {
-            return a === b;
-        });
-
-        // Helper for greater than
-        Handlebars.registerHelper('gt', function(a, b) {
-            return a > b;
-        });
     }
 
     // Helper method to format time
