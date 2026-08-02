@@ -177,7 +177,7 @@ Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `to
 
 It is derived on call rather than cached, because it changes on essentially every combat event. Read it on your own update event; do not poll it.
 
-**Available to players, not only the GM.** Combat tracking is GM-gated so that there is a single writer, but the GM mirrors the accumulator to a combat flag and combat documents sync to every client, so the same reduction runs everywhere. Two things follow for a consumer: a player's copy can trail the GM's by up to a second, and it is null for the first moments of a combat before the first mirror lands -- so handle null rather than assuming a running combat implies data. A flag write fires `updateCombat` on every client, which is the event to refresh on.
+**Every client reads the same thing, the GM included.** Combat tracking is GM-gated so that there is a single writer, but the GM mirrors the accumulator to a combat flag and combat documents sync everywhere, so that flag is what this returns for everyone -- the GM's read is not privileged and is not fresher. Two things follow for a consumer: the value trails the true state by up to a second, and it is null for the first moments of a combat before the first mirror lands, so handle null rather than assuming a running combat implies data. A flag write fires `updateCombat` on every client, which is the event to refresh on.
 
 Three names sit close together and mean different tiers:
 

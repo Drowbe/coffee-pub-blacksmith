@@ -9,6 +9,20 @@
 - **Single-click selects a pin (selection state + keyboard actions)**: clicking a pin should put it in a selected state with a visible ring so keyboard actions can operate on it — first milestone: Delete/Backspace removes the selected pin via `PinManager.delete` with a permission check. Currently a single click only invokes registered `click` handlers (`pins-renderer.js:994` editable path, `pins-renderer.js:743` non-editable path); there is no selection concept. Design validated; no performance concern — pins are a pure DOM overlay, so one delegated `pointerdown` listener on `#blacksmith-pins-overlay` plus a `document` `keydown` handler suffices. Implementation: track the selected pin id in the renderer (`PinDOMElement._selectedPinId`); apply an `is-selected` class styled in `styles/pins.css`; `pointerdown` on a pin element selects, on the overlay container deselects; `keydown` Delete/Backspace deletes (scoped so it does not fire while typing in inputs), Escape deselects; expose `pins.getSelectedPin()` / `selectPin()` / `deselectPin()` on the public API and fire `blacksmith.pins.selected` / `blacksmith.pins.deselected` hooks so other modules can react. Verify live: click a pin and see the ring; press Delete and confirm the pin is removed (with its delete animation if configured); click empty canvas or Escape deselects; Delete does nothing when no pin is selected and does not fire while typing in a text field.
 - **Double-click sometimes lands in drag mode instead of firing**: for editable pins, mousedown enters the drag system and any movement beyond `DRAG_THRESHOLD` (10px screen space, `pins-renderer.js:856`) makes the release count as a drag (`pins-renderer.js:943`), so a slightly jittery double-click gets swallowed as a tiny drag and the second click never reaches the double-click counter (`pins-renderer.js:1004`). Candidate fixes: track movement per press instead of cumulatively, treat a second press arriving within the 300ms click window as a double-click before the drag decision, or require both distance and a minimum hold time before committing to drag. Verify live: rapidly double-click an editable pin ~20 times with normal hand jitter and confirm the double-click action fires every time and the pin does not shift position; confirm a real drag (press, move, release) still moves the pin and a deliberate slow click still fires the single-click action.
 
+## Decompose the stats tracker
+
+**Planned, not started** — see `documentation/plans/plan-stats-decomposition.md` for the phases, the
+measured cluster breakdown, and how each phase is verified.
+
+`stats-combat.js` is 5,249 lines and 94 static methods doing at least seven jobs, of which roughly 935 are
+chat card presentation, 930 are dnd5e/midi-qol/socket integration, and 800 are MVP scoring and narrative
+generation. The public API (`stats.player`, `stats.party`, `stats.combat`) is small, documented, and covered
+by 90+ harness assertions — it is the seam the work happens underneath and does not move. Four phases,
+least-risk first, each independently shippable: cards, MVP, system integration, then reassess the ~1,500
+lines that remain.
+
+`stats-player.js` (2,606 lines) wants its own audit and is deliberately not bundled into this.
+
 ## Party aggregates behind the stats API (`stats.party`)
 
 **Now in progress** — see `documentation/plans/plan-encounter-bar-stats.md`, which covers this, the running-combat-totals getter, and the bar readouts as one effort.

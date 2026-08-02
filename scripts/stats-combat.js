@@ -1033,7 +1033,13 @@ class CombatStats {
                 topHits: topHits,
                 topHeals: topHeals,
                 longestTurn: source.longestTurn || null,
-                fastestTurn: source.fastestTurn?.duration !== Infinity ? source.fastestTurn : null,
+                // "No turn timed yet" is `{duration: Infinity}` in memory, but this
+                // object also arrives via a combat flag, and JSON has no Infinity — it
+                // serializes to null. Testing `!== Infinity` therefore passed the
+                // sentinel straight through on the flag path and returned
+                // `{duration: null}` where memory returned null. Ask whether the number
+                // is usable instead of comparing against one spelling of unusable.
+                fastestTurn: Number.isFinite(source.fastestTurn?.duration) ? source.fastestTurn : null,
                 mvp: mvp || null,
                 mvpRankings
             }
@@ -1497,28 +1503,35 @@ class CombatStats {
     }
 
     /**
-     * Where this client can read the running combat's accumulator.
+     * Where every client reads the running combat's accumulator: the combat flag, and
+     * only the combat flag -- including the GM's own read.
      *
-     * Tracking is GM-gated -- only the GM accumulates, so that there is one writer and
-     * no conflicting updates. But the GM already mirrors the accumulator to a combat
-     * flag on a debounce (`_schedulePersistCombatStats`), and a combat document syncs to
-     * every client, so the numbers are on every machine already. They were simply
-     * unreadable, because the getter looked only at the in-memory copy that a player
-     * never fills.
+     * Tracking is GM-gated so that there is one writer and no conflicting updates. But
+     * the GM already mirrors the accumulator to a combat flag on a debounce
+     * (`_schedulePersistCombatStats`), and a combat document syncs to every client, so
+     * the numbers are on every machine already. That mirror exists for reload resilience
+     * -- a GM who refreshes mid-combat restores from it -- and doubles as the broadcast
+     * channel for free. No socket is involved and none is wanted: a flag write already
+     * fires `updateCombat` everywhere, which is what makes a readout follow along
+     * without subscribing to anything.
      *
-     * That mirror exists for reload resilience -- a GM who refreshes mid-combat restores
-     * from it -- and doubles as the broadcast channel for free. No socket is involved,
-     * and none is wanted: a flag write already fires `updateCombat` on every client,
-     * which is what makes a readout follow along without anything subscribing.
+     * **The GM deliberately does not read memory here, though memory is right there and
+     * fresher.** Two read paths would mean the GM's screen works when the players'
+     * does not, so a broken mirror would show the whole table placeholders while the
+     * person able to fix it saw perfect numbers and no error. Reading the same byte the
+     * players read makes that failure mode impossible to have without seeing it. The
+     * price is that the GM's figures lag by up to the debounce interval, which for a
+     * readout is nothing, and the first moments of a combat show placeholders for
+     * everyone until the first mirror lands -- which is the honest state, since nothing
+     * has been broadcast yet.
      *
-     * The GM's own read prefers memory, which is authoritative and current; everyone
-     * else gets the flag, at most one debounce interval behind. For a readout that is
-     * indistinguishable from live.
+     * `_generateCombatSummary` is the exception and still reduces memory directly: the
+     * stored summary has to be exact rather than current-to-within-a-second, it runs
+     * only on the GM, and it is the write that everything else is derived from.
      *
-     * @returns {Object|null} The accumulator, or null when no combat is being tracked.
+     * @returns {Object|null} The mirrored accumulator, or null when nothing is tracked.
      */
     static getRunningCombatSource() {
-        if (this.combatStats) return this.combatStats;
         try {
             return game.combat?.getFlag(MODULE.ID, 'combatStats') ?? null;
         } catch (_) {
@@ -1544,9 +1557,10 @@ class CombatStats {
      * cache would need invalidating more often than it would be read. Callers that render
      * per tick should read it on their own update, not in a loop.
      *
-     * Available to players, not just the GM -- see `getRunningCombatSource`. A player's
-     * copy can trail the GM's by up to the persistence debounce, and is null for the
-     * first moments of a combat before the first mirror lands.
+     * Read by every client the same way, the GM included -- see
+     * `getRunningCombatSource` for why the GM does not get a shortcut to memory. The
+     * value trails the true state by up to the persistence debounce, and is null for
+     * the first moments of a combat before the first mirror lands.
      *
      * @returns {Object|null} `{combatId, round, duration, durationSeconds, totals,
      *   participants, notableMoments}`, or null when no combat is being tracked.

@@ -196,11 +196,12 @@ moment later would be worse than showing no figure at all — see `architecture-
 **Everyone sees both sets.** These exist for the table — the point of "biggest hit" is the player who
 landed it seeing it — so neither set is GM information the way the challenge rating is. Lifetime figures
 reduce actor flags and the stored combat history, a world setting, so they are on every client already.
-Running figures reach a player through the combat flag the GM mirrors the accumulator to; see
-`CombatStats.getRunningCombatSource` and `architecture-stats.md`. A player's copy can trail the GM's by up
-to the persistence debounce and is null for the first moments of a combat, so the chips show their
-registered placeholders until the first mirror lands — a flag write fires `updateCombat`, which brings the
-bar back through the refresh on its own.
+Running figures come from the combat flag the GM mirrors the accumulator to, which **every client reads,
+the GM included** — see `CombatStats.getRunningCombatSource` and `architecture-stats.md`. The bar therefore
+shows the GM exactly what it shows the table, which is the point: a broken mirror cannot look fine on the
+one screen able to diagnose it. The value trails by up to the persistence debounce and is null for the
+first moments of a combat, so the chips show their registered placeholders until the first mirror lands — a
+flag write fires `updateCombat`, which brings the bar back through the refresh on its own.
 
 The standings read is synchronous by design. `getAggregateSync()` returns the cache when warm, which is
 almost always, since it only rebuilds when a combat ends or an actor changes. The async `getAggregate()`

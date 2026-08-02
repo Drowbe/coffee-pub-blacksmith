@@ -132,16 +132,32 @@ mirror was built for reload resilience — a GM who refreshes mid-combat restore
 broadcast channel at no cost. No socket is involved, and none is wanted: a flag write already fires
 `updateCombat` everywhere, which is what lets a readout follow along without subscribing to anything.
 
-`getRunningCombatSource()` is where that is expressed: the GM reads memory, which is authoritative and
-current, and everyone else reads the flag, at most one debounce behind. `_buildCombatAggregate(source)`
-takes its input rather than reaching for `combatStats`, so both paths run the identical reduction — a
-player and the GM cannot see different numbers, only differently aged ones.
+`getRunningCombatSource()` is where that is expressed, and it reads the flag for **everyone, the GM
+included** — even though the GM has memory sitting right there, fresher. That is the deliberate part.
 
-Two consequences to keep in mind. A player's read is null for the first moments of a combat, before the
-first mirror lands, so a consumer must tolerate null rather than assume a running combat implies data. And
-the mirror is now load-bearing for every player at the table while being invisible to the GM, who never
-reads it — the stats harness suite asserts the mirror reduces to the same aggregate as the live read for
-exactly that reason.
+Two read paths would mean the GM's screen works when the players' does not. A broken mirror would then show
+the whole table placeholder readouts while the one person able to diagnose it saw perfect numbers and no
+error anywhere. There is no amount of logging that fixes a failure the maintainer cannot see; deleting the
+second path does. Reading the same bytes the table reads makes "works for me" structurally unavailable.
+
+The price is small and worth naming: the GM's figures lag by up to the debounce interval, and the first
+moments of a combat show placeholders for everyone until the first mirror lands. The second is not a
+degradation but an honest report — nothing has been broadcast yet, so there is nothing to show.
+
+`_generateCombatSummary` is the one exception and still reduces memory directly. The stored summary has to
+be exact rather than current-to-within-a-second, it runs only on the GM, and it is the write everything
+else derives from. `_buildCombatAggregate(source)` takes its input rather than reaching for `combatStats`,
+which is what lets the two coexist without a second reduction.
+
+A consequence for consumers: a read is null for the first moments of a combat, so a running combat does not
+imply data. Handle null rather than assuming.
+
+**Serialization is a real boundary here, not a formality.** The accumulator crosses JSON on its way to the
+flag, and JSON has no `Infinity` — `fastestTurn`'s "nothing timed yet" sentinel of `{duration: Infinity}`
+arrives as `{duration: null}`. Any check of the form `x !== Infinity` therefore passes on the flag path and
+fails on the memory path. Ask whether a number is finite rather than comparing it against one spelling of
+unusable, and treat the same question anywhere else a sentinel or a `Map` crosses that boundary
+(`_serializeForCombatFlag` already normalizes Maps for the same reason).
 
 ## GM gating
 
