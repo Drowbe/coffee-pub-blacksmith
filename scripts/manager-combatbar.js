@@ -390,17 +390,24 @@ export class CombatBarManager {
         });
 
         // Planning wins the slot while it is running; the turn timer takes it
-        // afterwards. The turn timer's own visibility comes from
-        // CombatTimer.shouldDisplay(), which is the same test the tracker uses
-        // — deliberately not `state.isActive`, which only resumeTimer ever sets
-        // and so is false for a timer that started normally.
-        // verifyTimerConditions() is the planning timer's own gate and the one
-        // the tracker renders behind: enabled, combat started, TURN 0, not
-        // expired, GM-only respected, turns built, every initiative rolled.
-        // `isActive` alone is not that gate — it stays true past turn 0, which
-        // is why the bar kept showing planning mid-round.
-        const planningVisible = () =>
-            !!PlanningTimer?.verifyTimerConditions?.() && !!PlanningTimer?.state?.isActive;
+        // afterwards. Each asks its own module's gate and nothing else:
+        // CombatTimer.shouldDisplay() and PlanningTimer.verifyTimerConditions()
+        // are the same tests the tracker renders behind.
+        //
+        // Neither may add `state.isActive`. Planning did, and it hid the bar
+        // from every player. `isActive` is client-local and arrives on a player
+        // only when the GM's syncPlanningTimerState lands — but an item
+        // appearing is a STRUCTURAL change that needs a re-render, and there is
+        // no "planning started" hook to trigger one. So the sync flipped the
+        // flag, the per-tick hook wrote into an item that had never rendered,
+        // and nothing ever made it appear. The GM saw it only because their bar
+        // re-renders for other reasons around combat start.
+        //
+        // It was redundant as well as harmful: verifyTimerConditions() already
+        // requires TURN 0 and not-expired, which is the whole of what the extra
+        // condition was supposed to enforce. Visibility is a function of combat
+        // state, which every client agrees on; timer internals are not.
+        const planningVisible = () => !!PlanningTimer?.verifyTimerConditions?.();
 
         api.registerSecondaryBarItem('combat', 'planning-timer', timerItem(
             'planning-timer',
@@ -828,6 +835,12 @@ export class CombatBarManager {
      */
     static syncAllTimerReadouts() {
         try {
+            // `state.isActive` belongs HERE and deliberately not in the item's
+            // visible predicate. This pushes a VALUE, and getDisplayState() reads
+            // `state.remaining`, which is 0 until the timer starts — so pushing
+            // early would render "Planning Timer Expired" on a timer that has not
+            // begun. Leaving it unpushed lets the item show its registered empty
+            // track for the moment before the first tick, which is the truth.
             if (PlanningTimer?.verifyTimerConditions?.() && PlanningTimer?.state?.isActive) {
                 CombatBarManager.syncTimerReadout('planning-timer', PlanningTimer.getDisplayState());
             }
