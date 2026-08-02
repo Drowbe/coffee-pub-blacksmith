@@ -112,6 +112,18 @@
         7px
     );
 
+    /* Portraits on the statistics chips. Taller than the icons beside them --
+       a face needs the pixels to be recognisable, which is the entire reason
+       for using one instead of a name -- but capped so three of them cannot
+       push the row wider than the middle zone. The shared default is
+       `bar height - 12px`, which is the full item square and far too big here:
+       these sit in a row of text chips, not alone in a button. */
+    --secondary-bar-item-image-size: clamp(
+        14px,
+        calc(var(--blacksmith-menubar-secondary-height) * 0.62),
+        22px
+    );
+
     /* One size for every label that sits INSIDE a bar — health, timer,
        balance. The shared rules give each kind its own font-size, so without
        this they drift apart; and text over a coloured fill wants to be smaller
@@ -186,6 +198,23 @@
 /* The balance marker is a reading, not a control. The shared 10px circle reads
    as a draggable handle and invites a grab that does nothing; a full-height
    rule reads as a position on a scale. */
+/* Portraits on readout chips are not buttons wearing an image, and two shared
+   rules assume they are. The base image rule dims them to grayscale(0.7)
+   brightness(0.65) — the unselected-button treatment — which is exactly wrong
+   for a face whose only job is being recognised. And
+   `.secondary-bar-item:has(.secondary-bar-item-image)` zeroes all padding so an
+   image can fill a button edge to edge; here it would run three chips together.
+   Both are undone for the data row only. */
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item-image {
+    filter: none;
+    border-radius: 3px;
+}
+
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item:has(.secondary-bar-item-image) {
+    padding-left: var(--secondary-bar-item-padding-hor);
+    padding-right: var(--secondary-bar-item-padding-hor);
+}
+
 .blacksmith-menubar-secondary .combat-data-row .secondary-bar-item-balancebar-marker {
     width: 3px;
     height: 100%;

@@ -2264,8 +2264,12 @@ class MenuBar {
             // biggest-hit chip shows an amount and names who landed it on whom —
             // and a tooltip that could only be set at registration made that
             // impossible, silently: the update was accepted and dropped.
+            // `image` counts too: an info item can show a portrait, and which
+            // portrait is itself the value — "biggest hit" names a different
+            // character as the campaign goes on.
             const hasInfoUpdate = updates && (updates.value !== undefined || updates.label !== undefined || updates.borderColor !== undefined ||
-                updates.buttonColor !== undefined || updates.iconColor !== undefined || updates.tooltip !== undefined);
+                updates.buttonColor !== undefined || updates.iconColor !== undefined || updates.tooltip !== undefined ||
+                updates.image !== undefined);
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
@@ -2283,6 +2287,7 @@ class MenuBar {
             if (updates.value !== undefined) existing.value = updates.value;
             if (updates.label !== undefined) existing.label = updates.label;
             if (updates.tooltip !== undefined) existing.tooltip = updates.tooltip;
+            if (updates.image !== undefined) existing.image = updates.image;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
             if (updates.iconColor !== undefined) existing.iconColor = updates.iconColor;
@@ -2827,6 +2832,7 @@ class MenuBar {
                 if (u.buttonColor !== undefined) item.buttonColor = u.buttonColor;
                 if (u.iconColor !== undefined) item.iconColor = u.iconColor;
                 if (u.tooltip !== undefined) item.tooltip = u.tooltip;
+                if (u.image !== undefined) item.image = u.image;
             } else if (item.kind === 'info') {
                 item.displayValue = item.value;
                 item.displayLabel = item.label;

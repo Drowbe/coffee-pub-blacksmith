@@ -963,6 +963,18 @@ export class CombatBarManager {
      * pushes the readouts either side of it around; the full name is in the
      * tooltip, where there is room for it.
      */
+    /**
+     * A portrait for an actor id, or null. Null rather than the mystery-man
+     * placeholder on purpose: the template only renders the img when there is
+     * one, so a missing portrait leaves the chip as icon-and-number instead of
+     * adding a meaningless silhouette to a row that is short of width.
+     */
+    static actorPortrait(actorId) {
+        if (!actorId) return null;
+        const actor = game.actors.get(actorId);
+        return actor ? (getPortraitImage(actor) || null) : null;
+    }
+
     static shortenName(name) {
         const trimmed = String(name ?? '').trim();
         if (!trimmed) return '-';
@@ -1000,7 +1012,8 @@ export class CombatBarManager {
                 value: `${totals?.hitRate ?? 0}%`
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-combat-biggest', {
-                label: biggest ? CombatBarManager.shortenName(biggest.attacker) : '',
+                image: CombatBarManager.actorPortrait(biggest?.attackerId),
+                label: '',
                 value: biggest ? String(biggest.amount) : '-',
                 tooltip: biggest
                     ? `Biggest hit this combat: ${biggest.attacker} hit ${biggest.target} for ${biggest.amount}`
@@ -1014,21 +1027,30 @@ export class CombatBarManager {
         // the normal path and the promise is the cold-start fallback rather
         // than the mechanism. Writing on both keeps this method synchronous
         // for its caller, which runs inside the render path.
+        // A portrait instead of a name. Three chips reading "Kar-ahn 26",
+        // "Favia 2", "Favia" are unreadable at a glance — two of them are the
+        // same word meaning different things — and a face is recognised
+        // instantly where a truncated first name is not. The name stays in the
+        // tooltip, so nothing is lost for anyone who needs to be sure.
         const write = (aggregate) => {
             if (!aggregate) return;
             api.updateSecondaryBarItemInfo('combat', 'stat-biggest-hitter', {
-                label: CombatBarManager.shortenName(aggregate.biggestHit?.name),
+                image: aggregate.biggestHit?.img || null,
+                label: '',
                 value: String(aggregate.biggestHit?.amount ?? 0),
                 tooltip: `Biggest hit on record: ${aggregate.biggestHit?.name ?? 'nobody'} for ${aggregate.biggestHit?.amount ?? 0}`
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-most-fumbles', {
-                label: CombatBarManager.shortenName(aggregate.mostFumbles?.name),
+                image: aggregate.mostFumbles?.img || null,
+                label: '',
                 value: String(aggregate.mostFumbles?.count ?? 0),
                 tooltip: `Most fumbles on record: ${aggregate.mostFumbles?.name ?? 'nobody'} with ${aggregate.mostFumbles?.count ?? 0}`
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-top-mvp', {
+                image: aggregate.topMvp?.img || null,
                 label: '',
-                value: CombatBarManager.shortenName(aggregate.topMvp?.name),
+                // No number to show — the face is the whole statement.
+                value: '',
                 tooltip: `Top MVP on record: ${aggregate.topMvp?.name ?? 'nobody'}`
             });
         };
