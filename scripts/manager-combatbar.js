@@ -560,7 +560,10 @@ export class CombatBarManager {
             zone: 'middle',
             group: 'stats',
             order: 1,
-            icon: 'fa-solid fa-face-dizzy',
+            // A die showing one: a fumble is a natural 1, and it sits with the
+            // other dice iconography already on the bar. Deliberately not one
+            // of Font Awesome's emoji faces.
+            icon: 'fa-solid fa-dice-one',
             label: '',
             value: '-',
             tooltip: 'Most fumbles on record',
