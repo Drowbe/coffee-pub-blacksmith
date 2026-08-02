@@ -8,12 +8,9 @@ Result: `stats-combat.js` went from 5,264 lines to 2,849, with 872 in `stats-car
 Verified 2026-08-02 against a live world: the harness Stats suite at 60/60 idle and, with a combat running,
 `running-shape` 23/23 and `running-mirror` 9/9; a multi-round combat with midi-qol active recording hits,
 damage and crits across three attackers including an NPC; MVP scoring and description generation completing;
-and every card in both families posting with data.
-
-**One gap remains.** Every roll in that session came from the GM client, so `_forwardToGM` and the five
-`_onSocket*` receivers -- the path a player's roll takes to the GM -- were never exercised. They moved
-together as a unit and their call sites resolve, but that is structural evidence, not behavioural. Worth one
-player roll at the next opportunity.
+every card in both families posting with data; and a second pass with a player connected, exercising
+`_forwardToGM` and the `_onSocket*` receivers -- the distributed path, and the one a GM-only test cannot
+reach.
 
 ## What static checking caught, and what it did not
 

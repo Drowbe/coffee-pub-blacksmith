@@ -18,9 +18,8 @@
 `stats-mvp.js` (634) now hold presentation, system integration, and MVP scoring respectively. The public API
 did not move and is unchanged.
 
-**Residual gap**: every roll in the verification session came from the GM, so the socket forward path
-(`_forwardToGM` and the five `_onSocket*` receivers) is structurally verified but never behaviourally
-exercised. One player roll closes it.
+Verified live including the socket forward path with a player connected, which is the part a GM-only test
+cannot reach.
 
 Phase 4 — decide whether the ~2,800 lines remaining want a further split, and whether the integration
 adapters should return events for the tracker to apply rather than reaching in and mutating it.
