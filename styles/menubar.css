@@ -93,9 +93,21 @@
         50px
     );
 
-    /* Default toolbar IMAGE SIZE - Proportional to button size. Banners no longer
-       override this; a bannered item is sized like any other. */
-    --secondary-bar-item-image-size: 100%;
+    /* Default toolbar IMAGE SIZE - the same number as the item's own min-height and
+       min-width, so an image item is exactly the minimum square and a bannered one is
+       sized like any other.
+
+       This was `100%`, which is not a size here: the item is a shrink-to-fit flex box
+       with no width or height, so a percentage against it is cyclic and the image
+       resolves to its INTRINSIC dimensions instead. Foundry actor art is routinely
+       512px, so a portrait button blew out to the full width of the screen and the bar
+       clipped a horizontal band out of the middle of it. `100%` was never load-bearing
+       — bannered items had a concrete override until it was removed with the
+       subtractive-banner calculation, and no unbannered bar in the suite had used an
+       image item, so nothing had ever exercised this line. Icons are unaffected because
+       an `<i>` has no intrinsic size to fall back to, which is why every icon-and-label
+       bar looked correct. */
+    --secondary-bar-item-image-size: calc(var(--blacksmith-menubar-secondary-height) - 12px);
 
     /* Default toolbar HORIZANTAL PADDING */
     --secondary-bar-item-padding-hor: clamp(

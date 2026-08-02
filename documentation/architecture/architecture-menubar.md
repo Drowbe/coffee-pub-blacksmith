@@ -85,6 +85,29 @@ time -- falsy, so every read fell through to a hardcoded fallback and the variab
 `registerSecondaryBarType` defaulted to an unrelated `50`. That gap is the direct cause of the suite's bars
 not matching.
 
+### Item sizes must be lengths, never percentages
+
+Everything inside a bar derives its size from the bar height as a **length**. That is not stylistic. A
+`.secondary-bar-item` is a shrink-to-fit flex box with `min-height` and `min-width` but no `width` or
+`height`, so a percentage dimension on a child is cyclic — the child's size depends on the parent's, which
+depends on the child's. CSS breaks the cycle by resolving the parent against the child's *intrinsic* size.
+
+For an `<i>` that is harmless: an icon has no intrinsic size, so the percentage collapses and the font-size
+governs. For an `<img>` it is not. `--secondary-bar-item-image-size` was `100%`, which meant "the
+portrait's natural dimensions" rather than "the button" — and Foundry actor art is routinely 512px, so a
+portrait button expanded to the width of the screen while the bar clipped a horizontal band out of the
+middle of it. `object-fit: cover` does not save this; it governs how an image fills a box whose size is
+already decided, and `min-width` is a floor rather than a ceiling.
+
+The value is now `calc(var(--blacksmith-menubar-secondary-height) - 12px)`, the same number as the item's
+own minimums, so an image item is exactly the minimum square. The `- 12px` works out because
+`.secondary-bar-item:has(.secondary-bar-item-image)` zeroes the item's padding, leaving the button two
+pixels of border over the image and two pixels of slack inside the toolbar at every preset.
+
+This bug survived a full migration and five verification steps because **every other bar in the suite is
+icons and labels**. When adding a check for bar layout, check an item, not just the bar: a bar can be
+exactly the right height with its contents entirely wrong.
+
 ## Group banners are additive
 
 A banner captions a cluster of buttons. It used to be **subtractive**: the bannered group container derived
