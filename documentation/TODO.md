@@ -11,16 +11,16 @@
 
 ## Decompose the stats tracker
 
-**Phases 1-3 implemented on the `refactor/stats-decomposition` branch, verified statically only. Phase 4 not
-started.** See `documentation/plans/plan-stats-decomposition.md`.
+**Phases 1-3 implemented and verified live 2026-08-02. Phase 4 not started.** See
+`documentation/plans/plan-stats-decomposition.md`.
 
 `stats-combat.js` went from 5,264 lines to 2,849; `stats-cards.js` (872), `stats-sources.js` (1,034), and
 `stats-mvp.js` (634) now hold presentation, system integration, and MVP scoring respectively. The public API
 did not move and is unchanged.
 
-**The branch needs a live gate before it merges**: run the harness Stats tab, then a multi-round combat with
-midi-qol active, then the same with a player rolling to exercise the socket forward path. Static checks
-covered structure, not behaviour.
+**Residual gap**: every roll in the verification session came from the GM, so the socket forward path
+(`_forwardToGM` and the five `_onSocket*` receivers) is structurally verified but never behaviourally
+exercised. One player roll closes it.
 
 Phase 4 — decide whether the ~2,800 lines remaining want a further split, and whether the integration
 adapters should return events for the tracker to apply rather than reaching in and mutating it.

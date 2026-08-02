@@ -1,17 +1,34 @@
 # Plan: Decompose the Stats Tracker
 
-**Status: Phases 1-3 implemented on `refactor/stats-decomposition`, awaiting live verification. Phase 4 not
-started.**
-
-Phases 1-3 landed as three commits in one unattended run. **They have been verified statically only** -- the
-harness needs Foundry and could not be run. What that check covered, per commit: every file parses, every
-cross-file reference resolves in both directions, no unresolved identifiers, no static field initializer
-crosses the one deliberate import cycle, and no moved file contains a non-arrow function expression that
-could have captured a rebound `this`. What it did not cover is whether anything actually works. The first
-run of the harness Stats tab plus one multi-round live combat is the real gate.
+**Status: Phases 1-3 implemented and verified live. Phase 4 not started.**
 
 Result: `stats-combat.js` went from 5,264 lines to 2,849, with 872 in `stats-cards.js`, 1,034 in
 `stats-sources.js`, and 634 in `stats-mvp.js`.
+
+Verified 2026-08-02 against a live world: the harness Stats suite at 60/60 idle and, with a combat running,
+`running-shape` 23/23 and `running-mirror` 9/9; a multi-round combat with midi-qol active recording hits,
+damage and crits across three attackers including an NPC; MVP scoring and description generation completing;
+and every card in both families posting with data.
+
+**One gap remains.** Every roll in that session came from the GM client, so `_forwardToGM` and the five
+`_onSocket*` receivers -- the path a player's roll takes to the GM -- were never exercised. They moved
+together as a unit and their call sites resolve, but that is structural evidence, not behavioural. Worth one
+player roll at the next opportunity.
+
+## What static checking caught, and what it did not
+
+Kept because it decides how phase 4 should be verified.
+
+Both defects that reached the working tree were **missing lowercase imports**: `assetLookup` in
+`stats-mvp.js`, which threw inside `_calculateMVP` on every round end and took the round cards down with it,
+and `getActorPortrait` in `stats-cards.js`, latent and not yet triggered. `node --check` cannot see either;
+an unresolved-identifier scan that only matched capitalised names could not either, because module helpers
+and imported functions are overwhelmingly lowercase.
+
+The check that would have caught both, and the one to run **first** on phase 4: take every module-scope name
+the original file had -- its imports and top-level declarations, 23 of them here -- and confirm each one
+referenced in a new file is imported or declared there. That population is exactly what an extraction
+strands.
 
 `stats-combat.js` is 5,249 lines and 94 static methods in one class, doing at least seven jobs. This breaks
 it into files that each do one, without changing behaviour and without moving the public API.
