@@ -1034,12 +1034,12 @@ export class CombatBarManager {
         });
 
         const combatSizeSettingHookId = HookManager.registerSettingChangeCallback({
-            description: 'MenuBar: Refresh combat bar when either bar size changes',
+            description: 'MenuBar: Refresh combat bar when the combat size changes',
             context: 'menubar-combat-size-change',
             priority: 3,
             callback: (module, key) => {
                 if (module !== MODULE.ID) return;
-                if (key !== 'menubarCombatSize' && key !== 'menubarCombatSizeIdle') return;
+                if (key !== 'menubarCombatSize') return;
                 // updateCombatBar resolves and applies the height for the
                 // current combat state, so changing whichever size is not in
                 // force right now correctly leaves the bar alone.
@@ -1293,10 +1293,31 @@ export class CombatBarManager {
      * Two settings because that row carries portraits during an encounter and
      * only the menus between them.
      */
+    /**
+     * Whether the combat row is rendered at all. Out of combat it holds only
+     * the GM's menu buttons, so for a player it would be an empty strip — the
+     * data row is the whole bar for them until a fight starts.
+     */
+    static showsCombatRow(isInCombat) {
+        return isInCombat || game.user.isGM;
+    }
+
     static resolveCombatRowHeight(isInCombat) {
-        return isInCombat
-            ? getSettingSafely(MODULE.ID, 'menubarCombatSize', 60)
-            : getSettingSafely(MODULE.ID, 'menubarCombatSizeIdle', 40);
+        if (!CombatBarManager.showsCombatRow(isInCombat)) return 0;
+        // Only the in-combat height is configurable, because only in combat
+        // does this row contain anything that scales — the portraits. Out of
+        // combat it is a strip of buttons, so it takes the menubar's own
+        // default height for a secondary bar and is not worth a setting.
+        // Mirrors the fallback in MenuBar.getSecondaryBarHeight.
+        if (!isInCombat) {
+            const fallback = parseInt(
+                getComputedStyle(document.documentElement)
+                    .getPropertyValue('--blacksmith-menubar-secondary-default-height'),
+                10
+            );
+            return fallback || 30;
+        }
+        return getSettingSafely(MODULE.ID, 'menubarCombatSize', 60);
     }
 
     /**
@@ -1355,7 +1376,9 @@ export class CombatBarManager {
             currentRoundDuration: formatTime(0, 'hh:mm:ss'),
             isGM: game.user.isGM,
             isActive: false,
-            isInCombat: false
+            isInCombat: false,
+            showCombatRow: CombatBarManager.showsCombatRow(false),
+            barActions: CombatBarManager.getOutOfCombatActions()
         };
     }
 
@@ -1490,7 +1513,8 @@ export class CombatBarManager {
                 currentRoundDuration: formatTime(currentRoundDurationMs || 0, 'hh:mm:ss'),
                 isGM: game.user.isGM,
                 isActive: combat.started || false,
-                isInCombat: true
+                isInCombat: true,
+                showCombatRow: true
             };
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Combat Bar: Error gathering combat data", { error }, false, false);
@@ -1669,6 +1693,21 @@ export class CombatBarManager {
                 event.stopPropagation();
                 return;
             }
+            // Out-of-combat action buttons: the same entries the menus use, so
+            // they dispatch into the same definitions rather than duplicating.
+            const barActionBtn = event.target.closest('[data-bar-action]');
+            if (barActionBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                const id = barActionBtn.getAttribute('data-bar-action');
+                const action = CombatBarManager.getBarActions()[id];
+                if (action?.run) {
+                    CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                    await action.run();
+                }
+                return;
+            }
+
             const initiativeMenuBtn = event.target.closest('.combatbar-button[data-control="initiativeMenu"]');
             if (initiativeMenuBtn) {
                 event.preventDefault();
@@ -2399,11 +2438,18 @@ export class CombatBarManager {
      * not a combat is running — Reveal Hidden especially, which is a mid-combat
      * action. Loaded on demand to keep this module off the encounter graph.
      */
-    static showTokensMenu(_menuBar, anchorEl) {
-        if (!game.user.isGM) return;
-
-        const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
-
+    /**
+     * The encounter and token actions, as one definition.
+     *
+     * In combat these are rows in the Encounter and Tokens context menus; out
+     * of combat the same entries are pulled out and rendered as buttons
+     * directly on the bar, where there is room for them. Both surfaces read
+     * this map, so an action cannot behave differently depending on which one
+     * you reached it through.
+     *
+     * @returns {Object<string, {name: string, icon: string, run: Function}>}
+     */
+    static getBarActions() {
         const run = async (label, fn) => {
             try {
                 await fn();
@@ -2424,20 +2470,37 @@ export class CombatBarManager {
             await run(label, fn);
         };
 
-        const gm = [
-            {
+        const api = game.modules.get(MODULE.ID)?.api;
+
+        return {
+            createCombat: {
+                name: CombatBarManager.getActiveCombat() ? 'Add to Combat' : 'Create Combat',
+                icon: 'fa-solid fa-swords',
+                run: () => run('Create Combat', async () => { await api?.createCombat?.(); })
+            },
+            quickEncounter: {
+                name: 'Quick Encounter',
+                icon: 'fa-solid fa-dice',
+                available: () => !!api?.hasQuickEncounterTool?.(),
+                run: () => run('Quick Encounter', async () => { await api?.openQuickEncounterWindow?.(); })
+            },
+            toggleTracker: {
+                name: CombatTracker.isCombatTrackerOpen() ? 'Hide Combat Tracker' : 'Show Combat Tracker',
+                icon: 'fa-solid fa-list',
+                run: () => CombatBarManager.toggleCombatTracker()
+            },
+            revealHidden: {
                 name: 'Reveal Hidden',
                 icon: 'fa-solid fa-eye',
-                callback: () => run('Reveal Hidden', async () => {
+                run: () => run('Reveal Hidden', async () => {
                     const { EncounterManager } = await import('./manager-encounter.js');
                     await EncounterManager.revealHiddenTokens();
                 })
             },
-            { separator: true },
-            {
+            removeParty: {
                 name: 'Remove Party from Canvas',
                 icon: 'fa-solid fa-users-slash',
-                callback: confirmThenRun(
+                run: confirmThenRun(
                     'Remove Party from Canvas',
                     'Delete every party token from this scene?',
                     async () => {
@@ -2446,10 +2509,10 @@ export class CombatBarManager {
                     }
                 )
             },
-            {
+            removeMonsters: {
                 name: 'Remove Monsters from Canvas',
                 icon: 'fa-solid fa-dragon',
-                callback: confirmThenRun(
+                run: confirmThenRun(
                     'Remove Monsters from Canvas',
                     'Delete every monster token from this scene? Humanoid NPCs are left in place.',
                     async () => {
@@ -2458,10 +2521,10 @@ export class CombatBarManager {
                     }
                 )
             },
-            {
+            removeNpcs: {
                 name: 'Remove NPCs from Canvas',
                 icon: 'fa-solid fa-people-line',
-                callback: confirmThenRun(
+                run: confirmThenRun(
                     'Remove NPCs from Canvas',
                     'Delete every humanoid NPC token from this scene? Party and monsters are left in place.',
                     async () => {
@@ -2470,6 +2533,43 @@ export class CombatBarManager {
                     }
                 )
             }
+        };
+    }
+
+    /**
+     * The actions shown as buttons on the bar out of combat, in order. The
+     * combat-only rows (scene link, movement histories, delete encounter) are
+     * absent because they need an encounter to act on.
+     */
+    static OUT_OF_COMBAT_ACTIONS = [
+        'toggleTracker', 'createCombat', 'quickEncounter',
+        'revealHidden', 'removeParty', 'removeMonsters', 'removeNpcs'
+    ];
+
+    /**
+     * The out-of-combat actions as template rows. GM-only, since every one of
+     * them is a GM action; a player's bar is the data row alone.
+     */
+    static getOutOfCombatActions() {
+        if (!game.user.isGM) return [];
+        const actions = CombatBarManager.getBarActions();
+        return CombatBarManager.OUT_OF_COMBAT_ACTIONS
+            .map((id) => ({ id, ...actions[id] }))
+            .filter((entry) => entry.name && (!entry.available || entry.available()));
+    }
+
+    static showTokensMenu(_menuBar, anchorEl) {
+        if (!game.user.isGM) return;
+
+        const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
+        const a = CombatBarManager.getBarActions();
+
+        const gm = [
+            { name: a.revealHidden.name, icon: a.revealHidden.icon, callback: a.revealHidden.run },
+            { separator: true },
+            { name: a.removeParty.name, icon: a.removeParty.icon, callback: a.removeParty.run },
+            { name: a.removeMonsters.name, icon: a.removeMonsters.icon, callback: a.removeMonsters.run },
+            { name: a.removeNpcs.name, icon: a.removeNpcs.icon, callback: a.removeNpcs.run }
         ];
 
         UIContextMenu.show({
@@ -2779,16 +2879,10 @@ export class CombatBarManager {
         const combat = game.combat;
 
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
-        const api = game.modules.get(MODULE.ID)?.api;
+        const a = CombatBarManager.getBarActions();
 
         const gm = [
-            {
-                name: CombatTracker.isCombatTrackerOpen() ? 'Hide Combat Tracker' : 'Show Combat Tracker',
-                icon: 'fa-solid fa-list',
-                callback: async () => {
-                    await CombatBarManager.toggleCombatTracker();
-                }
-            }
+            { name: a.toggleTracker.name, icon: a.toggleTracker.icon, callback: a.toggleTracker.run }
         ];
 
         if (combat) {
@@ -2823,34 +2917,13 @@ export class CombatBarManager {
 
         gm.push({ separator: true });
 
-        gm.push({
-            // One handler for both labels: MenuBar.createCombat already creates
-            // an encounter when there is none and otherwise folds the tokens
-            // into the running one, skipping those already in the tracker. The
-            // label changes because the outcome does, not the code path.
-            name: combat ? 'Add to Combat' : 'Create Combat',
-            icon: 'fa-solid fa-swords',
-            callback: async () => {
-                try {
-                    await api?.createCombat?.();
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error creating combat', error?.message || error, false, false);
-                }
-            }
-        });
+        // One handler for both labels: MenuBar.createCombat already creates
+        // an encounter when there is none and otherwise folds the tokens into
+        // the running one. The label changes because the outcome does.
+        gm.push({ name: a.createCombat.name, icon: a.createCombat.icon, callback: a.createCombat.run });
 
-        if (api?.hasQuickEncounterTool?.()) {
-            gm.push({
-                name: 'Quick Encounter',
-                icon: 'fa-solid fa-dice',
-                callback: async () => {
-                    try {
-                        await api.openQuickEncounterWindow?.();
-                    } catch (error) {
-                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error opening Quick Encounter', error?.message || error, false, false);
-                    }
-                }
-            });
+        if (a.quickEncounter.available()) {
+            gm.push({ name: a.quickEncounter.name, icon: a.quickEncounter.icon, callback: a.quickEncounter.run });
         }
 
         if (combat) {

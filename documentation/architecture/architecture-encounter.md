@@ -50,7 +50,15 @@ monster health, challenge rating. They are registered items rendered by the shar
 `menubar-secondary-default` partial.
 
 **The combat row** scales with the user's size setting and holds controls: the Initiatives, Encounter and
-Tokens menus, turn navigation, the portrait strip, the graveyard, and the begin/end button.
+Tokens menus, turn navigation, the portrait strip, the graveyard, and the begin/end button. It is rendered
+only when it would have contents — in combat, or for a GM — so a player between encounters sees the data
+row alone rather than an empty strip.
+
+**The encounter and token actions have two presentations of one definition.** `getBarActions()` is the
+single source; in combat they are rows in the Encounter and Tokens context menus, because the row's space
+belongs to the portraits, and out of combat the same entries are pulled out and rendered as ordinary bar
+buttons. They carry the shared `secondary-bar-item` classes rather than combat-bar ones, so they look like
+every other bar button instead of being styled to resemble one.
 
 The split is not cosmetic. **Item sizing is pinned to bar height** — group banners at 20% of it, item
 minimums at bar height minus chrome applied to *width* as well as height, progressbar height at 40% — while
@@ -97,12 +105,34 @@ The portrait strip is the only thing on this bar the item vocabulary cannot expr
 | `--blacksmith-menubar-secondary-height` | the bar total, and `--blacksmith-menubar-total-height`, which offsets the Foundry UI below the menubar |
 | `--blacksmith-menubar-secondary-combat-height` | read by `getCombatData` for portrait ring geometry |
 
-The combat row's height is `menubarCombatSize` in combat and `menubarCombatSizeIdle` outside it; the total
+The combat row's height is `menubarCombatSize` in combat, and the menubar's own default secondary bar
+height outside it — only the in-combat height is configurable, because only in combat does the row hold
+anything that scales. The total
 is that plus the data row.
 
 **Apply height before building bar data.** Ring geometry is computed inside `getCombatData` by reading the
 combat-height variable through `getComputedStyle`, so setting it afterwards sizes rings from the previous
 state.
+
+## Every row re-bases the shared item sizing
+
+Shared components size themselves from `--blacksmith-menubar-secondary-height`, which is the height of the
+whole bar. This bar is two rows, so anything shared dropped into either one would size itself from the total
+and come out far too large — a button rendered in the combat row took its font from ~70px and rendered at
+28px type.
+
+So **each row shadows that variable to its own height**, and anything shared rendered inside it adapts with
+no override. Do not style around a mis-sized shared component; give its row the right basis and the
+component is already correct.
+
+Shadowing the height alone is not sufficient, for the reason in the next section: the font, icon, padding,
+and gap variables are declared at `:root`, so they resolve there. They are redeclared per row in terms of
+the shadowed height. What the shadow alone does cover is anything declared inside the subtree or resolved
+at point of use — group banner height, item `min-height` / `min-width`, and the progressbar and balancebar
+heights JS writes as an inline `calc()`.
+
+A new row must do the same, or the first shared component placed in it will be wrong in a way that looks
+like a styling bug rather than a sizing basis.
 
 ## Custom property traps
 

@@ -9,6 +9,71 @@
 - **Single-click selects a pin (selection state + keyboard actions)**: clicking a pin should put it in a selected state with a visible ring so keyboard actions can operate on it — first milestone: Delete/Backspace removes the selected pin via `PinManager.delete` with a permission check. Currently a single click only invokes registered `click` handlers (`pins-renderer.js:994` editable path, `pins-renderer.js:743` non-editable path); there is no selection concept. Design validated; no performance concern — pins are a pure DOM overlay, so one delegated `pointerdown` listener on `#blacksmith-pins-overlay` plus a `document` `keydown` handler suffices. Implementation: track the selected pin id in the renderer (`PinDOMElement._selectedPinId`); apply an `is-selected` class styled in `styles/pins.css`; `pointerdown` on a pin element selects, on the overlay container deselects; `keydown` Delete/Backspace deletes (scoped so it does not fire while typing in inputs), Escape deselects; expose `pins.getSelectedPin()` / `selectPin()` / `deselectPin()` on the public API and fire `blacksmith.pins.selected` / `blacksmith.pins.deselected` hooks so other modules can react. Verify live: click a pin and see the ring; press Delete and confirm the pin is removed (with its delete animation if configured); click empty canvas or Escape deselects; Delete does nothing when no pin is selected and does not fire while typing in a text field.
 - **Double-click sometimes lands in drag mode instead of firing**: for editable pins, mousedown enters the drag system and any movement beyond `DRAG_THRESHOLD` (10px screen space, `pins-renderer.js:856`) makes the release count as a drag (`pins-renderer.js:943`), so a slightly jittery double-click gets swallowed as a tiny drag and the second click never reaches the double-click counter (`pins-renderer.js:1004`). Candidate fixes: track movement per press instead of cumulatively, treat a second press arriving within the 300ms click window as a double-click before the drag decision, or require both distance and a minimum hold time before committing to drag. Verify live: rapidly double-click an editable pin ~20 times with normal hand jitter and confirm the double-click action fires every time and the pin does not shift position; confirm a real drag (press, move, release) still moves the pin and a deliberate slow click still fires the single-click action.
 
+## Party aggregates behind the stats API (`stats.party`)
+
+`StatsAPI.player` answers per-actor by id and nothing else — there is no party-wide getter anywhere. The
+aggregation that produces the Party Statistics window's headline tiles and leaderboard is real but lives in
+`window-stats-party.js`, which loops `game.actors.filter(a => a.hasPlayerOwner && !a.isToken)` calling
+`StatsAPI.player.getStats(actor.id)` per actor and reduces by hand (`:203` leaderboard, `:300` tiles). So a
+second consumer — the combat bar — cannot reuse any of it without a second copy of the party definition,
+the tie-break rules (most-crits ties break on MVP total), and the field choices.
+
+**This is a refactor with a capability falling out, not a new feature.** Move the aggregation behind
+`stats.party`, then have the window and the bar both consume it; the window gets shorter rather than the bar
+getting longer, and the numbers cannot disagree. What already exists to move: top MVP, biggest hit, most
+crits, most fumbles, most hits, most misses (each with the actor), party accuracy, damage dealt, damage
+taken, heals given, kills, encounter and round counts, and the ranked lifetime leaderboard. Hit rate is
+already derived there too.
+
+**This gates out-of-combat stats on the encounter bar** — without it the bar would have to loop actors
+itself, which is exactly the abstracting we do not want. Verify: the Party Statistics window renders
+identically before and after, and the bar and the window report the same numbers for the same party.
+
+## Real-time stats in the encounter bar's middle zone
+
+The middle zone is deliberately empty and reserved for this. Which stats to show is still open — the
+in-combat set is available today from `stats.combat.getCurrentStats()` (party hits, misses, kills, damage
+dealt, damage taken, healing done, average turn time, plus eight notable moments), while anything
+out-of-combat waits on `stats.party` above. Two things are cheap and already computed but unused:
+`getCombatData` produces `currentRoundDuration` and `totalCombatDuration` and the template ignores them —
+they are text chips, not bars, since they count up with no maximum.
+
+Sequencing: land the display-only item work below first, or each stat readout arrives needing the same
+local overrides that work removes. Verify: readouts update live without the menubar re-rendering per tick,
+per the rule in `architecture-encounter.md`.
+
+## Make display-only secondary bar items first-class
+
+The item vocabulary is four kinds: `button` (the default), `info`, `progressbar`, and `balancebar`. Three of
+those are display-only, but `.secondary-bar-item` styles every item as a button — fill, border, 6px radius,
+pointer cursor, hover lift, and a square `min-width`. Any bar showing a readout therefore strips that
+locally, which the combat bar does today. The stripping belongs in the shared stylesheet, keyed on the
+display-only kinds. A hover lift on a number that cannot be clicked is an affordance that lies.
+
+Ordered by value against risk:
+
+1. **Display-only styling, centrally** (`styles/menubar.css`): strip button chrome for `info`, `progressbar`,
+   and `balancebar`, and delete the combat bar's local override. Small and clearly correct. **Check the party
+   bar before and after** — its health `progressbar` (`api-menubar.js:709`) and reputation `balancebar`
+   (`manager-reputation.js:178`) are the other consumers, so their appearance changes with this.
+2. **State-driven colour** — the real capability gap. `progressColor` is a single static value, but a timer's
+   colour is a function of its remaining time and a health bar's arguably should be too. Today the only way
+   is to write a state class and clear the inline colour the partial emits, which is exactly what the combat
+   bar's timers do. A data-shaped mapping (thresholds, or state-to-colour) rather than a callback: some item
+   paths cross the socket boundary, so a function will not survive every route.
+3. **Label placement** — the left/right labels are positioned for a current/max idiom; a timer wants one
+   caption centred over the bar, which today means overriding position. A `labelPosition` option covers it.
+4. **Sizing basis** — items size from `--blacksmith-menubar-secondary-height`, the height of the whole bar.
+   That assumption is why the combat bar's two rows each redeclare five variables, and it is the most
+   fragile part of that stylesheet. If items sized from a `--secondary-bar-item-basis` defaulting to the bar
+   height, a container could override it once and every per-row redeclaration would disappear. Fixes the
+   general case rather than one bar's case.
+
+Worth doing now rather than later: real-time stats are going into the combat bar's middle zone, so the
+readout vocabulary is about to get considerably more use and the cost of it being second-class compounds
+from here. Update `documentation/api/api-menubar.md` with whatever surface (2) and (3) add. Verify: the
+party bar and the combat bar both render readouts correctly with no bar-local appearance overrides left.
+
 ## Contributed actions by subject (menubar routing)
 
 Let a module declare that an action belongs to a **subject**, and let a surface declare that it displays

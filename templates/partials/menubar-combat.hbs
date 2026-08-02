@@ -20,6 +20,9 @@
     {{> "menubar-secondary-default" this}}
 </div>
 
+{{!-- Out of combat this row holds only the GM's menus, so for a player it
+      would be an empty strip. The data row is the whole bar for them. --}}
+{{#if showCombatRow}}
 <div class="combat-tracker-bar">
 
     {{!-- Combat Controls and Portraits Group --}}
@@ -31,6 +34,11 @@
               Combat Tracker lives in the Encounter menu. --}}
         {{#if isGM}}
         <div class="combatbar-button-control-container action-button combat-bar-edge-button">
+            {{!-- In combat these are two menu openers, because the row's space
+                  belongs to the portraits. Out of combat the menus' contents
+                  are pulled out and rendered below as ordinary bar buttons —
+                  same actions, no menu to open. --}}
+            {{#if isInCombat}}
             <a class="combatbar-button action-type-general"
                aria-label="Encounter"
                role="button"
@@ -45,6 +53,7 @@
                data-control="tokensMenu">
                 <i class="fa-solid fa-users-viewfinder"></i>
             </a>
+            {{/if}}
             {{#if isInCombat}}
             <a class="combatbar-button action-type-general"
                aria-label="Initiatives"
@@ -56,6 +65,23 @@
             {{/if}}
         </div>
         {{/if}}
+
+        {{!-- Out-of-combat actions as real bar buttons. They use the shared
+              secondary-bar item classes rather than combatbar-button ones, so
+              they inherit the default button look instead of overriding it. --}}
+        {{#unless isInCombat}}
+        <div class="combat-bar-actions">
+            {{#each barActions}}
+            <a class="secondary-bar-item combat-bar-action"
+               role="button"
+               data-tooltip="{{name}}"
+               data-bar-action="{{id}}">
+                <i class="{{icon}}"></i>
+                <span class="secondary-bar-item-label">{{name}}</span>
+            </a>
+            {{/each}}
+        </div>
+        {{/unless}}
 
         {{#if isGM}}
         {{#if isActive}}
@@ -231,5 +257,6 @@
     </div>
 
 </div>
+{{/if}}
 
 </div>

@@ -2289,24 +2289,6 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- Combat Menubar Size, Out of Combat --
-	// Separate from the in-combat size because the bar carries no portraits
-	// between encounters and does not need the height they require.
-	game.settings.register(MODULE.ID, 'menubarCombatSizeIdle', {
-		name: MODULE.ID + '.menubarCombatSizeIdle-Label',
-		hint: MODULE.ID + '.menubarCombatSizeIdle-Hint',
-		scope: "user",
-		config: true,
-		type: Number,
-		default: 40,
-		range: {
-			min: 30,
-			max: 120,
-			step: 2,
-		},
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
-
 	// -- Hide HEalth Bars for Enemy Combatants --
 	game.settings.register(MODULE.ID, 'menubarCombatHideHealthBars', {
 		name: MODULE.ID + '.menubarCombatHideHealthBars-Label',

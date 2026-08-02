@@ -60,44 +60,55 @@
     align-self: stretch;
 }
 
-/* The data row re-bases the item sizing for its subtree.
-   Shadowing --blacksmith-menubar-secondary-height alone is NOT enough: custom
-   properties substitute at computed-value time on the element that declares
-   them, so the font/icon/padding/gap variables in menubar.css resolve against
-   the ROOT height (now the bar total) and inherit down already resolved. They
-   have to be redeclared here to be recomputed against the data row's height.
-   What the shadow does still cover is anything declared *inside* this subtree
-   or resolved at point of use: the group banner height and available-height,
-   and the progressbar/balancebar heights, which JS sets as an inline calc(). */
+/* EACH ROW RE-BASES THE SHARED ITEM SIZING TO ITS OWN HEIGHT.
+   Shared components size themselves from --blacksmith-menubar-secondary-height,
+   which is the whole bar — and this bar is two rows, so a shared button
+   dropped into either one would size itself from the total and come out far
+   too big. Every row therefore shadows that variable to its own height, and
+   anything shared rendered inside it adapts without needing an override.
+   Shadowing the height alone is NOT enough: custom properties substitute at
+   computed-value time on the element that declares them, so the font, icon,
+   padding, and gap variables declared at :root in menubar.css resolve against
+   the root value and inherit down already resolved. They are redeclared below
+   in terms of the shadowed height, which resolves per row. What the shadow
+   alone does cover is anything declared *inside* the subtree or resolved at
+   point of use: group banner height, item min-height/min-width, and the
+   progressbar/balancebar heights that JS sets as an inline calc(). */
 .blacksmith-menubar-secondary .combat-data-row {
     --blacksmith-menubar-secondary-height: var(--blacksmith-combatbar-data-height);
+}
 
+.blacksmith-menubar-secondary .combat-tracker-bar {
+    --blacksmith-menubar-secondary-height: var(--blacksmith-combatbar-combat-height);
+}
+
+.blacksmith-menubar-secondary .combat-data-row,
+.blacksmith-menubar-secondary .combat-tracker-bar {
     --secondary-bar-item-font-size: clamp(
         10px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.42),
+        calc(var(--blacksmith-menubar-secondary-height) * 0.42),
         14px
     );
-    /* Icons run smaller than the text here. They label a value or flank a
-       bar, so at the same size as the text they compete with it — and beside
-       an 18px bar they read as a second element rather than an adornment. */
+    /* Icons run smaller than the text. They label a value or flank a bar, so
+       at text size they compete with it and stop reading as adornment. */
     --secondary-bar-item-icon-size: clamp(
         8px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.32),
-        11px
+        calc(var(--blacksmith-menubar-secondary-height) * 0.32),
+        13px
     );
     --secondary-bar-item-padding-hor: clamp(
         4px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.12),
+        calc(var(--blacksmith-menubar-secondary-height) * 0.12),
         9px
     );
     --secondary-bar-item-padding-ver: clamp(
         1px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.06),
+        calc(var(--blacksmith-menubar-secondary-height) * 0.06),
         4px
     );
     --secondary-bar-item-gap: clamp(
         3px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.10),
+        calc(var(--blacksmith-menubar-secondary-height) * 0.10),
         7px
     );
 
@@ -107,10 +118,12 @@
        than the chip text beside it, not equal to it. */
     --blacksmith-combatbar-bar-font-size: clamp(
         8px,
-        calc(var(--blacksmith-combatbar-data-height) * 0.30),
+        calc(var(--blacksmith-menubar-secondary-height) * 0.30),
         10px
     );
+}
 
+.blacksmith-menubar-secondary .combat-data-row {
     display: flex;
     align-items: center;
     width: 100%;
@@ -149,6 +162,25 @@
     background-color: transparent;
     border-color: transparent;
     transform: none;
+}
+
+/* Out-of-combat action buttons. These deliberately carry the shared
+   `.secondary-bar-item` class and add almost nothing: the point is that they
+   look like every other bar button rather than like a combat bar control, so
+   the only rules here are layout, not appearance. */
+.blacksmith-menubar-secondary .combat-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 6px;
+}
+
+.blacksmith-menubar-secondary .combat-bar-action {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 /* The balance marker is a reading, not a control. The shared 10px circle reads
@@ -541,10 +573,6 @@
 .blacksmith-menubar-secondary .combatbar-button i {
     padding: 0;
 }
-.blacksmith-menubar-secondary .combatbar-button .combatbar-button-label {
-    padding: 0 0 0 8px;
-}
-
 .blacksmith-menubar-secondary .action-button .action-type-general {
     background: rgba(44, 74, 90, 0.6);
     color: rgba(255, 255, 255, 1);
