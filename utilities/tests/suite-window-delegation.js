@@ -1,6 +1,11 @@
 // ==================================================================
 // ===== SUITE: window ACTION_HANDLERS delegation ===================
 // ==================================================================
+//
+// DO NOT PASTE THIS INTO A FOUNDRY MACRO — it is an ES module and a macro
+// rejects it on the export. Paste utilities/test-harness.js instead; it
+// loads this suite itself.
+//
 // Contract: documentation/api/api-window.md, "ACTION_HANDLERS and the
 //           instance argument"
 // Implementation: scripts/window-base.js (_attachDelegationOnce)

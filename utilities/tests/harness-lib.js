@@ -2,6 +2,13 @@
 // ===== TEST HARNESS LIB (utilities/tests/harness-lib.js) ==========
 // ==================================================================
 //
+// DO NOT PASTE THIS INTO A FOUNDRY MACRO. It is an ES module, so a macro
+// rejects it with "must be valid JavaScript for an asynchronous scope:
+// Unexpected token 'export'". Everything else in utilities/ is a
+// paste-into-a-macro script and this directory is the exception — the only
+// file here that goes in a macro is utilities/test-harness.js, which
+// import()s this one and every suite.
+//
 // Shared helpers for Blacksmith test suites. Loaded by
 // utilities/test-harness.js; suites import what they need from here.
 //
@@ -11,9 +18,14 @@
 //                 interaction. Cheap to run in bulk. This is the tier that
 //                 catches a regression six months from now, and the tier
 //                 "Run All Headless" executes.
-//   interactive — checks only a person can judge: does Glass look right,
-//                 does keyboard navigation work, did the toast reach the
-//                 other client. One button each; the harness stays open.
+//   interactive — checks needing a person: either to JUDGE the result (does
+//                 Glass look right, did the toast reach the other client) or
+//                 to choose the MOMENT (capture this combat now, compare
+//                 after it ends). One button each; the harness stays open.
+//                 These get `expect` as well, and any assertions they record
+//                 are reported like a headless check's; a check that records
+//                 none just logs. They are excluded from "Run All Headless"
+//                 either way, since a person has to drive them.
 //
 // A suite module default-exports:
 //
@@ -24,9 +36,17 @@
 //       checks: [ {
 //           id, label,
 //           tier: 'headless' | 'interactive',
+//           group,                   // optional sub-heading; see below
 //           note,                    // optional, shown under the button
-//           run: async (ctx) => {}   // ctx: { api, expect, log, subject }
+//           run: async (ctx) => {}   // ctx: { api, expect, log, game }
 //       } ]
+//
+// `group` divides a long tier into labelled runs. The heading is emitted
+// whenever the value CHANGES going down the list, so declaration order is
+// preserved rather than bucketed — a suite whose checks read as a sequence
+// stays in sequence. Omit it and the check renders with no heading, which
+// is why suites written before this are unaffected. Worth using once a
+// tier passes roughly five checks; below that it is noise.
 //   }
 //
 // Register the suite's path in SUITES in utilities/test-harness.js.

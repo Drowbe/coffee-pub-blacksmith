@@ -40,6 +40,7 @@ const SUITES = [
     `${BASE}/suite-dialog.js`,
     `${BASE}/suite-entity-list.js`,
     `${BASE}/suite-quantity-split.js`,
+    `${BASE}/suite-stats.js`,
     `${BASE}/suite-window-delegation.js`
 ];
 
@@ -147,12 +148,21 @@ async function runAllHeadless() {
 // sheet sidesteps both. It is removed when the dialog closes.
 const STYLE_ID = 'blacksmith-harness-style';
 const STYLE_CSS = `
-.bh-root { --bh-line: rgba(255,255,255,0.16); font-size: 13px; }
+/* The header (intro, Run All, tabs) must never scroll away — it did, and the
+   tab bar being permanently above the fold made the harness look like it had
+   no tabs at all. Rather than position:sticky, which needs an opaque
+   background and so breaks under a light theme, the root is a column flexbox
+   with a bounded height: the header sits OUTSIDE the scrolling element, so
+   there is nothing for it to scroll out of. min-height:0 on the body is what
+   actually lets a flex child shrink enough to scroll. */
+.bh-root { --bh-line: rgba(255,255,255,0.16); font-size: 13px; display: flex; flex-direction: column; max-height: 72vh; }
+.bh-head { flex: 0 0 auto; }
+.bh-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
 .bh-intro { margin: 0 0 10px 0; opacity: 0.85; line-height: 1.45; }
 .bh-root button { height: auto; min-height: 0; line-height: 1.3; white-space: normal; }
 .bh-runall { width: 100%; margin: 0 0 12px 0; padding: 9px; font-weight: bold; }
-.bh-tabs { display: flex; gap: 4px; margin: 0 0 10px 0; border-bottom: 1px solid var(--bh-line); }
-.bh-tab { flex: 1; padding: 7px 6px; border: none; background: none; opacity: 0.65; }
+.bh-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px 0; border-bottom: 1px solid var(--bh-line); }
+.bh-tab { flex: 1 1 auto; min-width: 110px; padding: 7px 6px; border: none; background: none; opacity: 0.65; }
 .bh-tab.is-active { opacity: 1; font-weight: bold; box-shadow: inset 0 -2px 0 var(--color-warm-2, #c9a66b); }
 .bh-state { margin: 0 0 12px 0; padding: 8px 10px; border: 1px solid var(--bh-line); border-radius: 4px; }
 .bh-state-title { margin: 0 0 4px 0; font-size: 0.8em; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
@@ -163,6 +173,10 @@ const STYLE_CSS = `
 .bh-state-note { opacity: 0.55; font-style: italic; }
 .bh-section { margin: 0 0 14px 0; }
 .bh-section-title { margin: 0 0 6px 0; font-size: 0.8em; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; }
+/* Sub-heading within a tier, for suites that group their checks. Deliberately
+   lighter than .bh-section-title — it divides a list, it does not head one. */
+.bh-group { margin: 12px 0 5px 0; padding: 0 0 3px 0; border-bottom: 1px solid var(--bh-line); font-size: 0.82em; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.75; }
+.bh-section .bh-group:first-child { margin-top: 0; }
 .bh-cell { margin: 0 0 8px 0; }
 /* height:auto repeated here deliberately — this is the rule that stops long
    labels overflowing a fixed-height Foundry button, and it must hold even if
@@ -210,6 +224,27 @@ function settingsBox(suite) {
     return `<div class="bh-state"><div class="bh-state-title">Live state</div>${body}</div>`;
 }
 
+/**
+ * Cells for one tier, with a sub-heading emitted whenever `check.group` changes.
+ *
+ * Grouping is by ADJACENCY rather than by bucketing every check with the same name
+ * together, so the order a suite declares its checks in is the order they render in —
+ * bucketing would silently reorder them, and a suite that reads as a sequence (capture,
+ * then compare) would come apart. A check with no `group` gets no heading, which is what
+ * keeps every suite written before this unchanged.
+ */
+function checkCells(suite, checks) {
+    let currentGroup = null;
+    return checks.map((check) => {
+        const group = check.group ?? null;
+        const heading = (group && group !== currentGroup)
+            ? `<div class="bh-group">${esc(group)}</div>`
+            : '';
+        currentGroup = group;
+        return heading + checkCell(suite, check);
+    }).join('');
+}
+
 /** Button and note are siblings — never nest block content inside a button. */
 function checkCell(suite, check) {
     return `
@@ -227,7 +262,7 @@ const tabPanels = loaded.map((suite, index) => {
     const section = (title, checks) => checks.length ? `
         <div class="bh-section">
             <div class="bh-section-title">${title}</div>
-            ${checks.map(check => checkCell(suite, check)).join('')}
+            ${checkCells(suite, checks)}
         </div>` : '';
     return `
         <div class="bh-panel${index === 0 ? ' is-active' : ''}" data-tab-panel="${esc(suite.id)}">
@@ -248,15 +283,19 @@ const totalHeadless = loaded.reduce((sum, s) => sum + s.checks.filter(c => c.tie
 // now lives in <head>. Classes and data-* attributes survive sanitization.
 const content = `
     <div class="bh-root">
-        <p class="bh-intro">
-            Results print to the console (F12). The dialog stays open — run as many checks as you like.
-            Some checks need a <strong>targeted token</strong>; each says so.
-        </p>
-        <button type="button" class="bh-runall" data-run-all>
-            Run All Headless (${totalHeadless} check${totalHeadless === 1 ? '' : 's'}, ${loaded.length} suites)
-        </button>
-        <div class="bh-tabs">${tabButtons}</div>
-        ${tabPanels}
+        <div class="bh-head">
+            <p class="bh-intro">
+                Results print to the console (F12). The dialog stays open — run as many checks as you like.
+                Some checks need a <strong>targeted token</strong>; each says so.
+            </p>
+            <button type="button" class="bh-runall" data-run-all>
+                Run All Headless (${totalHeadless} check${totalHeadless === 1 ? '' : 's'}, ${loaded.length} suite${loaded.length === 1 ? '' : 's'})
+            </button>
+            <div class="bh-tabs">${tabButtons}</div>
+        </div>
+        <div class="bh-body">
+            ${tabPanels}
+        </div>
     </div>`;
 
 installStyle();
@@ -312,15 +351,35 @@ await foundry.applications.api.DialogV2.wait({
                     );
                     return;
                 }
+                // Interactive checks get a recorder too. Most judge things a person has
+                // to look at and will never call it, but some are interactive only
+                // because they need a human to choose the MOMENT — capture this combat
+                // now, compare after it ends — and those have real assertions to make.
+                // Results are reported when any were recorded and ignored otherwise, so
+                // a purely observational check reads exactly as it did before.
+                const { results, expect } = createRecorder();
                 try {
                     await check.run({
                         api,
+                        expect,
                         log: makeLogger(`${suite.id}/${check.id}`),
                         game
                     });
                 } catch (error) {
                     console.error(`BLACKSMITH HARNESS | ${suite.id}/${check.id} threw`, error);
                     ui.notifications.error(`${check.label} threw: ${error.message}`);
+                    return;
+                }
+                if (results.length) {
+                    const failed = results.filter(r => !r.pass);
+                    console.log(
+                        `BLACKSMITH HARNESS | ${suite.id}/${check.id}\n  `
+                        + results.map(r => `${r.pass ? 'PASS' : 'FAIL'}  ${r.label}`
+                            + (r.pass ? '' : `\n        actual:   ${display(r.actual)}\n        expected: ${display(r.expected)}`)).join('\n  ')
+                    );
+                    ui.notifications[failed.length ? 'error' : 'info'](
+                        `${check.label}: ${results.length - failed.length}/${results.length} passed.`
+                    );
                 }
             });
         });

@@ -1,6 +1,11 @@
 // ==================================================================
 // ===== SUITE: api.quantitySplit ===================================
 // ==================================================================
+//
+// DO NOT PASTE THIS INTO A FOUNDRY MACRO — it is an ES module and a macro
+// rejects it on the export. Paste utilities/test-harness.js instead; it
+// loads this suite itself.
+//
 // Contract: documentation/api/api-quantity-split.md
 // Implementation: scripts/api-quantity-split.js
 //
