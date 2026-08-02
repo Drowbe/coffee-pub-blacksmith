@@ -45,6 +45,7 @@ import { PlanningTimer } from './timer-planning.js';
 import { RoundTimer } from './timer-round.js';
 import { CombatStats } from './stats-combat.js';
 import { CPBPlayerStats } from './stats-player.js';
+import { PartyStats } from './stats-party.js';
 import { MenuBar } from './api-menubar.js';
 import { CombatBarManager } from './manager-combatbar.js';
 import { VoteManager } from './manager-vote.js';
@@ -517,6 +518,9 @@ Hooks.once('ready', async () => {
         // Initialize player stats tracking
         LoadingProgressManager.logActivity("Initializing player stats...");
         CPBPlayerStats.initialize();
+
+        // Party aggregates: cache invalidation only, no tracking of its own
+        PartyStats.initialize();
 
         // Initialize XP manager
         LoadingProgressManager.logActivity("Initializing XP system...");

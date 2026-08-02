@@ -10,9 +10,14 @@ The stats system tracks combat statistics at three scopes — round, combat, and
 |---|---|
 | `scripts/stats-combat.js` | Round tracking, combat tracking, summary generation, and the persisted combat history |
 | `scripts/stats-player.js` | Lifetime per-actor stats, and GM-only in-memory session state |
+| `scripts/stats-party.js` | Party-wide aggregates over the other two, cached; owns no data of its own |
 | `scripts/timer-round.js` | Round duration, including `accumulatedTime` (shares a flag with stats-combat — see below) |
 
 `stats-combat.js` never touches lifetime data or actor flags. `stats-player.js` never touches combat flags — its only flag access is `actor.getFlag` / `actor.setFlag(MODULE.ID, 'playerStats')`. The boundary is clean in both directions; keep it that way.
+
+`stats-party.js` reads both and writes neither. It exists because every other tier is per-actor or
+per-combat, so anything party-wide has to be reduced, and that reduction should have exactly one
+implementation.
 
 ## The tiers
 
@@ -21,7 +26,25 @@ The stats system tracks combat statistics at three scopes — round, combat, and
 - **Lifetime** (actor flag `playerStats`) — permanent per-actor records. GM-only writes.
 - **Session** (`CPBPlayerStats._sessionStats`) — a GM-only in-memory Map keyed by actor id, holding transient state. Lost on world reload.
 
+- **Party** (`PartyStats._cache`) — a derived aggregate over lifetime flags and stored combat history. Owns
+  nothing; holds no truth of its own.
+
 `_boundedPush` caps round and actor logs (default 1000 entries) so in-memory arrays cannot grow without limit.
+
+## The party aggregate is cached, not derived per read
+
+Building it awaits `getStats` for every player-owned actor and reduces the whole combat history. A window
+opened occasionally can afford that; a menubar readout that re-renders on every combat update cannot, and a
+second consumer reducing it again would be a second definition of who counts as the party and how ties
+break.
+
+So `PartyStats` caches, and invalidates on the events that can change the answer: `blacksmith.combatSummaryReady`
+when a combat ends, and actor create, update, and delete for membership and lifetime writes. Reads are
+served from cache; `getAggregateSync()` exists for callers that render synchronously and returns null while
+a rebuild runs rather than blocking.
+
+Consumers must not reduce the party themselves — the Party Statistics window did until this landed, and its
+`_buildSummary` / `_buildLeaderboard` were deleted in favour of the aggregate.
 
 ## Persistence
 

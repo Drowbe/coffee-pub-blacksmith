@@ -36,6 +36,7 @@ The stats system splits responsibilities across multiple scopes:
 `Stats` (from `game.modules.get('coffee-pub-blacksmith')?.api?.stats`) exposes several namespaces:
 
 - **player**: asynchronous helpers for actor-based statistics, including lifetime retrieval and category lookups.
+- **party**: party-wide aggregates over the per-actor and per-combat sources, cached rather than recomputed per read.
 - **combat**: synchronous helpers that reveal current combat state, historical summaries, and subscription utilities.
 - **utils**: passthrough utilities (`formatTime`, `isPlayerCharacter`) shared with UI components.
 - **CombatStats**: direct class access for advanced integrations; use higher-level helpers whenever possible.
@@ -117,6 +118,37 @@ if (actor) {
 ```
 
 ---
+
+## Party Namespace
+
+Everything else in this API answers per actor or per combat. Anything party-wide therefore has to be
+reduced across the party, and this namespace is the only place that happens — so two surfaces showing the
+same figure cannot disagree about who counts as the party or how ties break.
+
+- `getAggregate() -> Promise<object>` returns the party aggregate, building it if the cache is cold.
+- `getAggregateSync() -> object | null` returns the aggregate only if it is already built, otherwise null
+  while starting a rebuild. For callers that render synchronously and cannot await; draw what you have and
+  pick the rest up on the next render.
+- `getPartyActors() -> Actor[]` the actors counted as the party: player-owned, excluding token-synthetic.
+- `refresh() -> void` drops the cache so the next read rebuilds. Rarely needed.
+
+The aggregate carries:
+
+- **Tiles**, each `{actorId, name, img}` plus a value: `topMvp`, `biggestHit` (`amount`), `mostCrits`,
+  `mostFumbles`, `mostHits`, `mostMisses` (each `count`). Ties break on lifetime MVP total — highest wins,
+  except `mostMisses`, where lowest wins.
+- **Totals** across all stored combats: `totalCombats`, `totalRounds`, `averageHitRate` (string) and
+  `averageHitRateValue` (number), `totalCriticals`, `totalFumbles`, `totalKills`, `totalDamageGiven`,
+  `totalDamageTaken`, `totalHealsGiven`.
+- **`leaderboard`**, ranked by lifetime MVP total, each entry `{rank, actorId, name, img, mvp: {totalScore,
+  combats, averageScore, highScore}, crits, fumbles, biggestHit}`.
+
+Totals come from stored combat summaries, whose `totals` are player-characters-only by policy. The tiles and
+leaderboard come from lifetime actor flags.
+
+**The cache is the point.** Building the aggregate awaits `getStats` for every party actor, which a window
+opened occasionally can afford and a menubar readout re-rendering on every combat update cannot. It rebuilds
+on `blacksmith.combatSummaryReady` and on actor create, update, and delete — not on read.
 
 ## Combat Namespace
 

@@ -1,6 +1,6 @@
 # Plan: Stats on the Encounter Bar
 
-**Status: Planned. No phase implemented.**
+**Status: Implemented (phase 1). Phases 2-4 pending.**
 
 Put party statistics in the encounter bar's middle zone — lifetime standings out of combat, live totals
 during one — reading them from the stats API rather than computing them in the bar.
@@ -53,11 +53,17 @@ a second implementation.
 
 ## Phases
 
-**Phase 1 — `stats.party`.** Add the namespace with a cached aggregate and the invalidation above. Move the
-window's tile and leaderboard computation behind it: top MVP, biggest hit, most crits, most fumbles, most
-hits, most misses (each with the actor), party accuracy, damage dealt, damage taken, heals given, kills,
-encounter and round counts, and the ranked leaderboard. Repoint `window-stats-party.js` at it and delete
-its local reduction. The window must render identically before and after — that is the test.
+**Phase 1 — `stats.party`. Done.** `scripts/stats-party.js` holds the aggregate and its cache; `stats.party`
+on the API exposes `getAggregate`, `getAggregateSync`, `getPartyActors`, and `refresh`. It reads lifetime
+flags and stored history and writes neither. `window-stats-party.js` now consumes it and its
+`_buildSummary` / `_buildLeaderboard` are deleted — 211 lines out, 5 in.
+
+`getAggregateSync()` exists for the bar: it returns the cache when warm and null while a rebuild runs, so a
+synchronous render draws what it has rather than blocking or being forced async.
+
+**Verify**: the Party Statistics window must render identically to before — the same tiles, the same
+leaderboard order, the same totals — since nothing about the computation changed, only where it lives. Then
+finish a combat and confirm the figures move without reopening the window twice.
 
 **Phase 2 — running combat totals.** Add a getter for the whole-combat accumulator so in-combat readouts
 have a source. Decide its shape against what the end-of-combat card already uses, so the same fields mean

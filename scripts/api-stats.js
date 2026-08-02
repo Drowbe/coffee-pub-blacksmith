@@ -2,6 +2,7 @@
 import { MODULE } from './const.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { CombatStats } from './stats-combat.js';
+import { PartyStats } from './stats-party.js';
 
 /**
  * StatsAPI - Provides access to Blacksmith's statistics systems
@@ -65,6 +66,54 @@ export class StatsAPI {
          */
         clearAllStats: async () => {
             return await CPBPlayerStats.clearAllPlayerStats();
+        }
+    };
+
+    /**
+     * Party Statistics API Methods
+     *
+     * Party-wide aggregates over per-actor lifetime stats and stored combat
+     * history. Both sources are per-actor or per-combat, so anything
+     * party-wide has to be reduced; this namespace is the only place that
+     * happens, and the result is cached rather than recomputed per read.
+     */
+    static party = {
+        /**
+         * Get the party aggregate, building it if the cache is cold.
+         * @returns {Promise<Object>} tiles, totals, and the ranked leaderboard
+         */
+        getAggregate: async () => {
+            return await PartyStats.getAggregate();
+        },
+
+        /**
+         * Get the party aggregate only if it is already built.
+         * For callers that render synchronously and cannot await — returns
+         * null and starts a rebuild, so the caller draws what it has and picks
+         * the rest up next render.
+         * @returns {Object|null}
+         */
+        getAggregateSync: () => {
+            return PartyStats.getAggregateSync();
+        },
+
+        /**
+         * The actors counted as the party: player-owned, excluding
+         * token-synthetic actors.
+         * @returns {Actor[]}
+         */
+        getPartyActors: () => {
+            return PartyStats.getPartyActors();
+        },
+
+        /**
+         * Drop the cached aggregate so the next read rebuilds it. Rarely
+         * needed — the cache invalidates itself on combat end and actor
+         * changes.
+         * @returns {void}
+         */
+        refresh: () => {
+            return PartyStats.invalidate();
         }
     };
 

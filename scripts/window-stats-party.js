@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getPortraitImage } from './api-core.js';
+import { postConsoleAndNotification } from './api-core.js';
 import { StatsAPI } from './api-stats.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
@@ -43,11 +43,12 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
 
             const combats = displayHistory.map((summary, index) => this._mapCombatSummary(summary, index, displayHistory.length));
 
-            const leaderboard = await this._buildLeaderboard();
+            // Tiles and leaderboard come from the party aggregate rather than
+            // being reduced here. The combat bar reads the same aggregate, so
+            // the two surfaces cannot report different numbers, and the cache
+            // means neither pays for the reduction on every read.
+            const { leaderboard, ...summary } = await StatsAPI.party.getAggregate();
             const highlights = this._buildHighlights(displayHistory);
-
-            // Build summary from ALL history (all-time stats)
-            const summary = await this._buildSummary(allHistory, leaderboard);
 
             return {
                 summary,
@@ -200,46 +201,6 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
         };
     }
 
-    async _buildLeaderboard() {
-        const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
-        const leaderboard = [];
-
-        for (const actor of actors) {
-            try {
-                const stats = await StatsAPI.player.getStats(actor.id);
-                const mvp = stats?.lifetime?.mvp;
-                if (!mvp || !mvp.combats) continue;
-
-                const attacks = stats?.lifetime?.attacks || {};
-                const crits = attacks.criticals || 0;
-                const fumbles = attacks.fumbles || 0;
-                const biggestHit = attacks.biggest?.amount || 0;
-
-                leaderboard.push({
-                    actorId: actor.id,
-                    name: actor.name,
-                    img: getPortraitImage(actor) || 'icons/svg/mystery-man.svg',
-                    mvp: {
-                        totalScore: Number(mvp.totalScore || 0).toFixed(1),
-                        combats: mvp.combats || 0,
-                        averageScore: Number(mvp.averageScore || 0).toFixed(1),
-                        highScore: Number(mvp.highScore || 0).toFixed(1)
-                    },
-                    crits: crits,
-                    fumbles: fumbles,
-                    biggestHit: biggestHit > 0 ? biggestHit : '—'
-                });
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, 'COMBAT STATS: Failed to load player stats', { actorId: actor.id, error }, true, false);
-            }
-        }
-
-        leaderboard.sort((a, b) => Number(b.mvp.totalScore) - Number(a.mvp.totalScore));
-        leaderboard.forEach((entry, index) => entry.rank = index + 1);
-
-        return leaderboard;
-    }
-
     _buildHighlights(history) {
         const highlights = [];
         history.slice(0, 5).forEach((summary, index) => {
@@ -257,173 +218,6 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
             });
         });
         return highlights;
-    }
-
-    async _buildSummary(allHistory, leaderboard) {
-        // Calculate all-time stats from ALL combat history (not just displayed)
-        const totalCombats = allHistory.length;
-
-        // Calculate aggregates across all combats
-        let totalHits = 0;
-        let totalMisses = 0;
-        let totalDamageGiven = 0;
-        let totalDamageTaken = 0;
-        let totalHealsGiven = 0;
-        let totalCriticals = 0;
-        let totalFumbles = 0;
-        let totalKills = 0;
-        let totalRounds = 0;
-
-        for (const summary of allHistory) {
-            const totals = summary?.totals || {};
-            totalHits += totals.hits || 0;
-            totalMisses += totals.misses || 0;
-            totalDamageGiven += totals.damageDealt || 0;
-            totalDamageTaken += totals.damageTaken || 0;
-            totalHealsGiven += totals.healingGiven || 0;
-            totalCriticals += totals.criticals || 0;
-            totalFumbles += totals.fumbles || 0;
-            totalKills += totals.kills || 0;
-            totalRounds += summary?.totalRounds || 0;
-        }
-
-        const totalAttacks = totalHits + totalMisses;
-        const averageHitRate = totalAttacks > 0
-            ? ((totalHits / totalAttacks) * 100).toFixed(1)
-            : '0.0';
-
-        // Top MVP (highest total MVP score)
-        const topMvpEntry = leaderboard[0];
-        const topMvp = topMvpEntry ? {
-            name: topMvpEntry.name,
-            img: topMvpEntry.img
-        } : {
-            name: '—',
-            img: 'icons/svg/mystery-man.svg'
-        };
-
-        // Find Biggest Hit, Most Crits, Most Fumbles, Most Hits, and Most Misses from all players
-        const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
-        let biggestHitEntry = null;
-        let biggestHitAmount = 0;
-        let mostCritsEntry = null;
-        let mostCritsCount = 0;
-        let mostFumblesEntry = null;
-        let mostFumblesCount = 0;
-        let mostHitsEntry = null;
-        let mostHitsCount = 0;
-        let mostMissesEntry = null;
-        let mostMissesCount = 0;
-
-        for (const actor of actors) {
-            try {
-                const stats = await StatsAPI.player.getStats(actor.id);
-                if (!stats) continue;
-
-                const attacks = stats?.lifetime?.attacks || {};
-                const mvp = stats?.lifetime?.mvp || {};
-                const biggestHit = attacks.biggest?.amount || 0;
-                const crits = attacks.criticals || 0;
-                const fumbles = attacks.fumbles || 0;
-                const hits = attacks.totalHits || 0;
-                const misses = attacks.totalMisses || 0;
-                const mvpTotalScore = Number(mvp.totalScore || 0);
-
-                const entry = {
-                    actorId: actor.id,
-                    name: actor.name,
-                    img: getPortraitImage(actor) || 'icons/svg/mystery-man.svg',
-                    biggestHit,
-                    crits,
-                    fumbles,
-                    hits,
-                    misses,
-                    mvp: { totalScore: mvpTotalScore }
-                };
-
-                if (biggestHit > biggestHitAmount) {
-                    biggestHitAmount = biggestHit;
-                    biggestHitEntry = entry;
-                }
-
-                if (crits > mostCritsCount) {
-                    mostCritsCount = crits;
-                    mostCritsEntry = entry;
-                } else if (crits === mostCritsCount) {
-                    if (!mostCritsEntry || mvpTotalScore > Number(mostCritsEntry.mvp.totalScore || 0)) {
-                        mostCritsEntry = entry;
-                    }
-                }
-
-                if (fumbles > mostFumblesCount) {
-                    mostFumblesCount = fumbles;
-                    mostFumblesEntry = entry;
-                } else if (fumbles === mostFumblesCount) {
-                    if (!mostFumblesEntry || mvpTotalScore < Number(mostFumblesEntry.mvp.totalScore || 0)) {
-                        mostFumblesEntry = entry;
-                    }
-                }
-
-                if (hits > mostHitsCount) {
-                    mostHitsCount = hits;
-                    mostHitsEntry = entry;
-                } else if (hits === mostHitsCount) {
-                    if (!mostHitsEntry || mvpTotalScore > Number(mostHitsEntry.mvp.totalScore || 0)) {
-                        mostHitsEntry = entry;
-                    }
-                }
-
-                if (misses > mostMissesCount) {
-                    mostMissesCount = misses;
-                    mostMissesEntry = entry;
-                } else if (misses === mostMissesCount) {
-                    if (!mostMissesEntry || mvpTotalScore < Number(mostMissesEntry.mvp.totalScore || 0)) {
-                        mostMissesEntry = entry;
-                    }
-                }
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, 'COMBAT STATS: Failed to load player stats for summary', { actorId: actor.id, error }, true, false);
-            }
-        }
-
-        return {
-            totalCombats,
-            totalRounds,
-            averageHitRate,
-            averageHitRateValue: parseFloat(averageHitRate),
-            topMvp,
-            biggestHit: {
-                name: biggestHitEntry ? biggestHitEntry.name : '—',
-                img: biggestHitEntry ? biggestHitEntry.img : 'icons/svg/mystery-man.svg',
-                amount: biggestHitAmount > 0 ? biggestHitAmount : 0
-            },
-            mostCrits: {
-                name: mostCritsEntry ? mostCritsEntry.name : '—',
-                img: mostCritsEntry ? mostCritsEntry.img : 'icons/svg/mystery-man.svg',
-                count: mostCritsCount
-            },
-            mostFumbles: {
-                name: mostFumblesEntry ? mostFumblesEntry.name : '—',
-                img: mostFumblesEntry ? mostFumblesEntry.img : 'icons/svg/mystery-man.svg',
-                count: mostFumblesCount
-            },
-            mostHits: {
-                name: mostHitsEntry ? mostHitsEntry.name : '—',
-                img: mostHitsEntry ? mostHitsEntry.img : 'icons/svg/mystery-man.svg',
-                count: mostHitsCount
-            },
-            mostMisses: {
-                name: mostMissesEntry ? mostMissesEntry.name : '—',
-                img: mostMissesEntry ? mostMissesEntry.img : 'icons/svg/mystery-man.svg',
-                count: mostMissesCount
-            },
-            totalCriticals,
-            totalFumbles,
-            totalKills,
-            totalDamageGiven,
-            totalDamageTaken,
-            totalHealsGiven
-        };
     }
 
     _formatDate(dateString) {
