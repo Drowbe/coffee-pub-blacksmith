@@ -1,6 +1,17 @@
 # Plan: Decompose the Stats Tracker
 
-**Status: Planned. No phase started.**
+**Status: Phases 1-3 implemented on `refactor/stats-decomposition`, awaiting live verification. Phase 4 not
+started.**
+
+Phases 1-3 landed as three commits in one unattended run. **They have been verified statically only** -- the
+harness needs Foundry and could not be run. What that check covered, per commit: every file parses, every
+cross-file reference resolves in both directions, no unresolved identifiers, no static field initializer
+crosses the one deliberate import cycle, and no moved file contains a non-arrow function expression that
+could have captured a rebound `this`. What it did not cover is whether anything actually works. The first
+run of the harness Stats tab plus one multi-round live combat is the real gate.
+
+Result: `stats-combat.js` went from 5,264 lines to 2,849, with 872 in `stats-cards.js`, 1,034 in
+`stats-sources.js`, and 634 in `stats-mvp.js`.
 
 `stats-combat.js` is 5,249 lines and 94 static methods in one class, doing at least seven jobs. This breaks
 it into files that each do one, without changing behaviour and without moving the public API.
@@ -106,6 +117,29 @@ path rather than only the GM path.
 roughly 1,500 lines. That may be a reasonable file, or the read surface and persistence may want to come
 out. Decide with the file in front of you rather than now; a plan that pre-commits to a split it cannot see
 is guessing.
+
+## What the phases actually found
+
+Recorded because it changed decisions, and because phase 4 inherits it.
+
+**Two dead methods**, deleted rather than carried into new files: `generateRoundSummary` (rendered
+`stats-round.hbs`, no caller anywhere) and `_generateMVPDescription` (definition only). One per phase for
+the first two phases.
+
+**`registerHelpers` could not move, and is a live bug.** The plan said to check whether it was card-local.
+It is not: it registers Handlebars helpers that eleven non-stats templates rely on, and it sits *after* the
+`trackCombatStats` early return in `initialize()`. Turning combat stats off therefore unregisters
+`formatTime`, which `timer-combat.hbs` uses. Logged in `TODO.md`; not fixed, because a move is a move.
+
+**Phase 2 was a leaf, phase 3 was not.** The MVP scoring methods referenced no tracker state at all, so
+`stats-mvp.js` imports nothing back -- and a commented-out `import { MVPDescriptionGenerator } from
+'./mvp-description-generator.js'` at the top of `stats-combat.js` shows the extraction had been intended
+before. The integration handlers are the opposite: they write tracker state through nine members, which is
+why phase 3 needed a cycle and why its adapters are the phase 4 target.
+
+**`_registerHooks` did not need splitting.** The plan assumed it would have to be. Keeping it whole with its
+callbacks repointed was both lower risk and the better arrangement -- one place where every hook and socket
+is registered.
 
 ## Adjacent work this does not include
 

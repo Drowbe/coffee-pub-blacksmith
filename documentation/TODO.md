@@ -11,17 +11,45 @@
 
 ## Decompose the stats tracker
 
-**Planned, not started** — see `documentation/plans/plan-stats-decomposition.md` for the phases, the
-measured cluster breakdown, and how each phase is verified.
+**Phases 1-3 implemented on the `refactor/stats-decomposition` branch, verified statically only. Phase 4 not
+started.** See `documentation/plans/plan-stats-decomposition.md`.
 
-`stats-combat.js` is 5,249 lines and 94 static methods doing at least seven jobs, of which roughly 935 are
-chat card presentation, 930 are dnd5e/midi-qol/socket integration, and 800 are MVP scoring and narrative
-generation. The public API (`stats.player`, `stats.party`, `stats.combat`) is small, documented, and covered
-by 90+ harness assertions — it is the seam the work happens underneath and does not move. Four phases,
-least-risk first, each independently shippable: cards, MVP, system integration, then reassess the ~1,500
-lines that remain.
+`stats-combat.js` went from 5,264 lines to 2,849; `stats-cards.js` (872), `stats-sources.js` (1,034), and
+`stats-mvp.js` (634) now hold presentation, system integration, and MVP scoring respectively. The public API
+did not move and is unchanged.
+
+**The branch needs a live gate before it merges**: run the harness Stats tab, then a multi-round combat with
+midi-qol active, then the same with a player rolling to exercise the socket forward path. Static checks
+covered structure, not behaviour.
+
+Phase 4 — decide whether the ~2,800 lines remaining want a further split, and whether the integration
+adapters should return events for the tracker to apply rather than reaching in and mutating it.
 
 `stats-player.js` (2,606 lines) wants its own audit and is deliberately not bundled into this.
+
+## Combat stats registers Handlebars helpers the whole module depends on
+
+**Found 2026-08-02 during the decomposition; not fixed there, because that work was a pure move.**
+
+`CombatStats.registerHelpers()` (`stats-combat.js`) registers `round`, `formatDamage`, `formatTime`,
+`multiply`, `divide`, `add`, `subtract`, `eq`, and `gt`. It is called from `initialize()` — **after** the
+`if (!getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;` guard. So turning combat statistics
+off unregisters all of them.
+
+`eq` and `gt` are Foundry built-ins and survive. `formatTime` is not, and `timer-combat.hbs` uses it — so a
+world with the combat timer on and combat stats off has a broken timer template. Eleven non-stats templates
+reference helpers from this set in total.
+
+Global Handlebars registration does not belong to a feature that can be switched off. Move it to a module-level
+registration that runs regardless of the setting, or into whichever file owns shared template helpers. Verify:
+disable `trackCombatStats`, reload, and confirm the combat timer and skill check windows still render their
+numbers.
+
+## `manager-roll-outcomes.js` duplicates the stats socket forwarder
+
+Both it and `stats-sources.js` define `_forwardToGM`, doing the same job over the same SocketLib socket.
+Noted during the decomposition. Related to the crit/fumble detection consolidation in
+`plans/plan-rolls-classification.md`, which names four detection sites; this is the forwarding equivalent.
 
 ## Party aggregates behind the stats API (`stats.party`)
 

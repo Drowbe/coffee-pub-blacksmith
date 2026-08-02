@@ -8,12 +8,46 @@ The stats system tracks combat statistics at three scopes — round, combat, and
 
 | File | Owns |
 |---|---|
-| `scripts/stats-combat.js` | Round tracking, combat tracking, summary generation, and the persisted combat history |
+| `scripts/stats-combat.js` | The accumulator and the rules: round tracking, combat tracking, summary generation, persistence, and the combat history |
+| `scripts/stats-sources.js` | Where the data comes from — dnd5e roll hooks, midi-qol workflows, chat messages, and the socket carrying a player's rolls to the GM |
+| `scripts/stats-cards.js` | Every chat card about a combat; eleven templates in two families |
+| `scripts/stats-mvp.js` | MVP scoring and the narrative written from it. A leaf: imports none of the above |
 | `scripts/stats-player.js` | Lifetime per-actor stats, and GM-only in-memory session state |
 | `scripts/stats-party.js` | Party-wide aggregates over the other two, cached; owns no data of its own |
 | `scripts/timer-round.js` | Round duration, including `accumulatedTime` (shares a flag with stats-combat — see below) |
 
+The four combat files were one 5,264-line class until the decomposition. What separates them is direction of
+dependency, not subject matter: `stats-sources.js` translates events *in*, `stats-cards.js` renders results
+*out*, `stats-mvp.js` computes over data handed to it, and `stats-combat.js` sits in the middle owning state.
+A change to any one of the three outer files should not require reading the others.
+
+## How the four files reference each other
+
+Not uniform, and the differences are deliberate:
+
+| From | To | How | Why |
+|---|---|---|---|
+| `stats-cards.js` | `stats-combat.js` | static | Cards read tracker state |
+| `stats-combat.js` | `stats-cards.js` | **lazy** (`await import`) | Cards are needed only when one is sent, so laziness costs nothing and removes the cycle |
+| `stats-sources.js` | `stats-combat.js` | static | Handlers write tracker state |
+| `stats-combat.js` | `stats-sources.js` | **static — a cycle** | Handlers are needed while `_registerHooks` runs, and `initialize()` calls that synchronously; `socket.register` in particular needs the class right then. A lazy import would push an `await` into the bootstrap sequence §3 of `architecture-blacksmith.md` warns about |
+| either | `stats-mvp.js` | static | It is a leaf and imports nothing back |
+
+The `stats-combat` / `stats-sources` cycle is the harmless kind: neither module touches the other while its
+own body evaluates, every cross-reference sitting inside a method that runs later. **That is a condition, not
+an observation** — adding a `static X = CombatStats.something` to `stats-sources.js` would break module
+initialization. The file says so at the top.
+
+`_registerHooks` deliberately stays whole in `stats-combat.js` rather than being split across the two, so
+there remains exactly one place where every hook and socket is registered.
+
 `stats-combat.js` never touches lifetime data or actor flags. `stats-player.js` never touches combat flags — its only flag access is `actor.getFlag` / `actor.setFlag(MODULE.ID, 'playerStats')`. The boundary is clean in both directions; keep it that way.
+
+Three files carry the same method names as `stats-combat.js`'s former handlers — `stats-player.js` and
+`manager-roll-outcomes.js` each define their own `_onAttackRoll`, `_onMidiHitsChecked`, and `_forwardToGM`.
+Those are independent implementations, not calls across a boundary, and a search for any of those names will
+return all of them. `manager-roll-outcomes.js` having its own socket forwarder is a real duplication worth
+consolidating, tracked in `TODO.md` rather than here.
 
 `stats-party.js` reads both and writes neither. It exists because every other tier is per-actor or
 per-combat, so anything party-wide has to be reduced, and that reduction should have exactly one
