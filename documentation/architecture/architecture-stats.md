@@ -22,7 +22,7 @@ implementation.
 ## The tiers
 
 - **Round** (`CombatStats.currentStats`) — in memory for the active round, mirrored to the combat `stats` flag. Reset when a new round begins.
-- **Combat** (`CombatStats.combatStats`) — aggregates for the active combat: totals for damage, healing, and attack counts, plus per-participant summaries and top-moment highlights. Raw event arrays are discarded when the summary is generated.
+- **Combat** (`CombatStats.combatStats`) — aggregates for the active combat: totals for damage, healing, and attack counts, plus per-participant summaries and top-moment highlights. Raw event arrays are discarded when the summary is generated. Read publicly through `getRunningCombatStats()`.
 - **Lifetime** (actor flag `playerStats`) — permanent per-actor records. GM-only writes.
 - **Session** (`CPBPlayerStats._sessionStats`) — a GM-only in-memory Map keyed by actor id, holding transient state. Lost on world reload.
 
@@ -30,6 +30,22 @@ implementation.
   nothing; holds no truth of its own.
 
 `_boundedPush` caps round and actor logs (default 1000 entries) so in-memory arrays cannot grow without limit.
+
+## One reduction serves the live combat and the summary card
+
+`_generateCombatSummary()` used to do two jobs in one function: reduce `combatStats` into
+per-participant summaries, party-only totals, top moments, and MVP rankings; and then wrap that in combat
+metadata. Only the second job needs a finished combat, so the first is extracted as
+`_buildCombatAggregate()` — pure over `combatStats`, no metadata, no writes — and both the summary
+generator and `getRunningCombatStats()` call it.
+
+That separation is the point rather than tidiness. A live readout wants exactly the numbers the summary
+card reports, and reducing them a second time would be a second definition of who counts as the party, how
+misses are inferred when only attempts and hits were recorded, and how MVP is scored. The two would then
+disagree at the moment combat ends, which is the one moment a table is looking at both.
+
+`_generateCombatSummary()` keeps the one write that is genuinely its own: stamping `mvpRankings` back onto
+`combatStats` for the stored summary.
 
 ## The party aggregate is cached, not derived per read
 

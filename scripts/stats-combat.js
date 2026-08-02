@@ -866,17 +866,21 @@ class CombatStats {
     }
 
     /**
-     * Generate combat summary from combatStats
-     * Creates aggregated summary with top N moments and MVP rankings (no full event arrays)
-     * @param {Combat} combat - The combat object
-     * @returns {Object} Combat summary with metadata, aggregates, and top moments
+     * Reduce `combatStats` to the aggregate shape the end-of-combat card is built from:
+     * per-participant summaries, party-only totals, top moments, and MVP rankings.
+     *
+     * Pure over `combatStats` and free of combat metadata, so it can run mid-combat as
+     * well as at the end. That is the whole point of it existing separately: a readout
+     * that wants "damage this fight" needs the same numbers the summary card reports,
+     * and a second reducer would be a second definition of who counts as the party, how
+     * misses are inferred, and how MVP is scored. Everything here is derived; nothing is
+     * written back.
+     *
+     * @returns {Object|null} `{participants, totals, notableMoments}`, or null if no
+     *   combat is being tracked.
      */
-    static _generateCombatSummary(combat) {
-        const combatDuration = Date.now() - this.combatStats.startTime;
-        // Try multiple ways to get the scene
-        const sceneId = combat.sceneId || combat.scene || (canvas?.scene?.id);
-        const scene = sceneId ? game.scenes.get(sceneId) : null;
-        const sceneName = scene?.name || canvas?.scene?.name || 'Unknown Scene';
+    static _buildCombatAggregate() {
+        if (!this.combatStats) return null;
 
         // Extract participant summaries (aggregates only, no arrays)
         // Note: participants include PCs + NPCs, but "totals" for the summary card are PARTY-ONLY.
@@ -999,19 +1003,8 @@ class CombatStats {
         }).sort((a, b) => b.score - a.score);
 
         const mvp = mvpRankings.length ? { ...mvpRankings[0] } : null;
-        this.combatStats.mvpRankings = mvpRankings;
 
-        // Build summary
-        const summary = {
-            // Metadata
-            combatId: combat.id,
-            date: new Date().toISOString(),
-            duration: combatDuration, // milliseconds
-            durationSeconds: Math.round(combatDuration / 1000),
-            totalRounds: combat.round || 0,  // Total number of rounds fought
-            sceneName,
-            sceneId: combat.scene || null,
-
+        return {
             // Aggregated totals
             totals: {
                 hits: totalHits,
@@ -1038,7 +1031,42 @@ class CombatStats {
                 fastestTurn: this.combatStats.fastestTurn?.duration !== Infinity ? this.combatStats.fastestTurn : null,
                 mvp: mvp || null,
                 mvpRankings
-            },
+            }
+        };
+    }
+
+    /**
+     * Generate combat summary from combatStats
+     * Creates aggregated summary with top N moments and MVP rankings (no full event arrays)
+     * @param {Combat} combat - The combat object
+     * @returns {Object} Combat summary with metadata, aggregates, and top moments
+     */
+    static _generateCombatSummary(combat) {
+        const combatDuration = Date.now() - this.combatStats.startTime;
+        // Try multiple ways to get the scene
+        const sceneId = combat.sceneId || combat.scene || (canvas?.scene?.id);
+        const scene = sceneId ? game.scenes.get(sceneId) : null;
+        const sceneName = scene?.name || canvas?.scene?.name || 'Unknown Scene';
+
+        // The aggregate is shared with the live getter, so a mid-combat readout and the
+        // summary card cannot report different numbers for the same measure.
+        const aggregate = this._buildCombatAggregate();
+        this.combatStats.mvpRankings = aggregate.notableMoments.mvpRankings;
+
+        // Build summary
+        const summary = {
+            // Metadata
+            combatId: combat.id,
+            date: new Date().toISOString(),
+            duration: combatDuration, // milliseconds
+            durationSeconds: Math.round(combatDuration / 1000),
+            totalRounds: combat.round || 0,  // Total number of rounds fought
+            sceneName,
+            sceneId: combat.scene || null,
+
+            totals: aggregate.totals,
+            participants: aggregate.participants,
+            notableMoments: aggregate.notableMoments,
 
             // Round summaries (already aggregated from rounds array, if it exists)
             roundCount: (this.combatStats.rounds || []).length,
@@ -1461,6 +1489,42 @@ class CombatStats {
     // API Methods expected by api-stats.js
     static getCurrentStats() {
         return this.currentStats || foundry.utils.deepClone(this.DEFAULTS.roundStats);
+    }
+
+    /**
+     * The combat in progress, so far.
+     *
+     * Note the tier this sits in, because the names around it are easy to misread:
+     * `getCurrentStats()` is the **round** accumulator despite reading as "now", and
+     * `getCombatSummary()` is the last **finished** combat's stored summary. This is the
+     * running total for the fight that is happening, which had no accessor at all --
+     * `combatStats` was internal, so "damage this fight" was unanswerable from outside
+     * while the fight was on.
+     *
+     * The shape matches the end-of-combat summary field for field where they overlap, so
+     * a consumer reads `totals.damageDealt` from either and means the same thing. As
+     * there, `totals` is party-only by policy while `participants` includes NPCs.
+     *
+     * Derived on call and not cached: it changes on essentially every combat event, so a
+     * cache would need invalidating more often than it would be read. Callers that render
+     * per tick should read it on their own update, not in a loop.
+     *
+     * @returns {Object|null} `{combatId, round, duration, durationSeconds, totals,
+     *   participants, notableMoments}`, or null when no combat is being tracked.
+     */
+    static getRunningCombatStats() {
+        if (!this.combatStats) return null;
+        const aggregate = this._buildCombatAggregate();
+        if (!aggregate) return null;
+
+        const duration = Date.now() - (this.combatStats.startTime || Date.now());
+        return {
+            combatId: game.combat?.id || null,
+            round: game.combat?.round || 0,
+            duration,
+            durationSeconds: Math.round(duration / 1000),
+            ...aggregate
+        };
     }
 
     static getParticipantStats(participantId) {

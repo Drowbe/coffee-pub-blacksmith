@@ -1,6 +1,6 @@
 # Plan: Stats on the Encounter Bar
 
-**Status: Implemented (phase 1). Phases 2-4 pending.**
+**Status: Implemented (phases 1-2). Phases 3-4 pending.**
 
 Put party statistics in the encounter bar's middle zone — lifetime standings out of combat, live totals
 during one — reading them from the stats API rather than computing them in the bar.
@@ -65,9 +65,22 @@ synchronous render draws what it has rather than blocking or being forced async.
 leaderboard order, the same totals — since nothing about the computation changed, only where it lives. Then
 finish a combat and confirm the figures move without reopening the window twice.
 
-**Phase 2 — running combat totals.** Add a getter for the whole-combat accumulator so in-combat readouts
-have a source. Decide its shape against what the end-of-combat card already uses, so the same fields mean
-the same thing in both places.
+**Phase 2 — running combat totals. Done.** `stats.combat.getRunningStats()` returns the combat in progress:
+`{combatId, round, duration, durationSeconds, totals, participants, notableMoments}`, null when nothing is
+being tracked.
+
+The shape was not designed separately. `_generateCombatSummary` already reduced `combatStats` into exactly
+these fields and then wrapped them in combat metadata, so the reduction is extracted as
+`_buildCombatAggregate()` — pure, no metadata, no writes — and both the summary generator and the live
+getter call it. A second reducer would have been a second definition of who counts as the party, how misses
+are inferred, and how MVP is scored, and the two would have disagreed at the moment combat ends, which is
+the one moment the table is looking at both.
+
+Derived on call rather than cached: unlike the party aggregate it changes on essentially every combat
+event, so a cache would need invalidating more often than it would be read.
+
+**Verify**: mid-combat, `getRunningStats().totals` tracks damage and hits as they happen; when the combat
+ends, the summary card reports the same numbers the last live read did.
 
 **Phase 3 — the readouts.** Register the chosen stats as items in the bar's middle zone, GM visibility
 decided per stat. Out-of-combat items read `stats.party`; in-combat items read the phase 2 getter. Values

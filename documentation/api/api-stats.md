@@ -152,7 +152,8 @@ on `blacksmith.combatSummaryReady` and on actor create, update, and delete — n
 
 ## Combat Namespace
 
-- `getCurrentStats() -> object` exposes the active round snapshot, falling back to defaults if tracking has not yet started.
+- `getCurrentStats() -> object` exposes the active **round** snapshot, falling back to defaults if tracking has not yet started. Despite the name this is the round accumulator, not the running combat.
+- `getRunningStats() -> object | null` returns the running totals for the combat **in progress**, or null when no combat is being tracked.
 - `getParticipantStats(participantId: string) -> object | null` provides per-participant round information when available.
 - `getNotableMoments() -> object | null` surfaces current-round highlights.
 - `getRoundSummary(round?: number) -> object | null` returns an aggregate entry from `combatStats.rounds`, defaulting to the live combat round.
@@ -171,6 +172,18 @@ Summaries expose a consistent schema: `totals.damage`, `totals.healing`, and `to
 - `totals.hits`, `totals.misses`, `totals.totalAttacks`, `totals.hitRate`
 - `totals.damageDealt`, `totals.damageTaken`, `totals.healingGiven`
 - `totals.criticals`, `totals.fumbles`
+
+**The running combat** (`getRunningStats()`) returns `{combatId, round, duration, durationSeconds, totals, participants, notableMoments}`. The last three are shaped exactly as they are on a stored summary and are built by the same reduction, so `totals.damageDealt` means the same thing whether it is read mid-fight or off the summary card afterwards. The same policy guardrails below apply: `totals` is party-only, `participants` includes NPCs. It carries no scene metadata and no `rounds` array -- for a finished combat's per-round breakdown use `getCombatSummary()`.
+
+It is derived on call rather than cached, because it changes on essentially every combat event. Read it on your own update event; do not poll it.
+
+Three names sit close together and mean different tiers:
+
+| Call | Scope |
+|---|---|
+| `getCurrentStats()` | The current round |
+| `getRunningStats()` | The combat in progress, so far |
+| `getCombatSummary()` | The last combat that finished |
 
 **Policy guardrails**:
 - Totals include all damage/healing buckets (including `other` / `unlinked` where applicable).

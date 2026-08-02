@@ -122,11 +122,22 @@ export class StatsAPI {
      */
     static combat = {
         /**
-         * Get current combat statistics
-         * @returns {Object} Current combat stats
+         * Get the current ROUND's statistics. Despite the name this is the round
+         * accumulator, not the running combat — use getRunningStats() for that.
+         * @returns {Object} Current round stats
          */
         getCurrentStats: () => {
             return CombatStats.getCurrentStats();
+        },
+
+        /**
+         * Get the running totals for the combat in progress: party totals, per-participant
+         * summaries, top moments, and live MVP rankings. Shaped like the end-of-combat
+         * summary, so the same field means the same thing before and after the fight ends.
+         * @returns {Object|null} Running combat stats, or null when no combat is tracked
+         */
+        getRunningStats: () => {
+            return CombatStats.getRunningCombatStats();
         },
 
         /**
