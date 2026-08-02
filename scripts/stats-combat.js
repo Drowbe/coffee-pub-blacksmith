@@ -12,15 +12,13 @@ import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
 import { SocketManager } from './manager-sockets.js';
-import { resolveAttackMessage, resolveDamageMessage, makeKey, hydrateFirstRoll } from './utility-message-resolution.js';
-import {
-    buildAttackEventFromWorkflow,
-    createDedupeTracker,
-    extractPreTargetDamageArgs,
-    getCritFumbleFromWorkflow,
-    getWorkflowKey,
-    isMidiIntegrationEnabled
-} from './utility-midi-resolution.js';
+// No message-resolution or midi-qol imports here, and that is the point: after
+// the correlation and dedupe state moved to stats-sources.js, this file uses
+// none of them. The accumulator no longer knows midi-qol exists. If an import
+// from either utility reappears here, event translation has leaked back in.
+// (JSDoc below still names resolveAttackMessage / resolveDamageMessage when
+// describing the shape of an event it receives -- that is a reference, not a
+// dependency.)
 import { CombatMvp, MVPDescriptionGenerator } from './stats-mvp.js';
 // Static, and a deliberate cycle: stats-sources.js imports this module back.
 // The handlers are needed while _registerHooks runs, which initialize() calls
@@ -34,19 +32,13 @@ import { assetLookup } from './asset-lookup.js';
 class CombatStats {
     static currentStats = null;
     static combatStats = null;
-    static _lastRollWasCritical = false;
     static _processedCombats = new Set();
     
     // Attack resolution cache for correlating damage to attacks
-    static _attackCache = new Map(); // key -> { attackEvent, processedDamageMsgIds: Set<string>, ts }
-    static ATTACK_TTL_MS = 15_000; // 15 second TTL for attack cache entries
 
     // MIDI ordering + dedupe helpers (combat stats lane)
-    static _pendingMidiCrit = new Map(); // key -> { isCritical, isFumble, ts }
-    static _midiDedupe = createDedupeTracker(20_000);
     
     // Core chat lane dedupe (createChatMessage + updateChatMessage reprocessing)
-    static _chatDedupe = createDedupeTracker(30_000);
 
     // Kill attribution helpers (combat stats lane)
     static _killHpCache = new Map(); // key: actor.uuid, value: { hp, ts }
@@ -55,7 +47,6 @@ class CombatStats {
     static KILL_CONTEXT_TTL_MS = 15_000;
     
     // MVP fairness helper: count "successful offensive activations" once per workflow key per round.
-    static _roundOffenseCache = new Set(); // key: `offense:${workflowKey}`
     
     // Persistence: keep combat stats resumable across refresh / long pauses.
     static _persistDebounced = null;
@@ -580,8 +571,9 @@ class CombatStats {
             
             // Initialize new round stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);
-            // Reset per-round offense activation dedupe cache (MVP fairness)
-            this._roundOffenseCache = new Set();
+            // The per-round offense dedupe cache belongs to the adapter, which
+            // owns event correlation; the round boundary is ours, so we tell it.
+            CombatSources.resetRound();
             // Ensure Maps are properly initialized
             this.currentStats.turnStartTimes = new Map();
             this.currentStats.turnEndTimes = new Map();
@@ -1518,27 +1510,6 @@ class CombatStats {
     // GM-side processors (shared by hooks + sockets)
     // -------------------------------------------------------------------------
 
-    // Extract the active/kept d20 result from a roll
-    static _getD20ResultFromRoll(roll) {
-        if (!roll) return null;
-
-        // DiceTerm may appear in roll.dice or roll.terms depending on context/system
-        const d20Term =
-            roll.dice?.find(t => t?.faces === 20) ??
-            roll.terms?.find(t => t?.faces === 20) ??
-            null;
-
-        if (!d20Term?.results?.length) return null;
-
-        // Foundry marks kept die results as active
-        const active = d20Term.results.find(r => r?.active);
-        if (active?.result != null) return active.result;
-
-        // Fallback: if nothing is marked active, take the first numeric result
-        const first = d20Term.results.find(r => typeof r?.result === "number");
-        return first?.result ?? null;
-    }
-
     /**
      * Process a resolved attack event from chat message resolution.
      * This is the new source of truth for attack hit/miss determination.
@@ -1695,7 +1666,7 @@ class CombatStats {
         let item = null;
         
         // Try to get item from cached attack event first (most reliable)
-        const cacheEntry = CombatStats._attackCache.get(damageEvent.key);
+        const cacheEntry = CombatSources.getCachedAttack(damageEvent.key);
         if (cacheEntry?.attackEvent?.itemUuid) {
             try {
                 item = await fromUuid(cacheEntry.attackEvent.itemUuid);
@@ -1865,7 +1836,9 @@ class CombatStats {
             combatTotals.attacks.misses++;
         }
 
-        this._lastRollWasCritical = crit;
+        // Hand the crit forward for the damage event that follows this attack.
+        // The adapter owns that correlation; we only know the answer.
+        CombatSources.noteAttackCritical(crit);
 
         if (this._isPlayerCharacter(actor)) {
             if (isHit) this.currentStats.partyStats.hits++;

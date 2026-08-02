@@ -35,12 +35,17 @@
  * initializer crosses the boundary. That last condition is what makes it safe;
  * if you add a `static X = CombatStats.something` here, it will break.
  *
- * WHAT THIS EXTRACTION DID NOT FIX. These handlers write tracker state directly
- * -- `_ensureParticipantStats`, `_processDamageOrHealing`, `_roundOffenseCache`,
- * `combatStats` and friends are all reached across the boundary. An adapter
- * that returns an event for the tracker to apply, rather than reaching in and
- * mutating it, is the shape this wants eventually. That is phase 4 in
+ * WHAT IS LEFT. Phase 4 moved this file's own state here -- the caches above --
+ * so the tracker no longer holds bookkeeping it never used. What remains is the
+ * mutation path: `_ensureParticipantStats` and `_ensureCombatTotals` hand back
+ * live references into the accumulator, and the handlers write through them.
+ * The shape that wants is an event this file returns and the tracker applies,
+ * with every mutation owned by one side. That is a behaviour change rather than
+ * a move, so it is deliberately not done here; see
  * `documentation/plans/plan-stats-decomposition.md`.
+ *
+ * The `_process*` calls are already the right shape and should stay: they say
+ * what happened and let the tracker decide what it means.
  */
 
 import { MODULE } from './const.js';
@@ -58,6 +63,85 @@ import {
 import { CombatStats } from './stats-combat.js';
 
 export class CombatSources {
+    // ===== CORRELATION AND DEDUPE STATE =====
+    //
+    // This is the adapter's own bookkeeping and it lives here rather than on the
+    // tracker, which is where it used to sit. Its whole purpose is to reconcile
+    // the several ways one swing reaches us -- a dnd5e roll hook, a midi-qol
+    // workflow, and a chat message can all describe the same attack, arriving in
+    // any order and sometimes more than once. Deciding "these are the same event"
+    // and "this one already counted" is a translation problem, not a statistics
+    // problem, and the accumulator is better off never knowing about it.
+    //
+    // The tracker reaches back for three of these through the accessors below.
+    // Those calls are deliberate and few; if the list grows, the boundary is
+    // being eroded again.
+
+    /** Attack events awaiting their damage event. key -> { attackEvent, processedDamageMsgIds, ts } */
+    static _attackCache = new Map();
+    /** How long an unmatched attack stays correlatable. */
+    static ATTACK_TTL_MS = 15_000;
+
+    /** midi-qol reports crit before damage; hold it until the damage arrives. */
+    static _pendingMidiCrit = new Map();
+    static _midiDedupe = createDedupeTracker(20_000);
+
+    /** createChatMessage and updateChatMessage can both describe one message. */
+    static _chatDedupe = createDedupeTracker(30_000);
+
+    /** MVP fairness: one successful offensive activation per workflow per round. */
+    static _roundOffenseCache = new Set();
+
+    /**
+     * Crit-ness of the most recent attack, for the damage roll that follows it.
+     *
+     * The non-midi path splits one attack across two system events with nothing
+     * linking them, so this carries the answer forward. It is correlation, which
+     * is why it belongs here -- the tracker only ever wrote it and never read it,
+     * which is to say it was pushing state to this file through a shared field.
+     */
+    static _lastRollWasCritical = false;
+
+    /** The attack event cached for `key`, if it has not expired. */
+    static getCachedAttack(key) {
+        return CombatSources._attackCache.get(key) ?? null;
+    }
+
+    /** Called by the tracker when a new round starts. */
+    static resetRound() {
+        CombatSources._roundOffenseCache = new Set();
+    }
+
+    /** Called by the tracker after it processes an attack, for the damage that follows. */
+    static noteAttackCritical(isCritical) {
+        CombatSources._lastRollWasCritical = !!isCritical;
+    }
+
+    /**
+     * The kept d20 face from a roll, or null. Reading a system's roll structure is
+     * translation, which is why it moved here with the rest -- the tracker declared
+     * it and never called it.
+     */
+    static _getD20ResultFromRoll(roll) {
+        if (!roll) return null;
+
+        // DiceTerm may appear in roll.dice or roll.terms depending on context/system
+        const d20Term =
+            roll.dice?.find(t => t?.faces === 20) ??
+            roll.terms?.find(t => t?.faces === 20) ??
+            null;
+
+        if (!d20Term?.results?.length) return null;
+
+        // Foundry marks kept die results as active
+        const active = d20Term.results.find(r => r?.active);
+        if (active?.result != null) return active.result;
+
+        // Fallback: if nothing is marked active, take the first numeric result
+        const first = d20Term.results.find(r => typeof r?.result === "number");
+        return first?.result ?? null;
+    }
+
     static async _forwardToGM(eventName, payload) {
         try {
             const socket = SocketManager.getSocket();
@@ -231,7 +315,7 @@ export class CombatSources {
         if (!game.combat?.started) return;
 
         if (config.critical) {
-            CombatStats._lastRollWasCritical = true;
+            CombatSources._lastRollWasCritical = true;
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Critical hit detected', "", true, false);
         }
     }
@@ -255,7 +339,7 @@ export class CombatSources {
         if (!game.user.isGM) {
             const socket = SocketManager.getSocket();
             if (socket?.executeAsGM) {
-                const d20Result = CombatStats._getD20ResultFromRoll(rollObj);
+                const d20Result = CombatSources._getD20ResultFromRoll(rollObj);
                 const { isCritical, isFumble } = CombatSources._getCritFumbleFlags({ roll: rollObj, context, d20Result });
 
                 await socket.executeAsGM("cpbTrackAttack", {
@@ -270,11 +354,11 @@ export class CombatSources {
         }
 
         // GM path: only track crit/fumble (set _lastRollWasCritical flag for damage processing)
-        const d20Result = CombatStats._getD20ResultFromRoll(rollObj);
+        const d20Result = CombatSources._getD20ResultFromRoll(rollObj);
         const { isCritical, isFumble } = CombatSources._getCritFumbleFlags({ roll: rollObj, context, d20Result });
 
         // Set flag for damage processing (used by _processResolvedDamage and socket handlers)
-        CombatStats._lastRollWasCritical = isCritical;
+        CombatSources._lastRollWasCritical = isCritical;
 
         // Note: Hit/miss tracking is now handled by createChatMessage hook via _processResolvedAttack
         // This hook is narrowed to only crit/fumble detection to avoid double-counting
@@ -310,19 +394,19 @@ export class CombatSources {
 
         // Dedupe: some setups may deliver MIDI hook events to GM and via socket forwarding
         const hcDedupeKey = `midiHitsChecked::${key}`;
-        if (CombatStats._midiDedupe.isDuplicate(hcDedupeKey)) return;
-        CombatStats._midiDedupe.markProcessed(hcDedupeKey);
+        if (CombatSources._midiDedupe.isDuplicate(hcDedupeKey)) return;
+        CombatSources._midiDedupe.markProcessed(hcDedupeKey);
 
         // Apply staged crit/fumble if RollComplete fired before hitsChecked
-        const pending = CombatStats._pendingMidiCrit?.get(key);
+        const pending = CombatSources._pendingMidiCrit?.get(key);
         if (pending) {
             attackEvent.isCritical = !!pending.isCritical;
             attackEvent.isFumble = !!pending.isFumble;
-            CombatStats._pendingMidiCrit.delete(key);
+            CombatSources._pendingMidiCrit.delete(key);
         }
 
         // Cache the attack resolution for damage correlation
-        CombatStats._attackCache.set(key, {
+        CombatSources._attackCache.set(key, {
             attackEvent,
             processedDamageMsgIds: new Set(),
             ts: attackEvent.ts
@@ -334,9 +418,9 @@ export class CombatSources {
         // MVP fairness: count successful offensive activations (attack-roll path)
         if (attackEvent.hitTargets?.length > 0) {
             const offenseKey = `offense:${key}`;
-            if (!CombatStats._roundOffenseCache) CombatStats._roundOffenseCache = new Set();
-            if (!CombatStats._roundOffenseCache.has(offenseKey)) {
-                CombatStats._roundOffenseCache.add(offenseKey);
+            if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
+            if (!CombatSources._roundOffenseCache.has(offenseKey)) {
+                CombatSources._roundOffenseCache.add(offenseKey);
                 const attackerActor = game.actors.get(attackEvent.attackerActorId);
                 if (attackerActor) {
                     const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attackerActor, { includeCurrent: true, includeCombat: true });
@@ -432,8 +516,8 @@ export class CombatSources {
 
         // Dedupe: MIDI can fire multiple times per target
         const dedupeKey = `${key}::${targetUuid}::${isHealing ? 'heal' : 'dmg'}::${amount}`;
-        if (CombatStats._midiDedupe.isDuplicate(dedupeKey)) return;
-        CombatStats._midiDedupe.markProcessed(dedupeKey);
+        if (CombatSources._midiDedupe.isDuplicate(dedupeKey)) return;
+        CombatSources._midiDedupe.markProcessed(dedupeKey);
 
         // Stamp crit/fumble ASAP (event order can be: hitsChecked -> preTargetDamage -> RollComplete)
         const { isCritical, isFumble } = getCritFumbleFromWorkflow({
@@ -441,14 +525,14 @@ export class CombatSources {
             attackRoll: workflow?.attackRoll ?? null
         });
 
-        const cachedAttackEntry = CombatStats._attackCache.get(key);
+        const cachedAttackEntry = CombatSources._attackCache.get(key);
         if (cachedAttackEntry?.attackEvent) {
             cachedAttackEntry.attackEvent.isCritical = isCritical;
             cachedAttackEntry.attackEvent.isFumble = isFumble;
             cachedAttackEntry.ts = Date.now();
-            CombatStats._attackCache.set(key, cachedAttackEntry);
+            CombatSources._attackCache.set(key, cachedAttackEntry);
         } else {
-            CombatStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+            CombatSources._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
         }
 
         // Resolve item (prefer workflow.item)
@@ -510,9 +594,9 @@ export class CombatSources {
         // - once per workflow key per round
         if (!isHealing && !isOnHit) {
             const offenseKey = `offense:${key}`;
-            if (!CombatStats._roundOffenseCache) CombatStats._roundOffenseCache = new Set();
-            if (!CombatStats._roundOffenseCache.has(offenseKey)) {
-                CombatStats._roundOffenseCache.add(offenseKey);
+            if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
+            if (!CombatSources._roundOffenseCache.has(offenseKey)) {
+                CombatSources._roundOffenseCache.add(offenseKey);
                 const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attacker, { includeCurrent: true, includeCombat: true });
                 if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
                 if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
@@ -577,18 +661,18 @@ export class CombatSources {
 
         // Dedupe: avoid double counting if GM also receives forwarded event
         const rcDedupeKey = `midiRollComplete::${key}::${isCritical ? 'C' : ''}${isFumble ? 'F' : ''}`;
-        if (CombatStats._midiDedupe.isDuplicate(rcDedupeKey)) return;
-        CombatStats._midiDedupe.markProcessed(rcDedupeKey);
+        if (CombatSources._midiDedupe.isDuplicate(rcDedupeKey)) return;
+        CombatSources._midiDedupe.markProcessed(rcDedupeKey);
 
         // Always stamp it for downstream consumers (damage path may use it)
-        const entry = CombatStats._attackCache.get(key);
+        const entry = CombatSources._attackCache.get(key);
         if (entry?.attackEvent) {
             entry.attackEvent.isCritical = !!isCritical;
             entry.attackEvent.isFumble = !!isFumble;
             entry.ts = Date.now();
-            CombatStats._attackCache.set(key, entry);
+            CombatSources._attackCache.set(key, entry);
         } else {
-            CombatStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+            CombatSources._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
         }
 
         // Only increment counters when there is a crit/fumble
@@ -631,9 +715,9 @@ export class CombatSources {
      */
     static _pruneAttackCache() {
         const now = Date.now();
-        for (const [key, entry] of CombatStats._attackCache.entries()) {
-            if (now - entry.ts > CombatStats.ATTACK_TTL_MS) {
-                CombatStats._attackCache.delete(key);
+        for (const [key, entry] of CombatSources._attackCache.entries()) {
+            if (now - entry.ts > CombatSources.ATTACK_TTL_MS) {
+                CombatSources._attackCache.delete(key);
             }
         }
     }
@@ -665,8 +749,8 @@ export class CombatSources {
         const attackEvent = resolveAttackMessage(message);
         if (attackEvent) {
             const dedupeKey = `chat:attack:${message.id}`;
-            if (CombatStats._chatDedupe.isDuplicate(dedupeKey)) return;
-            CombatStats._chatDedupe.markProcessed(dedupeKey);
+            if (CombatSources._chatDedupe.isDuplicate(dedupeKey)) return;
+            CombatSources._chatDedupe.markProcessed(dedupeKey);
 
             // Stamp crit/fumble from the chat roll (core-only)
             const roll = hydrateFirstRoll(message);
@@ -675,7 +759,7 @@ export class CombatSources {
             attackEvent.isFumble = !!isFumble;
 
             // Cache the attack resolution for damage correlation
-            CombatStats._attackCache.set(attackEvent.key, {
+            CombatSources._attackCache.set(attackEvent.key, {
                 attackEvent,
                 processedDamageMsgIds: new Set(),
                 ts: attackEvent.ts
@@ -701,8 +785,8 @@ export class CombatSources {
         // Healing never requires attack correlation; preserve heal bucket.
         if (damageEvent.bucket === "heal") {
             const dedupeKey = `chat:heal:${message.id}`;
-            if (CombatStats._chatDedupe.isDuplicate(dedupeKey)) return;
-            CombatStats._chatDedupe.markProcessed(dedupeKey);
+            if (CombatSources._chatDedupe.isDuplicate(dedupeKey)) return;
+            CombatSources._chatDedupe.markProcessed(dedupeKey);
 
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Damage Resolved:', {
                 key: damageEvent.key,
@@ -716,13 +800,13 @@ export class CombatSources {
         }
 
         // Correlate damage to cached attack
-        const cacheEntry = CombatStats._attackCache.get(damageEvent.key);
+        const cacheEntry = CombatSources._attackCache.get(damageEvent.key);
 
         if (!cacheEntry) {
             // Unlinked damage: still counts for totals, but no onHit moments.
             const dedupeKey = `chat:unlinked:${message.id}`;
-            if (CombatStats._chatDedupe.isDuplicate(dedupeKey)) return;
-            CombatStats._chatDedupe.markProcessed(dedupeKey);
+            if (CombatSources._chatDedupe.isDuplicate(dedupeKey)) return;
+            CombatSources._chatDedupe.markProcessed(dedupeKey);
 
             damageEvent.bucket = "unlinked";
             damageEvent.attackMsgId = null;
@@ -797,7 +881,7 @@ export class CombatSources {
                 item,
                 amount,
                 isHealing,
-                isCritical: CombatStats._lastRollWasCritical || false,
+                isCritical: CombatSources._lastRollWasCritical || false,
                 targetTokenUuids: payload.targetTokenUuids || [],
                 timestamp: Date.now()
             });
@@ -846,18 +930,18 @@ export class CombatSources {
 
             // Dedupe with GM hook path
             const hcDedupeKey = `midiHitsChecked::${key}`;
-            if (CombatStats._midiDedupe.isDuplicate(hcDedupeKey)) return;
-            CombatStats._midiDedupe.markProcessed(hcDedupeKey);
+            if (CombatSources._midiDedupe.isDuplicate(hcDedupeKey)) return;
+            CombatSources._midiDedupe.markProcessed(hcDedupeKey);
 
             // Apply staged crit/fumble if RollComplete arrived first
-            const pending = CombatStats._pendingMidiCrit?.get(key);
+            const pending = CombatSources._pendingMidiCrit?.get(key);
             if (pending) {
                 attackEvent.isCritical = !!pending.isCritical;
                 attackEvent.isFumble = !!pending.isFumble;
-                CombatStats._pendingMidiCrit.delete(key);
+                CombatSources._pendingMidiCrit.delete(key);
             }
 
-            CombatStats._attackCache.set(key, {
+            CombatSources._attackCache.set(key, {
                 attackEvent,
                 processedDamageMsgIds: new Set(),
                 ts: attackEvent.ts ?? Date.now()
@@ -868,9 +952,9 @@ export class CombatSources {
             // MVP fairness: count successful offensive activations (attack-roll path)
             if (attackEvent.hitTargets?.length > 0) {
                 const offenseKey = `offense:${key}`;
-                if (!CombatStats._roundOffenseCache) CombatStats._roundOffenseCache = new Set();
-                if (!CombatStats._roundOffenseCache.has(offenseKey)) {
-                    CombatStats._roundOffenseCache.add(offenseKey);
+                if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
+                if (!CombatSources._roundOffenseCache.has(offenseKey)) {
+                    CombatSources._roundOffenseCache.add(offenseKey);
                     const attackerActor = game.actors.get(attackEvent.attackerActorId);
                     if (attackerActor) {
                         const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attackerActor, { includeCurrent: true, includeCombat: true });
@@ -908,20 +992,20 @@ export class CombatSources {
 
             // Dedupe per target (same scheme as GM hook)
             const dedupeKey = `${key}::${targetUuid}::${isHealing ? 'heal' : 'dmg'}::${amount}`;
-            if (CombatStats._midiDedupe.isDuplicate(dedupeKey)) return;
-            CombatStats._midiDedupe.markProcessed(dedupeKey);
+            if (CombatSources._midiDedupe.isDuplicate(dedupeKey)) return;
+            CombatSources._midiDedupe.markProcessed(dedupeKey);
 
             // Stamp crit/fumble
             const isCritical = !!payload?.isCritical;
             const isFumble = !!payload?.isFumble;
-            const cachedAttackEntry = CombatStats._attackCache.get(key);
+            const cachedAttackEntry = CombatSources._attackCache.get(key);
             if (cachedAttackEntry?.attackEvent) {
                 cachedAttackEntry.attackEvent.isCritical = isCritical;
                 cachedAttackEntry.attackEvent.isFumble = isFumble;
                 cachedAttackEntry.ts = Date.now();
-                CombatStats._attackCache.set(key, cachedAttackEntry);
+                CombatSources._attackCache.set(key, cachedAttackEntry);
             } else {
-                CombatStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+                CombatSources._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
             }
 
             const itemUuid = payload?.itemUuid ?? null;
@@ -950,9 +1034,9 @@ export class CombatSources {
             // MVP fairness: count successful offensive activations (non-attack-roll path)
             if (!isOnHit) {
                 const offenseKey = `offense:${key}`;
-                if (!CombatStats._roundOffenseCache) CombatStats._roundOffenseCache = new Set();
-                if (!CombatStats._roundOffenseCache.has(offenseKey)) {
-                    CombatStats._roundOffenseCache.add(offenseKey);
+                if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
+                if (!CombatSources._roundOffenseCache.has(offenseKey)) {
+                    CombatSources._roundOffenseCache.add(offenseKey);
                     const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attacker, { includeCurrent: true, includeCombat: true });
                     if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
                     if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
@@ -991,17 +1075,17 @@ export class CombatSources {
             const isFumble = !!payload?.isFumble;
 
             const rcDedupeKey = `midiRollComplete::${key}::${isCritical ? 'C' : ''}${isFumble ? 'F' : ''}`;
-            if (CombatStats._midiDedupe.isDuplicate(rcDedupeKey)) return;
-            CombatStats._midiDedupe.markProcessed(rcDedupeKey);
+            if (CombatSources._midiDedupe.isDuplicate(rcDedupeKey)) return;
+            CombatSources._midiDedupe.markProcessed(rcDedupeKey);
 
-            const entry = CombatStats._attackCache.get(key);
+            const entry = CombatSources._attackCache.get(key);
             if (entry?.attackEvent) {
                 entry.attackEvent.isCritical = isCritical;
                 entry.attackEvent.isFumble = isFumble;
                 entry.ts = Date.now();
-                CombatStats._attackCache.set(key, entry);
+                CombatSources._attackCache.set(key, entry);
             } else {
-                CombatStats._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
+                CombatSources._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
             }
 
             if (!isCritical && !isFumble) return;
