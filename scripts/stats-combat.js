@@ -876,15 +876,20 @@ class CombatStats {
      * misses are inferred, and how MVP is scored. Everything here is derived; nothing is
      * written back.
      *
+     * Takes its source rather than reading `combatStats` directly, because the same
+     * numbers live in two places: the GM's in-memory accumulator, and the combat flag
+     * the GM mirrors it to. A player client has only the second.
+     *
+     * @param {Object|null} [source] Accumulator to reduce. Defaults to the in-memory one.
      * @returns {Object|null} `{participants, totals, notableMoments}`, or null if no
      *   combat is being tracked.
      */
-    static _buildCombatAggregate() {
-        if (!this.combatStats) return null;
+    static _buildCombatAggregate(source = this.combatStats) {
+        if (!source) return null;
 
         // Extract participant summaries (aggregates only, no arrays)
         // Note: participants include PCs + NPCs, but "totals" for the summary card are PARTY-ONLY.
-        const participantSummaries = Object.entries(this.combatStats.participantStats || {}).map(([actorId, stats]) => {
+        const participantSummaries = Object.entries(source.participantStats || {}).map(([actorId, stats]) => {
             const actorDoc = game.actors.get(actorId) ?? null;
             const isPlayer = actorDoc ? this._isPlayerCharacter(actorDoc) : false;
             const attackStats = stats.combat?.attacks || {
@@ -917,7 +922,7 @@ class CombatStats {
         });
 
         // Extract top N moments from combatStats.topHits and topHeals (maintained during combat)
-        const topHits = (this.combatStats.topHits || []).map(hit => ({
+        const topHits = (source.topHits || []).map(hit => ({
             attacker: hit.attacker || hit.attackerName || 'Unknown',
             attackerId: hit.attackerId,
             target: hit.targetName || 'Unknown',
@@ -928,7 +933,7 @@ class CombatStats {
             timestamp: hit.timestamp
         }));
 
-        const topHeals = (this.combatStats.topHeals || []).map(heal => ({
+        const topHeals = (source.topHeals || []).map(heal => ({
             healer: heal.healer || heal.healerName || 'Unknown',
             healerId: heal.healerId,
             target: heal.targetName || 'Unknown',
@@ -1027,8 +1032,8 @@ class CombatStats {
                 biggestHit: topHits[0] || null,
                 topHits: topHits,
                 topHeals: topHeals,
-                longestTurn: this.combatStats.longestTurn || null,
-                fastestTurn: this.combatStats.fastestTurn?.duration !== Infinity ? this.combatStats.fastestTurn : null,
+                longestTurn: source.longestTurn || null,
+                fastestTurn: source.fastestTurn?.duration !== Infinity ? source.fastestTurn : null,
                 mvp: mvp || null,
                 mvpRankings
             }
@@ -1492,6 +1497,36 @@ class CombatStats {
     }
 
     /**
+     * Where this client can read the running combat's accumulator.
+     *
+     * Tracking is GM-gated -- only the GM accumulates, so that there is one writer and
+     * no conflicting updates. But the GM already mirrors the accumulator to a combat
+     * flag on a debounce (`_schedulePersistCombatStats`), and a combat document syncs to
+     * every client, so the numbers are on every machine already. They were simply
+     * unreadable, because the getter looked only at the in-memory copy that a player
+     * never fills.
+     *
+     * That mirror exists for reload resilience -- a GM who refreshes mid-combat restores
+     * from it -- and doubles as the broadcast channel for free. No socket is involved,
+     * and none is wanted: a flag write already fires `updateCombat` on every client,
+     * which is what makes a readout follow along without anything subscribing.
+     *
+     * The GM's own read prefers memory, which is authoritative and current; everyone
+     * else gets the flag, at most one debounce interval behind. For a readout that is
+     * indistinguishable from live.
+     *
+     * @returns {Object|null} The accumulator, or null when no combat is being tracked.
+     */
+    static getRunningCombatSource() {
+        if (this.combatStats) return this.combatStats;
+        try {
+            return game.combat?.getFlag(MODULE.ID, 'combatStats') ?? null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    /**
      * The combat in progress, so far.
      *
      * Note the tier this sits in, because the names around it are easy to misread:
@@ -1509,15 +1544,20 @@ class CombatStats {
      * cache would need invalidating more often than it would be read. Callers that render
      * per tick should read it on their own update, not in a loop.
      *
+     * Available to players, not just the GM -- see `getRunningCombatSource`. A player's
+     * copy can trail the GM's by up to the persistence debounce, and is null for the
+     * first moments of a combat before the first mirror lands.
+     *
      * @returns {Object|null} `{combatId, round, duration, durationSeconds, totals,
      *   participants, notableMoments}`, or null when no combat is being tracked.
      */
     static getRunningCombatStats() {
-        if (!this.combatStats) return null;
-        const aggregate = this._buildCombatAggregate();
+        const source = this.getRunningCombatSource();
+        if (!source) return null;
+        const aggregate = this._buildCombatAggregate(source);
         if (!aggregate) return null;
 
-        const duration = Date.now() - (this.combatStats.startTime || Date.now());
+        const duration = Date.now() - (source.startTime || Date.now());
         return {
             combatId: game.combat?.id || null,
             round: game.combat?.round || 0,

@@ -107,6 +107,7 @@ Each combat flag has exactly one owner. This was not always true, and the split 
 | Flag | Owner | Holds |
 |---|---|---|
 | `stats` | `stats-combat.js` | `currentStats` — written wholesale, safe because nothing else stores here |
+| `combatStats` | `stats-combat.js` | The whole-combat accumulator, mirrored on a debounce. Reload resilience for the GM, and the read path for every other client |
 | `roundTimer` | `timer-round.js` | `{ startedAt, accumulatedTime }` — this round's timing |
 | `totalCombatDuration` | `timer-round.js` | Accumulated duration of completed rounds |
 
@@ -117,6 +118,30 @@ The deeper problem was semantic, not just a write collision: both subsystems kep
 Consumers should not read these flags directly. `RoundTimer.getCurrentRoundDuration()` is the public accessor for round elapsed time; `manager-combatbar.js` uses it rather than touching flags.
 
 `_getRoundTiming()` still falls back to the legacy `stats.roundStartTimestamp` / `stats.accumulatedTime` when the `roundTimer` flag is absent, so combats already in progress when the split shipped keep their elapsed time. That fallback is transitional — remove it a release after it lands.
+
+## GM-gated writing is not GM-only reading
+
+The gating below governs who *accumulates*. It does not govern who can read, and conflating the two is a
+mistake worth naming: it made live combat statistics look like GM information when they are the opposite —
+the table is the audience, and a player who lands the biggest hit of the night is the person the number is
+for.
+
+`_schedulePersistCombatStats` mirrors both `currentStats` and `combatStats` to combat flags on a one-second
+debounce. A combat document syncs to every client, so the running totals are already on every machine. The
+mirror was built for reload resilience — a GM who refreshes mid-combat restores from it — and doubles as a
+broadcast channel at no cost. No socket is involved, and none is wanted: a flag write already fires
+`updateCombat` everywhere, which is what lets a readout follow along without subscribing to anything.
+
+`getRunningCombatSource()` is where that is expressed: the GM reads memory, which is authoritative and
+current, and everyone else reads the flag, at most one debounce behind. `_buildCombatAggregate(source)`
+takes its input rather than reaching for `combatStats`, so both paths run the identical reduction — a
+player and the GM cannot see different numbers, only differently aged ones.
+
+Two consequences to keep in mind. A player's read is null for the first moments of a combat, before the
+first mirror lands, so a consumer must tolerate null rather than assume a running combat implies data. And
+the mirror is now load-bearing for every player at the table while being invisible to the GM, who never
+reads it — the stats harness suite asserts the mirror reduces to the same aggregate as the live read for
+exactly that reason.
 
 ## GM gating
 

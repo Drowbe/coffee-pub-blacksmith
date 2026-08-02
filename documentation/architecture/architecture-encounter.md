@@ -193,11 +193,14 @@ so far.
 Party Statistics window and the end-of-combat card. A figure on the bar that disagreed with the card a
 moment later would be worse than showing no figure at all — see `architecture-stats.md`.
 
-**The two sets are gated differently, and the gate follows the data rather than a policy.** Lifetime
-figures reduce actor flags and the stored combat history, a world setting, so they exist on every client
-and everyone sees them; they are the party's own record. Running figures come from combat tracking, which
-is GM-gated at the source — a player client accumulates nothing, so `getRunningStats()` returns null there.
-GM-only is what the data supports; showing those items to a player would show three blanks.
+**Everyone sees both sets.** These exist for the table — the point of "biggest hit" is the player who
+landed it seeing it — so neither set is GM information the way the challenge rating is. Lifetime figures
+reduce actor flags and the stored combat history, a world setting, so they are on every client already.
+Running figures reach a player through the combat flag the GM mirrors the accumulator to; see
+`CombatStats.getRunningCombatSource` and `architecture-stats.md`. A player's copy can trail the GM's by up
+to the persistence debounce and is null for the first moments of a combat, so the chips show their
+registered placeholders until the first mirror lands — a flag write fires `updateCombat`, which brings the
+bar back through the refresh on its own.
 
 The standings read is synchronous by design. `getAggregateSync()` returns the cache when warm, which is
 almost always, since it only rebuilds when a combat ends or an actor changes. The async `getAggregate()`

@@ -187,6 +187,56 @@ export default {
         },
 
         {
+            id: 'running-mirror',
+            group: 'Running combat',
+            tier: 'headless',
+            label: 'Running combat: the flag mirror a player reads agrees with the live read',
+            note: 'Players see live stats only through this mirror. It would break invisibly — a GM reads memory and would never notice.',
+            run: async ({ expect, log }) => {
+                const { stats } = requireApi('stats.combat.getRunningStats');
+                const live = stats.combat.getRunningStats();
+
+                if (!live) {
+                    log('No combat is being tracked. Start one and land an attack, then re-run.');
+                    expect.ok('skipped: no combat running', true);
+                    return;
+                }
+
+                // Tracking is GM-gated so only the GM accumulates, but the GM mirrors
+                // the accumulator to a combat flag and a combat document syncs to
+                // everyone. That flag IS the player's copy — if it is absent or stale,
+                // every player at the table sees placeholder chips while the GM sees
+                // real numbers, and nothing anywhere reports a problem.
+                const flag = game.combat?.getFlag(MODULE_ID, 'combatStats') ?? null;
+                expect.ok('the combat carries a combatStats flag', flag !== null);
+                if (!flag) {
+                    log('No mirror yet. It is written on a 1s debounce, so re-run a moment after an attack.');
+                    return;
+                }
+
+                expect.ok('the mirror carries participantStats',
+                    flag.participantStats !== undefined && flag.participantStats !== null);
+
+                // Reduce the mirror the way a player client will, and require the same
+                // answer. This is the actual guarantee: what a player sees equals what
+                // the GM sees, give or take one debounce interval.
+                const fromMirror = stats.CombatStats._buildCombatAggregate(flag);
+                expect.ok('the mirror reduces to an aggregate', fromMirror !== null);
+                if (!fromMirror) return;
+
+                expect('participant count matches the live read',
+                    fromMirror.participants.length, live.participants.length);
+                for (const key of ['hits', 'misses', 'damageDealt', 'criticals', 'fumbles', 'kills']) {
+                    // A mismatch here is a stale mirror rather than a wrong reduction —
+                    // both read the same code — so report the pair to make that obvious.
+                    expect.ok(`totals.${key} agrees (mirror ${fromMirror.totals[key]}, live ${live.totals[key]})`,
+                        fromMirror.totals[key] === live.totals[key]);
+                }
+                log(`Mirror and live read agree on ${fromMirror.participants.length} participants.`);
+            }
+        },
+
+        {
             id: 'party-only-policy',
             group: 'Running combat',
             tier: 'headless',

@@ -524,18 +524,17 @@ export class CombatBarManager {
         // Between fights the bar shows the standings — figures that change only
         // when a combat ends. During one it shows the fight in progress.
         //
-        // The two sets are gated differently, and not by preference:
+        // Everyone sees both sets. These exist for the table to enjoy — the
+        // point of "biggest hit" is the player who landed it seeing it — so
+        // they are the party's own record in both directions, and neither set
+        // is GM information the way the challenge rating is.
         //
-        // Lifetime figures come from `stats.party`, which reduces actor flags
-        // and the stored combat history — a world setting — so they exist on
-        // every client and everyone sees them. They are the party's own record.
-        //
-        // Running figures come from `stats.combat.getRunningStats()`, and combat
-        // tracking is GM-gated at the source: a player client accumulates
-        // nothing, so `getRunningStats()` returns null there. GM-only is
-        // therefore what the data supports rather than a policy choice, and
-        // showing the items to players would show them three blanks.
-        const liveStatsVisible = () => game.user.isGM && !!CombatBarManager.getActiveCombat();
+        // Lifetime figures reduce actor flags and the stored combat history, a
+        // world setting, so they are on every client already. Running figures
+        // read the accumulator the GM mirrors to a combat flag, which syncs the
+        // same way; `CombatStats.getRunningCombatSource` covers why that works
+        // without a socket.
+        const liveStatsVisible = () => !!CombatBarManager.getActiveCombat();
         const lifetimeStatsVisible = () => !CombatBarManager.getActiveCombat();
 
         api.registerSecondaryBarItem('combat', 'stat-biggest-hitter', {
@@ -972,9 +971,10 @@ export class CombatBarManager {
         if (!api?.updateSecondaryBarItemInfo || !api?.stats) return;
 
         if (combat) {
-            // Players accumulate nothing, so there is nothing to draw for them
-            // and the items are hidden anyway.
-            if (!game.user.isGM) return;
+            // Null on a player client for the first moments of a combat, before
+            // the GM's first mirror to the combat flag lands. The chips show
+            // their registered placeholders until then and the next flag write
+            // fires updateCombat, which brings the bar back through here.
             const running = api.stats.combat.getRunningStats();
             const totals = running?.totals;
             const biggest = running?.notableMoments?.biggestHit;
