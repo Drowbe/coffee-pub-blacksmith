@@ -11,6 +11,8 @@
 
 ## Party aggregates behind the stats API (`stats.party`)
 
+**Now in progress** — see `documentation/plans/plan-encounter-bar-stats.md`, which covers this, the running-combat-totals getter, and the bar readouts as one effort.
+
 `StatsAPI.player` answers per-actor by id and nothing else — there is no party-wide getter anywhere. The
 aggregation that produces the Party Statistics window's headline tiles and leaderboard is real but lives in
 `window-stats-party.js`, which loops `game.actors.filter(a => a.hasPlayerOwner && !a.isToken)` calling
