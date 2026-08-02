@@ -87,6 +87,7 @@ class MenuBar {
     static secondaryBarActiveStates = new Map(); // Map<typeId, Map<groupId, itemId>> - tracks active items per group (for switch mode)
     static pendingSecondaryBarItems = new Map(); // Map<typeId, Map<itemId, itemData>> - items registered before bar type exists
     static secondaryBarToolMapping = new Map(); // Map<typeId, toolId> - maps secondary bar types to their toggle tool IDs
+    static _toolBeingClicked = null; // Tool id for the duration of its onClick, so a bar opened from it can learn its owner
     /** @type {Map<string, Map<string, { value?: string, label?: string }>>} - Live updates for info items: barTypeId -> itemId -> { value, label } */
     static secondaryBarInfoUpdates = new Map();
     static renderTimeout = null;
@@ -2449,9 +2450,6 @@ class MenuBar {
                 return true;
             }
 
-            // Get the previously open bar type before closing
-            const previousType = this.secondaryBar.type;
-            
             // Close any existing secondary bar first (skip button sync - we'll do it after)
             this.closeSecondaryBar(false);
 
@@ -2464,9 +2462,20 @@ class MenuBar {
             // Set up the secondary bar
             this.secondaryBar.isOpen = true;
             this.secondaryBar.type = typeId;
-            
-            // Update button states: deactivate previous bar's button, activate new bar's button
-            this._syncSecondaryBarButtonStates(previousType, typeId);
+
+            // Learn which tool owns this bar, if the module never said. A tool that opens
+            // a bar from its own onClick is that bar's tool, and the click handler flips
+            // `active` on it whether or not anyone declared the relationship — so without
+            // this the tool lights up and nothing is able to turn it off again.
+            // registerSecondaryBarTool stays the explicit way to declare it, and wins.
+            if (this._toolBeingClicked && !this.secondaryBarToolMapping.has(typeId)) {
+                const clickedTool = this.toolbarIcons.get(this._toolBeingClicked);
+                if (clickedTool?.toggleable) {
+                    this.secondaryBarToolMapping.set(typeId, this._toolBeingClicked);
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Learned tool mapping from click", { typeId, toolId: this._toolBeingClicked }, true, false);
+                }
+            }
+
             this.secondaryBar.height = options.height || barType.height || this.getSecondaryBarHeight(typeId);
             this.secondaryBar.persistence = options.persistence || barType.persistence;
             this.secondaryBar.data = options.data || {};
@@ -2489,8 +2498,10 @@ class MenuBar {
                 this._setAutoCloseTimeout();
             }
 
-            // Sync button states: deactivate previous bar's button, activate new bar's button
-            this._syncSecondaryBarButtonStates(previousType, typeId);
+            // Sync button states once the mapping above is in place. This used to run
+            // twice per open — once before the bar was configured and once after — and
+            // each call re-renders the whole menubar.
+            this._syncSecondaryBarButtonStates(typeId);
 
             postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Opened", { typeId, height: this.secondaryBar.height }, true, false);
 
@@ -2531,7 +2542,7 @@ class MenuBar {
             
             // Update button state: deactivate the closing bar's button
             if (syncButtons && closingType) {
-                this._syncSecondaryBarButtonStates(closingType, null);
+                this._syncSecondaryBarButtonStates(null);
             }
 
             // Reset the CSS variables for secondary bar height and total height
@@ -2645,39 +2656,33 @@ class MenuBar {
     }
 
     /**
-     * Sync button active states when secondary bars change
+     * Sync button active states when secondary bars change.
+     *
+     * Takes only the type that is now open because the answer does not depend on what
+     * was open before: a mapped tool is active exactly when its bar is the open one.
+     *
      * @private
-     * @param {string|null} previousType - The previously open bar type (or null if none)
-     * @param {string|null} newType - The newly opening bar type (or null if closing)
+     * @param {string|null} newType - The newly opening bar type, or null when closing
      */
-    static _syncSecondaryBarButtonStates(previousType, newType) {
+    static _syncSecondaryBarButtonStates(newType) {
         try {
-            // Deactivate previous bar's button if it exists
-            if (previousType) {
-                const previousToolId = this.secondaryBarToolMapping.get(previousType);
-                if (previousToolId) {
-                    const previousTool = this.toolbarIcons.get(previousToolId);
-                    if (previousTool && previousTool.toggleable) {
-                        previousTool.active = false;
-                    }
-                }
+            // Every mapped tool is set from whether its bar is the open one, rather than
+            // just clearing `previousType`'s. Only one secondary bar can be open, so a
+            // tool whose bar is not it is not active — full stop. Clearing only the
+            // previous type meant any tool that went active by some other route stayed
+            // lit forever, and the generic click handler is exactly such a route: it
+            // flips `tool.active` for any toggleable tool without knowing what the tool
+            // does. Deriving the whole set makes the two impossible to disagree.
+            for (const [barTypeId, toolId] of this.secondaryBarToolMapping) {
+                const tool = this.toolbarIcons.get(toolId);
+                if (!tool || !tool.toggleable) continue;
+                tool.active = barTypeId === newType;
             }
-            
-            // Activate new bar's button if it exists
-            if (newType) {
-                const newToolId = this.secondaryBarToolMapping.get(newType);
-                if (newToolId) {
-                    const newTool = this.toolbarIcons.get(newToolId);
-                    if (newTool && newTool.toggleable) {
-                        newTool.active = true;
-                    }
-                }
-            }
-            
+
             // Re-render to show updated states
             this.renderMenubar(true);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error syncing button states", { previousType, newType, error }, false, false);
+            postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Error syncing button states", { newType, error }, false, false);
         }
     }
 
@@ -3515,12 +3520,19 @@ class MenuBar {
                 this.renderMenubar(true);
             }
 
-            // Execute the tool's onClick function
+            // Execute the tool's onClick function. The tool id is published for the
+            // duration of the call so that a bar opened from here can learn which tool
+            // owns it — see openSecondaryBar. Cleared in `finally`, since a handler that
+            // throws would otherwise leave a stale id to be misattributed to the next
+            // bar opened from anywhere.
             if (typeof tool.onClick === 'function') {
                 try {
+                    this._toolBeingClicked = toolId;
                     tool.onClick(event);
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, `Error executing tool ${toolId}:`, error, false, false);
+                } finally {
+                    this._toolBeingClicked = null;
                 }
             }
         };

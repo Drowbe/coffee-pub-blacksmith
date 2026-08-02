@@ -26,6 +26,24 @@ A bar type may render three ways: **default** (registered items only), **custom 
 `hybridItems: true`, which renders both). Hybrid exists because the encounter bar's portrait strip cannot
 be expressed as items while its readouts are best expressed as nothing else.
 
+### The tool that opens a bar
+
+A bar's menubar button is a `toggleable` tool, and the generic click handler flips `tool.active` on any
+such tool without knowing what it does. That means a tool goes active by a route that knows nothing about
+bars, so the bar machinery has to be what turns it off.
+
+`_syncSecondaryBarButtonStates(newType)` therefore **derives the whole set** rather than clearing one
+entry: since only one bar can be open, `tool.active = barTypeId === newType` across every mapping in
+`secondaryBarToolMapping`. Clearing only the previously-open type left any tool that went active by some
+other route lit forever, which is precisely what the generic click handler is.
+
+The mapping itself is **learned when it is not declared**. `registerSecondaryBarTool(barTypeId, toolId)` is
+the explicit declaration and wins, but it is optional and about half the suite never called it. So a bar
+opened from inside a tool's `onClick` records that tool as its owner: the click handler publishes
+`MenuBar._toolBeingClicked` for the duration of the call and clears it in a `finally`, and
+`openSecondaryBar` reads it when the type has no mapping yet. The `finally` is load-bearing — a handler
+that throws would otherwise leave a stale id to be misattributed to the next bar opened from anywhere.
+
 ## Height is a scale factor, not a dimension
 
 This is the single most load-bearing fact about the menubar, and the one that is not visible from any one
