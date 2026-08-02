@@ -30,7 +30,10 @@
 
 import { MODULE } from './const.js';
 import { getPortraitImage, postConsoleAndNotification, getSettingSafely, playSound } from './api-core.js';
-import { CombatStats, MVPDescriptionGenerator } from './stats-combat.js';
+import { CombatStats } from './stats-combat.js';
+// stats-mvp.js is a leaf — it imports neither this file nor the tracker — so
+// this one is static rather than lazy.
+import { CombatMvp, MVPDescriptionGenerator } from './stats-mvp.js';
 
 export class CombatCards {
     /**
@@ -195,8 +198,8 @@ export class CombatCards {
         }
 
         // Second pass: Calculate final scores and prepare for template
-        const mvpTuning = CombatStats._getMvpTuningSettings();
-        const mvpMaxima = CombatStats._computeMvpMaxima(Array.from(participantMap.values()).map(stats => ({
+        const mvpTuning = CombatMvp._getMvpTuningSettings();
+        const mvpMaxima = CombatMvp._computeMvpMaxima(Array.from(participantMap.values()).map(stats => ({
             offenseCount: Number.isFinite(Number(stats.successfulOffenseCount))
                 ? (Number(stats.successfulOffenseCount) || 0)
                 : (stats.combat?.attacks?.hits || 0),
@@ -212,7 +215,7 @@ export class CombatCards {
 
         const sortedParticipants = Array.from(participantMap.values()).map(stats => {
             // Calculate MVP score
-            const score = CombatStats._computeMvpScore({
+            const score = CombatMvp._computeMvpScore({
                 offenseCount: Number.isFinite(Number(stats.successfulOffenseCount))
                     ? (Number(stats.successfulOffenseCount) || 0)
                     : (stats.combat?.attacks?.hits || 0),
@@ -490,8 +493,8 @@ export class CombatCards {
             hitRate: rawTotals.hitRate ?? (totalsAttacks > 0 ? ((totalsHits / totalsAttacks) * 100).toFixed(1) : 0)
         };
 
-        const mvpTuning = CombatStats._getMvpTuningSettings();
-        const mvpMaxima = CombatStats._computeMvpMaxima(eligibleParticipants.map(participant => ({
+        const mvpTuning = CombatMvp._getMvpTuningSettings();
+        const mvpMaxima = CombatMvp._computeMvpMaxima(eligibleParticipants.map(participant => ({
             offenseCount: Number.isFinite(Number(participant.successfulOffenseCount))
                 ? (Number(participant.successfulOffenseCount) || 0)
                 : (participant.hits || 0),
@@ -513,7 +516,7 @@ export class CombatCards {
                 const tokenImg = actor ? getPortraitImage(actor) : "icons/svg/mystery-man.svg";
 
                 // Calculate MVP score (same formula as round)
-                const score = CombatStats._computeMvpScore({
+                const score = CombatMvp._computeMvpScore({
                     offenseCount: Number.isFinite(Number(participant.successfulOffenseCount))
                         ? (Number(participant.successfulOffenseCount) || 0)
                         : (participant.hits || 0),
