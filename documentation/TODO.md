@@ -100,40 +100,27 @@ Both it and `stats-sources.js` define `_forwardToGM`, doing the same job over th
 Noted during the decomposition. Related to the crit/fumble detection consolidation in
 `plans/plan-rolls-classification.md`, which names four detection sites; this is the forwarding equivalent.
 
-## Party aggregates behind the stats API (`stats.party`)
+## Live-verify the expanded encounter bar readouts
 
-**Now in progress** — see `documentation/plans/plan-encounter-bar-stats.md`, which covers this, the running-combat-totals getter, and the bar readouts as one effort.
+Seventeen chips now share the middle zone — ten out of combat, seven in one — where six shared it before.
+Shipped unverified.
 
-`StatsAPI.player` answers per-actor by id and nothing else — there is no party-wide getter anywhere. The
-aggregation that produces the Party Statistics window's headline tiles and leaderboard is real but lives in
-`window-stats-party.js`, which loops `game.actors.filter(a => a.hasPlayerOwner && !a.isToken)` calling
-`StatsAPI.player.getStats(actor.id)` per actor and reduces by hand (`:203` leaderboard, `:300` tiles). So a
-second consumer — the combat bar — cannot reuse any of it without a second copy of the party definition,
-the tie-break rules (most-crits ties break on MVP total), and the field choices.
-
-**This is a refactor with a capability falling out, not a new feature.** Move the aggregation behind
-`stats.party`, then have the window and the bar both consume it; the window gets shorter rather than the bar
-getting longer, and the numbers cannot disagree. What already exists to move: top MVP, biggest hit, most
-crits, most fumbles, most hits, most misses (each with the actor), party accuracy, damage dealt, damage
-taken, heals given, kills, encounter and round counts, and the ranked lifetime leaderboard. Hit rate is
-already derived there too.
-
-**This gates out-of-combat stats on the encounter bar** — without it the bar would have to loop actors
-itself, which is exactly the abstracting we do not want. Verify: the Party Statistics window renders
-identically before and after, and the bar and the window report the same numbers for the same party.
-
-## Real-time stats in the encounter bar's middle zone
-
-The middle zone is deliberately empty and reserved for this. Which stats to show is still open — the
-in-combat set is available today from `stats.combat.getCurrentStats()` (party hits, misses, kills, damage
-dealt, damage taken, healing done, average turn time, plus eight notable moments), while anything
-out-of-combat waits on `stats.party` above. Two things are cheap and already computed but unused:
-`getCombatData` produces `currentRoundDuration` and `totalCombatDuration` and the template ignores them —
-they are text chips, not bars, since they count up with no maximum.
-
-Sequencing: land the display-only item work below first, or each stat readout arrives needing the same
-local overrides that work removes. Verify: readouts update live without the menubar re-rendering per tick,
-per the rule in `architecture-encounter.md`.
+- **Both sets read correctly.** Out of combat, check each of the ten against the Party Statistics window;
+  the two consume the same aggregate, so any disagreement is a bug in the chip's write rather than in the
+  numbers. In combat, check the seven against the end-of-combat card once the fight ends.
+- **The ranking is the feature.** Narrow the window until chips start dropping and confirm they go in the
+  order `READOUT_SUPPRESSION_ORDER` declares — campaign-scale figures first, the three originals last. If
+  the wrong ones survive at a typical width, the fix is the ranking, not the set.
+- **Fewest misses reads as a credit.** Hover it and confirm the tooltip says "Fewest misses on record".
+  The aggregate ranks that measure low-is-best, so the bare number is misleading without the wording.
+- **Portraits and totals stay distinguishable.** Per-person standings show a face; party totals show a
+  number and no face. Confirm a six-figure lifetime total renders as `8.4k` with the exact figure in the
+  tooltip.
+- **Players see what the GM sees.** On a player client, confirm both sets render. The live figures arrive
+  through the combat flag every client reads, so three blanks there would mean the mirror is broken.
+- **Nothing regressed at the far end of the bar.** The suppression list grew from ten entries to
+  twenty-one; confirm party health, monster health, and both timers still survive a narrow bar, since they
+  rank after every statistic.
 
 ## Make display-only secondary bar items first-class
 
@@ -626,6 +613,7 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
 
 - **What counts as dead (author, 2026-08-03)**: the combatant `defeated` flag **or** HP <= 0 — either alone qualifies — **and only for NPCs**. A player token is never hidden, whatever its state. A downed PC is dying, not dead: the party has to see where they fell to reach them, and hiding a body the party is trying to revive would be actively harmful. Use `!actor.hasPlayerOwner` for the NPC test, which is the same predicate the party-stats code uses, and read it from `token.actor` so unlinked tokens resolve their synthetic actor rather than the prototype.
   - Consequence worth being deliberate about: a player-owned companion, familiar, or summon is an NPC by intuition but player-owned by ownership, so this rule leaves dead ones on the map. That is the safe default — never hiding something a player has a stake in — but if a table finds dead summons cluttering, the fix is a narrower NPC test, not an exception carved into the toggle.
+  - **Guard the HP read.** A combatant's actor may have no `system.attributes.hp` at all — a dnd5e `group` actor can sit on the canvas and join combat, and Foundry does not prevent it (see `architecture-encounter.md`). It also passes `!actor.hasPlayerOwner`, so it classifies as an NPC and reaches the dead test. No hit points means not dead, and an unguarded read here throws inside a canvas hook.
 - **State**: a scene flag, cleared on combat end. A scene flag is world data, so updating it propagates to every client on its own — no socket, and the players' canvases follow the GM's button press for free. `deleteCombat` / combat end clears it, which is what makes the corpses reappear for looting.
 
 - **Dimming solves the interaction half and does nothing for the performance half.** Worth stating plainly, because with path blocking ruled out the interaction half is now most of the case for the feature. `interactive = false` genuinely fixes it — a dead pile stops swallowing clicks and targets meant for the living. But a dimmed token still renders, and alpha blending is marginally *more* work than opaque, so if the twenty-corpse slowdown is real and caused by rendering, this will not touch it.

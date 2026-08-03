@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Fixed
+
+- **One combatant without hit points broke the combat tracker for every other row** (`scripts/ui-combat-tools.js`): the health-ring code read `actor.system.attributes.hp.value` directly, and `hp` is optional — a dnd5e `group` actor carries members rather than hit points, and a combat can hold any actor type at all. The read threw inside the `renderCombatTracker` hook, which took the whole callback down mid-loop, so every combatant after the offending one lost its ring, portrait state, and controls. The visible symptom was a broken tracker; the cause was one unusual row.
+  - Both reads in that file are guarded now. Where a ring cannot be drawn the container is **removed** rather than skipped, since a re-render may otherwise leave a ring drawn before the actor changed. An actor with no hit points is also never marked dead — it cannot be at zero of something it does not have.
+  - A sweep for the same pattern found one more in `scripts/xp-manager.js`: `detectMonsterResolution` read the same path in all three of its branches. It now returns `UNKNOWN` when there are no hit points, which is what UNKNOWN is for — there is no evidence either way. The two reads in `manager-combatbar.js` were already guarded and needed nothing.
+
+### Added — the encounter bar's statistics set
+
+- **Eleven more readouts, and the plan behind them is complete** (`scripts/manager-combatbar.js`): the bar showed three figures out of combat and three in one, chosen as a starting point while the rest of the machinery landed. Every remaining number was already reduced and sitting unused — `getRunningStats()` returns fourteen fields and the bar read three; `stats.party.getAggregate()` returns fifteen and the bar read three. Nothing here needed API work, which was the point of the earlier phases.
+  - **Out of combat, now ten**: the existing biggest hit, most fumbles, and top MVP, plus **most criticals** — the mirror of most fumbles, since showing the shame without the glory read as an odd omission — **most hits**, **fewest misses**, and four campaign-scale figures: **total damage**, **total kills**, **combats fought**, and **average hit rate**, which is the out-of-combat counterpart to the live hit-rate chip.
+  - **In combat, now seven**: the existing damage dealt, hit rate, and biggest hit, plus **kills** and **damage taken** (damage dealt alone says how the party is doing to the fight; these say how the fight is doing to them), **healing given** — without which a healer's entire contribution was invisible until the fight ended — and the **leading MVP** as a portrait chip.
+  - **They do not all fit, and that is the design.** `READOUT_SUPPRESSION_ORDER` decides what a given bar width actually shows, so it is now a ranking rather than a tidy-up: campaign-scale figures drop first, since they change once per combat and the Party Statistics window has them any time, then the secondary standings, then the three originals in each set. Adding a readout now means deciding where it sits in that ranking, not merely registering it. Recorded in `architecture-encounter.md`.
+  - Party-scale totals carry **no portrait**, deliberately — they belong to the party rather than to anyone in it — and pass through a new `compactNumber()` rendering thousands as `8.4k`, since a lifetime total reaches five or six digits over a campaign and a chip is about four characters wide before it pushes its neighbours out of the bar. The exact figure stays in the tooltip.
+  - `mostMisses` is ranked **low-is-best** by the aggregate, so that chip means "fewest misses" and its tooltip says so. Without that wording the number reads as an accusation rather than a credit.
+  - The live set is renumbered from 10 so the two sets cannot interleave. They are mutually exclusive through their `visible` predicates today, but ordering that only holds because of a predicate is ordering waiting to break.
+  - `documentation/plans/plan-encounter-bar-stats.md` is **deleted** — all four phases are done, its mechanics live in `architecture-encounter.md` and its caching design in `architecture-stats.md`. Two `TODO.md` items went with it: the `stats.party` aggregate (shipped in phase 1; `window-stats-party.js` no longer carries its own reduction) and the middle-zone readouts themselves.
+
 ## [13.14.2]
 
 ### Added

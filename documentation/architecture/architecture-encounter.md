@@ -34,6 +34,15 @@ beside Foundry's roll controls, automatic initiative rolling for players and non
 turn-change token selection, and open/close control used by the bar's Encounter menu. The two countdown
 timers inject themselves separately, from their own modules.
 
+**A combatant's actor may have no hit points, and Foundry will not stop you.** A dnd5e `group` actor can be
+placed on the canvas and added to combat like anything else, and it carries `system.members` rather than
+`system.attributes.hp`. Any code walking `combat.turns` or the tracker's rows must treat
+`system.attributes.hp` as optional — confirmed in play 2026-08-03, where a group actor on the canvas threw
+inside the `renderCombatTracker` hook and took the callback down **mid-loop**, so every combatant after it
+lost its health ring, portrait state, and controls. The visible failure was a broken tracker; the cause was
+one unusual row. The same caution applies to `hasPlayerOwner` type tests, which will happily classify a
+group actor as an NPC.
+
 ## What each surface is for
 
 The tracker is the full list: every combatant, every control, initiative editing. The bar is the glanceable
@@ -183,10 +192,27 @@ dividers automatically, so the grouping is what produces the pipes.
 
 ### Party statistics
 
-Two sets of three share the middle zone, swapped by combat state through `visible` predicates. Out of
-combat the bar shows the standings — biggest hit on record, most fumbles, top MVP — which change only when
-a combat ends. In combat it shows the fight in progress: party damage dealt, hit rate, and the biggest hit
-so far.
+Two sets share the middle zone, swapped by combat state through `visible` predicates. Out of combat the bar
+shows the standings, which change only when a combat ends: biggest hit on record, most fumbles, top MVP,
+most criticals, most hits, fewest misses, total damage, total kills, combats fought, and average hit rate.
+In combat it shows the fight in progress: party damage dealt, hit rate, biggest hit so far, kills, damage
+taken, healing given, and the leading MVP.
+
+Ten and seven, and **not all of them fit** — that is the design rather than an oversight.
+`READOUT_SUPPRESSION_ORDER` decides what a given bar width actually shows, so the list is a ranking from
+"nice to have" to "the reason the zone exists". Campaign-scale figures rank lowest: they change once per
+combat and the Party Statistics window has them any time. The three originals in each set rank highest.
+Adding a readout therefore means deciding where it sits in that ranking, not just registering it.
+
+The per-person standings carry a **portrait instead of a name**. Three chips reading "Kar-ahn 26",
+"Favia 2", "Favia" are unreadable at a glance — two of them are the same word meaning different things —
+and a face is recognised instantly where a truncated first name is not. The name stays in the tooltip.
+Party-scale totals carry no portrait, deliberately: they belong to the party rather than to anyone in it.
+`compactNumber` renders thousands as `8.4k`, since a lifetime total reaches five or six digits over a
+campaign and a chip is about four characters wide before it pushes its neighbours out of the bar.
+
+One tooltip does real work: `mostMisses` is ranked **low-is-best** by the aggregate, so that chip means
+"fewest misses" and the tooltip says so. Without it the number reads as an accusation rather than a credit.
 
 **The bar reduces nothing.** It reads `stats.party.getAggregateSync()` for the standings and
 `stats.combat.getRunningStats()` for the running fight, both of which are single reductions shared with the

@@ -525,18 +525,26 @@ export class XpManager {
         const actor = monster.actor;
         if (!actor) return 'UNKNOWN';
 
+        // Hit points are optional on an actor -- a dnd5e `group` has members rather
+        // than HP -- and every branch below reads them. Without a value there is no
+        // evidence either way, which is what UNKNOWN means.
+        const hp = actor.system?.attributes?.hp;
+        const current = Number(hp?.value);
+        const max = Number(hp?.max);
+        if (!Number.isFinite(current)) return 'UNKNOWN';
+
         // 1. Defeated: If dead (HP <= 0)
-        if (actor.system.attributes.hp.value <= 0) {
+        if (current <= 0) {
             return 'DEFEATED';
         }
 
         // 2. Escaped: If not dead and lost any HP
-        if (actor.system.attributes.hp.value < actor.system.attributes.hp.max) {
+        if (Number.isFinite(max) && current < max) {
             return 'ESCAPED';
         }
 
         // 3. Ignored: If not dead and took no damage
-        if (actor.system.attributes.hp.value === actor.system.attributes.hp.max) {
+        if (Number.isFinite(max) && current === max) {
             return 'IGNORED';
         }
 

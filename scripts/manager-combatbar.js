@@ -580,12 +580,100 @@ export class CombatBarManager {
             tooltip: 'Top MVP on record',
             visible: lifetimeStatsVisible
         });
-
-        api.registerSecondaryBarItem('combat', 'stat-damage-dealt', {
+        // The mirror of most-fumbles. Showing the shame without the glory read as
+        // an odd omission once both were on the same aggregate.
+        api.registerSecondaryBarItem('combat', 'stat-most-crits', {
             kind: 'info',
             zone: 'middle',
             group: 'stats',
             order: 3,
+            icon: 'fa-solid fa-dice-d20',
+            label: '',
+            value: '-',
+            tooltip: 'Most criticals on record',
+            visible: lifetimeStatsVisible
+        });
+        // The reliability pair. `mostMisses` is already ranked low-is-best by the
+        // aggregate, so this is "who whiffs least", not "who whiffs most".
+        api.registerSecondaryBarItem('combat', 'stat-most-hits', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 4,
+            icon: 'fa-solid fa-crosshairs',
+            label: '',
+            value: '-',
+            tooltip: 'Most hits on record',
+            visible: lifetimeStatsVisible
+        });
+        api.registerSecondaryBarItem('combat', 'stat-most-misses', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 5,
+            icon: 'fa-solid fa-ban',
+            label: '',
+            value: '-',
+            tooltip: 'Fewest misses on record',
+            visible: lifetimeStatsVisible
+        });
+        // Campaign-scale totals rather than per-person standings, so no portrait:
+        // these belong to the party, not to anyone in it.
+        api.registerSecondaryBarItem('combat', 'stat-total-damage', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 6,
+            icon: 'fa-solid fa-swords',
+            label: '',
+            value: '-',
+            tooltip: 'Total damage dealt across every recorded combat',
+            visible: lifetimeStatsVisible
+        });
+        api.registerSecondaryBarItem('combat', 'stat-total-kills', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 7,
+            icon: 'fa-solid fa-skull',
+            label: '',
+            value: '-',
+            tooltip: 'Total kills across every recorded combat',
+            visible: lifetimeStatsVisible
+        });
+        api.registerSecondaryBarItem('combat', 'stat-combats', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 8,
+            icon: 'fa-solid fa-flag-checkered',
+            label: '',
+            value: '-',
+            tooltip: 'Combats fought',
+            visible: lifetimeStatsVisible
+        });
+        // The out-of-combat counterpart to the live hit-rate chip, so the same
+        // measure appears in both states rather than only during a fight.
+        api.registerSecondaryBarItem('combat', 'stat-avg-hit-rate', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 9,
+            icon: 'fa-solid fa-percent',
+            label: '',
+            value: '-',
+            tooltip: 'Average hit rate across every recorded combat',
+            visible: lifetimeStatsVisible
+        });
+
+        // The live set is numbered from 10 so the two sets never interleave if both
+        // are ever visible at once. They are mutually exclusive today, but ordering
+        // that only works because of a predicate is ordering waiting to break.
+        api.registerSecondaryBarItem('combat', 'stat-damage-dealt', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 10,
             icon: 'fa-solid fa-hand-fist',
             label: '',
             value: '0',
@@ -596,7 +684,7 @@ export class CombatBarManager {
             kind: 'info',
             zone: 'middle',
             group: 'stats',
-            order: 4,
+            order: 11,
             icon: 'fa-solid fa-bullseye',
             label: '',
             value: '0%',
@@ -607,11 +695,60 @@ export class CombatBarManager {
             kind: 'info',
             zone: 'middle',
             group: 'stats',
-            order: 5,
+            order: 12,
             icon: 'fa-solid fa-explosion',
             label: '',
             value: '-',
             tooltip: 'Biggest hit this combat',
+            visible: liveStatsVisible
+        });
+        // The survival read. Damage dealt alone says how the party is doing TO the
+        // fight; these say how the fight is doing to them.
+        api.registerSecondaryBarItem('combat', 'stat-kills', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 13,
+            icon: 'fa-solid fa-skull-crossbones',
+            label: '',
+            value: '0',
+            tooltip: 'Kills this combat',
+            visible: liveStatsVisible
+        });
+        api.registerSecondaryBarItem('combat', 'stat-damage-taken', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 14,
+            icon: 'fa-solid fa-shield-halved',
+            label: '',
+            value: '0',
+            tooltip: 'Party damage taken this combat',
+            visible: liveStatsVisible
+        });
+        // Otherwise a healer's whole contribution is invisible until the fight ends.
+        api.registerSecondaryBarItem('combat', 'stat-healing-given', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 15,
+            icon: 'fa-solid fa-kit-medical',
+            label: '',
+            value: '0',
+            tooltip: 'Healing given this combat',
+            visible: liveStatsVisible
+        });
+        // Portrait, like the biggest-hit chips: a face is read instantly where a
+        // truncated name is not, and the name stays in the tooltip.
+        api.registerSecondaryBarItem('combat', 'stat-combat-mvp', {
+            kind: 'info',
+            zone: 'middle',
+            group: 'stats',
+            order: 16,
+            icon: 'fa-solid fa-medal',
+            label: '',
+            value: '',
+            tooltip: 'Leading MVP this combat',
             visible: liveStatsVisible
         });
 
@@ -802,7 +939,20 @@ export class CombatBarManager {
         // the moment. Within each set the least operational goes first, so what
         // survives longest is the biggest hit on record out of combat and the
         // damage total in one — the two anyone actually watches.
+        //
+        // The order within each set is now the whole design. Ten lifetime chips and
+        // seven live ones cannot all fit on a normal bar, and they are not meant to:
+        // suppression decides what a given width actually shows, so this list is the
+        // ranking from "nice to have" to "the reason the zone exists". The campaign-
+        // scale figures go first — they change once per combat and can be read in the
+        // Party Statistics window any time — then the secondary standings, then the
+        // three originals.
+        'stat-combats', 'stat-avg-hit-rate', 'stat-total-kills', 'stat-total-damage',
+        'stat-most-misses', 'stat-most-hits', 'stat-most-crits',
         'stat-most-fumbles', 'stat-top-mvp', 'stat-biggest-hitter',
+        // Live: the flourish and the support detail go before the survival pair,
+        // which goes before the three originals.
+        'stat-combat-mvp', 'stat-healing-given', 'stat-kills', 'stat-damage-taken',
         'stat-hit-rate', 'stat-combat-biggest', 'stat-damage-dealt',
         'party-health', 'monster-health', 'planning-timer', 'turn-timer'
     ];
@@ -967,6 +1117,20 @@ export class CombatBarManager {
      * tooltip, where there is room for it.
      */
     /**
+     * Thousands as "8.4k". Lifetime totals reach five and six digits over a
+     * campaign, and a chip is about four characters wide before it starts pushing
+     * its neighbours out of the bar. The exact figure stays in the tooltip where
+     * there is room for it.
+     */
+    static compactNumber(value) {
+        const number = Number(value) || 0;
+        if (Math.abs(number) < 1000) return String(number);
+        const thousands = number / 1000;
+        // 8.4k below ten thousand, 84k above -- one decimal is noise at that scale.
+        return `${Math.abs(thousands) < 10 ? thousands.toFixed(1) : Math.round(thousands)}k`;
+    }
+
+    /**
      * A portrait for an actor id, or null. Null rather than the mystery-man
      * placeholder on purpose: the template only renders the img when there is
      * one, so a missing portrait leaves the chip as icon-and-number instead of
@@ -1022,6 +1186,26 @@ export class CombatBarManager {
                     ? `Biggest hit this combat: ${biggest.attacker} hit ${biggest.target} for ${biggest.amount}`
                     : 'Biggest hit this combat'
             });
+            api.updateSecondaryBarItemInfo('combat', 'stat-kills', {
+                value: String(totals?.kills ?? 0)
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-damage-taken', {
+                value: String(totals?.damageTaken ?? 0)
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-healing-given', {
+                value: String(totals?.healingGiven ?? 0)
+            });
+            const mvp = running?.notableMoments?.mvp;
+            api.updateSecondaryBarItemInfo('combat', 'stat-combat-mvp', {
+                image: CombatBarManager.actorPortrait(mvp?.actorId ?? mvp?.id),
+                label: '',
+                // No number: the score is a composite nobody reads at a glance, and
+                // the face is the whole statement — same treatment as top MVP.
+                value: '',
+                tooltip: mvp?.name
+                    ? `Leading MVP this combat: ${mvp.name}`
+                    : 'Leading MVP this combat'
+            });
             return;
         }
 
@@ -1055,6 +1239,44 @@ export class CombatBarManager {
                 // No number to show — the face is the whole statement.
                 value: '',
                 tooltip: `Top MVP on record: ${aggregate.topMvp?.name ?? 'nobody'}`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-most-crits', {
+                image: aggregate.mostCrits?.img || null,
+                label: '',
+                value: String(aggregate.mostCrits?.count ?? 0),
+                tooltip: `Most criticals on record: ${aggregate.mostCrits?.name ?? 'nobody'} with ${aggregate.mostCrits?.count ?? 0}`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-most-hits', {
+                image: aggregate.mostHits?.img || null,
+                label: '',
+                value: String(aggregate.mostHits?.count ?? 0),
+                tooltip: `Most hits on record: ${aggregate.mostHits?.name ?? 'nobody'} with ${aggregate.mostHits?.count ?? 0}`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-most-misses', {
+                image: aggregate.mostMisses?.img || null,
+                label: '',
+                value: String(aggregate.mostMisses?.count ?? 0),
+                // The aggregate ranks this low-is-best, so the winner is the most
+                // reliable shot, not the least. The tooltip has to say so or the
+                // number reads as an accusation.
+                tooltip: `Fewest misses on record: ${aggregate.mostMisses?.name ?? 'nobody'} with ${aggregate.mostMisses?.count ?? 0}`
+            });
+            // Party-scale totals. No portrait — these belong to the party, not to
+            // anyone in it, and a face here would claim otherwise.
+            api.updateSecondaryBarItemInfo('combat', 'stat-total-damage', {
+                value: CombatBarManager.compactNumber(aggregate.totalDamageGiven),
+                tooltip: `Total damage dealt across ${aggregate.totalCombats ?? 0} recorded combat(s): ${aggregate.totalDamageGiven ?? 0}`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-total-kills', {
+                value: CombatBarManager.compactNumber(aggregate.totalKills)
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-combats', {
+                value: String(aggregate.totalCombats ?? 0),
+                tooltip: `${aggregate.totalCombats ?? 0} combat(s) fought over ${aggregate.totalRounds ?? 0} round(s)`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-avg-hit-rate', {
+                // averageHitRate is already a formatted string from the aggregate.
+                value: `${aggregate.averageHitRate ?? 0}%`
             });
         };
 

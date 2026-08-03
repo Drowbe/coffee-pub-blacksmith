@@ -284,10 +284,20 @@ Hooks.once('ready', () => {
                 }
                 
                 if (showHealthRing) {
-                    // Calculate health percentage
-                    const hp = actor.system.attributes.hp;
-                    const currentHP = hp.value;
-                    const maxHP = hp.max;
+                    // Not every combatant has hit points. A dnd5e `group` actor carries
+                    // members rather than HP, and a combat can hold any actor type at
+                    // all, so `system.attributes.hp` is optional -- reading `.value` off
+                    // it threw and took the whole renderCombatTracker hook down with it,
+                    // meaning one unusual combatant broke the tools for every other row.
+                    // Remove the container rather than leaving it: on a re-render it may
+                    // already hold a ring drawn before the actor changed.
+                    const hp = actor.system?.attributes?.hp;
+                    const maxHP = Number(hp?.max);
+                    if (!hp || !Number.isFinite(maxHP) || maxHP <= 0) {
+                        container.remove();
+                        return; // Skip to next combatant
+                    }
+                    const currentHP = Number(hp.value) || 0;
                     
                     // Get health color based on percentage
                     const getHealthClass = (percent, currentHP) => {
@@ -354,10 +364,11 @@ Hooks.once('ready', () => {
 
                 // Add dead class and skull overlay if HP is 0 or less (v13: native DOM)
                 if (showHealthRing) {
-                    // For health rings, we have access to HP values
-                    const hp = actor.system.attributes.hp;
-                    const currentHP = hp.value;
-                    if (currentHP <= 0 && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
+                    // Optional for the same reason as above -- an actor with no hit
+                    // points cannot be at zero of them, so it is never marked dead.
+                    const hp = actor.system?.attributes?.hp;
+                    const currentHP = Number(hp?.value);
+                    if (Number.isFinite(currentHP) && currentHP <= 0 && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
                         element.classList.add('portrait-dead');
                         // Add skull overlay to the initiative div if it doesn't exist
                         const initiativeDiv = element.querySelector('.token-initiative');
