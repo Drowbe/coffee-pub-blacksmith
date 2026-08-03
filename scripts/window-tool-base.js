@@ -406,9 +406,14 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
 
         const menuButton = document.createElement('button');
         menuButton.type = 'button';
+        // `fa-dot` is not a Font Awesome class -- it does not exist in Foundry's
+        // bundled set, so the micro trigger rendered no glyph at all and the menu was
+        // an invisible button you could only find by hovering blind. The horizontal
+        // ellipsis is the ordinary "more" affordance and suits a horizontal rail;
+        // the vertical one stays on the taller full title bar.
         menuButton.className = `header-control icon fa-solid ${
             this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
-                ? 'fa-dot'
+                ? 'fa-ellipsis'
                 : 'fa-ellipsis-vertical'
         } blacksmith-window-tool-menu-trigger`;
         menuButton.dataset.tooltip = game.i18n.localize('coffee-pub-blacksmith.ToolWindowMenu');

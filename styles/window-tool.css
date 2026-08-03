@@ -1,7 +1,12 @@
 /* Lightweight Application V2 tool/palette window style. */
 
 .application.blacksmith-window-tool {
-    --header-height: 42px;
+    /* Foundry's own title bar is 36px with 13px text. A Tool window is the compact,
+       stays-open-over-the-canvas presentation, so its bar should sit at or under that,
+       never above it. It was 42px with 20px text -- taller and half again the type size
+       of the ordinary windows it sits beside. These two numbers are the whole control:
+       --header-height here, and .window-title's font-size below. */
+    --header-height: 30px;
     --blacksmith-tool-background:
         linear-gradient(180deg, rgba(247, 236, 216, 0.99), rgba(228, 215, 193, 0.99));
     --blacksmith-tool-titlebar-background: var(--blacksmith-tool-background);
@@ -49,13 +54,13 @@
 }
 
 .application.blacksmith-window-tool > .window-header {
-    padding: 0 8px;
+    padding: 0 6px;
     background: var(--blacksmith-tool-titlebar-background);
     border-bottom: 1px solid var(--blacksmith-tool-divider);
     color: var(--blacksmith-tool-accent);
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 800;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
 }
 
@@ -219,21 +224,28 @@
 .application.blacksmith-window-tool > .window-header .window-title {
     color: var(--blacksmith-tool-accent);
     font-family: "Modesto Condensed", "Palatino Linotype", serif;
-    font-size: 20px;
+    /* Condensed display face, so it still carries at this size where a body face
+       would not. Foundry sets line-height to --header-height, which is what keeps
+       the text centred when the bar shrinks. */
+    font-size: 15px;
     font-weight: 800;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
 }
 
 .application.blacksmith-window-tool > .window-header button.header-control {
-    --button-size: 22px;
-    --button-text-color: rgba(67, 49, 32, 0.78);
+    /* Sized to the 30px bar rather than the old 42px one -- 22px controls in a 30px
+       bar leave almost no breathing room above and below. */
+    --button-size: 20px;
+    /* Was a hard-coded parchment brown, which is invisible against the Dark and
+       Glass title bars. The muted/full pair carries the same intent per theme. */
+    --button-text-color: var(--blacksmith-tool-text-muted);
 }
 
 .application.blacksmith-window-tool > .window-header button.header-control:hover,
 .application.blacksmith-window-tool > .window-header button.header-control:focus-visible,
 .application.blacksmith-window-tool > .window-header button.blacksmith-window-tool-header-action.is-active {
     --button-text-color: var(--blacksmith-tool-text);
-    background: rgba(112, 85, 49, 0.14);
+    background: var(--blacksmith-tool-surface-hover);
 }
 
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro {
@@ -250,6 +262,9 @@
     cursor: grabbing;
 }
 
+/* The rail hides the title and the consumer's own actions. Close is deliberately
+   NOT hidden: a 14px strip with no visible way to close it sends people hunting
+   through a context menu for the commonest action there is. */
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
     > .window-header
     > .window-icon,
@@ -258,32 +273,67 @@
     > .window-title,
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
     > .window-header
-    > [data-action="close"],
-.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
-    > .window-header
     > .blacksmith-window-tool-header-action {
     display: none;
+}
+
+/* Menu dot and Close, in that DOM order. Muted by COLOR, not by opacity: opacity
+   fades the glyph toward the rail behind it, which is what made a 9px icon read as
+   a smudge rather than a control. A muted colour keeps the shape crisp at low
+   emphasis, and gives somewhere to travel to on hover. */
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > .blacksmith-window-tool-menu-trigger,
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > [data-action="close"] {
+    --button-size: 14px;
+    display: inline-flex;
+    border-radius: 2px;
+    font-size: 9px;
+    color: var(--blacksmith-tool-text-muted);
+    background: transparent;
+    opacity: 1;
+    transition: color 100ms ease;
 }
 
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
     > .window-header
     > .blacksmith-window-tool-menu-trigger {
-    --button-size: 14px;
-    display: inline-flex;
     margin-left: auto;
-    border-radius: 2px;
-    opacity: 0.28;
-    font-size: 9px;
-    transition: opacity 100ms ease, background-color 100ms ease;
 }
 
+/* Hovering anywhere on the rail brings both controls up to full strength, so you
+   can see what you are aiming at before you get there. */
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
     > .window-header:hover
     > .blacksmith-window-tool-menu-trigger,
 .application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header:hover
+    > [data-action="close"] {
+    color: var(--blacksmith-tool-text);
+}
+
+/* Hovering one control darkens that glyph alone. No background plate -- at 14px a
+   filled hover box is a smear, and the icon is the thing you are pointing at. */
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
     > .window-header
-    > .blacksmith-window-tool-menu-trigger:focus-visible {
-    opacity: 1;
+    > .blacksmith-window-tool-menu-trigger:hover,
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > [data-action="close"]:hover,
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > .blacksmith-window-tool-menu-trigger:focus-visible,
+.application.blacksmith-window-tool.blacksmith-window-tool-titlebar-micro
+    > .window-header
+    > [data-action="close"]:focus-visible {
+    /* The house interactive colour, not --blacksmith-tool-accent: under Light those
+       two resolve to the same value, so landing on a control would look identical to
+       hovering the rail. Orange also reads on all three themes without a per-theme
+       value, which is why the menubar uses it for the same job. */
+    color: var(--blacksmith-color-brand-accent, #c15701);
+    background: transparent;
 }
 
 .application.blacksmith-window-tool
