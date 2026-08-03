@@ -1,0 +1,194 @@
+/* ============================================================================
+   SECONDARY BAR READOUT WIDGETS
+
+   The chip kinds that say what KIND of number they carry: `statchip` (a
+   quantity with a tone), `portraitstat` (a standing that belongs to a person),
+   `gaugechip` (a percentage as a shape).
+
+   These exist because every readout used to be `kind: 'info'` -- a rank, a
+   quantity, a percentage and a person all rendered identically, and nothing
+   about a chip said which it was.
+
+   THE RULE THEY ALL FOLLOW: restore identity, not affordance. A readout may
+   have colour, weight and shape; it may not have a fill, a pointer cursor or a
+   hover lift, because those say "click me" and it cannot be clicked. That is
+   the same reason `menubar-combatbar.css` strips the shared item chrome from
+   the data row, and these must not put it back.
+
+   SIZES COME FROM THE ROW. Every dimension below is derived from the item
+   variables the host row declares (`--secondary-bar-item-font-size`,
+   `--secondary-bar-item-icon-size`, `--secondary-bar-item-image-size`), which
+   are themselves re-based per row from that row's height -- see the note in
+   `menubar-combatbar.css`. Hard-coding a pixel size here would look right on
+   the data row and wrong on the taller combat row.
+   ============================================================================ */
+
+.blacksmith-menubar-secondary {
+    /* TONES. Deliberately NOT the `--blacksmith-status-*` tokens, which are
+       picked for light surfaces: #629602 and #8b0000 against this bar's warm
+       translucent row read fluorescent and muddy respectively. Same lesson as
+       `getDifficultyChipColor` in `manager-combatbar.js`, which needed its own
+       palette for exactly this reason. Muted and warmed to sit on the row. */
+    --blacksmith-widget-tone-neutral: rgba(240, 240, 224, 0.92);
+    --blacksmith-widget-tone-good: #a8c9a0;
+    --blacksmith-widget-tone-bad: #e07070;
+    --blacksmith-widget-tone-record: #dcc36a;
+
+    /* RANK RINGS. Gold, silver, bronze, then nothing -- a chip with no standing
+       gets a plain rim rather than a fourth colour nobody can name. */
+    --blacksmith-widget-rank-1: #dcc36a;
+    --blacksmith-widget-rank-2: #c7cbd1;
+    --blacksmith-widget-rank-3: #c08a5a;
+    --blacksmith-widget-rank-none: rgba(240, 240, 224, 0.35);
+
+    --blacksmith-gauge-color: var(--blacksmith-widget-tone-neutral);
+    --blacksmith-gauge-track: rgba(0, 0, 0, 0.45);
+    --blacksmith-gauge-percent: 0;
+    /* The ring runs slightly larger than an icon and slightly smaller than a
+       portrait: it has to read as a shape at a glance without becoming the
+       widest thing in the row. */
+    --blacksmith-gauge-size: calc(var(--secondary-bar-item-icon-size) * 1.6);
+    --blacksmith-gauge-thickness: 2.5px;
+}
+
+/* ---- shared chip layout ---------------------------------------------------
+   The three kinds sit in the same row as `info` chips and must align with them,
+   so they take the same gap and the same baseline rather than each inventing
+   spacing. */
+.blacksmith-menubar-secondary .secondary-bar-item-statchip,
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat,
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip {
+    display: flex;
+    align-items: center;
+    gap: var(--secondary-bar-item-gap);
+    background-color: transparent;
+    border-color: transparent;
+    cursor: default;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip:hover,
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat:hover,
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip:hover {
+    background-color: transparent;
+    border-color: transparent;
+    transform: none;
+}
+
+/* ---- statchip -------------------------------------------------------------
+   Tone colours the value and the icon. The icon is dimmed relative to the
+   value on purpose: it labels the number rather than competing with it, which
+   is the same reason the row runs icons a step smaller than text. */
+.blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-value {
+    color: var(--blacksmith-widget-tone);
+    font-weight: 600;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-statchip-icon {
+    color: var(--blacksmith-widget-tone);
+    opacity: 0.7;
+    font-size: var(--secondary-bar-item-icon-size);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-neutral { --blacksmith-widget-tone: var(--blacksmith-widget-tone-neutral); }
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-good    { --blacksmith-widget-tone: var(--blacksmith-widget-tone-good); }
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-bad     { --blacksmith-widget-tone: var(--blacksmith-widget-tone-bad); }
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-record  { --blacksmith-widget-tone: var(--blacksmith-widget-tone-record); }
+
+/* A record is the one tone that earns more than colour, because "this is the
+   best it has ever been" is a different claim from "this number is high". A
+   hairline under the value, not a fill or a border box -- a box here would read
+   as a button and a fill would shout. */
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-record .secondary-bar-item-value {
+    border-bottom: 1px solid var(--blacksmith-widget-tone-record);
+    padding-bottom: 1px;
+}
+
+/* ---- portraitstat ---------------------------------------------------------
+   Round and ringed. The roundness is what separates "this belongs to a person"
+   from "this is a quantity" at a glance -- every other chip in the row is
+   rectangular, so shape carries the distinction before colour does.
+
+   The frame keeps its size whether or not there is a face in it, so a standing
+   changing hands never shifts the chips either side of it. */
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: var(--secondary-bar-item-image-size);
+    height: var(--secondary-bar-item-image-size);
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 0 1.5px var(--blacksmith-widget-rank, var(--blacksmith-widget-rank-none));
+    background-color: rgba(0, 0, 0, 0.35);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    border-radius: 0;
+    /* The shared item-image rule dims portraits to grayscale for unselected
+       buttons. A face whose only job is being recognised must not be dimmed --
+       the data row already undoes this for `info` chips and it applies here for
+       the same reason. */
+    filter: none;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat-empty {
+    font-size: calc(var(--secondary-bar-item-image-size) * 0.5);
+    color: rgba(240, 240, 224, 0.35);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat .secondary-bar-item-value {
+    font-weight: 600;
+    color: var(--blacksmith-widget-tone-neutral);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat.rank-1 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-1); }
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat.rank-2 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-2); }
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat.rank-3 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-3); }
+
+/* ---- gaugechip ------------------------------------------------------------
+   A conic gradient masked into a ring, rather than an SVG arc. Two reasons:
+   the sweep is a single custom property, so a value update is one style write
+   with no markup to rebuild; and it inherits the row's sizing variables
+   directly, where an SVG would need its geometry recomputed per row height. */
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-dial {
+    flex: 0 0 auto;
+    width: var(--blacksmith-gauge-size);
+    height: var(--blacksmith-gauge-size);
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--blacksmith-gauge-color) calc(var(--blacksmith-gauge-percent) * 1%),
+        var(--blacksmith-gauge-track) 0
+    );
+    -webkit-mask: radial-gradient(
+        closest-side,
+        transparent calc(100% - var(--blacksmith-gauge-thickness)),
+        #000 calc(100% - var(--blacksmith-gauge-thickness))
+    );
+    mask: radial-gradient(
+        closest-side,
+        transparent calc(100% - var(--blacksmith-gauge-thickness)),
+        #000 calc(100% - var(--blacksmith-gauge-thickness))
+    );
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-value {
+    font-weight: 600;
+    color: var(--blacksmith-widget-tone-neutral);
+}
+
+/* The ring is a reading, and a reading should not animate on first paint: a
+   sweep from zero on every render would make an unchanged value look live. Only
+   a real change moves it, which the value-patch path in `api-menubar.js` is
+   what makes possible -- the element survives its own update. */
+@media (prefers-reduced-motion: no-preference) {
+    .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-dial {
+        transition: background 0.35s ease;
+    }
+}

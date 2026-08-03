@@ -1,0 +1,134 @@
+{{!--
+    One secondary bar item, whatever kind it is.
+
+    Extracted because the three zones rendered identical markup three times over, so every new kind
+    cost three copies and any fix had to be made three times or silently apply to one zone. Invoked
+    as {{> "menubar-secondary-item" this groupId=../id}} -- `groupId` is passed explicitly rather
+    than reached for with `../id`, which does not resolve the same way from inside a partial.
+--}}
+{{#if (eq kind "info")}}
+<div class="secondary-bar-item secondary-bar-item-info"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+     {{#if (or buttonColor borderColor)}}
+     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+     {{/if}}>
+    {{#if image}}<img class="secondary-bar-item-image" src="{{image}}" alt="">{{/if}}
+    {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
+    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
+    {{#if displayValue}}<span class="secondary-bar-item-value" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}>{{displayValue}}</span>{{/if}}
+</div>
+
+{{else if (eq kind "statchip")}}
+{{!-- A readout that says what KIND of number it is. `tone` drives an accent on the value and a
+      hairline under it, never a filled background: this sits in a row of readouts, and a fill would
+      read as a button. --}}
+<div class="secondary-bar-item secondary-bar-item-statchip tone-{{tone}}"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-tone="{{tone}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    {{#if icon}}<i class="{{icon}} secondary-bar-item-statchip-icon"></i>{{/if}}
+    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
+    {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+</div>
+
+{{else if (eq kind "portraitstat")}}
+{{!-- A standing that belongs to a PERSON. Round and ringed so it cannot be mistaken for a quantity
+      chip at a glance; the name stays in the tooltip, where there is room for it. --}}
+<div class="secondary-bar-item secondary-bar-item-portraitstat rank-{{rank}}"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-rank="{{rank}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    <span class="secondary-bar-item-portraitstat-frame">
+        {{#if image}}
+        <img class="secondary-bar-item-portraitstat-image" src="{{image}}" alt="">
+        {{else}}
+        <i class="{{#if icon}}{{icon}}{{else}}fa-solid fa-user{{/if}} secondary-bar-item-portraitstat-empty"></i>
+        {{/if}}
+    </span>
+    {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+</div>
+
+{{else if (eq kind "gaugechip")}}
+{{!-- A percentage as a shape. The ring is read before the digits are, which is the whole point; the
+      number stays because a ring alone cannot be read precisely at this size. The sweep is a single
+      custom property so a value update is one style write rather than new markup. --}}
+<div class="secondary-bar-item secondary-bar-item-gaugechip"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    <span class="secondary-bar-item-gaugechip-dial" style="--blacksmith-gauge-percent: {{gaugePercent}};{{#if gaugeColor}} --blacksmith-gauge-color: {{gaugeColor}};{{/if}}"></span>
+    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
+    {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+</div>
+
+{{else if (eq kind "progressbar")}}
+<div class="secondary-bar-item secondary-bar-item-progressbar"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+     style="width: {{progressbarWidth}};">
+    <div class="secondary-bar-item-progressbar-caption">
+        {{#if icon}}<i class="{{icon}} secondary-bar-item-progressbar-icon"></i>{{/if}}
+        {{#if title}}<span class="secondary-bar-item-progressbar-title">{{title}}</span>{{/if}}
+    </div>
+    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-progressbar-icon-outside-left"></i>{{/if}}
+    <div class="secondary-bar-item-progressbar-bar" style="height: {{progressbarHeight}}; border-color: {{borderColor}}; background-color: {{barColor}};">
+        <div class="secondary-bar-item-progressbar-track">
+            <div class="secondary-bar-item-progressbar-fill" style="width: {{percentProgress}}%; background-color: {{progressColor}};"></div>
+        </div>
+        {{#if leftLabel}}<span class="secondary-bar-item-progressbar-left-label">{{leftLabel}}</span>{{/if}}
+        {{#if rightLabel}}<span class="secondary-bar-item-progressbar-right-label">{{rightLabel}}</span>{{/if}}
+    </div>
+    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-icon-outside-right"></i>{{/if}}
+</div>
+
+{{else if (eq kind "balancebar")}}
+<div class="secondary-bar-item secondary-bar-item-balancebar"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+     style="width: {{balancebarWidth}};">
+    <div class="secondary-bar-item-balancebar-caption">
+        {{#if icon}}<i class="{{icon}} secondary-bar-item-balancebar-icon"></i>{{/if}}
+        {{#if title}}<span class="secondary-bar-item-balancebar-title">{{title}}</span>{{/if}}
+    </div>
+    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-balancebar-icon-outside-left"></i>{{/if}}
+    <div class="secondary-bar-item-balancebar-bar" style="height: {{balancebarHeight}}; border-color: {{borderColor}};">
+        <div class="secondary-bar-item-balancebar-left" style="background-color: {{barColorLeft}};"></div>
+        <div class="secondary-bar-item-balancebar-right" style="background-color: {{barColorRight}};"></div>
+        <div class="secondary-bar-item-balancebar-marker" style="left: {{balancebarMarkerLeftPercent}}%; background-color: {{markerColor}};"></div>
+        {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
+        {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
+    </div>
+    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-balancebar-icon-outside-right"></i>{{/if}}
+</div>
+
+{{else}}
+<div class="secondary-bar-item {{#if active}}active{{/if}}"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+     {{#if (or buttonColor borderColor)}}
+     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
+     {{/if}}>
+    {{#if image}}
+    <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
+    {{else}}
+    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
+    {{/if}}
+    {{#if label}}
+    <span class="secondary-bar-item-label">{{label}}</span>
+    {{/if}}
+</div>
+{{/if}}

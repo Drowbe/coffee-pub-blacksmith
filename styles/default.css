@@ -59,6 +59,7 @@
 /* --- Menubar ---------------------- */
 @import "menubar.css";
 @import "menubar-combatbar.css";
+@import "menubar-widgets.css";
 
 /* --- Toasts ---------------------- */
 @import "toast.css";

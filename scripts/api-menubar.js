@@ -110,6 +110,30 @@ class MenuBar {
     /** @type {Map<string, (user: User) => { hide?: boolean }>} - Module visibility overrides (moduleId -> callback) */
     static _menubarVisibilityOverrides = new Map();
 
+    /**
+     * Item kinds that display a value rather than being clickable.
+     *
+     * One definition because the alternative was six inline `kind !== 'info' && kind !== ...`
+     * chains scattered through switch-group handling, and every new kind had to find all six or be
+     * silently treated as a button -- given an active state, counted toward a switch group, and
+     * offered a pointer cursor it does nothing with.
+     */
+    static DISPLAY_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip', 'progressbar', 'balancebar']);
+
+    /** True when a kind is a readout rather than a button. */
+    static isDisplayKind(kind) {
+        return this.DISPLAY_KINDS.has(kind);
+    }
+
+    /**
+     * Display kinds shaped like a chip: an icon, an optional label, and a value.
+     *
+     * They share one preparation and one patch path because they share those fields; what differs
+     * is the ornament each adds (a tone, a portrait ring, a gauge sweep). The bars are not here --
+     * their live fields are geometry, not text.
+     */
+    static CHIP_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip']);
+
     /** Fingerprint of last full menubar HTML build (excludes timer tick text); used to skip remove/rebuild when unchanged. */
     static _menubarStructureFingerprint = null;
 
@@ -175,10 +199,15 @@ class MenuBar {
 
     static async _registerPartials() {
         try {
+            // The item partial must register BEFORE the bar that invokes it: Handlebars resolves a
+            // partial at render time, but a bar rendered in between would fail rather than wait.
+            const itemTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-item.hbs').then(response => response.text());
+            Handlebars.registerPartial('menubar-secondary-item', itemTemplate);
+
             // Load and register the default secondary bar template
             const defaultBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-default.hbs').then(response => response.text());
             Handlebars.registerPartial('menubar-secondary-default', defaultBarTemplate);
-            
+
             postConsoleAndNotification(MODULE.NAME, "Menubar: Partials registered successfully", "", false, false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Menubar: Error registering partials", error.message, true, false);
@@ -2017,7 +2046,7 @@ class MenuBar {
                         
                         // Initialize active state for switch groups (buttons only)
                         const groupConfig = groups.get(groupId);
-                        if (groupConfig.mode === 'switch' && activeStates && itemData.kind !== 'info' && itemData.kind !== 'progressbar' && itemData.kind !== 'balancebar') {
+                        if (groupConfig.mode === 'switch' && activeStates && !MenuBar.isDisplayKind(itemData.kind)) {
                             if (!activeStates.has(groupId)) {
                                 // First item in switch group, make it active
                                 activeStates.set(groupId, itemId);
@@ -2041,11 +2070,11 @@ class MenuBar {
 
     /**
      * Register an item to a secondary bar (for default tool system)
-     * Items can be buttons (clickable) or info (display-only). Supports zones: left, middle, right.
+     * Items are either buttons (clickable) or one of the display-only kinds. Supports zones: left, middle, right.
      * @param {string} barTypeId - The bar type to register the item to
      * @param {string} itemId - Unique identifier for the item
      * @param {Object} itemData - Item configuration
-     * @param {string} [itemData.kind] - 'button' (default), 'info', 'progressbar', or 'balancebar'
+     * @param {string} [itemData.kind] - 'button' (default), 'info', 'statchip', 'portraitstat', 'gaugechip', 'progressbar', or 'balancebar'
      * @param {string} [itemData.zone] - 'left' | 'middle' | 'right' (default: 'middle')
      * @returns {boolean} Success status
      */
@@ -2054,11 +2083,12 @@ class MenuBar {
             const kind = itemData.kind || 'button';
             const zone = (itemData.zone === 'left' || itemData.zone === 'middle' || itemData.zone === 'right') ? itemData.zone : 'middle';
 
-            if (kind === 'info') {
-                // Info item: display-only, must have label or value (or both)
-                if (!itemId || !itemData || (itemData.label === undefined && itemData.value === undefined)) {
-                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Info item requires label or value",
-                        { barTypeId, itemId }, false, false);
+            if (MenuBar.CHIP_KINDS.has(kind)) {
+                // Display-only. Something has to be shown: a label, a value, or -- for a portrait
+                // chip, whose whole content can be the face -- an image.
+                if (!itemId || !itemData || (itemData.label === undefined && itemData.value === undefined && itemData.image === undefined)) {
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Display item requires label, value, or image",
+                        { barTypeId, itemId, kind }, false, false);
                     return false;
                 }
             } else if (kind === 'progressbar') {
@@ -2106,7 +2136,10 @@ class MenuBar {
                     iconColor: itemData.iconColor || null,
                     image: itemData.image || null,
                     ...(kind === 'progressbar' && { height: itemData.height }),
-                    ...(kind === 'balancebar' && { height: itemData.height, percentProgress: itemData.percentProgress != null ? itemData.percentProgress : 0 })
+                    ...(kind === 'balancebar' && { height: itemData.height, percentProgress: itemData.percentProgress != null ? itemData.percentProgress : 0 }),
+                    ...(kind === 'statchip' && { tone: itemData.tone || 'neutral' }),
+                    ...(kind === 'portraitstat' && { rank: itemData.rank ?? 0 }),
+                    ...(kind === 'gaugechip' && { percentProgress: itemData.percentProgress != null ? itemData.percentProgress : 0 })
                 });
                 postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Item queued (bar type not registered yet)",
                     { barTypeId, itemId }, true, false);
@@ -2138,7 +2171,10 @@ class MenuBar {
                 iconColor: itemData.iconColor || null,
                 image: itemData.image || null,
                 ...(kind === 'progressbar' && { height: itemData.height }),
-                ...(kind === 'balancebar' && { height: itemData.height, percentProgress: itemData.percentProgress != null ? itemData.percentProgress : 0 })
+                ...(kind === 'balancebar' && { height: itemData.height, percentProgress: itemData.percentProgress != null ? itemData.percentProgress : 0 }),
+                ...(kind === 'statchip' && { tone: itemData.tone || 'neutral' }),
+                ...(kind === 'portraitstat' && { rank: itemData.rank ?? 0 }),
+                ...(kind === 'gaugechip' && { percentProgress: itemData.percentProgress != null ? itemData.percentProgress : 0 })
             });
 
             // Ensure group exists (in case item registered before group config)
@@ -2161,7 +2197,7 @@ class MenuBar {
 
                     // If no active item in this switch group, make this the first one (if it's the first item)
                     if (!activeStates.has(groupId)) {
-                        const groupItems = Array.from(items.values()).filter(item => item.group === groupId && item.kind !== 'info' && item.kind !== 'progressbar' && item.kind !== 'balancebar');
+                        const groupItems = Array.from(items.values()).filter(item => item.group === groupId && !MenuBar.isDisplayKind(item.kind));
                         if (groupItems.length === 1) {
                             // First item in switch group, make it active
                             activeStates.set(groupId, itemId);
@@ -2270,7 +2306,8 @@ class MenuBar {
             // character as the campaign goes on.
             const hasInfoUpdate = updates && (updates.value !== undefined || updates.label !== undefined || updates.borderColor !== undefined ||
                 updates.buttonColor !== undefined || updates.iconColor !== undefined || updates.tooltip !== undefined ||
-                updates.image !== undefined);
+                updates.image !== undefined || updates.tone !== undefined ||
+                updates.rank !== undefined || updates.icon !== undefined);
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
@@ -2289,6 +2326,8 @@ class MenuBar {
             if (updates.label !== undefined) existing.label = updates.label;
             if (updates.tooltip !== undefined) existing.tooltip = updates.tooltip;
             if (updates.image !== undefined) existing.image = updates.image;
+            if (updates.tone !== undefined) existing.tone = updates.tone;
+            if (updates.rank !== undefined) existing.rank = updates.rank;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
             if (updates.iconColor !== undefined) existing.iconColor = updates.iconColor;
@@ -2379,7 +2418,7 @@ class MenuBar {
                         // If the removed item was active, activate the first remaining item in the group (buttons only)
                         if (currentActive === itemId && items) {
                             const groupItems = Array.from(items.values())
-                                .filter(i => i.group === groupId && i.kind !== 'info' && i.kind !== 'progressbar' && i.kind !== 'balancebar')
+                                .filter(i => i.group === groupId && !MenuBar.isDisplayKind(i.kind))
                                 .sort((a, b) => {
                                     const aOrder = a.order !== undefined ? a.order : Infinity;
                                     const bOrder = b.order !== undefined ? b.order : Infinity;
@@ -2841,19 +2880,30 @@ class MenuBar {
             if (!itemsByZone[zone].has(groupId)) {
                 itemsByZone[zone].set(groupId, []);
             }
-            // Merge live info updates for info items
-            if (item.kind === 'info' && infoUpdates?.has(item.itemId)) {
-                const u = infoUpdates.get(item.itemId);
-                item.displayValue = u.value !== undefined ? u.value : item.value;
-                item.displayLabel = u.label !== undefined ? u.label : item.label;
-                if (u.borderColor !== undefined) item.borderColor = u.borderColor;
-                if (u.buttonColor !== undefined) item.buttonColor = u.buttonColor;
-                if (u.iconColor !== undefined) item.iconColor = u.iconColor;
-                if (u.tooltip !== undefined) item.tooltip = u.tooltip;
-                if (u.image !== undefined) item.image = u.image;
-            } else if (item.kind === 'info') {
-                item.displayValue = item.value;
-                item.displayLabel = item.label;
+            // Merge live updates for every chip kind. One block rather than one per kind: they
+            // carry the same icon/label/value/image fields and differ only in their ornament.
+            if (MenuBar.CHIP_KINDS.has(item.kind)) {
+                const u = infoUpdates?.get(item.itemId);
+                item.displayValue = u?.value !== undefined ? u.value : item.value;
+                item.displayLabel = u?.label !== undefined ? u.label : item.label;
+                if (u) {
+                    if (u.borderColor !== undefined) item.borderColor = u.borderColor;
+                    if (u.buttonColor !== undefined) item.buttonColor = u.buttonColor;
+                    if (u.iconColor !== undefined) item.iconColor = u.iconColor;
+                    if (u.tooltip !== undefined) item.tooltip = u.tooltip;
+                    if (u.image !== undefined) item.image = u.image;
+                    if (u.icon !== undefined) item.icon = u.icon;
+                    if (u.tone !== undefined) item.tone = u.tone;
+                    if (u.rank !== undefined) item.rank = u.rank;
+                    if (u.percentProgress !== undefined) item.percentProgress = u.percentProgress;
+                }
+                // Defaults resolved here rather than in the template, so the rendered class list
+                // and the patched one cannot disagree about what "no tone" or "unranked" is.
+                if (item.kind === 'statchip') item.tone = item.tone || 'neutral';
+                if (item.kind === 'portraitstat') item.rank = Number(item.rank) || 0;
+                if (item.kind === 'gaugechip') {
+                    item.gaugePercent = Math.max(0, Math.min(100, Number(item.percentProgress) || 0));
+                }
             }
             // Merge live updates for progressbar items
             if (item.kind === 'progressbar' && infoUpdates?.has(item.itemId)) {
@@ -2918,7 +2968,7 @@ class MenuBar {
                 continue;
             }
             const groupItems = itemsByGroupAll.get(groupId);
-            if (!groupItems || !groupItems.some(item => item.itemId === activeItemId && item.kind !== 'info' && item.kind !== 'progressbar' && item.kind !== 'balancebar')) {
+            if (!groupItems || !groupItems.some(item => item.itemId === activeItemId && !MenuBar.isDisplayKind(item.kind))) {
                 activeStates.delete(groupId);
                 continue;
             }
@@ -2943,7 +2993,7 @@ class MenuBar {
                     return (a.itemId || '').localeCompare(b.itemId || '');
                 });
 
-                const buttonItems = groupItems.filter(i => i.kind !== 'info' && i.kind !== 'progressbar' && i.kind !== 'balancebar');
+                const buttonItems = groupItems.filter(i => !MenuBar.isDisplayKind(i.kind));
 
                 // Handle switch groups: ensure one is active, respecting master switch groups (buttons only)
                 if (groupConfig.mode === 'switch') {
@@ -2975,7 +3025,7 @@ class MenuBar {
                     }
                 } else {
                     for (const item of groupItems) {
-                        if (item.kind === 'info' || item.kind === 'progressbar' || item.kind === 'balancebar') item.active = false;
+                        if (MenuBar.isDisplayKind(item.kind)) item.active = false;
                     }
                 }
 
@@ -3307,11 +3357,12 @@ class MenuBar {
             const kind = item.kind || 'button';
             if (kind === 'info' || kind === 'button') {
                 // Only these two carry their colours on the item element; a bar carries them on its
-                // inner bar, handled below.
+                // inner bar, handled below, and an ornamented chip takes its colour from a class.
                 if (update.buttonColor !== undefined) el.style.backgroundColor = update.buttonColor || '';
                 if (update.borderColor !== undefined) el.style.borderColor = update.borderColor || '';
             }
-            if (kind === 'info') {
+            if (MenuBar.CHIP_KINDS.has(kind)) {
+                // Shared across every chip kind: they carry the same text and the same portrait.
                 if (update.value !== undefined && !setText(el, '.secondary-bar-item-value', update.value)) return bail('value appeared or emptied', itemId);
                 if (update.label !== undefined && !setText(el, '.secondary-bar-item-label', update.label)) return bail('label appeared or emptied', itemId);
                 if (update.image !== undefined) {
@@ -3319,27 +3370,67 @@ class MenuBar {
                     // an MVP emerging mid-fight, the biggest hit changing hands — so this is built
                     // rather than bounced to a rebuild. Declining here meant every push before the
                     // rebuild landed triggered another one, which was the noisiest path in the log.
-                    // The partial renders the image as the item's first child, ahead of the icon.
-                    let img = el.querySelector('.secondary-bar-item-image');
+                    // A portrait chip nests its image in a frame and shows a placeholder glyph
+                    // when there is nobody to show, so the two differ in where the image lives and
+                    // in what replaces it.
+                    const framed = kind === 'portraitstat';
+                    const host = framed ? el.querySelector('.secondary-bar-item-portraitstat-frame') : el;
+                    if (!host) return bail('portrait frame missing', itemId);
+                    const imgClass = framed ? 'secondary-bar-item-portraitstat-image' : 'secondary-bar-item-image';
+                    let img = host.querySelector('.' + imgClass);
                     if (update.image) {
                         if (!img) {
                             img = document.createElement('img');
-                            img.className = 'secondary-bar-item-image';
+                            img.className = imgClass;
                             img.alt = '';
-                            el.prepend(img);
+                            host.prepend(img);
                         }
                         if (img.getAttribute('src') !== String(update.image)) img.setAttribute('src', String(update.image));
+                        if (framed) host.querySelector('.secondary-bar-item-portraitstat-empty')?.remove();
                     } else if (img) {
                         img.remove();
+                        // The frame must not collapse, or the chip changes width as a standing
+                        // changes hands and its neighbours shuffle. Put the placeholder back.
+                        if (framed && !host.querySelector('.secondary-bar-item-portraitstat-empty')) {
+                            const glyph = document.createElement('i');
+                            glyph.className = (item.icon || 'fa-solid fa-user') + ' secondary-bar-item-portraitstat-empty';
+                            host.appendChild(glyph);
+                        }
                     }
                 }
-                if (update.iconColor !== undefined) {
-                    // The partial colours the icon and the value from the same key, so both move.
+                if (kind === 'info' && update.iconColor !== undefined) {
+                    // Only the plain info chip takes an explicit colour. The others derive theirs
+                    // from tone or rank, and an inline colour would beat that class and freeze it.
                     const colour = update.iconColor || '';
                     const icon = el.querySelector(':scope > i');
                     if (icon) icon.style.color = colour;
                     const value = el.querySelector('.secondary-bar-item-value');
                     if (value) value.style.color = colour;
+                }
+
+                // Ornaments. Each is a class or a custom property rather than markup, which is what
+                // keeps them patchable without a rebuild.
+                if (kind === 'statchip' && update.tone !== undefined) {
+                    const tone = update.tone || 'neutral';
+                    if (el.dataset.tone !== tone) {
+                        el.classList.remove('tone-' + (el.dataset.tone || 'neutral'));
+                        el.classList.add('tone-' + tone);
+                        el.dataset.tone = tone;
+                    }
+                }
+                if (kind === 'portraitstat' && update.rank !== undefined) {
+                    const rank = String(Number(update.rank) || 0);
+                    if (el.dataset.rank !== rank) {
+                        el.classList.remove('rank-' + (el.dataset.rank || '0'));
+                        el.classList.add('rank-' + rank);
+                        el.dataset.rank = rank;
+                    }
+                }
+                if (kind === 'gaugechip' && update.percentProgress !== undefined) {
+                    const dial = el.querySelector('.secondary-bar-item-gaugechip-dial');
+                    if (!dial) return bail('gauge dial missing', itemId);
+                    dial.style.setProperty('--blacksmith-gauge-percent',
+                        Math.max(0, Math.min(100, Number(update.percentProgress) || 0)));
                 }
             } else if (kind === 'progressbar' || kind === 'balancebar') {
                 const prefix = `.secondary-bar-item-${kind}`;

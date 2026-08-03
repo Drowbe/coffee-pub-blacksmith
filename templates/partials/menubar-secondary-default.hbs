@@ -1,4 +1,9 @@
-{{!-- Default Secondary Bar Template - Left / Middle / Right zones, buttons and info items --}}
+{{!--
+    Default Secondary Bar Template - Left / Middle / Right zones.
+
+    Each zone is identical apart from which list it walks, and the per-item markup lives in
+    `menubar-secondary-item` so a new item kind is added once rather than three times.
+--}}
 <div class="secondary-bar-toolbar">
     {{!-- LEFT ZONE --}}
     <div class="secondary-bar-zone secondary-bar-zone-left">
@@ -11,81 +16,7 @@
             {{/if}}
             <div class="secondary-bar-group-items">
                 {{#each items}}
-                {{#if (eq kind "info")}}
-                <div class="secondary-bar-item secondary-bar-item-info"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     {{#if (or buttonColor borderColor)}}
-                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-                     {{/if}}>
-                    {{#if image}}<img class="secondary-bar-item-image" src="{{image}}" alt="">{{/if}}
-                    {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
-                    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
-                    {{#if displayValue}}<span class="secondary-bar-item-value" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}>{{displayValue}}</span>{{/if}}
-                </div>
-                {{else if (eq kind "progressbar")}}
-                <div class="secondary-bar-item secondary-bar-item-progressbar"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     style="width: {{progressbarWidth}};">
-                    <div class="secondary-bar-item-progressbar-caption">
-                        {{#if icon}}<i class="{{icon}} secondary-bar-item-progressbar-icon"></i>{{/if}}
-                        {{#if title}}<span class="secondary-bar-item-progressbar-title">{{title}}</span>{{/if}}
-                    </div>
-                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-progressbar-icon-outside-left"></i>{{/if}}
-                    <div class="secondary-bar-item-progressbar-bar" style="height: {{progressbarHeight}}; border-color: {{borderColor}}; background-color: {{barColor}};">
-                        <div class="secondary-bar-item-progressbar-track">
-                            <div class="secondary-bar-item-progressbar-fill" style="width: {{percentProgress}}%; background-color: {{progressColor}};"></div>
-                        </div>
-                        {{#if leftLabel}}<span class="secondary-bar-item-progressbar-left-label">{{leftLabel}}</span>{{/if}}
-                        {{#if rightLabel}}<span class="secondary-bar-item-progressbar-right-label">{{rightLabel}}</span>{{/if}}
-                    </div>
-                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-icon-outside-right"></i>{{/if}}
-                </div>
-                {{else if (eq kind "balancebar")}}
-                <div class="secondary-bar-item secondary-bar-item-balancebar"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     style="width: {{balancebarWidth}};">
-                    <div class="secondary-bar-item-balancebar-caption">
-                        {{#if icon}}<i class="{{icon}} secondary-bar-item-balancebar-icon"></i>{{/if}}
-                        {{#if title}}<span class="secondary-bar-item-balancebar-title">{{title}}</span>{{/if}}
-                    </div>
-                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-balancebar-icon-outside-left"></i>{{/if}}
-                    <div class="secondary-bar-item-balancebar-bar" style="height: {{balancebarHeight}}; border-color: {{borderColor}};">
-                        <div class="secondary-bar-item-balancebar-left" style="background-color: {{barColorLeft}};"></div>
-                        <div class="secondary-bar-item-balancebar-right" style="background-color: {{barColorRight}};"></div>
-                        <div class="secondary-bar-item-balancebar-marker" style="left: {{balancebarMarkerLeftPercent}}%; background-color: {{markerColor}};"></div>
-                        {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
-                        {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
-                    </div>
-                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-balancebar-icon-outside-right"></i>{{/if}}
-                </div>
-                {{else}}
-                <div class="secondary-bar-item {{#if active}}active{{/if}}"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-                     {{#if (or buttonColor borderColor)}}
-                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-                     {{/if}}>
-                    {{#if image}}
-                    <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
-                    {{else}}
-                    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-                    {{/if}}
-                    {{#if label}}
-                    <span class="secondary-bar-item-label">{{label}}</span>
-                    {{/if}}
-                </div>
-                {{/if}}
+                {{> "menubar-secondary-item" this groupId=../id}}
                 {{/each}}
             </div>
         </div>
@@ -106,81 +37,7 @@
             {{/if}}
             <div class="secondary-bar-group-items">
                 {{#each items}}
-                {{#if (eq kind "info")}}
-                <div class="secondary-bar-item secondary-bar-item-info"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     {{#if (or buttonColor borderColor)}}
-                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-                     {{/if}}>
-                    {{#if image}}<img class="secondary-bar-item-image" src="{{image}}" alt="">{{/if}}
-                    {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
-                    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
-                    {{#if displayValue}}<span class="secondary-bar-item-value" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}>{{displayValue}}</span>{{/if}}
-                </div>
-                {{else if (eq kind "progressbar")}}
-                <div class="secondary-bar-item secondary-bar-item-progressbar"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     style="width: {{progressbarWidth}};">
-                    <div class="secondary-bar-item-progressbar-caption">
-                        {{#if icon}}<i class="{{icon}} secondary-bar-item-progressbar-icon"></i>{{/if}}
-                        {{#if title}}<span class="secondary-bar-item-progressbar-title">{{title}}</span>{{/if}}
-                    </div>
-                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-progressbar-icon-outside-left"></i>{{/if}}
-                    <div class="secondary-bar-item-progressbar-bar" style="height: {{progressbarHeight}}; border-color: {{borderColor}}; background-color: {{barColor}};">
-                        <div class="secondary-bar-item-progressbar-track">
-                            <div class="secondary-bar-item-progressbar-fill" style="width: {{percentProgress}}%; background-color: {{progressColor}};"></div>
-                        </div>
-                        {{#if leftLabel}}<span class="secondary-bar-item-progressbar-left-label">{{leftLabel}}</span>{{/if}}
-                        {{#if rightLabel}}<span class="secondary-bar-item-progressbar-right-label">{{rightLabel}}</span>{{/if}}
-                    </div>
-                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-icon-outside-right"></i>{{/if}}
-                </div>
-                {{else if (eq kind "balancebar")}}
-                <div class="secondary-bar-item secondary-bar-item-balancebar"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     style="width: {{balancebarWidth}};">
-                    <div class="secondary-bar-item-balancebar-caption">
-                        {{#if icon}}<i class="{{icon}} secondary-bar-item-balancebar-icon"></i>{{/if}}
-                        {{#if title}}<span class="secondary-bar-item-balancebar-title">{{title}}</span>{{/if}}
-                    </div>
-                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-balancebar-icon-outside-left"></i>{{/if}}
-                    <div class="secondary-bar-item-balancebar-bar" style="height: {{balancebarHeight}}; border-color: {{borderColor}};">
-                        <div class="secondary-bar-item-balancebar-left" style="background-color: {{barColorLeft}};"></div>
-                        <div class="secondary-bar-item-balancebar-right" style="background-color: {{barColorRight}};"></div>
-                        <div class="secondary-bar-item-balancebar-marker" style="left: {{balancebarMarkerLeftPercent}}%; background-color: {{markerColor}};"></div>
-                        {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
-                        {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
-                    </div>
-                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-balancebar-icon-outside-right"></i>{{/if}}
-                </div>
-                {{else}}
-                <div class="secondary-bar-item {{#if active}}active{{/if}}"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-                     {{#if (or buttonColor borderColor)}}
-                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-                     {{/if}}>
-                    {{#if image}}
-                    <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
-                    {{else}}
-                    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-                    {{/if}}
-                    {{#if label}}
-                    <span class="secondary-bar-item-label">{{label}}</span>
-                    {{/if}}
-                </div>
-                {{/if}}
+                {{> "menubar-secondary-item" this groupId=../id}}
                 {{/each}}
             </div>
         </div>
@@ -201,81 +58,7 @@
             {{/if}}
             <div class="secondary-bar-group-items">
                 {{#each items}}
-                {{#if (eq kind "info")}}
-                <div class="secondary-bar-item secondary-bar-item-info"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-                     {{#if (or buttonColor borderColor)}}
-                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-                     {{/if}}>
-                    {{#if image}}<img class="secondary-bar-item-image" src="{{image}}" alt="">{{/if}}
-                    {{#if icon}}<i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>{{/if}}
-                    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
-                    {{#if displayValue}}<span class="secondary-bar-item-value" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}>{{displayValue}}</span>{{/if}}
-                </div>
-                {{else if (eq kind "progressbar")}}
-                <div class="secondary-bar-item secondary-bar-item-progressbar"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     style="width: {{progressbarWidth}};">
-                    <div class="secondary-bar-item-progressbar-caption">
-                        {{#if icon}}<i class="{{icon}} secondary-bar-item-progressbar-icon"></i>{{/if}}
-                        {{#if title}}<span class="secondary-bar-item-progressbar-title">{{title}}</span>{{/if}}
-                    </div>
-                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-progressbar-icon-outside-left"></i>{{/if}}
-                    <div class="secondary-bar-item-progressbar-bar" style="height: {{progressbarHeight}}; border-color: {{borderColor}}; background-color: {{barColor}};">
-                        <div class="secondary-bar-item-progressbar-track">
-                            <div class="secondary-bar-item-progressbar-fill" style="width: {{percentProgress}}%; background-color: {{progressColor}};"></div>
-                        </div>
-                        {{#if leftLabel}}<span class="secondary-bar-item-progressbar-left-label">{{leftLabel}}</span>{{/if}}
-                        {{#if rightLabel}}<span class="secondary-bar-item-progressbar-right-label">{{rightLabel}}</span>{{/if}}
-                    </div>
-                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-progressbar-icon-outside-right"></i>{{/if}}
-                </div>
-                {{else if (eq kind "balancebar")}}
-                <div class="secondary-bar-item secondary-bar-item-balancebar"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-                     style="width: {{balancebarWidth}};">
-                    <div class="secondary-bar-item-balancebar-caption">
-                        {{#if icon}}<i class="{{icon}} secondary-bar-item-balancebar-icon"></i>{{/if}}
-                        {{#if title}}<span class="secondary-bar-item-balancebar-title">{{title}}</span>{{/if}}
-                    </div>
-                    {{#if leftIcon}}<i class="{{leftIcon}} secondary-bar-item-balancebar-icon-outside-left"></i>{{/if}}
-                    <div class="secondary-bar-item-balancebar-bar" style="height: {{balancebarHeight}}; border-color: {{borderColor}};">
-                        <div class="secondary-bar-item-balancebar-left" style="background-color: {{barColorLeft}};"></div>
-                        <div class="secondary-bar-item-balancebar-right" style="background-color: {{barColorRight}};"></div>
-                        <div class="secondary-bar-item-balancebar-marker" style="left: {{balancebarMarkerLeftPercent}}%; background-color: {{markerColor}};"></div>
-                        {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
-                        {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
-                    </div>
-                    {{#if rightIcon}}<i class="{{rightIcon}} secondary-bar-item-balancebar-icon-outside-right"></i>{{/if}}
-                </div>
-                {{else}}
-                <div class="secondary-bar-item {{#if active}}active{{/if}}"
-                     data-item-id="{{itemId}}"
-                     data-group-id="{{../id}}"
-                     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-                     title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-                     {{#if (or buttonColor borderColor)}}
-                     style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
-                     {{/if}}>
-                    {{#if image}}
-                    <img src="{{image}}" class="secondary-bar-item-image" alt="{{#if label}}{{label}}{{else}}{{tooltip}}{{/if}}">
-                    {{else}}
-                    <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
-                    {{/if}}
-                    {{#if label}}
-                    <span class="secondary-bar-item-label">{{label}}</span>
-                    {{/if}}
-                </div>
-                {{/if}}
+                {{> "menubar-secondary-item" this groupId=../id}}
                 {{/each}}
             </div>
         </div>

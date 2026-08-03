@@ -1,7 +1,8 @@
 # Plan: Reusable Readout Widgets
 
-**Status:** In progress — Phase 1 complete and verified live; its content has moved to `CHANGELOG.md`
-and the section below is kept only as context for the phases that follow. Phases 2-4 planned.
+**Status:** In progress - Phases 1 and 2 implemented; Phase 1 verified live, Phase 2 awaiting a look.
+Their content has moved to `CHANGELOG.md` and the architecture docs; the sections below are kept only
+as context for Phases 3 and 4, which are still planned.
 
 **Outcome:** feature.
 

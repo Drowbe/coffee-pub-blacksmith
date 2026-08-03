@@ -100,8 +100,9 @@ JSON-stringifies that object, and folding zones into it would stringify every it
 as it does for pure custom templates; otherwise an item appearing or changing visibility could not trigger
 a rebuild.
 
-The portrait strip is the only thing on this bar the item vocabulary cannot express. Everything else is
-`info`, `progressbar`, or `balancebar` and belongs as an item.
+The portrait strip is the only thing on this bar the item vocabulary cannot express. Everything else is a
+registered item — `info`, `statchip`, `portraitstat`, `gaugechip`, `progressbar`, or `balancebar` — and
+belongs as one.
 
 ## Height
 
@@ -237,6 +238,13 @@ shows the standings, which change only when a combat ends: biggest hit on record
 most criticals, most hits, fewest misses, total damage, total kills, combats fought, and average hit rate.
 In combat it shows the fight in progress: party damage dealt, hit rate, biggest hit so far, kills, damage
 taken, healing given, and the leading MVP.
+
+Each statistic is registered as the widget kind that matches the question it answers, rather than all
+of them being `info` chips as they once were. The per-person standings and both biggest-hit chips are
+`portraitstat`, so a face and a ring say "this belongs to someone"; the two hit rates are `gaugechip`,
+so the proportion reads as a shape before the digits do; the remaining quantities are `statchip`, toned
+by what a rise in them means for the party - damage dealt `good`, damage taken `bad`, campaign totals
+`neutral`. The kinds themselves are described in `architecture-menubar.md`.
 
 Ten and seven, and **not all of them fit** — that is the design rather than an oversight.
 `READOUT_SUPPRESSION_ORDER` decides what a given bar width actually shows, so the list is a ranking from

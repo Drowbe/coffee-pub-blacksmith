@@ -545,7 +545,7 @@ export class CombatBarManager {
         const lifetimeStatsVisible = () => !CombatBarManager.getActiveCombat();
 
         api.registerSecondaryBarItem('combat', 'stat-biggest-hitter', {
-            kind: 'info',
+            kind: 'portraitstat',
             zone: 'middle',
             group: 'stats',
             order: 0,
@@ -556,7 +556,7 @@ export class CombatBarManager {
             visible: lifetimeStatsVisible
         });
         api.registerSecondaryBarItem('combat', 'stat-most-fumbles', {
-            kind: 'info',
+            kind: 'portraitstat',
             zone: 'middle',
             group: 'stats',
             order: 1,
@@ -570,7 +570,8 @@ export class CombatBarManager {
             visible: lifetimeStatsVisible
         });
         api.registerSecondaryBarItem('combat', 'stat-top-mvp', {
-            kind: 'info',
+            kind: 'portraitstat',
+            rank: 1,
             zone: 'middle',
             group: 'stats',
             order: 2,
@@ -583,7 +584,7 @@ export class CombatBarManager {
         // The mirror of most-fumbles. Showing the shame without the glory read as
         // an odd omission once both were on the same aggregate.
         api.registerSecondaryBarItem('combat', 'stat-most-crits', {
-            kind: 'info',
+            kind: 'portraitstat',
             zone: 'middle',
             group: 'stats',
             order: 3,
@@ -596,7 +597,7 @@ export class CombatBarManager {
         // The reliability pair. `mostMisses` is already ranked low-is-best by the
         // aggregate, so this is "who whiffs least", not "who whiffs most".
         api.registerSecondaryBarItem('combat', 'stat-most-hits', {
-            kind: 'info',
+            kind: 'portraitstat',
             zone: 'middle',
             group: 'stats',
             order: 4,
@@ -607,7 +608,7 @@ export class CombatBarManager {
             visible: lifetimeStatsVisible
         });
         api.registerSecondaryBarItem('combat', 'stat-most-misses', {
-            kind: 'info',
+            kind: 'portraitstat',
             zone: 'middle',
             group: 'stats',
             order: 5,
@@ -620,7 +621,8 @@ export class CombatBarManager {
         // Campaign-scale totals rather than per-person standings, so no portrait:
         // these belong to the party, not to anyone in it.
         api.registerSecondaryBarItem('combat', 'stat-total-damage', {
-            kind: 'info',
+            kind: 'statchip',
+            tone: 'neutral',
             zone: 'middle',
             group: 'stats',
             order: 6,
@@ -631,7 +633,8 @@ export class CombatBarManager {
             visible: lifetimeStatsVisible
         });
         api.registerSecondaryBarItem('combat', 'stat-total-kills', {
-            kind: 'info',
+            kind: 'statchip',
+            tone: 'neutral',
             zone: 'middle',
             group: 'stats',
             order: 7,
@@ -642,7 +645,8 @@ export class CombatBarManager {
             visible: lifetimeStatsVisible
         });
         api.registerSecondaryBarItem('combat', 'stat-combats', {
-            kind: 'info',
+            kind: 'statchip',
+            tone: 'neutral',
             zone: 'middle',
             group: 'stats',
             order: 8,
@@ -655,7 +659,7 @@ export class CombatBarManager {
         // The out-of-combat counterpart to the live hit-rate chip, so the same
         // measure appears in both states rather than only during a fight.
         api.registerSecondaryBarItem('combat', 'stat-avg-hit-rate', {
-            kind: 'info',
+            kind: 'gaugechip',
             zone: 'middle',
             group: 'stats',
             order: 9,
@@ -670,7 +674,8 @@ export class CombatBarManager {
         // are ever visible at once. They are mutually exclusive today, but ordering
         // that only works because of a predicate is ordering waiting to break.
         api.registerSecondaryBarItem('combat', 'stat-damage-dealt', {
-            kind: 'info',
+            kind: 'statchip',
+            tone: 'good',
             zone: 'middle',
             group: 'stats',
             order: 10,
@@ -681,7 +686,7 @@ export class CombatBarManager {
             visible: liveStatsVisible
         });
         api.registerSecondaryBarItem('combat', 'stat-hit-rate', {
-            kind: 'info',
+            kind: 'gaugechip',
             zone: 'middle',
             group: 'stats',
             order: 11,
@@ -692,7 +697,7 @@ export class CombatBarManager {
             visible: liveStatsVisible
         });
         api.registerSecondaryBarItem('combat', 'stat-combat-biggest', {
-            kind: 'info',
+            kind: 'portraitstat',
             zone: 'middle',
             group: 'stats',
             order: 12,
@@ -705,7 +710,8 @@ export class CombatBarManager {
         // The survival read. Damage dealt alone says how the party is doing TO the
         // fight; these say how the fight is doing to them.
         api.registerSecondaryBarItem('combat', 'stat-kills', {
-            kind: 'info',
+            kind: 'statchip',
+            tone: 'good',
             zone: 'middle',
             group: 'stats',
             order: 13,
@@ -716,7 +722,8 @@ export class CombatBarManager {
             visible: liveStatsVisible
         });
         api.registerSecondaryBarItem('combat', 'stat-damage-taken', {
-            kind: 'info',
+            kind: 'statchip',
+            tone: 'bad',
             zone: 'middle',
             group: 'stats',
             order: 14,
@@ -728,7 +735,8 @@ export class CombatBarManager {
         });
         // Otherwise a healer's whole contribution is invisible until the fight ends.
         api.registerSecondaryBarItem('combat', 'stat-healing-given', {
-            kind: 'info',
+            kind: 'statchip',
+            tone: 'good',
             zone: 'middle',
             group: 'stats',
             order: 15,
@@ -741,7 +749,8 @@ export class CombatBarManager {
         // Portrait, like the biggest-hit chips: a face is read instantly where a
         // truncated name is not, and the name stays in the tooltip.
         api.registerSecondaryBarItem('combat', 'stat-combat-mvp', {
-            kind: 'info',
+            kind: 'portraitstat',
+            rank: 1,
             zone: 'middle',
             group: 'stats',
             order: 16,
@@ -1176,7 +1185,9 @@ export class CombatBarManager {
             api.updateSecondaryBarItemInfo('combat', 'stat-hit-rate', {
                 // hitRate is already a one-decimal string, and is the number 0
                 // rather than "0.0" before any attack has been rolled.
-                value: `${totals?.hitRate ?? 0}%`
+                value: `${totals?.hitRate ?? 0}%`,
+                // The ring needs a number, not the formatted string beside it.
+                percentProgress: Number(totals?.hitRate) || 0
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-combat-biggest', {
                 image: CombatBarManager.actorPortrait(biggest?.attackerId),
@@ -1276,7 +1287,10 @@ export class CombatBarManager {
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-avg-hit-rate', {
                 // averageHitRate is already a formatted string from the aggregate.
-                value: `${aggregate.averageHitRate ?? 0}%`
+                value: `${aggregate.averageHitRate ?? 0}%`,
+                // The ring wants the number, which the aggregate carries beside the
+                // string for exactly this reason rather than being re-parsed here.
+                percentProgress: aggregate.averageHitRateValue ?? 0
             });
         };
 

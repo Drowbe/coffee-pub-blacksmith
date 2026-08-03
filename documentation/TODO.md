@@ -4,14 +4,6 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
-## Readout widgets: the identity kinds
-
-`statchip`, `portraitstat` and `gaugechip` as new kinds on `registerSecondaryBarItem` (`api-menubar.js:2050`), rendered in `templates/partials/menubar-secondary-default.hbs` and styled in a new `styles/menubar-widgets.css` — which needs an `@import` in `styles/default.css` beside line 61 or it is silently unstyled.
-
-Today every statistic is `kind: 'info'`, so a rank, a quantity, a percentage and a person all render identically. These restore identity — tint, weight, shape — without restoring the button affordance `menubar-combatbar.css:160` correctly strips from the data row. `portraitstat` formalizes what the standings chips do by hand today with an `image` on an info item plus two undo rules at `menubar-combatbar.css:208`.
-
-Verify live: register one of each on the combat bar, confirm they size correctly in both the data row and the combat tracker row (each re-bases the sizing variables, `menubar-combatbar.css:85`), and confirm none of them shows a pointer cursor or hover lift.
-
 ## Readout widgets: the consolidating kinds
 
 `segmentchip` (one proportional bar, breakdown in the tooltip) and `sparkchip` (value with an inline sparkline). These exist to buy back the width the identity widgets spend — ten lifetime and seven live chips already exceed the middle zone and `READOUT_SUPPRESSION_ORDER` decides which survive.

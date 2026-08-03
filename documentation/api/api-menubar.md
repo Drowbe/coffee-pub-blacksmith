@@ -1431,7 +1431,7 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
 - `barTypeId` (string, required): The bar type ID to register the item to
 - `itemId` (string, required): Unique identifier for the item
 - `itemData` (Object, required): Item configuration
-  - `kind` (string, optional): `'button'` (default), `'info'`, `'progressbar'`, or `'balancebar'`. Buttons are clickable; info, progressbar, and balancebar items are display-only and can be updated with `updateSecondaryBarItemInfo`.
+  - `kind` (string, optional): `'button'` (default), `'info'`, `'statchip'`, `'portraitstat'`, `'gaugechip'`, `'progressbar'`, or `'balancebar'`. Buttons are clickable; every other kind is display-only and is updated with `updateSecondaryBarItemInfo`.
   - `zone` (string, optional): `'left'`, `'middle'`, or `'right'`. Default: `'middle'`. Only applies to the default tool system.
   - `icon` (string, required for buttons, optional for info): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`). Info items can use icon for consistent styling with buttons.
   - `label` (string, optional): Text label. For buttons, shown next to the icon. For info items, use with or without `value`.
@@ -1472,6 +1472,62 @@ blacksmith.updateSecondaryBarItemInfo('my-bar', 'biggest-hit', {
     value: '26',
     tooltip: 'Biggest hit this combat: Kar-ahn hit the Ogre for 26'
 });
+```
+
+**Statchip item** (`kind: 'statchip'`): A value that carries a tone. Same content as `info` - `icon`, `label`, `value` - plus `tone`: `'neutral'` (default), `'good'`, `'bad'`, or `'record'`. The tone colours the value and its icon, and `record` adds a hairline under the value. It never applies a fill or a border box, because a readout that looks like a button offers an affordance it does not have. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { value, label, tone, tooltip })`.
+
+Tone describes what a rise in the number means for the reader, not whether the number is large: damage dealt is `good` and damage taken is `bad` even though both go up as a fight goes on.
+
+```javascript
+blacksmith.registerSecondaryBarItem('my-bar', 'damage-taken', {
+    kind: 'statchip',
+    zone: 'middle',
+    icon: 'fa-solid fa-shield-halved',
+    value: '0',
+    tone: 'bad',
+    tooltip: 'Party damage taken this combat',
+    group: 'stats',
+    order: 1
+});
+blacksmith.updateSecondaryBarItemInfo('my-bar', 'damage-taken', { value: '38' });
+```
+
+**Portraitstat item** (`kind: 'portraitstat'`): A standing that belongs to a person. Renders `image` as a round, ringed portrait with `value` beside it; `rank` (1, 2, 3, or 0 for unranked) colours the ring gold, silver, or bronze. Falls back to `icon` - or a generic figure - when there is nobody to show, at the same size, so a standing changing hands never shifts the chips either side of it. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { image, value, rank, tooltip })`.
+
+Use it where the answer to the readout is *who*. A face is recognised instantly where a truncated first name is not, so the name belongs in the tooltip rather than the chip.
+
+```javascript
+blacksmith.registerSecondaryBarItem('my-bar', 'top-mvp', {
+    kind: 'portraitstat',
+    zone: 'middle',
+    rank: 1,
+    icon: 'fa-solid fa-trophy',
+    value: '',
+    tooltip: 'Top MVP on record',
+    group: 'stats',
+    order: 2
+});
+blacksmith.updateSecondaryBarItemInfo('my-bar', 'top-mvp', {
+    image: 'icons/portraits/kar-ahn.webp',
+    tooltip: 'Top MVP on record: Kar-ahn'
+});
+```
+
+**Gaugechip item** (`kind: 'gaugechip'`): A percentage as a ring plus its number. `percentProgress` (0-100) drives the sweep; `value` is the text beside it, `gaugeColor` optionally overrides the ring colour. The ring is read before the digits are; the number stays because a ring this size cannot be read precisely. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, value, label, tooltip })`.
+
+Push both `value` and `percentProgress` - the text is formatted for a reader and the sweep needs a number, and deriving one from the other would re-parse a string that was built for display.
+
+```javascript
+blacksmith.registerSecondaryBarItem('my-bar', 'hit-rate', {
+    kind: 'gaugechip',
+    zone: 'middle',
+    value: '0%',
+    percentProgress: 0,
+    tooltip: 'Party hit rate this combat',
+    group: 'stats',
+    order: 3
+});
+blacksmith.updateSecondaryBarItemInfo('my-bar', 'hit-rate', { value: '62.5%', percentProgress: 62.5 });
 ```
 
 **Progressbar item** (`kind: 'progressbar'`): A horizontal progress bar (0–100%). Required: `width`, `borderColor`, `barColor`, `progressColor`, `percentProgress`. Optional: `title`, `icon`, `leftLabel`, `leftIcon`, `rightLabel`, `rightIcon`, `height`. Height defaults to 40% of secondary bar height if omitted. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, ... })`.
@@ -1578,7 +1634,7 @@ blacksmith.updateSecondaryBarItemActive('cartographer', 'medium-line', true);
 
 ### Updating Secondary Bar Info Items
 
-Use this to update the displayed value and/or label of an **info** item, the progress and labels of a **progressbar** item, or the balance and labels of a **balancebar** item, without re-registering it. Typical for encounter-style bars (Party CR, Monster CR, Difficulty), HP/resource bars, or approval/balance bars.
+Use this to update any display-only item without re-registering it: the value and label of an **info**, **statchip**, **portraitstat**, or **gaugechip** item, the progress and labels of a **progressbar**, or the balance and labels of a **balancebar**. Typical for encounter-style bars (Party CR, Monster CR, Difficulty), HP/resource bars, or approval/balance bars.
 
 ```javascript
 blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '4' });

@@ -170,8 +170,72 @@ All three were live bugs, and all three look correct while being wrong:
   be cleared by the code that later wants CSS to own it -- progress bar fill and track colours both shipped
   broken for exactly this reason. See `syncTimerReadout` in `manager-combatbar.js`.
 
+## Item kinds, and where a new one is added
+
+An item is either a **button**, which is clickable, or one of the **display kinds**, which is not:
+`info`, `statchip`, `portraitstat`, `gaugechip`, `progressbar`, `balancebar`.
+
+Two sets in `api-menubar.js` define that split, and both exist because the alternative was worse:
+
+`DISPLAY_KINDS` is what switch-group handling asks. Six separate `kind !== 'info' && kind !== ...`
+chains used to encode it inline, so a new kind had to find all six or be silently treated as a button
+— given an active state, counted toward a switch group, and offered a pointer cursor it does nothing
+with.
+
+`CHIP_KINDS` is the narrower set that is shaped like a chip: an icon, an optional label, a value.
+They share one preparation block and one branch of the value patch because they share those fields;
+what differs is the ornament each adds. The bars are deliberately not in it — their live fields are
+geometry, not text.
+
+**The markup for every kind lives in one partial**, `templates/partials/menubar-secondary-item.hbs`,
+invoked by each zone as `{{> "menubar-secondary-item" this groupId=../id}}`. Before that, the three
+zones each carried a full copy of the per-kind dispatch, so every kind cost three identical blocks and
+a fix applied to whichever zone the author happened to be reading. `groupId` is passed explicitly
+because `../id` does not resolve the same way from inside a partial. The item partial must register
+**before** the bar partial that invokes it (`_registerPartials`): Handlebars resolves a partial at
+render time and a bar rendered in between fails rather than waiting.
+
+So adding a kind means: a branch in the item partial, membership in the right set (or both), a case in
+the preparation block, a case in the value patch, and styles in `styles/menubar-widgets.css` — which
+needs its `@import` in `styles/default.css` or it is silently unstyled.
+
+### What the three ornamented kinds are for
+
+They exist because a rank, a quantity, a percentage and a person all rendered identically as `info`,
+and nothing about a chip said which it was.
+
+| Kind | Answers | Ornament |
+|---|---|---|
+| `statchip` | how much | `tone` colours the value; `record` adds a hairline |
+| `portraitstat` | who | round ringed portrait, `rank` colours the ring |
+| `gaugechip` | what proportion | a ring whose sweep is the percentage |
+
+**Tone describes what a rise in the number means, not whether the number is large.** Damage dealt is
+`good` and damage taken is `bad`, though both climb as a fight goes on.
+
+**Identity, not affordance.** These may use colour, weight and shape; they may not use a fill, a
+pointer cursor or a hover lift. That is the same reason `menubar-combatbar.css` strips the shared item
+chrome from the data row — a readout wearing button chrome offers something it cannot do — and the
+widgets must not put it back.
+
+Two implementation choices are load-bearing rather than incidental. The gauge is a **conic gradient
+masked into a ring**, not an SVG arc, so its sweep is a single custom property: a value update is one
+style write with no markup to rebuild, and it inherits the row's sizing variables directly where an
+SVG would need its geometry recomputed per row height. And a portrait chip's **frame keeps its size
+when empty**, falling back to a placeholder glyph, so a standing changing hands never shifts the chips
+either side of it.
+
+The widget tones are declared in `menubar-widgets.css` rather than taken from the `--blacksmith-status-*`
+tokens, which are chosen for light surfaces and read fluorescent on this bar's warm translucent row.
+That is the same finding that gave `manager-combatbar.js` its own `getDifficultyChipColor`.
+
 ## Rendering cost
 
 `renderMenubar` guards its work with a structure fingerprint; a per-tick update must write DOM directly and
 never re-render. That machinery, and the failure mode where the fingerprint goes stale, is documented in
 **§9B of `architecture-blacksmith.md`** rather than duplicated here.
+
+A pushed readout **value** is a separate path: it is written into the standing DOM by
+`_applySecondaryBarValueRefresh` rather than re-rendering, applied synchronously where it is pushed so
+it never depends on a later render arriving. It reports failure only when the change needs an element
+added or removed, which falls through to a rebuild.

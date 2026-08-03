@@ -574,10 +574,12 @@ export function buildSelectedCompendiumArrays() {
 function getTableChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Table List...", "", false, false);
     const choices = { "none":"-- Choose a Table --" };
-    Array.from(game.tables.values()).reduce((choices, table) => {
-      choices[table.name] = table.name;
-      return choices;
-    }, choices);
+    const tables = Array.from(game.tables.values())
+        .sort((a, b) => String(a.name ?? '').localeCompare(String(b.name ?? ''), undefined, {
+            sensitivity: 'base',
+            numeric: true
+        }));
+    for (const table of tables) choices[table.name] = table.name;
 
 	// BLACKSMITH UPDATER - Make the Table Array available to ALL Coffee Pub modules
 
@@ -591,7 +593,10 @@ function getMacroChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Macro List...", "", false, false);
     let choiceObject = { "none":"-- Create A New Macro --" };
     let choiceKeys = Array.from(game.macros.values()).map(macro => macro.name);
-    choiceKeys.sort().forEach(key => {
+    choiceKeys.sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, {
+        sensitivity: 'base',
+        numeric: true
+    })).forEach(key => {
         choiceObject[key] = key;
     }); 
 
@@ -605,7 +610,13 @@ function getMacroChoices() {
 function getNameplateChoices() {
 	postConsoleAndNotification(MODULE.NAME, "Building Nameplate List...", "", false, false);
 	let choices = {};
-	for(const data of getNameplateSource()) {
+	const nameplates = [...getNameplateSource()].sort((a, b) =>
+		String(a.name ?? '').localeCompare(String(b.name ?? ''), undefined, {
+			sensitivity: 'base',
+			numeric: true
+		}) || String(a.id ?? '').localeCompare(String(b.id ?? ''))
+	);
+	for(const data of nameplates) {
 		choices[data.id] = data.name;
 	}
 	BLACKSMITH.updateValue('arrNameChoices', choices);

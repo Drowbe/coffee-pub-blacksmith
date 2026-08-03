@@ -312,6 +312,8 @@ export class AssetLookup {
      * Get choices for UI dropdowns
      * @param {string} type - Asset type
      * @param {string} category - Asset category
+     * Choices are returned alphabetically by their display name. Asset bundle order is
+     * not stable after world overrides are merged, so it must not leak into dropdowns.
      * @returns {Object} Choices object for dropdowns
      */
     getChoices(type, category) {
@@ -319,6 +321,13 @@ export class AssetLookup {
             const assets = this.getByTypeAndTags(type, category);
             const choices = {};
             
+            assets.sort((a, b) =>
+                String(a.name ?? '').localeCompare(String(b.name ?? ''), undefined, {
+                    sensitivity: 'base',
+                    numeric: true
+                }) || String(a.id ?? '').localeCompare(String(b.id ?? ''))
+            );
+
             assets.forEach(asset => {
                 choices[asset.id] = asset.name;
             });
