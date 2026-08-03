@@ -41,14 +41,16 @@
     --blacksmith-widget-rank-3: #c08a5a;
     --blacksmith-widget-rank-none: rgba(240, 240, 224, 0.35);
 
-    --blacksmith-gauge-color: var(--blacksmith-widget-tone-neutral);
-    --blacksmith-gauge-track: rgba(0, 0, 0, 0.45);
+    --blacksmith-gauge-color: var(--blacksmith-widget-tone-record);
+    /* The unfilled remainder has to be VISIBLE, or the ring reads as a broken
+       circle rather than a full one partly filled -- at 0% it vanished entirely
+       and at 80% it looked like a gap had been cut out of the rim. It is the
+       track that says "this is a dial"; the fill only says how far round. */
+    --blacksmith-gauge-track: rgba(240, 240, 224, 0.22);
     --blacksmith-gauge-percent: 0;
-    /* The ring runs slightly larger than an icon and slightly smaller than a
-       portrait: it has to read as a shape at a glance without becoming the
-       widest thing in the row. */
-    --blacksmith-gauge-size: calc(var(--secondary-bar-item-icon-size) * 1.6);
-    --blacksmith-gauge-thickness: 2.5px;
+    /* Thin enough to read as a rim, thick enough to survive antialiasing at this
+       size -- below about 3px the arc breaks up into dashes on a dark row. */
+    --blacksmith-gauge-thickness: 3.5px;
 }
 
 /* ---- shared chip layout ---------------------------------------------------
@@ -185,8 +187,8 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: calc(var(--blacksmith-menubar-secondary-height) * 0.78);
-    height: calc(var(--blacksmith-menubar-secondary-height) * 0.78);
+    width: calc(var(--blacksmith-menubar-secondary-height) * 0.72);
+    height: calc(var(--blacksmith-menubar-secondary-height) * 0.72);
     border-radius: 50%;
     overflow: hidden;
     background-color: rgba(0, 0, 0, 0.35);
@@ -207,12 +209,16 @@
     color: rgba(240, 240, 224, 0.3);
 }
 
+/* ONE LINE, not two. The data row is a fixed height and shares it with every
+   other readout, so a stacked plate either squeezes its own text or forces the
+   row taller than the readouts beside it. Name and standing sit side by side,
+   separated by weight and colour rather than by a line break. */
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate-text {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    flex-direction: row;
+    align-items: baseline;
+    gap: calc(var(--secondary-bar-item-gap) * 0.9);
     min-width: 0;
-    line-height: 1.15;
 }
 
 /* The name leads, because who it is, is the point. */
@@ -228,11 +234,12 @@
 
 /* The standing follows, quieter -- a caption to the name, not a second heading. */
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate-detail {
-    font-size: calc(var(--secondary-bar-item-font-size) * 0.82);
+    font-size: calc(var(--secondary-bar-item-font-size) * 0.85);
     color: var(--blacksmith-widget-rank, var(--blacksmith-widget-rank-none));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    opacity: 0.9;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate.rank-1 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-1); }
@@ -245,6 +252,11 @@
    with no markup to rebuild; and it inherits the row's sizing variables
    directly, where an SVG would need its geometry recomputed per row height. */
 .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-dial {
+    /* Resolve the size HERE, inside the row. Defining this variable on the
+       outer bar resolves --secondary-bar-item-icon-size against the outer
+       two-row height before the compact data row can override it. That made
+       the dial taller than the row; overflow clipping left only two side arcs. */
+    --blacksmith-gauge-size: calc(var(--secondary-bar-item-icon-size) * 1.75);
     flex: 0 0 auto;
     width: var(--blacksmith-gauge-size);
     height: var(--blacksmith-gauge-size);

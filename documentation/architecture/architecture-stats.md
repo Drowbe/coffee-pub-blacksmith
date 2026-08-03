@@ -10,7 +10,7 @@ The stats system tracks combat statistics at three scopes — round, combat, and
 |---|---|
 | `scripts/stats-combat.js` | The accumulator and the rules: round tracking, combat tracking, summary generation, persistence, and the combat history |
 | `scripts/stats-sources.js` | Where the data comes from — dnd5e roll hooks, midi-qol workflows, chat messages, and the socket carrying a player's rolls to the GM |
-| `scripts/stats-cards.js` | Every chat card about a combat; eleven templates in two families |
+| `scripts/stats-cards.js` | The eight round/combat statistics chat cards in two template families |
 | `scripts/stats-mvp.js` | MVP scoring and the narrative written from it. A leaf: imports none of the above |
 | `scripts/stats-player.js` | Lifetime per-actor stats, and GM-only in-memory session state |
 | `scripts/stats-party.js` | Party-wide aggregates over the other two, cached; owns no data of its own |

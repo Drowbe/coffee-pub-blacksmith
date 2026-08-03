@@ -7,7 +7,7 @@
 
 // Import MODULE variables
 import { MODULE } from './const.js';
-import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
+import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
@@ -598,52 +598,6 @@ class CombatStats {
                 }
             }, true, false);
         }
-
-        // Handle round announcement if enabled (independent of stats tracking)
-        if (game.user.isGM && getSettingSafely(MODULE.ID, 'announceNewRounds', false)) {
-            this._announceNewRound(combat);
-        }
-    }
-
-    // New method to handle round announcements
-    static async _announceNewRound(combat) {
-        // Skip if combat doesn't exist (combat might have been deleted)
-        if (!combat || !game.combats.has(combat.id)) return;
-        
-        try {
-            // Use the current round number (no need to subtract 1 since this is announcing the start)
-            const roundNumber = combat.round;
-
-            // Prepare template data
-            const templateData = {
-                roundNumber: roundNumber  // Use the same property name as in _onRoundEnd
-            };
-
-            // Render the template
-            const content = await foundry.applications.handlebars.renderTemplate('modules/' + MODULE.ID + '/templates/card-stats-round-start.hbs', {
-                ...templateData
-            });
-
-            // Create chat message
-            await ChatMessage.create({
-                content: content,
-                speaker: { alias: "Game Master" }
-            });
-
-            // Play sound if configured
-            const soundId = game.settings.get(MODULE.ID, 'newRoundSound');
-            if (soundId && soundId !== 'none') {
-                const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
-                try {
-                    await playSound(soundId, volume);
-                } catch (soundError) {
-                    // Silently handle sound playback errors (non-critical)
-                    // Errors are already logged by playSound function
-                }
-            }
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error announcing new round', error, false, false);
-        }
     }
 
     static _onTurnChange(combat, currentCombatant, previousCombatant) {
@@ -1158,12 +1112,6 @@ class CombatStats {
             postConsoleAndNotification(MODULE.NAME, "COMBAT SUMMARY: Object ", combatSummary, true, false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error generating combat summary", error, false, false);
-            // Still try to send at least the End of Combat card
-            try {
-                await CombatCards._sendCombatCards({ settings: {} });
-            } catch (sendError) {
-                postConsoleAndNotification(MODULE.NAME, "Error sending combat end card", sendError, false, false);
-            }
             return;
         }
 
@@ -1183,12 +1131,6 @@ class CombatStats {
             templateData = await CombatCards._prepareCombatTemplateData(combatSummary);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error preparing combat template data", error, false, false);
-            // Still try to send at least the End of Combat card
-            try {
-                await CombatCards._sendCombatCards({ settings: {} });
-            } catch (sendError) {
-                postConsoleAndNotification(MODULE.NAME, "Error sending combat end card", sendError, false, false);
-            }
             return;
         }
 
@@ -2085,23 +2027,6 @@ class CombatStats {
 
     // Register all necessary hooks
     static _registerHooks() {
-        // Register combat creation hook to send combat start card
-        const createCombatHookId = HookManager.registerHook({
-            name: 'createCombat',
-            description: 'Combat Stats: Send combat start announcement when combat is created',
-            context: 'stats-combat',
-            priority: 3,
-            callback: async (combat) => {
-                // --- BEGIN - HOOKMANAGER CALLBACK ---
-                // Async only to await the lazy card import; the card was already
-                // sent fire-and-forget here, and nothing awaits this callback,
-                // so the timing a caller sees is unchanged.
-                const { CombatCards } = await import('./stats-cards.js');
-                CombatCards._sendCombatStartCard();
-                // --- END - HOOKMANAGER CALLBACK ---
-            }
-        });
-        
         // Register combat start hook
         const combatStartHookId = HookManager.registerHook({
             name: 'combatStart',
@@ -2115,7 +2040,7 @@ class CombatStats {
             }
         });
         
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | createCombat, combatStart", "stats-combat", true, false);
+        postConsoleAndNotification(MODULE.NAME, "Hook Manager | combatStart", "stats-combat", true, false);
         
         // Register combat hooks
         // Migrate updateCombat hook to HookManager for centralized control
@@ -2641,7 +2566,7 @@ class CombatStats {
             }
 
             // Send each card as a separate chat message in order
-            await CombatCards._sendRoundCards(templateData, finalRoundNumber);
+            await CombatCards._sendRoundCards(templateData);
 
             // Reset current stats
             this.currentStats = foundry.utils.deepClone(this.DEFAULTS.roundStats);

@@ -1,11 +1,9 @@
 /**
  * Chat cards for the combat statistics system.
  *
- * Every card Blacksmith posts about a combat is built here: the start
- * announcement, the five round cards, and the six end-of-combat cards. Eleven
- * templates in two families (`card-stats-round-*` and `card-stats-combat-*`),
- * which is the honest measure of how much presentation had accumulated inside
- * the tracker.
+ * Every statistics card Blacksmith posts about a combat is built here: four
+ * round cards and four end-of-combat cards in the `card-stats-round-*` and
+ * `card-stats-combat-*` template families.
  *
  * This is presentation only. It reads statistics and posts messages; it never
  * records anything. `stats-combat.js` owns tracking and calls in here when a
@@ -28,7 +26,7 @@
  */
 
 import { MODULE } from './const.js';
-import { getPortraitImage, postConsoleAndNotification, getSettingSafely, playSound } from './api-core.js';
+import { getPortraitImage, postConsoleAndNotification } from './api-core.js';
 import { CombatStats } from './stats-combat.js';
 // stats-mvp.js is a leaf — it imports neither this file nor the tracker — so
 // this one is static rather than lazy.
@@ -47,47 +45,6 @@ function getActorPortrait(combatant) {
 }
 
 export class CombatCards {
-    /**
-     * Send combat start announcement card when combat is created
-     */
-    static async _sendCombatStartCard() {
-        if (!game.user.isGM) return;
-        
-        // Check if combat start announcement is enabled
-        if (!game.settings.get(MODULE.ID, 'announceCombatStart')) return;
-        
-        try {
-            const startContent = await foundry.applications.handlebars.renderTemplate(
-                'modules/' + MODULE.ID + '/templates/card-stats-combat-start.hbs',
-                {}
-            );
-            
-            const isShared = game.settings.get(MODULE.ID, 'shareCombatStats');
-            const whisper = isShared ? [] : [game.user.id];
-            const speaker = { alias: "Game Master", user: game.user.id };
-            
-            await ChatMessage.create({
-                content: startContent,
-                whisper,
-                speaker
-            });
-            
-            // Play combat start sound if configured
-            const soundId = game.settings.get(MODULE.ID, 'combatStartSound');
-            if (soundId && soundId !== 'none') {
-                const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
-                try {
-                    await playSound(soundId, volume);
-                } catch (soundError) {
-                    // Silently handle sound playback errors (non-critical)
-                    // Errors are already logged by playSound function
-                }
-            }
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error sending combat start card', error, false, false);
-        }
-    }
-
     static async _prepareTemplateData(participantStats, combat = null) {
         // Ensure currentStats is initialized
         if (!CombatStats.currentStats) {
@@ -407,27 +364,20 @@ export class CombatCards {
 
     /**
      * Send round cards as separate chat messages
-     * Order: Round End, Round Summary, Round MVP, Notable Moments, Party Breakdown
+     * Order: Round Summary, Round MVP, Notable Moments, Party Breakdown
      */
-    static async _sendRoundCards(templateData, roundNumber) {
+    static async _sendRoundCards(templateData) {
         const isShared = game.settings.get(MODULE.ID, 'shareCombatStats');
         const whisper = isShared ? [] : [game.user.id];
         const speaker = { alias: "Game Master", user: game.user.id };
 
-        // 1. Round End Card (always send if no other cards are being sent)
+        // Announcements are owned by Bibliosoph. With no enabled statistics cards,
+        // Blacksmith should not post a fallback "Round N Begins" message.
         const showAnyCard = templateData.settings.showRoundSummary || 
                            templateData.settings.showRoundMVP || 
                            templateData.settings.showNotableMoments || 
                            templateData.settings.showPartyBreakdown;
-        
-        if (!showAnyCard) {
-            const endContent = await foundry.applications.handlebars.renderTemplate(
-                'modules/' + MODULE.ID + '/templates/card-stats-round-start.hbs',
-                { roundNumber }
-            );
-            await ChatMessage.create({ content: endContent, whisper, speaker });
-            return;
-        }
+        if (!showAnyCard) return;
 
         // Collect all message promises to send them simultaneously
         const messagePromises = [];
@@ -762,24 +712,8 @@ export class CombatCards {
             participantsCount: templateData.participants?.length || 0
         }, true, false);
 
-        // Check if combat end announcement is enabled
-        const announceCombatEnd = game.settings.get(MODULE.ID, 'announceCombatEnd');
-        
         // Collect all message promises to send them simultaneously
         const messagePromises = [];
-
-        // 0. End of Combat Card (send first if enabled)
-        if (announceCombatEnd) {
-            try {
-                const endContent = await foundry.applications.handlebars.renderTemplate(
-                    'modules/' + MODULE.ID + '/templates/card-stats-combat-end.hbs',
-                    {}
-                );
-                messagePromises.push(ChatMessage.create({ content: endContent, whisper, speaker }));
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat end card', error, false, false);
-            }
-        }
 
         // 1. Combat Summary Card
         if (templateData.settings.showCombatSummary) {
@@ -835,20 +769,6 @@ export class CombatCards {
 
         // Send all messages simultaneously
         await Promise.all(messagePromises);
-        
-        // Play combat end sound if configured and announcement is enabled
-        if (announceCombatEnd) {
-            const soundId = game.settings.get(MODULE.ID, 'combatEndSound');
-            if (soundId && soundId !== 'none') {
-                const volume = game.settings.get(MODULE.ID, 'timerSoundVolume');
-                try {
-                    await playSound(soundId, volume);
-                } catch (soundError) {
-                    // Silently handle sound playback errors (non-critical)
-                    // Errors are already logged by playSound function
-                }
-            }
-        }
     }
 
     // Enrich notable moments with portrait images

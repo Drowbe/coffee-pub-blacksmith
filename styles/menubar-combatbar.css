@@ -224,6 +224,27 @@
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
 }
 
+/* THE DATA ROW IS ONE LINE. NEVER TWO.
+   The shared zone rule sets `flex-wrap: wrap`, which is right for a bar of
+   buttons that may need a second line and wrong for a fixed-height readout row:
+   the row's height is `--blacksmith-combatbar-data-height`, so a wrapped second
+   line does not get taller, it gets clipped and squeezed.
+
+   It also broke two things that did not look related. A wrapped flex row centres
+   its LAST line, so the statistics appeared left-aligned out of combat (one line)
+   and centred in combat (two) with no rule changing between them. And
+   `applyReadoutOverflow` decides what to hide by testing
+   `scrollWidth > clientWidth` -- which a wrapping row never satisfies, because it
+   wraps instead of overflowing. Suppression was therefore never firing at all;
+   the row wrapped rather than dropping its least important readouts.
+
+   `nowrap` restores both: the row stays one line, and it can now overflow, which
+   is the signal suppression measures. */
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-zone {
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+
 /* THE STATISTICS READ LEFT TO RIGHT, NOT OUTWARD FROM THE CENTRE.
    The shared middle zone is centred, which is right for a bar of buttons and
    wrong for a list of readouts: a centred row that overflows loses items from
