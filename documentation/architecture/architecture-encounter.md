@@ -190,6 +190,46 @@ Zones: the left zone holds round, turn, and the timer slot; the right zone holds
 challenge rating; the middle zone holds the party statistics. Groups within a zone are separated by
 dividers automatically, so the grouping is what produces the pipes.
 
+### Update timing
+
+Three clocks drive this row, and assuming one explains all of it is the most common way to misread the
+bar. The symptom that gives it away: a health bar jumps the instant damage applies while the damage
+figure beside it sits still for a moment, then moves on its own with nothing else happening.
+
+| Readout | Read from | When it moves |
+|---|---|---|
+| Round, turn | the combat document | On the change |
+| Party health, monster health, balance | `getHealthSummaries()`, live actor HP | On the change |
+| Challenge rating | `EncounterManager.getCombatAssessment` | On the change |
+| Planning and turn timer | `syncTimerReadout`, writing DOM directly | Once a second |
+| The live statistics set | the `combatStats` combat flag | Up to one second behind the event |
+| The lifetime standings set | the `PartyStats` cache | Once per combat |
+
+The first three read live documents and refresh on `updateActor`, `updateToken`, `updateCombat` and
+`updateCombatant` (`manager-combatbar.js:1458`, `:1475`), so they are as current as Foundry is.
+
+The timers are on their own path entirely. They tick once a second and are written straight into their
+bars by `syncTimerReadout` through the `blacksmithTimerDisplay` hook (`:1015`), never through
+`updateSecondaryBarItemInfo` — rebuilding a bar once a second for the whole of every combat is the cost
+that path exists to avoid.
+
+The live statistics are the ones that lag, and the delay is structural rather than incidental.
+`getRunningStats()` reads the combat flag rather than the GM's own memory, and that flag is mirrored on
+a one-second debounce (`stats-combat.js:114`). The reason the GM reads the flag too is in
+`architecture-stats.md`; the consequence here is that these figures trail their event by up to a second
+and are null for the opening moments of a fight, so the chips show their registered placeholders until
+the first mirror lands.
+
+**The refresh trigger and the data freshness are separate things**, which is what produces the symptom
+above. An HP change fires `updateActor`, the bar refreshes, and the statistics are re-read from a flag
+that has not been written yet — so health moves and damage does not. The flag write then fires
+`updateCombat` on every client a moment later, refreshing the bar again with nothing else having
+happened.
+
+Nothing in the live set is per **round**, despite the naming inviting it: these are cumulative over the
+whole fight. `getCurrentStats()` is the round accumulator despite reading as "now"; `getRunningStats()`
+is the running total the bar shows (`stats-combat.js:1407` says so at the source).
+
 ### Party statistics
 
 Two sets share the middle zone, swapped by combat state through `visible` predicates. Out of combat the bar
