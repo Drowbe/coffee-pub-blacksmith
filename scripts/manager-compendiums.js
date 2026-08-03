@@ -29,6 +29,7 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import {
     normalizeType,
     getCompendiumSettingPrefix,
+    getNumCompendiumsSettingName,
     getSearchWorldFirstKey,
     getSearchWorldLastKey,
     getDocumentClass,
@@ -42,15 +43,6 @@ import {
     formatPackLabel
 } from './compendium-types.js';
 import { isNativeFoundryItemData, parseFlatItemToFoundry } from './parsers/parse-item.js';
-import {
-    getAutomaticCompendiumPackIds,
-    getCompendiumSourceId,
-    getCompendiumSourceSettingKey,
-    getInstalledCompendiumSources,
-    isSourceAggregatedMappingType,
-    getMappedSourceGroups,
-    expandMappedSelection
-} from './utility-compendium-auto-map.js';
 
 /** Match tiers in priority order. */
 const MATCH_TIERS = ['exact', 'startsWith', 'includes'];
@@ -86,27 +78,20 @@ export class CompendiumManager {
         const canonical = normalizeType(type);
         const prefix = getCompendiumSettingPrefix(canonical);
 
-        const sourcePool = getInstalledCompendiumSources()
-            .filter(source => getSettingSafely(MODULE.ID, getCompendiumSourceSettingKey(source.id), true))
-            .map(source => source.id);
-        const enabledSources = new Set(sourcePool);
-        const eligiblePackIds = getAutomaticCompendiumPackIds(canonical, { sourceIds: sourcePool });
-        const eligiblePacks = new Set(eligiblePackIds);
-        const selectorCount = isSourceAggregatedMappingType(canonical)
-            ? getMappedSourceGroups(canonical, { sourceIds: sourcePool }).length
-            : eligiblePackIds.length;
-        const manualPackIds = [];
+        // What the GM put in the slots is the mapping. There is no second gate: the
+        // old one re-filtered saved picks against enabled packages and content
+        // heuristics on every lookup, so a pack could sit visibly in a priority slot
+        // and silently never be searched. The only rejection left is a pack that no
+        // longer exists in this world.
+        const selectorCount = Math.max(0, Number(
+            getSettingSafely(MODULE.ID, getNumCompendiumsSettingName(canonical), 0)) || 0);
+        const packIds = [];
         for (let i = 1; i <= selectorCount; i++) {
-            const selection = getSettingSafely(MODULE.ID, `${prefix}${i}`, null);
-            for (const packId of expandMappedSelection(canonical, selection, { sourceIds: sourcePool })) {
-                if (!manualPackIds.includes(packId)) manualPackIds.push(packId);
-            }
+            const packId = getSettingSafely(MODULE.ID, `${prefix}${i}`, null);
+            if (!packId || packId === 'none') continue;
+            if (!game.packs.get(packId)) continue;
+            if (!packIds.includes(packId)) packIds.push(packId);
         }
-        const availableManualPackIds = manualPackIds.filter(packId => {
-            const pack = game.packs.get(packId);
-            return pack && enabledSources.has(getCompendiumSourceId(pack)) && eligiblePacks.has(packId);
-        });
-        const packIds = availableManualPackIds;
 
         const searchWorldFirst = !!getSettingSafely(MODULE.ID, getSearchWorldFirstKey(canonical), false);
         const searchWorldLast = !!getSettingSafely(MODULE.ID, getSearchWorldLastKey(canonical), false);
@@ -164,15 +149,11 @@ export class CompendiumManager {
      * quotations journal -- often wants one that is deliberately NOT in the search set,
      * so filtering by the search configuration would hide exactly the right answer.
      *
-     * Nothing is filtered out: not the enabled-source checkboxes, and not the content
-     * heuristics behind getChoices(). Those heuristics are strict -- a JournalEntry pack
-     * must pass `isPrimaryJournalCompendium`, and a Spell pack must actually contain
-     * spells -- which is correct for a search mapping and wrong for "let the user pick
-     * any journal compendium".
-     *
-     * Synthetic types therefore return every pack of their document class: asking for
-     * `Spell` returns all Item packs, because content sniffing is the very filter this
-     * method exists to escape. Use getChoices() when you want the narrowed set.
+     * No content check at all, where getChoices() at least requires a synthetic type's
+     * subtype to be present in the index. So asking for `Spell` returns every Item pack,
+     * including ones holding no spells. That is the point: a caller here wants the raw
+     * inventory of what could hold this document class, and will present it to a user
+     * who knows which one they mean.
      *
      * @param {string} type - Any accepted type token
      * @returns {Array<{id: string, label: string, package: string, displayLabel: string,

@@ -2,9 +2,11 @@
 
 Blacksmith owns the **Compendium Mapping** the GM configures (which compendiums to use for monsters, items, spells, features, species/races, backgrounds, classes, subclasses, journals, roll tables, and in what priority order), and exposes that mapping, a name-to-UUID resolver built on top of it, and a multi-result search over the same indexes for browsable pickers.
 
-The enabled-source checkboxes independently define which installed Foundry packages may appear in mappings. **Auto-map Compendiums on Next Load** is a one-shot initializer: on the next active-GM load it replaces the ordinary priority settings from those enabled sources, clears itself, and leaves a fully manual configuration. `getMapping()`, `getSelected()`, `getSearchOrder()`, and all resolver methods always report and use that saved configuration; there is no separate automatic runtime mapping.
+The mapping is entirely manual. Per type, the GM sets **Priority Slots** (`numCompendiums{Type}`, 0–20) and fills each slot from a dropdown; slot 1 is searched first. `getMapping()`, `getSelected()`, `getSearchOrder()`, and every resolver method report and use exactly that, and nothing else filters it — a compendium sitting in a slot is a compendium that gets searched. The only entry ever dropped is one whose pack no longer exists in the world.
 
-`numCompendiums` in `getMapping()` is the effective number of compatible priority slots, derived from the enabled sources. The historical `numCompendiums*` world settings are hidden compatibility storage and must not be used to determine the current selector count.
+Each type's dropdown offers **every installed compendium that can supply that type**: the pack's document type matches, and for a synthetic type its index actually contains that subtype. There is no package-level gate and no judgement about whether a pack is a "primary" compendium of its kind. The slots are the curated list; the dropdown is the full menu.
+
+`numCompendiums` in `getMapping()` is that slot count — the GM's number, not a derived one.
 
 **If your module turns plain text into a link or a document, use this API.** Do not read `monsterCompendium1` / `numCompendiumsActor` yourself, and do not hand-build `@UUID[...]` strings. The setting keys carry backward-compat quirks (`Actor` maps to `monster`, `Feature` maps to `features`), the search order has world-first/world-last rules, and the matching is tiered. All of that is handled here.
 
@@ -291,9 +293,11 @@ compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters
 
 These are different questions, and using the wrong one hides the right answer.
 
-`getMapping()`, `getSelected()`, and `getChoices()` all describe the **search configuration** — which compendiums the GM chose to resolve names against. `getChoices()` narrows further: it drops packs from disabled sources, and applies content heuristics (a `JournalEntry` pack must look like a "primary" journal compendium; a `Spell` pack must actually contain spells).
+`getMapping()` and `getSelected()` describe the **search configuration** — the compendiums the GM put in priority slots for resolving names against. `getChoices()` is the menu those slots are filled from: every compendium that can supply the type.
 
-That is right for a search mapping and wrong when your module asks the user to nominate a compendium **for its own purpose** — an injuries table, a quotations journal, a name list. Those are frequently compendiums the GM deliberately kept *out* of the search set, so the search-shaped list is exactly the one that cannot offer them.
+That is right when you want to follow the GM's search setup, and wrong when your module asks the user to nominate a compendium **for its own purpose** — an injuries table, a quotations journal, a name list. Those are frequently compendiums the GM deliberately kept *out* of the search set, so a list shaped by the search mapping is the wrong place to look for them.
+
+`getAllPacks()` differs from `getChoices()` in two remaining ways: it returns structured data rather than display strings, and it applies no subtype check, so `getAllPacks('Spell')` returns every Item pack while `getChoices('Spell')` returns only those whose index contains a spell.
 
 ```js
 // Every installed compendium that can hold this type. Nothing filtered.
@@ -327,7 +331,7 @@ compendiums.getAllChoices('JournalEntry', { none: false });   // omit the "-- No
 Three things to know:
 
 - **`getAllChoices()` values are display strings.** To lay the parts out yourself, use `getAllPacks()` and read `label` and `package` separately rather than splitting `displayLabel` apart.
-- **Synthetic types return every pack of their document class.** `getAllPacks('Spell')` returns all Item packs, not only those containing spells — content sniffing is the filter this method exists to escape. Use `getChoices('Spell')` when you want the narrowed set.
+- **Synthetic types return every pack of their document class.** `getAllPacks('Spell')` returns all Item packs, including ones holding no spells — no content check is applied at all. Use `getChoices('Spell')` when you want the set narrowed to packs that actually contain one.
 - **The result is always a superset of `getChoices()`.** If the two are the same size, nothing is being hidden from you in this world; the gap is what the method is for. Its values are **display strings for a `<select>`** — package, pack, and a summary of contents, composed into one line. They are not a source of structured data: to label a pack anywhere else, read `pack.metadata.label` and `getPackPackageLabel(pack)`, or take `sourceLabel` / `sourcePackage` off a `search()` result.
 
 ## Methods

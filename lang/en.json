@@ -741,13 +741,6 @@
 		"headingH2CompendiumMapping-Label": "Compendium Mapping",
 		"headingH2CompendiumMapping-Hint": "When we automate searching for things, we look in the compendiums first. This is where we will look for a match. They are in priority order and we stop looking when we find a match.",
 
-		"headingH3AutomaticCompendiumMapping-Label": "Automatic Mapping",
-		"headingH3AutomaticCompendiumMapping-Hint": "Use the enabled sources above to create a one-time starting configuration for every compendium mapping.",
-		"autoMapCompendiums-Label": "Auto-map Compendiums on Next Load",
-		"autoMapCompendiums-Hint": "On the next GM load, replace all compendium priority mappings using the enabled sources and Blacksmith's priority rules. This overwrites existing mappings, then automatically unchecks itself. Priority order: official supplements and updated books; Player's Handbook, Dungeon Master's Guide, and Monster Manual core content; third-party/imported/homebrew sources; then bundled SRD packs.",
-		"autoMapCompendiums-Complete": "Compendium mappings were automatically configured from your enabled sources.",
-		"headingH4CompendiumSources-Label": "Included Sources",
-		"headingH4CompendiumSources-Hint": "Enable whole Foundry packages or world sources here. Packages appear only when they contain at least one non-empty Actor, Item, Journal, or Roll Table compendium that Blacksmith can match. After saving and reloading, the mappings below offer only compatible compendiums from enabled sources.",
 
 		"headingH2AssetMapping-Label": "Asset Mapping",
 		"headingH2AssetMapping-Hint": "Each field defaults to JSON shipped under `resources/asset-defaults/` in this module. Chat card appearance themes live in code (`api-chat-cards.js`). Clear a field to use only the embedded JS bundle for that category (no fetch).",
@@ -812,8 +805,8 @@
 			"headingH3StackCompendiums-Label": "Stacks",
 			"headingH3StackCompendiums-Hint": "",
 
-			"numCompendiums-Label": "Number of Compendiums",
-			"numCompendiums-Hint": "",
+			"numCompendiums-Label": "Priority Slots",
+			"numCompendiums-Hint": "How many compendiums you want to search for this type, in priority order. Set only as many as you need — Priority 1 is checked first. Changing this takes effect after a reload. Every installed compendium that can supply this type is offered in the dropdowns below; the slots are your curated shortlist, not a filter on what exists.",
 
 			"searchWorldFirst-Label": "Search World First",
 			"searchWorldFirst-Hint": "When enabled, will search for matches in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",

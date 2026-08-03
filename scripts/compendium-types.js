@@ -270,3 +270,83 @@ export function formatPackLabel(pack, fallbackId = '') {
     if (!meta) return fallbackId;
     return `${getPackPackageLabel(pack)}: ${meta.label}`;
 }
+
+// ==============================================================
+// ===== PACK CONTENTS ==========================================
+// ==============================================================
+// Moved here when the automatic-mapping machinery was removed. What survived it
+// is the FACTUAL half: what a pack actually holds. The removed half guessed at
+// whether a pack was a "primary" spell/journal/feature compendium and silently
+// withheld the ones it disliked, which is how a legitimate journal compendium
+// could not be chosen at all.
+
+/** A pack's index as a plain array, tolerating an index that has not built. */
+function indexEntries(pack) {
+    const index = pack?.index;
+    if (!index) return [];
+    if (Array.isArray(index.contents)) return index.contents;
+    try { return Array.from(index); } catch (_error) { return []; }
+}
+
+/**
+ * Whether a pack can supply this mapped type.
+ *
+ * Two facts, no opinions: the pack's document type matches, and -- for a synthetic
+ * type living in Item packs -- the index actually contains that subtype. A pack with
+ * an unbuilt or empty index is excluded because it can supply nothing.
+ *
+ * @param {object} pack - A game.packs entry
+ * @param {string} type - Any accepted type token
+ * @returns {boolean}
+ */
+export function compendiumOffersType(pack, type) {
+    const canonical = normalizeType(type);
+    if (!canonical) return false;
+    if (String(pack?.metadata?.type || '') !== getPackType(canonical)) return false;
+
+    const entries = indexEntries(pack);
+    if (!entries.length) return false;
+
+    const subtype = getDocumentSubtype(canonical);
+    if (!subtype) return true;
+
+    // Some indexes expose no subtype at all. Excluding those would hide packs whose
+    // contents cannot be judged, so an index with no type information is admitted and
+    // the resolver's own subtype filter sorts it out at lookup time.
+    const indexedTypes = entries.map(entry => String(entry?.type || '').toLowerCase()).filter(Boolean);
+    return indexedTypes.length ? indexedTypes.includes(subtype) : true;
+}
+
+const CONTENT_LABELS = {
+    actor: 'Actors', background: 'Backgrounds', class: 'Classes', feat: 'Features / Feats',
+    race: 'Species / Races', spell: 'Spells', subclass: 'Subclasses', weapon: 'Weapons',
+    equipment: 'Equipment', consumable: 'Consumables', tool: 'Tools', loot: 'Loot',
+    item: 'Other Items', journalentry: 'Journals', rolltable: 'Roll Tables'
+};
+
+const CONTENT_ORDER = [
+    'actor', 'background', 'race', 'class', 'subclass', 'feat', 'spell',
+    'weapon', 'equipment', 'consumable', 'tool', 'loot', 'item',
+    'journalentry', 'rolltable'
+];
+
+/** "42 Weapons, 59 Equipment, 12 Consumables" for a dropdown label. */
+export function describeCompendiumContents(pack) {
+    const counts = new Map();
+    for (const entry of indexEntries(pack)) {
+        const type = String(entry?.type || '').toLowerCase();
+        if (type) counts.set(type, (counts.get(type) || 0) + 1);
+    }
+    if (!counts.size) return '';
+
+    return [...counts.entries()]
+        .sort(([a], [b]) => {
+            const aOrder = CONTENT_ORDER.indexOf(a);
+            const bOrder = CONTENT_ORDER.indexOf(b);
+            if (aOrder !== bOrder) return (aOrder < 0 ? Number.MAX_SAFE_INTEGER : aOrder)
+                - (bOrder < 0 ? Number.MAX_SAFE_INTEGER : bOrder);
+            return (CONTENT_LABELS[a] || a).localeCompare(CONTENT_LABELS[b] || b);
+        })
+        .map(([type, count]) => `${count} ${CONTENT_LABELS[type] || type}`)
+        .join(', ');
+}

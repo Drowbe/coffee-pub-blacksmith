@@ -4,6 +4,49 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Toasts: let an excluded user through for specific events
+
+An excluded user is currently excluded from everything. `toastExcludedUsers` is a world setting and `isToastExcludedUser()` gates on **receipt** (`api-toast.js:118`) — the client drops the toast when its view is `game`. That is right for a camera or stream account that must not have party chatter on screen, and wrong for the case that motivates this: the cameraman player in the broadcast setup **should** see "FUMBLE!" and "CRITICAL!", because those are the moments the broadcast exists to capture.
+
+So exclusion needs to stop being all-or-nothing. The plumbing already exists — `sendToastToUsers(payload, userIds)` is the internal targeted relay — what is missing is a way to say "this class of event reaches excluded users too".
+
+**The design question, unanswered:** is it a per-user opt-in (each excluded user has a list of event kinds they still receive), or a named channel a module publishes to (`api.toast.show({..., channel: 'spectacle'})`) with excluded users subscribing to channels? The channel form is the one that scales to siblings — the crit/fumble toasts will be sent by the rolls consumer module, not by Blacksmith — and it keeps the sender from needing to know who is excluded. The per-user form is simpler and keeps the decision with the GM. Decide before building; the two produce different API surfaces and the sender-side call differs.
+
+Note the receipt-side model is deliberate and must survive: both transports broadcast to every client and filtering happens on arrival (`TODO.md` "emit() must never carry secrets"). Whatever this becomes, it cannot turn into a claim that the payload was only delivered to some clients.
+
+## Voting: filter who can vote and who can be voted for
+
+Two separate filters, and only half of one exists today.
+
+**Who can vote** is already snapshotted per vote as `vote.eligibleUserIds` (`manager-vote.js:34`), falling back to all active non-GM users. So the storage hook is there; what is missing is any way to *configure* it — nothing narrows that snapshot when a vote starts.
+
+**Who can be voted for** has no concept at all. For a leader vote every player is implicitly a candidate.
+
+The cases that need it: a player who is present but not participating (a guest, a second screen, the camera account) should be neither a voter nor a candidate; and a GM-run vote may want a deliberately short candidate list.
+
+**The design question, unanswered:** per-vote configuration in the Create Vote dialog (`window-vote-config.js`), or a standing world setting for "users excluded from voting" that every vote inherits? A standing setting overlaps conceptually with `toastExcludedUsers` — the same camera account is the motivating example for both — which suggests a single shared "this user is not a participant" list is the better shape than two independent exclusion lists. Worth deciding alongside the toast item above rather than separately.
+
+## Compendium mapping wants a custom settings panel
+
+The real fix, and the reason automatic mapping and the source checkboxes were removed rather than repaired. A row of numbered dropdowns is the wrong control for an ordered list: adding a compendium means finding a free slot, removing one means setting it to "none" and letting the compaction pass shuffle it, and reordering means retyping several dropdowns. The slot-count slider makes that bearable but not good.
+
+What it should be: one panel per type showing the chosen compendiums as a **drag-and-drop ordered list**, with add and remove, and no slot count to manage at all — the list is as long as it is. `registerMenu` with a `BlacksmithWindowBaseV2` form is the shape; the existing `numCompendiums{Type}` and `{prefix}{i}` settings can stay as the storage behind it, so this is a UI change rather than a data migration.
+
+Two things to carry over: the ordinary settings page must keep working for anyone who does not open the panel, and the panel needs the full unfiltered choice list (`getAllPacks(type)`), not a narrowed one.
+
+Verify live: reorder by dragging and confirm the search order changes to match; remove the first entry and confirm the rest shift up without a reload; confirm a type with nothing configured reads as empty rather than as a column of "none".
+
+## Live-verify the compendium mapping simplification
+
+Shipped unverified, and it touches settings storage, so worth a careful pass in a world that already has mappings.
+
+- **Existing mappings survive.** Load a world configured before this change and confirm each type's Priority Slots slider reads the number it actually had configured, and that the dropdowns below hold the same compendiums in the same order.
+- **Lowering the slider hides rather than deletes.** Drop a type from 8 to 3, reload, confirm slots 4-8 are gone from the UI; raise it back to 8, reload, confirm the original picks return.
+- **The dropdowns are complete.** Confirm a journal compendium that used to be missing — one that failed the old "primary journal" heuristic — now appears in the JournalEntry dropdowns. That is the specific regression this change exists to fix.
+- **What you pick is what gets searched.** Map a compendium that the old build would have vetoed, then resolve a name from it and confirm it resolves.
+- **Scene mappings.** If Scene was mapped, confirm it now shows per-pack dropdowns and re-pick; the old `source:` values are skipped.
+- Confirm the Included Sources section and the Auto-map checkbox are gone entirely, with no orphaned headings left behind.
+
 ## Live-verify the Compendium Search tool window
 
 `api.compendiums.search()` itself is verified — 57/57 headless assertions, grouping proven across 10 sources (`utilities/tests/suite-compendiums.js`). The palette built on it is not. There are three ways in — the Blacksmith scene-controls toolbar (Utilities zone, `fa-book-atlas`), the menubar left zone (magnifying glass, beside menu/settings/refresh), and Ctrl+Space. Confirm all three reach the same single window rather than opening duplicates, then check:
@@ -554,11 +597,27 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
 - **Status**: PENDING
 - **Priority**: Low — no reported symptom. Do not build culling without a measurement.
 
-#### Hide Dead and Skip Dead Options for Menubar and Combat Tracker
-- **Issue**: Need options to hide and skip dead combatants in menubar and combat tracker
+#### Hide Dead and Skip Dead — lists, and the canvas
 - **Status**: PENDING - Needs implementation
-- **Location**: `scripts/api-menubar.js`, `scripts/combat-tracker.js`
-- **Need**: Settings for `menubarHideDead`, `menubarSkipDead`, `combatTrackerHideDead` with filtering logic
+- **Location**: `scripts/api-menubar.js`, `scripts/combat-tracker.js`, `scripts/manager-combatbar.js`
+- **Two halves.** The **list** half is settings `menubarHideDead`, `menubarSkipDead`, `combatTrackerHideDead` with filtering logic — dead combatants stop cluttering the menubar and tracker, and turn order skips them. The **canvas** half is a toggle on the encounter bar that hides the dead tokens on the map itself. Same trigger, different mechanism; do them as one change so one notion of "dead" serves both.
+
+- **Canvas half — requirements (author, 2026-08-02)**:
+  - Survives reload.
+  - Combatants stay in the encounter, so end-of-combat XP still counts them. Hiding is never removing.
+  - One button toggles all dead tokens' visibility, for the GM *and* the players alike.
+  - Hidden tokens must not be clickable or selectable.
+
+- **Candidate mechanisms, and the trade-off.** Three ways to do it, and the choice is the whole design:
+  1. **Token `hidden` flag.** Persists, native, keeps them in combat. But `hidden` shows the token to the **GM** at half alpha by design, so it satisfies players and not the GM, and the GM can still select it. It also collides with the GM's own use of `hidden` for tokens they had already concealed — untoggling would reveal something that was meant to stay hidden. That collision alone probably disqualifies it.
+  2. **Move to an off-map "grave" zone** (the author's own suggestion, flagged as uncertain). It works, and it is the most invasive: it destroys the token's position, which is the thing most worth keeping — where the body fell is information. Restoring means stashing the original coordinates in a flag and hoping nothing interrupts the round trip. Moving tokens also fires update hooks, revalidates collision, and drags any light source with them, so a pile of corpses off the edge of the map can change what the living can see. Recommend against.
+  3. **A scene flag plus client-side suppression.** A persisted scene flag (`gravesHidden`) is the toggle; each client derives the effect from it — for every dead combatant's token, stop it rendering and set `interactive = false`, re-applied on `canvasReady` and whenever combat or the flag changes. It survives reload because the flag is persisted and the effect is *re-derived*, not stored. It mutates no token document, so there is nothing to restore, no position loss, no interference with the GM's own hidden tokens, and no vision side effects.
+
+  Option 3 looks right. Its honest limitation: the token is still there for targeting macros and AoE template maths — it is invisible, not absent. That is arguably correct, since it is still in the encounter.
+
+- **Open questions**: what counts as dead — the combatant `defeated` flag, HP <= 0, or either? And does the toggle live per scene (a flag) or per combat (so it resets each encounter)? Per scene is simpler and matches "click a button to tidy the map"; per combat matches "these corpses belong to this fight".
+- **How to verify**: kill a token mid-combat, toggle the button, confirm it vanishes for both GM and player clients and cannot be clicked or box-selected; reload both clients and confirm it stays hidden; end combat and confirm XP still counts the dead; toggle back and confirm the token returns in its original position with its original hidden state intact.
+- **Related**: the blood-splatter item above notes its dead-state treatment ties into this — settle this first so both use one definition of dead.
 
 #### Query Tool — moved to Regent
 - **Note (2026-07-25):** `window-query.js` is **not in Blacksmith** — it lives in `coffee-pub-regent`. Any query-tool UX or roll-integration work belongs in the Regent repo using `openRequestRollDialog` / `module.api.rolls`. Removed stale references to `scripts/window-query.js` in this repo.

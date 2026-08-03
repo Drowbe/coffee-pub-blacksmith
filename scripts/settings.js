@@ -27,19 +27,11 @@ import {
 	getTypeLabel,
 	getMappedTypes,
 	formatPackLabel,
-	extractTypeFromCompendiumSetting
+	extractTypeFromCompendiumSetting,
+	compendiumOffersType,
+	describeCompendiumContents,
+	SYNTHETIC_TYPES
 } from './compendium-types.js';
-import {
-    describeCompendiumContents,
-    compendiumContainsMappedType,
-    getAutomaticCompendiumPackIds,
-    getCompendiumSourceId,
-    getCompendiumSourceSettingKey,
-    getInstalledCompendiumSources,
-    isSourceAggregatedMappingType,
-    getMappedSourceGroups,
-    expandMappedSelection
-} from './utility-compendium-auto-map.js';
 
 // Re-exported for consumers that historically imported it from settings.js.
 export { extractTypeFromCompendiumSetting };
@@ -204,12 +196,17 @@ function checkInstalledModules() {
 }
 
 // -- COMPENDIUM CHOICES  --
-function getCompendiumChoices({ sourceIds = null } = {}) {
+//
+// Every dropdown offers every compendium that can actually supply its type. There is
+// no package-level gate and no judgement about whether a pack is a "primary" spell or
+// journal compendium: those guesses withheld legitimate compendiums with no way to
+// override them, and the priority slots are themselves the curated list. How many
+// slots a type gets is the GM's choice (numCompendiums{Type}), so a long dropdown
+// costs nothing -- you fill only the slots you asked for.
+function getCompendiumChoices() {
     postConsoleAndNotification(MODULE.NAME, "Building Compendium List...", "", false, false);
-    const allowedSources = Array.isArray(sourceIds) ? new Set(sourceIds) : null;
 
     const choicesArray = Array.from(game.packs.values())
-    .filter(compendium => !allowedSources || allowedSources.has(getCompendiumSourceId(compendium)))
     .map(compendium => {
         const contents = describeCompendiumContents(compendium);
         return {
@@ -236,42 +233,22 @@ function getCompendiumChoices({ sourceIds = null } = {}) {
     // Store the main choices (backward compatible)
     BLACKSMITH.updateValue('arrCompendiumChoices', choices);
 
-    // Create and store filtered arrays for each type
-    const types = [...new Set(choicesArray.map(c => c.type))];
-    types.forEach(type => {
-        if (isSourceAggregatedMappingType(type)) {
-            const sourceChoices = getMappedSourceGroups(type, { sourceIds })
-                .reduce((choices, source) => {
-                    const compendiumLabel = `${source.packIds.length} ${source.packIds.length === 1 ? 'compendium' : 'compendiums'}`;
-                    const documentLabel = `${source.documentCount} ${getTypeLabel(type)}${source.documentCount === 1 ? '' : 's'}`;
-                    choices[source.value] = `${source.label} — ${compendiumLabel}, ${documentLabel}`;
-                    return choices;
-                }, {"none": "-- None --"});
-            BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, sourceChoices);
-            return;
-        }
-        const filteredChoices = choicesArray
-            .filter(compendium => compendium.type === type
-                && compendiumContainsMappedType(game.packs.get(compendium.id), type))
-            .reduce((choices, compendium) => {
-                choices[compendium.id] = compendium.label;
-                return choices;
-            }, {"none": "-- None --"});
-        
-        BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, filteredChoices);
-    });
-    
-    // Synthetic content-based types draw from every Item pack, then filter by
-    // document subtype while resolving and building prompt catalogs.
-    for (const type of ['Spell', 'Feature', 'Species', 'Background', 'Class', 'Subclass']) {
-        const choices = choicesArray
-            .filter(compendium => compendium.type === 'Item'
-                && compendiumContainsMappedType(game.packs.get(compendium.id), type))
-            .reduce((result, compendium) => {
-                result[compendium.id] = compendium.label;
-                return result;
-            }, {"none": "-- None --"});
-        BLACKSMITH.updateValue(getChoicesArrayKey(type), choices);
+    // One rule for every type, real and synthetic: offer the packs that can supply it.
+    const choicesFor = (type) => choicesArray
+        .filter(compendium => compendiumOffersType(game.packs.get(compendium.id), type))
+        .reduce((result, compendium) => {
+            result[compendium.id] = compendium.label;
+            return result;
+        }, {"none": "-- None --"});
+
+    for (const type of new Set(choicesArray.map(c => c.type))) {
+        BLACKSMITH.updateValue(`arrCompendiumChoices${type}`, choicesFor(type));
+    }
+
+    // Synthetic content-based types live in Item packs and are offered the Item packs
+    // whose index actually contains their subtype.
+    for (const type of SYNTHETIC_TYPES) {
+        BLACKSMITH.updateValue(getChoicesArrayKey(type), choicesFor(type));
     }
 
     // Make the array available to these settings.
@@ -283,11 +260,59 @@ function getCompendiumChoices({ sourceIds = null } = {}) {
 
 // Track reordering in progress to prevent recursive calls
 const _reorderingInProgress = new Set();
-let _autoMappingInProgress = false;
 
+/**
+ * Priority slots per type. 20 is a deliberate flat ceiling rather than "however many
+ * compendiums exist": the number of slots should reflect how many sources a GM wants
+ * to search, which is small, not how many are installed, which is not.
+ */
+const MAX_COMPENDIUM_SLOTS = 20;
+const DEFAULT_COMPENDIUM_SLOTS = 3;
+
+/**
+ * How many priority slots this type shows. The GM's choice, not a derived number.
+ *
+ * It used to be the count of eligible compendiums, which is what made automatic
+ * mapping so unpleasant to undo: a package with thirty compendiums produced thirty
+ * slots, auto-map filled every one, and clearing them meant setting thirty dropdowns
+ * to "none" by hand. Asking for the two you want is less work than deleting the
+ * twenty-eight you don't.
+ */
 function getCompendiumSelectorCount(type) {
-    const choices = BLACKSMITH[getChoicesArrayKey(type)] || {};
-    return Object.keys(choices).filter(id => id && id !== 'none').length;
+    const key = getNumCompendiumsSettingName(type);
+    if (!game.settings.settings.has(`${MODULE.ID}.${key}`)) return getSeededSelectorCount(type);
+    const value = Number(getSettingSafely(MODULE.ID, key, DEFAULT_COMPENDIUM_SLOTS));
+    if (!Number.isFinite(value)) return DEFAULT_COMPENDIUM_SLOTS;
+    return Math.max(0, Math.min(MAX_COMPENDIUM_SLOTS, Math.floor(value)));
+}
+
+/**
+ * The slot count an existing world should start at: however many it already has
+ * configured, so nobody's mapping disappears the first time they load this build.
+ *
+ * Read from raw storage because it runs while the slot settings are still being
+ * registered. A world with nothing configured starts at DEFAULT_COMPENDIUM_SLOTS
+ * rather than 0, so the section is not an empty panel on a fresh install.
+ */
+function getSeededSelectorCount(type) {
+    const prefix = getCompendiumSettingPrefix(type);
+    const pattern = new RegExp(`^${MODULE.ID}\\.${prefix}(\\d+)$`);
+    const storage = game.settings.storage?.get('world');
+    if (!storage) return DEFAULT_COMPENDIUM_SLOTS;
+
+    let highestConfigured = 0;
+    for (const setting of storage.values()) {
+        const key = setting?.key || setting?._source?.key || '';
+        const match = String(key).match(pattern);
+        if (!match) continue;
+        const value = setting?.value ?? setting?._source?.value;
+        const parsed = typeof value === 'string' && value.startsWith('"') ? value.slice(1, -1) : value;
+        if (!parsed || parsed === 'none') continue;
+        highestConfigured = Math.max(highestConfigured, Number(match[1]) || 0);
+    }
+
+    if (!highestConfigured) return DEFAULT_COMPENDIUM_SLOTS;
+    return Math.min(MAX_COMPENDIUM_SLOTS, highestConfigured);
 }
 
 function getPersistedCompendiumSelectorCount(type) {
@@ -426,17 +451,19 @@ function registerDynamicCompendiumTypes() {
                 'world');
         }
         
-        // Keep the historical count setting registered but hidden so existing
-        // worlds and external readers do not break. Slot count is now derived
-        // from the compatible choices available for this type.
+        // The GM says how many priority slots this type gets. requiresReload because
+        // Foundry fixes a setting's `config` flag at registration, so the number of
+        // visible dropdowns can only change on the next load.
         if (!game.settings.settings.has(`${MODULE.ID}.${numSetting}`)) {
             game.settings.register(MODULE.ID, numSetting, {
-                name: MODULE.ID + '.numCompendiums-Label',
+                name: `${getTypeLabel(type)}: ${game.i18n.localize(`${MODULE.ID}.numCompendiums-Label`)}`,
                 hint: MODULE.ID + '.numCompendiums-Hint',
                 type: Number,
-                config: false,
+                config: true,
+                requiresReload: true,
                 scope: 'world',
-                default: 1,
+                range: { min: 0, max: MAX_COMPENDIUM_SLOTS, step: 1 },
+                default: getSeededSelectorCount(type),
                 group: WORKFLOW_GROUPS.MANAGE_CONTENT
             });
         }
@@ -469,7 +496,9 @@ function registerDynamicCompendiumTypes() {
             });
         }
         
-        // Register compendium priority settings
+        // Register compendium priority settings. More slots are REGISTERED than shown
+        // when a world already has values further down, so lowering the slider hides
+        // those picks rather than destroying them -- raise it again and they return.
         const numCompendiums = getCompendiumSelectorCount(type);
         const registeredCompendiums = Math.max(numCompendiums, getPersistedCompendiumSelectorCount(type));
         for (let i = 1; i <= registeredCompendiums; i++) {
@@ -489,7 +518,6 @@ function registerDynamicCompendiumTypes() {
                 default: "none",
                 choices: BLACKSMITH[choicesKey] || {"none": "-- None --"},
                 onChange: async (value) => {
-                    if (_autoMappingInProgress) return;
                     // Reorder compendiums when one is changed to "none" or configured
                     // Use setTimeout to avoid race conditions with multiple simultaneous changes
                     // and to ensure the setting has been saved before we read all values
@@ -512,10 +540,6 @@ function registerDynamicCompendiumTypes() {
  */
 export function buildSelectedCompendiumArrays() {
     const allTypes = getMappedTypes(BLACKSMITH.arrCompendiumChoicesData || []);
-    const sourcePool = getInstalledCompendiumSources()
-        .filter(source => getSettingSafely(MODULE.ID, getCompendiumSourceSettingKey(source.id), true))
-        .map(source => source.id);
-    const enabledSources = new Set(sourcePool);
 
     // Build arrays for each type
     for (const type of allTypes) {
@@ -531,13 +555,12 @@ export function buildSelectedCompendiumArrays() {
                 continue; // Skip if setting not registered
             }
             
-            const selection = game.settings.get(MODULE.ID, settingKey);
-            const expanded = expandMappedSelection(type, selection, { sourceIds: sourcePool });
-            for (const compendiumId of expanded) {
-                const pack = game.packs.get(compendiumId);
-                if (pack && enabledSources.has(getCompendiumSourceId(pack)) && !selected.includes(compendiumId)) {
-                    selected.push(compendiumId);
-                }
+            // What the GM picked is what gets searched. The only rejection left is a
+            // pack that no longer exists.
+            const compendiumId = game.settings.get(MODULE.ID, settingKey);
+            if (!compendiumId || compendiumId === 'none') continue;
+            if (game.packs.get(compendiumId) && !selected.includes(compendiumId)) {
+                selected.push(compendiumId);
             }
         }
         
@@ -545,46 +568,6 @@ export function buildSelectedCompendiumArrays() {
     }
     
     postConsoleAndNotification(MODULE.NAME, "Selected compendium arrays updated", "", false, false);
-}
-
-/**
- * Execute the GM-requested one-shot automatic mapping after settings register.
- * The generated values become ordinary manual settings; runtime lookup never
- * maintains a separate automatic mapping mode.
- */
-export async function applyPendingAutomaticCompendiumMapping() {
-    if (!game.user?.isGM || !getSettingSafely(MODULE.ID, 'autoMapCompendiums', false)) return false;
-    const activeGM = game.users?.activeGM;
-    if (activeGM && activeGM.id !== game.user.id) return false;
-
-    const sourcePool = getInstalledCompendiumSources()
-        .filter(source => getSettingSafely(MODULE.ID, getCompendiumSourceSettingKey(source.id), true))
-        .map(source => source.id);
-    const allTypes = getMappedTypes(BLACKSMITH.arrCompendiumChoicesData || []);
-
-    _autoMappingInProgress = true;
-    try {
-        for (const type of allTypes) {
-            const prefix = getCompendiumSettingPrefix(type);
-            const selections = isSourceAggregatedMappingType(type)
-                ? getMappedSourceGroups(type, { sourceIds: sourcePool }).map(source => source.value)
-                : getAutomaticCompendiumPackIds(type, { sourceIds: sourcePool });
-            const selectorCount = getCompendiumSelectorCount(type);
-            const replacementCount = Math.max(selectorCount, getPersistedCompendiumSelectorCount(type));
-
-            for (let i = 1; i <= replacementCount; i++) {
-                const settingKey = `${prefix}${i}`;
-                if (!game.settings.settings.has(`${MODULE.ID}.${settingKey}`)) continue;
-                await game.settings.set(MODULE.ID, settingKey, i <= selectorCount ? (selections[i - 1] || 'none') : 'none');
-            }
-        }
-        await game.settings.set(MODULE.ID, 'autoMapCompendiums', false);
-        buildSelectedCompendiumArrays();
-        ui.notifications.info(game.i18n.localize(`${MODULE.ID}.autoMapCompendiums-Complete`));
-        return true;
-    } finally {
-        _autoMappingInProgress = false;
-    }
 }
 
 // -- TABLE CHOICES  --
@@ -1339,40 +1322,10 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('CompendiumMapping', 'headingH2CompendiumMapping-Label', 'headingH2CompendiumMapping-Hint', 'H2', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
 
-	registerHeader('CompendiumSources', 'headingH4CompendiumSources-Label', 'headingH4CompendiumSources-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-	const compendiumSources = getInstalledCompendiumSources();
-	for (const source of compendiumSources) {
-		const compendiumCount = `${source.packCount} ${source.packCount === 1 ? 'compendium' : 'compendiums'}`;
-		game.settings.register(MODULE.ID, getCompendiumSourceSettingKey(source.id), {
-			name: source.label,
-			hint: source.contentSummary ? `${compendiumCount} — ${source.contentSummary}` : compendiumCount,
-			type: Boolean,
-			config: true,
-			scope: 'world',
-			default: true,
-			requiresReload: true,
-			group: WORKFLOW_GROUPS.MANAGE_CONTENT
-		});
-	}
-	// One-shot mapping belongs below its source inputs. On the next GM load it
-	// replaces the ordinary priority settings, clears itself, and exits.
-	registerHeader('AutomaticCompendiumMapping', 'headingH3AutomaticCompendiumMapping-Label', 'headingH3AutomaticCompendiumMapping-Hint', 'H3', WORKFLOW_GROUPS.MANAGE_CONTENT, 'world');
-	game.settings.register(MODULE.ID, 'autoMapCompendiums', {
-		name: MODULE.ID + '.autoMapCompendiums-Label',
-		hint: MODULE.ID + '.autoMapCompendiums-Hint',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: false,
-		requiresReload: true,
-		group: WORKFLOW_GROUPS.MANAGE_CONTENT
-	});
-	const enabledSourceIds = compendiumSources
-		.filter(source => game.settings.get(MODULE.ID, getCompendiumSourceSettingKey(source.id)))
-		.map(source => source.id);
-	// Refresh every lower dropdown from the enabled package/source checkboxes.
-	// Changes require one save/reload because Foundry setting choices are fixed at registration.
-	getCompendiumChoices({ sourceIds: enabledSourceIds });
+	// Every compendium that can supply a type is offered to that type's dropdowns.
+	// Choices are fixed at registration, so a newly installed package appears after
+	// one reload.
+	getCompendiumChoices();
 
 	// Dynamically register settings for ALL compendium types found in the system
 	// This includes Actor, Item, Spell, Feature, and any other types (JournalEntry, RollTable, etc.)

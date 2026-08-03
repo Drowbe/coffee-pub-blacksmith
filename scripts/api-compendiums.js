@@ -75,11 +75,10 @@ export const CompendiumsAPI = {
      * quotations journal -- often wants one that is deliberately NOT in the search set,
      * and getChoices() would hide exactly that.
      *
-     * Nothing is filtered: not the enabled-source checkboxes, and not the content
-     * heuristics getChoices() applies (a JournalEntry pack must look like a "primary"
-     * journal compendium to appear there). Synthetic types return every pack of their
-     * document class -- `Spell` returns all Item packs -- because content sniffing is
-     * the filter this method exists to escape.
+     * No content check at all, where getChoices() at least requires a synthetic type's
+     * subtype to be present in the index. `Spell` therefore returns every Item pack,
+     * including ones holding no spells -- the raw inventory of what could hold this
+     * document class, for a user who knows which one they mean.
      *
      * @param {string} type - Any accepted type token
      * @returns {Array<{id: string, label: string, package: string, displayLabel: string,
