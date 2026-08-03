@@ -56,12 +56,20 @@
     align-items: baseline;
     gap: 6px;
     margin: 8px 0 3px 0;
-    padding: 3px 2px;
-    /* Scrim, not the shell background: this is sticky, so it has to hide the rows
-       passing under it in every theme. The shell background is near-transparent
-       under Glass by design and would let them read straight through. */
-    background: var(--blacksmith-tool-scrim);
-    border-bottom: 1px solid var(--blacksmith-tool-divider);
+    /* Design-system spacing and radius rather than chosen numbers, so the bar matches
+       the windows and controls around it. */
+    padding: var(--blacksmith-space-sm, 4px) var(--blacksmith-space-md, 8px);
+    border-radius: var(--blacksmith-radius-md, 4px);
+    /* `raised`, not `scrim`. This is sticky and has to mask the rows passing under
+       it, which is what first argued for scrim -- but scrim under Glass is nearly
+       opaque and the heading came out as a black slab punched through the frost,
+       heavier than the window's own title bar. `raised` plus a backdrop blur masks
+       just as well: what passes underneath is smeared rather than hidden, which is
+       all a heading needs. Under Light and Dark `raised` is already opaque and the
+       blur costs nothing. */
+    background: var(--blacksmith-tool-surface-raised);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
 }
 
 /* The pack's own name carries the heading; the package is context. Both are
@@ -120,7 +128,9 @@
     height: 28px;
     object-fit: cover;
     border: none;
-    border-radius: 2px;
+    /* 2px reads as square at this size. 4px is visibly rounded without turning
+       item art into a badge. */
+    border-radius: 4px;
     /* The row is the drag source, so the image must not start its own
        native image drag and hand the drop target a file URL instead of
        the {type, uuid} payload. */

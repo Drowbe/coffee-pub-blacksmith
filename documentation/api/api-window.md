@@ -95,7 +95,8 @@ The frame variables describe the shell. These describe what you put **inside** i
 
 Two distinctions worth getting right:
 
-- **`surface-raised` vs `scrim`.** `raised` is decorative and may be translucent. `scrim` guarantees legibility over whatever is behind it. A **sticky** heading wants `scrim` — under Glass the shell background is deliberately near-transparent, so a heading painted with it lets scrolled rows read straight through. The two are near-identical under Light and Dark and differ sharply under Glass, which is the case they exist for.
+- **`surface-raised` vs `scrim`.** `raised` is decorative and may be translucent. `scrim` guarantees legibility over whatever is behind it. The two are near-identical under Light and Dark and differ sharply under Glass, which is the case they exist for.
+  For a **sticky** element, reach for `raised` plus `backdrop-filter: blur(6px)` rather than `scrim`. Both mask the content scrolling underneath, but scrim under Glass is nearly opaque and reads as a hole punched through the frost — heavier than the window's own title bar. A blur smears what passes beneath instead of hiding it, which is all a heading needs, and under Light and Dark `raised` is already opaque so the blur costs nothing. Save `scrim` for something that must stay readable over genuinely arbitrary content, like a full-width overlay.
 - **`text-muted` rather than `opacity`.** Dimming with `opacity` fades a whole element including its background and borders, and compounds when nested. `text-muted` is tuned per theme and touches only the colour.
 
 Blacksmith's own `styles/window-compendium-search.css` is the reference: it contains **no colour literals at all** — every surface, tone, and field comes from this family, and the window follows Light, Dark, and Glass with no theme-specific rules of its own.
