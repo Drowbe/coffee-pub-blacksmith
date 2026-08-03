@@ -72,6 +72,13 @@ export class RollOutcomesManager {
         const outcome = classify(message);
         if (!outcome || outcome.kind !== 'attack') return;
 
+        // dnd5e creates an activity card before attaching the attack roll, then
+        // updates that same ChatMessage with the d20 result. Do not emit or mark
+        // the provisional card as processed: doing so publishes a false
+        // non-critical outcome and causes the real rolled update (including a
+        // natural 20/1) to be discarded by the message-id dedupe below.
+        if (typeof outcome.total !== 'number') return;
+
         this._emitAttackOnce(`rolls:chat:${message.id}`, outcome, {
             trigger: 'dnd5e.chatMessage',
             messageId: message.id
