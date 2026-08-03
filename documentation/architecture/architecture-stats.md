@@ -89,6 +89,56 @@ Still outstanding: `_ensureParticipantStats` and `_ensureCombatTotals` hand back
 accumulator that the handlers write through. That is the last of the reaching-in, and it is tracked in
 `TODO.md`.
 
+## One card, many sightings: what a chat message is worth reading twice
+
+A dnd5e activity card is **not** a finished record when it is created. It is posted on use, then
+updated in place as each part of the activity resolves — the attack roll arrives after the card, the
+damage roll after that — and midi-qol rewrites the same card several more times. So one swing produces
+one message id and a dozen `createChatMessage` / `updateChatMessage` sightings, each carrying more than
+the last.
+
+Three rules follow, and all three were learned by getting them wrong:
+
+**A resolution with no roll is provisional, and must not be recorded.** `resolveAttackMessage` decides
+hit or miss by comparing the attack total against each target's AC, so before the d20 lands every target
+resolves as unknown. Recording that banks an attempt with no hit — a permanent miss for a swing that
+had not been rolled yet. `stats-sources.js` and `stats-player.js` both gate on
+`typeof attackEvent.attackTotal === 'number'` for this reason.
+
+**A deferred sighting must not mark the dedupe key.** This is the load-bearing half. The key is the
+message id, so marking it on the provisional sighting discards every later sighting of the same
+message — including the one carrying the roll and the real hit list. The attempt could then never
+become a hit. Leaving the key unmarked is what lets the correction through.
+
+**The attack and its damage share a message, so reading it as an attack cannot end the read.**
+`_onChatMessage` resolves the attack and then falls through to `resolveDamageMessage` on the same
+message, deliberately not as an `else`. Returning after the attack branch meant an activity card was
+only ever read as an attack, and no damage was recorded on that path at all — a landed hit showed the
+right hit rate and zero damage dealt.
+
+Two consequences for anyone touching `utility-message-resolution.js`:
+
+`hydrateFirstRoll` reads `rolls[0]`. On a combined card that is the attack d20, so anything wanting
+damage must use `hydrateAllRolls` and select the damage rolls — otherwise the to-hit total is reported
+as damage dealt. `resolveDamageMessage` sums the damage rolls rather than taking the first.
+
+Recognising damage cannot rely on `dnd5e.roll.type` or on "no d20 anywhere on the message". On an
+activity card the first describes the card as a usage and the second is false, because the attack's d20
+is sitting beside the damage. The rolls themselves are the evidence, which is what `isDamageRoll` tests.
+
+## Dedupe is per lane, and the lanes must agree
+
+`stats-combat.js` and `stats-player.js` consume the same messages independently and reach different
+storage — the combat accumulator and the lifetime actor flags. Both therefore need the same correlation
+discipline, and for a long time only one had it: the combat lane deduped on message id while the
+lifetime lane deduped not at all, so a single swing that the combat bar counted once was written to
+lifetime flags once per card rewrite — nine times in a measured case, silently inflating every lifetime
+total. `CPBPlayerStats._isAttackDuplicate` is the counterpart to `CombatSources._chatDedupe`.
+
+The general shape: **a new consumer of these messages needs its own dedupe, not a shared one.** The
+lanes deliberately do not share a tracker, because they can legitimately process the same event at
+different times — but every lane needs one, and a lane without one fails silently and upward.
+
 ## The tiers
 
 - **Round** (`CombatStats.currentStats`) — in memory for the active round, mirrored to the combat `stats` flag. Reset when a new round begins.

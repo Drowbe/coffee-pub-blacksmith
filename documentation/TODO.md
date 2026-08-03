@@ -4,6 +4,30 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Readout widgets: the identity kinds
+
+`statchip`, `portraitstat` and `gaugechip` as new kinds on `registerSecondaryBarItem` (`api-menubar.js:2050`), rendered in `templates/partials/menubar-secondary-default.hbs` and styled in a new `styles/menubar-widgets.css` — which needs an `@import` in `styles/default.css` beside line 61 or it is silently unstyled.
+
+Today every statistic is `kind: 'info'`, so a rank, a quantity, a percentage and a person all render identically. These restore identity — tint, weight, shape — without restoring the button affordance `menubar-combatbar.css:160` correctly strips from the data row. `portraitstat` formalizes what the standings chips do by hand today with an `image` on an info item plus two undo rules at `menubar-combatbar.css:208`.
+
+Verify live: register one of each on the combat bar, confirm they size correctly in both the data row and the combat tracker row (each re-bases the sizing variables, `menubar-combatbar.css:85`), and confirm none of them shows a pointer cursor or hover lift.
+
+## Readout widgets: the consolidating kinds
+
+`segmentchip` (one proportional bar, breakdown in the tooltip) and `sparkchip` (value with an inline sparkline). These exist to buy back the width the identity widgets spend — ten lifetime and seven live chips already exceed the middle zone and `READOUT_SUPPRESSION_ORDER` decides which survive.
+
+The series data needs no new tracking. In combat, `combatStats.rounds[]` (`stats-combat.js:2631`) is mirrored to the combat flag and reaches every client through the read path the running totals already use. Out of combat, `PartyStats._build` (`stats-party.js:143`) already walks the whole `combatHistory` and reduces it to scalars; a short series is an addition to that same reduction. The bar must keep reducing nothing itself.
+
+Verify live: fight a three-round combat and confirm the in-combat sparkline gains a point per round; end it and confirm the out-of-combat one gains a point per combat; confirm a world with no combat history renders an empty widget rather than a broken one.
+
+## Readout widgets: motion
+
+Value flash on change in the tone's colour, count-up between old and new, a record burst when a live value passes the standing record, and a crossfade when a portrait changes hands. The burst is a `statchip` state, not a sixth widget.
+
+Every animation must be driven by an actual value change rather than by a render, or it fires constantly — which is why this depends on the value-patch item above. `prefers-reduced-motion` collapses all of it to a plain swap.
+
+Verify live: land a hit and confirm the damage chip counts up and flashes; take damage and confirm the damage-taken chip flashes in the other tone; beat a standing record and confirm exactly one burst rather than one per render.
+
 ## Toasts: let an excluded user through for specific events
 
 An excluded user is currently excluded from everything. `toastExcludedUsers` is a world setting and `isToastExcludedUser()` gates on **receipt** (`api-toast.js:118`) — the client drops the toast when its view is `game`. That is right for a camera or stream account that must not have party chatter on screen, and wrong for the case that motivates this: the cameraman player in the broadcast setup **should** see "FUMBLE!" and "CRITICAL!", because those are the moments the broadcast exists to capture.

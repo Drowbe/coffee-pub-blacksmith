@@ -124,6 +124,24 @@ class CPBPlayerStats {
         return false;
     }
 
+    // Attack dedupe cache. A chat card is re-resolved on every `updateChatMessage`, and midi-qol
+    // rewrites its card several times per swing (roll, hits, damage, card rebuild), so without this
+    // one attack was recorded once per rewrite — observed at nine hits for a single swing, silently
+    // inflating every lifetime total. The combat lane has always had `_chatDedupe`; this lane never
+    // did, so the two disagreed about the same event.
+    static _attackRecordedCache = new Map(); // key -> ts
+    static ATTACK_TTL_MS = 20_000;
+
+    static _isAttackDuplicate(dedupeKey) {
+        const now = Date.now();
+        for (const [k, ts] of this._attackRecordedCache.entries()) {
+            if (now - ts > this.ATTACK_TTL_MS) this._attackRecordedCache.delete(k);
+        }
+        if (this._attackRecordedCache.has(dedupeKey)) return true;
+        this._attackRecordedCache.set(dedupeKey, now);
+        return false;
+    }
+
     // Cache to track recently recorded unconscious events (to avoid duplicates from HP delta)
     static _recentUnconsciousRecorded = new Map(); // key: actor.id, value: timestamp
     
@@ -1266,6 +1284,15 @@ class CPBPlayerStats {
         
         const attackEvent = resolveAttackMessage(message);
         if (attackEvent) {
+            // Same rule as the combat lane in `stats-sources.js`: the card is posted before its
+            // attack roll, so the first resolution has no total and no decided targets. Recording
+            // it would bank a miss for a swing that has not been rolled yet. No dedupe mark here
+            // either — the update carrying the roll must still be allowed through.
+            if (typeof attackEvent.attackTotal !== 'number') return;
+
+            // One swing, one record, however many times the card is rewritten.
+            if (CPBPlayerStats._isAttackDuplicate(`attack:${message.id}`)) return;
+
             // Only process player character attacks
             const attackerActor = game.actors.get(attackEvent.attackerActorId);
             if (!attackerActor || !attackerActor.hasPlayerOwner) {

@@ -748,37 +748,67 @@ export class CombatSources {
         // 1) Try to resolve as attack message
         const attackEvent = resolveAttackMessage(message);
         if (attackEvent) {
+            // An attack card exists before its attack roll does. Both dnd5e and midi-qol post the
+            // usage card first and then UPDATE it with the d20, so the first sighting of a message
+            // resolves with `attackTotal: null` and every target unknown — hit/miss cannot be
+            // decided against a target's AC without a total.
+            //
+            // Recording that provisional state was doubly wrong. It banked an attempt with no hit,
+            // and because the dedupe key is the message id it also marked the message done, so the
+            // corrected resolution arriving moments later through `updateChatMessage` — the one
+            // carrying the roll and the real hit list — was discarded as a duplicate. The attempt
+            // could then never become a hit, which is a permanent miss recorded for a swing that
+            // landed, and one reason a party hit rate reads 0.0%.
+            //
+            // So: no roll, no record, and deliberately NO dedupe mark. Leaving the key unmarked is
+            // the whole point — it is what lets the update through.
+            if (typeof attackEvent.attackTotal !== 'number') {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack deferred (no roll yet)', {
+                    messageId: message.id,
+                    key: attackEvent.key
+                }, true, false);
+                return;
+            }
+
+            // Counted once. A repeat sighting is not a reason to stop reading the message: the
+            // same card gains its damage roll later, and that is handled below.
             const dedupeKey = `chat:attack:${message.id}`;
-            if (CombatSources._chatDedupe.isDuplicate(dedupeKey)) return;
-            CombatSources._chatDedupe.markProcessed(dedupeKey);
+            if (!CombatSources._chatDedupe.isDuplicate(dedupeKey)) {
+                CombatSources._chatDedupe.markProcessed(dedupeKey);
 
-            // Stamp crit/fumble from the chat roll (core-only)
-            const roll = hydrateFirstRoll(message);
-            const { isCritical, isFumble } = CombatSources._getCritFumbleFromChatAttackRoll(roll);
-            attackEvent.isCritical = !!isCritical;
-            attackEvent.isFumble = !!isFumble;
+                // Stamp crit/fumble from the chat roll (core-only)
+                const roll = hydrateFirstRoll(message);
+                const { isCritical, isFumble } = CombatSources._getCritFumbleFromChatAttackRoll(roll);
+                attackEvent.isCritical = !!isCritical;
+                attackEvent.isFumble = !!isFumble;
 
-            // Cache the attack resolution for damage correlation
-            CombatSources._attackCache.set(attackEvent.key, {
-                attackEvent,
-                processedDamageMsgIds: new Set(),
-                ts: attackEvent.ts
-            });
+                // Cache the attack resolution for damage correlation
+                CombatSources._attackCache.set(attackEvent.key, {
+                    attackEvent,
+                    processedDamageMsgIds: new Set(),
+                    ts: attackEvent.ts
+                });
 
-            await CombatStats._processResolvedAttack(attackEvent);
+                await CombatStats._processResolvedAttack(attackEvent);
 
-            postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Resolved:', {
-                key: attackEvent.key,
-                attackTotal: attackEvent.attackTotal,
-                hitTargetsCount: attackEvent.hitTargets.length,
-                missTargetsCount: attackEvent.missTargets.length,
-                unknownTargetsCount: attackEvent.unknownTargets.length
-            }, true, false);
-
-            return;
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Resolved:', {
+                    key: attackEvent.key,
+                    attackTotal: attackEvent.attackTotal,
+                    hitTargetsCount: attackEvent.hitTargets.length,
+                    missTargetsCount: attackEvent.missTargets.length,
+                    unknownTargetsCount: attackEvent.unknownTargets.length
+                }, true, false);
+            }
         }
 
-        // 2) Try to resolve as damage/healing message
+        // 2) Try to resolve as damage/healing message.
+        //
+        // Deliberately NOT an `else`. dnd5e posts one activity card per use and updates it in
+        // place, so the attack and its damage arrive on the SAME message. Returning after the
+        // attack branch meant that message was only ever read as an attack: every later update
+        // carrying the damage roll resolved as an attack again, hit the dedupe, and returned. No
+        // damage was recorded at all on this path, which is why a landed hit showed 0 damage
+        // dealt and no biggest hit while the hit rate was correct.
         const damageEvent = resolveDamageMessage(message);
         if (!damageEvent) return;
 

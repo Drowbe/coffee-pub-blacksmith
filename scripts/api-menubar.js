@@ -113,6 +113,7 @@ class MenuBar {
     /** Fingerprint of last full menubar HTML build (excludes timer tick text); used to skip remove/rebuild when unchanged. */
     static _menubarStructureFingerprint = null;
 
+
     /** Last known party-leader role for this user (undefined until first menubar render path sets it). */
     static _lastMenubarIsLeader = undefined;
 
@@ -2306,7 +2307,24 @@ class MenuBar {
             map.set(itemId, existing);
 
             if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
-                this.renderMenubar(true);
+                // Write the value into the standing DOM right here, synchronously. A pushed value
+                // must never depend on a later render arriving: routing it through the debounced
+                // render made the readout hostage to that render actually running, and a caller
+                // refreshing faster than the debounce would leave every figure frozen at whatever
+                // it was registered with.
+                //
+                // The patch reports false when the change needs an element added or removed, which
+                // only the template can do — that falls back to the immediate rebuild this used to
+                // do unconditionally.
+                if (!this._applySecondaryBarValueRefresh(itemId)) {
+                    this.renderMenubar(true);
+                    return true;
+                }
+                // The value is already on screen; this render is for everything that re-measures
+                // afterwards — the combat bar re-runs its overflow suppression, and a wider number
+                // can change what fits. Debounced, so a burst of pushes costs one pass, and if it
+                // is ever coalesced away the figures on screen are still correct.
+                this.renderMenubar();
             }
             return true;
         } catch (error) {
@@ -3113,27 +3131,19 @@ class MenuBar {
     }
 
     /**
-     * Live values for the open secondary bar: info updates, custom `data`, switch selection, toggleable buttons.
-     * Must be part of the menubar fingerprint; otherwise `renderMenubar` skips rebuild and bars stay stale.
+     * Live state for the open secondary bar that only a rebuild can express: a custom template's
+     * `data` payload, switch selection, and toggleable buttons.
+     *
+     * Must be part of the menubar structure fingerprint; otherwise `renderMenubar` skips the rebuild
+     * and bars stay stale. Readout values are deliberately NOT here — they are patched in place, and
+     * folding them back in would restore the full rebuild on every ticking number.
      * @private
      */
-    static _secondaryBarLiveContentSignature() {
+    static _secondaryBarStateSignature() {
         const sb = this.secondaryBar;
         if (!sb?.isOpen || !sb?.type) return '';
         const barTypeId = sb.type;
         const chunks = [];
-
-        const infoMap = this.secondaryBarInfoUpdates.get(barTypeId);
-        if (infoMap && infoMap.size > 0) {
-            const keys = [...infoMap.keys()].sort();
-            for (const k of keys) {
-                try {
-                    chunks.push(`${k}:${JSON.stringify(infoMap.get(k))}`);
-                } catch {
-                    chunks.push(`${k}:!json`);
-                }
-            }
-        }
 
         const barType = this.secondaryBarTypes.get(barTypeId);
         if (barType?.hasCustomTemplate && sb.data != null && typeof sb.data === 'object') {
@@ -3190,9 +3200,206 @@ class MenuBar {
             this._toolbarIconsLayoutSignature(),
             notifParts.join('\x1e'),
             `${!!templateData.secondaryBar?.isOpen}\x1e${templateData.secondaryBar?.type || ''}\x1e${this._secondaryBarStructureSignature()}`,
-            this._secondaryBarLiveContentSignature(),
+            this._secondaryBarStateSignature(),
             templateData.isInterfaceHidden ? '1' : '0'
         ].join('\x1f');
+    }
+
+    /**
+     * Write pushed readout values into the open secondary bar's existing DOM.
+     *
+     * Before this existed, `updateSecondaryBarItemInfo` ended in an immediate full `renderMenubar`,
+     * and the pushed value changed the menubar fingerprint, so every ticking number destroyed and
+     * rebuilt the whole bar. `CombatBarManager.refreshStatReadouts` alone pushes eighteen values in
+     * a row, which was eighteen rebuilds of a bar section 9B of the architecture doc calls
+     * performance-critical.
+     *
+     * Cost is only half the reason. A node rebuilt on every update cannot carry a transition that
+     * means anything — a flash keyed to a changed value would replay on every unrelated render, and
+     * a count-up would restart continuously — so animated readouts are impossible until the node
+     * survives its own update. This is what makes them possible.
+     *
+     * Only the keys actually present in `secondaryBarInfoUpdates` are written. Patching every
+     * prepared field instead would have this fighting `CombatBarManager.syncTimerReadout`, which
+     * deliberately clears a timer bar's inline background so a state class can colour it.
+     *
+     * @param {string|null} [onlyItemId] - Patch just this item; omit to sweep every pushed value,
+     *   which is what a render wants since it has no idea which values moved since the last one.
+     * @returns {boolean} true if the DOM now matches; false if the caller must rebuild instead
+     * @private
+     */
+    static _applySecondaryBarValueRefresh(onlyItemId = null) {
+        // Only the ways OUT are logged. A patch that quietly declines to write is invisible — the
+        // bar keeps showing whatever it was registered with and nothing errors — so each bail says
+        // which one it took. There is deliberately no success log: this runs on every pushed value
+        // and on every render, so logging the good path buried the console in identical lines and
+        // made the rare interesting one unfindable.
+        const bail = (reason, detail) => {
+            postConsoleAndNotification(MODULE.NAME, `Secondary Bar: value patch declined (${reason})`,
+                detail ?? '', true, false);
+            return false;
+        };
+
+        const sb = this.secondaryBar;
+        if (!sb?.isOpen || !sb?.type) return bail('bar not open');
+        const root = document.querySelector(`.blacksmith-menubar-secondary[data-bar-type="${sb.type}"]`);
+        if (!root) return bail('bar element not found', sb.type);
+
+        const updates = this.secondaryBarInfoUpdates.get(sb.type);
+        if (!updates || updates.size === 0) return true;
+        const items = this.secondaryBarItems.get(sb.type);
+        if (!items) return bail('no registered items', sb.type);
+
+        // The template renders a span only when its value is truthy, so a value going empty or
+        // becoming non-empty adds or removes an element. That is a structural change wearing a
+        // value's clothes: report it and let the caller rebuild rather than leaving an empty span
+        // behind, which would still take a flex gap and shift its neighbours.
+        const setText = (parent, selector, raw) => {
+            const node = parent.querySelector(selector);
+            if (!!raw !== !!node) return false;
+            if (node) {
+                const text = String(raw);
+                if (node.textContent !== text) node.textContent = text;
+            }
+            return true;
+        };
+
+        // The partial writes an icon as `class="{{icon}} <marker>"`, so the marker class it is found
+        // by has to be put back or the next pass cannot find it.
+        const setIcon = (parent, markerClass, raw) => {
+            const node = parent.querySelector(`.${markerClass}`);
+            if (!!raw !== !!node) return false;
+            if (node) {
+                const wanted = `${raw} ${markerClass}`;
+                if (node.className !== wanted) node.className = wanted;
+            }
+            return true;
+        };
+
+        for (const [itemId, update] of updates.entries()) {
+            // A single push patches only what it pushed. Sweeping every readout per call meant one
+            // `refreshReadoutItems` — twenty-five pushes — did twenty-five full passes over the
+            // same twenty-five items for one logical refresh.
+            if (onlyItemId != null && itemId !== onlyItemId) continue;
+            const item = items.get(itemId);
+            if (!item) continue;
+            let selector;
+            try {
+                selector = `.secondary-bar-item[data-item-id="${CSS.escape(itemId)}"]`;
+            } catch {
+                return bail('CSS.escape unavailable', itemId);
+            }
+            const el = root.querySelector(selector);
+            // Absent means not rendered, which means a `visible` predicate excluded it. The
+            // structure signature owns that case and matched, so there is nothing to patch here.
+            if (!el) continue;
+
+            if (update.tooltip !== undefined) {
+                // A cleared tooltip sends the partial back to its per-kind fallback, which this
+                // cannot restate without duplicating the template's else branches. Rebuild instead.
+                if (update.tooltip === null) return bail('tooltip cleared', itemId);
+                const tooltip = String(update.tooltip);
+                if (el.getAttribute('data-tooltip') !== tooltip) {
+                    el.setAttribute('data-tooltip', tooltip);
+                    el.setAttribute('title', tooltip);
+                }
+            }
+            const kind = item.kind || 'button';
+            if (kind === 'info' || kind === 'button') {
+                // Only these two carry their colours on the item element; a bar carries them on its
+                // inner bar, handled below.
+                if (update.buttonColor !== undefined) el.style.backgroundColor = update.buttonColor || '';
+                if (update.borderColor !== undefined) el.style.borderColor = update.borderColor || '';
+            }
+            if (kind === 'info') {
+                if (update.value !== undefined && !setText(el, '.secondary-bar-item-value', update.value)) return bail('value appeared or emptied', itemId);
+                if (update.label !== undefined && !setText(el, '.secondary-bar-item-label', update.label)) return bail('label appeared or emptied', itemId);
+                if (update.image !== undefined) {
+                    // A portrait appearing is the most common readout change on the combat bar —
+                    // an MVP emerging mid-fight, the biggest hit changing hands — so this is built
+                    // rather than bounced to a rebuild. Declining here meant every push before the
+                    // rebuild landed triggered another one, which was the noisiest path in the log.
+                    // The partial renders the image as the item's first child, ahead of the icon.
+                    let img = el.querySelector('.secondary-bar-item-image');
+                    if (update.image) {
+                        if (!img) {
+                            img = document.createElement('img');
+                            img.className = 'secondary-bar-item-image';
+                            img.alt = '';
+                            el.prepend(img);
+                        }
+                        if (img.getAttribute('src') !== String(update.image)) img.setAttribute('src', String(update.image));
+                    } else if (img) {
+                        img.remove();
+                    }
+                }
+                if (update.iconColor !== undefined) {
+                    // The partial colours the icon and the value from the same key, so both move.
+                    const colour = update.iconColor || '';
+                    const icon = el.querySelector(':scope > i');
+                    if (icon) icon.style.color = colour;
+                    const value = el.querySelector('.secondary-bar-item-value');
+                    if (value) value.style.color = colour;
+                }
+            } else if (kind === 'progressbar' || kind === 'balancebar') {
+                const prefix = `.secondary-bar-item-${kind}`;
+                if (update.percentProgress !== undefined) {
+                    const percent = Number(update.percentProgress) || 0;
+                    if (kind === 'progressbar') {
+                        const fill = el.querySelector(`${prefix}-fill`);
+                        if (!fill) return bail('progress fill missing', itemId);
+                        fill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+                    } else {
+                        const marker = el.querySelector(`${prefix}-marker`);
+                        if (!marker) return bail('balance marker missing', itemId);
+                        // Same mapping the preparation uses, so the two cannot drift apart.
+                        marker.style.left = `${50 + (Math.max(-100, Math.min(100, percent)) / 2)}%`;
+                    }
+                }
+                if (update.leftLabel !== undefined && !setText(el, `${prefix}-left-label`, update.leftLabel)) return bail('left label appeared or emptied', itemId);
+                if (update.rightLabel !== undefined && !setText(el, `${prefix}-right-label`, update.rightLabel)) return bail('right label appeared or emptied', itemId);
+                if (update.title !== undefined && !setText(el, `${prefix}-title`, update.title)) return bail('title appeared or emptied', itemId);
+                // The preparation merges these three for bars, so the patch has to as well —
+                // anything it merges but this skips would leave the fingerprint saying the DOM is
+                // current when it is not.
+                const base = prefix.slice(1);
+                if (update.icon !== undefined && !setIcon(el, `${base}-icon`, update.icon)) return bail('icon appeared or cleared', itemId);
+                if (update.leftIcon !== undefined && !setIcon(el, `${base}-icon-outside-left`, update.leftIcon)) return bail('left icon appeared or cleared', itemId);
+                if (update.rightIcon !== undefined && !setIcon(el, `${base}-icon-outside-right`, update.rightIcon)) return bail('right icon appeared or cleared', itemId);
+                if (update.borderColor !== undefined) {
+                    // A bar's border is on the bar, not on the item — the partial writes it into the
+                    // inner element's inline style alongside its height.
+                    const bar = el.querySelector(`${prefix}-bar`);
+                    if (bar) bar.style.borderColor = update.borderColor || '';
+                }
+                if (update.progressColor !== undefined) {
+                    const fill = el.querySelector(`${prefix}-fill`);
+                    if (fill) fill.style.backgroundColor = update.progressColor || '';
+                }
+                if (update.barColor !== undefined) {
+                    const bar = el.querySelector(`${prefix}-bar`);
+                    if (bar) bar.style.backgroundColor = update.barColor || '';
+                }
+                if (update.barColorLeft !== undefined) {
+                    const left = el.querySelector(`${prefix}-left`);
+                    if (left) left.style.backgroundColor = update.barColorLeft || '';
+                }
+                if (update.barColorRight !== undefined) {
+                    const right = el.querySelector(`${prefix}-right`);
+                    if (right) right.style.backgroundColor = update.barColorRight || '';
+                }
+                if (update.markerColor !== undefined) {
+                    const marker = el.querySelector(`${prefix}-marker`);
+                    if (marker) marker.style.backgroundColor = update.markerColor || '';
+                }
+            } else {
+                // A button's live keys are its colours and tooltip, all handled above. Anything
+                // else about a button is structure.
+                continue;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -3321,8 +3528,17 @@ class MenuBar {
             const structureFp = this._computeMenubarStructureFingerprint(templateData);
             const existingPrimary = document.querySelector('.blacksmith-menubar-container');
             if (existingPrimary && structureFp === this._menubarStructureFingerprint) {
-                this._applyMenubarLightweightRefresh(templateData, existingPrimary);
-                return;
+                // Always re-applied rather than guarded by a "have the values changed" fingerprint.
+                // The patch is idempotent and each write is equality-guarded, so re-applying costs
+                // a handful of DOM reads — far less than the class of bug a second fingerprint
+                // invites, where it says the DOM is current and the DOM disagrees.
+                //
+                // False means the change needs an element added or removed, which only the template
+                // can do: fall through to the rebuild below.
+                if (this._applySecondaryBarValueRefresh()) {
+                    this._applyMenubarLightweightRefresh(templateData, existingPrimary);
+                    return;
+                }
             }
 
             // Render the template

@@ -233,19 +233,11 @@ export function resolveAttackMessage(message) {
     }
 
     // Debug log to help diagnose false positives
-    // Note: hasItem is calculated below, so we'll compute it here for the log
-    const hasItemForLog = !!(dnd?.item?.uuid) || !!(midi?.itemUuid) || !!(midi?.item?.uuid);
-    console.debug("resolveAttackMessage: accepted", {
-        id: message.id,
-        rollType,
-        activityType,
-        hasD20,
-        hasItem: hasItemForLog,
-        hasWorkflowId,
-        hasMidiFlags,
-        isCoreAttack,
-        isMidiAttack
-    });
+    // No log here. This runs on every sighting of every candidate message — around ten times per
+    // swing once a card's updates are counted — and it was a raw `console.debug`, so it bypassed
+    // `globalDebugMode` and could not be turned off. What it was for is now covered by the
+    // handlers, which log the decisions rather than the attempts: "Attack deferred (no roll yet)",
+    // "Attack Resolved", and "Damage Resolved" in `stats-sources.js`.
 
     const roll = hydrateFirstRoll(message);
     const total = roll?.total ?? null;
@@ -311,6 +303,43 @@ export function resolveAttackMessage(message) {
  * @param {ChatMessage} message - The chat message
  * @returns {DamageResolvedEvent|null} Normalized damage event, or null if not a damage message
  */
+/**
+ * Every roll on a message, hydrated.
+ *
+ * `hydrateFirstRoll` reads `rolls[0]`, which was sufficient when dnd5e posted an attack card and a
+ * damage card as separate messages. A single activity card carries the attack d20 AND its damage
+ * roll in one `rolls` array, so reading the first entry and calling it damage reports the to-hit
+ * total as the damage dealt.
+ */
+export function hydrateAllRolls(message) {
+    const out = [];
+    for (const entry of (message.rolls ?? [])) {
+        const roll = hydrateFirstRoll({ rolls: [entry] });
+        if (roll) out.push(roll);
+    }
+    return out;
+}
+
+function rollHasD20(roll) {
+    if (!roll) return false;
+    return (roll.dice ?? []).some(d => d?.faces === 20)
+        || (roll.terms ?? []).some(t => t?.faces === 20);
+}
+
+/**
+ * Whether a hydrated roll is a damage or healing roll rather than an attack or check.
+ *
+ * dnd5e names the class, which is the reliable signal; the d20 test is the fallback for anything
+ * that does not, since an attack roll and an ability check both carry one and damage never does.
+ */
+function isDamageRoll(roll) {
+    if (!roll) return false;
+    const className = roll?.constructor?.name ?? '';
+    if (className.includes('Damage')) return true;
+    if (rollHasD20(roll)) return false;
+    return (roll.dice ?? []).length > 0 || (roll.terms ?? []).length > 0;
+}
+
 export function resolveDamageMessage(message) {
     const dnd = message.flags?.dnd5e ?? {};
     const midi = message.flags?.["midi-qol"] ?? {};
@@ -356,20 +385,30 @@ export function resolveDamageMessage(message) {
     
     // MIDI: workflowId + any roll (non-heal) indicates damage
     // Damage messages typically don't have d20 rolls
-    const hasD20 = rolls.some(r => {
-        const roll = hydrateFirstRoll({ rolls: [r] });
-        if (!roll) return false;
-        return (roll.dice ?? []).some(d => d?.faces === 20) ||
-               (roll.terms ?? []).some(t => t?.faces === 20);
-    });
+    const hydrated = hydrateAllRolls(message);
+    const hasD20 = hydrated.some(rollHasD20);
     const isMidiDamage = workflowId && !hasD20 && !isHeal;
-    
-    if (!isCoreDamage && !isMidiDamage && !isHeal) {
+
+    // The damage rolls on this message, whichever position they sit in.
+    const damageRolls = hydrated.filter(isDamageRoll);
+
+    // A dnd5e activity card carries the attack and its damage in ONE message, and updates in
+    // place as each is rolled. Neither of the tests above can see that damage: `dnd5e.roll.type`
+    // describes the card as a usage rather than a damage roll, and "no d20 anywhere" is false
+    // because the attack's d20 is right there beside it. The rolls themselves are the evidence.
+    const isActivityDamage = damageRolls.length > 0 && (!!dnd?.item || !!dnd?.activity);
+
+    if (!isCoreDamage && !isMidiDamage && !isHeal && !isActivityDamage) {
         return null;
     }
 
-    const roll = hydrateFirstRoll(message);
-    if (!roll) return null;
+    // Sum the damage rolls rather than taking `rolls[0]`, which on a combined card is the attack.
+    const damageSource = damageRolls.length ? damageRolls : [hydrateFirstRoll(message)].filter(Boolean);
+    if (!damageSource.length) return null;
+    const roll = {
+        total: damageSource.reduce((sum, r) => sum + (Number(r.total) || 0), 0),
+        formula: damageSource.map(r => r.formula).filter(Boolean).join(' + ')
+    };
 
     // Extract attacker info
     const attackerActorId = message.speaker?.actor ?? null;
