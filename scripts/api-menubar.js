@@ -118,7 +118,7 @@ class MenuBar {
      * silently treated as a button -- given an active state, counted toward a switch group, and
      * offered a pointer cursor it does nothing with.
      */
-    static DISPLAY_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip', 'progressbar', 'balancebar']);
+    static DISPLAY_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip', 'nameplate', 'progressbar', 'balancebar']);
 
     /** True when a kind is a readout rather than a button. */
     static isDisplayKind(kind) {
@@ -132,7 +132,7 @@ class MenuBar {
      * is the ornament each adds (a tone, a portrait ring, a gauge sweep). The bars are not here --
      * their live fields are geometry, not text.
      */
-    static CHIP_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip']);
+    static CHIP_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip', 'nameplate']);
 
     /** Fingerprint of last full menubar HTML build (excludes timer tick text); used to skip remove/rebuild when unchanged. */
     static _menubarStructureFingerprint = null;
@@ -2074,7 +2074,7 @@ class MenuBar {
      * @param {string} barTypeId - The bar type to register the item to
      * @param {string} itemId - Unique identifier for the item
      * @param {Object} itemData - Item configuration
-     * @param {string} [itemData.kind] - 'button' (default), 'info', 'statchip', 'portraitstat', 'gaugechip', 'progressbar', or 'balancebar'
+     * @param {string} [itemData.kind] - 'button' (default), 'info', 'statchip', 'portraitstat', 'gaugechip', 'nameplate', 'progressbar', or 'balancebar'
      * @param {string} [itemData.zone] - 'left' | 'middle' | 'right' (default: 'middle')
      * @returns {boolean} Success status
      */
@@ -2900,7 +2900,7 @@ class MenuBar {
                 // Defaults resolved here rather than in the template, so the rendered class list
                 // and the patched one cannot disagree about what "no tone" or "unranked" is.
                 if (item.kind === 'statchip') item.tone = item.tone || 'neutral';
-                if (item.kind === 'portraitstat') item.rank = Number(item.rank) || 0;
+                if (item.kind === 'portraitstat' || item.kind === 'nameplate') item.rank = Number(item.rank) || 0;
                 if (item.kind === 'gaugechip') {
                     item.gaugePercent = Math.max(0, Math.min(100, Number(item.percentProgress) || 0));
                 }
@@ -3363,8 +3363,22 @@ class MenuBar {
             }
             if (MenuBar.CHIP_KINDS.has(kind)) {
                 // Shared across every chip kind: they carry the same text and the same portrait.
-                if (update.value !== undefined && !setText(el, '.secondary-bar-item-value', update.value)) return bail('value appeared or emptied', itemId);
-                if (update.label !== undefined && !setText(el, '.secondary-bar-item-label', update.label)) return bail('label appeared or emptied', itemId);
+                if (kind === 'nameplate') {
+                    // Both lines always exist, holding a non-breaking space when empty, so the
+                    // plate keeps its height as a standing changes hands. That means presence never
+                    // changes and these are plain text writes rather than presence-checked ones.
+                    if (update.label !== undefined) {
+                        const nameEl = el.querySelector('.secondary-bar-item-nameplate-name');
+                        if (nameEl) nameEl.textContent = update.label ? String(update.label) : '\u00a0';
+                    }
+                    if (update.value !== undefined) {
+                        const detailEl = el.querySelector('.secondary-bar-item-nameplate-detail');
+                        if (detailEl) detailEl.textContent = update.value ? String(update.value) : '\u00a0';
+                    }
+                } else {
+                    if (update.value !== undefined && !setText(el, '.secondary-bar-item-value', update.value)) return bail('value appeared or emptied', itemId);
+                    if (update.label !== undefined && !setText(el, '.secondary-bar-item-label', update.label)) return bail('label appeared or emptied', itemId);
+                }
                 if (update.image !== undefined) {
                     // A portrait appearing is the most common readout change on the combat bar —
                     // an MVP emerging mid-fight, the biggest hit changing hands — so this is built
@@ -3373,10 +3387,10 @@ class MenuBar {
                     // A portrait chip nests its image in a frame and shows a placeholder glyph
                     // when there is nobody to show, so the two differ in where the image lives and
                     // in what replaces it.
-                    const framed = kind === 'portraitstat';
-                    const host = framed ? el.querySelector('.secondary-bar-item-portraitstat-frame') : el;
+                    const framed = kind === 'portraitstat' || kind === 'nameplate';
+                    const host = framed ? el.querySelector(`.secondary-bar-item-${kind}-frame`) : el;
                     if (!host) return bail('portrait frame missing', itemId);
-                    const imgClass = framed ? 'secondary-bar-item-portraitstat-image' : 'secondary-bar-item-image';
+                    const imgClass = framed ? `secondary-bar-item-${kind}-image` : 'secondary-bar-item-image';
                     let img = host.querySelector('.' + imgClass);
                     if (update.image) {
                         if (!img) {
@@ -3386,14 +3400,15 @@ class MenuBar {
                             host.prepend(img);
                         }
                         if (img.getAttribute('src') !== String(update.image)) img.setAttribute('src', String(update.image));
-                        if (framed) host.querySelector('.secondary-bar-item-portraitstat-empty')?.remove();
+                        if (framed) host.querySelector(`.secondary-bar-item-${kind}-empty`)?.remove();
                     } else if (img) {
                         img.remove();
                         // The frame must not collapse, or the chip changes width as a standing
                         // changes hands and its neighbours shuffle. Put the placeholder back.
-                        if (framed && !host.querySelector('.secondary-bar-item-portraitstat-empty')) {
+                        if (framed && !host.querySelector(`.secondary-bar-item-${kind}-empty`)) {
                             const glyph = document.createElement('i');
-                            glyph.className = (item.icon || 'fa-solid fa-user') + ' secondary-bar-item-portraitstat-empty';
+                            const fallback = kind === 'nameplate' ? 'fa-solid fa-trophy' : 'fa-solid fa-user';
+                            glyph.className = `${item.icon || fallback} secondary-bar-item-${kind}-empty`;
                             host.appendChild(glyph);
                         }
                     }
@@ -3418,7 +3433,7 @@ class MenuBar {
                         el.dataset.tone = tone;
                     }
                 }
-                if (kind === 'portraitstat' && update.rank !== undefined) {
+                if ((kind === 'portraitstat' || kind === 'nameplate') && update.rank !== undefined) {
                     const rank = String(Number(update.rank) || 0);
                     if (el.dataset.rank !== rank) {
                         el.classList.remove('rank-' + (el.dataset.rank || '0'));

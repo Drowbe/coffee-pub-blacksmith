@@ -31,8 +31,13 @@
      data-tone="{{tone}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
-    {{#if icon}}<i class="{{icon}} secondary-bar-item-statchip-icon"></i>{{/if}}
-    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
+    {{!-- The word REPLACES the icon rather than joining it. An icon and a word saying the same
+          thing is two glyphs of width for one meaning, and this row has no width to spare. --}}
+    {{#if displayLabel}}
+    <span class="secondary-bar-item-label">{{displayLabel}}</span>
+    {{else if icon}}
+    <i class="{{icon}} secondary-bar-item-statchip-icon"></i>
+    {{/if}}
     {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
 </div>
 
@@ -67,6 +72,30 @@
     <span class="secondary-bar-item-gaugechip-dial" style="--blacksmith-gauge-percent: {{gaugePercent}};{{#if gaugeColor}} --blacksmith-gauge-color: {{gaugeColor}};{{/if}}"></span>
     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
     {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+</div>
+
+{{else if (eq kind "nameplate")}}
+{{!-- A person and what they did, given room to say it. Two stacked lines beside a portrait rather
+      than a chip, because this is the one readout meant to be looked AT rather than glanced past.
+      Its own kind and not a large `portraitstat`: the stacked text block is different markup, and
+      overloading a size flag would have one kind rendering two layouts. --}}
+<div class="secondary-bar-item secondary-bar-item-nameplate rank-{{rank}}"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-rank="{{rank}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    <span class="secondary-bar-item-nameplate-frame">
+        {{#if image}}
+        <img class="secondary-bar-item-nameplate-image" src="{{image}}" alt="">
+        {{else}}
+        <i class="{{#if icon}}{{icon}}{{else}}fa-solid fa-trophy{{/if}} secondary-bar-item-nameplate-empty"></i>
+        {{/if}}
+    </span>
+    <span class="secondary-bar-item-nameplate-text">
+        <span class="secondary-bar-item-nameplate-name">{{#if displayLabel}}{{displayLabel}}{{else}}&nbsp;{{/if}}</span>
+        <span class="secondary-bar-item-nameplate-detail">{{#if displayValue}}{{displayValue}}{{else}}&nbsp;{{/if}}</span>
+    </span>
 </div>
 
 {{else if (eq kind "progressbar")}}

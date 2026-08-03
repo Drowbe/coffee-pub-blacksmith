@@ -1431,7 +1431,7 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
 - `barTypeId` (string, required): The bar type ID to register the item to
 - `itemId` (string, required): Unique identifier for the item
 - `itemData` (Object, required): Item configuration
-  - `kind` (string, optional): `'button'` (default), `'info'`, `'statchip'`, `'portraitstat'`, `'gaugechip'`, `'progressbar'`, or `'balancebar'`. Buttons are clickable; every other kind is display-only and is updated with `updateSecondaryBarItemInfo`.
+  - `kind` (string, optional): `'button'` (default), `'info'`, `'statchip'`, `'portraitstat'`, `'gaugechip'`, `'nameplate'`, `'progressbar'`, or `'balancebar'`. Buttons are clickable; every other kind is display-only and is updated with `updateSecondaryBarItemInfo`.
   - `zone` (string, optional): `'left'`, `'middle'`, or `'right'`. Default: `'middle'`. Only applies to the default tool system.
   - `icon` (string, required for buttons, optional for info): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`). Info items can use icon for consistent styling with buttons.
   - `label` (string, optional): Text label. For buttons, shown next to the icon. For info items, use with or without `value`.
@@ -1528,6 +1528,29 @@ blacksmith.registerSecondaryBarItem('my-bar', 'hit-rate', {
     order: 3
 });
 blacksmith.updateSecondaryBarItemInfo('my-bar', 'hit-rate', { value: '62.5%', percentProgress: 62.5 });
+```
+
+**Nameplate item** (`kind: 'nameplate'`): A person and what they did, given room to say it. A large round portrait with a rank ring, `label` as the name on the first line and `value` as the standing beneath it. Both lines are always rendered - holding a non-breaking space when empty - so the plate keeps its height and its neighbours never shift as the standing changes hands. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { image, label, value, rank, tooltip })`.
+
+Use it for the one readout meant to be looked at rather than glanced past, and give it a zone of its own: it is markedly wider than a chip, and in a shared zone it competes for width with readouts that get suppressed.
+
+```javascript
+blacksmith.registerSecondaryBarItem('my-bar', 'mvp', {
+    kind: 'nameplate',
+    zone: 'left',
+    rank: 1,
+    icon: 'fa-solid fa-trophy',
+    label: '',
+    value: '',
+    tooltip: 'Top MVP on record',
+    group: 'mvp',
+    order: 0
+});
+blacksmith.updateSecondaryBarItemInfo('my-bar', 'mvp', {
+    image: 'icons/portraits/kar-ahn.webp',
+    label: 'Kar-ahn',
+    value: 'Top MVP · 128'
+});
 ```
 
 **Progressbar item** (`kind: 'progressbar'`): A horizontal progress bar (0–100%). Required: `width`, `borderColor`, `barColor`, `progressColor`, `percentProgress`. Optional: `title`, `icon`, `leftLabel`, `leftIcon`, `rightLabel`, `rightIcon`, `height`. Height defaults to 40% of secondary bar height if omitted. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, leftLabel, rightLabel, ... })`.
@@ -1634,7 +1657,7 @@ blacksmith.updateSecondaryBarItemActive('cartographer', 'medium-line', true);
 
 ### Updating Secondary Bar Info Items
 
-Use this to update any display-only item without re-registering it: the value and label of an **info**, **statchip**, **portraitstat**, or **gaugechip** item, the progress and labels of a **progressbar**, or the balance and labels of a **balancebar**. Typical for encounter-style bars (Party CR, Monster CR, Difficulty), HP/resource bars, or approval/balance bars.
+Use this to update any display-only item without re-registering it: the value and label of an **info**, **statchip**, **portraitstat**, **gaugechip**, or **nameplate** item, the progress and labels of a **progressbar**, or the balance and labels of a **balancebar**. Typical for encounter-style bars (Party CR, Monster CR, Difficulty), HP/resource bars, or approval/balance bars.
 
 ```javascript
 blacksmith.updateSecondaryBarItemInfo('my-encounter', 'party-cr', { value: '4' });

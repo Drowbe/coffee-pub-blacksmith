@@ -11,7 +11,9 @@ registering tools, bar types, and items -- see `../api/api-menubar.md`.
 |---|---|
 | `scripts/api-menubar.js` | The `MenuBar` static class: registration, rendering, and every height variable it writes |
 | `styles/menubar.css` | All layout, the size scale, and the variables the whole system reads |
-| `templates/partials/menubar-secondary-default.hbs` | The shared default toolbar: zones, groups, banners, and the four item kinds |
+| `templates/partials/menubar-secondary-default.hbs` | The shared default toolbar: zones, groups, banners |
+| `templates/partials/menubar-secondary-item.hbs` | The markup for every item kind, invoked once per zone |
+| `styles/menubar-widgets.css` | The ornamented readout kinds -- tones, rank rings, the gauge |
 | `scripts/manager-combatbar.js` | The encounter bar, and the one bar that sizes itself -- see `architecture-encounter.md` |
 
 ## The secondary bar is a singleton slot
@@ -173,7 +175,7 @@ All three were live bugs, and all three look correct while being wrong:
 ## Item kinds, and where a new one is added
 
 An item is either a **button**, which is clickable, or one of the **display kinds**, which is not:
-`info`, `statchip`, `portraitstat`, `gaugechip`, `progressbar`, `balancebar`.
+`info`, `statchip`, `portraitstat`, `gaugechip`, `nameplate`, `progressbar`, `balancebar`.
 
 Two sets in `api-menubar.js` define that split, and both exist because the alternative was worse:
 
@@ -209,9 +211,16 @@ and nothing about a chip said which it was.
 | `statchip` | how much | `tone` colours the value; `record` adds a hairline |
 | `portraitstat` | who | round ringed portrait, `rank` colours the ring |
 | `gaugechip` | what proportion | a ring whose sweep is the percentage |
+| `nameplate` | who, and what they did | large ringed portrait beside two stacked lines |
 
 **Tone describes what a rise in the number means, not whether the number is large.** Damage dealt is
 `good` and damage taken is `bad`, though both climb as a fight goes on.
+
+A `nameplate` is deliberately its own kind rather than a large `portraitstat`: the stacked text block
+is different markup, and a size flag would leave one kind rendering two layouts. It is also markedly
+wider than a chip, so it wants a zone of its own — in a shared zone it competes for width with
+readouts that get suppressed, which is exactly what moving the combat bar's MVP plates out of the
+middle zone fixed.
 
 **Identity, not affordance.** These may use colour, weight and shape; they may not use a fill, a
 pointer cursor or a hover lift. That is the same reason `menubar-combatbar.css` strips the shared item

@@ -152,6 +152,93 @@
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat.rank-2 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-2); }
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat.rank-3 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-3); }
 
+/* ---- nameplate ------------------------------------------------------------
+   A person and what they did, given room to say it. Everything else in the row
+   is a chip you glance past; this is the one meant to be looked at, which is
+   why it gets a larger portrait, two lines, and a zone of its own.
+
+   Both text lines are always present -- they hold a non-breaking space when
+   empty -- so the plate keeps its height and its neighbours never shift as a
+   standing changes hands. */
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--secondary-bar-item-gap) * 1.2);
+    background-color: transparent;
+    border-color: transparent;
+    cursor: default;
+    min-width: 0;
+    padding-right: var(--secondary-bar-item-padding-hor);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate:hover {
+    background-color: transparent;
+    border-color: transparent;
+    transform: none;
+}
+
+/* Larger than a portraitstat's: this one is the subject rather than a marker,
+   and it has the row's full height to work with rather than sharing it with a
+   line of text. */
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: calc(var(--blacksmith-menubar-secondary-height) * 0.78);
+    height: calc(var(--blacksmith-menubar-secondary-height) * 0.78);
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 0 2px var(--blacksmith-widget-rank, var(--blacksmith-widget-rank-none));
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    border-radius: 0;
+    filter: none;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate-empty {
+    font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.36);
+    color: rgba(240, 240, 224, 0.3);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+/* The name leads, because who it is, is the point. */
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate-name {
+    font-size: var(--secondary-bar-item-font-size);
+    font-weight: 700;
+    color: var(--blacksmith-widget-tone-neutral);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The standing follows, quieter -- a caption to the name, not a second heading. */
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate-detail {
+    font-size: calc(var(--secondary-bar-item-font-size) * 0.82);
+    color: var(--blacksmith-widget-rank, var(--blacksmith-widget-rank-none));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate.rank-1 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-1); }
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate.rank-2 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-2); }
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate.rank-3 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-3); }
+
 /* ---- gaugechip ------------------------------------------------------------
    A conic gradient masked into a ring, rather than an SVG arc. Two reasons:
    the sweep is a single custom property, so a value update is one style write

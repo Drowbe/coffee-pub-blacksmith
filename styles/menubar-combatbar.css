@@ -224,6 +224,19 @@
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
 }
 
+/* THE STATISTICS READ LEFT TO RIGHT, NOT OUTWARD FROM THE CENTRE.
+   The shared middle zone is centred, which is right for a bar of buttons and
+   wrong for a list of readouts: a centred row that overflows loses items from
+   both ends at once, and the eye has no fixed point to start from, so the same
+   chip sits in a different place every time the set changes. Left-aligned, the
+   ranking in `READOUT_SUPPRESSION_ORDER` becomes visible -- what survives is
+   what is leftmost -- and a chip appearing or dropping moves only what follows
+   it. The MVP plate holds the left zone, so this reads as one continuous line
+   from the plate rightward. */
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-zone-middle {
+    justify-content: flex-start;
+}
+
 /* Suppression. When the row cannot fit its readouts, they are dropped in a
    fixed order rather than squeezed: party health, then monster health, then
    the timer. Applied by CombatBarManager.applyReadoutOverflow, which measures
