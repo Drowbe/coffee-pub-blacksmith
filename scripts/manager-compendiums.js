@@ -38,7 +38,8 @@ import {
     getWorldCollection,
     getMappedTypes,
     isSyntheticType,
-    getPackPackageLabel
+    getPackPackageLabel,
+    formatPackLabel
 } from './compendium-types.js';
 import { isNativeFoundryItemData, parseFlatItemToFoundry } from './parsers/parse-item.js';
 import {
@@ -152,6 +153,78 @@ export class CompendiumManager {
      */
     getTypes() {
         return getMappedTypes(BLACKSMITH.arrCompendiumChoicesData ?? []);
+    }
+
+    /**
+     * Every INSTALLED compendium that can hold this type, ignoring the GM's mapping.
+     *
+     * This answers a different question from getMapping()/getSelected()/getChoices(),
+     * which all answer "what did the GM pick for searching". A module that needs the
+     * user to nominate a compendium for its own purpose -- an injuries table, a
+     * quotations journal -- often wants one that is deliberately NOT in the search set,
+     * so filtering by the search configuration would hide exactly the right answer.
+     *
+     * Nothing is filtered out: not the enabled-source checkboxes, and not the content
+     * heuristics behind getChoices(). Those heuristics are strict -- a JournalEntry pack
+     * must pass `isPrimaryJournalCompendium`, and a Spell pack must actually contain
+     * spells -- which is correct for a search mapping and wrong for "let the user pick
+     * any journal compendium".
+     *
+     * Synthetic types therefore return every pack of their document class: asking for
+     * `Spell` returns all Item packs, because content sniffing is the very filter this
+     * method exists to escape. Use getChoices() when you want the narrowed set.
+     *
+     * @param {string} type - Any accepted type token
+     * @returns {Array<{id: string, label: string, package: string, displayLabel: string,
+     *                  documentClass: string, subtype: string|null, isWorld: boolean}>}
+     *          Sorted by package, then pack label.
+     */
+    getAllPacks(type) {
+        const canonical = normalizeType(type);
+        if (!canonical) return [];
+
+        const packType = getPackType(canonical);
+        const subtype = getDocumentSubtype(canonical);
+        const packs = [];
+
+        for (const pack of game.packs?.values() ?? []) {
+            if (String(pack?.metadata?.type ?? '') !== packType) continue;
+            const id = pack.metadata.id ?? pack.collection;
+            if (!id) continue;
+            packs.push({
+                id,
+                label: pack.metadata.label ?? id,
+                package: getPackPackageLabel(pack),
+                // The composed "Package: Label" form, taken from the shared helper rather
+                // than rebuilt here so the two cannot drift apart.
+                displayLabel: formatPackLabel(pack, id),
+                documentClass: getDocumentClass(canonical),
+                subtype,
+                isWorld: String(pack.metadata.packageType ?? '') === 'world'
+                    || String(pack.collection ?? '').startsWith('world.')
+            });
+        }
+
+        return packs.sort((a, b) =>
+            a.package.localeCompare(b.package) || a.label.localeCompare(b.label));
+    }
+
+    /**
+     * getAllPacks() as a dropdown-ready `{id: label}` object, shaped like getChoices()
+     * so it drops straight into a setting's `choices`.
+     *
+     * The values are DISPLAY STRINGS. To lay the parts out yourself, use getAllPacks()
+     * and read `label` and `package` separately rather than splitting these apart.
+     *
+     * @param {string} type
+     * @param {object} [options]
+     * @param {boolean} [options.none=true] - Include the leading "-- None --" entry
+     * @returns {Object<string, string>}
+     */
+    getAllChoices(type, { none = true } = {}) {
+        const choices = none ? { none: '-- None --' } : {};
+        for (const pack of this.getAllPacks(type)) choices[pack.id] = pack.displayLabel;
+        return choices;
     }
 
     // ==============================================================

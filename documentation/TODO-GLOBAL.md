@@ -367,6 +367,15 @@ What shipped instead: `api.dialog`, `api.entityList`, `api.quantitySplit`, and t
 `ACTION_HANDLERS` fix — all reusable by any module, none of them knowing what a transfer is. Revisit a shared
 workflow shell only if two or more modules provably duplicate meaningful shell code.
 
+## Bibliosoph — unfiltered compendium list (2026-08-02)
+
+**Delivered, unverified.** `api.compendiums.getAllPacks(type)` and `getAllChoices(type)` return every installed
+compendium that can hold a type, ignoring both the enabled-source checkboxes and the content heuristics
+`getChoices()` applies. Bibliosoph can now offer any journal compendium for its injury setting, including one
+the GM deliberately kept out of Blacksmith's search mapping — which was the case the old surface could not
+express. Tell Bibliosoph it exists, and that `getChoices()` remains the right call for anything that should
+respect the search configuration.
+
 ## Squire integration — what Blacksmith still owes (2026-07-30)
 
 Squire has migrated all 22 legacy `Dialog` call sites to `api.dialog` and live-tested them; a source audit

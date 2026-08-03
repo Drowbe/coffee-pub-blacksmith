@@ -142,6 +142,69 @@ export default {
             }
         },
         {
+            id: 'all-packs',
+            tier: 'headless',
+            group: 'Mapping',
+            label: 'getAllPacks/getAllChoices ignore the mapping and the content filters',
+            note: 'The point is a compendium the user deliberately kept OUT of the search set. getChoices() cannot offer that.',
+            run: async ({ expect, log }) => {
+                const { compendiums } = requireApi('compendiums', 'compendiums.getAllPacks');
+
+                for (const type of ['JournalEntry', 'Item', 'Actor', 'RollTable']) {
+                    const packs = compendiums.getAllPacks(type);
+                    const expectedClass = compendiums.getMapping(type).documentClass;
+
+                    // Every pack of the right class is present -- that is what "unfiltered" means.
+                    const installed = Array.from(game.packs.values())
+                        .filter(p => p.metadata?.type === expectedClass)
+                        .map(p => p.metadata.id);
+                    expect(`${type}: every installed pack of its class is returned`,
+                        packs.length, installed.length);
+                    expect.ok(`${type}: no pack of another class leaks in`,
+                        packs.every(p => installed.includes(p.id)));
+
+                    // Discrete fields, per the lesson from sourceLabel.
+                    if (packs.length) {
+                        const first = packs[0];
+                        expect.ok(`${type}: label is the pack's own name`,
+                            first.label === game.packs.get(first.id)?.metadata?.label);
+                        expect.ok(`${type}: package is separate from label`,
+                            typeof first.package === 'string' && !first.label.includes(': '));
+                        expect(`${type}: displayLabel composes the two`,
+                            first.displayLabel, `${first.package}: ${first.label}`);
+                        expect(`${type}: documentClass matches the mapping`,
+                            first.documentClass, expectedClass);
+                    }
+
+                    // It is a SUPERSET of the mapped choices, never smaller.
+                    const mapped = Object.keys(compendiums.getChoices(type) ?? {}).filter(k => k !== 'none');
+                    const all = new Set(packs.map(p => p.id));
+                    const missing = mapped.filter(id => !all.has(id));
+                    expect(`${type}: contains everything getChoices offers`, missing.length, 0);
+                    if (packs.length > mapped.length) {
+                        log(`${type}: ${packs.length - mapped.length} pack(s) reachable ONLY through getAllPacks — `
+                            + `that gap is the feature`);
+                    }
+                }
+
+                const choices = compendiums.getAllChoices('JournalEntry');
+                expect.ok('getAllChoices leads with a none entry', choices.none === '-- None --');
+                expect.ok('and its keys are pack ids',
+                    Object.keys(choices).filter(k => k !== 'none').every(k => !!game.packs.get(k)));
+                expect.ok('{none: false} omits it',
+                    !('none' in compendiums.getAllChoices('JournalEntry', { none: false })));
+
+                expect('an unknown type returns nothing', compendiums.getAllPacks('NotAType').length, 0);
+
+                // Synthetic types deliberately return every pack of their document class:
+                // content sniffing is the filter this method exists to escape.
+                if (compendiums.getAllPacks('Spell').length) {
+                    expect('Spell returns Item packs, unsniffed',
+                        compendiums.getAllPacks('Spell').length, compendiums.getAllPacks('Item').length);
+                }
+            }
+        },
+        {
             id: 'document-class',
             tier: 'headless',
             group: 'Contract',

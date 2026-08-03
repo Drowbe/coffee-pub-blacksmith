@@ -54,12 +54,66 @@ export const CompendiumsAPI = {
     getSearchOrder: (type) => compendiumManager.getSearchOrderForType(type),
 
     /**
-     * Dropdown choices ({packId: label}) for a type -- handy for building your
-     * own settings UI that mirrors Blacksmith's.
+     * Dropdown choices ({packId: label}) for a type -- the compendiums eligible for
+     * the GM's SEARCH mapping, narrowed by the enabled-source checkboxes and by
+     * content heuristics. Handy for a settings UI that mirrors Blacksmith's.
+     *
+     * If you are asking the user to nominate a compendium for your own module's
+     * purpose rather than for searching, you probably want getAllChoices().
      * @param {string} type
      * @returns {Object<string, string>}
      */
     getChoices: (type) => BLACKSMITH[getChoicesArrayKey(type)] ?? { none: '-- None --' },
+
+    /**
+     * Every INSTALLED compendium that can hold this type, ignoring the GM's mapping --
+     * structured, not display strings.
+     *
+     * getChoices() answers "what did the GM map for searching". This answers "what
+     * exists". They are different questions and the difference matters: a module asking
+     * the user to nominate a compendium for its own use -- an injuries table, a
+     * quotations journal -- often wants one that is deliberately NOT in the search set,
+     * and getChoices() would hide exactly that.
+     *
+     * Nothing is filtered: not the enabled-source checkboxes, and not the content
+     * heuristics getChoices() applies (a JournalEntry pack must look like a "primary"
+     * journal compendium to appear there). Synthetic types return every pack of their
+     * document class -- `Spell` returns all Item packs -- because content sniffing is
+     * the filter this method exists to escape.
+     *
+     * @param {string} type - Any accepted type token
+     * @returns {Array<{id: string, label: string, package: string, displayLabel: string,
+     *                  documentClass: string, subtype: string|null, isWorld: boolean}>}
+     *
+     * @example
+     * // Bibliosoph: let the user pick ANY journal compendium for injuries,
+     * // including ones deliberately kept out of Blacksmith's search mapping.
+     * const packs = api.compendiums.getAllPacks('JournalEntry');
+     * // [{ id: 'bok-roll-tables.injuries', label: 'Injuries',
+     * //    package: 'Burden of Knowledge', displayLabel: 'Burden of Knowledge: Injuries', ... }]
+     */
+    getAllPacks: (type) => compendiumManager.getAllPacks(type),
+
+    /**
+     * getAllPacks() as a dropdown-ready `{id: label}` object, shaped like getChoices()
+     * so it drops straight into a setting's `choices`.
+     *
+     * Values are DISPLAY STRINGS. To lay the parts out yourself, use getAllPacks() and
+     * read `label` and `package` separately rather than splitting these apart.
+     *
+     * @param {string} type
+     * @param {object} [options]
+     * @param {boolean} [options.none=true] - Include the leading "-- None --" entry
+     * @returns {Object<string, string>}
+     *
+     * @example
+     * game.settings.register('coffee-pub-bibliosoph', 'injuryCompendium', {
+     *     name: 'Injury Compendium',
+     *     scope: 'world', config: true, type: String, default: 'none',
+     *     choices: api.compendiums.getAllChoices('JournalEntry')
+     * });
+     */
+    getAllChoices: (type, options) => compendiumManager.getAllChoices(type, options),
 
     // ===== RESOLUTION =====
 

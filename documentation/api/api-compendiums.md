@@ -285,7 +285,50 @@ compendiums.getTypes();               // ['Actor', 'Item', ..., 'Spell', 'Featur
 compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters': 'D&D 5e: Monsters (SRD) — 143 Actors', ... }
 ```
 
-`getChoices()` is useful if you want to build your own settings dropdown that mirrors Blacksmith's. Its values are **display strings for a `<select>`** — package, pack, and a summary of contents, composed into one line. They are not a source of structured data: to label a pack anywhere else, read `pack.metadata.label` and `getPackPackageLabel(pack)`, or take `sourceLabel` / `sourcePackage` off a `search()` result.
+`getChoices()` is useful if you want to build your own settings dropdown that mirrors Blacksmith's **search mapping**.
+
+## "What did the GM map" vs "what exists"
+
+These are different questions, and using the wrong one hides the right answer.
+
+`getMapping()`, `getSelected()`, and `getChoices()` all describe the **search configuration** — which compendiums the GM chose to resolve names against. `getChoices()` narrows further: it drops packs from disabled sources, and applies content heuristics (a `JournalEntry` pack must look like a "primary" journal compendium; a `Spell` pack must actually contain spells).
+
+That is right for a search mapping and wrong when your module asks the user to nominate a compendium **for its own purpose** — an injuries table, a quotations journal, a name list. Those are frequently compendiums the GM deliberately kept *out* of the search set, so the search-shaped list is exactly the one that cannot offer them.
+
+```js
+// Every installed compendium that can hold this type. Nothing filtered.
+const packs = compendiums.getAllPacks('JournalEntry');
+// [
+//   {
+//     id: 'bok-roll-tables.injuries',
+//     label: 'Injuries',                                  // the pack's own name
+//     package: 'Burden of Knowledge',                     // who ships it
+//     displayLabel: 'Burden of Knowledge: Injuries',      // the two composed
+//     documentClass: 'JournalEntry',
+//     subtype: null,
+//     isWorld: false
+//   },
+//   ...
+// ]
+```
+
+Dropdown-ready, shaped like `getChoices()` so it drops straight into a setting:
+
+```js
+game.settings.register('my-module', 'injuryCompendium', {
+  name: 'Injury Compendium',
+  scope: 'world', config: true, type: String, default: 'none',
+  choices: compendiums.getAllChoices('JournalEntry')
+});
+
+compendiums.getAllChoices('JournalEntry', { none: false });   // omit the "-- None --" entry
+```
+
+Three things to know:
+
+- **`getAllChoices()` values are display strings.** To lay the parts out yourself, use `getAllPacks()` and read `label` and `package` separately rather than splitting `displayLabel` apart.
+- **Synthetic types return every pack of their document class.** `getAllPacks('Spell')` returns all Item packs, not only those containing spells — content sniffing is the filter this method exists to escape. Use `getChoices('Spell')` when you want the narrowed set.
+- **The result is always a superset of `getChoices()`.** If the two are the same size, nothing is being hidden from you in this world; the gap is what the method is for. Its values are **display strings for a `<select>`** — package, pack, and a summary of contents, composed into one line. They are not a source of structured data: to label a pack anywhere else, read `pack.metadata.label` and `getPackPackageLabel(pack)`, or take `sourceLabel` / `sourcePackage` off a `search()` result.
 
 ## Methods
 
@@ -297,7 +340,9 @@ compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters
 | `getMapping(type)` | `object` | Full mapping — packs, order, world rules |
 | `getSelected(type)` | `string[]` | Configured pack IDs, priority order |
 | `getSearchOrder(type)` | `string[]` | `'world'` and/or pack IDs, in search order |
-| `getChoices(type)` | `{id: label}` | Dropdown choices for this type |
+| `getChoices(type)` | `{id: label}` | Dropdown choices for this type, narrowed to the search mapping |
+| `getAllPacks(type)` | `object[]` | Every installed compendium that can hold this type, unfiltered |
+| `getAllChoices(type, options?)` | `{id: label}` | The same as dropdown choices; `{none: false}` drops the None entry |
 
 ### Resolution
 
@@ -345,6 +390,9 @@ console.log('Search order:', c.getSearchOrder('actor'));
 await c.resolve('Goblin', 'actor');
 await c.resolveLink('Longsword', 'item');
 await c.resolveMany(['Goblin', 'Orc', 'Nothing Here'], 'actor');
+
+c.getAllPacks('JournalEntry');            // every journal compendium installed
+c.getAllChoices('JournalEntry');          // the same, dropdown-ready
 
 await c.search('long', 'Item', { itemType: 'weapon', limit: 40 });
 await c.search('l', 'Item');                        // [] -- below minLength
