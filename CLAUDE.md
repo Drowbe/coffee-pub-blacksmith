@@ -52,8 +52,20 @@ The single exception: `npm run build:cm6` bundles CodeMirror 6 via `build-codemi
 `scripts/vendor/codemirror.mjs` is **committed**, and CI does not rebuild it — if you change the editor
 vendor entry, rebuild and commit the bundle yourself.
 
-`utilities/` and `test-data/` are manual console scripts and fixtures, not an automated suite.
-CI (`.github/workflows/release.yml`) only zips and releases on `v*` tags; it runs no checks.
+`utilities/` and `test-data/` are manual console scripts and fixtures, not an automated suite —
+`utilities/test-harness.js` is the entry point, pasted into a script macro (see its own header).
+
+What *is* automated is a small set of **invariant checks** in `tools/`, each runnable standalone and each
+exiting non-zero on a violation. They verify things a reader cannot reasonably hold in their head, not
+behavior:
+
+| Check | Guards |
+|---|---|
+| `node tools/check-design-tokens.mjs` | `styles/vars.css` and `design-system/design-tokens.md` agree, both ways |
+| `node tools/check-settings-headings.mjs` | no settings heading hides itself from players who can see settings under it |
+
+Run the relevant one after touching what it guards. CI (`.github/workflows/release.yml`) only zips and
+releases on `v*` tags; **it runs no checks**, so nothing runs these but you.
 
 ## Documentation — there are only five kinds
 
@@ -222,8 +234,22 @@ from `scripts/api-core.js`. It **throws if `message` is falsy**. Debug output is
 (`scripts/manager-hooks.js`), not raw `Hooks.on`. Priority 1–5, 1 = critical. Use `context` so
 `disposeByContext` can clean up.
 
-**Settings** — `scripts/settings.js` (~259 `game.settings.register` calls, no `registerMenu`). Assign a
+**Settings** — `scripts/settings.js` (~286 `game.settings.register` calls, no `registerMenu`). Assign a
 `group: WORKFLOW_GROUPS.*`. Names/hints are localization keys in `lang/en.json`.
+
+Headings are ordinary String settings registered through `registerHeader(id, label, hint, level, group,
+scope)`, so they obey Foundry's visibility rule like anything else: **only `world` is hidden from non-GM**
+(`client/applications/settings/config.mjs:67`); `client` and `user` both render. So **a heading must be
+`'user'` if any setting a player can see sits under it — the whole ancestor chain, not just the nearest
+heading.** An H1 that stays `'world'` orphans every player-visible setting below it however correct the H2
+between them is, and the player gets bare controls with no context: two "Enable" toggles from different
+sections, indistinguishable. Conversely a heading whose subtree is entirely `world` should stay `world`, or
+players see an empty heading. This is about heading scope only — a setting's own scope is a functional
+decision about who owns the value and never changes to satisfy it.
+
+`node tools/check-settings-headings.mjs` enforces this and exits non-zero on a violation. Run it after
+touching settings. Note that `registerHeader`'s **level argument is authoritative for nesting, not the
+H-number in the label key** — they disagree in places (`headingH3CampaignCommon` registers at level H2).
 
 **CSS** — `styles/default.css` is the only real entry; ~50 other files are `@import`ed from it. **A new CSS
 file without an `@import` is silently unstyled.**

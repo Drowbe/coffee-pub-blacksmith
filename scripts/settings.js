@@ -1423,7 +1423,11 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H3: QUALITY OF LIFE
 	// --------------------------------------
-	registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
+	// World: the only setting under it (objectLinkStyle) is world. `coreLoadingProgress`
+	// looks like it belongs here but does not -- it is registered from blacksmith.js
+	// during `init`, long before registerSettings() runs in `ready`, so it renders at
+	// the very top of Blacksmith's settings above every heading, not under this one.
+	registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
 
 
 	// -- Foundry Loading Progress--
@@ -1919,7 +1923,9 @@ export const registerSettings = () => {
 	// --------------------------------------
 	// -- H2: Vision (GM Quickview)
 	// --------------------------------------
-	registerHeader('Vision', 'headingH2Vision-Label', 'headingH2Vision-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'user');
+	// World: Quickview is a GM clarity mode -- the keybinding is restricted and the
+	// handler returns early for a player -- so the whole section is GM-only.
+	registerHeader('Vision', 'headingH2Vision-Label', 'headingH2Vision-Hint', 'H2', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
 	game.settings.register(MODULE.ID, 'enableQuickViewFeature', {
 		name: MODULE.ID + '.enableQuickViewFeature-Label',
@@ -1927,7 +1933,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: true,
-		scope: 'user',
+		scope: 'world',
 		default: true,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
@@ -1938,7 +1944,7 @@ export const registerSettings = () => {
 		type: Boolean,
 		config: true,
 		requiresReload: false,
-		scope: 'user',
+		scope: 'world',
 		default: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME,
 		onChange: async (value) => {
@@ -1960,7 +1966,7 @@ export const registerSettings = () => {
 		default: 0.5,
 		config: true,
 		requiresReload: false,
-		scope: 'user',
+		scope: 'world',
 		group: WORKFLOW_GROUPS.RUN_THE_GAME,
 		onChange: async () => {
 			if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
@@ -1980,7 +1986,7 @@ export const registerSettings = () => {
 		default: '#ffcc33',
 		config: true,
 		requiresReload: false,
-		scope: 'user',
+		scope: 'world',
 		group: WORKFLOW_GROUPS.RUN_THE_GAME,
 		onChange: async () => {
 			if (!getSettingSafely(MODULE.ID, 'enableQuickViewFeature', true)) return;
@@ -2122,10 +2128,12 @@ export const registerSettings = () => {
 
 
 	// -- Show Health Bar --
+	// World, not user: the GM decides whether health bars appear for everyone. A player
+	// toggling their own would be deciding what the GM chose to conceal.
 	game.settings.register(MODULE.ID, 'combatTrackerShowHealthBar', {
 		name: MODULE.ID + '.combatTrackerShowHealthBar-Label',
 		hint: MODULE.ID + '.combatTrackerShowHealthBar-Hint',
-		scope: 'user',
+		scope: 'world',
 		config: true,
 		type: Boolean,
 		default: true,
@@ -2145,10 +2153,11 @@ export const registerSettings = () => {
 	});
 
 	// -- Show Portraits --
+	// World, for the same reason as the health bar: a table-wide presentation choice.
 	game.settings.register(MODULE.ID, 'combatTrackerShowPortraits', {
 		name: MODULE.ID + '.combatTrackerShowPortraits-Label',
 		hint: MODULE.ID + '.combatTrackerShowPortraits-Hint',
-		scope: 'user',
+		scope: 'world',
 		config: true,
 		type: Boolean,
 		default: true,
