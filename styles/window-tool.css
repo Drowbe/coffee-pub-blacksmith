@@ -9,6 +9,38 @@
     --blacksmith-tool-divider: rgba(112, 85, 49, 0.34);
     --blacksmith-tool-text: #2f241a;
     --blacksmith-tool-accent: #2f241a;
+    /* Form fields. The shared form-control classes in window-form-controls.css are
+       built for Blacksmith's dark standard windows and hard-code a #222 surface, so
+       inside a Light or Glass tool they render as black boxes floating on parchment.
+       These give the shell a theme-aware field surface; the rules further down apply
+       them, so a consumer's inputs follow the user's theme without the consumer
+       knowing the theme exists. Override per tool only for a deliberate variation. */
+    --blacksmith-tool-field-background: rgba(255, 252, 245, 0.85);
+    --blacksmith-tool-field-border: rgba(112, 85, 49, 0.38);
+    --blacksmith-tool-field-text: #2f241a;
+    --blacksmith-tool-field-placeholder: rgba(47, 36, 26, 0.45);
+    --blacksmith-tool-field-focus-border: rgba(193, 87, 1, 0.75);
+    --blacksmith-tool-field-focus-ring: rgba(193, 87, 1, 0.18);
+    /* A <select>'s dropdown is an OS popup, not part of the page: it inherits none
+       of the above and must be given its own opaque pair, or it renders as the
+       browser default and collides all over again. Never translucent. */
+    --blacksmith-tool-field-option-background: #f4ead6;
+    --blacksmith-tool-field-option-text: #2f241a;
+    /* Content surfaces. The frame variables above describe the shell; these describe
+       what a consumer puts INSIDE it -- rows, group headings, hover, selection. Without
+       them a consumer building a list has no theme-aware color to reach for and hardcodes
+       one, which is right in one theme and wrong in the other two.
+
+       `raised` is decorative and may be translucent; `scrim` is the one that guarantees
+       legibility over arbitrary content and is what a STICKY element wants, since under
+       Glass the shell background is deliberately near-transparent and rows would read
+       straight through a heading painted with it. */
+    --blacksmith-tool-surface-raised: #f0e5d1;
+    --blacksmith-tool-surface-sunken: rgba(112, 85, 49, 0.08);
+    --blacksmith-tool-surface-hover: rgba(112, 85, 49, 0.14);
+    --blacksmith-tool-surface-selected: rgba(193, 87, 1, 0.18);
+    --blacksmith-tool-text-muted: rgba(47, 36, 26, 0.55);
+    --blacksmith-tool-scrim: rgba(247, 236, 216, 0.94);
     border: 2px solid var(--blacksmith-tool-border);
     border-radius: 8px;
     background: var(--blacksmith-tool-background);
@@ -35,6 +67,20 @@
     --blacksmith-tool-divider: rgba(172, 159, 129, 0.35);
     --blacksmith-tool-text: rgba(224, 224, 224, 0.92);
     --blacksmith-tool-accent: var(--blacksmith-window-accent-color, #ac9f81);
+    --blacksmith-tool-field-background: var(--blacksmith-surface-dark-1, #222222);
+    --blacksmith-tool-field-border: rgba(255, 255, 255, 0.12);
+    --blacksmith-tool-field-text: rgba(224, 224, 224, 0.92);
+    --blacksmith-tool-field-placeholder: rgba(224, 224, 224, 0.45);
+    --blacksmith-tool-field-focus-border: var(--blacksmith-color-brand-accent, #c15701);
+    --blacksmith-tool-field-focus-ring: rgba(193, 87, 1, 0.22);
+    --blacksmith-tool-field-option-background: var(--blacksmith-surface-dark-1, #222222);
+    --blacksmith-tool-field-option-text: rgba(224, 224, 224, 0.92);
+    --blacksmith-tool-surface-raised: var(--blacksmith-surface-dark-2, #313030);
+    --blacksmith-tool-surface-sunken: rgba(0, 0, 0, 0.25);
+    --blacksmith-tool-surface-hover: rgba(255, 255, 255, 0.08);
+    --blacksmith-tool-surface-selected: rgba(193, 87, 1, 0.28);
+    --blacksmith-tool-text-muted: rgba(224, 224, 224, 0.5);
+    --blacksmith-tool-scrim: rgba(18, 16, 16, 0.94);
 }
 
 /* Glass theme styles */
@@ -45,6 +91,26 @@
     --blacksmith-tool-divider: rgba(255, 255, 255, 0.05);
     --blacksmith-tool-text: rgba(255, 255, 255, 0.9);
     --blacksmith-tool-accent: rgba(236, 215, 178, 0.9);
+    /* Translucent rather than opaque: an opaque field on a frosted shell reads as a
+       hole punched through it. Dark enough that white text stays legible over
+       whatever scene art happens to be behind the window. */
+    --blacksmith-tool-field-background: rgba(0, 0, 0, 0.32);
+    --blacksmith-tool-field-border: rgba(255, 255, 255, 0.2);
+    --blacksmith-tool-field-text: rgba(255, 255, 255, 0.94);
+    --blacksmith-tool-field-placeholder: rgba(255, 255, 255, 0.5);
+    --blacksmith-tool-field-focus-border: rgba(236, 215, 178, 0.85);
+    --blacksmith-tool-field-focus-ring: rgba(236, 215, 178, 0.22);
+    --blacksmith-tool-field-option-background: #16130f;
+    --blacksmith-tool-field-option-text: rgba(240, 233, 220, 0.94);
+    /* `raised` stays light-handed so a heading does not read as a slab punched
+       through the frost. `scrim` is the heavy one, and the gap between them is
+       exactly why both exist -- only Glass needs them to differ. */
+    --blacksmith-tool-surface-raised: rgba(12, 10, 8, 0.55);
+    --blacksmith-tool-surface-sunken: rgba(0, 0, 0, 0.18);
+    --blacksmith-tool-surface-hover: rgba(255, 255, 255, 0.12);
+    --blacksmith-tool-surface-selected: rgba(236, 215, 178, 0.22);
+    --blacksmith-tool-text-muted: rgba(255, 255, 255, 0.55);
+    --blacksmith-tool-scrim: rgba(12, 10, 8, 0.82);
     -webkit-backdrop-filter: blur(8px) saturate(115%);
     backdrop-filter: blur(8px) saturate(115%);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.34);
@@ -68,6 +134,84 @@
     > .window-header:focus-within {
     background: rgba(8, 8, 8, 0.56);
     border-bottom-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ==================================================================
+   FORM CONTROLS
+   ==================================================================
+   Consumers own their content but should not have to own the theme. These
+   rules repaint any field inside a Tool window from the --blacksmith-tool-field-*
+   family above, so an input follows Light / Dark / Glass with no work from the
+   consumer and no knowledge of which theme is active.
+
+   Scoped to the whole window rather than the body, because the tool bar and
+   footer hold controls too -- a search box in the tool bar is the common case.
+
+   Both the shared classes and bare elements are listed: a consumer that wrote
+   plain <input> has the same collision as one that used .blacksmith-input, and
+   the shell should not reward only the consumers who knew about the class.
+   Buttons are deliberately absent -- they are already themed, and repainting
+   them here would flatten the header controls.
+   ================================================================== */
+
+.application.blacksmith-window-tool input[type="text"],
+.application.blacksmith-window-tool input[type="search"],
+.application.blacksmith-window-tool input[type="number"],
+.application.blacksmith-window-tool input[type="password"],
+.application.blacksmith-window-tool select,
+.application.blacksmith-window-tool textarea,
+.application.blacksmith-window-tool .blacksmith-input,
+.application.blacksmith-window-tool .blacksmith-select,
+.application.blacksmith-window-tool .blacksmith-textarea {
+    background-color: var(--blacksmith-tool-field-background);
+    border-color: var(--blacksmith-tool-field-border);
+    color: var(--blacksmith-tool-field-text);
+}
+
+.application.blacksmith-window-tool input::placeholder,
+.application.blacksmith-window-tool textarea::placeholder,
+.application.blacksmith-window-tool .blacksmith-input::placeholder,
+.application.blacksmith-window-tool .blacksmith-textarea::placeholder {
+    color: var(--blacksmith-tool-field-placeholder);
+    opacity: 1; /* the shared rule dims to 0.7; the variable already carries the alpha */
+}
+
+.application.blacksmith-window-tool input:focus,
+.application.blacksmith-window-tool input:focus-visible,
+.application.blacksmith-window-tool select:focus,
+.application.blacksmith-window-tool select:focus-visible,
+.application.blacksmith-window-tool textarea:focus,
+.application.blacksmith-window-tool textarea:focus-visible {
+    outline: none;
+    border-color: var(--blacksmith-tool-field-focus-border);
+    box-shadow: 0 0 0 2px var(--blacksmith-tool-field-focus-ring);
+}
+
+/* The dropdown itself is an OS popup and inherits nothing from the window. */
+.application.blacksmith-window-tool select option,
+.application.blacksmith-window-tool .blacksmith-select option,
+.application.blacksmith-window-tool .blacksmith-input option {
+    background-color: var(--blacksmith-tool-field-option-background);
+    color: var(--blacksmith-tool-field-option-text);
+}
+
+/* .blacksmith-select draws its own chevron as a background-image with a fixed
+   light fill, which disappears against a Light field. Recolored per theme. */
+.application.blacksmith-window-tool .blacksmith-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%232f241a' fill-opacity='0.6'/%3E%3C/svg%3E");
+}
+
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-dark .blacksmith-select,
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-glass .blacksmith-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffffff' fill-opacity='0.6'/%3E%3C/svg%3E");
+}
+
+/* A search input's native clear "x" is drawn dark by the browser and vanishes on
+   the dark themes. Inverting is enough -- it is a glyph, not a color. */
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-dark input[type="search"]::-webkit-search-cancel-button,
+.application.blacksmith-window-tool.blacksmith-window-tool-theme-glass input[type="search"]::-webkit-search-cancel-button {
+    filter: invert(1);
+    opacity: 0.6;
 }
 
 /* Title bar styles */

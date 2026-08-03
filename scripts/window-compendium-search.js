@@ -36,7 +36,19 @@ const DEBOUNCE_MS = 140;
 /** Higher than a tray's 40 — this window is taller and the user is browsing, not quick-adding. */
 const RESULT_LIMIT = 100;
 
+/**
+ * Three, not the API's default of two. Searching every mapped type at once opens far
+ * more packs per keystroke, and two characters against a full SRD plus third-party
+ * content is thousands of hits that the limit then throws most of away — expensive
+ * work for a list nobody can read. The API default stays 2 for callers scoped to one
+ * type; this is the palette's own floor.
+ */
+const MIN_QUERY_LENGTH = 3;
+
 const ANY_SUBTYPE = '';
+
+/** Type-selector sentinel: search every mapped type at once. */
+const ALL_TYPES = '__all__';
 
 export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
 
@@ -81,7 +93,11 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         } catch { /* setting not registered yet */ }
 
         const types = this._availableTypes();
-        this._type = types.includes(prefs.type) ? prefs.type : (types[0] ?? 'Item');
+        // All types by default: a palette you reach for mid-session should answer
+        // "where is that thing" without first being told what kind of thing it is.
+        this._type = (prefs.type === ALL_TYPES || types.includes(prefs.type))
+            ? prefs.type
+            : ALL_TYPES;
         this._subtype = typeof prefs.subtype === 'string' ? prefs.subtype : ANY_SUBTYPE;
         this._query = '';
         this._timer = null;
@@ -105,12 +121,20 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         }
     }
 
+    /** What this._type means to the API: one token, or every mapped type. */
+    _searchTypes() {
+        return this._type === ALL_TYPES ? this._availableTypes() : this._type;
+    }
+
     /**
      * Document subtypes offered for the current type.
      * Empty for synthetic types (Spell, Feature, Class, ...) — their subtype is
-     * already fixed by the mapping, so a second filter would only contradict it.
+     * already fixed by the mapping, so a second filter would only contradict it —
+     * and empty in All mode, where subtypes from different document classes would
+     * be pooled into one list that means nothing.
      */
     _availableSubtypes() {
+        if (this._type === ALL_TYPES) return [];
         const canonical = normalizeType(this._type);
         if (getDocumentSubtype(canonical)) return [];
         const documentClass = getDocumentClass(canonical);
@@ -125,9 +149,10 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         const esc = foundry.utils.escapeHTML;
         const types = this._availableTypes();
 
-        const typeOptions = types
-            .map(type => `<option value="${esc(type)}"${type === this._type ? ' selected' : ''}>${esc(getTypeLabel(type))}</option>`)
-            .join('');
+        const typeOptions = [
+            `<option value="${ALL_TYPES}"${this._type === ALL_TYPES ? ' selected' : ''}>All types</option>`,
+            ...types.map(type => `<option value="${esc(type)}"${type === this._type ? ' selected' : ''}>${esc(getTypeLabel(type))}</option>`)
+        ].join('');
 
         const subtypes = this._availableSubtypes();
         const subtypeSelect = subtypes.length ? `
@@ -139,7 +164,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         const controls = types.length ? `
             <div class="bcs-controls">
                 <input type="search" class="blacksmith-input bcs-query" name="bcs-query"
-                       placeholder="Search..." autocomplete="off" spellcheck="false"
+                       placeholder="Search (${MIN_QUERY_LENGTH}+ characters)..." autocomplete="off" spellcheck="false"
                        value="${esc(this._query)}">
                 <div class="bcs-filters">
                     <select class="blacksmith-input bcs-type" name="bcs-type" data-tooltip="What to search for">${typeOptions}</select>
@@ -256,9 +281,10 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
 
         let report = { results: [], truncated: false, skippedSources: [] };
         try {
-            report = await compendiumManager.searchDetailed(this._query, this._type, {
+            report = await compendiumManager.searchDetailed(this._query, this._searchTypes(), {
                 itemType: this._subtype || null,
-                limit: RESULT_LIMIT
+                limit: RESULT_LIMIT,
+                minLength: MIN_QUERY_LENGTH
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Search: search failed', error, false, false);
@@ -290,8 +316,8 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         if (!results.length) {
             const empty = document.createElement('div');
             empty.className = 'bcs-empty';
-            empty.textContent = this._query.trim().length < 2
-                ? 'Type at least two characters.'
+            empty.textContent = this._query.trim().length < MIN_QUERY_LENGTH
+                ? `Type at least ${MIN_QUERY_LENGTH} characters.`
                 : 'Nothing matches.';
             list.appendChild(empty);
             if (status) status.textContent = '';
@@ -345,7 +371,10 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
 
             const badge = document.createElement('span');
             badge.className = 'bcs-type-badge';
-            badge.textContent = result.type ?? '';
+            // Subtype when there is one ('weapon', 'spell', 'npc'), which also happens
+            // to be what tells an Item row from an Actor row in All mode. Types with no
+            // subtype (JournalEntry, Scene) fall back to the class so no row is unlabelled.
+            badge.textContent = result.type ?? result.documentClass ?? '';
 
             row.append(thumb, name, badge);
             list.appendChild(row);

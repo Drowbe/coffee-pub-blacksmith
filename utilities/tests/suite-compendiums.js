@@ -177,6 +177,63 @@ export default {
             }
         },
         {
+            id: 'multi-type',
+            tier: 'headless',
+            group: 'Matching',
+            label: 'An array of types searches all of them, grouped, deduped, on one budget',
+            note: 'Synthetic types share packs with Item, so a caller-side merge double-lists. This is the check that it does not.',
+            run: async ({ expect, log }) => {
+                const fixture = await itemFixture();
+                if (!fixture) return expect.ok('fixture available', false);
+                const { compendiums } = fixture;
+
+                const types = compendiums.getTypes()
+                    .filter(t => compendiums.getSearchOrder(t).length > 0);
+                expect.ok('at least one type is mapped', types.length > 0);
+                if (!types.length) return;
+
+                const all = await compendiums.searchDetailed('a', types, { minLength: 1, limit: 400 });
+                expect.ok('searching every mapped type returns something', all.results.length > 0);
+
+                expect('no uuid appears twice across types',
+                    all.results.length - new Set(all.results.map(r => r.uuid)).size, 0);
+
+                // Grouping must survive the merge: each source still one contiguous run.
+                const runs = sourceRuns(all.results);
+                expect('each source is still ONE contiguous run',
+                    new Set(runs.map(r => r.source)).size, runs.length);
+                expect.ok('runs follow the merged source order',
+                    isOrderedSubsequence(runs.map(r => r.source), all.searchOrder));
+
+                // One budget, not one per type.
+                const capped = await compendiums.search('a', types, { minLength: 1, limit: 7 });
+                expect('limit is the total across every type', capped.length, 7);
+
+                // A single type passed as a one-element array is the same as the bare token.
+                const bare = await compendiums.search('a', 'Item', { minLength: 1, limit: 20 });
+                const wrapped = await compendiums.search('a', ['Item'], { minLength: 1, limit: 20 });
+                expect('a one-element array matches the bare token',
+                    wrapped.map(r => r.uuid), bare.map(r => r.uuid));
+
+                // Duplicate tokens must not double anything, including aliases of the
+                // same canonical type ('item' and 'Item' both normalize to Item).
+                const duped = await compendiums.search('a', ['Item', 'item', 'Item'], { minLength: 1, limit: 20 });
+                expect('repeated and aliased type tokens collapse',
+                    duped.map(r => r.uuid), bare.map(r => r.uuid));
+
+                // The union is at least as large as any single type's contribution,
+                // and every result names a type that was actually requested.
+                const classes = new Set(types.map(t => compendiums.getMapping(t).documentClass));
+                expect('every result reports a requested document class',
+                    all.results.filter(r => !classes.has(r.documentClass)).length, 0);
+
+                expect('an empty type array returns nothing',
+                    (await compendiums.search('a', [], { minLength: 1 })).length, 0);
+
+                log(`${all.results.length} result(s) across ${runs.length} source(s) from ${types.length} type(s)`);
+            }
+        },
+        {
             id: 'truncation-report',
             tier: 'headless',
             group: 'Bounds',

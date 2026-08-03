@@ -76,6 +76,42 @@ The base supplies the complete shared visual shell even when the consumer return
 | `--blacksmith-tool-divider` | Title/toolbar/footer dividers. |
 | `--blacksmith-tool-text` | Default body and control text. |
 | `--blacksmith-tool-accent` | Title text and primary frame accent. |
+| `--blacksmith-tool-field-background` | Surface of inputs, selects, and textareas. |
+| `--blacksmith-tool-field-border` | Field border. |
+| `--blacksmith-tool-field-text` | Field text. |
+| `--blacksmith-tool-field-placeholder` | Placeholder text. |
+| `--blacksmith-tool-field-focus-border` / `--blacksmith-tool-field-focus-ring` | Focus outline and glow. |
+| `--blacksmith-tool-field-option-background` / `--blacksmith-tool-field-option-text` | `<option>` rows in an open dropdown. |
+| `--blacksmith-tool-surface-raised` | Decorative raised area — group headings, banded rows. May be translucent. |
+| `--blacksmith-tool-surface-sunken` | Recessed area — list wells, inset panels. |
+| `--blacksmith-tool-surface-hover` | Row and item hover. |
+| `--blacksmith-tool-surface-selected` | Selected row or item. |
+| `--blacksmith-tool-text-muted` | Secondary text — captions, badges, status lines. |
+| `--blacksmith-tool-scrim` | Backing that must stay legible over arbitrary content. Use for sticky elements. |
+
+### Content surfaces: use these instead of picking a colour
+
+The frame variables describe the shell. These describe what you put **inside** it. Reach for them for rows, headings, hover, and selection rather than choosing a colour: any literal you pick is correct in one theme and wrong in the other two, which is how a Tool window ends up looking right in Light and broken in Glass.
+
+Two distinctions worth getting right:
+
+- **`surface-raised` vs `scrim`.** `raised` is decorative and may be translucent. `scrim` guarantees legibility over whatever is behind it. A **sticky** heading wants `scrim` — under Glass the shell background is deliberately near-transparent, so a heading painted with it lets scrolled rows read straight through. The two are near-identical under Light and Dark and differ sharply under Glass, which is the case they exist for.
+- **`text-muted` rather than `opacity`.** Dimming with `opacity` fades a whole element including its background and borders, and compounds when nested. `text-muted` is tuned per theme and touches only the colour.
+
+Blacksmith's own `styles/window-compendium-search.css` is the reference: it contains **no colour literals at all** — every surface, tone, and field comes from this family, and the window follows Light, Dark, and Glass with no theme-specific rules of its own.
+
+These are **component properties of the Tool shell, not design tokens.** Global tokens live in `styles/vars.css`, are documented in `design-system/design-tokens.md`, and are enforced by `tools/check-design-tokens.mjs`; they carry one fixed value each and so cannot express something that changes per theme. Do not add theme-varying values to `vars.css`.
+
+### Form fields follow the theme automatically
+
+A Tool window repaints `input`, `select`, and `textarea` inside it from the `--blacksmith-tool-field-*` family, covering both bare elements and the shared `blacksmith-input` / `blacksmith-select` / `blacksmith-textarea` classes. A consumer writes an ordinary field and it follows the user's Light, Dark, or Glass choice with no theme-aware code.
+
+This exists because the shared form-control classes in `styles/window-form-controls.css` are built for Blacksmith's dark standard windows and hard-code a `#222` surface, which renders as a black box on a parchment or frosted shell. Do not work around that by hard-coding a field color in your own stylesheet — override the variables above, scoped to your application class, if you need a deliberate variation.
+
+Two things a consumer still owns:
+
+- **An open `<select>` dropdown is an OS popup**, not part of the page. It inherits nothing from the window, which is why it has its own `option` pair. Those must stay opaque; a translucent value renders as the browser default.
+- **A sticky element inside your body needs its own opaque surface.** Under Glass, `--blacksmith-tool-background` is deliberately near-transparent, so a sticky header painted with it lets scrolled content read straight through. Give it a solid background under `.blacksmith-window-tool-theme-glass`.
 
 Scope any override to the consumer's own application class. Do not copy Blacksmith's combatant-card CSS:
 

@@ -143,6 +143,23 @@ const results = await compendiums.search('long', 'Item', { itemType: 'weapon', l
 
 Group by `source`, render `name` + `img`, add via `uuid`. Nothing else is needed to build a picker.
 
+### Searching several types at once
+
+`type` accepts an array. Pass the types you want, or `getTypes()` for everything mapped:
+
+```js
+await compendiums.search('long', ['Item', 'Spell', 'Feature'], { limit: 40 });
+await compendiums.search('long', compendiums.getTypes(), { limit: 40 });
+```
+
+**Prefer this over calling `search()` once per type.** The scan is source-major — each compendium is opened once and every requested type reads from it — which buys three things a caller-side fan-out does not get:
+
+- **Results stay grouped by compendium.** N separate calls return N lists that each group by source independently; merging them re-interleaves the packs, which is the thing the ordering was designed to prevent.
+- **Deduplication by uuid.** This is a correctness issue, not a tidiness one. Synthetic types share packs with `Item`: a pack mapped to both `Item` and `Spell` returns its spells through *both*, because the Item pass is unfiltered and the Spell pass is subtype-filtered over the same entries. A merge of per-type lists double-lists every one of them. Here the first type to reach an entry wins and the rest are dropped.
+- **One budget.** `limit` is the total. Three calls with `limit: 40` can return 120 rows, and each reports truncation against its own slice — numbers no consumer can reconcile into one honest statement.
+
+Duplicate and aliased tokens collapse (`['Item', 'item']` is one type). An empty array returns no results. `searchOrder` in a `searchDetailed()` report is the union of the per-type orders, in the order the types were given, first appearance winning.
+
 ### `type` is the subtype; `documentClass` is the class
 
 `type` is the document subtype (`weapon`, `spell`, `npc`) and `documentClass` is the Foundry document class (`Item`, `Actor`, `JournalEntry`). Both are on every result because both are needed and they answer different questions: a row badge wants the subtype, a drag payload wants the class.
@@ -182,7 +199,9 @@ if (truncated) {
 
 Do not infer truncation from `results.length === limit`. That over-reports: a scan that fills the cap exactly with the last available candidate is complete, not truncated. `truncated` is set only when a further candidate existed and could not be emitted, or when a source was left unopened.
 
-Every field is scoped to **one call**. A consumer that fans out across several types — `Item`, `Spell`, and `Feature` for one query box — gets one report per call, and combining them is the consumer's decision, not something the API can make for it. Union the `skippedSources` and count distinct entries if the claim is "some content in that pack went unsearched"; intersect them if the claim is "that pack was not searched at all". The two give different numbers, and neither is the sum of the per-call counts. A `truncated` in any call means the combined view is incomplete.
+Every field is scoped to **one call**. If you need several types, pass them as an array in one call and the report covers all of them coherently — that is the reason the array form exists.
+
+If you still fan out yourself, combining the reports is your decision and the API cannot make it for you: union the `skippedSources` and count distinct entries if the claim is "some content in that pack went unsearched"; intersect them if the claim is "that pack was not searched at all". The two give different numbers, and neither is the sum of the per-call counts. A `truncated` in any call means the combined view is incomplete.
 
 `search()` is `searchDetailed().results` — use whichever fits; there is no extra cost to either.
 
@@ -293,7 +312,7 @@ compendiums.getChoices('actor');      // { 'none': '-- None --', 'dnd5e.monsters
 
 | Method | Returns | Notes |
 |---|---|---|
-| `search(query, type, options?)` | `Promise<Result[]>` | Many candidates for one query; grouped by source |
+| `search(query, type, options?)` | `Promise<Result[]>` | Many candidates for one query; grouped by source. `type` may be an array |
 | `searchDetailed(query, type, options?)` | `Promise<{results, truncated, searchOrder, scannedSources, skippedSources}>` | The same, plus what the scan covered |
 
 ### Utilities

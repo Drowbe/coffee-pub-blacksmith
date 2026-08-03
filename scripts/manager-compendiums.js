@@ -337,8 +337,11 @@ export class CompendiumManager {
      * are never indexed. A low limit therefore truncates the tail of the priority order.
      * Use searchDetailed() when you need to know whether that happened.
      *
+     * `type` may be an ARRAY of type tokens to search several at once -- see
+     * searchDetailed() for why that belongs here rather than in a caller's fan-out.
+     *
      * @param {string} query - Partial text, e.g. "long"
-     * @param {string} type - Type token, same as resolve()
+     * @param {string|string[]} type - Type token, same as resolve(), or several
      * @param {object} [options]
      * @param {string}  [options.itemType=null]  - Restrict to this document subtype, e.g. "weapon"
      * @param {number}  [options.limit=50]       - Cap total results (Infinity or <=0 for uncapped)
@@ -362,8 +365,23 @@ export class CompendiumManager {
      * a scan that fills the cap exactly with the last available candidate is complete,
      * not truncated. This reports it rather than leaving consumers to guess.
      *
+     * MULTI-TYPE. `type` may be an array -- ['Item', 'Spell', 'Feature'], or
+     * getTypes() for everything mapped. The scan is then SOURCE-MAJOR: each source is
+     * opened once and every requested type reads from it, so results stay grouped by
+     * compendium instead of arriving as N separate per-type lists a caller has to
+     * interleave. Two things this gets right that a caller-side fan-out does not:
+     *
+     *  - **Deduplication.** Synthetic types share packs with Item -- a pack mapped to
+     *    both Item and Spell yields its spells twice, because the Item pass is
+     *    unfiltered and the Spell pass is subtype-filtered over the same entries.
+     *    Merging per-type result lists therefore double-lists them. Deduped by uuid
+     *    here, first type wins.
+     *  - **One budget.** `limit` is the total, not per type. N calls with the same
+     *    limit can return N x limit rows and each reports truncation against its own
+     *    slice, which no consumer can reconcile into one honest count.
+     *
      * @param {string} query
-     * @param {string} type
+     * @param {string|string[]} type - One type token, or several
      * @param {object} [options] - Same as search()
      * @returns {Promise<{results: Array<object>, truncated: boolean, searchOrder: string[],
      *                    scannedSources: string[], skippedSources: string[]}>}
@@ -372,10 +390,12 @@ export class CompendiumManager {
      *   - `scannedSources` - the ones actually opened and examined
      *   - `skippedSources` - the tail never reached, in priority order
      *
-     * Every field describes THIS call. A consumer fanning out across several types for
-     * one query gets one report per call and combines them itself -- union the skipped
-     * sources for "some content there went unsearched", intersect for "that pack was
-     * never searched at all". The two differ, and neither is the sum of the counts.
+     * Every field describes THIS call. For several types, `searchOrder` is the union of
+     * their orders in the order the types were given, first appearance winning -- so a
+     * caller passing several types gets one coherent report rather than several to
+     * reconcile. A caller that still fans out itself must union the skipped sources for
+     * "some content there went unsearched" and intersect for "that pack was never
+     * searched at all"; the two differ, and neither is the sum of the counts.
      */
     async searchDetailed(query, type, options = {}) {
         const {
@@ -394,22 +414,37 @@ export class CompendiumManager {
         const needle = String(query ?? '').trim().toLowerCase();
         if (needle.length < minLength) return empty();
 
-        const canonical = normalizeType(type);
-        const mapping = this.getMapping(canonical);
+        const canonicalTypes = [...new Set(
+            (Array.isArray(type) ? type : [type]).map(t => normalizeType(t)).filter(Boolean)
+        )];
+        if (!canonicalTypes.length) return empty();
+
         const requestedSources = Array.isArray(sources) ? [...new Set(sources.filter(Boolean))] : null;
-        const searchOrder = requestedSources
-            ? requestedSources.filter(source => source === 'world' || mapping.packIds.includes(source))
-            : mapping.searchOrder;
-        if (!searchOrder.length) {
-            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | No sources configured for type`, canonical, true, false);
+
+        // One plan per type, then a single source order that is their union in the
+        // order the types were given. First appearance wins, so a source mapped to
+        // several types is opened once and appears once in the results.
+        const plans = [];
+        const searchOrder = [];
+        for (const canonical of canonicalTypes) {
+            const mapping = this.getMapping(canonical);
+            const order = requestedSources
+                ? requestedSources.filter(source => source === 'world' || mapping.packIds.includes(source))
+                : mapping.searchOrder;
+            if (!order.length) continue;
+            plans.push({ type: canonical, sources: new Set(order), documentClass: getDocumentClass(canonical) });
+            for (const source of order) if (!searchOrder.includes(source)) searchOrder.push(source);
+        }
+        if (!plans.length) {
+            postConsoleAndNotification(MODULE.NAME, `Compendium Manager | No sources configured for type`, canonicalTypes.join(', '), true, false);
             return empty();
         }
 
         const cap = Number.isFinite(limit) && limit > 0 ? limit : Infinity;
         const tiers = fuzzy ? MATCH_TIERS : ['exact', 'startsWith'];
-        const documentClass = getDocumentClass(canonical);
         const results = [];
         const scannedSources = [];
+        const seenUuids = new Set();
         let truncated = false;
 
         // Labelled so hitting the cap mid-source leaves both loops at once. Without it
@@ -424,24 +459,38 @@ export class CompendiumManager {
                 break;
             }
 
-            let entries;
-            try {
-                entries = source === 'world'
-                    ? this._getWorldEntries(canonical)
-                    : await this._getPackEntries(source, canonical);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error searching ${source}`, error, false, false);
-                continue;
-            }
-            scannedSources.push(source);
-            if (!entries?.length) continue;
-            if (itemType) entries = entries.filter(e => e.type === itemType);
-
             const buckets = { exact: [], startsWith: [], includes: [] };
-            for (const entry of entries) {
-                const tier = classifyMatch(entry.name, needle);
-                if (tier) buckets[tier].push(entry);
+            let opened = false;
+
+            for (const plan of plans) {
+                if (!plan.sources.has(source)) continue;
+
+                let entries;
+                try {
+                    entries = source === 'world'
+                        ? this._getWorldEntries(plan.type)
+                        : await this._getPackEntries(source, plan.type);
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error searching ${source}`, error, false, false);
+                    continue;
+                }
+                opened = true;
+                if (!entries?.length) continue;
+                if (itemType) entries = entries.filter(e => e.type === itemType);
+
+                for (const entry of entries) {
+                    // Dedup at bucketing time, not at emit time: an entry reachable
+                    // through two types must not occupy a slot twice, and the earlier
+                    // type's documentClass is the one that stands.
+                    if (seenUuids.has(entry.uuid)) continue;
+                    const tier = classifyMatch(entry.name, needle);
+                    if (!tier) continue;
+                    seenUuids.add(entry.uuid);
+                    buckets[tier].push({ entry, documentClass: plan.documentClass });
+                }
             }
+
+            if (opened) scannedSources.push(source);
 
             // Two DISCRETE fields, never one composed string. getChoices() looks like the
             // obvious source and is not: those labels are built for a settings dropdown
@@ -454,7 +503,8 @@ export class CompendiumManager {
                 : (getPackPackageLabel(pack) || '');
 
             for (const tier of tiers) {
-                for (const entry of buckets[tier].sort((a, b) => a.name.localeCompare(b.name))) {
+                const bucket = buckets[tier].sort((a, b) => a.entry.name.localeCompare(b.entry.name));
+                for (const { entry, documentClass } of bucket) {
                     // The check sits before the push, so reaching it means there WAS
                     // another candidate to emit -- which is what makes this truncation
                     // rather than a scan that happened to fill the cap exactly.
@@ -486,7 +536,7 @@ export class CompendiumManager {
         const skippedSources = searchOrder.filter(source => !scannedSources.includes(source));
 
         postConsoleAndNotification(MODULE.NAME,
-            `Compendium Manager | Searched ${canonical} "${needle}"`,
+            `Compendium Manager | Searched ${canonicalTypes.join('+')} "${needle}"`,
             `${results.length} result(s)${truncated ? `, truncated (${skippedSources.length} source(s) not scanned)` : ''}`,
             true, false);
         return { results, truncated, searchOrder, scannedSources, skippedSources };

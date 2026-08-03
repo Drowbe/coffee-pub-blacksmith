@@ -57,7 +57,10 @@
     gap: 6px;
     margin: 8px 0 3px 0;
     padding: 3px 2px;
-    background: var(--blacksmith-tool-background);
+    /* Scrim, not the shell background: this is sticky, so it has to hide the rows
+       passing under it in every theme. The shell background is near-transparent
+       under Glass by design and would let them read straight through. */
+    background: var(--blacksmith-tool-scrim);
     border-bottom: 1px solid var(--blacksmith-tool-divider);
 }
 
@@ -83,11 +86,10 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: right;
-    color: var(--blacksmith-tool-text);
+    color: var(--blacksmith-tool-text-muted);
     font-size: 0.68rem;
     font-weight: 400;
     text-transform: none;
-    opacity: 0.5;
 }
 
 .blacksmith-compendium-search-window .bcs-results > .bcs-group:first-child {
@@ -105,7 +107,7 @@
 }
 
 .blacksmith-compendium-search-window .bcs-row:hover {
-    background: rgba(112, 85, 49, 0.16);
+    background: var(--blacksmith-tool-surface-hover);
 }
 
 .blacksmith-compendium-search-window .bcs-row:active {
@@ -142,8 +144,8 @@
 
 .blacksmith-compendium-search-window .bcs-type-badge {
     flex: 0 0 auto;
+    color: var(--blacksmith-tool-text-muted);
     font-size: 0.72rem;
-    opacity: 0.55;
     text-transform: lowercase;
     pointer-events: none;
 }
@@ -152,22 +154,21 @@
 
 .blacksmith-compendium-search-window .bcs-empty {
     padding: 18px 12px;
-    color: var(--blacksmith-tool-text);
+    color: var(--blacksmith-tool-text-muted);
     font-style: italic;
     text-align: center;
-    opacity: 0.6;
 }
 
 .blacksmith-compendium-search-window .bcs-unmapped {
+    color: var(--blacksmith-tool-text);
     font-style: normal;
-    opacity: 0.85;
 }
 
 .blacksmith-compendium-search-window .bcs-unmapped i {
     display: block;
     margin-bottom: 8px;
+    color: var(--blacksmith-tool-text-muted);
     font-size: 1.6rem;
-    opacity: 0.7;
 }
 
 .blacksmith-compendium-search-window .bcs-unmapped p {
@@ -175,15 +176,14 @@
 }
 
 .blacksmith-compendium-search-window .bcs-empty-hint {
+    color: var(--blacksmith-tool-text-muted);
     font-size: 0.85rem;
-    opacity: 0.7;
 }
 
 .blacksmith-compendium-search-window .bcs-status,
 .blacksmith-compendium-search-window .bcs-hint {
-    color: var(--blacksmith-tool-text);
+    color: var(--blacksmith-tool-text-muted);
     font-size: 0.75rem;
-    opacity: 0.6;
     white-space: nowrap;
 }
 
@@ -193,9 +193,8 @@
     text-overflow: ellipsis;
 }
 
-/* A capped scan left compendiums unopened. Lifted out of the ambient 0.6 because
-   it is the one status that changes what the user should do — narrow the query. */
+/* A capped scan left compendiums unopened. Lifted out of the muted tone because it
+   is the one status that changes what the user should do — narrow the query. */
 .blacksmith-compendium-search-window .bcs-status.is-truncated {
     color: var(--blacksmith-tool-accent);
-    opacity: 0.85;
 }

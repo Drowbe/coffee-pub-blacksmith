@@ -142,6 +142,13 @@ export const CompendiumsAPI = {
      * beside `type`, which is the document SUBTYPE ('weapon', 'npc'). A drag payload
      * wants the class; a badge in the row wants the subtype.
      *
+     * `type` may be an ARRAY -- ['Item', 'Spell', 'Feature'], or getTypes() for
+     * everything mapped. Prefer that over calling search() once per type: it opens
+     * each source once, keeps the results grouped by compendium, spends ONE `limit`
+     * across the whole search, and dedupes by uuid. That last one is not optional --
+     * synthetic types share packs with Item, so a pack mapped to both Item and Spell
+     * hands back its spells twice and a caller-side merge double-lists them.
+     *
      * Source identity comes back as three DISCRETE fields -- `source` (the id),
      * `sourceLabel` (the pack's own name), and `sourcePackage` (the owning module,
      * system, or world). Compose them however your layout wants. Do NOT use
@@ -149,7 +156,7 @@ export const CompendiumsAPI = {
      * the package, the pack, and a content summary into one line.
      *
      * @param {string} query - Partial text, e.g. "long"
-     * @param {string} type - Same type tokens as resolve()
+     * @param {string|string[]} type - Same type tokens as resolve(), or an array of them
      * @param {object} [options]
      * @param {string}  [options.itemType=null]  - Restrict to a document subtype, e.g. "weapon"
      * @param {number}  [options.limit=50]       - Cap total results
@@ -171,6 +178,11 @@ export const CompendiumsAPI = {
      *     type: result.documentClass,   // 'Item'
      *     uuid: result.uuid
      * }));
+     *
+     * @example
+     * // Several types in one pass, grouped and deduped, sharing one limit.
+     * await api.compendiums.search('long', ['Item', 'Spell', 'Feature'], { limit: 40 });
+     * await api.compendiums.search('long', api.compendiums.getTypes(), { limit: 40 });
      */
     search: (query, type, options) => compendiumManager.search(query, type, options),
 
