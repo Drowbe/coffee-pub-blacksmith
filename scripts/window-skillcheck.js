@@ -1,7 +1,6 @@
 // Import required modules
 import { MODULE } from './const.js';
-import { playSound, rollCoffeePubDice, postConsoleAndNotification, getSettingSafely } from './api-core.js';
-import { handleSkillRollUpdate } from './blacksmith.js';
+import { playSound, postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';

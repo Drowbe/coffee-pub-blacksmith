@@ -265,6 +265,23 @@ most criticals, most hits, fewest misses, total damage, total kills, combats fou
 In combat it shows the fight in progress: party damage dealt, hit rate, biggest hit so far, kills, damage
 taken, healing given, and the leading MVP.
 
+**A readout with nothing to report does not appear**, and arriving is itself the news — the first kill
+puts Kills on the bar. At the start of a fight the live set was otherwise six chips all reading zero,
+which is furniture rather than information.
+
+Zero is treated as absence rather than as a reading, which is a judgement and the right one *here*:
+every one of these counters starts at zero and only rises, so "0 kills" and "no kills yet" are the same
+statement and the second needs no pixels. It would be wrong for a figure that can genuinely return to
+zero after being something else. Being monotonic also means none of them can flicker — each crosses its
+threshold once and stays. Accuracy is gated on an *attempt* rather than a hit, since 0% after a whiffed
+swing is a real reading.
+
+An arriving item animates in via `MenuBar.markEnteringItems`, which compares the rendered id set
+against the previous render rather than inspecting the DOM: an item appearing is a structural change,
+so the bar was rebuilt and *every* node is new — "is this element new" cannot tell the one that arrived
+from the fifteen that did not. Nothing is marked on a bar's first render, because opening a bar is not
+fifteen things arriving.
+
 Each statistic is registered as the widget kind that matches the question it answers, rather than all
 of them being `info` chips as they once were. The per-person standings and both biggest-hit chips are
 `portraitstat`, so a face and a ring say "this belongs to someone"; the two hit rates are `gaugechip`,

@@ -73,16 +73,94 @@ function subjectPortrait() {
     return null;
 }
 
-const prefersReducedMotion = () => {
-    try {
-        return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
-    } catch (_) {
-        return false;
-    }
-};
-
 /** Let a pushed value reach the DOM. The patch is synchronous; a render is not. */
 const settle = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 30)));
+
+/** Longer wait, for anything that needs the 50ms render debounce to fire. */
+const settleRender = () => new Promise((resolve) => setTimeout(resolve, 160));
+
+/**
+ * Put a throwaway chip on the bar, wait for it to render, and schedule its own removal.
+ *
+ * The motion triggers used to poke whichever real chip happened to be on the bar, which stopped
+ * working the moment a readout with nothing to report stopped being rendered: in a world that has
+ * not had a fight yet there is no record chip and no standing chip, so the trigger reported a
+ * missing element and the person clicking it saw nothing. Reporting a skip would have been just as
+ * useless — these exist so a person can watch an animation, and telling them to come back after a
+ * combat is how the motion went unwatched long enough to ship broken twice.
+ *
+ * The probe is registered with `order: 99` so it lands at the end of the row and displaces nothing,
+ * and it removes itself on a timer rather than at the end of this function, because the whole point
+ * is that it stays long enough to be seen.
+ *
+ * @param {object} api - the menubar API, already checked by `requireApi`
+ * @param {object} config - item config, minus the placement fields this sets
+ * @param {number} lifetimeMs - how long it stays before removing itself
+ * @returns {Promise<string|null>} the probe's item id, or null if it never rendered
+ */
+async function withProbe(api, config, lifetimeMs) {
+    const probeId = `harness-probe-${config.kind}`;
+    api.registerSecondaryBarItem(BAR, probeId, {
+        zone: 'middle',
+        group: 'stats',
+        order: 99,
+        ...config
+    });
+    // The entrance animation is allowed to finish first, so the burst or the fade reads as its own
+    // event rather than as part of the chip arriving.
+    await settleRender();
+    await settle();
+    setTimeout(() => {
+        try {
+            api.unregisterSecondaryBarItem(BAR, probeId);
+        } catch (_) { /* the bar may have closed or re-rendered; nothing to clean up */ }
+    }, lifetimeMs);
+    return chipElement(probeId) ? probeId : null;
+}
+
+/**
+ * The gated statistics, paired with the figure that decides whether they appear.
+ *
+ * Kept here rather than derived, deliberately: this is the harness's own statement of what the bar
+ * promises, and a check that read the same predicate the code does would agree with any bug in it.
+ * The reading is taken from the public API, the way a consumer would.
+ */
+function gatedStatistics() {
+    let running = null;
+    let lifetime = null;
+    try {
+        const stats = game.modules.get(MODULE_ID)?.api?.stats;
+        running = stats?.combat?.getRunningStats() ?? null;
+        lifetime = stats?.party?.getAggregateSync() ?? null;
+    } catch (_) { /* treated as no data below */ }
+
+    const inCombat = !!(game.combat?.started);
+    const n = (value) => (Number(value) || 0) > 0;
+
+    return inCombat
+        ? [
+            ['stat-damage-dealt', n(running?.totals?.damageDealt)],
+            ['stat-kills', n(running?.totals?.kills)],
+            ['stat-damage-taken', n(running?.totals?.damageTaken)],
+            ['stat-healing-given', n(running?.totals?.healingGiven)],
+            ['stat-hit-rate', n(running?.totals?.hits) || n(running?.totals?.misses)],
+            ['stat-combat-biggest', n(running?.notableMoments?.biggestHit?.amount)],
+            ['stat-combat-mvp', !!running?.notableMoments?.mvp?.name]
+        ]
+        : [
+            ['stat-biggest-hitter', n(lifetime?.biggestHit?.amount)],
+            ['stat-most-fumbles', n(lifetime?.mostFumbles?.count)],
+            ['stat-most-hits', n(lifetime?.mostHits?.count)],
+            ['stat-most-misses', n(lifetime?.mostMisses?.count)],
+            ['stat-finesse', n(lifetime?.totalCriticals) || n(lifetime?.totalFumbles)],
+            ['stat-total-healing', n(lifetime?.totalHealsGiven)],
+            ['stat-total-damage', n(lifetime?.totalDamageGiven)],
+            ['stat-total-kills', n(lifetime?.totalKills)],
+            ['stat-combats', n(lifetime?.totalCombats)],
+            ['stat-avg-hit-rate', n(lifetime?.totalCombats)],
+            ['stat-top-mvp', !!lifetime?.topMvp?.name]
+        ];
+}
 
 export default {
     id: 'readouts',
@@ -106,9 +184,6 @@ export default {
                 'menubar-widgets.css needs an @import in default.css or it is silently unstyled'),
             settingRow('Motion rules present',
                 stylesheetContains('blacksmith-value-flash') ? 'yes' : 'MISSING'),
-            settingRow('Reduced motion',
-                prefersReducedMotion() ? 'ON — motion is intentionally disabled' : 'off',
-                'the opt-out is a plain swap, so "no animation" is the correct result when this is on'),
             settingRow('updateSecondaryBarItemInfo',
                 typeof api?.updateSecondaryBarItemInfo === 'function' ? 'available' : 'MISSING')
         ];
@@ -130,6 +205,12 @@ export default {
                     stylesheetContains('blacksmith-portrait-swap'));
                 expect.ok('record burst keyframes are present',
                     stylesheetContains('blacksmith-record-burst'));
+                expect.ok('burst punch keyframes are present (the common tier)',
+                    stylesheetContains('blacksmith-record-punch'));
+                expect.ok('record-tier punch keyframes are present',
+                    stylesheetContains('blacksmith-record-punch-big'));
+                expect.ok('item entrance keyframes are present',
+                    stylesheetContains('blacksmith-item-enter'));
             }
         },
 
@@ -180,11 +261,6 @@ export default {
                 const node = valueElement(itemId);
                 if (!expect.ok(`${itemId} is rendered`, !!node)) return;
 
-                if (prefersReducedMotion()) {
-                    expect.ok('reduced motion is on, so no class is expected (not a failure)', true);
-                    return;
-                }
-
                 const original = node.textContent;
                 node.classList.remove('is-changed');
                 api.updateSecondaryBarItemInfo(BAR, itemId, { value: `${Number(original.replace(/\D/g, '') || 0) + 3}` });
@@ -194,6 +270,11 @@ export default {
                 expect.ok('the value carries is-changed after a real change',
                     !!after?.classList?.contains('is-changed'));
 
+                // Same reasoning as the entrance check: the class is only half the claim.
+                const flash = after ? getComputedStyle(after).animationName : '';
+                expect.ok('the changed class resolves to a live animation, not just a class',
+                    !!flash && flash !== 'none');
+
                 // An identical push must NOT re-announce: motion follows a value, not a render.
                 after?.classList?.remove('is-changed');
                 api.updateSecondaryBarItemInfo(BAR, itemId, { value: after?.textContent });
@@ -202,6 +283,116 @@ export default {
                     !valueElement(itemId)?.classList?.contains('is-changed'));
 
                 api.updateSecondaryBarItemInfo(BAR, itemId, { value: original });
+            }
+        },
+
+        {
+            id: 'empty-state',
+            group: 'Empty state',
+            tier: 'headless',
+            label: 'Empty state: a statistic is on the bar exactly when it has something to report',
+            note: 'Runs against whatever this world currently holds, so it means something in a fresh '
+                + 'world and in a long campaign. A chip present with no data is clutter; a chip absent '
+                + 'with data is a readout that silently stopped working.',
+            run: async ({ expect }) => {
+                if (!expect.ok('the combat bar is open', !!document.querySelector('.combat-data-row'))) return;
+
+                const gated = gatedStatistics();
+                expect.ok('there are gated statistics for this combat state', gated.length > 0);
+
+                for (const [itemId, hasData] of gated) {
+                    const element = chipElement(itemId);
+                    // Suppression is a different mechanism and a legitimate reason to be absent, so a
+                    // chip missing for want of ROOM must not read as a gating failure.
+                    const suppressed = !!element?.classList?.contains('is-suppressed');
+                    if (!hasData) {
+                        expect.ok(`${itemId}: no data, so not rendered`, !element);
+                    } else if (suppressed) {
+                        expect.ok(`${itemId}: has data, present but suppressed for width (not a failure)`, true);
+                    } else {
+                        expect.ok(`${itemId}: has data, so rendered`, !!element);
+                    }
+                }
+            }
+        },
+
+        {
+            id: 'enter-animation',
+            group: 'Empty state',
+            tier: 'headless',
+            label: 'Empty state: an item that appears is marked as entering',
+            note: 'Registers a throwaway item on the combat bar, checks it was marked as new, then '
+                + 'removes it. Exercises the real appearance path rather than a simulation of it.',
+            run: async ({ expect }) => {
+                const api = requireApi('registerSecondaryBarItem', 'unregisterSecondaryBarItem');
+                if (!expect.ok('the combat bar is open', !!document.querySelector('.combat-data-row'))) return;
+                const probeId = 'harness-enter-probe';
+                try {
+                    api.registerSecondaryBarItem(BAR, probeId, {
+                        kind: 'statchip',
+                        zone: 'middle',
+                        group: 'stats',
+                        order: 99,
+                        label: 'Probe',
+                        value: '1',
+                        tooltip: 'Harness probe - removes itself'
+                    });
+                    await settleRender();
+
+                    const element = chipElement(probeId);
+                    expect.ok('the new item rendered', !!element);
+                    expect.ok('the new item was marked as entering',
+                        !!element?.classList?.contains('is-entering'));
+
+                    // The class being present is NOT the same as the animation being live, and the
+                    // difference is invisible from outside: a rule that stops matching leaves the
+                    // class applied and nothing moving, which reads exactly like working code.
+                    // That has already happened twice here -- a wrapper selector that repeated the
+                    // parent class so every descendant rule doubled it and matched nothing, and a
+                    // `@keyframes` left nested inside a style rule, where it is invalid and simply
+                    // dropped. Checking the keyframes exist catches neither. Checking the computed
+                    // animation catches both.
+                    const animation = element ? getComputedStyle(element).animationName : '';
+                    expect.ok('the entering class resolves to a live animation, not just a class',
+                        !!animation && animation !== 'none');
+
+                    // Anything already on the bar must NOT be marked: an arrival is one item, and
+                    // marking the whole row would make the signal meaningless.
+                    const neighbour = chipElement(subjectChip().itemId);
+                    if (neighbour) {
+                        expect.ok('an item that was already there is not marked',
+                            !neighbour.classList.contains('is-entering'));
+                    }
+                } finally {
+                    api.unregisterSecondaryBarItem(BAR, probeId);
+                    await settleRender();
+                    expect.ok('the probe removed itself', !chipElement(probeId));
+                }
+            }
+        },
+
+        {
+            id: 'trigger-enter',
+            group: 'Empty state',
+            tier: 'interactive',
+            label: 'Trigger: watch a readout appear',
+            note: 'Adds a chip to the row for two seconds and takes it away again. Watch it fade and '
+                + 'lift in without the chips beside it sliding.',
+            run: async ({ expect }) => {
+                const api = requireApi('registerSecondaryBarItem', 'unregisterSecondaryBarItem');
+                const probeId = 'harness-enter-demo';
+                api.registerSecondaryBarItem(BAR, probeId, {
+                    kind: 'statchip',
+                    tone: 'record',
+                    zone: 'middle',
+                    group: 'stats',
+                    order: 99,
+                    label: 'New',
+                    value: '1',
+                    tooltip: 'Harness demonstration - removes itself'
+                });
+                expect.ok('added a chip; it disappears again in two seconds', true);
+                setTimeout(() => api.unregisterSecondaryBarItem(BAR, probeId), 2000);
             }
         },
 
@@ -234,12 +425,34 @@ export default {
             note: 'The one animation a caller has to declare — the menubar cannot know a standing '
                 + 'record was beaten, because the record lives in a different statistics tier.',
             run: async ({ expect }) => {
-                const api = requireApi('updateSecondaryBarItemInfo');
-                const itemId = chipElement('stat-combat-biggest') ? 'stat-combat-biggest' : 'stat-biggest-hitter';
-                if (!expect.ok(`${itemId} is rendered`, !!chipElement(itemId))) return;
+                const api = requireApi('updateSecondaryBarItemInfo', 'registerSecondaryBarItem', 'unregisterSecondaryBarItem');
+                const real = ['stat-combat-biggest', 'stat-biggest-hitter'].find((id) => chipElement(id));
 
+                // A record chip only exists once someone has set a record, so in a world that has
+                // not yet had a fight there is nothing to burst. Skipping would be the wrong answer:
+                // this trigger exists so a person can SEE the animation, and "come back after a
+                // combat" is how it went unwatched long enough to ship broken. So it brings its own
+                // chip when the bar has none.
+                const itemId = real ?? await withProbe(api, {
+                    kind: 'statchip',
+                    tone: 'record',
+                    label: 'Record',
+                    value: '137',
+                    tooltip: 'Harness demonstration - removes itself'
+                }, 3000);
+                if (!expect.ok('a chip to burst (a real record chip, or a demonstration one)', !!itemId)) return;
+
+                // Both tiers, one after the other, because the whole point of having two is that
+                // they are told apart at a glance — and that can only be judged by seeing them
+                // back to back. The common one first, so the record reads as the escalation.
                 api.updateSecondaryBarItemInfo(BAR, itemId, { burst: true });
-                expect.ok('burst pushed — expect ONE expanding ring, and no repeat on later refreshes', true);
+                expect.ok(`new-best burst on ${itemId} — one ring and a punch`, true);
+
+                setTimeout(() => {
+                    api.updateSecondaryBarItemInfo(BAR, itemId, { burst: 'record' });
+                }, 1200);
+                expect.ok('record burst follows in about a second — expect it to be unmistakably '
+                    + 'bigger: two rings, a harder punch, and a glow on the chip', true);
             }
         },
 
@@ -251,30 +464,39 @@ export default {
             note: 'Swaps a standing to another party portrait so the fade is visible. The real face '
                 + 'returns on the next refresh.',
             run: async ({ expect }) => {
-                const api = requireApi('updateSecondaryBarItemInfo');
-                const itemId = subjectPortrait();
-                if (!expect.ok('a portrait chip is rendered', !!itemId)) return;
+                const api = requireApi('updateSecondaryBarItemInfo', 'registerSecondaryBarItem', 'unregisterSecondaryBarItem');
+
+                // The crossfade needs two faces, so the portraits are gathered before deciding what
+                // to swap: with fewer than two there is nothing to demonstrate on a real chip or a
+                // demonstration one, and that is worth saying plainly rather than failing on the chip.
+                const portraits = game.actors
+                    .filter((actor) => actor.hasPlayerOwner && actor.img)
+                    .map((actor) => actor.img);
+                const unique = [...new Set(portraits)];
+                if (!expect.ok('at least two party portraits exist to fade between', unique.length >= 2)) return;
+
+                // Same reasoning as the burst trigger: a standing chip only exists once someone holds
+                // the standing, so this brings its own when the bar has none.
+                const real = subjectPortrait();
+                const itemId = real ?? await withProbe(api, {
+                    kind: 'portraitstat',
+                    rank: 1,
+                    label: 'Standing',
+                    value: '137',
+                    image: unique[0],
+                    tooltip: 'Harness demonstration - removes itself'
+                }, 3000);
+                if (!expect.ok('a portrait chip (a real standing, or a demonstration one)', !!itemId)) return;
 
                 const current = chipElement(itemId)?.querySelector('img')?.getAttribute('src') ?? '';
-                const candidates = game.actors
-                    .filter((actor) => actor.hasPlayerOwner && actor.img && actor.img !== current)
-                    .map((actor) => actor.img);
-                if (!expect.ok('another party portrait is available to swap to', candidates.length > 0)) return;
+                const next = unique.find((img) => img !== current);
+                if (!expect.ok('a different portrait to swap to', !!next)) return;
 
-                api.updateSecondaryBarItemInfo(BAR, itemId, { image: candidates[0] });
-                expect.ok(`swapped ${itemId} to another portrait — expect a short fade, not a cut`, true);
-            }
-        },
-
-        {
-            id: 'trigger-reduced',
-            group: 'Motion',
-            tier: 'interactive',
-            label: 'Report: what the browser says about reduced motion',
-            note: 'The opt-out is a plain swap rather than a faster animation, so "nothing moved" is '
-                + 'the correct outcome when this reports ON.',
-            run: async ({ expect }) => {
-                expect.ok(`prefers-reduced-motion is ${prefersReducedMotion() ? 'ON' : 'off'}`, true);
+                api.updateSecondaryBarItemInfo(BAR, itemId, { image: next });
+                expect.ok(real
+                    ? `swapped ${real} to another portrait — expect a short fade, not a cut`
+                    : 'no standing chip on the bar yet, so a demonstration chip was added — expect a '
+                        + 'short fade, then the chip removes itself', true);
             }
         }
     ]

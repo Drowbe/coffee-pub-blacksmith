@@ -9,8 +9,6 @@ import { MovementConfig } from './token-movement.js';
 import { CoreUIUtility } from './utility-core.js';
 import { VoteConfig } from './window-vote-config.js';
 import { XpManager } from './xp-manager.js';
-import { CSSEditor } from './window-gmtools.js';
-import { SkillCheckDialog } from './window-skillcheck.js';
 import { StatsWindow } from './window-stats-party.js';
 import { deployParty, clearPartyFromCanvas } from './utility-party.js';
 import { getDeploymentPatternName } from './api-tokens.js';
@@ -614,9 +612,6 @@ class MenuBar {
     }
 
     /**
-     * Register secondary bar types
-     */
-    /**
      * Partials, leader/timer, default tools, secondary bar types, first render — must run after
      * `registerSettings()` (e.g. encounterToolbarDeploymentPattern). Invoked from blacksmith.js `ready`.
      */
@@ -635,6 +630,9 @@ class MenuBar {
         this.renderMenubar();
     }
 
+    /**
+     * Register secondary bar types
+     */
     static async registerSecondaryBarTypes() {
         // Register encounter secondary bar (default tool system – items registered from ui-journal-encounter.js)
         // Encounter bar type is registered by ui-journal-encounter.js with info items + buttons
@@ -889,23 +887,6 @@ class MenuBar {
     // MENUBAR API METHODS 
 
     /**
-     * Register a tool with the menubar system
-     * @param {string} toolId - Unique identifier for the tool
-     * @param {Object} toolData - Tool configuration object
-     * @param {string} toolData.icon - FontAwesome icon class
-     * @param {string} toolData.name - Tool name (used for data-tool attribute)
-     * @param {string|Function} [toolData.title] - Optional: Tooltip text and label displayed on hover. Can be a function that returns a string for dynamic tooltips. Defaults to `name` if omitted. Can be an empty string or null for icon-only buttons.
-     * @param {Function} toolData.onClick - Function to execute when tool is clicked
-     * @param {string} toolData.zone - Zone placement (left, middle, right)
-     * @param {number} toolData.order - Order within zone (lower numbers appear first)
-     * @param {string} toolData.moduleId - Module identifier
-     * @param {boolean} toolData.gmOnly - Whether tool is GM-only
-     * @param {boolean} toolData.leaderOnly - Whether tool is leader-only
-     * @param {boolean} toolData.visible - Whether tool is visible (can be function)
-     * @param {Array|Function} [toolData.contextMenuItems] - Optional: right-click context menu. Array of { name, icon, onClick } or function (toolId, tool) => array. If present, right-click on the tool shows this menu instead of browser default.
-     * @returns {boolean} Success status
-     */
-    /**
      * Run a registered menubar tool by id, from anywhere.
      *
      * A tool used to be reachable only by clicking its own icon, so any other surface that wanted
@@ -967,6 +948,23 @@ class MenuBar {
         return false;
     }
 
+    /**
+     * Register a tool with the menubar system
+     * @param {string} toolId - Unique identifier for the tool
+     * @param {Object} toolData - Tool configuration object
+     * @param {string} toolData.icon - FontAwesome icon class
+     * @param {string} toolData.name - Tool name (used for data-tool attribute)
+     * @param {string|Function} [toolData.title] - Optional: Tooltip text and label displayed on hover. Can be a function that returns a string for dynamic tooltips. Defaults to `name` if omitted. Can be an empty string or null for icon-only buttons.
+     * @param {Function} toolData.onClick - Function to execute when tool is clicked
+     * @param {string} toolData.zone - Zone placement (left, middle, right)
+     * @param {number} toolData.order - Order within zone (lower numbers appear first)
+     * @param {string} toolData.moduleId - Module identifier
+     * @param {boolean} toolData.gmOnly - Whether tool is GM-only
+     * @param {boolean} toolData.leaderOnly - Whether tool is leader-only
+     * @param {boolean} toolData.visible - Whether tool is visible (can be function)
+     * @param {Array|Function} [toolData.contextMenuItems] - Optional: right-click context menu. Array of { name, icon, onClick } or function (toolId, tool) => array. If present, right-click on the tool shows this menu instead of browser default.
+     * @returns {boolean} Success status
+     */
     static registerMenubarTool(toolId, toolData) {
         try {
             // Validate required parameters
@@ -3435,39 +3433,49 @@ class MenuBar {
     }
 
     /**
-     * Write pushed readout values into the open secondary bar's existing DOM.
+     * Item ids rendered on the open secondary bar at the previous render.
      *
-     * Before this existed, `updateSecondaryBarItemInfo` ended in an immediate full `renderMenubar`,
-     * and the pushed value changed the menubar fingerprint, so every ticking number destroyed and
-     * rebuilt the whole bar. `CombatBarManager.refreshStatReadouts` alone pushes eighteen values in
-     * a row, which was eighteen rebuilds of a bar section 9B of the architecture doc calls
-     * performance-critical.
-     *
-     * Cost is only half the reason. A node rebuilt on every update cannot carry a transition that
-     * means anything — a flash keyed to a changed value would replay on every unrelated render, and
-     * a count-up would restart continuously — so animated readouts are impossible until the node
-     * survives its own update. This is what makes them possible.
-     *
-     * Only the keys actually present in `secondaryBarInfoUpdates` are written. Patching every
-     * prepared field instead would have this fighting `CombatBarManager.syncTimerReadout`, which
-     * deliberately clears a timer bar's inline background so a state class can colour it.
-     *
-     * @param {string|null} [onlyItemId] - Patch just this item; omit to sweep every pushed value,
-     *   which is what a render wants since it has no idea which values moved since the last one.
-     * @returns {boolean} true if the DOM now matches; false if the caller must rebuild instead
-     * @private
+     * Keyed by bar type so switching bars does not make every item of the next one read as new.
+     * @type {Map<string, Set<string>>}
      */
+    static _lastRenderedItemIds = new Map();
+
     /**
-     * Whether the user has asked for less motion.
+     * Mark items that have just appeared, so they can animate in.
      *
-     * Checked at the moment of animating rather than cached: a reader can change it mid-session,
-     * and a cached answer would keep animating at someone who has just asked it to stop.
+     * An item appearing is a STRUCTURAL change: its `visible` predicate flipped, the fingerprint
+     * changed, and the bar was rebuilt. Every node in it is new, so "is this element new" cannot
+     * distinguish the one item that arrived from the fifteen that were already there -- which is
+     * why this compares the rendered ID SET against the previous render rather than looking at the
+     * DOM. Arrival is a fact about the bar's contents over time, not about any element.
+     *
+     * Nothing is marked on the first render of a bar. Opening a bar is not fifteen things arriving,
+     * and animating them all would turn a deliberate signal into a splash screen.
      */
-    static _prefersReducedMotion() {
-        try {
-            return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
-        } catch (_) {
-            return false;
+    static markEnteringItems() {
+        const sb = this.secondaryBar;
+        if (!sb?.isOpen || !sb?.type) return;
+        const root = document.querySelector(`.blacksmith-menubar-secondary[data-bar-type="${sb.type}"]`);
+        if (!root) return;
+
+        const nodes = root.querySelectorAll('.secondary-bar-item[data-item-id]');
+        const current = new Set();
+        for (const node of nodes) current.add(node.dataset.itemId);
+
+        const previous = this._lastRenderedItemIds.get(sb.type);
+        this._lastRenderedItemIds.set(sb.type, current);
+        if (!previous) return;
+
+        for (const node of nodes) {
+            if (previous.has(node.dataset.itemId)) continue;
+            node.classList.add('is-entering');
+            // Removed on completion so a later rebuild does not re-run a finished animation. The
+            // timeout is the fallback for a node whose animation never fires -- an element hidden
+            // by suppression the same frame it arrived emits no animationend and would keep the
+            // class forever, then animate on some unrelated future render.
+            const clear = () => node.classList.remove('is-entering');
+            node.addEventListener('animationend', clear, { once: true });
+            setTimeout(clear, 1200);
         }
     }
 
@@ -3498,14 +3506,11 @@ class MenuBar {
     static _animateValueChange(node, previous, next) {
         if (previous === next) return;
 
-        // The flash is the part that always applies: it says "this moved", which is true whether or
-        // not the value is countable. Restarted by removing the class and forcing a reflow, so a
-        // second change during the first animation replays rather than being swallowed.
-        if (!this._prefersReducedMotion()) {
-            node.classList.remove('is-changed');
-            void node.offsetWidth;
-            node.classList.add('is-changed');
-        }
+        // Restarted by removing the class and forcing a reflow, so a second change during the
+        // first animation replays rather than being swallowed.
+        node.classList.remove('is-changed');
+        void node.offsetWidth;
+        node.classList.add('is-changed');
 
         const parse = (text) => {
             const match = /^(-?\d+(?:\.\d+)?)(.*)$/.exec(String(text).trim());
@@ -3515,7 +3520,7 @@ class MenuBar {
         const from = parse(previous);
         const to = parse(next);
 
-        if (this._prefersReducedMotion() || !from || !to || from.suffix !== to.suffix || from.value === to.value) {
+        if (!from || !to || from.suffix !== to.suffix || from.value === to.value) {
             node.textContent = next;
             return;
         }
@@ -3543,6 +3548,29 @@ class MenuBar {
         node._blacksmithCountFrame = requestAnimationFrame(step);
     }
 
+    /**
+     * Write pushed readout values into the open secondary bar's existing DOM.
+     *
+     * Before this existed, `updateSecondaryBarItemInfo` ended in an immediate full `renderMenubar`,
+     * and the pushed value changed the menubar fingerprint, so every ticking number destroyed and
+     * rebuilt the whole bar. `CombatBarManager.refreshStatReadouts` alone pushes eighteen values in
+     * a row, which was eighteen rebuilds of a bar section 9B of the architecture doc calls
+     * performance-critical.
+     *
+     * Cost is only half the reason. A node rebuilt on every update cannot carry a transition that
+     * means anything — a flash keyed to a changed value would replay on every unrelated render, and
+     * a count-up would restart continuously — so animated readouts are impossible until the node
+     * survives its own update. This is what makes them possible.
+     *
+     * Only the keys actually present in `secondaryBarInfoUpdates` are written. Patching every
+     * prepared field instead would have this fighting `CombatBarManager.syncTimerReadout`, which
+     * deliberately clears a timer bar's inline background so a state class can colour it.
+     *
+     * @param {string|null} [onlyItemId] - Patch just this item; omit to sweep every pushed value,
+     *   which is what a render wants since it has no idea which values moved since the last one.
+     * @returns {boolean} true if the DOM now matches; false if the caller must rebuild instead
+     * @private
+     */
     static _applySecondaryBarValueRefresh(onlyItemId = null) {
         // Only the ways OUT are logged. A patch that quietly declines to write is invisible — the
         // bar keeps showing whatever it was registered with and nothing errors — so each bail says
@@ -3696,11 +3724,9 @@ class MenuBar {
                             // The class is removed on the next frame rather than on animationend,
                             // because a portrait that fails to load fires no animation event and
                             // would otherwise stay mid-fade forever.
-                            if (!MenuBar._prefersReducedMotion()) {
-                                img.classList.remove('is-swapping');
-                                void img.offsetWidth;
-                                img.classList.add('is-swapping');
-                            }
+                            img.classList.remove('is-swapping');
+                            void img.offsetWidth;
+                            img.classList.add('is-swapping');
                             img.setAttribute('src', String(update.image));
                         }
                         if (framed) host.querySelector(`.secondary-bar-item-${kind}-empty`)?.remove();
@@ -3735,12 +3761,15 @@ class MenuBar {
                 // than the value being pushed. So `burst: true` is a signal, not an inference --
                 // and it is deliberately one-shot: it fires the animation and is cleared from the
                 // stored update, so a later refresh pushing the same value does not replay it.
+                //
+                // `burst: true` is a new best; `burst: 'record'` is a new best that ALSO beat the
+                // standing record, and gets the louder treatment. Anything truthy bursts, so a
+                // caller written before the tier existed keeps working unchanged.
                 if (update.burst) {
-                    if (!MenuBar._prefersReducedMotion()) {
-                        el.classList.remove('is-burst');
-                        void el.offsetWidth;
-                        el.classList.add('is-burst');
-                    }
+                    el.classList.remove('is-burst', 'is-burst-record');
+                    void el.offsetWidth;
+                    el.classList.add('is-burst');
+                    if (update.burst === 'record') el.classList.add('is-burst-record');
                     delete update.burst;
                 }
                 if (update.emphasis !== undefined) {
@@ -4011,6 +4040,10 @@ class MenuBar {
                 // False means the change needs an element added or removed, which only the template
                 // can do: fall through to the rebuild below.
                 if (this._applySecondaryBarValueRefresh()) {
+                    // Nothing arrived on this path -- a patch means the structure is unchanged --
+                    // but the snapshot still has to keep up, or the next genuine rebuild compares
+                    // against a stale set.
+                    this.markEnteringItems();
                     this._applyMenubarLightweightRefresh(templateData, existingPrimary);
                     return;
                 }
@@ -4037,6 +4070,7 @@ class MenuBar {
                 // Setup middle zone overflow detection (run after layout)
                 requestAnimationFrame(() => this._setupMiddleZoneOverflow());
 
+                this.markEnteringItems();
                 this._menubarStructureFingerprint = structureFp;
                 try {
                     const ld = game.settings.get(MODULE.ID, 'partyLeader');
@@ -4422,15 +4456,6 @@ class MenuBar {
     }
 
     /**
-     * Show a context menu for a menubar tool at the given coordinates.
-     * Items: Array<{ name: string, icon: string, onClick: () => void }>.
-     * Closes on item click, click outside, or Escape.
-     * @param {Array<{ name: string, icon: string, onClick: () => void }>} items
-     * @param {number} x - clientX
-     * @param {number} y - clientY
-     * @private
-     */
-    /**
      * Map menubar context menu item to UIContextMenu shape (recursive for nested submenus).
      * @param {{ separator?: boolean, name?: string, icon?: string, description?: string, disabled?: boolean, onClick?: Function, submenu?: Array }} item
      * @returns {object}
@@ -4459,6 +4484,15 @@ class MenuBar {
         };
     }
 
+    /**
+     * Show a context menu for a menubar tool at the given coordinates.
+     * Items: Array<{ name: string, icon: string, onClick: () => void }>.
+     * Closes on item click, click outside, or Escape.
+     * @param {Array<{ name: string, icon: string, onClick: () => void }>} items
+     * @param {number} x - clientX
+     * @param {number} y - clientY
+     * @private
+     */
     static _showMenubarContextMenu(items, x, y) {
         this._closeMenubarContextMenu();
 
@@ -4562,9 +4596,6 @@ class MenuBar {
     }
 
     /**
-     * Create combat encounter with selected tokens or all tokens on canvas
-     */
-    /**
      * Local toast for combat creation feedback. One stack key so a run of
      * Create/Add presses replaces rather than piles up.
      * @private
@@ -4580,6 +4611,9 @@ class MenuBar {
         });
     }
 
+    /**
+     * Create combat encounter with selected tokens or all tokens on canvas
+     */
     static async createCombat() {
         try {
             // Check if user has permission to create combat

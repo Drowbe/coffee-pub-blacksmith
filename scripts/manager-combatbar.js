@@ -585,6 +585,47 @@ export class CombatBarManager {
             }
         };
 
+        // A READOUT WITH NOTHING TO REPORT DOES NOT APPEAR.
+        //
+        // The same argument as the MVP plate, applied to the rest: at the start of a fight the live
+        // set was six chips all reading zero, which is a row of furniture saying nothing. The bar
+        // now fills as the fight develops, and a chip arriving is itself information -- the first
+        // kill puts Kills on the bar.
+        //
+        // Zero is treated as absence rather than as a reading. That is a judgement, and it is the
+        // right one HERE because every one of these counters starts at zero and only rises: "0
+        // kills" and "no kills yet" are the same statement, and the second needs no pixels. It
+        // would be wrong for a figure that can genuinely rest at zero after being something else.
+        //
+        // None of these can flicker, for the same reason: within a combat and across a campaign
+        // they are monotonic, so each crosses its threshold once and stays.
+        const running = () => {
+            try {
+                return game.modules.get(MODULE.ID)?.api?.stats?.combat?.getRunningStats() ?? null;
+            } catch (_) {
+                return null;
+            }
+        };
+        const lifetime = () => {
+            try {
+                return game.modules.get(MODULE.ID)?.api?.stats?.party?.getAggregateSync() ?? null;
+            } catch (_) {
+                return null;
+            }
+        };
+        /** Compose a state predicate with a data predicate; either failing hides the item. */
+        const withData = (stateVisible, hasData) => () => {
+            if (!stateVisible()) return false;
+            try {
+                return !!hasData();
+            } catch (_) {
+                return false;
+            }
+        };
+        const liveWhen = (hasData) => withData(liveStatsVisible, hasData);
+        const lifetimeWhen = (hasData) => withData(lifetimeStatsVisible, hasData);
+        const positive = (value) => (Number(value) || 0) > 0;
+
         api.registerSecondaryBarItem('combat', 'stat-biggest-hitter', {
             kind: 'portraitstat',
             zone: 'middle',
@@ -594,7 +635,7 @@ export class CombatBarManager {
             label: 'Biggest Hit',
             value: '-',
             tooltip: 'Biggest hit on record',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.biggestHit?.amount))
         });
         api.registerSecondaryBarItem('combat', 'stat-most-fumbles', {
             kind: 'portraitstat',
@@ -608,7 +649,7 @@ export class CombatBarManager {
             label: 'Most Fumbles',
             value: '-',
             tooltip: 'Most fumbles on record',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.mostFumbles?.count))
         });
         // The MVP is the one readout meant to be looked AT rather than glanced past, so it gets a
         // plate in its own zone instead of competing for width in the middle. The two plates share
@@ -646,7 +687,7 @@ export class CombatBarManager {
             // would rebuild on its first update instead of patching.
             valueParts: ['0C', { text: ' | ', muted: true }, '0F'],
             tooltip: 'Criticals and fumbles on record',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.totalCriticals) || positive(lifetime()?.totalFumbles))
         });
         // Healing has no standing of its own anywhere else on the bar, which quietly made every
         // readout a damage readout -- a party's healer could play a whole campaign and never appear.
@@ -659,7 +700,7 @@ export class CombatBarManager {
             label: 'Heals Given',
             value: '0',
             tooltip: 'Total healing given across every recorded combat',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.totalHealsGiven))
         });
         // The reliability pair. `mostMisses` is already ranked low-is-best by the
         // aggregate, so this is "who whiffs least", not "who whiffs most".
@@ -672,7 +713,7 @@ export class CombatBarManager {
             label: 'Most Hits',
             value: '-',
             tooltip: 'Most hits on record',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.mostHits?.count))
         });
         api.registerSecondaryBarItem('combat', 'stat-most-misses', {
             kind: 'portraitstat',
@@ -683,7 +724,7 @@ export class CombatBarManager {
             label: 'Most Misses',
             value: '-',
             tooltip: 'Fewest misses on record',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.mostMisses?.count))
         });
         // Campaign-scale totals rather than per-person standings, so no portrait:
         // these belong to the party, not to anyone in it.
@@ -701,7 +742,7 @@ export class CombatBarManager {
             sparkPoints: 14,
             value: '-',
             tooltip: 'Total damage dealt across every recorded combat',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.totalDamageGiven))
         });
         api.registerSecondaryBarItem('combat', 'stat-total-kills', {
             kind: 'statchip',
@@ -713,7 +754,7 @@ export class CombatBarManager {
             label: 'Kills',
             value: '-',
             tooltip: 'Total kills across every recorded combat',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.totalKills))
         });
         api.registerSecondaryBarItem('combat', 'stat-combats', {
             kind: 'statchip',
@@ -725,7 +766,7 @@ export class CombatBarManager {
             label: 'Encounters',
             value: '-',
             tooltip: 'Combats fought',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.totalCombats))
         });
         // The out-of-combat counterpart to the live hit-rate chip, so the same
         // measure appears in both states rather than only during a fight.
@@ -738,7 +779,7 @@ export class CombatBarManager {
             label: 'Accuracy',
             value: '-',
             tooltip: 'Average hit rate across every recorded combat',
-            visible: lifetimeStatsVisible
+            visible: lifetimeWhen(() => positive(lifetime()?.totalCombats))
         });
 
         // The live set is numbered from 10 so the two sets never interleave if both
@@ -762,7 +803,7 @@ export class CombatBarManager {
             sparkPoints: 12,
             value: '0',
             tooltip: 'Party damage dealt this combat',
-            visible: liveStatsVisible
+            visible: liveWhen(() => positive(running()?.totals?.damageDealt))
         });
         api.registerSecondaryBarItem('combat', 'stat-hit-rate', {
             kind: 'gaugechip',
@@ -773,7 +814,7 @@ export class CombatBarManager {
             label: 'Accuracy',
             value: '0%',
             tooltip: 'Party hit rate this combat',
-            visible: liveStatsVisible
+            visible: liveWhen(() => positive(running()?.totals?.hits) || positive(running()?.totals?.misses))
         });
         api.registerSecondaryBarItem('combat', 'stat-combat-biggest', {
             kind: 'portraitstat',
@@ -784,7 +825,7 @@ export class CombatBarManager {
             label: 'Biggest Hit',
             value: '-',
             tooltip: 'Biggest hit this combat',
-            visible: liveStatsVisible
+            visible: liveWhen(() => positive(running()?.notableMoments?.biggestHit?.amount))
         });
         // The survival read. Damage dealt alone says how the party is doing TO the
         // fight; these say how the fight is doing to them.
@@ -798,7 +839,7 @@ export class CombatBarManager {
             label: 'Kills',
             value: '0',
             tooltip: 'Kills this combat',
-            visible: liveStatsVisible
+            visible: liveWhen(() => positive(running()?.totals?.kills))
         });
         api.registerSecondaryBarItem('combat', 'stat-damage-taken', {
             kind: 'statchip',
@@ -810,7 +851,7 @@ export class CombatBarManager {
             label: 'Defense',
             value: '0',
             tooltip: 'Party damage taken this combat',
-            visible: liveStatsVisible
+            visible: liveWhen(() => positive(running()?.totals?.damageTaken))
         });
         // Otherwise a healer's whole contribution is invisible until the fight ends.
         api.registerSecondaryBarItem('combat', 'stat-healing-given', {
@@ -823,7 +864,7 @@ export class CombatBarManager {
             label: 'Healing',
             value: '0',
             tooltip: 'Healing given this combat',
-            visible: liveStatsVisible
+            visible: liveWhen(() => positive(running()?.totals?.healingGiven))
         });
         // Portrait, like the biggest-hit chips: a face is read instantly where a
         // truncated name is not, and the name stays in the tooltip.
@@ -1099,11 +1140,6 @@ export class CombatBarManager {
     ];
 
     /**
-     * Hide readouts until the row fits. Measured rather than expressed in CSS,
-     * because "hide this one first" is an ordering CSS cannot state — a media
-     * query would also be guessing at the row's width rather than reading it.
-     */
-    /**
      * Re-measure the readouts whenever the data row changes width.
      *
      * Suppression used to run only after a render, which meant it was right at the moment it ran
@@ -1136,13 +1172,19 @@ export class CombatBarManager {
     static _readoutResizeObserver = null;
 
     /**
-     * The biggest hit already celebrated with a record burst.
+     * The biggest hit already celebrated with a burst, for the current fight.
      *
      * The same swing is pushed on every refresh for as long as it stands, so without this the
-     * burst would replay several times a second for the rest of the fight.
+     * burst would replay several times a second for the rest of the fight. Only a HIGHER amount
+     * fires again, which is what makes "a new best" the trigger rather than "is the best".
      */
     static _burstedBiggestHit = 0;
 
+    /**
+     * Hide readouts until the row fits. Measured rather than expressed in CSS,
+     * because "hide this one first" is an ordering CSS cannot state — a media
+     * query would also be guessing at the row's width rather than reading it.
+     */
     static applyReadoutOverflow() {
         const row = document.querySelector('.combat-data-row');
         const toolbar = row?.querySelector('.secondary-bar-toolbar');
@@ -1366,12 +1408,6 @@ export class CombatBarManager {
     }
 
     /**
-     * A name short enough for a bar chip: the first word, so "Favia Gita"
-     * reads as "Favia". The middle zone is `flex: 1 1 0`, so a long name
-     * pushes the readouts either side of it around; the full name is in the
-     * tooltip, where there is room for it.
-     */
-    /**
      * Thousands as "8.4k". Lifetime totals reach five and six digits over a
      * campaign, and a chip is about four characters wide before it starts pushing
      * its neighbours out of the bar. The exact figure stays in the tooltip where
@@ -1397,6 +1433,12 @@ export class CombatBarManager {
         return actor ? (getPortraitImage(actor) || null) : null;
     }
 
+    /**
+     * A name short enough for a bar chip: the first word, so "Favia Gita"
+     * reads as "Favia". The middle zone is `flex: 1 1 0`, so a long name
+     * pushes the readouts either side of it around; the full name is in the
+     * tooltip, where there is room for it.
+     */
     static shortenName(name) {
         const trimmed = String(name ?? '').trim();
         if (!trimmed) return '-';
@@ -1454,19 +1496,33 @@ export class CombatBarManager {
             const standingBiggest = Number(
                 game.modules.get(MODULE.ID)?.api?.stats?.party?.getAggregateSync()?.biggestHit?.amount
             ) || 0;
-            const beatsRecord = liveBiggest > 0
-                && standingBiggest > 0
-                && liveBiggest > standingBiggest
-                && liveBiggest !== CombatBarManager._burstedBiggestHit;
-            if (beatsRecord) CombatBarManager._burstedBiggestHit = liveBiggest;
+
+            // A new best FOR THIS FIGHT is the common tier, and it is what a player actually
+            // watches for: the hardest hit of the evening changing hands several times over a
+            // couple of rounds. `_burstedBiggestHit` holds the amount already celebrated, so only
+            // a HIGHER swing fires again -- the same swing is pushed on every refresh for as long
+            // as it stands, and an unlatched test would burst several times a second.
+            const beatsFight = liveBiggest > 0 && liveBiggest > CombatBarManager._burstedBiggestHit;
+
+            // Beating the CAMPAIGN standing on top of that is the rare tier.
+            //
+            // This deliberately requires a standing to exist. In a world with no lifetime history
+            // the opening swing of the first fight is technically a record, but there is nothing to
+            // have beaten, and firing the loud tier on it would spend the rarest animation on the
+            // least remarkable moment. It still bursts -- as a new fight best, which it is.
+            const holdsRecord = liveBiggest > 0 && standingBiggest > 0 && liveBiggest > standingBiggest;
+            if (beatsFight) CombatBarManager._burstedBiggestHit = liveBiggest;
 
             api.updateSecondaryBarItemInfo('combat', 'stat-combat-biggest', {
                 image: CombatBarManager.actorPortrait(biggest?.attackerId),
                 value: biggest ? String(biggest.amount) : '-',
-                ...(beatsRecord && { burst: true }),
+                ...(beatsFight && { burst: holdsRecord ? 'record' : true }),
+                // Read from the standing rather than from the one-shot burst latch, so the tooltip
+                // still says "a new record" a minute later when someone hovers it. Tying it to the
+                // latch made the words true for a single refresh and false afterwards.
                 tooltip: biggest
                     ? `Biggest hit this combat: ${biggest.attacker} hit ${biggest.target} for ${biggest.amount}`
-                        + (beatsRecord ? ' — a new record' : '')
+                        + (holdsRecord ? ' — a new campaign record' : '')
                     : 'Biggest hit this combat'
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-kills', {
@@ -1708,16 +1764,15 @@ export class CombatBarManager {
         // which for a table that has just finished a combat is the wrong moment
         // to be showing the previous combat's standings.
         HookManager.registerHook({
-            // Clearing the burst latch here rather than at combat start: the standing record only
-            // moves when a combat is summarised, and this is the hook that fires then.
+            // Also where the burst latch clears. The latch is scoped to one fight, and this is the
+            // hook that marks a fight ending -- clearing at combat START would leave it holding the
+            // previous fight's best through the gap between combats, so the first swing of the next
+            // one would have to beat a number from a fight that is over.
             name: 'blacksmith.combatSummaryReady',
             description: 'MenuBar: Refresh combat bar party statistics when a combat ends',
             context: 'menubar-combat-stats',
             priority: 3,
             callback: () => {
-                // The standing record only moves when a combat is summarised, so this is where the
-                // burst latch resets: the next fight can beat the new record, and the swing that
-                // set it will not be celebrated a second time.
                 CombatBarManager._burstedBiggestHit = 0;
                 CombatBarManager.scheduleReadoutRefresh(menuBar);
             }
@@ -2052,11 +2107,6 @@ export class CombatBarManager {
     static DATA_ROW_HEIGHT = 30;
 
     /**
-     * The combat row's height — portraits, controls, the part the user scales.
-     * Two settings because that row carries portraits during an encounter and
-     * only the menus between them.
-     */
-    /**
      * Whether the combat row is rendered at all. Out of combat it holds only
      * the GM's menu buttons, so for a player it would be an empty strip — the
      * data row is the whole bar for them until a fight starts.
@@ -2065,6 +2115,11 @@ export class CombatBarManager {
         return isInCombat || game.user.isGM;
     }
 
+    /**
+     * The combat row's height — portraits, controls, the part the user scales.
+     * Two settings because that row carries portraits during an encounter and
+     * only the menus between them.
+     */
     static resolveCombatRowHeight(isInCombat) {
         if (!CombatBarManager.showsCombatRow(isInCombat)) return 0;
         // Only the in-combat height is configurable, because only in combat
@@ -3235,12 +3290,6 @@ export class CombatBarManager {
     }
 
     /**
-     * Canvas-wide token actions, moved here from the encounter bar. These act
-     * on the canvas rather than on the encounter, so they are useful whether or
-     * not a combat is running — Reveal Hidden especially, which is a mid-combat
-     * action. Loaded on demand to keep this module off the encounter graph.
-     */
-    /**
      * The encounter and token actions, as one definition.
      *
      * In combat these are rows in the Encounter and Tokens context menus; out
@@ -3248,6 +3297,9 @@ export class CombatBarManager {
      * directly on the bar, where there is room for them. Both surfaces read
      * this map, so an action cannot behave differently depending on which one
      * you reached it through.
+     *
+     * The encounter actions are imported on demand rather than at module load, which is what
+     * keeps this module off the encounter graph.
      *
      * @returns {Object<string, {name: string, icon: string, run: Function}>}
      */

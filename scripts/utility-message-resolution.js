@@ -297,13 +297,6 @@ export function resolveAttackMessage(message) {
 }
 
 /**
- * Resolve a damage message and extract damage total.
- * Supports both core dnd5e and MIDI-QOL message formats.
- * Does NOT determine hit/miss - that requires correlation with attack message.
- * @param {ChatMessage} message - The chat message
- * @returns {DamageResolvedEvent|null} Normalized damage event, or null if not a damage message
- */
-/**
  * Every roll on a message, hydrated.
  *
  * `hydrateFirstRoll` reads `rolls[0]`, which was sufficient when dnd5e posted an attack card and a
@@ -340,6 +333,13 @@ function isDamageRoll(roll) {
     return (roll.dice ?? []).length > 0 || (roll.terms ?? []).length > 0;
 }
 
+/**
+ * Resolve a damage message and extract damage total.
+ * Supports both core dnd5e and MIDI-QOL message formats.
+ * Does NOT determine hit/miss - that requires correlation with attack message.
+ * @param {ChatMessage} message - The chat message
+ * @returns {DamageResolvedEvent|null} Normalized damage event, or null if not a damage message
+ */
 export function resolveDamageMessage(message) {
     const dnd = message.flags?.dnd5e ?? {};
     const midi = message.flags?.["midi-qol"] ?? {};

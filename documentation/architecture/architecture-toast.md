@@ -203,8 +203,10 @@ they add no second JS/CSS timing sync and cannot fight the `.visible` transition
 stacked toasts fire from timers and announcements, and several toasts animating at once is noise,
 so the expressive lane is the sized takeover. All are entrance-run-once except `pulse`, a subtle
 infinite breathe meant for persistent billboards — the one sanctioned loop, bounded by billboards
-being singletons. Transform/opacity only (compositor-friendly), and the whole block sits behind a
-`prefers-reduced-motion: no-preference` media query. Because billboards replace rather than stack,
+being singletons. Transform/opacity only (compositor-friendly). **Not gated on `prefers-reduced-motion`** — a
+billboard's entrance is the announcement, and on Windows that query follows a single OEM-settable
+"Animation effects" toggle, so gating it silenced the effect for people who had chosen nothing. See
+the note in `architecture-menubar.md`. Because billboards replace rather than stack,
 a replacement re-runs the entrance — correct there, since a new billboard is new content.
 
 ## The internal broadcast relay (pre-Phase-3)

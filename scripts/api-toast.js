@@ -55,7 +55,7 @@ class ToastManager {
     // own dance is noise; the expressive lane is the sized takeover. Pure CSS
     // keyframes on the content children (toast.css), entrance-only except pulse
     // (a subtle infinite breathe meant for persistent billboards), gated behind
-    // prefers-reduced-motion. Applied as a class — same whitelist model as SIZES.
+    // Applied as a class — same whitelist model as SIZES.
     static ANIMATIONS = ['pop', 'reveal', 'pulse', 'slam', 'shake'];
     // Call-to-action sizes (author decision 2026-07-25): the CTA button renders
     // on small/medium/large billboards only — not stacked toasts, not
@@ -89,7 +89,7 @@ class ToastManager {
      * @param {Function} config.onDismiss - Fires only when the toast goes away unacted-on: auto-timeout or the close button. Same contract as menubar notifications (see api-menubar.md). Never fires on replacement via stackKey, stack-cap eviction, programmatic remove(), or clearByModule().
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
      * @param {string} config.publish - Which Foundry view renders the toast: 'game' (the active tabletop, default), 'stream' (the chat-only /stream capture view), or 'both'. Anything else falls back to 'game'. Checked receipt-side against game.view, so it covers every delivery path.
-     * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), 'pulse' (subtle infinite breathe, meant for persistent billboards), 'slam' (smashes in from oversized with a jolt on impact), or 'shake' (rattles in with a decaying wobble). Anything else, or no size, renders without animation. Respects prefers-reduced-motion.
+     * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), 'pulse' (subtle infinite breathe, meant for persistent billboards), 'slam' (smashes in from oversized with a jolt on impact), or 'shake' (rattles in with a decaying wobble). Anything else, or no size, renders without animation.
      * @param {string} config.callToAction - Button-styled label (e.g. "Roll for the Crit Card") making it visually clear the toast wants a click. NOT a separate click event — it renders inside the existing single click target and the body onClick handles it. Shown only on 'small' | 'medium' | 'large' billboards AND only when onClick is a function (no action, no button; relayed toasts strip callbacks, so only receipt-side show() calls can carry one). Ignored otherwise.
      * @returns {string|null} - Toast ID for later removal, or null on error
      */

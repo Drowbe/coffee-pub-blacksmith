@@ -68,7 +68,9 @@ target the stream view or both.
   bounce; `'reveal'` stages the entrance (icon, then title, then subtitle); `'pulse'` is a subtle
   infinite breathe meant for persistent (`duration: 0`) billboards; `'slam'` smashes in from
   oversized with a jolt on impact; `'shake'` rattles in with a decaying wobble. Anything else renders without animation. Pure CSS on the content children,
-  and honors `prefers-reduced-motion` (reduced-motion users get instant content).
+  Not gated on `prefers-reduced-motion`: a billboard's entrance is the announcement, and that query
+  follows an OEM-settable toggle on Windows, so gating it silenced the effect for people who had
+  chosen nothing.
 - `callToAction` (string, optional): a button-styled label (e.g. `"Roll for the Crit Card"`)
   rendered below the text, making it visually unmistakable that the toast wants a click. It is
   **not a separate control** — there is still exactly one click action: the CTA sits inside the

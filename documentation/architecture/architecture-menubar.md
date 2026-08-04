@@ -264,8 +264,45 @@ count-up, a portrait crossfade. Before it existed the element was destroyed and 
 where a flash keyed to a "change" would have fired on every unrelated render and a count-up would have
 restarted continuously.
 
+**Motion is not gated, and that is settled.** Not on `prefers-reduced-motion`, and not on a setting of
+our own. A virtual tabletop is a game and choosing to play one is the opt-in; what the bar does is a
+glow, a counting number and a short fade, none of it the spatial movement that media query exists to
+protect against.
+
+Both were tried and both were removed. The media query on Windows follows a single "Animation effects"
+toggle that an OEM image or a power profile will have set, so a GM who had never chosen anything
+watched the whole feature sit inert with nothing to distinguish it from a bug. A setting of our own was
+worse in a different way: it governed one bar's readouts while the rest of the suite animated freely,
+which is a promise of control that is not kept.
+
+**Do not add a gate back**, here or anywhere else in the suite. If a future animation is genuinely
+violent — full-screen, parallax, sustained — that animation is the thing to reconsider, not this rule.
+
 The rule that follows: **motion follows a value, never a render.** A rebuilt node deliberately does not
 animate, which is correct rather than a gap — a rebuild is not a change, and a bar that flashed every
 chip when combat state flipped would be announcing nothing at all. A **record** is the one thing the
 menubar cannot infer, since the standing best lives in a different tier of the statistics than the value
-being pushed, so `burst: true` is a caller's signal and is consumed once rather than replayed.
+being pushed, so `burst` is a caller's signal and is consumed once rather than replayed.
+
+`burst` carries two tiers. `true` marks a new best for the current fight — the common case, several
+times an evening — and `'record'` marks one that also beat the campaign standing. Anything truthy
+bursts, so a caller written before the tier existed is unaffected. The tiers exist because frequency
+and meaning trade against each other: identical treatment would either make the common one
+underwhelming or the rare one wallpaper. `CombatBarManager` decides which applies, and latches on the
+amount already celebrated so only a *higher* swing fires again — the same swing is pushed on every
+refresh for as long as it stands, and an unlatched "is the biggest" test bursts several times a
+second. The record tier additionally requires a standing to beat, so a fresh world's opening swing
+bursts as a fight best rather than spending the rarest animation on the least remarkable moment.
+
+**The motion rules in `styles/menubar-widgets.css` are top-level, and must stay that way.** They are
+written as full descendant selectors (`.blacksmith-menubar-secondary .secondary-bar-item.is-entering`)
+rather than nested inside a `.blacksmith-menubar-secondary { … }` block, and the `@keyframes` sit beside
+them at file scope. Wrapping them is a two-part trap: nesting repeats the parent, so a descendant rule
+written out in full doubles the class and matches nothing, and `@keyframes` is not a conditional group
+rule, so nested inside a style rule it is invalid and silently dropped. Both failures are invisible from
+outside — JS still adds the class, the element still reports it, nothing errors, and nothing moves.
+There is a file-scope block of the same name earlier in the file that scopes the widget custom
+properties; that one is legitimate and holds declarations only. Do not merge the two.
+
+This is why the readouts suite asserts computed `animationName` on a classed element rather than
+asserting the `@keyframes` exist — presence of keyframes passes through both failures.

@@ -524,13 +524,12 @@
 /* Motion is driven by a real value change, never by a render -- which the
    value-patch path in `api-menubar.js` is what makes possible, since the element
    survives its own update. */
-@media (prefers-reduced-motion: no-preference) {
-    .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-fill {
-        transition: width 0.35s ease;
-    }
-    .blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar {
-        transition: height 0.3s ease;
-    }
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-fill {
+    transition: width 0.35s ease;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar {
+    transition: height 0.3s ease;
 }
 
 /* ============================================================================
@@ -543,73 +542,158 @@
    is not a change, and a bar that flashed every chip when combat state flipped
    would be announcing nothing.
 
-   Everything is opt-out under `prefers-reduced-motion`, and the opt-out is a
-   plain swap rather than a shorter animation -- someone who asked for less
-   motion did not ask for faster motion.
+   THIS MOTION IS NOT GATED, AND THAT IS SETTLED.
+
+   Not on `prefers-reduced-motion`, and not on a setting of our own. A virtual
+   tabletop is a game and choosing to play one is the opt-in. What happens here
+   is a glow, a counting number and a short fade -- none of it the spatial
+   movement that media query exists to protect against.
+
+   Gating it once already produced the worst outcome available. On Windows that
+   query follows a single "Animation effects" toggle an OEM image or a power
+   profile will have set, so a GM who had never chosen anything watched the whole
+   feature sit inert, with nothing to distinguish that from a bug.
+
+   Do not add a gate back -- not here, and not elsewhere in the suite. If some
+   future animation is genuinely violent (full-screen, parallax, sustained), that
+   animation is the thing to reconsider, not this rule.
    ============================================================================ */
 
-@media (prefers-reduced-motion: no-preference) {
+/* A VALUE MOVED. Colour and weight, not scale or position: a chip that grows
+   shoves its neighbours along the row and turns one number changing into the
+   whole row twitching. The glow is the chip's own tone, so damage taken
+   flashes red and damage dealt green with no per-chip rule -- the tone
+   already says what a rise means. */
+.blacksmith-menubar-secondary .secondary-bar-item-value.is-changed,
+.blacksmith-menubar-secondary .secondary-bar-item-value-part.is-changed {
+    animation: blacksmith-value-flash 0.7s ease-out;
+}
 
-    /* A VALUE MOVED. Colour and weight, not scale or position: a chip that grows
-       shoves its neighbours along the row and turns one number changing into the
-       whole row twitching. The glow is the chip's own tone, so damage taken
-       flashes red and damage dealt green with no per-chip rule -- the tone
-       already says what a rise means. */
-    .blacksmith-menubar-secondary .secondary-bar-item-value.is-changed,
-    .blacksmith-menubar-secondary .secondary-bar-item-value-part.is-changed {
-        animation: blacksmith-value-flash 0.7s ease-out;
-    }
+/* THE GLOW IS THE SIGNAL, NOT THE COLOUR.
+   The first version flashed to `#fff`, which is almost exactly the neutral
+   value colour already in use -- a near-white brightening to white, on
+   11px text, for half a second. It was firing and invisible, which is the
+   worst of both: the machinery ran and nobody could tell.
+   A halo carries at this size where a hue shift does not, so the glow does
+   the announcing and grows well past the glyph before fading. `inherit` is
+   deliberately absent -- CSS-wide keywords are invalid inside keyframes and
+   the declaration would simply be dropped, leaving the property to fall back
+   to its own value anyway, which is what the missing 100% achieves openly. */
+@keyframes blacksmith-value-flash {
+    0%   { text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
+    18%  { text-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 20px rgba(255, 255, 255, 0.55); }
+    100% { text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
+}
 
-    /* THE GLOW IS THE SIGNAL, NOT THE COLOUR.
-       The first version flashed to `#fff`, which is almost exactly the neutral
-       value colour already in use -- a near-white brightening to white, on
-       11px text, for half a second. It was firing and invisible, which is the
-       worst of both: the machinery ran and nobody could tell.
-       A halo carries at this size where a hue shift does not, so the glow does
-       the announcing and grows well past the glyph before fading. `inherit` is
-       deliberately absent -- CSS-wide keywords are invalid inside keyframes and
-       the declaration would simply be dropped, leaving the property to fall back
-       to its own value anyway, which is what the missing 100% achieves openly. */
-    @keyframes blacksmith-value-flash {
-        0%   { text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
-        18%  { text-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 20px rgba(255, 255, 255, 0.55); }
-        100% { text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
-    }
+/* A READOUT ARRIVED.
+   These chips are hidden until they have something to report, so a chip
+   appearing is itself the news -- the first kill puts Kills on the bar. It
+   gets an entrance for that reason and no other: it is not decoration, it is
+   the same announcement the flash makes for a value that was already there.
 
-    /* A STANDING CHANGED HANDS. A hard cut hides the event entirely; a fade says
-       someone was replaced. Short, because the portrait is small and a slow fade
-       at this size reads as a loading glitch rather than a transition. */
-    .blacksmith-menubar-secondary .secondary-bar-item-portraitstat-image.is-swapping,
-    .blacksmith-menubar-secondary .secondary-bar-item-nameplate-image.is-swapping,
-    .blacksmith-menubar-secondary .secondary-bar-item-image.is-swapping {
-        animation: blacksmith-portrait-swap 0.35s ease-out;
-    }
+   Width is deliberately NOT animated. Growing from zero width would shove
+   every chip to its right along the row for the duration, turning one
+   arrival into the whole bar sliding -- which is the same objection that
+   kept scale out of the flash. It fades and lifts a couple of pixels in a
+   space the layout has already given it. */
+.blacksmith-menubar-secondary .secondary-bar-item.is-entering {
+    animation: blacksmith-item-enter 0.45s ease-out;
+}
 
-    @keyframes blacksmith-portrait-swap {
-        0%   { opacity: 0; transform: scale(1.12); }
-        100% { opacity: 1; transform: scale(1); }
-    }
+@keyframes blacksmith-item-enter {
+    0%   { opacity: 0; transform: translateY(3px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
 
-    /* A RECORD FELL. The one animation allowed to be loud, because it marks the
-       rarest thing the bar reports -- and rarity is what keeps it from becoming
-       wallpaper. A ring expanding OUT of the chip rather than the chip growing,
-       so nothing on the row moves. */
-    .blacksmith-menubar-secondary .secondary-bar-item.is-burst {
-        position: relative;
-    }
+/* A STANDING CHANGED HANDS. A hard cut hides the event entirely; a fade says
+   someone was replaced. Short, because the portrait is small and a slow fade
+   at this size reads as a loading glitch rather than a transition. */
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat-image.is-swapping,
+.blacksmith-menubar-secondary .secondary-bar-item-nameplate-image.is-swapping,
+.blacksmith-menubar-secondary .secondary-bar-item-image.is-swapping {
+    animation: blacksmith-portrait-swap 0.35s ease-out;
+}
 
-    .blacksmith-menubar-secondary .secondary-bar-item.is-burst::after {
-        content: '';
-        position: absolute;
-        inset: -2px;
-        border-radius: 999px;
-        border: 1px solid var(--blacksmith-widget-gold);
-        animation: blacksmith-record-burst 0.75s ease-out forwards;
-        pointer-events: none;
-    }
+@keyframes blacksmith-portrait-swap {
+    0%   { opacity: 0; transform: scale(1.12); }
+    100% { opacity: 1; transform: scale(1); }
+}
 
-    @keyframes blacksmith-record-burst {
-        0%   { opacity: 0.95; transform: scale(0.9); }
-        100% { opacity: 0; transform: scale(1.35); }
-    }
+/* A BEST FELL. This one is allowed to be loud.
+
+   Two tiers, because frequency and meaning trade against each other. A new best
+   for the current fight happens several times an evening; a new campaign record
+   happens rarely. If both looked the same, either the common one would be
+   underwhelming or the rare one would be wallpaper -- so the common one gets a
+   ring and a punch, and the record gets a second ring, a longer sweep and a
+   colour it does not otherwise use.
+
+   Everything here is transform, opacity and shadow. A transform does not
+   reflow, so the chip can punch without shoving its neighbours along the row --
+   which is the constraint that kept scale out of the value flash, and it still
+   holds: the flash fires constantly and this fires on an event. */
+.blacksmith-menubar-secondary .secondary-bar-item.is-burst {
+    position: relative;
+    animation: blacksmith-record-punch 0.55s cubic-bezier(0.2, 1.6, 0.3, 1);
+    /* Above its neighbours for the duration, so the expanding rings are not
+       clipped by the chip that happens to sit next to it. */
+    z-index: 2;
+}
+
+/* The ring. Drawn on ::after so the chip's own background is untouched. */
+.blacksmith-menubar-secondary .secondary-bar-item.is-burst::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 999px;
+    border: 2px solid var(--blacksmith-widget-gold);
+    box-shadow: 0 0 12px rgba(var(--blacksmith-widget-gold-rgb), 0.65),
+                inset 0 0 10px rgba(var(--blacksmith-widget-gold-rgb), 0.45);
+    animation: blacksmith-record-burst 0.85s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes blacksmith-record-punch {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+
+@keyframes blacksmith-record-burst {
+    0%   { opacity: 1; transform: scale(0.85); }
+    100% { opacity: 0; transform: scale(1.9); }
+}
+
+/* THE RECORD TIER. A campaign best, on top of everything above: a second ring
+   chasing the first, a harder punch, and a glow on the chip itself. */
+.blacksmith-menubar-secondary .secondary-bar-item.is-burst-record {
+    animation: blacksmith-record-punch-big 0.75s cubic-bezier(0.2, 1.7, 0.3, 1);
+    z-index: 3;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item.is-burst-record::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 999px;
+    border: 2px solid rgba(var(--blacksmith-widget-gold-rgb), 0.85);
+    /* Delayed so it reads as a second shockwave rather than a thicker first one.
+       `backwards` holds it invisible through the delay; without it the ring sits
+       fully drawn on the chip until its turn comes. */
+    animation: blacksmith-record-burst 0.95s 0.18s ease-out backwards;
+    pointer-events: none;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item.is-burst-record::after {
+    border-width: 3px;
+    box-shadow: 0 0 22px rgba(var(--blacksmith-widget-gold-rgb), 0.9),
+                inset 0 0 16px rgba(var(--blacksmith-widget-gold-rgb), 0.6);
+    animation-duration: 1.05s;
+}
+
+@keyframes blacksmith-record-punch-big {
+    0%   { transform: scale(1);    filter: none; }
+    30%  { transform: scale(1.32); filter: drop-shadow(0 0 14px rgba(var(--blacksmith-widget-gold-rgb), 0.95)); }
+    60%  { transform: scale(0.97); }
+    100% { transform: scale(1);    filter: none; }
 }

@@ -10,15 +10,6 @@ import { ToastAPI } from './api-toast.js';
 
 export class EncounterManager {
     /**
-     * Get party CR from current scene (player character tokens).
-     * @returns {string} Formatted CR string (e.g. "63", "1/2")
-     */
-    /**
-     * @param {Array<{actor: Actor|null}>} [source] - Tokens or combatants to
-     *   measure. Defaults to the canvas. Pass a combat's turns to scope the
-     *   rating to who is actually in the fight rather than who is on the scene.
-     */
-    /**
      * Whether a token still contributes threat -- that is, whether it can still fight.
      *
      * The asymmetry between the two sides is the whole of this rule, and it is a rules
@@ -56,6 +47,17 @@ export class EncounterManager {
         return current > 0;
     }
 
+    /**
+     * Get party CR from current scene (player character tokens).
+     *
+     * @param {Array<{actor: Actor|null}>} [source] - Tokens or combatants to measure. Defaults to
+     *   the canvas. Pass a combat's turns to scope the rating to who is actually in the fight
+     *   rather than who is on the scene.
+     * @param {object} [options]
+     * @param {boolean} [options.onlyStanding=false] - Count only tokens that can still fight, per
+     *   `canStillFight`.
+     * @returns {string} Formatted CR string (e.g. "63", "1/2")
+     */
     static getPartyCR(source = null, { onlyStanding = false } = {}) {
         try {
             const tokens = source ?? canvas?.tokens?.placeables;
@@ -157,12 +159,9 @@ export class EncounterManager {
     /**
      * Full combat assessment for current canvas (party CR, monster CR, difficulty).
      * @param {Object} [metadata] - Optional encounter metadata for getMonsterCR
+     * @param {Array<{actor: Actor|null}>} [source] - Tokens or combatants to measure; defaults to
+     *   the canvas. See `getPartyCR`.
      * @returns {{ partyCR: number, monsterCR: number, partyCRDisplay: string, monsterCRDisplay: string, difficulty: string, difficultyClass: string }}
-     */
-    /**
-     * @param {Object} [metadata]
-     * @param {Array<{actor: Actor|null}>} [source] - Tokens or combatants to
-     *   measure; defaults to the canvas. See `getPartyCR`.
      */
     static getCombatAssessment(metadata = {}, source = null) {
         const partyCRDisplay = this.getPartyCR(source);

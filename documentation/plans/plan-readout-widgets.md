@@ -137,8 +137,13 @@ comparing its previous value to its new one on a node that survived the update.
   state rather than a sixth widget, so it costs a class and a keyframe, not an API surface.
 - Portrait swap crossfade, so a change of who holds a standing is legible rather than instant.
 
-Two things to respect. Motion must be driven by an actual value change, never by a render, or it will fire
-constantly. And `prefers-reduced-motion` should collapse every animation to a plain value swap.
+One thing to respect: motion must be driven by an actual value change, never by a render, or it will fire
+constantly.
+
+This phase originally also proposed collapsing every animation to a plain value swap under
+`prefers-reduced-motion`. That was built, then removed, and **the motion is deliberately not gated at all**
+— not on that query and not on a setting of our own. See the settled decision in
+`architecture-menubar.md`; do not reintroduce a gate from this line.
 
 Verify live: land a hit and confirm the damage chip counts up and flashes; take damage and confirm the
 damage-taken chip flashes in the other tone; beat a standing record and confirm exactly one burst.
