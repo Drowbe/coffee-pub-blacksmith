@@ -1133,7 +1133,10 @@
     opacity: 0.82;
     filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.65));
     pointer-events: none;
-    background-color: rgba(240, 240, 224, 0.95);
+    /* The threat needle is gold, from the one place the gold is defined. The
+       item registration deliberately passes no colour, so this is the only
+       statement of it. */
+    background-color: rgba(var(--blacksmith-widget-gold-rgb), 0.95);
 }
 
 /* `from-bottom` is the default for an extra needle, so the modifier exists for

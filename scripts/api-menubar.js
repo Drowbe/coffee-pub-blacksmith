@@ -3495,10 +3495,14 @@ class MenuBar {
                 // A cleared tooltip sends the partial back to its per-kind fallback, which this
                 // cannot restate without duplicating the template's else branches. Rebuild instead.
                 if (update.tooltip === null) return bail('tooltip cleared', itemId);
+                // `data-tooltip` ONLY, never `title` as well. Foundry renders `data-tooltip`
+                // itself; `title` is the browser's native tooltip, and an element carrying both
+                // shows two — Foundry's styled one and the OS one drifting in underneath it a
+                // second later. The patch must match the template here, or a value update would
+                // reintroduce the pair the template no longer writes.
                 const tooltip = String(update.tooltip);
                 if (el.getAttribute('data-tooltip') !== tooltip) {
                     el.setAttribute('data-tooltip', tooltip);
-                    el.setAttribute('title', tooltip);
                 }
             }
             const kind = item.kind || 'button';
@@ -3693,7 +3697,6 @@ class MenuBar {
                         if (marker?.color) node.style.backgroundColor = marker.color;
                         if (marker?.tooltip !== undefined) {
                             node.setAttribute('data-tooltip', String(marker.tooltip));
-                            node.setAttribute('title', String(marker.tooltip));
                         }
                     });
                 }

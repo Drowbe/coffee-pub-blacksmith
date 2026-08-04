@@ -37,17 +37,28 @@
        picked for light surfaces: #629602 and #8b0000 against this bar's warm
        translucent row read fluorescent and muddy respectively. Same lesson as
        `getDifficultyChipColor` in `manager-combatbar.js`. */
+    /* ONE GOLD, as an RGB triplet so the translucent variants below can be built
+       from it instead of restating it. It was written out as a literal in five
+       places across two files, which is four too many to keep in step -- and the
+       first time it needed toning down, that showed.
+
+       Antique rather than bright: on this bar's warm dark row a saturated yellow
+       reads as a warning colour and pulls the eye past everything around it,
+       which is the opposite of what a tone is for. */
+    --blacksmith-widget-gold-rgb: 192, 164, 87;
+    --blacksmith-widget-gold: rgb(var(--blacksmith-widget-gold-rgb));
+
     --blacksmith-widget-tone-neutral: rgba(240, 240, 224, 0.92);
     --blacksmith-widget-tone-good: #a8c9a0;
     --blacksmith-widget-tone-bad: #e07070;
-    --blacksmith-widget-tone-record: #dcc36a;
+    --blacksmith-widget-tone-record: var(--blacksmith-widget-gold);
 
     /* The quiet half of every chip: the word that names the number. */
     --blacksmith-widget-label-ink: rgba(240, 240, 224, 0.55);
 
     /* RANK RINGS. Gold, silver, bronze, then nothing -- a chip with no standing
        gets a plain rim rather than a fourth colour nobody can name. */
-    --blacksmith-widget-rank-1: #dcc36a;
+    --blacksmith-widget-rank-1: var(--blacksmith-widget-gold);
     --blacksmith-widget-rank-2: #c7cbd1;
     --blacksmith-widget-rank-3: #c08a5a;
     --blacksmith-widget-rank-none: rgba(240, 240, 224, 0.35);
@@ -345,16 +356,21 @@
     background-color: var(--blacksmith-widget-spark-latest, var(--blacksmith-widget-tone-neutral));
 }
 
-/* THE PAIR IS PARTY AGAINST MONSTERS, so it takes the same two earthy tones the
-   balance bar uses rather than a bright/dim pair -- the question is which side
-   is bigger, and one side rendered as "the faded one" answers it before the
-   data does. */
+/* THE PAIR IS PARTY AGAINST MONSTERS, and the monsters' side is a TINT of the
+   party's rather than a colour of its own.
+   
+   Two unrelated colours would read as two unrelated measures. They are one
+   measure with two subjects, so the second stays the same material -- same
+   family, same weight -- pushed toward red just far enough to separate them.
+   The comparison is which column is TALLER; colour only has to say which side
+   each belongs to, and any more contrast than that answers the question before
+   the data does. */
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar.is-paired {
-    background-color: var(--blacksmith-widget-spark-paired, rgba(224, 112, 112, 0.4));
+    background-color: var(--blacksmith-widget-spark-paired, rgba(198, 124, 92, 0.32));
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar.is-paired.is-latest {
-    background-color: var(--blacksmith-widget-spark-paired-latest, var(--blacksmith-widget-tone-bad));
+    background-color: var(--blacksmith-widget-spark-paired-latest, #c67c5c);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip .secondary-bar-item-value {
@@ -370,8 +386,12 @@
     --blacksmith-widget-spark-latest: var(--blacksmith-widget-tone-bad);
 }
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip.tone-record {
-    --blacksmith-widget-spark: rgba(220, 195, 106, 0.32);
+    --blacksmith-widget-spark: rgba(var(--blacksmith-widget-gold-rgb), 0.32);
     --blacksmith-widget-spark-latest: var(--blacksmith-widget-tone-record);
+    /* The gold, warmed toward red. Same value and saturation so the two columns
+       carry equal weight and neither side looks like the important one. */
+    --blacksmith-widget-spark-paired: rgba(198, 124, 92, 0.32);
+    --blacksmith-widget-spark-paired-latest: #c67c5c;
 }
 
 /* ---- TIER: nameplate ------------------------------------------------------

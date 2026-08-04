@@ -6,7 +6,7 @@
         {{#each toolsByZone.left}}
             {{#each this}}
                 {{#each tools}}
-                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}" data-tool-id="{{toolId}}"{{#if (or buttonNormalTint buttonSelectedTint)}} style="{{#if buttonNormalTint}}--button-normal-tint: {{buttonNormalTint}};{{/if}}{{#if buttonSelectedTint}} --button-selected-tint: {{buttonSelectedTint}};{{/if}}"{{/if}}>
+                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}" data-tool-id="{{toolId}}"{{#if (or buttonNormalTint buttonSelectedTint)}} style="{{#if buttonNormalTint}}--button-normal-tint: {{buttonNormalTint}};{{/if}}{{#if buttonSelectedTint}} --button-selected-tint: {{buttonSelectedTint}};{{/if}}"{{/if}}>
                     <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
                     {{!-- The three named tools carry a title for their tooltip but render
                           icon-only. `else if title` extends that to any icon-only tool:
@@ -31,7 +31,7 @@
             {{#each toolsByZone.middle}}
                 {{#each this}}
                     {{#each tools}}
-                    <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}" data-tool-id="{{toolId}}"{{#if (or buttonNormalTint buttonSelectedTint)}} style="{{#if buttonNormalTint}}--button-normal-tint: {{buttonNormalTint}};{{/if}}{{#if buttonSelectedTint}} --button-selected-tint: {{buttonSelectedTint}};{{/if}}"{{/if}}>
+                    <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}" data-tool-id="{{toolId}}"{{#if (or buttonNormalTint buttonSelectedTint)}} style="{{#if buttonNormalTint}}--button-normal-tint: {{buttonNormalTint}};{{/if}}{{#if buttonSelectedTint}} --button-selected-tint: {{buttonSelectedTint}};{{/if}}"{{/if}}>
                         <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
                         {{#if title}}<span class="{{name}}-label">{{title}}</span>{{/if}}
                     </div>
@@ -42,7 +42,7 @@
                 {{/unless}}
             {{/each}}
             {{!-- Overflow "..." button: shown via JS when middle zone content overflows --}}
-            <div class="button menubar-overflow button-active" data-tool="menubar-overflow" title="More tools" style="display: none;">
+            <div class="button menubar-overflow button-active" data-tool="menubar-overflow" data-tooltip="More tools" style="display: none;">
                 <i class="fa-solid fa-ellipsis"></i>
             </div>
         </div>
@@ -78,7 +78,7 @@
         {{#each toolsByZone.right}}
             {{#each this}}
                 {{#each tools}}
-                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}" data-tool-id="{{toolId}}"{{#if (or buttonNormalTint buttonSelectedTint)}} style="{{#if buttonNormalTint}}--button-normal-tint: {{buttonNormalTint}};{{/if}}{{#if buttonSelectedTint}} --button-selected-tint: {{buttonSelectedTint}};{{/if}}"{{/if}}>
+                <div class="button {{name}} button-active{{#if (and toggleable active)}} tool-active{{/if}}" data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}" data-tool="{{name}}" data-tool-id="{{toolId}}"{{#if (or buttonNormalTint buttonSelectedTint)}} style="{{#if buttonNormalTint}}--button-normal-tint: {{buttonNormalTint}};{{/if}}{{#if buttonSelectedTint}} --button-selected-tint: {{buttonSelectedTint}};{{/if}}"{{/if}}>
                     <i class="{{icon}}" {{#if iconColor}}style="color: {{iconColor}};"{{/if}}></i>
                     {{#if title}}<span class="{{name}}-label">{{title}}</span>{{/if}}
                 </div>

@@ -11,7 +11,7 @@
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+    
      {{#if (or buttonColor borderColor)}}
      style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
      {{/if}}>
@@ -31,7 +31,7 @@
      data-tone="{{tone}}"
      data-emphasis="{{emphasis}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    >
     {{!-- Two tones, label then value, read as one pill. The word REPLACES the icon rather than
           joining it: an icon and a word saying the same thing spend two glyphs of width on one
           meaning, and this row has none to spare. --}}
@@ -52,7 +52,7 @@
      data-rank="{{rank}}"
      data-emphasis="{{emphasis}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    >
     {{!-- The portrait says WHO. The label has to say what the number is, or the chip is a face and a
           digit with no stated relationship and the only way to find out is to hover -- which is not
           a readout, it is a puzzle. --}}
@@ -80,7 +80,7 @@
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    >
     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
     <span class="secondary-bar-item-gaugechip-readout">
         <span class="secondary-bar-item-gaugechip-meter">
@@ -101,7 +101,7 @@
      data-tone="{{tone}}"
      data-emphasis="{{emphasis}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    >
     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
     <span class="secondary-bar-item-sparkchip-readout">
         <span class="secondary-bar-item-sparkchip-plot">
@@ -129,7 +129,7 @@
      data-rank="{{rank}}"
      data-emphasis="{{emphasis}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    >
     <span class="secondary-bar-item-nameplate-frame">
         {{#if image}}
         <img class="secondary-bar-item-nameplate-image" src="{{image}}" alt="">
@@ -148,7 +148,7 @@
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+    
      style="width: {{progressbarWidth}};">
     <div class="secondary-bar-item-progressbar-caption">
         {{#if icon}}<i class="{{icon}} secondary-bar-item-progressbar-icon"></i>{{/if}}
@@ -170,7 +170,7 @@
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{title}}{{/if}}"
+    
      style="width: {{balancebarWidth}};">
     <div class="secondary-bar-item-balancebar-caption">
         {{#if icon}}<i class="{{icon}} secondary-bar-item-balancebar-icon"></i>{{/if}}
@@ -187,7 +187,7 @@
         <div class="secondary-bar-item-balancebar-marker-extra{{#if fromBottom}} from-bottom{{/if}}"
              style="left: {{leftPercent}}%;{{#if color}} background-color: {{color}};{{/if}}"
              data-tooltip="{{tooltip}}"
-             title="{{tooltip}}"></div>
+            ></div>
         {{/each}}
         {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
         {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
@@ -200,7 +200,7 @@
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
-     title="{{#if tooltip}}{{tooltip}}{{else}}{{label}}{{/if}}"
+    
      {{#if (or buttonColor borderColor)}}
      style="{{#if buttonColor}}background-color: {{buttonColor}};{{/if}}{{#if borderColor}} border-color: {{borderColor}};{{/if}}"
      {{/if}}>

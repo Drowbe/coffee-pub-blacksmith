@@ -740,7 +740,11 @@ export class CombatBarManager {
         // that only works because of a predicate is ordering waiting to break.
         api.registerSecondaryBarItem('combat', 'stat-damage-dealt', {
             kind: 'sparkchip',
-            tone: 'good',
+            // Same tone as the out-of-combat damage spark on purpose: it is the same statistic in a
+            // different scope, and a reader who learns the shape of one should not have to learn the
+            // other. The monsters' side is a tint of this rather than a colour of its own -- see
+            // `menubar-widgets.css`.
+            tone: 'record',
             zone: 'middle',
             group: 'stats',
             order: 10,
@@ -999,7 +1003,7 @@ export class CombatBarManager {
         const colors = {
             trivial: '#9db89d',
             easy: '#a8c9a0',
-            medium: '#dcc36a',
+            medium: '#c0a457',
             hard: '#e39a6a',
             deadly: '#e07070',
             impossible: '#c98f8f',
@@ -1233,7 +1237,8 @@ export class CombatBarManager {
                 markers: [{
                     percent: crBalance,
                     from: 'bottom',
-                    color: 'rgba(220, 195, 106, 0.95)',
+                    // No colour here on purpose: the stylesheet owns it, so the gold is defined
+                    // once rather than restated in a module that cannot see the rest of the palette.
                     tooltip: `Threat still standing: party ${standingPartyCR} vs monsters ${standingMonsterCR}`
                 }]
             });
