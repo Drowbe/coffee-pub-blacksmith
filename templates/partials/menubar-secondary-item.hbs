@@ -51,6 +51,9 @@
      data-rank="{{rank}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    {{!-- The portrait says WHO. The label has to say what the number is, or the chip is a face and a
+          digit with no stated relationship and the only way to find out is to hover -- which is not
+          a readout, it is a puzzle. --}}
     <span class="secondary-bar-item-portraitstat-frame">
         {{#if image}}
         <img class="secondary-bar-item-portraitstat-image" src="{{image}}" alt="">
@@ -58,32 +61,53 @@
         <i class="{{#if icon}}{{icon}}{{else}}fa-solid fa-user{{/if}} secondary-bar-item-portraitstat-empty"></i>
         {{/if}}
     </span>
+    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
     {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
 </div>
 
 {{else if (eq kind "gaugechip")}}
-{{!-- A percentage as a shape. The ring is read before the digits are, which is the whole point; the
-      number stays because a ring alone cannot be read precisely at this size. The sweep is a single
-      custom property so a value update is one style write rather than new markup. --}}
+{{!-- A percentage as a filled METER, not a ring.
+
+      It was a ring twice: first a conic gradient masked into one, then a stroked SVG circle. Both
+      read badly, and the reason is the size rather than the technique -- at the height of this row a
+      dial is about twenty pixels across, which is too little arc to judge a proportion from and too
+      little room for the rim to survive antialiasing. A horizontal meter of the same width shows the
+      same fraction with an order of magnitude more resolution, and it sits in the pill language the
+      rest of the row already speaks. --}}
 <div class="secondary-bar-item secondary-bar-item-gaugechip"
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
-    {{!-- An SVG arc, not a conic gradient. A conic gradient masked into a ring is cheap to update
-          but Chromium renders its edges with no antialiasing worth the name, so at this size the
-          rim came out visibly stepped and the sweep boundary looked chewed. A stroked circle is
-          smooth at any size. `pathLength="100"` makes the dash array read as a percentage
-          directly, so a value update is still one style write. --}}
-    <span class="secondary-bar-item-gaugechip-dial">
-        <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false">
-            <circle class="secondary-bar-item-gaugechip-track" cx="18" cy="18" r="15.5" pathLength="100"></circle>
-            <circle class="secondary-bar-item-gaugechip-arc" cx="18" cy="18" r="15.5" pathLength="100"
-                    style="stroke-dasharray: {{gaugePercent}} 100;{{#if gaugeColor}} stroke: {{gaugeColor}};{{/if}}"></circle>
-        </svg>
-    </span>
     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
-    {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+    <span class="secondary-bar-item-gaugechip-readout">
+        <span class="secondary-bar-item-gaugechip-meter">
+            <span class="secondary-bar-item-gaugechip-fill" style="width: {{gaugePercent}}%;{{#if gaugeColor}} background-color: {{gaugeColor}};{{/if}}"></span>
+        </span>
+        {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+    </span>
+</div>
+
+{{else if (eq kind "sparkchip")}}
+{{!-- A value with its recent history behind it. Columns rather than a polyline, and CSS rather than
+      SVG: at this size a line is one or two pixels of slope per point and reads as noise, where
+      columns read as a shape. Heights are precomputed into percentages by the item preparation, so
+      the template does no maths and a series update is a handful of style writes. --}}
+<div class="secondary-bar-item secondary-bar-item-sparkchip tone-{{tone}}"
+     data-item-id="{{itemId}}"
+     data-group-id="{{groupId}}"
+     data-tone="{{tone}}"
+     data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
+     title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
+    {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
+    <span class="secondary-bar-item-sparkchip-readout">
+        <span class="secondary-bar-item-sparkchip-plot">
+            {{#each sparkBars}}
+            <span class="secondary-bar-item-sparkchip-bar{{#if isLast}} is-latest{{/if}}" style="height: {{height}}%;"></span>
+            {{/each}}
+        </span>
+        {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+    </span>
 </div>
 
 {{else if (eq kind "nameplate")}}

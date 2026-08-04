@@ -118,11 +118,32 @@ class MenuBar {
      * silently treated as a button -- given an active state, counted toward a switch group, and
      * offered a pointer cursor it does nothing with.
      */
-    static DISPLAY_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip', 'nameplate', 'progressbar', 'balancebar']);
+    static DISPLAY_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip', 'sparkchip', 'nameplate', 'progressbar', 'balancebar']);
 
     /** True when a kind is a readout rather than a button. */
     static isDisplayKind(kind) {
         return this.DISPLAY_KINDS.has(kind);
+    }
+
+    /**
+     * A numeric series as column heights in percent, newest last.
+     *
+     * Scaled against the series' own maximum rather than an absolute one, because a spark is read
+     * for its SHAPE -- is this rising, was that spike unusual -- and an absolute scale flattens
+     * every party whose numbers happen to be small. A floor of 6% keeps a zero visible as a tick
+     * rather than a gap, so the column count always matches the number of periods.
+     *
+     * Only the last `points` entries are kept: at this width more columns are thinner, not more
+     * informative, and the eye cannot resolve them.
+     */
+    static buildSparkBars(series, points = 12) {
+        if (!Array.isArray(series) || !series.length) return [];
+        const window = series.slice(-Math.max(1, points));
+        const max = window.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
+        return window.map((value, index) => ({
+            height: max > 0 ? Math.max(6, Math.round(((Number(value) || 0) / max) * 100)) : 6,
+            isLast: index === window.length - 1
+        }));
     }
 
     /**
@@ -132,7 +153,7 @@ class MenuBar {
      * is the ornament each adds (a tone, a portrait ring, a gauge sweep). The bars are not here --
      * their live fields are geometry, not text.
      */
-    static CHIP_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip', 'nameplate']);
+    static CHIP_KINDS = new Set(['info', 'statchip', 'portraitstat', 'gaugechip', 'sparkchip', 'nameplate']);
 
     /** Fingerprint of last full menubar HTML build (excludes timer tick text); used to skip remove/rebuild when unchanged. */
     static _menubarStructureFingerprint = null;
@@ -2307,7 +2328,8 @@ class MenuBar {
             const hasInfoUpdate = updates && (updates.value !== undefined || updates.label !== undefined || updates.borderColor !== undefined ||
                 updates.buttonColor !== undefined || updates.iconColor !== undefined || updates.tooltip !== undefined ||
                 updates.image !== undefined || updates.tone !== undefined ||
-                updates.rank !== undefined || updates.icon !== undefined);
+                updates.rank !== undefined || updates.icon !== undefined ||
+                updates.series !== undefined);
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
@@ -2328,6 +2350,7 @@ class MenuBar {
             if (updates.image !== undefined) existing.image = updates.image;
             if (updates.tone !== undefined) existing.tone = updates.tone;
             if (updates.rank !== undefined) existing.rank = updates.rank;
+            if (updates.series !== undefined) existing.series = updates.series;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
             if (updates.iconColor !== undefined) existing.iconColor = updates.iconColor;
@@ -2895,6 +2918,7 @@ class MenuBar {
                     if (u.icon !== undefined) item.icon = u.icon;
                     if (u.tone !== undefined) item.tone = u.tone;
                     if (u.rank !== undefined) item.rank = u.rank;
+                    if (u.series !== undefined) item.series = u.series;
                     if (u.percentProgress !== undefined) item.percentProgress = u.percentProgress;
                 }
                 // Defaults resolved here rather than in the template, so the rendered class list
@@ -2903,6 +2927,10 @@ class MenuBar {
                 if (item.kind === 'portraitstat' || item.kind === 'nameplate') item.rank = Number(item.rank) || 0;
                 if (item.kind === 'gaugechip') {
                     item.gaugePercent = Math.max(0, Math.min(100, Number(item.percentProgress) || 0));
+                }
+                if (item.kind === 'sparkchip') {
+                    item.tone = item.tone || 'neutral';
+                    item.sparkBars = MenuBar.buildSparkBars(item.series, item.sparkPoints);
                 }
             }
             // Merge live updates for progressbar items
@@ -3441,13 +3469,26 @@ class MenuBar {
                         el.dataset.rank = rank;
                     }
                 }
+                if (kind === 'sparkchip' && update.series !== undefined) {
+                    const plot = el.querySelector('.secondary-bar-item-sparkchip-plot');
+                    if (!plot) return bail('spark plot missing', itemId);
+                    const bars = MenuBar.buildSparkBars(update.series, item.sparkPoints);
+                    const nodes = plot.querySelectorAll('.secondary-bar-item-sparkchip-bar');
+                    // A different number of columns is a different number of elements, which only
+                    // the template can build.
+                    if (nodes.length !== bars.length) return bail('spark column count changed', itemId);
+                    bars.forEach((bar, index) => {
+                        const node = nodes[index];
+                        node.style.height = `${bar.height}%`;
+                        node.classList.toggle('is-latest', !!bar.isLast);
+                    });
+                }
                 if (kind === 'gaugechip' && update.percentProgress !== undefined) {
-                    // `pathLength="100"` on the circle means the dash array is the percentage
-                    // directly, so the sweep is still one style write despite being real geometry.
-                    const arc = el.querySelector('.secondary-bar-item-gaugechip-arc');
-                    if (!arc) return bail('gauge arc missing', itemId);
+                    // One style write, same as the ring it replaced.
+                    const fill = el.querySelector('.secondary-bar-item-gaugechip-fill');
+                    if (!fill) return bail('gauge fill missing', itemId);
                     const pct = Math.max(0, Math.min(100, Number(update.percentProgress) || 0));
-                    arc.style.strokeDasharray = `${pct} 100`;
+                    fill.style.width = `${pct}%`;
                 }
             } else if (kind === 'progressbar' || kind === 'balancebar') {
                 const prefix = `.secondary-bar-item-${kind}`;

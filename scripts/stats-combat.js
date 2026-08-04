@@ -1381,6 +1381,13 @@ class CombatStats {
             round: game.combat?.round || 0,
             duration,
             durationSeconds: Math.round(duration / 1000),
+            // Party damage per completed round, oldest first, for a consumer drawing a trend.
+            // Normalised HERE rather than at the consumer because the stored entries carry both
+            // `damageDealt` and a `damage` alias kept for template compatibility, and a reader
+            // picking the wrong one gets zeros with no error. The end-of-combat summary reshapes
+            // the same array into `{round, summary}`; this is the running equivalent.
+            roundDamage: (Array.isArray(source.rounds) ? source.rounds : [])
+                .map((round) => Number(round?.damageDealt ?? round?.damage) || 0),
             ...aggregate
         };
     }

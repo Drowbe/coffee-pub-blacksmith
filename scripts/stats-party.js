@@ -120,6 +120,8 @@ export class PartyStats {
             totalDamageGiven: 0,
             totalDamageTaken: 0,
             totalHealsGiven: 0,
+            damageSeries: [],
+            hitRateSeries: [],
             leaderboard: []
         };
     }
@@ -140,8 +142,19 @@ export class PartyStats {
         let totalKills = 0;
         let totalRounds = 0;
 
+        // Per-combat series for the spark readouts, gathered in the walk that already reduces this
+        // history rather than in a second pass. `getCombatHistory(null)` is newest-first, so these
+        // are reversed at the end to read left-to-right as time.
+        const damageSeries = [];
+        const hitRateSeries = [];
+
         for (const summary of history) {
             const totals = summary?.totals || {};
+            damageSeries.push(Number(totals.damageDealt) || 0);
+            {
+                const attempts = (Number(totals.hits) || 0) + (Number(totals.misses) || 0);
+                hitRateSeries.push(attempts > 0 ? ((Number(totals.hits) || 0) / attempts) * 100 : 0);
+            }
             totalHits += totals.hits || 0;
             totalMisses += totals.misses || 0;
             totalDamageGiven += totals.damageDealt || 0;
@@ -246,6 +259,9 @@ export class PartyStats {
             totalDamageGiven,
             totalDamageTaken,
             totalHealsGiven,
+            // Oldest first, so a spark reads left to right as time does.
+            damageSeries: damageSeries.slice().reverse(),
+            hitRateSeries: hitRateSeries.slice().reverse(),
             leaderboard
         };
     }

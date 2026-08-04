@@ -633,13 +633,17 @@ export class CombatBarManager {
         // Campaign-scale totals rather than per-person standings, so no portrait:
         // these belong to the party, not to anyone in it.
         api.registerSecondaryBarItem('combat', 'stat-total-damage', {
-            kind: 'statchip',
-            tone: 'neutral',
+            kind: 'sparkchip',
+            tone: 'record',
             zone: 'middle',
             group: 'stats',
             order: 6,
             icon: 'fa-solid fa-swords',
             label: 'Damage',
+            // Per-combat history behind the campaign total: the number says how much,
+            // the columns say whether the party is trending up or coasting.
+            series: [],
+            sparkPoints: 14,
             value: '-',
             tooltip: 'Total damage dealt across every recorded combat',
             visible: lifetimeStatsVisible
@@ -686,13 +690,17 @@ export class CombatBarManager {
         // are ever visible at once. They are mutually exclusive today, but ordering
         // that only works because of a predicate is ordering waiting to break.
         api.registerSecondaryBarItem('combat', 'stat-damage-dealt', {
-            kind: 'statchip',
+            kind: 'sparkchip',
             tone: 'good',
             zone: 'middle',
             group: 'stats',
             order: 10,
             icon: 'fa-solid fa-hand-fist',
             label: 'Dealt',
+            // Damage per round for the fight in progress, from the round summaries the
+            // accumulator already mirrors to the combat flag.
+            series: [],
+            sparkPoints: 12,
             value: '0',
             tooltip: 'Party damage dealt this combat',
             visible: liveStatsVisible
@@ -1224,7 +1232,10 @@ export class CombatBarManager {
             const totals = running?.totals;
             const biggest = running?.notableMoments?.biggestHit;
             api.updateSecondaryBarItemInfo('combat', 'stat-damage-dealt', {
-                value: String(totals?.damageDealt ?? 0)
+                value: String(totals?.damageDealt ?? 0),
+                // Per-round damage for this fight. `rounds` rides the same combat flag the
+                // totals do, so this costs no extra read and no second reduction.
+                series: running?.roundDamage ?? []
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-hit-rate', {
                 // hitRate is already a one-decimal string, and is the number 0
@@ -1318,6 +1329,7 @@ export class CombatBarManager {
             // anyone in it, and a face here would claim otherwise.
             api.updateSecondaryBarItemInfo('combat', 'stat-total-damage', {
                 value: CombatBarManager.compactNumber(aggregate.totalDamageGiven),
+                series: aggregate.damageSeries ?? [],
                 tooltip: `Total damage dealt across ${aggregate.totalCombats ?? 0} recorded combat(s): ${aggregate.totalDamageGiven ?? 0}`
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-total-kills', {
