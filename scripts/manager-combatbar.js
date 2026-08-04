@@ -285,6 +285,7 @@ export class CombatBarManager {
                     CombatBarManager.syncAllTimerReadouts();
                     CombatBarManager.syncDataRowState();
                     CombatBarManager.applyReadoutOverflow();
+                    CombatBarManager.observeDataRowWidth();
                     setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 100);
                 });
             }
@@ -1077,8 +1078,16 @@ export class CombatBarManager {
         'stat-combats', 'stat-avg-hit-rate', 'stat-total-kills', 'stat-total-damage',
         'stat-most-misses', 'stat-most-hits', 'stat-finesse', 'stat-total-healing',
         'stat-most-fumbles', 'stat-biggest-hitter',
-        // Live: the flourish and the support detail go before the survival pair,
-        // which goes before the three originals.
+        // Live: the MVP plate goes first of all. It is the widest thing in the zone
+        // by some way, so dropping it buys back more than any two chips — and it is
+        // the one readout that has a home elsewhere, since the same standing is in
+        // the Party Statistics window the group opens. Then the flourish and the
+        // support detail, then the survival pair, then the three originals.
+        //
+        // The LIFETIME plate is deliberately absent: out of combat it holds the left
+        // zone alone and competes with nothing, so suppressing it would free width
+        // in a zone that is not short of it.
+        'stat-combat-mvp',
         'stat-healing-given', 'stat-kills', 'stat-damage-taken',
         'stat-hit-rate', 'stat-combat-biggest', 'stat-damage-dealt',
         'party-health', 'monster-health', 'planning-timer', 'turn-timer'
@@ -1089,6 +1098,38 @@ export class CombatBarManager {
      * because "hide this one first" is an ordering CSS cannot state — a media
      * query would also be guessing at the row's width rather than reading it.
      */
+    /**
+     * Re-measure the readouts whenever the data row changes width.
+     *
+     * Suppression used to run only after a render, which meant it was right at the moment it ran
+     * and drifted from then on: the sidebar collapsing, the window resizing, or a Foundry UI change
+     * narrows the row without anything re-rendering the menubar, and the row was left holding a
+     * decision made at a width it no longer has. The visible result is a clipped chip that no
+     * amount of waiting fixes.
+     *
+     * The observer is rebound per render because the row element is rebuilt with the bar, and the
+     * previous one is disconnected first so a long session does not accumulate observers on
+     * detached nodes.
+     */
+    static observeDataRowWidth() {
+        const row = document.querySelector('.combat-data-row');
+        if (!row) return;
+        if (CombatBarManager._readoutResizeObserver?._row === row) return;
+
+        CombatBarManager._readoutResizeObserver?.disconnect();
+        const observer = new ResizeObserver(() => {
+            // Measuring inside the callback that fired on a layout change is what produces
+            // "ResizeObserver loop completed with undelivered notifications"; defer a frame.
+            requestAnimationFrame(() => CombatBarManager.applyReadoutOverflow());
+        });
+        observer._row = row;
+        observer.observe(row);
+        CombatBarManager._readoutResizeObserver = observer;
+    }
+
+    /** @type {ResizeObserver|null} */
+    static _readoutResizeObserver = null;
+
     static applyReadoutOverflow() {
         const row = document.querySelector('.combat-data-row');
         const toolbar = row?.querySelector('.secondary-bar-toolbar');
@@ -1102,9 +1143,50 @@ export class CombatBarManager {
         // Start from everything visible so the row recovers as it widens.
         for (const el of suppressed) el.classList.remove('is-suppressed');
 
+        // MEASURE THE ZONES, NOT ONLY THE TOOLBAR.
+        //
+        // The toolbar alone never reports overflow, so nothing was ever suppressed. The middle zone
+        // is `flex: 1 1 0` with `min-width: 0`, which means it SHRINKS to absorb any shortfall
+        // rather than pushing its parent wider -- so `toolbar.scrollWidth` stays equal to its
+        // clientWidth however much content is crammed in, while the zone's own contents spill past
+        // its edge and paint over the right zone. The visible symptom is readouts colliding with
+        // the health bars; the measurable one was nowhere, because the thing being measured could
+        // not overflow by construction.
+        //
+        // A zone can overflow, so ask the zones. One pixel of slack absorbs sub-pixel layout noise,
+        // which otherwise leaves a chip suppressed for a rounding error.
+        const zones = Array.from(toolbar.querySelectorAll('.secondary-bar-zone'));
+        const overflows = () => toolbar.scrollWidth > toolbar.clientWidth + 1
+            || zones.some((zone) => zone.scrollWidth > zone.clientWidth + 1);
+
         for (const el of suppressed) {
-            if (toolbar.scrollWidth <= toolbar.clientWidth) break;
+            if (!overflows()) break;
             el.classList.add('is-suppressed');
+        }
+
+        // NOTHING IS EVER SHOWN IN PART.
+        //
+        // The ranked pass decides WHAT to drop, and normally that is enough. It cannot promise
+        // enough on its own: it stops when the overflow clears, it can run out of ranked items
+        // while the row is still too narrow, and a zone with `overflow: hidden` answers a partial
+        // chip by slicing it -- which is how "ACCURAC" ends up on the bar. A clipped readout is
+        // worse than an absent one, because absent is a decision and clipped looks like damage.
+        //
+        // So this final pass guarantees the invariant the ranking cannot: any item whose box is not
+        // wholly inside its zone is hidden outright. It walks from the END of each zone backwards,
+        // because in a nowrap row the overflow is always at the trailing edge and the last item is
+        // the one to give up first -- and it re-measures after each hide, since removing one item
+        // pulls the rest back and the next may then fit whole.
+        for (const zone of zones) {
+            const items = Array.from(zone.querySelectorAll('.secondary-bar-item'))
+                .filter((el) => !el.classList.contains('is-suppressed'));
+            for (let index = items.length - 1; index >= 0; index--) {
+                const bounds = zone.getBoundingClientRect();
+                const item = items[index].getBoundingClientRect();
+                // A pixel of slack, for the same sub-pixel noise the width check allows.
+                if (item.right <= bounds.right + 1 && item.left >= bounds.left - 1) break;
+                items[index].classList.add('is-suppressed');
+            }
         }
     }
 
@@ -1793,6 +1875,8 @@ export class CombatBarManager {
     }
 
     static cleanupCombatBarEvents(menuBar) {
+        CombatBarManager._readoutResizeObserver?.disconnect();
+        CombatBarManager._readoutResizeObserver = null;
         menuBar._combatBarResizeObserver?.disconnect();
         menuBar._combatBarResizeObserver = null;
         if (menuBar._combatHoverMoveRaf != null) {

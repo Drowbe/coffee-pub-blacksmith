@@ -266,6 +266,18 @@
 .blacksmith-menubar-secondary .combat-data-row .secondary-bar-zone {
     flex-wrap: nowrap;
     min-width: 0;
+    /* A ZONE MUST CLIP ITS OWN CONTENT.
+       The middle zone is `flex: 1 1 0`, so it shrinks to absorb any shortfall
+       rather than pushing the toolbar wider -- and without this its contents
+       simply carried on past its edge and painted over the right zone, which is
+       how the accuracy meter ended up sitting on top of the health bars.
+       Suppression is what SHOULD prevent that, and now can; this is the backstop
+       for the width at which even a fully suppressed row does not fit, where
+       clipping is at least honest about running out of room.
+       It also makes the measurement possible: `scrollWidth` still reports the
+       full content width on a clipped box, which is what `applyReadoutOverflow`
+       compares against. */
+    overflow: hidden;
 }
 
 /* WHERE THE STATISTICS SIT DEPENDS ON WHAT IS BESIDE THEM.

@@ -318,6 +318,29 @@ Bar widths are CSS `clamp()` strings rather than pixel numbers — the item prep
 `width` through to the inline style verbatim, so a clamp gives "as wide as the space allows, down to a
 floor" without needing `!important` to beat that inline value.
 
+**Overflow is measured on the zones, not the toolbar.** The middle zone is `flex: 1 1 0` with
+`min-width: 0`, so it shrinks to absorb any shortfall rather than pushing its parent wider — which means
+`toolbar.scrollWidth` equals its `clientWidth` however much content is crammed in, and a check against
+the toolbar alone can never fire. The zone's contents spill past its edge instead and paint over the
+right zone; the visible symptom is readouts sitting on top of the health bars, while the measurable one
+is nowhere. A zone *can* overflow, so the zones are what get asked, with a pixel of slack for sub-pixel
+layout noise. The zones also carry `overflow: hidden`, which both stops the overlap and keeps the
+measurement working — `scrollWidth` still reports full content width on a clipped box.
+
+**No readout is ever shown in part.** The ranked pass decides *what* to drop and normally suffices, but it
+cannot promise the invariant on its own — it stops as soon as the overflow clears, it can exhaust the
+ranking while the row is still too narrow, and a clipping zone answers a chip that half-fits by slicing it.
+A clipped readout is worse than an absent one: absent is a decision, clipped looks like damage. So a final
+pass hides anything whose box is not wholly inside its zone, walking each zone from its trailing edge
+backwards (in a nowrap row the overflow is always at that end) and re-measuring after each hide, since
+removing one item pulls the rest back and the next may then fit whole.
+
+**Suppression re-runs when the row changes width, not only after a render.** It used to run only in the
+render path, which made it correct at the instant it ran and stale from then on — the sidebar collapsing or
+the window resizing narrows the row with nothing re-rendering the menubar, leaving a decision made at a
+width the row no longer has. A `ResizeObserver` on the data row (`observeDataRowWidth`) re-measures, deferred
+a frame so measuring does not re-enter the observation that triggered it.
+
 When the row still cannot fit, `applyReadoutOverflow` hides readouts in a fixed order rather than letting
 everything squeeze: the statistics first, since nothing in the moment depends on them, then party health,
 then monster health, then the timer. Within each statistics set the least operational goes first, so what
