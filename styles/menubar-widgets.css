@@ -557,12 +557,23 @@
        already says what a rise means. */
     .blacksmith-menubar-secondary .secondary-bar-item-value.is-changed,
     .blacksmith-menubar-secondary .secondary-bar-item-value-part.is-changed {
-        animation: blacksmith-value-flash 0.5s ease-out;
+        animation: blacksmith-value-flash 0.7s ease-out;
     }
 
+    /* THE GLOW IS THE SIGNAL, NOT THE COLOUR.
+       The first version flashed to `#fff`, which is almost exactly the neutral
+       value colour already in use -- a near-white brightening to white, on
+       11px text, for half a second. It was firing and invisible, which is the
+       worst of both: the machinery ran and nobody could tell.
+       A halo carries at this size where a hue shift does not, so the glow does
+       the announcing and grows well past the glyph before fading. `inherit` is
+       deliberately absent -- CSS-wide keywords are invalid inside keyframes and
+       the declaration would simply be dropped, leaving the property to fall back
+       to its own value anyway, which is what the missing 100% achieves openly. */
     @keyframes blacksmith-value-flash {
-        0%   { color: #fff; text-shadow: 0 0 6px rgba(255, 255, 255, 0.75); }
-        100% { color: inherit; text-shadow: none; }
+        0%   { text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
+        18%  { text-shadow: 0 0 10px rgba(255, 255, 255, 0.95), 0 0 20px rgba(255, 255, 255, 0.55); }
+        100% { text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
     }
 
     /* A STANDING CHANGED HANDS. A hard cut hides the event entirely; a fade says

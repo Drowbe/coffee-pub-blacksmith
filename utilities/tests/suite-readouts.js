@@ -1,0 +1,281 @@
+// ==================================================================
+// ===== SUITE: encounter bar readouts and their motion =============
+// ==================================================================
+//
+// DO NOT PASTE THIS INTO A FOUNDRY MACRO — it is an ES module and a macro
+// rejects it on the export. Paste utilities/test-harness.js instead; it
+// loads this suite itself.
+//
+// Contract: documentation/api/api-menubar.md
+// Architecture: documentation/architecture/architecture-menubar.md,
+//               documentation/architecture/architecture-encounter.md
+// Implementation: scripts/api-menubar.js, scripts/manager-combatbar.js
+//
+// WHY THIS SUITE EXISTS
+//
+// The readout motion cannot be verified by reading the code, and it cannot
+// be verified by playing either: a flash fires when a number changes, and
+// making a number change on the encounter bar means rolling dice until the
+// right one moves. So it went unverified, and when it did not appear there
+// was no way to tell WHICH link had failed — the value never reached the
+// DOM, the DOM never got the class, the class had no rule, or the rule was
+// suppressed by a motion preference.
+//
+// Every check here isolates one of those links. The interactive triggers
+// push a value directly, which is safe: `updateSecondaryBarItemInfo` only
+// changes what is displayed, and the next `refreshReadoutItems` overwrites
+// it with the real figure. Nothing here writes to a flag, an actor, or a
+// setting.
+//
+// THE DIAGNOSTIC THAT MATTERS is "did the node survive". Motion is only
+// possible because the value-patch path leaves the element in place; if a
+// push rebuilds the bar instead, every animation is correctly absent and no
+// amount of CSS will fix it. That check tells the two failures apart.
+// ==================================================================
+
+import { requireApi, settingRow, stylesheetContains } from './harness-lib.js';
+
+const MODULE_ID = 'coffee-pub-blacksmith';
+
+/** The bar these readouts live on. */
+const BAR = 'combat';
+
+/**
+ * A statistic that is visible in the current combat state.
+ *
+ * The two sets are mutually exclusive by `visible` predicate, so poking the
+ * wrong one writes to an item that is not rendered and the check reports a
+ * missing element rather than a missing animation — a false failure that
+ * would send the next reader after the wrong bug.
+ */
+function subjectChip() {
+    const inCombat = !!(game.combat?.started);
+    return inCombat
+        ? { itemId: 'stat-damage-dealt', label: 'Damage (live)' }
+        : { itemId: 'stat-total-damage', label: 'Damage Dealt (lifetime)' };
+}
+
+function chipElement(itemId) {
+    return document.querySelector(
+        `.combat-data-row .secondary-bar-item[data-item-id="${itemId}"]`
+    );
+}
+
+function valueElement(itemId) {
+    return chipElement(itemId)?.querySelector('.secondary-bar-item-value') ?? null;
+}
+
+/** A portrait chip that is currently rendered, whichever set is showing. */
+function subjectPortrait() {
+    for (const itemId of ['stat-combat-biggest', 'stat-biggest-hitter', 'stat-most-hits', 'stat-most-fumbles']) {
+        if (chipElement(itemId)) return itemId;
+    }
+    return null;
+}
+
+const prefersReducedMotion = () => {
+    try {
+        return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+    } catch (_) {
+        return false;
+    }
+};
+
+/** Let a pushed value reach the DOM. The patch is synchronous; a render is not. */
+const settle = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 30)));
+
+export default {
+    id: 'readouts',
+    label: 'Readouts',
+    icon: 'fa-solid fa-chart-line',
+
+    settings: () => {
+        const api = game.modules.get(MODULE_ID)?.api;
+        const subject = subjectChip();
+        const barOpen = !!document.querySelector('.combat-data-row');
+        return [
+            settingRow('Combat bar open', barOpen ? 'yes' : 'NO — open it, nothing here can run',
+                'every check below reads the rendered row'),
+            settingRow('Combat running', game.combat?.started ? `yes (round ${game.combat.round})` : 'no',
+                'decides which statistics set is rendered, and so which chip the checks poke'),
+            settingRow('Subject chip', `${subject.label} (${subject.itemId})`),
+            settingRow('Subject rendered', chipElement(subject.itemId) ? 'yes' : 'MISSING',
+                'a suppressed or hidden chip cannot animate, and that is correct behaviour'),
+            settingRow('Widget stylesheet loaded',
+                stylesheetContains('secondary-bar-item-statchip') ? 'yes' : 'MISSING',
+                'menubar-widgets.css needs an @import in default.css or it is silently unstyled'),
+            settingRow('Motion rules present',
+                stylesheetContains('blacksmith-value-flash') ? 'yes' : 'MISSING'),
+            settingRow('Reduced motion',
+                prefersReducedMotion() ? 'ON — motion is intentionally disabled' : 'off',
+                'the opt-out is a plain swap, so "no animation" is the correct result when this is on'),
+            settingRow('updateSecondaryBarItemInfo',
+                typeof api?.updateSecondaryBarItemInfo === 'function' ? 'available' : 'MISSING')
+        ];
+    },
+
+    checks: [
+        {
+            id: 'motion-rules',
+            group: 'Motion',
+            tier: 'headless',
+            label: 'Motion: every animation has a rule that reached the browser',
+            note: 'Catches the silent failure where a new stylesheet has no @import and nothing is styled.',
+            run: async ({ expect }) => {
+                expect.ok('widget styles are loaded at all',
+                    stylesheetContains('secondary-bar-item-statchip'));
+                expect.ok('value flash keyframes are present',
+                    stylesheetContains('blacksmith-value-flash'));
+                expect.ok('portrait swap keyframes are present',
+                    stylesheetContains('blacksmith-portrait-swap'));
+                expect.ok('record burst keyframes are present',
+                    stylesheetContains('blacksmith-record-burst'));
+            }
+        },
+
+        {
+            id: 'patch-path',
+            group: 'Motion',
+            tier: 'headless',
+            label: 'Motion: a pushed value patches the node rather than rebuilding it',
+            note: 'THE check to read first when nothing animates. A rebuilt node cannot animate, '
+                + 'because the element carrying the previous value is gone — and that is a different '
+                + 'bug from a missing CSS rule, with a different fix.',
+            run: async ({ expect }) => {
+                const api = requireApi('updateSecondaryBarItemInfo');
+                const { itemId } = subjectChip();
+                const before = valueElement(itemId);
+                if (!expect.ok(`${itemId} is rendered`, !!before)) return;
+
+                // Tag the live node. If the same object is still in the document after a push, the
+                // value was written in place; if it is gone, the bar was rebuilt around it.
+                const token = `probe-${Date.now()}`;
+                before.dataset.harnessProbe = token;
+                const original = before.textContent;
+
+                api.updateSecondaryBarItemInfo(BAR, itemId, { value: String(Number(original.replace(/\D/g, '') || 0) + 7) });
+                await settle();
+
+                const after = valueElement(itemId);
+                expect.ok('the value element still exists', !!after);
+                expect.ok('the node survived the update (patched, not rebuilt)',
+                    after?.dataset?.harnessProbe === token);
+                expect.ok('the text actually changed', after?.textContent !== original);
+
+                // Put the real figure back rather than leaving a fabricated one on the bar.
+                api.updateSecondaryBarItemInfo(BAR, itemId, { value: original });
+            }
+        },
+
+        {
+            id: 'flash-class',
+            group: 'Motion',
+            tier: 'headless',
+            label: 'Motion: a changed value receives the flash class',
+            note: 'Isolates the JS half. If this passes and nothing is visible, the fault is in CSS '
+                + 'or in a motion preference, not in the change detection.',
+            run: async ({ expect }) => {
+                const api = requireApi('updateSecondaryBarItemInfo');
+                const { itemId } = subjectChip();
+                const node = valueElement(itemId);
+                if (!expect.ok(`${itemId} is rendered`, !!node)) return;
+
+                if (prefersReducedMotion()) {
+                    expect.ok('reduced motion is on, so no class is expected (not a failure)', true);
+                    return;
+                }
+
+                const original = node.textContent;
+                node.classList.remove('is-changed');
+                api.updateSecondaryBarItemInfo(BAR, itemId, { value: `${Number(original.replace(/\D/g, '') || 0) + 3}` });
+                await settle();
+
+                const after = valueElement(itemId);
+                expect.ok('the value carries is-changed after a real change',
+                    !!after?.classList?.contains('is-changed'));
+
+                // An identical push must NOT re-announce: motion follows a value, not a render.
+                after?.classList?.remove('is-changed');
+                api.updateSecondaryBarItemInfo(BAR, itemId, { value: after?.textContent });
+                await settle();
+                expect.ok('an unchanged value does not flash',
+                    !valueElement(itemId)?.classList?.contains('is-changed'));
+
+                api.updateSecondaryBarItemInfo(BAR, itemId, { value: original });
+            }
+        },
+
+        {
+            id: 'trigger-flash',
+            group: 'Motion',
+            tier: 'interactive',
+            label: 'Trigger: flash and count-up on the visible damage chip',
+            note: 'Pushes a display-only value; the next refresh restores the real one. '
+                + 'Watch for the number climbing rather than jumping, and a brief brightening.',
+            run: async ({ expect }) => {
+                const api = requireApi('updateSecondaryBarItemInfo');
+                const { itemId, label } = subjectChip();
+                const node = valueElement(itemId);
+                if (!expect.ok(`${label} is rendered`, !!node)) return;
+
+                const original = node.textContent;
+                const base = Number(original.replace(/\D/g, '')) || 0;
+                // Large enough that a count-up is unmistakable from a swap.
+                api.updateSecondaryBarItemInfo(BAR, itemId, { value: String(base + 137) });
+                expect.ok(`pushed ${base} -> ${base + 137} on ${label}; the real figure returns on the next refresh`, true);
+            }
+        },
+
+        {
+            id: 'trigger-burst',
+            group: 'Motion',
+            tier: 'interactive',
+            label: 'Trigger: the record burst',
+            note: 'The one animation a caller has to declare — the menubar cannot know a standing '
+                + 'record was beaten, because the record lives in a different statistics tier.',
+            run: async ({ expect }) => {
+                const api = requireApi('updateSecondaryBarItemInfo');
+                const itemId = chipElement('stat-combat-biggest') ? 'stat-combat-biggest' : 'stat-biggest-hitter';
+                if (!expect.ok(`${itemId} is rendered`, !!chipElement(itemId))) return;
+
+                api.updateSecondaryBarItemInfo(BAR, itemId, { burst: true });
+                expect.ok('burst pushed — expect ONE expanding ring, and no repeat on later refreshes', true);
+            }
+        },
+
+        {
+            id: 'trigger-portrait',
+            group: 'Motion',
+            tier: 'interactive',
+            label: 'Trigger: the portrait crossfade',
+            note: 'Swaps a standing to another party portrait so the fade is visible. The real face '
+                + 'returns on the next refresh.',
+            run: async ({ expect }) => {
+                const api = requireApi('updateSecondaryBarItemInfo');
+                const itemId = subjectPortrait();
+                if (!expect.ok('a portrait chip is rendered', !!itemId)) return;
+
+                const current = chipElement(itemId)?.querySelector('img')?.getAttribute('src') ?? '';
+                const candidates = game.actors
+                    .filter((actor) => actor.hasPlayerOwner && actor.img && actor.img !== current)
+                    .map((actor) => actor.img);
+                if (!expect.ok('another party portrait is available to swap to', candidates.length > 0)) return;
+
+                api.updateSecondaryBarItemInfo(BAR, itemId, { image: candidates[0] });
+                expect.ok(`swapped ${itemId} to another portrait — expect a short fade, not a cut`, true);
+            }
+        },
+
+        {
+            id: 'trigger-reduced',
+            group: 'Motion',
+            tier: 'interactive',
+            label: 'Report: what the browser says about reduced motion',
+            note: 'The opt-out is a plain swap rather than a faster animation, so "nothing moved" is '
+                + 'the correct outcome when this reports ON.',
+            run: async ({ expect }) => {
+                expect.ok(`prefers-reduced-motion is ${prefersReducedMotion() ? 'ON' : 'off'}`, true);
+            }
+        }
+    ]
+};
