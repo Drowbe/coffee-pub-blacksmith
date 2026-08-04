@@ -135,14 +135,29 @@ class MenuBar {
      *
      * Only the last `points` entries are kept: at this width more columns are thinner, not more
      * informative, and the eye cannot resolve them.
+     *
+     * Pass `seriesB` for a paired chart -- two columns per period, sharing one scale so the pair
+     * can be compared against each other rather than each against itself.
      */
-    static buildSparkBars(series, points = 12) {
+    static buildSparkBars(series, points = 12, seriesB = null) {
         if (!Array.isArray(series) || !series.length) return [];
-        const window = series.slice(-Math.max(1, points));
-        const max = window.reduce((m, v) => Math.max(m, Number(v) || 0), 0);
-        return window.map((value, index) => ({
-            height: max > 0 ? Math.max(6, Math.round(((Number(value) || 0) / max) * 100)) : 6,
-            isLast: index === window.length - 1
+        const take = Math.max(1, points);
+        const a = series.slice(-take);
+        const b = Array.isArray(seriesB) ? seriesB.slice(-take) : null;
+
+        // BOTH SERIES SHARE ONE SCALE. Normalising each against its own maximum would make a round
+        // where the party dealt 40 and took 4 draw two equal columns, which is the opposite of what
+        // a paired chart is for -- the comparison between the pair IS the reading.
+        let max = 0;
+        for (const value of a) max = Math.max(max, Number(value) || 0);
+        if (b) for (const value of b) max = Math.max(max, Number(value) || 0);
+
+        const height = (value) => (max > 0 ? Math.max(6, Math.round(((Number(value) || 0) / max) * 100)) : 6);
+        return a.map((value, index) => ({
+            height: height(value),
+            heightB: b ? height(b[index]) : null,
+            hasPair: !!b,
+            isLast: index === a.length - 1
         }));
     }
 
@@ -890,6 +905,68 @@ class MenuBar {
      * @param {Array|Function} [toolData.contextMenuItems] - Optional: right-click context menu. Array of { name, icon, onClick } or function (toolId, tool) => array. If present, right-click on the tool shows this menu instead of browser default.
      * @returns {boolean} Success status
      */
+    /**
+     * Run a registered menubar tool by id, from anywhere.
+     *
+     * A tool used to be reachable only by clicking its own icon, so any other surface that wanted
+     * the same behaviour had to reimplement it or reach into the owning module. Registration
+     * already knows what the tool does; this makes that knowledge callable.
+     *
+     * @param {string} toolId
+     * @param {Object} [context] - passed to the tool's onClick as its second argument
+     * @returns {boolean} whether a tool was found and run
+     */
+    static invokeMenubarTool(toolId, context = {}) {
+        const tool = this.toolbarIcons.get(toolId);
+        if (typeof tool?.onClick !== 'function') return false;
+        try {
+            tool.onClick(null, context);
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar API: Error invoking tool", { toolId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Run whichever registered tool claims an INTENT, if any module has claimed it.
+     *
+     * This is the part that keeps surfaces from coupling to modules. Blacksmith's combat bar wants
+     * clicking the party health bars to open a health panel, and Squire has one -- but naming
+     * `squire-health` here would put a sibling's tool id in the hub, which is precisely the
+     * coupling the module boundaries forbid. Instead a tool declares what it HANDLES:
+     *
+     *     blacksmith.registerMenubarTool('squire-health', { ..., intents: ['party-health'] });
+     *
+     * and any surface asks for the intent. Nobody claims it, nothing happens -- which is the
+     * correct behaviour for an optional integration, and is why `hasIntentHandler` exists: a
+     * surface should not offer a click that will do nothing.
+     *
+     * Registration order decides ties. Two modules claiming one intent is a configuration the user
+     * chose, not an error to resolve here.
+     *
+     * @param {string} intent
+     * @param {Object} [context]
+     * @returns {boolean} whether a handler was found and run
+     */
+    static invokeIntent(intent, context = {}) {
+        if (!intent) return false;
+        for (const [toolId, tool] of this.toolbarIcons.entries()) {
+            if (!Array.isArray(tool?.intents) || !tool.intents.includes(intent)) continue;
+            return this.invokeMenubarTool(toolId, context);
+        }
+        return false;
+    }
+
+    /** Whether any registered tool claims an intent. Ask before offering a click. */
+    static hasIntentHandler(intent) {
+        if (!intent) return false;
+        for (const tool of this.toolbarIcons.values()) {
+            if (Array.isArray(tool?.intents) && tool.intents.includes(intent)) return true;
+        }
+        return false;
+    }
+
     static registerMenubarTool(toolId, toolData) {
         try {
             // Validate required parameters
@@ -970,7 +1047,16 @@ class MenuBar {
                 iconColor: toolData.iconColor || null,  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
                 buttonNormalTint: toolData.buttonNormalTint || null,  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
                 buttonSelectedTint: toolData.buttonSelectedTint || null,  // Any valid CSS color (e.g., "#ff0000", "rgba(255, 0, 0, 0.8)", "red")
-                contextMenuItems: toolData.contextMenuItems !== undefined ? toolData.contextMenuItems : null  // Optional: array or (toolId, tool) => array of { name, icon, onClick }
+                contextMenuItems: toolData.contextMenuItems !== undefined ? toolData.contextMenuItems : null,  // Optional: array or (toolId, tool) => array of { name, icon, onClick }
+                // Capabilities this tool claims, for `invokeIntent` / `hasIntentHandler`.
+                //
+                // This object is a NORMALISED COPY, not the caller's -- which is deliberate, since
+                // it means a registration cannot smuggle in fields the menubar then has to defend
+                // against. The cost is that every supported field must be listed here or it is
+                // silently dropped, and `intents` was: the lookup was written and the copy was not,
+                // so a module could claim an intent, get `true` back from registration, and never
+                // be found. Anything added to the API surface has to be added HERE too.
+                intents: Array.isArray(toolData.intents) ? [...toolData.intents] : []
             };
 
             // Register the tool
@@ -2329,13 +2415,15 @@ class MenuBar {
                 updates.buttonColor !== undefined || updates.iconColor !== undefined || updates.tooltip !== undefined ||
                 updates.image !== undefined || updates.tone !== undefined ||
                 updates.rank !== undefined || updates.icon !== undefined ||
-                updates.series !== undefined || updates.emphasis !== undefined);
+                updates.series !== undefined || updates.emphasis !== undefined ||
+                updates.seriesB !== undefined);
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
             const hasBalancebarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
-                updates.barColorLeft !== undefined || updates.barColorRight !== undefined || updates.markerColor !== undefined || updates.borderColor !== undefined);
+                updates.barColorLeft !== undefined || updates.barColorRight !== undefined || updates.markerColor !== undefined || updates.borderColor !== undefined ||
+                updates.markers !== undefined);
             if (!updates || (!hasInfoUpdate && !hasProgressbarUpdate && !hasBalancebarUpdate)) {
                 return false;
             }
@@ -2351,6 +2439,7 @@ class MenuBar {
             if (updates.tone !== undefined) existing.tone = updates.tone;
             if (updates.rank !== undefined) existing.rank = updates.rank;
             if (updates.series !== undefined) existing.series = updates.series;
+            if (updates.seriesB !== undefined) existing.seriesB = updates.seriesB;
             if (updates.emphasis !== undefined) existing.emphasis = updates.emphasis;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
@@ -2367,6 +2456,7 @@ class MenuBar {
             if (updates.barColorLeft !== undefined) existing.barColorLeft = updates.barColorLeft;
             if (updates.barColorRight !== undefined) existing.barColorRight = updates.barColorRight;
             if (updates.markerColor !== undefined) existing.markerColor = updates.markerColor;
+            if (updates.markers !== undefined) existing.markers = updates.markers;
             map.set(itemId, existing);
 
             if (this.secondaryBar.isOpen && this.secondaryBar.type === barTypeId) {
@@ -2921,6 +3011,7 @@ class MenuBar {
                     if (u.emphasis !== undefined) item.emphasis = u.emphasis;
                     if (u.rank !== undefined) item.rank = u.rank;
                     if (u.series !== undefined) item.series = u.series;
+                    if (u.seriesB !== undefined) item.seriesB = u.seriesB;
                     if (u.percentProgress !== undefined) item.percentProgress = u.percentProgress;
                 }
                 // Defaults resolved here rather than in the template, so the rendered class list
@@ -2936,7 +3027,7 @@ class MenuBar {
                 }
                 if (item.kind === 'sparkchip') {
                     item.tone = item.tone || 'neutral';
-                    item.sparkBars = MenuBar.buildSparkBars(item.series, item.sparkPoints);
+                    item.sparkBars = MenuBar.buildSparkBars(item.series, item.sparkPoints, item.seriesB);
                 }
             }
             // Merge live updates for progressbar items
@@ -2966,6 +3057,7 @@ class MenuBar {
                 if (u.barColorLeft !== undefined) item.barColorLeft = u.barColorLeft;
                 if (u.barColorRight !== undefined) item.barColorRight = u.barColorRight;
                 if (u.markerColor !== undefined) item.markerColor = u.markerColor;
+                if (u.markers !== undefined) item.markers = u.markers;
                 if (u.borderColor !== undefined) item.borderColor = u.borderColor;
             }
             if (item.kind === 'progressbar') {
@@ -2983,6 +3075,27 @@ class MenuBar {
                     : 'calc(var(--blacksmith-menubar-secondary-height) * 0.4)';
                 const p = Math.max(-100, Math.min(100, Number(item.percentProgress) || 0));
                 item.balancebarMarkerLeftPercent = 50 + (p / 2);
+
+                // EXTRA NEEDLES ON THE SAME SCALE.
+                //
+                // A balance bar measures one thing -- the relationship between two sides -- and the
+                // bar IS that scale. A second reading of the same relationship does not want a
+                // second bar; it wants a second needle, because the whole value of putting them
+                // together is reading one against the other on identical axes. Two bars would put
+                // the comparison back on the reader.
+                //
+                // `from: 'bottom'` is how two needles stay distinguishable without colour alone:
+                // one descends from the top edge, the other rises from the bottom, and they meet in
+                // the middle without ever overlapping.
+                item.balancebarMarkers = (Array.isArray(item.markers) ? item.markers : []).map((marker) => {
+                    const value = Math.max(-100, Math.min(100, Number(marker?.percent) || 0));
+                    return {
+                        leftPercent: 50 + (value / 2),
+                        color: marker?.color || null,
+                        fromBottom: marker?.from === 'bottom',
+                        tooltip: marker?.tooltip || ''
+                    };
+                });
             }
             itemsByZone[zone].get(groupId).push(item);
         }
@@ -3483,18 +3596,30 @@ class MenuBar {
                         el.dataset.rank = rank;
                     }
                 }
-                if (kind === 'sparkchip' && update.series !== undefined) {
+                if (kind === 'sparkchip' && (update.series !== undefined || update.seriesB !== undefined)) {
                     const plot = el.querySelector('.secondary-bar-item-sparkchip-plot');
                     if (!plot) return bail('spark plot missing', itemId);
-                    const bars = MenuBar.buildSparkBars(update.series, item.sparkPoints);
-                    const nodes = plot.querySelectorAll('.secondary-bar-item-sparkchip-bar');
-                    // A different number of columns is a different number of elements, which only
+                    const bars = MenuBar.buildSparkBars(
+                        update.series !== undefined ? update.series : item.series,
+                        item.sparkPoints,
+                        update.seriesB !== undefined ? update.seriesB : item.seriesB
+                    );
+                    const groups = plot.querySelectorAll('.secondary-bar-item-sparkchip-period');
+                    // A different number of periods is a different number of elements, which only
                     // the template can build.
-                    if (nodes.length !== bars.length) return bail('spark column count changed', itemId);
+                    if (groups.length !== bars.length) return bail('spark column count changed', itemId);
                     bars.forEach((bar, index) => {
-                        const node = nodes[index];
-                        node.style.height = `${bar.height}%`;
-                        node.classList.toggle('is-latest', !!bar.isLast);
+                        const group = groups[index];
+                        const primary = group.querySelector('.secondary-bar-item-sparkchip-bar.is-primary');
+                        const paired = group.querySelector('.secondary-bar-item-sparkchip-bar.is-paired');
+                        if (primary) {
+                            primary.style.height = `${bar.height}%`;
+                            primary.classList.toggle('is-latest', !!bar.isLast);
+                        }
+                        if (paired && bar.heightB != null) {
+                            paired.style.height = `${bar.heightB}%`;
+                            paired.classList.toggle('is-latest', !!bar.isLast);
+                        }
                     });
                 }
                 if (kind === 'gaugechip' && update.percentProgress !== undefined) {
@@ -3554,6 +3679,23 @@ class MenuBar {
                 if (update.markerColor !== undefined) {
                     const marker = el.querySelector(`${prefix}-marker`);
                     if (marker) marker.style.backgroundColor = update.markerColor || '';
+                }
+                if (update.markers !== undefined) {
+                    const extra = el.querySelectorAll(`${prefix}-marker-extra`);
+                    const wanted = Array.isArray(update.markers) ? update.markers : [];
+                    // A different number of needles is a different number of elements, which only
+                    // the template can build.
+                    if (extra.length !== wanted.length) return bail('balance marker count changed', itemId);
+                    wanted.forEach((marker, index) => {
+                        const node = extra[index];
+                        const value = Math.max(-100, Math.min(100, Number(marker?.percent) || 0));
+                        node.style.left = `${50 + (value / 2)}%`;
+                        if (marker?.color) node.style.backgroundColor = marker.color;
+                        if (marker?.tooltip !== undefined) {
+                            node.setAttribute('data-tooltip', String(marker.tooltip));
+                            node.setAttribute('title', String(marker.tooltip));
+                        }
+                    });
                 }
             } else {
                 // A button's live keys are its colours and tooltip, all handled above. Anything

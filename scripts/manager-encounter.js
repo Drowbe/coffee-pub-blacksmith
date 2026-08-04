@@ -18,12 +18,51 @@ export class EncounterManager {
      *   measure. Defaults to the canvas. Pass a combat's turns to scope the
      *   rating to who is actually in the fight rather than who is on the scene.
      */
-    static getPartyCR(source = null) {
+    /**
+     * Whether a token still contributes threat -- that is, whether it can still fight.
+     *
+     * The asymmetry between the two sides is the whole of this rule, and it is a rules
+     * distinction rather than a modelling convenience. A monster at zero hit points is out of the
+     * fight. A player character at zero is **dying**, not dead: they are making death saving
+     * throws, an ally can bring them back with a single action, and the enemy still has to account
+     * for them. Treating the two the same would either write off a party that is one Healing Word
+     * from whole, or leave a corpse contributing threat.
+     *
+     * So: anything explicitly marked defeated is out, on either side -- that flag is the GM saying
+     * so, and it is what dnd5e sets when a character actually dies. Beyond that, a monster at zero
+     * is out and a player character at zero is not.
+     *
+     * Hit points are optional on an actor (a dnd5e `group` carries members instead), so a missing
+     * pool reads as "still standing" rather than throwing.
+     *
+     * @param {Token} token
+     * @returns {boolean}
+     */
+    static canStillFight(token) {
+        const actor = token?.actor;
+        if (!actor) return false;
+
+        // The explicit statement of defeat, wherever it comes from, wins on either side.
+        const combatant = game.combat?.combatants?.find((c) => c.tokenId === token.id);
+        if (combatant?.isDefeated) return false;
+        if (actor.statuses?.has?.('dead')) return false;
+
+        const hp = actor.system?.attributes?.hp;
+        const current = Number(hp?.value);
+        if (!Number.isFinite(current)) return true;
+
+        // Zero ends a monster and only downs a character.
+        if (actor.type === 'character') return true;
+        return current > 0;
+    }
+
+    static getPartyCR(source = null, { onlyStanding = false } = {}) {
         try {
             const tokens = source ?? canvas?.tokens?.placeables;
             if (!tokens) return '0';
             const playerTokens = tokens.filter(
                 (token) => token.actor && token.actor.type === 'character' && token.actor.hasPlayerOwner
+                    && (!onlyStanding || EncounterManager.canStillFight(token))
             );
             if (playerTokens.length === 0) return '0';
 
@@ -58,7 +97,7 @@ export class EncounterManager {
      * @param {Object} [metadata] - Optional { monsters: uuid[], npcs: uuid[] }; if omitted, uses canvas tokens only.
      * @returns {string} Formatted CR string
      */
-    static getMonsterCR(metadata = {}, source = null) {
+    static getMonsterCR(metadata = {}, source = null, { onlyStanding = false } = {}) {
         try {
             const tokens = source ?? canvas?.tokens?.placeables;
             if (!tokens) return '0';
@@ -67,6 +106,7 @@ export class EncounterManager {
                     && token.actor.type === 'npc'
                     && !token.actor.hasPlayerOwner
                     && !token.actor.getFlag('coffee-pub-blacksmith', 'sidekick')
+                    && (!onlyStanding || EncounterManager.canStillFight(token))
             );
             if (monsterTokens.length === 0) return '0';
 

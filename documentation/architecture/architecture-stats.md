@@ -264,6 +264,20 @@ The price is small and worth naming: the GM's figures lag by up to the debounce 
 moments of a combat show placeholders for everyone until the first mirror lands. The second is not a
 degradation but an honest report — nothing has been broadcast yet, so there is nothing to show.
 
+**The mirror must never publish memory poorer than the flag.** The write is otherwise unconditional --
+whatever is in memory replaces the flag -- which is right while this client is the one accumulating and
+catastrophic when it is not. After a browser refresh it is not: `initialize()` restores from the flag
+exactly once, at `ready`, reading `game.combat` at that instant, and `game.combat` resolves against the
+*viewed scene*, so a combat running on another scene reads as no combat at all. The restore then silently
+does nothing, memory stays at its defaults, and the next tracked event mirrors those defaults over a flag
+holding the whole fight.
+
+`combatStats.startTime` is the discriminator: `_onCombatStart` stamps it, so memory without it has never
+been initialised for a combat while a flag with it has. That pairing means the client lost its state, and
+`_schedulePersistCombatStats` recovers from the flag rather than publishing over it. A genuinely new
+combat always carries a stamp, so a legitimate reset is never blocked. Any future writer of these flags
+needs the same rule -- the failure is silent, and what it destroys is the only copy.
+
 `_generateCombatSummary` is the one exception and still reduces memory directly. The stored summary has to
 be exact rather than current-to-within-a-second, it runs only on the GM, and it is the write everything
 else derives from. `_buildCombatAggregate(source)` takes its input rather than reaching for `combatStats`,

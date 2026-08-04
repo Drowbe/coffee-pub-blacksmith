@@ -104,6 +104,41 @@ class CombatStats {
                 this._persistDebounced = foundry.utils.debounce(async () => {
                     try {
                         if (!game.combat) return;
+
+                        // THE MIRROR MUST NEVER DESTROY A RICHER FLAG WITH A POORER MEMORY.
+                        //
+                        // The write is otherwise unconditional: whatever is in memory replaces the
+                        // flag. That is correct while this client is the one accumulating, and
+                        // catastrophic the moment it is not -- and after a browser refresh it is
+                        // not. `initialize()` restores from the flag exactly once, at `ready`,
+                        // reading `game.combat` at that instant; if no combat is resolved yet the
+                        // restore silently does nothing, memory stays at its defaults, and the
+                        // first tracked event afterwards mirrors those defaults over a flag holding
+                        // the whole fight. The data is gone with no error anywhere.
+                        //
+                        // `startTime` is the discriminator, and it is reliable because
+                        // `_onCombatStart` stamps it. Memory without it has never been initialised
+                        // for a combat; a flag with it has been. That pairing means "we lost our
+                        // state", and the answer is to take the flag's rather than publish ours.
+                        // A genuinely new combat always carries a stamp, so a legitimate reset is
+                        // never blocked.
+                        if (!this.combatStats?.startTime) {
+                            const stored = game.combat.getFlag(MODULE.ID, 'combatStats');
+                            if (stored?.startTime) {
+                                this.combatStats = stored;
+                                const storedRound = game.combat.getFlag(MODULE.ID, 'stats');
+                                if (storedRound) {
+                                    this.currentStats = storedRound;
+                                    this._restoreCurrentStatsRuntimeShape(this.currentStats);
+                                }
+                                this._ensureCombatTotals();
+                                postConsoleAndNotification(MODULE.NAME,
+                                    'Combat Stats | Recovered state from combat flag instead of overwriting it',
+                                    { reason, rounds: (this.combatStats.rounds || []).length }, true, false);
+                                return;
+                            }
+                        }
+
                         const current = this._serializeForCombatFlag(this.currentStats);
                         const combat = this._serializeForCombatFlag(this.combatStats);
                         await game.combat.setFlag(MODULE.ID, 'stats', current);
@@ -474,7 +509,13 @@ class CombatStats {
             isGM: !!game.user?.isGM
         }, true, false);
 
-        // Check for existing stats in combat flags (supports resuming mid-combat / mid-round)
+        // Check for existing stats in combat flags (supports resuming mid-combat / mid-round).
+        //
+        // This runs ONCE, and `game.combat` may legitimately be null here -- it resolves against
+        // the viewed scene, and a combat running on another scene reads as no combat at all. When
+        // that happens the restore below quietly does nothing. That is survivable only because
+        // `_schedulePersistCombatStats` refuses to overwrite a stamped flag with unstamped memory
+        // and recovers there instead; without that guard this silent miss destroyed the fight.
         const existingCurrentStats = game.combat?.getFlag(MODULE.ID, 'stats');
         const existingCombatStats = game.combat?.getFlag(MODULE.ID, 'combatStats');
         
@@ -1388,6 +1429,10 @@ class CombatStats {
             // the same array into `{round, summary}`; this is the running equivalent.
             roundDamage: (Array.isArray(source.rounds) ? source.rounds : [])
                 .map((round) => Number(round?.damageDealt ?? round?.damage) || 0),
+            // The other side of the same rounds. Damage the party TOOK is damage the monsters
+            // dealt, which is the comparison a per-round chart is actually for.
+            roundDamageTaken: (Array.isArray(source.rounds) ? source.rounds : [])
+                .map((round) => Number(round?.damageTaken) || 0),
             ...aggregate
         };
     }

@@ -498,7 +498,7 @@ export class CombatBarManager {
             percentProgress: 0,
             // No labels: this is a measure of balance, not a second place to
             // read the health numbers. The two health bars carry those.
-            tooltip: 'Encounter balance'
+            tooltip: 'Encounter balance: health above, threat still standing below'
         });
 
         api.registerSecondaryBarItem('combat', 'party-cr', {
@@ -555,13 +555,42 @@ export class CombatBarManager {
         const liveStatsVisible = () => !!CombatBarManager.getActiveCombat();
         const lifetimeStatsVisible = () => !CombatBarManager.getActiveCombat();
 
+        // The MVP plate is the loudest thing on the row, so an empty one is the loudest way to say
+        // nothing. It stays hidden until there is a name to put in it.
+        //
+        // Both predicates read the SAME sources the plate's own values come from, so the plate can
+        // never appear without content or linger without it. Both are also null-safe by necessity:
+        // `getAggregateSync()` returns null while the party cache rebuilds, and `getRunningStats()`
+        // is null for the first moments of a combat before the GM's first mirror lands -- in each
+        // case "no data yet" and "no MVP" are the same answer here, which is to stay hidden.
+        //
+        // Appearing is a STRUCTURAL change and needs a re-render to take effect. Both underlying
+        // reads change on events the bar already re-renders for -- `blacksmith.combatSummaryReady`
+        // for the standings, the combat flag write for the running fight -- so nothing extra is
+        // needed. A predicate depending on state those events do not cover would silently never
+        // appear; see the planning timer note above for what that failure looks like.
+        const hasLifetimeMvp = () => {
+            try {
+                return !!game.modules.get(MODULE.ID)?.api?.stats?.party?.getAggregateSync()?.topMvp?.name;
+            } catch (_) {
+                return false;
+            }
+        };
+        const hasLiveMvp = () => {
+            try {
+                return !!game.modules.get(MODULE.ID)?.api?.stats?.combat?.getRunningStats()?.notableMoments?.mvp?.name;
+            } catch (_) {
+                return false;
+            }
+        };
+
         api.registerSecondaryBarItem('combat', 'stat-biggest-hitter', {
             kind: 'portraitstat',
             zone: 'middle',
             group: 'stats',
             order: 0,
             icon: 'fa-solid fa-burst',
-            label: 'Big Hit',
+            label: 'Biggest Hit',
             value: '-',
             tooltip: 'Biggest hit on record',
             visible: lifetimeStatsVisible
@@ -575,7 +604,7 @@ export class CombatBarManager {
             // other dice iconography already on the bar. Deliberately not one
             // of Font Awesome's emoji faces.
             icon: 'fa-solid fa-dice-one',
-            label: 'Fumbles',
+            label: 'Most Fumbles',
             value: '-',
             tooltip: 'Most fumbles on record',
             visible: lifetimeStatsVisible
@@ -586,29 +615,44 @@ export class CombatBarManager {
         api.registerSecondaryBarItem('combat', 'stat-top-mvp', {
             kind: 'nameplate',
             rank: 1,
-            // With the statistics, not with the clock. In the left zone it sat beside round and
-            // turn, which made it read as part of the timing group -- the one thing it has nothing
-            // to do with. It leads the statistics group instead, which is its actual subject.
-            zone: 'middle',
-            group: 'stats',
-            order: -1,
+            // FAR LEFT, out of combat only. That zone is empty between fights -- round, turn and
+            // the timers all require a combat -- so the plate gets it to itself and the statistics
+            // keep the middle. In combat the same zone is the clock, which is why the live plate
+            // below sits with the statistics instead.
+            zone: 'left',
+            group: 'mvp',
+            order: 0,
             icon: 'fa-solid fa-trophy',
             label: '',
             value: '-',
             tooltip: 'Top MVP on record',
-            visible: lifetimeStatsVisible
+            visible: () => lifetimeStatsVisible() && hasLifetimeMvp()
         });
-        // The mirror of most-fumbles. Showing the shame without the glory read as
-        // an odd omission once both were on the same aggregate.
-        api.registerSecondaryBarItem('combat', 'stat-most-crits', {
-            kind: 'portraitstat',
+        // Criticals and fumbles as ONE reading, which is how the Party Statistics window frames
+        // them: a swing of luck rather than two unrelated counters. It also buys back the width the
+        // window's longer labels cost. The per-person standings for each live in that window.
+        api.registerSecondaryBarItem('combat', 'stat-finesse', {
+            kind: 'statchip',
+            tone: 'record',
             zone: 'middle',
             group: 'stats',
             order: 3,
-            icon: 'fa-solid fa-dice-d20',
-            label: 'Crits',
-            value: '-',
-            tooltip: 'Most criticals on record',
+            label: 'Finesse',
+            value: '0 C | 0 F',
+            tooltip: 'Criticals and fumbles on record',
+            visible: lifetimeStatsVisible
+        });
+        // Healing has no standing of its own anywhere else on the bar, which quietly made every
+        // readout a damage readout -- a party's healer could play a whole campaign and never appear.
+        api.registerSecondaryBarItem('combat', 'stat-total-healing', {
+            kind: 'statchip',
+            tone: 'good',
+            zone: 'middle',
+            group: 'stats',
+            order: 4,
+            label: 'Heals Given',
+            value: '0',
+            tooltip: 'Total healing given across every recorded combat',
             visible: lifetimeStatsVisible
         });
         // The reliability pair. `mostMisses` is already ranked low-is-best by the
@@ -619,7 +663,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 4,
             icon: 'fa-solid fa-crosshairs',
-            label: 'Hits',
+            label: 'Most Hits',
             value: '-',
             tooltip: 'Most hits on record',
             visible: lifetimeStatsVisible
@@ -630,7 +674,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 5,
             icon: 'fa-solid fa-ban',
-            label: 'Misses',
+            label: 'Most Misses',
             value: '-',
             tooltip: 'Fewest misses on record',
             visible: lifetimeStatsVisible
@@ -644,7 +688,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 6,
             icon: 'fa-solid fa-swords',
-            label: 'Damage',
+            label: 'Damage Dealt',
             // Per-combat history behind the campaign total: the number says how much,
             // the columns say whether the party is trending up or coasting.
             series: [],
@@ -672,7 +716,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 8,
             icon: 'fa-solid fa-flag-checkered',
-            label: 'Fights',
+            label: 'Encounters',
             value: '-',
             tooltip: 'Combats fought',
             visible: lifetimeStatsVisible
@@ -685,7 +729,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 9,
             icon: 'fa-solid fa-percent',
-            label: 'Hit Rate',
+            label: 'Accuracy',
             value: '-',
             tooltip: 'Average hit rate across every recorded combat',
             visible: lifetimeStatsVisible
@@ -701,7 +745,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 10,
             icon: 'fa-solid fa-hand-fist',
-            label: 'Dealt',
+            label: 'Damage',
             // Damage per round for the fight in progress, from the round summaries the
             // accumulator already mirrors to the combat flag.
             series: [],
@@ -716,7 +760,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 11,
             icon: 'fa-solid fa-bullseye',
-            label: 'Hit Rate',
+            label: 'Accuracy',
             value: '0%',
             tooltip: 'Party hit rate this combat',
             visible: liveStatsVisible
@@ -727,7 +771,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 12,
             icon: 'fa-solid fa-explosion',
-            label: 'Big Hit',
+            label: 'Biggest Hit',
             value: '-',
             tooltip: 'Biggest hit this combat',
             visible: liveStatsVisible
@@ -753,7 +797,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 14,
             icon: 'fa-solid fa-shield-halved',
-            label: 'Taken',
+            label: 'Defense',
             value: '0',
             tooltip: 'Party damage taken this combat',
             visible: liveStatsVisible
@@ -766,7 +810,7 @@ export class CombatBarManager {
             group: 'stats',
             order: 15,
             icon: 'fa-solid fa-kit-medical',
-            label: 'Healed',
+            label: 'Healing',
             value: '0',
             tooltip: 'Healing given this combat',
             visible: liveStatsVisible
@@ -776,14 +820,16 @@ export class CombatBarManager {
         api.registerSecondaryBarItem('combat', 'stat-combat-mvp', {
             kind: 'nameplate',
             rank: 1,
+            // Trailing the statistics rather than leading them: at the head of the group it read as
+            // though every number after it were that person's, when they are the party's.
             zone: 'middle',
             group: 'stats',
-            order: -1,
+            order: 91,
             icon: 'fa-solid fa-medal',
             label: '',
             value: '',
             tooltip: 'Leading MVP this combat',
-            visible: liveStatsVisible
+            visible: () => liveStatsVisible() && hasLiveMvp()
         });
 
         CombatBarManager.refreshReadoutItems();
@@ -993,6 +1039,16 @@ export class CombatBarManager {
         const row = document.querySelector('.combat-data-row');
         if (!row) return;
         row.classList.toggle('in-combat', !!CombatBarManager.getActiveCombat());
+        // A health bar is clickable only when some module claims the `party-health` intent, so the
+        // affordance is offered only when it is real. Blacksmith ships no health panel, so in a
+        // world without one the bars stay inert readouts.
+        let hasHealthTool = false;
+        try {
+            hasHealthTool = !!game.modules.get(MODULE.ID)?.api?.hasIntentHandler?.('party-health');
+        } catch (_) {
+            hasHealthTool = false;
+        }
+        row.classList.toggle('has-health-tool', hasHealthTool);
     }
 
     /**
@@ -1015,7 +1071,7 @@ export class CombatBarManager {
         // Party Statistics window any time — then the secondary standings, then the
         // three originals.
         'stat-combats', 'stat-avg-hit-rate', 'stat-total-kills', 'stat-total-damage',
-        'stat-most-misses', 'stat-most-hits', 'stat-most-crits',
+        'stat-most-misses', 'stat-most-hits', 'stat-finesse', 'stat-total-healing',
         'stat-most-fumbles', 'stat-biggest-hitter',
         // Live: the flourish and the support detail go before the survival pair,
         // which goes before the three originals.
@@ -1148,8 +1204,38 @@ export class CombatBarManager {
             // worn, +100 when the monsters are down and the party untouched.
             // Percentages rather than raw HP, so a big-pool boss and a swarm
             // are read on the same scale.
+            // TWO NEEDLES, ONE SCALE.
+            //
+            // Health says how WORN each side is; remaining challenge rating says how much THREAT
+            // each side still has, weighted by what that threat actually is -- killing the boss
+            // moves it a long way, killing a goblin barely at all. Health cannot say that, because
+            // it weights by hit point pool: a 300 HP boss dominates the reading whatever it is.
+            // Body count cannot say it either, because it weights a goblin and a boss the same.
+            //
+            // They are two readings of one relationship, so they share the bar rather than getting
+            // one each -- reading them against each other is the entire point, and separate bars
+            // would hand that comparison back to the reader.
+            const crSourceTokens = combat
+                ? (Array.isArray(combat.turns) && combat.turns.length ? combat.turns : Array.from(combat.combatants))
+                    .map((c) => c.token?.object).filter(Boolean)
+                : (canvas?.tokens?.placeables ?? []);
+            const standingPartyCR = parseFloat(EncounterManager.getPartyCR(crSourceTokens, { onlyStanding: true })) || 0;
+            const standingMonsterCR = parseFloat(EncounterManager.getMonsterCR({}, crSourceTokens, { onlyStanding: true })) || 0;
+            const crTotal = standingPartyCR + standingMonsterCR;
+            // Expressed as each side's SHARE of the threat still on the field, so it lands on the
+            // same -100..+100 scale the health reading uses and the two are directly comparable.
+            const crBalance = crTotal > 0
+                ? (((standingPartyCR - standingMonsterCR) / crTotal) * 100)
+                : 0;
+
             api.updateSecondaryBarItemInfo('combat', 'balance', {
-                percentProgress: health.party.percent - health.monster.percent
+                percentProgress: health.party.percent - health.monster.percent,
+                markers: [{
+                    percent: crBalance,
+                    from: 'bottom',
+                    color: 'rgba(220, 195, 106, 0.95)',
+                    tooltip: `Threat still standing: party ${standingPartyCR} vs monsters ${standingMonsterCR}`
+                }]
             });
 
             CombatBarManager.refreshStatReadouts(combat);
@@ -1238,9 +1324,11 @@ export class CombatBarManager {
             const biggest = running?.notableMoments?.biggestHit;
             api.updateSecondaryBarItemInfo('combat', 'stat-damage-dealt', {
                 value: String(totals?.damageDealt ?? 0),
-                // Per-round damage for this fight. `rounds` rides the same combat flag the
-                // totals do, so this costs no extra read and no second reduction.
-                series: running?.roundDamage ?? []
+                // Per-round damage for this fight, party against monsters. `rounds` rides the
+                // same combat flag the totals do, so this costs no extra read and no second
+                // reduction. Both series share one scale, so the pair is the reading.
+                series: running?.roundDamage ?? [],
+                seriesB: running?.roundDamageTaken ?? []
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-hit-rate', {
                 // hitRate is already a one-decimal string, and is the number 0
@@ -1271,7 +1359,8 @@ export class CombatBarManager {
                 label: mvp?.name ? CombatBarManager.shortenName(mvp.name) : '',
                 // The score is a composite nobody reads at a glance, so the second line names the
                 // standing instead of quoting it. The exact score stays in the tooltip.
-                value: mvp?.name ? 'Leading MVP' : 'No MVP yet',
+                // No empty branch: the plate is hidden unless there is a name.
+                value: 'Leading MVP',
                 tooltip: mvp?.name
                     ? `Leading MVP this combat: ${mvp.name}${mvp.score != null ? ` (score ${mvp.score})` : ''}`
                     : 'Leading MVP this combat'
@@ -1307,15 +1396,17 @@ export class CombatBarManager {
             api.updateSecondaryBarItemInfo('combat', 'stat-top-mvp', {
                 image: aggregate.topMvp?.img || null,
                 label: aggregate.topMvp?.name ? CombatBarManager.shortenName(aggregate.topMvp.name) : '',
-                value: aggregate.topMvp?.name
-                    ? `Top MVP${topMvpEntry?.mvp?.totalScore ? ` · ${topMvpEntry.mvp.totalScore}` : ''}`
-                    : 'No MVP yet',
+                // No empty branch: the plate is hidden unless there is a name.
+                value: `Top MVP${topMvpEntry?.mvp?.totalScore ? ` · ${topMvpEntry.mvp.totalScore}` : ''}`,
                 tooltip: `Top MVP on record: ${aggregate.topMvp?.name ?? 'nobody'}`
             });
-            api.updateSecondaryBarItemInfo('combat', 'stat-most-crits', {
-                image: aggregate.mostCrits?.img || null,
-                value: String(aggregate.mostCrits?.count ?? 0),
-                tooltip: `Most criticals on record: ${aggregate.mostCrits?.name ?? 'nobody'} with ${aggregate.mostCrits?.count ?? 0}`
+            api.updateSecondaryBarItemInfo('combat', 'stat-finesse', {
+                value: `${aggregate.totalCriticals ?? 0} C | ${aggregate.totalFumbles ?? 0} F`,
+                tooltip: `${aggregate.totalCriticals ?? 0} critical(s) and ${aggregate.totalFumbles ?? 0} fumble(s) on record`
+            });
+            api.updateSecondaryBarItemInfo('combat', 'stat-total-healing', {
+                value: CombatBarManager.compactNumber(aggregate.totalHealsGiven),
+                tooltip: `Total healing given across ${aggregate.totalCombats ?? 0} recorded combat(s): ${aggregate.totalHealsGiven ?? 0}`
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-most-hits', {
                 image: aggregate.mostHits?.img || null,
@@ -2227,6 +2318,44 @@ export class CombatBarManager {
                 event.stopPropagation();
                 return;
             }
+            // THE HEALTH BARS OPEN A HEALTH PANEL -- if any module has one.
+            //
+            // Asked for as an INTENT rather than by tool id. Blacksmith has no health panel of its
+            // own, and naming Squire's tool here would put a sibling's id in the hub, which is the
+            // coupling the module boundaries forbid. Whichever module claims `party-health`
+            // answers; if none does the click was never offered -- see `has-health-tool` below.
+            const healthBar = event.target.closest(
+                '.combat-data-row .secondary-bar-item-progressbar[data-item-id$="-health"]'
+            );
+            if (healthBar && menuBar.hasIntentHandler?.('party-health')) {
+                event.preventDefault();
+                event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                menuBar.invokeIntent('party-health', { source: 'combat-bar', itemId: healthBar.dataset.itemId });
+                return;
+            }
+
+            // THE STATISTICS OPEN THE WINDOW THAT EXPLAINS THEM.
+            //
+            // This is the one interactive thing in a row of readouts, and it does not break the
+            // no-affordance rule so much as clarify it. That rule exists to forbid a FALSE
+            // affordance -- chrome that promises a click and delivers nothing. Here the click is
+            // real, so what the rule demands is that it be signalled honestly, which the group
+            // hover in `menubar-combatbar.css` does.
+            //
+            // Bound to the GROUP, never to each chip. Seventeen individually clickable chips would
+            // imply seventeen destinations; one target says "these numbers, explained", which is
+            // the only thing on the other side of it. The MVP plate rides along, since it belongs
+            // to the same group and the same window has its leaderboard.
+            const statsGroup = event.target.closest('.combat-data-row [data-group-id="stats"]');
+            if (statsGroup) {
+                event.preventDefault();
+                event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                menuBar.openStatsWindow();
+                return;
+            }
+
             // Out-of-combat action buttons: the same entries the menus use, so
             // they dispatch into the same definitions rather than duplicating.
             const barActionBtn = event.target.closest('[data-bar-action]');

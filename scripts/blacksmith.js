@@ -358,6 +358,10 @@ Hooks.once('ready', async () => {
         Object.assign(mod.api, {
             registerMenubarTool: MenuBar.registerMenubarTool.bind(MenuBar),
             unregisterMenubarTool: MenuBar.unregisterMenubarTool.bind(MenuBar),
+            // A registered tool is callable from anywhere, by id or by the intent it claims.
+            invokeMenubarTool: MenuBar.invokeMenubarTool.bind(MenuBar),
+            invokeIntent: MenuBar.invokeIntent.bind(MenuBar),
+            hasIntentHandler: MenuBar.hasIntentHandler.bind(MenuBar),
             getRegisteredMenubarTools: MenuBar.getRegisteredMenubarTools.bind(MenuBar),
             getMenubarToolsByModule: MenuBar.getMenubarToolsByModule.bind(MenuBar),
             isMenubarToolRegistered: MenuBar.isMenubarToolRegistered.bind(MenuBar),
@@ -1025,6 +1029,10 @@ Hooks.once('init', async function() {
         Object.assign(module.api, {
             registerMenubarTool: MenuBar.registerMenubarTool.bind(MenuBar),
             unregisterMenubarTool: MenuBar.unregisterMenubarTool.bind(MenuBar),
+            // A registered tool is callable from anywhere, by id or by the intent it claims.
+            invokeMenubarTool: MenuBar.invokeMenubarTool.bind(MenuBar),
+            invokeIntent: MenuBar.invokeIntent.bind(MenuBar),
+            hasIntentHandler: MenuBar.hasIntentHandler.bind(MenuBar),
             getRegisteredMenubarTools: MenuBar.getRegisteredMenubarTools.bind(MenuBar),
             getMenubarToolsByModule: MenuBar.getMenubarToolsByModule.bind(MenuBar),
             isMenubarToolRegistered: MenuBar.isMenubarToolRegistered.bind(MenuBar),

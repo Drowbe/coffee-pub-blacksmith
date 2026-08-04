@@ -187,6 +187,32 @@ boss and a swarm read on the same scale. The shared marker maths is `50 + (p / 2
 and positive right — hence left is the monsters' side. It carries **no labels**: it is a measure of balance,
 not a second place to read the health numbers, which the two health bars already give.
 
+**The bar is one scale carrying two needles**, because both are readings of the same relationship and
+reading them against each other is the point. Two bars would hand that comparison back to the reader.
+The top needle is the health value above. The **bottom needle is threat still standing**: each side's
+share of the remaining challenge rating, `(partyCR - monsterCR) / (partyCR + monsterCR)`, scaled to the
+same axis so the two are directly comparable.
+
+It answers what health cannot. Health weights by hit point pool, so a 300 HP boss dominates the reading
+however dangerous it actually is; a body count weights a goblin and a boss identically; remaining CR
+weights by actual threat, so killing the boss swings it hard and killing a goblin barely moves it. Since
+encounters are usually built hard, it opens on the monsters' side and walks toward the party as things
+die — an honest picture of a dangerous fight rather than a flat line.
+
+Direction, not colour, separates the two: health descends from the top edge, threat rises from the
+bottom, and they meet in the middle without overlapping however close the readings get.
+
+**Both CR figures count only what can still fight**, via `EncounterManager.canStillFight`. The asymmetry
+there is a rules distinction rather than a modelling convenience: a monster at zero hit points is out of
+the fight, while a player character at zero is **dying** — making death saves, one ally's action from
+standing, and still something the enemy must account for. Treating them alike would either write off a
+party one Healing Word from whole, or leave a corpse contributing threat. Anything explicitly marked
+defeated is out on either side, since that flag is the GM saying so and is what dnd5e sets on real death.
+
+`getPartyCR` and `getMonsterCR` take `{ onlyStanding }` rather than changing their default, deliberately:
+the **difficulty chip must keep rating the encounter as constituted**. That is the designer's question,
+and it would otherwise slide from Deadly to Easy as the fight progressed, answering one nobody asked.
+
 Zones: the left zone holds round, turn, and the timer slot; the right zone holds health, balance, and
 challenge rating; the middle zone holds the party statistics. Groups within a zone are separated by
 dividers automatically, so the grouping is what produces the pipes.
@@ -301,8 +327,17 @@ survives longest is the biggest hit on record out of combat and the damage total
 measured rather than expressed in CSS because "hide this one first" is an ordering CSS cannot state, and a
 media query would be guessing at the row's width rather than reading it.
 
-The balance marker is a full-height rule, not the shared 10px circle: a circle reads as a draggable handle
-and invites a grab that does nothing.
+The balance marker is a **gauge needle**: a triangle descending from the top edge to the middle of the
+bar. It has been three shapes, and the reasons are worth keeping. The shared 10px circle read as a
+draggable handle and invited a grab that does nothing. A full-height rule fixed that and introduced its
+own problem — it cut the bar in two rather than pointing at a place on it, so at a glance the two halves
+read as separate bars. A triangle terminating halfway points without dividing: it names a position and
+leaves the scale continuous underneath, which is what an analogue meter does and why the shape needs no
+explaining. It is slightly transparent so the band beneath stays readable through it.
+
+Drawn with `clip-path`, not the border-triangle trick, because the colour arrives as an inline
+`background-color` from the registered `markerColor` and borders would need it on properties the template
+does not set. `clip-path` also clips `box-shadow`, so its definition comes from `filter: drop-shadow`.
 
 Difficulty uses `CombatBarManager.getDifficultyChipColor`, not `EncounterManager.getDifficultyBorderColor`.
 The latter's palette was picked as a *border* against the encounter bar's near-black background; as text on

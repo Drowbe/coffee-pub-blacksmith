@@ -56,6 +56,20 @@
     --blacksmith-gauge-track: rgba(240, 240, 224, 0.18);
 }
 
+/* ---- spacing --------------------------------------------------------------
+   Two different gaps, and conflating them is what made the row read unevenly.
+
+   WITHIN a chip, the word and its number are one phrase and want to sit close --
+   closer than the row's generic item gap, which was sized for buttons.
+
+   BETWEEN chips, the gap has to be clearly larger than the within-chip one, or
+   the eye groups "MISSES 1" and "DAMAGE" instead of "MISSES" and "1". The
+   shared group gap is 4px, which is smaller than the within-chip gap was, so
+   the row was actively mis-grouping. */
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-group-items {
+    gap: calc(var(--secondary-bar-item-gap) * 1.8);
+}
+
 /* ---- shared chip layout --------------------------------------------------- */
 .blacksmith-menubar-secondary .secondary-bar-item-statchip,
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat,
@@ -112,7 +126,7 @@
    quiet word and a tone-coloured number, no fill and no container. Most of the
    row is this, which is what lets the few loud things be loud. */
 .blacksmith-menubar-secondary .secondary-bar-item.emphasis-plain {
-    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+    gap: 0.45em;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-statchip.emphasis-plain .secondary-bar-item-value {
@@ -140,12 +154,22 @@
 .blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature {
     padding: 0;
     gap: 0;
-    border-radius: 999px;
+    /* ASYMMETRIC ON PURPOSE. A fully round pill reads as a token -- something
+       lifted off the surface and clickable. Squared off at the word end and
+       rounded at the number end, it reads as a label leading into a value, which
+       is what it is, and the shape itself points rightward at the thing you came
+       to read. */
+    border-radius: 3px 999px 999px 3px;
     overflow: hidden;
     align-items: stretch;
     /* A fixed height is what the two segments centre against, and it keeps every
        feature pill identical whatever is inside it. */
     height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
+    /* The dark half looked narrower than the light half at equal widths -- an
+       irradiation illusion, where a light field on a dark ground appears to
+       expand past its own edge. A hairline gives both halves a stated boundary,
+       so the eye measures the border rather than the glow. */
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 /* THE SEGMENTS ARE DIFFERENT TYPE SIZES, so they cannot be aligned by padding --
@@ -153,13 +177,16 @@
    apart, which is what made the text sit crooked. Each centres itself against
    the pill's height instead. */
 .blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature .secondary-bar-item-label {
-    padding: 0 0.5em 0 0.7em;
+    padding: 0 0.6em 0 0.75em;
     background-color: rgba(0, 0, 0, 0.45);
     color: rgba(240, 240, 224, 0.8);
+    /* The seam between the halves, for the same reason as the outer hairline:
+       without it the light field bleeds visually into the dark one. */
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature .secondary-bar-item-value {
-    padding: 0 0.7em 0 0.5em;
+    padding: 0 0.75em 0 0.6em;
     background-color: var(--blacksmith-widget-tone-fill, rgba(240, 240, 224, 0.85));
     color: var(--blacksmith-widget-tone-ink, #2b2018);
 }
@@ -188,7 +215,7 @@
    number is. Round and unfilled -- roundness separates "this belongs to someone"
    from "this is a quantity" before colour does. */
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat {
-    gap: calc(var(--secondary-bar-item-gap) * 0.6);
+    gap: 0.4em;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat-frame {
@@ -238,13 +265,13 @@
    survive antialiasing. A horizontal meter of the same width carries the same
    fraction at far more resolution. */
 .blacksmith-menubar-secondary .secondary-bar-item-gaugechip {
-    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+    gap: 0.45em;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-readout {
     display: flex;
     align-items: center;
-    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+    gap: 0.5em;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-meter {
@@ -277,34 +304,57 @@
    value. What a reader wants from a spark is "where are we now against where we
    have been", and that needs one point marked, not twelve. */
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip {
-    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+    gap: 0.45em;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip-readout {
     display: flex;
     align-items: center;
-    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+    gap: 0.5em;
 }
 
 /* Columns grow from the baseline, so the plot is bottom-aligned. */
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip-plot {
     display: flex;
     align-items: flex-end;
-    gap: 1px;
+    gap: 2px;
     flex: 0 0 auto;
     height: calc(var(--secondary-bar-item-font-size) * 0.95);
+}
+
+/* A period is one round or one combat. It holds one column, or two when the
+   chart is paired -- and the two sit flush against each other with the gap
+   BETWEEN periods, so the pair reads as one unit to be compared internally
+   rather than as an undifferentiated row of bars. */
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-period {
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+    height: 100%;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar {
     display: block;
     width: 2px;
     min-height: 1px;
-    border-radius: 1px;
+    border-radius: 1px 1px 0 0;
     background-color: var(--blacksmith-widget-spark, rgba(240, 240, 224, 0.28));
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar.is-latest {
     background-color: var(--blacksmith-widget-spark-latest, var(--blacksmith-widget-tone-neutral));
+}
+
+/* THE PAIR IS PARTY AGAINST MONSTERS, so it takes the same two earthy tones the
+   balance bar uses rather than a bright/dim pair -- the question is which side
+   is bigger, and one side rendered as "the faded one" answers it before the
+   data does. */
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar.is-paired {
+    background-color: var(--blacksmith-widget-spark-paired, rgba(224, 112, 112, 0.4));
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar.is-paired.is-latest {
+    background-color: var(--blacksmith-widget-spark-paired-latest, var(--blacksmith-widget-tone-bad));
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-sparkchip .secondary-bar-item-value {
@@ -336,7 +386,9 @@
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate {
     display: flex;
     align-items: center;
-    gap: calc(var(--secondary-bar-item-gap) * 1.1);
+    /* The portrait is a large round object and the text sits on its optical edge
+       rather than its bounding box, so the geometric gap read as too tight. */
+    gap: 0.7em;
     background-color: transparent;
     border-color: transparent;
     cursor: default;

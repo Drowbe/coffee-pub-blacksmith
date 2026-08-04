@@ -290,6 +290,37 @@ Updates the active state of a toggleable tool.
 blacksmith.updateMenubarToolActive('my-toggle-tool', true);
 ```
 
+#### `invokeMenubarTool(toolId, context?)`
+
+Runs a registered tool's `onClick` from anywhere, without clicking its icon. Returns `false` if no such tool is registered. Registration already knows what a tool does; this makes that knowledge callable, so a second surface wanting the same behaviour does not reimplement it or reach into the owning module.
+
+#### `invokeIntent(intent, context?)` / `hasIntentHandler(intent)`
+
+An **intent** is a capability a tool claims, declared at registration:
+
+```javascript
+blacksmith.registerMenubarTool('squire-health', {
+    icon: 'fa-solid fa-heart',
+    name: 'Health',
+    onClick: () => HealthPanel.open(),
+    intents: ['party-health']
+});
+```
+
+Any surface can then ask for the capability rather than for the module:
+
+```javascript
+if (blacksmith.hasIntentHandler('party-health')) {
+    blacksmith.invokeIntent('party-health', { source: 'my-bar' });
+}
+```
+
+This is how a Blacksmith surface integrates with a sibling without naming it. Blacksmith's combat bar opens a health panel when the party health bars are clicked, and it has no health panel of its own -- naming another module's tool id in the hub would be exactly the coupling the suite's module boundaries forbid. Whichever module claims the intent answers; if none does, `invokeIntent` returns `false`.
+
+**Ask `hasIntentHandler` before offering the interaction**, not just before running it. A control that looks clickable and does nothing is the failure the readout styling rules exist to prevent, and an unclaimed intent is that failure in a different costume.
+
+Registration order decides ties. Two modules claiming one intent is a configuration the user chose, not an error to resolve here.
+
 #### `unregisterMenubarTool(toolId)`
 
 Removes a tool from the Blacksmith menubar system.

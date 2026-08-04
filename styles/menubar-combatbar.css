@@ -195,9 +195,25 @@
     white-space: nowrap;
 }
 
-/* The balance marker is a reading, not a control. The shared 10px circle reads
-   as a draggable handle and invites a grab that does nothing; a full-height
-   rule reads as a position on a scale. */
+/* THE BALANCE MARKER IS A GAUGE NEEDLE.
+
+   It has been three things. The shared 10px circle read as a draggable handle
+   and invited a grab that does nothing. A full-height rule fixed that but read
+   as a divider -- it cut the bar in two rather than pointing at a place on it,
+   and at a glance the eye took the two halves as separate bars.
+
+   A triangle descending from the top edge to the middle points without dividing:
+   it names a position on the scale and leaves the scale continuous underneath,
+   which is what an analogue meter does and why that shape is legible with no
+   instruction. It is slightly transparent so the band it sits over stays
+   readable through it -- the needle marks the balance, it does not replace the
+   reading beneath.
+
+   `clip-path` rather than the border triangle trick, because the colour arrives
+   as an inline `background-color` from `markerColor` at registration; borders
+   would need that colour on four properties the template does not set. Note
+   that `clip-path` also clips `box-shadow`, so definition comes from
+   `filter: drop-shadow`, which applies to the clipped shape instead. */
 /* Portraits on readout chips are not buttons wearing an image, and two shared
    rules assume they are. The base image rule dims them to grayscale(0.7)
    brightness(0.65) — the unselected-button treatment — which is exactly wrong
@@ -216,12 +232,19 @@
 }
 
 .blacksmith-menubar-secondary .combat-data-row .secondary-bar-item-balancebar-marker {
-    width: 3px;
-    height: 100%;
+    /* Wide enough to read as a pointer, narrow enough not to obscure the band
+       it is pointing at. */
+    width: 9px;
+    /* Terminating halfway down, so the tip marks the position and the lower half
+       of the bar stays unbroken. */
+    height: 50%;
     top: 0;
     transform: translateX(-50%);
     border-radius: 0;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+    box-shadow: none;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    opacity: 0.82;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.65));
 }
 
 /* THE DATA ROW IS ONE LINE. NEVER TWO.
@@ -1040,4 +1063,85 @@
 .blacksmith-menubar-secondary .combat-data-row
     .secondary-bar-item-statchip[data-item-id="turn"] .secondary-bar-item-value {
     font-size: calc(var(--secondary-bar-item-font-size) * 1.1);
+}
+
+/* THE STATISTICS ARE THE ONE CLICKABLE THING IN A ROW OF READOUTS.
+   They open the Party Statistics window -- the place that explains them.
+
+   This does not break the row's no-affordance rule, it clarifies it. The rule
+   forbids a FALSE affordance: chrome that promises a click and delivers
+   nothing. Here the click is real, so the obligation is to signal it honestly.
+
+   Signalled as a GROUP, not per chip. The wash covers every statistic at once,
+   so it reads as "this panel opens" rather than "these are seventeen buttons" --
+   which is also the truth, since there is one destination. `:has()` is what
+   lets the container respond to a hover on any of its children; the group
+   element itself carries no id, only the items inside it do. */
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-group-items:has([data-group-id="stats"]) {
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+}
+
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-group-items:has([data-group-id="stats"]):hover {
+    background-color: rgba(255, 255, 255, 0.07);
+}
+
+/* The chips themselves keep `cursor: default` from the readout reset, which
+   would beat the group's pointer on whichever chip is under the mouse -- so the
+   cursor would flicker between chips and gaps. The pointer is restated on them
+   for that reason, not because each chip is its own control. */
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-group-items:has([data-group-id="stats"]) .secondary-bar-item {
+    cursor: pointer;
+}
+
+/* HEALTH BARS ARE CLICKABLE ONLY WHEN SOMETHING CAN ANSWER.
+   Blacksmith has no health panel; a sibling may. `has-health-tool` is written by
+   `syncDataRowState` when a module claims the `party-health` intent, so the
+   affordance appears with the capability and not before -- which is the
+   no-false-affordance rule applied to an optional integration. */
+.blacksmith-menubar-secondary .combat-data-row.has-health-tool
+    .secondary-bar-item-progressbar[data-item-id$="-health"] {
+    cursor: pointer;
+}
+
+.blacksmith-menubar-secondary .combat-data-row.has-health-tool
+    .secondary-bar-item-progressbar[data-item-id$="-health"]:hover
+    .secondary-bar-item-progressbar-bar {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+/* A SECOND NEEDLE, RISING FROM THE BOTTOM.
+   The bar is one scale and both readings are of the same relationship, so they
+   share it -- two bars would put the comparison back on the reader, which is
+   the one thing having them together is supposed to save.
+
+   Direction is what keeps them apart, not colour: health descends from the top
+   edge, threat rises from the bottom, and they meet in the middle without ever
+   overlapping however close the two readings get. Colour then only has to say
+   WHICH, not which-is-which. */
+.blacksmith-menubar-secondary .combat-data-row .secondary-bar-item-balancebar-marker-extra {
+    position: absolute;
+    width: 9px;
+    height: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    opacity: 0.82;
+    filter: drop-shadow(0 -1px 1px rgba(0, 0, 0, 0.65));
+    pointer-events: none;
+    background-color: rgba(240, 240, 224, 0.95);
+}
+
+/* `from-bottom` is the default for an extra needle, so the modifier exists for
+   the opposite case -- a third reading would descend like the first. */
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-balancebar-marker-extra:not(.from-bottom) {
+    top: 0;
+    bottom: auto;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.65));
 }

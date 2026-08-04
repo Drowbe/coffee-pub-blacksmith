@@ -222,10 +222,19 @@ wider than a chip, so it wants a zone of its own — in a shared zone it compete
 readouts that get suppressed, which is exactly what moving the combat bar's MVP plates out of the
 middle zone fixed.
 
-**Identity, not affordance.** These may use colour, weight and shape; they may not use a fill, a
-pointer cursor or a hover lift. That is the same reason `menubar-combatbar.css` strips the shared item
-chrome from the data row — a readout wearing button chrome offers something it cannot do — and the
-widgets must not put it back.
+**No FALSE affordance.** The rule is often stated as "identity, not affordance", which is the right
+instinct and the wrong wording: what it forbids is chrome that promises a click and delivers nothing.
+A readout may use colour, weight and shape freely. It may not wear a pointer cursor or a hover lift
+*while doing nothing* — the same reason `menubar-combatbar.css` strips the shared item chrome from the
+data row.
+
+Where a readout genuinely is interactive, the obligation flips: it must be signalled. The combat bar's
+statistics group opens the Party Statistics window, and it says so with a pointer and a hover wash
+across the whole group. Signalled as a **group** rather than per chip, because seventeen individually
+lit chips would imply seventeen destinations where there is one.
+
+The feature pill's fill is the other deliberate exception, and it holds the rest of the rule harder in
+exchange: its silhouette matches no button on the bar.
 
 Two implementation choices are load-bearing rather than incidental. The gauge is a **conic gradient
 masked into a ring**, not an SVG arc, so its sweep is a single custom property: a value update is one

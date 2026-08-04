@@ -106,7 +106,12 @@
     <span class="secondary-bar-item-sparkchip-readout">
         <span class="secondary-bar-item-sparkchip-plot">
             {{#each sparkBars}}
-            <span class="secondary-bar-item-sparkchip-bar{{#if isLast}} is-latest{{/if}}" style="height: {{height}}%;"></span>
+            <span class="secondary-bar-item-sparkchip-period">
+                <span class="secondary-bar-item-sparkchip-bar is-primary{{#if isLast}} is-latest{{/if}}" style="height: {{height}}%;"></span>
+                {{#if hasPair}}
+                <span class="secondary-bar-item-sparkchip-bar is-paired{{#if isLast}} is-latest{{/if}}" style="height: {{heightB}}%;"></span>
+                {{/if}}
+            </span>
             {{/each}}
         </span>
         {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
@@ -176,6 +181,14 @@
         <div class="secondary-bar-item-balancebar-left" style="background-color: {{barColorLeft}};"></div>
         <div class="secondary-bar-item-balancebar-right" style="background-color: {{barColorRight}};"></div>
         <div class="secondary-bar-item-balancebar-marker" style="left: {{balancebarMarkerLeftPercent}}%; background-color: {{markerColor}};"></div>
+        {{!-- Extra needles on the same scale. The bar measures one relationship; a second reading of
+              that relationship belongs on the same axis, not on a second bar. --}}
+        {{#each balancebarMarkers}}
+        <div class="secondary-bar-item-balancebar-marker-extra{{#if fromBottom}} from-bottom{{/if}}"
+             style="left: {{leftPercent}}%;{{#if color}} background-color: {{color}};{{/if}}"
+             data-tooltip="{{tooltip}}"
+             title="{{tooltip}}"></div>
+        {{/each}}
         {{#if leftLabel}}<span class="secondary-bar-item-balancebar-left-label">{{leftLabel}}</span>{{/if}}
         {{#if rightLabel}}<span class="secondary-bar-item-balancebar-right-label">{{rightLabel}}</span>{{/if}}
     </div>
