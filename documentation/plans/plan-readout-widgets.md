@@ -1,7 +1,8 @@
 # Plan: Reusable Readout Widgets
 
-**Status:** In progress. Phases 1-3 are implemented and verified in play, apart from `segmentchip`,
-which is the only piece of Phase 3 not built. Phase 4 (motion) is untouched.
+**Status:** Complete pending live verification of Phase 4. Phases 1-3 are verified in play;
+`segmentchip` was deliberately not built and now lives in `TODO.md` as a later possibility rather
+than a commitment. Once the motion is confirmed on screen, this file is deleted.
 
 Everything shipped has moved to `CHANGELOG.md` and the architecture docs — the widget kinds and the
 value-patch path to `architecture-menubar.md`, the per-statistic choices and the overflow rules to

@@ -532,3 +532,73 @@
         transition: height 0.3s ease;
     }
 }
+
+/* ============================================================================
+   MOTION
+
+   Every animation here is driven by a real VALUE CHANGE, never by a render.
+   That is only possible because of the value-patch path in `api-menubar.js` --
+   the node survives its own update, so the text on screen is the previous value
+   and a change can be seen. Rebuilt nodes deliberately do not animate: a rebuild
+   is not a change, and a bar that flashed every chip when combat state flipped
+   would be announcing nothing.
+
+   Everything is opt-out under `prefers-reduced-motion`, and the opt-out is a
+   plain swap rather than a shorter animation -- someone who asked for less
+   motion did not ask for faster motion.
+   ============================================================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+
+    /* A VALUE MOVED. Colour and weight, not scale or position: a chip that grows
+       shoves its neighbours along the row and turns one number changing into the
+       whole row twitching. The glow is the chip's own tone, so damage taken
+       flashes red and damage dealt green with no per-chip rule -- the tone
+       already says what a rise means. */
+    .blacksmith-menubar-secondary .secondary-bar-item-value.is-changed,
+    .blacksmith-menubar-secondary .secondary-bar-item-value-part.is-changed {
+        animation: blacksmith-value-flash 0.5s ease-out;
+    }
+
+    @keyframes blacksmith-value-flash {
+        0%   { color: #fff; text-shadow: 0 0 6px rgba(255, 255, 255, 0.75); }
+        100% { color: inherit; text-shadow: none; }
+    }
+
+    /* A STANDING CHANGED HANDS. A hard cut hides the event entirely; a fade says
+       someone was replaced. Short, because the portrait is small and a slow fade
+       at this size reads as a loading glitch rather than a transition. */
+    .blacksmith-menubar-secondary .secondary-bar-item-portraitstat-image.is-swapping,
+    .blacksmith-menubar-secondary .secondary-bar-item-nameplate-image.is-swapping,
+    .blacksmith-menubar-secondary .secondary-bar-item-image.is-swapping {
+        animation: blacksmith-portrait-swap 0.35s ease-out;
+    }
+
+    @keyframes blacksmith-portrait-swap {
+        0%   { opacity: 0; transform: scale(1.12); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* A RECORD FELL. The one animation allowed to be loud, because it marks the
+       rarest thing the bar reports -- and rarity is what keeps it from becoming
+       wallpaper. A ring expanding OUT of the chip rather than the chip growing,
+       so nothing on the row moves. */
+    .blacksmith-menubar-secondary .secondary-bar-item.is-burst {
+        position: relative;
+    }
+
+    .blacksmith-menubar-secondary .secondary-bar-item.is-burst::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 999px;
+        border: 1px solid var(--blacksmith-widget-gold);
+        animation: blacksmith-record-burst 0.75s ease-out forwards;
+        pointer-events: none;
+    }
+
+    @keyframes blacksmith-record-burst {
+        0%   { opacity: 0.95; transform: scale(0.9); }
+        100% { opacity: 0; transform: scale(1.35); }
+    }
+}

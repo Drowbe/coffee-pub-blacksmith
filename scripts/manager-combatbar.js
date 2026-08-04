@@ -1135,6 +1135,14 @@ export class CombatBarManager {
     /** @type {ResizeObserver|null} */
     static _readoutResizeObserver = null;
 
+    /**
+     * The biggest hit already celebrated with a record burst.
+     *
+     * The same swing is pushed on every refresh for as long as it stands, so without this the
+     * burst would replay several times a second for the rest of the fight.
+     */
+    static _burstedBiggestHit = 0;
+
     static applyReadoutOverflow() {
         const row = document.querySelector('.combat-data-row');
         const toolbar = row?.querySelector('.secondary-bar-toolbar');
@@ -1432,11 +1440,33 @@ export class CombatBarManager {
                 // The ring needs a number, not the formatted string beside it.
                 percentProgress: Number(totals?.hitRate) || 0
             });
+            // A RECORD IS SOMETHING ONLY THIS SIDE CAN KNOW.
+            //
+            // The bar can see a number rise; it cannot see that the rise passed a campaign best,
+            // because the record lives in the lifetime tier and the value being pushed is from the
+            // running fight. Comparing the two is a caller's job, and `burst` is the signal.
+            //
+            // Guarded against replaying: the same swing is pushed on every refresh for as long as
+            // it stands as the biggest, so firing on "live >= record" would burst repeatedly.
+            // `_burstedBiggestHit` remembers the amount already celebrated, and is cleared when a
+            // combat ends so the next fight can beat the record again.
+            const liveBiggest = Number(biggest?.amount) || 0;
+            const standingBiggest = Number(
+                game.modules.get(MODULE.ID)?.api?.stats?.party?.getAggregateSync()?.biggestHit?.amount
+            ) || 0;
+            const beatsRecord = liveBiggest > 0
+                && standingBiggest > 0
+                && liveBiggest > standingBiggest
+                && liveBiggest !== CombatBarManager._burstedBiggestHit;
+            if (beatsRecord) CombatBarManager._burstedBiggestHit = liveBiggest;
+
             api.updateSecondaryBarItemInfo('combat', 'stat-combat-biggest', {
                 image: CombatBarManager.actorPortrait(biggest?.attackerId),
                 value: biggest ? String(biggest.amount) : '-',
+                ...(beatsRecord && { burst: true }),
                 tooltip: biggest
                     ? `Biggest hit this combat: ${biggest.attacker} hit ${biggest.target} for ${biggest.amount}`
+                        + (beatsRecord ? ' — a new record' : '')
                     : 'Biggest hit this combat'
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-kills', {
@@ -1678,11 +1708,19 @@ export class CombatBarManager {
         // which for a table that has just finished a combat is the wrong moment
         // to be showing the previous combat's standings.
         HookManager.registerHook({
+            // Clearing the burst latch here rather than at combat start: the standing record only
+            // moves when a combat is summarised, and this is the hook that fires then.
             name: 'blacksmith.combatSummaryReady',
             description: 'MenuBar: Refresh combat bar party statistics when a combat ends',
             context: 'menubar-combat-stats',
             priority: 3,
-            callback: () => CombatBarManager.scheduleReadoutRefresh(menuBar)
+            callback: () => {
+                // The standing record only moves when a combat is summarised, so this is where the
+                // burst latch resets: the next fight can beat the new record, and the swing that
+                // set it will not be celebrated a second time.
+                CombatBarManager._burstedBiggestHit = 0;
+                CombatBarManager.scheduleReadoutRefresh(menuBar);
+            }
         });
 
         const combatDeleteHookId = HookManager.registerHook({

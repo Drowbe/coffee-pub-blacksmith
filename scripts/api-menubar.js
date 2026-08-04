@@ -2416,7 +2416,8 @@ class MenuBar {
                 updates.image !== undefined || updates.tone !== undefined ||
                 updates.rank !== undefined || updates.icon !== undefined ||
                 updates.series !== undefined || updates.emphasis !== undefined ||
-                updates.seriesB !== undefined || updates.valueParts !== undefined);
+                updates.seriesB !== undefined || updates.valueParts !== undefined ||
+                updates.burst !== undefined);
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
@@ -2441,6 +2442,7 @@ class MenuBar {
             if (updates.series !== undefined) existing.series = updates.series;
             if (updates.seriesB !== undefined) existing.seriesB = updates.seriesB;
             if (updates.valueParts !== undefined) existing.valueParts = updates.valueParts;
+            if (updates.burst !== undefined) existing.burst = updates.burst;
             if (updates.emphasis !== undefined) existing.emphasis = updates.emphasis;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
@@ -3455,6 +3457,92 @@ class MenuBar {
      * @returns {boolean} true if the DOM now matches; false if the caller must rebuild instead
      * @private
      */
+    /**
+     * Whether the user has asked for less motion.
+     *
+     * Checked at the moment of animating rather than cached: a reader can change it mid-session,
+     * and a cached answer would keep animating at someone who has just asked it to stop.
+     */
+    static _prefersReducedMotion() {
+        try {
+            return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    /**
+     * Announce that a readout's value changed, and count it up to its new figure.
+     *
+     * MOTION MUST FOLLOW A VALUE, NEVER A RENDER. That is the whole rule, and it is only keepable
+     * because of the value-patch path: the node survives its own update, so the text already on
+     * screen IS the previous value and a change can be detected by comparing against it. Before
+     * that path existed the element was destroyed and rebuilt on every update, so a flash keyed to
+     * a "change" would have fired on every unrelated render and a count-up would have restarted
+     * continuously.
+     *
+     * Nothing here fires on a rebuild either, and that is correct rather than a gap: a rebuild is
+     * not a value change, and a bar that flashed every chip when the combat state flipped would be
+     * announcing nothing at all.
+     *
+     * The count-up is deliberately narrow. It runs only when both the old and new text are a plain
+     * number carrying the SAME suffix -- "12" to "19", or "41%" to "58%". It refuses "8.4k" to
+     * "12.1k", where the suffix is a magnitude rather than a unit and interpolating the mantissa
+     * would show numbers that were never true. Where it refuses, the value simply swaps and the
+     * flash still plays.
+     *
+     * @param {HTMLElement} node - the element whose text is changing
+     * @param {string} previous - the text currently on screen
+     * @param {string} next - the text to arrive at
+     */
+    static _animateValueChange(node, previous, next) {
+        if (previous === next) return;
+
+        // The flash is the part that always applies: it says "this moved", which is true whether or
+        // not the value is countable. Restarted by removing the class and forcing a reflow, so a
+        // second change during the first animation replays rather than being swallowed.
+        if (!this._prefersReducedMotion()) {
+            node.classList.remove('is-changed');
+            void node.offsetWidth;
+            node.classList.add('is-changed');
+        }
+
+        const parse = (text) => {
+            const match = /^(-?\d+(?:\.\d+)?)(.*)$/.exec(String(text).trim());
+            if (!match) return null;
+            return { value: Number(match[1]), suffix: match[2], decimals: (match[1].split('.')[1] || '').length };
+        };
+        const from = parse(previous);
+        const to = parse(next);
+
+        if (this._prefersReducedMotion() || !from || !to || from.suffix !== to.suffix || from.value === to.value) {
+            node.textContent = next;
+            return;
+        }
+
+        // One animation per node at a time; a new value takes over from wherever the last got to.
+        if (node._blacksmithCountFrame) cancelAnimationFrame(node._blacksmithCountFrame);
+
+        const duration = 420;
+        const start = performance.now();
+        const step = (now) => {
+            const progress = Math.min(1, (now - start) / duration);
+            // Ease out: a counter that decelerates reads as landing on a figure rather than being
+            // cut off at one.
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = from.value + ((to.value - from.value) * eased);
+            node.textContent = `${current.toFixed(to.decimals)}${to.suffix}`;
+            if (progress < 1) {
+                node._blacksmithCountFrame = requestAnimationFrame(step);
+            } else {
+                node._blacksmithCountFrame = null;
+                // Land on the exact string rather than a rounded reconstruction of it.
+                node.textContent = next;
+            }
+        };
+        node._blacksmithCountFrame = requestAnimationFrame(step);
+    }
+
     static _applySecondaryBarValueRefresh(onlyItemId = null) {
         // Only the ways OUT are logged. A patch that quietly declines to write is invisible — the
         // bar keeps showing whatever it was registered with and nothing errors — so each bail says
@@ -3481,12 +3569,17 @@ class MenuBar {
         // becoming non-empty adds or removes an element. That is a structural change wearing a
         // value's clothes: report it and let the caller rebuild rather than leaving an empty span
         // behind, which would still take a flex gap and shift its neighbours.
-        const setText = (parent, selector, raw) => {
+        const setText = (parent, selector, raw, animate = false) => {
             const node = parent.querySelector(selector);
             if (!!raw !== !!node) return false;
             if (node) {
                 const text = String(raw);
-                if (node.textContent !== text) node.textContent = text;
+                if (node.textContent !== text) {
+                    // Only VALUES animate. A label changing is a different readout arriving, not
+                    // this one moving, and flashing it would announce a fact nobody asked about.
+                    if (animate) MenuBar._animateValueChange(node, node.textContent, text);
+                    else node.textContent = text;
+                }
             }
             return true;
         };
@@ -3566,11 +3659,16 @@ class MenuBar {
                         .filter((part) => part.text !== '');
                     if (nodes.length !== wanted.length) return bail('value part count changed', itemId);
                     wanted.forEach((part, index) => {
-                        if (nodes[index].textContent !== part.text) nodes[index].textContent = part.text;
+                        if (nodes[index].textContent !== part.text) {
+                            // Scaffolding does not animate: a separator has not changed in any
+                            // sense a reader cares about, even when the string around it did.
+                            if (part.muted) nodes[index].textContent = part.text;
+                            else MenuBar._animateValueChange(nodes[index], nodes[index].textContent, part.text);
+                        }
                         nodes[index].classList.toggle('is-muted', part.muted);
                     });
                 } else {
-                    if (update.value !== undefined && !setText(el, '.secondary-bar-item-value', update.value)) return bail('value appeared or emptied', itemId);
+                    if (update.value !== undefined && !setText(el, '.secondary-bar-item-value', update.value, true)) return bail('value appeared or emptied', itemId);
                     if (update.label !== undefined && !setText(el, '.secondary-bar-item-label', update.label)) return bail('label appeared or emptied', itemId);
                 }
                 if (update.image !== undefined) {
@@ -3593,7 +3691,18 @@ class MenuBar {
                             img.alt = '';
                             host.prepend(img);
                         }
-                        if (img.getAttribute('src') !== String(update.image)) img.setAttribute('src', String(update.image));
+                        if (img.getAttribute('src') !== String(update.image)) {
+                            // A standing changing hands is a real event and a hard cut hides it.
+                            // The class is removed on the next frame rather than on animationend,
+                            // because a portrait that fails to load fires no animation event and
+                            // would otherwise stay mid-fade forever.
+                            if (!MenuBar._prefersReducedMotion()) {
+                                img.classList.remove('is-swapping');
+                                void img.offsetWidth;
+                                img.classList.add('is-swapping');
+                            }
+                            img.setAttribute('src', String(update.image));
+                        }
                         if (framed) host.querySelector(`.secondary-bar-item-${kind}-empty`)?.remove();
                     } else if (img) {
                         img.remove();
@@ -3619,6 +3728,21 @@ class MenuBar {
 
                 // Ornaments. Each is a class or a custom property rather than markup, which is what
                 // keeps them patchable without a rebuild.
+                // A RECORD IS THE CALLER'S TO DECLARE.
+                //
+                // The menubar can see that a number went up; it cannot know that the number passed
+                // a standing best, because the record lives in a different tier of the statistics
+                // than the value being pushed. So `burst: true` is a signal, not an inference --
+                // and it is deliberately one-shot: it fires the animation and is cleared from the
+                // stored update, so a later refresh pushing the same value does not replay it.
+                if (update.burst) {
+                    if (!MenuBar._prefersReducedMotion()) {
+                        el.classList.remove('is-burst');
+                        void el.offsetWidth;
+                        el.classList.add('is-burst');
+                    }
+                    delete update.burst;
+                }
                 if (update.emphasis !== undefined) {
                     const emphasis = update.emphasis === 'feature' ? 'feature' : 'plain';
                     if (el.dataset.emphasis !== emphasis) {

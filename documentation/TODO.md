@@ -4,23 +4,17 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
-## Readout widgets: `segmentchip`
+## Readout widgets: `segmentchip` — later, when something needs it
 
-One proportional bar with the breakdown in its tooltip — hits, misses, criticals and fumbles as a single item that shows composition, which four separate numbers never did. The last of the consolidating kinds; `sparkchip` shipped and is verified in play.
+**Not scheduled.** A widget kind worth having when a readout has **more than two parts**, kept here so the idea is not lost rather than because anything currently wants it.
 
-It exists to buy back width. The middle zone already holds more than it can show, and every readout added since has made suppression drop more — four chips becoming one is the only lever left that adds information while taking less room.
+One bar split into proportional segments, showing composition at a glance where separate numbers make the reader do the arithmetic. The original case was attack outcomes — hits, misses, criticals, fumbles as one item.
 
-`Finesse` already does a smaller version of this by hand (`6 C | 3 F` in one chip), which is worth reading before starting: if a text pair reads well enough, the case for a graphical segment bar is weaker than it looks and this may not be worth building.
+**Why it is not being built now.** Its justification was width, and that has been met by other means: `Finesse` collapsed criticals and fumbles into one chip, suppression works, and the zones clip rather than collide. `Finesse` is also the same consolidation done in text (`6C | 3F`, separator muted), and for **two** parts a text pair reads better than a bar would — at this row's height each segment is a few pixels, so small categories become slivers nobody can judge and the reader falls back to the tooltip. That is the same failure the gauge ring had twice: a shape too small to carry the reading it promises.
 
-Verify live: confirm the segments sum to the whole and the tooltip names each; confirm a party with no recorded attacks renders an empty bar rather than four zero-width slivers; confirm it survives suppression at a narrow window without clipping.
+**What would change the answer:** a readout with three or more parts whose *proportions* matter, where the text form gets long and the arithmetic gets real. Damage by type, or party composition, would qualify. Two counts do not.
 
-## Readout widgets: motion
-
-Value flash on change in the tone's colour, count-up between old and new, a record burst when a live value passes the standing record, and a crossfade when a portrait changes hands. The burst is a `statchip` state, not a sixth widget.
-
-Every animation must be driven by an actual value change rather than by a render, or it fires constantly — which is why this depends on the value-patch item above. `prefers-reduced-motion` collapses all of it to a plain swap.
-
-Verify live: land a hit and confirm the damage chip counts up and flashes; take damage and confirm the damage-taken chip flashes in the other tone; beat a standing record and confirm exactly one burst rather than one per render.
+If it is built: confirm the segments sum to the whole and the tooltip names each; confirm no recorded data renders an empty bar rather than a row of zero-width slivers; confirm it survives suppression at a narrow window without clipping.
 
 ## Toasts: let an excluded user through for specific events
 

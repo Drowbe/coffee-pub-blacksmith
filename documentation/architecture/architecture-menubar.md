@@ -257,3 +257,15 @@ A pushed readout **value** is a separate path: it is written into the standing D
 `_applySecondaryBarValueRefresh` rather than re-rendering, applied synchronously where it is pushed so
 it never depends on a later render arriving. It reports failure only when the change needs an element
 added or removed, which falls through to a rebuild.
+
+**That path is also what makes motion possible.** Because the node survives its own update, the text on
+screen *is* the previous value, so a change can be detected by comparing against it — a flash, a
+count-up, a portrait crossfade. Before it existed the element was destroyed and rebuilt on every update,
+where a flash keyed to a "change" would have fired on every unrelated render and a count-up would have
+restarted continuously.
+
+The rule that follows: **motion follows a value, never a render.** A rebuilt node deliberately does not
+animate, which is correct rather than a gap — a rebuild is not a change, and a bar that flashed every
+chip when combat state flipped would be announcing nothing at all. A **record** is the one thing the
+menubar cannot infer, since the standing best lives in a different tier of the statistics than the value
+being pushed, so `burst: true` is a caller's signal and is consumed once rather than replayed.
