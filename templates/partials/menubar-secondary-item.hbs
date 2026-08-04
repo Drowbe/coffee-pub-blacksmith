@@ -31,12 +31,13 @@
      data-tone="{{tone}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
-    {{!-- The word REPLACES the icon rather than joining it. An icon and a word saying the same
-          thing is two glyphs of width for one meaning, and this row has no width to spare. --}}
+    {{!-- Two tones, label then value, read as one pill. The word REPLACES the icon rather than
+          joining it: an icon and a word saying the same thing spend two glyphs of width on one
+          meaning, and this row has none to spare. --}}
     {{#if displayLabel}}
     <span class="secondary-bar-item-label">{{displayLabel}}</span>
     {{else if icon}}
-    <i class="{{icon}} secondary-bar-item-statchip-icon"></i>
+    <span class="secondary-bar-item-label"><i class="{{icon}} secondary-bar-item-statchip-icon"></i></span>
     {{/if}}
     {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
 </div>
@@ -69,7 +70,18 @@
      data-group-id="{{groupId}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
-    <span class="secondary-bar-item-gaugechip-dial" style="--blacksmith-gauge-percent: {{gaugePercent}};{{#if gaugeColor}} --blacksmith-gauge-color: {{gaugeColor}};{{/if}}"></span>
+    {{!-- An SVG arc, not a conic gradient. A conic gradient masked into a ring is cheap to update
+          but Chromium renders its edges with no antialiasing worth the name, so at this size the
+          rim came out visibly stepped and the sweep boundary looked chewed. A stroked circle is
+          smooth at any size. `pathLength="100"` makes the dash array read as a percentage
+          directly, so a value update is still one style write. --}}
+    <span class="secondary-bar-item-gaugechip-dial">
+        <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+            <circle class="secondary-bar-item-gaugechip-track" cx="18" cy="18" r="15.5" pathLength="100"></circle>
+            <circle class="secondary-bar-item-gaugechip-arc" cx="18" cy="18" r="15.5" pathLength="100"
+                    style="stroke-dasharray: {{gaugePercent}} 100;{{#if gaugeColor}} stroke: {{gaugeColor}};{{/if}}"></circle>
+        </svg>
+    </span>
     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
     {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
 </div>

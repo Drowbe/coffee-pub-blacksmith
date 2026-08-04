@@ -48,9 +48,9 @@
        track that says "this is a dial"; the fill only says how far round. */
     --blacksmith-gauge-track: rgba(240, 240, 224, 0.22);
     --blacksmith-gauge-percent: 0;
-    /* Thin enough to read as a rim, thick enough to survive antialiasing at this
-       size -- below about 3px the arc breaks up into dashes on a dark row. */
-    --blacksmith-gauge-thickness: 3.5px;
+    /* In viewBox units (the box is 36 across), so it scales with the dial rather
+       than thinning out as the row grows. */
+    --blacksmith-gauge-thickness: 4;
 }
 
 /* ---- shared chip layout ---------------------------------------------------
@@ -82,29 +82,71 @@
    Tone colours the value and the icon. The icon is dimmed relative to the
    value on purpose: it labels the number rather than competing with it, which
    is the same reason the row runs icons a step smaller than text. */
+/* TWO TONES, ONE PILL: label on a dark ground, value on the tone. This is the
+   broadcast-graphic treatment rather than the muted-readout one -- the brief was
+   that these should pop the way a score bug does, not recede.
+
+   The fill is the one place the "identity, not affordance" rule bends, so the
+   other half of it holds harder: no pointer cursor, no hover, no lift, and a
+   pill silhouette that no button on this bar uses. It reads as a badge, which is
+   a thing you look at, rather than a control, which is a thing you press. */
+/* Doubled class on purpose. `.combat-data-row .secondary-bar-item` strips the
+   radius and padding from every item in that row at specificity 0,3,0, which
+   would flatten this pill back into plain text. Matching the item class as well
+   as the kind class reaches 0,3,0 without naming the combat bar, so the widget
+   stays generic and still wins wherever it is used. */
+.blacksmith-menubar-secondary .secondary-bar-item.secondary-bar-item-statchip {
+    padding: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    gap: 0;
+    line-height: 1;
+    align-items: stretch;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-label {
+    padding: 0.28em 0.55em 0.28em 0.7em;
+    background-color: rgba(0, 0, 0, 0.42);
+    color: rgba(240, 240, 224, 0.78);
+    font-size: calc(var(--secondary-bar-item-font-size) * 0.86);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
 .blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-value {
-    color: var(--blacksmith-widget-tone);
-    font-weight: 600;
+    padding: 0.28em 0.7em 0.28em 0.55em;
+    background-color: var(--blacksmith-widget-tone-fill);
+    color: var(--blacksmith-widget-tone-ink);
+    font-size: var(--secondary-bar-item-font-size);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-statchip-icon {
-    color: var(--blacksmith-widget-tone);
-    opacity: 0.7;
     font-size: var(--secondary-bar-item-icon-size);
 }
 
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-neutral { --blacksmith-widget-tone: var(--blacksmith-widget-tone-neutral); }
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-good    { --blacksmith-widget-tone: var(--blacksmith-widget-tone-good); }
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-bad     { --blacksmith-widget-tone: var(--blacksmith-widget-tone-bad); }
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-record  { --blacksmith-widget-tone: var(--blacksmith-widget-tone-record); }
-
-/* A record is the one tone that earns more than colour, because "this is the
-   best it has ever been" is a different claim from "this number is high". A
-   hairline under the value, not a fill or a border box -- a box here would read
-   as a button and a fill would shout. */
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-record .secondary-bar-item-value {
-    border-bottom: 1px solid var(--blacksmith-widget-tone-record);
-    padding-bottom: 1px;
+/* Each tone is a FILL plus the ink that stays legible on it. Dark ink on the
+   light tones is what makes these read as badges rather than as coloured text --
+   light-on-mid-tone at this size turns to mush. */
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-neutral {
+    --blacksmith-widget-tone-fill: rgba(240, 240, 224, 0.82);
+    --blacksmith-widget-tone-ink: #2b2018;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-good {
+    --blacksmith-widget-tone-fill: var(--blacksmith-widget-tone-good);
+    --blacksmith-widget-tone-ink: #1e2a1a;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-bad {
+    --blacksmith-widget-tone-fill: var(--blacksmith-widget-tone-bad);
+    --blacksmith-widget-tone-ink: #2e1414;
+}
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-record {
+    --blacksmith-widget-tone-fill: var(--blacksmith-widget-tone-record);
+    --blacksmith-widget-tone-ink: #2e2410;
 }
 
 /* ---- portraitstat ---------------------------------------------------------
@@ -247,39 +289,57 @@
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate.rank-3 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-3); }
 
 /* ---- gaugechip ------------------------------------------------------------
-   A conic gradient masked into a ring, rather than an SVG arc. Two reasons:
-   the sweep is a single custom property, so a value update is one style write
-   with no markup to rebuild; and it inherits the row's sizing variables
-   directly, where an SVG would need its geometry recomputed per row height. */
+   A stroked SVG circle, not a conic gradient masked into a ring. The gradient
+   was cheap to update but Chromium gives its edges no antialiasing worth the
+   name, so at this size the rim came out stepped and the sweep boundary looked
+   chewed -- which is what "the circle isn't smooth" was seeing. A stroked circle
+   is resolution-independent and smooth at any size.
+
+   `pathLength="100"` on both circles redefines their length as 100 units, so
+   `stroke-dasharray: <percent> 100` is the sweep directly with no circumference
+   maths, and a value update stays one style write. */
 .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-dial {
-    /* Resolve the size HERE, inside the row. Defining this variable on the
-       outer bar resolves --secondary-bar-item-icon-size against the outer
-       two-row height before the compact data row can override it. That made
-       the dial taller than the row; overflow clipping left only two side arcs. */
-    --blacksmith-gauge-size: calc(var(--secondary-bar-item-icon-size) * 1.75);
     flex: 0 0 auto;
+    display: inline-flex;
     width: var(--blacksmith-gauge-size);
     height: var(--blacksmith-gauge-size);
-    border-radius: 50%;
-    background: conic-gradient(
-        var(--blacksmith-gauge-color) calc(var(--blacksmith-gauge-percent) * 1%),
-        var(--blacksmith-gauge-track) 0
-    );
-    -webkit-mask: radial-gradient(
-        closest-side,
-        transparent calc(100% - var(--blacksmith-gauge-thickness)),
-        #000 calc(100% - var(--blacksmith-gauge-thickness))
-    );
-    mask: radial-gradient(
-        closest-side,
-        transparent calc(100% - var(--blacksmith-gauge-thickness)),
-        #000 calc(100% - var(--blacksmith-gauge-thickness))
-    );
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-dial svg {
+    width: 100%;
+    height: 100%;
+    /* Start the sweep at twelve o'clock rather than three. */
+    transform: rotate(-90deg);
+    overflow: visible;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-track,
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-arc {
+    fill: none;
+    stroke-width: var(--blacksmith-gauge-thickness);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-track {
+    stroke: var(--blacksmith-gauge-track);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-arc {
+    stroke: var(--blacksmith-gauge-color);
+    stroke-linecap: round;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-value {
-    font-weight: 600;
-    color: var(--blacksmith-widget-tone-neutral);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--blacksmith-gauge-color);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-label {
+    font-size: calc(var(--secondary-bar-item-font-size) * 0.86);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(240, 240, 224, 0.78);
 }
 
 /* The ring is a reading, and a reading should not animate on first paint: a
@@ -287,7 +347,7 @@
    a real change moves it, which the value-patch path in `api-menubar.js` is
    what makes possible -- the element survives its own update. */
 @media (prefers-reduced-motion: no-preference) {
-    .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-dial {
-        transition: background 0.35s ease;
+    .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-arc {
+        transition: stroke-dasharray 0.35s ease;
     }
 }

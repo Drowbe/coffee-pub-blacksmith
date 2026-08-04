@@ -245,17 +245,24 @@
     min-width: 0;
 }
 
-/* THE STATISTICS READ LEFT TO RIGHT, NOT OUTWARD FROM THE CENTRE.
-   The shared middle zone is centred, which is right for a bar of buttons and
-   wrong for a list of readouts: a centred row that overflows loses items from
-   both ends at once, and the eye has no fixed point to start from, so the same
-   chip sits in a different place every time the set changes. Left-aligned, the
-   ranking in `READOUT_SUPPRESSION_ORDER` becomes visible -- what survives is
-   what is leftmost -- and a chip appearing or dropping moves only what follows
-   it. The MVP plate holds the left zone, so this reads as one continuous line
-   from the plate rightward. */
+/* WHERE THE STATISTICS SIT DEPENDS ON WHAT IS BESIDE THEM.
+   Out of combat the left zone holds the MVP plate, and the statistics are that
+   plate's supporting cast -- the same subject, so they belong next to it and
+   the row reads as one block from the left. In combat the left zone holds round
+   and turn, which have nothing to do with the statistics; butting them together
+   implies a relationship that is not there, so the statistics take the centre
+   and the row balances round/turn on one side against health and CR on the
+   other.
+
+   `in-combat` is written by `CombatBarManager.syncDataRowState` after every
+   render, because the row's own template cannot see combat state -- the data it
+   is given differs between the two cases rather than carrying a flag. */
 .blacksmith-menubar-secondary .combat-data-row .secondary-bar-zone-middle {
     justify-content: flex-start;
+}
+
+.blacksmith-menubar-secondary .combat-data-row.in-combat .secondary-bar-zone-middle {
+    justify-content: center;
 }
 
 /* Suppression. When the row cannot fit its readouts, they are dropped in a
@@ -1004,4 +1011,33 @@
     flex-basis: 18px;
     background-color: rgba(255, 214, 130, 0.25);
     border-color: rgba(255, 214, 130, 0.95);
+}
+
+
+/* THE BALANCE BAR MUST NOT LOOK LIKE A HEALTH BAR.
+   It sits beside two of them and was using the same green and red, so it read
+   as a third health bar rather than as a relationship between the first two.
+   Two earthy tones instead -- the party's side a dry moss, the monsters' a
+   burnt umber -- close enough in value that neither side reads as "good", which
+   is the point: this is a balance, not a score. The colours are applied here
+   rather than passed at registration so the two bars and the balance cannot
+   drift apart in different files. */
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-balancebar[data-item-id="balance"] .secondary-bar-item-balancebar-left {
+    background-color: #7a5230;
+}
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-balancebar[data-item-id="balance"] .secondary-bar-item-balancebar-right {
+    background-color: #6b7245;
+}
+
+/* ROUND AND TURN ARE THE SCOREBOARD, NOT A READOUT.
+   They were an icon and a number, which said the least of anything on the row
+   for the width they took. As two-tone pills they match the statistics and read
+   at a glance; the icons go because the words already say it. */
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-statchip[data-item-id="round"] .secondary-bar-item-value,
+.blacksmith-menubar-secondary .combat-data-row
+    .secondary-bar-item-statchip[data-item-id="turn"] .secondary-bar-item-value {
+    font-size: calc(var(--secondary-bar-item-font-size) * 1.1);
 }

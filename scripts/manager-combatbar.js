@@ -283,6 +283,7 @@ export class CombatBarManager {
                     // The timer bars are written per tick, so a fresh render
                     // starts empty until the next one — fill them immediately.
                     CombatBarManager.syncAllTimerReadouts();
+                    CombatBarManager.syncDataRowState();
                     CombatBarManager.applyReadoutOverflow();
                     setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 100);
                 });
@@ -342,22 +343,24 @@ export class CombatBarManager {
         // rest rather than in an endcap beside the portraits. Everyone sees
         // these; only the challenge rating below is GM information.
         api.registerSecondaryBarItem('combat', 'round', {
-            kind: 'info',
+            // Pills rather than icon-and-number. These are the scoreboard, and an
+            // hourglass beside the word "Round" said nothing the word did not.
+            kind: 'statchip',
+            tone: 'neutral',
             zone: 'left',
             group: 'encounter',
             order: 0,
-            icon: 'fa-solid fa-hourglass-half',
             label: 'Round',
             value: '0',
             tooltip: 'Current round',
             visible: inCombat
         });
         api.registerSecondaryBarItem('combat', 'turn', {
-            kind: 'info',
+            kind: 'statchip',
+            tone: 'neutral',
             zone: 'left',
             group: 'encounter',
             order: 1,
-            icon: 'fa-solid fa-user-clock',
             label: 'Turn',
             value: '0 of 0',
             tooltip: 'Current turn',
@@ -374,7 +377,13 @@ export class CombatBarManager {
             zone: 'left',
             group: 'timer',
             order: 0,
-            width: 'clamp(170px, 22vw, 340px)',
+            // BOTH TIMERS ARE THIS EXACT WIDTH, and it is not responsive.
+            // They swap in and out of one slot, so a width that varied with the
+            // viewport would make the bar twitch as the handover happened. The
+            // number is the longest string either can hold -- "PLANNING TIMER
+            // EXPIRED", 22 uppercase characters at the bar label size -- plus
+            // 12px of breathing room each side.
+            width: CombatBarManager.TIMER_BAR_WIDTH,
             height: 18,
             icon: '',
             title: '',
@@ -428,7 +437,7 @@ export class CombatBarManager {
             zone: 'right',
             group: 'health',
             order: 0,
-            width: 150,
+            width: CombatBarManager.HEALTH_BAR_WIDTH,
             // 40% of the row would be 12px; a health bar wants more presence.
             height: 18,
             icon: '',
@@ -447,7 +456,7 @@ export class CombatBarManager {
             zone: 'right',
             group: 'health',
             order: 1,
-            width: 'clamp(110px, 14vw, 230px)',
+            width: CombatBarManager.HEALTH_BAR_WIDTH,
             height: 18,
             icon: '',
             title: '',
@@ -938,6 +947,39 @@ export class CombatBarManager {
             none: 'rgba(240, 240, 224, 0.55)'
         };
         return colors[difficultyClass] ?? colors.none;
+    }
+
+    /**
+     * Width of BOTH timer bars, in pixels.
+     *
+     * Sized to the longest string either timer can display -- "PLANNING TIMER EXPIRED", 22
+     * uppercase characters at `--blacksmith-combatbar-bar-font-size` -- plus 12px each side.
+     * Fixed rather than responsive because the two share one slot and hand off to each other: a
+     * viewport-relative width would make the row twitch at the handover.
+     */
+    static TIMER_BAR_WIDTH = 168;
+
+    /**
+     * Width of BOTH health bars, in pixels.
+     *
+     * They are a matched pair read against each other -- party against monsters -- so unequal
+     * widths make unequal fractions look equal. The balance bar beside them is deliberately a
+     * different width, because it is a different measure and should not read as a third health bar.
+     */
+    static HEALTH_BAR_WIDTH = 150;
+
+    /**
+     * Mark the data row with the combat state its layout depends on.
+     *
+     * The row's own template cannot work this out: out of combat it is handed `getIdleBarData()`
+     * and in combat the full payload, so there is no single flag in the context to test. The class
+     * drives where the statistics sit -- beside the MVP plate out of combat, centred in it -- which
+     * is a relationship between zones that CSS can only express if something names the state.
+     */
+    static syncDataRowState() {
+        const row = document.querySelector('.combat-data-row');
+        if (!row) return;
+        row.classList.toggle('in-combat', !!CombatBarManager.getActiveCombat());
     }
 
     /**

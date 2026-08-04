@@ -3442,10 +3442,12 @@ class MenuBar {
                     }
                 }
                 if (kind === 'gaugechip' && update.percentProgress !== undefined) {
-                    const dial = el.querySelector('.secondary-bar-item-gaugechip-dial');
-                    if (!dial) return bail('gauge dial missing', itemId);
-                    dial.style.setProperty('--blacksmith-gauge-percent',
-                        Math.max(0, Math.min(100, Number(update.percentProgress) || 0)));
+                    // `pathLength="100"` on the circle means the dash array is the percentage
+                    // directly, so the sweep is still one style write despite being real geometry.
+                    const arc = el.querySelector('.secondary-bar-item-gaugechip-arc');
+                    if (!arc) return bail('gauge arc missing', itemId);
+                    const pct = Math.max(0, Math.min(100, Number(update.percentProgress) || 0));
+                    arc.style.strokeDasharray = `${pct} 100`;
                 }
             } else if (kind === 'progressbar' || kind === 'balancebar') {
                 const prefix = `.secondary-bar-item-${kind}`;
