@@ -343,6 +343,7 @@ export class CombatBarManager {
         // rest rather than in an endcap beside the portraits. Everyone sees
         // these; only the challenge rating below is GM information.
         api.registerSecondaryBarItem('combat', 'round', {
+            emphasis: 'feature',
             // Pills rather than icon-and-number. These are the scoreboard, and an
             // hourglass beside the word "Round" said nothing the word did not.
             kind: 'statchip',
@@ -356,6 +357,7 @@ export class CombatBarManager {
             visible: inCombat
         });
         api.registerSecondaryBarItem('combat', 'turn', {
+            emphasis: 'feature',
             kind: 'statchip',
             tone: 'neutral',
             zone: 'left',
@@ -584,9 +586,12 @@ export class CombatBarManager {
         api.registerSecondaryBarItem('combat', 'stat-top-mvp', {
             kind: 'nameplate',
             rank: 1,
-            zone: 'left',
-            group: 'mvp',
-            order: 0,
+            // With the statistics, not with the clock. In the left zone it sat beside round and
+            // turn, which made it read as part of the timing group -- the one thing it has nothing
+            // to do with. It leads the statistics group instead, which is its actual subject.
+            zone: 'middle',
+            group: 'stats',
+            order: -1,
             icon: 'fa-solid fa-trophy',
             label: '',
             value: '-',
@@ -771,9 +776,9 @@ export class CombatBarManager {
         api.registerSecondaryBarItem('combat', 'stat-combat-mvp', {
             kind: 'nameplate',
             rank: 1,
-            zone: 'left',
-            group: 'mvp',
-            order: 1,
+            zone: 'middle',
+            group: 'stats',
+            order: -1,
             icon: 'fa-solid fa-medal',
             label: '',
             value: '',

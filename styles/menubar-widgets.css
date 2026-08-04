@@ -1,25 +1,34 @@
 /* ============================================================================
    SECONDARY BAR READOUT WIDGETS
 
-   The chip kinds that say what KIND of number they carry: `statchip` (a
-   quantity with a tone), `portraitstat` (a standing that belongs to a person),
-   `gaugechip` (a percentage as a shape).
+   SIX WAYS OF SHOWING DATA, NOT ONE. That is the point of this file, and the
+   mistake worth recording: the filled pill was built, it worked, and then it was
+   applied to every readout on the row -- at which point nothing was emphasised,
+   because emphasis is a contrast and there was nothing left to contrast against.
+   The pill is one tier. It is not the vocabulary.
 
-   These exist because every readout used to be `kind: 'info'` -- a rank, a
-   quantity, a percentage and a person all rendered identically, and nothing
-   about a chip said which it was.
+   Quietest to loudest:
 
-   THE RULE THEY ALL FOLLOW: restore identity, not affordance. A readout may
-   have colour, weight and shape; it may not have a fill, a pointer cursor or a
-   hover lift, because those say "click me" and it cannot be clicked. That is
-   the same reason `menubar-combatbar.css` strips the shared item chrome from
-   the data row, and these must not put it back.
+     plain statchip   a quiet word and a tone-coloured number, no fill
+     portraitstat     a face, then word and number -- standings
+     gaugechip        a meter and its number -- proportions
+     sparkchip        columns of history behind the number -- trends
+     feature pill     a filled two-tone badge -- a few, chosen
+     nameplate        portrait, name, standing -- exactly one per bar
 
-   SIZES COME FROM THE ROW. Every dimension below is derived from the item
-   variables the host row declares (`--secondary-bar-item-font-size`,
-   `--secondary-bar-item-icon-size`, `--secondary-bar-item-image-size`), which
-   are themselves re-based per row from that row's height -- see the note in
-   `menubar-combatbar.css`. Hard-coding a pixel size here would look right on
+   `emphasis` selects between plain and feature and DEFAULTS TO PLAIN, so a chip
+   is quiet unless something says otherwise. The opposite default is what made
+   every readout shout.
+
+   THE RULE THEY ALL FOLLOW: identity, not affordance. Colour, weight and shape
+   are available; a pointer cursor and a hover lift are not, because a readout
+   cannot be clicked. The feature pill's fill is the one deliberate exception, so
+   the rest of that rule holds harder there -- its silhouette matches no button
+   on this bar.
+
+   SIZES COME FROM THE ROW. Every dimension derives from the item variables the
+   host row declares, which are re-based per row from that row's height -- see
+   the note in `menubar-combatbar.css`. A hard-coded pixel would look right on
    the data row and wrong on the taller combat row.
    ============================================================================ */
 
@@ -27,12 +36,14 @@
     /* TONES. Deliberately NOT the `--blacksmith-status-*` tokens, which are
        picked for light surfaces: #629602 and #8b0000 against this bar's warm
        translucent row read fluorescent and muddy respectively. Same lesson as
-       `getDifficultyChipColor` in `manager-combatbar.js`, which needed its own
-       palette for exactly this reason. Muted and warmed to sit on the row. */
+       `getDifficultyChipColor` in `manager-combatbar.js`. */
     --blacksmith-widget-tone-neutral: rgba(240, 240, 224, 0.92);
     --blacksmith-widget-tone-good: #a8c9a0;
     --blacksmith-widget-tone-bad: #e07070;
     --blacksmith-widget-tone-record: #dcc36a;
+
+    /* The quiet half of every chip: the word that names the number. */
+    --blacksmith-widget-label-ink: rgba(240, 240, 224, 0.55);
 
     /* RANK RINGS. Gold, silver, bronze, then nothing -- a chip with no standing
        gets a plain rim rather than a fourth colour nobody can name. */
@@ -42,137 +53,144 @@
     --blacksmith-widget-rank-none: rgba(240, 240, 224, 0.35);
 
     --blacksmith-gauge-color: var(--blacksmith-widget-tone-record);
-    /* The unfilled remainder has to be VISIBLE, or the ring reads as a broken
-       circle rather than a full one partly filled -- at 0% it vanished entirely
-       and at 80% it looked like a gap had been cut out of the rim. It is the
-       track that says "this is a dial"; the fill only says how far round. */
-    --blacksmith-gauge-track: rgba(240, 240, 224, 0.22);
-    --blacksmith-gauge-percent: 0;
-    /* In viewBox units (the box is 36 across), so it scales with the dial rather
-       than thinning out as the row grows. */
-    --blacksmith-gauge-thickness: 4;
+    --blacksmith-gauge-track: rgba(240, 240, 224, 0.18);
 }
 
-/* ---- shared chip layout ---------------------------------------------------
-   The three kinds sit in the same row as `info` chips and must align with them,
-   so they take the same gap and the same baseline rather than each inventing
-   spacing. */
+/* ---- shared chip layout --------------------------------------------------- */
 .blacksmith-menubar-secondary .secondary-bar-item-statchip,
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat,
-.blacksmith-menubar-secondary .secondary-bar-item-gaugechip {
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip,
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip {
     display: flex;
     align-items: center;
-    gap: var(--secondary-bar-item-gap);
     background-color: transparent;
     border-color: transparent;
     cursor: default;
     min-width: 0;
     white-space: nowrap;
+    line-height: 1;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-statchip:hover,
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat:hover,
-.blacksmith-menubar-secondary .secondary-bar-item-gaugechip:hover {
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip:hover,
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip:hover {
     background-color: transparent;
     border-color: transparent;
     transform: none;
 }
 
-/* ---- statchip -------------------------------------------------------------
-   Tone colours the value and the icon. The icon is dimmed relative to the
-   value on purpose: it labels the number rather than competing with it, which
-   is the same reason the row runs icons a step smaller than text. */
-/* TWO TONES, ONE PILL: label on a dark ground, value on the tone. This is the
-   broadcast-graphic treatment rather than the muted-readout one -- the brief was
-   that these should pop the way a score bug does, not recede.
-
-   The fill is the one place the "identity, not affordance" rule bends, so the
-   other half of it holds harder: no pointer cursor, no hover, no lift, and a
-   pill silhouette that no button on this bar uses. It reads as a badge, which is
-   a thing you look at, rather than a control, which is a thing you press. */
-/* Doubled class on purpose. `.combat-data-row .secondary-bar-item` strips the
-   radius and padding from every item in that row at specificity 0,3,0, which
-   would flatten this pill back into plain text. Matching the item class as well
-   as the kind class reaches 0,3,0 without naming the combat bar, so the widget
-   stays generic and still wins wherever it is used. */
-.blacksmith-menubar-secondary .secondary-bar-item.secondary-bar-item-statchip,
-.blacksmith-menubar-secondary .secondary-bar-item.secondary-bar-item-portraitstat,
-.blacksmith-menubar-secondary .secondary-bar-item.secondary-bar-item-gaugechip {
-    padding: 0;
-    border-radius: 999px;
-    overflow: hidden;
-    gap: 0;
-    line-height: 1;
-    align-items: stretch;
-    /* A fixed pill height is what the segments centre against, and it keeps every
-       chip on the row the same height regardless of what is inside it. */
-    height: calc(var(--blacksmith-menubar-secondary-height) * 0.62);
-}
-
-/* THE TWO SEGMENTS ARE DIFFERENT TYPE SIZES, so they cannot be aligned by
-   padding -- em padding scales with each segment's own font and the baselines
-   drift apart, which is what made the text sit crooked in the pill. Each segment
-   is its own flex box centring its text, and the vertical padding is dropped in
-   favour of the pill's height, so both are centred on the same axis whatever
-   their font size. */
+/* Every chip names its number the same way, whatever its tier. */
 .blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-label,
-.blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-value {
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat .secondary-bar-item-label,
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-label,
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip .secondary-bar-item-label {
     display: flex;
     align-items: center;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-label {
-    padding: 0 0.5em 0 0.65em;
-    background-color: rgba(0, 0, 0, 0.42);
-    color: rgba(240, 240, 224, 0.78);
-    font-size: calc(var(--secondary-bar-item-font-size) * 0.82);
+    font-size: calc(var(--secondary-bar-item-font-size) * 0.8);
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
+    color: var(--blacksmith-widget-label-ink);
+    line-height: 1;
 }
 
-.blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-value {
-    padding: 0 0.65em 0 0.5em;
-    background-color: var(--blacksmith-widget-tone-fill);
-    color: var(--blacksmith-widget-tone-ink);
+.blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-value,
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat .secondary-bar-item-value,
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-value,
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip .secondary-bar-item-value {
+    display: flex;
+    align-items: center;
     font-size: var(--secondary-bar-item-font-size);
     font-weight: 800;
     font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
+
+/* ---- TIER: plain ----------------------------------------------------------
+   The default, and deliberately close to what this row had before the pills: a
+   quiet word and a tone-coloured number, no fill and no container. Most of the
+   row is this, which is what lets the few loud things be loud. */
+.blacksmith-menubar-secondary .secondary-bar-item.emphasis-plain {
+    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.emphasis-plain .secondary-bar-item-value {
+    color: var(--blacksmith-widget-plain-ink, var(--blacksmith-widget-tone-neutral));
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.emphasis-plain.tone-good   { --blacksmith-widget-plain-ink: var(--blacksmith-widget-tone-good); }
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.emphasis-plain.tone-bad    { --blacksmith-widget-plain-ink: var(--blacksmith-widget-tone-bad); }
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.emphasis-plain.tone-record { --blacksmith-widget-plain-ink: var(--blacksmith-widget-tone-record); }
 
 .blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-statchip-icon {
     font-size: var(--secondary-bar-item-icon-size);
+    opacity: 0.75;
 }
 
-/* Each tone is a FILL plus the ink that stays legible on it. Dark ink on the
-   light tones is what makes these read as badges rather than as coloured text --
-   light-on-mid-tone at this size turns to mush. */
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-neutral {
-    --blacksmith-widget-tone-fill: rgba(240, 240, 224, 0.82);
+/* ---- TIER: feature pill ---------------------------------------------------
+   A filled two-tone badge: dark word, tone-filled number. Loud on purpose and
+   therefore rare -- reserve it for the readouts a reader should find without
+   looking for them.
+
+   Doubled class on purpose: `.combat-data-row .secondary-bar-item` strips radius
+   and padding from every item in that row at 0,3,0, which would flatten this
+   back to plain text. Matching the item class as well as the kind reaches the
+   same specificity without naming the combat bar. */
+.blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature {
+    padding: 0;
+    gap: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    align-items: stretch;
+    /* A fixed height is what the two segments centre against, and it keeps every
+       feature pill identical whatever is inside it. */
+    height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
+}
+
+/* THE SEGMENTS ARE DIFFERENT TYPE SIZES, so they cannot be aligned by padding --
+   `em` padding scales with each segment's own font and their baselines drift
+   apart, which is what made the text sit crooked. Each centres itself against
+   the pill's height instead. */
+.blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature .secondary-bar-item-label {
+    padding: 0 0.5em 0 0.7em;
+    background-color: rgba(0, 0, 0, 0.45);
+    color: rgba(240, 240, 224, 0.8);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature .secondary-bar-item-value {
+    padding: 0 0.7em 0 0.5em;
+    background-color: var(--blacksmith-widget-tone-fill, rgba(240, 240, 224, 0.85));
+    color: var(--blacksmith-widget-tone-ink, #2b2018);
+}
+
+/* Each tone is a fill plus the ink that stays legible on it. Dark ink on a light
+   fill is what makes these read as badges; light-on-mid-tone turns to mush. */
+.blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature.tone-neutral {
+    --blacksmith-widget-tone-fill: rgba(240, 240, 224, 0.85);
     --blacksmith-widget-tone-ink: #2b2018;
 }
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-good {
+.blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature.tone-good {
     --blacksmith-widget-tone-fill: var(--blacksmith-widget-tone-good);
     --blacksmith-widget-tone-ink: #1e2a1a;
 }
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-bad {
+.blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature.tone-bad {
     --blacksmith-widget-tone-fill: var(--blacksmith-widget-tone-bad);
     --blacksmith-widget-tone-ink: #2e1414;
 }
-.blacksmith-menubar-secondary .secondary-bar-item-statchip.tone-record {
+.blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature.tone-record {
     --blacksmith-widget-tone-fill: var(--blacksmith-widget-tone-record);
     --blacksmith-widget-tone-ink: #2e2410;
 }
 
-/* ---- portraitstat ---------------------------------------------------------
-   Round and ringed. The roundness is what separates "this belongs to a person"
-   from "this is a quantity" at a glance -- every other chip in the row is
-   rectangular, so shape carries the distinction before colour does.
+/* ---- TIER: portraitstat ---------------------------------------------------
+   A standing that belongs to a person: the face says who, the word says what the
+   number is. Round and unfilled -- roundness separates "this belongs to someone"
+   from "this is a quantity" before colour does. */
+.blacksmith-menubar-secondary .secondary-bar-item-portraitstat {
+    gap: calc(var(--secondary-bar-item-gap) * 0.6);
+}
 
-   The frame keeps its size whether or not there is a face in it, so a standing
-   changing hands never shifts the chips either side of it. */
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat-frame {
     display: inline-flex;
     align-items: center;
@@ -182,8 +200,8 @@
     height: var(--secondary-bar-item-image-size);
     border-radius: 50%;
     overflow: hidden;
-    box-shadow: 0 0 0 1.5px var(--blacksmith-widget-rank, var(--blacksmith-widget-rank-none));
     background-color: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 0 1.5px var(--blacksmith-widget-rank, var(--blacksmith-widget-rank-none));
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat-image {
@@ -193,74 +211,132 @@
     border: none;
     border-radius: 0;
     /* The shared item-image rule dims portraits to grayscale for unselected
-       buttons. A face whose only job is being recognised must not be dimmed --
-       the data row already undoes this for `info` chips and it applies here for
-       the same reason. */
+       buttons. A face whose only job is being recognised must not be dimmed. */
     filter: none;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat-empty {
     font-size: calc(var(--secondary-bar-item-image-size) * 0.5);
-    color: rgba(240, 240, 224, 0.35);
-}
-
-/* The portrait leads the pill, then the same label/value segments the statchips
-   use, so a standing reads as "who - what - how much" without a tooltip. */
-.blacksmith-menubar-secondary .secondary-bar-item-portraitstat .secondary-bar-item-label,
-.blacksmith-menubar-secondary .secondary-bar-item-portraitstat .secondary-bar-item-value,
-.blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-label {
-    display: flex;
-    align-items: center;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-portraitstat .secondary-bar-item-label,
-.blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-label {
-    padding: 0 0.5em 0 0.5em;
-    background-color: rgba(0, 0, 0, 0.42);
-    color: rgba(240, 240, 224, 0.78);
-    font-size: calc(var(--secondary-bar-item-font-size) * 0.82);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    color: rgba(240, 240, 224, 0.3);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat .secondary-bar-item-value {
-    padding: 0 0.65em 0 0.5em;
-    background-color: var(--blacksmith-widget-rank, rgba(240, 240, 224, 0.82));
-    color: #2b2018;
-    font-size: var(--secondary-bar-item-font-size);
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-portraitstat-frame {
-    /* Square-on-the-end of a pill: the portrait fills the pill's height rather
-       than floating beside it. */
-    align-self: stretch;
-    height: auto;
-    width: calc(var(--blacksmith-menubar-secondary-height) * 0.62);
-    border-radius: 0;
-    box-shadow: inset 0 0 0 2px var(--blacksmith-widget-rank, var(--blacksmith-widget-rank-none));
+    color: var(--blacksmith-widget-rank, var(--blacksmith-widget-tone-neutral));
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat.rank-1 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-1); }
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat.rank-2 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-2); }
 .blacksmith-menubar-secondary .secondary-bar-item-portraitstat.rank-3 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-3); }
 
-/* ---- nameplate ------------------------------------------------------------
-   A person and what they did, given room to say it. Everything else in the row
-   is a chip you glance past; this is the one meant to be looked at, which is
-   why it gets a larger portrait, two lines, and a zone of its own.
+/* ---- TIER: gaugechip ------------------------------------------------------
+   A percentage as a filled METER plus its number.
 
-   Both text lines are always present -- they hold a non-breaking space when
-   empty -- so the plate keeps its height and its neighbours never shift as a
-   standing changes hands. */
+   It was a ring twice -- a conic gradient masked into one, then a stroked SVG
+   circle -- and both read badly for the same reason, which is the size rather
+   than the technique. At this row's height a dial is about twenty pixels across:
+   too little arc to judge a proportion from, and too little room for the rim to
+   survive antialiasing. A horizontal meter of the same width carries the same
+   fraction at far more resolution. */
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip {
+    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-readout {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-meter {
+    display: block;
+    flex: 0 0 auto;
+    width: calc(var(--secondary-bar-item-font-size) * 2.8);
+    height: calc(var(--secondary-bar-item-font-size) * 0.38);
+    border-radius: 999px;
+    background-color: var(--blacksmith-gauge-track);
+    overflow: hidden;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background-color: var(--blacksmith-gauge-color);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-value {
+    color: var(--blacksmith-gauge-color);
+}
+
+/* ---- TIER: sparkchip ------------------------------------------------------
+   A value with its recent history behind it. Columns, not a polyline: at this
+   width a line is a pixel or two of slope per point and reads as noise, where
+   columns read as a shape.
+
+   The latest column is brightened rather than the series being coloured by
+   value. What a reader wants from a spark is "where are we now against where we
+   have been", and that needs one point marked, not twelve. */
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip {
+    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-readout {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--secondary-bar-item-gap) * 0.7);
+}
+
+/* Columns grow from the baseline, so the plot is bottom-aligned. */
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-plot {
+    display: flex;
+    align-items: flex-end;
+    gap: 1px;
+    flex: 0 0 auto;
+    height: calc(var(--secondary-bar-item-font-size) * 0.95);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar {
+    display: block;
+    width: 2px;
+    min-height: 1px;
+    border-radius: 1px;
+    background-color: var(--blacksmith-widget-spark, rgba(240, 240, 224, 0.28));
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar.is-latest {
+    background-color: var(--blacksmith-widget-spark-latest, var(--blacksmith-widget-tone-neutral));
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip .secondary-bar-item-value {
+    color: var(--blacksmith-widget-spark-latest, var(--blacksmith-widget-tone-neutral));
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip.tone-good {
+    --blacksmith-widget-spark: rgba(168, 201, 160, 0.32);
+    --blacksmith-widget-spark-latest: var(--blacksmith-widget-tone-good);
+}
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip.tone-bad {
+    --blacksmith-widget-spark: rgba(224, 112, 112, 0.32);
+    --blacksmith-widget-spark-latest: var(--blacksmith-widget-tone-bad);
+}
+.blacksmith-menubar-secondary .secondary-bar-item-sparkchip.tone-record {
+    --blacksmith-widget-spark: rgba(220, 195, 106, 0.32);
+    --blacksmith-widget-spark-latest: var(--blacksmith-widget-tone-record);
+}
+
+/* ---- TIER: nameplate ------------------------------------------------------
+   The hero. A person and what they did, given room to say it -- one per bar, and
+   the only readout meant to be looked at rather than glanced past.
+
+   One line, not two: the data row is a fixed height shared with every other
+   readout, so a stacked plate either squeezes its own text or forces the row
+   taller than its neighbours. Both text nodes are always present, holding a
+   non-breaking space when empty, so the plate keeps its size and its neighbours
+   never shift as a standing changes hands. */
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate {
     display: flex;
     align-items: center;
-    gap: calc(var(--secondary-bar-item-gap) * 1.2);
+    gap: calc(var(--secondary-bar-item-gap) * 1.1);
     background-color: transparent;
     border-color: transparent;
     cursor: default;
@@ -274,9 +350,7 @@
     transform: none;
 }
 
-/* Larger than a portraitstat's: this one is the subject rather than a marker,
-   and it has the row's full height to work with rather than sharing it with a
-   line of text. */
+/* Larger than a portraitstat's: this one is the subject rather than a marker. */
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate-frame {
     display: inline-flex;
     align-items: center;
@@ -300,14 +374,10 @@
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate-empty {
-    font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.36);
+    font-size: calc(var(--blacksmith-menubar-secondary-height) * 0.34);
     color: rgba(240, 240, 224, 0.3);
 }
 
-/* ONE LINE, not two. The data row is a fixed height and shares it with every
-   other readout, so a stacked plate either squeezes its own text or forces the
-   row taller than the readouts beside it. Name and standing sit side by side,
-   separated by weight and colour rather than by a line break. */
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate-text {
     display: flex;
     flex-direction: row;
@@ -319,7 +389,7 @@
 /* The name leads, because who it is, is the point. */
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate-name {
     font-size: var(--secondary-bar-item-font-size);
-    font-weight: 700;
+    font-weight: 800;
     color: var(--blacksmith-widget-tone-neutral);
     letter-spacing: 0.02em;
     white-space: nowrap;
@@ -329,154 +399,27 @@
 
 /* The standing follows, quieter -- a caption to the name, not a second heading. */
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate-detail {
-    font-size: calc(var(--secondary-bar-item-font-size) * 0.85);
+    font-size: calc(var(--secondary-bar-item-font-size) * 0.8);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     color: var(--blacksmith-widget-rank, var(--blacksmith-widget-rank-none));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.9;
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate.rank-1 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-1); }
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate.rank-2 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-2); }
 .blacksmith-menubar-secondary .secondary-bar-item-nameplate.rank-3 { --blacksmith-widget-rank: var(--blacksmith-widget-rank-3); }
 
-/* ---- gaugechip ------------------------------------------------------------
-   A filled METER, not a ring. It was a ring twice -- a conic gradient masked
-   into one, then a stroked SVG circle -- and both read badly for the same
-   reason, which is the size rather than the technique. At this row's height a
-   dial is about twenty pixels across: too little arc to judge a proportion
-   from, and too little room for the rim to survive antialiasing. A horizontal
-   meter of the same width carries the same fraction at an order of magnitude
-   more resolution, and speaks the pill language the rest of the row uses. */
-.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-readout {
-    display: flex;
-    align-items: center;
-    gap: 0.45em;
-    padding: 0 0.65em 0 0.55em;
-    background-color: rgba(0, 0, 0, 0.42);
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-meter {
-    display: block;
-    position: relative;
-    flex: 0 0 auto;
-    width: calc(var(--secondary-bar-item-font-size) * 2.6);
-    height: calc(var(--secondary-bar-item-font-size) * 0.42);
-    border-radius: 999px;
-    background-color: var(--blacksmith-gauge-track);
-    overflow: hidden;
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-gaugechip-fill {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background-color: var(--blacksmith-gauge-color);
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-gaugechip .secondary-bar-item-value {
-    font-size: var(--secondary-bar-item-font-size);
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: var(--blacksmith-gauge-color);
-    line-height: 1;
-}
-
-/* The ring is a reading, and a reading should not animate on first paint: a
-   sweep from zero on every render would make an unchanged value look live. Only
-   a real change moves it, which the value-patch path in `api-menubar.js` is
-   what makes possible -- the element survives its own update. */
+/* Motion is driven by a real value change, never by a render -- which the
+   value-patch path in `api-menubar.js` is what makes possible, since the element
+   survives its own update. */
 @media (prefers-reduced-motion: no-preference) {
     .blacksmith-menubar-secondary .secondary-bar-item-gaugechip-fill {
         transition: width 0.35s ease;
     }
-}
-
-/* ---- sparkchip ------------------------------------------------------------
-   A value with its recent history behind it. Columns, not a polyline: at this
-   width a line is a pixel or two of slope per point and reads as noise, where
-   columns read as a shape you can judge at a glance -- which is the whole
-   reason for putting history on a bar rather than in a window.
-
-   The latest column is brightened rather than the series being coloured by
-   value. What the reader wants from a spark is "where are we now against where
-   we have been", and that question needs one point marked, not twelve. */
-.blacksmith-menubar-secondary .secondary-bar-item.secondary-bar-item-sparkchip {
-    padding: 0;
-    border-radius: 999px;
-    overflow: hidden;
-    gap: 0;
-    line-height: 1;
-    align-items: stretch;
-    height: calc(var(--blacksmith-menubar-secondary-height) * 0.62);
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip .secondary-bar-item-label {
-    display: flex;
-    align-items: center;
-    padding: 0 0.5em 0 0.65em;
-    background-color: rgba(0, 0, 0, 0.42);
-    color: rgba(240, 240, 224, 0.78);
-    font-size: calc(var(--secondary-bar-item-font-size) * 0.82);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    white-space: nowrap;
-    line-height: 1;
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-readout {
-    display: flex;
-    align-items: center;
-    gap: 0.5em;
-    padding: 0 0.65em 0 0.55em;
-    background-color: rgba(0, 0, 0, 0.24);
-}
-
-/* Columns grow from the baseline, so the plot is bottom-aligned. */
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-plot {
-    display: flex;
-    align-items: flex-end;
-    gap: 1px;
-    flex: 0 0 auto;
-    height: calc(var(--secondary-bar-item-font-size) * 0.95);
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar {
-    display: block;
-    width: 2px;
-    min-height: 1px;
-    border-radius: 1px;
-    background-color: var(--blacksmith-widget-spark, rgba(240, 240, 224, 0.35));
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar.is-latest {
-    background-color: var(--blacksmith-widget-spark-latest, rgba(240, 240, 224, 0.95));
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip .secondary-bar-item-value {
-    font-size: var(--secondary-bar-item-font-size);
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: var(--blacksmith-widget-spark-latest, rgba(240, 240, 224, 0.95));
-    line-height: 1;
-}
-
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip.tone-good {
-    --blacksmith-widget-spark: rgba(168, 201, 160, 0.38);
-    --blacksmith-widget-spark-latest: var(--blacksmith-widget-tone-good);
-}
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip.tone-bad {
-    --blacksmith-widget-spark: rgba(224, 112, 112, 0.38);
-    --blacksmith-widget-spark-latest: var(--blacksmith-widget-tone-bad);
-}
-.blacksmith-menubar-secondary .secondary-bar-item-sparkchip.tone-record {
-    --blacksmith-widget-spark: rgba(220, 195, 106, 0.38);
-    --blacksmith-widget-spark-latest: var(--blacksmith-widget-tone-record);
-}
-
-@media (prefers-reduced-motion: no-preference) {
     .blacksmith-menubar-secondary .secondary-bar-item-sparkchip-bar {
         transition: height 0.3s ease;
     }

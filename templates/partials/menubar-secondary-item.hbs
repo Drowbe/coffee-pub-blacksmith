@@ -25,10 +25,11 @@
 {{!-- A readout that says what KIND of number it is. `tone` drives an accent on the value and a
       hairline under it, never a filled background: this sits in a row of readouts, and a fill would
       read as a button. --}}
-<div class="secondary-bar-item secondary-bar-item-statchip tone-{{tone}}"
+<div class="secondary-bar-item secondary-bar-item-statchip tone-{{tone}} emphasis-{{emphasis}}"
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tone="{{tone}}"
+     data-emphasis="{{emphasis}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
     {{!-- Two tones, label then value, read as one pill. The word REPLACES the icon rather than
@@ -45,10 +46,11 @@
 {{else if (eq kind "portraitstat")}}
 {{!-- A standing that belongs to a PERSON. Round and ringed so it cannot be mistaken for a quantity
       chip at a glance; the name stays in the tooltip, where there is room for it. --}}
-<div class="secondary-bar-item secondary-bar-item-portraitstat rank-{{rank}}"
+<div class="secondary-bar-item secondary-bar-item-portraitstat rank-{{rank}} emphasis-{{emphasis}}"
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-rank="{{rank}}"
+     data-emphasis="{{emphasis}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
     {{!-- The portrait says WHO. The label has to say what the number is, or the chip is a face and a
@@ -74,7 +76,7 @@
       little room for the rim to survive antialiasing. A horizontal meter of the same width shows the
       same fraction with an order of magnitude more resolution, and it sits in the pill language the
       rest of the row already speaks. --}}
-<div class="secondary-bar-item secondary-bar-item-gaugechip"
+<div class="secondary-bar-item secondary-bar-item-gaugechip emphasis-{{emphasis}}"
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
@@ -93,10 +95,11 @@
       SVG: at this size a line is one or two pixels of slope per point and reads as noise, where
       columns read as a shape. Heights are precomputed into percentages by the item preparation, so
       the template does no maths and a series update is a handful of style writes. --}}
-<div class="secondary-bar-item secondary-bar-item-sparkchip tone-{{tone}}"
+<div class="secondary-bar-item secondary-bar-item-sparkchip tone-{{tone}} emphasis-{{emphasis}}"
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tone="{{tone}}"
+     data-emphasis="{{emphasis}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
     {{#if displayLabel}}<span class="secondary-bar-item-label">{{displayLabel}}</span>{{/if}}
@@ -119,6 +122,7 @@
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-rank="{{rank}}"
+     data-emphasis="{{emphasis}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
      title="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}">
     <span class="secondary-bar-item-nameplate-frame">

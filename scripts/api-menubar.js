@@ -2329,7 +2329,7 @@ class MenuBar {
                 updates.buttonColor !== undefined || updates.iconColor !== undefined || updates.tooltip !== undefined ||
                 updates.image !== undefined || updates.tone !== undefined ||
                 updates.rank !== undefined || updates.icon !== undefined ||
-                updates.series !== undefined);
+                updates.series !== undefined || updates.emphasis !== undefined);
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
@@ -2351,6 +2351,7 @@ class MenuBar {
             if (updates.tone !== undefined) existing.tone = updates.tone;
             if (updates.rank !== undefined) existing.rank = updates.rank;
             if (updates.series !== undefined) existing.series = updates.series;
+            if (updates.emphasis !== undefined) existing.emphasis = updates.emphasis;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
             if (updates.iconColor !== undefined) existing.iconColor = updates.iconColor;
@@ -2917,6 +2918,7 @@ class MenuBar {
                     if (u.image !== undefined) item.image = u.image;
                     if (u.icon !== undefined) item.icon = u.icon;
                     if (u.tone !== undefined) item.tone = u.tone;
+                    if (u.emphasis !== undefined) item.emphasis = u.emphasis;
                     if (u.rank !== undefined) item.rank = u.rank;
                     if (u.series !== undefined) item.series = u.series;
                     if (u.percentProgress !== undefined) item.percentProgress = u.percentProgress;
@@ -2924,6 +2926,10 @@ class MenuBar {
                 // Defaults resolved here rather than in the template, so the rendered class list
                 // and the patched one cannot disagree about what "no tone" or "unranked" is.
                 if (item.kind === 'statchip') item.tone = item.tone || 'neutral';
+                // Emphasis is what makes a hierarchy possible. It defaults to `plain` so a chip is
+                // quiet unless something says otherwise -- the opposite default made every readout
+                // shout, which is the same as none of them shouting.
+                item.emphasis = item.emphasis === 'feature' ? 'feature' : 'plain';
                 if (item.kind === 'portraitstat' || item.kind === 'nameplate') item.rank = Number(item.rank) || 0;
                 if (item.kind === 'gaugechip') {
                     item.gaugePercent = Math.max(0, Math.min(100, Number(item.percentProgress) || 0));
@@ -3453,6 +3459,14 @@ class MenuBar {
 
                 // Ornaments. Each is a class or a custom property rather than markup, which is what
                 // keeps them patchable without a rebuild.
+                if (update.emphasis !== undefined) {
+                    const emphasis = update.emphasis === 'feature' ? 'feature' : 'plain';
+                    if (el.dataset.emphasis !== emphasis) {
+                        el.classList.remove(`emphasis-${el.dataset.emphasis || 'plain'}`);
+                        el.classList.add(`emphasis-${emphasis}`);
+                        el.dataset.emphasis = emphasis;
+                    }
+                }
                 if (kind === 'statchip' && update.tone !== undefined) {
                     const tone = update.tone || 'neutral';
                     if (el.dataset.tone !== tone) {
