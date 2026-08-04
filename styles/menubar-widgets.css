@@ -148,6 +148,24 @@
 .blacksmith-menubar-secondary .secondary-bar-item-statchip.emphasis-plain.tone-bad    { --blacksmith-widget-plain-ink: var(--blacksmith-widget-tone-bad); }
 .blacksmith-menubar-secondary .secondary-bar-item-statchip.emphasis-plain.tone-record { --blacksmith-widget-plain-ink: var(--blacksmith-widget-tone-record); }
 
+/* A composite value's scaffolding -- a separator, a unit letter, the word "of" --
+   is not the value, and given the value's weight and colour it competed with the
+   numbers it was supposed to organise. Quieter and lighter, so "6 C | 3 F" reads
+   as two numbers rather than five equal glyphs.
+
+   Not `opacity`: that would fade the whole glyph including its edges and leave
+   the separator looking blurred at this size. Colour and weight only. */
+.blacksmith-menubar-secondary .secondary-bar-item-value-part.is-muted {
+    color: var(--blacksmith-widget-label-ink);
+    font-weight: 600;
+}
+
+/* The parts sit flush; any spacing a composite value wants is stated in its own
+   strings, so a caller controls whether it reads "6C" or "6 C". */
+.blacksmith-menubar-secondary .secondary-bar-item-value-part {
+    white-space: pre;
+}
+
 .blacksmith-menubar-secondary .secondary-bar-item-statchip .secondary-bar-item-statchip-icon {
     font-size: var(--secondary-bar-item-icon-size);
     opacity: 0.75;

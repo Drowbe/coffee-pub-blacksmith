@@ -4,13 +4,15 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
-## Readout widgets: the consolidating kinds
+## Readout widgets: `segmentchip`
 
-`segmentchip` (one proportional bar, breakdown in the tooltip) and `sparkchip` (value with an inline sparkline). These exist to buy back the width the identity widgets spend — ten lifetime and seven live chips already exceed the middle zone and `READOUT_SUPPRESSION_ORDER` decides which survive.
+One proportional bar with the breakdown in its tooltip — hits, misses, criticals and fumbles as a single item that shows composition, which four separate numbers never did. The last of the consolidating kinds; `sparkchip` shipped and is verified in play.
 
-The series data needs no new tracking. In combat, `combatStats.rounds[]` (`stats-combat.js:2631`) is mirrored to the combat flag and reaches every client through the read path the running totals already use. Out of combat, `PartyStats._build` (`stats-party.js:143`) already walks the whole `combatHistory` and reduces it to scalars; a short series is an addition to that same reduction. The bar must keep reducing nothing itself.
+It exists to buy back width. The middle zone already holds more than it can show, and every readout added since has made suppression drop more — four chips becoming one is the only lever left that adds information while taking less room.
 
-Verify live: fight a three-round combat and confirm the in-combat sparkline gains a point per round; end it and confirm the out-of-combat one gains a point per combat; confirm a world with no combat history renders an empty widget rather than a broken one.
+`Finesse` already does a smaller version of this by hand (`6 C | 3 F` in one chip), which is worth reading before starting: if a text pair reads well enough, the case for a graphical segment bar is weaker than it looks and this may not be worth building.
+
+Verify live: confirm the segments sum to the whole and the tooltip names each; confirm a party with no recorded attacks renders an empty bar rather than four zero-width slivers; confirm it survives suppression at a narrow window without clipping.
 
 ## Readout widgets: motion
 

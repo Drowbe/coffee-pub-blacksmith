@@ -1,8 +1,16 @@
 # Plan: Reusable Readout Widgets
 
-**Status:** In progress - Phases 1 and 2 implemented; Phase 1 verified live, Phase 2 awaiting a look.
-Their content has moved to `CHANGELOG.md` and the architecture docs; the sections below are kept only
-as context for Phases 3 and 4, which are still planned.
+**Status:** In progress. Phases 1-3 are implemented and verified in play, apart from `segmentchip`,
+which is the only piece of Phase 3 not built. Phase 4 (motion) is untouched.
+
+Everything shipped has moved to `CHANGELOG.md` and the architecture docs — the widget kinds and the
+value-patch path to `architecture-menubar.md`, the per-statistic choices and the overflow rules to
+`architecture-encounter.md`. The sections below are retained only as context for what is left; when
+`segmentchip` and Phase 4 land, this file is deleted rather than archived.
+
+Two things the plan did not anticipate and that the docs now carry instead: emphasis had to become a
+tier (the pill applied to everything emphasised nothing), and the overflow machinery was broken in
+three compounding ways that only surfaced once readouts got wide enough to exceed the row.
 
 **Outcome:** feature.
 

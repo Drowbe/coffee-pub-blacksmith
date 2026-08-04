@@ -2416,7 +2416,7 @@ class MenuBar {
                 updates.image !== undefined || updates.tone !== undefined ||
                 updates.rank !== undefined || updates.icon !== undefined ||
                 updates.series !== undefined || updates.emphasis !== undefined ||
-                updates.seriesB !== undefined);
+                updates.seriesB !== undefined || updates.valueParts !== undefined);
             const hasProgressbarUpdate = updates && (updates.percentProgress !== undefined || updates.leftLabel !== undefined || updates.rightLabel !== undefined ||
                 updates.leftIcon !== undefined || updates.rightIcon !== undefined || updates.title !== undefined || updates.icon !== undefined ||
                 updates.barColor !== undefined || updates.progressColor !== undefined);
@@ -2440,6 +2440,7 @@ class MenuBar {
             if (updates.rank !== undefined) existing.rank = updates.rank;
             if (updates.series !== undefined) existing.series = updates.series;
             if (updates.seriesB !== undefined) existing.seriesB = updates.seriesB;
+            if (updates.valueParts !== undefined) existing.valueParts = updates.valueParts;
             if (updates.emphasis !== undefined) existing.emphasis = updates.emphasis;
             if (updates.borderColor !== undefined) existing.borderColor = updates.borderColor;
             if (updates.buttonColor !== undefined) existing.buttonColor = updates.buttonColor;
@@ -3011,12 +3012,41 @@ class MenuBar {
                     if (u.emphasis !== undefined) item.emphasis = u.emphasis;
                     if (u.rank !== undefined) item.rank = u.rank;
                     if (u.series !== undefined) item.series = u.series;
+                    if (u.valueParts !== undefined) item.valueParts = u.valueParts;
                     if (u.seriesB !== undefined) item.seriesB = u.seriesB;
                     if (u.percentProgress !== undefined) item.percentProgress = u.percentProgress;
                 }
                 // Defaults resolved here rather than in the template, so the rendered class list
                 // and the patched one cannot disagree about what "no tone" or "unranked" is.
                 if (item.kind === 'statchip') item.tone = item.tone || 'neutral';
+
+                // A COMPOSITE VALUE HAS PARTS THAT ARE NOT THE VALUE.
+                //
+                // "6 C | 3 F" and "2 of 4" are both a value, and both contain characters that are
+                // connective rather than numeric -- the pipe, the unit letters, the word "of". As
+                // one string they take the value's weight and colour, so the separator reads as
+                // loudly as the thing it separates.
+                //
+                // `valueParts` lets a caller say which is which: a plain string is a value, an
+                // object with `muted: true` is scaffolding. It stays optional, and a plain `value`
+                // behaves exactly as before -- most readouts are a single number and should not pay
+                // for this.
+                //
+                // The line is narrower than it first looks. A UNIT belongs to its number: "2C" is
+                // one reading, and muting the C makes it look like an annotation on a bare 2 rather
+                // than part of what is being said. Only what joins two readings together is
+                // scaffolding -- the separator, the word "of". If removing it would leave the
+                // remaining text still meaning the same thing, it is scaffolding; if removing it
+                // changes what the number IS, it is not.
+                if (Array.isArray(item.valueParts)) {
+                    item.displayValueParts = item.valueParts
+                        .map((part) => (typeof part === 'object' && part !== null
+                            ? { text: String(part.text ?? ''), muted: !!part.muted }
+                            : { text: String(part ?? ''), muted: false }))
+                        .filter((part) => part.text !== '');
+                } else {
+                    item.displayValueParts = null;
+                }
                 // Emphasis is what makes a hierarchy possible. It defaults to `plain` so a chip is
                 // quiet unless something says otherwise -- the opposite default made every readout
                 // shout, which is the same as none of them shouting.
@@ -3526,6 +3556,19 @@ class MenuBar {
                         const detailEl = el.querySelector('.secondary-bar-item-nameplate-detail');
                         if (detailEl) detailEl.textContent = update.value ? String(update.value) : '\u00a0';
                     }
+                } else if (update.valueParts !== undefined) {
+                    // Part count is structure -- only the template can add or remove a span.
+                    const nodes = el.querySelectorAll('.secondary-bar-item-value-part');
+                    const wanted = (Array.isArray(update.valueParts) ? update.valueParts : [])
+                        .map((part) => (typeof part === 'object' && part !== null
+                            ? { text: String(part.text ?? ''), muted: !!part.muted }
+                            : { text: String(part ?? ''), muted: false }))
+                        .filter((part) => part.text !== '');
+                    if (nodes.length !== wanted.length) return bail('value part count changed', itemId);
+                    wanted.forEach((part, index) => {
+                        if (nodes[index].textContent !== part.text) nodes[index].textContent = part.text;
+                        nodes[index].classList.toggle('is-muted', part.muted);
+                    });
                 } else {
                     if (update.value !== undefined && !setText(el, '.secondary-bar-item-value', update.value)) return bail('value appeared or emptied', itemId);
                     if (update.label !== undefined && !setText(el, '.secondary-bar-item-label', update.label)) return bail('label appeared or emptied', itemId);

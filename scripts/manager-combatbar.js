@@ -365,7 +365,7 @@ export class CombatBarManager {
             group: 'encounter',
             order: 1,
             label: 'Turn',
-            value: '0 of 0',
+            valueParts: ['0', { text: ' of ', muted: true }, '0'],
             tooltip: 'Current turn',
             visible: inCombat
         });
@@ -639,7 +639,12 @@ export class CombatBarManager {
             group: 'stats',
             order: 3,
             label: 'Finesse',
-            value: '0 C | 0 F',
+            // Three parts, two of them data. The unit letter belongs to its count -- "2C" is one
+            // reading, not a number with a decoration -- so only the separator is muted. Declared
+            // here as well as pushed so the part count is stable from the first render: the patch
+            // path treats a change in count as structure, and a chip that starts as one string
+            // would rebuild on its first update instead of patching.
+            valueParts: ['0C', { text: ' | ', muted: true }, '0F'],
             tooltip: 'Criticals and fumbles on record',
             visible: lifetimeStatsVisible
         });
@@ -1272,7 +1277,10 @@ export class CombatBarManager {
                 const totalTurns = Array.isArray(combat.turns) ? combat.turns.length : combat.combatants.size;
                 const currentTurn = Math.min((typeof combat.turn === 'number' ? combat.turn : 0) + 1, Math.max(totalTurns, 1));
                 api.updateSecondaryBarItemInfo('combat', 'round', { value: String(combat.round || 0) });
-                api.updateSecondaryBarItemInfo('combat', 'turn', { value: `${currentTurn} of ${totalTurns}` });
+                api.updateSecondaryBarItemInfo('combat', 'turn', {
+                    // "of" is scaffolding, not a number -- same treatment as the Finesse separator.
+                    valueParts: [String(currentTurn), { text: ' of ', muted: true }, String(totalTurns)]
+                });
             }
 
             const health = CombatBarManager.getHealthSummaries();
@@ -1488,7 +1496,11 @@ export class CombatBarManager {
                 tooltip: `Top MVP on record: ${aggregate.topMvp?.name ?? 'nobody'}`
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-finesse', {
-                value: `${aggregate.totalCriticals ?? 0} C | ${aggregate.totalFumbles ?? 0} F`,
+                valueParts: [
+                    `${aggregate.totalCriticals ?? 0}C`,
+                    { text: ' | ', muted: true },
+                    `${aggregate.totalFumbles ?? 0}F`
+                ],
                 tooltip: `${aggregate.totalCriticals ?? 0} critical(s) and ${aggregate.totalFumbles ?? 0} fumble(s) on record`
             });
             api.updateSecondaryBarItemInfo('combat', 'stat-total-healing', {

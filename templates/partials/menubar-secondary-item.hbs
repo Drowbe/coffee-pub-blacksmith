@@ -40,7 +40,13 @@
     {{else if icon}}
     <span class="secondary-bar-item-label"><i class="{{icon}} secondary-bar-item-statchip-icon"></i></span>
     {{/if}}
-    {{#if displayValue}}<span class="secondary-bar-item-value">{{displayValue}}</span>{{/if}}
+    {{#if displayValueParts}}
+    <span class="secondary-bar-item-value">
+        {{#each displayValueParts}}<span class="secondary-bar-item-value-part{{#if muted}} is-muted{{/if}}">{{text}}</span>{{/each}}
+    </span>
+    {{else if displayValue}}
+    <span class="secondary-bar-item-value">{{displayValue}}</span>
+    {{/if}}
 </div>
 
 {{else if (eq kind "portraitstat")}}

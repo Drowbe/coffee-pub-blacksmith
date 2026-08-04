@@ -98,6 +98,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **The live MVP plate is now suppressible**, ranked to drop first of the live set: it is much the widest thing in that zone, so dropping it buys back more than any two chips, and it is the one readout with a home elsewhere - the same standing is in the Party Statistics window that the group opens. The lifetime plate stays unsuppressible, since out of combat it holds the left zone alone and competes with nothing.
   - This is the second half of the `flex-wrap` fix earlier in this release. That one let the row overflow at all; without this one, nothing measured the overflow.
 
+### Added - composite values can say which parts are not the value
+
+- **`valueParts` on a statchip** (`scripts/api-menubar.js`, `templates/partials/menubar-secondary-item.hbs`, `styles/menubar-widgets.css`): a plain string is a value and an object with `muted: true` is scaffolding. `"6 C | 3 F"` and `"2 of 4"` are both a value containing characters that are connective rather than numeric - a separator, a unit letter, the word "of" - and as one string those took the value's full weight and colour, so the pipe read as loudly as the numbers it was separating. Muted parts take the label's ink and a lighter weight, so Finesse reads as two numbers rather than five equal glyphs. Turn uses it for the same reason.
+  - Optional, and a plain `value` behaves exactly as before: most readouts are a single number and should not pay for this.
+  - **A unit is not scaffolding.** "2C" is one reading, so the letter takes the count's colour; muting it made the C look like an annotation on a bare 2 rather than part of what was being said. The test: if removing the text would leave the rest meaning the same thing it is scaffolding, and if removing it changes what the number *is*, it is not. Only the separator is muted in Finesse; only "of" in Turn.
+  - Muted by colour and weight rather than `opacity`, which would fade the glyph edges and leave a separator looking blurred at this size.
+  - The parts are declared at registration as well as pushed on update, because the patch path treats a change in part **count** as structure - a chip that started as one string would rebuild on its first update rather than patching.
+
 ### Changed
 
 - **Round and Turn's numbers are the same size as every other value** (`styles/menubar-combatbar.css`): they carried a 1.1x bump on the theory that the scoreboard should be bigger, but the pill already sets them apart, and one type size larger than everything beside it made the row look mis-set rather than emphasised. The container does the emphasis; the type stays in the system.
@@ -116,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`invokeMenubarTool`, `invokeIntent` and `hasIntentHandler`** (`scripts/api-menubar.js`, `scripts/blacksmith.js`): a tool used to be reachable only by clicking its own icon, so a second surface wanting the same behaviour had to reimplement it or reach into the owning module. Registration already knows what a tool does; these make that knowledge callable.
   - An **intent** is a capability a tool claims at registration (`intents: ['party-health']`), and a surface asks for the capability rather than for the module. That is what lets a Blacksmith surface integrate with a sibling without naming it: the combat bar opens a health panel when the party health bars are clicked, and Blacksmith has no health panel - naming another module's tool id in the hub would be exactly the coupling the module boundaries forbid.
+  - Verified in play with Squire: they added `intents: ['party-health']` to their existing tool and the combat bar's health bars open their panel.
   - `hasIntentHandler` should gate the **affordance**, not just the call. The combat bar marks its data row `has-health-tool` only when something claims the intent, so the health bars become clickable with the capability and not before - an unclaimed intent is a false affordance in a different costume.
 - **The combat bar's health bars open a health panel** when a module provides one (`scripts/manager-combatbar.js`, `styles/menubar-combatbar.css`). Inert readouts in a world without one.
 
