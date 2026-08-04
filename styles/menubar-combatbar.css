@@ -1056,14 +1056,14 @@
 
 /* ROUND AND TURN ARE THE SCOREBOARD, NOT A READOUT.
    They were an icon and a number, which said the least of anything on the row
-   for the width they took. As two-tone pills they match the statistics and read
-   at a glance; the icons go because the words already say it. */
-.blacksmith-menubar-secondary .combat-data-row
-    .secondary-bar-item-statchip[data-item-id="round"] .secondary-bar-item-value,
-.blacksmith-menubar-secondary .combat-data-row
-    .secondary-bar-item-statchip[data-item-id="turn"] .secondary-bar-item-value {
-    font-size: calc(var(--secondary-bar-item-font-size) * 1.1);
-}
+   for the width they took. As pills they read at a glance; the icons go because
+   the words already say it.
+
+   Their numbers are deliberately the SAME SIZE as every other value on the row.
+   They carried a 1.1x bump for a while, on the theory that the scoreboard should
+   be bigger -- but the pill already sets them apart, and one type size larger
+   than everything near it made the row look mis-set rather than emphasised. The
+   container does the emphasis; the type stays in the system. */
 
 /* THE STATISTICS ARE THE ONE CLICKABLE THING IN A ROW OF READOUTS.
    They open the Party Statistics window -- the place that explains them.

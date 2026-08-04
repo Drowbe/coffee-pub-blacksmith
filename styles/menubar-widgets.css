@@ -189,10 +189,12 @@
    the pill's height instead. */
 .blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature .secondary-bar-item-label {
     padding: 0 0.6em 0 0.75em;
-    background-color: rgba(0, 0, 0, 0.45);
-    color: rgba(240, 240, 224, 0.8);
+    background-color: rgba(0, 0, 0, 0.32);
+    color: var(--blacksmith-widget-label-ink);
     /* The seam between the halves, for the same reason as the outer hairline:
-       without it the light field bleeds visually into the dark one. */
+       without it the brighter field bleeds visually into the darker one. It
+       matters more on the neutral pill, where the two halves are close in value
+       and the seam is most of what separates them. */
     border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -202,12 +204,28 @@
     color: var(--blacksmith-widget-tone-ink, #2b2018);
 }
 
-/* Each tone is a fill plus the ink that stays legible on it. Dark ink on a light
-   fill is what makes these read as badges; light-on-mid-tone turns to mush. */
+/* NEUTRAL IS A DARK BADGE, NOT A LIGHT ONE.
+   
+   The other tones invert -- dark ink on a light fill -- because a tone is a
+   claim about the number and it should carry. Neutral makes no such claim: it
+   is the treatment for something that is merely ALWAYS THERE, like the clock.
+   Given a near-white fill it became the brightest object on a warm dark row,
+   louder than the MVP plate and the gold, and read as a light-mode component
+   dropped into a dark bar.
+   
+   So neutral takes its emphasis from CONTAINMENT instead: the same materials as
+   everything around it, boxed. It is still unmistakably a tier apart from a
+   plain chip, which has no container at all -- but it belongs to the row rather
+   than interrupting it. */
 .blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature.tone-neutral {
-    --blacksmith-widget-tone-fill: rgba(240, 240, 224, 0.85);
-    --blacksmith-widget-tone-ink: #2b2018;
+    --blacksmith-widget-tone-fill: rgba(255, 255, 255, 0.09);
+    --blacksmith-widget-tone-ink: var(--blacksmith-widget-tone-neutral);
 }
+
+/* Each remaining tone is a fill plus the ink that stays legible on it. Dark ink
+   on a light fill is what makes those read as badges; light-on-mid-tone turns to
+   mush at this size. They are the loud option, for a number that has something
+   to say rather than one that is simply present. */
 .blacksmith-menubar-secondary .secondary-bar-item.emphasis-feature.tone-good {
     --blacksmith-widget-tone-fill: var(--blacksmith-widget-tone-good);
     --blacksmith-widget-tone-ink: #1e2a1a;
