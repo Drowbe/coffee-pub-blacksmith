@@ -7,7 +7,7 @@
 
 // Import MODULE variables
 import { MODULE } from './const.js';
-import { getPortraitImage, isPartyMember, postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
@@ -348,7 +348,7 @@ class CombatStats {
     static _isKillEligibleTarget(actor) {
         // Count kills only for non-player actors (monsters/NPCs/etc.); exclude player characters.
         if (!actor) return false;
-        return !this._isPartyMember(actor);
+        return !this._isPlayerCharacter(actor);
     }
 
     static _creditKill({ attackerId, targetActor, weaponName = null } = {}) {
@@ -358,7 +358,7 @@ class CombatStats {
         if (!attackerActor) return;
 
         // Only party kills are counted in party totals (PC attackers only).
-        const isPartyKill = this._isPartyMember(attackerActor);
+        const isPartyKill = this._isPlayerCharacter(attackerActor);
 
         const { current: attackerRound, combat: attackerCombat } = this._ensureParticipantStats(attackerActor, {
             includeCurrent: true,
@@ -696,7 +696,7 @@ class CombatStats {
         }
 
         // Only include player character turns in the average
-        if (previousCombatant && this._isPartyMember(previousCombatant)) {
+        if (previousCombatant && this._isPlayerCharacter(previousCombatant)) {
             // Initialize turnTimes as an object if it's still an array
             if (Array.isArray(this.currentStats.partyStats.turnTimes)) {
                 this.currentStats.partyStats.turnTimes = {};
@@ -743,7 +743,7 @@ class CombatStats {
         // Note: participants include PCs + NPCs, but "totals" for the summary card are PARTY-ONLY.
         const participantSummaries = Object.entries(source.participantStats || {}).map(([actorId, stats]) => {
             const actorDoc = game.actors.get(actorId) ?? null;
-            const isPlayer = actorDoc ? this._isPartyMember(actorDoc) : false;
+            const isPlayer = actorDoc ? this._isPlayerCharacter(actorDoc) : false;
             const attackStats = stats.combat?.attacks || {
                 hits: 0,
                 misses: 0,
@@ -1217,7 +1217,7 @@ class CombatStats {
             const isExpired = timeUsed === totalAllowedTime;
             
             // Update turn times for player characters
-            if (this._isPartyMember(combatant)) {
+            if (this._isPlayerCharacter(combatant)) {
                 // Ensure partyStats is initialized
                 if (!this.currentStats.partyStats) {
                     this.currentStats.partyStats = foundry.utils.deepClone(this.DEFAULTS.roundStats.partyStats);
@@ -1486,14 +1486,14 @@ class CombatStats {
         return isHeal ? `${amount} HP` : `${amount}`;
     }
 
-    // Helper method to check whether an actor belongs in the party's statistics.
+    // Helper method to check if an actor is a player character.
     //
     // This used to hand-roll the check for combatants and actors, testing ownership OR
-    // actor type -- which counted player-owned summons as party members. `isPartyMember`
+    // actor type -- which counted player-owned summons as party. `isPlayerCharacter`
     // resolves every input shape itself, so this is now a pass-through and the shape
     // handling lives in exactly one place.
-    static _isPartyMember(input) {
-        return isPartyMember(input);
+    static _isPlayerCharacter(input) {
+        return isPlayerCharacter(input);
     }
 
     // -------------------------------------------------------------------------
@@ -1633,7 +1633,7 @@ class CombatStats {
         }
 
         // Update party stats if player character
-        if (this._isPartyMember(attackerActor)) {
+        if (this._isPlayerCharacter(attackerActor)) {
             this.currentStats.partyStats.hits += totalHits;
             this.currentStats.partyStats.misses += totalMisses;
         }
@@ -1830,7 +1830,7 @@ class CombatStats {
         // The adapter owns that correlation; we only know the answer.
         CombatSources.noteAttackCritical(crit);
 
-        if (this._isPartyMember(actor)) {
+        if (this._isPlayerCharacter(actor)) {
             if (isHit) this.currentStats.partyStats.hits++;
             else this.currentStats.partyStats.misses++;
         }
@@ -1966,7 +1966,7 @@ class CombatStats {
                 });
             }
 
-            if (this._isPartyMember(actor)) {
+            if (this._isPlayerCharacter(actor)) {
                 this.currentStats.partyStats.healingDone += amount;
             }
 
@@ -2066,7 +2066,7 @@ class CombatStats {
             }
         }
 
-        if (this._isPartyMember(actor)) {
+        if (this._isPlayerCharacter(actor)) {
             this.currentStats.partyStats.damageDealt += amount;
         }
         
@@ -2553,7 +2553,7 @@ class CombatStats {
         const playerStats = Object.entries(this.currentStats.participantStats || {})
             .filter(([id, stats]) => {
                 const actor = game.actors.get(id);
-                return this._isPartyMember(actor);
+                return this._isPlayerCharacter(actor);
             })
             .map(([id, stats]) => ({
                 ...stats,

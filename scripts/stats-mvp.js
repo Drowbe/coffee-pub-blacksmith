@@ -25,7 +25,7 @@
  */
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, isPartyMember } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, isPlayerCharacter } from './api-core.js';
 // The MVP narrative's sentence templates live in the asset bundle.
 import { assetLookup } from './asset-lookup.js';
 
@@ -164,7 +164,7 @@ export class CombatMvp {
         // Skip anything that is not party. Summons reach this point like anyone else in the
         // participant list, and would otherwise score and rank against the characters.
         const actor = await CombatMvp._getActorFromUuid(stats.uuid);
-        if (!isPartyMember(actor)) return -1;
+        if (!isPlayerCharacter(actor)) return -1;
 
         // Set name context for breakdown logging
         CombatMvp._lastMvpCalculationName = actor.name;

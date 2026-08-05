@@ -6,7 +6,7 @@
 
 // Import MODULE variables
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, isPartyMember } from './api-core.js';
+import { postConsoleAndNotification, isPlayerCharacter } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { resolveAttackMessage, resolveDamageMessage, hydrateFirstRoll } from './utility-message-resolution.js';
 import { getWorkflowId, buildAttackEventFromWorkflow, isMidiIntegrationEnabled } from './utility-midi-resolution.js';
@@ -198,12 +198,12 @@ class CPBPlayerStats {
         
         // Initialize stats for all player characters.
         //
-        // `isPartyMember` rather than a bare ownership test: summons are player-owned for
+        // `isPlayerCharacter` rather than a bare ownership test: summons are player-owned for
         // as long as they exist, and initializing them here is what gave temporary NPCs a
         // lifetime record. `isToken` stays -- lifetime stats live on world actors, not on the
         // synthetic actors of unlinked tokens.
         game.actors.forEach(actor => {
-            if (isPartyMember(actor) && !actor.isToken) {
+            if (isPlayerCharacter(actor) && !actor.isToken) {
                 this.initializeActorStats(actor.id);
             }
         });
@@ -284,7 +284,7 @@ class CPBPlayerStats {
                         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
                         const actor = workflow?.actor;
-                        if (!isPartyMember(actor)) return;
+                        if (!isPlayerCharacter(actor)) return;
 
                         const attackRoll = workflow?.attackRoll ?? null;
 
@@ -467,7 +467,7 @@ class CPBPlayerStats {
 			priority: 3,
 			callback: (actor) => {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				if (isPartyMember(actor) && !actor.isToken) {
+				if (isPlayerCharacter(actor) && !actor.isToken) {
 					this.initializeActorStats(actor.id);
 				}
 				// --- END - HOOKMANAGER CALLBACK ---
@@ -483,6 +483,17 @@ class CPBPlayerStats {
         const actor = game.actors.get(actorId);
         if (!actor) return;
 
+        // THE ONLY PLACE A RECORD IS CREATED, WHICH IS WHY THE PARTY CHECK HAS TO BE HERE.
+        //
+        // The callers above guard too, but they are not the whole story: `getPlayerStats`
+        // initializes on a cache miss, and it is called from the party window, the MVP
+        // ranking, and combat end. Without this line, merely READING an NPC's statistics
+        // creates them. That is not hypothetical -- a cleanup pass on a live world cleared
+        // ten non-party records and the log shows all ten re-initialized before the next
+        // line of output, because clearing the flag triggered a re-render that read them
+        // straight back into existence.
+        if (!isPlayerCharacter(actor) || actor.isToken) return;
+
         const existingStats = await actor.getFlag(MODULE.ID, 'playerStats');
         if (!existingStats) {
             postConsoleAndNotification(MODULE.NAME, `Initializing stats for actor:`, actor.name, false, false);
@@ -496,8 +507,10 @@ class CPBPlayerStats {
 
         const stats = await actor.getFlag(MODULE.ID, 'playerStats');
         if (!stats) {
+            // Initialization refuses for anything that is not a player character, so this
+            // returns null for an NPC rather than quietly minting a record for it.
             await this.initializeActorStats(actorId);
-            return await actor.getFlag(MODULE.ID, 'playerStats');
+            return (await actor.getFlag(MODULE.ID, 'playerStats')) ?? null;
         }
         return stats;
     }
@@ -577,7 +590,7 @@ class CPBPlayerStats {
             return;
         }
 
-        const actors = game.actors.filter(actor => isPartyMember(actor) && !actor.isToken);
+        const actors = game.actors.filter(actor => isPlayerCharacter(actor) && !actor.isToken);
         let clearedCount = 0;
 
         for (const actor of actors) {
@@ -703,7 +716,7 @@ class CPBPlayerStats {
             if (!actorId) continue;
 
             const actor = game.actors.get(actorId);
-            if (!isPartyMember(actor) || actor.isToken) continue;
+            if (!isPlayerCharacter(actor) || actor.isToken) continue;
 
             const removed = await this.removeCombatFromPlayerStats(actorId, combatId, combatSummary);
             if (removed) updatedCount++;
@@ -745,12 +758,12 @@ class CPBPlayerStats {
         const previousTurn = combat.turns[combat.previous?.turn];
 
         // Process previous turn if it exists and was a player character
-        if (previousTurn && this._isPartyMember(previousTurn)) {
+        if (previousTurn && this._isPlayerCharacter(previousTurn)) {
             await this._processTurnEnd(combat, previousTurn);
         }
 
         // Start tracking new turn if it's a player character
-        if (currentTurn && this._isPartyMember(currentTurn) && combat.started) {
+        if (currentTurn && this._isPlayerCharacter(currentTurn) && combat.started) {
             await this._processTurnStart(combat, currentTurn);
         }
     }
@@ -798,8 +811,12 @@ class CPBPlayerStats {
 
         this._updateSessionStats(actorId, { currentCombat: sessionStats.currentCombat });
 
-        // Update lifetime stats
+        // Update lifetime stats. `getPlayerStats` returns null for anything that is not a
+        // player character -- it no longer mints a record on a cache miss -- so the turn of
+        // a monster or a summon reaches here and finds nothing to write to.
         const currentStats = await this.getPlayerStats(actorId);
+        if (!currentStats?.lifetime?.turnStats) return;
+
         const turnStats = currentStats.lifetime.turnStats;
         
         // Update turn time averages
@@ -827,8 +844,8 @@ class CPBPlayerStats {
     }
 
     // Utility methods
-    static _isPartyMember(combatant) {
-        return isPartyMember(combatant);
+    static _isPlayerCharacter(combatant) {
+        return isPlayerCharacter(combatant);
     }
 
     /**
@@ -877,7 +894,7 @@ class CPBPlayerStats {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         const attacker = workflow?.actor;
-        if (!isPartyMember(attacker)) return;
+        if (!isPlayerCharacter(attacker)) return;
 
         // Build attack event using shared utility
         const attackEvent = buildAttackEventFromWorkflow(workflow);
@@ -938,7 +955,7 @@ class CPBPlayerStats {
 
         const workflow = data?.workflow;
         const attacker = workflow?.actor;
-        if (!isPartyMember(attacker)) return;
+        if (!isPlayerCharacter(attacker)) return;
 
         const workflowId = getWorkflowId(workflow);
         if (!workflowId) return;
@@ -1255,7 +1272,7 @@ class CPBPlayerStats {
             // the same way and the reasoning is at `stats-sources.js:888`.
             const attackerActor = game.actors.get(attackEvent.attackerActorId);
             const isNewSwing = !CPBPlayerStats._isAttackDuplicate(`attack:${message.id}`);
-            if (isNewSwing && isPartyMember(attackerActor)) {
+            if (isNewSwing && isPlayerCharacter(attackerActor)) {
 
                 // Detect crit/fumble from the attack message roll itself (fallback for core dnd5e only)
                 // MIDI-QOL uses the RollComplete hook (authoritative), so skip chat parsing when MIDI is active
@@ -1433,8 +1450,8 @@ class CPBPlayerStats {
         }
         
         // Only track damage stats for player attackers, but we'll process all damage for unconscious tracking.
-        // `isPartyMember` tolerates a null actor and returns false, which is the behaviour this needs.
-        const isPlayerAttacker = isPartyMember(attackerActor);
+        // `isPlayerCharacter` tolerates a null actor and returns false, which is the behaviour this needs.
+        const isPlayerAttacker = isPlayerCharacter(attackerActor);
 
         // Correlate damage to cached attack - check both caches
         // CPBPlayerStats cache has player attacks, CombatSources cache has ALL attacks (including NPCs)
@@ -1579,7 +1596,7 @@ class CPBPlayerStats {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         const attackerActor = game.actors.get(attackEvent.attackerActorId);
-        if (!isPartyMember(attackerActor)) {
+        if (!isPlayerCharacter(attackerActor)) {
             return;
         }
 
@@ -1680,7 +1697,7 @@ class CPBPlayerStats {
         const trackHitMoments = bucket === "onHit";
 
         const attackerActor = game.actors.get(damageEvent.attackerActorId);
-        if (!isPartyMember(attackerActor)) {
+        if (!isPlayerCharacter(attackerActor)) {
             return;
         }
 
@@ -2358,7 +2375,7 @@ class CPBPlayerStats {
             if (!actorId) continue;
 
             const actor = game.actors.get(actorId);
-            if (!isPartyMember(actor) || actor.isToken) continue;
+            if (!isPlayerCharacter(actor) || actor.isToken) continue;
 
             const stats = await this.getPlayerStats(actorId);
             if (!stats) continue;
@@ -2444,7 +2461,7 @@ class CPBPlayerStats {
         if (!actorId || typeof score !== 'number') return;
 
         const actor = game.actors.get(actorId);
-        if (!isPartyMember(actor) || actor.isToken) return;
+        if (!isPlayerCharacter(actor) || actor.isToken) return;
 
         const stats = await this.getPlayerStats(actor.id);
         if (!stats) return;

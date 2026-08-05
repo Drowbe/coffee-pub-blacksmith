@@ -222,23 +222,14 @@ export class StatsAPI {
         },
 
         /**
-         * Check if an actor is a player-owned character sheet.
-         * Narrower than `isPartyMember`: a companion or familiar on an NPC sheet is false here.
+         * Check if an actor is a player character -- a player-owned `character` sheet.
+         * This is the definition of party membership used throughout statistics. NPCs are
+         * never party, including summons and permanently player-owned companions.
          * @param {Object|string} input - Combatant, token, actor, ID, or name
          * @returns {boolean} True if the actor is a player character
          */
         isPlayerCharacter: (input) => {
             return isPlayerCharacter(input);
-        },
-
-        /**
-         * Check whether an actor belongs in the party's statistics -- the characters plus any
-         * persistent player-owned creatures. Summoned creatures and group actors are excluded.
-         * @param {Object|string} input - Combatant, token, actor, ID, or name
-         * @returns {boolean} True if the actor's deeds belong in the party's statistics
-         */
-        isPartyMember: (input) => {
-            return CombatStats._isPartyMember(input);
         }
     };
 } 

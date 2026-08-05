@@ -13,7 +13,7 @@
 // the events that can change it.
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getPortraitImage, isPartyMember } from './api-core.js';
+import { postConsoleAndNotification, getPortraitImage, isPlayerCharacter } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { CombatStats } from './stats-combat.js';
@@ -99,7 +99,7 @@ export class PartyStats {
      * second consumer cannot disagree about who counts.
      */
     static getPartyActors() {
-        return game.actors.filter((actor) => isPartyMember(actor) && !actor.isToken);
+        return game.actors.filter((actor) => isPlayerCharacter(actor) && !actor.isToken);
     }
 
     static _empty() {

@@ -1129,79 +1129,37 @@ export function resolveActorFrom(entity) {
 }
 
 /**
- * Checks whether an entity is a player character -- an actual character sheet a player owns.
+ * Checks whether an entity is a player character.
  *
- * This is the narrow question: does this actor have a `character` sheet? Use it for anything
- * that depends on character mechanics -- death saves, levels, class features. For "should
- * this actor appear in the party's statistics", use `isPartyMember`, which also admits
- * permanent player-owned NPCs such as companions and sidekicks.
+ * BOTH CONDITIONS ARE REQUIRED: the actor's sheet type is `character`, and a player owns it.
+ * This is the only definition of "counts towards the party" in the module, and statistics,
+ * party rosters, and character-mechanic checks all use it.
+ *
+ * THE SHEET TYPE IS WHAT KEEPS SUMMONS OUT, and ownership alone would not. A summoned
+ * creature -- Conjure Animals, Spiritual Weapon, an animated blade -- is handed to its
+ * summoner's player so they can drive it, so it reports `hasPlayerOwner === true` for as
+ * long as it exists. Testing ownership by itself, or `hasPlayerOwner || type === 'character'`,
+ * gave every one of them its own lifetime record, its own place in the MVP ranking, and its
+ * own row in the party window; one casting of Conjure Animals produced six such rows, and a
+ * live campaign had eighteen plain monsters carrying records besides.
+ *
+ * NPCs ARE NOT TRACKED, INCLUDING ONES A PLAYER OWNS PERMANENTLY. A companion or familiar on
+ * an NPC sheet is deliberately out. An earlier version of this tried to admit them and screen
+ * summons out instead, by way of `flags.dnd5e.summon` -- which matched nothing in a real
+ * world, because those summons came from a premade-content module that copies actors rather
+ * than using the system activity. Nothing available distinguishes a pet from a sword, so the
+ * rule is the one that needs no inference.
  *
  * Ownership is accepted from either an owner permission or a user's assigned character,
  * because a character sheet can be assigned to a user without a permission entry.
  *
  * @param {Combatant|Token|TokenDocument|Actor|string|null} entity - Combatant, token, actor, id, or name
- * @returns {boolean} True when the entity is a player-owned character sheet
+ * @returns {boolean} True when the entity is a player-owned character
  */
 export function isPlayerCharacter(entity) {
     const actor = resolveActorFrom(entity);
     if (actor?.type !== 'character') return false;
     return actor.hasPlayerOwner || game.users?.some(u => u.character?.id === actor.id) || false;
-}
-
-/**
- * Checks whether an actor is a creature conjured by a summoning activity.
- *
- * dnd5e stamps `flags.dnd5e.summon` on the actor it creates for a summon -- `{level, mod,
- * origin, activity, profile}` -- at `SummonsData#getChanges` in the system bundle. That flag
- * is the only reliable mark of transience: a summon is otherwise an ordinary NPC actor, and
- * it is handed to its summoner's player so they can drive it, so it looks player-owned.
- *
- * @param {Combatant|Token|TokenDocument|Actor|string|null} entity
- * @returns {boolean} True when the actor was created by a summoning activity
- */
-export function isSummonedCreature(entity) {
-    return !!resolveActorFrom(entity)?.flags?.dnd5e?.summon;
-}
-
-/**
- * Checks whether an entity belongs in the party's statistics.
- *
- * THE DISTINCTION IS PERMANENCE, NOT SHEET TYPE. A party is the characters plus whatever
- * persistent creatures the players run -- a companion, a familiar, a sidekick on an NPC
- * sheet. Those earn a record. What does not is the transient: a creature conjured for a
- * minute of combat, or a spell effect given a stat block.
- *
- * Testing player ownership alone gets this wrong, because a summon is handed to its
- * summoner's player and so reports `hasPlayerOwner === true` for as long as it exists. One
- * casting of Conjure Animals then puts six identically-named rows in the party window, each
- * with its own lifetime record and its own place in the MVP ranking. Testing
- * `type === 'character'` instead gets it wrong in the other direction, discarding the
- * companions that players have run all campaign.
- *
- * Group actors are excluded outright: a dnd5e `group` is a container for a party, not a
- * combatant, though nothing stops one being placed on the canvas and joining a fight.
- *
- * THE `excludeFromStats` FLAG IS THE FINAL WORD, because some cases cannot be decided from
- * the data. A magic weapon given its own stat block and handed to a player is player-owned,
- * persistent, and on an NPC sheet -- indistinguishable from a companion or familiar, which
- * is all of those things too. One is a party member and one is a sword, and only the GM
- * knows which. Set the flag to exclude such an actor:
- *
- *     await actor.setFlag('coffee-pub-blacksmith', 'excludeFromStats', true);
- *
- * @param {Combatant|Token|TokenDocument|Actor|string|null} entity - Combatant, token, actor, id, or name
- * @returns {boolean} True when the entity's deeds belong in the party's statistics
- */
-export function isPartyMember(entity) {
-    const actor = resolveActorFrom(entity);
-    if (!actor) return false;
-    if (actor.getFlag?.(MODULE.ID, 'excludeFromStats')) return false;
-    if (actor.type === 'group') return false;
-    if (isSummonedCreature(actor)) return false;
-    return actor.type === 'character'
-        || actor.hasPlayerOwner
-        || game.users?.some(u => u.character?.id === actor.id)
-        || false;
 }
 
 /**

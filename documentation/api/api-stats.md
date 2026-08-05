@@ -38,7 +38,7 @@ The stats system splits responsibilities across multiple scopes:
 - **player**: asynchronous helpers for actor-based statistics, including lifetime retrieval and category lookups.
 - **party**: party-wide aggregates over the per-actor and per-combat sources, cached rather than recomputed per read.
 - **combat**: synchronous helpers that reveal current combat state, historical summaries, and subscription utilities.
-- **utils**: passthrough utilities (`formatTime`, `isPlayerCharacter`, `isPartyMember`) shared with UI components.
+- **utils**: passthrough utilities (`formatTime`, `isPlayerCharacter`) shared with UI components.
 - **CombatStats**: direct class access for advanced integrations; use higher-level helpers whenever possible.
 
 ---
@@ -269,10 +269,9 @@ console.table(rankings.map((r, index) => ({ rank: index + 1, name: r.name, score
 ## Utilities & Direct Access
 
 - `Stats.utils.formatTime(ms: number) -> string` formats durations for display.
-- `Stats.utils.isPlayerCharacter(target) -> boolean` reports whether a combatant, token, actor, ID, or name resolves to a player-owned `character` sheet. Use it for anything depending on character mechanics, such as death saves. A companion or familiar on an NPC sheet returns `false`.
-- `Stats.utils.isPartyMember(target) -> boolean` reports whether that actor's deeds belong in the party's statistics, and is the predicate every statistics lane uses. It admits the characters plus any persistent player-owned creature -- a companion, a familiar, a sidekick on an NPC sheet -- and excludes two things: creatures created by a summoning activity (`flags.dnd5e.summon`), and `group` actors, which are party containers rather than combatants. A summoned creature is player-owned for as long as it exists, so ownership alone does not separate it from a companion; the flag does. Summons are therefore absent from party totals, MVP ranking, and lifetime statistics, and damage they deal is not attributed to their summoner.
+- `Stats.utils.isPlayerCharacter(target) -> boolean` reports whether a combatant, token, actor, ID, or name resolves to a player character, and is the definition of party membership used throughout statistics. Both conditions are required: the actor's sheet type is `character`, **and** a player owns it (by permission or by being that user's assigned character).
 
-  The actor flag `coffee-pub-blacksmith.excludeFromStats` overrides all of it and returns `false`. It exists for actors no rule can classify -- a magic weapon with its own stat block is player-owned, persistent, and on an NPC sheet, which is exactly what a familiar is.
+  **NPCs are never party**, whoever owns them. A summoned creature is handed to its summoner's player while it exists and so is player-owned, as is a permanent companion or an animated weapon with its own stat block; none of them are tracked. Summons are therefore absent from party totals, MVP ranking, and lifetime statistics, and damage they deal is not attributed to their summoner.
 - `Stats.CombatStats` exposes the full class for advanced use. Treat its static state as internal; avoid external mutation unless working directly with the core maintainers.
 
 ### Commands & Examples
