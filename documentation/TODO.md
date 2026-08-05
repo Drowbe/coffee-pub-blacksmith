@@ -4,6 +4,42 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Save-based offense: delivery as a dimension, and the accuracy bug it fixes
+
+**Plan:** `documentation/plans/plan-save-delivery.md`. Four phases, each independently landable.
+
+**The bug that motivates it.** midi sets `workflow.hitTargets` to *every target* for an activity
+with no attack roll, so for a save spell it means "was targeted", not "was hit". Blacksmith reads it
+as the latter (`utility-midi-resolution.js:285`, `stats-sources.js:416`), so a Fireball on five
+goblins records five hits and zero misses **even when all five succeed their saves**. Hit rate is
+`hits / (hits + misses)`, so every save spell cast drags the caster and the party average toward
+100%. midi already computes the correct set as `workflow.failedSaves`; nothing here reads it.
+
+Note that save damage **is** already eligible for damage moments and always has been — `hitTargets`
+being non-empty makes `hadHit` true, so a Fireball can already take the biggest-hit record. Do not
+repeat the earlier claim that it cannot.
+
+- **Phase 1 — carry it.** `delivery` (`attack` / `save` / `auto` / `unknown`) on the attack event,
+  derived from the activity rather than the item type; `landedTargets` beside `hitTargets`, from
+  `failedSaves` when delivery is `save`. Nothing reads them yet.
+  *Verify:* cast an attack spell, a save spell and Magic Missile with debug on; each reports the
+  expected delivery and a landed set matching the table.
+- **Phase 2 — fix accuracy.** Count hits and misses from `landedTargets`, not `hitTargets`. This
+  changes existing numbers on purpose.
+  *Verify:* Fireball five targets with some succeeding; hits and misses reflect the saves, and a
+  weapon attack is unchanged.
+- **Phase 3 — caster statistics.** Saves forced, DC, failure rate, and a readout once there is
+  something to show. **Settle first:** does "saves forced" count targets or castings? The two give
+  different numbers from the same fight and neither converts to the other afterwards.
+  *Verify:* against a hand-counted round.
+- **Phase 4 — MVP fairness.** `successfulOffenseCount` increments whenever `hitTargets` is non-empty,
+  which for a save spell is unconditional; it should require a landed delivery.
+  *Verify:* a caster whose spell is entirely resisted scores no offense count for it.
+
+Non-midi tables are deliberately out of scope: save results arrive as uncorrelated messages, so they
+get `delivery: 'unknown'` and current behaviour rather than a guess that corrupts the statistic this
+work exists to fix.
+
 ## Readout widgets: `segmentchip` — later, when something needs it
 
 **Not scheduled.** A widget kind worth having when a readout has **more than two parts**, kept here so the idea is not lost rather than because anything currently wants it.

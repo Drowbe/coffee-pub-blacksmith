@@ -6,11 +6,11 @@
 
 // Import MODULE variables
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, trimString, isPlayerCharacter } from './api-core.js';
+import { postConsoleAndNotification, isPlayerCharacter } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { resolveAttackMessage, resolveDamageMessage, makeKey, hydrateFirstRoll } from './utility-message-resolution.js';
+import { resolveAttackMessage, resolveDamageMessage, hydrateFirstRoll } from './utility-message-resolution.js';
 import { getWorkflowId, buildAttackEventFromWorkflow, isMidiIntegrationEnabled } from './utility-midi-resolution.js';
-import { CombatStats } from './stats-combat.js';
+import { CombatSources } from './stats-sources.js';
 
 // Default stats structure
 const CPB_STATS_DEFAULTS = {
@@ -95,7 +95,7 @@ const CPB_STATS_DEFAULTS = {
 };
 
 class CPBPlayerStats {
-    // Attack resolution cache for correlating damage to attacks (separate from CombatStats)
+    // Attack resolution cache for correlating damage to attacks (separate from CombatSources)
     static _attackCache = new Map(); // key -> { attackEvent, processedDamageMsgIds: Set<string>, ts }
     static ATTACK_TTL_MS = 15_000; // 15 second TTL for attack cache entries
     
@@ -1480,13 +1480,13 @@ class CPBPlayerStats {
         const isPlayerAttacker = attackerActor?.hasPlayerOwner ?? false;
 
         // Correlate damage to cached attack - check both caches
-        // CPBPlayerStats cache has player attacks, CombatStats cache has ALL attacks (including NPCs)
+        // CPBPlayerStats cache has player attacks, CombatSources cache has ALL attacks (including NPCs)
         let cacheEntry = CPBPlayerStats._attackCache.get(damageEvent.key);
         if (!cacheEntry) {
-            // Not in player cache - check CombatStats cache (has NPC attacks too)
-            cacheEntry = CombatStats._attackCache.get(damageEvent.key);
+            // Not in player cache - check CombatSources cache (has NPC attacks too)
+            cacheEntry = CombatSources.getCachedAttack(damageEvent.key);
             
-            // Make defensive check: ensure processedDamageMsgIds exists (CombatStats may have different structure)
+            // Make defensive check: ensure processedDamageMsgIds exists (CombatSources may have different structure)
             if (cacheEntry && !cacheEntry.processedDamageMsgIds) {
                 cacheEntry.processedDamageMsgIds = new Set();
             }
@@ -1530,7 +1530,7 @@ class CPBPlayerStats {
         }
 
         // Check dedupe - skip if we've already processed this damage message
-        // Defensive: ensure processedDamageMsgIds exists (in case cacheEntry came from CombatStats)
+        // Defensive: ensure processedDamageMsgIds exists (in case cacheEntry came from CombatSources)
         if (!cacheEntry.processedDamageMsgIds) {
             cacheEntry.processedDamageMsgIds = new Set();
         }
@@ -1542,25 +1542,20 @@ class CPBPlayerStats {
         // Mark this damage message as processed
         cacheEntry.processedDamageMsgIds.add(damageEvent.damageMsgId);
 
-        // Classify damage based on attack outcome
+        // Classify damage based on attack outcome. Identical to `CombatSources`, and now says so
+        // in one line rather than four.
+        //
+        // WHAT THE ITEM IS DOES NOT MATTER HERE -- only whether it landed. This used to branch on
+        // `itemType === "weapon"` first, but both halves of that branch reached the same answer, so
+        // the distinction was computed and discarded. It read as though a spell were classified
+        // differently from a weapon, which would be a thing worth knowing if it were true.
         const hadHit = cacheEntry.attackEvent.hitTargets.length > 0;
-        const isWeaponAttack = cacheEntry.attackEvent.itemType === "weapon";
-
-        // Classification rules (same as CombatStats)
-        if (isWeaponAttack && hadHit) {
-            damageEvent.bucket = "onHit";
-        } else if (isWeaponAttack && !hadHit) {
-            damageEvent.bucket = "other";
-        } else if (hadHit) {
-            damageEvent.bucket = "onHit";
-            } else {
-            damageEvent.bucket = "other";
-        }
+        damageEvent.bucket = hadHit ? "onHit" : "other";
 
         damageEvent.attackMsgId = cacheEntry.attackEvent.attackMsgId;
 
         // Debug log for correlation verification
-        const cacheSource = CPBPlayerStats._attackCache.has(damageEvent.key) ? 'CPBPlayerStats' : 'CombatStats';
+        const cacheSource = CPBPlayerStats._attackCache.has(damageEvent.key) ? 'CPBPlayerStats' : 'CombatSources';
         postConsoleAndNotification(MODULE.NAME, 'Player Stats - Damage Resolved:', {
             key: damageEvent.key,
             attacker: attackerActor.name,
@@ -1983,7 +1978,7 @@ class CPBPlayerStats {
 
     /**
      * Normalize roll hook arguments to extract item, rolls, and context
-     * Matches the pattern used by CombatStats for consistent hook handling
+     * Matches the pattern used by CombatSources for consistent hook handling
      * @param {*} a - First hook argument (could be item, roll, array, or context)
      * @param {*} b - Second hook argument (could be item, roll, array, or context)
      * @returns {Object} Normalized arguments with { rolls, context, item }
