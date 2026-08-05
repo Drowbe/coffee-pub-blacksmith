@@ -317,6 +317,19 @@ vocabulary back:
   list: nothing registers, and a name in the log is evidence it was sent, not permission to send.
   Note the suppression log does *not* serve this purpose — it fires on the excluded client, which
   is by construction the machine nobody is watching.
+
+  **Treat this log as contract, not as debug output.** Because there is no registry, it is the
+  only way a GM can discover which channel names exist, and siblings point at it in their own
+  documentation — Bibliosoph's README and its channel-audit tool both send GMs here, having
+  correctly dropped their own typo detection on the grounds that they cannot distinguish a
+  misspelling from another module's channel either. Changing the wording is fine; removing it,
+  or gating it behind something other than `globalDebugMode`, breaks a documented path in
+  another repo.
+- **Excluded-user names, unlike channel names, are validated.** `getUnknownExcludedUserNames()`
+  reports names in `toastExcludedUsers` matching no user, and the setting warns the GM on change.
+  The asymmetry is deliberate and worth stating so it does not read as inconsistency: users are
+  enumerable, so a name matching nobody is a fact; channels are not, so an unrecognised one may
+  simply belong to a module Blacksmith has never heard of. Validate what you can enumerate.
 - **Read-only introspection.** `isExcludedUser` and `isBypassChannel` are on `ToastAPI` so a
   consumer can warn its own GM that its announcements cannot arrive. They were internal at first,
   which forced a sibling to read the settings and duplicate the parsing — the coupling the API

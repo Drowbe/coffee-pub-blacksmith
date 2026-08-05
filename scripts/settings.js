@@ -9,6 +9,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
+import { getUnknownExcludedUserNames } from './api-toast.js';
 import { getNamingKeyList, tokenNameTableSettingId, NAMING_TAXONOMY_SETTING, DEFAULT_TAXONOMY_PATH } from './utility-token-naming.js';
 import { assetLookup } from './asset-lookup.js';
 import {
@@ -3657,7 +3658,19 @@ export const registerSettings = () => {
 		requiresReload: false,
 		type: String,
 		default: '',
-		group: WORKFLOW_GROUPS.NOTIFICATIONS
+		group: WORKFLOW_GROUPS.NOTIFICATIONS,
+		// Warn the GM about a name matching no user. Unlike a channel name -- which may be a
+		// typo or may belong to a module Blacksmith knows nothing about, so flagging it would
+		// be a guess -- users are enumerable, so this is a fact. The failure is silent and the
+		// wrong way round: the account meant to be excluded quietly keeps receiving everything.
+		// On change only, not at startup: a GM may legitimately list a user who has not joined
+		// yet, and nagging every launch would train them to ignore it.
+		onChange: () => {
+			if (!game.user?.isGM) return;
+			const unknown = getUnknownExcludedUserNames();
+			if (!unknown.length) return;
+			ui.notifications.warn(`Excluded Users: no user named ${unknown.map(n => `"${n}"`).join(', ')} — that account is NOT excluded. Use Foundry user names, not character names.`);
+		}
 	});
 
 	// Comma-separated channel names that reach excluded users anyway, so exclusion

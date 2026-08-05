@@ -32,6 +32,27 @@ export function isToastExcludedUser(user = game.user) {
 }
 
 /**
+ * Names in `toastExcludedUsers` that match no user in this world.
+ *
+ * THIS IS VALIDATABLE WHERE CHANNEL NAMES ARE NOT, and the asymmetry is the point. A channel
+ * name Blacksmith does not recognise may be a typo or may belong to a module it knows nothing
+ * about, so flagging it would be a guess. Users are enumerable: a name here matching nobody is
+ * a typo, full stop, and the consequence is silent -- the account the GM meant to exclude keeps
+ * receiving everything.
+ *
+ * @returns {string[]} Listed names matching no user, in the order given
+ */
+export function getUnknownExcludedUserNames() {
+    const raw = getSettingSafely(MODULE.ID, 'toastExcludedUsers', '');
+    if (typeof raw !== 'string' || !raw.trim()) return [];
+    const known = new Set((game.users ?? []).map(u => u.name?.toLowerCase()).filter(Boolean));
+    return raw.split(',')
+        .map(name => name.trim())
+        .filter(Boolean)
+        .filter(name => !known.has(name.toLowerCase()));
+}
+
+/**
  * True when a toast's channel is one the GM has allowed through exclusion — the world setting
  * `toastBypassChannels`, a comma-separated list of channel names (case-insensitive).
  *
