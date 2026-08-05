@@ -42,8 +42,8 @@ file. Same rule as `TODO.md`.
 still assumption.
 
 **All 16 API docs were audited against source on 2026-07-17** and corrected. **Every single one
-contained at least one thing that could not work.** Not one was clean. See CHANGELOG `[Unreleased]`
-for the full list; `documentation/TODO.md` holds what was found but deliberately *not* fixed.
+contained at least one thing that could not work.** Not one was clean. See `CHANGELOG.md` for the
+full list; `documentation/TODO.md` holds what was found but deliberately *not* fixed.
 
 Two things worth carrying forward:
 

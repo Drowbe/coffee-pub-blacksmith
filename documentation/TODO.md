@@ -6,8 +6,9 @@
 
 ## CRITICAL - protect the live campaign statistics before changing them further
 
-**Raised 2026-08-04. Do this before any further statistics work lands.** There is real campaign data
-in the live world and it is irreplaceable.
+**Raised 2026-08-04.** There is real campaign data in the live world and it is irreplaceable. The
+urgent item - a backup - is done. What remains below blocks the **damage-semantics change**, which
+must not land until the version stamp is being written.
 
 **An export DOES exist** - `_exportHistory()` in `window-stats-party.js:243`, with a matching import
 at `:404`. An earlier note here claimed there was none; that was wrong. It writes
@@ -58,12 +59,19 @@ import above.
    doubling, and the dialog currently offers no hint. Wire a reset to the stats windows as part of
    this - without one, there is no way to make a restore land on a clean slate.
 
-**What a real export turned up, fixed 2026-08-04.** Reading the actual exported file rather than
-reasoning about the code found two defects that no amount of reading had surfaced, both now fixed
-(see `CHANGELOG.md`) with a repair macro at `utilities/repair-stats-data.js` for data already
-stored: `combatHistory` was storing whole Scene documents in its `sceneId` field (21.1 MB of the
-21.2 MB total), and player-owned summons were being tracked as party members. The lesson is worth
-keeping - **inspect the data, not just the code that writes it.**
+**What a real export turned up, fixed 2026-08-04.** Reading the actual exported file, and then
+running the repair macro against the live world, found three defects that no amount of reading the
+code had surfaced - all now fixed (see `CHANGELOG.md`), with `utilities/repair-stats-data.js` to
+repair data already stored. `combatHistory` was storing whole Scene documents in its `sceneId` field
+(19.3 MB of the 19.4 MB total on production); non-party actors were being tracked, including summons
+and eighteen plain monsters; and `getPlayerStats` re-created a record on any cache miss, so clearing
+one and then rendering any window that read it brought it straight back. The lesson is worth keeping
+- **inspect the data, not just the code that writes it**, and watch what the console does *after* a
+repair reports success.
+
+**The scene-document repair has been applied to production** (down to ~40 KB, verified). The
+record-clearing has not stuck and cannot until production runs the fixed module, because the old
+code re-creates the records on read. **Re-run the macro on production once it has updated.**
 
 **The sequencing problem, and why this blocks the damage-semantics change.** "Damage dealt" is being
 redefined from *rolled total* to *applied HP after resistance* (decided 2026-08-04). Existing records
@@ -104,15 +112,11 @@ card yielding both an attack and its damage. What follows is what remains, worst
    and new meanings become indistinguishable forever. It propagates to damage dealt and taken,
    biggest-hit moments, the MVP damage term, and the party readout.
 
+   This is a silent numeric divergence rather than a missing field, which makes it the hardest to
+   notice and the most important to settle a policy on.
+
    *Verify:* hit a resistant monster for a rolled 20 that applies 10; confirm 10 is recorded, and
    that the same attack records 10 with midi enabled and disabled.
- midi records *applied HP* after resistance
-   (`stats-sources.js:534-551`, `stats-player.js:1056-1071`); core records the *rolled total*
-   (`utility-message-resolution.js:489-495`). Against a resistant or immune monster a non-midi table
-   reads roughly double for damage dealt/taken, biggest-hit moments and the MVP damage term. This is
-   a silent numeric divergence rather than a missing field, which makes it the hardest to notice and
-   the most important to settle a policy on. The HP-delta hooks needed for the core side already
-   exist (`stats-player.js:437-451`, `stats-combat.js:2130-2146`).
 
 2. **Lower severity, combat lane.** `_onMidiRollComplete`'s GM path never persists while its socket
    twin does (`stats-sources.js:1226` vs `:699-777`), so a crit just before a reload is lost only on
@@ -538,7 +542,7 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 
 #### Request-side roll modes and explainer (Bibliosoph request #5, 2026-07-30)
 
-Both shipped and are recorded in `CHANGELOG.md` under `[Unreleased]`; what remains is the live verification
+Both shipped and are recorded in `CHANGELOG.md`; what remains is the live verification
 below. Design is in `architecture/architecture-rolls.md` ("Requester-supplied roll parameters") and the
 surface in `api/api-requestroll.md`. Consumer waiting: Bibliosoph's treatment rolls currently state the
 required mode in the request title and detect what was actually rolled by sniffing the formula for `2d20kh` /
