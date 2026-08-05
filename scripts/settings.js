@@ -3660,6 +3660,22 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.NOTIFICATIONS
 	});
 
+	// Comma-separated channel names that reach excluded users anyway, so exclusion
+	// stops being all-or-nothing — a camera account should not get party chatter but
+	// should get "CRITICAL!". Channel names are declared by the SENDING module (see
+	// config.channel in api-toast.js), never enumerated here: keeping this a free
+	// string is what stops Blacksmith needing to know what a critical is.
+	game.settings.register(MODULE.ID, 'toastBypassChannels', {
+		name: MODULE.ID + '.toastBypassChannels-Label',
+		hint: MODULE.ID + '.toastBypassChannels-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: '',
+		group: WORKFLOW_GROUPS.NOTIFICATIONS
+	});
+
 	// --------------------------------------
 	// -- H2: LEADER
 	// --------------------------------------

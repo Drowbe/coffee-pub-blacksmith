@@ -203,27 +203,59 @@ One bar split into proportional segments, showing composition at a glance where 
 
 If it is built: confirm the segments sum to the whole and the tooltip names each; confirm no recorded data renders an empty bar rather than a row of zero-width slivers; confirm it survives suppression at a narrow window without clipping.
 
-## Toasts: let an excluded user through for specific events
+## One participation list, owned by Blacksmith instead of copied per module
 
-An excluded user is currently excluded from everything. `toastExcludedUsers` is a world setting and `isToastExcludedUser()` gates on **receipt** (`api-toast.js:118`) — the client drops the toast when its view is `game`. That is right for a camera or stream account that must not have party chatter on screen, and wrong for the case that motivates this: the cameraman player in the broadcast setup **should** see "FUMBLE!" and "CRITICAL!", because those are the moments the broadcast exists to capture.
+**The fact belongs to the hub; the behaviour belongs to each module.** A camera, stream, or bot
+account is not a person: nobody clicks, nobody answers, nobody votes. That is one statement about
+the account, and at least four modules need to derive different behaviour from it — toasts do not
+render, voting does not count it toward quorum, Herald hides the menubar, and anything that opens a
+dialog should not prompt it.
 
-So exclusion needs to stop being all-or-nothing. The plumbing already exists — `sendToastToUsers(payload, userIds)` is the internal targeted relay — what is missing is a way to say "this class of event reaches excluded users too".
+**This list has already been built twice with different homes.** `excludedUsersMenubar` was a
+Blacksmith world setting and now lives in Herald (`api-menubar.js:2918`); `toastExcludedUsers` is
+still here. Bibliosoph's roll announcements would be the third. The GM answers the same question
+once per module, and any module that forgets blasts the capture screen. `matchUserBySetting`
+(`api-core.js`) already exists, so the *mechanism* was shared long ago and the *concept* never was.
 
-**The design question, unanswered:** is it a per-user opt-in (each excluded user has a list of event kinds they still receive), or a named channel a module publishes to (`api.toast.show({..., channel: 'spectacle'})`) with excluded users subscribing to channels? The channel form is the one that scales to siblings — the crit/fumble toasts will be sent by the rolls consumer module, not by Blacksmith — and it keeps the sender from needing to know who is excluded. The per-user form is simpler and keeps the decision with the GM. Decide before building; the two produce different API surfaces and the sender-side call differs.
+**Do not model it as a "do not send" list.** That is a behaviour, and encoding it as one is what
+made it fragment. Model the account: one predicate, one world setting, consumers deciding for
+themselves what it means for them.
 
-Note the receipt-side model is deliberate and must survive: both transports broadcast to every client and filtering happens on arrival (`TODO.md` "emit() must never carry secrets"). Whatever this becomes, it cannot turn into a claim that the payload was only delivered to some clients.
+**Keep two similar cases apart.** A passive account *cannot* interact. A person who is present but
+not playing tonight — a guest, a second screen — *can*, and merely should not be counted for
+decisions. One list for both means excluding the guest from toasts in order to keep them out of a
+vote. Only the passive account is a standing fact; the guest case belongs to per-vote configuration
+(see the voting item below).
+
+**Orthogonal to the toast `channel`, deliberately.** Participation answers *who this person is*;
+`channel` answers *what kind of thing this toast is*. The override is the intersection — a passive
+account still renders a display-only announcement. Nothing about `channel` changes when this lands.
+
+Three things to settle before writing code, because siblings will depend on the answers:
+
+1. **The name.** It will sit in sibling source for years. `isPassive`, `isSpectator`,
+   `isParticipant` — pick for how the call site reads in a consumer, not how it reads here.
+2. **Migration.** `toastExcludedUsers` is configured in live worlds. Alias it, or copy its value
+   into the new setting on first load; do not silently drop a GM's existing configuration.
+3. **Whether Herald migrates back** to consulting the shared list rather than its own. That is
+   cross-module and is tracked in `TODO-GLOBAL.md`.
+
+*Verify:* mark an account passive, then confirm each consumer behaves without further configuration
+— no toasts on the tabletop (but a bypass-channel toast still renders), no place in a vote tally,
+and unanimity reached without waiting on it. Confirm a GM who had `toastExcludedUsers` set before
+the change still has that user excluded afterwards.
 
 ## Voting: filter who can vote and who can be voted for
 
-Two separate filters, and only half of one exists today.
+Two separate filters. One now has a rule but no configuration; the other has no concept.
 
-**Who can vote** is already snapshotted per vote as `vote.eligibleUserIds` (`manager-vote.js:34`), falling back to all active non-GM users. So the storage hook is there; what is missing is any way to *configure* it — nothing narrows that snapshot when a vote starts.
+**Who can vote** is a logged-in non-GM user who owns at least one `character` actor, snapshotted per vote as `vote.eligibleUserIds` when the vote starts. That rule covers the case it was written for — a camera account, or a player holding only the party `group` actor, is no longer counted, so a vote can reach unanimity without waiting on someone who will never vote. What is still missing is any way to *configure* exceptions: a player who genuinely owns a character but is not participating tonight (a guest, a second screen) is still counted, and nothing narrows the snapshot.
 
-**Who can be voted for** has no concept at all. For a leader vote every player is implicitly a candidate.
+**Who can be voted for** has no concept at all. For a leader vote every eligible voter is implicitly a candidate. A GM-run vote may want a deliberately short candidate list.
 
-The cases that need it: a player who is present but not participating (a guest, a second screen, the camera account) should be neither a voter nor a candidate; and a GM-run vote may want a deliberately short candidate list.
+**The design question, unanswered:** per-vote configuration in the Create Vote dialog (`window-vote-config.js`), or a standing world setting for "users excluded from voting" that every vote inherits?
 
-**The design question, unanswered:** per-vote configuration in the Create Vote dialog (`window-vote-config.js`), or a standing world setting for "users excluded from voting" that every vote inherits? A standing setting overlaps conceptually with `toastExcludedUsers` — the same camera account is the motivating example for both — which suggests a single shared "this user is not a participant" list is the better shape than two independent exclusion lists. Worth deciding alongside the toast item above rather than separately.
+**Settled since:** the standing "this account is not a person" case is not a voting concern at all — it belongs to the shared participation list above, which voting should consult rather than duplicate. What is left here is the case that list deliberately excludes: a real player, owning a real character, who is not participating *tonight*. That is per-session, so it wants per-vote configuration rather than a standing setting.
 
 ## Compendium mapping wants a custom settings panel
 

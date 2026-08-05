@@ -279,3 +279,45 @@ The primitive renders; **policy stays in the consumer.** Which events toast, per
 settings, mention rules, auto-open fallbacks, whose avatar to show — all consumer-side (Bibliosoph
 keeps its splash settings; Squire keeps its dedup policy). Blacksmith owns only the rendering,
 stacking, and the dismissal contract.
+
+### `channel` is where that boundary was nearly lost
+
+Exclusion (`toastExcludedUsers`) began as all-or-nothing, which is right for a camera account that
+must not have party chatter on screen and wrong for the case that motivates changing it: the
+broadcast cameraman **should** see "FUMBLE!" and "CRITICAL!", because those are the moments the
+broadcast exists to capture.
+
+The obvious design is a per-user opt-in — each excluded user lists the event kinds they still
+receive. **It cannot be built without breaking the boundary.** Those kinds belong to sibling
+modules, so Blacksmith's settings UI would have to enumerate `critical`, `fumble`, `injury` and so
+carry a vocabulary about dice outcomes it otherwise has no reason to know. The moment that list
+exists, adding a new announceable event in a sibling means editing Blacksmith.
+
+`channel` inverts it. The **sender** declares a free-form name; the GM allow-lists names in
+`toastBypassChannels`; Blacksmith compares two strings. Nothing here knows what a critical is, a
+sibling can introduce a new class of announcement without touching this module, and several
+siblings can publish to one channel the GM has already allowed. `isToastBypassChannel`
+(`api-toast.js`) is the whole of it, and the exclusion test in `show()` is its only caller.
+
+Read it as the shape to reach for whenever a consumer needs Blacksmith to treat some of its events
+differently: **take a name from the sender, never a taxonomy into the hub.**
+
+The check stays receipt-side alongside the rest of exclusion, so it changes what a client renders
+and never what was delivered — see "The internal broadcast relay" above, and note that a bypass
+channel therefore carries no implication of privacy.
+
+**Refusing a registry costs discoverability, and that has to be paid for somewhere.** With no
+declared vocabulary, a GM cannot learn which channel names exist, and a name typed into
+`toastBypassChannels` that nothing sends fails silently — Blacksmith cannot tell a typo from
+another module's channel, and neither can a consumer. Two things pay the cost without taking the
+vocabulary back:
+
+- **First-sighting logging.** Each channel name is named once per client in debug output as it is
+  seen (`_seenChannels` in `api-toast.js`). This reports observed reality rather than a declared
+  list: nothing registers, and a name in the log is evidence it was sent, not permission to send.
+  Note the suppression log does *not* serve this purpose — it fires on the excluded client, which
+  is by construction the machine nobody is watching.
+- **Read-only introspection.** `isExcludedUser` and `isBypassChannel` are on `ToastAPI` so a
+  consumer can warn its own GM that its announcements cannot arrive. They were internal at first,
+  which forced a sibling to read the settings and duplicate the parsing — the coupling the API
+  exists to prevent.

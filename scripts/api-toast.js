@@ -31,6 +31,32 @@ export function isToastExcludedUser(user = game.user) {
         .includes(user.name.toLowerCase());
 }
 
+/**
+ * True when a toast's channel is one the GM has allowed through exclusion — the world setting
+ * `toastBypassChannels`, a comma-separated list of channel names (case-insensitive).
+ *
+ * WHY A CHANNEL AND NOT AN EVENT KIND. Exclusion is all-or-nothing without this, which is right
+ * for a camera account that must not have party chatter on screen and wrong for the case that
+ * motivates it: the broadcast cameraman SHOULD see "FUMBLE!" and "CRITICAL!", because those are
+ * the moments the broadcast exists to capture. The alternative design — listing per user which
+ * event kinds still reach them — cannot work here, because the kinds belong to sibling modules:
+ * Blacksmith's settings UI would have to enumerate `critical`, `fumble`, `injury` and so learn a
+ * vocabulary it has no business knowing. A channel is a name the SENDER declares and the GM
+ * allow-lists, so the module that understands what a critical is stays the only one that does.
+ *
+ * @param {string|null} channel - The channel a toast declared, if any
+ * @returns {boolean} True when this channel reaches excluded users
+ */
+export function isToastBypassChannel(channel) {
+    if (typeof channel !== 'string' || !channel.trim()) return false;
+    const raw = getSettingSafely(MODULE.ID, 'toastBypassChannels', '');
+    if (typeof raw !== 'string' || !raw.trim()) return false;
+    return raw.split(',')
+        .map(name => name.trim().toLowerCase())
+        .filter(Boolean)
+        .includes(channel.trim().toLowerCase());
+}
+
 class ToastManager {
     static toasts = new Map(); // toastId -> { id, moduleId, stackKey, persistent, color, size, onClick, onDismiss, timeoutId, element }
     static MAX_STACK = 5;      // applies to TRANSIENT toasts only — persistent (duration: 0) toasts are exempt
@@ -64,6 +90,8 @@ class ToastManager {
     // callbacks, a relayed toast never shows one — consumers calling show()
     // receipt-side (the local-first pattern) are the audience.
     static CTA_SIZES = ['small', 'medium', 'large'];
+    // Channel names seen on this client, so the discovery log names each one once.
+    static _seenChannels = new Set();
     // Publish surfaces: Foundry serves two player-facing views — the active
     // tabletop (/game) and the chat-only /stream capture page (typically
     // recorded by OBS). Toasts default to the tabletop.
@@ -90,14 +118,27 @@ class ToastManager {
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
      * @param {string} config.publish - Which Foundry view renders the toast: 'game' (the active tabletop, default), 'stream' (the chat-only /stream capture view), or 'both'. Anything else falls back to 'game'. Checked receipt-side against game.view, so it covers every delivery path.
      * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), 'pulse' (subtle infinite breathe, meant for persistent billboards), 'slam' (smashes in from oversized with a jolt on impact), or 'shake' (rattles in with a decaying wobble). Anything else, or no size, renders without animation.
+     * @param {string} config.channel - Free-form name grouping this toast with others of its kind, e.g. 'announcements'. Its only effect is on exclusion: a user listed in `toastExcludedUsers` still sees a toast whose channel appears in `toastBypassChannels`. Omit and the toast behaves exactly as before — excluded users never see it. Channel names belong to the SENDING module; Blacksmith only matches the string, so it never needs to know what a critical or a fumble is
      * @param {string} config.callToAction - Button-styled label (e.g. "Roll for the Crit Card") making it visually clear the toast wants a click. NOT a separate click event — it renders inside the existing single click target and the body onClick handles it. Shown only on 'small' | 'medium' | 'large' billboards AND only when onClick is a function (no action, no button; relayed toasts strip callbacks, so only receipt-side show() calls can carry one). Ignored otherwise.
      * @returns {string|null} - Toast ID for later removal, or null on error
      */
-    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, animation = null, callToAction = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game' } = {}) {
+    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, animation = null, callToAction = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game', channel = null } = {}) {
         try {
             if (!title) {
                 postConsoleAndNotification(MODULE.NAME, "Toast: show() requires a title", "", false, false);
                 return null;
+            }
+
+            // NAME DISCOVERY WITHOUT A REGISTRY. `toastBypassChannels` is a free string, so a GM
+            // has no way to learn which names are live — and the suppression log below fires on
+            // the EXCLUDED client, which is by construction the machine nobody is watching. This
+            // reports observed reality instead of a declared vocabulary: the first time a channel
+            // is seen on this client, name it. A GM turns on debug, plays for a minute, and has
+            // the list. Deliberately not a registry — modules still declare nothing, and a name
+            // appearing here is evidence it was sent, not permission to send it.
+            if (channel && !this._seenChannels.has(channel)) {
+                this._seenChannels.add(channel);
+                postConsoleAndNotification(MODULE.NAME, `Toast channel in use: '${channel}' (add it to toastBypassChannels to let excluded users see it)`, "", true, false);
             }
 
             // Publish surface: render only when this client's view is targeted.
@@ -115,8 +156,19 @@ class ToastManager {
             // passive account from interactive noise on /game, while a
             // stream-targeted toast is a deliberate publish to the capture
             // surface — often logged in through that same account.
-            if (currentView === 'game' && isToastExcludedUser()) {
-                postConsoleAndNotification(MODULE.NAME, `Toast suppressed for excluded user: ${game.user?.name}`, "", true, false);
+            //
+            // A toast on an allowed channel is the one exception: exclusion is
+            // about sparing a passive account the chatter, not about hiding the
+            // moments the table is there to see. Still receipt-side, so this
+            // changes what a client renders and never what was delivered.
+            if (currentView === 'game' && isToastExcludedUser() && !isToastBypassChannel(channel)) {
+                // Name the channel in the log. A bypass that does not fire is otherwise silent
+                // and looks identical to one that was never configured, and the likeliest cause
+                // is a mismatch between the name the sender chose and the name the GM typed.
+                const why = channel
+                    ? `channel '${channel}' is not in toastBypassChannels`
+                    : 'no channel declared';
+                postConsoleAndNotification(MODULE.NAME, `Toast suppressed for excluded user: ${game.user?.name} (${why})`, "", true, false);
                 return null;
             }
 
@@ -516,7 +568,16 @@ const ToastAPI = {
     show: ToastManager.show.bind(ToastManager),
     remove: ToastManager.remove.bind(ToastManager),
     clearByModule: ToastManager.clearByModule.bind(ToastManager),
-    getActive: ToastManager.getActive.bind(ToastManager)
+    getActive: ToastManager.getActive.bind(ToastManager),
+
+    // READ-ONLY INTROSPECTION, so a consumer can diagnose its own delivery without
+    // re-implementing ours. Both were internal at first, which left a module wanting to warn
+    // its GM ("you excluded this user and never allowed the channel we send") no option but to
+    // read `toastExcludedUsers` / `toastBypassChannels` itself and duplicate the comma/trim/
+    // lowercase parsing — coupling a sibling to two setting ids and to a parsing detail we
+    // might reasonably change. Asking is better than guessing, and neither answer is a secret.
+    isExcludedUser: isToastExcludedUser,
+    isBypassChannel: isToastBypassChannel
 };
 
 export { ToastManager, ToastAPI };

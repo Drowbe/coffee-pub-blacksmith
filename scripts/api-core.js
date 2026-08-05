@@ -74,37 +74,33 @@ export function isCurrentUserPartyLeader(moduleId = MODULE.ID) {
 }
 
 /**
- * Logged-in non-GM users who have OWNER on at least one token's actor in the current scene canvas.
- * Used for vote eligibility and similar "who is at the table" checks.
- * @returns {User[]}
+ * Whether a user owns at least one player character.
+ *
+ * The user-side counterpart to `isPlayerCharacter`, which asks the same question of an actor.
+ * Use it wherever a user needs standing at the table rather than merely a connection -- vote
+ * eligibility being the case it was written for.
+ *
+ * THE `character` TYPE TEST IS LOAD-BEARING. A dnd5e `group` actor is routinely owned by every
+ * player at the table, so ownership alone makes anyone with a group actor look like a party
+ * member; so does owning a summon, a familiar, or an animated weapon. Only a character sheet
+ * counts, which is the same line `isPlayerCharacter` draws.
+ *
+ * @param {User|null} user - The user to test
+ * @returns {boolean} True when the user has OWNER on at least one `character` actor
  */
-export function getUsersWithOwnedTokenOnCanvas() {
-    if (typeof canvas === 'undefined' || !canvas?.ready || !canvas.tokens?.placeables) {
-        return [];
-    }
+export function ownsAnyCharacter(user) {
+    if (!user) return false;
     const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
         ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
         : 3;
-    const seen = new Set();
-    const out = [];
-    for (const t of canvas.tokens.placeables) {
-        const actor = t.actor;
-        if (!actor) continue;
-        for (const u of game.users) {
-            if (!u?.active || u.isGM) continue;
-            try {
-                if (!actor.testUserPermission(u, OWNER)) continue;
-            } catch {
-                if (!actor.testUserPermission(u, 'OWNER')) continue;
-            }
-            if (!seen.has(u.id)) {
-                seen.add(u.id);
-                out.push(u);
-            }
+    return !!game.actors?.find((a) => {
+        if (a.type !== 'character') return false;
+        try {
+            return a.testUserPermission(user, OWNER);
+        } catch {
+            return a.testUserPermission(user, 'OWNER');
         }
-    }
-    out.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
-    return out;
+    });
 }
 
 // GLOBAL VARS

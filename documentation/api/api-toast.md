@@ -36,6 +36,27 @@ camera or stream login. The `/stream` view is exempt: a stream-targeted toast (s
 renders there even when the logged-in account is on the exclusion list — exclusion protects a
 passive account from tabletop noise, while publishing to the stream is deliberate.
 
+**Exclusion is not all-or-nothing.** A toast declaring a `channel` whose name appears in the
+Channels Excluded Users Still See world setting (`toastBypassChannels`, Notifications settings —
+also comma-separated and case-insensitive) renders for an excluded user too. So a camera account
+can be spared routine chatter while still showing the moments the table is there to see. A toast
+with no `channel` is never affected, and the check is still receipt-side, so this changes what a
+client renders and never what was delivered.
+
+Channel names belong to the **sending** module: Blacksmith matches the string and nothing more, so
+it never has to know what a critical or an injury is. Pick a name for a class of event and document
+it wherever your module documents its behaviour, so a GM knows what to allow through.
+
+Prefer a name per class of event the GM might plausibly want to separate, and one shared name where
+they would not. A GM may well want dice moments on camera and injuries off it, so those earn
+distinct channels; splitting four variants of the same table gag into four names only adds chances
+to mistype a distinction nobody draws.
+
+A channel typed into the setting that nothing sends does nothing, silently, and Blacksmith cannot
+tell a typo from another module's channel. Two things help: every channel name is logged the first
+time it is seen on a client (debug mode), which gives a GM the list actually in use; and a module
+can check delivery itself with the introspection helpers below.
+
 `show()` also renders only on the view its `publish` config targets: by default toasts appear on
 the active tabletop (`/game`) and never on Foundry's chat-only `/stream` capture view — on a
 non-targeted view `show()` renders nothing and returns `null`. See the `publish` config below to
@@ -100,6 +121,10 @@ target the stream view or both.
   OBS), or `'both'`. Anything else falls back to `'game'`. Checked receipt-side against
   `game.view`, so it holds across every delivery path; plain data, so it rides Blacksmith's
   cross-client relays unchanged.
+- `channel` (string, optional): free-form name grouping this toast with others of its kind, e.g.
+  `'announcements'`. Its only effect is on exclusion — a user listed in `toastExcludedUsers` still
+  sees a toast whose channel appears in `toastBypassChannels`. Omit it and the toast behaves as it
+  always has. Plain data, so it rides the cross-client relays unchanged.
 
 Title and subtitle are rendered as text, never parsed as HTML.
 
@@ -155,6 +180,20 @@ Remove all toasts owned by a module (e.g. on your module's cleanup). Silent. Ret
 Returns `Array<{ id, moduleId, stackKey, persistent, color, backgroundColor, size, animation,
 callToAction }>` for the toasts currently on screen — display metadata only, no elements or
 callbacks.
+
+## `isExcludedUser(user)` and `isBypassChannel(channel)`
+
+Read-only introspection, so a module can diagnose its own delivery rather than re-deriving it.
+`isExcludedUser(user)` (default: the current user) reports whether a user is listed in
+`toastExcludedUsers`; `isBypassChannel(channel)` reports whether a channel name is listed in
+`toastBypassChannels`. Both read world settings, so any client can call them.
+
+Use them to warn a GM that a module's announcements cannot arrive — a user excluded with none of
+the module's channels allowed. Ask rather than reading the settings directly: the setting ids and
+the comma/trim/case parsing are implementation, and these two answers are not.
+
+Blacksmith cannot tell you whether a name in `toastBypassChannels` is a typo or another module's
+channel, and neither can you. Report an unrecognised name as one or the other, not as an error.
 
 ## Stacking model
 

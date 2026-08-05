@@ -3,7 +3,7 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely, isCurrentUserPartyLeader, getUsersWithOwnedTokenOnCanvas } from './api-core.js';
+import { postConsoleAndNotification, playSound, getSettingSafely, isCurrentUserPartyLeader, ownsAnyCharacter } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { MenuBar } from './api-menubar.js';
 import { HookManager } from './manager-hooks.js';
@@ -31,10 +31,7 @@ export class VoteManager {
         Handlebars.registerHelper('getVoterList', function(vote) {
             if (!vote?.votes) return '';
 
-            const eligibleIds = Array.isArray(vote.eligibleUserIds) && vote.eligibleUserIds.length
-                ? vote.eligibleUserIds
-                : getUsersWithOwnedTokenOnCanvas().map((u) => u.id);
-            const allPlayers = eligibleIds
+            const allPlayers = [...VoteManager._getEligibleIds(vote)]
                 .map((id) => game.users.get(id))
                 .filter((u) => u && u.active && !u.isGM);
 
@@ -215,11 +212,9 @@ export class VoteManager {
             return;
         }
 
-        // Eligibility: logged-in (active) non-GM players. No canvas-token requirement —
-        // a player's identity for a vote is their assigned character, not a placed token.
-        const eligibleVoters = game.users.filter((u) => u.active && !u.isGM);
+        const eligibleVoters = VoteManager._getEligibleVoters();
         if (!eligibleVoters.length) {
-            ui.notifications.warn('No eligible voters: players must be logged in.');
+            ui.notifications.warn('No eligible voters: players must be logged in and own a character.');
             return;
         }
 
@@ -398,7 +393,10 @@ export class VoteManager {
             },
             players: {
                 label: "Current Players",
-                available: game.users.filter(u => u.active).length > 0,
+                // Same set the option list is built from, or the entry offers itself and then
+                // yields nothing -- `game.users.filter(u => u.active)` counts the GM and any
+                // characterless account, neither of which appears as an option.
+                available: VoteManager._getEligibleVoters().length > 0,
                 unavailableMessage: "No Players Online"
             },
             combat: {
@@ -450,7 +448,7 @@ export class VoteManager {
                     }));
 
             case 'players':
-                return getUsersWithOwnedTokenOnCanvas().map((u) => ({
+                return VoteManager._getEligibleVoters().map((u) => ({
                     id: u.id,
                     name: u.name,
                     img: u.avatar
@@ -472,14 +470,47 @@ export class VoteManager {
     }
 
     /**
+     * Who may vote: a logged-in non-GM player who owns at least one character.
+     *
+     * ALL THREE CONDITIONS ARE REQUIRED. Being connected is not standing -- a camera or stream
+     * account is logged in and owns nothing, and counting it means a vote can never reach
+     * unanimity because a spectator never votes. Ownership alone is not standing either: a dnd5e
+     * `group` actor is routinely shared with the whole table, so testing ownership without the
+     * character-type check lets anyone holding the group actor vote.
+     *
+     * @returns {User[]} Eligible users, sorted by name
+     */
+    static _getEligibleVoters() {
+        return game.users
+            .filter((u) => u?.active && !u.isGM && ownsAnyCharacter(u))
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+    }
+
+    /**
+     * The eligible set for a vote in progress.
+     *
+     * A vote SNAPSHOTS its eligible users at the moment it starts (`eligibleUserIds`), so that a
+     * player logging in or out midway cannot change what unanimity means. The recompute is only
+     * a fallback for a vote already in flight when the client updated; it deliberately applies
+     * today's rule rather than the canvas-token rule this used to fall back to, which contradicted
+     * the eligibility actually being enforced and told rejected players to go place a token.
+     *
+     * @param {Object} [vote] - Defaults to the active vote
+     * @returns {Set<string>} Eligible user ids
+     */
+    static _getEligibleIds(vote = this.activeVote) {
+        const ids = vote?.eligibleUserIds;
+        return new Set(
+            Array.isArray(ids) && ids.length ? ids : VoteManager._getEligibleVoters().map((u) => u.id)
+        );
+    }
+
+    /**
      * Check if all eligible players have voted
      * @returns {boolean} True if all eligible players have voted
      */
     static _haveAllPlayersVoted() {
-        const ids = this.activeVote?.eligibleUserIds;
-        const eligibleIds = new Set(
-            Array.isArray(ids) && ids.length ? ids : getUsersWithOwnedTokenOnCanvas().map((u) => u.id)
-        );
+        const eligibleIds = this._getEligibleIds();
         const totalVoters = eligibleIds.size;
         const actualVotes = Object.keys(this.activeVote.votes).filter((id) => eligibleIds.has(id)).length;
 
@@ -504,14 +535,10 @@ export class VoteManager {
             return;
         }
 
-        const eligibleIds = new Set(
-            Array.isArray(this.activeVote.eligibleUserIds) && this.activeVote.eligibleUserIds.length
-                ? this.activeVote.eligibleUserIds
-                : getUsersWithOwnedTokenOnCanvas().map((u) => u.id)
-        );
+        const eligibleIds = this._getEligibleIds();
         if (!eligibleIds.has(voterId)) {
             ui.notifications.warn(
-                'You are not eligible to vote. Use a logged-in player with an owned token on the current scene.'
+                'You are not eligible to vote. Voting is open to logged-in players who own a character.'
             );
             return;
         }
@@ -755,10 +782,7 @@ export class VoteManager {
      * @returns {Object} Object containing current and total voter counts
      */
     static _getVotingProgress() {
-        const ids = this.activeVote?.eligibleUserIds;
-        const eligibleIds = new Set(
-            Array.isArray(ids) && ids.length ? ids : getUsersWithOwnedTokenOnCanvas().map((u) => u.id)
-        );
+        const eligibleIds = this._getEligibleIds();
         const nonGMVotes = Object.entries(this.activeVote.votes || {}).filter(([userId]) =>
             eligibleIds.has(userId)
         ).length;

@@ -258,6 +258,36 @@ Uses today: `openRequestRollDialog`, `api.compendiums` (awareness / quick encoun
 
 ---
 
+## One participation list across the suite (raised 2026-08-05)
+
+**The same "this account is not a person" answer is configured in at least two modules, and would
+soon be three.** A camera, stream, or bot account should get no toasts, should not count toward a
+vote, and should not see the menubar — one fact, four behaviours, currently no shared home.
+
+The history is the argument. `excludedUsersMenubar` began as a Blacksmith world setting and **now
+lives in Herald** (`api-menubar.js:2918`). `toastExcludedUsers` is still in Blacksmith. Bibliosoph's
+roll announcements are the next candidate. Each move was locally reasonable and the aggregate is a
+GM answering the same question once per module, where forgetting one defeats the point.
+
+**Blacksmith should own the fact; each module keeps its own behaviour.** The API design, the naming
+question, and the migration of `toastExcludedUsers` are tracked in Blacksmith's `TODO.md` under
+"One participation list". What is cross-module, and belongs here:
+
+- **Herald** — decide whether its per-user menubar hiding goes back to consulting the shared list
+  rather than keeping its own. If it stays independent, say why in Herald's docs, because the next
+  person will otherwise read it as an oversight.
+- **Bibliosoph** — should not add a fourth list. Its roll toasts already reach every client and are
+  suppressed receipt-side by Blacksmith; the only thing it adds is a `channel` (see Blacksmith
+  `CHANGELOG.md`, toast channels), which is the *event* axis and not the *user* axis.
+- **Any sibling tempted to add "excluded users"** — consult the shared predicate instead. A second
+  list is how this became a suite problem rather than a module one.
+
+Sequencing: Blacksmith's predicate has to exist before any sibling can adopt it, so nothing here
+starts until that lands. Do not migrate Herald and Blacksmith in the same release — a GM's existing
+configuration should survive one change at a time.
+
+---
+
 ## Secondary bar sizing — sibling adoption (Blacksmith side shipped, 2026-08-01)
 
 Every module's secondary bar was a different height, and the cause was on Blacksmith's side: the house

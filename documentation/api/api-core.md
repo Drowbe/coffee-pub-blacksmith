@@ -144,6 +144,7 @@ Also available as the `BlacksmithUtils` global once Blacksmith is ready.
 | `rollCoffeePubDice` | `(roll)` | Async |
 | `resetModuleSettings` | `(moduleId)` | |
 | `isPlayerCharacter` | `(entity)` | Requires **both** a `character` sheet type and player ownership, so summons and player-owned NPCs are `false`. Accepts a combatant, token, token document, actor, id, or name |
+| `ownsAnyCharacter` | `(user)` | The user-side counterpart: does this user have OWNER on at least one `character` actor? Owning only a `group` actor, a summon, or a familiar is `false` |
 | `resolveActorFrom` | `(entity)` | Resolves any of those shapes to an `Actor`, or `null` |
 
 ```javascript
