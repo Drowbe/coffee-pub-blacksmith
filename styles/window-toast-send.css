@@ -53,6 +53,18 @@
     cursor: default;
 }
 
+/*
+  Excluded accounts read as secondary but NOT as unavailable, which is why this is a lighter
+  touch than .offline above. An offline user cannot be sent to at all; an excluded one can,
+  deliberately, and ticking the box is how a GM reaches a camera account on purpose. Dimming
+  it to 0.45 would say "you cannot have this" about the one row whose whole point is that you
+  can. The "Excluded" badge carries the meaning; this only keeps it from reading as an
+  ordinary recipient.
+*/
+.blacksmith-toast-send-recipient.excluded {
+    opacity: 0.8;
+}
+
 /* "Entire Party" master row sits above the individual grid */
 .blacksmith-toast-send-party {
     font-weight: bold;
