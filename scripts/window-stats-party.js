@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, isPartyMember } from './api-core.js';
 import { StatsAPI } from './api-stats.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
@@ -249,7 +249,7 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
         try {
             const history = StatsAPI.combat.getCombatHistory() || [];
 
-            const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
+            const actors = game.actors.filter(actor => isPartyMember(actor) && !actor.isToken);
             const playerStats = [];
 
             for (const actor of actors) {
@@ -523,7 +523,7 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
 
                 if (!actor && importedPlayer.actorName) {
                     actor = game.actors.find(a =>
-                        a.hasPlayerOwner &&
+                        isPartyMember(a) &&
                         !a.isToken &&
                         a.name === importedPlayer.actorName
                     );

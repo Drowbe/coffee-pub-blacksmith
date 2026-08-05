@@ -303,6 +303,14 @@ export function buildAttackEventFromWorkflow(workflow) {
         };
     });
     
+    // The save outcome as midi reports it. Reported RAW rather than interpreted: deciding what
+    // "landed" means from it needs the activity, and reading the activity needs the shared resolver
+    // in `utility-message-resolution.js` -- which imports this file, so importing it back would
+    // close the cycle this module's header exists to prevent. `resolveLandedTargets` there does the
+    // interpreting; this just carries what midi knows.
+    const failedSaves = Array.from(workflow.failedSaves ?? []).map(toUuid).filter(Boolean);
+    const savedTargets = Array.from(workflow.saves ?? []).map(toUuid).filter(Boolean);
+
     return {
         type: 'attack',
         key,
@@ -317,7 +325,11 @@ export function buildAttackEventFromWorkflow(workflow) {
         attackTotal,
         itemType,
         attackMsgId: workflow.itemCardId ?? null,
-        workflowId
+        workflowId,
+        // Save outcomes as midi reports them, for `resolveLandedTargets` to interpret. Empty on a
+        // pure attack. See `documentation/plans/plan-save-delivery.md`.
+        failedSaves,
+        savedTargets
     };
 }
 

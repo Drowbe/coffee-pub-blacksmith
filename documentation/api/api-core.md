@@ -143,7 +143,10 @@ Also available as the `BlacksmithUtils` global once Blacksmith is ready.
 | `clamp` | `(value, min, max)` | |
 | `rollCoffeePubDice` | `(roll)` | Async |
 | `resetModuleSettings` | `(moduleId)` | |
-| `isPlayerCharacter` | `(entity)` | |
+| `isPlayerCharacter` | `(entity)` | A player-owned `character` sheet. A companion on an NPC sheet is `false`. Accepts a combatant, token, token document, actor, id, or name |
+| `isPartyMember` | `(entity)` | Belongs in the party's statistics: player-owned and persistent. Excludes summons, `group` actors, and anything flagged `excludeFromStats`; admits companions on NPC sheets |
+| `isSummonedCreature` | `(entity)` | Created by a summoning activity, per `flags.dnd5e.summon` |
+| `resolveActorFrom` | `(entity)` | Resolves any of those shapes to an `Actor`, or `null` |
 
 ```javascript
 const utils = game.modules.get('coffee-pub-blacksmith')?.api?.utils;

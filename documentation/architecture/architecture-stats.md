@@ -194,6 +194,36 @@ The `20` that appears around this data is **not** a storage bound: `getCombatHis
 
 **Actor flag `playerStats`** — lifetime totals, written only by `stats-player.js`.
 
+**Because the history is unbounded and syncs to every client, every field in a summary must be small.** A summary entry stores ids and scalars; it never stores a document. `_generateCombatSummary` (`stats-combat.js:907`) resolves `sceneId` with `combat.scene?.id ?? combat.sceneId ?? canvas?.scene?.id ?? null`, and the `?.id` is the load-bearing part — **`combat.scene` is a resolved Scene document, not an id**. Assigning it directly serializes every token, wall, tile, light and sound of the map into a world setting that is loaded on every launch and rewritten at the end of every fight. Ten combats reached 21.1 MB that way, against roughly 40 KB of statistics. `sceneName` is stored alongside and is the only part of the scene any readout displays.
+
+## Who counts as a party member
+
+One predicate, `isPartyMember` in `api-core.js`, and every lane delegates to it — `CombatStats._isPartyMember`, `CPBPlayerStats._isPartyMember`, `CombatMvp._calculateMVPScore`, `PartyStats.getPartyActors`, and the party window.
+
+**The distinction is permanence, not sheet type, and getting it wrong in either direction is easy.** A party is the characters plus whatever persistent creatures the players run — a companion, a familiar, a sidekick on an NPC sheet. Those earn a record. What does not is the transient: a creature conjured for a minute of combat, or a spell effect given a stat block.
+
+Testing player ownership alone fails one way. A summoned creature is handed to its summoner's player so they can drive it, so it reports `hasPlayerOwner === true` for as long as it exists; one casting of Conjure Animals then puts six identically-named rows in the party window, each with its own lifetime record and its own place in the MVP ranking.
+
+Testing `type === 'character'` fails the other way, discarding companions that have been played all campaign. Both failures were live in this repo at once: the loose test admitted six summons and a Spiritual Weapon, and the obvious correction would have silently dropped two long-running player-owned NPCs.
+
+**The separator is `flags.dnd5e.summon`**, which dnd5e stamps on the actor it creates (`SummonsData#getChanges` in the system bundle) — `{level, mod, origin, activity, profile}`. It is the only reliable mark of transience, since a summon is otherwise an ordinary player-owned NPC actor. `isSummonedCreature` reads it. A summon created by some other route carries no flag and so counts as party; `utilities/repair-stats-data.js` reports the verdict it reached for every player-owned non-character actor so that case is visible rather than silent.
+
+**`group` actors are excluded outright.** A dnd5e group is a container for a party, not a combatant, though nothing stops one being placed on the canvas and joining a fight — `architecture-encounter.md` records the same hazard for type tests in the tracker.
+
+**The actor flag `excludeFromStats` overrides everything, because some cases are not decidable from the data.** A magic weapon given its own stat block and handed to a player is player-owned, persistent, and on an NPC sheet — which is exactly what a familiar is. One belongs in the statistics and one is a sword, and nothing in the actor distinguishes them; only the GM knows. The same world that showed why `type === 'character'` was too narrow contained both at once: a pet and an animated weapon, identical to every predicate. Set the flag to exclude:
+
+```javascript
+await actor.setFlag('coffee-pub-blacksmith', 'excludeFromStats', true);
+```
+
+An excluded actor becomes a stray to `utilities/repair-stats-data.js`, so re-running it clears the record the actor had already accrued.
+
+Two consequences follow from summons not being party: killing a creature summoned by an enemy counts as a kill, and a summon scoring a kill credits nobody. Damage a summon deals is not attributed to its summoner.
+
+`isPlayerCharacter` still exists alongside it, meaning the narrow thing its name says — a player-owned `character` sheet — for callers that depend on character mechanics such as death saves. `getPartyMembers` in `utility-party.js` uses that one, since deploying the party to the canvas is about characters.
+
+Where a check also needs to exclude the synthetic actors of unlinked tokens, `!actor.isToken` is written beside the predicate rather than folded into it — lifetime statistics live on world actors, which is a separate concern from party membership.
+
 ## Data flow
 
 ```

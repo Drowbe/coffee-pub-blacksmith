@@ -1,6 +1,6 @@
 # Plan: delivery as a first-class dimension of offense
 
-**Status: Planned.** Nothing implemented. Written 2026-08-04.
+**Status: Implemented (phase 1).** Phases 2-4 not started. Written 2026-08-04.
 
 This plan is scaffolding. When it is implemented, its content is distributed — behaviour to
 `architecture-stats.md`, any public surface to `api-stats.md`, history to `CHANGELOG.md`, remaining
@@ -76,20 +76,53 @@ which is the same rule stated correctly rather than a new rule.
 
 ## Detection
 
-**Delivery is decided from the activity, not from the item.** A spell may have an attack (Fire
-Bolt), a save (Fireball), or neither (Magic Missile), and item type says nothing about which. The
-signal is `activity.attack` / `activity.hasSave` on the workflow, which is what midi itself branches
-on above.
+**THIS IS NOT A midi FEATURE.** midi is not a dependency — `module.json` requires only socketlib and
+lib-wrapper — so anything that works only with midi installed is a feature half the tables do not
+have. The first draft of this plan got that wrong and scoped phase 1 to midi with core dnd5e as a
+degraded fallback. Corrected 2026-08-04.
 
-**midi is the supported path.** `workflow.failedSaves`, `workflow.saves`, and the save DC are all
-present on the workflow at `hitsChecked` time.
+The correction turns on separating two questions that had been treated as one:
 
-**Core dnd5e without midi is out of scope for phase 1**, and deliberately so. Save results arrive as
-separate chat messages with no reliable correlation back to the damage — the same problem that made
-the attack correlation cache necessary, and harder, because a save message identifies a target and
-a DC but not the effect that forced it. A non-midi table gets `delivery: 'unknown'` and the current
-behaviour, which is honest, rather than a guess that silently corrupts the same statistic this plan
-exists to fix. Say so in the architecture doc.
+| Question | Where the answer lives | Without midi |
+|---|---|---|
+| How was this delivered? | the **dnd5e activity** | fully available |
+| Which targets did it land on? | attack roll, or **save outcomes** | attack: yes. save: not known |
+
+**Delivery is a dnd5e question and is answered in system-native code.** `resolveDelivery(activity)`
+lives in `utility-message-resolution.js`, reads a dnd5e activity, and is called by both lanes — the
+midi lane hands it `workflow.activity`, the chat lane hands it `flags.dnd5e.activity` off the chat
+card. It prefers the structural `attack` / `hasSave` fields when given a live Activity and falls
+back to `activity.type`, which is what survives onto a message. Putting this in the midi utility
+would have made delivery a midi feature by accident.
+
+**Decided from the activity, never the item.** A spell may have an attack (Fire Bolt), a save
+(Fireball), or neither (Magic Missile); `item.type === 'spell'` distinguishes none of them.
+
+**Only the save OUTCOME needs midi**, and where it is unavailable the answer is null, never zero.
+`resolveLandedTargets` returns `null` for a save delivery with no known save results. "We do not
+know" and "nothing landed" are different claims, and conflating them would silently zero a caster's
+contribution on a non-midi table — the exact dishonesty this plan exists to remove. A consumer must
+treat null as unknown; phase 2 has to state what it does with it.
+
+**Import direction matters here.** `utility-message-resolution.js` imports `getWorkflowId` from
+`utility-midi-resolution.js`, and the midi module's header promises it imports nothing back. So the
+shared logic lives in the message module, and the midi module reports raw workflow data
+(`failedSaves`, `savedTargets`) for the shared code to interpret. An earlier attempt put
+`resolveDelivery` in the midi module and imported it the other way, which closed that cycle.
+
+## Phase 2 is blocked, and the blocker is bigger than this plan
+
+A 2026-08-04 audit found the statistics system is midi-first in several load-bearing places, listed
+in `TODO.md`. The relevant one: `successfulOffenseCount` — the MVP's largest scoring term — is
+written **only** by midi handlers, so on a non-midi table it is zero for everyone and the offense
+component of every MVP score vanishes.
+
+Phase 2 recounts hits from `landedTargets`, and phase 4 gates that same counter on a landed
+delivery. Both change midi tables' numbers while non-midi tables keep current behaviour, which
+**widens** the split. Doing this plan first would make the system more midi-dependent, not less.
+
+Land the core-lane parity items first. Then phase 2 is a correction applied to one shared path
+rather than to the midi one.
 
 ## Phases
 
@@ -124,9 +157,50 @@ non-empty, which for a save spell is unconditional. It should increment on a lan
 - It does not add a `delivery` dimension to healing. Healing has no landed-ness question.
 - It does not touch the non-midi path beyond labelling it `unknown`.
 
-## Open question to settle before phase 3
+## Settled: "saves forced" counts CASTINGS, not targets
 
-Whether "saves forced" should count targets or castings. Five goblins in a Fireball is one casting
-and five saves; a hit-rate-shaped statistic wants the target count, while "how often did your spells
-matter" wants the casting count. Decide before building the readout, because the two produce
-different numbers from the same fight and there is no converting one into the other afterwards.
+Decided 2026-08-04. The statistic being built is **"how often did your spells matter"**, so one
+Fireball on five goblins is **one** forced save, and it mattered if *any* target failed.
+
+This is not the hit-rate shape and should not be made to look like one. Counting targets would make
+a caster's number scale with how many enemies happened to be standing together, which measures the
+encounter's geometry rather than the caster. A wizard who catches six goblins in a corridor is not
+six times as effective as one who catches a single boss.
+
+The consequence for phase 3: the denominator is castings of save activities, the numerator is
+castings where at least one target failed, and a per-target breakdown belongs in the tooltip if
+anywhere. Do not aggregate the two into one figure.
+
+## The core lane has its own version of this gap, and it is not midi's fault
+
+`stats-sources.js` defers any attack card whose `attackTotal` is not a number, waiting for the roll
+to arrive on a later update. A save or auto activity has no attack roll and never will, so the card
+is deferred **forever**: it is never cached, and its damage takes the `unlinked` path.
+
+That happens on every table. A midi table only escapes it when the workflow lane caches the event
+first — which is precisely the kind of "works differently depending on what you installed" split
+this plan exists to end. Phase 2 must fix the core lane, not merely read a different set in the midi
+one.
+
+Phase 1 does not change the gate, because caching those deliveries moves their damage out of
+`unlinked` and changes recorded numbers. It only labels the deferral: the log now distinguishes
+"no roll yet" from "no roll is coming", with `awaitingRoll: false` marking the cards that will never
+resolve through this lane.
+
+## Open question still to settle before phase 2
+
+Whether `hitsChecked` fires at all for a save-only activity, which decides what phase 2 is fixing:
+
+- **If it fires**, an attack event is cached with `hitTargets` = every target, hits and misses are
+  recorded from it, and save spells inflate hit rate toward 100%. Phase 2 corrects the counts.
+- **If it does not fire**, no attack event is cached, save damage takes the `unlinked` path -- totals
+  only, no moments, no contribution to hit rate. Phase 2 is then about *linking* that damage at all,
+  which is a larger change than recounting it.
+
+Static reading of midi's bundle supports both: one `WorkflowState_WaitForAttackRoll` returns
+`WaitForSaves` directly for a no-attack activity, skipping the `AttackRollComplete` state where
+`hitsChecked` is called, while another branch sets `hitTargets` and continues. There are several
+Workflow subclasses and the bundle is 1.7 MB; this is not settleable by reading.
+
+**Phase 1's log settles it empirically.** Cast a save spell in a live combat with debug on and read
+`hadCachedAttack` in the `MIDI postCheckSaves` line: `true` means the first case, `false` the second.

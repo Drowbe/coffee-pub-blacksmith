@@ -1,5 +1,6 @@
 // Import required modules
 import { MODULE } from './const.js';
+import { isPlayerCharacter } from './api-core.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { CombatStats } from './stats-combat.js';
 import { PartyStats } from './stats-party.js';
@@ -221,12 +222,23 @@ export class StatsAPI {
         },
 
         /**
-         * Check if an actor is a player character
-         * @param {Object|string} input - Actor object, ID, or name
-         * @returns {boolean} True if actor is a player character
+         * Check if an actor is a player-owned character sheet.
+         * Narrower than `isPartyMember`: a companion or familiar on an NPC sheet is false here.
+         * @param {Object|string} input - Combatant, token, actor, ID, or name
+         * @returns {boolean} True if the actor is a player character
          */
         isPlayerCharacter: (input) => {
-            return CombatStats._isPlayerCharacter(input);
+            return isPlayerCharacter(input);
+        },
+
+        /**
+         * Check whether an actor belongs in the party's statistics -- the characters plus any
+         * persistent player-owned creatures. Summoned creatures and group actors are excluded.
+         * @param {Object|string} input - Combatant, token, actor, ID, or name
+         * @returns {boolean} True if the actor's deeds belong in the party's statistics
+         */
+        isPartyMember: (input) => {
+            return CombatStats._isPartyMember(input);
         }
     };
 } 

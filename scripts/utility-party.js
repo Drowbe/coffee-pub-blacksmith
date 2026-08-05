@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, isPlayerCharacter } from './api-core.js';
 import { deployTokens, deployTokensSequential } from './api-tokens.js';
 import { ToastAPI } from './api-toast.js';
 
@@ -16,9 +16,7 @@ import { ToastAPI } from './api-toast.js';
  * @returns {Array} Array of actor documents
  */
 export function getPartyMembers() {
-    return game.actors.filter(actor => {
-        return actor.type === 'character' && actor.hasPlayerOwner;
-    });
+    return game.actors.filter(actor => isPlayerCharacter(actor));
 }
 
 /**

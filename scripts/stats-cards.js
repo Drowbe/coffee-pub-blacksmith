@@ -67,7 +67,7 @@ export class CombatCards {
         if (combatToUse?.turns) {
             for (const turn of combatToUse.turns) {
                 // Skip if no actor or not a player character
-                if (!turn?.actor || !CombatStats._isPlayerCharacter(turn.actor)) continue;
+                if (!turn?.actor || !CombatStats._isPartyMember(turn.actor)) continue;
                 
                 const actorId = turn.actor.id;
                 const actorUuid = turn.actor.uuid;
@@ -433,7 +433,7 @@ export class CombatCards {
         const eligibleParticipants = (combatSummary.participants || [])
             .filter(participant => {
                 const actor = game.actors.get(participant.actorId);
-                return actor && CombatStats._isPlayerCharacter(actor);
+                return actor && CombatStats._isPartyMember(actor);
             });
 
         // Ensure summary totals always have numeric defaults so templates never render blanks.

@@ -7,7 +7,7 @@
 
 // Import MODULE variables
 import { MODULE } from './const.js';
-import { getPortraitImage, isPlayerCharacter, postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { getPortraitImage, isPartyMember, postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { PlanningTimer } from './timer-planning.js';
 import { CombatTimer } from './timer-combat.js';
 import { HookManager } from './manager-hooks.js';
@@ -348,7 +348,7 @@ class CombatStats {
     static _isKillEligibleTarget(actor) {
         // Count kills only for non-player actors (monsters/NPCs/etc.); exclude player characters.
         if (!actor) return false;
-        return !(actor.hasPlayerOwner || actor.type === 'character');
+        return !this._isPartyMember(actor);
     }
 
     static _creditKill({ attackerId, targetActor, weaponName = null } = {}) {
@@ -358,7 +358,7 @@ class CombatStats {
         if (!attackerActor) return;
 
         // Only party kills are counted in party totals (PC attackers only).
-        const isPartyKill = this._isPlayerCharacter(attackerActor);
+        const isPartyKill = this._isPartyMember(attackerActor);
 
         const { current: attackerRound, combat: attackerCombat } = this._ensureParticipantStats(attackerActor, {
             includeCurrent: true,
@@ -696,7 +696,7 @@ class CombatStats {
         }
 
         // Only include player character turns in the average
-        if (previousCombatant && this._isPlayerCharacter(previousCombatant)) {
+        if (previousCombatant && this._isPartyMember(previousCombatant)) {
             // Initialize turnTimes as an object if it's still an array
             if (Array.isArray(this.currentStats.partyStats.turnTimes)) {
                 this.currentStats.partyStats.turnTimes = {};
@@ -743,7 +743,7 @@ class CombatStats {
         // Note: participants include PCs + NPCs, but "totals" for the summary card are PARTY-ONLY.
         const participantSummaries = Object.entries(source.participantStats || {}).map(([actorId, stats]) => {
             const actorDoc = game.actors.get(actorId) ?? null;
-            const isPlayer = actorDoc ? this._isPlayerCharacter(actorDoc) : false;
+            const isPlayer = actorDoc ? this._isPartyMember(actorDoc) : false;
             const attackStats = stats.combat?.attacks || {
                 hits: 0,
                 misses: 0,
@@ -906,8 +906,15 @@ class CombatStats {
      */
     static _generateCombatSummary(combat) {
         const combatDuration = Date.now() - this.combatStats.startTime;
-        // Try multiple ways to get the scene
-        const sceneId = combat.sceneId || combat.scene || (canvas?.scene?.id);
+
+        // AN ID, NEVER THE SCENE ITSELF. `combat.scene` is a resolved Scene *document*, not an
+        // id -- storing it verbatim serialized every token, wall, tile, light and sound of the
+        // map into the combat history, which is a world setting that is loaded on every launch
+        // and rewritten at the end of every fight. Ten combats had grown it past 21 MB, against
+        // roughly 40 KB of actual statistics, and each entry was a stale snapshot of a map that
+        // had since been edited. Resolve to a plain string here and let `sceneName` carry the
+        // only part of the scene the summary ever displays.
+        const sceneId = combat.scene?.id ?? combat.sceneId ?? canvas?.scene?.id ?? null;
         const scene = sceneId ? game.scenes.get(sceneId) : null;
         const sceneName = scene?.name || canvas?.scene?.name || 'Unknown Scene';
 
@@ -925,7 +932,7 @@ class CombatStats {
             durationSeconds: Math.round(combatDuration / 1000),
             totalRounds: combat.round || 0,  // Total number of rounds fought
             sceneName,
-            sceneId: combat.scene || null,
+            sceneId,
 
             totals: aggregate.totals,
             participants: aggregate.participants,
@@ -1210,7 +1217,7 @@ class CombatStats {
             const isExpired = timeUsed === totalAllowedTime;
             
             // Update turn times for player characters
-            if (this._isPlayerCharacter(combatant)) {
+            if (this._isPartyMember(combatant)) {
                 // Ensure partyStats is initialized
                 if (!this.currentStats.partyStats) {
                     this.currentStats.partyStats = foundry.utils.deepClone(this.DEFAULTS.roundStats.partyStats);
@@ -1479,25 +1486,14 @@ class CombatStats {
         return isHeal ? `${amount} HP` : `${amount}`;
     }
 
-    // Helper method to check if an actor is a player character
-    static _isPlayerCharacter(input) {
-        // If input is a string (name), use the existing check
-        if (typeof input === 'string') {
-            return isPlayerCharacter(input);
-        }
-        
-        // If input is a combatant object
-        if (input?.actor) {
-            return input.actor.hasPlayerOwner || input.actor.type === 'character';
-        }
-        
-        // If input is an actor object
-        if (input?.hasPlayerOwner !== undefined) {
-            return input.hasPlayerOwner || input.type === 'character';
-        }
-
-        postConsoleAndNotification(MODULE.NAME, 'Timer Debug - Invalid input for _isPlayerCharacter', input, false, false);
-        return false;
+    // Helper method to check whether an actor belongs in the party's statistics.
+    //
+    // This used to hand-roll the check for combatants and actors, testing ownership OR
+    // actor type -- which counted player-owned summons as party members. `isPartyMember`
+    // resolves every input shape itself, so this is now a pass-through and the shape
+    // handling lives in exactly one place.
+    static _isPartyMember(input) {
+        return isPartyMember(input);
     }
 
     // -------------------------------------------------------------------------
@@ -1637,7 +1633,7 @@ class CombatStats {
         }
 
         // Update party stats if player character
-        if (this._isPlayerCharacter(attackerActor)) {
+        if (this._isPartyMember(attackerActor)) {
             this.currentStats.partyStats.hits += totalHits;
             this.currentStats.partyStats.misses += totalMisses;
         }
@@ -1834,7 +1830,7 @@ class CombatStats {
         // The adapter owns that correlation; we only know the answer.
         CombatSources.noteAttackCritical(crit);
 
-        if (this._isPlayerCharacter(actor)) {
+        if (this._isPartyMember(actor)) {
             if (isHit) this.currentStats.partyStats.hits++;
             else this.currentStats.partyStats.misses++;
         }
@@ -1970,7 +1966,7 @@ class CombatStats {
                 });
             }
 
-            if (this._isPlayerCharacter(actor)) {
+            if (this._isPartyMember(actor)) {
                 this.currentStats.partyStats.healingDone += amount;
             }
 
@@ -2070,7 +2066,7 @@ class CombatStats {
             }
         }
 
-        if (this._isPlayerCharacter(actor)) {
+        if (this._isPartyMember(actor)) {
             this.currentStats.partyStats.damageDealt += amount;
         }
         
@@ -2248,7 +2244,7 @@ class CombatStats {
 
         // MIDI workflow hooks (authoritative lane)
         if (game.modules.get("midi-qol")?.active) {
-            const midiHitsCheckedHookId = HookManager.registerHook({
+            HookManager.registerHook({
                 name: 'midi-qol.hitsChecked',
                 description: 'Combat Stats: Track hit/miss outcomes using MIDI workflow (authoritative)',
                 context: 'stats-combat-midi-hitschecked',
@@ -2264,7 +2260,24 @@ class CombatStats {
                 }
             });
 
-            const midiPreTargetDamageHookId = HookManager.registerHook({
+            // Delivery model phase 1. Records nothing; see `plan-save-delivery.md`.
+            HookManager.registerHook({
+                name: 'midi-qol.postCheckSaves',
+                description: 'Combat Stats: Finalise a save delivery\'s landed targets (phase 1, records nothing)',
+                context: 'stats-combat-midi-postchecksaves',
+                priority: 3,
+                callback: async (workflow) => {
+                    // --- BEGIN - HOOKMANAGER CALLBACK ---
+                    try {
+                        await CombatSources._onMidiPostCheckSaves(workflow);
+                    } catch (e) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI postCheckSaves error', e, false, false);
+                    }
+                    // --- END - HOOKMANAGER CALLBACK ---
+                }
+            });
+
+            HookManager.registerHook({
                 name: 'midi-qol.preTargetDamageApplication',
                 description: 'Combat Stats: Track per-target damage/healing using MIDI workflow (authoritative)',
                 context: 'stats-combat-midi-pretargdmg',
@@ -2540,7 +2553,7 @@ class CombatStats {
         const playerStats = Object.entries(this.currentStats.participantStats || {})
             .filter(([id, stats]) => {
                 const actor = game.actors.get(id);
-                return actor && (actor.hasPlayerOwner || actor.type === 'character');
+                return this._isPartyMember(actor);
             })
             .map(([id, stats]) => ({
                 ...stats,

@@ -75,6 +75,90 @@ export function getKeyParts(message) {
 }
 
 /**
+ * How damage from an activity reaches a target: `attack`, `save`, `auto`, or `unknown`.
+ *
+ * THIS IS A dnd5e QUESTION, NOT A midi ONE, and it is answered here for that reason. midi is not a
+ * dependency -- `module.json` requires only socketlib and lib-wrapper -- so anything that only works
+ * with midi installed is a feature half the tables do not have. Activities are a system concept and
+ * `flags.dnd5e.activity` rides on the chat message, so both lanes can ask this: the midi lane hands
+ * over `workflow.activity`, the chat lane hands over the message's activity flag.
+ *
+ * DECIDED FROM THE ACTIVITY, NEVER FROM THE ITEM. A spell may carry an attack roll (Fire Bolt), a
+ * saving throw (Fireball), or neither (Magic Missile), and `item.type === 'spell'` distinguishes
+ * none of them.
+ *
+ * The activity TYPE is the primary signal because it is the one that survives serialisation onto a
+ * chat message. A live Activity document also exposes `attack` and `hasSave`, which are richer --
+ * they catch an attack activity that also forces a save -- so they are consulted first when
+ * present. `attack` wins over `save` there: an attack that misses deals nothing at all, so the
+ * attack roll decides whether damage lands, while a save only decides how much of it applies.
+ *
+ * @param {Object} activity - a dnd5e Activity, or the `flags.dnd5e.activity` summary from a message
+ * @returns {'attack'|'save'|'auto'|'unknown'} how the damage is delivered
+ */
+export function resolveDelivery(activity) {
+    if (!activity) return 'unknown';
+
+    // Structural signals, available on a live Activity document.
+    if (activity.attack || activity.hasAttack) return 'attack';
+    if (activity.hasSave) return 'save';
+
+    // Type, which is what a chat message carries.
+    switch (String(activity.type ?? '').toLowerCase()) {
+        case 'attack': return 'attack';
+        case 'save': return 'save';
+        // Damage with neither an attack roll nor a save: Magic Missile, ongoing damage, auto-applied
+        // effects. These land by definition, which is a real answer rather than a missing one.
+        case 'damage': return 'auto';
+        // Healing has no landed-ness question, and neither do the non-damage activities. Saying
+        // `unknown` keeps them out of the delivery statistics rather than inventing a bucket.
+        default: return 'unknown';
+    }
+}
+
+/**
+ * Which targets the damage actually landed on, given how it was delivered.
+ *
+ * LANDED IS NOT THE SAME QUESTION AS HIT, AND FOR A SAVE IT IS NOT THE SAME SET. midi assigns
+ * `hitTargets = new Set(targets)` for any activity with no attack roll, so on a save-based activity
+ * `hitTargets` means "was targeted". Read as a hit list it reports a Fireball that every goblin
+ * resisted as a clean hit on every goblin.
+ *
+ * TIMING, FOR THE midi LANE: midi rolls damage BEFORE it checks saves, so `failedSaves` is not
+ * final at `hitsChecked` time -- it is seeded to every target and reduced as saves succeed.
+ * `midi-qol.postCheckSaves` is where it settles. A save delivery resolved before then is
+ * provisional, which is what `landedIsProvisional` on the event records.
+ *
+ * WITHOUT midi there is no save outcome available at all, and this says so by returning null rather
+ * than guessing. dnd5e posts save results as separate messages with no reliable link back to the
+ * effect that forced them, so a fallback here would be inventing data for the exact statistic the
+ * delivery model exists to make honest. A null landed set means "not known", and a consumer must
+ * treat it as such rather than as "nothing landed".
+ *
+ * @param {'attack'|'save'|'auto'|'unknown'} delivery - from `resolveDelivery`
+ * @param {Object} sets
+ * @param {string[]} [sets.hitTargets] - targets an attack roll hit
+ * @param {string[]} [sets.allTargets] - every target
+ * @param {string[]|null} [sets.failedSaves] - targets that failed, when known
+ * @returns {string[]|null} landed target uuids, or null when it cannot be known
+ */
+export function resolveLandedTargets(delivery, { hitTargets = [], allTargets = [], failedSaves = null } = {}) {
+    switch (delivery) {
+        case 'attack':
+            return hitTargets;
+        case 'save':
+            // Null, not empty: "we do not know" and "nothing landed" are different claims, and
+            // conflating them would silently zero a caster's contribution on a non-midi table.
+            return Array.isArray(failedSaves) ? failedSaves : null;
+        case 'auto':
+            // No attack roll and no save: it lands on everything it targeted.
+            return allTargets;
+        default:
+            return null;
+    }
+}
+
+/**
  * Create a stable cache key from key parts or message.
  * Prefers MIDI workflowId when available for better correlation.
  * @param {Object} partsOrMessage - Key parts from getKeyParts() OR the message itself
@@ -278,6 +362,17 @@ export function resolveAttackMessage(message) {
     // Use workflowId-based key for MIDI, fallback to key parts for core
     const key = workflowId ? `midi:${workflowId}` : makeKey(getKeyParts(message));
 
+    // Delivery, from the dnd5e activity on the message. This is why it is resolved here rather than
+    // in the midi lane: the flag rides on the chat card, so a table with no midi installed answers
+    // this exactly as well. The landed set is a different matter -- for a save it needs the save
+    // OUTCOMES, which core dnd5e does not correlate, so it comes back null and means "not known".
+    const delivery = resolveDelivery(dnd.activity);
+    const landedTargets = resolveLandedTargets(delivery, {
+        hitTargets,
+        allTargets: outcomes.map((o) => o.uuid).filter(Boolean),
+        failedSaves: null
+    });
+
     return {
         type: "attack",
         key: key,
@@ -292,7 +387,11 @@ export function resolveAttackMessage(message) {
         attackTotal: typeof total === "number" ? total : null,
         itemType: itemType,
         attackMsgId: message.id,
-        workflowId: workflowId // Store for correlation
+        workflowId: workflowId, // Store for correlation
+        // Phase 1 of the delivery model: carried, read by no statistic yet.
+        // See `documentation/plans/plan-save-delivery.md`.
+        delivery,
+        landedTargets
     };
 }
 

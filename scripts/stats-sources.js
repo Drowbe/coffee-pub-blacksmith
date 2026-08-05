@@ -51,7 +51,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
-import { resolveAttackMessage, resolveDamageMessage, makeKey, hydrateFirstRoll } from './utility-message-resolution.js';
+import { resolveAttackMessage, resolveDamageMessage, makeKey, hydrateFirstRoll, resolveDelivery, resolveLandedTargets } from './utility-message-resolution.js';
 import {
     buildAttackEventFromWorkflow,
     createDedupeTracker,
@@ -105,6 +105,40 @@ export class CombatSources {
     /** The attack event cached for `key`, if it has not expired. */
     static getCachedAttack(key) {
         return CombatSources._attackCache.get(key) ?? null;
+    }
+
+    /**
+     * Count one successful offensive activation, for MVP fairness.
+     *
+     * THIS EXISTS BECAUSE THE COUNTER WAS midi-ONLY. It was written out four times across the midi
+     * handlers and their socket twins, and never in the chat lane -- so on a table without midi it
+     * stayed at 0 for every character. `stats-mvp.js` guards its "fall back to hits" branch on
+     * `Number.isFinite(offenseCount)`, and 0 IS finite, so the fallback never fired: the offense
+     * term of every MVP score was zero and `mvpHitWeight` was inert. The same party and the same
+     * fight produced a different MVP depending on which modules the table had installed.
+     *
+     * midi is not a dependency and nothing may assume it. One shared counter is what keeps that
+     * true here rather than something to re-check every time a lane is added.
+     *
+     * Latched per round per activation key, so the several sightings of one swing count once.
+     *
+     * @param {string} key - correlation key for this activation
+     * @param {Actor|null} attacker
+     * @param {string} source - which lane counted it, for the log
+     */
+    static _countSuccessfulOffense(key, attacker, source) {
+        if (!key || !attacker) return;
+
+        const offenseKey = `offense:${key}`;
+        if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
+        if (CombatSources._roundOffenseCache.has(offenseKey)) return;
+        CombatSources._roundOffenseCache.add(offenseKey);
+
+        const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attacker, { includeCurrent: true, includeCombat: true });
+        if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
+        if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
+        postConsoleAndNotification(MODULE.NAME, `Combat Stats | OffenseCount +1 (${source})`,
+            { key, attacker: attacker.name }, true, false);
     }
 
     /** Called by the tracker when a new round starts. */
@@ -405,6 +439,19 @@ export class CombatSources {
             CombatSources._pendingMidiCrit.delete(key);
         }
 
+        // DELIVERY, ASKED THE SYSTEM-NATIVE WAY. `resolveDelivery` reads a dnd5e activity, so the
+        // chat lane answers this identically without midi installed -- which is the point. midi
+        // contributes only the save OUTCOMES, which core dnd5e cannot correlate.
+        attackEvent.delivery = resolveDelivery(workflow?.activity);
+        attackEvent.landedTargets = resolveLandedTargets(attackEvent.delivery, {
+            hitTargets: attackEvent.hitTargets,
+            allTargets: (attackEvent.targets ?? []).map((t) => t.uuid).filter(Boolean),
+            failedSaves: attackEvent.failedSaves
+        });
+        // midi rolls damage before it checks saves, so a save delivery's landed set is not final
+        // here. `postCheckSaves` settles it.
+        attackEvent.landedIsProvisional = attackEvent.delivery === 'save';
+
         // Cache the attack resolution for damage correlation
         CombatSources._attackCache.set(key, {
             attackEvent,
@@ -417,18 +464,7 @@ export class CombatSources {
         
         // MVP fairness: count successful offensive activations (attack-roll path)
         if (attackEvent.hitTargets?.length > 0) {
-            const offenseKey = `offense:${key}`;
-            if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
-            if (!CombatSources._roundOffenseCache.has(offenseKey)) {
-                CombatSources._roundOffenseCache.add(offenseKey);
-                const attackerActor = game.actors.get(attackEvent.attackerActorId);
-                if (attackerActor) {
-                    const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attackerActor, { includeCurrent: true, includeCombat: true });
-                    if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
-                    if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
-                    postConsoleAndNotification(MODULE.NAME, 'Combat Stats | OffenseCount +1 (hitsChecked)', { key, attacker: attackerActor.name }, true, false);
-                }
-            }
+            CombatSources._countSuccessfulOffense(key, game.actors.get(attackEvent.attackerActorId), 'hitsChecked');
         }
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI hitsChecked resolved', {
@@ -437,6 +473,60 @@ export class CombatSources {
             hits: attackEvent.hitTargets.length,
             misses: attackEvent.missTargets.length,
             attackTotal: attackEvent.attackTotal
+        }, true, false);
+    }
+
+    /**
+     * MIDI: postCheckSaves hook - where a save delivery's landed set becomes final.
+     *
+     * PHASE 1 OF THE DELIVERY MODEL, AND DELIBERATELY INERT. It records nothing and changes no
+     * statistic. It finalises `landedTargets` on an already-cached attack event and logs what it
+     * found. See `documentation/plans/plan-save-delivery.md`.
+     *
+     * Why it does not create a cache entry when none exists: an absent entry is what sends damage
+     * down the `unlinked` path, and manufacturing one here would move that damage into `onHit` or
+     * `other`. That is a real change to recorded numbers, it belongs in phase 2, and smuggling it
+     * into a phase whose whole promise is "changes nothing" is how a refactor stops being
+     * reviewable.
+     *
+     * The log answers a question static reading of midi could not settle: whether `hitsChecked`
+     * fires at all for a save-only activity. `hadCachedAttack: false` means it does not, so save
+     * damage is currently `unlinked` -- totals only, no moments, and no contribution to hit rate.
+     * `true` means it does, and the hit/miss counts built from `hitTargets` are inflated.
+     *
+     * @param {Object} workflow
+     */
+    static async _onMidiPostCheckSaves(workflow) {
+        if (!isMidiIntegrationEnabled()) return;
+        if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
+        if (!game.combat?.started) return;
+
+        const key = getWorkflowKey(workflow);
+        if (!key) return;
+
+        const toUuid = (t) => t?.document?.uuid ?? t?.uuid ?? t?.actor?.uuid ?? null;
+        const failedSaves = Array.from(workflow?.failedSaves ?? []).map(toUuid).filter(Boolean);
+        const succeeded = Array.from(workflow?.saves ?? []).map(toUuid).filter(Boolean);
+        const allTargets = Array.from(workflow?.targets ?? []).map(toUuid).filter(Boolean);
+
+        const cached = CombatSources._attackCache.get(key);
+        if (cached?.attackEvent?.delivery === 'save') {
+            cached.attackEvent.landedTargets = failedSaves;
+            cached.attackEvent.savedTargets = succeeded;
+            cached.attackEvent.landedIsProvisional = false;
+        }
+
+        postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI postCheckSaves (delivery phase 1, records nothing)', {
+            key,
+            hadCachedAttack: !!cached,
+            delivery: cached?.attackEvent?.delivery ?? resolveDelivery(workflow?.activity),
+            targets: allTargets.length,
+            failedSaves: failedSaves.length,
+            succeededSaves: succeeded.length,
+            // What the current code counts versus what the delivery model would count. Equal on an
+            // attack; on a save these diverge by exactly the number of targets that saved.
+            countedAsHitsToday: cached?.attackEvent?.hitTargets?.length ?? 0,
+            wouldCountAsLanded: failedSaves.length
         }, true, false);
     }
 
@@ -593,15 +683,7 @@ export class CombatSources {
         // - bucket is NOT onHit (prevents double counting attack-roll damage)
         // - once per workflow key per round
         if (!isHealing && !isOnHit) {
-            const offenseKey = `offense:${key}`;
-            if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
-            if (!CombatSources._roundOffenseCache.has(offenseKey)) {
-                CombatSources._roundOffenseCache.add(offenseKey);
-                const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attacker, { includeCurrent: true, includeCombat: true });
-                if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
-                if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
-                postConsoleAndNotification(MODULE.NAME, 'Combat Stats | OffenseCount +1 (preTargetDamageApplication)', { key, attacker: attacker.name }, true, false);
-            }
+            CombatSources._countSuccessfulOffense(key, attacker, 'preTargetDamageApplication');
         }
 
         await CombatStats._processDamageOrHealing({
@@ -762,10 +844,27 @@ export class CombatSources {
             //
             // So: no roll, no record, and deliberately NO dedupe mark. Leaving the key unmarked is
             // the whole point — it is what lets the update through.
+            //
+            // THIS GATE IS ALSO WHY THE CORE LANE HAS NO SAVE DELIVERIES. A save or auto activity
+            // has no attack roll and never will, so `attackTotal` stays null and the card is
+            // deferred forever -- it is never cached, so its damage takes the `unlinked` path. That
+            // is a real gap rather than a midi one: it happens on every table, and midi tables only
+            // avoid it when the workflow lane caches the event first.
+            //
+            // Deliberately NOT fixed here. Caching those deliveries moves their damage out of
+            // `unlinked` and into `onHit`/`other`, which changes recorded numbers -- phase 2's job.
+            // Phase 1 only makes the difference visible. See `plan-save-delivery.md`.
             if (typeof attackEvent.attackTotal !== 'number') {
-                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack deferred (no roll yet)', {
+                const awaitingRoll = attackEvent.delivery === 'attack' || attackEvent.delivery === 'unknown';
+                postConsoleAndNotification(MODULE.NAME, awaitingRoll
+                    ? 'Combat Stats - Attack deferred (no roll yet)'
+                    : 'Combat Stats - Attack deferred (no roll is coming: non-attack delivery)', {
                     messageId: message.id,
-                    key: attackEvent.key
+                    key: attackEvent.key,
+                    delivery: attackEvent.delivery,
+                    // false means the card will never resolve through this lane, so its damage lands
+                    // as `unlinked` no matter how long we wait.
+                    awaitingRoll
                 }, true, false);
                 return;
             }
@@ -790,6 +889,17 @@ export class CombatSources {
                 });
 
                 await CombatStats._processResolvedAttack(attackEvent);
+
+                // MVP fairness, on the core lane. The midi handlers have always counted this and
+                // this lane never did, which made the MVP formula depend on whether midi was
+                // installed. Same test as the midi side, from the same field on the same event.
+                if (attackEvent.hitTargets?.length > 0) {
+                    CombatSources._countSuccessfulOffense(
+                        attackEvent.key,
+                        game.actors.get(attackEvent.attackerActorId),
+                        'chat'
+                    );
+                }
 
                 postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack Resolved:', {
                     key: attackEvent.key,
@@ -981,17 +1091,7 @@ export class CombatSources {
 
             // MVP fairness: count successful offensive activations (attack-roll path)
             if (attackEvent.hitTargets?.length > 0) {
-                const offenseKey = `offense:${key}`;
-                if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
-                if (!CombatSources._roundOffenseCache.has(offenseKey)) {
-                    CombatSources._roundOffenseCache.add(offenseKey);
-                    const attackerActor = game.actors.get(attackEvent.attackerActorId);
-                    if (attackerActor) {
-                        const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attackerActor, { includeCurrent: true, includeCombat: true });
-                        if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
-                        if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
-                    }
-                }
+                CombatSources._countSuccessfulOffense(key, game.actors.get(attackEvent.attackerActorId), 'socket:hitsChecked');
             }
         } catch (e) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Socket MIDI hitsChecked error', e, false, false);
@@ -1063,14 +1163,7 @@ export class CombatSources {
 
             // MVP fairness: count successful offensive activations (non-attack-roll path)
             if (!isOnHit) {
-                const offenseKey = `offense:${key}`;
-                if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
-                if (!CombatSources._roundOffenseCache.has(offenseKey)) {
-                    CombatSources._roundOffenseCache.add(offenseKey);
-                    const { current: cur, combat: com } = CombatStats._ensureParticipantStats(attacker, { includeCurrent: true, includeCombat: true });
-                    if (cur) cur.successfulOffenseCount = (Number(cur.successfulOffenseCount) || 0) + 1;
-                    if (com) com.successfulOffenseCount = (Number(com.successfulOffenseCount) || 0) + 1;
-                }
+                CombatSources._countSuccessfulOffense(key, attacker, 'socket:preTargetDamageApplication');
             }
 
             await CombatStats._processDamageOrHealing({

@@ -6,7 +6,7 @@
 
 // Import MODULE variables
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, isPlayerCharacter } from './api-core.js';
+import { postConsoleAndNotification, isPartyMember } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { resolveAttackMessage, resolveDamageMessage, hydrateFirstRoll } from './utility-message-resolution.js';
 import { getWorkflowId, buildAttackEventFromWorkflow, isMidiIntegrationEnabled } from './utility-midi-resolution.js';
@@ -196,9 +196,14 @@ class CPBPlayerStats {
         
         postConsoleAndNotification(MODULE.NAME, `Player Stats - Initializing player statistics tracking`, "", false, false);
         
-        // Initialize stats for all player characters
+        // Initialize stats for all player characters.
+        //
+        // `isPartyMember` rather than a bare ownership test: summons are player-owned for
+        // as long as they exist, and initializing them here is what gave temporary NPCs a
+        // lifetime record. `isToken` stays -- lifetime stats live on world actors, not on the
+        // synthetic actors of unlinked tokens.
         game.actors.forEach(actor => {
-            if (actor.hasPlayerOwner && !actor.isToken) {
+            if (isPartyMember(actor) && !actor.isToken) {
                 this.initializeActorStats(actor.id);
             }
         });
@@ -233,28 +238,6 @@ class CPBPlayerStats {
 			}
 		});
         
-        // Roll hooks - Re-enabled as fallback for core dnd5e when chat resolution can't see flags
-        // Only used when MIDI is inactive and chat message lacks dnd5e/midi flags
-        // This provides core parity without stepping on MIDI's workflow
-        const rollAttackHookId = HookManager.registerHook({
-			name: 'dnd5e.rollAttack',
-			description: 'Player Stats: Fallback attack tracking for core dnd5e (when chat lacks flags)',
-			context: 'stats-player-attack-rolls',
-			priority: 3,
-			callback: this._onAttackRoll.bind(this)
-		});
-		
-		const rollDamageHookId = HookManager.registerHook({
-			name: 'dnd5e.rollDamage',
-			description: 'Player Stats: Not used for damage tracking (handled by createChatMessage)',
-			context: 'stats-player-damage-rolls',
-			priority: 3,
-			callback: () => {
-				// No-op - damage tracking moved to createChatMessage
-				// This hook kept for now to avoid breaking existing registration
-			}
-		});
-
         // MIDI-QOL workflow hooks - authoritative source for attack/damage/crit under MIDI
         // Only register if MIDI-QOL is active (additive, doesn't break core)
         const hasMidi = game.modules.get("midi-qol")?.active;
@@ -301,7 +284,7 @@ class CPBPlayerStats {
                         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
                         const actor = workflow?.actor;
-                        if (!actor?.hasPlayerOwner) return;
+                        if (!isPartyMember(actor)) return;
 
                         const attackRoll = workflow?.attackRoll ?? null;
 
@@ -484,7 +467,7 @@ class CPBPlayerStats {
 			priority: 3,
 			callback: (actor) => {
 				// --- BEGIN - HOOKMANAGER CALLBACK ---
-				if (actor.hasPlayerOwner && !actor.isToken) {
+				if (isPartyMember(actor) && !actor.isToken) {
 					this.initializeActorStats(actor.id);
 				}
 				// --- END - HOOKMANAGER CALLBACK ---
@@ -594,7 +577,7 @@ class CPBPlayerStats {
             return;
         }
 
-        const actors = game.actors.filter(actor => actor.hasPlayerOwner && !actor.isToken);
+        const actors = game.actors.filter(actor => isPartyMember(actor) && !actor.isToken);
         let clearedCount = 0;
 
         for (const actor of actors) {
@@ -720,7 +703,7 @@ class CPBPlayerStats {
             if (!actorId) continue;
 
             const actor = game.actors.get(actorId);
-            if (!actor || !actor.hasPlayerOwner || actor.isToken) continue;
+            if (!isPartyMember(actor) || actor.isToken) continue;
 
             const removed = await this.removeCombatFromPlayerStats(actorId, combatId, combatSummary);
             if (removed) updatedCount++;
@@ -762,12 +745,12 @@ class CPBPlayerStats {
         const previousTurn = combat.turns[combat.previous?.turn];
 
         // Process previous turn if it exists and was a player character
-        if (previousTurn && this._isPlayerCharacter(previousTurn)) {
+        if (previousTurn && this._isPartyMember(previousTurn)) {
             await this._processTurnEnd(combat, previousTurn);
         }
 
         // Start tracking new turn if it's a player character
-        if (currentTurn && this._isPlayerCharacter(currentTurn) && combat.started) {
+        if (currentTurn && this._isPartyMember(currentTurn) && combat.started) {
             await this._processTurnStart(combat, currentTurn);
         }
     }
@@ -844,26 +827,8 @@ class CPBPlayerStats {
     }
 
     // Utility methods
-    static _isPlayerCharacter(combatant) {
-        return isPlayerCharacter(combatant);
-    }
-
-    static _formatTime(timeValue) {
-        if (typeof timeValue !== 'number' || isNaN(timeValue)) return '0s';
-        
-        // Convert milliseconds to seconds if needed
-        const seconds = timeValue > 1000 ? Math.round(timeValue / 1000) : Math.round(timeValue);
-        
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const remainingSeconds = seconds % 60;
-        
-        let timeString = '';
-        if (hours > 0) timeString += `${hours}h `;
-        if (minutes > 0 || hours > 0) timeString += `${minutes}m `;
-        timeString += `${remainingSeconds}s`;
-        
-        return timeString;
+    static _isPartyMember(combatant) {
+        return isPartyMember(combatant);
     }
 
     /**
@@ -903,17 +868,6 @@ class CPBPlayerStats {
     }
 
     /**
-     * Extract workflow ID from MIDI workflow object.
-     * MIDI may store it in different properties depending on version/context.
-     * @param {Object} workflow - MIDI workflow object
-     * @returns {string|null} Workflow ID or null if not found
-     */
-    static _getMidiWorkflowId(workflow) {
-        const id = workflow?.workflowId ?? workflow?.id ?? workflow?.uuid ?? null;
-        return (typeof id === 'string' && id.length) ? id : null;
-    }
-
-    /**
      * Handle MIDI hitsChecked hook - authoritative source for hit/miss outcomes.
      * Builds an AttackResolvedEvent from the workflow and processes it.
      * @param {Object} workflow - MIDI workflow object
@@ -923,7 +877,7 @@ class CPBPlayerStats {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         const attacker = workflow?.actor;
-        if (!attacker?.hasPlayerOwner) return;
+        if (!isPartyMember(attacker)) return;
 
         // Build attack event using shared utility
         const attackEvent = buildAttackEventFromWorkflow(workflow);
@@ -984,7 +938,7 @@ class CPBPlayerStats {
 
         const workflow = data?.workflow;
         const attacker = workflow?.actor;
-        if (!attacker?.hasPlayerOwner) return;
+        if (!isPartyMember(attacker)) return;
 
         const workflowId = getWorkflowId(workflow);
         if (!workflowId) return;
@@ -1291,97 +1245,100 @@ class CPBPlayerStats {
             if (typeof attackEvent.attackTotal !== 'number') return;
 
             // One swing, one record, however many times the card is rewritten.
-            if (CPBPlayerStats._isAttackDuplicate(`attack:${message.id}`)) return;
-
-            // Only process player character attacks
+            //
+            // A BLOCK RATHER THAN AN EARLY RETURN, deliberately. dnd5e posts one activity card per
+            // use and updates it in place, so the attack and its damage arrive on the SAME message.
+            // Returning here meant every later update carrying the damage roll resolved as an attack
+            // again, hit this dedupe, and returned -- so no damage was ever recorded on this path.
+            // midi hid it, because `preTargetDamageApplication` supplies damage independently; without
+            // midi, weapon damage never reached lifetime stats at all. The combat lane was corrected
+            // the same way and the reasoning is at `stats-sources.js:888`.
             const attackerActor = game.actors.get(attackEvent.attackerActorId);
-            if (!attackerActor || !attackerActor.hasPlayerOwner) {
-                return; // Skip non-player actors
-            }
+            const isNewSwing = !CPBPlayerStats._isAttackDuplicate(`attack:${message.id}`);
+            if (isNewSwing && isPartyMember(attackerActor)) {
 
-            // Detect crit/fumble from the attack message roll itself (fallback for core dnd5e only)
-            // MIDI-QOL uses the RollComplete hook (authoritative), so skip chat parsing when MIDI is active
-            const hasMidiActive = isMidiIntegrationEnabled();
-            if (!hasMidiActive) {
-                const roll = hydrateFirstRoll(message);
-                if (roll) {
-                    // Find all d20 terms
-                    const d20Terms = [
-                        ...((roll.dice ?? []).filter(d => d?.faces === 20)),
-                        ...((roll.terms ?? []).filter(t => t?.faces === 20))
-                    ];
+                // Detect crit/fumble from the attack message roll itself (fallback for core dnd5e only)
+                // MIDI-QOL uses the RollComplete hook (authoritative), so skip chat parsing when MIDI is active
+                const hasMidiActive = isMidiIntegrationEnabled();
+                if (!hasMidiActive) {
+                    const roll = hydrateFirstRoll(message);
+                    if (roll) {
+                        // Find all d20 terms
+                        const d20Terms = [
+                            ...((roll.dice ?? []).filter(d => d?.faces === 20)),
+                            ...((roll.terms ?? []).filter(t => t?.faces === 20))
+                        ];
 
-                    if (d20Terms.length) {
-                        const results = d20Terms
-                            .flatMap(t => t.results ?? [])
-                            .filter(r => typeof r?.result === "number");
+                        if (d20Terms.length) {
+                            const results = d20Terms
+                                .flatMap(t => t.results ?? [])
+                                .filter(r => typeof r?.result === "number");
 
-                        if (results.length) {
-                            // Prefer the active result (adv/dis), else fall back to the first
-                            const active = results.find(r => r.active) ?? results[0];
-                            const d20Result = active?.result;
+                            if (results.length) {
+                                // Prefer the active result (adv/dis), else fall back to the first
+                                const active = results.find(r => r.active) ?? results[0];
+                                const d20Result = active?.result;
 
-                            if (typeof d20Result === "number") {
-            const isCritical = d20Result === 20;
-            const isFumble = d20Result === 1;
+                                if (typeof d20Result === "number") {
+                const isCritical = d20Result === 20;
+                const isFumble = d20Result === 1;
 
-                                // Store crit/fumble info in the attack event for later use
-                                attackEvent.isCritical = isCritical;
-                                attackEvent.isFumble = isFumble;
+                                    // Store crit/fumble info in the attack event for later use
+                                    attackEvent.isCritical = isCritical;
+                                    attackEvent.isFumble = isFumble;
                                 
-                                // Update stats immediately if crit/fumble (core fallback only)
-                                if (isCritical || isFumble) {
-                                    const currentStats = await this.getPlayerStats(attackEvent.attackerActorId);
-                                    const attacks = currentStats?.lifetime?.attacks ?? {};
-                                    const sessionStats = this._getSessionStats(attackEvent.attackerActorId);
+                                    // Update stats immediately if crit/fumble (core fallback only)
+                                    if (isCritical || isFumble) {
+                                        const currentStats = await this.getPlayerStats(attackEvent.attackerActorId);
+                                        const attacks = currentStats?.lifetime?.attacks ?? {};
+                                        const sessionStats = this._getSessionStats(attackEvent.attackerActorId);
                                     
-                                    // Initialize combat tracking if needed (must include missesAdded)
-                                    if (!sessionStats.combatTracking) {
-                                        sessionStats.combatTracking = { hitsAdded: 0, missesAdded: 0, critsAdded: 0, fumblesAdded: 0 };
-                                    }
-                                    
-                                    const updates = {
-                                        lifetime: {
-                                            attacks: {
-                                                criticals: (attacks.criticals || 0) + (isCritical ? 1 : 0),
-                                                fumbles: (attacks.fumbles || 0) + (isFumble ? 1 : 0)
-                                            }
+                                        // Initialize combat tracking if needed (must include missesAdded)
+                                        if (!sessionStats.combatTracking) {
+                                            sessionStats.combatTracking = { hitsAdded: 0, missesAdded: 0, critsAdded: 0, fumblesAdded: 0 };
                                         }
-                                    };
                                     
-                                    await this.updatePlayerStats(attackEvent.attackerActorId, updates);
+                                        const updates = {
+                                            lifetime: {
+                                                attacks: {
+                                                    criticals: (attacks.criticals || 0) + (isCritical ? 1 : 0),
+                                                    fumbles: (attacks.fumbles || 0) + (isFumble ? 1 : 0)
+                                                }
+                                            }
+                                        };
                                     
-                                    // Track what we added so end-of-combat reconciliation can subtract it
-                                    if (isCritical) sessionStats.combatTracking.critsAdded = (sessionStats.combatTracking.critsAdded || 0) + 1;
-                                    if (isFumble) sessionStats.combatTracking.fumblesAdded = (sessionStats.combatTracking.fumblesAdded || 0) + 1;
-                                    this._updateSessionStats(attackEvent.attackerActorId, sessionStats);
+                                        await this.updatePlayerStats(attackEvent.attackerActorId, updates);
+                                    
+                                        // Track what we added so end-of-combat reconciliation can subtract it
+                                        if (isCritical) sessionStats.combatTracking.critsAdded = (sessionStats.combatTracking.critsAdded || 0) + 1;
+                                        if (isFumble) sessionStats.combatTracking.fumblesAdded = (sessionStats.combatTracking.fumblesAdded || 0) + 1;
+                                        this._updateSessionStats(attackEvent.attackerActorId, sessionStats);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
+                // Cache the attack resolution for damage correlation
+                CPBPlayerStats._attackCache.set(attackEvent.key, {
+                    attackEvent: attackEvent,
+                    processedDamageMsgIds: new Set(),
+                    ts: attackEvent.ts
+                });
+
+                // Process the resolved attack event (records hits/misses)
+                await CPBPlayerStats._processResolvedAttack(attackEvent);
+
+                // Debug log for correlation verification
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Attack Resolved:', {
+                    key: attackEvent.key,
+                    attacker: attackerActor.name,
+                    attackTotal: attackEvent.attackTotal,
+                    hitTargetsCount: attackEvent.hitTargets.length,
+                    missTargetsCount: attackEvent.missTargets.length
+                }, true, false);
             }
-
-            // Cache the attack resolution for damage correlation
-            CPBPlayerStats._attackCache.set(attackEvent.key, {
-                attackEvent: attackEvent,
-                processedDamageMsgIds: new Set(),
-                ts: attackEvent.ts
-            });
-
-            // Process the resolved attack event (records hits/misses)
-            await CPBPlayerStats._processResolvedAttack(attackEvent);
-
-            // Debug log for correlation verification
-            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Attack Resolved:', {
-                key: attackEvent.key,
-                attacker: attackerActor.name,
-                attackTotal: attackEvent.attackTotal,
-                hitTargetsCount: attackEvent.hitTargets.length,
-                missTargetsCount: attackEvent.missTargets.length
-            }, true, false);
-
-            return;
         }
 
         // 2) Try to resolve as damage message
@@ -1475,9 +1432,9 @@ class CPBPlayerStats {
             }
         }
         
-        // Only track damage stats for player attackers, but we'll process all damage for unconscious tracking
-        // Note: attackerActor might be null, so check hasPlayerOwner safely
-        const isPlayerAttacker = attackerActor?.hasPlayerOwner ?? false;
+        // Only track damage stats for player attackers, but we'll process all damage for unconscious tracking.
+        // `isPartyMember` tolerates a null actor and returns false, which is the behaviour this needs.
+        const isPlayerAttacker = isPartyMember(attackerActor);
 
         // Correlate damage to cached attack - check both caches
         // CPBPlayerStats cache has player attacks, CombatSources cache has ALL attacks (including NPCs)
@@ -1519,13 +1476,47 @@ class CPBPlayerStats {
                 return; // Tracked - HP delta will also track applied healing on target
             }
             
-            // Not healing and couldn't correlate - treat as unlinked damage (skip for now)
-            // Note: Context was already stored above, so unconscious tracking will still work
-            postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unlinked Damage (skipped):', {
-                key: damageEvent.key,
-                damageTotal: damageEvent.damageTotal,
-                attacker: attackerForContext.name
-            }, true, false);
+            // UNCORRELATED DAMAGE IS STILL DAMAGE, AND IT IS RECORDED.
+            //
+            // This used to log and discard. A Fireball or a Magic Missile therefore contributed
+            // NOTHING to a player's lifetime damage on a table without midi, and its full amount on
+            // a table with it, because the midi lane never reaches this branch. The combat lane has
+            // always recorded unlinked damage (`stats-sources.js:921`), so the two lanes also
+            // disagreed with each other: the same fight's combat summary and lifetime totals did
+            // not match.
+            //
+            // The `unlinked` bucket is what carries "this could not be tied to an attack". It counts
+            // toward totals and stays out of the onHit-only moments, which is the policy
+            // `stats-combat.js` already documents. Nothing downstream needs to know WHY it was
+            // unlinked, so no delivery reasoning belongs here.
+            if (!itemForContext) {
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unlinked Damage (no item, skipped):', {
+                    key: damageEvent.key,
+                    damageTotal: damageEvent.damageTotal,
+                    attacker: attackerForContext.name
+                }, true, false);
+                return;
+            }
+
+            damageEvent.bucket = 'unlinked';
+            damageEvent.attackMsgId = null;
+
+            // Keyed on the message plus the amount, like the healing path beside it: the same card
+            // is re-read on every update, and only the first sighting should count.
+            const unlinkedKey = `coreunlinked:${message.id}:${attackerForContext.id}:${(damageEvent.targetUuids ?? []).join('|')}:${damageEvent.damageTotal ?? 0}`;
+            if (!CPBPlayerStats._isAttackDuplicate(unlinkedKey)) {
+                postConsoleAndNotification(MODULE.NAME, 'Player Stats - Unlinked Damage (recorded):', {
+                    key: damageEvent.key,
+                    damageTotal: damageEvent.damageTotal,
+                    attacker: attackerForContext.name
+                }, true, false);
+                await CPBPlayerStats._queueActorUpdate(attackerForContext.id, async () => {
+                    // No attack event: there is no correlated swing. `_processResolvedDamage`
+                    // guards on `attackEvent?.hitTargets`, and the unlinked bucket keeps
+                    // `trackHitMoments` false, so the moment path is never entered.
+                    await CPBPlayerStats._processResolvedDamage(damageEvent, null);
+                });
+            }
             return;
         }
 
@@ -1588,7 +1579,7 @@ class CPBPlayerStats {
         if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
 
         const attackerActor = game.actors.get(attackEvent.attackerActorId);
-        if (!attackerActor || !attackerActor.hasPlayerOwner) {
+        if (!isPartyMember(attackerActor)) {
             return;
         }
 
@@ -1689,7 +1680,7 @@ class CPBPlayerStats {
         const trackHitMoments = bucket === "onHit";
 
         const attackerActor = game.actors.get(damageEvent.attackerActorId);
-        if (!attackerActor || !attackerActor.hasPlayerOwner) {
+        if (!isPartyMember(attackerActor)) {
             return;
         }
 
@@ -1859,152 +1850,6 @@ class CPBPlayerStats {
         postConsoleAndNotification(MODULE.NAME, 'Player Stats - Damage Data', damageLogMessage, false, false);
 
         await this.updatePlayerStats(attackerActor.id, updates);
-    }
-
-    // Attack roll handler - Fallback for core dnd5e when chat resolution can't see flags
-    // Only processes when MIDI is inactive OR when chat message lacks dnd5e/midi flags
-    static async _onAttackRoll(a, b) {
-        if (!game.user.isGM || !game.settings.get(MODULE.ID, 'trackPlayerStats')) return;
-
-        try {
-            // Normalize hook arguments to extract item and rolls
-            const { rolls, context, item } = this._normalizeRollHookArgs(a, b);
-
-            if (!item || !item.id) {
-                return; // Skip if no item found
-            }
-
-            const actor = item.parent;
-            if (!actor || !actor.hasPlayerOwner) {
-                return; // Skip non-player actors
-            }
-
-            // Short-circuit: If MIDI is active, let MIDI RollComplete hook handle it (authoritative)
-            // OR if the originating chat message already has dnd5e/midi flags, chat lane will handle it
-            // (Prevents double counting when core is behaving normally or MIDI is handling it)
-            const hasMidi = isMidiIntegrationEnabled();
-            if (hasMidi) {
-                return; // MIDI RollComplete hook is authoritative, skip roll hook
-            }
-
-            // Check if chat message has flags (if so, chat resolution is handling it)
-            // Note: context might not have message, so we can't always check this
-            // But if MIDI is inactive, we can safely use this as fallback
-
-            // Get the first valid roll (attack rolls typically have one roll)
-            const rollObj = rolls?.[0];
-            if (!rollObj || rollObj.total === undefined) {
-                return; // Skip if no valid roll
-            }
-
-            // Get the d20 result - must use the ACTIVE result (for advantage/disadvantage)
-            // Find all d20 terms (can have multiple in some cases)
-            const d20Terms = [
-                ...((rollObj.dice ?? []).filter(d => d?.faces === 20)),
-                ...((rollObj.terms ?? []).filter(t => t?.faces === 20))
-            ];
-
-            if (!d20Terms.length) {
-                return; // Skip if no d20 found
-            }
-
-            // Get all results from all d20 terms
-            const results = d20Terms
-                .flatMap(t => t.results ?? [])
-                .filter(r => typeof r?.result === "number");
-
-            if (!results.length) {
-                return; // Skip if no valid results
-            }
-
-            // Prefer the active result (adv/dis), else fall back to first
-            const active = results.find(r => r.active) ?? results[0];
-            const d20Result = active?.result;
-
-            if (typeof d20Result !== "number") {
-                return; // Skip if invalid result
-            }
-
-            const isCritical = d20Result === 20;
-            const isFumble = d20Result === 1;
-            
-            // Debug: Log attack roll details for crit/fumble detection
-            postConsoleAndNotification(MODULE.NAME, "Attack roll hook fired", {
-                actor: actor.name,
-                item: item.name,
-                total: rollObj.total,
-                d20Result: d20Result,
-                d20Results: results.map(r => ({ result: r.result, active: r.active })),
-                isCritical: isCritical,
-                isFumble: isFumble
-            }, true, false);
-
-            // Track crits/fumbles in real-time (these are definitive - nat 20 = crit, nat 1 = fumble)
-            if (isCritical || isFumble) {
-                const stats = await this.getPlayerStats(actor.id);
-                if (stats) {
-                    const lifetimeAttacks = stats.lifetime?.attacks || {};
-                    const sessionStats = this._getSessionStats(actor.id);
-                    
-                    // Initialize combat tracking if needed (must include missesAdded)
-                    if (!sessionStats.combatTracking) {
-                        sessionStats.combatTracking = { hitsAdded: 0, missesAdded: 0, critsAdded: 0, fumblesAdded: 0 };
-                    }
-                    
-                    const updates = {
-                        lifetime: {
-                            attacks: {
-                                criticals: isCritical ? (lifetimeAttacks.criticals || 0) + 1 : (lifetimeAttacks.criticals || 0),
-                                fumbles: isFumble ? (lifetimeAttacks.fumbles || 0) + 1 : (lifetimeAttacks.fumbles || 0)
-                            }
-                        }
-                    };
-            await this.updatePlayerStats(actor.id, updates);
-
-                    // Track that we added crit/fumble during this combat (to avoid double counting at combat end)
-                    if (isCritical) {
-                        sessionStats.combatTracking.critsAdded = (sessionStats.combatTracking.critsAdded || 0) + 1;
-                    }
-                    if (isFumble) {
-                        sessionStats.combatTracking.fumblesAdded = (sessionStats.combatTracking.fumblesAdded || 0) + 1;
-                    }
-                    this._updateSessionStats(actor.id, sessionStats);
-                }
-            }
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Error processing attack roll:`, error, false, false);
-        }
-    }
-
-    /**
-     * Normalize roll hook arguments to extract item, rolls, and context
-     * Matches the pattern used by CombatSources for consistent hook handling
-     * @param {*} a - First hook argument (could be item, roll, array, or context)
-     * @param {*} b - Second hook argument (could be item, roll, array, or context)
-     * @returns {Object} Normalized arguments with { rolls, context, item }
-     */
-    static _normalizeRollHookArgs(a, b) {
-        const rolls =
-            Array.isArray(a) ? a :
-            Array.isArray(b) ? b :
-            [a, b].filter(r => r && typeof r.total === "number");
-
-        const context =
-            Array.isArray(a) ? b :
-            Array.isArray(b) ? a :
-            (b && typeof b === "object" ? b : null);
-
-        // Try hard to find the Item
-        const item =
-            (a instanceof Item) ? a :
-            (b instanceof Item) ? b :
-            context?.item ??
-            context?.subject?.item ??
-            context?.subject?.parent?.parent ??   // activity -> activities -> item
-            context?.activity?.parent ??
-            null;
-
-        return { rolls, context, item };
     }
 
     // _onDamageRoll method removed - damage tracking now handled by createChatMessage hook
@@ -2513,7 +2358,7 @@ class CPBPlayerStats {
             if (!actorId) continue;
 
             const actor = game.actors.get(actorId);
-            if (!actor || !actor.hasPlayerOwner || actor.isToken) continue;
+            if (!isPartyMember(actor) || actor.isToken) continue;
 
             const stats = await this.getPlayerStats(actorId);
             if (!stats) continue;
@@ -2599,7 +2444,7 @@ class CPBPlayerStats {
         if (!actorId || typeof score !== 'number') return;
 
         const actor = game.actors.get(actorId);
-        if (!actor || !actor.hasPlayerOwner || actor.isToken) return;
+        if (!isPartyMember(actor) || actor.isToken) return;
 
         const stats = await this.getPlayerStats(actor.id);
         if (!stats) return;

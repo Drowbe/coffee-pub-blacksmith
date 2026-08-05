@@ -1110,64 +1110,98 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
 
 
 /**
- * Checks if a combatant or actor is a player character
- * @param {Object} entity - The combatant or actor to check
- * @returns {boolean} - True if the entity is a player character
+ * Resolve the many shapes callers pass to an Actor document.
+ *
+ * Accepts a Combatant, Token, TokenDocument, Actor, actor id, or actor name. Anything
+ * carrying `.actor` (Combatant/Token/TokenDocument) yields it directly.
+ *
+ * @param {Combatant|Token|TokenDocument|Actor|string|null} entity
+ * @returns {Actor|null} The resolved actor, or null if the input names nothing.
+ */
+export function resolveActorFrom(entity) {
+    if (!entity) return null;
+    if (entity.actor) return entity.actor;
+    if (entity.documentName === 'Actor') return entity;
+    if (typeof entity === 'string') {
+        return game.actors?.get(entity) ?? game.actors?.getName(entity) ?? null;
+    }
+    return null;
+}
+
+/**
+ * Checks whether an entity is a player character -- an actual character sheet a player owns.
+ *
+ * This is the narrow question: does this actor have a `character` sheet? Use it for anything
+ * that depends on character mechanics -- death saves, levels, class features. For "should
+ * this actor appear in the party's statistics", use `isPartyMember`, which also admits
+ * permanent player-owned NPCs such as companions and sidekicks.
+ *
+ * Ownership is accepted from either an owner permission or a user's assigned character,
+ * because a character sheet can be assigned to a user without a permission entry.
+ *
+ * @param {Combatant|Token|TokenDocument|Actor|string|null} entity - Combatant, token, actor, id, or name
+ * @returns {boolean} True when the entity is a player-owned character sheet
  */
 export function isPlayerCharacter(entity) {
-    postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - Checking entity:', entity, true, false);
+    const actor = resolveActorFrom(entity);
+    if (actor?.type !== 'character') return false;
+    return actor.hasPlayerOwner || game.users?.some(u => u.character?.id === actor.id) || false;
+}
 
-    // If we're passed a combatant, check its actor
-    if (entity?.actor) {
-        const result = entity.actor.hasPlayerOwner || 
-                      entity.actor.type === 'character' ||
-                      game.users.find(u => u.character?.name === entity.name);
-        postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - Combatant check result:', {
-            name: entity.name,
-            hasPlayerOwner: entity.actor.hasPlayerOwner,
-            type: entity.actor.type,
-            isPC: result
-        }, true, false);
-        return result;
-    }
-    
-    // If we're passed an actor directly
-    if (entity?.type === 'actor') {
-        const result = entity.hasPlayerOwner || 
-                      entity.type === 'character' ||
-                      game.users.find(u => u.character?.id === entity.id);
-        postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - Actor check result:', {
-            name: entity.name,
-            hasPlayerOwner: entity.hasPlayerOwner,
-            type: entity.type,
-            isPC: result
-        }, true, false);
-        return result;
-    }
-    
-    // If we're passed just a name
-    if (typeof entity === 'string') {
-        // First try to find a player character with this name
-        const playerActor = game.actors.find(a => 
-            a.name === entity && 
-            (a.hasPlayerOwner || a.type === 'character' || game.users.find(u => u.character?.id === a.id))
-        );
-        
-        // If no player character found, check if any user has this character name
-        const isUserCharacter = game.users.some(u => u.character?.name === entity);
-        
-        postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - Name check result:', {
-            name: entity,
-            foundPlayerActor: !!playerActor,
-            isUserCharacter,
-            isPC: !!playerActor || isUserCharacter
-        }, true, false);
-        
-        return !!playerActor || isUserCharacter;
-    }
-    
-    postConsoleAndNotification(MODULE.NAME, 'isPlayerCharacter - No valid entity type found', "", true, false);
-    return false;
+/**
+ * Checks whether an actor is a creature conjured by a summoning activity.
+ *
+ * dnd5e stamps `flags.dnd5e.summon` on the actor it creates for a summon -- `{level, mod,
+ * origin, activity, profile}` -- at `SummonsData#getChanges` in the system bundle. That flag
+ * is the only reliable mark of transience: a summon is otherwise an ordinary NPC actor, and
+ * it is handed to its summoner's player so they can drive it, so it looks player-owned.
+ *
+ * @param {Combatant|Token|TokenDocument|Actor|string|null} entity
+ * @returns {boolean} True when the actor was created by a summoning activity
+ */
+export function isSummonedCreature(entity) {
+    return !!resolveActorFrom(entity)?.flags?.dnd5e?.summon;
+}
+
+/**
+ * Checks whether an entity belongs in the party's statistics.
+ *
+ * THE DISTINCTION IS PERMANENCE, NOT SHEET TYPE. A party is the characters plus whatever
+ * persistent creatures the players run -- a companion, a familiar, a sidekick on an NPC
+ * sheet. Those earn a record. What does not is the transient: a creature conjured for a
+ * minute of combat, or a spell effect given a stat block.
+ *
+ * Testing player ownership alone gets this wrong, because a summon is handed to its
+ * summoner's player and so reports `hasPlayerOwner === true` for as long as it exists. One
+ * casting of Conjure Animals then puts six identically-named rows in the party window, each
+ * with its own lifetime record and its own place in the MVP ranking. Testing
+ * `type === 'character'` instead gets it wrong in the other direction, discarding the
+ * companions that players have run all campaign.
+ *
+ * Group actors are excluded outright: a dnd5e `group` is a container for a party, not a
+ * combatant, though nothing stops one being placed on the canvas and joining a fight.
+ *
+ * THE `excludeFromStats` FLAG IS THE FINAL WORD, because some cases cannot be decided from
+ * the data. A magic weapon given its own stat block and handed to a player is player-owned,
+ * persistent, and on an NPC sheet -- indistinguishable from a companion or familiar, which
+ * is all of those things too. One is a party member and one is a sword, and only the GM
+ * knows which. Set the flag to exclude such an actor:
+ *
+ *     await actor.setFlag('coffee-pub-blacksmith', 'excludeFromStats', true);
+ *
+ * @param {Combatant|Token|TokenDocument|Actor|string|null} entity - Combatant, token, actor, id, or name
+ * @returns {boolean} True when the entity's deeds belong in the party's statistics
+ */
+export function isPartyMember(entity) {
+    const actor = resolveActorFrom(entity);
+    if (!actor) return false;
+    if (actor.getFlag?.(MODULE.ID, 'excludeFromStats')) return false;
+    if (actor.type === 'group') return false;
+    if (isSummonedCreature(actor)) return false;
+    return actor.type === 'character'
+        || actor.hasPlayerOwner
+        || game.users?.some(u => u.character?.id === actor.id)
+        || false;
 }
 
 /**
