@@ -183,13 +183,18 @@ export function routeTimerNotification(settingKey, timerLabel, stackKey, data) {
 
     if (notifyMode === 'toast' || notifyMode === 'both') {
         const content = timerToastContent(data);
+        // `channel: 'timer'` so a GM can let session and break announcements reach an excluded
+        // camera account — "five minutes left" is exactly the kind of thing a recording wants —
+        // without also handing that account every other toast. Blacksmith names channels for its
+        // own toasts like any other sender; what it never does is learn another module's names.
         broadcastToast({
             title: `${timerLabel} Timer`,
             subtitle: content.subtitle,
             icon: content.icon,
             duration: 3,
             moduleId: 'blacksmith-core',
-            stackKey: stackKey
+            stackKey: stackKey,
+            channel: 'timer'
         });
     }
 

@@ -119,10 +119,11 @@ class ToastManager {
      * @param {string} config.publish - Which Foundry view renders the toast: 'game' (the active tabletop, default), 'stream' (the chat-only /stream capture view), or 'both'. Anything else falls back to 'game'. Checked receipt-side against game.view, so it covers every delivery path.
      * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), 'pulse' (subtle infinite breathe, meant for persistent billboards), 'slam' (smashes in from oversized with a jolt on impact), or 'shake' (rattles in with a decaying wobble). Anything else, or no size, renders without animation.
      * @param {string} config.channel - Free-form name grouping this toast with others of its kind, e.g. 'announcements'. Its only effect is on exclusion: a user listed in `toastExcludedUsers` still sees a toast whose channel appears in `toastBypassChannels`. Omit and the toast behaves exactly as before — excluded users never see it. Channel names belong to the SENDING module; Blacksmith only matches the string, so it never needs to know what a critical or a fumble is
+     * @param {boolean} config.bypassExclusion - Render even for a user on `toastExcludedUsers`, overriding `channel` and the persistent-toast rule. FOR DELIBERATE, HUMAN-DIRECTED SENDS ONLY — a GM explicitly choosing an excluded recipient. Automated senders must use `channel` instead, which leaves the decision with the GM in settings rather than in your code
      * @param {string} config.callToAction - Button-styled label (e.g. "Roll for the Crit Card") making it visually clear the toast wants a click. NOT a separate click event — it renders inside the existing single click target and the body onClick handles it. Shown only on 'small' | 'medium' | 'large' billboards AND only when onClick is a function (no action, no button; relayed toasts strip callbacks, so only receipt-side show() calls can carry one). Ignored otherwise.
      * @returns {string|null} - Toast ID for later removal, or null on error
      */
-    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, animation = null, callToAction = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game', channel = null } = {}) {
+    static show({ title, subtitle = "", icon = null, image = null, backgroundImage = null, backgroundColor = null, sound = null, duration = 8, color = null, size = null, animation = null, callToAction = null, moduleId = "blacksmith-core", onClick = null, onDismiss = null, stackKey = null, publish = 'game', channel = null, bypassExclusion = false } = {}) {
         try {
             if (!title) {
                 postConsoleAndNotification(MODULE.NAME, "Toast: show() requires a title", "", false, false);
@@ -161,15 +162,35 @@ class ToastManager {
             // about sparing a passive account the chatter, not about hiding the
             // moments the table is there to see. Still receipt-side, so this
             // changes what a client renders and never what was delivered.
-            if (currentView === 'game' && isToastExcludedUser() && !isToastBypassChannel(channel)) {
-                // Name the channel in the log. A bypass that does not fire is otherwise silent
-                // and looks identical to one that was never configured, and the likeliest cause
-                // is a mismatch between the name the sender chose and the name the GM typed.
-                const why = channel
-                    ? `channel '${channel}' is not in toastBypassChannels`
-                    : 'no channel declared';
-                postConsoleAndNotification(MODULE.NAME, `Toast suppressed for excluded user: ${game.user?.name} (${why})`, "", true, false);
-                return null;
+            // Excluded users never render toasts on the tabletop, whatever the delivery path,
+            // unless one of two things says otherwise.
+            //
+            // `bypassExclusion` is a HUMAN saying so, and it wins outright. A GM ticking a
+            // recipient row labelled "Excluded" in the Send Toast window has made the decision
+            // the exclusion list exists to make, for one send, knowingly. Automated senders must
+            // not set it — they have `channel`, which the GM controls in settings.
+            //
+            // A bypass channel is the standing permission, and it is narrower: it will not carry
+            // a PERSISTENT toast. `duration: 0` means the toast stays until dismissed, and
+            // exclusion exists precisely because nobody is behind that screen to dismiss anything
+            // — the setting's original justification was "a camera/stream account that cannot
+            // click a toast closed". Letting an automated channel park one on a capture surface
+            // would recreate that fault and make it permanent rather than eight seconds long.
+            if (currentView === 'game' && isToastExcludedUser() && !bypassExclusion) {
+                if (!isToastBypassChannel(channel)) {
+                    // Name the channel in the log. A bypass that does not fire is otherwise
+                    // silent and looks identical to one never configured, and the likeliest
+                    // cause is a mismatch between the name the sender chose and the GM typed.
+                    const why = channel
+                        ? `channel '${channel}' is not in toastBypassChannels`
+                        : 'no channel declared';
+                    postConsoleAndNotification(MODULE.NAME, `Toast suppressed for excluded user: ${game.user?.name} (${why})`, "", true, false);
+                    return null;
+                }
+                if (duration === 0) {
+                    postConsoleAndNotification(MODULE.NAME, `Toast suppressed for excluded user: ${game.user?.name} (channel '${channel}' is allowed, but the toast is persistent and nobody is there to dismiss it)`, "", true, false);
+                    return null;
+                }
             }
 
             // Same stackKey replaces in place. Supersession is not a dismissal — no onDismiss.
@@ -222,6 +243,11 @@ class ToastManager {
                 callToAction: validCallToAction,
                 onClick: typeof onClick === 'function' ? onClick : null,
                 onDismiss: typeof onDismiss === 'function' ? onDismiss : null,
+                // Wall-clock at render, surfaced by getActive(). A watchdog client wanting to
+                // clear a toast nobody is present to dismiss needs to know how long it has been
+                // up, and without this it would have to poll and time first sightings itself —
+                // guessing at an age this side already knows exactly.
+                shownAt: Date.now(),
                 timeoutId: null,
                 element: null
             };
@@ -306,6 +332,7 @@ class ToastManager {
             moduleId: t.moduleId,
             stackKey: t.stackKey,
             persistent: t.persistent,
+            shownAt: t.shownAt,
             color: t.color,
             backgroundColor: t.backgroundColor,
             size: t.size,

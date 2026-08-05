@@ -127,15 +127,22 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         const prefs = this.preferences;
 
         // Non-GM users; active ones enabled and pre-checked, offline disabled.
-        // Users on the toastExcludedUsers list are left out entirely — the
-        // receipt-side gate in show() would drop the toast anyway; hiding them
-        // keeps the list honest about who can be reached.
+        //
+        // EXCLUDED USERS ARE LISTED, BADGED, AND NOT PRE-CHECKED. They used to be hidden
+        // outright, on the reasoning that show() would drop the toast anyway so offering them
+        // was dishonest. Channels changed that: an excluded user can now receive some toasts,
+        // and hiding them left a GM no way to send one deliberately — the send never reached
+        // show() at all, because the socket handler drops a payload whose `_recipients` omits
+        // this client, so the channel was never even consulted. Ticking the box IS the decision
+        // the exclusion list exists to make, so the send carries `bypassExclusion` and renders.
+        // Left unchecked they receive nothing, which is the whole point of being on the list.
+        //
         // Rendered through the shared entity list, but deliberately keeping the
         // `toast-recipient` input name and the toast-send row class: the send
         // path and the party-toggle handler read that contract directly, and
         // window-toast-send.css skins it.
-        const recipientUsers = game.users
-            .filter(u => !u.isGM && !isToastExcludedUser(u));
+        const recipientUsers = game.users.filter(u => !u.isGM);
+        const isExcluded = (u) => isToastExcludedUser(u);
         this._recipientList = EntityListAPI.create({
             entities: recipientUsers.map(u => ({
                 id: u.id,
@@ -143,14 +150,19 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 img: u.character?.img || u.avatar || 'icons/svg/mystery-man.svg',
                 disabled: !u.active,
                 disabledReason: u.active ? null : 'Offline',
-                className: u.active ? null : 'offline'
+                badges: isExcluded(u) ? ['Excluded'] : [],
+                className: [u.active ? null : 'offline', isExcluded(u) ? 'excluded' : null]
+                    .filter(Boolean).join(' ') || null
             })),
             mode: EntityListAPI.MODES.MULTI,
             inputName: 'toast-recipient',
             itemClass: 'blacksmith-toast-send-recipient',
             listClass: 'blacksmith-toast-send-recipients',
+            // Never pre-checked, and never restored from a saved preference: reaching an
+            // excluded account is always a fresh, deliberate choice.
             selected: recipientUsers
-                .filter(u => u.active && (prefs.party || !Array.isArray(prefs.recipients) || prefs.recipients.includes(u.id)))
+                .filter(u => u.active && !isExcluded(u)
+                    && (prefs.party || !Array.isArray(prefs.recipients) || prefs.recipients.includes(u.id)))
                 .map(u => u.id),
             emptyMessage: 'No players in this world.'
         });
@@ -355,11 +367,14 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         this._recipientList?.attach(root);
         // "Entire Party" overrides the individual picks: checking it checks and locks
         // every online player's box; unchecking restores individual control.
+        // Excluded accounts are skipped for the same reason offline ones are — a camera
+        // account is not "the party", and sweeping it in would make the one deliberate
+        // act the exclusion list asks for into an accident.
         const party = root.querySelector('[name="toast-party"]');
         const applyPartyState = () => {
             for (const cb of root.querySelectorAll('[name="toast-recipient"]')) {
-                const offline = cb.closest('.blacksmith-toast-send-recipient')?.classList.contains('offline');
-                if (offline) continue;
+                const row = cb.closest('.blacksmith-toast-send-recipient');
+                if (row?.classList.contains('offline') || row?.classList.contains('excluded')) continue;
                 if (party.checked) {
                     cb.checked = true;
                     cb.disabled = true;
@@ -779,7 +794,11 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 duration,
                 publish,
                 animation,
-                moduleId: 'blacksmith-core'
+                moduleId: 'blacksmith-core',
+                // A GM picked these recipients by hand, so an excluded account among them was
+                // chosen knowingly. Safe to set unconditionally: delivery is already gated by
+                // `_recipients`, so an excluded user the GM did NOT tick never reaches show().
+                bypassExclusion: true
             };
             if (publish === 'stream') {
                 // No user recipients — broadcast and let each client's show()
@@ -877,6 +896,11 @@ export async function quickSendToastTemplate(name) {
             moduleId: 'blacksmith-core'
         };
 
+        // NO `bypassExclusion` HERE, unlike the composed send above, and the difference is the
+        // point: Quick Toast is party-wide with no recipient picking, so nobody chose to include
+        // an excluded account. A camera account is not "the party". The composed send offers
+        // excluded users as tickable rows and honours the tick; this one never asks, so it never
+        // overrides — the filter below keeps them out and no toast reaches them.
         const recipients = publish === 'stream'
             ? []
             : game.users.filter(u => !u.isGM && u.active && !isToastExcludedUser(u)).map(u => u.id);

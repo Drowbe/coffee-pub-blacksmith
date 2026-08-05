@@ -57,6 +57,23 @@ tell a typo from another module's channel. Two things help: every channel name i
 time it is seen on a client (debug mode), which gives a GM the list actually in use; and a module
 can check delivery itself with the introspection helpers below.
 
+**A persistent toast (`duration: 0`) never bypasses exclusion, whatever its channel.** Exclusion
+exists because nobody is behind that screen to dismiss anything, so a persistent toast let through
+would sit on a capture surface for the rest of the session. Bypass channels are for transient
+moments. The `/stream` view is unaffected, being exempt from exclusion entirely.
+
+**`bypassExclusion: true` overrides all of it**, including the persistent rule. It exists for a
+human deciding one send at a time — a GM ticking an excluded recipient in the Send Toast window —
+and automated senders must not set it. Use `channel` instead, which leaves the decision with the GM
+in settings rather than in your code.
+
+**Channels Blacksmith itself sends.** Blacksmith names channels for its own toasts like any other
+sender:
+
+| Channel | Sent by |
+|---|---|
+| `timer` | Session, break, and turn timer announcements |
+
 `show()` also renders only on the view its `publish` config targets: by default toasts appear on
 the active tabletop (`/game`) and never on Foundry's chat-only `/stream` capture view — on a
 non-targeted view `show()` renders nothing and returns `null`. See the `publish` config below to
@@ -121,6 +138,9 @@ target the stream view or both.
   OBS), or `'both'`. Anything else falls back to `'game'`. Checked receipt-side against
   `game.view`, so it holds across every delivery path; plain data, so it rides Blacksmith's
   cross-client relays unchanged.
+- `bypassExclusion` (boolean, optional): render even for a user on `toastExcludedUsers`, overriding
+  both `channel` and the persistent-toast rule. **For deliberate, human-directed sends only** — a GM
+  explicitly choosing an excluded recipient. Automated senders use `channel`.
 - `channel` (string, optional): free-form name grouping this toast with others of its kind, e.g.
   `'announcements'`. Its only effect is on exclusion — a user listed in `toastExcludedUsers` still
   sees a toast whose channel appears in `toastBypassChannels`. Omit it and the toast behaves as it
@@ -177,9 +197,11 @@ Remove all toasts owned by a module (e.g. on your module's cleanup). Silent. Ret
 
 ## `getActive()`
 
-Returns `Array<{ id, moduleId, stackKey, persistent, color, backgroundColor, size, animation,
-callToAction }>` for the toasts currently on screen — display metadata only, no elements or
-callbacks.
+Returns `Array<{ id, moduleId, stackKey, persistent, shownAt, color, backgroundColor, size,
+animation, callToAction }>` for the toasts currently on screen — display metadata only, no elements
+or callbacks. `shownAt` is `Date.now()` at render, so `Date.now() - shownAt` is the age in
+milliseconds; `persistent` is true for `duration: 0`, the only toasts that will not clear
+themselves.
 
 ## `isExcludedUser(user)` and `isBypassChannel(channel)`
 
