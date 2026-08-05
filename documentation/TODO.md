@@ -70,8 +70,11 @@ one and then rendering any window that read it brought it straight back. The les
 repair reports success.
 
 **The scene-document repair has been applied to production** (down to ~40 KB, verified). The
-record-clearing has not stuck and cannot until production runs the fixed module, because the old
-code re-creates the records on read. **Re-run the macro on production once it has updated.**
+record-clearing does not stick on 13.14.2 or earlier, because the old code re-creates records on
+read - so **re-run the macro on any world once it has updated to 13.15.0**. On the fixed code the
+clear holds: a verified run cleared ten non-party records with no `Initializing stats for actor:`
+following, where the same run against the old code showed all ten reborn in the same tick. That
+absence is the check worth repeating, since nothing errors when it goes wrong.
 
 **The sequencing problem, and why this blocks the damage-semantics change.** "Damage dealt" is being
 redefined from *rolled total* to *applied HP after resistance* (decided 2026-08-04). Existing records

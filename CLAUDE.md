@@ -143,7 +143,8 @@ Name the outcome first — **bug fix / feature / performance / refactor** — be
 10. **Update `CHANGELOG.md`** for the next release — code changes first, per the CHANGELOG rule.
 11. **Delete completed TODOs.** They live in the CHANGELOG now. Never keep a done item "for reference."
 12. **Version bump + BUILD commit — author, after final tests.** The author bumps `module.json` and makes the
-    BUILD commit. See Git: BUILD now bundles the final docs + changelog + todo deletions + the bump.
+    BUILD commit, which bundles the final docs, `CHANGELOG.md`, and the todo deletions with the bump. See
+    the BUILD rule in Git for the exact shape.
 13. **Wiki sync is automatic.** A GitHub Action (`.github/workflows/sync-wiki.yml`) mirrors the publish set
     to the wiki on every push to `master` that touches `documentation/`. What publishes is the `PUBLISH`
     list in `tools/wiki-sync.mjs` — a new doc goes live only when added there. See the wiki note in Git.
@@ -293,19 +294,20 @@ reviewable changes; the author commits.
 **Never bump the version in `module.json`.** The version stays at the last shipped number for the whole of
 development; the author bumps it himself when he decides a release is ready, after his own final tests.
 
-**The `BUILD x.y.z` commit is the version bump alone** — `module.json` and nothing else — as a clean
-bookkeeping marker in the history. The final doc pass, `CHANGELOG.md`, and todo deletions go in the commit
-*before* it:
+**The `BUILD x.y.z` commit closes the release: the bump together with the final doc pass,
+`CHANGELOG.md`, and the todo deletions.** One commit, so everything that makes a version *be* that
+version lands at the same point in history:
 
 ```
-BUILD 13.12.3                          <- module.json only
-Docs, CHANGELOG, TODO cleanup for 13.12.3
-Implement api.quantitySplit
+BUILD 13.15.0                          <- module.json + CHANGELOG.md + TODO.md + TODO-GLOBAL.md
+Refactor party membership logic and improve statistics handling
+Fix summoned creature tracking and combat history storage
 ```
 
-(Reverted to the lone bump 2026-07-30 by the author, superseding the 2026-07-17 change that had folded the
-final doc pass into it. This entry has now flipped twice — do not flip it again without being asked
-directly.)
+(Settled 2026-08-05 by the author. This had contradicted itself: the workflow's step 12 said bundled while
+this section said `module.json` alone, so whichever a reader found first was wrong. **Do not change it
+again without being asked directly** — it has moved more than once, and both shapes work; what does not
+work is the two of them disagreeing.)
 
 Claude writes the CHANGELOG entry and stages the final doc changes; the author makes the BUILD commit and
 the tag. Because the version in `module.json` lags the work in progress, it is **not** a signal for which
@@ -315,11 +317,14 @@ CHANGELOG section to write into — see the CHANGELOG rule above.
 and anything that publishes to GitHub are his. The workflow runs no lint, tests, or build — the tag is the
 only gate.
 
-**The wiki is Claude's to sync — after the BUILD commit.** The GitHub wiki is a **pure mirror** of
-`documentation/`; the author writes nothing wiki-specific, so it never leads, it only follows. Once a BUILD
-commit lands doc changes in the main repo, Claude pushes the same docs to the wiki.
-> ⚠️ **Unsolved mechanical blocker.** The wiki is a bare git repo (`…coffee-pub-blacksmith.wiki.git`) that
-> would not check out on Windows: at least one page (`Architecture:-Core`) has a `:` in its filename, which
-> is illegal in NTFS, so a plain `git clone` of the wiki fails on this machine. The push path has to be
-> worked out — sparse checkout, filename mapping, or generating the wiki files without a full checkout —
-> before the first real sync. Do not assume `git clone …​.wiki.git && cp && push` works here; it doesn't yet.
+**Nobody syncs the wiki by hand — the Action does it.** The GitHub wiki is a **pure mirror** of
+`documentation/`; the author writes nothing wiki-specific, so it never leads, it only follows.
+`.github/workflows/sync-wiki.yml` rebuilds and pushes the publish set on every push to `master` touching
+`documentation/` or `tools/wiki-sync.mjs`, and what goes live is the `PUBLISH` list in `tools/wiki-sync.mjs`
+— never what merely changed, so a commit touching a held doc cannot leak it. See workflow step 13.
+
+The old warning here — that the wiki could not be cloned on Windows, because the page `Architecture:-Core`
+has a `:` in its filename and NTFS forbids it — was true of a *local* clone and is irrelevant to how the
+sync actually happens. The Action runs on `ubuntu-latest`, where that filename is legal. Verified
+2026-08-05: six consecutive successful `Sync Wiki` runs, including the `BUILD 13.15.0` push. **Do not
+attempt a local wiki clone on this machine; there is no reason to, and it will still fail.**
