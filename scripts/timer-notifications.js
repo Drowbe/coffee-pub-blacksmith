@@ -16,7 +16,15 @@
 
 import { MODULE } from './const.js';
 import { getSettingSafely, playSound, postConsoleAndNotification, getPortraitImage } from './api-core.js';
-import { broadcastToast, sendToastToUsers, ToastAPI } from './api-toast.js';
+import { broadcastToast, sendToastToUsers, ToastAPI, registerToastChannel } from './api-toast.js';
+
+// Blacksmith declares its own channels like any sender, so they appear in the GM's list
+// beside the siblings' rather than being a name only this file knows.
+registerToastChannel('timer', {
+    moduleId: MODULE.ID,
+    label: 'Timers',
+    description: 'Session, break, and turn timer announcements'
+});
 
 /**
  * Map a timer message payload (the flags the three sendChatMessage helpers

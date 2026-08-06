@@ -36,12 +36,29 @@ camera or stream login. The `/stream` view is exempt: a stream-targeted toast (s
 renders there even when the logged-in account is on the exclusion list — exclusion protects a
 passive account from tabletop noise, while publishing to the stream is deliberate.
 
-**Exclusion is not all-or-nothing.** A toast declaring a `channel` whose name appears in the
-Channels Excluded Users Still See world setting (`toastBypassChannels`, Notifications settings —
-also comma-separated and case-insensitive) renders for an excluded user too. So a camera account
-can be spared routine chatter while still showing the moments the table is there to see. A toast
-with no `channel` is never affected, and the check is still receipt-side, so this changes what a
-client renders and never what was delivered.
+**Exclusion is not all-or-nothing.** A toast declaring a `channel` renders for an excluded user
+when that channel is permitted by the Channels Excluded Users Still See world setting
+(`toastBypassChannels`, Notifications settings). **An empty setting permits every channel** — the
+default, so the feature works without configuration; a non-empty one permits only what it names,
+case-insensitively. A toast with no `channel` is never affected, and the check is receipt-side, so
+this changes what a client renders and never what was delivered.
+
+Declare your channels so a GM can find them:
+
+```javascript
+api.toast.registerChannel('crit', {
+    moduleId: 'coffee-pub-bibliosoph',
+    label: 'Critical Hits',
+    description: 'Natural 20 announcements'
+});
+```
+
+The setting renders declared channels as a checklist. Registration is optional — an unregistered
+channel works identically, it is simply undiscoverable, so a GM has to be told the name some other
+way. `api.toast.getChannels()` returns what is registered **right now**: read it as "what is
+loaded", never as "what is valid", and never use it to prune a stored allow-list. A module
+disabled for one evening takes its channels out of that list while the GM's saved setting still
+names them, and the saved value must survive untouched.
 
 Channel names belong to the **sending** module: Blacksmith matches the string and nothing more, so
 it never has to know what a critical or an injury is. Pick a name for a class of event and document
