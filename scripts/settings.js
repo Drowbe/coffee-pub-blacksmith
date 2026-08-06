@@ -9,7 +9,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
-import { getUnknownExcludedUserNames } from './api-toast.js';
+import { getUnknownExcludedUserNames, flushToastChannelSettings } from './api-toast.js';
 import { getNamingKeyList, tokenNameTableSettingId, NAMING_TAXONOMY_SETTING, DEFAULT_TAXONOMY_PATH } from './utility-token-naming.js';
 import { assetLookup } from './asset-lookup.js';
 import {
@@ -2082,7 +2082,20 @@ export const registerSettings = () => {
 		default: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
-	
+
+	// -- Pan To Current Combatant --
+	// World, and GM-only in effect: yanking a player's viewport on someone else's turn is
+	// disorienting, so only the GM's canvas follows the turn order.
+	game.settings.register(MODULE.ID, 'combatTrackerPanToCombatant', {
+		name: MODULE.ID + '.combatTrackerPanToCombatant-Label',
+		hint: MODULE.ID + '.combatTrackerPanToCombatant-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Set First Combatant --
 	game.settings.register(MODULE.ID, 'combatTrackerSetFirstTurn', {
 		name: MODULE.ID + '.combatTrackerSetFirstTurn-Label',
@@ -3673,21 +3686,13 @@ export const registerSettings = () => {
 		}
 	});
 
-	// Comma-separated channel names that reach excluded users anyway, so exclusion
-	// stops being all-or-nothing — a camera account should not get party chatter but
-	// should get "CRITICAL!". Channel names are declared by the SENDING module (see
-	// config.channel in api-toast.js), never enumerated here: keeping this a free
-	// string is what stops Blacksmith needing to know what a critical is.
-	game.settings.register(MODULE.ID, 'toastBypassChannels', {
-		name: MODULE.ID + '.toastBypassChannels-Label',
-		hint: MODULE.ID + '.toastBypassChannels-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: false,
-		type: String,
-		default: '',
-		group: WORKFLOW_GROUPS.NOTIFICATIONS
-	});
+	// One checkbox per declared toast channel, so exclusion stops being all-or-nothing — a
+	// camera account should not get party chatter but should get "CRITICAL!". Each is an
+	// ordinary Boolean setting created by `registerToastChannel` (api-toast.js) from the label
+	// and description the SENDING module supplies, never enumerated here — which is what keeps
+	// Blacksmith from needing to know what a critical is. Modules declare at `init`, which can
+	// precede this pass, so anything already declared gets its setting now.
+	flushToastChannelSettings();
 
 	// --------------------------------------
 	// -- H2: LEADER

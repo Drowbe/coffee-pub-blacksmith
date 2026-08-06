@@ -293,44 +293,51 @@ modules, so Blacksmith's settings UI would have to enumerate `critical`, `fumble
 carry a vocabulary about dice outcomes it otherwise has no reason to know. The moment that list
 exists, adding a new announceable event in a sibling means editing Blacksmith.
 
-`channel` inverts it. The **sender** declares a free-form name; the GM allow-lists names in
-`toastBypassChannels`; Blacksmith compares two strings. Nothing here knows what a critical is, a
-sibling can introduce a new class of announcement without touching this module, and several
-siblings can publish to one channel the GM has already allowed. `isToastBypassChannel`
-(`api-toast.js`) is the whole of it, and the exclusion test in `show()` is its only caller.
+`channel` inverts it. The **sender** declares a free-form name and, through `registerChannel`, the
+label the GM reads; Blacksmith stores both and compares strings. Nothing here knows what a critical
+is, a sibling can introduce a new class of announcement without touching this module, and several
+siblings can publish to one channel. `isToastBypassChannel` (`api-toast.js`) is the whole of the
+test, and the exclusion check in `show()` is its only caller.
 
 Read it as the shape to reach for whenever a consumer needs Blacksmith to treat some of its events
-differently: **take a name from the sender, never a taxonomy into the hub.**
+differently: **take a name from the sender, never a taxonomy into the hub.** Note that *storing* a
+name a module gives you is not learning a vocabulary — the first version of this refused a registry
+on that confusion, and it is the same trust `registerMenubarTool` already extends to module-supplied
+titles and icons.
 
 The check stays receipt-side alongside the rest of exclusion, so it changes what a client renders
 and never what was delivered — see "The internal broadcast relay" above, and note that a bypass
 channel therefore carries no implication of privacy.
 
-**Refusing a registry costs discoverability, and that has to be paid for somewhere.** With no
-declared vocabulary, a GM cannot learn which channel names exist, and a name typed into
-`toastBypassChannels` that nothing sends fails silently — Blacksmith cannot tell a typo from
-another module's channel, and neither can a consumer. Two things pay the cost without taking the
-vocabulary back:
+### One checkbox per channel, and why it is not a custom form
 
-- **First-sighting logging.** Each channel name is named once per client in debug output as it is
-  seen (`_seenChannels` in `api-toast.js`). This reports observed reality rather than a declared
-  list: nothing registers, and a name in the log is evidence it was sent, not permission to send.
-  Note the suppression log does *not* serve this purpose — it fires on the excluded client, which
-  is by construction the machine nobody is watching.
+`registerChannel` creates an ordinary Boolean world setting per channel (`_ensureChannelSetting`),
+named and hinted from what the sender supplied. **A channel is a label and a checkbox, which is
+precisely what a Boolean setting is** — so Foundry renders it, and there is no markup here at all.
 
-  **Treat this log as contract, not as debug output.** Because there is no registry, it is the
-  only way a GM can discover which channel names exist, and siblings point at it in their own
-  documentation — Bibliosoph's README and its channel-audit tool both send GMs here, having
-  correctly dropped their own typo detection on the grounds that they cannot distinguish a
-  misspelling from another module's channel either. Changing the wording is fine; removing it,
-  or gating it behind something other than `globalDebugMode`, breaks a documented path in
-  another repo.
-- **Excluded-user names, unlike channel names, are validated.** `getUnknownExcludedUserNames()`
-  reports names in `toastExcludedUsers` matching no user, and the setting warns the GM on change.
-  The asymmetry is deliberate and worth stating so it does not read as inconsistency: users are
-  enumerable, so a name matching nobody is a fact; channels are not, so an unrecognised one may
-  simply belong to a module Blacksmith has never heard of. Validate what you can enumerate.
-- **Read-only introspection.** `isExcludedUser` and `isBypassChannel` are on `ToastAPI` so a
-  consumer can warn its own GM that its announcements cannot arrive. They were internal at first,
-  which forced a sibling to read the settings and duplicate the parsing — the coupling the API
-  exists to prevent.
+The version before this kept one comma-separated field and drew a checklist into the settings form
+from a `renderSettingsConfig` hook. It reimplemented in CSS what the settings form already does,
+and got it wrong on the first try: the list was inserted into `.form-fields`, which is a flex row
+for the input, so a five-row checklist and a text box shared one cell at half width each. **Do not
+reach for a settings-form hook to render something the form can render natively.**
+
+Two consequences worth holding onto:
+
+- **Defaults are `true`.** A channel is a sender saying "this is a notable event", and the earlier
+  allow-list defaulting to empty cost a table an evening's broadcast — a correct feature nobody
+  switches on is the same as no feature. Unticking is how a GM narrows it.
+- **An unregistered channel has no setting and is therefore allowed.** That is deliberate: a sender
+  need not register to work, and the absence of a checkbox never means the absence of delivery.
+  `_seenChannels` names such channels once per client in debug output, since they appear nowhere in
+  settings; a registered one needs no such help.
+
+**Excluded-user names, unlike channel names, are validated.** `getUnknownExcludedUserNames()` reports
+names in `toastExcludedUsers` matching no user, and the setting warns the GM on change. Users are
+enumerable, so a name matching nobody is a fact; a channel name is whatever a module chose to send.
+Validate what you can enumerate.
+
+**Read-only introspection.** `isExcludedUser` and `isBypassChannel` are on `ToastAPI` so a consumer
+can warn its own GM that its announcements cannot arrive. They were internal at first, forcing a
+sibling to read the settings and duplicate the parsing — and that coupling proved real immediately:
+the storage behind channels changed from one comma-separated field to a setting per channel, and
+callers of the helpers needed no change while a caller of the raw settings would have broken.

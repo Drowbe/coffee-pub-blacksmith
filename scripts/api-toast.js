@@ -37,6 +37,10 @@ export function isToastExcludedUser(user = game.user) {
 // to prune the stored allow-list — see `getRegisteredChannels`.
 const _channelRegistry = new Map();
 
+// True once settings.js has built its settings. Before that, declaring a channel only records
+// it, so `flushToastChannelSettings()` can register them all at the right point in the order.
+let _channelSettingsFlushed = false;
+
 /**
  * Declare a toast channel so a GM can find it.
  *
@@ -54,6 +58,12 @@ const _channelRegistry = new Map();
  * Registration is optional. An unregistered channel works exactly as before; it is simply
  * undiscoverable, so a GM has to be told the name some other way.
  *
+ * CALL THIS DURING `init`. Each channel becomes a real setting, Foundry renders settings in
+ * registration order, and this module's section headings are themselves settings — so a channel
+ * declared during `ready` is registered after every heading and its checkbox appears at the
+ * bottom of the settings page, under whichever section happens to be last. Every module's `init`
+ * runs before any `ready`, so declaring there puts it in Notifications where it belongs.
+ *
  * @param {string} name - The channel name, matching what you pass as `channel` to show()
  * @param {Object} [options]
  * @param {string} [options.moduleId] - Your module id, shown so a GM knows who sends it
@@ -67,14 +77,134 @@ export function registerToastChannel(name, { moduleId = null, label = null, desc
         postConsoleAndNotification(MODULE.NAME, 'Toast: registerChannel() requires a channel name', "", false, false);
         return false;
     }
-    _channelRegistry.set(key.toLowerCase(), {
+    const entry = {
         name: key,
         moduleId: moduleId || null,
         label: label || key,
         description: description || null
-    });
+    };
+    _channelRegistry.set(key.toLowerCase(), entry);
+    // ORDER DECIDES SECTION, so declaring must not register the setting. Foundry renders
+    // settings in registration order and this module's section headings are themselves
+    // settings, which means a setting registered after the last heading appears UNDER it --
+    // channels declared by a sibling landed at the bottom of Debug. Registration is therefore
+    // deferred to `flushToastChannelSettings()`, called from the Notifications section of
+    // `settings.js`, so they render where they belong. A channel declared after that point
+    // still gets its setting immediately, because having it in an odd place beats not having
+    // it at all, and a reload puts it right.
+    if (_channelSettingsFlushed) _ensureChannelSetting(entry);
     postConsoleAndNotification(MODULE.NAME, `Toast channel registered: '${key}'`, moduleId || '', true, false);
     return true;
+}
+
+/** World setting key backing one channel's checkbox. */
+function _channelSettingKey(name) {
+    return `toastChannel-${String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+}
+
+/**
+ * Move a just-registered channel setting into the Toasts section of the settings form.
+ *
+ * FOUNDRY RENDERS SETTINGS IN REGISTRATION ORDER and this module's section headings are
+ * themselves settings, so a setting registered after the last heading appears underneath it. A
+ * sibling that declares its channels during `ready` — after this module's settings pass — put
+ * four checkboxes at the bottom of Debug, which is a nonsense place for them and not something
+ * a GM can be asked to overlook.
+ *
+ * Declaring during `init` avoids it, and that remains the documented contract, but Blacksmith
+ * should not depend on every sibling's timing to put ITS OWN settings in the right section.
+ * `game.settings.settings` is an insertion-ordered Map, so the entry is spliced in after the
+ * last channel already placed (or after `toastExcludedUsers`, the first setting in the Toasts
+ * section). The Map is mutated in place rather than replaced, so any reference held elsewhere
+ * stays valid, and nothing in Foundry caches its iteration order between renders.
+ *
+ * @param {string} fullKey - Fully-qualified setting key, `module.setting`
+ */
+function _placeChannelSettingInSection(fullKey) {
+    const all = game?.settings?.settings;
+    if (!all?.has?.(fullKey) || typeof all.clear !== 'function') return;
+
+    const entries = Array.from(all.entries());
+    const moving = entries.find(([k]) => k === fullKey);
+    const rest = entries.filter(([k]) => k !== fullKey);
+    if (!moving) return;
+
+    // Prefer sitting after the last channel already in place, so declaration order is kept.
+    const channelPrefix = `${MODULE.ID}.toastChannel-`;
+    let at = -1;
+    for (let i = 0; i < rest.length; i++) {
+        if (rest[i][0].startsWith(channelPrefix)) at = i;
+    }
+    if (at < 0) at = rest.findIndex(([k]) => k === `${MODULE.ID}.toastExcludedUsers`);
+    if (at < 0) return;
+
+    rest.splice(at + 1, 0, moving);
+    all.clear();
+    for (const [k, v] of rest) all.set(k, v);
+}
+
+/**
+ * Register the world setting backing a channel, if it is not registered already.
+ *
+ * ONE ORDINARY BOOLEAN SETTING PER CHANNEL — no custom form, no injected markup. An earlier
+ * build kept a single comma-separated field and drew a checklist into the settings form with a
+ * `renderSettingsConfig` hook, which meant reimplementing in CSS what Foundry already renders,
+ * and getting it wrong: the list landed inside `.form-fields` and shared one flex cell with the
+ * text box. A channel is a label and a checkbox, which is exactly what a Boolean setting is.
+ *
+ * Defaults to TRUE. A channel is a sender saying "this is a notable event", and a feature that
+ * only works once someone finds a switch is the same as no feature — that lesson cost a table an
+ * evening's broadcast. Unticking is how a GM narrows it.
+ *
+ * The label and hint come from the registering module and are passed through verbatim rather than
+ * as localization keys, because they belong to that module's vocabulary and not to `en.json`.
+ *
+ * Silently does nothing if Foundry's settings are not ready yet; `flushToastChannelSettings()`
+ * picks those up during Blacksmith's own registration pass.
+ */
+function _ensureChannelSetting(entry) {
+    const key = _channelSettingKey(entry.name);
+    const full = `${MODULE.ID}.${key}`;
+    if (!game?.settings?.register || game.settings.settings?.has?.(full)) return false;
+    try {
+        game.settings.register(MODULE.ID, key, {
+            name: entry.label,
+            hint: entry.description
+                ? `${entry.description}${entry.moduleId ? ` (${entry.moduleId})` : ''}`
+                : (entry.moduleId ? `Sent by ${entry.moduleId}` : ''),
+            scope: 'world',
+            config: true,
+            requiresReload: false,
+            type: Boolean,
+            default: true,
+            group: 'notifications'
+        });
+        // Registered after the settings pass means registered after every section heading, so
+        // splice it back into Toasts rather than leaving it under whatever section is last.
+        if (_channelSettingsFlushed) _placeChannelSettingInSection(full);
+        return true;
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `Toast: could not register setting for channel '${entry.name}'`, error, false, false);
+        return false;
+    }
+}
+
+/**
+ * Register settings for every channel declared before Foundry's settings were ready.
+ *
+ * Modules declare channels at `init`, which can run before this module's settings pass. Called
+ * once from `settings.js`; late registrations create their own setting through
+ * `registerToastChannel` and appear the next time the settings form opens.
+ *
+ * @returns {number} Settings created
+ */
+export function flushToastChannelSettings() {
+    _channelSettingsFlushed = true;
+    let created = 0;
+    for (const entry of _channelRegistry.values()) {
+        if (_ensureChannelSetting(entry)) created++;
+    }
+    return created;
 }
 
 /**
@@ -91,83 +221,6 @@ export function registerToastChannel(name, { moduleId = null, label = null, desc
 export function getRegisteredChannels() {
     return Array.from(_channelRegistry.values())
         .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
-}
-
-/** Parse a comma-separated setting value into trimmed, non-empty names. */
-function _splitNames(raw) {
-    return typeof raw === 'string'
-        ? raw.split(',').map(n => n.trim()).filter(Boolean)
-        : [];
-}
-
-/**
- * Turn the `toastBypassChannels` text field into a checklist of registered channels.
- *
- * THE TEXT FIELD REMAINS THE STORAGE and stays on screen. The checklist writes into it rather
- * than replacing it, which is what lets an unregistered channel — one whose module is disabled
- * tonight, or which never registered at all — keep working and keep its box. A registry must not
- * become a whitelist of the known.
- *
- * Three behaviours worth stating because they are easy to get wrong:
- *
- * - **Empty means every channel**, so an untouched setting shows every box ticked. Unticking one
- *   writes the explicit remainder; re-ticking everything clears back to empty rather than listing
- *   them, so "all" keeps including channels registered later.
- * - **A saved name with no registration is still shown and still ticked**, marked as such. It is
- *   never dropped: a GM who disables a module for one evening must not silently lose the setting.
- * - **Choices are built at render**, not at registration, so a module that registers late still
- *   appears the next time the form opens.
- *
- * @param {HTMLElement|jQuery} html - The rendered settings form
- */
-export function enhanceToastChannelSetting(html) {
-    const root = html instanceof HTMLElement ? html : html?.[0];
-    const input = root?.querySelector?.(`input[name="${MODULE.ID}.toastBypassChannels"]`);
-    if (!input || input.dataset.blacksmithChannelPicker) return;
-    input.dataset.blacksmithChannelPicker = '1';
-
-    const registered = getRegisteredChannels();
-    const saved = _splitNames(input.value);
-    const savedKeys = new Set(saved.map(n => n.toLowerCase()));
-    const allowAll = saved.length === 0;
-
-    // Registered first, then saved names nothing currently registers.
-    const rows = [
-        ...registered.map(c => ({ ...c, known: true })),
-        ...saved
-            .filter(n => !_channelRegistry.has(n.toLowerCase()))
-            .map(n => ({ name: n, label: n, moduleId: null, description: null, known: false }))
-    ];
-
-    const picker = document.createElement('div');
-    picker.className = 'blacksmith-channel-picker';
-    if (!rows.length) {
-        picker.innerHTML = `<p class="blacksmith-channel-picker-empty">No modules have declared toast channels yet. With this field empty, any channel a module does declare will reach excluded users.</p>`;
-    } else {
-        picker.innerHTML = rows.map(c => {
-            const checked = allowAll || savedKeys.has(c.name.toLowerCase()) ? ' checked' : '';
-            const who = c.known
-                ? (c.moduleId ? `<span class="blacksmith-badge">${c.moduleId}</span>` : '')
-                : `<span class="blacksmith-badge">not currently registered</span>`;
-            const desc = c.description ? `<span class="blacksmith-channel-picker-desc">${c.description}</span>` : '';
-            return `<label class="blacksmith-channel-picker-row">
-                <input type="checkbox" data-channel="${c.name}"${checked}>
-                <span class="blacksmith-channel-picker-label">${c.label}</span>
-                ${who}${desc}
-            </label>`;
-        }).join('');
-    }
-    input.parentElement?.insertBefore(picker, input);
-
-    const boxes = () => Array.from(picker.querySelectorAll('input[type="checkbox"]'));
-    picker.addEventListener('change', () => {
-        const all = boxes();
-        const ticked = all.filter(b => b.checked);
-        // Everything ticked collapses to empty, which means "all channels including any
-        // registered later" — writing the list instead would quietly exclude future ones.
-        input.value = ticked.length === all.length ? '' : ticked.map(b => b.dataset.channel).join(', ');
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-    });
 }
 
 /**
@@ -194,16 +247,13 @@ export function getUnknownExcludedUserNames() {
 /**
  * True when a toast's channel reaches excluded users.
  *
- * AN EMPTY SETTING ALLOWS EVERY CHANNEL. This is the load-bearing default and it was originally
- * the other way round, which cost a real session: a table played a whole evening with a camera
- * account and captured none of its criticals, fumbles or injuries. Nothing was broken — an empty
- * allow-list allowed nothing, and there was no way to discover what to type into it. A default
- * that requires a secret to be useful is a broken default however correct its logic.
- *
- * Declaring a channel is already the sender saying "this is a notable class of event, not routine
- * chatter". Honouring that by default makes the feature work untouched, and the setting becomes
- * what a GM reaches for to narrow it — not to switch it on. A non-empty value keeps its exact
- * former meaning, so no configured world changes behaviour.
+ * EVERY CHANNEL IS ALLOWED UNTIL A GM UNTICKS IT. Each registered channel has its own Boolean
+ * world setting defaulting to true, and an unregistered one has no setting and so is allowed too.
+ * This was originally an allow-list defaulting to empty, which cost a real session: a table played
+ * a whole evening with a camera account and captured none of its criticals, fumbles or injuries.
+ * Nothing was broken — an empty allow-list allowed nothing, and there was no way to discover what
+ * to put in it. A default that requires a secret to be useful is a broken default however correct
+ * its logic.
  *
  * WHY A CHANNEL AND NOT AN EVENT KIND. Exclusion is all-or-nothing without this, which is right
  * for a camera account that must not have party chatter on screen and wrong for the case that
@@ -219,13 +269,8 @@ export function getUnknownExcludedUserNames() {
  */
 export function isToastBypassChannel(channel) {
     if (typeof channel !== 'string' || !channel.trim()) return false;
-    const raw = getSettingSafely(MODULE.ID, 'toastBypassChannels', '');
-    // Empty means "every channel", not "no channel" -- see above.
-    if (typeof raw !== 'string' || !raw.trim()) return true;
-    return raw.split(',')
-        .map(name => name.trim().toLowerCase())
-        .filter(Boolean)
-        .includes(channel.trim().toLowerCase());
+    // Default true, so a channel nothing has registered a setting for still gets through.
+    return getSettingSafely(MODULE.ID, _channelSettingKey(channel), true) !== false;
 }
 
 class ToastManager {
@@ -289,7 +334,7 @@ class ToastManager {
      * @param {string} config.stackKey - Toasts stack by default; a new toast with the same stackKey replaces the old one in place
      * @param {string} config.publish - Which Foundry view renders the toast: 'game' (the active tabletop, default), 'stream' (the chat-only /stream capture view), or 'both'. Anything else falls back to 'game'. Checked receipt-side against game.view, so it covers every delivery path.
      * @param {string} config.animation - Content animation, BILLBOARDS ONLY (ignored without a size): 'pop' (scale in with a bounce), 'reveal' (staged icon/title/subtitle entrance), 'pulse' (subtle infinite breathe, meant for persistent billboards), 'slam' (smashes in from oversized with a jolt on impact), or 'shake' (rattles in with a decaying wobble). Anything else, or no size, renders without animation.
-     * @param {string} config.channel - Free-form name grouping this toast with others of its kind, e.g. 'announcements'. Its only effect is on exclusion: a user listed in `toastExcludedUsers` still sees a toast whose channel appears in `toastBypassChannels`. Omit and the toast behaves exactly as before — excluded users never see it. Channel names belong to the SENDING module; Blacksmith only matches the string, so it never needs to know what a critical or a fumble is
+     * @param {string} config.channel - Free-form name grouping this toast with others of its kind, e.g. 'crit'. Its only effect is on exclusion: a user listed in `toastExcludedUsers` still sees a channelled toast unless the GM has unticked that channel. Every channel is allowed by default, so declaring one is enough. Omit it and the toast never reaches an excluded user. Channel names belong to the SENDING module; Blacksmith only matches the string, so it never needs to know what a critical or a fumble is. Call `registerChannel()` so the channel gets a labelled checkbox in settings
      * @param {boolean} config.bypassExclusion - Render even for a user on `toastExcludedUsers`, overriding `channel` and the persistent-toast rule. FOR DELIBERATE, HUMAN-DIRECTED SENDS ONLY — a GM explicitly choosing an excluded recipient. Automated senders must use `channel` instead, which leaves the decision with the GM in settings rather than in your code
      * @param {string} config.callToAction - Button-styled label (e.g. "Roll for the Crit Card") making it visually clear the toast wants a click. NOT a separate click event — it renders inside the existing single click target and the body onClick handles it. Shown only on 'small' | 'medium' | 'large' billboards AND only when onClick is a function (no action, no button; relayed toasts strip callbacks, so only receipt-side show() calls can carry one). Ignored otherwise.
      * @returns {string|null} - Toast ID for later removal, or null on error
@@ -301,16 +346,16 @@ class ToastManager {
                 return null;
             }
 
-            // NAME DISCOVERY WITHOUT A REGISTRY. `toastBypassChannels` is a free string, so a GM
-            // has no way to learn which names are live — and the suppression log below fires on
-            // the EXCLUDED client, which is by construction the machine nobody is watching. This
-            // reports observed reality instead of a declared vocabulary: the first time a channel
-            // is seen on this client, name it. A GM turns on debug, plays for a minute, and has
-            // the list. Deliberately not a registry — modules still declare nothing, and a name
-            // appearing here is evidence it was sent, not permission to send it.
+            // NAME DISCOVERY FOR CHANNELS NOBODY DECLARED. A registered channel has its own
+            // labelled checkbox in settings and needs no help being found. An UNREGISTERED one
+            // does not appear there at all, yet still works and still reaches excluded users —
+            // so this names it once per client, and a GM with debug on can see what is being
+            // sent that settings do not show. Reports observed reality, never a vocabulary:
+            // a name here is evidence it was sent, not permission to send it.
             if (channel && !this._seenChannels.has(channel)) {
                 this._seenChannels.add(channel);
-                postConsoleAndNotification(MODULE.NAME, `Toast channel in use: '${channel}' (add it to toastBypassChannels to let excluded users see it)`, "", true, false);
+                const known = _channelRegistry.has(channel.toLowerCase());
+                postConsoleAndNotification(MODULE.NAME, `Toast channel in use: '${channel}'${known ? '' : ' (not registered - it has no setting, so it is always allowed; call api.toast.registerChannel to give it one)'}`, "", true, false);
             }
 
             // Publish surface: render only when this client's view is targeted.
@@ -353,7 +398,7 @@ class ToastManager {
                     // silent and looks identical to one never configured, and the likeliest
                     // cause is a mismatch between the name the sender chose and the GM typed.
                     const why = channel
-                        ? `channel '${channel}' is not in toastBypassChannels`
+                        ? `channel '${channel}' is switched off in settings`
                         : 'no channel declared';
                     postConsoleAndNotification(MODULE.NAME, `Toast suppressed for excluded user: ${game.user?.name} (${why})`, "", true, false);
                     return null;
@@ -771,9 +816,9 @@ const ToastAPI = {
     // READ-ONLY INTROSPECTION, so a consumer can diagnose its own delivery without
     // re-implementing ours. Both were internal at first, which left a module wanting to warn
     // its GM ("you excluded this user and never allowed the channel we send") no option but to
-    // read `toastExcludedUsers` / `toastBypassChannels` itself and duplicate the comma/trim/
-    // lowercase parsing — coupling a sibling to two setting ids and to a parsing detail we
-    // might reasonably change. Asking is better than guessing, and neither answer is a secret.
+    // read `toastExcludedUsers` and the per-channel settings itself and duplicate the parsing
+    // and key-naming — coupling a sibling to setting ids and to details we might reasonably
+    // change, as this one did. Asking beats guessing, and neither answer is a secret.
     isExcludedUser: isToastExcludedUser,
     isBypassChannel: isToastBypassChannel,
 

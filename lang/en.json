@@ -267,6 +267,9 @@
 			"combatTrackerAutoSelectToken-Label": "Auto-Select Current Combatant",
 			"combatTrackerAutoSelectToken-Hint": "Automatically select the token for the combatant whose turn it is when the turn changes.",
 
+			"combatTrackerPanToCombatant-Label": "Pan To Current Combatant",
+			"combatTrackerPanToCombatant-Hint": "Pan the GM's canvas to the token of the combatant whose turn it is when the turn changes. Only affects the GM; player views are left alone.",
+
 			"combatTrackerSetFirstTurn-Label": "Set First Turn",
 				"combatTrackerSetFirstTurn-Hint": "Set the first combatant as the current combatant at the start of the combat after all inititives have been rolled.",
 
@@ -801,8 +804,6 @@
 		"toastExcludedUsers-Label": "Excluded Users",
 		"toastExcludedUsers-Hint": "Comma-separated Foundry user names (not character names) whose screens never show toasts - for example a camera or stream account that cannot click a toast to close it. Matching is case-insensitive. Applies to every toast, including 'Entire Party' sends from the Send Toast window, timer announcements, and broadcasts.",
 
-		"toastBypassChannels-Label": "Channels Excluded Users Still See",
-		"toastBypassChannels-Hint": "Which announcements still reach excluded users, so exclusion is not all-or-nothing - a camera or stream account can be spared routine chatter while still showing the moments worth capturing. LEAVE THIS EMPTY AND EVERY DECLARED CHANNEL GETS THROUGH, which is the default and what most tables want; tick boxes off only to narrow it. Channels are declared by the modules that send toasts, so the list above shows what is loaded right now - a name saved here whose module is currently disabled is kept and marked, never dropped. A toast with no channel is never affected.",
 
 		"headingH2NotifyLeader-Label": "Leader",
 		"headingH2NotifyLeader-Hint": "Announcements when the party leader changes.",

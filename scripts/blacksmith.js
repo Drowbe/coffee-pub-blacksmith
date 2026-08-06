@@ -94,7 +94,7 @@ import { TagWidget } from './widget-tags.js';
 import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
-import { ToastAPI, enhanceToastChannelSetting } from './api-toast.js';
+import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { QuantitySplitAPI } from './api-quantity-split.js';
@@ -650,20 +650,6 @@ function initializeSettingsDependentFeatures() {
         if (blnShowIcons) {
             NavigationManager._updateSceneIcons();
         }
-
-        // Turn the toast bypass-channels text field into a checklist of declared channels.
-        // Built at render rather than at registration, so a module registering late still shows.
-        const toastChannelSettingHookId = HookManager.registerHook({
-            name: 'renderSettingsConfig',
-            description: 'Blacksmith: Toast bypass channels checklist',
-            context: 'blacksmith-toast-channel-picker',
-            priority: 3,
-            callback: (app, html) => {
-                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                enhanceToastChannelSetting(html);
-                //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
-            }
-        });
 
         // Register for scene updates
         if (blnShowIcons || blnCustomClicks) {

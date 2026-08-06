@@ -28,7 +28,7 @@ class CombatTracker {
     
     // Track pending setTimeout calls for cleanup
     static _pendingTimeouts = new Set();
-    
+
     /**
      * Initialize the Combat Tracker functionality
      * Sets up hooks for combat events
@@ -252,7 +252,57 @@ class CombatTracker {
                 
                 // Log hook registration
                 postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat (auto-select token)", "combat-tracker-auto-select-token", true, false);
-                
+
+                // Handle panning the GM's canvas to the current combatant on turn change
+                const panToCombatantHookId = HookManager.registerHook({
+                    name: 'updateCombat',
+                    description: 'Combat Tracker: Pan the GM canvas to the current combatant on turn change',
+                    context: 'combat-tracker-pan-to-combatant',
+                    priority: 3,
+                    callback: async (combat, changed, options, userId) => {
+                        // --- BEGIN - HOOKMANAGER CALLBACK ---
+                        // GM only: a player's viewport is theirs, not the turn order's
+                        if (!game.user.isGM) return;
+
+                        // Skip if combat doesn't exist (combat might have been deleted)
+                        if (!combat || !game.combats.has(combat.id)) return;
+
+                        // Only process if setting is enabled
+                        if (!getSettingSafely(MODULE.ID, 'combatTrackerPanToCombatant', false)) return;
+
+                        // Only process turn changes. A round advance carries a turn change too,
+                        // so this covers wrapping back to the top of the order.
+                        if (!('turn' in changed)) return;
+
+                        // Only process if combat is started
+                        if (!combat?.started) return;
+
+                        // Get current combatant
+                        const currentCombatant = combat.combatant;
+                        if (!currentCombatant) return;
+
+                        // Reuse the combat bar's pan rather than repeating it. That one is
+                        // what the "Pan to Token" menu item and a portrait click already run,
+                        // so the turn-change pan lands the view exactly where reaching for it
+                        // by hand does, and there is one implementation to keep honest.
+                        // Dynamic import because manager-combatbar.js imports this file - the
+                        // same reason it reaches back here through `await import` rather than
+                        // a static one.
+                        //
+                        // `selectToken` is left off on purpose: selecting the current token is
+                        // combatTrackerAutoSelectToken's job, and forcing it here would make
+                        // this setting silently override that one.
+                        const CB = await import('./manager-combatbar.js');
+                        CB.CombatBarManager.panToCombatant(null, currentCombatant.id);
+
+                        postConsoleAndNotification(MODULE.NAME, `Panned to current combatant ${currentCombatant.name}`, "", true, false);
+                        // --- END - HOOKMANAGER CALLBACK ---
+                    }
+                });
+
+                // Log hook registration
+                postConsoleAndNotification(MODULE.NAME, "Hook Manager | updateCombat (pan to combatant)", "combat-tracker-pan-to-combatant", true, false);
+
                 // Hook into combat start for player initiative
                 const combatStartPlayerInitiativeHookId = HookManager.registerHook({
 					name: 'combatStart',

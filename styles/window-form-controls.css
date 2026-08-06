@@ -88,35 +88,6 @@
 }
 
 
-/* ----- Toast channel checklist (settings form) -----
-   Injected above the toastBypassChannels text field, which stays visible and remains the
-   storage — the boxes write into it. See enhanceToastChannelSetting() in api-toast.js. */
-.blacksmith-channel-picker {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-bottom: 6px;
-}
-.blacksmith-channel-picker-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    cursor: pointer;
-}
-.blacksmith-channel-picker-row input[type="checkbox"] {
-    flex: 0 0 auto;
-    margin: 0;
-}
-.blacksmith-channel-picker-label {
-    font-weight: 600;
-}
-.blacksmith-channel-picker-desc,
-.blacksmith-channel-picker-empty {
-    opacity: 0.7;
-    font-size: 12px;
-}
-
 /* ----- Badge / tag pill ----- */
 /*
   Usage:

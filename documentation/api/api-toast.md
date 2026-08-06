@@ -36,14 +36,12 @@ camera or stream login. The `/stream` view is exempt: a stream-targeted toast (s
 renders there even when the logged-in account is on the exclusion list — exclusion protects a
 passive account from tabletop noise, while publishing to the stream is deliberate.
 
-**Exclusion is not all-or-nothing.** A toast declaring a `channel` renders for an excluded user
-when that channel is permitted by the Channels Excluded Users Still See world setting
-(`toastBypassChannels`, Notifications settings). **An empty setting permits every channel** — the
-default, so the feature works without configuration; a non-empty one permits only what it names,
-case-insensitively. A toast with no `channel` is never affected, and the check is receipt-side, so
-this changes what a client renders and never what was delivered.
+**Exclusion is not all-or-nothing.** A toast declaring a `channel` still renders for an excluded
+user unless the GM has switched that channel off. **Every channel is on by default**, so the
+feature works with no configuration. A toast with no `channel` is never affected, and the check is
+receipt-side, so this changes what a client renders and never what was delivered.
 
-Declare your channels so a GM can find them:
+Declare your channels so each one gets a labelled checkbox in the Notifications settings:
 
 ```javascript
 api.toast.registerChannel('crit', {
@@ -53,12 +51,16 @@ api.toast.registerChannel('crit', {
 });
 ```
 
-The setting renders declared channels as a checklist. Registration is optional — an unregistered
-channel works identically, it is simply undiscoverable, so a GM has to be told the name some other
-way. `api.toast.getChannels()` returns what is registered **right now**: read it as "what is
-loaded", never as "what is valid", and never use it to prune a stored allow-list. A module
-disabled for one evening takes its channels out of that list while the GM's saved setting still
-names them, and the saved value must survive untouched.
+Each registered channel becomes an ordinary Boolean world setting, defaulting to on, titled with
+the `label` and `description` you supply. Register at `init`.
+
+Registration is optional. An unregistered channel behaves identically and is likewise allowed —
+it simply has no checkbox, so a GM cannot switch it off and will not know it exists. Declaring is
+how you give them the choice.
+
+`api.toast.getChannels()` returns what is registered **right now**: read it as "what is loaded",
+never as "what is valid". A module absent for one session takes its channels out of that list
+while the GM's stored preference for them survives untouched, so never use it to prune anything.
 
 Channel names belong to the **sending** module: Blacksmith matches the string and nothing more, so
 it never has to know what a critical or an injury is. Pick a name for a class of event and document
@@ -159,9 +161,10 @@ target the stream view or both.
   both `channel` and the persistent-toast rule. **For deliberate, human-directed sends only** — a GM
   explicitly choosing an excluded recipient. Automated senders use `channel`.
 - `channel` (string, optional): free-form name grouping this toast with others of its kind, e.g.
-  `'announcements'`. Its only effect is on exclusion — a user listed in `toastExcludedUsers` still
-  sees a toast whose channel appears in `toastBypassChannels`. Omit it and the toast behaves as it
-  always has. Plain data, so it rides the cross-client relays unchanged.
+  `'crit'`. Its only effect is on exclusion — a user listed in `toastExcludedUsers` still sees a
+  channelled toast unless the GM has switched that channel off, and every channel is on by
+  default. Omit it and the toast never reaches an excluded user. Plain data, so it rides the
+  cross-client relays unchanged. Pair it with `registerChannel()` to give the GM a checkbox.
 
 Title and subtitle are rendered as text, never parsed as HTML.
 
@@ -224,15 +227,14 @@ themselves.
 
 Read-only introspection, so a module can diagnose its own delivery rather than re-deriving it.
 `isExcludedUser(user)` (default: the current user) reports whether a user is listed in
-`toastExcludedUsers`; `isBypassChannel(channel)` reports whether a channel name is listed in
-`toastBypassChannels`. Both read world settings, so any client can call them.
+`toastExcludedUsers`; `isBypassChannel(channel)` reports whether that channel currently reaches
+excluded users. Both read world settings, so any client can call them.
 
-Use them to warn a GM that a module's announcements cannot arrive — a user excluded with none of
-the module's channels allowed. Ask rather than reading the settings directly: the setting ids and
-the comma/trim/case parsing are implementation, and these two answers are not.
-
-Blacksmith cannot tell you whether a name in `toastBypassChannels` is a typo or another module's
-channel, and neither can you. Report an unrecognised name as one or the other, not as an error.
+Use them to warn a GM that a module's announcements cannot arrive — a user excluded with every one
+of the module's channels switched off. Ask rather than reading the settings directly: the setting
+ids and the key naming are implementation, and these two answers are not. That coupling is not
+hypothetical — the storage behind channels changed from a single comma-separated field to one
+setting per channel, and callers of these helpers needed no change.
 
 ## Stacking model
 
