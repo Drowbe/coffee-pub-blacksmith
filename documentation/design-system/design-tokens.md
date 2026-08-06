@@ -118,6 +118,19 @@ Semantic outcome colors, for text and solid fills.
 | `--blacksmith-status-damage` | `#d63737` | Combat damage, distinct from danger |
 | `--blacksmith-status-info` | `#3c6685` | Informational |
 
+## Color: token disposition
+
+One color per `CONST.TOKEN_DISPOSITIONS` value, for surfaces that mark a token or combatant as friendly,
+neutral, hostile, or secret. These are the module's own muted palette, not Foundry's saturated canvas
+colors, because they render inside Blacksmith chrome rather than over the map.
+
+| Token | Value | Use |
+|---|---|---|
+| `--blacksmith-disposition-friendly` | `#4a7c23` | Friendly disposition |
+| `--blacksmith-disposition-neutral` | `#ac9f81` | Neutral disposition |
+| `--blacksmith-disposition-hostile` | `#a51214` | Hostile disposition |
+| `--blacksmith-disposition-secret` | `#6b4a8c` | Secret disposition |
+
 ## Color: variant palette
 
 Paired border and background tints for panels and tagged content. Each variant is a translucent border at

@@ -130,13 +130,44 @@ template's `sound` is a **path**, not an asset id — the sound dropdown is keye
 (`getSoundChoices` in `settings.js`) and `playSound()` takes a src, so an id here 404s.
 
 User templates with a title are also fireable without the window: the party menubar's **Quick
-Toast** item (GM-only, `showQuickToastMenu` in `api-menubar.js`) lists them in a `UIContextMenu`
+Toast** item (`showQuickToastMenu` in `api-menubar.js`) lists them in a `UIContextMenu`
 and `quickSendToastTemplate()` (`window-toast-send.js`) sends the pick exactly as stored —
 party-wide delivery (online non-GM users minus the Excluded Users list) on the template's own
 publish target, with a stream target going out as a broadcast. The adhoc built-ins and titleless
 pre-snapshot templates never appear in the menu — `show()` requires a title — so the list is
 always the GM's canned announcements, and an empty list explains how to create one. The menu's
 last entry opens the full Send Toast window.
+
+### The elected party leader fires them too
+
+The same menubar item is visible to the elected party leader (`isCurrentUserPartyLeader()`), and
+opening it as a non-GM narrows it: only templates carrying `leaderAccess` — the GM's "Enable
+Leader Access" checkbox, saved in the template snapshot like every other field — and no entry
+for the Send Toast window, which is the GM's tool. One registration serves both, because the
+menu already knows who opened it; two would mean keeping two `visible` predicates and two menus
+honest with each other. `templateData.isLeader` is part of the menubar structure fingerprint, so
+a leader change re-renders and the button arrives or leaves on its own.
+
+**The leader's recipients are not the GM's.** A GM's Quick Toast goes to the party — online
+non-GM users minus the excluded. A leader's goes to **every online user but themselves, GMs
+included**: a leader announcing to the table means the table, and the GM is at it. The sender is
+dropped for the same reason the GM's own send is not echoed back — they get the small
+confirmation toast instead.
+
+Nothing on the leader path writes: `toastSendTemplates` is world-scoped and read-only to a
+player, and socketlib's `executeForOthers` is not GM-gated, so the existing relay carries a
+player's send with no new plumbing. Delivery is still gated receipt-side by `_recipients`, which
+is the same guarantee it always was — and the payload is a GM-authored announcement either way,
+so the "never carry secrets" rule is untouched.
+
+`leaderAccess` also explains why the Send Toast window now lists **GMs as tickable recipients**.
+Without them a leader could not reach the GM at all, and neither could a co-GM reach another. They
+are listed badged `GM`, after the players, and **"Entire Party" still means online players only** —
+a GM is included by ticking them, the deliberate act offline and excluded rows already require.
+Widening the party checkbox instead would have changed what an existing control has always meant
+and made every party-wide send echo on the sender's own screen. Because a GM row stays enabled
+while the party box is checked, the send unions the ticked ids with the resolved party rather than
+replacing them; the party box locking the player rows must not silently discard a tick beside it.
 
 Optional `sound` is a data path, not a shared audio instance. `show()` plays it locally through
 Blacksmith's sound helper. Internal broadcast/targeted relays carry the path, and each receiving

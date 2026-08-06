@@ -2969,6 +2969,23 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Token Blood Mop The Dead --
+	// -- A SECOND cleanup timer, for tokens at the `dead` tier only. Blood Cleanup
+	// -- defaults to never, which is right for a fight in progress and wrong for the
+	// -- bodies left behind it; this is what lets a table keep live blood permanently
+	// -- and still clear corpses. 0 means never, same as Blood Cleanup.
+	game.settings.register(MODULE.ID, 'tokenBloodMopDeadSeconds', {
+		name: MODULE.ID + '.tokenBloodMopDeadSeconds-Label',
+		hint: MODULE.ID + '.tokenBloodMopDeadSeconds-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 30,
+		range: { min: 0, max: 60, step: 5 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Token Blood Clear Request (hidden relay: GM "Remove All Blood" writes a nonce here;
 	// -- every client's settingChange watcher clears its local splatter) --
 	game.settings.register(MODULE.ID, 'tokenBloodClearRequest', {

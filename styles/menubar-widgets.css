@@ -697,3 +697,37 @@
     60%  { transform: scale(0.97); }
     100% { transform: scale(1);    filter: none; }
 }
+
+/* ---- SHAPE: badge ---------------------------------------------------------
+   A statchip with `shape: 'badge'` has no naming half at all -- the word moved
+   to the tooltip -- so what is left is the number, and a number with nothing
+   beside it needs a container or it reads as loose text on the row.
+
+   Placed after the feature-pill block on purpose: both reach 0,3,0 on the item
+   element, so source order is what settles the border radius between them.
+
+   The capsule is square-by-default and grows sideways: a one-digit round is a
+   circle, "2 of 6" is a stadium, and neither balloons the row's height. That is
+   the whole reason this is a shape and not two more kinds. */
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-badge {
+    padding: 0;
+    gap: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    align-items: stretch;
+    justify-content: center;
+    height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-badge .secondary-bar-item-value {
+    /* Minimum width equal to the height is what makes the single-character case
+       a circle rather than a short pill. */
+    min-width: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
+    padding: 0 0.7em;
+    justify-content: center;
+    /* Falls back to the neutral containment treatment, so a badge still reads as
+       a badge at `emphasis: 'plain'`, where no tone fill is set for it. */
+    background-color: var(--blacksmith-widget-tone-fill, rgba(255, 255, 255, 0.09));
+    color: var(--blacksmith-widget-tone-ink, var(--blacksmith-widget-tone-neutral));
+}

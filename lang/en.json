@@ -507,6 +507,9 @@
 				"tokenBloodCleanupSeconds-Label": "Blood Cleanup",
 				"tokenBloodCleanupSeconds-Hint": "Seconds until a token's blood pool is removed from the ground, counted from the last time it took damage. New damage brings the blood back and restarts the timer. 0 means blood is never removed automatically.",
 
+				"tokenBloodMopDeadSeconds-Label": "Mop the Dead",
+				"tokenBloodMopDeadSeconds-Hint": "Seconds until a dead token's blood pool is removed from the ground, counted from the moment it died. Separate from Blood Cleanup so blood on the living can persist while the bodies are cleaned up behind you. 0 means a dead token's blood is never removed automatically.",
+
 				"tokenBloodVisibility-Label": "Token Blood Visibility",
 				"tokenBloodVisibility-Hint": "Who can see blood damage pools and hit bursts. GM Only hides them from players so they cannot read enemy health from the canvas.",
 

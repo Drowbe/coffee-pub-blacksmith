@@ -1462,7 +1462,7 @@ blacksmith.registerSecondaryBarItem('cartographer', 'medium-line', {
 - `barTypeId` (string, required): The bar type ID to register the item to
 - `itemId` (string, required): Unique identifier for the item
 - `itemData` (Object, required): Item configuration
-  - `kind` (string, optional): `'button'` (default), `'info'`, `'statchip'`, `'portraitstat'`, `'gaugechip'`, `'nameplate'`, `'progressbar'`, or `'balancebar'`. Buttons are clickable; every other kind is display-only and is updated with `updateSecondaryBarItemInfo`.
+  - `kind` (string, optional): `'button'` (default), `'info'`, `'statchip'`, `'portraitstat'`, `'gaugechip'`, `'nameplate'`, `'progressbar'`, or `'balancebar'`. Buttons are clickable; every other kind is display-only and is updated with `updateSecondaryBarItemInfo`. A display-only item must carry at least one of `label`, `value`, `valueParts`, or `image`, or the registration is refused.
   - `zone` (string, optional): `'left'`, `'middle'`, or `'right'`. Default: `'middle'`. Only applies to the default tool system.
   - `icon` (string, required for buttons, optional for info): FontAwesome icon class (e.g., `'fa-solid fa-pencil'`, `'fas fa-eraser'`). Info items can use icon for consistent styling with buttons.
   - `label` (string, optional): Text label. For buttons, shown next to the icon. For info items, use with or without `value`.
@@ -1523,6 +1523,24 @@ blacksmith.registerSecondaryBarItem('my-bar', 'damage-taken', {
 blacksmith.updateSecondaryBarItemInfo('my-bar', 'damage-taken', { value: '38' });
 ```
 
+`shape` sets how the chip is drawn: `'pill'` (default) is the label-then-value chip described above. `'badge'` renders the value alone in a capsule and shows neither `label` nor `icon` - the capsule is square-sided at minimum, so a single character is a circle and a longer value stretches sideways. Set it at registration; it is not read from an update.
+
+A badge states its own meaning nowhere on the bar, so its `tooltip` is the only place a reader can find out what the number is. Push the tooltip with the value rather than fixing it at registration, or the tooltip will name the readout while the badge shows a figure it does not mention.
+
+```javascript
+blacksmith.registerSecondaryBarItem('my-bar', 'round', {
+    kind: 'statchip',
+    shape: 'badge',
+    emphasis: 'feature',
+    zone: 'left',
+    value: '0',
+    tooltip: 'Round',
+    group: 'encounter',
+    order: 0
+});
+blacksmith.updateSecondaryBarItemInfo('my-bar', 'round', { value: '4', tooltip: 'Round 4' });
+```
+
 **Portraitstat item** (`kind: 'portraitstat'`): A standing that belongs to a person. Renders `image` as a round, ringed portrait with `value` beside it; `rank` (1, 2, 3, or 0 for unranked) colours the ring gold, silver, or bronze. Falls back to `icon` - or a generic figure - when there is nobody to show, at the same size, so a standing changing hands never shifts the chips either side of it. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { image, value, rank, tooltip })`.
 
 Use it where the answer to the readout is *who*. A face is recognised instantly where a truncated first name is not, so the name belongs in the tooltip rather than the chip.
@@ -1544,9 +1562,9 @@ blacksmith.updateSecondaryBarItemInfo('my-bar', 'top-mvp', {
 });
 ```
 
-**Gaugechip item** (`kind: 'gaugechip'`): A percentage as a ring plus its number. `percentProgress` (0-100) drives the sweep; `value` is the text beside it, `gaugeColor` optionally overrides the ring colour. The ring is read before the digits are; the number stays because a ring this size cannot be read precisely. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, value, label, tooltip })`.
+**Gaugechip item** (`kind: 'gaugechip'`): A percentage as a horizontal meter plus its number. `percentProgress` (0-100) drives the fill; `value` is the text beside it, `gaugeColor` optionally overrides the fill colour. The meter is read before the digits are; the number stays because a meter this size cannot be read precisely. Update with `updateSecondaryBarItemInfo(barTypeId, itemId, { percentProgress, value, label, tooltip })`.
 
-Push both `value` and `percentProgress` - the text is formatted for a reader and the sweep needs a number, and deriving one from the other would re-parse a string that was built for display.
+Push both `value` and `percentProgress` - the text is formatted for a reader and the fill needs a number, and deriving one from the other would re-parse a string that was built for display.
 
 ```javascript
 blacksmith.registerSecondaryBarItem('my-bar', 'hit-rate', {

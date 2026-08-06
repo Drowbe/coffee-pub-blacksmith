@@ -281,7 +281,8 @@ export class TokenIndicatorManager {
                     'tokenBloodHitTrigger',
                     'tokenBloodHitSound',
                     'tokenBloodVisibility',
-                    'tokenBloodCleanupSeconds'
+                    'tokenBloodCleanupSeconds',
+                    'tokenBloodMopDeadSeconds'
                 ]);
                 if (!watchedKeys.has(key)) return;
                 this.refreshAll();
@@ -1581,6 +1582,14 @@ export class TokenIndicatorManager {
      * Blood Cleanup: after the configured number of seconds since the token's
      * last damage, remove its pool and suppress redraws until it bleeds again.
      * 0 means never. Each client runs its own timer from the same update event.
+     *
+     * A token at the `dead` tier runs on its own interval instead — "Mop the
+     * Dead". Blood Cleanup defaults to never, which is right for a fight in
+     * progress and wrong for the bodies left behind it, so the two are separate
+     * settings rather than one: a table can keep blood on the living forever and
+     * still have corpses cleared. The tier is read off the mesh entry, so no
+     * extra hook is needed — a corpse's mesh is built at the moment it crosses
+     * into `dead`, and building schedules.
      */
     static _scheduleBloodCleanup(tokenId) {
         const entry = this._bloodMeshes.get(tokenId);
@@ -1589,7 +1598,9 @@ export class TokenIndicatorManager {
             clearTimeout(entry.cleanupTimeout);
             entry.cleanupTimeout = null;
         }
-        const seconds = Number(getSettingSafely(MODULE.ID, 'tokenBloodCleanupSeconds', 0)) || 0;
+        const seconds = entry.severity === 'dead'
+            ? Number(getSettingSafely(MODULE.ID, 'tokenBloodMopDeadSeconds', 30)) || 0
+            : Number(getSettingSafely(MODULE.ID, 'tokenBloodCleanupSeconds', 0)) || 0;
         if (seconds <= 0) return;
         entry.cleanupTimeout = setTimeout(() => {
             // Suppress so the lazy refresh path does not immediately redraw from HP state

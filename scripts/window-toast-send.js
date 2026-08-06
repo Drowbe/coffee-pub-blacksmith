@@ -30,12 +30,16 @@ const TEMPLATES_SETTING = 'toastSendTemplates';
 // image, when set, covers the background color.
 // A deliberately small set — Information is the everyday default, Announcement and
 // Important cover the loud cases, and everything else is Custom / user-saved.
+//
+// `leaderAccess` is what puts a template in the elected party leader's Quick Toast menu.
+// The built-ins carry false and would be unreachable anyway: they deliberately hold no
+// text, and a fireable template needs a title.
 const BUILTIN_TEMPLATES = {
     // NOTE: `sound` is the PATH, not the asset id — the sound dropdown is keyed by
     // path (settings.js getSoundChoices) and playSound() takes a src.
-    'Information (adhoc)':  { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3', publish: 'game', animation: '' },
-    'Announcement (adhoc)': { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3', publish: 'game', animation: '' },
-    'Important (adhoc)':    { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3', publish: 'game', animation: '' }
+    'Information (adhoc)':  { color: '#ac9f81', backgroundColor: '#141414', icon: 'fa-solid fa-bookmark', image: '', backgroundImage: '', size: '', duration: 10, sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3', publish: 'game', animation: '', leaderAccess: false },
+    'Announcement (adhoc)': { color: '#a4becc', backgroundColor: '#000e14', icon: 'fa-solid fa-flag', image: '', backgroundImage: '', size: 'small', duration: 30, sound: 'modules/coffee-pub-blacksmith/sounds/interface-button-06.mp3', publish: 'game', animation: '', leaderAccess: false },
+    'Important (adhoc)':    { color: '#f5d6d6', backgroundColor: '#250909', icon: 'fa-solid fa-shield', image: '', backgroundImage: '', size: 'fullscreen', duration: 0, sound: 'modules/coffee-pub-blacksmith/sounds/synth.mp3', publish: 'game', animation: '', leaderAccess: false }
 };
 const DEFAULT_BG_COLOR = '#141414';
 // Template-selector sentinel: shown whenever the form has diverged from a template.
@@ -126,7 +130,16 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         const esc = foundry.utils.escapeHTML;
         const prefs = this.preferences;
 
-        // Non-GM users; active ones enabled and pre-checked, offline disabled.
+        // Every user, GMs included; active ones enabled and pre-checked, offline disabled.
+        //
+        // GMS ARE LISTED BUT ARE NOT "THE PARTY". They were excluded from the list entirely,
+        // which left no way to send a toast to a co-GM, or to the GM at all — and the party
+        // leader's Quick Toast needs the GM reachable, since a leader announcing to the table
+        // means the table. So they appear as ordinary tickable rows, badged GM, and "Entire
+        // Party (everyone online)" keeps meaning online PLAYERS: a GM is reached by ticking
+        // them, the same deliberate act offline and excluded accounts require. Widening the
+        // party box instead would have changed what an existing control has always meant and
+        // made every party-wide send echo on the sender's own screen.
         //
         // EXCLUDED USERS ARE LISTED, BADGED, AND NOT PRE-CHECKED. They used to be hidden
         // outright, on the reasoning that show() would drop the toast anyway so offering them
@@ -141,7 +154,11 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         // `toast-recipient` input name and the toast-send row class: the send
         // path and the party-toggle handler read that contract directly, and
         // window-toast-send.css skins it.
-        const recipientUsers = game.users.filter(u => !u.isGM);
+        // Players first, then GMs — the common case stays at the top of the list.
+        const recipientUsers = [
+            ...game.users.filter(u => !u.isGM),
+            ...game.users.filter(u => u.isGM && u.id !== game.user.id)
+        ];
         const isExcluded = (u) => isToastExcludedUser(u);
         this._recipientList = EntityListAPI.create({
             entities: recipientUsers.map(u => ({
@@ -150,8 +167,8 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                 img: u.character?.img || u.avatar || 'icons/svg/mystery-man.svg',
                 disabled: !u.active,
                 disabledReason: u.active ? null : 'Offline',
-                badges: isExcluded(u) ? ['Excluded'] : [],
-                className: [u.active ? null : 'offline', isExcluded(u) ? 'excluded' : null]
+                badges: [u.isGM ? 'GM' : null, isExcluded(u) ? 'Excluded' : null].filter(Boolean),
+                className: [u.active ? null : 'offline', isExcluded(u) ? 'excluded' : null, u.isGM ? 'gm' : null]
                     .filter(Boolean).join(' ') || null
             })),
             mode: EntityListAPI.MODES.MULTI,
@@ -159,12 +176,16 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             itemClass: 'blacksmith-toast-send-recipient',
             listClass: 'blacksmith-toast-send-recipients',
             // Never pre-checked, and never restored from a saved preference: reaching an
-            // excluded account is always a fresh, deliberate choice.
+            // excluded account is always a fresh, deliberate choice. A GM is pre-checked only
+            // if the saved preference names them, for the same reason the party box skips
+            // them — they are not swept in by default.
             selected: recipientUsers
                 .filter(u => u.active && !isExcluded(u)
-                    && (prefs.party || !Array.isArray(prefs.recipients) || prefs.recipients.includes(u.id)))
+                    && (u.isGM
+                        ? (Array.isArray(prefs.recipients) && prefs.recipients.includes(u.id))
+                        : (prefs.party || !Array.isArray(prefs.recipients) || prefs.recipients.includes(u.id))))
                 .map(u => u.id),
-            emptyMessage: 'No players in this world.'
+            emptyMessage: 'No other users in this world.'
         });
         const recipientRows = this._recipientList.html;
 
@@ -195,7 +216,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                     <label class="blacksmith-toast-send-recipient blacksmith-toast-send-party">
                         <input type="checkbox" name="toast-party" ${prefs.party ? 'checked' : ''}>
                         <i class="fa-solid fa-people-group"></i>
-                        <span>Entire Party (everyone online)</span>
+                        <span>Entire Party (all players online)</span>
                     </label>
                     ${recipientRows}
                 </div>
@@ -214,6 +235,12 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                             data-tooltip="Delete this template" aria-label="Delete template"
                             ${BUILTIN_TEMPLATES[selectedTemplate] || selectedTemplate === CUSTOM_TEMPLATE ? 'style="display:none"' : ''}><i class="fa-solid fa-trash"></i></button>
                     </div>
+                    <label class="blacksmith-toast-send-recipient blacksmith-toast-send-leader-access">
+                        <input type="checkbox" name="toast-leader-access" ${prefs.leaderAccess ? 'checked' : ''}>
+                        <i class="fa-solid fa-crown"></i>
+                        <span>Enable Leader Access</span>
+                    </label>
+                    <div class="blacksmith-toast-send-note">The elected party leader can fire this template from their own Quick Toast menu. It needs a saved title to be fireable.</div>
                 </div>
 
                 <div class="blacksmith-window-section">
@@ -369,12 +396,14 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         // every online player's box; unchecking restores individual control.
         // Excluded accounts are skipped for the same reason offline ones are — a camera
         // account is not "the party", and sweeping it in would make the one deliberate
-        // act the exclusion list asks for into an accident.
+        // act the exclusion list asks for into an accident. GM rows are skipped on the
+        // same principle: the GM is at the table, not in the party.
         const party = root.querySelector('[name="toast-party"]');
         const applyPartyState = () => {
             for (const cb of root.querySelectorAll('[name="toast-recipient"]')) {
                 const row = cb.closest('.blacksmith-toast-send-recipient');
-                if (row?.classList.contains('offline') || row?.classList.contains('excluded')) continue;
+                if (row?.classList.contains('offline') || row?.classList.contains('excluded')
+                    || row?.classList.contains('gm')) continue;
                 if (party.checked) {
                     cb.checked = true;
                     cb.disabled = true;
@@ -404,7 +433,9 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         // of a template, not a divergence from it (author decision 2026-07-20). The
         // publish target IS template content (author decision 2026-07-23), so changing
         // it diverges too.
-        const APPEARANCE_FIELDS = ['toast-size', 'toast-duration', 'toast-sound', 'toast-border-color', 'toast-border-color-text', 'toast-bg-color', 'toast-bg-color-text', 'toast-image', 'toast-background', 'toast-publish', 'toast-animation'];
+        // `toast-leader-access` is not appearance, but it is template CONTENT — the list this
+        // drives is per template — so it diverges a built-in to Custom like the rest.
+        const APPEARANCE_FIELDS = ['toast-size', 'toast-duration', 'toast-sound', 'toast-border-color', 'toast-border-color-text', 'toast-bg-color', 'toast-bg-color-text', 'toast-image', 'toast-background', 'toast-publish', 'toast-animation', 'toast-leader-access'];
         for (const input of root.querySelectorAll('input, select')) {
             if (['toast-title', 'toast-subtitle', 'toast-party', 'toast-template'].includes(input.name)) continue;
             input.addEventListener('change', () => {
@@ -530,7 +561,10 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             duration: Number(root?.querySelector('[name="toast-duration"]')?.value ?? 0),
             sound: root?.querySelector('[name="toast-sound"]')?.value || 'sound-none',
             publish: root?.querySelector('[name="toast-publish"]')?.value || 'game',
-            animation: root?.querySelector('[name="toast-animation"]')?.value || ''
+            animation: root?.querySelector('[name="toast-animation"]')?.value || '',
+            // Who may fire it, not how it looks — but it saves with the template because it is
+            // a property OF the template, and there is nowhere else for it to live.
+            leaderAccess: root?.querySelector('[name="toast-leader-access"]')?.checked === true
         };
     }
 
@@ -564,6 +598,10 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
         setValue('[name="toast-publish"]', tpl.publish || 'game');
         this._applyPublishState();
         setValue('[name="toast-animation"]', tpl.animation || '');
+        // Templates saved before leader access existed carry none — those are the GM's alone,
+        // which is what they were when they were saved.
+        const leaderAccess = root.querySelector('[name="toast-leader-access"]');
+        if (leaderAccess) leaderAccess.checked = tpl.leaderAccess === true;
 
         // Templates are full snapshots: the wording stamps too. Adhoc (built-in)
         // designs carry no text, so selecting one clears the fields for fresh
@@ -724,6 +762,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             duration: Number(root.querySelector('[name="toast-duration"]')?.value ?? 0),
             sound: root.querySelector('[name="toast-sound"]')?.value || 'sound-none',
             animation: root.querySelector('[name="toast-animation"]')?.value || '',
+            leaderAccess: root.querySelector('[name="toast-leader-access"]')?.checked === true,
             // The IMAGE_MODE sentinel never persists as an icon — the stored image path is
             // what restores image mode on reopen (see constructor)
             icon: this.selectedIcon === IMAGE_MODE ? '' : this.selectedIcon,
@@ -755,14 +794,21 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             }
             const partyChecked = root.querySelector('[name="toast-party"]')?.checked === true;
             const publish = root.querySelector('[name="toast-publish"]')?.value || 'game';
-            // Party resolves at send time to everyone online — minus excluded
+            // Party resolves at send time to all PLAYERS online — minus excluded
             // users, so a camera/stream account is never swept in by the party box.
+            // GM rows stay enabled while the box is checked and are unioned in here:
+            // "the party plus the co-GM" is a real send, and the party box locking
+            // the player rows must not silently discard a tick beside it.
             // A stream-only send is view-addressed and has no user recipients.
+            const ticked = [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(cb => cb.value);
             const recipients = publish === 'stream'
                 ? []
                 : partyChecked
-                    ? game.users.filter(u => !u.isGM && u.active && !isToastExcludedUser(u)).map(u => u.id)
-                    : [...root.querySelectorAll('[name="toast-recipient"]:checked')].map(cb => cb.value);
+                    ? [...new Set([
+                        ...game.users.filter(u => !u.isGM && u.active && !isToastExcludedUser(u)).map(u => u.id),
+                        ...ticked
+                    ])]
+                    : ticked;
             if (publish !== 'stream' && !recipients.length) {
                 ui.notifications.warn(partyChecked ? 'No players are online.' : 'Pick at least one recipient.');
                 return;
@@ -811,11 +857,14 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             // Small GM confirmation (author decision 2026-07-19) — not an echo of the
             // announcement. Wears the Information template so the tool's own voice
             // matches the house default look.
+            const recipientUsers = recipients.map(id => game.users.get(id)).filter(Boolean);
             const names = publish === 'stream'
                 ? []
                 : partyChecked
-                    ? ['Entire party']
-                    : recipients.map(id => game.users.get(id)).filter(Boolean).map(u => u.character?.name || u.name);
+                    // The party is one name; anyone ticked ALONGSIDE it is named, or the
+                    // confirmation would not say that the co-GM was included.
+                    ? ['Entire party', ...recipientUsers.filter(u => u.isGM).map(u => u.name)]
+                    : recipientUsers.map(u => u.character?.name || u.name);
             if (publish !== 'game') names.push('Stream');
             const info = BUILTIN_TEMPLATES['Information (adhoc)'];
             ToastManager.show({
@@ -844,20 +893,32 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 // templates and sends one on click. Only templates with a saved title are
 // fireable — show() requires one. The adhoc built-ins never carry text, so
 // the menu is always the GM's own canned announcements.
+//
+// THE ELECTED PARTY LEADER GETS THE SAME MENU, NARROWED. It lists only the
+// templates the GM ticked "Enable Leader Access" on, and it omits the entry
+// that opens the Send Toast window, which is GM-only. Nothing about the leader
+// path writes a setting: `toastSendTemplates` is world-scoped and read-only to
+// a player, and socketlib's executeForOthers is not GM-gated, so the existing
+// relay carries a player's send unchanged.
 
 /**
  * Saved templates that can fire as-is: user templates with a non-empty title.
  * (Look-only templates saved before the full-snapshot model lack one — those
  * stay window-only.) Sorted by name for a stable menu.
+ *
+ * @param {Object} [options]
+ * @param {boolean} [options.leaderOnly=false] - Only templates marked for leader access.
+ *   The GM's own menu passes false and sees everything fireable.
  * @returns {Array<{name: string, tpl: Object}>}
  */
-export function getQuickToastTemplates() {
+export function getQuickToastTemplates({ leaderOnly = false } = {}) {
     let saved = {};
     try {
         saved = game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {};
     } catch { /* setting not registered yet */ }
     return Object.entries(saved)
         .filter(([, tpl]) => typeof tpl?.title === 'string' && tpl.title.trim())
+        .filter(([, tpl]) => !leaderOnly || tpl.leaderAccess === true)
         .map(([name, tpl]) => ({ name, tpl }))
         .sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -869,14 +930,25 @@ export function getQuickToastTemplates() {
  * online non-GM users minus the Excluded Users list; a stream target
  * broadcasts and lets each client's show() gate by view. Shows the same
  * small GM confirmation toast as the window.
+ *
+ * The leader path differs in exactly one way, and it is the recipients: a
+ * leader's announcement goes to EVERY online user but themselves, GMs
+ * included, because a leader announcing to the table means the table and the
+ * GM is at it. The sender is dropped from the list for the same reason the
+ * GM's own send is not echoed back — they get the small confirmation instead.
+ *
  * @param {string} name - A template name from getQuickToastTemplates()
+ * @param {Object} [options]
+ * @param {boolean} [options.asLeader=false] - Send under the party leader's rules
  * @returns {Promise<boolean>} - True if a send went out
  */
-export async function quickSendToastTemplate(name) {
+export async function quickSendToastTemplate(name, { asLeader = false } = {}) {
     try {
-        const tpl = getQuickToastTemplates().find(entry => entry.name === name)?.tpl;
+        const tpl = getQuickToastTemplates({ leaderOnly: asLeader }).find(entry => entry.name === name)?.tpl;
         if (!tpl) {
-            ui.notifications.warn(`Toast template "${name}" has no saved title — open Send Toast to use it.`);
+            ui.notifications.warn(asLeader
+                ? `Toast template "${name}" is not available to the party leader.`
+                : `Toast template "${name}" has no saved title — open Send Toast to use it.`);
             return false;
         }
         const publish = tpl.publish || 'game';
@@ -903,10 +975,15 @@ export async function quickSendToastTemplate(name) {
         // overrides — the filter below keeps them out and no toast reaches them.
         const recipients = publish === 'stream'
             ? []
-            : game.users.filter(u => !u.isGM && u.active && !isToastExcludedUser(u)).map(u => u.id);
+            : game.users
+                .filter(u => u.active && !isToastExcludedUser(u))
+                // The GM's menu sends to the party; the leader's sends to the whole table,
+                // minus themselves — they already get the confirmation toast.
+                .filter(u => asLeader ? u.id !== game.userId : !u.isGM)
+                .map(u => u.id);
         if (publish === 'stream' || !recipients.length) {
             if (publish === 'game') {
-                ui.notifications.warn('No players are online.');
+                ui.notifications.warn(asLeader ? 'Nobody else is online.' : 'No players are online.');
                 return false;
             }
             // Stream-only, or Both with nobody online — broadcast; each
@@ -916,7 +993,9 @@ export async function quickSendToastTemplate(name) {
             await sendToastToUsers(payload, recipients);
         }
 
-        const names = (publish !== 'stream' && recipients.length) ? ['Entire party'] : [];
+        const names = (publish !== 'stream' && recipients.length)
+            ? [asLeader ? 'Everyone at the table' : 'Entire party']
+            : [];
         if (publish !== 'game') names.push('Stream');
         const info = BUILTIN_TEMPLATES['Information (adhoc)'];
         ToastManager.show({

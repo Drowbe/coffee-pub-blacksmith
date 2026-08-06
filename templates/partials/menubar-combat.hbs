@@ -128,8 +128,12 @@
         {{!-- Combat Portraits --}}
         <div class="combat-portraits">
         {{#each combatants}}
-               <div class="combat-portrait-container {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}} {{#if isHidden}}combat-token-hidden{{/if}}"
-                    data-combatant-id="{{id}}">
+               {{!-- `disposition-*` drives the stripe across the bottom of the portrait (drawn as an
+                     ::after, not a border — the container's border already belongs to the hover and
+                     hidden-token states). The word is in the hover card, not here. --}}
+               <div class="combat-portrait-container disposition-{{dispositionKey}} {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}} {{#if isHidden}}combat-token-hidden{{/if}}"
+                    data-combatant-id="{{id}}"
+                    data-disposition="{{dispositionKey}}">
                    <div class="combat-portrait-healthring">
                        {{#if healthRingHidden}}
                            <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">

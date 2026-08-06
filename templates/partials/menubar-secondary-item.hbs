@@ -25,21 +25,28 @@
 {{!-- A readout that says what KIND of number it is. `tone` drives an accent on the value and a
       hairline under it, never a filled background: this sits in a row of readouts, and a fill would
       read as a button. --}}
-<div class="secondary-bar-item secondary-bar-item-statchip tone-{{tone}} emphasis-{{emphasis}}"
+<div class="secondary-bar-item secondary-bar-item-statchip tone-{{tone}} emphasis-{{emphasis}} shape-{{shape}}"
      data-item-id="{{itemId}}"
      data-group-id="{{groupId}}"
      data-tone="{{tone}}"
      data-emphasis="{{emphasis}}"
+     data-shape="{{shape}}"
      data-tooltip="{{#if tooltip}}{{tooltip}}{{else}}{{displayLabel}}{{/if}}"
     >
     {{!-- Two tones, label then value, read as one pill. The word REPLACES the icon rather than
           joining it: an icon and a word saying the same thing spend two glyphs of width on one
-          meaning, and this row has none to spare. --}}
+          meaning, and this row has none to spare.
+
+          A `badge` drops the naming half altogether -- neither word nor icon -- and leaves the
+          value alone in a capsule. The tooltip is then the only statement of what the number is,
+          which is the trade the shape exists to make. --}}
+    {{#unless (eq shape "badge")}}
     {{#if displayLabel}}
     <span class="secondary-bar-item-label">{{displayLabel}}</span>
     {{else if icon}}
     <span class="secondary-bar-item-label"><i class="{{icon}} secondary-bar-item-statchip-icon"></i></span>
     {{/if}}
+    {{/unless}}
     {{#if displayValueParts}}
     <span class="secondary-bar-item-value">
         {{#each displayValueParts}}<span class="secondary-bar-item-value-part{{#if muted}} is-muted{{/if}}">{{text}}</span>{{/each}}

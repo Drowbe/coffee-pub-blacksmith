@@ -31,6 +31,13 @@ painted over the token art.
   (default on) and `tokenBloodVisibility` (`everyone` | `gmOnly`, default `everyone`). Both are also
   gated by the master `generalIndicatorsEnabled`. Changing either refreshes live via the existing
   settingChange callback.
+- **Two cleanup timers, not one** (2026-08-06): `tokenBloodCleanupSeconds` counts from a token's last
+  damage; `tokenBloodMopDeadSeconds` ("Mop the Dead", default 30) replaces it for a token whose mesh is
+  at the `dead` tier. Blood Cleanup defaults to 0 (never), which is right during a fight and wrong for
+  the bodies left behind it, so the split is what lets blood on the living persist while corpses are
+  cleared. `_scheduleBloodCleanup` picks the interval off the mesh entry's severity, so no extra hook
+  is needed — a corpse's mesh is built at the moment it crosses into `dead`, and building schedules.
+  Both treat 0 as never, and both suppress redraw for that token afterwards.
 - **Visibility**: the splatter mesh tracks `token.visible` on `refreshToken`, so GM-hidden tokens and
   tokens outside a player's vision do not leak position through their blood.
 - **Triggers**: `updateActor` (HP path changes → update blood for the actor's active tokens — covers

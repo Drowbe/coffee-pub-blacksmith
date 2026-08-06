@@ -519,6 +519,42 @@
         background: rgba(255, 255, 255, 0.2);
     }
 
+    /* Disposition Stripe
+       A bar across the bottom of the portrait, drawn as a pseudo-element rather than a real
+       bottom border: the container's border is already spoken for by the hover and hidden-token
+       states, and a disposition colour competing with those would win or lose by rule order.
+       Sits under the portrait art (which is z-index 1) so a large portrait never covers it. */
+    .blacksmith-menubar-secondary .combat-portrait-container::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        bottom: 0;
+        height: 3px;
+        border-radius: 2px;
+        background-color: var(--blacksmith-disposition-neutral);
+        pointer-events: none;
+    }
+
+    .blacksmith-menubar-secondary .combat-portrait-container.disposition-friendly::after {
+        background-color: var(--blacksmith-disposition-friendly);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-container.disposition-neutral::after {
+        background-color: var(--blacksmith-disposition-neutral);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-container.disposition-hostile::after {
+        background-color: var(--blacksmith-disposition-hostile);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-container.disposition-secret::after {
+        background-color: var(--blacksmith-disposition-secret);
+    }
+
+    /* The dead have no side. Dimming the stripe rather than dropping it keeps the strip's
+       rhythm intact — a missing bar reads as a rendering fault, not as a fact. */
+    .blacksmith-menubar-secondary .combat-portrait-container.defeated::after {
+        opacity: 0.35;
+    }
+
     /* Portrait Image */
     .blacksmith-menubar-secondary .combat-portrait-image,
     .blacksmith-menubar-secondary .combat-portrait-healthring {
@@ -899,6 +935,44 @@
 
 .blacksmith-combat-hover-card .combat-hover-hp-text {
     margin-top: 2px;
+}
+
+/* Disposition, in words. The portrait stripe on the bar carries the same fact as a colour;
+   this is where it is spelled out. A leading dot rather than a filled chip, so it sits in the
+   same weight as the owner and initiative labels either side of it. */
+.blacksmith-combat-hover-card .combat-hover-disposition,
+.blacksmith-combat-tool-card .combat-hover-disposition {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: rgba(56, 41, 26, 0.85);
+    text-transform: uppercase;
+}
+
+.blacksmith-combat-hover-card .combat-hover-disposition::before,
+.blacksmith-combat-tool-card .combat-hover-disposition::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--blacksmith-disposition-neutral);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+.combat-hover-disposition.disposition-friendly::before {
+    background-color: var(--blacksmith-disposition-friendly);
+}
+.combat-hover-disposition.disposition-neutral::before {
+    background-color: var(--blacksmith-disposition-neutral);
+}
+.combat-hover-disposition.disposition-hostile::before {
+    background-color: var(--blacksmith-disposition-hostile);
+}
+.combat-hover-disposition.disposition-secret::before {
+    background-color: var(--blacksmith-disposition-secret);
 }
 
 .blacksmith-combat-hover-card .combat-hover-stats {

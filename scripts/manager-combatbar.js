@@ -343,30 +343,38 @@ export class CombatBarManager {
         // Round and turn are readouts, so they live in the data row with the
         // rest rather than in an endcap beside the portraits. Everyone sees
         // these; only the challenge rating below is GM information.
+        //
+        // BADGES, NOT PILLS. They were labelled pills, and between them the words
+        // "Round" and "Turn" cost more of the row than the numbers they named --
+        // on a bar where the timer bar's width is pinned to the millimetre. The
+        // scoreboard is the one pair of readouts nobody has to be told the
+        // meaning of, because their position never changes and the numbers only
+        // ever count up, so they are the readouts that can afford to give up
+        // their labels. The tooltip states the meaning in full for anyone who
+        // does need it -- and is rewritten with the value on every turn, so it
+        // never reads "Current round" over a badge saying 4.
         api.registerSecondaryBarItem('combat', 'round', {
             emphasis: 'feature',
-            // Pills rather than icon-and-number. These are the scoreboard, and an
-            // hourglass beside the word "Round" said nothing the word did not.
             kind: 'statchip',
+            shape: 'badge',
             tone: 'neutral',
             zone: 'left',
             group: 'encounter',
             order: 0,
-            label: 'Round',
             value: '0',
-            tooltip: 'Current round',
+            tooltip: 'Round',
             visible: inCombat
         });
         api.registerSecondaryBarItem('combat', 'turn', {
             emphasis: 'feature',
             kind: 'statchip',
+            shape: 'badge',
             tone: 'neutral',
             zone: 'left',
             group: 'encounter',
             order: 1,
-            label: 'Turn',
             valueParts: ['0', { text: ' of ', muted: true }, '0'],
-            tooltip: 'Current turn',
+            tooltip: 'Turn',
             visible: inCombat
         });
 
@@ -1326,10 +1334,17 @@ export class CombatBarManager {
             if (combat) {
                 const totalTurns = Array.isArray(combat.turns) ? combat.turns.length : combat.combatants.size;
                 const currentTurn = Math.min((typeof combat.turn === 'number' ? combat.turn : 0) + 1, Math.max(totalTurns, 1));
-                api.updateSecondaryBarItemInfo('combat', 'round', { value: String(combat.round || 0) });
+                // Both are badges, so their labels live only in the tooltip -- and a tooltip
+                // that named the readout without stating it would be the one place the value
+                // is not. Pushed with the value so the two can never disagree.
+                api.updateSecondaryBarItemInfo('combat', 'round', {
+                    value: String(combat.round || 0),
+                    tooltip: `Round ${combat.round || 0}`
+                });
                 api.updateSecondaryBarItemInfo('combat', 'turn', {
                     // "of" is scaffolding, not a number -- same treatment as the Finesse separator.
-                    valueParts: [String(currentTurn), { text: ' of ', muted: true }, String(totalTurns)]
+                    valueParts: [String(currentTurn), { text: ' of ', muted: true }, String(totalTurns)],
+                    tooltip: `Turn ${currentTurn} of ${totalTurns}`
                 });
             }
 
@@ -1829,11 +1844,11 @@ export class CombatBarManager {
 
         const updateTokenHookId = HookManager.registerHook({
             name: 'updateToken',
-            description: 'MenuBar: Update combat bar when token HP changes',
+            description: 'MenuBar: Update combat bar when token HP or disposition changes',
             context: 'menubar-token-update',
             priority: 3,
             callback: (token, updateData) => {
-                if (CombatBarManager.isCombatBarActive(menuBar)) CombatBarManager.handleTokenHpChange(menuBar, token, updateData);
+                if (CombatBarManager.isCombatBarActive(menuBar)) CombatBarManager.handleTokenChange(menuBar, token, updateData);
                 CombatBarManager.scheduleReadoutRefresh(menuBar);
             }
         });
@@ -2201,6 +2216,30 @@ export class CombatBarManager {
         };
     }
 
+    /**
+     * A token's disposition as a css-safe key and a localized word.
+     *
+     * Shown to everyone, not just the GM: Foundry already colors every visible token's border by
+     * disposition on the canvas, so this exposes nothing a player cannot already read there — and
+     * hidden combatants never reach a player's strip in the first place.
+     *
+     * Falls back to neutral for a combatant with no token document, which is what an unplaced
+     * combatant effectively is.
+     *
+     * @param {Combatant|null} combatant
+     * @returns {{key: string, label: string}}
+     */
+    static getCombatantDisposition(combatant) {
+        const D = CONST.TOKEN_DISPOSITIONS;
+        const raw = combatant?.token?.disposition;
+        const value = Number.isFinite(Number(raw)) ? Number(raw) : D.NEUTRAL;
+        const key = value === D.FRIENDLY ? 'friendly'
+            : value === D.HOSTILE ? 'hostile'
+            : value === D.SECRET ? 'secret'
+            : 'neutral';
+        return { key, label: game.i18n.localize(`TOKEN.DISPOSITION.${key.toUpperCase()}`) };
+    }
+
     static getCombatData(combat) {
         try {
             if (!combat) return CombatBarManager.getIdleBarData();
@@ -2261,10 +2300,13 @@ export class CombatBarManager {
                 }
 
                 const isActuallyDead = CombatBarManager.isCombatantDead(combatant);
+                const disposition = CombatBarManager.getCombatantDisposition(combatant);
 
                 return {
                     id: combatant.id,
                     name: token?.name || actor?.name || 'Unknown',
+                    dispositionKey: disposition.key,
+                    dispositionLabel: disposition.label,
                     portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
                     initiative: combatant.initiative || 0,
                     isCurrent: combatant.id === combat.current.combatantId,
@@ -2394,19 +2436,29 @@ export class CombatBarManager {
         }
     }
 
-    static handleTokenHpChange(menuBar, token, updateData) {
+    /**
+     * A token document changed. Rebuild the bar only for the fields it draws: HP (health ring),
+     * hidden (the dimmed state and, for a player, whether the portrait is there at all), and
+     * disposition (the stripe under the portrait).
+     *
+     * Disposition gets a full rebuild rather than a patch because there is no targeted patch path
+     * for a portrait's class the way there is for its health ring — and it changes rarely enough
+     * that building one would cost more than it saves.
+     */
+    static handleTokenChange(menuBar, token, updateData) {
         try {
             postConsoleAndNotification(MODULE.NAME, 'Menubar: updateToken received', { tokenId: token?.id, updateData }, true, false);
             if (!CombatBarManager.isCombatBarActive(menuBar)) return;
             const hpChanged = CombatBarManager.didHpChange(updateData);
             const hiddenChanged = 'hidden' in updateData;
-            if (!hpChanged && !hiddenChanged) return;
+            const dispositionChanged = 'disposition' in updateData;
+            if (!hpChanged && !hiddenChanged && !dispositionChanged) return;
             const combat = game.combats?.active;
             if (!combat) return;
             const tokenId = token?.id;
             const actorId = token?.actor?.id;
             const isCombatant = combat.combatants.some(combatant => combatant.token?.id === tokenId || combatant.actor?.id === actorId);
-            postConsoleAndNotification(MODULE.NAME, 'Menubar: Token change evaluated', { isCombatant, hpChanged, hiddenChanged }, true, false);
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: Token change evaluated', { isCombatant, hpChanged, hiddenChanged, dispositionChanged }, true, false);
             if (!isCombatant) return;
             CombatBarManager.updateCombatBar(menuBar);
         } catch (error) {
@@ -3113,9 +3165,14 @@ export class CombatBarManager {
             : (hasGmOwner ? 'NPC' : (actor?.type ? String(actor.type).toUpperCase() : 'COMBATANT'));
         const isNpc = !!actor && !actor.hasPlayerOwner;
         const limitedForPlayer = !game.user?.isGM && isNpc;
+        const disposition = CombatBarManager.getCombatantDisposition(combatant);
 
         return {
             name: token?.name || actor?.name || combatant?.name || 'Unknown',
+            // On the limited card too: the stripe on the portrait says the same thing, and so
+            // does the token's own border on the canvas.
+            dispositionKey: disposition.key,
+            dispositionLabel: disposition.label,
             portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
             subtitle: ownerLabel,
             initiative: combatant?.initiative,
@@ -3170,6 +3227,11 @@ export class CombatBarManager {
 
         const hpLabel = data.maxHP > 0 ? `${data.currentHP}/${data.maxHP}` : 'HP N/A';
         const initiativeLabel = Number.isFinite(data.initiative) ? String(data.initiative) : '-';
+        // The portrait's stripe carries the colour; this carries the word. Both are shown to
+        // players, because the token's own border already says it on the canvas.
+        const dispositionHtml = data.dispositionLabel
+            ? `<span class="combat-hover-disposition disposition-${esc(data.dispositionKey)}">${esc(data.dispositionLabel)}</span>`
+            : '';
         const bloodOverlayHtml = data.bloodOverlay
             ? `<img class="combat-hover-blood" src="${esc(data.bloodOverlay)}" alt="" aria-hidden="true">`
             : '';
@@ -3206,6 +3268,7 @@ export class CombatBarManager {
                 </div>
                 <div class="combat-hover-hp-wrap">
                     <div class="combat-hover-row">
+                        ${dispositionHtml}
                         <span class="combat-hover-initiative">Init ${esc(initiativeLabel)}</span>
                     </div>
                 </div>
@@ -3224,6 +3287,7 @@ export class CombatBarManager {
                 <div class="combat-hover-hp-bar"><span class="combat-hover-hp-fill" style="width:${data.hpPercent}%"></span></div>
                 <div class="combat-hover-row">
                     <span class="combat-hover-subtitle">${esc(data.subtitle)}</span>
+                    ${dispositionHtml}
                     <span class="combat-hover-initiative">Init ${esc(initiativeLabel)}</span>
                 </div>
                 <div class="combat-hover-hp-text">${esc(hpLabel)}</div>

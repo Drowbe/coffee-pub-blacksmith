@@ -810,9 +810,16 @@ class MenuBar {
             }
         });
 
-        // Quick Toast (GM only) — middle zone: menu of saved Send Toast templates
-        // that carry text, fired as-is with one click (party-wide delivery, the
-        // template's own publish target). Send logic lives in window-toast-send.js.
+        // Quick Toast — middle zone: menu of saved Send Toast templates that carry text,
+        // fired as-is with one click (party-wide delivery, the template's own publish
+        // target). Send logic lives in window-toast-send.js.
+        //
+        // ONE ITEM, TWO AUDIENCES. The elected party leader gets the same button, listing
+        // only the templates the GM ticked "Enable Leader Access" on. A second registration
+        // would have to keep two `visible` predicates and two menus honest with each other;
+        // the menu already knows who it is being opened by. `templateData.isLeader` is part
+        // of the menubar structure fingerprint, so a leader change re-renders and the button
+        // appears or leaves on its own — the same rail the vote button rides.
         this.registerSecondaryBarItem('party', 'quick-toast', {
             zone: 'middle',
             icon: 'fas fa-bolt',
@@ -820,7 +827,7 @@ class MenuBar {
             tooltip: 'Send a saved toast with one click',
             group: 'default',
             order: 7,
-            visible: () => game.user.isGM,
+            visible: () => game.user.isGM || isCurrentUserPartyLeader(),
             onClick: (event) => {
                 void MenuBar.showQuickToastMenu(event);
             }
@@ -2190,9 +2197,13 @@ class MenuBar {
 
             if (MenuBar.CHIP_KINDS.has(kind)) {
                 // Display-only. Something has to be shown: a label, a value, or -- for a portrait
-                // chip, whose whole content can be the face -- an image.
-                if (!itemId || !itemData || (itemData.label === undefined && itemData.value === undefined && itemData.image === undefined)) {
-                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Display item requires label, value, or image",
+                // chip, whose whole content can be the face -- an image. `valueParts` counts as a
+                // value; it is the composite form of one, and a chip that states its number in
+                // parts and names itself only in its tooltip has content in neither of the other
+                // two fields.
+                if (!itemId || !itemData || (itemData.label === undefined && itemData.value === undefined
+                    && itemData.valueParts === undefined && itemData.image === undefined)) {
+                    postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Display item requires label, value, valueParts, or image",
                         { barTypeId, itemId, kind }, false, false);
                     return false;
                 }
@@ -3018,7 +3029,21 @@ class MenuBar {
                 }
                 // Defaults resolved here rather than in the template, so the rendered class list
                 // and the patched one cannot disagree about what "no tone" or "unranked" is.
-                if (item.kind === 'statchip') item.tone = item.tone || 'neutral';
+                if (item.kind === 'statchip') {
+                    item.tone = item.tone || 'neutral';
+                    // A BADGE IS A CHIP THAT HAS RUN OUT OF ROOM FOR ITS OWN NAME.
+                    //
+                    // `pill` is the chip as it has always been -- the word, then the number. `badge`
+                    // drops the word and shows the number alone in a capsule, for a readout the row
+                    // cannot afford to spell out. It is a shape rather than a kind because the markup
+                    // is identical: same value spans, same tone and emphasis classes, same patch path.
+                    // A second kind rendering the same elements is exactly what the partial's header
+                    // warns against.
+                    //
+                    // The tooltip becomes the only place the meaning is stated, so a badge whose
+                    // tooltip merely repeats its value tells a reader nothing.
+                    item.shape = item.shape === 'badge' ? 'badge' : 'pill';
+                }
 
                 // A COMPOSITE VALUE HAS PARTS THAT ARE NOT THE VALUE.
                 //
@@ -4972,42 +4997,54 @@ class MenuBar {
      * Quick Toast menu — saved Send Toast templates that carry text, fired
      * as-is on click. Falls back to opening the full Send Toast window when
      * there are no click coordinates (e.g. the overflow path).
+     *
+     * Opened by the GM it lists everything fireable and offers the Send Toast window.
+     * Opened by the elected party leader it lists only the templates marked "Enable
+     * Leader Access" and offers no window — that tool is the GM's.
      */
     static async showQuickToastMenu(event) {
         try {
             const { ToastSendWindow, getQuickToastTemplates, quickSendToastTemplate } = await import('./window-toast-send.js');
+            // A GM who also happens to be the leader is still a GM: the wider menu wins.
+            const asLeader = !game.user.isGM;
             if (!event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
-                new ToastSendWindow().render(true);
+                // No coordinates means no menu to place. The GM gets the window instead; a
+                // leader has no window to fall back to, so there is nothing to do.
+                if (!asLeader) new ToastSendWindow().render(true);
                 return;
             }
             this._closeMenubarContextMenu();
 
             const targetLabel = { stream: ' (stream)', both: ' (game + stream)' };
-            const items = getQuickToastTemplates().map(({ name, tpl }) => ({
+            const items = getQuickToastTemplates({ leaderOnly: asLeader }).map(({ name, tpl }) => ({
                 name: `${name}${targetLabel[tpl.publish] ?? ''}`,
                 description: tpl.subtitle ? `${tpl.title} — ${tpl.subtitle}` : tpl.title,
                 icon: tpl.image ? 'fa-solid fa-image' : (tpl.icon || 'fa-solid fa-bullhorn'),
                 callback: () => {
-                    void quickSendToastTemplate(name);
+                    void quickSendToastTemplate(name, { asLeader });
                 }
             }));
             if (!items.length) {
                 items.push({
                     name: 'No quick toasts yet',
-                    description: 'Save a template with a title in Send Toast to list it here.',
+                    description: asLeader
+                        ? 'Your GM has not shared any toasts with the party leader.'
+                        : 'Save a template with a title in Send Toast to list it here.',
                     icon: 'fa-solid fa-circle-info',
                     disabled: true
                 });
             }
-            items.push({ separator: true });
-            items.push({
-                name: 'Open Send Toast',
-                description: 'Compose a toast and manage templates',
-                icon: 'fa-solid fa-bullhorn',
-                callback: () => {
-                    new ToastSendWindow().render(true);
-                }
-            });
+            if (!asLeader) {
+                items.push({ separator: true });
+                items.push({
+                    name: 'Open Send Toast',
+                    description: 'Compose a toast and manage templates',
+                    icon: 'fa-solid fa-bullhorn',
+                    callback: () => {
+                        new ToastSendWindow().render(true);
+                    }
+                });
+            }
 
             UIContextMenu.show({
                 id: 'blacksmith-menubar-quick-toast-menu',

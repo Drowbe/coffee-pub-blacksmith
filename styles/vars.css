@@ -92,6 +92,21 @@
 
 
     /* -------------------------------------------------------- */
+    /* --- COLOR: TOKEN DISPOSITION -------------------------- */
+    /* -------------------------------------------------------- */
+    /*
+        One per CONST.TOKEN_DISPOSITIONS value. Deliberately the module's own
+        muted palette rather than Foundry's saturated canvas colors: these sit
+        inside Blacksmith surfaces, beside Blacksmith chrome.
+    */
+
+    --blacksmith-disposition-friendly: #4a7c23;
+    --blacksmith-disposition-neutral:  #ac9f81;
+    --blacksmith-disposition-hostile:  #a51214;
+    --blacksmith-disposition-secret:   #6b4a8c;
+
+
+    /* -------------------------------------------------------- */
     /* --- COLOR: VARIANT PALETTE (module-type / semantic) --- */
     /* -------------------------------------------------------- */
     /*
