@@ -514,6 +514,15 @@
         cursor: pointer;
         transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease, filter .10s ease;
         border: 2px solid rgba(0, 0, 0, 0.0);
+
+        /* NO TRANSFORM ON THE BUTTON. Scaling the whole button down was tried as the resting
+           state for non-active combatants, and it eats the strip: a transform shrinks the
+           DRAWING but not the layout box, so every button kept its full footprint and the
+           unused remainder read as an enormous gap between portraits. On a row where space is
+           the scarce thing that is the opposite of what a size cue should cost.
+           The turn cue therefore lives INSIDE the button, on the portrait -- see the pulse on
+           `.combat-portrait-image` below. The button itself never changes size, so the visual
+           spacing between combatants is exactly `--gap` and nothing else. */
         /* Fallback only. A rendered combatant always carries a disposition class, which
            replaces this; it shows for anything that somehow reaches the strip without one. */
         background: rgba(0, 0, 0, 0.3);
@@ -633,10 +642,11 @@
        is exactly how an earlier arrangement lost the reading. The turn and hover express
        themselves through the border, an inner glow, and a brightness lift, all of which layer
        over any fill rather than replacing it. */
+    /* NO TRANSFORM HERE. Hover used to set `scale(1.0)`, which was a no-op until size became
+       the turn marker -- at which point hovering any portrait would have grown it to exactly
+       the active combatant's size and said the turn had moved. Hover keeps brightness, which
+       is its own channel and cannot be mistaken for anything else. */
     .blacksmith-menubar-secondary .combat-portrait-container:hover {
-        transform: scale(1.0);
-        /* Not a border change: the border is the turn marker, and hover borrowing it made the
-           two indistinguishable the moment a pointer crossed the active combatant. */
         filter: brightness(1.35);
     }
 
@@ -644,18 +654,51 @@
         transform: scale(1.4);
     }
 
-    /* The glow is INSET, not an outer one: `.combat-portraits` sets `overflow-y: hidden`, so an
-       outer shadow is sliced flat top and bottom and reads as a rendering fault. Lighting the
-       button from within also layers over the disposition fill instead of replacing it. */
-    .blacksmith-menubar-secondary .combat-portrait-container.current {
-        border-color: rgba(255, 170, 60, 0.95);
-        box-shadow: inset 0 0 8px rgba(255, 150, 30, 0.75);
+    /* THE ACTIVE COMBATANT'S PORTRAIT BREATHES, INSIDE ITS BUTTON.
+       Motion is the channel, because colour is spent: the disposition fill reads as a frame
+       around the portrait, and with four saturated hues in play there is no colour left that
+       says "special" instead of "a fifth disposition". Motion has no such problem -- it is the
+       only thing moving on an otherwise still bar, so the eye finds it without being told where
+       to look, and it survives the palette changing again, which it has twice.
+
+       ON THE PORTRAIT, NOT THE BUTTON, so the strip's spacing is untouched -- see the note on
+       the container above for what scaling the button cost.
+
+       THE PULSE NEVER EXCEEDS 1. Nothing clips inside the button, but the strip does:
+       `.combat-portraits` sets `overflow-y: hidden`, and in SQUARE mode the portrait is only
+       3px inside the button, so a swing upward is sliced flat mid-breath at anything past about
+       1.05. Swinging DOWN from natural size needs no such margin and behaves identically in
+       both shapes -- in round mode the portrait simply breathes within a health ring that stays
+       put, which is the ring's job anyway.
+
+       THE TRANSLATE IS LOAD-BEARING. `.combat-portrait-image` is centred by
+       `translate(-50%, -50%)`, and a keyframe setting `transform` REPLACES that whole value --
+       omit it and the portrait jumps to the button's bottom-right corner for the duration.
+
+       Transform-only, so this composites on the GPU with no layout or paint per frame, and only
+       ever one element animates. Infinite animation is an established pattern here --
+       `blacksmith-pulse-dead` on the health ring is the other -- and shares its 2s tempo, so a
+       dead combatant taking its turn breathes and pulses together rather than beating against
+       itself.
+
+       ROLLBACK NOTE: the turn was `border-color: rgba(255,170,60,.95)` plus
+       `box-shadow: inset 0 0 8px rgba(255,150,30,.75)` on the container. That was a second
+       coloured ring immediately outside the disposition fill's, and the two competed. Corner
+       ticks and a shrunken resting strip were both tried between then and now. */
+    @keyframes blacksmith-combat-turn-pulse {
+        0%   { transform: translate(-50%, -50%) scale(0.92); }
+        50%  { transform: translate(-50%, -50%) scale(1); }
+        100% { transform: translate(-50%, -50%) scale(0.92); }
     }
 
-    .blacksmith-menubar-secondary .combat-portrait-container.current.combat-token-hidden {
-        opacity: 0.8;
-        border: 2px dashed rgba(255, 200, 130, 0.9);
+    .blacksmith-menubar-secondary .combat-portrait-container.current .combat-portrait-image {
+        animation: blacksmith-combat-turn-pulse 2s ease-in-out infinite;
     }
+
+    /* No `.current.combat-token-hidden` rule any more. One existed only to reconcile two
+       treatments that both wanted the border -- the turn's colour and hidden's dotted stroke.
+       The turn is size and corner ticks now, so hidden keeps its own border unchallenged and
+       the two states simply stack. */
 
     /* The dead keep their side — a corpse is still an enemy corpse — but stop competing with
        the living for attention. Draining the colour rather than painting over it is what leaves

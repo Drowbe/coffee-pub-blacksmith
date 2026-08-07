@@ -58,7 +58,10 @@ const PUBLISH = [
   'api/api-toast.md',
   'api/api-toolbar.md',
   'api/api-window.md',
+  // Guides
+  'guides/guide-dnd5e-conditions.md',
   // Architecture
+  'architecture/architecture-ownership.md',
   'architecture/architecture-blacksmith.md',
   'architecture/architecture-chatcards.md',
   'architecture/architecture-encounter.md',
@@ -98,7 +101,9 @@ const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
 // Clean sidebar label: strip the api-/architecture- prefix, kebab -> Sentence case.
 function label(rel) {
   if (rel === 'api/api-effects.md') return 'Active Effects';
-  const base = pageName(rel).replace(/^(api|architecture|design)-/, '');
+  if (rel === 'guides/guide-dnd5e-conditions.md') return 'dnd5e conditions';
+  if (rel === 'architecture/architecture-ownership.md') return 'Module ownership';
+  const base = pageName(rel).replace(/^(api|architecture|design|guide)-/, '');
   const spaced = base.replace(/-/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -157,6 +162,9 @@ function buildSidebar() {
     '### Getting started',
     '- [Home](Home)',
     topLevel,
+    '',
+    '### Guides',
+    group('guides/'),
     '',
     '### API',
     group('api/'),
