@@ -21,6 +21,21 @@ file. Same rule as `TODO.md`.
    a corrected cross-module link is still coupling.
    - Legitimate exception: showing how a *consumer* calls Blacksmith's API (e.g. "Squire registers a pin
      type like this"). That documents Blacksmith's surface, not the sibling's internals.
+   - **The rule is directional** (amended 2026-08-07, after Bibliosoph argued it). Every example above is
+     Blacksmith pointing *outward*, and that is the case it was written for; it was then misapplied to a
+     satellite pointing *inward*, which is a different thing.
+
+     | Direction | | Why |
+     |---|---|---|
+     | satellite → Blacksmith | **allowed** | Blacksmith is a required dependency of every satellite. The coupling already exists and is mandatory; a link only makes it legible. |
+     | Blacksmith → satellite | refused | Couples the hub to something optional that may not be installed. |
+     | satellite → sibling satellite | refused | Two optional things, neither guaranteed present. |
+
+     `tools/wiki-sync.mjs` **enforces this rather than trusting it to memory**: `siblingWikiUrl` rewrites
+     only when the target is the hub and the running module is not, so a copy of the script in the hub
+     cannot emit an outbound link even by accident. Consequence: **Blacksmith's `PUBLISH` list is now a
+     contract with the satellites.** A doc that leaves it, or is renamed, silently 404s every inbound
+     link in the suite.
 3. **A module bundles its own compendiums.** No relying on cross-module cohesion for content.
 4. **Roll tables ship as shells unless we provide the data** — and a shell may only reference content we
    ship ourselves, or SRD/system content every user has. Never paid/licensed third-party modules.

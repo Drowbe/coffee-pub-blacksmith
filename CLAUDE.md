@@ -41,6 +41,10 @@ hub fast. Don't add feature code here that belongs in a sibling.
   or Herald's broadcast here. Delete such references — don't "fix" them to point at the sibling's repo; a
   corrected cross-module link is still coupling. Showing how a consumer *calls* Blacksmith's API is fine —
   that documents our surface, not theirs.
+  **This governs links pointing OUT of Blacksmith, and only those.** A satellite linking *into* our wiki is
+  allowed — Blacksmith is its required dependency, so the coupling already exists. Do not extend this rule
+  to a sibling's docs; that mistake has been made once. The three directions are stated in TODO-GLOBAL
+  Ground Rule 2 and enforced by `siblingWikiUrl` in `tools/wiki-sync.mjs`.
 - **Each module bundles its own compendiums.** Don't rely on cross-module content cohesion.
 
 ## No build, no tests

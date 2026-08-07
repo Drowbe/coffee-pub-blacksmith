@@ -109,6 +109,37 @@ function label(rel) {
 }
 
 // ---- Fence-aware link rewriting ----
+// ---- Cross-module links: ONE PREDICATE ENFORCES ALL THREE DIRECTIONS ----
+//
+// Suite rule (TODO-GLOBAL Ground Rule 2), stated as directions:
+//   satellite -> Blacksmith   ALLOWED. Blacksmith is a required dependency of every satellite, so the
+//                             coupling already exists and is mandatory; the link only makes it legible.
+//   Blacksmith -> satellite   REFUSED. Couples the hub to something optional that may not be installed.
+//   satellite -> satellite    REFUSED. Two optional things, neither guaranteed present.
+//
+// The rule used to live only in prose, and prose is why it was misapplied at least once. The predicate
+// below is the whole of it: rewrite only when the TARGET is the hub and WE are not the hub. In
+// Blacksmith own copy THIS_MODULE === HUB, so it never rewrites and the hub cannot link out even by
+// accident. A satellite copying this file changes THIS_MODULE and gets the other two directions right
+// for free.
+//
+// FRAGILITY WORTH KNOWING: an inbound link targets a page NAME from the hub PUBLISH list. A doc that
+// leaves PUBLISH, or is renamed, silently 404s every inbound link in the suite. PUBLISH is therefore a
+// contract with the satellites, not just a local choice.
+const HUB = 'coffee-pub-blacksmith';
+const THIS_MODULE = 'coffee-pub-blacksmith';
+const HUB_WIKI = 'https://github.com/Drowbe/coffee-pub-blacksmith/wiki';
+const SIBLING_DOC = /coffee-pub-([a-z]+)[\\/]documentation[\\/](?:[^)]*[\\/])?([^/\\)]+)\.md(#.+)?$/i;
+
+function siblingWikiUrl(target) {
+  const m = target.match(SIBLING_DOC);
+  if (!m) return null;
+  const targetModule = `coffee-pub-${m[1].toLowerCase()}`;
+  if (targetModule !== HUB) return null;      // -> satellite: refused, whoever is asking
+  if (THIS_MODULE === HUB) return null;       // hub -> anywhere: refused
+  return `${HUB_WIKI}/${m[2]}${m[3] || ''}`;
+}
+
 const LINK = /\[([^\]]+)\]\(([^)]+)\)/g;
 const CODE_LINK = /\.(js|mjs|css|hbs|json|txt|webp|png)(#.*)?$/i;
 const CODE_PATH = /(scripts|styles|templates|resources)\//;
@@ -122,6 +153,11 @@ function rewriteLinks(md, srcRel) {
     if (inFence) return line;
     return line.replace(LINK, (whole, text, target) => {
       if (/^(https?:|mailto:|#)/i.test(target)) return whole;        // external / same-page anchor
+      // Checked BEFORE the code/asset downgrade: a cross-module doc path contains `documentation/`,
+      // which is not a code path, but the ordering is stated rather than assumed because a future
+      // CODE_PATH entry could otherwise swallow these silently.
+      const hub = siblingWikiUrl(target);
+      if (hub) return `[${text}](${hub})`;
       if (CODE_LINK.test(target) || CODE_PATH.test(target)) {         // code / asset -> plain text
         downgraded.push(`${srcRel}: code -> text  (${target})`);
         return text;
@@ -202,9 +238,21 @@ function publish(wikiPathArg) {
   let wiki = wikiPathArg;
   if (!wiki) {
     wiki = path.join(ROOT, 'tools', '.wiki-repo');
-    fs.rmSync(wiki, { recursive: true, force: true });
-    console.log(`\nCloning wiki: ${WIKI_URL}`);
-    execFileSync('git', ['clone', WIKI_URL, wiki], { stdio: 'inherit' });
+    if (fs.existsSync(path.join(wiki, '.git'))) {
+      // REUSE THE CLONE, NEVER DELETE IT. `fs.rmSync` cannot remove a git object store on Windows --
+      // its contents are read-only and `force: true` does not clear the attribute, so publish died
+      // with EPERM. Fetch-and-reset reaches the same clean slate, and faster. The GitHub Action runs
+      // on Linux and never hit this; it bit a sibling porting the script.
+      console.log(`\nReusing wiki clone: ${wiki}`);
+      execFileSync('git', ['-C', wiki, 'fetch', 'origin'], { stdio: 'inherit' });
+      const head = execFileSync('git', ['-C', wiki, 'symbolic-ref', '--short', 'HEAD'], { encoding: 'utf8' }).trim();
+      execFileSync('git', ['-C', wiki, 'reset', '--hard', `origin/${head}`], { stdio: 'inherit' });
+      execFileSync('git', ['-C', wiki, 'clean', '-fd'], { stdio: 'inherit' });
+    } else {
+      fs.rmSync(wiki, { recursive: true, force: true });
+      console.log(`\nCloning wiki: ${WIKI_URL}`);
+      execFileSync('git', ['clone', WIKI_URL, wiki], { stdio: 'inherit' });
+    }
   } else if (!fs.existsSync(path.join(wiki, '.git'))) {
     console.error(`Not a git clone: ${wiki}`);
     process.exit(1);
