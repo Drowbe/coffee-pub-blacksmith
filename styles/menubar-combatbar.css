@@ -519,17 +519,29 @@
         height: var(--portrait-container-height);
         flex-shrink: 0;
         cursor: pointer;
-        transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease, filter .10s ease;
+        transition: scale .10s ease, box-shadow .15s ease, border-color .10s ease, filter .10s ease;
         border: 2px solid rgba(0, 0, 0, 0.0);
 
-        /* NO TRANSFORM ON THE BUTTON. Scaling the whole button down was tried as the resting
-           state for non-active combatants, and it eats the strip: a transform shrinks the
-           DRAWING but not the layout box, so every button kept its full footprint and the
-           unused remainder read as an enormous gap between portraits. On a row where space is
-           the scarce thing that is the opposite of what a size cue should cost.
-           The turn cue therefore lives INSIDE the button, on the portrait -- see the pulse on
-           `.combat-portrait-image` below. The button itself never changes size, so the visual
-           spacing between combatants is exactly `--gap` and nothing else. */
+        /* THE WHOLE BUTTON RESTS AT 85%, contents and all -- scaling the portrait alone left a
+           thick band of disposition fill around a shrunken face, which reads as a heavy coloured
+           frame rather than as a smaller combatant.
+
+           THE NEGATIVE MARGIN IS NOT OPTIONAL. A scale shrinks the DRAWING but not the layout
+           box, so without it every button keeps its full footprint and the reclaimed 15% shows
+           up as gap between portraits -- which is exactly how this looked when it was tried
+           before. The margin hands that width back, so the visible spacing stays `--gap` and
+           the strip fits as many combatants as it did at full size.
+
+           It is derived from the scale rather than stated, because the two must agree exactly:
+           half the shortfall comes off each side. Change --portrait-rest-scale alone and the
+           margin follows.
+
+           The row's total width does not change as the turn moves: exactly one button is at
+           full size at any moment, so one growing is always paid for by another shrinking. */
+        --portrait-rest-scale: 0.85;
+        scale: var(--portrait-rest-scale);
+        margin-left: calc(var(--portrait-container-width) * (var(--portrait-rest-scale) - 1) / 2);
+        margin-right: calc(var(--portrait-container-width) * (var(--portrait-rest-scale) - 1) / 2);
         /* Fallback only. A rendered combatant always carries a disposition class, which
            replaces this; it shows for anything that somehow reaches the strip without one. */
         background: rgba(0, 0, 0, 0.3);
@@ -593,6 +605,13 @@
        is set once per shape on the container and both read it, so they cannot drift apart. */
     .blacksmith-menubar-secondary .combat-portrait-container {
         --portrait-radius: 50%;
+
+        /* HOW FAR THE PORTRAIT SITS INSIDE THE BUTTON, on every side. The portrait is centred,
+           so it is half the difference. Declared here rather than at :root because the two
+           shapes size the portrait differently -- and a custom property substitutes the value
+           that won the cascade ON THIS ELEMENT, so the square override below is picked up
+           without this needing to know about it. */
+        --portrait-inset: calc((var(--portrait-container-height) - var(--portrait-size)) / 2);
     }
     .blacksmith-menubar-secondary .combat-portrait-container.shape-square {
         /* The same corner as the button and as the health ring's `rx`, so the three squares
@@ -609,19 +628,16 @@
         --portrait-size: calc(var(--portrait-container-height) - 6px);
     }
 
-    /* THE FIGURE INSIDE THE BUTTON RESTS AT 85%, and the active combatant's grows back to full
-       size as it breathes (see the pulse below). Both elements carry it, because in Round mode
-       the portrait and its health ring are one figure and must scale together -- shrinking only
-       the portrait would leave it floating inside a ring that stayed put.
-       ON THESE, NOT ON THE BUTTON. The button is the layout box; scaling that shrinks the
-       drawing and not the footprint, so the reclaimed space became gap between portraits rather
-       than anything useful. Scaling the contents costs the row nothing. */
+    /* THESE CARRY NO SCALE. The resting size and the turn pulse are both on the BUTTON, which
+       takes its contents with it -- see the note there. Scaling these instead was tried and left
+       a thick band of disposition fill around a shrunken face, which reads as a heavy coloured
+       frame rather than as a smaller combatant. */
     .blacksmith-menubar-secondary .combat-portrait-image,
     .blacksmith-menubar-secondary .combat-portrait-healthring {
         position: absolute;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%) scale(0.85);
+        transform: translate(-50%, -50%);
         border-radius: var(--portrait-radius);
     }
     .blacksmith-menubar-secondary .combat-portrait-healthring {
@@ -702,17 +718,20 @@
        SURVIVES, but applied to the button's contents rather than to the button, because on the
        button it was paid for in gap between portraits. */
     @keyframes blacksmith-combat-turn-pulse {
-        0%   { transform: translate(-50%, -50%) scale(0.92); }
-        50%  { transform: translate(-50%, -50%) scale(1); }
-        100% { transform: translate(-50%, -50%) scale(0.92); }
+        0%   { scale: 0.92; }
+        50%  { scale: 1; }
+        100% { scale: 0.92; }
     }
 
-    /* Both, and in lockstep: in Round mode the portrait and its ring are one figure, and a
-       breath that moved only one of them would pull them apart. The trough (0.92) sits above
-       the resting 0.85, so the active combatant is larger than the rest at every point in the
-       cycle rather than only at the top of it. */
-    .blacksmith-menubar-secondary .combat-portrait-container.current .combat-portrait-image,
-    .blacksmith-menubar-secondary .combat-portrait-container.current .combat-portrait-healthring {
+    /* The BUTTON breathes, so portrait, health reading and disposition fill all move together
+       as one object. The trough (0.92) sits above the resting 0.85, so the active combatant is
+       larger than the rest at every point in the cycle rather than only at the top of it.
+       Margins go back to zero: this button draws at full size, so it needs its full footprint,
+       and that is what keeps the row's total width constant as the turn moves. */
+    .blacksmith-menubar-secondary .combat-portrait-container.current {
+        scale: 1;
+        margin-left: 0;
+        margin-right: 0;
         animation: blacksmith-combat-turn-pulse 2s ease-in-out infinite;
     }
 
@@ -806,28 +825,38 @@
    perimeter arithmetic here at all — a percentage width is the whole of it. */
     .blacksmith-menubar-secondary .combat-portrait-healthbar {
         position: absolute;
-        /* THE GAP IS ONE PIXEL, ALL THE WAY ROUND THE THREE EDGES IT MEETS. It is not margin --
-           it is where the button's own fill shows past the bar, a hint of what the bar is
-           sitting on, and it goes bright with the rest of the button on the active combatant's
-           turn. The bunting hangs off the same one pixel at the top, so the two readings frame
-           the portrait symmetrically. Inset by left/right/bottom rather than a width and a
-           centring transform, so the gap is stated as the pixel it is instead of being the
-           remainder of an arithmetic that has to be re-derived every time the portrait
-           resizes. */
-        left: 1px;
-        right: 1px;
-        bottom: 1px;
+        /* THE BAR BELONGS TO THE PORTRAIT, NOT THE BUTTON. Its outer edge -- border included --
+           sits exactly on the portrait's left, right and bottom edges, so a 100px portrait gets
+           1px border + 98px of bar + 1px border and the bottom border lands on the portrait's
+           own bottom edge. That is what gives it the "in a container" look instead of a rail
+           laid across the button behind it.
+           It was inset 1px from the BUTTON before, which put it wider than the portrait and
+           overhanging it on both sides at every bar size.
+           --portrait-inset is derived from the portrait's size, so this tracks either shape and
+           any combat bar size without restating the arithmetic. */
+        left: var(--portrait-inset);
+        right: var(--portrait-inset);
+        bottom: var(--portrait-inset);
+
+        /* BORDER-BOX, AND A REAL BORDER RATHER THAN A BOX-SHADOW. A shadow draws OUTSIDE the
+           element, so the 1px rule used to add 2px to the bar's true width and put it past the
+           portrait however the box was positioned; a border inside a border-box element is
+           counted in the width the way the requirement states it. */
+        box-sizing: border-box;
+        border: 1px solid rgba(0, 0, 0, 0.55);
+
         height: clamp(3px, calc(var(--portrait-size) * 0.11), 7px);
         /* BOTTOM CORNERS ONLY. The bar is seated in the bottom of the button and follows the
            button's own bottom corners; its top edge is a cut across the portrait, not an edge of
            an object, so rounding it would float the bar off the seat it sits in.
-           Below the token scale on purpose: --blacksmith-radius-sm is 3px, which on a bar only a
-           few pixels tall rounds the ends into a lozenge. 2px is a softened corner, not a cap. */
-        border-radius: 0 0 2px 2px;
+
+           THE BOTTOM CORNERS ARE THE PORTRAIT'S. The bar is flush with the portrait now, so it
+           takes the same radius rather than a guess -- anything else cuts across the curve it is
+           sitting in, which is what a flat 2px against the button's 4px was doing. */
+        border-radius: 0 0 var(--portrait-radius) var(--portrait-radius);
         overflow: hidden;
         /* Same groove as the ring's track, for the same reason. */
         background: rgba(0, 0, 0, 0.55);
-        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
         pointer-events: none;
         z-index: 2;
     }
