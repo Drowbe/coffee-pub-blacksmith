@@ -38,8 +38,9 @@
           meaning, and this row has none to spare.
 
           A `badge` drops the naming half altogether -- neither word nor icon -- and leaves the
-          value alone in a capsule. The tooltip is then the only statement of what the number is,
-          which is the trade the shape exists to make. --}}
+          value alone in a capsule; its tooltip is then the only statement of what the number is.
+          A `split` keeps the slot but puts a second VALUE in it rather than a name, so the two
+          fields read as equals -- see the shape rules in menubar-widgets.css. --}}
     {{#unless (eq shape "badge")}}
     {{#if displayLabel}}
     <span class="secondary-bar-item-label">{{displayLabel}}</span>
@@ -49,7 +50,7 @@
     {{/unless}}
     {{#if displayValueParts}}
     <span class="secondary-bar-item-value">
-        {{#each displayValueParts}}<span class="secondary-bar-item-value-part{{#if muted}} is-muted{{/if}}{{#if divider}} is-divider{{/if}}{{#if lead}} is-lead{{/if}}">{{text}}</span>{{/each}}
+        {{#each displayValueParts}}<span class="secondary-bar-item-value-part{{#if muted}} is-muted{{/if}}">{{text}}</span>{{/each}}
     </span>
     {{else if displayValue}}
     <span class="secondary-bar-item-value">{{displayValue}}</span>

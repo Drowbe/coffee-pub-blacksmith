@@ -1523,39 +1523,43 @@ blacksmith.registerSecondaryBarItem('my-bar', 'damage-taken', {
 blacksmith.updateSecondaryBarItemInfo('my-bar', 'damage-taken', { value: '38' });
 ```
 
-`shape` sets how the chip is drawn: `'pill'` (default) is the label-then-value chip described above. `'badge'` renders the value alone in a small square-cornered box and shows neither `label` nor `icon`. Set it at registration; it is not read from an update.
+`shape` sets how the chip is drawn. Set it at registration; it is not read from an update.
+
+| Shape | Renders |
+|---|---|
+| `'pill'` (default) | A name then a number - the label-then-value chip described above |
+| `'badge'` | The value alone in a small square-cornered box; neither `label` nor `icon` is shown |
+| `'split'` | Two values, each in its own field. The leading one goes in the `label` slot but is typeset as a value - full size, no small-caps - so the two read as equals and the darker field does the separating |
 
 A badge states its own meaning nowhere on the bar, so its `tooltip` is the only place a reader can find out what the number is. Push the tooltip with the value rather than fixing it at registration, or the tooltip will name the readout while the badge shows a figure it does not mention.
-
-Because a badge has no label to divide it, two related readings can share one box: give `valueParts` a `{ divider: true }` part, which draws a seam instead of spending a character on a separator.
 
 ```javascript
 blacksmith.registerSecondaryBarItem('my-bar', 'round-turn', {
     kind: 'statchip',
-    shape: 'badge',
+    shape: 'split',
     emphasis: 'feature',
     zone: 'left',
-    valueParts: [{ text: '0', lead: true }, { divider: true }, '0', { text: ' of ', muted: true }, '0'],
+    label: '0',
+    valueParts: ['0', { text: ' of ', muted: true }, '0'],
     tooltip: 'Round and turn',
     group: 'encounter',
     order: 0
 });
 blacksmith.updateSecondaryBarItemInfo('my-bar', 'round-turn', {
-    valueParts: [{ text: '4', lead: true }, { divider: true }, '2', { text: ' of ', muted: true }, '6'],
+    label: '4',
+    valueParts: ['2', { text: ' of ', muted: true }, '6'],
     tooltip: 'Round 4 - turn 2 of 6'
 });
 ```
 
-**Composite values (`valueParts`)**: any chip kind takes `valueParts` in place of `value` when its reading is made of more than one number. Four forms:
+**Composite values (`valueParts`)**: any chip kind takes `valueParts` in place of `value` when its reading is made of more than one number. Two forms:
 
 | Part | Means |
 |---|---|
 | `'4'` (plain string) | A value |
 | `{ text: ' of ', muted: true }` | Scaffolding - a separator or a joining word, drawn quieter and lighter so it organises the numbers instead of competing with them |
-| `{ divider: true }` | A drawn seam. Carries no text, so it separates two readings without spending a character's width on a mark that reads as content |
-| `{ text: '4', lead: true }` | The principal reading, set larger. Use it when one number is what the chip is *for* and the rest qualify it; without it two numbers in one box are equals, and equals read as a list |
 
-A unit belongs to its number and is not scaffolding: `'2C'` is one reading, and muting the C makes it look like an annotation on a bare 2. `lead` is a modifier on a value only - it is ignored on a muted or divider part.
+A unit belongs to its number and is not scaffolding: `'2C'` is one reading, and muting the C makes it look like an annotation on a bare 2. A chip may carry a `label` and `valueParts` together - `split` relies on it - and both patch in place.
 
 Push `valueParts` through `updateSecondaryBarItemInfo` the same way. **The number of parts is structure**, so keep it constant across updates - changing the count forces a full bar rebuild rather than an in-place patch.
 

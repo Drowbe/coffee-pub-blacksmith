@@ -3031,18 +3031,19 @@ class MenuBar {
                 // and the patched one cannot disagree about what "no tone" or "unranked" is.
                 if (item.kind === 'statchip') {
                     item.tone = item.tone || 'neutral';
-                    // A BADGE IS A CHIP THAT HAS RUN OUT OF ROOM FOR ITS OWN NAME.
+                    // THREE PRESENTATIONS, ONE MARKUP. Shapes rather than kinds because the
+                    // elements are identical in each -- same label and value spans, same tone and
+                    // emphasis classes, same patch path. A second kind rendering the same elements
+                    // is exactly what the partial's header warns against.
                     //
-                    // `pill` is the chip as it has always been -- the word, then the number. `badge`
-                    // drops the word and shows the number alone in a capsule, for a readout the row
-                    // cannot afford to spell out. It is a shape rather than a kind because the markup
-                    // is identical: same value spans, same tone and emphasis classes, same patch path.
-                    // A second kind rendering the same elements is exactly what the partial's header
-                    // warns against.
-                    //
-                    // The tooltip becomes the only place the meaning is stated, so a badge whose
-                    // tooltip merely repeats its value tells a reader nothing.
-                    item.shape = item.shape === 'badge' ? 'badge' : 'pill';
+                    // `pill`  a name, then a number: the chip as it has always been.
+                    // `badge` the number alone, for a readout the row cannot afford to spell out.
+                    //         The tooltip becomes the only statement of what it is, so a badge
+                    //         whose tooltip merely repeats its value tells a reader nothing.
+                    // `split` TWO numbers, each in its own field. The leading one is a value and
+                    //         not a name, so it is typeset as one and the fields do the separating
+                    //         -- which is why it uses the label slot without looking like a label.
+                    item.shape = (item.shape === 'badge' || item.shape === 'split') ? item.shape : 'pill';
                 }
 
                 // A COMPOSITE VALUE HAS PARTS THAT ARE NOT THE VALUE.
@@ -3063,24 +3064,12 @@ class MenuBar {
                 // scaffolding -- the separator, the word "of". If removing it would leave the
                 // remaining text still meaning the same thing, it is scaffolding; if removing it
                 // changes what the number IS, it is not.
-                //
-                // A `divider: true` part is scaffolding with no text at all -- a drawn seam rather
-                // than a punctuation mark. It exists because two readings sharing one box need
-                // separating, and every character spent on a separator is a character the box is
-                // wider than it needs to be. It survives the empty-text filter that drops blank
-                // parts, since being empty is the whole of what it is.
-                //
-                // A `lead: true` part is the opposite end of the same problem. Two readings in one
-                // box are equals until something says otherwise, and equals in a box read as a
-                // list. Setting it larger states which one the box is FOR, and leaves the other as
-                // the qualifier -- a hierarchy, not two numbers of the same rank. It is a modifier
-                // on a value, never on scaffolding: enlarging a separator would be nonsense.
                 if (Array.isArray(item.valueParts)) {
                     item.displayValueParts = item.valueParts
                         .map((part) => (typeof part === 'object' && part !== null
-                            ? { text: String(part.text ?? ''), muted: !!part.muted, divider: !!part.divider, lead: !!part.lead && !part.muted && !part.divider }
-                            : { text: String(part ?? ''), muted: false, divider: false, lead: false }))
-                        .filter((part) => part.divider || part.text !== '');
+                            ? { text: String(part.text ?? ''), muted: !!part.muted }
+                            : { text: String(part ?? ''), muted: false }))
+                        .filter((part) => part.text !== '');
                 } else {
                     item.displayValueParts = null;
                 }
@@ -3719,14 +3708,11 @@ class MenuBar {
                     const nodes = el.querySelectorAll('.secondary-bar-item-value-part');
                     const wanted = (Array.isArray(update.valueParts) ? update.valueParts : [])
                         .map((part) => (typeof part === 'object' && part !== null
-                            ? { text: String(part.text ?? ''), muted: !!part.muted, divider: !!part.divider, lead: !!part.lead && !part.muted && !part.divider }
-                            : { text: String(part ?? ''), muted: false, divider: false, lead: false }))
-                        .filter((part) => part.divider || part.text !== '');
+                            ? { text: String(part.text ?? ''), muted: !!part.muted }
+                            : { text: String(part ?? ''), muted: false }))
+                        .filter((part) => part.text !== '');
                     if (nodes.length !== wanted.length) return bail('value part count changed', itemId);
                     wanted.forEach((part, index) => {
-                        // A divider carries no text, so the comparison below never fires for one.
-                        nodes[index].classList.toggle('is-divider', part.divider);
-                        nodes[index].classList.toggle('is-lead', part.lead);
                         if (nodes[index].textContent !== part.text) {
                             // Scaffolding does not animate: a separator has not changed in any
                             // sense a reader cares about, even when the string around it did.
@@ -3735,6 +3721,12 @@ class MenuBar {
                         }
                         nodes[index].classList.toggle('is-muted', part.muted);
                     });
+                    // A COMPOSITE VALUE CAN STILL SIT BESIDE A LABEL, and until this was here the
+                    // label was silently dropped whenever `valueParts` rode along in the same
+                    // push -- the branch handled the parts and returned, so a `split` chip could
+                    // never update its leading field. The label is not part-structure, so it
+                    // patches the same way it does on the plain-value path below.
+                    if (update.label !== undefined && !setText(el, '.secondary-bar-item-label', update.label)) return bail('label appeared or emptied', itemId);
                 } else {
                     if (update.value !== undefined && !setText(el, '.secondary-bar-item-value', update.value, true)) return bail('value appeared or emptied', itemId);
                     if (update.label !== undefined && !setText(el, '.secondary-bar-item-label', update.label)) return bail('label appeared or emptied', itemId);

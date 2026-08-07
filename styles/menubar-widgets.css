@@ -736,28 +736,68 @@
     background-color: var(--blacksmith-widget-tone-fill, rgba(255, 255, 255, 0.09));
     color: var(--blacksmith-widget-tone-ink, var(--blacksmith-widget-tone-neutral));
 }
+/* ---- SHAPE: split ---------------------------------------------------------
+   TWO VALUES IN ONE BOX, each in its own field. The leading slot is the label
+   slot -- same markup as a pill -- but what goes in it is a number, so it is
+   typeset as one. Nothing about it should say "this is the name of the thing
+   beside it", because it is not.
 
-/* A drawn seam between two readings sharing one box. The alternative was a
-   punctuation mark, which costs a character's width and reads as content. Inset
-   top and bottom so it separates without cutting the box in two. */
-.blacksmith-menubar-secondary .secondary-bar-item-value-part.is-divider {
-    width: 1px;
-    align-self: stretch;
-    margin: 0.3em 0.55em;
+   THE FIELDS DO THE SEPARATING, which is why the two numbers are otherwise
+   identical: same size, same weight, same colour, same tabular figures. Only
+   the ground behind them differs. A drawn seam and an enlarged leading number
+   were both tried and retired -- a seam spends width on a mark that reads as
+   content, and size makes one number the subject and the other an annotation,
+   when these are two readings of equal rank.
+
+   The dark field is the same value the feature pill gives its label half, which
+   is the row's established treatment for the quieter of two segments.
+
+   Self-sufficient rather than relying on emphasis-feature, so a split chip
+   still reads as two fields at emphasis: plain. */
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-split {
     padding: 0;
-    background-color: currentColor;
-    opacity: 0.3;
+    gap: 0;
+    border-radius: var(--blacksmith-radius-md);
+    overflow: hidden;
+    align-items: stretch;
+    min-height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
+
+    /* BOTH OF THESE UNDO emphasis-feature, which this shape otherwise inherits:
+       its fixed `height` would clip taller content instead of growing to hold it,
+       and its inset hairline is the very thing the border above replaces -- left
+       in place it paints under the children again and the two-tone edge returns. */
+    height: auto;
+    box-shadow: none;
+
+    /* A REAL BORDER, NOT AN INSET BOX-SHADOW. An inset shadow paints under the
+       element's children, so each field's translucent background tinted the
+       hairline differently and the box came out with two different edge colours
+       -- darker along the round half, lighter along the turn half. A border is
+       outside the padding box, so no child can reach it and it stays one colour
+       the whole way round. */
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* The principal reading of a composite value. Two numbers in one box are equals
-   until something says which the box is FOR, and equals read as a list. Kept to
-   a step rather than a leap: enough to rank them, not enough to make the second
-   look like an annotation -- and small enough that the taller line still centres
-   inside a fixed-height badge instead of pushing at it. */
-.blacksmith-menubar-secondary .secondary-bar-item-value-part.is-lead {
-    font-size: 1.2em;
-    font-weight: var(--blacksmith-font-weight-bold);
-    /* Stated, not inherited: the enlarged part is the one that decides the box's height, so it
-       must not pick up a line-height meant for the smaller text around it. */
-    line-height: 1;
+/* THE LEADING FIELD IS A VALUE. It borrows the value's typography wholesale --
+   the shared chip rule styles labels as NAMES (0.8em, uppercase, tracked, and
+   at 0.55 alpha), which is right for a word and wrong for a figure. Left as a
+   label it matched the muted "of" instead of the numbers either side of it. */
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-split .secondary-bar-item-label,
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-split .secondary-bar-item-value {
+    font-size: var(--secondary-bar-item-font-size);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--blacksmith-widget-tone-ink, var(--blacksmith-widget-tone-neutral));
+    padding: 0.15em 0.6em;
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-split .secondary-bar-item-label {
+    background-color: rgba(0, 0, 0, 0.32);
+}
+
+.blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-split .secondary-bar-item-value {
+    background-color: var(--blacksmith-widget-tone-fill, rgba(255, 255, 255, 0.09));
 }

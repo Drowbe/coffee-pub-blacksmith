@@ -359,15 +359,16 @@ export class CombatBarManager {
         api.registerSecondaryBarItem('combat', 'round-turn', {
             emphasis: 'feature',
             kind: 'statchip',
-            shape: 'badge',
+            shape: 'split',
             tone: 'neutral',
             zone: 'left',
             group: 'encounter',
             order: 0,
-            // The round LEADS. A round and a turn in one box are equals until something
-            // says otherwise, and equals read as a list -- but the round is the number
-            // the table tracks and the turn is where inside it you are.
-            valueParts: [{ text: '0', lead: true }, { divider: true }, '0', { text: ' of ', muted: true }, '0'],
+            // TWO FIELDS, EQUAL WEIGHT. The round goes in the label slot -- which the
+            // `split` shape typesets as a value, not a name -- so the darker field does
+            // the separating and neither number is subordinate to the other.
+            label: '0',
+            valueParts: ['0', { text: ' of ', muted: true }, '0'],
             tooltip: 'Round and turn',
             visible: inCombat
         });
@@ -1328,15 +1329,13 @@ export class CombatBarManager {
             if (combat) {
                 const totalTurns = Array.isArray(combat.turns) ? combat.turns.length : combat.combatants.size;
                 const currentTurn = Math.min((typeof combat.turn === 'number' ? combat.turn : 0) + 1, Math.max(totalTurns, 1));
-                // The badge carries no label, so its tooltip is the only statement of what
-                // these numbers are -- pushed with them, so the two can never disagree.
-                // The seam and "of" are scaffolding, not numbers: same treatment as the
-                // Finesse separator.
+                // Both fields are pushed together with the tooltip that names them, so the
+                // three can never disagree. "of" is scaffolding rather than a number: same
+                // treatment as the Finesse separator.
                 const currentRound = combat.round || 0;
                 api.updateSecondaryBarItemInfo('combat', 'round-turn', {
+                    label: String(currentRound),
                     valueParts: [
-                        { text: String(currentRound), lead: true },
-                        { divider: true },
                         String(currentTurn),
                         { text: ' of ', muted: true },
                         String(totalTurns)
