@@ -103,7 +103,7 @@ deleted when complete. Three rules — a plan declares its status; a plan is nev
 means delete. **One plan needs dismantling; two are legitimately live** (`migration-v14.md`,
 `plan-journal-tools-refactor.md` — both Planned, both keep).
 
-- [ ] **`plan-assets.md` (1,569 lines, no status)** — the last one. Trim the Vault feature spec (~1502–1515)
+- [ ] **`plan-assets.md` (1,569 lines)** — status line added 2026-08-07 (Planned); the rest of this item stands. Trim the Vault feature spec (~1502–1515)
       to the one sentence stating a rule about *Blacksmith's* API contract; keep §3 and "Working role of
       Blacksmith core", which are legitimate boundary decisions. Then decide whether the rest folds into
       architecture. **Needs the same code-verification pass `plan-pins.md` got** — that one turned out to be
@@ -369,27 +369,40 @@ unaffected.
 
 ## Suite legacy `Dialog` migration — `api.dialog` is the vehicle
 
-Counted 2026-07-30. Application V1 `Dialog` is deprecated in v13, and `plans/migration-v14.md:158` already
-names finishing the V2 migration for remaining dialogs as a v14 forcing function.
+**Recounted 2026-08-07.** Application V1 `Dialog` is deprecated in v13, and `plans/migration-v14.md`
+already names finishing the V2 migration as a v14 forcing function. `api.dialog` shipped in 13.12.2; the
+contract is `documentation/api/api-dialog.md`.
 
-| Module | `DialogV2` | legacy `Dialog` |
-|---|---|---|
-| Squire | 0 | **21** |
-| Monarch | 0 | **12** |
-| Curator | 2 | 3 |
-| Bibliosoph | 2 | 2 |
-| Artificer | 1 | 2 |
-| Regent | 0 | 2 |
-| Scribe | 0 | 1 |
-| **Blacksmith** | **33** | **0** |
+| Module | `DialogV2` | legacy `Dialog` | Since 2026-07-30 |
+|---|---|---|---|
+| **Blacksmith** | **57** | **0** | clean, and further ahead |
+| Bibliosoph | 10 | 0 | **done** (was 2 legacy) |
+| Cartographer | 6 | 0 | done |
+| Squire | 1 | 0 | **done** (was 21 legacy) |
+| Crier / Herald / Minstrel / Vault | 0 | 0 | none to migrate |
+| Monarch | 0 | **11** | barely moved (was 12) |
+| Curator | 2 | 2 | one retired (was 3) |
+| Artificer | 1 | 2 | unchanged |
+| Regent | 0 | 2 | unchanged |
+| Scribe | 0 | 1 | unchanged |
 
-~43 legacy V1 call sites across the siblings; Blacksmith is already clean. Blacksmith is building
-`api.dialog` — shipped in 13.12.2; the contract is `documentation/api/api-dialog.md`.
+~18 legacy call sites left, down from ~43. **Squire finished its 21 and Bibliosoph its 2**, so the warning
+that used to head this section — tell them before they port to raw `DialogV2` — is spent for those two.
 
-- **Tell Monarch and Squire before they migrate.** Both are entirely on V1 and would otherwise each port to
-  raw `DialogV2` independently — work that `api.dialog` would then undo. Squire is already engaged on the
-  dialog API but has not been told its own code is 21 V1 sites with zero V2.
-- Sequencing: `api.dialog` ships before the delegation fix above, because its audience is much wider.
+- **Monarch is now the whole problem**: 11 of the remaining 18, and still zero `DialogV2`. It is the module
+  that would benefit most from being told `api.dialog` exists before it starts, and the one nobody has told.
+- Artificer, Regent, Scribe and Curator are two-or-fewer each — small enough to fold into whatever else
+  touches those files rather than scheduling.
+
+## Regent: delete the forked window base
+
+**Verified still open 2026-08-07.** Regent ships `scripts/regent-window-base-v2.js`, a fork of the
+Blacksmith `BlacksmithWindowBaseV2`. The fork predates the `ACTION_HANDLERS` delegation fix that shipped in
+13.12.2 (see the section above), which is the bug it was presumably forked around — so it now carries a
+copy of a problem Blacksmith has already fixed, and will not pick up anything else that lands in the base.
+
+`window-query.js` already imports the shared base, so Regent is running both. The ask is to delete the
+fork and route everything through the shared base.
 
 ## Decision: Blacksmith does not own a Transfer/Share workflow window (2026-07-29)
 

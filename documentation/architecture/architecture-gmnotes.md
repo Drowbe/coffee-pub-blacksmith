@@ -24,6 +24,28 @@ Synchronous reads use `fromUuidSync()` and are appropriate for live Documents, w
 
 Bulk reads resolve concurrently and return a UUID-keyed Map.
 
+## What is a GM Note, and what is just data on the document
+
+The subsystem exists for **the GM's own commentary about running a document** — the things a table keeps
+in its head and would otherwise write on a sticky note. It is not a general-purpose place to put text that
+happens to be GM-facing, and the difference decides whether content belongs here or on the document itself.
+
+Three questions settle it:
+
+1. **Does it belong to the document, or to this GM's use of it?** Content that would be identical for
+   every table using the same document is document data. A note is what *this* GM added.
+2. **Would it survive a re-import?** Anything authored alongside the document, and reproduced when the
+   document is regenerated, is a field on the document rather than a note.
+3. **Does removing it change what the document *is*?** If yes, it is data.
+
+A worked example, and the reason this section exists: a module carried a block of guidance on how to run
+an injury, and it looked like a GM Note because a GM reads it. Pressed against the criteria it failed all
+three — it is authored with the injury, identical for every table, and part of what the injury *is*. It
+stayed a field on the page (call made 2026-08-07). The provider registry was the wrong home for it.
+
+The rule of thumb that came out of it: **GM-facing is not the test.** Almost everything in a GM's
+documentation is GM-facing. Authored-by-this-GM-about-this-document is the test.
+
 ## Mutation boundary
 
 `canSet()` is the authoritative preflight. It resolves the target and distinguishes unresolved targets, unsupported Documents, locked compendiums, and insufficient update permission.

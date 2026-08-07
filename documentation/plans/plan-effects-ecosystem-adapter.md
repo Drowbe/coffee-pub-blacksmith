@@ -65,14 +65,43 @@ branch on it.** Bibliosoph originally wrote that *no* Coffee Pub module should r
 has since conceded the point — a satellite must not, the hub must. Without that rule this plan would be
 prohibited by the thing it is trying to fix.
 
-## Not in scope
+## Ask 2 — not in scope here, but the argument for it changed on 2026-08-07
 
-- **Ask 2**, a GM-authoritative `effects.expired` event. It means owning a clock, deduping across clients,
-  and interleaving with Times Up's own expiry, which deletes effects. It reverses a standing non-goal of
-  the layer and is a new subsystem rather than an increment. Bibliosoph has confirmed they are **not
-  blocked on it** — their own expiry works standalone now that their unit handling is fixed. The case for
-  it is that every consumer will independently get the same thing wrong, which is a good argument and a
-  separate decision.
+Ask 2 is a GM-authoritative `effects.expired` event. It means owning the expiry decision, deduping across
+clients, and interleaving with Times Up's own expiry, which deletes effects. It reverses a standing
+non-goal and is a new subsystem rather than an increment, which is why it is not bundled into this plan.
+
+**What changed:** with Bibliosoph's unit handling fixed, Bibliosoph and Times Up now both correctly detect
+that a converted effect has expired, and **both delete it** — one throws an unhandled rejection every time.
+Before the fix there was no race only because Bibliosoph had silently stopped claiming those effects, so
+the absence of a race was itself the bug.
+
+**This is the part that makes it ours.** Under the ownership rule
+(`architecture/architecture-ownership.md`) a satellite has no legal move:
+
+| Option | Outcome |
+|---|---|
+| Always delete on expiry | Races Times Up wherever it is installed |
+| Never delete on expiry | Effects linger forever in worlds without Times Up, since core does not expire them |
+| Check whether Times Up is installed and defer | **Forbidden** — that is a satellite branching on a third-party module |
+
+The first two are wrong and the third is barred by the rule we just agreed with them. That is a stronger
+argument than the original one ("every consumer reimplements `hasExpired()`"): it is not that consumers
+*will* get it wrong, it is that a correct consumer *cannot exist*. Arbitration has to sit in the adapter
+because the adapter is the only layer permitted to know Times Up is there.
+
+**Design consequence to weigh before taking it.** The clean contract is that **consumers never delete on
+expiry** — Blacksmith either yields deletion to Times Up or performs it, and fires the same event either
+way. That gives the layer exactly one CRUD operation, which is a real cost against its "no CRUD" non-goal
+and should be stated rather than slipped in. The alternative, firing the event and letting the owner
+delete, reintroduces the race the moment Times Up is installed.
+
+Bibliosoph is **not blocked** — their own expiry works standalone. The immediate mitigation is to guard
+the delete, which is correct regardless of Times Up: a GM can remove an effect by hand mid-operation, so
+an unhandled rejection on a lost delete race is a robustness bug in its own right, and guarding it is not
+branching on anything.
+
+## Also not in scope
 - Letting a classifier set `durationLabel`. Declined and settled: it would let a module assert duration
   semantics the substrate can silently contradict.
 

@@ -1,5 +1,10 @@
 # Asset Inventory, Taxonomy, and API Migration Plan
 
+**Status: Planned.** The JSON split this plan supersedes is done and shipped; the asset-model cleanup it
+proposes has not started. Everything below the Purpose section is assessment and working assumptions — no
+code has been written against it. Live scaffolding: extend it as the inventory is done, and dismantle it
+into architecture and API docs once the taxonomy is settled.
+
 ## Purpose
 
 This document replaces the earlier “split JSON / Asset Mapping” implementation plan with the next-stage plan: clean up the asset model itself.
