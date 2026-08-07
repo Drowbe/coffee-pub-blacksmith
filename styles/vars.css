@@ -95,27 +95,37 @@
     /* --- COLOR: TOKEN DISPOSITION -------------------------- */
     /* -------------------------------------------------------- */
     /*
-        One pair per CONST.TOKEN_DISPOSITIONS value. Deliberately the module's own
-        muted palette rather than Foundry's saturated canvas colors: these sit
-        inside Blacksmith surfaces, beside Blacksmith chrome.
+        One pair per CONST.TOKEN_DISPOSITIONS value.
+
+        THESE ARE FOUNDRY'S OWN VALUES, VERBATIM, from CONFIG.Canvas.dispositionColors
+        (core client/config.mjs). Matching core means matching every other module
+        that reads disposition, which is worth more than a palette tuned to this
+        module alone. The dnd5e system does not override them -- disposition is a
+        Foundry concept, not a 5e one, and 5e attaches no colors to it.
+
+        FRIENDLY IS CYAN, NOT GREEN. The green people associate with "friendly" is
+        core's separate PARTY disposition (0x33BC4E). Swapping friendly to that
+        green is a one-line change here if the cyan ever reads wrong -- but it is a
+        DEPARTURE from core, not a correction of it.
 
         The solid token is for marks read against a surface -- a dot, an icon, a
-        rule. The -bg token is the same hue as a translucent FILL, for a surface
-        that is itself the reading. Stated rather than derived, following the
-        variant palette below.
+        rule. The -bg token is the same color as a translucent FILL, for a surface
+        that is itself the reading. One alpha across all four, so nothing is
+        quietened relative to its neighbours; these hues differ in brightness by a
+        lot, and evening them out by hand would stop them being core's colors.
     */
 
-    --blacksmith-disposition-friendly:    #4a7c23;
-    --blacksmith-disposition-friendly-bg: rgba(74, 124, 35, 0.45);
+    --blacksmith-disposition-friendly:    #43dfdf;
+    --blacksmith-disposition-friendly-bg: rgba(67, 223, 223, 0.45);
 
-    --blacksmith-disposition-neutral:     #ac9f81;
-    --blacksmith-disposition-neutral-bg:  rgba(172, 159, 129, 0.35);
+    --blacksmith-disposition-neutral:     #f1d836;
+    --blacksmith-disposition-neutral-bg:  rgba(241, 216, 54, 0.45);
 
-    --blacksmith-disposition-hostile:     #a51214;
-    --blacksmith-disposition-hostile-bg:  rgba(165, 18, 20, 0.45);
+    --blacksmith-disposition-hostile:     #e72124;
+    --blacksmith-disposition-hostile-bg:  rgba(231, 33, 36, 0.45);
 
-    --blacksmith-disposition-secret:      #6b4a8c;
-    --blacksmith-disposition-secret-bg:   rgba(107, 74, 140, 0.45);
+    --blacksmith-disposition-secret:      #a612d4;
+    --blacksmith-disposition-secret-bg:   rgba(166, 18, 212, 0.45);
 
 
     /* -------------------------------------------------------- */

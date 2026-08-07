@@ -121,23 +121,29 @@ Semantic outcome colors, for text and solid fills.
 ## Color: token disposition
 
 One pair per `CONST.TOKEN_DISPOSITIONS` value, identifying a token or combatant as friendly, neutral,
-hostile, or secret. These are the module's own muted palette, not Foundry's saturated canvas colors,
-because they render inside Blacksmith chrome rather than over the map.
+hostile, or secret.
+
+**These are Foundry's own values, verbatim**, from `CONFIG.Canvas.dispositionColors` in core's
+`client/config.mjs`. Matching core means matching every other module that reads disposition. Disposition
+is a Foundry concept rather than a system one, and the dnd5e system does not override these.
+
+Note that core's FRIENDLY is **cyan**, not green - the green usually associated with "friendly" is core's
+separate PARTY disposition (`0x33BC4E`), which has no token here.
 
 Use the solid token for a mark read against a surface - a dot, an icon, a rule - and the `-bg` token when
-the surface itself is the reading, such as a button fill. Neutral's fill is the lightest of the four
-because its hue is the brightest; equal alphas made it shout over the other three.
+the surface itself is the reading, such as a button fill. All four fills share one alpha, so none is
+quietened relative to its neighbours.
 
 | Token | Value | Use |
 |---|---|---|
-| `--blacksmith-disposition-friendly` | `#4a7c23` | Friendly disposition mark |
-| `--blacksmith-disposition-friendly-bg` | `rgba(74, 124, 35, 0.45)` | Friendly disposition fill |
-| `--blacksmith-disposition-neutral` | `#ac9f81` | Neutral disposition mark |
-| `--blacksmith-disposition-neutral-bg` | `rgba(172, 159, 129, 0.35)` | Neutral disposition fill |
-| `--blacksmith-disposition-hostile` | `#a51214` | Hostile disposition mark |
-| `--blacksmith-disposition-hostile-bg` | `rgba(165, 18, 20, 0.45)` | Hostile disposition fill |
-| `--blacksmith-disposition-secret` | `#6b4a8c` | Secret disposition mark |
-| `--blacksmith-disposition-secret-bg` | `rgba(107, 74, 140, 0.45)` | Secret disposition fill |
+| `--blacksmith-disposition-friendly` | `#43dfdf` | Friendly disposition mark |
+| `--blacksmith-disposition-friendly-bg` | `rgba(67, 223, 223, 0.45)` | Friendly disposition fill |
+| `--blacksmith-disposition-neutral` | `#f1d836` | Neutral disposition mark |
+| `--blacksmith-disposition-neutral-bg` | `rgba(241, 216, 54, 0.45)` | Neutral disposition fill |
+| `--blacksmith-disposition-hostile` | `#e72124` | Hostile disposition mark |
+| `--blacksmith-disposition-hostile-bg` | `rgba(231, 33, 36, 0.45)` | Hostile disposition fill |
+| `--blacksmith-disposition-secret` | `#a612d4` | Secret disposition mark |
+| `--blacksmith-disposition-secret-bg` | `rgba(166, 18, 212, 0.45)` | Secret disposition fill |
 
 ## Color: variant palette
 
