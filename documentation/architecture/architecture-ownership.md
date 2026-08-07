@@ -70,6 +70,21 @@ Toast channels are the model to copy. Bibliosoph declares `crit`, `fumble`, `inj
 
 ---
 
+## Blacksmith absorbs third-party variance; satellites never branch on it
+
+Blacksmith is a required dependency. Everything else in a user's world — Midi-QOL, Times Up, DAE, whatever the table happens to install — is optional, and most users will not have it. That produces a hard rule:
+
+**A satellite must never check whether a third-party module is installed, read its flags, or depend on its behavior.** A module that branches on `game.modules.get('some-module')?.active` has taken a dependency in all but name, and it will behave differently for every user depending on what else they run.
+
+Where a third-party module genuinely changes the substrate, **Blacksmith is the adapter.** It detects the module, yields to it or supplies the baseline itself, and exposes one contract either way. The satellite never learns which happened.
+
+The reference implementation is `utility-midi-resolution.js`: a runtime `enableMidiIntegration` check on every lane, explicit "yield to MIDI" branches, and core dnd5e fallback lanes when it is absent or switched off. Bibliosoph consumes `rolls.on('damageResolved')` and has never needed to know whether Midi-QOL is present.
+
+Two consequences worth stating:
+
+- **A non-goal list is a decision, not a default.** If a Blacksmith subsystem declines to adapt part of the substrate, the variance does not disappear — it lands on every consumer, unowned and invisible. That may still be the right call, but it should be made deliberately and written down with its reason.
+- **"Optional module does X" is a finding, never a fix.** When a satellite discovers that some third-party module changes shared behavior, the correct output is a request to Blacksmith, not a workaround in the satellite.
+
 ## Prefer hooks over registry callbacks for lifecycle
 
 A registry contract only covers callers who opted in. A Foundry hook covers every route, including ones nobody anticipated.

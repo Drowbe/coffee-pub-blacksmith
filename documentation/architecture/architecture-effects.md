@@ -23,6 +23,47 @@ Foundry's Active Effect create/update/delete hooks call `EffectsAPI.emitChanged`
 
 The combat portrait context menu can turn that transient view into a persistent card. Persistent cards reuse the same data builder and markup, remain client-local, preserve their position during refreshes, and update on Actor, Combatant, Active Effect, and display-setting changes. Their per-card Follow Combat toggle changes the record's combatant identity on turn changes and rerenders in place; disabling it leaves the card pinned to the combatant currently shown. They contain no effect mutations and therefore do not expand the API's ownership boundary.
 
+
+## Duration is rewritten, not passed through
+
+`durationLabel` is the one field the layer does not simply relay, and the reason is that Foundry's own
+label for a seconds-based duration is raw seconds: a half-hour wound arrives as `1710 Seconds`.
+`formatDuration` in `api-effects.js` converts the seconds branch to the unit a person would say and
+leaves round- and turn-based durations on Foundry's label, which already reads well.
+
+Two consequences a reader should know before relying on the field:
+
+**The same effect can read differently in and out of combat.** Below `ROUNDS_READ_BETTER_BELOW`
+(120 seconds) the seconds branch reports rounds instead, but only while a combat is started, because a
+remainder in rounds is only meaningful when rounds are being counted. Outside combat the same effect
+reports seconds.
+
+**Seconds and rounds are different measurements, not two spellings of one.** A seconds duration is
+wall-clock and only decreases as `game.time.worldTime` advances; a rounds duration advances with the
+combat tracker. Which one an effect carries is decided by whoever created it — in dnd5e,
+`DurationData.getEffectDuration()` maps an item's own units, so `round`/`turn` units produce
+`duration.rounds`/`turns` and `minute`/`hour`/`day` produce `duration.seconds`. The layer therefore
+branches rather than unifying them: presenting a rounds duration as seconds would state a wall-clock
+remainder for something that does not track wall-clock time.
+
+**A third-party module can change which branch an effect takes, mid-life.** Times Up's
+`setDurationRounds` (`module/handleUpdates.js`) rewrites any effect whose remaining seconds fall below
+its *Max rounds to convert* threshold (default 10 rounds x `CONFIG.time.roundTime`) into a rounds-based
+duration: it sets `duration.rounds`/`turns`, stamps `startRound`/`startTurn`, **nulls `duration.seconds`**,
+and stashes the original in `flags.times-up.durationSeconds`. `setDurationSeconds` reverses it. So an
+effect authored in seconds renders as minutes without Times Up and as `N Rounds, M Turns` with it — the
+document changed underneath, and this layer faithfully reports what it now says.
+
+That is worth stating plainly because it is the layer's one uncomfortable truth: **it normalizes format,
+not substrate.** Two worlds with identical authored data can display differently, and no consumer can see
+why. Adapting to the effects ecosystem the way `utility-midi-resolution.js` adapts to Midi-QOL is the
+shape that would close it; it is not built.
+
+**`remaining` is only as live as the world clock.** Core computes it as
+`seconds - (worldTime - startTime)`, so in a world whose `worldTime` never advances the value equals
+the authored total forever. The label is accurate and simply never moves; nothing in this layer ticks
+it, which is why duration ticking is listed under Non-goals.
+
 ## Classifier boundary
 
 Blacksmith owns only generic Foundry and dnd5e interpretation. A classifier owned by another module translates that module's flags into display metadata. It does not mutate the effect or implement gameplay.
@@ -35,9 +76,23 @@ Effect names and statuses are returned by the normalization API, but description
 
 ## Non-goals
 
-- Active Effect CRUD
-- duration ticking or expiry
-- roll automation
-- Midi-QOL or DAE interpretation
-- socket synchronization
-- module-specific injury, critical, or fumble rules
+These are non-goals **of this layer**, not of Blacksmith. Several are owned elsewhere in the module, and
+
+The rule that governs which of these is defensible is in [architecture-ownership.md](architecture-ownership.md):
+Blacksmith absorbs third-party variance so satellites never branch on it, and a non-goal is a decision rather
+than a default -- declining to adapt does not remove the variance, it moves it onto every consumer unowned.
+the list says where so it does not read as a blanket position the codebase contradicts.
+
+| Not done here | Why, and where it lives if it lives anywhere |
+|---|---|
+| Active Effect CRUD | Belongs to whoever owns the effect. This layer reads and formats. |
+| Duration ticking or expiry | Nothing here owns a clock. Combat timing is `timer-planning.js`, `timer-combat.js` and `timer-round.js`; none of them watches effects. `remaining` is read from the document, never advanced. |
+| Roll automation | `api-rolls.js`. |
+| Midi-QOL or DAE interpretation | Not in *this* layer. Blacksmith does interpret Midi-QOL — `utility-midi-resolution.js`, gated on the `enableMidiIntegration` setting — but only for rolls. |
+| Socket synchronization | Not in *this* layer; the change event is local. Blacksmith has `manager-sockets.js`, and this layer deliberately does not use it: every client derives the same display from Actor data it already has. |
+| Module-specific injury, critical, or fumble rules | Belongs to the owning module, via a registered classifier. |
+
+The two that say "not in this layer" are the ones worth understanding rather than skimming, because
+Blacksmith does both elsewhere. They are excluded here for the same reason: a display normalizer that
+ticked clocks or synced state would be authoritative about something, and this layer is deliberately
+authoritative about nothing.

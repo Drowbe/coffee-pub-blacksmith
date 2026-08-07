@@ -397,6 +397,77 @@ What shipped instead: `api.dialog`, `api.entityList`, `api.quantitySplit`, and t
 `ACTION_HANDLERS` fix — all reusable by any module, none of them knowing what a transfer is. Revisit a shared
 workflow shell only if two or more modules provably duplicate meaningful shell code.
 
+
+## Bibliosoph effects/wiki note (revised, received 2026-08-07)
+
+Item A is **done** — `architecture-effects.md` gained a "Duration is rewritten" section and its non-goals
+list now says which items are non-goals *of the layer* versus of the module, with owners named. The rest
+are decisions. Everything below was verified against the installed code, not taken on trust.
+
+### B. Adapt the effects ecosystem the way the rolls layer adapts MIDI — the real decision
+
+**Their diagnosis is correct and the mechanism is confirmed.** Times Up is installed in this world.
+`setDurationRounds` (`times-up/module/handleUpdates.js:15`) rewrites any effect under its threshold
+(default 10 rounds x `CONFIG.time.roundTime`) into a rounds duration, **nulls `duration.seconds`**, and
+stashes the original in `flags.times-up.durationSeconds`. Our `formatDuration` then takes the non-seconds
+branch and passes core's `N Rounds, M Turns` through. Identical authored data, two displays, decided by
+what else is installed.
+
+A second, independent source of the same variance exists and is unrelated to Times Up: dnd5e's
+`DurationData.getEffectDuration()` maps a source item's own units, so `round`/`turn` units produce
+`{rounds}`/`{turns}` at creation. Any fix has to handle both, and only one of them is a third party.
+
+**The precedent they cite is real**: `utility-midi-resolution.js` is 440 lines gated on
+`enableMidiIntegration`, and consumers of `rolls.on('damageResolved')` never learn whether MIDI is
+present. The analogy is sound as far as it goes, with one asymmetry worth weighing: MIDI *reports*
+outcomes, so adapting to it means reading an event source. Times Up *mutates the document and owns
+expiry*, so adapting to it fully means owning a clock.
+
+**Their three asks separate cleanly, and are worth deciding separately rather than as one thing.**
+
+1. **Normalized `remaining` on the DTO.** Squarely this layer's job — it exists to stop consumers
+   branching on substrate. Cheap. Should expose a value *and its unit* rather than forcing everything to
+   seconds: a rounds duration does not track wall-clock time, and reporting it in seconds would state a
+   remainder that is not true. **In scope; take it.**
+2. **A GM-authoritative `effects.expired` event.** The expensive one, and the only one that changes
+   Blacksmith's posture: it means owning a clock, deduping across clients, and interleaving with Times
+   Up's own expiry, which deletes effects. It directly contradicts the layer's standing non-goal. The
+   argument for it is good — Bibliosoph reimplements `hasExpired()` and every other module would too —
+   but it is a new subsystem, not an increment. **Decide on its own merits.**
+3. **An `enableTimesUpIntegration` runtime check.** Cheap, mirrors an existing pattern. Only meaningful
+   alongside 1 or 2.
+
+**The principle is now settled and written down** in `architecture/architecture-ownership.md`: Blacksmith
+absorbs third-party variance, satellites never branch on it, and a non-goal is a decision rather than a
+default. So B is no longer a question of whether the hub may read `flags.times-up.*` -- it may, that is what
+an adapter is for, and Bibliosoph is right that a *satellite* must not. What remains is scope.
+
+**The scope question: the display inconsistency and the expiry engine are separable, and the note bundles
+them.** Asks 1 and 3 close the symptom actually reported -- when Times Up is present the hub reads the
+stashed original and reports a consistent duration -- with nobody owning a clock. Ask 2 is the posture
+change. Doing 1 and 3 first also makes 2 cheaper if it is taken later, and costs nothing if it is not.
+
+### C. Two wiki-sync backports — one yes, one conflicts with our own rules
+
+- *Windows EPERM*: verified, `publish()` does `fs.rmSync` on git's read-only object store. Their fix is
+  sound. Low value here — the Action runs on Linux and CLAUDE.md says not to clone the wiki locally on
+  this machine — so take it as portability for the script siblings copy, not to unblock anything. Note
+  the `Architecture:-Core` colon warning in CLAUDE.md refers to a legacy page; nothing in the current
+  `PUBLISH` list generates a colon-bearing name.
+- *Sibling wiki URLs*: **contradicts Ground Rule 2** — cross-module references get deleted, not
+  relinked, because a corrected cross-module link is still coupling. If we want it, the rule changes
+  first; it is not a tooling decision.
+
+### D. Classifier cannot set `durationLabel` — probably needs no change
+
+The boundary is intended and documented. Their stated need is already met without widening the contract:
+write `{rounds: N}` instead of `{seconds: N}` and the duration says rounds, because the branch keys off
+the document. Worth telling them — though note Times Up may convert it anyway, which is really an
+argument for B rather than for a classifier hook.
+
+**Standing requests** (public cross-client toast delivery, stats query API, MIDI attacker attribution on
+`damageResolved`, advantage/disadvantage on requested rolls) are tracked in Bibliosoph's own TODO.
+
 ## Bibliosoph — unfiltered compendium list (2026-08-02)
 
 **Delivered, unverified.** `api.compendiums.getAllPacks(type)` and `getAllChoices(type)` return every installed
