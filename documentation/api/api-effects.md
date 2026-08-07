@@ -69,6 +69,22 @@ await effects.getDisplayEffects(actor, {
 
 Do not use `includeDescriptions: 'always'` in player-facing UI unless the caller has separately established that the user may read the Actor's effect descriptions.
 
+### Duration formatting
+
+`durationLabel` is normalized rather than passed through. Round- and turn-based durations keep Foundry's own label, which already reads the way you would say it ("10 Rounds"). Seconds-based durations are converted to the unit a human would use, because Foundry renders those as raw seconds and a half-hour wound arrives as "1710 Seconds":
+
+| Remaining | Renders as |
+|---|---|
+| ≤ 120s, combat started | `2 rounds` |
+| < 60s | `45 seconds` |
+| < 1 hour | `29 minutes` |
+| < 1 day | `2 hours` |
+| otherwise | `3 days` |
+
+Rounds are only used for a short remainder during an active combat, where "how many of my turns is this" is the question being asked. A long duration stays in wall-clock units even mid-combat, since "285 rounds" answers nothing.
+
+A classifier cannot influence this field — `durationLabel` is computed from the effect's own duration, independent of classification.
+
 ## Raw qualifying effects
 
 ```javascript

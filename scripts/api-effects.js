@@ -57,6 +57,37 @@ function getConditionIndex() {
     return conditionIndexCache;
 }
 
+/** Round-based durations already read well ("10 Rounds"); only seconds need help. */
+const ROUNDS_READ_BETTER_BELOW = 120; // seconds — i.e. 20 rounds, a plausible remainder for THIS fight
+
+/**
+ * Foundry's own `duration.label` renders a seconds-based effect as raw seconds
+ * ("1710 Seconds"), which is unreadable at a glance for anything longer than a
+ * combat. Convert to the unit a human would actually say: rounds while a short
+ * remainder is ticking down in combat, otherwise minutes / hours / days.
+ *
+ * Turn- and round-based durations are passed through untouched — Foundry
+ * already labels those the way you would read them aloud.
+ */
+function formatDuration(duration) {
+    if (!duration?.type || duration.type === 'none') return '';
+    const fallback = duration?.label ? String(duration.label) : '';
+    if (duration.type !== 'seconds') return fallback;
+
+    const seconds = Number(duration.remaining ?? duration.seconds);
+    if (!Number.isFinite(seconds) || seconds <= 0) return fallback;
+
+    const plural = (n, key, word) => `${n} ${localize(key, word)}${n === 1 ? '' : localize(`${key}-Plural`, 's')}`;
+
+    if (game?.combat?.started && seconds <= ROUNDS_READ_BETTER_BELOW) {
+        return plural(Math.ceil(seconds / 6), 'DurationUnit-Round', 'round');
+    }
+    if (seconds < 60) return plural(Math.ceil(seconds), 'DurationUnit-Second', 'second');
+    if (seconds < 3600) return plural(Math.round(seconds / 60), 'DurationUnit-Minute', 'minute');
+    if (seconds < 86400) return plural(Math.round(seconds / 3600), 'DurationUnit-Hour', 'hour');
+    return plural(Math.round(seconds / 86400), 'DurationUnit-Day', 'day');
+}
+
 function getBibliosophOutcome(effect) {
     const outcome = getFlag(effect, 'coffee-pub-bibliosoph', 'outcomeBurst');
     if (!outcome) return null;
@@ -202,7 +233,7 @@ export class EffectsAPI {
             }
             const conditions = conditionIds.map((id) => conditionIndex.byId.get(id) ?? id);
             const duration = effect?.duration;
-            const durationLabel = duration?.type && duration.type !== 'none' && duration?.label ? String(duration.label) : '';
+            const durationLabel = formatDuration(duration);
             const type = String(classification?.type ?? 'effect');
             const typeLabel = String(classification?.typeLabel ?? localize('ActiveEffectType-Effect', 'Effect'));
             const name = String(classification?.name ?? effect?.name ?? localize('ActiveEffectUnnamed', 'Unnamed Effect'));
