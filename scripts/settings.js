@@ -4063,6 +4063,23 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
+	// -- Times Up Integration --
+	// -- Same shape as enableMidiIntegration above, and for the same reason: Times Up
+	// -- rewrites effect durations and expires effects itself, so Blacksmith either yields
+	// -- expiry to it or supplies the baseline. Checked at RUNTIME
+	// -- (isTimesUpIntegrationEnabled in api-effects.js), so toggling applies live.
+	// -- Turning this off with Times Up installed means BOTH will expire effects and race;
+	// -- it exists for diagnosis, not as a normal operating mode.
+	game.settings.register(MODULE.ID, 'enableTimesUpIntegration', {
+		name: MODULE.ID + '.enableTimesUpIntegration-Label',
+		hint: MODULE.ID + '.enableTimesUpIntegration-Hint',
+		type: Boolean,
+		config: true,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
+	});
+
 
 	// --------------------------------------
 	// -- H2: XP DISTRIBUTION

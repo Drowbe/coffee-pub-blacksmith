@@ -1,12 +1,12 @@
-# Plan: Effects ecosystem adapter (Times Up), asks 1 and 3
+# Plan: Effects ecosystem adapter (Times Up)
 
 **Status: Planned** — unblocked; Bibliosoph answered both open questions 2026-08-07.
 
 Bibliosoph asked the effects layer to adapt the effects ecosystem the way `utility-midi-resolution.js`
-adapts Midi-QOL. The exchange is in `note-bibliosoph-effects-ecosystem.md` and the triage in
-`TODO-GLOBAL.md`. Their three asks were unbundled: **1 and 3 are this plan; ask 2 (a GM-authoritative
-expiry event) is a separate decision and is not in scope here.**
-
+adapts Midi-QOL. The triage and the settled rules are in `TODO-GLOBAL.md`,
+`architecture/architecture-ownership.md` and `architecture/architecture-effects.md`. Their three asks
+were unbundled and then all three folded back in: 1 and 3 were taken first, and **ask 2 was promoted into
+scope on 2026-08-07** once it was demonstrated that no correct consumer can exist without it.
 ## What the substrate actually does
 
 Two independent sources produce rounds-based durations, and a fix scoped to either one alone is wrong.
@@ -65,11 +65,12 @@ branch on it.** Bibliosoph originally wrote that *no* Coffee Pub module should r
 has since conceded the point — a satellite must not, the hub must. Without that rule this plan would be
 prohibited by the thing it is trying to fix.
 
-## Ask 2 — not in scope here, but the argument for it changed on 2026-08-07
+## Ask 2 — IN SCOPE. Promoted 2026-08-07.
 
 Ask 2 is a GM-authoritative `effects.expired` event. It means owning the expiry decision, deduping across
 clients, and interleaving with Times Up's own expiry, which deletes effects. It reverses a standing
-non-goal and is a new subsystem rather than an increment, which is why it is not bundled into this plan.
+non-goal and is a new subsystem rather than an increment, which is why it was held back until the case for
+it was proven rather than argued. It now is; see below.
 
 **What changed:** with Bibliosoph's unit handling fixed, Bibliosoph and Times Up now both correctly detect
 that a converted effect has expired, and **both delete it** — one throws an unhandled rejection every time.
@@ -90,16 +91,41 @@ argument than the original one ("every consumer reimplements `hasExpired()`"): i
 *will* get it wrong, it is that a correct consumer *cannot exist*. Arbitration has to sit in the adapter
 because the adapter is the only layer permitted to know Times Up is there.
 
+### The mitigation does not work, which closes the argument (verified 2026-08-07)
+
+Blacksmith advised Bibliosoph to guard the delete and catch the rejection. **That stops the unhandled
+rejection and not the error banner**, so it is not a fix.
+
+Foundry notifies from the socket ACK before the caller ever sees the rejection.
+`client/helpers/socket-interface.mjs`:
+
+```js
+if ( response.error ) {
+  const err = SocketInterface.#handleError(response.error);  // calls ui.notifications.error(...)
+  reject(err);                                               // only now can a caller catch
+}
+```
+
+`#handleError` is documented in core as "displaying it on screen and in the console" and calls
+`ui.notifications.error(error.message)` unconditionally. It runs *inside* the promise executor, before
+`reject`, so a `.catch()` is strictly too late. There is no caller-side way to suppress it.
+
+A pre-flight existence check does not close it either — that is time-of-check to time-of-use. The window
+narrows; it does not shut, because the other actor can delete between the check and the call.
+
+**So the trilemma survives its own mitigation.** The only move left is to not attempt the delete, which
+requires knowing another module already will, which is the forbidden branch. "A correct consumer cannot
+exist" is now demonstrated rather than argued, and there is no third option to find.
+
 **Design consequence to weigh before taking it.** The clean contract is that **consumers never delete on
 expiry** — Blacksmith either yields deletion to Times Up or performs it, and fires the same event either
 way. That gives the layer exactly one CRUD operation, which is a real cost against its "no CRUD" non-goal
 and should be stated rather than slipped in. The alternative, firing the event and letting the owner
 delete, reintroduces the race the moment Times Up is installed.
 
-Bibliosoph is **not blocked** — their own expiry works standalone. The immediate mitigation is to guard
-the delete, which is correct regardless of Times Up: a GM can remove an effect by hand mid-operation, so
-an unhandled rejection on a lost delete race is a robustness bug in its own right, and guarding it is not
-branching on anything.
+Bibliosoph is **not blocked** — their own expiry works standalone. Guarding the delete is still worth
+doing on its own merits, because a GM can remove an effect by hand mid-operation and an unhandled
+rejection is a robustness bug regardless. It is simply not a fix for this: see above.
 
 ## Also not in scope
 - Letting a classifier set `durationLabel`. Declined and settled: it would let a module assert duration

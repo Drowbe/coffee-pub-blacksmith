@@ -84,6 +84,7 @@ Two consequences worth stating:
 
 - **A non-goal list is a decision, not a default.** If a Blacksmith subsystem declines to adapt part of the substrate, the variance does not disappear — it lands on every consumer, unowned and invisible. That may still be the right call, but it should be made deliberately and written down with its reason.
 - **"Optional module does X" is a finding, never a fix.** When a satellite discovers that some third-party module changes shared behavior, the correct output is a request to Blacksmith, not a workaround in the satellite.
+- **A satellite often cannot even fail gracefully, which is why "just handle it defensively" is not an answer.** Worked example, verified 2026-08-07: two modules racing to delete the same Active Effect. The loser cannot suppress the error banner, because Foundry notifies from inside the socket response handler — `SocketInterface.#handleError` calls `ui.notifications.error` *before* `reject`, so a `.catch()` is strictly too late (`client/helpers/socket-interface.mjs`). A pre-flight existence check only narrows the window; it is time-of-check to time-of-use. The only remaining move is to not attempt the operation, which requires knowing the other module will — the forbidden branch. Where the substrate leaves no defensive option, arbitration is not a convenience the hub offers; it is the only place correctness can live.
 
 ## Prefer hooks over registry callbacks for lifecycle
 

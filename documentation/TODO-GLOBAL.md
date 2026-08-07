@@ -351,8 +351,8 @@ instance as their third argument and as `this`, and the listener binds per insta
 `static _ref` survives as a deprecated shim so nothing below breaks before it migrates. Consumer migration is
 one edit per handler: `MyWindow._ref?.doThing()` becomes `(event, target, win) => win.doThing()`.
 
-**Ready-to-send notes** live alongside this file: `plans/note-regent-window-base-fork.md` and
-`plans/note-suite-dialog-migration.md`.
+**No separate note files.** They went stale and got missed; asks now live in this file and reach the
+sibling as a message. The Regent fork and the Dialog migration each have their own section above.
 
 ### Exposure by module
 

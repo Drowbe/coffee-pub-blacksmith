@@ -893,6 +893,9 @@
 				"enableMidiIntegration-Label": "Midi-QOL Integration",
 				"enableMidiIntegration-Hint": "When Midi-QOL is active, use its workflows for attack, damage, and crit detection (rolls API and combat statistics). Blacksmith is fully functional without Midi-QOL - disable this to have Blacksmith ignore Midi workflows and rely on its own core dnd5e detection even while Midi is installed. Applies without a reload.",
 
+				"enableTimesUpIntegration-Label": "Times Up Integration",
+				"enableTimesUpIntegration-Hint": "When Times Up is active, let it own effect expiry and let Blacksmith report durations consistently across the conversions it makes. Blacksmith expires effects itself when Times Up is absent, so effects do not linger forever. Turning this off while Times Up is installed means both will expire the same effect and one will fail noisily - it is a diagnostic switch, not a normal setting. Applies without a reload.",
+
 		"headingH2XpDistribution-Label": "XP and Milestones",
 		"headingH2XpDistribution-Hint": "These settings control the automatic XP distribution system that triggers when combat ends.",
 

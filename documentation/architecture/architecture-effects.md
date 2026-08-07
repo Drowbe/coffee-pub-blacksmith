@@ -6,7 +6,7 @@ The Active Effects subsystem is a small shared normalization layer, not an effec
 
 | Component | Responsibility |
 |---|---|
-| `scripts/api-effects.js` | Filtering, dnd5e condition labels, duration and description normalization, classifier registry, change event |
+| `scripts/api-effects.js` | Filtering, dnd5e condition labels, duration and description normalization, Times Up adaptation, expiry arbitration, classifier registry, change and expiry events |
 | `scripts/manager-combatbar.js` | Blacksmith's hover-card presentation and live refresh |
 | `styles/menubar-combatbar.css` | Compact effect rows in the hover card |
 | `documentation/api/api-effects.md` | Consumer contract |
@@ -74,25 +74,58 @@ The built-in Bibliosoph classifier is deliberately low priority and compatibilit
 
 Effect names and statuses are returned by the normalization API, but descriptions default to permission-aware behavior: only GMs and Actor owners receive enriched description HTML. Blacksmith additionally suppresses the entire effect section on its limited NPC hover-card view. Consumers remain responsible for applying an equally strict visibility policy to their own UI.
 
+## Expiry arbitration
+
+Foundry core does not expire effects. Times Up does, and it is optional. That left every consuming module
+with three moves and no correct one:
+
+| A satellite could | Result |
+|---|---|
+| Always delete on expiry | Races Times Up wherever it is installed |
+| Never delete on expiry | Effects linger forever in worlds without it |
+| Check whether Times Up is installed and defer | Forbidden — a satellite branching on a third-party module |
+
+**The loser of that race cannot even fail quietly.** Foundry notifies from inside the socket response
+handler — `SocketInterface.#handleError` calls `ui.notifications.error` *before* `reject`
+(`client/helpers/socket-interface.mjs`) — so a caller's `catch` is strictly too late, and a pre-flight
+existence check only narrows the window rather than closing it. Arbitration therefore has to live in the
+one layer permitted to know Times Up is there, which is this one.
+
+`sweepExpired` runs on the GM only, on `updateWorldTime` and on combat turn/round changes, because seconds
+durations and rounds durations advance on different clocks and neither implies the other. The GM check
+cannot sit at hook registration: `initialize()` runs at `init`, before `game.user` exists, so gating there
+evaluates undefined on every client and registers nothing anywhere.
+
+Two separations are load-bearing:
+
+- **`blacksmith.effects.expired` means the clock ran out, not that the document is gone.** Removal is
+  carried by Foundry's own `deleteActiveEffect`, which fires whoever deleted. Keeping them apart is what
+  lets the layer yield deletion to Times Up without the event's meaning changing.
+- **Consumers must not delete on expiry.** Exactly one actor deletes in every configuration: Times Up when
+  it is present and the integration is on, this layer otherwise.
+
+Announced effects are remembered per session so the event fires once rather than on every subsequent tick;
+the record is dropped when the effect is deleted, so a re-applied effect can expire again.
+
 ## Non-goals
 
 These are non-goals **of this layer**, not of Blacksmith. Several are owned elsewhere in the module, and
+the list says where, so it does not read as a blanket position the codebase contradicts.
 
-The rule that governs which of these is defensible is in [architecture-ownership.md](architecture-ownership.md):
-Blacksmith absorbs third-party variance so satellites never branch on it, and a non-goal is a decision rather
-than a default -- declining to adapt does not remove the variance, it moves it onto every consumer unowned.
-the list says where so it does not read as a blanket position the codebase contradicts.
+The rule that governs which of them are defensible is in
+[architecture-ownership.md](architecture-ownership.md): Blacksmith absorbs third-party variance so
+satellites never branch on it, and a non-goal is a decision rather than a default — declining to adapt
+does not remove the variance, it moves it onto every consumer, unowned.
 
 | Not done here | Why, and where it lives if it lives anywhere |
 |---|---|
-| Active Effect CRUD | Belongs to whoever owns the effect. This layer reads and formats. |
-| Duration ticking or expiry | Nothing here owns a clock. Combat timing is `timer-planning.js`, `timer-combat.js` and `timer-round.js`; none of them watches effects. `remaining` is read from the document, never advanced. |
+| Active Effect CRUD | Belongs to whoever owns the effect — **with one exception**: this layer deletes an effect whose clock it owns, because arbitration is meaningless without it. It creates and updates nothing. |
 | Roll automation | `api-rolls.js`. |
-| Midi-QOL or DAE interpretation | Not in *this* layer. Blacksmith does interpret Midi-QOL — `utility-midi-resolution.js`, gated on the `enableMidiIntegration` setting — but only for rolls. |
-| Socket synchronization | Not in *this* layer; the change event is local. Blacksmith has `manager-sockets.js`, and this layer deliberately does not use it: every client derives the same display from Actor data it already has. |
-| Module-specific injury, critical, or fumble rules | Belongs to the owning module, via a registered classifier. |
+| Midi-QOL or DAE interpretation | Not in *this* layer. Blacksmith does interpret Midi-QOL — `utility-midi-resolution.js`, gated on `enableMidiIntegration` — but only for rolls. |
+| Socket synchronization | Not in *this* layer; the change event is local and the expiry event is GM-side. Blacksmith has `manager-sockets.js`, and this layer deliberately does not use it: every client derives the same display from Actor data it already has, and removal already broadcasts as `deleteActiveEffect`. |
+| Module-specific injury, critical, or fumble rules | Belongs to the owning module, via a registered classifier. Policy on an expired effect — heal it, leave it to be treated — is the owner's; detecting that the clock ran out is not. |
 
-The two that say "not in this layer" are the ones worth understanding rather than skimming, because
-Blacksmith does both elsewhere. They are excluded here for the same reason: a display normalizer that
-ticked clocks or synced state would be authoritative about something, and this layer is deliberately
-authoritative about nothing.
+**"Duration ticking or expiry" was on this list until 2026-08-07** and is deliberately no longer. It was
+removed because a non-goal is a decision: declining it did not remove the problem, it pushed an unsolvable
+one onto every consumer. The layer is now authoritative about exactly one thing, expiry, and about nothing
+else.

@@ -47,7 +47,8 @@ Each returned row contains:
   context,
   conditionIds,
   conditions,
-  durationLabel,
+  durationLabel,   // string to display
+  remaining,       // { value, unit } to compare, or null — see below
   detail,          // "Type · Context · Remaining Duration"
   descriptionHtml,
   tooltipHtml,
@@ -84,6 +85,68 @@ Do not use `includeDescriptions: 'always'` in player-facing UI unless the caller
 Rounds are only used for a short remainder during an active combat, where "how many of my turns is this" is the question being asked. A long duration stays in wall-clock units even mid-combat, since "285 rounds" answers nothing.
 
 A classifier cannot influence this field — `durationLabel` is computed from the effect's own duration, independent of classification.
+
+## Time remaining
+
+`remaining` is the number to reason about; `durationLabel` is the string to show. Never parse the label.
+
+```javascript
+record.remaining   // { value: 1800, unit: 'seconds' }
+                   // { value: 5,    unit: 'rounds'  }
+                   // null — the effect has no duration at all
+```
+
+`null` means permanent, which is not the same as `{ value: 0 }`.
+
+**The unit is part of the answer.** Foundry reports `duration.remaining` in whichever unit the document
+happens to carry - seconds for a seconds duration, a decimal count of rounds for a turns duration - and
+announces that nowhere. Code that assumes seconds is wrong by a factor of `CONFIG.time.roundTime` on every
+rounds-based effect.
+
+**Rounds are not converted to seconds.** A rounds duration advances with the combat tracker, not the world
+clock, so quoting it in seconds would state a remainder that is not true. Compare `value` only against
+another value of the same `unit`.
+
+Two helpers save writing this yourself:
+
+```javascript
+blacksmith.effects.getRemaining(effect)   // same shape, for an effect you already hold
+blacksmith.effects.hasExpired(effect)     // true when the clock has run out
+```
+
+### What Blacksmith absorbs for you
+
+Times Up rewrites short seconds-based durations into rounds and nulls `duration.seconds`. Where it has
+done so, `remaining` reports the seconds anyway, because that effect was authored in seconds and the
+rewrite is substrate variance rather than a change of meaning. You never branch on whether Times Up is
+installed - see the ownership rules on the wiki.
+
+The `enableTimesUpIntegration` world setting turns that off for diagnosis. It is not a normal operating
+mode: with Times Up installed and the integration off, both it and Blacksmith will expire the same effect.
+
+## Expiry
+
+```javascript
+const off = blacksmith.effects.onExpired(({ effect, actor, remaining, deletedBy }) => {
+  // the clock ran out; unwind your own state
+});
+```
+
+`deletedBy` is `'times-up'` or `'blacksmith'` - which actor is responsible for removing the document.
+
+**Expired means the clock ran out, not that the document is gone.** To react to removal, listen to
+Foundry's `deleteActiveEffect`, which fires whoever did the deleting and reaches every client.
+
+**Do not delete an effect because it expired.** Blacksmith arbitrates: it yields deletion to Times Up when
+that is present and enabled, and performs it otherwise, so exactly one actor deletes in every
+configuration. A consumer that also deletes reintroduces a race whose loser cannot fail quietly - Foundry
+notifies from inside the socket response handler, before the promise rejects, so a `catch` is too late.
+
+**Fires on the GM client only.** It is the authoritative one; firing everywhere would need cross-client
+deduplication to say the same thing. Use `deleteActiveEffect` if you need every client.
+
+**Fires once per effect.** An expired effect stays expired on every subsequent tick; the event does not
+repeat. Deleting and re-applying the effect arms it again.
 
 ## Raw qualifying effects
 
