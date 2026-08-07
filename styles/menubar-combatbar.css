@@ -47,7 +47,12 @@
 
     /* Thickness of the SVG stroke */
     --ring-thickness: 3px;
-    --gap: 2px;
+    /* THE SPACING BETWEEN ANY TWO BUTTONS ON THE COMBAT ROW, portraits and controls alike.
+       They were separate numbers -- portraits at 2px, the encounter/tokens/initiative controls
+       at a hardcoded 4px -- so the portrait strip read tighter than the buttons beside it. One
+       value now, referenced by both, because "the same gap" is the requirement and two numbers
+       that happen to agree are one edit away from not. */
+    --gap: 4px;
     --combatbar-button-font-size: calc(var(--blacksmith-combatbar-combat-height) * 0.25);
     --combatbar-text-font-size: calc(var(--blacksmith-combatbar-combat-height) * 0.22);
     --combatbar-subtext-font-size: calc(var(--blacksmith-combatbar-combat-height) * 0.13);
@@ -434,7 +439,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    /* The scroll arrows and the edge buttons are buttons on this row like any other, so they
+       take the row's spacing too — see --gap. */
+    gap: var(--gap);
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -602,12 +609,19 @@
         --portrait-size: calc(var(--portrait-container-height) - 6px);
     }
 
+    /* THE FIGURE INSIDE THE BUTTON RESTS AT 85%, and the active combatant's grows back to full
+       size as it breathes (see the pulse below). Both elements carry it, because in Round mode
+       the portrait and its health ring are one figure and must scale together -- shrinking only
+       the portrait would leave it floating inside a ring that stayed put.
+       ON THESE, NOT ON THE BUTTON. The button is the layout box; scaling that shrinks the
+       drawing and not the footprint, so the reclaimed space became gap between portraits rather
+       than anything useful. Scaling the contents costs the row nothing. */
     .blacksmith-menubar-secondary .combat-portrait-image,
     .blacksmith-menubar-secondary .combat-portrait-healthring {
         position: absolute;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%) scale(0.85);
         border-radius: var(--portrait-radius);
     }
     .blacksmith-menubar-secondary .combat-portrait-healthring {
@@ -684,14 +698,21 @@
        ROLLBACK NOTE: the turn was `border-color: rgba(255,170,60,.95)` plus
        `box-shadow: inset 0 0 8px rgba(255,150,30,.75)` on the container. That was a second
        coloured ring immediately outside the disposition fill's, and the two competed. Corner
-       ticks and a shrunken resting strip were both tried between then and now. */
+       ticks were tried between then and now, and rejected. A resting shrink was too -- that one
+       SURVIVES, but applied to the button's contents rather than to the button, because on the
+       button it was paid for in gap between portraits. */
     @keyframes blacksmith-combat-turn-pulse {
         0%   { transform: translate(-50%, -50%) scale(0.92); }
         50%  { transform: translate(-50%, -50%) scale(1); }
         100% { transform: translate(-50%, -50%) scale(0.92); }
     }
 
-    .blacksmith-menubar-secondary .combat-portrait-container.current .combat-portrait-image {
+    /* Both, and in lockstep: in Round mode the portrait and its ring are one figure, and a
+       breath that moved only one of them would pull them apart. The trough (0.92) sits above
+       the resting 0.85, so the active combatant is larger than the rest at every point in the
+       cycle rather than only at the top of it. */
+    .blacksmith-menubar-secondary .combat-portrait-container.current .combat-portrait-image,
+    .blacksmith-menubar-secondary .combat-portrait-container.current .combat-portrait-healthring {
         animation: blacksmith-combat-turn-pulse 2s ease-in-out infinite;
     }
 
@@ -832,7 +853,8 @@
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: 4px;
+    /* Same spacing as between portraits — see --gap. */
+    gap: var(--gap);
     height: 100%;
     min-height: var(--portrait-container-height);
     font-size: var(--combatbar-text-font-size);
