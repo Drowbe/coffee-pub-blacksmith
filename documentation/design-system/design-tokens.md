@@ -120,9 +120,9 @@ Semantic outcome colors, for text and solid fills.
 
 ## Color: token disposition
 
-One pair per `CONST.TOKEN_DISPOSITIONS` value, for surfaces that mark a token or combatant as friendly,
-neutral, hostile, or secret. These are the module's own muted palette, not Foundry's saturated canvas
-colors, because they render inside Blacksmith chrome rather than over the map.
+One pair per `CONST.TOKEN_DISPOSITIONS` value, identifying a token or combatant as friendly, neutral,
+hostile, or secret. These are the module's own muted palette, not Foundry's saturated canvas colors,
+because they render inside Blacksmith chrome rather than over the map.
 
 Use the solid token for a mark read against a surface - a dot, an icon, a rule - and the `-bg` token when
 the surface itself is the reading, such as a button fill. Neutral's fill is the lightest of the four

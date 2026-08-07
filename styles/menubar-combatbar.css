@@ -529,16 +529,35 @@
         border: 2px dotted rgba(230, 220, 210, 0.55);
     }
 
-    /* DISPOSITION IS THE BUTTON.
+    /* DISPOSITION IS BUNTING HUNG FROM THE TOP OF THE BUTTON.
 
-       It was an outer ring first, concentric with the health ring, and two rings around one
-       small portrait read as clutter — the eye had to work out which of the two circles it was
-       being asked to read. The container already had a fill that carried colour on exactly one
-       occasion, the active combatant's turn; giving that fill to disposition puts the colour on
-       a surface that was mostly wasted and leaves the portrait a single ring.
+       It has been three things. A stripe under the portrait read as chrome that had come loose.
+       A concentric ring outside the health ring made two rings around one small portrait, and
+       the eye had to work out which circle it was being asked to read. A fill on the button
+       worked, but it was borrowed: the fill had always marked the active combatant, and taking
+       it meant the turn had to move to the border and hover had to stop using the border in
+       turn — three readings shuffling between two properties.
 
-       Whose turn it is moved to the border, which was free. Border and fill are then two
-       properties answering two questions, instead of one property that had to mean both. */
+       The bunting is a fourth surface that costs nothing. The art is a rail with a valance
+       below it, so it drapes over the portrait's top edge and needs no room of its own; the top
+       was the one free edge, with the health reading at the bottom and the initiative dice and
+       dead skull at the centre. Colour carries the reading. That gives the fill back to the
+       turn, which is what it was for, and every property answers exactly one question again. */
+    /* DISPOSITION IS THE BUTTON FILL.
+
+       Four other surfaces were tried and all read worse: a stripe under the portrait (chrome
+       that had come loose), a concentric ring outside the health ring (two rings around one
+       small portrait, and the eye has to work out which one it is being asked to read), the
+       `images/markers` bunting hung from the top (drapery over a face), and a flat strip across
+       the top (worse than the bunting). The fill wins because it is the whole object: the
+       disposition of a combatant is a property of the combatant, not an ornament attached to
+       one, and colouring the thing itself says so with no extra element at all.
+
+       The cost is that the fill used to mark the active combatant, so the turn moves to the
+       border and an inner glow, and hover moves off the border to a brightness lift so the two
+       stay distinguishable. That reshuffle is the price of this arrangement and it is paid
+       below -- no portrait state may set `background`, or it silently blanks the disposition of
+       whichever combatant is in that state. */
     .blacksmith-menubar-secondary .combat-portrait-container.disposition-friendly {
         background: var(--blacksmith-disposition-friendly-bg);
     }
@@ -609,11 +628,11 @@
 
     /* Portrait States
 
-       THE FILL BELONGS TO DISPOSITION NOW, so no state below may set `background` — doing so
-       would silently blank the disposition of whichever combatant happened to be in that state,
-       which is how the previous arrangement lost the reading in the first place. Hover and turn
-       express themselves through the border and a brightness lift instead, both of which sit on
-       top of any fill rather than replacing it. */
+       THE FILL BELONGS TO DISPOSITION, so nothing below may set `background` — doing so would
+       silently blank the disposition of whichever combatant happened to be in that state, which
+       is exactly how an earlier arrangement lost the reading. The turn and hover express
+       themselves through the border, an inner glow, and a brightness lift, all of which layer
+       over any fill rather than replacing it. */
     .blacksmith-menubar-secondary .combat-portrait-container:hover {
         transform: scale(1.0);
         /* Not a border change: the border is the turn marker, and hover borrowing it made the
@@ -625,10 +644,9 @@
         transform: scale(1.4);
     }
 
-    /* INSET, not an outer glow. `.combat-portraits` sets `overflow-y: hidden`, so an outer
-       shadow is sliced flat top and bottom and reads as a rendering fault. Lighting the button
-       from within stays inside the box and layers over the disposition fill rather than
-       replacing it. */
+    /* The glow is INSET, not an outer one: `.combat-portraits` sets `overflow-y: hidden`, so an
+       outer shadow is sliced flat top and bottom and reads as a rendering fault. Lighting the
+       button from within also layers over the disposition fill instead of replacing it. */
     .blacksmith-menubar-secondary .combat-portrait-container.current {
         border-color: rgba(255, 170, 60, 0.95);
         box-shadow: inset 0 0 8px rgba(255, 150, 30, 0.75);
@@ -725,10 +743,13 @@
     .blacksmith-menubar-secondary .combat-portrait-healthbar {
         position: absolute;
         /* THE GAP IS ONE PIXEL, ALL THE WAY ROUND THE THREE EDGES IT MEETS. It is not margin --
-           it is the only place the disposition colour shows past the bar, a hint of what the bar
-           is sitting on. Inset by left/right/bottom rather than a width and a centring
-           transform, so the gap is stated as the pixel it is instead of being the remainder of
-           an arithmetic that has to be re-derived every time the portrait resizes. */
+           it is where the button's own fill shows past the bar, a hint of what the bar is
+           sitting on, and it goes bright with the rest of the button on the active combatant's
+           turn. The bunting hangs off the same one pixel at the top, so the two readings frame
+           the portrait symmetrically. Inset by left/right/bottom rather than a width and a
+           centring transform, so the gap is stated as the pixel it is instead of being the
+           remainder of an arithmetic that has to be re-derived every time the portrait
+           resizes. */
         left: 1px;
         right: 1px;
         bottom: 1px;

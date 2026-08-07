@@ -128,14 +128,13 @@
         {{!-- Combat Portraits --}}
         <div class="combat-portraits">
         {{#each combatants}}
-               {{!-- `disposition-*` colours the BUTTON — the container's own fill, which used to
-                     carry colour only on the active combatant's turn. Whose turn it is moved to
-                     the border, so the two readings no longer compete for one property. The word
-                     is in the hover card, not here.
+               {{!-- `disposition-*` colours the BUTTON ITSELF — see the note in
+                     menubar-combatbar.css for the four surfaces tried before it and why the
+                     fill won. Whose turn it is therefore lives on the border and an inner glow.
+                     The word is in the hover card, not here.
 
                      `shape-*` is this client's Portrait Shape setting, and it governs the
-                     portrait and its health ring together: they are one figure and must never
-                     disagree. The button behind them is unaffected by it. --}}
+                     portrait and its health reading together. The bunting is unaffected by it. --}}
                <div class="combat-portrait-container disposition-{{dispositionKey}} {{#if isSquarePortrait}}shape-square{{else}}shape-round{{/if}} {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}} {{#if isHidden}}combat-token-hidden{{/if}}"
                     data-combatant-id="{{id}}"
                     data-disposition="{{dispositionKey}}">

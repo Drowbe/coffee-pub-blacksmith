@@ -2224,10 +2224,10 @@ export const registerSettings = () => {
 		config: true,
 		type: String,
 		choices: {
-			round: 'Round',
-			square: 'Square'
+			square: 'Square',
+			round: 'Round'
 		},
-		default: 'round',
+		default: 'square',
 		requiresReload: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});

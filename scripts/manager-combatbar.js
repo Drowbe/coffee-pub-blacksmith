@@ -2216,7 +2216,9 @@ export class CombatBarManager {
     }
 
     /**
-     * A token's disposition as a css-safe key and a localized word.
+     * A token's disposition as a css-safe key and a localized word. The key becomes a class on
+     * the portrait container, which colours the strip across its top; the word goes to the
+     * hover card.
      *
      * Shown to everyone, not just the GM: Foundry already colors every visible token's border by
      * disposition on the canvas, so this exposes nothing a player cannot already read there — and
