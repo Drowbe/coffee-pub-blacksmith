@@ -120,16 +120,24 @@ Semantic outcome colors, for text and solid fills.
 
 ## Color: token disposition
 
-One color per `CONST.TOKEN_DISPOSITIONS` value, for surfaces that mark a token or combatant as friendly,
+One pair per `CONST.TOKEN_DISPOSITIONS` value, for surfaces that mark a token or combatant as friendly,
 neutral, hostile, or secret. These are the module's own muted palette, not Foundry's saturated canvas
 colors, because they render inside Blacksmith chrome rather than over the map.
 
+Use the solid token for a mark read against a surface - a dot, an icon, a rule - and the `-bg` token when
+the surface itself is the reading, such as a button fill. Neutral's fill is the lightest of the four
+because its hue is the brightest; equal alphas made it shout over the other three.
+
 | Token | Value | Use |
 |---|---|---|
-| `--blacksmith-disposition-friendly` | `#4a7c23` | Friendly disposition |
-| `--blacksmith-disposition-neutral` | `#ac9f81` | Neutral disposition |
-| `--blacksmith-disposition-hostile` | `#a51214` | Hostile disposition |
-| `--blacksmith-disposition-secret` | `#6b4a8c` | Secret disposition |
+| `--blacksmith-disposition-friendly` | `#4a7c23` | Friendly disposition mark |
+| `--blacksmith-disposition-friendly-bg` | `rgba(74, 124, 35, 0.45)` | Friendly disposition fill |
+| `--blacksmith-disposition-neutral` | `#ac9f81` | Neutral disposition mark |
+| `--blacksmith-disposition-neutral-bg` | `rgba(172, 159, 129, 0.35)` | Neutral disposition fill |
+| `--blacksmith-disposition-hostile` | `#a51214` | Hostile disposition mark |
+| `--blacksmith-disposition-hostile-bg` | `rgba(165, 18, 20, 0.45)` | Hostile disposition fill |
+| `--blacksmith-disposition-secret` | `#6b4a8c` | Secret disposition mark |
+| `--blacksmith-disposition-secret-bg` | `rgba(107, 74, 140, 0.45)` | Secret disposition fill |
 
 ## Color: variant palette
 

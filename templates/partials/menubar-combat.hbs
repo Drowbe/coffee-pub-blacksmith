@@ -128,42 +128,57 @@
         {{!-- Combat Portraits --}}
         <div class="combat-portraits">
         {{#each combatants}}
-               {{!-- `disposition-*` drives the stripe across the bottom of the portrait (drawn as an
-                     ::after, not a border — the container's border already belongs to the hover and
-                     hidden-token states). The word is in the hover card, not here. --}}
-               <div class="combat-portrait-container disposition-{{dispositionKey}} {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}} {{#if isHidden}}combat-token-hidden{{/if}}"
+               {{!-- `disposition-*` colours the BUTTON — the container's own fill, which used to
+                     carry colour only on the active combatant's turn. Whose turn it is moved to
+                     the border, so the two readings no longer compete for one property. The word
+                     is in the hover card, not here.
+
+                     `shape-*` is this client's Portrait Shape setting, and it governs the
+                     portrait and its health ring together: they are one figure and must never
+                     disagree. The button behind them is unaffected by it. --}}
+               <div class="combat-portrait-container disposition-{{dispositionKey}} {{#if isSquarePortrait}}shape-square{{else}}shape-round{{/if}} {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}} {{#if isHidden}}combat-token-hidden{{/if}}"
                     data-combatant-id="{{id}}"
                     data-disposition="{{dispositionKey}}">
-                   <div class="combat-portrait-healthring">
-                       {{#if healthRingHidden}}
-                           <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">
-                               <circle
-                                   cx="{{svgCenter}}"
-                                   cy="{{svgCenter}}"
-                                   r="{{svgRadius}}"
-                                   fill="none"
-                                   stroke-width="{{svgStrokeWidth}}"
-                                   stroke-dasharray="{{healthCircumference}}"
-                                   stroke-dashoffset="0"
-                                   transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
-                               />
-                           </svg>
-                       {{else}}
-                           <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">
-                               <circle
-                                   cx="{{svgCenter}}"
-                                   cy="{{svgCenter}}"
-                                   r="{{svgRadius}}"
-                                   fill="none"
-                                   stroke-width="{{svgStrokeWidth}}"
-                                   stroke-dasharray="{{healthCircumference}}"
-                                   stroke-dashoffset="{{healthDashOffset}}"
-                                   transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
-                                   {{#if (gt currentHP 0)}}style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"{{/if}}
-                               />
-                           </svg>
-                       {{/if}}
+                   {{!-- TWO READINGS, NOT ONE READING IN TWO COSTUMES. Round wraps the portrait
+                         in a ring; square lays a bar across the bottom of it. A square ring was
+                         built first and dropped: it drained from a corner, because an SVG rect's
+                         path starts after its first corner radius, and a rectangle has no
+                         equivalent of twelve o'clock to start at. Left-to-right needs no
+                         explaining. See the note in getCombatData.
+
+                         BOTH DRAW THEIR EMPTY PART. Without a track the depleted portion was
+                         simply absent, which reads as a control that failed to render rather
+                         than a bar that is part empty — the same reason an ordinary progress bar
+                         shows its groove. --}}
+                   {{#if isSquarePortrait}}
+                   <div class="combat-portrait-healthbar">
+                       <div class="combat-portrait-healthbar-fill {{healthClass}}"
+                            style="width: {{healthBarPercent}}%"></div>
                    </div>
+                   {{else}}
+                   <div class="combat-portrait-healthring">
+                       <svg width="{{svgSize}}" height="{{svgSize}}" viewBox="0 0 {{svgSize}} {{svgSize}}" class="{{healthClass}}">
+                           <circle class="combat-portrait-ring-track"
+                               cx="{{svgCenter}}"
+                               cy="{{svgCenter}}"
+                               r="{{svgRadius}}"
+                               fill="none"
+                               stroke-width="{{svgStrokeWidth}}"
+                           />
+                           <circle
+                               cx="{{svgCenter}}"
+                               cy="{{svgCenter}}"
+                               r="{{svgRadius}}"
+                               fill="none"
+                               stroke-width="{{svgStrokeWidth}}"
+                               stroke-dasharray="{{healthCircumference}}"
+                               stroke-dashoffset="{{healthDashOffset}}"
+                               transform="rotate(-90, {{svgCenter}}, {{svgCenter}})"
+                               {{#unless healthRingHidden}}{{#if (gt currentHP 0)}}style="transition: stroke-dashoffset 0.3s ease-in-out, stroke 0.3s ease-in-out"{{/if}}{{/unless}}
+                           />
+                       </svg>
+                   </div>
+                   {{/if}}
                    <div class="combat-portrait-image">
                        <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
                    </div>

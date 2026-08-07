@@ -299,6 +299,9 @@
 				"menubarCombatSize-Label": "Size In Combat",
 				"menubarCombatSize-Hint": "The vertical size of the combat menubar while an encounter is running. This also sets how large the combatant portraits and their health rings are drawn.",
 
+				"menubarCombatPortraitShape-Label": "Portrait Shape",
+				"menubarCombatPortraitShape-Hint": "Whether combatant portraits and their health rings are drawn round or as rounded squares. The two always match, since they read as one figure. The disposition colour behind them is unaffected. This is your own view; it does not change what anyone else sees.",
+
 				"menubarCombatHideHealthBars-Label": "Hide Enemy Health Bars",
 				"menubarCombatHideHealthBars-Hint": "When enabled, the health bars of enemy combatants will be hidden from players in the combat menubar.",
 				"menubarCombatHideDead-Label": "Hide the Dead",

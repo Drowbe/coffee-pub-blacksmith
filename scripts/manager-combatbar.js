@@ -344,16 +344,19 @@ export class CombatBarManager {
         // rest rather than in an endcap beside the portraits. Everyone sees
         // these; only the challenge rating below is GM information.
         //
-        // BADGES, NOT PILLS. They were labelled pills, and between them the words
-        // "Round" and "Turn" cost more of the row than the numbers they named --
-        // on a bar where the timer bar's width is pinned to the millimetre. The
-        // scoreboard is the one pair of readouts nobody has to be told the
-        // meaning of, because their position never changes and the numbers only
-        // ever count up, so they are the readouts that can afford to give up
-        // their labels. The tooltip states the meaning in full for anyone who
-        // does need it -- and is rewritten with the value on every turn, so it
-        // never reads "Current round" over a badge saying 4.
-        api.registerSecondaryBarItem('combat', 'round', {
+        // ONE BADGE, NOT TWO LABELLED PILLS. Between them the words "Round" and
+        // "Turn" cost more of the row than the numbers they named -- on a bar
+        // where the timer bar's width is pinned to the millimetre -- and two
+        // separate boxes then spent the saving again on a second set of edges
+        // and the gap between them. The scoreboard is the one readout nobody has
+        // to be told the meaning of: its position never changes and the numbers
+        // only ever count up. So it is a single box, round then turn, split by a
+        // drawn seam rather than a word.
+        //
+        // The tooltip is the only place the meaning is stated, so it is rewritten
+        // with the numbers on every turn -- it never reads "Round and turn" over
+        // a badge saying 4.
+        api.registerSecondaryBarItem('combat', 'round-turn', {
             emphasis: 'feature',
             kind: 'statchip',
             shape: 'badge',
@@ -361,20 +364,11 @@ export class CombatBarManager {
             zone: 'left',
             group: 'encounter',
             order: 0,
-            value: '0',
-            tooltip: 'Round',
-            visible: inCombat
-        });
-        api.registerSecondaryBarItem('combat', 'turn', {
-            emphasis: 'feature',
-            kind: 'statchip',
-            shape: 'badge',
-            tone: 'neutral',
-            zone: 'left',
-            group: 'encounter',
-            order: 1,
-            valueParts: ['0', { text: ' of ', muted: true }, '0'],
-            tooltip: 'Turn',
+            // The round LEADS. A round and a turn in one box are equals until something
+            // says otherwise, and equals read as a list -- but the round is the number
+            // the table tracks and the turn is where inside it you are.
+            valueParts: [{ text: '0', lead: true }, { divider: true }, '0', { text: ' of ', muted: true }, '0'],
+            tooltip: 'Round and turn',
             visible: inCombat
         });
 
@@ -1334,17 +1328,20 @@ export class CombatBarManager {
             if (combat) {
                 const totalTurns = Array.isArray(combat.turns) ? combat.turns.length : combat.combatants.size;
                 const currentTurn = Math.min((typeof combat.turn === 'number' ? combat.turn : 0) + 1, Math.max(totalTurns, 1));
-                // Both are badges, so their labels live only in the tooltip -- and a tooltip
-                // that named the readout without stating it would be the one place the value
-                // is not. Pushed with the value so the two can never disagree.
-                api.updateSecondaryBarItemInfo('combat', 'round', {
-                    value: String(combat.round || 0),
-                    tooltip: `Round ${combat.round || 0}`
-                });
-                api.updateSecondaryBarItemInfo('combat', 'turn', {
-                    // "of" is scaffolding, not a number -- same treatment as the Finesse separator.
-                    valueParts: [String(currentTurn), { text: ' of ', muted: true }, String(totalTurns)],
-                    tooltip: `Turn ${currentTurn} of ${totalTurns}`
+                // The badge carries no label, so its tooltip is the only statement of what
+                // these numbers are -- pushed with them, so the two can never disagree.
+                // The seam and "of" are scaffolding, not numbers: same treatment as the
+                // Finesse separator.
+                const currentRound = combat.round || 0;
+                api.updateSecondaryBarItemInfo('combat', 'round-turn', {
+                    valueParts: [
+                        { text: String(currentRound), lead: true },
+                        { divider: true },
+                        String(currentTurn),
+                        { text: ' of ', muted: true },
+                        String(totalTurns)
+                    ],
+                    tooltip: `Round ${currentRound} - turn ${currentTurn} of ${totalTurns}`
                 });
             }
 
@@ -1865,12 +1862,14 @@ export class CombatBarManager {
         });
 
         const combatSizeSettingHookId = HookManager.registerSettingChangeCallback({
-            description: 'MenuBar: Refresh combat bar when the combat size changes',
+            description: 'MenuBar: Refresh combat bar when the combat size or portrait shape changes',
             context: 'menubar-combat-size-change',
             priority: 3,
             callback: (module, key) => {
                 if (module !== MODULE.ID) return;
-                if (key !== 'menubarCombatSize') return;
+                // Portrait shape rides the same refresh: it is baked into the rendered SVG
+                // (circle or rect) as well as the CSS, so a class toggle alone cannot apply it.
+                if (key !== 'menubarCombatSize' && key !== 'menubarCombatPortraitShape') return;
                 // updateCombatBar resolves and applies the height for the
                 // current combat state, so changing whichever size is not in
                 // force right now correctly leaves the bar alone.
@@ -2248,6 +2247,9 @@ export class CombatBarManager {
             const hideDeadCombatants = game.settings.get(MODULE.ID, 'menubarCombatHideDead');
             const hideNpcHealth = hideNpcHealthSetting && !game.user.isGM;
             const isGM = game.user.isGM;
+            // Personal, so read per render rather than cached: portrait shape is this client's
+            // view of the bar and never leaves it.
+            const isSquarePortrait = getSettingSafely(MODULE.ID, 'menubarCombatPortraitShape', 'round') === 'square';
 
             // Turn order is the combat tracker's, never ours. combat.turns is the
             // sequence Foundry itself advances through (and the system may override
@@ -2276,6 +2278,19 @@ export class CombatBarManager {
                 const size = Math.floor(secondaryHeight * 0.8);
                 const strokeWidth = Math.max(2, Math.floor(size * 0.05));
                 const radius = (size / 2) - (strokeWidth / 2);
+
+                // SQUARE MODE DOES NOT DRAW A RING AT ALL — it draws a bar across the bottom of
+                // the portrait, and the only geometry it needs is a percentage.
+                //
+                // A square ring was built first and abandoned (author call, 2026-08-06). It
+                // worked -- stroke-dasharray divides a rounded rectangle's perimeter as happily
+                // as a circumference -- but an SVG rect's path begins after its first corner
+                // radius and runs clockwise, so it drained from the top-left CORNER with no
+                // obvious start or direction. A circle has twelve o'clock; a rectangle has no
+                // equivalent, and the fix would have been to hand-draw the outline as a <path>
+                // starting at top-centre. A horizontal bar sidesteps the question entirely: left
+                // to right needs no explaining, and it makes the two shapes genuinely different
+                // readings rather than one reading in two costumes.
 
                 if (actor) {
                     const isNpc = !actor.hasPlayerOwner;
@@ -2320,10 +2335,17 @@ export class CombatBarManager {
                     healthDashOffset: healthRingHidden ? 0 : healthDashOffset,
                     healthClass: healthRingHidden ? 'combat-portrait-ring-hidden' : healthClass,
                     healthRingHidden,
+                    // Square mode's bar reads this instead of the dash offset. It mirrors that
+                    // offset's two special cases rather than inventing its own: a suppressed
+                    // ring and a dead combatant both show the track FULL, in the pale and the
+                    // pulsing-red treatments respectively, so the shapes never disagree about
+                    // what zero and hidden look like.
+                    healthBarPercent: (healthRingHidden || currentHP <= 0) ? 100 : healthPercentage,
                     svgSize: size,
                     svgCenter: size / 2,
                     svgRadius: radius,
                     svgStrokeWidth: strokeWidth,
+                    isSquarePortrait,
                     isHidden
                 };
             }).filter(combatant => combatant !== null);
@@ -4250,7 +4272,10 @@ export class CombatBarManager {
         const rect = drag.element.getBoundingClientRect();
         const img = drag.element.querySelector('.combat-portrait-image img');
         const ghost = document.createElement('div');
-        ghost.className = 'combat-initiative-drag-ghost';
+        // The ghost is the portrait in flight, so it wears the portrait's shape. It lives on
+        // <body>, outside the bar, so it cannot inherit the container's radius and is told
+        // directly. A round ghost dragged off a square portrait reads as a rendering fault.
+        ghost.className = `combat-initiative-drag-ghost ${drag.element.classList.contains('shape-square') ? 'shape-square' : 'shape-round'}`;
         const size = Math.round(Math.min(rect.width, rect.height)) || 44;
         ghost.style.width = `${size}px`;
         ghost.style.height = `${size}px`;

@@ -706,28 +706,58 @@
    Placed after the feature-pill block on purpose: both reach 0,3,0 on the item
    element, so source order is what settles the border radius between them.
 
-   The capsule is square-by-default and grows sideways: a one-digit round is a
-   circle, "2 of 6" is a stadium, and neither balloons the row's height. That is
-   the whole reason this is a shape and not two more kinds. */
+   ORDINARY CORNERS, NOT A CAPSULE. This was a stadium first, with a minimum
+   width equal to its height so a single digit came out as a circle. It looked
+   like a token and it spent real width on the round ends -- on the one row
+   where width is the scarce thing -- to say nothing the square-cornered box
+   does not. A small radius reads as a contained readout, which is what it is,
+   and lets two readings share one box instead of needing two capsules. */
 .blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-badge {
     padding: 0;
     gap: 0;
-    border-radius: 999px;
-    overflow: hidden;
+    border-radius: var(--blacksmith-radius-md);
     align-items: stretch;
     justify-content: center;
-    height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
+    /* MIN-height, not a fixed one. A badge may carry an enlarged `lead` part, and a fixed
+       height plus `overflow: hidden` clipped it top and bottom instead of growing. The box
+       still matches the feature pill's height in the ordinary case, so the row stays even. */
+    min-height: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .blacksmith-menubar-secondary .secondary-bar-item-statchip.shape-badge .secondary-bar-item-value {
-    /* Minimum width equal to the height is what makes the single-character case
-       a circle rather than a short pill. */
-    min-width: calc(var(--blacksmith-menubar-secondary-height) * 0.6);
-    padding: 0 0.7em;
+    padding: 0.15em 0.6em;
     justify-content: center;
+    /* Inherited rather than clipped by `overflow: hidden` on the parent: the fill is this
+       element, so it should carry the corners itself and not depend on being cropped. */
+    border-radius: inherit;
     /* Falls back to the neutral containment treatment, so a badge still reads as
        a badge at `emphasis: 'plain'`, where no tone fill is set for it. */
     background-color: var(--blacksmith-widget-tone-fill, rgba(255, 255, 255, 0.09));
     color: var(--blacksmith-widget-tone-ink, var(--blacksmith-widget-tone-neutral));
+}
+
+/* A drawn seam between two readings sharing one box. The alternative was a
+   punctuation mark, which costs a character's width and reads as content. Inset
+   top and bottom so it separates without cutting the box in two. */
+.blacksmith-menubar-secondary .secondary-bar-item-value-part.is-divider {
+    width: 1px;
+    align-self: stretch;
+    margin: 0.3em 0.55em;
+    padding: 0;
+    background-color: currentColor;
+    opacity: 0.3;
+}
+
+/* The principal reading of a composite value. Two numbers in one box are equals
+   until something says which the box is FOR, and equals read as a list. Kept to
+   a step rather than a leap: enough to rank them, not enough to make the second
+   look like an annotation -- and small enough that the taller line still centres
+   inside a fixed-height badge instead of pushing at it. */
+.blacksmith-menubar-secondary .secondary-bar-item-value-part.is-lead {
+    font-size: 1.2em;
+    font-weight: var(--blacksmith-font-weight-bold);
+    /* Stated, not inherited: the enlarged part is the one that decides the box's height, so it
+       must not pick up a line-height meant for the smaller text around it. */
+    line-height: 1;
 }

@@ -29,7 +29,12 @@
        total includes the data row, and portraits must not grow when that row
        is present. */
     --portrait-container-height: calc(var(--blacksmith-combatbar-combat-height) - 4px);
-    --portrait-container-width: calc(var(--blacksmith-combatbar-combat-height) + 4px);
+    /* THE BUTTON IS SQUARE, in both portrait shapes. It was 8px wider than it was tall, which
+       nothing inside it ever used: the portrait, the health ring and the disposition fill are
+       all centred and all sized off the HEIGHT, so the extra width was dead margin either side
+       of a square stack -- a square sitting in a rectangle. Equal sides also buy back 8px per
+       combatant, so more of the strip fits before it has to scroll. */
+    --portrait-container-width: var(--portrait-container-height);
     --healthbar-size: calc(var(--portrait-container-height) - 8px);
     --portrait-size: calc(var(--healthbar-size) - 10px);
     --action-icon-size: calc(var(--healthbar-size) - 10px);
@@ -507,68 +512,81 @@
         height: var(--portrait-container-height);
         flex-shrink: 0;
         cursor: pointer;
-        transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease;
+        transition: transform .10s ease, box-shadow .15s ease, border-color .10s ease, filter .10s ease;
         border: 2px solid rgba(0, 0, 0, 0.0);
+        /* Fallback only. A rendered combatant always carries a disposition class, which
+           replaces this; it shows for anything that somehow reaches the strip without one. */
         background: rgba(0, 0, 0, 0.3);
-        border-radius: 4px;
+        /* THE BUTTON'S CORNER IS THE REFERENCE for everything square inside it — the health
+           ring's `rx` (set in getCombatData) and the portrait's radius both answer to it. */
+        border-radius: var(--blacksmith-radius-md);
     }
 
+    /* Hidden says hidden with the border and the opacity, and deliberately sets no background:
+       the fill is the disposition, and a hidden enemy is still an enemy. */
     .blacksmith-menubar-secondary .combat-portrait-container.combat-token-hidden {
         opacity: 0.8;
-        border: 1px dotted rgba(14, 11, 11, 0.4);
-        background: rgba(255, 255, 255, 0.2);
+        border: 2px dotted rgba(230, 220, 210, 0.55);
     }
 
-    /* Disposition Stripe
-       A bar across the bottom of the portrait, drawn as a pseudo-element rather than a real
-       bottom border: the container's border is already spoken for by the hover and hidden-token
-       states, and a disposition colour competing with those would win or lose by rule order.
-       Sits under the portrait art (which is z-index 1) so a large portrait never covers it. */
-    .blacksmith-menubar-secondary .combat-portrait-container::after {
-        content: "";
-        position: absolute;
-        left: 3px;
-        right: 3px;
-        bottom: 0;
-        height: 3px;
-        border-radius: 2px;
-        background-color: var(--blacksmith-disposition-neutral);
-        pointer-events: none;
+    /* DISPOSITION IS THE BUTTON.
+
+       It was an outer ring first, concentric with the health ring, and two rings around one
+       small portrait read as clutter — the eye had to work out which of the two circles it was
+       being asked to read. The container already had a fill that carried colour on exactly one
+       occasion, the active combatant's turn; giving that fill to disposition puts the colour on
+       a surface that was mostly wasted and leaves the portrait a single ring.
+
+       Whose turn it is moved to the border, which was free. Border and fill are then two
+       properties answering two questions, instead of one property that had to mean both. */
+    .blacksmith-menubar-secondary .combat-portrait-container.disposition-friendly {
+        background: var(--blacksmith-disposition-friendly-bg);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-container.disposition-neutral {
+        background: var(--blacksmith-disposition-neutral-bg);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-container.disposition-hostile {
+        background: var(--blacksmith-disposition-hostile-bg);
+    }
+    .blacksmith-menubar-secondary .combat-portrait-container.disposition-secret {
+        background: var(--blacksmith-disposition-secret-bg);
     }
 
-    .blacksmith-menubar-secondary .combat-portrait-container.disposition-friendly::after {
-        background-color: var(--blacksmith-disposition-friendly);
+    /* Portrait Image
+       PORTRAIT AND HEALTH RING SHARE ONE RADIUS, always. They are one figure, and a round
+       portrait inside a square ring reads as a mistake rather than a style. --portrait-radius
+       is set once per shape on the container and both read it, so they cannot drift apart. */
+    .blacksmith-menubar-secondary .combat-portrait-container {
+        --portrait-radius: 50%;
     }
-    .blacksmith-menubar-secondary .combat-portrait-container.disposition-neutral::after {
-        background-color: var(--blacksmith-disposition-neutral);
-    }
-    .blacksmith-menubar-secondary .combat-portrait-container.disposition-hostile::after {
-        background-color: var(--blacksmith-disposition-hostile);
-    }
-    .blacksmith-menubar-secondary .combat-portrait-container.disposition-secret::after {
-        background-color: var(--blacksmith-disposition-secret);
+    .blacksmith-menubar-secondary .combat-portrait-container.shape-square {
+        /* The same corner as the button and as the health ring's `rx`, so the three squares
+           read as one nested object. A percentage was tried and was wrong for exactly the
+           reason a fixed radius is right: it scaled with the portrait and swept far wider than
+           the button around it. */
+        --portrait-radius: var(--blacksmith-radius-md);
+
+        /* THE PORTRAIT NEARLY FILLS THE BUTTON, because nothing has to be left around it: the
+           health reading is a bar laid across the portrait's lower edge, not an outline that
+           needs clearance. Round mode has to reserve an annulus for its ring and so runs
+           smaller. Overriding this here is safe -- --action-icon-size resolved its own value off
+           the bar element and is not re-evaluated per portrait, and nothing else reads it. */
+        --portrait-size: calc(var(--portrait-container-height) - 6px);
     }
 
-    /* The dead have no side. Dimming the stripe rather than dropping it keeps the strip's
-       rhythm intact — a missing bar reads as a rendering fault, not as a fact. */
-    .blacksmith-menubar-secondary .combat-portrait-container.defeated::after {
-        opacity: 0.35;
-    }
-
-    /* Portrait Image */
     .blacksmith-menubar-secondary .combat-portrait-image,
     .blacksmith-menubar-secondary .combat-portrait-healthring {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        border-radius: 50%;
+        border-radius: var(--portrait-radius);
     }
     .blacksmith-menubar-secondary .combat-portrait-healthring {
         width: var(--healthbar-size);
         height: var(--healthbar-size);
     }
-  
+
     .blacksmith-menubar-secondary .combat-portrait-image {
         overflow: hidden;
         z-index: 1;
@@ -577,43 +595,63 @@
         height: var(--portrait-size);
         background: rgba(0, 0, 0, 0.9);
     }
-  
+
     .blacksmith-menubar-secondary .combat-portrait-image img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: block;
-        border-radius: 50%;
+        border-radius: var(--portrait-radius);
         -webkit-user-drag: none;
         user-select: none;
         border: 0px solid rgba(0, 0, 0, 0.05);
     }
 
-    /* Portrait States */
+    /* Portrait States
+
+       THE FILL BELONGS TO DISPOSITION NOW, so no state below may set `background` — doing so
+       would silently blank the disposition of whichever combatant happened to be in that state,
+       which is how the previous arrangement lost the reading in the first place. Hover and turn
+       express themselves through the border and a brightness lift instead, both of which sit on
+       top of any fill rather than replacing it. */
     .blacksmith-menubar-secondary .combat-portrait-container:hover {
         transform: scale(1.0);
-        border-color: rgba(223, 98, 20, 0.9);
-        background: rgba(223, 98, 20, 0.1);
+        /* Not a border change: the border is the turn marker, and hover borrowing it made the
+           two indistinguishable the moment a pointer crossed the active combatant. */
+        filter: brightness(1.35);
     }
-    
+
     .blacksmith-menubar-secondary .combat-portrait-image img:hover {
         transform: scale(1.4);
     }
-    
+
+    /* INSET, not an outer glow. `.combat-portraits` sets `overflow-y: hidden`, so an outer
+       shadow is sliced flat top and bottom and reads as a rendering fault. Lighting the button
+       from within stays inside the box and layers over the disposition fill rather than
+       replacing it. */
     .blacksmith-menubar-secondary .combat-portrait-container.current {
-        border-color: rgba(255, 136, 0, 0.0);
-        background: rgba(255, 136, 0, 0.4);
+        border-color: rgba(255, 170, 60, 0.95);
+        box-shadow: inset 0 0 8px rgba(255, 150, 30, 0.75);
     }
 
-    .blacksmith-menubar-secondary .combat-portrait-container.current.combat-token-hidden  {
+    .blacksmith-menubar-secondary .combat-portrait-container.current.combat-token-hidden {
         opacity: 0.8;
-        border: 1px dotted rgba(255, 255, 255, 0.7);
-        background: rgba(153, 106, 38, 0.6);
+        border: 2px dashed rgba(255, 200, 130, 0.9);
     }
 
+    /* The dead keep their side — a corpse is still an enemy corpse — but stop competing with
+       the living for attention. Draining the colour rather than painting over it is what leaves
+       the disposition readable at a glance down the strip; the skull overlay says "dead". */
     .blacksmith-menubar-secondary .combat-portrait-container.defeated {
-    opacity: .9;
-    background: rgba(53, 28, 32, 0.7);
+        opacity: 0.75;
+        filter: grayscale(0.7);
+    }
+
+    /* `filter` does not compose across rules — the winning declaration replaces the other
+       outright — so the pair has to be restated. Cheaper than giving every portrait an
+       always-on no-op filter just to make two custom properties compose. */
+    .blacksmith-menubar-secondary .combat-portrait-container.defeated:hover {
+        filter: grayscale(0.7) brightness(1.35);
     }
 
 /* Health Ring */
@@ -629,37 +667,98 @@
     display: block;
   }
   
+  /* ONE SOURCE FOR THE FIVE HEALTH COLOURS, whichever shape is reading them.
+     The `combat-portrait-ring-*` classes carry a colour and nothing else; the ring uses it as a
+     stroke and the square mode's bar uses it as a fill. Stating each colour twice -- once per
+     shape -- is exactly the kind of pair that drifts, and there are five of them. The class
+     names keep their `ring-` prefix because the health tiers in getCombatData set them and
+     renaming would touch code for no gain. */
+    .blacksmith-menubar-secondary .combat-portrait-ring-healthy  { --health-ink: rgba(68, 180, 40, 0.9); }
+    .blacksmith-menubar-secondary .combat-portrait-ring-injured  { --health-ink: rgba(192, 158, 22, 0.9); }
+    .blacksmith-menubar-secondary .combat-portrait-ring-bloodied { --health-ink: rgba(192, 99, 18, 0.9); }
+    .blacksmith-menubar-secondary .combat-portrait-ring-critical { --health-ink: rgba(161, 28, 27, 0.9); }
+    .blacksmith-menubar-secondary .combat-portrait-ring-hidden   { --health-ink: rgba(247, 243, 232, 0.3); }
+    .blacksmith-menubar-secondary .combat-portrait-ring-dead     { --health-ink: #a11c1b; }
+
   .blacksmith-menubar-secondary .combat-portrait-healthring circle {
     fill: none;
+    stroke: var(--health-ink);
     stroke-linecap: round;
     stroke-width: var(--ring-thickness);
     filter: drop-shadow(0 0 1px rgba(0,0,0,.6));
     shape-rendering: geometricPrecision;
   }
-  
-    .blacksmith-menubar-secondary .combat-portrait-ring-healthy   circle { 
-        stroke:  rgba(68, 180, 40, 0.9);
-    }
-    .blacksmith-menubar-secondary .combat-portrait-ring-injured   circle { 
-        stroke:  rgba(192, 158, 22, 0.9);
-    }
-    .blacksmith-menubar-secondary .combat-portrait-ring-bloodied  circle { 
-        stroke:  rgba(192, 99, 18, 0.9);
-    }
-    .blacksmith-menubar-secondary .combat-portrait-ring-critical  circle { 
-        stroke:  rgba(161, 28, 27, 0.9);
-    }
-    .blacksmith-menubar-secondary .combat-portrait-ring-hidden circle {
-        stroke:  rgba(247, 243, 232, 0.3);
-    }
-  
+
+    /* Two keyframe sets rather than one animating --health-ink: a custom property is only
+       animatable once registered with @property, and registering one to save six lines buys a
+       dependency for no readability. */
     @keyframes blacksmith-pulse-dead {
         0%   { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
         50%  { stroke: #d81010; filter: drop-shadow(0 0 2px #d81010); }
         100% { stroke: #a11c1b; filter: drop-shadow(0 0 1px #a11c1b); }
     }
+    @keyframes blacksmith-pulse-dead-bar {
+        0%   { background-color: #a11c1b; }
+        50%  { background-color: #d81010; }
+        100% { background-color: #a11c1b; }
+    }
     .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
         animation: blacksmith-pulse-dead 2s ease-in-out infinite;
+    }
+
+    /* THE TRACK — the depleted part of the ring.
+       It must out-specify the health-state rules, which reach the circle through an inherited
+       custom property, and it must not inherit the dead pulse either. Deliberately dark rather
+       than a tint of the health colour: the empty part of a bar is absence, and tinting it with
+       the reading makes a half-empty ring look like a full one. */
+    .blacksmith-menubar-secondary .combat-portrait-healthring .combat-portrait-ring-track {
+        stroke: rgba(0, 0, 0, 0.55);
+        animation: none;
+        filter: none;
+    }
+
+/* Health Bar (square portrait mode)
+   A bar across the lower part of the portrait rather than an outline around it. Square mode
+   uses this INSTEAD of the ring, not as well: see the note in getCombatData for why a square
+   ring was built and dropped. The track and fill are plain elements, so there is no SVG and no
+   perimeter arithmetic here at all — a percentage width is the whole of it. */
+    .blacksmith-menubar-secondary .combat-portrait-healthbar {
+        position: absolute;
+        /* THE GAP IS ONE PIXEL, ALL THE WAY ROUND THE THREE EDGES IT MEETS. It is not margin --
+           it is the only place the disposition colour shows past the bar, a hint of what the bar
+           is sitting on. Inset by left/right/bottom rather than a width and a centring
+           transform, so the gap is stated as the pixel it is instead of being the remainder of
+           an arithmetic that has to be re-derived every time the portrait resizes. */
+        left: 1px;
+        right: 1px;
+        bottom: 1px;
+        height: clamp(3px, calc(var(--portrait-size) * 0.11), 7px);
+        /* BOTTOM CORNERS ONLY. The bar is seated in the bottom of the button and follows the
+           button's own bottom corners; its top edge is a cut across the portrait, not an edge of
+           an object, so rounding it would float the bar off the seat it sits in.
+           Below the token scale on purpose: --blacksmith-radius-sm is 3px, which on a bar only a
+           few pixels tall rounds the ends into a lozenge. 2px is a softened corner, not a cap. */
+        border-radius: 0 0 2px 2px;
+        overflow: hidden;
+        /* Same groove as the ring's track, for the same reason. */
+        background: rgba(0, 0, 0, 0.55);
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+        z-index: 2;
+    }
+
+    .blacksmith-menubar-secondary .combat-portrait-healthbar-fill {
+        height: 100%;
+        background-color: var(--health-ink);
+        /* Square, and clipped to the track's corners by its `overflow: hidden`. Inheriting the
+           radius instead would round the fill's LEADING edge, which is a moving cut through the
+           bar rather than an end of it. */
+        border-radius: 0;
+        transition: width 0.3s ease-in-out, background-color 0.3s ease-in-out;
+    }
+
+    .blacksmith-menubar-secondary .combat-portrait-healthbar-fill.combat-portrait-ring-dead {
+        animation: blacksmith-pulse-dead-bar 2s ease-in-out infinite;
     }
 
 /* Control Buttons */
@@ -1099,6 +1198,7 @@
     position: fixed;
     z-index: 10002;
     pointer-events: none;
+    /* Set per shape below, not inherited: this element lives on <body>, outside the bar. */
     border-radius: 50%;
     border: 2px solid rgba(255, 214, 130, 0.9);
     background-size: cover;
@@ -1108,6 +1208,8 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
     opacity: 0.9;
 }
+.combat-initiative-drag-ghost.shape-round  { border-radius: 50%; }
+.combat-initiative-drag-ghost.shape-square { border-radius: var(--blacksmith-radius-md); }
 .combat-initiative-dropzone {
     flex: 0 0 10px;
     align-self: stretch;

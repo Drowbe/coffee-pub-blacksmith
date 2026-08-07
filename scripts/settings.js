@@ -2214,6 +2214,24 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Combat Menubar Portrait Shape --
+	// -- Portrait and its health ring together; they are one figure and always agree.
+	// -- The disposition colour is the button behind them and is unaffected by this.
+	game.settings.register(MODULE.ID, 'menubarCombatPortraitShape', {
+		name: MODULE.ID + '.menubarCombatPortraitShape-Label',
+		hint: MODULE.ID + '.menubarCombatPortraitShape-Hint',
+		scope: 'user',
+		config: true,
+		type: String,
+		choices: {
+			round: 'Round',
+			square: 'Square'
+		},
+		default: 'round',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Hide HEalth Bars for Enemy Combatants --
 	game.settings.register(MODULE.ID, 'menubarCombatHideHealthBars', {
 		name: MODULE.ID + '.menubarCombatHideHealthBars-Label',

@@ -49,7 +49,7 @@
     {{/unless}}
     {{#if displayValueParts}}
     <span class="secondary-bar-item-value">
-        {{#each displayValueParts}}<span class="secondary-bar-item-value-part{{#if muted}} is-muted{{/if}}">{{text}}</span>{{/each}}
+        {{#each displayValueParts}}<span class="secondary-bar-item-value-part{{#if muted}} is-muted{{/if}}{{#if divider}} is-divider{{/if}}{{#if lead}} is-lead{{/if}}">{{text}}</span>{{/each}}
     </span>
     {{else if displayValue}}
     <span class="secondary-bar-item-value">{{displayValue}}</span>

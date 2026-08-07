@@ -3063,12 +3063,24 @@ class MenuBar {
                 // scaffolding -- the separator, the word "of". If removing it would leave the
                 // remaining text still meaning the same thing, it is scaffolding; if removing it
                 // changes what the number IS, it is not.
+                //
+                // A `divider: true` part is scaffolding with no text at all -- a drawn seam rather
+                // than a punctuation mark. It exists because two readings sharing one box need
+                // separating, and every character spent on a separator is a character the box is
+                // wider than it needs to be. It survives the empty-text filter that drops blank
+                // parts, since being empty is the whole of what it is.
+                //
+                // A `lead: true` part is the opposite end of the same problem. Two readings in one
+                // box are equals until something says otherwise, and equals in a box read as a
+                // list. Setting it larger states which one the box is FOR, and leaves the other as
+                // the qualifier -- a hierarchy, not two numbers of the same rank. It is a modifier
+                // on a value, never on scaffolding: enlarging a separator would be nonsense.
                 if (Array.isArray(item.valueParts)) {
                     item.displayValueParts = item.valueParts
                         .map((part) => (typeof part === 'object' && part !== null
-                            ? { text: String(part.text ?? ''), muted: !!part.muted }
-                            : { text: String(part ?? ''), muted: false }))
-                        .filter((part) => part.text !== '');
+                            ? { text: String(part.text ?? ''), muted: !!part.muted, divider: !!part.divider, lead: !!part.lead && !part.muted && !part.divider }
+                            : { text: String(part ?? ''), muted: false, divider: false, lead: false }))
+                        .filter((part) => part.divider || part.text !== '');
                 } else {
                     item.displayValueParts = null;
                 }
@@ -3707,11 +3719,14 @@ class MenuBar {
                     const nodes = el.querySelectorAll('.secondary-bar-item-value-part');
                     const wanted = (Array.isArray(update.valueParts) ? update.valueParts : [])
                         .map((part) => (typeof part === 'object' && part !== null
-                            ? { text: String(part.text ?? ''), muted: !!part.muted }
-                            : { text: String(part ?? ''), muted: false }))
-                        .filter((part) => part.text !== '');
+                            ? { text: String(part.text ?? ''), muted: !!part.muted, divider: !!part.divider, lead: !!part.lead && !part.muted && !part.divider }
+                            : { text: String(part ?? ''), muted: false, divider: false, lead: false }))
+                        .filter((part) => part.divider || part.text !== '');
                     if (nodes.length !== wanted.length) return bail('value part count changed', itemId);
                     wanted.forEach((part, index) => {
+                        // A divider carries no text, so the comparison below never fires for one.
+                        nodes[index].classList.toggle('is-divider', part.divider);
+                        nodes[index].classList.toggle('is-lead', part.lead);
                         if (nodes[index].textContent !== part.text) {
                             // Scaffolding does not animate: a separator has not changed in any
                             // sense a reader cares about, even when the string around it did.
