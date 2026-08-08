@@ -105,6 +105,7 @@ import { CompendiumsAPI } from './api-compendiums.js';
 import { RollsAPI } from './api-rolls.js';
 import { EffectsAPI } from './api-effects.js';
 import { TokenInteractionsAPI } from './api-token-interactions.js';
+import { InventoryAPI } from './api-inventory.js';
 import { registerHandlebarsHelpers } from './utility-handlebars.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
 import { extractActiveD20, classifyCritFumble } from './utility-roll-classification.js';
@@ -996,6 +997,7 @@ Hooks.once('init', async function() {
         rolls: RollsAPI,
         effects: EffectsAPI,
         tokens: TokenInteractionsAPI,
+        inventory: InventoryAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),
         getMonsterCR: EncounterManager.getMonsterCR.bind(EncounterManager),
         calculateEncounterDifficulty: EncounterManager.calculateEncounterDifficulty.bind(EncounterManager),

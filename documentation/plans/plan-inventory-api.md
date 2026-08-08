@@ -1,6 +1,37 @@
 # Plan: api.inventory - authoritative inventory mutation primitives
 
-**Status: Planned.** Written 2026-08-07. Nothing implemented.
+**Status: Implemented (code), unverified live.** `scripts/api-inventory.js` is written and registered as
+`blacksmith.inventory`. `api/api-inventory.md` and `architecture/architecture-inventory.md` are written and
+on the wiki `PUBLISH` list; the CHANGELOG entry is under `[Unreleased]`.
+
+**Known gap, needs a decision: there is no `transferItems`.** `grantItems` batches the create side, but
+looting is `transferItem`, so the batch protection does not cover it. Two TAKE clicks in quick succession, or
+any Take All, are N transfers writing N times to the same target Actor - the exact encumbrance collision
+`grantItems` exists to avoid, and our lock does not help because the recompute outlives the critical section.
+
+Verified while checking for an easier fix: `updateEncumbrance(options)` accepts an options argument and
+**never reads it** (`dnd5e.mjs:36217-36238`), so dnd5e offers no way to suppress or defer the recompute.
+Batching is the only mitigation.
+
+A `transferItems` would batch both sides - one `createEmbeddedDocuments` plus one `updateEmbeddedDocuments`
+on the target, one `updateEmbeddedDocuments` plus one `deleteEmbeddedDocuments` on the source - since Foundry
+fires the descendant hooks once per batched call. That is 2N writes down to at most 4, so at most two
+recomputes per Actor rather than N. It is **not** one: a create and an update on the same Actor in the same
+operation can still collide, and nothing gets below that while creates and merges are separate calls. State
+that limit rather than implying the batch form is a guarantee.
+
+**Harness coverage exists: `utilities/tests/suite-inventory.js`,** registered in `utilities/test-harness.js`.
+18 headless checks and 3 interactive ones. The suite builds and deletes its own throwaway Actors, so it never
+touches existing ones. The three checks that must never be deleted to speed it up are `rollback-after-merge`,
+`lock-serialisation`, and `one-write-per-actor` - each covers something invisible in working code.
+
+Two things the harness cannot cover, so they stay interactive: cross-client concurrency (the mutex is
+per-client by design) and looting through a consumer's window. `one-write-per-actor` also needs dnd5e
+encumbrance tracking enabled, and reports a skip rather than a pass when it is off.
+
+**Nothing has been exercised in Foundry yet.** All eleven work-breakdown items still need their verification run,
+and several need two clients or a near-threshold encumbrance state. Delete this file once they pass - the
+design has already been distributed to the two docs above, so only the verification list is still live here.
 
 This plan is scaffolding. When it is implemented its content is distributed - the public surface to a new
 `api/api-inventory.md`, the mechanism and the dnd5e coupling to `architecture/architecture-inventory.md`,
