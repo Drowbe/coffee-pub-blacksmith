@@ -6,6 +6,7 @@ import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
 import { MovementConfig } from './token-movement.js';
+import { EncounterManager } from './manager-encounter.js';
 import { CoreUIUtility } from './utility-core.js';
 import { VoteConfig } from './window-vote-config.js';
 import { XpManager } from './xp-manager.js';
@@ -4673,12 +4674,25 @@ class MenuBar {
                 tokensToAdd = canvas.tokens.placeables;
             }
 
-            // Filter out tokens without actors
-            tokensToAdd = tokensToAdd.filter(token => token.actor);
+            // Filter out tokens without actors, and anything already out of the fight.
+            //
+            // Yesterday's corpses are still on the canvas, and the fall-back above takes EVERY
+            // placeable, so without this a new encounter starts with the bodies from the last one
+            // in the tracker. EncounterManager.canStillFight carries the rules asymmetry: a monster
+            // at zero is out, a player character at zero is dying rather than dead and still
+            // belongs in the fight. A GM who wants a corpse in the tracker can add it deliberately.
+            const total = tokensToAdd.length;
+            tokensToAdd = tokensToAdd.filter(token => token.actor && EncounterManager.canStillFight(token));
+            const skipped = total - tokensToAdd.length;
 
             if (tokensToAdd.length === 0) {
-                this._combatToast('Create Combat', 'No tokens with actors found on the canvas.', 'fa-solid fa-triangle-exclamation');
+                this._combatToast('Create Combat', skipped
+                    ? 'Every token found is already out of the fight. Add them to the tracker manually if you meant to include them.'
+                    : 'No tokens with actors found on the canvas.', 'fa-solid fa-triangle-exclamation');
                 return;
+            }
+            if (skipped) {
+                postConsoleAndNotification(MODULE.NAME, `Create Combat: skipped ${skipped} token(s) already out of the fight`, '', true, false);
             }
 
             // Check if there's already an active combat encounter

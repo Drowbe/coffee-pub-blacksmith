@@ -2,6 +2,70 @@
 
 **Audience:** Contributors to the Blacksmith codebase.
 
+## Where resolution evidence comes from
+
+XP is awarded per adversary, scaled by a resolution the GM can override in the window. Resolution is
+decided by `XpManager.detectMonsterResolution`, which reads hit points: at or below zero is `DEFEATED`,
+below maximum is `ESCAPED`, at maximum is `IGNORED`. `NEGOTIATED` and `CAPTURED` are never auto-assigned.
+
+**Deriving that from live documents at award time is not safe, and the reason is not obvious.**
+`Combatant#actor` falls back to the base prototype actor when its token no longer exists
+(`client/documents/combatant.mjs:84-87`), and a prototype is at full health because combat damage lives in
+the token's delta and is destroyed with the token. So a monster that was killed and then had its token
+removed re-derives as undamaged and earns nothing. That is not a rare state: looting a corpse mid-fight and
+clearing the token is ordinary table practice, and it is what a consuming module does when a body is emptied.
+
+So the resolution inputs are recorded as combat proceeds, in `scripts/stats-adversaries.js`.
+
+**The record is evidence, not verdict.** It stores hit points, maximum hit points and defeated state -- never
+a resolution, a multiplier or an XP figure. `detectMonsterResolution` still decides what those mean, so a GM
+correcting a resolution in the window, or a table changing its multiplier settings afterwards, is not arguing
+with a frozen answer. Adding a stored `resolutionType` would break that, which is why the harness asserts the
+field is absent.
+
+**Keyed on combatant id**, not actor id: an unlinked token carries the base actor's id, so two tokens of one
+prototype are indistinguishable by it -- exactly the case the record exists to get right.
+
+**Persisted on the Combat document** as a flag, because sessions stop mid-combat and in-memory state does not
+survive a reload. It is read back off the document passed to the `deleteCombat` hook, which is what makes the
+automatic award work after `game.combat` is already null.
+
+Three capture points, and each covers something the others cannot:
+
+| Hook | Catches |
+|---|---|
+| `preDeleteToken` | The last moment a token's hit points exist anywhere. After the delete the actor resolves to the prototype and the evidence is unrecoverable. |
+| `preDeleteCombatant` | A GM toggling a corpse out of the tracker, which deletes the combatant outright and would otherwise lose the row entirely rather than just its resolution. |
+| `updateCombat` | Everything else as the fight progresses -- damage taken, a GM marking something defeated, a combatant added mid-combat. |
+
+**CR resolves the other way round.** `getMonsterCR` prefers the live actor and falls back to the record only
+when there is no actor at all. The live document is normally right for CR even after a token is deleted, since
+a prototype's CR is usually the CR that was fought, and preferring live means a GM correcting a wrong CR still
+applies. The record is there to stop the no-actor case returning 0, which reads as "worth nothing" rather than
+"we lost its CR".
+
+**The menubar path is best-effort by nature.** `openXpDistributionWindow` with no active combat lists canvas
+tokens rather than a recorded encounter -- a corpse cleared during the fight is simply absent, and anything
+that wandered in since is present. It logs that it is doing so. Awarding at combat end is the correct path;
+this one exists so the window can be opened at all.
+
+## Dead tokens are excluded from threat, deliberately
+
+`EncounterManager.canStillFight` is the single predicate for "does this token still contribute threat", and it
+carries a rules asymmetry rather than a modelling convenience: a monster at zero is out of the fight, while a
+player character at zero is **dying** -- making death saves, one action from being restored, and still
+something the enemy must account for. Anything explicitly marked defeated is out on either side.
+
+Two consumers apply it:
+
+- **Create Combat** (`api-menubar.js`) filters it out of the tokens it adds. Without that, a new encounter
+  starts with the previous fight's bodies, because the tool falls back to every placeable on the canvas when
+  nothing is selected. A GM who wants a corpse in the tracker adds it deliberately.
+- **Encounter CR and difficulty** pass `onlyStanding: true`. Note this is an option on `getPartyCR` and
+  `getMonsterCR` that defaults to **false**, so a caller that omits it counts corpses as threats. Every
+  in-repo caller now passes it; the default is left alone because those functions are on the public API and
+  flipping it would silently change results for consumers.
+
 ## Overview
 
 The XP Distribution system is a dual-mode experience point allocation tool for FoundryVTT that supports both monster-based XP (Experience Points mode) and manual milestone XP (Milestones mode). The system can operate in combat mode (when combat is active) or non-combat mode (when opened from the menubar).

@@ -261,8 +261,11 @@ export class EncounterToolbar {
                 const pageId = toolbarElement.getAttribute('data-page-id');
                 
                 if (pageId) {
-                    const partyCR = EncounterManager.getPartyCR();
-                    const monsterCR = EncounterManager.getMonsterCR({ monsters: [] }); // Empty metadata for canvas-only calculation
+                    // onlyStanding: a corpse is not a threat, and a rating that counts one is wrong.
+                    // canStillFight carries the rules asymmetry -- a monster at zero is out, a PC at
+                    // zero is dying and still has to be accounted for.
+                    const partyCR = EncounterManager.getPartyCR(null, { onlyStanding: true });
+                    const monsterCR = EncounterManager.getMonsterCR({ monsters: [] }, null, { onlyStanding: true }); // Empty metadata for canvas-only calculation
                     
                     // Update the CR badges with icons intact
                     const partyCrElement = toolbarElement.querySelector('.encounter-party-cr');
@@ -920,8 +923,9 @@ export class EncounterToolbar {
                 }
                 
                 // Calculate CR values
-                const partyCR = EncounterManager.getPartyCR();
-                const monsterCR = EncounterManager.getMonsterCR(encounterData);
+                // onlyStanding: see the note on the toolbar badges above.
+                const partyCR = EncounterManager.getPartyCR(null, { onlyStanding: true });
+                const monsterCR = EncounterManager.getMonsterCR(encounterData, null, { onlyStanding: true });
                 
                 // Calculate difficulty based on canvas tokens using the same formula as encounter configuration
                 const partyCRNum = EncounterManager.parseCR(partyCR);

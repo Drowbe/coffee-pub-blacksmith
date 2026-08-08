@@ -6,6 +6,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { AdversaryRecord, getAdversaryRecord } from './stats-adversaries.js';
 
 export class XpManager {
     // Standard D&D 5e CR to XP mapping (using decimal keys for math operations)
@@ -61,6 +62,53 @@ export class XpManager {
         });
 
         // Log hook registrations
+        // Record what happens to each adversary AS IT HAPPENS, so resolution does not have to be
+        // re-derived from live documents at award time. See stats-adversaries.js for why.
+        //
+        // preDeleteToken, not deleteToken: afterwards the token is gone, Combatant#actor falls back
+        // to the base prototype, and the hit points this exists to preserve are unrecoverable.
+        const preDeleteTokenHookId = HookManager.registerHook({
+            name: 'preDeleteToken',
+            description: 'XP Manager: preserve adversary evidence before a token is destroyed',
+            context: 'xp-manager-adversary-record',
+            priority: 2,
+            callback: (tokenDocument) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Deliberately not awaited: a pre-hook returning a promise does not delay the
+                // delete, and returning a non-undefined value from a pre* hook can cancel it.
+                AdversaryRecord.captureForToken(tokenDocument);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        // A GM toggling a corpse out of the tracker deletes the combatant outright, which is the one
+        // action that loses the row entirely rather than just its resolution.
+        const preDeleteCombatantHookId = HookManager.registerHook({
+            name: 'preDeleteCombatant',
+            description: 'XP Manager: preserve adversary evidence before a combatant is removed',
+            context: 'xp-manager-adversary-record',
+            priority: 2,
+            callback: (combatant) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                AdversaryRecord.capture(combatant);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
+        // A sweep each round catches everything the two targeted hooks cannot: damage taken, a GM
+        // marking something defeated, a combatant added mid-fight.
+        const adversarySweepHookId = HookManager.registerHook({
+            name: 'updateCombat',
+            description: 'XP Manager: refresh adversary evidence as the fight progresses',
+            context: 'xp-manager-adversary-record',
+            priority: 3,
+            callback: (combat) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                AdversaryRecord.captureAll(combat);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | deleteCombat", "xp-manager-combat-end", true, false);
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | combatRound", "xp-manager-combat-round", true, false);
         postConsoleAndNotification(MODULE.NAME, "Hook Manager | combatTurn", "xp-manager-combat-turn", true, false);
@@ -208,8 +256,13 @@ export class XpManager {
                 // If there's combat, use existing combat logic (no changes)
                 monsters = this.getCombatMonsters(combat);
             } else {
-                // If no combat, get all monsters from canvas and set them to "Removed"
+                // No active combat: this shows what is ON THE CANVAS, not what was fought. A corpse
+                // that was looted and cleared during the fight is simply absent, and anything
+                // wandered in since is present. Say so rather than presenting the scene as the
+                // encounter -- awarding at combat end reads the recorded adversaries and is correct;
+                // this path is best-effort by nature.
                 monsters = this.getCanvasMonsters();
+                postConsoleAndNotification(MODULE.NAME, 'XP: no active combat -- listing canvas tokens rather than a recorded encounter', '', false, false);
             }
             
             const xpData = {
@@ -270,7 +323,7 @@ export class XpManager {
             const partySizeMultipliers = this.getPartySizeMultipliers();
 
         const monsterXpData = monsters.map(monster => {
-                const baseXp = this.getMonsterBaseXp(monster);
+                const baseXp = this.getMonsterBaseXp(monster, combat);
                 const resolutionType = this.detectMonsterResolution(monster, combat);
                 const multiplier = resolutionMultipliers[resolutionType] || 0;
                 const finalXp = Math.floor(baseXp * multiplier);
@@ -278,7 +331,7 @@ export class XpManager {
                 return {
                     id: monster.id,
                     name: monster.name,
-                    cr: this.getMonsterCR(monster),
+                    cr: this.getMonsterCR(monster, combat),
                     baseXp: baseXp,
                     resolutionType: resolutionType,
                     multiplier: multiplier,
@@ -334,10 +387,20 @@ export class XpManager {
      * Get all monsters from the combat
      */
     static getCombatMonsters(combat) {
+        const record = getAdversaryRecord(combat);
         return combat.combatants.filter(combatant => {
             const actor = combatant.actor;
-            return actor
-                && actor.type === 'npc'
+            // Fall back to the record when the live actor is unavailable. A combatant whose token
+            // was deleted usually still resolves to its prototype, but an unlinked token of a
+            // deleted prototype resolves to nothing -- and dropping it silently is how a kill
+            // disappears from the award with no trace that it was ever there.
+            const evidence = record[combatant.id] ?? null;
+            if (!actor) {
+                return Boolean(evidence)
+                    && evidence.actorType === 'npc'
+                    && !evidence.hasPlayerOwner;
+            }
+            return actor.type === 'npc'
                 && !actor.hasPlayerOwner
                 && !actor.getFlag('coffee-pub-blacksmith', 'sidekick');
         });
@@ -493,8 +556,8 @@ export class XpManager {
     /**
      * Get monster's base XP from CR
      */
-    static getMonsterBaseXp(monster) {
-        const cr = this.getMonsterCR(monster);
+    static getMonsterBaseXp(monster, combat = null) {
+        const cr = this.getMonsterCR(monster, combat);
         const decimalCR = this.convertCRToDecimal(cr);
         return this.CR_TO_XP[decimalCR] || 0;
     }
@@ -502,10 +565,21 @@ export class XpManager {
     /**
      * Get monster's CR
      */
-    static getMonsterCR(monster) {
+    static getMonsterCR(monster, combat = null) {
         const actor = monster.actor;
-        if (!actor) return 0;
-        
+
+        // Live CR is preferred while the actor exists, so a GM correcting a wrong CR still applies.
+        // The record is the fallback for when it does not: returning 0 there is a silent zero-XP
+        // award, which reads as "this monster was worth nothing" rather than "we lost its CR".
+        //
+        // Note this differs from resolution, which prefers the record unconditionally -- there the
+        // live document is actively wrong after a token is deleted, whereas a prototype's CR is
+        // normally the CR that was fought.
+        if (!actor) {
+            const recorded = combat ? (getAdversaryRecord(combat)[monster.id] ?? null) : null;
+            return recorded?.cr ?? 0;
+        }
+
         const cr = actor.system.details.cr;
         if (typeof cr === 'number') return cr;
         if (typeof cr === 'string') {
@@ -523,14 +597,27 @@ export class XpManager {
      */
     static detectMonsterResolution(monster, combat) {
         const actor = monster.actor;
-        if (!actor) return 'UNKNOWN';
+
+        // Recorded evidence wins over the live document, because the live document lies once a token
+        // is gone: Combatant#actor falls back to the base prototype, which is at full health because
+        // the damage lived in the token's delta. A monster killed and then looted-and-cleared
+        // mid-fight would otherwise re-derive as untouched and earn nothing.
+        //
+        // Evidence, not verdict: this supplies hit points and defeated state, and the same rules
+        // below decide what they mean. A GM correcting a resolution in the window, or a table
+        // changing its multipliers later, is not arguing with a frozen answer.
+        const recorded = getAdversaryRecord(combat)[monster.id] ?? null;
+        if (recorded?.defeated === true) return 'DEFEATED';
+
+        const hp = recorded ? null : actor?.system?.attributes?.hp;
+        const current = recorded ? Number(recorded.hp) : Number(hp?.value);
+        const max = recorded ? Number(recorded.maxHp) : Number(hp?.max);
+
+        if (!actor && !recorded) return 'UNKNOWN';
 
         // Hit points are optional on an actor -- a dnd5e `group` has members rather
         // than HP -- and every branch below reads them. Without a value there is no
         // evidence either way, which is what UNKNOWN means.
-        const hp = actor.system?.attributes?.hp;
-        const current = Number(hp?.value);
-        const max = Number(hp?.max);
         if (!Number.isFinite(current)) return 'UNKNOWN';
 
         // 1. Defeated: If dead (HP <= 0)
