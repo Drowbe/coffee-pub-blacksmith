@@ -85,7 +85,8 @@ await blacksmith.inventory.transferItem({
     targetActorUuid,
     itemId,
     quantity,                 // omitted for items with no system.quantity
-    stack: 'separate'         // or 'merge'
+    stack: 'separate',        // or 'merge'
+    ignoreFlags: []           // flag paths the merge check treats as non-identity
 });
 ```
 
@@ -187,11 +188,14 @@ already drops a differing quirk silently; this API must not inherit that. Deep-e
 identical components merge and sends a differing one to its own row, so nothing is lost either way. Deep
 equality on a small object is cheap and fails toward `merged: false`, which is the safe direction.
 
-The exclusion list covers transient UI flags only. The one known member is Squire's `isNew`
-(`transfer-utils.js:329`), set on an item after it arrives: a target that recently received something
-carries it while an incoming item does not, so it would block valid merges. It also duplicates Squire's
-in-memory `newlyAddedItems` Map. Exclude it here and have Squire drop the flag rather than build a general
-per-caller exclusion mechanism for one case.
+**The exclusion list is caller-supplied: `ignoreFlags: ['<scope>.<key>']`, default empty.** Blacksmith must
+not hard-code a sibling's flag key - that is the outbound coupling Ground Rule 2 refuses, and the hub cannot
+know which of a consumer's flags are identity-bearing. `api-inventory.md` documents the pattern instead: a
+module that writes transient UI state to item flags passes those keys, and any flag not listed is treated as
+identity and blocks the merge when it differs.
+
+The default of empty is deliberate. It fails toward `merged: false`, so a consumer that forgets the option
+gets extra rows rather than silent data loss.
 
 **Accepted divergence from the system sheet.** These rules are more permissive than dnd5e's, so dragging a
 dagger onto a sheet will not stack while transferring one through this API will. That is deliberate: the
