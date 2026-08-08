@@ -129,6 +129,42 @@ function explainNoMerge(log, existingSnapshot, incomingSnapshot) {
     }
 }
 
+/**
+ * Count embedded-document writes made to an Actor while `fn` runs.
+ *
+ * The batch forms exist to keep this number at two per Actor no matter how many items move, because
+ * dnd5e recomputes encumbrance per write and those recomputes race. Asserting the count directly is
+ * the only way to test that property - the symptom it prevents is intermittent and shows up in the
+ * console rather than the return value.
+ */
+async function countWrites(actors, fn) {
+    const counts = new Map();
+    const restore = [];
+    for (const actor of actors) {
+        counts.set(actor.id, { create: 0, update: 0, delete: 0 });
+        for (const method of ['createEmbeddedDocuments', 'updateEmbeddedDocuments', 'deleteEmbeddedDocuments']) {
+            const original = actor[method].bind(actor);
+            restore.push(() => { delete actor[method]; });
+            actor[method] = (...args) => {
+                counts.get(actor.id)[method.replace('EmbeddedDocuments', '').toLowerCase()]++;
+                return original(...args);
+            };
+        }
+    }
+    try {
+        const value = await fn();
+        return { value, counts };
+    } finally {
+        for (const undo of restore) undo();
+    }
+}
+
+/** Total writes recorded for one actor. */
+function totalWrites(counts, actor) {
+    const entry = counts.get(actor.id) ?? {};
+    return (entry.create ?? 0) + (entry.update ?? 0) + (entry.delete ?? 0);
+}
+
 export default {
     id: 'inventory',
     label: 'Inventory',
@@ -695,6 +731,179 @@ export default {
             }
         },
 
+        {
+            id: 'transfer-items-batch',
+            tier: 'headless',
+            group: 'Transfer',
+            label: 'Take All moves everything valid and skips what it cannot',
+            note: 'Per-item results, not all-or-nothing: one packed container must not block the other rows.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const corpse = await tempActor('npc', 'takeall-src');
+                    const looter = await tempActor('character', 'takeall-tgt');
+                    made.push(corpse, looter);
+
+                    const [arrows] = await corpse.createEmbeddedDocuments('Item', [lootData('Harness TA Arrows', { system: { quantity: 20 } })]);
+                    const [dagger] = await corpse.createEmbeddedDocuments('Item', [lootData('Harness TA Dagger', { system: { quantity: 6 } })]);
+                    const [bag] = await corpse.createEmbeddedDocuments('Item', [{ name: 'Harness TA Bag', type: 'container' }]);
+                    await corpse.createEmbeddedDocuments('Item', [lootData('Harness TA Bagged', { system: { quantity: 1, container: bag.id } })]);
+
+                    const result = await inv.transferItems({
+                        sourceActorUuid: corpse.uuid,
+                        targetActorUuid: looter.uuid,
+                        items: [
+                            { itemId: arrows.id, quantity: 5 },   // partial
+                            { itemId: dagger.id },                // whole stack
+                            { itemId: bag.id },                   // packed: must be refused
+                            { itemId: 'nope' }                    // missing
+                        ]
+                    });
+
+                    expect('top-level ok is false when an entry failed', result.ok, false);
+                    expect('results are index-aligned', result.results.length, 4);
+
+                    expect('partial take succeeded', result.results[0].ok, true);
+                    expect('partial reports the remainder', result.results[0].sourceRemaining, 15);
+                    expect('partial did not delete the source row', result.results[0].sourceDeleted, false);
+                    expect('whole take succeeded', result.results[1].ok, true);
+                    expect('whole take deleted the source row', result.results[1].sourceDeleted, true);
+                    expect('packed container refused', result.results[2].code, inv.CODES.CONTAINER_HAS_CONTENTS);
+                    expect('refusal names the item', result.results[2].itemId, bag.id);
+                    expect('missing item refused', result.results[3].code, inv.CODES.SOURCE_ITEM_NOT_FOUND);
+
+                    expect('arrows reduced on the corpse', quantityOf(corpse.items.get(arrows.id)), 15);
+                    expect('dagger gone from the corpse', corpse.items.get(dagger.id), undefined);
+                    expect.ok('bag still on the corpse', Boolean(corpse.items.get(bag.id)));
+                    expect('looter received 5 arrows', quantityOf(looter.items.find(i => i.name === 'Harness TA Arrows')), 5);
+                    expect('looter received 6 daggers', quantityOf(looter.items.find(i => i.name === 'Harness TA Dagger')), 6);
+                    expect('looter got nothing else', looter.items.size, 2);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'transfer-items-write-count',
+            tier: 'headless',
+            group: 'Transfer',
+            label: 'A Take All costs at most two writes per actor',
+            note: 'The whole reason the batch form exists. N single transfers would be N writes per actor, and dnd5e recomputes encumbrance per write against one fixed effect id.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('inventory');
+                const made = [];
+                try {
+                    const corpse = await tempActor('npc', 'wc-src');
+                    const looter = await tempActor('character', 'wc-tgt');
+                    made.push(corpse, looter);
+
+                    const rows = [];
+                    for (let n = 0; n < 5; n++) {
+                        const [row] = await corpse.createEmbeddedDocuments('Item', [lootData(`Harness WC ${n}`, { system: { quantity: 4 } })]);
+                        rows.push(row);
+                    }
+                    // Two partial takes and three whole ones, so both source paths are exercised.
+                    const items = rows.map((row, n) => (n < 2 ? { itemId: row.id, quantity: 2 } : { itemId: row.id }));
+
+                    const { value, counts } = await countWrites([corpse, looter], () => api.inventory.transferItems({
+                        sourceActorUuid: corpse.uuid, targetActorUuid: looter.uuid, items
+                    }));
+
+                    log(`source writes: ${JSON.stringify(counts.get(corpse.id))}`);
+                    log(`target writes: ${JSON.stringify(counts.get(looter.id))}`);
+                    expect('every entry succeeded', value.ok, true);
+                    expect.ok('source took at most two writes for five items', totalWrites(counts, corpse) <= 2);
+                    expect.ok('target took at most two writes for five items', totalWrites(counts, looter) <= 2);
+                    expect('five rows arrived', looter.items.size, 5);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'transfer-items-duplicate',
+            tier: 'headless',
+            group: 'Transfer',
+            label: 'The same item twice in one batch is refused, not summed',
+            note: 'Two entries for one item make the per-entry quantity checks meaningless - together they could over-draw the stack.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const corpse = await tempActor('npc', 'dup-src');
+                    const looter = await tempActor('character', 'dup-tgt');
+                    made.push(corpse, looter);
+                    const [row] = await corpse.createEmbeddedDocuments('Item', [lootData('Harness Dup', { system: { quantity: 6 } })]);
+
+                    const result = await inv.transferItems({
+                        sourceActorUuid: corpse.uuid, targetActorUuid: looter.uuid,
+                        items: [{ itemId: row.id, quantity: 4 }, { itemId: row.id, quantity: 4 }]
+                    });
+                    expect('first entry succeeded', result.results[0].ok, true);
+                    expect('duplicate refused', result.results[1].code, inv.CODES.DUPLICATE_ITEM);
+                    expect('the stack was not over-drawn', quantityOf(corpse.items.get(row.id)), 2);
+                    expect('looter received only the first request', quantityOf(looter.items.contents[0]), 4);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'transfer-items-rollback',
+            tier: 'headless',
+            group: 'Rollback',
+            label: 'A failed batch source reduction reverts the whole target grant',
+            note: 'Created rows deleted, merged rows decremented by exactly what was added. A merged row must never be deleted.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const corpse = await tempActor('npc', 'brb-src');
+                    const looter = await tempActor('character', 'brb-tgt');
+                    made.push(corpse, looter);
+
+                    // The looter already holds one of the two things being taken, so the batch does
+                    // one merge and one create - both rollback paths in a single failure.
+                    const world = await Item.create(lootData('Harness BRB Held', { system: { quantity: 30 } }));
+                    made.push(world);
+                    const seeded = await inv.grantItem({ targetActorUuid: looter.uuid, itemUuid: world.uuid, quantity: 12 });
+                    expect.ok('seed succeeded', seeded.ok);
+
+                    const [held] = await corpse.createEmbeddedDocuments('Item', [lootData('Harness BRB Held', { system: { quantity: 5 } })]);
+                    const [fresh] = await corpse.createEmbeddedDocuments('Item', [lootData('Harness BRB Fresh', { system: { quantity: 3 } })]);
+
+                    // Force the batched source reduction to fail.
+                    const originalUpdate = corpse.updateEmbeddedDocuments.bind(corpse);
+                    const originalDelete = corpse.deleteEmbeddedDocuments.bind(corpse);
+                    corpse.updateEmbeddedDocuments = () => { throw new Error('harness: forced source failure'); };
+                    corpse.deleteEmbeddedDocuments = () => { throw new Error('harness: forced source failure'); };
+                    let result;
+                    try {
+                        result = await inv.transferItems({
+                            sourceActorUuid: corpse.uuid, targetActorUuid: looter.uuid,
+                            items: [{ itemId: held.id, quantity: 2 }, { itemId: fresh.id, quantity: 1 }]
+                        });
+                    } finally {
+                        delete corpse.updateEmbeddedDocuments;
+                        delete corpse.deleteEmbeddedDocuments;
+                    }
+
+                    expect('reported a failure', result.ok, false);
+                    expect.ok('codes name the source update or the rollback',
+                        result.results.every(entry => [inv.CODES.SOURCE_UPDATE_FAILED, inv.CODES.ROLLBACK_FAILED].includes(entry.code)));
+                    expect('the merged row is exactly whole again', quantityOf(looter.items.get(seeded.targetItemId)), 12);
+                    expect.ok('the merged row still exists', Boolean(looter.items.get(seeded.targetItemId)));
+                    expect('the created row was removed', looter.items.size, 1);
+                    expect('the corpse is untouched', quantityOf(corpse.items.get(held.id)), 5);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
         // ---------- rollback ----------
         {
             id: 'rollback-after-merge',

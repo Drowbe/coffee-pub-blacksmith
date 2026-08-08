@@ -477,6 +477,31 @@ another public primitive self-deadlocks on every transfer). Someone refactoring 
 redundant reintroduces the hang, and the code will not argue.
 
 
+## Consider: report the encumbrance race upstream to dnd5e (suggested 2026-08-08)
+
+**Not started. Needs an author decision, because filing on a third-party repo is an outward-facing action.**
+
+`Actor5e#updateEncumbrance` (`dnd5e.mjs:36217`) reads
+`this.effects.get(ActiveEffect5e.ID.ENCUMBERED)` and, when absent, creates an effect with that same fixed
+`_id` and `keepId: true` (`:36235-36238`). Check-then-create, no lock, and no tolerance for losing the race.
+It runs on every item create, update and delete on an Actor (`:36073`, `:36082`, `:36094`) and on the Actor's
+own update (`:36009`), and Foundry does not await it from the write that triggered it — so any two writes
+close together on one Actor produce two recomputes that both try to create `dnd5eencumbered0`. The server
+rejects the second.
+
+**Every module that writes twice to an Actor hits this, and most will never work out why**, because the
+rejection surfaces from a lifecycle hook rather than the caller's await chain: the write succeeds and the
+error is console noise. It cost this suite two modules' worth of investigation — Squire diagnosed it in a
+transfer, and it turned out to affect every item created on an owned Actor by anyone.
+
+Two plausible system-side fixes, either sufficient: catch the duplicate-id rejection on the create, or
+re-read the effects collection immediately before creating. Squire has offered to co-sign.
+
+We have what a report needs: the mechanism with line numbers, a minimal reproduction (two writes to one
+Actor while it crosses an encumbrance threshold), and a harness check that demonstrates it
+(`utilities/tests/suite-inventory.js`, `one-write-per-actor`). Worth doing because the alternative is every
+module in the ecosystem routing around it separately, which is what we and Squire have each just done.
+
 ## Suite-wide: api.dialog stopped being modal by default (changed 2026-08-08)
 
 **Decided and shipped.** `api.dialog`'s `openDialog`, `choose`, `prompt`, and `wait` now default to

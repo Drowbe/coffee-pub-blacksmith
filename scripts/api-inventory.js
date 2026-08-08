@@ -53,7 +53,8 @@ const CODES = Object.freeze({
     TARGET_CREATE_FAILED: 'TARGET_CREATE_FAILED',
     SOURCE_UPDATE_FAILED: 'SOURCE_UPDATE_FAILED',
     ROLLBACK_FAILED: 'ROLLBACK_FAILED',
-    LOCK_TIMEOUT: 'LOCK_TIMEOUT'
+    LOCK_TIMEOUT: 'LOCK_TIMEOUT',
+    DUPLICATE_ITEM: 'DUPLICATE_ITEM'
 });
 
 // How long a public method waits for an Actor lock before giving up. A bounded wait exists so
@@ -557,6 +558,151 @@ async function grantItem({ targetActorUuid, itemUuid, itemData, quantity, stack 
  * @param {string[]} [options.ignoreFlags=[]]
  * @returns {Promise<object>} { ok, results: [] }
  */
+/**
+ * Put many prepared payloads onto one Actor in as few writes as possible.
+ *
+ * Shared by grantItems and transferItems so the coalescing rules exist once. Assumes the caller
+ * holds the target Actor's lock.
+ *
+ * Two writes at most, whatever the item count: one batched update for rows that already existed,
+ * one batched create for everything else. That matters beyond tidiness - dnd5e recomputes
+ * encumbrance per write and the recompute outlives the write, so N writes to one Actor are N
+ * racing recomputes against a single fixed effect id.
+ *
+ * @param {Actor} targetActor
+ * @param {object[]} prepared - Index-aligned; failure entries pass straight through.
+ * @param {string} stack
+ * @param {string[]} ignoreFlags
+ * @returns {Promise<{results: object[], undo: {created: string[], merges: object[]}}>}
+ *   `undo` describes what to reverse if a later step fails. Callers that cannot fail ignore it.
+ */
+async function _grantBatchCore(targetActor, prepared, stack, ignoreFlags) {
+    const results = new Array(prepared.length);
+    const toCreate = [];             // payloads for the single create call
+    const createIndexes = [];        // result index owning each payload
+    const coalescedInto = new Map(); // result index -> payload slot it was folded into
+    const mergeUpdates = [];         // batched updates for rows that already existed
+    const undo = { created: [], merges: [] };
+
+    for (let index = 0; index < prepared.length; index++) {
+        const entry = prepared[index];
+        if (!entry?.ok) { results[index] = entry ?? fail(CODES.ITEM_NOT_FOUND); continue; }
+
+        if (stack === 'merge') {
+            const candidate = targetActor.items.find(existing => _canMerge(existing, entry.payload, ignoreFlags));
+            if (candidate) {
+                // Accumulate rather than write: several entries can target the same existing row.
+                const pending = mergeUpdates.find(update => update._id === candidate.id);
+                if (pending) {
+                    pending['system.quantity'] += entry.quantity;
+                } else {
+                    const current = candidate._source?.system?.quantity ?? 0;
+                    const update = { _id: candidate.id, 'system.quantity': current + entry.quantity };
+                    if (entry.arrivalFlags && Object.keys(entry.arrivalFlags).length) update.flags = entry.arrivalFlags;
+                    mergeUpdates.push(update);
+                }
+                undo.merges.push({ itemId: candidate.id, quantity: entry.quantity });
+                results[index] = { ok: true, targetItemId: candidate.id, quantity: entry.quantity, merged: true };
+                continue;
+            }
+
+            // Nothing on the Actor matches, but an earlier entry in THIS batch may already have
+            // queued an identical payload. Without this, several takes of one item in a single call
+            // produce several rows: the candidate search only sees documents that exist, and a
+            // queued payload does not exist yet.
+            const slot = toCreate.findIndex(queued => _canMerge(
+                { name: queued.name, type: queued.type, _source: queued, appliedEnchantments: [] },
+                entry.payload,
+                ignoreFlags
+            ));
+            if (slot >= 0) {
+                toCreate[slot].system.quantity = (toCreate[slot].system.quantity ?? 0) + entry.quantity;
+                coalescedInto.set(index, slot);
+                continue;
+            }
+        }
+        createIndexes.push(index);
+        toCreate.push(entry.payload);
+    }
+
+    if (mergeUpdates.length) await targetActor.updateEmbeddedDocuments('Item', mergeUpdates);
+
+    if (toCreate.length) {
+        const created = await targetActor.createEmbeddedDocuments('Item', toCreate);
+        for (let slot = 0; slot < createIndexes.length; slot++) {
+            const index = createIndexes[slot];
+            const targetItemId = created?.[slot]?.id;
+            if (targetItemId) undo.created.push(targetItemId);
+            results[index] = targetItemId
+                ? { ok: true, targetItemId, quantity: prepared[index].quantity, merged: false }
+                : fail(CODES.TARGET_CREATE_FAILED);
+        }
+        // An entry folded into a sibling reports the row it landed in. `merged` stays false -
+        // nothing that already existed was grown - and `coalesced` says what did happen.
+        // toCreate, createIndexes and created are pushed in lockstep, so toCreate[slot] is
+        // created[slot]; mapping through createIndexes would return another item's row.
+        for (const [index, slot] of coalescedInto) {
+            const targetItemId = created?.[slot]?.id;
+            results[index] = targetItemId
+                ? { ok: true, targetItemId, quantity: prepared[index].quantity, merged: false, coalesced: true }
+                : fail(CODES.TARGET_CREATE_FAILED);
+        }
+    }
+
+    return { results, undo };
+}
+
+/**
+ * Reverse a batch grant after a later step failed.
+ *
+ * Created rows are deleted; merged rows are DECREMENTED by exactly what was added. Deleting a
+ * merged row would destroy quantity the recipient already owned - the same invariant as the
+ * single-item rollback, and the same reason it is spelled out rather than inferred.
+ *
+ * @param {Actor} targetActor
+ * @param {{created: string[], merges: object[]}} undo
+ * @returns {Promise<boolean>} True if everything reversed cleanly.
+ */
+async function _rollbackBatch(targetActor, undo) {
+    let clean = true;
+    try {
+        if (undo.merges.length) {
+            const byItem = new Map();
+            for (const entry of undo.merges) {
+                byItem.set(entry.itemId, (byItem.get(entry.itemId) ?? 0) + entry.quantity);
+            }
+            const updates = [];
+            for (const [itemId, quantity] of byItem) {
+                const item = targetActor.items.get(itemId);
+                if (!item) { clean = false; continue; }
+                const current = item._source?.system?.quantity ?? 0;
+                updates.push({ _id: itemId, 'system.quantity': Math.max(0, current - quantity) });
+            }
+            if (updates.length) await targetActor.updateEmbeddedDocuments('Item', updates);
+        }
+        const present = undo.created.filter(id => targetActor.items.get(id));
+        if (present.length !== undo.created.length) clean = false;
+        if (present.length) await targetActor.deleteEmbeddedDocuments('Item', present);
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, 'Inventory: batch rollback failed', error, false, false);
+        return false;
+    }
+    return clean;
+}
+
+/**
+ * Put several items onto one Actor under a single lock.
+ *
+ * Not a convenience wrapper over grantItem: N separate calls are N writes to one Actor and N
+ * encumbrance recomputes. See _grantBatchCore.
+ *
+ * @param {object} options
+ * @param {string} options.targetActorUuid
+ * @param {object[]} options.items - [{ itemUuid | itemData, quantity, flags }]
+ * @param {string} [options.stack='merge']
+ * @param {string[]} [options.ignoreFlags=[]]
+ * @returns {Promise<object>} { ok, results: [] }
+ */
 async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignoreFlags = [] } = {}) {
     const targetActor = await _resolveActor(targetActorUuid);
     if (!targetActor) return fail(CODES.TARGET_ACTOR_NOT_FOUND, { targetActorUuid });
@@ -575,79 +721,7 @@ async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignore
     const { release, contended } = await _acquire([targetActor.uuid]);
     if (contended) return fail(CODES.LOCK_TIMEOUT, { actorUuid: contended, waitedMs: LOCK_TIMEOUT_MS });
     try {
-        const results = new Array(prepared.length);
-        const toCreate = [];             // payloads for the single create call
-        const createIndexes = [];        // result index owning each payload
-        const coalescedInto = new Map(); // result index -> payload slot it was folded into
-        const mergeUpdates = [];         // batched updates for rows that already existed
-
-        for (let index = 0; index < prepared.length; index++) {
-            const entry = prepared[index];
-            if (!entry.ok) { results[index] = entry; continue; }
-
-            if (stack === 'merge') {
-                const candidate = targetActor.items.find(existing => _canMerge(existing, entry.payload, ignoreFlags));
-                if (candidate) {
-                    // Accumulate rather than write immediately: several entries can target the same
-                    // existing row, and one batched update beats one write each.
-                    const pending = mergeUpdates.find(update => update._id === candidate.id);
-                    if (pending) {
-                        pending['system.quantity'] += entry.quantity;
-                    } else {
-                        const current = candidate._source?.system?.quantity ?? 0;
-                        const update = { _id: candidate.id, 'system.quantity': current + entry.quantity };
-                        if (entry.arrivalFlags && Object.keys(entry.arrivalFlags).length) update.flags = entry.arrivalFlags;
-                        mergeUpdates.push(update);
-                    }
-                    results[index] = { ok: true, targetItemId: candidate.id, quantity: entry.quantity, merged: true };
-                    continue;
-                }
-
-                // Nothing on the Actor matches, but an earlier entry in THIS batch may already have
-                // queued an identical payload. Without this, three grants of one item in a single
-                // call produce three rows: the candidate search only sees documents that exist, and
-                // a queued payload does not exist yet. A Take All over a corpse holding two arrow
-                // stacks would have split them.
-                const slot = toCreate.findIndex(queued => _canMerge(
-                    { name: queued.name, type: queued.type, _source: queued, appliedEnchantments: [] },
-                    entry.payload,
-                    ignoreFlags
-                ));
-                if (slot >= 0) {
-                    toCreate[slot].system.quantity = (toCreate[slot].system.quantity ?? 0) + entry.quantity;
-                    coalescedInto.set(index, slot);
-                    continue;
-                }
-            }
-            createIndexes.push(index);
-            toCreate.push(entry.payload);
-        }
-
-        // One batched update for every pre-existing row: N merges cost one write, not N.
-        if (mergeUpdates.length) await targetActor.updateEmbeddedDocuments('Item', mergeUpdates);
-
-        if (toCreate.length) {
-            const created = await targetActor.createEmbeddedDocuments('Item', toCreate);
-            for (let slot = 0; slot < createIndexes.length; slot++) {
-                const index = createIndexes[slot];
-                const targetItemId = created?.[slot]?.id;
-                results[index] = targetItemId
-                    ? { ok: true, targetItemId, quantity: prepared[index].quantity, merged: false }
-                    : fail(CODES.TARGET_CREATE_FAILED);
-            }
-            // An entry folded into a sibling reports the row it landed in. `merged` stays false -
-            // nothing that already existed was grown - and `coalesced` says what did happen.
-            for (const [index, slot] of coalescedInto) {
-                // toCreate, createIndexes and created are pushed in lockstep, so the payload at
-                // toCreate[slot] is created[slot]. Mapping through createIndexes here would treat a
-                // payload slot as a result index and hand back the wrong row.
-                const targetItemId = created?.[slot]?.id;
-                results[index] = targetItemId
-                    ? { ok: true, targetItemId, quantity: prepared[index].quantity, merged: false, coalesced: true }
-                    : fail(CODES.TARGET_CREATE_FAILED);
-            }
-        }
-
+        const { results } = await _grantBatchCore(targetActor, prepared, stack, ignoreFlags);
         return { ok: results.every(result => result.ok), results };
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, 'Inventory: grantItems failed', error, false, false);
@@ -658,10 +732,10 @@ async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignore
 }
 
 /**
- * Resolve and validate one grant, producing a creation payload. Shared by grantItem,
- * grantItems, and transferItem.
+ * Resolve and validate one grant, producing a creation payload. Shared by grantItem, grantItems,
+ * transferItem and transferItems.
  * @param {object} options
- * @returns {Promise<object>} { ok: true, payload, quantity } or a failure result.
+ * @returns {Promise<object>} { ok: true, payload, quantity, arrivalFlags } or a failure result.
  */
 async function _prepareGrant({ itemUuid, itemData, quantity, flags }) {
     let item = null;
@@ -779,6 +853,152 @@ async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity
                 message: error?.message
             });
         }
+    } finally {
+        release();
+    }
+}
+
+/**
+ * Move several items from one Actor to another in as few writes as possible.
+ *
+ * This is the Take All primitive, and it is not sugar over transferItem. N single transfers are N
+ * writes to the recipient and N to the source, which is N racing encumbrance recomputes on each -
+ * see _grantBatchCore. This does at most two writes per Actor regardless of item count.
+ *
+ * Per-item validation, not all-or-nothing: one packed container on a corpse must not stop the
+ * other twelve rows from being taken. Each entry reports its own result, index-aligned with
+ * `items`. A batch where every entry fails validation writes nothing.
+ *
+ * @param {object} options
+ * @param {string} options.sourceActorUuid - Accepts a synthetic token-actor UUID.
+ * @param {string} options.targetActorUuid
+ * @param {object[]} options.items - [{ itemId, quantity?, flags? }]. Omit quantity to take the whole stack.
+ * @param {string} [options.stack='merge']
+ * @param {string[]} [options.ignoreFlags=[]]
+ * @returns {Promise<object>} { ok, results: [] }
+ */
+async function transferItems({ sourceActorUuid, targetActorUuid, items = [], stack = 'merge', ignoreFlags = [] } = {}) {
+    const sourceActor = await _resolveActor(sourceActorUuid);
+    if (!sourceActor) return fail(CODES.SOURCE_ACTOR_NOT_FOUND, { sourceActorUuid });
+    const targetActor = await _resolveActor(targetActorUuid);
+    if (!targetActor) return fail(CODES.TARGET_ACTOR_NOT_FOUND, { targetActorUuid });
+    if (sourceActor.uuid === targetActor.uuid) return fail(CODES.SAME_ACTOR, { actorUuid: sourceActor.uuid });
+    if (!Array.isArray(items) || !items.length) return fail(CODES.SOURCE_ITEM_NOT_FOUND, { reason: 'items must be a non-empty array' });
+
+    const { release, contended } = await _acquire([sourceActor.uuid, targetActor.uuid]);
+    if (contended) return fail(CODES.LOCK_TIMEOUT, { actorUuid: contended, waitedMs: LOCK_TIMEOUT_MS });
+    try {
+        const results = new Array(items.length);
+        const prepared = new Array(items.length);
+        const reductions = [];   // { index, item, quantity, stackable, available }
+        const seen = new Set();
+
+        for (let index = 0; index < items.length; index++) {
+            const request = items[index];
+            const itemId = request?.itemId;
+
+            // Two entries for one item make the per-entry quantity checks meaningless: each would
+            // validate against the full stack and together they could over-draw it. Reject rather
+            // than silently summing, because summing guesses at intent a caller can state exactly.
+            if (itemId && seen.has(itemId)) {
+                results[index] = fail(CODES.DUPLICATE_ITEM, { itemId });
+                continue;
+            }
+            if (itemId) seen.add(itemId);
+
+            // Resolved inside the lock against the live document, so a stale client-side quantity
+            // cannot take more than the source holds.
+            const sourceItem = itemId ? sourceActor.items.get(itemId) : null;
+            if (!sourceItem) { results[index] = fail(CODES.SOURCE_ITEM_NOT_FOUND, { itemId }); continue; }
+            if (!_isTransferable(sourceItem)) {
+                results[index] = fail(CODES.ITEM_NOT_TRANSFERABLE, { itemId, type: sourceItem.type, allowed: PHYSICAL_TYPES });
+                continue;
+            }
+            const contentCount = await _containedCount(sourceItem);
+            if (contentCount !== 0) {
+                results[index] = fail(CODES.CONTAINER_HAS_CONTENTS, { itemId, contentCount: contentCount < 0 ? null : contentCount });
+                continue;
+            }
+            const resolved = _resolveQuantity(sourceItem, request?.quantity);
+            if (resolved.error) { results[index] = { ...resolved.error, itemId }; continue; }
+
+            const flags = request?.flags ?? {};
+            prepared[index] = {
+                ok: true,
+                payload: _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags),
+                quantity: resolved.quantity,
+                arrivalFlags: flags
+            };
+            reductions.push({
+                index,
+                item: sourceItem,
+                quantity: resolved.quantity,
+                stackable: resolved.stackable,
+                available: resolved.available
+            });
+        }
+
+        if (!reductions.length) return { ok: false, results };
+
+        // Grant everything valid on the target first. Failing this way leaves a visible duplicate,
+        // which is recoverable; reducing the source first would fail toward vanished items.
+        let batch;
+        try {
+            batch = await _grantBatchCore(targetActor, prepared, stack, ignoreFlags);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Inventory: transferItems target write failed', error, false, false);
+            for (const entry of reductions) results[entry.index] = fail(CODES.TARGET_CREATE_FAILED, { itemId: entry.item.id, message: error?.message });
+            return { ok: false, results };
+        }
+
+        // Reduce the source in two writes: one batched update for partial takes, one batched delete
+        // for whole ones.
+        const sourceUpdates = [];
+        const sourceDeletes = [];
+        for (const entry of reductions) {
+            if (entry.stackable && entry.quantity < entry.available) {
+                sourceUpdates.push({ _id: entry.item.id, 'system.quantity': entry.available - entry.quantity });
+            } else {
+                sourceDeletes.push(entry.item.id);
+            }
+        }
+
+        try {
+            if (sourceUpdates.length) await sourceActor.updateEmbeddedDocuments('Item', sourceUpdates);
+            if (sourceDeletes.length) await sourceActor.deleteEmbeddedDocuments('Item', sourceDeletes);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Inventory: transferItems source reduction failed, rolling back', error, false, false);
+            const rolledBack = await _rollbackBatch(targetActor, batch.undo);
+            for (const entry of reductions) {
+                const granted = batch.results[entry.index];
+                results[entry.index] = fail(rolledBack ? CODES.SOURCE_UPDATE_FAILED : CODES.ROLLBACK_FAILED, {
+                    itemId: entry.item.id,
+                    targetItemId: granted?.targetItemId ?? null,
+                    merged: granted?.merged ?? null,
+                    quantity: entry.quantity,
+                    observedTargetQuantity: targetActor.items.get(granted?.targetItemId)?._source?.system?.quantity ?? null,
+                    observedSourceQuantity: sourceActor.items.get(entry.item.id)?._source?.system?.quantity ?? null,
+                    message: error?.message
+                });
+            }
+            return { ok: false, results };
+        }
+
+        // Source reduction succeeded, so fold the grant results in with the source side reported.
+        for (const entry of reductions) {
+            const granted = batch.results[entry.index];
+            const deleted = sourceDeletes.includes(entry.item.id);
+            results[entry.index] = granted?.ok
+                ? {
+                    ...granted,
+                    sourceItemId: entry.item.id,
+                    sourceRemaining: deleted ? 0 : entry.available - entry.quantity,
+                    sourceDeleted: deleted
+                }
+                : granted ?? fail(CODES.TARGET_CREATE_FAILED, { itemId: entry.item.id });
+        }
+
+        return { ok: results.every(result => result?.ok), results };
     } finally {
         release();
     }
@@ -916,10 +1136,11 @@ const InventoryAPI = {
     grantItems,
     grantCurrency,
     transferItem,
+    transferItems,
     transferCurrency,
     CODES,
     PHYSICAL_TYPES,
     DENOMINATIONS
 };
 
-export { InventoryAPI, registerTransientFlag, getTransientFlags, grantItem, grantItems, grantCurrency, transferItem, transferCurrency };
+export { InventoryAPI, registerTransientFlag, getTransientFlags, grantItem, grantItems, grantCurrency, transferItem, transferItems, transferCurrency };

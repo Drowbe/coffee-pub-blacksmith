@@ -33,8 +33,7 @@
 }
 
 /* The shared window button classes are applied by decorateButtons() in
-   api-dialog.js. Dialog buttons share a row, so the fixed width the primary
-   variant carries in window-template.css must not apply here.
+   api-dialog.js.
 
    `min-width: max-content` with `nowrap` is what stops a label breaking across
    two lines: the buttons still grow to fill the row, but flex can no longer

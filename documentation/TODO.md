@@ -35,8 +35,13 @@ hook family where cancellation matters.
 `registerHook({ name: 'preCreateItem', canCancel: true, ... })`. An undeclared callback returning a boolean
 becomes inert, which is the safe default and matches what every existing caller actually intends. Move the
 `once` cleanup above the veto path, or run it in a `finally`, so a veto cannot leak a registration. Then
-`api-hookmanager.md` gains a short section on cancellation, and Squire can migrate the native hook back if
-they want to.
+`api-hookmanager.md` gains a short section on cancellation.
+
+**Squire will keep using native hooks for `pre*` even after this lands, by choice** (stated 2026-08-08): a
+hook that can cancel an operation world-wide is the one place where fewer layers between the module and
+Foundry is worth more than consistency with the manager. That is a reasonable position and it is recorded
+here so nobody files "migrate Squire's native hooks onto HookManager" as cleanup later. Everything else of
+theirs stays on the manager.
 
 **Verification:** register two callbacks on a `pre*` hook where the first returns `false` for its own
 reasons; the second must still run and the document must still be created. Register a `once` callback that

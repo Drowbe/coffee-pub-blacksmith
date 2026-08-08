@@ -225,10 +225,15 @@
     text-transform: uppercase;
 }
 
+/* No width here. A shared button class must not carry a fixed pixel width: in a flex
+   footer it stretches the primary action across the row and squeezes the secondary one
+   into two lines. This carried `width: 300px` until 2026-08-08, and by then three
+   stylesheets in this repo plus one consumer were resetting it to auto -- the reset
+   outnumbered the rule. A window that genuinely wants a wide primary button sets the
+   width in its own scope. */
 .blacksmith-window-btn-primary {
     background: rgba(41, 94, 47, 0.9);
     color: rgba(255, 255, 255, 0.9);
-    width: 300px;
 }
 
 .blacksmith-window-btn-secondary {

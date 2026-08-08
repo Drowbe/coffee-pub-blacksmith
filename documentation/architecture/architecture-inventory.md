@@ -24,11 +24,26 @@ rather than incidental. It is a surface that needs re-verification against any f
 
 ## Shape: two locking wrappers over unlocked cores
 
-`grantItem`, `grantItems`, `grantCurrency`, `transferItem`, and `transferCurrency` are public and acquire
-locks. `_grantItemCore` and `_reduceSourceCore` acquire nothing and assume the caller holds what they need.
+`grantItem`, `grantItems`, `grantCurrency`, `transferItem`, `transferItems`, and `transferCurrency` are public
+and acquire locks. `_grantItemCore`, `_grantBatchCore`, `_reduceSourceCore`, `_rollbackGrant` and
+`_rollbackBatch` acquire nothing and assume the caller holds what they need.
 
 `transferItem` is defined as: validate the source, grant on the target, reduce the source, roll back the grant
-on failure. It calls the **cores**, never the public methods.
+on failure. `transferItems` is the same sentence with batched writes on both sides. Both call the **cores**,
+never the public methods.
+
+**The batch forms exist for write count, not ergonomics.** `_grantBatchCore` puts every create into one
+`createEmbeddedDocuments` and every merge into one `updateEmbeddedDocuments`; `transferItems` reduces the
+source with one `updateEmbeddedDocuments` for partial takes and one `deleteEmbeddedDocuments` for whole ones.
+So a Take All of any size costs at most two writes per Actor rather than two per item. Given that dnd5e
+recomputes encumbrance per write, against one fixed effect id, with no lock and a recompute that outlives the
+write (see invariant 3), item count would otherwise be the number of racing recomputes.
+
+Two consequences worth knowing before changing them. Batched merges accumulate into a single update per
+target row, so several entries taking the same item add up rather than overwriting each other. And entries
+that cannot merge with an existing row still coalesce with a payload queued earlier in the same batch - the
+candidate search only sees documents that exist, so without that step a Take All over a corpse holding two
+identical stacks would split them.
 
 ## Four invariants that are invisible in correct code
 
@@ -59,6 +74,11 @@ Deleting after a merge destroys quantity the recipient already owned - three arr
 followed by a delete loses twenty items that were never part of the transfer. It fails while looking like
 successful cleanup, which is why the failure result carries `merged`, `quantity`, and both observed
 quantities rather than just `targetItemId`.
+
+`_rollbackBatch` applies the same rule across a whole batch, which is why it tracks what it did rather than
+inferring it afterwards: an `undo` descriptor records created row ids and per-row merged quantities as the
+grant happens. Reconstructing that after the fact is not possible - once a merge has landed there is nothing
+in the document to say how much of the stack arrived in this operation.
 
 ### 3. Arrival flags are folded into the item write
 

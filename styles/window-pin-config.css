@@ -339,11 +339,6 @@ div#blacksmith-pin-config .window-content {
     margin: 0;
 }
 
-/* Pin config footer — override template primary button width (not full-width here) */
-.blacksmith-pin-config .blacksmith-window-btn-primary {
-    width: auto;
-}
-
 
 /* Tag group section labels (Suggested / Other) */
 .blacksmith-pin-config-tag-group-label {

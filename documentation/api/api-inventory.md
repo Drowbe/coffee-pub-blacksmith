@@ -79,9 +79,14 @@ it a merge would be wrong, but neither did they create a row of their own.
 Merges into rows that already existed are applied as one batched update, and creates as one batched create,
 so a batch of any size costs at most two writes to the target Actor rather than one per item.
 
-**Use this instead of looping `grantItem` for a Take All.** It is not a convenience wrapper. Everything that
-can be created rather than merged goes in a single `createEmbeddedDocuments`, which matters for the reason
-described under `flags`.
+**Use this instead of looping `grantItem`.** It is not a convenience wrapper. Everything that can be created
+goes in a single `createEmbeddedDocuments` and every merge in a single `updateEmbeddedDocuments`, which
+matters for the reason described under `flags`. For taking items *off* another Actor, use `transferItems`.
+
+**Calling this once per item defeats the whole point.** A loop of `grantItems({items: [oneThing]})` is
+exactly as many writes as a loop of `grantItem`, and duplicate items cannot coalesce because their payloads
+never meet in the same call. Accumulate everything first, then make one call. This has already been shipped
+by mistake once - the plural name made a per-item loop look like batching.
 
 ## transferItem
 
@@ -101,6 +106,45 @@ const result = await blacksmith.inventory.transferItem({
 `itemId` is the embedded item id on the source Actor. The item is resolved and its quantity re-checked
 against the live document inside the lock, so a stale client-side quantity cannot create more on the target
 than the source holds.
+
+## transferItems
+
+Take All. Moves several items from one Actor to another in one operation.
+
+```js
+const result = await blacksmith.inventory.transferItems({
+    sourceActorUuid,
+    targetActorUuid,
+    items: [
+        { itemId: arrowsId, quantity: 5 },   // partial
+        { itemId: daggerId },                // whole stack
+        { itemId: bagId }                    // refused if packed; other rows still move
+    ],
+    stack: 'merge',
+    ignoreFlags: []
+});
+// { ok, results: [ { ok, targetItemId, quantity, merged, sourceItemId, sourceRemaining, sourceDeleted }, ... ] }
+```
+
+**Use this rather than looping `transferItem`.** It is not sugar. N single transfers are N writes to the
+recipient and N to the source; this is at most two writes per Actor whatever the item count, which is the
+difference between one encumbrance recompute per Actor and N racing ones.
+
+`results` is index-aligned with `items` and each entry has the same shape as a `transferItem` result, plus
+`itemId` on failures so a caller can attribute a refusal to a row. **Validation is per item, not
+all-or-nothing:** one packed container on a corpse does not stop the other rows being taken. Top-level `ok` is
+true only when every entry succeeded, so check the entries.
+
+Duplicate entries coalesce on the target the same way `grantItems` does, so two rows of the same arrows land
+as one stack.
+
+**The same `itemId` twice in one call is refused** with `DUPLICATE_ITEM` on the second entry. Two entries for
+one item make the per-entry quantity checks meaningless - each validates against the full stack, and together
+they could over-draw it. Summing them would be guessing at intent the caller can state exactly.
+
+If the source reduction fails after the target has been written, the whole grant is reversed: created rows
+deleted, merged rows decremented by exactly what was added. Every entry then reports `SOURCE_UPDATE_FAILED`,
+or `ROLLBACK_FAILED` if the reversal itself failed.
 
 ## grantCurrency and transferCurrency
 
@@ -240,6 +284,7 @@ Every failure is `{ ok: false, code, ...context }`.
 | `SOURCE_UPDATE_FAILED` | The target received the item but the source could not be reduced. The grant was rolled back. |
 | `ROLLBACK_FAILED` | As above, and the rollback also failed. Requires manual repair. |
 | `LOCK_TIMEOUT` | Another operation held the Actor too long. Carries `actorUuid` and `waitedMs`. |
+| `DUPLICATE_ITEM` | `transferItems` only: the same `itemId` appeared twice in one call. |
 
 `SOURCE_UPDATE_FAILED` and `ROLLBACK_FAILED` also carry `targetItemId`, `merged`, `quantity`,
 `observedTargetQuantity`, and `observedSourceQuantity`. Surface these rather than swallowing them: whether
