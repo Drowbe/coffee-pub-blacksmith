@@ -33,6 +33,9 @@ import { postConsoleAndNotification } from './api-core.js';
 
 const FLAG_KEY = 'adversaries';
 
+/** Full flag path, for recognising our own writes coming back at us as updateCombat. */
+export const ADVERSARY_FLAG_PATH = `flags.${MODULE.ID}.${FLAG_KEY}`;
+
 /**
  * Read the record off a Combat document.
  *
@@ -81,6 +84,28 @@ function snapshotCombatant(combatant) {
     };
 }
 
+/**
+ * Write the record, but only when it actually changed.
+ *
+ * This guard is load-bearing rather than an optimisation. `setFlag` updates the Combat document,
+ * which fires `updateCombat`, which is where the periodic sweep is registered -- so an
+ * unconditional write is a write loop: sweep, write, sweep, write, each with a server round trip.
+ * Comparing first terminates it without depending on whether Foundry happens to short-circuit a
+ * no-op update, which is not a behaviour worth betting on.
+ *
+ * @param {Combat} combat
+ * @param {object} record
+ * @returns {Promise<void>}
+ */
+async function _write(combat, record) {
+    try {
+        if (foundry.utils.objectsEqual(getAdversaryRecord(combat), record)) return;
+        await combat.setFlag(MODULE.ID, FLAG_KEY, record);
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, 'Adversary Record: capture failed', error, false, false);
+    }
+}
+
 export class AdversaryRecord {
     /**
      * Record the current state of every combatant in a combat.
@@ -93,16 +118,18 @@ export class AdversaryRecord {
      */
     static async captureAll(combat) {
         if (!combat || !game.user?.isGM) return;
-        try {
-            const record = { ...getAdversaryRecord(combat) };
-            for (const combatant of combat.combatants ?? []) {
-                const evidence = snapshotCombatant(combatant);
-                if (evidence) record[combatant.id] = evidence;
-            }
-            await combat.setFlag(MODULE.ID, FLAG_KEY, record);
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Adversary Record: capture failed', error, false, false);
+        const record = { ...getAdversaryRecord(combat) };
+        for (const combatant of combat.combatants ?? []) {
+            // A combatant with no token can only produce DEGRADED evidence: its actor resolves to
+            // the prototype, so hit points read as full and the name reads as the prototype's. Once
+            // something is recorded, re-capturing in that state is strictly worse than keeping what
+            // we have -- and the periodic sweep would otherwise do exactly that on the next round,
+            // silently replacing the name and hit points captured while the token was alive.
+            if (!combatant.token && record[combatant.id]) continue;
+            const evidence = snapshotCombatant(combatant);
+            if (evidence) record[combatant.id] = evidence;
         }
+        await _write(combat, record);
     }
 
     /**
@@ -117,15 +144,13 @@ export class AdversaryRecord {
     static async capture(combatant) {
         const combat = combatant?.parent;
         if (!combat || !game.user?.isGM) return;
+        const record = { ...getAdversaryRecord(combat) };
+        // Same rule as the sweep: do not downgrade an entry captured while the token existed.
+        if (!combatant.token && record[combatant.id]) return;
         const evidence = snapshotCombatant(combatant);
         if (!evidence) return;
-        try {
-            const record = { ...getAdversaryRecord(combat) };
-            record[combatant.id] = evidence;
-            await combat.setFlag(MODULE.ID, FLAG_KEY, record);
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Adversary Record: capture failed', error, false, false);
-        }
+        record[combatant.id] = evidence;
+        await _write(combat, record);
     }
 
     /**
@@ -142,6 +167,72 @@ export class AdversaryRecord {
         const combat = game.combat;
         if (!combat || !tokenDocument?.id || !game.user?.isGM) return;
         const affected = combat.combatants.filter(c => c.tokenId === tokenDocument.id);
-        for (const combatant of affected) await this.capture(combatant);
+
+        // Read every value we need SYNCHRONOUSLY, before the first await.
+        //
+        // This hook is not awaited by Foundry -- a pre-hook returning a promise does not delay the
+        // delete -- so the token disappears while this function is still running. Anything read after
+        // an await reads a combatant whose token is already gone, which means the prototype: full
+        // hit points and the prototype's name. The first version of this awaited a server round trip
+        // and then read the name, and stamped "Cult Leader (BCOD)" over the name it was trying to
+        // preserve.
+        const pending = affected.map(combatant => ({
+            combatant,
+            evidence: snapshotCombatant(combatant),
+            displayName: combatant.token?.name ?? combatant.name
+        }));
+
+        for (const entry of pending) {
+            if (entry.evidence) await this.captureEvidence(combat, entry.combatant.id, entry.evidence);
+            await this.stampName(entry.combatant, entry.displayName);
+        }
+    }
+
+    /**
+     * Store an already-taken snapshot. Separate from `capture` because the caller that matters has
+     * to take its snapshot before awaiting anything.
+     *
+     * @param {Combat} combat
+     * @param {string} combatantId
+     * @param {object} evidence
+     * @returns {Promise<void>}
+     */
+    static async captureEvidence(combat, combatantId, evidence) {
+        if (!combat || !evidence || !game.user?.isGM) return;
+        const record = { ...getAdversaryRecord(combat) };
+        record[combatantId] = evidence;
+        await _write(combat, record);
+    }
+
+    /**
+     * Persist the combatant's display name into its own `name` field before its token disappears.
+     *
+     * `Combatant#name` is a stored field that, when empty, derives as `token?.name || actor?.name`
+     * (`client/documents/combatant.mjs:159`). For an unlinked token the actor fallback is the
+     * PROTOTYPE name, so the combat tracker reverts an adversary to "Cult Leader" the moment its
+     * corpse is cleared -- on the next data preparation, which is why it appears to change on its own
+     * a moment later rather than immediately.
+     *
+     * Writing the derived name into the field it derives INTO stops the derivation: `||=` leaves a
+     * populated value alone. This fixes the tracker as well as the XP window, which reading the
+     * record cannot do.
+     *
+     * Never overwrites a name that is already stored -- that would be a GM's explicit rename.
+     *
+     * @param {Combatant} combatant
+     * @returns {Promise<void>}
+     */
+    static async stampName(combatant, displayName = null) {
+        if (!combatant || !game.user?.isGM) return;
+        if (combatant._source?.name) return;          // a GM said so; leave it alone
+        // Passed in by callers that read it before the token went away. Re-deriving here would read
+        // the prototype for exactly the combatants this exists to protect.
+        displayName ??= combatant.token?.name ?? combatant.name;
+        if (!displayName) return;
+        try {
+            await combatant.update({ name: displayName });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Adversary Record: name stamp failed', error, false, false);
+        }
     }
 }

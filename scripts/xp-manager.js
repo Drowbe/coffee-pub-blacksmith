@@ -6,7 +6,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
-import { AdversaryRecord, getAdversaryRecord } from './stats-adversaries.js';
+import { AdversaryRecord, getAdversaryRecord, ADVERSARY_FLAG_PATH } from './stats-adversaries.js';
 
 export class XpManager {
     // Standard D&D 5e CR to XP mapping (using decimal keys for math operations)
@@ -102,8 +102,13 @@ export class XpManager {
             description: 'XP Manager: refresh adversary evidence as the fight progresses',
             context: 'xp-manager-adversary-record',
             priority: 3,
-            callback: (combat) => {
+            callback: (combat, changed) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Our own flag write updates the Combat, which fires this hook. Recognising it and
+                // returning avoids a pointless round trip; the no-op guard inside the record is what
+                // actually makes the cycle terminate. Both, because relying on either alone means
+                // one edit away from a write loop.
+                if (changed && foundry.utils.hasProperty(changed, ADVERSARY_FLAG_PATH)) return;
                 AdversaryRecord.captureAll(combat);
                 // --- END - HOOKMANAGER CALLBACK ---
             }
@@ -330,7 +335,7 @@ export class XpManager {
 
                 return {
                     id: monster.id,
-                    name: monster.name,
+                    name: this.getMonsterDisplayName(monster, combat),
                     cr: this.getMonsterCR(monster, combat),
                     baseXp: baseXp,
                     resolutionType: resolutionType,
@@ -563,6 +568,27 @@ export class XpManager {
     }
 
     /**
+     * The adversary's name as it was fought.
+     *
+     * `Combatant#name` reads the token's name and falls back to the actor's once the token is gone.
+     * For an unlinked token that fallback is the PROTOTYPE name -- so a "Cult Leader (BCOD)" placed
+     * and renamed to "Elra Keene" reverts to the prototype in the XP window the moment its token is
+     * deleted, which is the same class of problem as the resolution reverting.
+     *
+     * Live while the token exists, so a rename mid-combat is picked up immediately. Recorded only
+     * once there is no token left to ask.
+     *
+     * @param {Combatant} monster
+     * @param {Combat} combat
+     * @returns {string}
+     */
+    static getMonsterDisplayName(monster, combat = null) {
+        if (monster?.token) return monster.name;
+        const recorded = combat ? (getAdversaryRecord(combat)[monster?.id] ?? null) : null;
+        return recorded?.name ?? monster?.name ?? 'Unknown';
+    }
+
+    /**
      * Get monster's CR
      */
     static getMonsterCR(monster, combat = null) {
@@ -606,6 +632,13 @@ export class XpManager {
         // Evidence, not verdict: this supplies hit points and defeated state, and the same rules
         // below decide what they mean. A GM correcting a resolution in the window, or a table
         // changing its multipliers later, is not arguing with a frozen answer.
+        // `defeated` is a stored BooleanField on the Combatant (common/documents/combatant.mjs:56),
+        // so it survives both token deletion and a reload without any help from the record. Consult
+        // it FIRST and directly: the previous version reached it only through the record, which made
+        // a correct answer depend on capture timing for no reason. The record is still needed for the
+        // name, the CR fallback, and telling ESCAPED from IGNORED -- none of which is stored anywhere.
+        if (monster?.isDefeated === true) return 'DEFEATED';
+
         const recorded = getAdversaryRecord(combat)[monster.id] ?? null;
         if (recorded?.defeated === true) return 'DEFEATED';
 

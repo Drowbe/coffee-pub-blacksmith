@@ -87,8 +87,12 @@ export default {
                     await combat.createEmbeddedDocuments('Combatant', [{
                         tokenId: token.id, sceneId: canvas.scene.id, actorId: proto.id
                     }]);
+                    // Rename the TOKEN so the display name and the prototype name really differ.
+                    // Without this the name assertion below would pass by coincidence.
+                    await token.update({ name: 'Harness Display Name' });
                     const combatant = combat.combatants.contents[0];
                     expect.ok('combatant created', Boolean(combatant));
+                    expect('combatant reads the token name while the token exists', combatant.name, 'Harness Display Name');
 
                     // Kill it on the TOKEN actor, which is where combat damage lands.
                     await token.actor.update({ 'system.attributes.hp.value': 0 });
@@ -116,6 +120,25 @@ export default {
                         XpManager.getCombatMonsters(combat).some(m => m.id === combatant.id));
                     expect.ok('with a non-zero base XP',
                         XpManager.getMonsterBaseXp(stillThere, combat) > 0);
+
+                    // Combatant#name re-derives from the actor once the token is gone
+                    // (client/documents/combatant.mjs:159), which for an unlinked token is the
+                    // PROTOTYPE name. The row must still show what was fought.
+                    // Not asserting that the name reverted: the stamp is what stops it. Assert instead
+                    // that the prototype name -- what it WOULD have fallen back to -- is different, so
+                    // this check is still testing something.
+                    expect.ok('the prototype name differs, so the stamp is doing work',
+                        proto.name !== 'Harness Display Name');
+                    expect('the XP row keeps the display name',
+                        XpManager.getMonsterDisplayName(stillThere, combat), 'Harness Display Name');
+
+                    // The name is also stamped onto the combatant itself, which is what keeps the
+                    // COMBAT TRACKER from reverting to the prototype a moment later.
+                    // The stamp used to run after an await, by which time the token was gone and it
+                    // wrote the PROTOTYPE name over the name it was trying to preserve.
+                    expect('the combatant stores the fought name, not the prototype', stillThere._source?.name, 'Harness Display Name');
+                    expect.ok('and that is not simply the prototype name', proto.name !== stillThere._source?.name);
+                    expect('so Combatant#name no longer derives from the prototype', stillThere.name, 'Harness Display Name');
                 } finally {
                     if (token) { try { await token.delete(); } catch (_) { /* gone */ } }
                     if (combat) { try { await combat.delete(); } catch (_) { /* gone */ } }
@@ -192,6 +215,107 @@ export default {
                     const stored = combat._source?.flags?.['coffee-pub-blacksmith']?.adversaries;
                     expect.ok('flag is present in the document source', Boolean(stored));
                     expect('one entry per combatant', Object.keys(stored ?? {}).length, combat.combatants.size);
+                } finally {
+                    if (token) { try { await token.delete(); } catch (_) { /* gone */ } }
+                    if (combat) { try { await combat.delete(); } catch (_) { /* gone */ } }
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'sweep-does-not-degrade',
+            tier: 'headless',
+            group: 'Adversary record',
+            label: 'A sweep after the token is gone does not overwrite good evidence',
+            note: 'The bug this exists for: the periodic sweep re-snapshots every combatant, and a token-less combatant reads the PROTOTYPE -- full hit points, prototype name. Re-capturing in that state silently replaced what was captured while the token was alive.',
+            run: async ({ expect, log }) => {
+                const { AdversaryRecord, getAdversaryRecord } = await import('/modules/coffee-pub-blacksmith/scripts/stats-adversaries.js');
+                if (game.combat) { log('A combat is active -- end it and re-run.'); return; }
+                if (!canvas?.scene) { log('No active scene -- skipped.'); return; }
+
+                const made = [];
+                let combat = null, token = null;
+                try {
+                    const proto = await tempNpc(12, 'degrade');
+                    made.push(proto);
+                    token = await placeToken(proto);
+                    await token.update({ name: 'Harness Fought Name' });
+                    combat = await Combat.create({ active: true });
+                    await combat.createEmbeddedDocuments('Combatant', [{
+                        tokenId: token.id, sceneId: canvas.scene.id, actorId: proto.id
+                    }]);
+                    const combatant = combat.combatants.contents[0];
+
+                    // Wound it, capture, then remove the token -- the loot-and-clear sequence.
+                    await token.actor.update({ 'system.attributes.hp.value': 2 });
+                    await AdversaryRecord.captureAll(combat);
+                    const before = getAdversaryRecord(combat)[combatant.id];
+                    expect('captured the wounded hp', before.hp, 2);
+                    expect('captured the fought name', before.name, 'Harness Fought Name');
+
+                    await token.delete();
+                    token = null;
+
+                    // Exactly what a round advance does. Before the guard this replaced hp with the
+                    // prototype's 12 and the name with the prototype's.
+                    await AdversaryRecord.captureAll(combat);
+                    const after = getAdversaryRecord(combat)[combatant.id];
+                    expect('hp was not replaced by the prototype value', after.hp, 2);
+                    expect('name was not replaced by the prototype name', after.name, 'Harness Fought Name');
+                    expect.ok('the prototype really does differ, so this check tests something',
+                        proto.system.attributes.hp.value === 12 && proto.name !== 'Harness Fought Name');
+                } finally {
+                    if (token) { try { await token.delete(); } catch (_) { /* gone */ } }
+                    if (combat) { try { await combat.delete(); } catch (_) { /* gone */ } }
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'sweep-does-not-loop',
+            tier: 'headless',
+            group: 'Adversary record',
+            label: 'Repeated capture with nothing changed writes nothing',
+            note: 'The sweep runs on updateCombat, and writing the record updates the Combat -- which fires updateCombat. Without a no-op guard that is a write loop with a server round trip each time.',
+            run: async ({ expect, log }) => {
+                const { AdversaryRecord } = await import('/modules/coffee-pub-blacksmith/scripts/stats-adversaries.js');
+                if (game.combat) { log('A combat is active -- end it and re-run.'); return; }
+                if (!canvas?.scene) { log('No active scene -- skipped.'); return; }
+
+                const made = [];
+                let combat = null, token = null;
+                try {
+                    const proto = await tempNpc(9, 'loop');
+                    made.push(proto);
+                    token = await placeToken(proto);
+                    combat = await Combat.create({ active: true });
+                    await combat.createEmbeddedDocuments('Combatant', [{
+                        tokenId: token.id, sceneId: canvas.scene.id, actorId: proto.id
+                    }]);
+
+                    await AdversaryRecord.captureAll(combat);
+                    let writes = 0;
+                    const originalSetFlag = combat.setFlag.bind(combat);
+                    combat.setFlag = (...args) => { writes++; return originalSetFlag(...args); };
+                    try {
+                        for (let n = 0; n < 5; n++) await AdversaryRecord.captureAll(combat);
+                    } finally {
+                        delete combat.setFlag;
+                    }
+                    log(`writes across five no-change sweeps: ${writes}`);
+                    expect('five sweeps with nothing changed wrote nothing', writes, 0);
+
+                    // A real change must still get through.
+                    await token.actor.update({ 'system.attributes.hp.value': 4 });
+                    let writesAfter = 0;
+                    const original2 = combat.setFlag.bind(combat);
+                    combat.setFlag = (...args) => { writesAfter++; return original2(...args); };
+                    try {
+                        await AdversaryRecord.captureAll(combat);
+                    } finally {
+                        delete combat.setFlag;
+                    }
+                    expect('a real change still writes once', writesAfter, 1);
                 } finally {
                     if (token) { try { await token.delete(); } catch (_) { /* gone */ } }
                     if (combat) { try { await combat.delete(); } catch (_) { /* gone */ } }

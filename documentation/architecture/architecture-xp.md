@@ -44,6 +44,80 @@ a prototype's CR is usually the CR that was fought, and preferring live means a 
 applies. The record is there to stop the no-actor case returning 0, which reads as "worth nothing" rather than
 "we lost its CR".
 
+**The display name resolves the same way as resolution, and for the same reason.** `Combatant#name` is a
+stored field that, when empty, derives as `token?.name || actor?.name`
+(`client/documents/combatant.mjs:159`). For an unlinked token the actor fallback is the **prototype** name, so
+an adversary placed from a "Cult Leader" prototype and renamed to something specific reverts to the prototype
+in the XP window the instant its token is deleted. `getMonsterDisplayName` prefers the live name while a
+token exists -- so a rename mid-combat is picked up at once -- and the recorded name only when there is no
+token left to ask.
+
+**The name is also stamped onto the Combatant, because the XP window is not the only surface that reverts.**
+The combat tracker shows the prototype name too, a moment after the corpse is cleared rather than
+immediately -- the derivation runs on the next data preparation, not on the delete, which is why it appears to
+change on its own. Reading the record cannot fix that, since the tracker reads `Combatant#name`.
+
+So `AdversaryRecord.stampName` writes the derived name into the field it derives *into*, on
+`preDeleteToken`. `||=` leaves a populated value alone, so the derivation stops and both surfaces keep the
+name. It never overwrites a name already stored -- that is a GM's explicit rename.
+
+This was initially rejected as too invasive and then adopted once the tracker was shown doing it. The
+reasoning that changed: populating a field Foundry declares in the Combatant schema is not a hack, and the
+write lands on the Combatant rather than the Combat, so it does not interact with the sweep below.
+
+## What the record is actually for
+
+Worth stating precisely, because it is easy to over-credit. `defeated` is a stored BooleanField on the
+Combatant (`common/documents/combatant.mjs:56`), so it survives token deletion and a reload with no help from
+anything here -- and `detectMonsterResolution` consults `Combatant#isDefeated` directly and first. A killed
+adversary reads `DEFEATED` because of that, not because of the record.
+
+The record is needed for what is **not** stored anywhere:
+
+- The **display name**, once the token that carried it is gone.
+- **Hit points**, which distinguish `ESCAPED` from `IGNORED` for anything that lived. Nothing on the
+  Combatant records how hurt something was.
+- A **CR fallback** for a combatant whose actor cannot be resolved at all.
+- Combatants **deleted outright**, which take their stored `defeated` flag with them.
+
+## Never replace good evidence with degraded evidence
+
+A combatant whose token is gone can only produce a worse snapshot: its actor resolves to the prototype, so hit
+points read as full and the name reads as the prototype's. So both capture paths **skip a combatant that has
+no token when an entry already exists**.
+
+Without that rule the periodic sweep destroys the thing it maintains. It re-snapshots every combatant on each
+`updateCombat`, so the round after a corpse is cleared it overwrote the name and hit points captured while the
+token was alive. That presented as resolution surviving a reload while the name did not -- because `defeated`
+is stored on the Combatant and survived independently, masking the loss of everything else in the entry.
+
+**Read every value before the first await.** `preDeleteToken` is not awaited by Foundry -- a pre-hook returning
+a promise does not delay the delete -- so the token disappears while the handler is still running. The first
+version of `captureForToken` awaited a server round trip and then read the name for the stamp, which by then
+resolved to the prototype: it wrote "Cult Leader" over the name it existed to preserve. Snapshots and the
+display name are now taken synchronously up front, and `stampName` receives the name rather than re-deriving it.
+
+## The sweep must not write unconditionally
+
+`AdversaryRecord` writes to a flag on the **Combat** document, and the periodic sweep is registered on
+`updateCombat`. A flag write updates the Combat, which fires `updateCombat`, which runs the sweep, which
+writes again -- a loop with a server round trip per iteration.
+
+Two guards, deliberately both:
+
+- **The record compares before writing** and returns when nothing changed. This is what makes the cycle
+  terminate, and it does not depend on Foundry short-circuiting a no-op update -- which is not a behaviour to
+  bet on.
+- **The sweep ignores its own write**, recognising `ADVERSARY_FLAG_PATH` in the hook's `changed` argument.
+  This only avoids a wasted round trip; it is not the thing that stops the loop.
+
+Either alone would work today and leave the code one edit away from a runaway write. A harness check asserts
+that five sweeps with nothing changed produce zero writes, and that a real change still produces one.
+
+Worth knowing about the sweep's reach: `updateCombat` fires on round and turn changes, not on damage --
+hit point changes are Actor updates. The sweep is a coarse refresh, and the capture that actually matters is
+`preDeleteToken`, which fires at the one moment the evidence is about to become unrecoverable.
+
 **The menubar path is best-effort by nature.** `openXpDistributionWindow` with no active combat lists canvas
 tokens rather than a recorded encounter -- a corpse cleared during the fight is simply absent, and anything
 that wandered in since is present. It logs that it is doing so. Awarding at combat end is the correct path;
