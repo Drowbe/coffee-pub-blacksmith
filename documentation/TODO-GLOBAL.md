@@ -425,6 +425,57 @@ What shipped instead: `api.dialog`, `api.entityList`, `api.quantitySplit`, and t
 `ACTION_HANDLERS` fix — all reusable by any module, none of them knowing what a transfer is. Revisit a shared
 workflow shell only if two or more modules provably duplicate meaningful shell code.
 
+**Still refused, and the 2026-08-07 decision below does not weaken it.** The revisit condition was met for
+*mutation* code, not shell code. No window, no approval orchestration, no recipient selection moved to the
+hub, and none should.
+
+## Decision: Blacksmith owns inventory mutation primitives — `api.inventory` (2026-08-07)
+
+Planned, not implemented. The design lives in `documentation/plans/plan-inventory-api.md`; that plan is the
+source of truth until it is dismantled into `api/api-inventory.md` and
+`architecture/architecture-inventory.md`. **Do not restate its design here** — this section tracks only the
+cross-module coordination.
+
+Four mechanical primitives in Blacksmith: `grantItem`, `grantCurrency`, `transferItem`, `transferCurrency`.
+They validate, mutate, and return a structured result. They emit no sockets and own no workflow — each
+consumer calls them from its own GM-authoritative handler so authorization stays with the module that has
+the domain rules.
+
+**Why the hub and not a satellite:** Curator requires only `coffee-pub-blacksmith`; Squire requires
+Blacksmith and `socketlib`; neither requires the other, and `coffee-pub-lib` is retired. The hub is the only
+place two satellites can share code without one taking a hard dependency on the other, which Ground Rule 2
+refuses.
+
+Eleven duplicate mutation sites exist across three modules. Retiring them is per-module work, tracked here,
+and **none of it starts until the API ships**:
+
+| Module | Owns | Migrates |
+|---|---|---|
+| Squire | recipient selection, approval, chat, notifications | four `_completeItemTransfer` copies to `transferItem`; four drop-creates to `grantItem`; eight `game.actors.get` source lookups become UUIDs |
+| Curator | corpse interaction, loot permissions, loot window, Take/Take All | `LootUtilities._rollLootTable` to `grantItem`; `_addRandomCoins` to `grantCurrency` |
+| Artificer | crafting, gathering, recipes | `addCraftedItemToActor` to `grantItem` with `stack: 'merge'` |
+
+Squire has reviewed the design and landed two fixes ahead of it (their `c28e57b`): a contents-based
+container guard matching the API's rule, and quantity re-checks derived from the live document in all three
+previously unvalidated copies. Both survive migration or retire cleanly.
+
+Two consumer obligations worth recording because they are easy to miss and silent when missed:
+
+- **Declare transient item flags.** The merge check treats any undeclared flag as identity-bearing, so a
+  module writing UI state to item flags must pass those keys or its merges quietly stop happening. Squire
+  passes two. Blacksmith deliberately does not hard-code sibling flag keys.
+- **Artificer has a live data-loss bug the migration fixes.** `addCraftedItemToActor` stacks on name and
+  type alone, so a component whose Artificer taxonomy flags differ from one already held is merged and its
+  flags discarded. Whether that costs real data depends on whether their naming makes quirk and affinity
+  part of the item name — an open question for them, not us.
+
+**Two invariants must reach `architecture-inventory.md` when the plan is dismantled.** Both are invisible in
+a correct implementation and destructive in a plausible one, so neither is recoverable by reading shipped
+code: the rollback is quantity-aware (deleting the target row after a merge destroys quantity the recipient
+already owned), and the lock spans the whole transfer via unlocked internal cores (a public primitive calling
+another public primitive self-deadlocks on every transfer). Someone refactoring the wrappers away for looking
+redundant reintroduces the hang, and the code will not argue.
+
 
 ## Bibliosoph effects/wiki note (revised, received 2026-08-07)
 
