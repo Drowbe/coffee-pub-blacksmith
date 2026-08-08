@@ -3340,7 +3340,25 @@ class MenuBar {
             } catch {
                 title = '';
             }
-            parts.push(`${toolId}:1:${tool.zone || 'left'}:${tool.group || 'general'}:${activeState ? 1 : 0}:${tool.order ?? 999}:${title}`);
+            // Include the resolved icon and its colour for the same reason as the
+            // title above: a tool that reports its state by changing icon -- a
+            // recording dot, a pause bar -- changes nothing else about the
+            // layout, so the fingerprint matched, the lightweight path ran, and
+            // the button kept whatever icon it was first drawn with. The
+            // lightweight refresh does not touch tool icons at all, so only a
+            // rebuild can move one.
+            let icon = '';
+            let iconColor = '';
+            try {
+                icon = typeof tool.icon === 'function' ? String(tool.icon() ?? '') : String(tool.icon ?? '');
+                iconColor = typeof tool.iconColor === 'function'
+                    ? String(tool.iconColor() ?? '')
+                    : String(tool.iconColor ?? '');
+            } catch {
+                icon = '';
+                iconColor = '';
+            }
+            parts.push(`${toolId}:1:${tool.zone || 'left'}:${tool.group || 'general'}:${activeState ? 1 : 0}:${tool.order ?? 999}:${title}:${icon}:${iconColor}`);
         });
         parts.sort();
         return parts.join('|');
