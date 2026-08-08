@@ -11,9 +11,10 @@ into `TODO.md` at that point; it must not live here once the work is real.
 
 ## What this is, and what it is not
 
-Blacksmith gains two mechanical primitives that move items and coins between Actors safely:
-`transferItem` and `transferCurrency`. They resolve fresh documents, validate, mutate, and return a
-structured result. They own no workflow.
+Blacksmith gains four mechanical primitives that put items and coins onto Actors safely: `grantItem` and
+`grantCurrency` for content arriving from a compendium, table, or crafting result, and `transferItem` and
+`transferCurrency` for moving between two Actors. They resolve fresh documents, validate, mutate, and
+return a structured result. They own no workflow.
 
 This is not a revival of the hub-owned Transfer/Share window rejected on 2026-07-29 (see the decision in
 `TODO-GLOBAL.md`). That decision's own revisit condition was two or more modules provably duplicating
@@ -110,9 +111,42 @@ await blacksmith.inventory.transferCurrency({
 });
 ```
 
-Error codes: `SOURCE_ACTOR_NOT_FOUND`, `TARGET_ACTOR_NOT_FOUND`, `SOURCE_ITEM_NOT_FOUND`, `SAME_ACTOR`,
-`INVALID_QUANTITY`, `INSUFFICIENT_QUANTITY`, `INSUFFICIENT_CURRENCY`, `ITEM_NOT_TRANSFERABLE`,
-`CONTAINER_HAS_CONTENTS`, `TARGET_CREATE_FAILED`, `SOURCE_UPDATE_FAILED`, `ROLLBACK_FAILED`.
+There is no source actor when an item comes from a compendium, a loot table, a crafting result, or the
+Items directory, so `transferItem` cannot express those. They get their own primitive, and it is the one
+that carries the merge logic:
+
+```js
+await blacksmith.inventory.grantItem({
+    targetActorUuid,
+    itemUuid,                 // or itemData for a constructed item
+    quantity,
+    stack: 'merge',
+    ignoreFlags: []
+});
+// { ok: true, targetItemId, quantity, merged }
+
+await blacksmith.inventory.grantCurrency({
+    targetActorUuid,
+    currency: { gp: 12 }      // deltas added to what is there
+});
+```
+
+`transferItem` is then defined in terms of it: validate the source, `grantItem` on the target, reduce the
+source, roll back the grant on failure. One merge predicate, shared. `grantItem` has no `SAME_ACTOR`,
+`INSUFFICIENT_QUANTITY`, or rollback codes - there is no source to contend with - and adds
+`ITEM_NOT_FOUND` for an unresolvable `itemUuid`.
+
+Three modules need `grantItem` and only one strictly needs `transferItem`, so it is not a secondary
+convenience: Artificer's crafted and gathered items (`utility-artificer-item.js:169`), Curator's loot-table
+rolls (`loot-utilities.js:75`), and Squire's Items-directory and fallback-import drops
+(`panel-party.js:412`, `panel-party.js:345`, `manager-panel.js:1184`) are all create-on-actor with no
+source. `grantCurrency` covers Curator's random coin drop (`loot-utilities.js:112`), which is an add from
+nowhere rather than a move.
+
+Error codes: `SOURCE_ACTOR_NOT_FOUND`, `TARGET_ACTOR_NOT_FOUND`, `SOURCE_ITEM_NOT_FOUND`, `ITEM_NOT_FOUND`,
+`SAME_ACTOR`, `INVALID_QUANTITY`, `INSUFFICIENT_QUANTITY`, `INSUFFICIENT_CURRENCY`,
+`ITEM_NOT_TRANSFERABLE`, `CONTAINER_HAS_CONTENTS`, `TARGET_CREATE_FAILED`, `SOURCE_UPDATE_FAILED`,
+`ROLLBACK_FAILED`.
 
 ## Design decisions, with the reason attached
 
@@ -121,9 +155,20 @@ Error codes: `SOURCE_ACTOR_NOT_FOUND`, `TARGET_ACTOR_NOT_FOUND`, `SOURCE_ITEM_NO
 decrement. A wrong value from a caller destroys a stack. The API reads `system.quantity` off the resolved
 document and ignores any caller claim about it.
 
-**The mutex keys on source Actor UUID, not source Item.** An item-level lock does not cover Take All
-against one corpse from two clients, and it does not cover currency at all, which has no item.
-`transferCurrency` takes the same lock, so a coin grab and an item grab on one corpse cannot interleave.
+**The mutex keys on Actor UUID, not Item.** An item-level lock does not cover Take All against one corpse
+from two clients, and it does not cover currency at all, which has no item. `transferCurrency` takes the
+same lock, so a coin grab and an item grab on one corpse cannot interleave.
+
+Every primitive locks every Actor it writes. `grantItem` locks the **target**, not just because of the
+create but because a merge is a read-then-update on the target's existing item: two concurrent grants of
+the same thing could both read quantity 20 and both write 23. `grantCurrency` has the same read-modify-write
+shape and needs the same lock - it is the race already live in `loot-utilities.js:112`.
+
+`transferItem` and `transferCurrency` therefore hold two locks, which introduces deadlock: an A-to-B
+transfer and a B-to-A transfer each holding one lock and waiting on the other. **Acquire in a deterministic
+order - sort the two UUIDs and always take the lower first** - so the pair can never be held crosswise. Do
+not skip this because a simultaneous cross-transfer sounds unlikely; two players swapping items is exactly
+the case a party panel invites, and a deadlock here hangs both clients with no error.
 
 **Create on the target first, then reduce the source.** The opposite order fails toward a vanished item;
 this order fails toward a visible duplicate, which is recoverable. Rollback is therefore "delete the item
@@ -234,32 +279,37 @@ or a script-macro call reading the returned object.
    same-actor rejection, type whitelist, container-contents rejection, quantity validation. No mutation
    yet. Verify: macro calls covering each rejection code against a linked actor and an unlinked token
    actor; every call returns `ok: false` with the expected `code` and no document changes.
-2. **The item mutation path.** Clone, strip `_id`, apply dnd5e's reset set, create on target, reduce or
-   delete source. Verify: transfer a full non-stackable item, a partial stack, and an exact-full stack
-   between two linked actors; confirm on the target that the item arrives unequipped and unattuned, and
-   that the source is decremented or gone as expected.
-3. **Rollback and the failure results.** Verify: force a source-update failure (revoke ownership, or point
+2. **`grantItem` - the create-on-actor path.** Resolve `itemUuid` or accept `itemData`, clone, strip `_id`,
+   apply dnd5e's reset set, create on the target. This is the shared core `transferItem` builds on, and it
+   is what three of the four consumers actually call, so it lands first. Verify: grant a compendium item, a
+   world item, and a constructed `itemData` object to an actor; confirm each arrives unequipped and
+   unattuned with the requested quantity, and that an unresolvable `itemUuid` returns `ITEM_NOT_FOUND`
+   without mutating anything.
+3. **`transferItem` on top of it.** Validate the source, grant on the target, reduce or delete the source.
+   Verify: transfer a full non-stackable item, a partial stack, and an exact-full stack between two linked
+   actors; confirm the source is decremented or gone as expected and the target matches item 2's result.
+4. **Rollback and the failure results.** Verify: force a source-update failure (revoke ownership, or point
    the source at a deleted item mid-call from a macro) and confirm the created target item is removed, or
    that `ROLLBACK_FAILED` returns `targetItemId` and the observed quantity.
-4. **The source-actor mutex.** Verify: two clients issue overlapping transfers from one corpse; total
+5. **The source-actor mutex.** Verify: two clients issue overlapping transfers from one corpse; total
    quantity removed equals total quantity received, with no duplication and no over-draw.
-5. **`stack: 'merge'` and the eligibility gate.** Verify each row of the eligibility table with a live pair,
+6. **`stack: 'merge'` and the eligibility gate.** Verify each row of the eligibility table with a live pair,
    since this is the item most likely to be wrong in a way no error reveals. Merges: two compendium
    daggers; two Artificer components with identical flags and no `compendiumSource` on either. Does not
    merge: differing `artificerQuirk`; an enchanted copy against a plain one; a wand with `uses.spent > 0`;
    an unidentified item; an item inside a container against one outside; one side carrying a
    `compendiumSource` the other lacks. Every negative case must still complete the transfer with `ok: true`
    and `merged: false`, never an error. Confirm `'separate'` always creates a row.
-6. **`transferCurrency`.** Verify: move a mixed purse; confirm deltas applied to both actors, that an
+7. **`transferCurrency`.** Verify: move a mixed purse; confirm deltas applied to both actors, that an
    over-draw returns `INSUFFICIENT_CURRENCY` with nothing changed, and that no denomination conversion
    occurs.
-7. **Register on the api object** at `blacksmith.js:996`. Verify:
+8. **Register on the api object** at `blacksmith.js:996`. Verify:
    `game.modules.get('coffee-pub-blacksmith').api.inventory` is defined in a fresh world with no console
    errors.
-8. **Docs.** New `api/api-inventory.md` and `architecture/architecture-inventory.md`; add both to the
+9. **Docs.** New `api/api-inventory.md` and `architecture/architecture-inventory.md`; add both to the
    `PUBLISH` list in `tools/wiki-sync.mjs` (a doc not on that list never reaches the wiki, and inbound
    satellite links to it 404). Note the coupling in `plans/migration-v14.md`.
-9. **CHANGELOG.** `13.15.3` is closed by BUILD commit `408601da`, so this opens a fresh `## [Unreleased]`
+10. **CHANGELOG.** `13.15.3` is closed by BUILD commit `408601da`, so this opens a fresh `## [Unreleased]`
    heading above it.
 
 Retiring the duplicated call sites in Squire and Curator is cross-module work and belongs in
