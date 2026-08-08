@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **A menubar tool that changes its icon now repaints** (`scripts/api-menubar.js`): the structure fingerprint that decides between a rebuild and the lightweight refresh covered visibility, zone, group, active state, order and title, but not the icon or its colour. A tool that reports its state by changing icon -- a recording dot, a pause bar -- changes nothing else about the layout, so re-registering it matched the previous fingerprint, took the lightweight path, and kept whatever icon it was first drawn with. The lightweight refresh does not touch tool icons at all, so only a rebuild can move one. This is the same omission `title` was added for, and both are resolved through a function where the tool supplies one.
+- **A menubar tool that changes its icon now repaints** (`scripts/api-menubar.js`): the structure fingerprint that decides between a rebuild and the lightweight refresh covered visibility, zone, group, active state, order and title, but not the icon or its colour. A tool that reports its state by changing icon -- a recording dot, a pause bar -- changes nothing else about the layout, so re-registering it matched the previous fingerprint, took the lightweight path, and kept whatever icon it was first drawn with. The lightweight refresh does not touch tool icons at all, so only a rebuild can move one. This is the same omission `title` was added for. Unlike `title`, both are read as plain strings, because that is what the template draws and what the API documents.
 
 ## [13.15.3]
 

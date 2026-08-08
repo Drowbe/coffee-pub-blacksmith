@@ -328,9 +328,31 @@ on initialize. For a `type: Object` setting the value is already the parsed obje
   against `_menubarStructureFingerprint`. If unchanged, it calls **`_applyMenubarLightweightRefresh`**
   (updates leader/movement/timer labels only) instead of tearing down and re-inserting the DOM.
   `updateLeaderDisplay` forces a full render **only** when leader-only visibility flips.
+  - **Everything the template draws must be in the fingerprint.** The lightweight path touches the
+    leader, movement, timer and vote nodes and nothing else, so any other visible change needs a
+    rebuild to reach the screen. A field left out does not fail loudly: the registration succeeds,
+    the state is correct in `toolbarIcons`, the render is called, and the DOM simply keeps what it
+    had. That is the whole failure mode, and it has shipped twice — `title`, where a tool switching
+    modes showed a stale label, and `icon`/`iconColor`, where a tool reporting its state by icon
+    (a recording dot, a pause bar) could never change appearance at all, because the icon is
+    normally the *only* thing such a tool changes.
+  - `_toolbarIconsLayoutSignature()` covers, per tool: resolved visibility (including `gmOnly` and
+    `leaderOnly`), zone, group, resolved active state, order, resolved title, icon, and iconColor.
+    `title`, `visible` and `active` may be functions and are called; `icon` and `iconColor` are
+    strings, matching what the template and the API contract say.
+  - **Still uncovered, and drawn by `menubar.hbs`:** `name` (the button's class and `data-tool`),
+    `tooltip`, `toggleable`, `buttonNormalTint`, `buttonSelectedTint`, `groupOrder`. Each carries
+    the same latent bug. They were left out deliberately rather than swept in: `tooltip` may be a
+    function, and one returning live text — a countdown, a count of something — would make every
+    render a full rebuild, which is the cost the fingerprint exists to avoid. Adding any of them
+    wants that question answered first, per field.
   - The fingerprint must include `_secondaryBarLiveContentSignature()` and `secondaryBarActiveStates`.
     Without them, `updateSecondaryBarItemInfo` / `updateSecondaryBar` hit the skip path and leave secondary
     bar DOM stale. **If you add live secondary-bar state, add it to the fingerprint.**
+  - There is no general update-in-place for a registered tool: changing one is unregister plus
+    register, which is why a fingerprint gap is invisible to the caller — both calls return success.
+    An `updateMenubarTool(toolId, updates)` in the shape of `updateSecondaryBarItemInfo` would give
+    the change a single owner and one place to force the rebuild; it does not exist yet.
 - **Timer DOM caching** — round / planning / combat timers cache their node lists rather than calling
   `document.querySelectorAll` on every tick. Caches refresh when a cached node disconnects, or after
   `renderCombatTracker` injects markup. The menubar session timer is label-only by design.

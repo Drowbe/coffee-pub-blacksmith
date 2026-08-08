@@ -267,10 +267,52 @@ Registers a new tool with the Blacksmith menubar system.
 - `visible` (boolean|Function, optional): Whether tool is visible. Can be a function that returns a boolean for dynamic visibility. Default: true.
 - `toggleable` (boolean, optional): Whether tool can be toggled on/off (default: false)
 - `active` (boolean, optional): Initial active state for toggleable tools (default: false)
-- `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color.
+- `iconColor` (string, optional): Icon color. Can be any valid CSS color (e.g., `'#ff0000'`, `'rgba(255, 0, 0, 0.8)'`, `'red'`). If omitted, uses default icon color. Unlike `title` and `visible`, `icon` and `iconColor` are strings only -- the template draws them straight -- so a tool that changes its appearance re-registers rather than supplying a function. See *Changing a registered tool* below.
 - `buttonNormalTint` (string, optional): Background color for the button in normal state. Can be any valid CSS color (e.g., `'rgba(255, 107, 53, 0.2)'`, `'#ff6b35'`, `'red'`). If omitted, uses default button background color.
 - `buttonSelectedTint` (string, optional): Background color for the button when active/selected (for toggleable tools). Can be any valid CSS color (e.g., `'rgba(255, 107, 53, 0.4)'`, `'#ff6b35'`, `'red'`). If omitted, uses default active button background color.
 - `contextMenuItems` (Array | Function, optional): Right-click context menu. If provided, right-clicking the tool shows a menu instead of the browser default. Can be an array of `{ name, icon, description?, onClick, submenu? }`, or a function `(toolId, tool) => array` for dynamic items (e.g. list that depends on current state). Icon can be a Font Awesome class string (e.g. `'fa-solid fa-hand'`) or HTML (e.g. `'<i class="fa-solid fa-hand"></i>'`). `submenu` is an array of `{ name, icon, description?, onClick }` to render a flyout. Typical use: a tool that selects between several modes.
+
+#### Changing a registered tool
+
+There is no general update-in-place. `updateMenubarToolActive` below covers
+`active` on a toggleable tool and nothing else; to change anything else --
+icon, colour, title, order, visibility -- **unregister the tool and register it
+again** with the new values.
+
+```javascript
+// A tool whose icon reports what its module is doing.
+function refreshTool() {
+    blacksmith.unregisterMenubarTool('my-module-recorder');
+    blacksmith.registerMenubarTool('my-module-recorder', {
+        ...base,
+        icon: recording ? 'fa-solid fa-circle-dot' : 'fa-solid fa-map',
+        iconColor: recording ? '#c9412d' : null
+    });
+}
+```
+
+Both calls re-render, and the render is debounced, so the pair costs one render
+rather than two. Register only succeeds if the id is free, so the unregister is
+not optional -- a re-register over a live id returns `false` and leaves the old
+tool in place.
+
+Whether the change actually reaches the screen depends on the menubar's
+structure fingerprint (§9B.3 of `architecture-blacksmith.md`): a field the
+fingerprint does not cover takes the lightweight refresh path, which updates
+leader, movement, timer and vote nodes only, and the button keeps whatever it
+was last drawn with.
+
+Covered today: `visible` (with `gmOnly` / `leaderOnly`), `zone`, `group`,
+`order`, `active`, `title`, `icon`, `iconColor`. **Not covered**, though the
+template draws them: `name`, `tooltip`, `toggleable`, `buttonNormalTint`,
+`buttonSelectedTint`, `groupOrder`. Re-registering a tool to change only one of
+those will not repaint it. Change one of the covered fields alongside, or treat
+them as fixed at registration.
+
+**If you add a property that the template draws, add it to the fingerprint** --
+this has been missed twice, once for `title` and once for `icon`, and both times
+the symptom was a button that reported stale state indefinitely while the
+registration itself was correct.
 
 #### `updateMenubarToolActive(toolId, active)`
 

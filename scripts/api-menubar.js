@@ -3347,17 +3347,12 @@ class MenuBar {
             // the button kept whatever icon it was first drawn with. The
             // lightweight refresh does not touch tool icons at all, so only a
             // rebuild can move one.
-            let icon = '';
-            let iconColor = '';
-            try {
-                icon = typeof tool.icon === 'function' ? String(tool.icon() ?? '') : String(tool.icon ?? '');
-                iconColor = typeof tool.iconColor === 'function'
-                    ? String(tool.iconColor() ?? '')
-                    : String(tool.iconColor ?? '');
-            } catch {
-                icon = '';
-                iconColor = '';
-            }
+            // Plain values, unlike the title above: icon and iconColor are
+            // documented as strings and the template draws them straight, so
+            // resolving a function here would claim a capability the renderer
+            // does not have.
+            const icon = String(tool.icon ?? '');
+            const iconColor = String(tool.iconColor ?? '');
             parts.push(`${toolId}:1:${tool.zone || 'left'}:${tool.group || 'general'}:${activeState ? 1 : 0}:${tool.order ?? 999}:${title}:${icon}:${iconColor}`);
         });
         parts.sort();
