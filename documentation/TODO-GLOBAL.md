@@ -479,7 +479,15 @@ redundant reintroduces the hang, and the code will not argue.
 
 ## Consider: report the encumbrance race upstream to dnd5e (suggested 2026-08-08)
 
-**Not started. Needs an author decision, because filing on a third-party repo is an outward-facing action.**
+**Deferred to after the v14 migration (decided 2026-08-08).** This world is pinned to Foundry v13 and the
+dnd5e line has moved past what it can run, so a report against a version we cannot upgrade to earns an
+"upgrade and retry". Revisit when we are back on current system releases. The draft below stays because it is
+still correct, just not yet actionable.
+
+**Mitigated in the meantime, centrally**, by `scripts/manager-encumbrance-guard.js` - see
+`architecture/architecture-inventory.md`. The guard is version-gated, so if a future dnd5e fixes this it
+stops installing on its own; that is what makes deferring the report safe rather than trading a temporary
+system bug for a permanent local patch.
 
 `Actor5e#updateEncumbrance` (`dnd5e.mjs:36217`) reads
 `this.effects.get(ActiveEffect5e.ID.ENCUMBERED)` and, when absent, creates an effect with that same fixed

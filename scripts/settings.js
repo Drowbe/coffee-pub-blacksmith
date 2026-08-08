@@ -4747,6 +4747,20 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('System', 'headingH2System-Label', 'headingH2System-Hint', 'H2', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 
+	// Encumbrance Guard -- mitigates a dnd5e bug, not a Blacksmith feature. See
+	// scripts/manager-encumbrance-guard.js. World-scoped because it patches a system method for
+	// every client, so it is one decision per world.
+	game.settings.register(MODULE.ID, 'enableEncumbranceGuard', {
+		name: MODULE.ID + '.enableEncumbranceGuard-Label',
+		hint: MODULE.ID + '.enableEncumbranceGuard-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+	});
+
 	// -- H3: Menubar ---------------
 	registerHeader('SystemMenubar', 'headingH3SystemMenubar-Label', 'headingH3SystemMenubar-Hint', 'H3', WORKFLOW_GROUPS.DEVELOPER_TOOLS, 'user');
 

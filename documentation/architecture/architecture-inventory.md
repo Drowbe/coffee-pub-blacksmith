@@ -105,11 +105,16 @@ descendant-document hooks, so an `actor.update()` followed by an item write coll
 original diagnosis of this bug described it as a pair of item writes, which is narrower than the real
 surface.
 
-**A third-party follow-up write is enough to reintroduce it, and one exists in the suite today.** Squire's
-`createItem` hook writes `setFlag('isNew')` on every item created on an owned Actor, by any module, after
-the create returns. That is the second write, and it defeats the one-write-per-Actor property no matter how
-carefully this layer behaves. It is also why `registerTransientFlag` exists: the same asynchronous stamp
-makes merge identity timing-dependent for consumers that have no idea it is happening.
+**A third-party write is enough to reintroduce it, which is why one-write-per-Actor cannot be the whole
+answer.** Any second write to the same Actor collides, and two different modules writing to one Actor in the
+same moment do so with neither at fault. Per-module discipline gets to "no module trips it alone", which is
+strictly weaker than "it cannot happen", and it decays the moment anyone adds a follow-up write.
+
+So the class is guarded centrally as well: `scripts/manager-encumbrance-guard.js` wraps
+`Actor5e#updateEncumbrance` to serialise and coalesce recomputes per Actor. **Batching and the guard are
+independent and both worth having** - the guard means correctness no longer depends on batching discipline,
+and batching still means fewer writes, fewer recomputes, and fewer per-item hooks for every other consumer.
+See the guard section below.
 
 It only fires when the recipient crosses an encumbrance threshold on that operation, so it presents as
 intermittent - and since it surfaces from a lifecycle hook rather than the caller's await chain, the mutation
@@ -132,6 +137,54 @@ Full container transfer is deliberately out of scope rather than half-implemente
 and many source deletes, which breaks the singular return shape, makes quantity splitting meaningless, and
 turns rollback into N deletes plus N restores plus reporting which of those also failed. That belongs in its
 own method.
+
+## The encumbrance guard
+
+`scripts/manager-encumbrance-guard.js` mitigates the dnd5e race described in invariant 3. It is a guard
+against a **system** bug rather than a Blacksmith feature, and it is built to remove itself.
+
+**Why the hub owns it.** A per-module fix removes only that module's contribution. The hub is loaded wherever
+this matters, already owns the libWrapper layer, and writes to Actors itself through `api.inventory`.
+
+**Serialise and coalesce, not just serialise.** Serialising alone closes the race but still runs one recompute
+per write. Only the last result matters: `updateEncumbrance` reads `this.system.attributes.encumbrance` and
+`this.effects` fresh at call time, so one run after the final write produces the same state as one run after
+each. So at most one executes and one waits; further calls collapse into the waiter.
+
+What makes collapsing provably safe rather than a guess: **`updateEncumbrance(options)` accepts an options
+argument and never reads it** in 5.2.5. Two calls differing only in options are interchangeable. The latest
+options are carried through anyway, and if a future dnd5e starts reading them the guard needs re-examining
+rather than re-gating.
+
+One visible consequence: `_displayScrollingStatus` fires fewer times, so fewer stacked encumbrance popups
+during a bulk change. That is an improvement, but it is a behaviour change rather than a pure fix.
+
+**Keyed on Actor UUID, not id.** A synthetic token actor carries the base actor's id
+(`client/documents/actor-delta.mjs:28`), so keying on id would queue every unlinked corpse derived from one
+prototype - and the world actor itself - together. Safe but needlessly coarse, and the same mistake the
+inventory mutex avoids.
+
+**Registered through libWrapper, not assigned to the prototype.** Some worlds have other modules wrapping the
+same method, and libWrapper is what makes that visible instead of last-writer-wins.
+
+**Four things keep it from becoming a permanent patch nobody remembers:**
+
+- `FIXED_IN_DND5E` in the guard is a version gate. Set it when a release fixes this and the guard stops
+  installing. It is deliberately not feature-detected - detecting the absence of a race means matching a
+  method body, which is more fragile than the bug it protects against.
+- It feature-detects `Actor#updateEncumbrance` and `ActiveEffect.ID.ENCUMBERED` and declines rather than
+  patching blindly if either has moved.
+- It logs once on activation, so it is discoverable from the console rather than only from the source.
+- The `enableEncumbranceGuard` world setting switches it off for diagnosing a conflict.
+
+**The catch is deliberately narrow** - only a message containing both `already exists` and `dnd5eencumbered`
+is swallowed, and only after serialisation has already made it unlikely. Widening it would hide real failures
+in a code path nobody watches, which is why a harness check asserts that an unrelated failure still
+propagates.
+
+**Consequence for the harness.** With the guard installed, a check that counts duplicate-id rejections passes
+regardless of how many writes a call makes, so it tests the guard rather than our write discipline. The check
+that proves batching is `transfer-items-write-count`, which counts writes directly.
 
 ## Merge identity: exclusion, not enumeration
 

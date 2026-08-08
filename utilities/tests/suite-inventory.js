@@ -1143,7 +1143,7 @@ export default {
             tier: 'headless',
             group: 'Concurrency',
             label: 'Arrival flags do not trigger dnd5e\'s encumbrance collision',
-            note: 'Needs encumbrance tracking on. Watches console.error, because the rejection never reaches the caller.',
+            note: 'Needs encumbrance tracking on. Watches console.error, because the rejection never reaches the caller. NOTE: with the Encumbrance Guard installed this passes regardless of how many writes a call makes, so it now tests the guard rather than our write discipline -- transfer-items-write-count is what proves the batching.',
             run: async ({ expect, log }) => {
                 const api = requireApi('inventory');
                 let mode = 'none';
@@ -1224,6 +1224,121 @@ export default {
             }
         },
 
+        {
+            id: 'guard-installed',
+            tier: 'headless',
+            group: 'Encumbrance guard',
+            label: 'The guard is installed, or says why not',
+            note: 'A guard against a dnd5e bug, not a Blacksmith feature. It declines on a fixed system, when switched off, or when the shape it depends on has moved -- and each of those is a pass, not a failure.',
+            run: async ({ expect, log }) => {
+                const { EncumbranceGuard } = await import('/modules/coffee-pub-blacksmith/scripts/manager-encumbrance-guard.js');
+                const enabled = (() => {
+                    try { return game.settings.get('coffee-pub-blacksmith', 'enableEncumbranceGuard'); } catch (_) { return null; }
+                })();
+                log(`setting: ${enabled} | installed: ${EncumbranceGuard.installed} | dnd5e ${game.system?.version}`);
+                if (enabled === false) {
+                    expect('switched off, so not installed', EncumbranceGuard.installed, false);
+                    log('Guard is off by setting. Turn it on and reload to exercise the rest of this group.');
+                    return;
+                }
+                expect('guard is installed', EncumbranceGuard.installed, true);
+                expect.ok('nothing is stuck in flight at rest', EncumbranceGuard.pendingActors.length === 0);
+            }
+        },
+        {
+            id: 'guard-collapses-recomputes',
+            tier: 'headless',
+            group: 'Encumbrance guard',
+            label: 'Many writes to one actor produce no duplicate-id rejection',
+            note: 'The reproduction: several separate writes to one actor while it crosses an encumbrance threshold. Without the guard this is where dnd5e rejects the second effect create.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('inventory');
+                let mode = 'none';
+                try { mode = game.settings.get('dnd5e', 'encumbrance'); } catch (_) { /* unavailable */ }
+                if (mode === 'none') {
+                    log('dnd5e encumbrance tracking is off -- dnd5e skips the recompute, so nothing to guard. Enable it to test.');
+                    return;
+                }
+                const made = [];
+                try {
+                    // Strength set at creation: an actor update is itself a write that triggers a
+                    // recompute (dnd5e.mjs:36009), so update-then-grant would add one of our own.
+                    const target = await Actor.create({
+                        name: `${TEMP_PREFIX} guard ${foundry.utils.randomID(4)}`,
+                        type: 'character',
+                        system: { abilities: { str: { value: 3 } } }
+                    });
+                    made.push(target);
+                    const heavy = await Item.create(lootData('Harness Guard Anvil', {
+                        system: { quantity: 20, weight: { value: 40, units: 'lb' } }
+                    }));
+                    made.push(heavy);
+
+                    // Deliberately the pattern the batch forms exist to avoid: six separate calls,
+                    // six writes, six recomputes. The guard is what makes this safe rather than the
+                    // batching, which is the whole point of having it.
+                    const captured = await withConsoleErrors(async () => {
+                        for (let n = 0; n < 6; n++) {
+                            const result = await api.inventory.grantItem({
+                                targetActorUuid: target.uuid, itemUuid: heavy.uuid, quantity: 2, stack: 'separate'
+                            });
+                            expect.ok(`grant ${n} succeeded`, result.ok);
+                        }
+                    });
+
+                    const collisions = captured.filter(line => line.includes('dnd5eencumbered'));
+                    if (collisions.length) {
+                        log(collisions[0]);
+                        log('If the guard is installed this should be zero. Check for another module wrapping updateEncumbrance.');
+                    }
+                    expect('no duplicate encumbrance effect id across six writes', collisions.length, 0);
+
+                    const { EncumbranceGuard } = await import('/modules/coffee-pub-blacksmith/scripts/manager-encumbrance-guard.js');
+                    expect('the guard drained its queue', EncumbranceGuard.pendingActors.length, 0);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'guard-rethrows-real-errors',
+            tier: 'headless',
+            group: 'Encumbrance guard',
+            label: 'A failure that is NOT the duplicate id still propagates',
+            note: 'The narrow catch is the part most likely to be widened by someone debugging. If this check ever fails, the guard has started hiding real failures in a path nobody watches.',
+            run: async ({ expect, log }) => {
+                const actorClass = CONFIG?.Actor?.documentClass;
+                if (typeof actorClass?.prototype?.updateEncumbrance !== 'function') {
+                    log('Actor#updateEncumbrance not present -- nothing to test.');
+                    return;
+                }
+                const made = [];
+                try {
+                    const target = await tempActor('character', 'guard-throw');
+                    made.push(target);
+
+                    // Replace the recompute on this ONE instance with something that fails for an
+                    // unrelated reason, then call it through whatever wrapper chain is installed.
+                    const original = actorClass.prototype.updateEncumbrance;
+                    target.updateEncumbrance = function () {
+                        return Promise.reject(new Error('harness: unrelated failure'));
+                    };
+                    let threw = null;
+                    try {
+                        await target.updateEncumbrance({});
+                    } catch (error) {
+                        threw = error;
+                    } finally {
+                        delete target.updateEncumbrance;
+                    }
+                    expect.ok('original method is still on the prototype', actorClass.prototype.updateEncumbrance === original);
+                    expect.ok('an unrelated failure was not swallowed', Boolean(threw));
+                    expect.ok('and it is the error we threw', String(threw?.message).includes('unrelated failure'));
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
         // ---------- interactive ----------
         {
             id: 'live-two-client-take',

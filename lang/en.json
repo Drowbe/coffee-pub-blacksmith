@@ -210,6 +210,8 @@
 		"headingH2Vision-Label": "Vision",
 		"headingH2Vision-Hint": "GM Quickview (clarity mode), darkness overlay, and out-of-sight token highlights.",
 
+			"enableEncumbranceGuard-Label": "Encumbrance Guard (dnd5e workaround)",
+			"enableEncumbranceGuard-Hint": "Works around a dnd5e bug where two writes to one actor in quick succession both try to create the same encumbrance effect, producing a console error that reads \"The _id [dnd5eencumbered0] already exists\". The transfer or item change itself still succeeds. Blacksmith serialises the recompute so the clash cannot happen. Leave this on unless you are diagnosing a conflict with another module that also patches encumbrance. Requires a reload.",
 			"enableQuickViewFeature-Label": "Enable Quickview",
 			"enableQuickViewFeature-Hint": "Loads Quickview (vision hooks, menubar tool, hotkey). When off, Quickview does not load until you reload. Use Quickview on for your runtime clarity toggle.",
 

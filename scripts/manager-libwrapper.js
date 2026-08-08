@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { EncumbranceGuard } from './manager-encumbrance-guard.js';
 
 /**
  * Manages all libWrapper integrations for the Blacksmith module
@@ -68,6 +69,10 @@ export class WrapperManager {
                     type: 'WRAPPER'
                 });
             }
+
+            // A guard against a dnd5e bug rather than a Blacksmith feature, so it registers itself
+            // and reports its own reasons for declining. See manager-encumbrance-guard.js.
+            EncumbranceGuard.install();
 
             // Register all wrappers and log their registration
             for (const reg of wrapperRegistrations) {
