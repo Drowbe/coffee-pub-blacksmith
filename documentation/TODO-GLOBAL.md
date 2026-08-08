@@ -477,6 +477,38 @@ another public primitive self-deadlocks on every transfer). Someone refactoring 
 redundant reintroduces the hang, and the code will not argue.
 
 
+## Curator: token interaction claim registry (approved 2026-08-07)
+
+**Approved and planned.** Design and work breakdown live in
+`documentation/plans/plan-token-interaction-registry.md`. **Do not restate the design here** - this section
+tracks only the cross-module coordination.
+
+`blacksmith.tokens.registerInteraction` lets a module claim a gesture on a token it does not own. The
+outcome Curator needs: a player double-clicks a lootable corpse and gets Curator's loot window, and the
+Actor sheet does not open.
+
+**Why an API and not a hook**, recorded so it is not re-litigated: Foundry evaluates the permission
+predicate *before* the handler (`mouse-handler.mjs:494`, with `clickLeft2` bound to `_canView` at
+`placeable-object.mjs:792`, requiring LIMITED at `token.mjs:4254`). A player has no permission on a corpse,
+so the gesture is rejected before any handler could run. There is nothing to subscribe to. Verified against
+the installed v13 source, not taken on trust. `HookManager` is not the obstacle - it accepts any hook name
+(`manager-hooks.js:94`); Foundry never emits one.
+
+**Ownership split:**
+
+| | Owns |
+|---|---|
+| Blacksmith | the registry, the per-instance patch, conflict resolution, fail-closed behavior |
+| Curator | corpse interaction, loot permissions, the window, Take/Take All, distance checks |
+
+**Sequencing.** Independent of `api.inventory` - no shared code. Build the registry first: it is much
+smaller and closes Curator's last open design question. `api.inventory`'s `grantItem` remains the thing
+Curator needs to actually function, and Curator's Phase 1 chat-card entry point needs neither.
+
+**Consumer obligations:** gestures are named with Foundry's own keys, so Curator's requested `doubleClick`
+is `clickLeft2`. v1 accepts `clickLeft2` and `clickRight2` only; the others break selection, dragging, or
+the HUD and are rejected until something justifies them.
+
 ## Bibliosoph effects/wiki note (revised, received 2026-08-07)
 
 Item A is **done** — `architecture-effects.md` gained a "Duration is rewritten" section and its non-goals
