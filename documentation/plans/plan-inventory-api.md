@@ -108,7 +108,8 @@ await blacksmith.inventory.transferItem({
     itemId,
     quantity,                 // omitted for items with no system.quantity
     stack: 'merge',           // default; 'separate' to force a new row
-    ignoreFlags: []           // flag paths the merge check treats as non-identity
+    ignoreFlags: [],          // flag paths the merge check treats as non-identity
+    flags: {}                 // written in the SAME operation as the item write
 });
 ```
 
@@ -142,9 +143,19 @@ await blacksmith.inventory.grantItem({
     itemUuid,                 // or itemData for a constructed item
     quantity,
     stack: 'merge',
-    ignoreFlags: []
+    ignoreFlags: [],
+    flags: { 'coffee-pub-squire': { isNew: true } }
 });
 // { ok: true, targetItemId, quantity, merged }
+
+// Batch form: N items, ONE createEmbeddedDocuments, ONE encumbrance recompute.
+await blacksmith.inventory.grantItems({
+    targetActorUuid,
+    items: [{ itemUuid, quantity, flags }, ...],
+    stack: 'merge',
+    ignoreFlags: []
+});
+// { ok: true, results: [ { ok, targetItemId, quantity, merged }, ... ] }
 
 await blacksmith.inventory.grantCurrency({
     targetActorUuid,
@@ -292,7 +303,7 @@ Never fail the transfer over a merge check - the player still gets the item.
 | Condition | Why |
 |---|---|
 | Same `name` and same `type`, both within the physical whitelist | The baseline identity claim, and all that Artificer's own merge uses today (`utility-artificer-item.js:169-186`). Weak on its own, which is what the rest of this table is for. |
-| `_stats.compendiumSource` does **not** participate - see the note below | It was added to strengthen a name-only rule that no longer exists. Once `system` and `flags` are compared whole, provenance metadata adds no identity and costs a migration wrinkle. |
+| `_stats.compendiumSource` blocks **only** when both sides have one and they disagree; a missing source means unknown, not different | Absence is an artifact of how a document was imported, not a fact about the item. Disagreement between two known sources is the one case where something is actually known. See the note below. |
 | Deep-equal `flags`, excluding the transient list | Turns the flag-divergence risk into correct behavior instead of silent loss - see the note below. |
 | **Deep-equal `system`**, excluding `quantity` and the reset set (`equipped`, `attuned`, `prepared`, `crew.value`) | The single rule that covers everything an enumerated field list would miss - see the note below. |
 | Both carry a numeric `system.quantity` | Nothing to add otherwise. |
@@ -317,6 +328,48 @@ Use `item.toObject().system` or `item._source.system`. And **an unresolvable dif
 `merged: false`**, never toward an error: strictness here costs a player an extra inventory row, and that is
 the acceptable failure.
 
+**Arrival flags are written by the primitive, in the same operation as the item.** Not a convenience: a
+caller that sets a flag as a follow-up write reintroduces a live dnd5e bug, and Squire hit it in a
+player-to-player transfer before this API existed.
+
+dnd5e recomputes encumbrance on every item create, update, and delete on an Actor
+(`_onCreateDescendantDocuments` at `dnd5e.mjs:36073`, and the update and delete equivalents at `:36082` and
+`:36094`, all gated on `userId === game.userId`). The recompute is a check-then-create against **one fixed
+effect id** with no lock and nothing between the read and the write: it reads
+`this.effects.get(ActiveEffect5e.ID.ENCUMBERED)` (`:36226`) and, if absent, creates
+`{ _id: ActiveEffect5e.ID.ENCUMBERED, ... }` with `keepId: true` (`:36235-36238`). Two writes to the same
+Actor in quick succession produce two recomputes that both read an empty effects collection and both try to
+create the same id. The server rejects the second:
+
+```
+Error: The _id [dnd5eencumbered0] already exists within the parent collection: Actor [...] effects
+```
+
+**Awaiting correctly does not avoid this, and neither does our mutex.** Foundry does not await
+`_onCreateDescendantDocuments` from the promise `createEmbeddedDocuments` returns, so the recompute outlives
+the write that triggered it. `await create(...)` then `await setFlag(...)` collides anyway. Our lock
+serializes our own mutations; dnd5e's reaction to each one completes outside the critical section. The only
+fix available to anyone is to make it one write.
+
+So `flags` is folded into the create payload on the create branch, and into the same update as the quantity
+change on the merge branch. It fires only when the recipient crosses an encumbrance threshold on that
+transfer, which is why it presents as intermittent - and because it surfaces from a lifecycle hook rather
+than the caller's await chain, the transfer itself succeeds and the rejection is console noise. That is worse
+than a failure, not better: it is the shape of thing that sits in a log for months.
+
+`flags` composes with `ignoreFlags` rather than competing with it. A consumer declaring the same key in both
+is correct, not redundant: transient UI state is identity-irrelevant and arrival-relevant at the same time.
+
+This is also the second argument for the API applying dnd5e's reset set itself, beyond equipped and attuned
+state being wrong on arrival. Every fixup the primitive folds into the original write is a follow-up write a
+consumer does not make, and each follow-up write is another roll of this dice.
+
+**`grantItems` exists for the same reason.** N separate `grantItem` calls against one Actor are N writes and
+N recomputes - the same shape as the reproduced bug, unreproduced only because nobody has looped it yet. The
+batch form resolves to one `createEmbeddedDocuments` and one recompute. It is not speculative surface:
+Curator's Take All is exactly this, and the alternative is documenting "serialize your grants to one actor,"
+which pushes a dnd5e implementation detail onto every consumer forever.
+
 **Why `compendiumSource` is out of the identity check entirely.** dnd5e bails out of stacking when there is
 no source id (`dnd5e.mjs:55350-55351`), and copying that looks safe but breaks the suite's most stack-worthy
 items. Foundry only sets `_stats.compendiumSource` on a proper import; Artificer creates actor items with
@@ -331,10 +384,26 @@ that improvement would split every legacy stack: an Artificer component gathered
 a newly granted one does, and they would refuse to merge. The fix would have been paying a visible cost for
 metadata that carries no identity.
 
-Once `system` and `flags` are compared whole, `compendiumSource` adds nothing an equality check needs. Two
-items with identical name, type, system data, and flags are the same item whether or not one remembers where
-it came from. So: `grantItem` sets `compendiumSource` when it resolves a compendium document, and the merge
-predicate ignores it. Provenance improves, nothing splits.
+Once `system` and `flags` are compared whole, a *missing* `compendiumSource` says nothing an equality check
+should act on. Two items with identical name, type, system data, and flags are the same item whether or not
+one remembers where it came from.
+
+**Artificer supplied the data that settles the remaining case, and it is the default state of a configured
+world rather than an edge case.** Zero of 564 Artificer pack items carry a source, but 278 of 281
+Artificer-flagged items in the live world do - because a GM dragged the packs into the world, which is simply
+how a world gets populated. Their item cache indexes both compendium and world copies, so the live pool holds
+192 Component records for 96 names: each name once with no source and once with one, byte-identical in flags,
+chosen between at random when gathering. Under a rule where a one-sided source blocks, stacking the same
+mushroom twice would have been a coin flip.
+
+So the rule is: **block only when both sides have a source and the sources disagree.** A missing source means
+unknown, not different. Disagreement between two known sources is the only case where something is actually
+known, and it is cheap to honour. Note that the obvious remedy on the consumer side - importing everything
+through `fromCompendium` - makes it worse rather than better: the pack copy and the world copy would then
+carry *different* source UUIDs and would stop merging entirely.
+
+`grantItem` still sets `compendiumSource` when it resolves a compendium document, so granted items gain
+provenance the hand-rolled paths lose. Under this rule that improvement cannot split a stack.
 
 **Flags are compared, not discarded.** Artificer stores real crafting data on items - `artificerType`,
 `artificerFamily`, `artificerTraits`, `artificerSkillLevel`, `artificerBiomes`, `artificerQuirk`,
@@ -390,15 +459,22 @@ or a script-macro call reading the returned object.
    yet. Verify: macro calls covering each rejection code against a linked actor and an unlinked token
    actor; every call returns `ok: false` with the expected `code` and no document changes.
 2. **`grantItem` - the create-on-actor path.** Resolve `itemUuid` or accept `itemData`, clone, strip `_id`,
-   apply dnd5e's reset set, create on the target. This is the shared core `transferItem` builds on, and it
-   is what three of the four consumers actually call, so it lands first. Verify: grant a compendium item, a
-   world item, and a constructed `itemData` object to an actor; confirm each arrives unequipped and
-   unattuned with the requested quantity, and that an unresolvable `itemUuid` returns `ITEM_NOT_FOUND`
-   without mutating anything.
-3. **`transferItem` on top of it.** Validate the source, grant on the target, reduce or delete the source.
+   apply dnd5e's reset set, fold `flags` into the payload, create on the target. This is the shared core
+   `transferItem` builds on, and it is what three of the four consumers actually call, so it lands first.
+   Verify: grant a compendium item, a world item, and a constructed `itemData` object to an actor; confirm
+   each arrives unequipped and unattuned with the requested quantity and the requested flags already set,
+   and that an unresolvable `itemUuid` returns `ITEM_NOT_FOUND` without mutating anything.
+3. **One write per actor - the encumbrance collision.** The reason `flags` is a parameter rather than a
+   caller's follow-up write. Verify against a **near-threshold** recipient, since the bug only fires when the
+   grant crosses an encumbrance threshold: load an actor to just under `encumbrance.thresholds.encumbered`,
+   then grant a heavy item with `flags` set, and confirm the console shows no
+   `_id [dnd5eencumbered0] already exists` rejection. Repeat on the merge branch, where the flags ride the
+   quantity update. Then do the same via `grantItems` with several heavy items in one call - that is the
+   unreproduced case, and one recompute is the whole point of the batch form.
+4. **`transferItem` on top of it.** Validate the source, grant on the target, reduce or delete the source.
    Verify: transfer a full non-stackable item, a partial stack, and an exact-full stack between two linked
    actors; confirm the source is decremented or gone as expected and the target matches item 2's result.
-4. **Quantity-aware rollback and the failure results.** Two cases, and the second is the one that destroys
+5. **Quantity-aware rollback and the failure results.** Two cases, and the second is the one that destroys
    property if it is wrong. Verify (created): force a source-update failure - revoke ownership, or point the
    source at a deleted item mid-call from a macro - on a transfer that created a new row, and confirm the row
    is deleted. Verify (merged): **give the recipient an existing stack of 20, transfer 3 into it so it
@@ -406,7 +482,7 @@ or a script-macro call reading the returned object.
    not zero.** Deleting `targetItemId` here would destroy 20 items that were never part of the transfer, and
    it fails looking like successful cleanup. Confirm `ROLLBACK_FAILED` returns `targetItemId`, `merged`, the
    granted quantity, and the observed target and source quantities.
-5. **The mutex, including the re-entrancy trap.** Verify: two clients issue overlapping transfers from one
+6. **The mutex, including the re-entrancy trap.** Verify: two clients issue overlapping transfers from one
    corpse; total quantity removed equals total quantity received, with no duplication and no over-draw. Then
    verify a single ordinary transfer completes at all - if `transferItem` calls the public `grantItem` rather
    than the unlocked core, it self-deadlocks on the target lock and hangs with no error, so a plain transfer
@@ -414,25 +490,27 @@ or a script-macro call reading the returned object.
    complete, which is what the sorted lock ordering exists for. And hold a lock artificially past the timeout
    to confirm `LOCK_TIMEOUT` comes back with the contended actor UUID and the wait duration rather than
    hanging or surfacing as a generic failure.
-6. **`stack: 'merge'` and the eligibility gate.** Verify each row of the eligibility table with a live pair,
+7. **`stack: 'merge'` and the eligibility gate.** Verify each row of the eligibility table with a live pair,
    since this is the item most likely to be wrong in a way no error reveals. Merges: two compendium
    daggers; two Artificer components with identical flags and no `compendiumSource` on either; a compendium-
-   granted item against an otherwise-identical one that lacks `compendiumSource`, which must merge since
-   provenance is not identity. Does not merge: differing `artificerQuirk`; an enchanted copy against a plain
+   granted item against an otherwise-identical one that lacks `compendiumSource`, which must merge since a
+   missing source is unknown rather than different - this is Artificer's default world state, two copies of
+   one component differing only in provenance. Does not merge: differing `artificerQuirk`; an enchanted copy against a plain
    one; a wand with `uses.spent > 0`; an unidentified item; an item inside a container against one outside;
-   a hand-edited description. Every negative case must still complete with `ok: true` and `merged: false`,
+   a hand-edited description; two items whose `compendiumSource` values both exist and disagree. Every
+   negative case must still complete with `ok: true` and `merged: false`,
    never an error. Confirm `'separate'` always creates a row, and that comparison runs on `_source` - two
    identical torches with different derived `uses.value` must still merge.
-7. **`transferCurrency`.** Verify: move a mixed purse; confirm deltas applied to both actors, that an
+8. **`transferCurrency`.** Verify: move a mixed purse; confirm deltas applied to both actors, that an
    over-draw returns `INSUFFICIENT_CURRENCY` with nothing changed, and that no denomination conversion
    occurs.
-8. **Register on the api object** at `blacksmith.js:996`. Verify:
+9. **Register on the api object** at `blacksmith.js:996`. Verify:
    `game.modules.get('coffee-pub-blacksmith').api.inventory` is defined in a fresh world with no console
    errors.
-9. **Docs.** New `api/api-inventory.md` and `architecture/architecture-inventory.md`; add both to the
+10. **Docs.** New `api/api-inventory.md` and `architecture/architecture-inventory.md`; add both to the
    `PUBLISH` list in `tools/wiki-sync.mjs` (a doc not on that list never reaches the wiki, and inbound
    satellite links to it 404). Note the coupling in `plans/migration-v14.md`.
-10. **CHANGELOG.** `13.15.3` is closed by BUILD commit `408601da`, so this opens a fresh `## [Unreleased]`
+11. **CHANGELOG.** `13.15.3` is closed by BUILD commit `408601da`, so this opens a fresh `## [Unreleased]`
    heading above it.
 
 Retiring the duplicated call sites in Squire and Curator is cross-module work and belongs in
