@@ -143,12 +143,37 @@ Awaiting correctly does not avoid this, and neither does the API's own locking, 
 completes outside the critical section. One write is the only fix available to anyone. This is also why
 `grantItems` exists rather than a loop.
 
+The recompute also runs on an Actor's own update, not only on item writes, so an `actor.update()` followed
+closely by an item write collides the same way. If you see this error while using this API, something is
+making a second write to that Actor - the API itself makes one per Actor per call.
+
 The flags are folded into the create payload on the create branch, and into the same update as the quantity
 change on the merge branch. On a merge, only the flags you passed are written - the incoming document's own
 flag set is not applied to the row that already existed.
 
 `flags` and `ignoreFlags` compose rather than compete. Declaring the same key in both is correct: transient UI
 state is identity-irrelevant and arrival-relevant at the same time.
+
+## registerTransientFlag
+
+If your module writes a flag to items AFTER they are created, declare it once during ready:
+
+```js
+blacksmith.inventory.registerTransientFlag('coffee-pub-squire.isNew');
+blacksmith.inventory.getTransientFlags();   // diagnostics
+```
+
+Every merge comparison then ignores that path, for every caller. `ignoreFlags` is unioned with this
+registry.
+
+**Declare it if you write it, because no consumer can declare it for you.** A module that stamps a flag on
+items other modules created makes those modules' merges depend on whether its write has landed yet - two
+identical items merge or do not merge according to timing. The consumer calling `grantItem` has no way to
+know your module does this, so the obligation sits with the writer.
+
+Declare a flag if you write it after creation and it does not describe what the item *is*. A "recently
+arrived" badge is transient. A crafting quirk or a skill level is not - those are identity, and excluding
+them would merge items that genuinely differ.
 
 ## Merging
 

@@ -477,6 +477,38 @@ another public primitive self-deadlocks on every transfer). Someone refactoring 
 redundant reintroduces the hang, and the code will not argue.
 
 
+## Squire: the createItem hook breaks every module's item writes (found 2026-08-07)
+
+**Found by the Blacksmith inventory harness, verified in Squire's source.** Squire's `createItem` hook
+(`squire.js:500-513`) does `await item.setFlag(MODULE.ID, 'isNew', true)` for **every** item created on an
+owned Actor — by any module, in a second write that lands asynchronously after the create returns.
+
+Two consequences, both affecting other modules rather than Squire:
+
+1. **It reintroduces the encumbrance collision globally.** dnd5e recomputes encumbrance on every item write
+   as a check-then-create against one fixed effect id with no lock, and Foundry does not await that hook from
+   the `createEmbeddedDocuments` promise. Squire's `setFlag` is therefore a second write to the same Actor,
+   and the server rejects the duplicate effect id. This is the same bug Squire diagnosed and fixed on its own
+   transfer path; the generic hook still does it for everyone. Reproduced in the harness: one grant produced
+   one collision, a three-item batch produced three.
+2. **It makes merge identity timing-dependent for every consumer.** An item stamped with `isNew` and an
+   otherwise identical one that has not been stamped yet compare as different, so identical items merge or do
+   not merge according to whether Squire's write has landed. Consumers cannot compensate, because a consumer
+   has no way to know Squire does this.
+
+**The fix for both is the same one Squire already applied to its transfer path: do not make a follow-up
+write.** Inject the flag into the creation data from `preCreateItem` (`document.updateSource({flags: ...})`),
+so it is part of the original write. Zero extra writes, same persistence, no behaviour change for the badge.
+
+**Second ask, independent of the fix:** call
+`blacksmith.inventory.registerTransientFlag('coffee-pub-squire.isNew')` during ready. That tells the merge
+predicate the flag is not identity, for every consumer, without any of them knowing Squire exists. The
+registry was added because of this finding — see `api/api-inventory.md`. The harness currently registers it
+on Squire's behalf as a stopgap; that line should be deleted once Squire declares it.
+
+The `isNew` flag itself is correct and should stay. It is the durable half of a two-tier badge
+(`manager-panel.js:54` — "flags persist; the map doesn't"), and only the extra write is the problem.
+
 ## Curator: token interaction claim registry (approved 2026-08-07)
 
 **Approved and planned.** Design and work breakdown live in

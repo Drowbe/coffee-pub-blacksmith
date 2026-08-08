@@ -65,6 +65,18 @@ const LOCK_TIMEOUT_MS = 10000;
 // Actor UUID -> promise chain tail. In-process only.
 const _locks = new Map();
 
+// Flag paths every merge comparison ignores, declared by the module that WRITES them.
+//
+// `ignoreFlags` alone is not sufficient, and testing proved it: Squire's createItem hook stamps
+// `coffee-pub-squire.isNew` on every item created on an owned Actor, by any module, in a second
+// write that lands asynchronously. A consumer such as Curator has no way to know that, so its
+// merges would silently become timing-dependent - identical items merging or not depending on
+// whether another module's write had landed yet.
+//
+// Requiring the WRITER to declare its own transient flags fixes that without the hub hard-coding
+// a sibling's key, which Ground Rule 2 forbids and which the hub could not keep current anyway.
+const _transientFlags = new Set();
+
 function fail(code, extra = {}) {
     return { ok: false, code, ...extra };
 }
@@ -244,12 +256,36 @@ function _resolveQuantity(item, requested) {
 // ==================================================================
 
 /**
+ * Delete a dot path AND any parent objects it leaves empty.
+ *
+ * `foundry.utils.deleteProperty` removes the leaf and leaves the parent behind
+ * (`common/utils/helpers.mjs:772`), which breaks identity comparison in a way that is easy to
+ * miss: an item that never carried `scope.key` compares as `{}`, while one that carried it and
+ * had it stripped compares as `{scope: {}}`. Those are not equal, so excluding a key would stop
+ * the very merges the exclusion exists to allow - a freshly created item against one that
+ * recently arrived carrying a transient flag.
+ *
+ * @param {object} object - Mutated in place.
+ * @param {string} path
+ */
+function _deletePathAndEmptyParents(object, path) {
+    if (!foundry.utils.deleteProperty(object, path)) return;
+    const parts = path.split('.');
+    for (let depth = parts.length - 1; depth > 0; depth--) {
+        const parentPath = parts.slice(0, depth).join('.');
+        const parent = foundry.utils.getProperty(object, parentPath);
+        if (!parent || typeof parent !== 'object' || Object.keys(parent).length) return;
+        foundry.utils.deleteProperty(object, parentPath);
+    }
+}
+
+/**
  * Source-data system object with the fields that must not participate in identity removed:
  * `quantity` is the thing being added, and the reset set is deliberately cleared on arrival.
  *
  * Reads `_source`, never the prepared model. `item.system` after data preparation holds derived
  * values (`uses.value` is computed at dnd5e.mjs:4357), and those differ between two otherwise
- * identical items for reasons that have nothing to do with identity — comparing them would
+ * identical items for reasons that have nothing to do with identity - comparing them would
  * merge almost nothing.
  *
  * @param {object} systemSource
@@ -258,7 +294,7 @@ function _resolveQuantity(item, requested) {
 function _identitySystem(systemSource) {
     const copy = foundry.utils.deepClone(systemSource ?? {});
     delete copy.quantity;
-    for (const path of RESET_PATHS) foundry.utils.deleteProperty(copy, path);
+    for (const path of RESET_PATHS) _deletePathAndEmptyParents(copy, path);
     return copy;
 }
 
@@ -275,7 +311,9 @@ function _identitySystem(systemSource) {
  */
 function _identityFlags(flags, ignoreFlags) {
     const copy = foundry.utils.deepClone(flags ?? {});
-    for (const path of ignoreFlags ?? []) foundry.utils.deleteProperty(copy, path);
+    for (const path of new Set([...(ignoreFlags ?? []), ..._transientFlags])) {
+        _deletePathAndEmptyParents(copy, path);
+    }
     return copy;
 }
 
@@ -809,7 +847,34 @@ async function transferCurrency({ sourceActorUuid, targetActorUuid, currency } =
     }
 }
 
+/**
+ * Declare a flag path this module writes as transient UI state, so no consumer's merge is broken
+ * by it. Call once during ready.
+ *
+ * Declare a flag if you write it AFTER an item is created and it does not describe what the item
+ * IS. A "recently arrived" badge is transient; a crafting quirk is not.
+ *
+ * @param {string} path - Dot path, e.g. 'coffee-pub-squire.isNew'. The scope must be your module.
+ * @returns {boolean} False if the path was malformed.
+ */
+function registerTransientFlag(path) {
+    if (!path || typeof path !== 'string' || !path.includes('.')) {
+        postConsoleAndNotification(MODULE.NAME, 'Inventory: registerTransientFlag needs a "scope.key" path', path, false, false);
+        return false;
+    }
+    _transientFlags.add(path);
+    postConsoleAndNotification(MODULE.NAME, `Inventory: transient flag registered: ${path}`, '', true, false);
+    return true;
+}
+
+/** Flag paths currently excluded from merge identity for every caller. Diagnostics. */
+function getTransientFlags() {
+    return Array.from(_transientFlags);
+}
+
 const InventoryAPI = {
+    registerTransientFlag,
+    getTransientFlags,
     grantItem,
     grantItems,
     grantCurrency,
@@ -820,4 +885,4 @@ const InventoryAPI = {
     DENOMINATIONS
 };
 
-export { InventoryAPI, grantItem, grantItems, grantCurrency, transferItem, transferCurrency };
+export { InventoryAPI, registerTransientFlag, getTransientFlags, grantItem, grantItems, grantCurrency, transferItem, transferCurrency };

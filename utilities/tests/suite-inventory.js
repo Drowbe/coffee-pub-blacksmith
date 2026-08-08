@@ -87,6 +87,48 @@ async function withConsoleErrors(fn) {
     return captured;
 }
 
+/**
+ * Top-level keys whose values differ between two system objects, for diagnosing a refused merge.
+ * A merge assertion that only reports true/false forces a guess; this names the field.
+ */
+function diffKeys(a = {}, b = {}) {
+    const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]);
+    return [...keys].filter(key => !foundry.utils.objectsEqual(
+        { v: a?.[key] ?? null }, { v: b?.[key] ?? null }
+    ));
+}
+
+/** Stored flags and system data, captured for comparison later. */
+function snapshot(item) {
+    return {
+        system: foundry.utils.deepClone(item?._source?.system ?? {}),
+        flags: foundry.utils.deepClone(item?._source?.flags ?? {})
+    };
+}
+
+/**
+ * Log why an existing row was not merged into.
+ *
+ * Takes SNAPSHOTS captured before the operation, not live documents. Reading flags afterwards is
+ * actively misleading: a third-party createItem hook (Squire stamps `isNew`) writes to both sides
+ * asynchronously, so a post-hoc read shows them identical when they differed at compare time.
+ * That hid the real cause of this suite's first two failing runs.
+ */
+function explainNoMerge(log, existingSnapshot, incomingSnapshot) {
+    if (!existingSnapshot || !incomingSnapshot) { log('no comparable row on the target'); return; }
+    const a = foundry.utils.deepClone(existingSnapshot.system ?? {});
+    const b = foundry.utils.deepClone(incomingSnapshot.system ?? {});
+    delete a.quantity; delete b.quantity;
+    log(`system keys differing: ${JSON.stringify(diffKeys(a, b))}`);
+    log(`  flags at compare time - existing: ${JSON.stringify(existingSnapshot.flags ?? {})}`);
+    log(`  flags at compare time - incoming: ${JSON.stringify(incomingSnapshot.flags ?? {})}`);
+    log(`  flag paths differing: ${JSON.stringify(diffKeys(existingSnapshot.flags, incomingSnapshot.flags))}`);
+    log(`  registry excludes: ${JSON.stringify(requireApi('inventory').inventory.getTransientFlags())}`);
+    for (const key of diffKeys(a, b)) {
+        log(`  ${key}: existing=${JSON.stringify(a[key])} incoming=${JSON.stringify(b[key])}`);
+    }
+}
+
 export default {
     id: 'inventory',
     label: 'Inventory',
@@ -250,6 +292,50 @@ export default {
 
         // ---------- merging ----------
         {
+            id: 'transient-flag-registry',
+            tier: 'headless',
+            group: 'Merging',
+            label: 'Registering a third-party transient flag makes merging deterministic',
+            note: 'Squire stamps coffee-pub-squire.isNew on EVERY item created on an owned actor, in a second write that lands asynchronously. Undeclared, that makes identical items merge or not depending on timing - which is what this suite caught. A consumer cannot know another module does this, so the writer declares it.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+
+                // Declared here rather than by Squire only because Squire has not shipped the call
+                // yet. Once it does, this becomes a no-op assertion that the registry already holds it.
+                inv.registerTransientFlag('coffee-pub-squire.isNew');
+                expect.ok('registry holds the declared path',
+                    inv.getTransientFlags().includes('coffee-pub-squire.isNew'));
+                expect('a malformed path is refused', inv.registerTransientFlag('nodots'), false);
+                log(`registry: ${JSON.stringify(inv.getTransientFlags())}`);
+
+                const made = [];
+                try {
+                    const target = await tempActor('character', 'registry-target');
+                    const source = await tempActor('npc', 'registry-source');
+                    made.push(target, source);
+
+                    // Create on the target first and give the async stamp time to land, so the two
+                    // sides genuinely differ in that flag at compare time - the exact asymmetry.
+                    const [held] = await target.createEmbeddedDocuments('Item', [lootData('Harness Registry Widget', { system: { quantity: 10 } })]);
+                    await new Promise(resolve => setTimeout(resolve, 400));
+                    const [item] = await source.createEmbeddedDocuments('Item', [lootData('Harness Registry Widget', { system: { quantity: 4 } })]);
+
+                    const before = { existing: snapshot(held), incoming: snapshot(item) };
+                    log(`existing flags before: ${JSON.stringify(before.existing.flags)}`);
+                    log(`incoming flags before: ${JSON.stringify(before.incoming.flags)}`);
+
+                    const result = await inv.transferItem({
+                        sourceActorUuid: source.uuid, targetActorUuid: target.uuid, itemId: item.id, quantity: 2
+                    });
+                    if (!result.merged) explainNoMerge(log, before.existing, before.incoming);
+                    expect('a registered transient flag no longer blocks the merge', result.merged, true);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
             id: 'merge-basic',
             tier: 'headless',
             group: 'Merging',
@@ -309,7 +395,7 @@ export default {
 
                     // Same name, different undeclared flag.
                     const flagged = await Item.create(lootData('Harness Diff Widget', {
-                        system: { quantity: 5 }, flags: { 'harness-test': { marker: 'x' } }
+                        system: { quantity: 5 }, flags: { 'coffee-pub-blacksmith': { harnessMarker: 'x' } }
                     }));
                     made.push(flagged);
                     const flagDiff = await api.inventory.grantItem({ targetActorUuid: target.uuid, itemUuid: flagged.uuid, quantity: 1 });
@@ -317,12 +403,12 @@ export default {
 
                     // Same flag, but declared transient — must merge now.
                     const flagged2 = await Item.create(lootData('Harness Diff Widget', {
-                        system: { quantity: 5 }, flags: { 'harness-test': { marker: 'y' } }
+                        system: { quantity: 5 }, flags: { 'coffee-pub-blacksmith': { harnessMarker: 'y' } }
                     }));
                     made.push(flagged2);
                     const ignored = await api.inventory.grantItem({
                         targetActorUuid: target.uuid, itemUuid: flagged2.uuid, quantity: 1,
-                        ignoreFlags: ['harness-test.marker']
+                        ignoreFlags: ['coffee-pub-blacksmith.harnessMarker']
                     });
                     expect('declared transient flag is ignored for identity', ignored.merged, true);
                 } finally {
@@ -377,6 +463,37 @@ export default {
             }
         },
 
+        {
+            id: 'merge-across-creation-paths',
+            tier: 'headless',
+            group: 'Merging',
+            label: 'A raw-created row merges with an API-built payload',
+            note: 'A corpse row and a recipient stack are created by different paths. If creation path alone blocks a merge, merging fails in practice far more often than intended.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('inventory');
+                const made = [];
+                try {
+                    const target = await tempActor('character', 'path-target');
+                    const source = await tempActor('npc', 'path-source');
+                    made.push(target, source);
+
+                    // Raw create on the recipient, exactly as a consumer or a loot table would.
+                    const [held] = await target.createEmbeddedDocuments('Item', [lootData('Harness Path Widget', { system: { quantity: 20 } })]);
+                    const [item] = await source.createEmbeddedDocuments('Item', [lootData('Harness Path Widget', { system: { quantity: 5 } })]);
+
+                    const before = { existing: snapshot(held), incoming: snapshot(item) };
+                    const result = await api.inventory.transferItem({
+                        sourceActorUuid: source.uuid, targetActorUuid: target.uuid, itemId: item.id, quantity: 3
+                    });
+                    expect('transfer succeeded', result.ok, true);
+                    if (!result.merged) explainNoMerge(log, before.existing, before.incoming);
+                    expect('creation path alone does not block the merge', result.merged, true);
+                    if (result.merged) expect('quantities summed', quantityOf(target.items.get(held.id)), 23);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
         // ---------- transfer ----------
         {
             id: 'transfer-basic',
@@ -538,7 +655,7 @@ export default {
             group: 'Rollback',
             label: 'Rollback after a MERGE decrements — it must not delete the row',
             note: 'The destructive case. A delete here would destroy the 20 the recipient already owned.',
-            run: async ({ expect }) => {
+            run: async ({ expect, log }) => {
                 const api = requireApi('inventory');
                 const inv = api.inventory;
                 const made = [];
@@ -547,11 +664,21 @@ export default {
                     const target = await tempActor('character', 'rb-merge-tgt');
                     made.push(source, target);
 
-                    const payload = lootData('Harness Arrow', { system: { quantity: 20 } });
-                    const [held] = await target.createEmbeddedDocuments('Item', [payload]);
+                    // Seed the recipient's stack THROUGH the API so both sides of the merge took
+                    // the same creation path. A raw createEmbeddedDocuments seed is a different
+                    // question - whether creation path alone can block a merge - and it has its
+                    // own check below rather than being conflated with the rollback assertion.
+                    const world = await Item.create(lootData('Harness Arrow', { system: { quantity: 40 } }));
+                    made.push(world);
+                    const seeded = await api.inventory.grantItem({
+                        targetActorUuid: target.uuid, itemUuid: world.uuid, quantity: 20
+                    });
+                    expect.ok('seed grant succeeded', seeded.ok);
+                    const held = target.items.get(seeded.targetItemId);
                     const [item] = await source.createEmbeddedDocuments('Item', [lootData('Harness Arrow', { system: { quantity: 5 } })]);
 
                     // Force the source reduction to fail AFTER the grant has merged.
+                    const beforeSnapshot = { existing: snapshot(held), incoming: snapshot(item) };
                     const original = item.update.bind(item);
                     item.update = () => { throw new Error('harness: forced source failure'); };
                     let result;
@@ -566,6 +693,7 @@ export default {
                     expect.ok('reported a failure', result.ok === false);
                     expect.ok('code names the source update or the rollback',
                         [inv.CODES.SOURCE_UPDATE_FAILED, inv.CODES.ROLLBACK_FAILED].includes(result.code));
+                    if (result.merged !== true) explainNoMerge(log, beforeSnapshot.existing, beforeSnapshot.incoming);
                     expect('failure names the merge', result.merged, true);
                     expect('failure carries the granted quantity', result.quantity, 3);
                     expect('recipient is exactly whole again', quantityOf(target.items.get(held.id)), 20);
@@ -770,10 +898,17 @@ export default {
                 }
                 const made = [];
                 try {
-                    const target = await tempActor('character', 'encumber');
+                    // Strength is set AT CREATION, not by a follow-up update. dnd5e recomputes
+                    // encumbrance on the Actor's own _onUpdate as well (dnd5e.mjs:36009), not only
+                    // on descendant item writes - so an update-then-grant sequence manufactures the
+                    // very collision this check exists to detect, and the first version of this
+                    // check did exactly that.
+                    const target = await Actor.create({
+                        name: `${TEMP_PREFIX} encumber ${foundry.utils.randomID(4)}`,
+                        type: 'character',
+                        system: { abilities: { str: { value: 3 } } }
+                    });
                     made.push(target);
-                    // Low strength so the thresholds are easy to cross.
-                    await target.update({ 'system.abilities.str.value': 3 });
                     const heavy = await Item.create(lootData('Harness Anvil', {
                         system: { quantity: 10, weight: { value: 40, units: 'lb' } }
                     }));
@@ -784,27 +919,41 @@ export default {
                             targetActorUuid: target.uuid,
                             itemUuid: heavy.uuid,
                             quantity: 5,
-                            flags: { 'harness-test': { arrived: true } }
+                            flags: { 'coffee-pub-blacksmith': { harnessArrived: true } }
                         });
                         expect('grant with flags succeeded', result.ok, true);
                         const arrived = target.items.get(result.targetItemId);
                         expect('flag was written in the same operation',
-                            arrived?.getFlag('harness-test', 'arrived'), true);
+                            arrived?.getFlag('coffee-pub-blacksmith', 'harnessArrived'), true);
                     });
 
                     const collisions = captured.filter(line => line.includes('dnd5eencumbered'));
-                    if (collisions.length) log(collisions[0]);
+                    if (collisions.length) {
+                        log(collisions[0]);
+                        // Attribution matters: api.inventory makes ONE write. A collision means a
+                        // second write landed on the same Actor from somewhere else. Squire's
+                        // createItem hook does exactly that (setFlag after every item create), so
+                        // name it rather than leaving this looking like our defect.
+                        if (game.modules.get('coffee-pub-squire')?.active) {
+                            log('EXTERNAL CAUSE: coffee-pub-squire createItem hook writes setFlag(isNew) after every');
+                            log('item create on an owned Actor. That is the second write. api.inventory made one.');
+                            log('Fix belongs in Squire: inject the flag via preCreateItem instead of a follow-up write.');
+                        }
+                    }
                     expect('no duplicate encumbrance effect id', collisions.length, 0);
 
                     // The batch form must behave the same with several heavy items at once.
-                    const batchTarget = await tempActor('character', 'encumber-batch');
+                    const batchTarget = await Actor.create({
+                        name: `${TEMP_PREFIX} encumber-batch ${foundry.utils.randomID(4)}`,
+                        type: 'character',
+                        system: { abilities: { str: { value: 3 } } }
+                    });
                     made.push(batchTarget);
-                    await batchTarget.update({ 'system.abilities.str.value': 3 });
                     const batchErrors = await withConsoleErrors(async () => {
                         const result = await api.inventory.grantItems({
                             targetActorUuid: batchTarget.uuid,
                             items: [
-                                { itemUuid: heavy.uuid, quantity: 3, flags: { 'harness-test': { arrived: true } } },
+                                { itemUuid: heavy.uuid, quantity: 3, flags: { 'coffee-pub-blacksmith': { harnessArrived: true } } },
                                 { itemUuid: heavy.uuid, quantity: 2 },
                                 { itemUuid: heavy.uuid, quantity: 1 }
                             ]

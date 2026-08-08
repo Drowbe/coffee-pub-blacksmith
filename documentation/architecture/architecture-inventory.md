@@ -80,6 +80,17 @@ is a parameter rather than a caller's follow-up `setFlag`, why `grantItems` exis
 second reason the reset set is applied here rather than left to consumers: every fixup folded into the
 original write is a follow-up write nobody makes.
 
+The recompute is also called from the Actor's own `_onUpdate` (`dnd5e.mjs:36009`), not only from the
+descendant-document hooks, so an `actor.update()` followed by an item write collides identically. The
+original diagnosis of this bug described it as a pair of item writes, which is narrower than the real
+surface.
+
+**A third-party follow-up write is enough to reintroduce it, and one exists in the suite today.** Squire's
+`createItem` hook writes `setFlag('isNew')` on every item created on an owned Actor, by any module, after
+the create returns. That is the second write, and it defeats the one-write-per-Actor property no matter how
+carefully this layer behaves. It is also why `registerTransientFlag` exists: the same asynchronous stamp
+makes merge identity timing-dependent for consumers that have no idea it is happening.
+
 It only fires when the recipient crosses an encumbrance threshold on that operation, so it presents as
 intermittent - and since it surfaces from a lifecycle hook rather than the caller's await chain, the mutation
 succeeds and the rejection is console noise. That is worse than a failure, not better: it is the shape of
