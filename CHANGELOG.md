@@ -36,6 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **Verified:** both invariant checks pass; `node --check` clean. **The permission bypass is confirmed on a player session** -- a non-GM client double-clicking an NPC token matched by a test claim ran the claim's handler instead of opening the Actor sheet, which is the behaviour Foundry cannot otherwise produce and the one a GM account cannot exercise. Still outstanding: that a claim's relaxation does not reach a *non-matching* token the same player lacks permission on (the test predicate matched every NPC, so it could not distinguish), that an owned character still opens its sheet normally, that a throwing handler suppresses the gesture without falling through, and that teardown restores a token already on canvas without a redraw.
 
+### Changed
+
+- **`api.dialog` is no longer modal by default** (`scripts/api-dialog.js`): `openDialog`, `choose`, `prompt`, and `wait` now default to `modal: false`, and `confirm` defaults to `modal: destructive` -- modal for a destructive confirmation, not otherwise. `modal: true` is still accepted everywhere.
+
+  A modal `DialogV2` calls `<dialog>.showModal()`, which places it in the browser's top layer behind an inert backdrop, so every element behind it stops receiving events. That is right for a question which must be answered before anything else happens, and wrong for a value prompt raised from a window that is already open -- the window that asked is part of what gets frozen. The default was `true`, and the first consumer to combine `api.dialog` with `api.quantitySplit` inside its own window ended up with the whole interface locked behind a quantity slider. Neither API was misused; the default was wrong.
+
+  `confirm` keys its default off `destructive` rather than taking a flat value because those two properties want to move together: a confirmation that deletes something should both style its button as critical and prevent the user acting on something else while being asked. Blacksmith's own delete confirms in `window-pin-layers.js` already pass `destructive: true`, so they remain modal with no call-site change.
+
+  **Consumers inherit this.** A dialog that genuinely must block everything now has to say so. Nothing needs changing for a prompt or a picker raised from a window, which is the majority of call sites and the case the old default handled badly.
+
+  **Verified:** `node --check` clean; both invariant checks pass. Live verification outstanding -- the check is that a quantity prompt raised from an open window leaves that window interactive, and that a destructive confirm still blocks.
+
 ### Fixed
 
 - **A menubar tool that changes its icon now repaints** (`scripts/api-menubar.js`): the structure fingerprint that decides between a rebuild and the lightweight refresh covered visibility, zone, group, active state, order and title, but not the icon or its colour. A tool that reports its state by changing icon -- a recording dot, a pause bar -- changes nothing else about the layout, so re-registering it matched the previous fingerprint, took the lightweight path, and kept whatever icon it was first drawn with. The lightweight refresh does not touch tool icons at all, so only a rebuild can move one. This is the same omission `title` was added for. Unlike `title`, both are read as plain strings, because that is what the template draws and what the API documents.

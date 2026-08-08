@@ -71,6 +71,14 @@ const result = await blacksmith.inventory.grantItems({
 `ok` is true only when every entry succeeded; individual entries can fail independently, so check them rather
 than the top-level flag alone.
 
+Duplicate entries in one batch **coalesce into a single row**. Three entries for the same item produce one
+row holding the summed quantity, and all three results report that row's `targetItemId`. The entries after
+the first carry `coalesced: true` with `merged: false` - nothing that already existed was grown, so calling
+it a merge would be wrong, but neither did they create a row of their own.
+
+Merges into rows that already existed are applied as one batched update, and creates as one batched create,
+so a batch of any size costs at most two writes to the target Actor rather than one per item.
+
 **Use this instead of looping `grantItem` for a Take All.** It is not a convenience wrapper. Everything that
 can be created rather than merged goes in a single `createEmbeddedDocuments`, which matters for the reason
 described under `flags`.

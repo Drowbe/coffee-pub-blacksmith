@@ -477,6 +477,30 @@ another public primitive self-deadlocks on every transfer). Someone refactoring 
 redundant reintroduces the hang, and the code will not argue.
 
 
+## Suite-wide: api.dialog stopped being modal by default (changed 2026-08-08)
+
+**Decided and shipped.** `api.dialog`'s `openDialog`, `choose`, `prompt`, and `wait` now default to
+`modal: false`. `confirm` defaults to `modal: destructive`. `modal: true` is still accepted everywhere.
+Rationale and mechanics are in `api/api-dialog.md` under Modality — do not restate them here.
+
+**Every satellite inherits this**, so it is worth one look per module rather than an assumption:
+
+- **A prompt or picker raised from inside your own window: change nothing.** The new default is what you
+  wanted, and the old one froze the window that raised it. This is most call sites.
+- **A confirmation that deletes something: pass `destructive: true`** if you are not already. It styles the
+  button as critical and makes the dialog modal in one flag, which are two things you want together.
+- **Anything that genuinely must block the whole interface: pass `modal: true` explicitly.** It now has to
+  say so.
+
+Found by Curator combining `api.dialog` with `api.quantitySplit` in its loot window
+(`window-loot.js:_askQuantity`): a quantity slider locked the entire interface, including the loot window
+that raised it. Neither API was misused — the default was wrong, and `quantitySplit` was blamed first because
+that is what the user could see. It builds markup only and has no window or modality of its own.
+
+Note for anyone auditing: Monarch still has 11 legacy `Dialog` call sites and zero `DialogV2`. When those
+migrate they land on the new default, which is the right one for them; no extra work, just do not port a
+`modal: true` assumption across from the old `Dialog` behaviour.
+
 ## Squire: the createItem hook breaks every module's item writes (found 2026-08-07)
 
 **Found by the Blacksmith inventory harness, verified in Squire's source.** Squire's `createItem` hook

@@ -576,8 +576,10 @@ async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignore
     if (contended) return fail(CODES.LOCK_TIMEOUT, { actorUuid: contended, waitedMs: LOCK_TIMEOUT_MS });
     try {
         const results = new Array(prepared.length);
-        const toCreate = [];
-        const createIndexes = [];
+        const toCreate = [];             // payloads for the single create call
+        const createIndexes = [];        // result index owning each payload
+        const coalescedInto = new Map(); // result index -> payload slot it was folded into
+        const mergeUpdates = [];         // batched updates for rows that already existed
 
         for (let index = 0; index < prepared.length; index++) {
             const entry = prepared[index];
@@ -586,19 +588,43 @@ async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignore
             if (stack === 'merge') {
                 const candidate = targetActor.items.find(existing => _canMerge(existing, entry.payload, ignoreFlags));
                 if (candidate) {
-                    // Merges are individual updates by necessity — each targets a different
-                    // document — but they are batched under one lock and one call.
-                    const current = candidate._source?.system?.quantity ?? 0;
-                    const update = { 'system.quantity': current + entry.quantity };
-                    if (entry.arrivalFlags && Object.keys(entry.arrivalFlags).length) update.flags = entry.arrivalFlags;
-                    await candidate.update(update);
+                    // Accumulate rather than write immediately: several entries can target the same
+                    // existing row, and one batched update beats one write each.
+                    const pending = mergeUpdates.find(update => update._id === candidate.id);
+                    if (pending) {
+                        pending['system.quantity'] += entry.quantity;
+                    } else {
+                        const current = candidate._source?.system?.quantity ?? 0;
+                        const update = { _id: candidate.id, 'system.quantity': current + entry.quantity };
+                        if (entry.arrivalFlags && Object.keys(entry.arrivalFlags).length) update.flags = entry.arrivalFlags;
+                        mergeUpdates.push(update);
+                    }
                     results[index] = { ok: true, targetItemId: candidate.id, quantity: entry.quantity, merged: true };
+                    continue;
+                }
+
+                // Nothing on the Actor matches, but an earlier entry in THIS batch may already have
+                // queued an identical payload. Without this, three grants of one item in a single
+                // call produce three rows: the candidate search only sees documents that exist, and
+                // a queued payload does not exist yet. A Take All over a corpse holding two arrow
+                // stacks would have split them.
+                const slot = toCreate.findIndex(queued => _canMerge(
+                    { name: queued.name, type: queued.type, _source: queued, appliedEnchantments: [] },
+                    entry.payload,
+                    ignoreFlags
+                ));
+                if (slot >= 0) {
+                    toCreate[slot].system.quantity = (toCreate[slot].system.quantity ?? 0) + entry.quantity;
+                    coalescedInto.set(index, slot);
                     continue;
                 }
             }
             createIndexes.push(index);
             toCreate.push(entry.payload);
         }
+
+        // One batched update for every pre-existing row: N merges cost one write, not N.
+        if (mergeUpdates.length) await targetActor.updateEmbeddedDocuments('Item', mergeUpdates);
 
         if (toCreate.length) {
             const created = await targetActor.createEmbeddedDocuments('Item', toCreate);
@@ -607,6 +633,17 @@ async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignore
                 const targetItemId = created?.[slot]?.id;
                 results[index] = targetItemId
                     ? { ok: true, targetItemId, quantity: prepared[index].quantity, merged: false }
+                    : fail(CODES.TARGET_CREATE_FAILED);
+            }
+            // An entry folded into a sibling reports the row it landed in. `merged` stays false -
+            // nothing that already existed was grown - and `coalesced` says what did happen.
+            for (const [index, slot] of coalescedInto) {
+                // toCreate, createIndexes and created are pushed in lockstep, so the payload at
+                // toCreate[slot] is created[slot]. Mapping through createIndexes here would treat a
+                // payload slot as a result index and hand back the wrong row.
+                const targetItemId = created?.[slot]?.id;
+                results[index] = targetItemId
+                    ? { ok: true, targetItemId, quantity: prepared[index].quantity, merged: false, coalesced: true }
                     : fail(CODES.TARGET_CREATE_FAILED);
             }
         }

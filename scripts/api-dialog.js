@@ -169,11 +169,30 @@ function decorateButtons(dialog, descriptors) {
  *   default, primary, destructive, disabled, description, callback }
  * @returns {Promise<*>}
  */
+/**
+ * Dialogs are NOT modal by default.
+ *
+ * A modal DialogV2 calls <dialog>.showModal(), which puts it in the browser's top layer behind an
+ * inert backdrop - every element behind it stops receiving events. That is right for a question
+ * that must be answered before anything else happens, and wrong for a value prompt raised from an
+ * already-open window, which is the common case: the window that asked is part of what gets frozen.
+ *
+ * The default was `true` until 2026-08-08, and the first consumer to combine `api.dialog` with
+ * `api.quantitySplit` inside its own window got a whole interface locked behind a quantity slider.
+ * Neither API was misused; the default was wrong.
+ *
+ * `confirm` is the exception, and it defaults to `modal: destructive` rather than to a flat value:
+ * a destructive confirmation is exactly the stop-and-decide case, and leaving the window behind it
+ * live would let a user act on something else while being asked to confirm deleting it. Blacksmith's
+ * own delete confirms already pass `destructive: true`, so they stay modal without a call-site change.
+ *
+ * `modal: true` is still accepted everywhere.
+ */
 async function openDialog({
     title = '',
     content = '',
     buttons = [],
-    modal = true,
+    modal = false,
     classes = [],
     position = null,
     destructive = false,
@@ -228,7 +247,7 @@ async function openDialog({
  * @param {boolean} [options.destructive=false] - Critical styling on confirm.
  * @param {'cancel'|'confirm'} [options.defaultAction='cancel'] - Focused button.
  * @param {boolean} [options.closeValue=false] - Resolved on Escape / close / Cancel.
- * @param {boolean} [options.modal=true]
+ * @param {boolean} [options.modal=destructive] - Modal by default only for a destructive confirm.
  * @returns {Promise<boolean>}
  */
 async function confirm(options = {}) {
@@ -242,7 +261,7 @@ async function confirm(options = {}) {
         destructive = false,
         defaultAction = 'cancel',
         closeValue = false,
-        modal = true,
+        modal = destructive,
         classes = [],
         position = null
     } = options;
@@ -299,7 +318,7 @@ async function choose(options = {}) {
         cancelIcon = DEFAULT_CANCEL_ICON,
         cancelValue = null,
         closeValue = null,
-        modal = true,
+        modal = false,
         classes = [],
         position = null,
         onRender = null
@@ -388,7 +407,7 @@ async function prompt(options = {}) {
         destructive = false,
         cancelValue = null,
         closeValue = null,
-        modal = true,
+        modal = false,
         classes = [],
         position = null,
         focusSelector = null,
@@ -507,7 +526,7 @@ async function wait(options = {}) {
         focusSelector = null,
         closeValue = null,
         cancelValue = null,
-        modal = true,
+        modal = false,
         classes = [],
         position = null
     } = options;

@@ -4,6 +4,44 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## CRITICAL - HookManager turns any falsy-returning `pre*` callback into a world-wide veto
+
+**Found 2026-08-08 by Squire, verified in our source.** `manager-hooks.js:79-81`:
+
+```js
+if (name.startsWith('pre') && result === false) {
+    return false;
+}
+```
+
+Two separate defects in three lines.
+
+**1. One registrant's `false` cancels the operation for everyone.** The intent was to honour Foundry's
+`pre*`-cancels convention, but the wrapper is shared by every callback on that hook name, so a single
+callback's return value speaks for all of them. The dangerous case is not a deliberate veto - it is a
+callback whose natural return value happens to be a boolean. `callback: (doc) => this.tracked.has(doc.id)`
+is an entirely ordinary thing to write, and on `preCreateItem` it would silently block item creation
+world-wide for every module. Nothing in the API hints at that.
+
+**2. The early return skips the `once` cleanup.** The `toRemove` loop sits below the veto path, so a
+callback registered `once` that returns `false` is never unregistered. It leaks and keeps firing.
+
+**Why this surfaced:** Squire needed `preCreateItem` to stamp a flag during the original write, declined to
+route it through `HookManager` for exactly this reason, and used a native hook with their own teardown
+tracking instead. That was the correct call, and it means the hub is currently the wrong tool for the one
+hook family where cancellation matters.
+
+**Proposed fix - make cancellation opt-in.** Honour `false` only when the registration declared it:
+`registerHook({ name: 'preCreateItem', canCancel: true, ... })`. An undeclared callback returning a boolean
+becomes inert, which is the safe default and matches what every existing caller actually intends. Move the
+`once` cleanup above the veto path, or run it in a `finally`, so a veto cannot leak a registration. Then
+`api-hookmanager.md` gains a short section on cancellation, and Squire can migrate the native hook back if
+they want to.
+
+**Verification:** register two callbacks on a `pre*` hook where the first returns `false` for its own
+reasons; the second must still run and the document must still be created. Register a `once` callback that
+returns `false`; it must not fire twice.
+
 ## CRITICAL - protect the live campaign statistics before changing them further
 
 **Raised 2026-08-04.** There is real campaign data in the live world and it is irreplaceable. The

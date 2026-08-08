@@ -57,9 +57,26 @@ const confirmed = await blacksmith.dialog.confirm({
 | `destructive` | `false` | Critical styling on the confirm button. |
 | `defaultAction` | `'cancel'` | Which button is focused: `'cancel'` or `'confirm'`. |
 | `closeValue` | `false` | Resolved on any dismissal. |
-| `modal` | `true` | |
+| `modal` | `destructive` | Modal only when `destructive` is true. See Modality. |
 | `classes` | `[]` | Extra classes on the dialog root. |
 | `position` | Foundry default | |
+
+## Modality
+
+**Dialogs are not modal by default.** `confirm` is the single exception: it defaults to
+`modal: destructive`, so a destructive confirmation is modal and an ordinary one is not.
+
+A modal dialog calls `<dialog>.showModal()`, which places it in the browser's top layer behind an inert
+backdrop, and every element behind it stops receiving events. That is correct for a question that must be
+answered before anything else happens. It is wrong for a value prompt raised from a window that is already
+open, because the window that asked is part of what gets frozen - a quantity slider should not freeze the
+loot window it belongs to.
+
+Pass `modal: true` when the question genuinely must block everything. Every function accepts it.
+
+Two things follow for consumers. A prompt raised from inside your own window should keep the default, so the
+window stays usable behind it. And a confirmation that deletes something should pass `destructive: true`,
+which both styles the button and makes the dialog modal - two things you want together, from one flag.
 
 ## `choose(options)`
 

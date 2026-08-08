@@ -290,6 +290,53 @@ export default {
             }
         },
 
+        {
+            id: 'grant-items-coalesces',
+            tier: 'headless',
+            group: 'Grant',
+            label: 'Duplicate entries in one batch coalesce into one row',
+            note: 'The candidate search only sees documents that exist, so a payload queued earlier in the same call is invisible to it. Without coalescing, a Take All over a corpse holding two identical stacks splits them.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const made = [];
+                try {
+                    const target = await tempActor('character', 'coalesce');
+                    made.push(target);
+                    const world = await Item.create(lootData('Harness Coalesce Widget', { system: { quantity: 30 } }));
+                    made.push(world);
+
+                    const result = await api.inventory.grantItems({
+                        targetActorUuid: target.uuid,
+                        items: [
+                            { itemUuid: world.uuid, quantity: 3 },
+                            { itemUuid: world.uuid, quantity: 2 },
+                            { itemUuid: world.uuid, quantity: 1 }
+                        ]
+                    });
+                    expect('batch succeeded', result.ok, true);
+                    expect('ONE row, not three', target.items.size, 1);
+                    const row = target.items.contents[0];
+                    expect('quantities summed', quantityOf(row), 6);
+                    expect('every entry reports the row it landed in',
+                        result.results.every(entry => entry.targetItemId === row.id), true);
+                    expect('the first entry created the row', result.results[0].coalesced, undefined);
+                    expect('later entries report coalesced', result.results[1].coalesced, true);
+                    expect('and are not reported as merged', result.results[1].merged, false);
+
+                    // A second batch of the same thing must now MERGE into the existing row.
+                    const second = await api.inventory.grantItems({
+                        targetActorUuid: target.uuid,
+                        items: [{ itemUuid: world.uuid, quantity: 4 }, { itemUuid: world.uuid, quantity: 1 }]
+                    });
+                    expect('second batch succeeded', second.ok, true);
+                    expect('still one row', target.items.size, 1);
+                    expect('merged into the existing row', quantityOf(target.items.contents[0]), 11);
+                    expect('reported as a merge this time', second.results[0].merged, true);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
         // ---------- merging ----------
         {
             id: 'transient-flag-registry',
