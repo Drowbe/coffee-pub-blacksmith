@@ -1,8 +1,17 @@
 # Plan: api.tokens - token interaction claim registry
 
-**Status: Implemented (code).** Approved 2026-08-07. `scripts/api-token-interactions.js` is written and
-registered as `blacksmith.tokens`; docs are written. **Live verification is outstanding** - items 3, 4 and 5
-of the work breakdown require a non-GM client and have not been run.
+**Status: Implemented, partially verified.** Approved 2026-08-07, landed in `4ab16566`.
+`scripts/api-token-interactions.js` is registered as `blacksmith.tokens`; both docs are written and published.
+
+**The core of item 3 is confirmed on a player session:** a non-GM client double-clicking an NPC token matched
+by a test claim ran the claim's handler and did not open the Actor sheet. That is the behaviour the whole
+feature exists for and the one a GM account cannot test.
+
+**Outstanding**, and the first is the one that matters: the test claim matched every NPC
+(`doc.actor?.type === 'npc'`), so it could not show that a relaxation stays scoped to matching tokens. Still
+to check - the rest of item 3 (a non-matching token the player lacks permission on still does nothing; an
+owned character still opens its sheet), item 4 (a throwing `matches`, and a throwing `handler` suppressing the
+gesture rather than falling through), and item 5 (teardown restoring a token already on canvas).
 
 This plan is scaffolding. When it is implemented its content is distributed - the public surface to a new
 `api/api-tokens.md`, the mechanism to `architecture/architecture-token-interactions.md`, work items to

@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Scope is bounded on purpose: tokens only, and `clickLeft2` / `clickRight2` only. The other entries in the permissions map drive token control, selection, dragging, and hover, and claiming those removes machinery the canvas depends on. `bypassPermission` grants the claimed gesture for a matching token only and never alters an Actor's ownership. Surface documented in `documentation/api/api-tokens.md`; both docs added to the wiki `PUBLISH` list.
 
-  **Verified:** both invariant checks pass; `node --check` clean. Live verification of the permission bypass, the fail-closed handler path, and immediate teardown is outstanding and requires a non-GM client, since the entire point is behaviour for a user with no permission on the token -- a GM cannot exercise it.
+  **Verified:** both invariant checks pass; `node --check` clean. **The permission bypass is confirmed on a player session** -- a non-GM client double-clicking an NPC token matched by a test claim ran the claim's handler instead of opening the Actor sheet, which is the behaviour Foundry cannot otherwise produce and the one a GM account cannot exercise. Still outstanding: that a claim's relaxation does not reach a *non-matching* token the same player lacks permission on (the test predicate matched every NPC, so it could not distinguish), that an owned character still opens its sheet normally, that a throwing handler suppresses the gesture without falling through, and that teardown restores a token already on canvas without a redraw.
 
 ### Fixed
 
