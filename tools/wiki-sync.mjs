@@ -56,6 +56,7 @@ const PUBLISH = [
   'api/api-stats.md',
   'api/api-tags.md',
   'api/api-toast.md',
+  'api/api-tokens.md',
   'api/api-toolbar.md',
   'api/api-window.md',
   // Guides
@@ -75,6 +76,7 @@ const PUBLISH = [
   'architecture/architecture-tags.md',
   'architecture/architecture-timers.md',
   'architecture/architecture-toast.md',
+  'architecture/architecture-token-interactions.md',
   'architecture/architecture-token-naming.md',
   'architecture/architecture-toolbarmanager.md',
   'architecture/architecture-window.md',

@@ -1,6 +1,8 @@
 # Plan: api.tokens - token interaction claim registry
 
-**Status: Planned.** Approved by the author 2026-08-07. Nothing implemented.
+**Status: Implemented (code).** Approved 2026-08-07. `scripts/api-token-interactions.js` is written and
+registered as `blacksmith.tokens`; docs are written. **Live verification is outstanding** - items 3, 4 and 5
+of the work breakdown require a non-GM client and have not been run.
 
 This plan is scaffolding. When it is implemented its content is distributed - the public surface to a new
 `api/api-tokens.md`, the mechanism to `architecture/architecture-token-interactions.md`, work items to
@@ -33,9 +35,9 @@ veto-by-hook design would not work either.
 draw lifetime are the same thing and nothing recreates the manager behind us.
 
 Blacksmith already wraps `Token.prototype.draw` and already fires `postCoffeePubTokenDraw` after `wrapped()`
-resolves (`manager-libwrapper.js:180`), which is exactly when that manager exists. So: on that hook, consult
-the registry, and for a matching token only, replace that instance's `permissions.clickLeft2` and
-`callbacks.clickLeft2`.
+resolves (`manager-libwrapper.js:180`), which is exactly when that manager exists. So: on that hook, replace
+that instance's entries for each claimed gesture with a pass-through that resolves the claim when the gesture
+actually fires.
 
 **No new libWrapper registration. No class-level wrapper. Nothing global changes.**
 
@@ -43,12 +45,20 @@ Why this shape rather than wrapping `MouseInteractionManager.prototype.can`:
 
 | | Class wrapper | Instance patch |
 |---|---|---|
-| `matches` evaluated | every gesture, every placeable | once per token draw |
-| Blast radius | every gesture on every placeable | one token, one gesture key |
+| What is modified | `MouseInteractionManager.prototype` | two keys on each drawn token's own manager |
+| Blast radius | every gesture on every placeable | the claimable gestures, tokens only |
 | New libWrapper registrations | 2 | 0 |
 | Re-apply on redraw | manual | automatic, keyed to the draw we wrap |
+| Cost with nothing registered | wrapper still in the path | no hook registered, no token touched |
 
-An unmatched token is not "permitted as before" - it is untouched, because no shared code path was modified.
+**Correction to an earlier draft of this plan: `matches` is resolved at gesture time, not at draw time, and
+every drawn token is patched while any claim exists.** The draft claimed a draw-time decision leaving
+unmatched tokens untouched, which is cheaper and wrong: a creature that dies mid-session becomes lootable
+without redrawing, so its corpse would stay unclaimable until something happened to redraw it. That is
+Curator's central case. The claimable gestures are double-clicks - human-rate events, not the mousemove path -
+so resolving per gesture costs nothing that matters, and the patch itself is a pass-through closure on two
+keys. The property that does hold, and is the one worth keeping, is that **nothing is touched at all until
+the first registration**: no hook, no token.
 
 Two costs, accepted. This is **Token-only**: other placeable classes have no equivalent Coffee Pub draw
 hook, so a tile or note interaction would need its own plumbing. And instance patching is invisible to
@@ -124,9 +134,10 @@ thrown claimant means the gesture does nothing, and the error is logged.
 **A claimed gesture skips the original entirely.** The loot window opening *and* the Actor sheet opening is
 the failure Curator is trying to avoid, so a matching claimant replaces rather than precedes.
 
-**`matches` must be synchronous and cheap.** It runs once per token draw, not per gesture, so this is a
-guideline rather than the hard constraint it would be under a class wrapper - but token draws are frequent
-enough that an expensive predicate is felt. The registry returns immediately when nothing is registered.
+**`matches` must be synchronous and cheap.** It runs on every evaluation of a claimed gesture. Those are
+double-clicks, so the rate is human rather than per-frame, but the predicate is on the path between a click
+and a window opening and an `await` there cannot work at all - the permission predicate is synchronous by
+Foundry's contract and a promise is truthy, so returning one would grant permission unconditionally.
 
 **Unregistering restores already-patched tokens.** Because patching happens per draw, dropping a
 registration only affects future draws; tokens already on the canvas would keep a dead claim until something
