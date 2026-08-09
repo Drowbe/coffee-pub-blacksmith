@@ -108,6 +108,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The shared context menu could not be dismissed in some windows, and Escape closed the wrong thing** (`scripts/ui-context-menu.js`, `styles/menu-context-global.css`): four fixes to a widely-used component, three of them reported from Cartographer's map-placement menu.
+
+  **Dismissal now listens in the capture phase.** It listened on the document in the bubble phase, so a consumer whose own UI calls `stopPropagation()` on its clicks never let the event reach it -- the menu stayed open until an item inside it was clicked. Cartographer opens this menu on left click over a window map that swallows clicks, which is exactly that shape.
+
+  **Escape closes the menu and stops there.** The handler did not call `preventDefault` or `stopPropagation`, so Foundry's ApplicationV2 Escape handler also ran and closed the window behind it. The keypress dismissed both, which reads as Escape ignoring the menu and closing the window. Capture phase plus stopping propagation puts the menu first; a second Escape closes the window.
+
+  **It listens on `pointerdown` rather than `click`, armed on the next tick.** Listeners were attached after a 150ms delay so the opening click could not immediately close the menu. That swallowed a genuine outside click inside the window, and it broke entirely for a consumer that opened the menu on `pointerdown`. A `pointerdown` listener armed on the next tick cannot see the gesture that opened the menu, whichever event that gesture was, so the guess is gone.
+
+  Also: dismissal is bound to the popout's document **and** the main one, since a menu rendered into a popped-out window previously ignored every click in the main window; and clicks inside an open flyout no longer close the parent menu, which they did because a submenu is appended to the document body rather than inside the menu it belongs to.
+
+  **A long menu is no longer partly unreachable** (`styles/menu-context-global.css`): the position logic clamped a menu into the viewport but nothing bounded its height, so a menu with more items than fit was pinned 8px from the top with its overflow off the bottom of the screen and no way to scroll to it. It is now capped to the viewport less the same margin the clamp uses, and scrolls. Submenus inherit the class and the bound.
+
+  **The icon slot has dimensions** (`styles/menu-context-global.css`): `.context-menu-item-icon` carried no rule at all, so Font Awesome icons worked only by inheriting the font size and a raw `<img>` rendered at natural size and stretched the row. Every consumer had to remember `.context-menu-item-portrait`. The slot is now sized with images constrained inside it, so the image support the API has always had works by default; the portrait class remains for a cropped square thumbnail.
+
+  Surface documented for the first time in `documentation/api/api-contextmenu.md`, added to the wiki publish list. It is exposed as `blacksmith.uiContextMenu` and was previously undocumented, including that `icon` accepts raw HTML -- and that the raw form is inserted with `innerHTML`, so it must only carry markup the caller controls.
+
+  **Verified:** `node --check` clean. Live verification outstanding: a menu over a click-swallowing surface dismisses on an outside press, Escape closes the menu without closing the window, a menu longer than the screen scrolls, and an `<img>` icon without the portrait class no longer stretches its row.
+
 - **The combat bar no longer logs every actor and token update** (`scripts/manager-combatbar.js`): `handleActorHpChange` and `handleTokenChange` each logged the arriving update, with its full payload, as their **first statement** -- before the guards that decide whether the bar cares. With debug mode on, any operation touching actors buried the console: an inventory transfer produced dozens of identical `Menubar: updateActor received` lines for one actor, every one of them discarded a line later because the bar only rebuilds for a hit-point change on a tracked combatant.
 
   Logging now happens after the guards, and says something when it does. An update that does not touch hit points is not this bar's business and is silent. An update that does touch hit points but is still rejected reports why -- no active combat, or not a combatant -- which is the case worth debugging. `didHpChange` also stopped logging: it is a pure predicate called from both handlers before either knows whether the change matters, so logging inside it reported on updates about to be discarded, the same noise one layer down.

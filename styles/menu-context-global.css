@@ -15,6 +15,12 @@
     min-width: 150px;
     font-size: .9em;
     font-weight: 400;
+    /* A menu taller than the viewport used to be pinned 8px from the top with its overflow off the
+       bottom of the screen and unreachable -- _positionMenu clamps the position but nothing bounded the
+       height. 16px is the 8px margin _positionMenu leaves at each edge. */
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .context-menu.context-menu-above-dialogs {
@@ -55,6 +61,29 @@
 }
 
 /* MENU ITEM */
+
+/* Icon slot.
+   This carried no rule at all, which meant Font Awesome worked only by inheriting the font size and a
+   raw <img> rendered at its natural dimensions and stretched the row. The slot now has a size and
+   anything inside it is constrained, so the documented image support works without every consumer
+   remembering a helper class. */
+.context-menu .context-menu-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    line-height: 1;
+}
+
+.context-menu .context-menu-item-icon > img,
+.context-menu .context-menu-item-icon > svg {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border: none;
+}
 
 .context-menu .context-menu-item {
     padding: 6px 12px;

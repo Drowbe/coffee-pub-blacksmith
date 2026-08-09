@@ -79,32 +79,65 @@ export class UIContextMenu {
 
         this._positionMenu(menu, x, y);
 
-        const clickClose = (e) => {
+        // Dismissal listens on `pointerdown` in the CAPTURE phase, on every document the menu might
+        // be dismissed from.
+        //
+        // Capture, because a consumer whose UI calls stopPropagation() on its own clicks would
+        // otherwise trap the menu open forever -- the event never reaches the document, so the
+        // outside-click handler never runs. A map that swallows clicks to place things on it does
+        // exactly that, and the menu could then only be closed by clicking an item inside it.
+        //
+        // `pointerdown` rather than `click`, because it removes the need to guess how long to wait
+        // before arming. This used to attach after 150ms so the opening click could not immediately
+        // close the menu, which both swallowed a genuine outside click inside that window and broke if
+        // the consumer opened the menu on pointerdown instead. A pointerdown listener armed on the next
+        // tick cannot see the gesture that opened the menu, whichever event that gesture was.
+        //
+        // Both documents, because `root` may belong to a popped-out window: a menu inside a popout
+        // would otherwise ignore every click in the main window.
+        const docs = new Set([doc, document].filter(Boolean));
+
+        const pointerClose = (e) => {
             if (!menu.isConnected) return;
-            if (!menu.contains(e.target)) {
-                this.close(id);
-            }
+            // A submenu is appended to its own document body rather than inside the menu, so it is not
+            // covered by menu.contains and has to be checked separately or clicking one closes the lot.
+            const submenu = menu._activeSubmenu;
+            if (menu.contains(e.target)) return;
+            if (submenu?.contains?.(e.target)) return;
+            this.close(id);
         };
+
         const keyClose = (e) => {
-            if (e.key === 'Escape') {
-                this.close(id);
-            }
+            if (e.key !== 'Escape') return;
+            // Stop here. Foundry's ApplicationV2 also closes on Escape, so without this the keypress
+            // dismissed the menu AND the window behind it -- which reads as Escape closing the window
+            // and ignoring the menu. Capture phase plus stopPropagation is what puts us first.
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+            this.close(id);
         };
 
         const close = () => {
             this._closeSubmenu(menu);
-            doc.removeEventListener('click', clickClose);
-            doc.removeEventListener('keydown', keyClose);
+            for (const d of docs) {
+                d.removeEventListener('pointerdown', pointerClose, true);
+                d.removeEventListener('keydown', keyClose, true);
+            }
             menu.remove();
             this._openMenus.delete(id);
         };
 
         this._openMenus.set(id, { root: menu, close });
 
+        // Next tick, not a timed delay: by the time this runs the opening gesture has been dispatched.
         setTimeout(() => {
-            doc.addEventListener('click', clickClose);
-            doc.addEventListener('keydown', keyClose);
-        }, 150);
+            if (!menu.isConnected) return;
+            for (const d of docs) {
+                d.addEventListener('pointerdown', pointerClose, true);
+                d.addEventListener('keydown', keyClose, true);
+            }
+        }, 0);
     }
 
     static _appendItem(zoneEl, item, rootMenu, rootId, doc = document) {

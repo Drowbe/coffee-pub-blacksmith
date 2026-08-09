@@ -19,27 +19,19 @@ to matter.
 Highest risk first, if time is short: the two-client inventory case, the encumbrance guard with the guard
 switched off, and the XP reload case.
 
-### Harness - Inventory tab (29 headless checks)
+**Open question: a full run on 2026-08-08 reported 463/476 with 13 failures, and the console truncated before
+listing them.** Inventory has since passed 171/171, so those 13 are in another suite. The reporting is fixed -
+failures now print individually, per-suite tallies first - so a re-run will name them. Do not assume they are
+harmless; nothing has identified them yet. The XP Record tab is the obvious suspect, being five brand-new
+checks that had never run.
 
-Last full run was 104/109, **before** the transient-flag registry, the empty-parent fix in the flag
-comparison, `transferItems`, batch coalescing, and batch rollback existed. So the previous pass tells us
-almost nothing about the current code.
+### Harness - Inventory tab - PASSED 2026-08-08, 171/171
 
-- [ ] Run the Inventory tab. Expect all 29 green.
-- [ ] `merge-source-conflict` passes. Its predecessor failed on 2026-08-08 and the fault was the test's: it
-      seeded the target with an UNSOURCED item, and since a merge does not adopt the incoming item's
-      provenance, the row stayed unsourced and every later grant was another one-sided comparison. Split into
-      two checks; the conflict case now seeds with a sourced item and bails loudly if the created row did not
-      retain its `compendiumSource`, which would be a finding in itself.
-- [ ] The three merge checks that failed last time now pass. They failed because Squire's `isNew` stamp made
-      merge identity timing-dependent; the transient-flag registry is the fix. If they still fail, the
-      diagnosis was incomplete and `explainNoMerge` will print which field differs.
-- [ ] `one-write-per-actor` passes. It reported 1 and 3 collisions last time, attributable to Squire's
-      follow-up write, which they have since moved to `preCreateItem`. Zero is the expected answer.
-- [ ] `transfer-items-write-count`: five items cost at most two writes per actor. This is the only check that
-      proves batching, and it is invisible in any return value.
-- [ ] `transfer-items-rollback`: a failed batch source reduction reverts a merge by decrementing, never by
-      deleting. A wrong answer here destroys quantity the recipient already owned.
+Nothing left here. Every item in this section is proven, including the five that had been failing: the three
+merge checks (transient-flag registry plus the empty-parent fix), both encumbrance collision counts at zero,
+and `merge-source-conflict` after the test itself was corrected. `transfer-items-write-count` reported source
+`{update:1, delete:1}` and target `{create:1}` for five items, which is the only direct evidence that batching
+works. Delete this section.
 
 ### Harness - XP Record tab (5 headless checks)
 
@@ -64,14 +56,18 @@ almost nothing about the current code.
 
 ### Encumbrance guard
 
-- [ ] One activation line in the console on load, naming the dnd5e version. If absent, the guard declined and
-      logs its reason beside it.
-- [ ] Loot several items onto a near-encumbered player: no `dnd5eencumbered0` errors.
+Three of these are done. The activation line appeared in a full run (`Encumbrance Guard active: serialising
+dnd5e encumbrance recomputes per actor (dnd5e 5.2.5)`), no libWrapper conflict warning appeared alongside it,
+and the harness proved the mechanism directly - six separate writes to one near-threshold actor produced zero
+duplicate-id rejections, and an unrelated failure still propagated rather than being swallowed by the narrow
+catch.
+
 - [ ] **Switch `enableEncumbranceGuard` off, reload, and confirm `guard-collapses-recomputes` now FAILS.** A
       guard that cannot be turned off to watch the bug return is assumed rather than demonstrated. This is the
-      only item that proves the guard does anything.
-- [ ] No libWrapper conflict warning on load. Another module wrapping `updateEncumbrance` is exactly what
-      libWrapper is registered to surface.
+      only item left that proves the guard does anything, and nothing in a passing run can substitute for it.
+- [ ] Loot several items onto a near-encumbered player through Curator's window. The harness covers the
+      mechanism, so this is now a low-risk confirmation that the real path behaves the same rather than a
+      test of the guard itself.
 
 ### Token interaction registry
 

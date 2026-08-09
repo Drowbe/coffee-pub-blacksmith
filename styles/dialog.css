@@ -26,7 +26,8 @@
 
 /* ----- Button row ----- */
 
-.application.blacksmith-dialog .dialog-buttons {
+.application.blacksmith-dialog .dialog-buttons,
+.application.blacksmith-dialog .form-footer {
     display: flex;
     gap: var(--blacksmith-space-md);
     margin-top: var(--blacksmith-space-lg);
@@ -39,10 +40,20 @@
    two lines: the buttons still grow to fill the row, but flex can no longer
    shrink one below its own text. Without it, two buttons split the row evenly
    and the longer label ("Delete Profile") wrapped while the shorter one
-   ("Cancel") had room to spare. */
+   ("Cancel") had room to spare.
+
+   Both container classes are matched because v13's DialogV2 renders its button
+   row as `<footer class="form-footer">` (application.mjs `_renderHTML`), while
+   earlier versions used `.dialog-buttons`. Keying only on the old name made
+   these rules silently dead on v13 — the buttons still picked up their colour
+   from the global button classes, so the wrap looked like a styling gap rather
+   than a selector that had stopped matching. */
 .application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-primary,
 .application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-secondary,
-.application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-critical {
+.application.blacksmith-dialog .dialog-buttons button.blacksmith-window-btn-critical,
+.application.blacksmith-dialog .form-footer button.blacksmith-window-btn-primary,
+.application.blacksmith-dialog .form-footer button.blacksmith-window-btn-secondary,
+.application.blacksmith-dialog .form-footer button.blacksmith-window-btn-critical {
     width: auto;
     flex: 1 1 auto;
     min-width: max-content;
