@@ -27,22 +27,21 @@ to matter.
 Highest risk first, if time is short: the two-client inventory case, the encumbrance guard with the guard
 switched off, and the XP reload case.
 
-**Partly answered: the full run on 2026-08-08 reported 463/476 with 13 failures.** The XP Record tab was the
-suspect and accounts for **four** of them, all the same cause - two checks set a token name and asserted on it,
-and Blacksmith's own nameplate renaming overwrote it first. Neither was an XP defect. Both are fixed in the
-suite and the code defect they exposed is in the `CHANGELOG.md` Fixed section. **Nine failures remain
-unidentified, in some other suite.** Do not assume they are harmless.
+**Answered. The 13 unnamed failures are identified and none were defects in the code under test.** The XP
+Record tab held four, from Blacksmith's own nameplate renaming overwriting a name two checks had just set,
+plus a check that renamed a token after the combatant already existed. XP Record now passes 35/35. The other
+nine were all in Readouts, from one cause: the suite read the party aggregate through `getAggregateSync`,
+which returns null on a cold cache and starts a rebuild (`api-stats.js:90`) - so ten rendered chips read as
+having nothing to report, and the rebuild landing mid-check re-rendered the row and inverted the entrance
+marking. The one code defect any of this exposed is in the `CHANGELOG.md` Fixed section.
 
-## Harness - XP Record tab
+## Harness - full headless run
 
-`sweep-does-not-loop` and `record-is-evidence-not-verdict` have passed. Remaining:
+Readouts passed 34/34 and XP Record 35/35, each on its own tab.
 
-- [ ] Re-run the whole tab after the naming fix, expecting 33/33. The checks refuse to run while a combat is
-      active - they create their own Combat and will not disturb a live one - so end combat first.
-- [ ] `sweep-does-not-degrade` passes on its own merits. Its hit-point assertions already pass and only the two
-      name assertions failed, so the behaviour it exists for - the periodic sweep replacing good evidence with
-      prototype values once a token is gone - is proven for hit points and not yet for the name.
-- [ ] Run "Run All Headless" again and name the other nine failures.
+- [ ] Run "Run All Headless" and confirm 519/519. Worth doing separately from the per-tab runs: the two
+      failures fixed here were both order-dependent, visible only because a full run put other work between a
+      check and what it asserted on.
 
 
 

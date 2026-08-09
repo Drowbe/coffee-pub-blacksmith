@@ -510,6 +510,43 @@ Actor while it crosses an encumbrance threshold), and a harness check that demon
 (`utilities/tests/suite-inventory.js`, `one-write-per-actor`). Worth doing because the alternative is every
 module in the ecosystem routing around it separately, which is what we and Squire have each just done.
 
+## Suite-wide: a document write inside a timer needs the liveness check INSIDE the callback (2026-08-08)
+
+**Curator's finding, generalised at their suggestion.** The rule is one line: **whatever runs after the delay
+needs the check, not whatever scheduled it.** A guard placed before `setTimeout` proves the document was alive
+when the timer was set, which is exactly the moment nobody doubted. The delay is the hazard window.
+
+It is worth a suite-wide entry rather than a Curator note because of how it fails. With `await` the hazard is
+at least visible in the same function; with a scheduled callback the guard and the write sit far apart and both
+read as correct. Curator hit this pattern **five times across three shapes**, including once where a guard was
+added, looked sufficient, and covered nothing - the check was on the wrong side of a 150ms `setTimeout` that
+TokenMagic wrote a flag from. The symptom is an `Uncaught (in promise)` naming an id that no longer exists in
+an embedded collection, with a stack pointing at a library rather than at the module that scheduled the write.
+
+Two fixes Curator made that generalise: resolve liveness through a single `isEmbeddedAlive(doc)` that reads the
+parent collection from the document's own `collectionName`, rather than a token-only helper that has to be
+copied to cover tiles - that is how forks start; and attach a `.catch()` to the write, because a rejection from
+a promise nobody awaits surfaces with nothing useful in the trace even when the liveness check is right.
+
+**The sweep, which is cheap:**
+
+```
+grep -rn "setTimeout(" scripts/
+```
+
+Then look at what each timer touches when it fires. One that only moves DOM or window state is fine; one that
+writes to a document needs the check inside the callback. Curator: 17 timers, 2 write documents, both were
+wrong, about a minute to establish.
+
+**Blacksmith: swept 2026-08-08, clean.** 122 `setTimeout` calls outside the vendored CodeMirror bundle;
+exactly one writes a document - `ui-combat-tracker.js:705` sets `turn: 0` after a 100ms wait - and it already
+re-checks `game.combats.has(combat.id)` after the delay. `xp-manager.js:151` waits a second and then reads a
+Combat that is *already* deleted by design, which is the record's whole purpose, and writes nothing to it.
+
+- [ ] **Squire** - sweep. Curator expects instances, particularly anywhere a visual effect is applied on a delay.
+- [ ] **Cartographer** - sweep, same reason.
+- [ ] Other satellites - sweep opportunistically; the check costs a minute per module.
+
 ## Forked hub code across the suite - swept 2026-08-08
 
 **Curator found two forks in its own tree, fixed both, and supplied the heuristic that found them.** Running

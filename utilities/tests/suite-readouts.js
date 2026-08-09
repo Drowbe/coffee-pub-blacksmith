@@ -125,13 +125,18 @@ async function withProbe(api, config, lifetimeMs) {
  * promises, and a check that read the same predicate the code does would agree with any bug in it.
  * The reading is taken from the public API, the way a consumer would.
  */
-function gatedStatistics() {
+async function gatedStatistics() {
     let running = null;
     let lifetime = null;
     try {
         const stats = game.modules.get(MODULE_ID)?.api?.stats;
         running = stats?.combat?.getRunningStats() ?? null;
-        lifetime = stats?.party?.getAggregateSync() ?? null;
+        // `getAggregate`, NOT `getAggregateSync`. The sync form returns null when the cache is cold
+        // and starts a rebuild -- that is its documented contract, for renderers that cannot await
+        // (`api-stats.js:90`). A cold read here reported every lifetime statistic as having no data,
+        // so all ten rendered chips failed as "present with nothing to report" and the bar looked
+        // broken when it was correct. This check can await, so it should.
+        lifetime = (await stats?.party?.getAggregate()) ?? null;
     } catch (_) { /* treated as no data below */ }
 
     const inCombat = !!(game.combat?.started);
@@ -297,7 +302,7 @@ export default {
             run: async ({ expect }) => {
                 if (!expect.ok('the combat bar is open', !!document.querySelector('.combat-data-row'))) return;
 
-                const gated = gatedStatistics();
+                const gated = await gatedStatistics();
                 expect.ok('there are gated statistics for this combat state', gated.length > 0);
 
                 for (const [itemId, hasData] of gated) {
@@ -326,6 +331,16 @@ export default {
             run: async ({ expect }) => {
                 const api = requireApi('registerSecondaryBarItem', 'unregisterSecondaryBarItem');
                 if (!expect.ok('the combat bar is open', !!document.querySelector('.combat-data-row'))) return;
+
+                // Settle the bar's contents BEFORE introducing the probe, or this check measures a
+                // re-render it caused itself. Reading the party aggregate while its cache is cold
+                // returns null and kicks off a rebuild; the rebuild lands mid-check and re-renders
+                // the row, which marks every lifetime chip as entering and rebuilds the probe's node
+                // as an already-known item -- so the probe loses the class it had just been given
+                // and its neighbours gain one. That inversion is exactly what this check reported.
+                try { await game.modules.get(MODULE_ID)?.api?.stats?.party?.getAggregate(); } catch (_) { /* no data is fine */ }
+                await settleRender();
+
                 const probeId = 'harness-enter-probe';
                 try {
                     api.registerSecondaryBarItem(BAR, probeId, {
