@@ -264,6 +264,24 @@ count-up, a portrait crossfade. Before it existed the element was destroyed and 
 where a flash keyed to a "change" would have fired on every unrelated render and a count-up would have
 restarted continuously.
 
+**Appearing is not a value change, and the two paths are not interchangeable.** A readout item's `visible`
+predicate is evaluated during a render, so an item that starts or stops qualifying only changes on a
+re-render — pushing a value into a hidden item leaves it hidden. This matters most for the lifetime
+standings on the combat bar, whose predicates read `api.stats.party.getAggregateSync()`
+(`manager-combatbar.js:578`, `:614`). That accessor returns null whenever the party cache is cold, by
+contract (`api-stats.js:90`), so a cold read hides every one of those chips.
+
+**The cache is invalidated by more events than the bar re-renders for**, and the gap between those two sets
+is where readouts disappear. `PartyStats` invalidates on `blacksmith.combatSummaryReady` and on `updateActor`,
+`createActor` and `deleteActor` (`stats-party.js:35-48`); an actor update is not a re-render trigger. A hit
+point change during a fight therefore invalidated the aggregate and rebuilt the bar in that order, hiding
+every lifetime chip, and nothing brought them back until an unrelated render. `refreshReadoutItems` closes it
+by requesting a render when it had to rebuild the aggregate itself, behind a re-entrancy flag.
+
+The general rule for a new gated item: **check what invalidates the state your predicate reads, not only what
+changes it.** A predicate whose source can go null on an event the bar does not re-render for will hide the
+item indefinitely, and it fails silently — nothing errors, and the item simply is not there.
+
 **Motion is not gated, and that is settled.** Not on `prefers-reduced-motion`, and not on a setting of
 our own. A virtual tabletop is a game and choosing to play one is the opt-in; what the bar does is a
 glow, a counting number and a short fade, none of it the spatial movement that media query exists to

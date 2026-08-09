@@ -431,15 +431,15 @@ hub, and none should.
 
 ## Decision: Blacksmith owns inventory mutation primitives — `api.inventory` (2026-08-07)
 
-Planned, not implemented. The design lives in `documentation/plans/plan-inventory-api.md`; that plan is the
-source of truth until it is dismantled into `api/api-inventory.md` and
-`architecture/architecture-inventory.md`. **Do not restate its design here** — this section tracks only the
-cross-module coordination.
+**Shipped.** The surface is `documentation/api/api-inventory.md` and the mechanism is
+`documentation/architecture/architecture-inventory.md`; both are authoritative and both are on the wiki.
+The plan that carried the design has been dismantled into them and deleted. **Do not restate the design
+here** — this section tracks only the cross-module coordination.
 
-Four mechanical primitives in Blacksmith: `grantItem`, `grantCurrency`, `transferItem`, `transferCurrency`.
-They validate, mutate, and return a structured result. They emit no sockets and own no workflow — each
-consumer calls them from its own GM-authoritative handler so authorization stays with the module that has
-the domain rules.
+Six mechanical primitives in Blacksmith: `grantItem`, `grantItems`, `grantCurrency`, `transferItem`,
+`transferItems`, `transferCurrency`. They validate, mutate, and return a structured result. They emit no
+sockets and own no workflow — each consumer calls them from its own GM-authoritative handler so
+authorization stays with the module that has the domain rules.
 
 **Why the hub and not a satellite:** Curator requires only `coffee-pub-blacksmith`; Squire requires
 Blacksmith and `socketlib`; neither requires the other, and `coffee-pub-lib` is retired. The hub is the only
