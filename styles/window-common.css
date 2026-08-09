@@ -834,4 +834,38 @@ div#blacksmith-message-content h5 {
 	box-shadow: 0 0 10px var(--color-shadow-highlight);
 }
 
+/* ------------------------------------ */
+/* -- WINDOW SIZE CONSTRAINTS --------- */
+/* ------------------------------------ */
 
+/*
+    Size constraints declared via `windowSizeConstraints` are published by
+    BlacksmithWindowBase as custom properties on the application element, which
+    also carries the `blacksmith-window` marker class (see
+    window-base.js `_applyWindowSizeConstraints`).
+
+    They live in the cascade rather than as inline styles so that minimising can
+    zero them. Foundry collapses a window by setting inline
+    `max-height: var(--header-height)`, and CSS resolves min-height over
+    max-height when the two conflict — so an inline minimum pins the frame open
+    and the window renders as a title bar above an empty rectangle. Two classes
+    beat one on specificity, so no `!important` is needed here or in any
+    consumer's stylesheet.
+
+    `.minimizing` matters as much as `.minimized`: Foundry adds it for the
+    duration of the collapse animation and only swaps to `.minimized` once it
+    finishes, so covering the end state alone leaves the animation fighting the
+    minimum and then snapping shut.
+*/
+.blacksmith-window {
+    min-width: var(--blacksmith-window-min-width, 0);
+    min-height: var(--blacksmith-window-min-height, 0);
+    max-width: var(--blacksmith-window-max-width, none);
+    max-height: var(--blacksmith-window-max-height, none);
+}
+
+.blacksmith-window.minimized,
+.blacksmith-window.minimizing {
+    min-width: 0;
+    min-height: 0;
+}

@@ -29,11 +29,11 @@ You implement the window itself (Application V2 class, template, `getData`, acti
 
 These are **two different** supported surfaces on `game.modules.get('coffee-pub-blacksmith').api`:
 
-| Surface | Purpose |
-|---------|---------|
-| **Registry** (`registerWindow`, `openWindow`, `unregisterWindow`, …) | Register an **id** and an **opener** so toolbars, macros, and other modules can open your window **without importing your class**. |
-| **Standard base** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith's full Application V2 base for editors, forms, and other windows that use the five-zone template. |
-| **Tool base** (`BlacksmithToolWindowBaseV2`, or `getToolWindowBaseV2()`) | **Subclass** the compact Application V2 presentation for lightweight, persistent canvas tools and palettes. |
+| Surface | Purpose | Minimises correctly |
+|---------|---------|---------------------|
+| **Registry** (`registerWindow`, `openWindow`, `unregisterWindow`, …) | Register an **id** and an **opener** so toolbars, macros, and other modules can open your window **without importing your class**. | n/a — the registry does not own presentation |
+| **Standard base** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith's full Application V2 base for editors, forms, and other windows that use the five-zone template. | Yes — `windowSizeConstraints` are published as custom properties and zeroed while minimised |
+| **Tool base** (`BlacksmithToolWindowBaseV2`, or `getToolWindowBaseV2()`) | **Subclass** the compact Application V2 presentation for lightweight, persistent canvas tools and palettes. | Yes — same mechanism, inherited from the standard base |
 
 - Use the **registry** when something else (Blacksmith toolbar, another module, a macro) should call `openWindow('your-id')`.
 - Use **`api.BlacksmithWindowBaseV2`** for standard windows and **`api.BlacksmithToolWindowBaseV2`** for compact tools. **Do not** deep-link Blacksmith script files from another module's manifest — use **`module.api`**; file paths are not the stable contract.
@@ -314,6 +314,8 @@ When extending `BlacksmithWindowBaseV2`, set **`DEFAULT_OPTIONS`** (or pass opti
 - **`window.minimizable`** (boolean) — Whether the window can be minimized.
 - **`position.width`** / **`position.height`** — Initial size (numbers or `"auto"` per Foundry). Do **not** add `minWidth`/`maxWidth`/`minHeight`/`maxHeight` to `position` — Foundry's position object is not extensible.
 - **`windowSizeConstraints`** (object, optional) — Min/max size applied by the base class to the window element after render: `{ minWidth, minHeight, maxWidth, maxHeight }` (numbers in pixels). Omit to leave unconstrained.
+  - Applied as **CSS custom properties** (`--blacksmith-window-min-width` and siblings) on the application element, which also receives a `blacksmith-window` class — not as inline `min-width` / `min-height`. This is what lets minimising work: Foundry collapses a window with an inline `max-height`, and CSS resolves min-height over max-height, so an inline minimum would pin the frame open and render a title bar above an empty rectangle. In the cascade, `.blacksmith-window.minimized` and `.blacksmith-window.minimizing` zero the minima with ordinary specificity.
+  - Consequently you do **not** need `!important` overrides in a consumer stylesheet to make a constrained window minimise, and you should not add the `blacksmith-window` class through `DEFAULT_OPTIONS.classes` — `mergeObject` overwrites arrays rather than concatenating, so classes declared on a base are dropped by any subclass that declares its own.
 
 Example (in your window class):
 

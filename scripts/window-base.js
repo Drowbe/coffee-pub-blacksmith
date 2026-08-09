@@ -80,6 +80,30 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
      * Apply optional min/max size from options.windowSizeConstraints to the window element.
      * Subclasses can pass windowSizeConstraints: { minWidth, minHeight, maxWidth, maxHeight } in DEFAULT_OPTIONS or constructor options.
      * (Do not put min/max on position — Foundry's position object is not extensible.)
+     *
+     * Published as CSS custom properties, never as inline min-width/min-height,
+     * and paired with a `blacksmith-window` marker class that window-common.css
+     * keys off.
+     *
+     * Inline minima cannot be minimised away. Foundry's `minimize()` collapses a
+     * frame by setting inline `max-height: var(--header-height)`
+     * (client/applications/api/application.mjs), and CSS resolves min-height
+     * over max-height when they conflict — per spec, not a quirk. With both
+     * declarations inline, the minimum wins and the frame stays at full size
+     * with its content hidden: a title bar on top of an empty rectangle. Nothing
+     * clears it either, since `maximize()` only clears the maxima it set itself.
+     *
+     * Custom properties move the minima into the cascade, where the stylesheet
+     * can zero them for `.minimized` and `.minimizing` with ordinary specificity
+     * — no JS bookkeeping, no minimise/maximise hooks, and no `!important` in
+     * any consumer. The maxima ride the same mechanism deliberately: expressing
+     * one thing two ways is how the original inline write became invisible.
+     *
+     * The marker class is added here rather than through DEFAULT_OPTIONS.classes
+     * because `mergeObject` overwrites arrays instead of concatenating, so a
+     * class declared on a base is silently dropped by any subclass that declares
+     * its own — window-tool-base.js does exactly that. Setting it alongside the
+     * properties also keeps the two from drifting apart.
      */
     _applyWindowSizeConstraints() {
         const constraints = this.options?.windowSizeConstraints ?? {};
@@ -88,14 +112,21 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
             ? element
             : element?.closest?.('.window, .application');
         if (!win || typeof win.style === 'undefined') return;
-        const apply = (key, styleKey) => {
+
+        win.classList.add('blacksmith-window');
+
+        const apply = (key, property) => {
             const v = constraints[key];
-            if (v != null && v !== '') win.style[styleKey] = typeof v === 'number' ? `${v}px` : v;
+            if (v == null || v === '') {
+                win.style.removeProperty(property);
+                return;
+            }
+            win.style.setProperty(property, typeof v === 'number' ? `${v}px` : v);
         };
-        apply('minWidth', 'minWidth');
-        apply('minHeight', 'minHeight');
-        apply('maxWidth', 'maxWidth');
-        apply('maxHeight', 'maxHeight');
+        apply('minWidth', '--blacksmith-window-min-width');
+        apply('minHeight', '--blacksmith-window-min-height');
+        apply('maxWidth', '--blacksmith-window-max-width');
+        apply('maxHeight', '--blacksmith-window-max-height');
     }
 
     // ---- Position / size persistence ----------------------------------------
