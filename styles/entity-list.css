@@ -91,3 +91,22 @@
     font-size: var(--blacksmith-font-size-sm);
     font-style: italic;
 }
+
+/* ----- Group header -----
+   Emitted by the list when entities carry a `group` label. Presentational
+   only (aria-hidden), so it must not look clickable or pick up row hover. */
+.blacksmith-entity-group {
+    padding: var(--blacksmith-space-sm, 4px) var(--blacksmith-space-md, 8px);
+    margin-top: var(--blacksmith-space-sm, 4px);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--blacksmith-text-muted, rgba(224, 224, 224, 0.6));
+    border-bottom: 1px solid var(--blacksmith-window-border-color, #444);
+    pointer-events: none;
+}
+
+.blacksmith-entity-group:first-child {
+    margin-top: 0;
+}

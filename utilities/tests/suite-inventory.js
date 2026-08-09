@@ -941,6 +941,54 @@ export default {
                 }
             }
         },
+        {
+            id: 'transfer-items-one-moment',
+            tier: 'headless',
+            group: 'Transfer',
+            label: 'A bag and its contents in one call empties the bag but leaves it',
+            note: 'Pins documented behaviour rather than finding a bug. Every entry is validated against the state at the START of the call, so a bag sent alongside its own contents is still packed as far as that call is concerned. A consumer clearing a hierarchy has to loop. If this check ever fails, someone has changed when validation happens - which would silently break the per-item result contract.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const corpse = await tempActor('npc', 'onepass-src');
+                    const looter = await tempActor('character', 'onepass-tgt');
+                    made.push(corpse, looter);
+
+                    const [bag] = await corpse.createEmbeddedDocuments('Item', [{ name: 'Harness OnePass Bag', type: 'container' }]);
+                    const contents = await corpse.createEmbeddedDocuments('Item', [
+                        lootData('Harness OnePass A', { system: { quantity: 1, container: bag.id } }),
+                        lootData('Harness OnePass B', { system: { quantity: 1, container: bag.id } })
+                    ]);
+
+                    // Everything at once, contents and bag together, exactly as a naive Loot All would.
+                    const first = await inv.transferItems({
+                        sourceActorUuid: corpse.uuid,
+                        targetActorUuid: looter.uuid,
+                        items: [...contents.map(item => ({ itemId: item.id })), { itemId: bag.id }]
+                    });
+
+                    expect('the contents moved', first.results[0].ok, true);
+                    expect('both contents moved', first.results[1].ok, true);
+                    expect('the bag was refused', first.results[2].code, inv.CODES.CONTAINER_HAS_CONTENTS);
+                    expect('and reported the count it saw at validation time', first.results[2].contentCount, 2);
+                    expect.ok('the bag is still on the corpse', Boolean(corpse.items.get(bag.id)));
+                    expect('but it is empty now', corpse.items.filter(i => i.system?.container === bag.id).length, 0);
+                    log('One pass leaves an empty bag. That is the contract, not a defect.');
+
+                    // A second pass takes it, which is what a consumer loop does.
+                    const second = await inv.transferItems({
+                        sourceActorUuid: corpse.uuid, targetActorUuid: looter.uuid,
+                        items: [{ itemId: bag.id }]
+                    });
+                    expect('a second pass takes the now-empty bag', second.results[0].ok, true);
+                    expect('the corpse is clear', corpse.items.size, 0);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
         // ---------- rollback ----------
         {
             id: 'rollback-after-merge',

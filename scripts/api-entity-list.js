@@ -56,6 +56,7 @@ function normalizeEntity(entity) {
         name: entity.name ?? String(entity.id),
         img: entity.img || DEFAULT_IMG,
         type: entity.type ?? null,
+        group: entity.group ? String(entity.group) : null,
         disabled: Boolean(entity.disabled),
         disabledReason: entity.disabledReason ?? null,
         badges: Array.isArray(entity.badges) ? entity.badges.filter(Boolean) : [],
@@ -99,7 +100,11 @@ function renderEntity(entity, { mode, inputName, selected, itemClass }) {
  *
  * @param {Object} config
  * @param {Array<Object>} config.entities - Descriptors:
- *   { id, uuid, name, img, type, disabled, disabledReason, badges, metadata, className }
+ *   { id, uuid, name, img, type, group, disabled, disabledReason, badges, metadata, className }
+ *
+ *   `group` is an optional section label. Rows are NOT reordered — a header is
+ *   emitted where a group's first member appears, so the caller controls
+ *   section order by ordering the entities.
  * @param {'single'|'multi'} [config.mode='single']
  * @param {string} [config.inputName] - Input `name`, so a host can preserve an
  *   existing form contract. Defaults to 'blacksmith-entity'.
@@ -179,13 +184,32 @@ function create(config = {}) {
     const controller = {
         /** Markup to inject. Attach after it is in the document. */
         get html() {
+            const renderRow = (entity) => renderEntity(entity, {
+                mode: normalizedMode,
+                inputName,
+                selected: initial,
+                itemClass
+            });
+
+            // Group headers are emitted inline rather than by bucketing the
+            // list: entities keep the order the caller gave them, and a group
+            // appears where its first member does. Callers that want a
+            // particular section order simply supply the entities in it.
+            //
+            // `aria-hidden` on the header keeps it out of the radiogroup's
+            // options — a heading between radios is announced as a stray item
+            // otherwise — while the group name still reaches assistive tech
+            // through each row's own type label.
+            let seenGroup = null;
             const rows = list.length
-                ? list.map(entity => renderEntity(entity, {
-                    mode: normalizedMode,
-                    inputName,
-                    selected: initial,
-                    itemClass
-                })).join('')
+                ? list.map(entity => {
+                    let prefix = '';
+                    if (entity.group && entity.group !== seenGroup) {
+                        seenGroup = entity.group;
+                        prefix = `<div class="blacksmith-entity-group" aria-hidden="true">${esc(entity.group)}</div>`;
+                    }
+                    return prefix + renderRow(entity);
+                }).join('')
                 : `<div class="blacksmith-entity-empty">${esc(emptyMessage)}</div>`;
             return `<div${classAttr('blacksmith-entity-list', `blacksmith-entity-list-${normalizedMode}`, listClass)}
                          role="${normalizedMode === ENTITY_LIST_MODES.MULTI ? 'group' : 'radiogroup'}"

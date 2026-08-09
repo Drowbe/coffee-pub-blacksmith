@@ -510,6 +510,29 @@ Actor while it crosses an encumbrance threshold), and a harness check that demon
 (`utilities/tests/suite-inventory.js`, `one-write-per-actor`). Worth doing because the alternative is every
 module in the ecosystem routing around it separately, which is what we and Squire have each just done.
 
+## Decision: no selector-based context menu variant (declined 2026-08-08)
+
+Offered to Squire and **declined by them**, which is worth recording because the offer will look obvious again
+later. Foundry's `ContextMenu` binds to a container plus a selector and delegates across rows; ours takes
+explicit coordinates and a fixed item list. Squire is still on Foundry's for `panel-favorites.js`, so adding a
+delegated variant looked like the way to bring them across.
+
+Their reason for declining is the useful part: **their favourites panel replaces its own `innerHTML` on every
+render, so a delegated binding would not survive anyway** - the code already comments that it always creates a
+fresh menu. They pay the per-render cost delegation would have saved, so the feature would buy them nothing.
+They explicitly asked not to be counted toward the case for it.
+
+`condition` predicates are the other thing Foundry's has that ours lacks. Also not a blocker: Squire gates
+three reorder entries on list position, and filtering at build time is fine - arguably better, since inside a
+`contextmenu` handler the row is already in hand rather than a predicate re-deriving it per open.
+
+**What actually sells the shared menu to them is zones.** A flat list where GM-only entries look identical to
+player ones is the gap Foundry's version cannot close. Descriptions and image icons are nice-to-have.
+
+So: build neither on this evidence. If a second module asks for delegated binding, weigh it on that module's
+case alone. Squire's migration is scheduled with their panel work heading toward Librarian rather than as a
+standalone change, because they do not want to migrate `panel-favorites.js` twice.
+
 ## Suite-wide: api.dialog stopped being modal by default (changed 2026-08-08)
 
 **Decided and shipped.** `api.dialog`'s `openDialog`, `choose`, `prompt`, and `wait` now default to

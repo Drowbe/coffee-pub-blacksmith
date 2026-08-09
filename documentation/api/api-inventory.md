@@ -146,6 +146,30 @@ If the source reduction fails after the target has been written, the whole grant
 deleted, merged rows decremented by exactly what was added. Every entry then reports `SOURCE_UPDATE_FAILED`,
 or `ROLLBACK_FAILED` if the reversal itself failed.
 
+### One call validates against one moment
+
+Every entry is validated against the state at the **start** of the call, before anything moves. That is what
+makes per-item results coherent, and it has one consequence worth stating plainly because it is invisible from
+the outside.
+
+**A container and its contents cannot be emptied and taken in the same call.** Send a bag and the items inside
+it together and the bag is still packed as far as that call is concerned - even though the same call is what
+empties it. The contents move, the bag comes back `CONTAINER_HAS_CONTENTS`, and the source is left holding an
+empty bag.
+
+That is the documented behaviour working correctly, and it still looks like a bug from the table: a Loot All
+that clears a body leaves a row of now-empty sacks on it.
+
+**A consumer clearing a container hierarchy has to loop.** Take everything that is not currently a packed
+container, then call again - the next pass picks up whatever the previous one emptied, and nested bags resolve
+the same way without special handling. Bound the loop and stop as soon as a pass moves nothing, so a genuinely
+stuck row is reported as left behind rather than retried forever. Curator's loot window does exactly this,
+capped at four passes.
+
+This is stated because the failure is silent and the correct reading is not obvious. A consumer that
+implements a single pass sees empty containers left behind and reasonably concludes `transferItems` is dropping
+rows. It is not; it is answering the question it was asked, at the moment it was asked.
+
 ## grantCurrency and transferCurrency
 
 ```js

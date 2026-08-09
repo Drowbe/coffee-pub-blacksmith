@@ -4,6 +4,30 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Consider: `api.inventory.transferContainer()`
+
+**Deferred at design time, and there is now a concrete cost to point at.** A container move was left out of
+`api.inventory` on purpose: it is one-to-many creates plus many source deletes, which breaks the singular
+return shape, makes quantity splitting meaningless, and turns rollback into N deletes plus N restores plus
+reporting which of those also failed. That reasoning still holds.
+
+What has changed is the price of not having it, reported by Curator after shipping a loot window:
+
+- Clearing a body that contains bags takes **N+1 batches** rather than one, because a container and its
+  contents cannot be emptied and taken in the same `transferItems` call - see the note in `api-inventory.md`.
+  The multi-pass loop works and is not difficult, but every consumer clearing a hierarchy has to write it.
+- The per-row experience for a player is worse than the batch one: take six things, then take the bag, and
+  again for a nested bag.
+
+If it is built, **reuse dnd5e's own prompt rather than inventing a second answer to the same question.**
+Curator's GM-side removal of a packed container calls `Item5e#deleteDialog()` (`dnd5e.mjs:22133`), which lets
+the system own the "delete contents too?" question and the recursion behind it. A `transferContainer()` that
+asked differently would give a table two dialogs with two semantics for one decision. `Item5e.createWithContents`
+(`dnd5e.mjs:22216`) is the matching primitive on the create side, and its docstring requires `keepId: true` at
+the `createDocuments` call or the container links break.
+
+Not blocking anything. Two consumers now know the workaround, and it is documented.
+
 ## VERIFICATION QUEUE - shipped code, not yet proven (opened 2026-08-08)
 
 Everything below is written, syntax-checked, and passing both invariant checks, and **none of it has been
