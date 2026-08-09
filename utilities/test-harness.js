@@ -112,6 +112,67 @@ async function runHeadless(suite, check) {
     return results.map(result => ({ ...result, suite: suite.id, check: check.id }));
 }
 
+/**
+ * Report a completed run.
+ *
+ * FAILURES FIRST, and each on its own console call. The whole point of a run is the failures, and a
+ * single console.log carrying every assertion is the one shape that hides them: Chrome truncates a
+ * very long string, so a 476-assertion run with 13 failures printed the passes and cut off before
+ * reaching any of them. That happened, and it made the only informative part of the run unreadable.
+ *
+ * The full pass list still goes out, after the failures and inside a collapsed group so it does not
+ * bury them. Per-suite counts come first, because "which suite broke" is the next question after
+ * "how many".
+ */
+function reportRun(all, label) {
+    const failed = all.filter(r => !r.pass);
+    const passed = all.length - failed.length;
+
+    console.log(`BLACKSMITH HARNESS | ${label}: ${passed}/${all.length} assertions passed`);
+
+    // Per-suite tally, so a broken suite is visible without reading anything else.
+    const bySuite = new Map();
+    for (const result of all) {
+        const entry = bySuite.get(result.suite) ?? { pass: 0, fail: 0 };
+        entry[result.pass ? 'pass' : 'fail']++;
+        bySuite.set(result.suite, entry);
+    }
+    for (const [suite, tally] of bySuite) {
+        const line = `  ${tally.fail ? 'FAIL' : 'ok  '}  ${suite}: ${tally.pass}/${tally.pass + tally.fail}`;
+        if (tally.fail) console.error(line); else console.log(line);
+    }
+
+    // Every failure, individually, so none can be truncated away.
+    if (failed.length) {
+        console.error(`BLACKSMITH HARNESS | ${failed.length} FAILURE(S):`);
+        failed.forEach((r, index) => {
+            console.error(
+                `  ${index + 1}. ${r.suite}/${r.check}  ${r.label}`
+                + `\n        actual:   ${display(r.actual)}`
+                + `\n        expected: ${display(r.expected)}`
+            );
+        });
+    }
+
+    // Passes last and collapsed. Chunked because a single string can still be cut.
+    if (passed) {
+        const group = console.groupCollapsed ?? console.log;
+        group.call(console, `BLACKSMITH HARNESS | ${passed} passing assertion(s)`);
+        const passLines = all.filter(r => r.pass).map(r => `PASS  ${r.suite}/${r.check}  ${r.label}`);
+        for (let start = 0; start < passLines.length; start += 40) {
+            console.log(passLines.slice(start, start + 40).join('\n'));
+        }
+        if (console.groupEnd) console.groupEnd();
+    }
+
+    if (failed.length) {
+        ui.notifications.error(`${failed.length} of ${all.length} assertions FAILED — see console (F12).`);
+    } else {
+        ui.notifications.info(`All ${all.length} assertions passed.`);
+    }
+    return { all, failed };
+}
+
 /** Run every headless check in every suite and report once. */
 async function runAllHeadless() {
     const all = [];
@@ -120,20 +181,7 @@ async function runAllHeadless() {
             all.push(...await runHeadless(suite, check));
         }
     }
-    const failed = all.filter(r => !r.pass);
-    const lines = all.map(r =>
-        `${r.pass ? 'PASS' : 'FAIL'}  ${r.suite}/${r.check}  ${r.label}`
-        + (r.pass ? '' : `\n        actual:   ${display(r.actual)}\n        expected: ${display(r.expected)}`));
-    console.log(
-        `BLACKSMITH HARNESS | headless run: ${all.length - failed.length}/${all.length} passed\n  `
-        + lines.join('\n  ')
-    );
-    if (failed.length) {
-        ui.notifications.error(`${failed.length} of ${all.length} assertions FAILED — see console (F12).`);
-    } else {
-        ui.notifications.info(`All ${all.length} assertions passed.`);
-    }
-    return { all, failed };
+    return reportRun(all, 'headless run');
 }
 
 // ------------------------------------------------------------------
@@ -325,15 +373,7 @@ await foundry.applications.api.DialogV2.wait({
                 for (const check of suite.checks.filter(c => c.tier === 'headless')) {
                     results.push(...await runHeadless(suite, check));
                 }
-                const failed = results.filter(r => !r.pass);
-                console.log(
-                    `BLACKSMITH HARNESS | ${suite.id}: ${results.length - failed.length}/${results.length} passed\n  `
-                    + results.map(r => `${r.pass ? 'PASS' : 'FAIL'}  ${r.label}`
-                        + (r.pass ? '' : `\n        actual:   ${display(r.actual)}\n        expected: ${display(r.expected)}`)).join('\n  ')
-                );
-                ui.notifications[failed.length ? 'error' : 'info'](
-                    `${suite.label}: ${results.length - failed.length}/${results.length} assertions passed.`
-                );
+                reportRun(results, suite.id);
             });
         });
 

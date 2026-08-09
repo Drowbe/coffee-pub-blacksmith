@@ -2436,23 +2436,40 @@ export class CombatBarManager {
             'actorData.system.hp.max'
         ];
         const flat = foundry.utils.flattenObject(updateData || {});
-        const changed = targets.some(path => flat[path] !== undefined);
-        if (changed) {
-            postConsoleAndNotification(MODULE.NAME, 'Menubar: HP change detected in update data', { paths: targets.filter(path => flat[path] !== undefined), values: flat }, true, false);
-        }
-        return changed;
+        // No logging here. This is a pure predicate called from both handlers before either knows
+        // whether the change is relevant, so logging inside it reports on updates that are about to
+        // be discarded -- the same noise, one layer down. The callers log once they have decided.
+        return targets.some(path => flat[path] !== undefined);
     }
 
+    /**
+     * Log AFTER the guards, never before them.
+     *
+     * This used to log every arriving actor update, with the whole update payload, as its first
+     * statement -- so with debug mode on, any bulk operation that touches actors buried the console.
+     * An inventory transfer was enough to produce dozens of identical lines for one actor, none of
+     * which said anything: the bar only cares about hit points changing on a tracked combatant, and
+     * every other update was logged and then discarded one line later.
+     *
+     * The diagnostic that mattered is kept and sharpened. An update that does not touch hit points is
+     * simply not this bar's business and says nothing by being silent. An update that DOES touch hit
+     * points and is still rejected is the interesting case, and it now says why.
+     */
     static handleActorHpChange(menuBar, actor, updateData) {
         try {
-            postConsoleAndNotification(MODULE.NAME, 'Menubar: updateActor received', { actorId: actor?.id, updateData }, true, false);
             if (!CombatBarManager.isCombatBarActive(menuBar)) return;
             if (!CombatBarManager.didHpChange(updateData)) return;
             const combat = game.combats?.active;
-            if (!combat) return;
+            if (!combat) {
+                postConsoleAndNotification(MODULE.NAME, 'Menubar: actor HP changed with no active combat', { actorId: actor?.id }, true, false);
+                return;
+            }
             const isCombatant = combat.combatants.some(combatant => combatant.actor?.id === actor?.id);
-            postConsoleAndNotification(MODULE.NAME, 'Menubar: Actor HP change evaluated', { isCombatant }, true, false);
-            if (!isCombatant) return;
+            if (!isCombatant) {
+                postConsoleAndNotification(MODULE.NAME, 'Menubar: actor HP changed for a non-combatant', { actorId: actor?.id }, true, false);
+                return;
+            }
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: rebuilding for a combatant HP change', { actorId: actor?.id }, true, false);
             CombatBarManager.updateCombatBar(menuBar);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process actor HP change', { actorId: actor?.id, error }, true, false);
@@ -2470,7 +2487,7 @@ export class CombatBarManager {
      */
     static handleTokenChange(menuBar, token, updateData) {
         try {
-            postConsoleAndNotification(MODULE.NAME, 'Menubar: updateToken received', { tokenId: token?.id, updateData }, true, false);
+            // Guards first, then log -- see handleActorHpChange for why.
             if (!CombatBarManager.isCombatBarActive(menuBar)) return;
             const hpChanged = CombatBarManager.didHpChange(updateData);
             const hiddenChanged = 'hidden' in updateData;
@@ -2481,8 +2498,11 @@ export class CombatBarManager {
             const tokenId = token?.id;
             const actorId = token?.actor?.id;
             const isCombatant = combat.combatants.some(combatant => combatant.token?.id === tokenId || combatant.actor?.id === actorId);
-            postConsoleAndNotification(MODULE.NAME, 'Menubar: Token change evaluated', { isCombatant, hpChanged, hiddenChanged, dispositionChanged }, true, false);
-            if (!isCombatant) return;
+            if (!isCombatant) {
+                postConsoleAndNotification(MODULE.NAME, 'Menubar: token change for a non-combatant', { tokenId, hpChanged, hiddenChanged, dispositionChanged }, true, false);
+                return;
+            }
+            postConsoleAndNotification(MODULE.NAME, 'Menubar: rebuilding for a combatant token change', { tokenId, hpChanged, hiddenChanged, dispositionChanged }, true, false);
             CombatBarManager.updateCombatBar(menuBar);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Menubar: Failed to process token change', { tokenId: token?.id, error }, true, false);

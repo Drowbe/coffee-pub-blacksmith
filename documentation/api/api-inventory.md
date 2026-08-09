@@ -244,6 +244,12 @@ An incoming item merges only when all of the following hold. If any fails, it la
 - `_stats.compendiumSource` does not contradict: a missing source on either side is treated as unknown, and
   only two present-but-different sources block a merge.
 
+A merge bumps quantity and writes any arrival flags. It does **not** adopt the incoming item's
+`compendiumSource`, so a row keeps whatever provenance it was created with. One consequence follows from that
+plus the rule above: an unsourced row will merge with items from any source, because each of those is another
+one-sided comparison. The stack's provenance stays unknown, which is what it already was, and the items are
+identical in every respect the predicate checks.
+
 Comparison is on source data, not the prepared model, so derived values like `uses.value` do not spuriously
 prevent a merge. Anything undeclared in `ignoreFlags` counts as identity, which is why a module writing UI
 state to item flags must declare those keys.

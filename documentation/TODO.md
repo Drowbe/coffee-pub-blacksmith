@@ -4,6 +4,117 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## VERIFICATION QUEUE - shipped code, not yet proven (opened 2026-08-08)
+
+Everything below is written, syntax-checked, and passing both invariant checks, and **none of it has been
+exercised in a running world** except where noted. Delete an item when it passes; delete the whole section
+when it is empty.
+
+Two things are worth knowing before working through it. **The harness is the cheap half:** paste
+`utilities/test-harness.js` into a script macro as GM and use "Run All Headless", which covers 33 assertions
+across the two new suites. **The expensive half cannot be automated** - a second client, a browser reload, or
+a judgement about what a window looks like - and those are the items most likely to be skipped and most likely
+to matter.
+
+Highest risk first, if time is short: the two-client inventory case, the encumbrance guard with the guard
+switched off, and the XP reload case.
+
+### Harness - Inventory tab (29 headless checks)
+
+Last full run was 104/109, **before** the transient-flag registry, the empty-parent fix in the flag
+comparison, `transferItems`, batch coalescing, and batch rollback existed. So the previous pass tells us
+almost nothing about the current code.
+
+- [ ] Run the Inventory tab. Expect all 29 green.
+- [ ] `merge-source-conflict` passes. Its predecessor failed on 2026-08-08 and the fault was the test's: it
+      seeded the target with an UNSOURCED item, and since a merge does not adopt the incoming item's
+      provenance, the row stayed unsourced and every later grant was another one-sided comparison. Split into
+      two checks; the conflict case now seeds with a sourced item and bails loudly if the created row did not
+      retain its `compendiumSource`, which would be a finding in itself.
+- [ ] The three merge checks that failed last time now pass. They failed because Squire's `isNew` stamp made
+      merge identity timing-dependent; the transient-flag registry is the fix. If they still fail, the
+      diagnosis was incomplete and `explainNoMerge` will print which field differs.
+- [ ] `one-write-per-actor` passes. It reported 1 and 3 collisions last time, attributable to Squire's
+      follow-up write, which they have since moved to `preCreateItem`. Zero is the expected answer.
+- [ ] `transfer-items-write-count`: five items cost at most two writes per actor. This is the only check that
+      proves batching, and it is invisible in any return value.
+- [ ] `transfer-items-rollback`: a failed batch source reduction reverts a merge by decrementing, never by
+      deleting. A wrong answer here destroys quantity the recipient already owned.
+
+### Harness - XP Record tab (5 headless checks)
+
+- [ ] Run the XP Record tab. Note the checks refuse to run while a combat is active - they create their own
+      Combat and will not disturb a live one, so end combat first.
+- [ ] `sweep-does-not-degrade` passes. This is the bug the reload test exposed: the periodic sweep replacing
+      good evidence with prototype values once a token is gone.
+- [ ] `sweep-does-not-loop` passes: five no-change sweeps produce zero writes. Guards a write loop that would
+      present as constant server chatter rather than anything visible.
+
+### Inventory - live, cannot be automated
+
+- [ ] **Two clients loot one corpse simultaneously.** Total received must equal total removed. The mutex is
+      per-client by design, so this measures what that actually costs in practice.
+- [ ] **Two players swap items simultaneously.** Both complete rather than hang. Sorted lock acquisition
+      exists for this; the failure mode is a hang with no error.
+- [ ] Curator's loot window end to end: per-row TAKE, a partial quantity, a currency TAKE, an emptied row
+      disappearing, and an item the looter already held growing rather than adding a second row.
+- [ ] Take All over a corpse holding a **packed bag**: every other row moves, the bag is refused with a
+      content count, and the bag stays on the corpse.
+- [ ] Take All over a corpse holding **two identical stacks**: they arrive as one stack, not two rows.
+
+### Encumbrance guard
+
+- [ ] One activation line in the console on load, naming the dnd5e version. If absent, the guard declined and
+      logs its reason beside it.
+- [ ] Loot several items onto a near-encumbered player: no `dnd5eencumbered0` errors.
+- [ ] **Switch `enableEncumbranceGuard` off, reload, and confirm `guard-collapses-recomputes` now FAILS.** A
+      guard that cannot be turned off to watch the bug return is assumed rather than demonstrated. This is the
+      only item that proves the guard does anything.
+- [ ] No libWrapper conflict warning on load. Another module wrapping `updateEncumbrance` is exactly what
+      libWrapper is registered to surface.
+
+### Token interaction registry
+
+The permission bypass is **already confirmed** on a player session - a non-GM double-clicking a matched NPC
+ran the claim's handler and got no Actor sheet. What remains is whether the relaxation stays scoped.
+
+- [ ] **A non-matching token the same player lacks permission on: double-click must do nothing.** If a sheet
+      opens, the relaxation is leaking past the claim. Treat that as a security regression and pull the
+      feature rather than patching around it.
+- [ ] Same player, their own character: sheet opens normally.
+- [ ] A claim whose `handler` throws opens **nothing** - specifically not the Actor sheet. Permission has
+      already been granted by that point, so falling through would leak the sheet.
+- [ ] `disposeByContext` while a claimed token is on screen: double-click reverts immediately, without a redraw.
+
+### api.dialog modality (default changed to non-modal)
+
+- [ ] A quantity prompt raised from Curator's loot window leaves that window draggable and clickable.
+- [ ] A **destructive** confirm still blocks everything behind it - delete a pin layer in Manage Pins.
+- [ ] A non-destructive confirm no longer blocks. This is the only item with real regression risk: a caller
+      that assumed nothing behind it could be touched now behaves differently. Blacksmith's own callers are all
+      either destructive or prompts, so the risk sits with satellites.
+- [ ] Escape still resolves to `closeValue` on both a modal and a non-modal dialog.
+
+### Shared button width
+
+- [ ] A window with **two** footer buttons lays out correctly now the fixed 300px is gone from
+      `.blacksmith-window-btn-primary`. That is the case the width was breaking.
+- [ ] Manage Pins and the pin config footers still look right - both had local resets that are now deleted.
+
+### XP record - live
+
+- [ ] **The reload case.** Kill something, delete its token, reload the browser **without ending combat**, then
+      end combat. Both the resolution and the name must hold. This is the one that proves persistence rather
+      than in-memory state, and it is the case that found the last two bugs.
+- [ ] The combat tracker keeps the fought name after the corpse is cleared, and still does a minute later -
+      the revert ran on a later data-preparation cycle, so it is not immediate.
+- [ ] A wounded monster that survives reads `Escaped`, not `Ignored`. Nothing on the Combatant records how hurt
+      something was, so this is the case that genuinely needs the record rather than the stored `defeated` flag.
+- [ ] Create Combat with a live token and a corpse on canvas, nothing selected: only the live one enters, and
+      the console names the skip count.
+- [ ] Encounter CR badges: a monster at zero drops the monster CR; a **player character at zero does not**
+      drop the party CR. That asymmetry is deliberate and is the one most likely to be reported as a bug.
+
 ## CRITICAL - HookManager turns any falsy-returning `pre*` callback into a world-wide veto
 
 **Found 2026-08-08 by Squire, verified in our source.** `manager-hooks.js:79-81`:
@@ -37,13 +148,13 @@ becomes inert, which is the safe default and matches what every existing caller 
 `once` cleanup above the veto path, or run it in a `finally`, so a veto cannot leak a registration. Then
 `api-hookmanager.md` gains a short section on cancellation.
 
-**Squire will keep using native hooks for `pre*` even after this lands, by choice** (stated 2026-08-08): a
+**Squire will keep using native hooks for `pre`* even after this lands, by choice** (stated 2026-08-08): a
 hook that can cancel an operation world-wide is the one place where fewer layers between the module and
 Foundry is worth more than consistency with the manager. That is a reasonable position and it is recorded
 here so nobody files "migrate Squire's native hooks onto HookManager" as cleanup later. Everything else of
 theirs stays on the manager.
 
-**Verification:** register two callbacks on a `pre*` hook where the first returns `false` for its own
+**Verification:** register two callbacks on a `pre`* hook where the first returns `false` for its own
 reasons; the second must still run and the document must still be created. Register a `once` callback that
 returns `false`; it must not fire twice.
 
@@ -667,29 +778,29 @@ required mode in the request title and detect what was actually rolled by sniffi
 #### Design system: make it upstream of the component docs
 - **Why it matters**: cross-module design continuity is "better but lacking." The design-system docs are now audited and published, but they do not yet *drive* the per-component docs, which each restate design details that have diverged.
 - **Done 2026-07-20 — audit and split.** The 1,564-line `design-system.md` was verified against `styles/` (54 files, 16.5k lines), `templates/`, and `scripts/`, then replaced by four published pages: `design-tokens` (all 63 `vars.css` tokens), `design-components`, `design-patterns`, `design-extending`. The audit found the doc described the pre-`vars.css` world — 19 hexes in the palette section had tokens the doc never named — and that **every wrong claim sat inside a pasted markup block while the class names and file pointers were nearly all correct**, which is why the new pages name classes and cite `file:line` instead of pasting HTML. Consumer-facing errors that would have produced non-working sibling-module code: a fabricated `api.menubar.addButton()` (real: `registerMenubarTool(toolId, toolData)`), an ApplicationV1 window example (`static get defaultOptions` — zero occurrences in the repo; all 14 real windows use `static DEFAULT_OPTIONS` + `static PARTS`), and a debug-logging pattern with zero call sites (real: `postConsoleAndNotification`, 955 calls). Defects found in passing went to `known-issues.md`; tech debt is in the two entries above. `tools/check-design-tokens.mjs` now fails the build if any documented token value drifts from `vars.css`.
-- **Remaining scope — the continuity fix**: make the design-system pages upstream of the component docs (chat cards, windows, pins, menubar, timers). Those `api-*`/`architecture-*` pages should point at and conform to the design system rather than restating design details. Start by grepping the published component docs for class names and token names that also appear in `design-components`/`design-tokens`, and replace the restatement with a pointer.
+- **Remaining scope — the continuity fix**: make the design-system pages upstream of the component docs (chat cards, windows, pins, menubar, timers). Those `api-`*/`architecture-*` pages should point at and conform to the design system rather than restating design details. Start by grepping the published component docs for class names and token names that also appear in `design-components`/`design-tokens`, and replace the restatement with a pointer.
 - **Relationship**: the "Card CSS migration to theme system" item below is a facet of this — fold it in when this starts.
 - **Window-template gap found 2026-07-19**: `.blacksmith-window-template-body` ships with **no padding**, so every window re-invents the gutter (`notes-gm.css` 12px; `window-json-import.css` 0 + internal panel padding; `window-toast-send.css` 12px). When the design-system pass touches windows, decide a default body gutter in `window-template.css` and strip the per-window overrides (watch for double-padding in windows that pad internally). Same pass should reconcile field-label styling: the shared `blacksmith-field-label` (small uppercase) vs the importer's own bolder sentence-case labels — one canonical label style in the shared kit.
 - **Window themes are asymmetric between the two bases (noted 2026-07-29)**: the Light/Dark/Glass trio exists only in `window-tool-base.js` + `styles/window-tool.css`; `window-base.js` has no theme concept and `styles/window-template.css` has no theme hooks. A consumer on the standard base gets one presentation, on the Tool base gets three. Nothing is blocked on this — Squire's transfer tool correctly uses the Tool base — but the asymmetry is undocumented and a consumer picking a base has no way to know theming rides on that choice. Decide deliberately and write it down: extend the trio to the standard base, or state the split as intentional (persistent canvas palettes are themeable; editors and forms are not) in `api-window.md`'s base-class comparison table.
 - **Blocked on**: nothing — the wiki reset is complete.
-- **How to verify**: every token/class named in the split docs resolves to a real definition in `styles/*`; no design detail is stated divergently between the design-system docs and a component doc; a sibling can style a card/window from the consumer reference and match Blacksmith.
+- **How to verify**: every token/class named in the split docs resolves to a real definition in `styles/`*; no design detail is stated divergently between the design-system docs and a component doc; a sibling can style a card/window from the consumer reference and match Blacksmith.
 - **Priority**: Highest post-reset.
 
 #### CSS tech debt surfaced by the design-system audit (2026-07-20)
 These were section 15 ("Known Inconsistencies") of `design-system.md`. That section was future-work commentary living inside a spec, so it moved here; each claim below was re-verified against the CSS on 2026-07-20, and the counts are current as of that date.
 
-- **Adopt the tokens that already exist.** `styles/vars.css` defines 63 tokens, and **21 of them are referenced by no CSS in the module** — the entire `--blacksmith-status-*` family (5), the entire `--blacksmith-interactive-*` family (3), all three `--blacksmith-shadow-*`, and most surfaces. Meanwhile **124 raw hex literals across `styles/` are byte-identical to a token that already exists**: `#594a3c` x48 (`--blacksmith-color-brand`), `#c15701` x15 (`-brand-accent`), `#8d8061` x13 (`-brand-muted`, otherwise unused), `#8b0000` x7 (`--blacksmith-status-danger`), `#bdbdae` x6 (`--blacksmith-text-light`), `#0e0c0c` x5, `#ada39d` x5, `#4b4b4b` x4, `#f6f1ed` x3, `#629602` x3, `#313030` x2, `#e4ddd9` x2, `#d63737` x2, plus `#222222` x9. Repo-wide the CSS holds 649 raw hex literals against 609 `var()` references. This is a mechanical find-and-replace per literal, not a design decision — the token and its value already agree. **This supersedes the old "hardcoded colors should become variables" framing: the variables exist, the CSS just does not use them.**
+- **Adopt the tokens that already exist.** `styles/vars.css` defines 63 tokens, and **21 of them are referenced by no CSS in the module** — the entire `--blacksmith-status-`* family (5), the entire `--blacksmith-interactive-*` family (3), all three `--blacksmith-shadow-*`, and most surfaces. Meanwhile **124 raw hex literals across `styles/` are byte-identical to a token that already exists**: `#594a3c` x48 (`--blacksmith-color-brand`), `#c15701` x15 (`-brand-accent`), `#8d8061` x13 (`-brand-muted`, otherwise unused), `#8b0000` x7 (`--blacksmith-status-danger`), `#bdbdae` x6 (`--blacksmith-text-light`), `#0e0c0c` x5, `#ada39d` x5, `#4b4b4b` x4, `#f6f1ed` x3, `#629602` x3, `#313030` x2, `#e4ddd9` x2, `#d63737` x2, plus `#222222` x9. Repo-wide the CSS holds 649 raw hex literals against 609 `var()` references. This is a mechanical find-and-replace per literal, not a design decision — the token and its value already agree. **This supersedes the old "hardcoded colors should become variables" framing: the variables exist, the CSS just does not use them.**
 - **Legacy Hungarian-notation tokens.** 9 remain, all in `styles/common.css:8-16` (`--intChatSpacing`, `--strHideRollTableIcon`, `--strSceneTextAlign`, `--strScenePadding{Left,Right,Top,Bottom}`, `--strSceneFontSize`). Migrate to `--blacksmith-[component]-[property]` when those features are next touched. Note these are written by the scene-title/chat settings handlers, so renaming them means updating the JS that sets them.
 - **Duplicate rules in `window-common.css`.** `div#coffee-pub-blacksmith .window-content` is declared 3 times, and `styles/window-common.css:70` still carries `/* -------- THINGS BELOW HAVE NOT BEEN ORGANIZED ----------- */`. Consolidate to one rule per selector per file.
-- **`cpb-` vs `blacksmith-` prefix split.** Both are in heavy live use: 141 distinct `.cpb-*` classes vs 345 distinct `.blacksmith-*`. This is too large to rename wholesale and is not worth churning; the standing rule is new components use `blacksmith-`, and `cpb-` is left to the legacy chat-card selectors. Worth a decision only if the card system is ever rebuilt.
+- **`cpb-` vs `blacksmith-` prefix split.** Both are in heavy live use: 141 distinct `.cpb-`* classes vs 345 distinct `.blacksmith-*`. This is too large to rename wholesale and is not worth churning; the standing rule is new components use `blacksmith-`, and `cpb-` is left to the legacy chat-card selectors. Worth a decision only if the card system is ever rebuilt.
 - **`.bh-` namespace is unused.** Referenced nowhere in `styles/`, `templates/`, or `scripts/`. The reservation was dropped from the design docs; either adopt it deliberately or leave it dead.
 - **Typography is partly tokenized.** `vars.css` now defines `--blacksmith-font-size-{xs,sm,base,md,lg,xl}` and `--blacksmith-font-weight-{light,normal,bold,black}`, so the old "not tokenized at all" claim is obsolete. Card-context sizes are still literal `em` values in the card CSS; fold that into the card-theme migration below rather than doing it standalone.
 - **How to verify**: after the token-adoption pass, no hex literal in `styles/` matches a value defined in `vars.css` (the audit script in the design-system effort checks this mechanically), and the rendered UI is pixel-identical — these substitutions are value-preserving by construction.
 - **Priority**: Medium. None of this is user-visible; it is what makes the design system actually govern the CSS instead of merely describing it.
 
 #### Dead CSS found during the design-system audit (2026-07-20)
-- **`styles/widget-tags.css` (154 lines) is unlanded, not dead** — do not delete it. It appears in neither `styles/default.css`'s import list nor `module.json`'s `styles` array, so none of its rules apply. 14 of its 15 `bsw-*` classes are emitted by `templates/partials/tag-widget.hbs`, and `scripts/widget-tags.js` (imported at `scripts/blacksmith.js:88`) registers that template as the `blacksmith-tag-widget` partial. What is missing is the last step: **no template invokes the partial**, and the stylesheet is not imported. The tag widget is therefore a complete, inert feature — nothing renders it, so nothing is visibly broken today. Landing it means adding the `@import` to `default.css` and a `{{> blacksmith-tag-widget}}` call site. Deleting the CSS instead would destroy the styling for a feature that is one call site from working.
-- **`--blacksmith-variant-timeline-*` duplicates `--blacksmith-variant-info-*`.** Both pairs are `rgba(47, 68, 106, ...)` (`styles/vars.css:112-113` and `:124-125`), so the two variants render indistinguishably despite being presented as distinct. Decide: give `timeline` its own hue, or drop it and alias consumers to `info`. This is a design call, not a cleanup — the published token page currently states the duplication as fact.
+- **`styles/widget-tags.css` (154 lines) is unlanded, not dead** — do not delete it. It appears in neither `styles/default.css`'s import list nor `module.json`'s `styles` array, so none of its rules apply. 14 of its 15 `bsw-`* classes are emitted by `templates/partials/tag-widget.hbs`, and `scripts/widget-tags.js` (imported at `scripts/blacksmith.js:88`) registers that template as the `blacksmith-tag-widget` partial. What is missing is the last step: **no template invokes the partial**, and the stylesheet is not imported. The tag widget is therefore a complete, inert feature — nothing renders it, so nothing is visibly broken today. Landing it means adding the `@import` to `default.css` and a `{{> blacksmith-tag-widget}}` call site. Deleting the CSS instead would destroy the styling for a feature that is one call site from working.
+- **`--blacksmith-variant-timeline-`* duplicates `--blacksmith-variant-info-*`.** Both pairs are `rgba(47, 68, 106, ...)` (`styles/vars.css:112-113` and `:124-125`), so the two variants render indistinguishably despite being presented as distinct. Decide: give `timeline` its own hue, or drop it and alias consumers to `info`. This is a design call, not a cleanup — the published token page currently states the duplication as fact.
 - **Priority**: Low.
 
 #### `applicationv2-window/` — decide its disposition
@@ -699,7 +810,7 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
 - **Priority**: Medium — fold it into the design-system effort rather than doing it standalone.
 
 #### Publish the importer docs once the import work is verified
-- **Issue**: `api/api-importer.md` (474 lines) and `architecture/architecture-importer.md` (311 lines) are the only two `api-*`/`architecture-*` docs not on the wiki. They were written ahead of the functionality, so they are held under the rule that a doc describes what exists.
+- **Issue**: `api/api-importer.md` (474 lines) and `architecture/architecture-importer.md` (311 lines) are the only two `api-`*/`architecture-*` docs not on the wiki. They were written ahead of the functionality, so they are held under the rule that a doc describes what exists.
 - **Gate**: the JSON-import work lands and passes live testing. Then audit both against the finished code, scrub to the formatting standard, and add them to `PUBLISH` in `tools/wiki-sync.mjs`.
 - **Priority**: Medium — this closes the documentation set with nothing held back.
 
@@ -726,7 +837,7 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
   - *Stays in chat (record value — do not migrate)*: combat stats/MVP round summaries (`stats-combat.js`), XP distribution (`xp-manager.js`), roll results (`manager-rolls.js`, `window-skillcheck.js`), reputation cards (`manager-reputation.js`), marching-order/conga table (`token-movement.js` :1420), the Manual Rolls GM audit whisper (`ui-sidebar-style.js` :553 — arguably a GM-only toast later, but it is an audit trail).
   - NOT yet — the leader toast currently runs alongside the cards; each migration is its own change with its own verification.
 - **Turn notification with the combatant's portrait (ON HOLD 2026-07-24 — author decision)**: do not build yet — the author suspects turn announcements belong in a sibling module, not Blacksmith; revisit ownership before any work. The endorsed part of the idea: timer messages (turn warning/expired) carrying the face of whoever is holding things up, for context — when this is picked up, the mechanics are the toast `image` slot (round avatar, wins over `icon`), `getPortraitImage` in `api-core.js`, and threading the image through the timer payload into `timerToastContent()` (`timer-notifications.js`). The hurry-up nudge toast already demonstrates the pattern.
-- **New toast option adoption — candidates (2026-07-23, post-13.11 build)**: the publish/animation/billboard options shipped; these are the wiring candidates, each its own change with its own verification when picked up. Billboard + animation moments: **vote result announcement** (`manager-vote.js` — result only; the interactive card stays until Phase 2 actions) as a small billboard with `pop`; **XP distribution award** (`xp-manager.js`) as a medium billboard with `pop` alongside the chat record; **combat round MVP headline** (`stats-combat.js`) as a billboard with `slam` while the full summary stays in chat; **timer expirations** ("time's up" moments in `timer-notifications.js` routing) upgraded from plain toast to small billboard with `pop`. Stream (`publish: 'both'`) moments for spectator/recording value: round MVP, XP awards, vote results, and session start/break/end billboards (a persistent `pulse` "Back in a few" board is the break-screen case). Sibling-side (not this repo): crit/fumble slam/shake wiring belongs to the rolls consumer module once the `blacksmith.rolls.*` consolidation lands, and Bibliosoph's splash migration can adopt animations when it swaps to `api.toast` (both tracked in `TODO-GLOBAL.md` / sibling TODOs).
+- **New toast option adoption — candidates (2026-07-23, post-13.11 build)**: the publish/animation/billboard options shipped; these are the wiring candidates, each its own change with its own verification when picked up. Billboard + animation moments: **vote result announcement** (`manager-vote.js` — result only; the interactive card stays until Phase 2 actions) as a small billboard with `pop`; **XP distribution award** (`xp-manager.js`) as a medium billboard with `pop` alongside the chat record; **combat round MVP headline** (`stats-combat.js`) as a billboard with `slam` while the full summary stays in chat; **timer expirations** ("time's up" moments in `timer-notifications.js` routing) upgraded from plain toast to small billboard with `pop`. Stream (`publish: 'both'`) moments for spectator/recording value: round MVP, XP awards, vote results, and session start/break/end billboards (a persistent `pulse` "Back in a few" board is the break-screen case). Sibling-side (not this repo): crit/fumble slam/shake wiring belongs to the rolls consumer module once the `blacksmith.rolls.`* consolidation lands, and Bibliosoph's splash migration can adopt animations when it swaps to `api.toast` (both tracked in `TODO-GLOBAL.md` / sibling TODOs).
 - **Future-proofing ideas (captured, not committed)**: priority/queue ordering when stacked; themes via the design-system tokens; Phase 3 ack-back ("player clicked acknowledge" reported to the GM).
 - **Toast templates (later)**: add a Save as New workflow to the GM Send Toast window so a configured toast can be named and reused. Define template ownership, rename/delete behavior, and whether templates are client- or world-scoped before implementation; title and message may be template content even though they are deliberately excluded from ordinary last-used preferences.
 - **Priority**: Medium (feature). Phase 2 is unblocked; Phase 3 is gated on the socket system.
@@ -1021,7 +1132,7 @@ In FoundryVTT v13, jQuery is removed from the core UI stack. `html` parameters s
 
 ### Auto-Roll Injury Based on Rules
 - Automatically trigger injury rolls based on configurable rules/conditions (HP thresholds, critical hits, massive damage, etc.)
-- **Ownership note (2026-07-18)**: injuries/crit/fumble handling belongs to Bibliosoph, not Blacksmith. **Phase 1 rolls API shipped** — Bibliosoph should subscribe to `blacksmith.rolls.*` (see `TODO-GLOBAL.md`). This backlog item moves to Bibliosoph when wired.
+- **Ownership note (2026-07-18)**: injuries/crit/fumble handling belongs to Bibliosoph, not Blacksmith. **Phase 1 rolls API shipped** — Bibliosoph should subscribe to `blacksmith.rolls.`* (see `TODO-GLOBAL.md`). This backlog item moves to Bibliosoph when wired.
 
 ### Multiple Image Directories for Token Image Replacement
 - Allow users to configure multiple image directories with priority order (deferred until a dedicated image pipeline is back in scope for Blacksmith or a companion module)

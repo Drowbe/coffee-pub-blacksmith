@@ -500,52 +500,89 @@ export default {
             }
         },
         {
-            id: 'merge-source-rule',
+            id: 'merge-source-one-sided',
             tier: 'headless',
             group: 'Merging',
             label: 'A missing compendiumSource is unknown, not different',
-            note: 'Artificer\'s default world state: one copy sourced, one not, identical otherwise.',
-            run: async ({ expect }) => {
+            note: 'Artificer\'s default world state: a pack copy with no source and a world copy with one, identical otherwise. Requiring a source, or blocking on a one-sided one, would make stacking a coin flip.',
+            run: async ({ expect, log }) => {
                 const api = requireApi('inventory');
                 const made = [];
                 try {
-                    const target = await tempActor('character', 'source-rule');
+                    const target = await tempActor('character', 'source-one-sided');
                     made.push(target);
 
-                    const unsourced = await Item.create(lootData('Harness Source Widget', { system: { quantity: 5 } }));
+                    const unsourced = await Item.create(lootData('Harness OneSided Widget', { system: { quantity: 5 } }));
                     made.push(unsourced);
-                    const sourced = await Item.create(lootData('Harness Source Widget', {
+                    const sourced = await Item.create(lootData('Harness OneSided Widget', {
                         system: { quantity: 5 },
                         _stats: { compendiumSource: 'Compendium.harness.fake.Item.aaaaaaaaaaaaaaaa' }
                     }));
                     made.push(sourced);
-                    const otherSource = await Item.create(lootData('Harness Source Widget', {
-                        system: { quantity: 5 },
-                        _stats: { compendiumSource: 'Compendium.harness.fake.Item.bbbbbbbbbbbbbbbb' }
-                    }));
-                    made.push(otherSource);
-
-                    // Foundry manages _stats itself, so confirm the fixture actually kept the
-                    // source before asserting on it — otherwise a stripped field reads as a
-                    // failure of the merge rule rather than of the fixture.
                     if (!sourced._source?._stats?.compendiumSource) {
-                        log('Foundry did not preserve _stats.compendiumSource on the fixture — cannot test this rule here.');
+                        log('Foundry did not preserve _stats.compendiumSource on the fixture -- cannot test this rule here.');
                         return;
                     }
 
                     await api.inventory.grantItem({ targetActorUuid: target.uuid, itemUuid: unsourced.uuid, quantity: 1 });
                     const mixed = await api.inventory.grantItem({ targetActorUuid: target.uuid, itemUuid: sourced.uuid, quantity: 1 });
                     expect('one-sided source still merges', mixed.merged, true);
-
-                    const conflicting = await api.inventory.grantItem({ targetActorUuid: target.uuid, itemUuid: otherSource.uuid, quantity: 1 });
-                    expect('two disagreeing sources do not merge', conflicting.merged, false);
-                    expect('and it still succeeded', conflicting.ok, true);
+                    expect('one row', target.items.size, 1);
                 } finally {
                     await cleanup(made);
                 }
             }
         },
+        {
+            id: 'merge-source-conflict',
+            tier: 'headless',
+            group: 'Merging',
+            label: 'Two present-but-different sources do not merge',
+            note: 'The row on the target must itself carry a source for this to be testable. A merge only bumps quantity -- it deliberately does not adopt the incoming item\'s provenance -- so seeding with an unsourced item first would leave the row unsourced and every later grant would be another one-sided case.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('inventory');
+                const made = [];
+                try {
+                    const target = await tempActor('character', 'source-conflict');
+                    made.push(target);
 
+                    const sourceA = await Item.create(lootData('Harness Conflict Widget', {
+                        system: { quantity: 5 },
+                        _stats: { compendiumSource: 'Compendium.harness.fake.Item.aaaaaaaaaaaaaaaa' }
+                    }));
+                    const sourceB = await Item.create(lootData('Harness Conflict Widget', {
+                        system: { quantity: 5 },
+                        _stats: { compendiumSource: 'Compendium.harness.fake.Item.bbbbbbbbbbbbbbbb' }
+                    }));
+                    made.push(sourceA, sourceB);
+                    if (!sourceA._source?._stats?.compendiumSource || !sourceB._source?._stats?.compendiumSource) {
+                        log('Foundry did not preserve _stats.compendiumSource on the fixtures -- cannot test this rule here.');
+                        return;
+                    }
+
+                    // Seed with a SOURCED item, so the row on the target carries a source of its own.
+                    const seeded = await api.inventory.grantItem({ targetActorUuid: target.uuid, itemUuid: sourceA.uuid, quantity: 1 });
+                    expect.ok('seed grant succeeded', seeded.ok);
+
+                    // The created row must have kept the source, or this check proves nothing.
+                    const row = target.items.get(seeded.targetItemId);
+                    const rowSource = row?._source?._stats?.compendiumSource ?? null;
+                    if (!rowSource) {
+                        log('The created row did not retain _stats.compendiumSource, so both sides cannot disagree here.');
+                        log('That is worth knowing on its own: provenance is not surviving the create.');
+                        expect.ok('created row retains its compendiumSource', false);
+                        return;
+                    }
+
+                    const conflicting = await api.inventory.grantItem({ targetActorUuid: target.uuid, itemUuid: sourceB.uuid, quantity: 1 });
+                    expect('two disagreeing sources do not merge', conflicting.merged, false);
+                    expect('and it still succeeded', conflicting.ok, true);
+                    expect('so there are two rows', target.items.size, 2);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
         {
             id: 'merge-across-creation-paths',
             tier: 'headless',

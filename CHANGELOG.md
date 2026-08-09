@@ -108,6 +108,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The combat bar no longer logs every actor and token update** (`scripts/manager-combatbar.js`): `handleActorHpChange` and `handleTokenChange` each logged the arriving update, with its full payload, as their **first statement** -- before the guards that decide whether the bar cares. With debug mode on, any operation touching actors buried the console: an inventory transfer produced dozens of identical `Menubar: updateActor received` lines for one actor, every one of them discarded a line later because the bar only rebuilds for a hit-point change on a tracked combatant.
+
+  Logging now happens after the guards, and says something when it does. An update that does not touch hit points is not this bar's business and is silent. An update that does touch hit points but is still rejected reports why -- no active combat, or not a combatant -- which is the case worth debugging. `didHpChange` also stopped logging: it is a pure predicate called from both handlers before either knows whether the change matters, so logging inside it reported on updates about to be discarded, the same noise one layer down.
+
+  The handlers were already cheap after the log, so this was never a correctness or rebuild-frequency problem -- but building the payload object and writing to the console on every actor update in the world is a real cost while debugging, which is exactly when it hurts.
+
+- **The test harness prints failures where they can be read** (`utilities/test-harness.js`): a run reported every assertion in a single `console.log`, and Chrome truncates a long enough string -- so a 476-assertion run with 13 failures printed passes and cut off before reaching any failure. The one run whose output matters was the one it could not show. Reporting now leads with a per-suite tally, then each failure as its own `console.error` so none can be truncated away, then the passes last in a collapsed group, chunked. Both "Run All Headless" and the per-suite buttons share it.
+
+
 - **A menubar tool that changes its icon now repaints** (`scripts/api-menubar.js`): the structure fingerprint that decides between a rebuild and the lightweight refresh covered visibility, zone, group, active state, order and title, but not the icon or its colour. A tool that reports its state by changing icon -- a recording dot, a pause bar -- changes nothing else about the layout, so re-registering it matched the previous fingerprint, took the lightweight path, and kept whatever icon it was first drawn with. The lightweight refresh does not touch tool icons at all, so only a rebuild can move one. This is the same omission `title` was added for. Unlike `title`, both are read as plain strings, because that is what the template draws and what the API documents.
 
 ## [13.15.3]
