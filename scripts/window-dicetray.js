@@ -24,9 +24,6 @@ import { setToolWindowState } from './manager-tool-windows.js';
 
 export const DICE_TRAY_WINDOW_ID = 'blacksmith-dice-tray';
 
-/** Squire's registry id, kept so any macro calling it keeps working. See window registration below. */
-export const DICE_TRAY_LEGACY_WINDOW_ID = 'coffee-pub-squire-dice-tray-window';
-
 /** Height with the roll history showing. Without it the window measures its own content instead. */
 const HEIGHT_WITH_HISTORY = 280;
 
@@ -677,26 +674,18 @@ export async function openDiceTray() {
     }
 }
 
-/**
- * Register the window and its menubar tool.
- *
- * Two window ids point at one opener: Blacksmith's own, and the id Squire used, so a
- * macro calling `openWindow('coffee-pub-squire-dice-tray-window')` keeps working after
- * Squire drops the tool.
- */
+/** Register the window and its menubar tool. */
 export function registerDiceTray() {
     // Registry and menubar are imported directly rather than reached through
     // `module.api`, which attaches its window methods from an async dynamic import
     // and so is not guaranteed to be populated at this point.
     BlacksmithToolWindowBaseV2.migratePositionKey('squire-dice-tray-micro-position', 'blacksmith-dice-tray-micro-position');
 
-    const descriptor = {
+    registerWindow(DICE_TRAY_WINDOW_ID, {
         moduleId: MODULE.ID,
         title: 'Dice Tray',
         open: async () => openDiceTray()
-    };
-    registerWindow(DICE_TRAY_WINDOW_ID, descriptor);
-    registerWindow(DICE_TRAY_LEGACY_WINDOW_ID, descriptor);
+    });
 
     MenuBar.registerMenubarTool('dice-tray', {
         icon: 'fa-solid fa-dice-d20',
@@ -710,10 +699,7 @@ export function registerDiceTray() {
         moduleId: MODULE.ID,
         gmOnly: false,
         leaderOnly: false,
-        visible: true,
-        // Squire owned this tool until it moved here. Remove once Squire's release
-        // dropping it has shipped -- see documentation/plans/plan-squire-tool-adoption.md.
-        supersedes: ['squire-dice-tray']
+        visible: true
     });
 
     return true;

@@ -23,9 +23,6 @@ import { setToolWindowState } from './manager-tool-windows.js';
 
 export const MACROS_WINDOW_ID = 'blacksmith-macros';
 
-/** Squire's registry id, kept so any macro calling it keeps working. */
-export const MACROS_LEGACY_WINDOW_ID = 'coffee-pub-squire-macros-window';
-
 /** Slots shown when the list is empty, so there is always somewhere to drop. */
 const MIN_SLOTS = 1;
 
@@ -547,17 +544,15 @@ function buildMacrosContextMenu() {
     return items;
 }
 
-/** Register the window (under both ids) and its menubar tool. */
+/** Register the window and its menubar tool. */
 export function registerMacros() {
     BlacksmithToolWindowBaseV2.migratePositionKey('squire-macros-tool-position', 'blacksmith-macros-tool-position');
 
-    const descriptor = {
+    registerWindow(MACROS_WINDOW_ID, {
         moduleId: MODULE.ID,
         title: 'Macros',
         open: async () => openMacrosWindow()
-    };
-    registerWindow(MACROS_WINDOW_ID, descriptor);
-    registerWindow(MACROS_LEGACY_WINDOW_ID, descriptor);
+    });
 
     MenuBar.registerMenubarTool('macros', {
         icon: 'fa-solid fa-code',
@@ -572,9 +567,7 @@ export function registerMacros() {
         moduleId: MODULE.ID,
         gmOnly: false,
         leaderOnly: false,
-        visible: true,
-        // Remove once Squire's release dropping this tool has shipped.
-        supersedes: ['squire-macros']
+        visible: true
     });
 
     return true;

@@ -257,15 +257,10 @@ Once it passes, Squire:
    `panel-party.js:73,619`. Surface and severity vocabulary: `api/api-health.md`.
 5. Removes the dead favourites context-building at `manager-panel.js:414,490`.
 
-Two things Blacksmith is waiting on from Squire, neither blocking:
-
-- **The conditions button on health rows does not render until some module registers a window under the id
-  `blacksmith-status-effects`.** Blacksmith has no conditions editor and will not name Squire's window id;
-  the id names the capability instead, exactly as menubar intents do. Squire's status effects window can
-  claim it by registering under that id as well as its own.
-- **Remove the three `supersedes` entries** in Blacksmith (`window-dicetray.js`, `window-macros.js`,
-  `window-health.js`) once Squire's deletion release has shipped. They exist only for the window where a
-  user has updated one module and not the other.
+One optional thing on Squire's side: **the conditions button on health rows does not render until some
+module registers a window under the id `blacksmith-status-effects`.** Blacksmith has no conditions editor
+and will not name Squire's window id; the id names the capability instead, exactly as menubar intents do.
+Squire's status effects window can claim it by registering under that id as well as its own.
 
 ## Roll outcome API — sibling adoption (Blacksmith Phase 1 shipped)
 

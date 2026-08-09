@@ -14,15 +14,11 @@ name. There is no panel class. In Squire, where these came from, each was a pane
 of the three panels existed largely to reach `PanelManager` for the current actor, and that need does not
 exist here.
 
-| Tool | Script | Menubar id | Window id | Legacy window id |
-|---|---|---|---|---|
-| Dice Tray | `scripts/window-dicetray.js` | `dice-tray` | `blacksmith-dice-tray` | `coffee-pub-squire-dice-tray-window` |
-| Macros | `scripts/window-macros.js` | `macros` | `blacksmith-macros` | `coffee-pub-squire-macros-window` |
-| Health | `scripts/window-health.js` | `health` | `blacksmith-health` | `coffee-pub-squire-health-window` |
-
-Both window ids resolve to the same opener. The legacy ids exist because a user's macro may call
-`openWindow` with the id Squire used, and a rename that silently breaks that is not worth the tidiness.
-They cost one `Map` entry each.
+| Tool | Script | Menubar id | Window id |
+|---|---|---|---|
+| Dice Tray | `scripts/window-dicetray.js` | `dice-tray` | `blacksmith-dice-tray` |
+| Macros | `scripts/window-macros.js` | `macros` | `blacksmith-macros` |
+| Health | `scripts/window-health.js` | `health` | `blacksmith-health` |
 
 Registration happens explicitly from `ready` in `scripts/blacksmith.js`, not from each file's own `ready`
 hook, so ordering against settings registration is decided in one place. Each `register*` function imports
@@ -32,7 +28,8 @@ present at any particular moment.
 
 ### Three id namespaces, not one
 
-Worth stating because conflating them caused a wrong assumption during the move:
+Worth stating because conflating them caused a wrong assumption during the move -- the id that looked
+at-risk was not the one that was:
 
 - The **registry id** is what `openWindow` takes. Renaming it breaks callers.
 - The **ApplicationV2 id** (`DEFAULT_OPTIONS.id`) is the DOM id. Nothing persists against it.
@@ -151,5 +148,7 @@ This exists for the window during which a tool has moved between modules and a u
 but not the other -- without it they see two identical icons. `unregisterMenubarTool` releases the claims a
 tool made, or unregistering the new owner would leave the old one permanently unable to register.
 
-It is a migration affordance with a defined end, not a priority system: entries are removed once the old
-owner's release has shipped.
+**Nothing declares `supersedes` today.** The Squire adoption that prompted it shipped both modules together,
+so no overlap ever reached a world. The mechanism is kept because the next extraction hits the same problem,
+and because a `supersedes` entry is meant to be transient: it is a migration affordance with a defined end,
+not a priority system, and it is removed once the old owner's release has shipped.

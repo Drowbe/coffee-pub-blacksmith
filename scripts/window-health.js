@@ -27,9 +27,6 @@ import { EncounterManager } from './manager-encounter.js';
 
 export const HEALTH_WINDOW_ID = 'blacksmith-health';
 
-/** Squire's registry id, kept so any macro calling it keeps working. */
-export const HEALTH_LEGACY_WINDOW_ID = 'coffee-pub-squire-health-window';
-
 /**
  * The window id another module may register to provide a conditions editor.
  *
@@ -517,17 +514,15 @@ export async function openHealthWindow({ tokens = null } = {}) {
     }
 }
 
-/** Register the window (under both ids) and its menubar tool. */
+/** Register the window and its menubar tool. */
 export function registerHealth() {
     BlacksmithToolWindowBaseV2.migratePositionKey('squire-health-tool-position', 'blacksmith-health-tool-position');
 
-    const descriptor = {
+    registerWindow(HEALTH_WINDOW_ID, {
         moduleId: MODULE.ID,
         title: 'Health',
         open: async (options = {}) => openHealthWindow(options)
-    };
-    registerWindow(HEALTH_WINDOW_ID, descriptor);
-    registerWindow(HEALTH_LEGACY_WINDOW_ID, descriptor);
+    });
 
     MenuBar.registerMenubarTool('health', {
         icon: 'fa-solid fa-heart-pulse',
@@ -550,9 +545,7 @@ export function registerHealth() {
             } catch (_) {
                 return true;
             }
-        },
-        // Remove once Squire's release dropping this tool has shipped.
-        supersedes: ['squire-health']
+        }
     });
 
     return true;

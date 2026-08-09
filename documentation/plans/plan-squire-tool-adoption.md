@@ -1,14 +1,19 @@
 # Plan: Adopt Squire's Dice Tray, Macros, and Health tools
 
-**Status: Implemented (all three phases), unverified.** Written unattended on 2026-08-09 and never loaded in
-Foundry. The design content of this plan has moved to `architecture/architecture-tool-windows.md` and
-`api/api-health.md`; the history is in the `[Unreleased]` section of `CHANGELOG.md`; the verification owed is
-in `testing/testing-squire-tool-adoption.md`; Squire's remaining half is in `TODO-GLOBAL.md`.
+**Status: Implemented, partly verified.** All three windows load and work with Squire disabled, confirmed by
+the author on 2026-08-09. What is still owed is data-level rather than functional -- that the adopted macro
+list, favourites, and thresholds are the user's own values rather than defaults, and the threshold
+unification across the combat bar, blood indicators, and health bars. Those are in
+`testing/testing-squire-tool-adoption.md`.
 
-**This file is kept only until the testing document passes, because it is the record of what was decided and
-why while the work is still unproven. Delete it then.**
+The content of this plan has been distributed: design to `architecture/architecture-tool-windows.md`,
+surface to `api/api-health.md`, `api/api-window.md`, and `api/api-menubar.md`, history to the
+`[Unreleased]` section of `CHANGELOG.md`, and Squire's remaining half to `TODO-GLOBAL.md`.
 
-Three deviations from the plan below, all deliberate:
+**What is left here is only the reasoning that has no other home: what was decided, what was wrong, and
+what got built and then removed. Delete this file once the testing document is empty.**
+
+Four deviations from the plan below, all deliberate:
 
 - **No `manager-health.js`.** Selection tracking is 30 lines and belongs to the window that uses it; a
   manager would have been a file whose only caller is one constructor.
@@ -18,6 +23,8 @@ Three deviations from the plan below, all deliberate:
 - **The health rows' conditions button opened a Squire window.** Not something the plan anticipated. It now
   renders only when a module registers `blacksmith-status-effects`, naming a capability rather than a
   sibling.
+- **The window-id aliases and the three `supersedes` entries were built, then removed** on 2026-08-09 once
+  the author confirmed a single consumer and a simultaneous release. See Decisions 1, 6, and E.
 
 Blacksmith adopts three tools that currently live in Squire but serve every module's audience: Dice Tray,
 Macros, and Health. Settled 2026-08-09: **Blacksmith pulls; Squire does not write Blacksmith code.** Every
@@ -25,12 +32,8 @@ remaining decision is about Blacksmith's shape - file prefixes, HookManager regi
 and heading scope, the CSS import chain, the severity source of truth - and a session working in Squire
 would be guessing at all of them.
 
-Squire's half is two things only: answer the behavioural questions under Standing assumptions, then delete
-and release once each Blacksmith phase is verified in a live world.
-
-This plan is scaffolding. When a phase lands, its content moves to `TODO.md` (work), architecture and API
-docs (design and surface), and `CHANGELOG.md` (history), and the phase section is deleted from here. When
-all three phases are done the file goes.
+Squire's half was two things only: answer the behavioural questions, then delete and release. Both modules
+ship together.
 
 ## What actually moves
 
@@ -109,12 +112,14 @@ Blacksmith registers canonical ids matching its own convention - internal menuba
 | Macros | `macros` | `blacksmith-macros` |
 | Health | `health` | `blacksmith-health` |
 
-The three Squire registry ids are kept as aliases: `scripts/api-windows.js` is a plain `Map`, so an alias
-is one extra `registerWindow` call with the same descriptor. A rename that silently kills someone's macro
-is not worth saving three lines.
+**Superseded 2026-08-09: the Squire registry ids are NOT kept as aliases.** They were, briefly, on the
+reasoning that a rename would silently kill a user's macro. That reasoning assumed users. There is one
+consumer, both modules release together, and a search of the world's macro database found no call to any
+of the three ids -- so the aliases protected a caller that does not exist, and by the repo's own
+delete-dead-code rule they came out.
 
-Do not alias the menubar tool ids. `toolbarIcons` is also a Map but it renders, so a second entry is a
-second visible icon. Nothing needs the alias anyway - see Decision 6.
+Menubar tool ids were never aliased. `toolbarIcons` is also a `Map` but it renders, so a second entry is a
+second visible icon.
 
 **2. Position keys migrate, they do not travel.** Position does not key off the window id.
 `scripts/window-base.js:134` reads `options.windowPositionKey`, and `scripts/window-tool-base.js:119,123`
@@ -166,11 +171,14 @@ also makes Phase 3 a two-module change, which is why it lands last.
 cannot delete first or there is a release with no dice tray at all.
 
 For the window where both modules are installed and only one is updated, the user sees two identical icons.
-Rather than depend on tight release timing, `registerMenubarTool` gains an optional
-`supersedes: ['squire-dice-tray']` - whichever registers second wins, deterministically, in either order.
-It is reusable for Librarian. The tradeoff is a sibling's tool id as a string literal in the hub; this is a
-migration affordance with a defined end - removed when Squire's release ships - not a standing dependency.
-Flagged for the author; if rejected, fall back to sequencing the releases and accepting the duplicate icon.
+`registerMenubarTool` gained an optional `supersedes: [toolId]` for this - whichever registers second wins,
+deterministically, in either order.
+
+**Superseded 2026-08-09: nothing declares it.** With one consumer releasing both modules together, that
+window never opens, so the three `supersedes: ['squire-*']` entries were dead on arrival and came out. The
+mechanism stays, documented in `api/api-menubar.md`, because the Librarian extraction meets the same
+problem -- and because it is the kind of thing that is cheap now and awkward to retrofit under time
+pressure later.
 
 Confirmed by grep across all eleven siblings: nothing outside Squire references `party-health`,
 `squire-health`, `squire-dice-tray`, `squire-macros`, or any of the three window ids. The only consumer of
@@ -178,159 +186,16 @@ the `party-health` intent is Blacksmith's own combat bar (`scripts/manager-comba
 which goes through `hasIntentHandler`/`invokeIntent` and never names Squire. The intent contract survives
 untouched provided the new health tool declares `intents: ['party-health']`.
 
-## Phase 0 - groundwork
+## Phases 0-3 - removed
 
-Shared machinery. Nothing user-visible ships in this phase.
+The four phase sections listed files to create, settings to register, and verification steps. All of it has
+landed or moved on: the shipped design is in `architecture/architecture-tool-windows.md`, the surface in
+`api/api-health.md`, `api/api-window.md`, and `api/api-menubar.md`, the history in `CHANGELOG.md`, and the
+verification still owed in `testing/testing-squire-tool-adoption.md`. Squire's remaining half is in
+`TODO-GLOBAL.md`.
 
-- `scripts/manager-settings-adoption.js` (new). Table-driven adoption per Decision 3: raw-store reads,
-  per-user guard flag for `user` scope, per-client guard for `client` scope, no-op when the source key is
-  absent. Logs adopted keys through `postConsoleAndNotification`. Called from `ready` in `blacksmith.js`
-  after settings registration.
-- `scripts/window-base.js` - add a `migratePositionKey(oldKey, newKey)` helper covering the key and its
-  `-titlebar` and `-theme` derivatives, per Decision 2.
-- `scripts/api-menubar.js` - add `supersedes` handling to `registerMenubarTool` per Decision 6: on
-  registration, drop any already-registered tool whose id is listed; on later registration of a superseded
-  id, reject it. Order-independent.
-- `scripts/api-windows.js` - no change needed; aliasing is just a second `registerWindow` call.
-
-**Verification.** Client loads with no console errors. In the console,
-`game.modules.get('coffee-pub-blacksmith').api.registerMenubarTool` accepts a `supersedes` array without
-throwing, and registering a superseded id afterwards returns false. That is the whole of it - Phase 0 has
-no UI.
-
-## Phase 1 - Dice Tray
-
-No user data, no shared settings. The proving run for the pattern.
-
-**Files added**
-
-- `scripts/window-dicetray.js` - panel folded into the window. Blacksmith has no `panel-*` prefix and that
-  is deliberate; at 613+183 lines the combined file is unremarkable here.
-- `templates/window-dicetray.hbs`
-- `styles/window-dicetray.css` - both Squire stylesheets merged, plus the `@import` line in
-  `styles/default.css`. The import is the step that is silently skippable, so it is called out.
-
-**Files touched**
-
-- `scripts/blacksmith.js` - register the window (`blacksmith-dice-tray` plus the
-  `coffee-pub-squire-dice-tray-window` alias) and the `dice-tray` menubar tool with
-  `supersedes: ['squire-dice-tray']`.
-- `scripts/settings.js` - register `diceTrayShowRecentRolls`. Assign a `WORKFLOW_GROUPS` value and check
-  the heading scope rule: this is player-visible, so every heading in its ancestor chain must be `'user'`.
-  Run `node tools/check-settings-headings.mjs` afterwards.
-- `scripts/manager-settings-adoption.js` - add the `diceTrayShowRecentRolls` row.
-
-**Work**
-
-- Sever `PanelManager.ensureReadyForMenubar()` and `PanelManager.instance.actor`. Replace with the
-  selection source per Standing assumption A. This is the substantive change; everything else is
-  transcription.
-- Convert any raw `Hooks.on` to `HookManager.registerHook` with a `context` so `disposeByContext` works.
-- Convert logging to `postConsoleAndNotification` - note it throws on a falsy message.
-- Run the one-time position-key migration for `squire-dice-tray-micro-position`.
-
-**Verification - live world**
-
-1. Load a world with both modules active. Exactly one dice icon in the menubar, not two.
-2. Click it. The tray opens, positioned where Squire's was, with the same titlebar mode and theme.
-3. Roll each die type; results post to chat and the recent-rolls strip updates.
-4. Toggle recent rolls off, close, reopen. Window height goes to 150 and the setting persisted.
-5. Select a different token, then roll. Confirm the roll attributes to the actor named in Standing
-   assumption A, and say which one it was.
-6. Log in as a player. The tool is visible and functional; no console errors.
-7. Disable Squire entirely. The dice tray still works and
-   `openWindow('coffee-pub-squire-dice-tray-window')` still opens it.
-
-Squire releases its deletion only after all seven pass.
-
-## Phase 2 - Macros
-
-Brings the two data settings.
-
-**Files added**
-
-- `scripts/window-macros.js` - panel folded in.
-- `templates/window-macros.hbs`
-- `styles/window-macros.css` - both Squire stylesheets merged, plus the `@import` line.
-
-**Files touched**
-
-- `scripts/blacksmith.js` - window `blacksmith-macros` plus the `coffee-pub-squire-macros-window` alias;
-  `macros` menubar tool with `supersedes: ['squire-macros']` and the favourites context menu ported from
-  `squire/scripts/squire.js:2222`.
-- `scripts/settings.js` - `userMacros` (`scope: 'user'`, `config: false`) and `userFavoriteMacros`
-  (`scope: 'client'`, `config: false`).
-- `scripts/manager-settings-adoption.js` - rows for both, with the per-user and per-client guards.
-
-**Work**
-
-- Sever `PanelManager` as in Phase 1.
-- Port `trackModuleTimeout` usage to Blacksmith's equivalent, or inline it if there is no equivalent.
-- Preserve the `dropInProgress` re-entrancy guard (`squire/scripts/panel-macros.js:180`) - see Standing
-  assumption B.
-- Position-key migration for the macros window keys.
-
-**Verification - live world**
-
-1. Before updating, note the exact contents and order of the macro list and the favourites.
-2. Update. Open the macros window: the list and its order are identical to step 1.
-3. Right-click the menubar icon: favourites are listed, in order, with their macro artwork.
-4. Click a favourite; it executes.
-5. Drag a macro from the hotbar into the window; it appends. Reorder by dragging; the order persists across
-   a reload.
-6. Toggle a favourite on and off; the context menu reflects it without a reload.
-7. As a second user, confirm that user's own macro list is theirs and not the first user's - this is the
-   `scope: 'user'` guard doing its job.
-8. In a second browser, confirm favourites are empty and the docs say so.
-
-## Phase 3 - Health
-
-The largest piece: selection ownership plus the threshold unification, and the only phase that requires a
-matching Squire code change rather than a deletion.
-
-**Files added**
-
-- `scripts/window-health.js` - panel folded in.
-- `scripts/manager-health.js` - selection tracking per Decision 4: a `controlToken` hook through
-  `HookManager`, the current token set, and the `{ tokens }` opener option for the two force cases.
-- `templates/window-health.hbs`
-- `styles/window-health.css` plus the `@import` line.
-
-**Files touched**
-
-- `scripts/utility-health.js` - `getHealthSeverity` reads the three threshold settings instead of the
-  hardcoded 75/50/25, defaults unchanged. Every existing caller keeps working; the combat bar rings and
-  token blood indicators start honouring the settings, which is Decision 5.
-- `scripts/settings.js` - `healthThresholdInjured` / `Bloodied` / `Critical` and `healthAdjustmentAmount`.
-  Thresholds are `world`; check the heading chain scope for the adjustment amount, then run
-  `node tools/check-settings-headings.mjs`.
-- `scripts/blacksmith.js` - window `blacksmith-health` plus the `coffee-pub-squire-health-window` alias;
-  `health` menubar tool with `intents: ['party-health']`, `supersedes: ['squire-health']`, and
-  `visible: () => showHealthMenubarTool`.
-- `scripts/manager-settings-adoption.js` - rows for the four settings.
-- API doc for the severity function, which is now settings-driven and consumed cross-module, so it is
-  public surface.
-
-**Work**
-
-- Sever the eight-plus Squire drive points by self-driving from selection.
-- Expose severity for Squire's handle and party panel to consume in place of `getHealthbarStatusClass`.
-  Squire's classes are named `squire-tray-healthbar-*`, so Squire maps Blacksmith's severity string to its
-  own class names - Blacksmith does not learn Squire's CSS class names.
-
-**Verification - live world**
-
-1. Select one token. The health window follows the selection and titles with the actor's name.
-2. Select three tokens. The window shows three entries and titles "Health: 3 Selected".
-3. Deselect everything. The window shows the empty state rather than stale entries.
-4. Apply damage and healing at several amounts; the adjustment amount persists across a reopen.
-5. Click the combat bar's party health bar. The window opens - this is the `party-health` intent still
-   resolving, now to Blacksmith's own tool.
-6. Change `healthThresholdBloodied`. Confirm the health window bar colour, the combat bar portrait ring,
-   and Squire's tray handle bar all change together. This is the whole point of Decision 5 and the one step
-   that proves it.
-7. Disable Squire. Health still works, the intent still resolves, no console errors.
-8. As a player with `showHealthMenubarTool` off, the icon is absent; on, it is present.
+Leaving them here would have left instructions that contradict the code -- several named an alias and a
+`supersedes` entry that no longer exist.
 
 ## Resolved by Squire, 2026-08-09
 
@@ -377,18 +242,11 @@ or manager instance required. The severity vocabulary goes to Squire when Phase 
 **D. The three dead settings are confirmed dead**, as is the favourites context-building at
 `squire/scripts/manager-panel.js:414,490`. Squire deletes all four its side. Not ported.
 
-**E. Alias lifetime.** Blacksmith's call: the three window-id aliases are permanent and undocumented - one
-Map entry each, so nobody's macro breaks. The `supersedes` entries are temporary and are removed once
-Squire's deletion release has shipped.
+**E. Alias lifetime -- resolved by removal, 2026-08-09.** The aliases and the three `supersedes` entries
+were both stripped once the author confirmed there is a single consumer and both modules ship together.
+See the amendments to Decisions 1 and 6.
 
-## Squire's half, per phase
+The general lesson, since Librarian is next: **both were written to protect users who do not exist.** The
+handover framing carried an implicit "in the wild" that was never true here, and it cost two mechanisms
+that then had to be removed. Ask who the affected user is before building the affordance.
 
-Blacksmith does not touch Squire's repo. After each Blacksmith phase is verified:
-
-1. Delete the panel, window, template, and stylesheets for that tool.
-2. Remove the menubar and window registrations from `squire.js`.
-3. Remove the settings that moved, and the three dead ones.
-4. Phase 3 only: replace `getHealthbarStatusClass` with a call to Blacksmith's severity function, mapping
-   the returned severity to Squire's `squire-tray-healthbar-*` class names. Keep `showHandleHealthBar`.
-5. Remove the dead favourites context-building at `manager-panel.js:414,490`.
-6. Release.

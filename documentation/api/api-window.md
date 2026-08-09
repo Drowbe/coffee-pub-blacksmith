@@ -527,14 +527,11 @@ static ACTION_HANDLERS = {
 
 Three tool windows ship with Blacksmith and are openable by id from any module or macro.
 
-| Window | Id | Also registered as |
-|---|---|---|
-| Dice Tray | `blacksmith-dice-tray` | `coffee-pub-squire-dice-tray-window` |
-| Macros | `blacksmith-macros` | `coffee-pub-squire-macros-window` |
-| Health | `blacksmith-health` | `coffee-pub-squire-health-window` |
-
-The second id in each row is the id Squire used before these tools moved to Blacksmith. Both resolve to the
-same opener, so an existing macro keeps working.
+| Window | Id |
+|---|---|
+| Dice Tray | `blacksmith-dice-tray` |
+| Macros | `blacksmith-macros` |
+| Health | `blacksmith-health` |
 
 `blacksmith-health` accepts an option:
 

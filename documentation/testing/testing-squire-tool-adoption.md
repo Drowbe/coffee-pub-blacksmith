@@ -22,9 +22,8 @@ threshold unification, which is the only item that changes behaviour users alrea
 
 - [ ] Client loads with both Blacksmith and Squire active, no console errors. Three icons in the menubar:
       dice, heart-pulse, code.
-- [ ] **Exactly one of each icon, not two.** This is `supersedes` doing its job. If there are two, the
-      Squire tool registered under an id the new tool does not list.
-- [ ] Load again with Squire disabled entirely. All three still work.
+- [ ] **Exactly one of each icon, not two.** Both modules release together, so Squire's copies should
+      already be gone. Two icons means Squire still registers a tool that has not been deleted.
 
 ## Settings adoption -- do this before anything else touches the values
 

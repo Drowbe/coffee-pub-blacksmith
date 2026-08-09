@@ -4,6 +4,47 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Asset sources - let a module supply the image library, and let users remap it (opened 2026-08-09)
+
+**The idea:** image choices in settings (backgrounds, icons, nameplates, and sounds alongside them) should be
+able to come from Coffee Pub Vault when it is installed and selected, and a user should be able to point the
+same choices at their own library instead of ours.
+
+Vault already declares itself "optional assets for the Coffee Pub suite, integrated via Blacksmith"
+(`coffee-pub-vault/module.json`), and it currently ships three scripts and no integration. Blacksmith
+already has most of the machinery: `AssetLookup.dataCollections` holds `backgroundImages`, `icons`,
+`nameplates`, and `sounds`; `settings.js:703,726` build the dropdown choices from it; `refreshAssetDerivedChoices()`
+rebuilds them; and `loadAssetBundlesWithOverrides()` in the `ready` sequence already merges optional
+per-category JSON overrides on top of the default bundle. So this is closer to finishing a pipeline than
+starting one.
+
+**The design constraint, which is the part worth getting right:** Blacksmith must not name Vault. The hub
+cannot hardcode a sibling that may not be installed - the same rule that produced the `party-health` intent
+and the `blacksmith-status-effects` window id. So the shape is a **registration API**, something like
+`blacksmith.registerAssetSource(sourceId, { label, collections })`, with Vault as the first consumer and
+nothing in Blacksmith aware of it by name. A user's own library is then the same mechanism reached through
+a settings path rather than a module, which is why "Vault as a source" and "remap to my own images" are one
+feature and not two.
+
+Open questions to settle before building:
+
+- **Do sources merge or replace?** A user pointing at their own icon set probably means "instead of", while
+  Vault probably means "as well as". If both, precedence has to be explicit and visible in the settings UI,
+  not implicit in registration order - the menubar intent system resolves ties by registration order and
+  that is already a known rough edge.
+- **What is the unit a user remaps?** A whole collection, or an individual asset? Per-asset remapping is
+  what "my own version of that image" most likely means, and it is a different data shape from a source.
+- **How does this relate to the existing Asset Mapping overrides?** There is already a per-category JSON
+  override path. If it can carry this, most of the work is a UI and a registration front door rather than a
+  new pipeline; if it cannot, decide whether it survives.
+- **Sounds too?** `dataCollections` treats them alike and Vault ships both, so splitting them here would be
+  arbitrary.
+
+**How it will be verified:** with Vault installed and registered, its images appear in the background and
+icon dropdowns and a chosen one renders. With Vault absent, the dropdowns are exactly what they are today
+and nothing logs. With a user library configured, its entries appear and take the precedence the settings
+say they do.
+
 ## Stylesheet cleanup - retrofit the neutral overlay tokens (opened 2026-08-08)
 
 **Author has flagged stylesheet cleanup as a critical effort soon; this is the piece of it that is now
