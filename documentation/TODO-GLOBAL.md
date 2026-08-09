@@ -237,6 +237,36 @@ Being rebuilt, not ported — the old pack data is reference material at most.
 
 ---
 
+## Squire tool adoption — Squire's half (Blacksmith side shipped 2026-08-09, unverified)
+
+Dice Tray, Macros, and Health now live in Blacksmith. Blacksmith's side is written but **has not been run in
+a world** — see `documentation/testing/testing-squire-tool-adoption.md`. **Squire must not delete anything
+until the relevant section of that document passes**, or there is a release with no dice tray at all.
+
+Once it passes, Squire:
+
+1. Deletes `panel-dicetray.js`, `window-dicetray.js`, `panel-macros.js`, `window-macros.js`,
+   `panel-health.js`, `window-health.js`, their three templates, and their five stylesheets.
+2. Removes the menubar and window registrations for the three tools from `squire.js`.
+3. Removes the settings that moved (`diceTrayShowRecentRolls`, `userMacros`, `userFavoriteMacros`,
+   `showHealthMenubarTool`, `healthAdjustmentAmount`, `healthThresholdInjured` / `Bloodied` / `Critical`)
+   and the three dead ones Squire confirmed (`showMacrosPanel`, `showHealthPanel`, `showDiceTrayPanel`).
+   Keeps `showHandleHealthBar`, which drives its own tray handle.
+4. Replaces `getHealthbarStatusClass` (`helpers.js:97`) with Blacksmith's severity function, mapping the
+   returned string to its own `squire-tray-healthbar-*` class names at `manager-handle.js:75` and
+   `panel-party.js:73,619`. Surface and severity vocabulary: `api/api-health.md`.
+5. Removes the dead favourites context-building at `manager-panel.js:414,490`.
+
+Two things Blacksmith is waiting on from Squire, neither blocking:
+
+- **The conditions button on health rows does not render until some module registers a window under the id
+  `blacksmith-status-effects`.** Blacksmith has no conditions editor and will not name Squire's window id;
+  the id names the capability instead, exactly as menubar intents do. Squire's status effects window can
+  claim it by registering under that id as well as its own.
+- **Remove the three `supersedes` entries** in Blacksmith (`window-dicetray.js`, `window-macros.js`,
+  `window-health.js`) once Squire's deletion release has shipped. They exist only for the window where a
+  user has updated one module and not the other.
+
 ## Roll outcome API — sibling adoption (Blacksmith Phase 1 shipped)
 
 Blacksmith exposes `module.api.rolls` and `blacksmith.rolls.*` hooks for crit/fumble/hit/miss/success classification. **Request Roll** (`openRequestRollDialog`) is unchanged on `module.api` top-level.

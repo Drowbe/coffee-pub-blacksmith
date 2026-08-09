@@ -86,6 +86,12 @@ import { UIContextMenu } from './ui-context-menu.js';
 import { SidebarPin } from './ui-sidebar-pin.js';
 import { SidebarStyle } from './ui-sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
+import { SettingsAdoptionManager } from './manager-settings-adoption.js';
+import { registerDiceTray } from './window-dicetray.js';
+import { registerMacros } from './window-macros.js';
+import { registerHealth } from './window-health.js';
+import { restoreToolWindows } from './manager-tool-windows.js';
+import { getActorHP, getHealthPercent, getHealthSeverity, getHealthSeverityForHP, getHealthThresholds } from './utility-health.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
 import { TagsAPI } from './api-tags.js';
@@ -451,6 +457,17 @@ Hooks.once('ready', async () => {
         return;
     }
 
+    // Adopt settings from siblings that have handed a feature over. Must run after
+    // registerSettings() because it writes to this module's own keys, and before the
+    // menubar and windows read them below. Deliberately not fatal: a failed adoption
+    // costs the user their old preferences, not the module, so it must not be able to
+    // stall loading at "Finalizing...".
+    try {
+        await SettingsAdoptionManager.run();
+    } catch (e) {
+        console.error(`${MODULE.ID}: settings adoption failed`, e);
+    }
+
     // Menubar secondary bars read world settings (e.g. encounterToolbarDeploymentPattern) — must run after registerSettings().
     try {
         MenuBar.initialize();
@@ -536,6 +553,21 @@ Hooks.once('ready', async () => {
         // Initialize XP manager
         LoadingProgressManager.logActivity("Initializing XP system...");
         XpManager.initialize();
+
+        // Tool windows (dice tray, macros, health). Registered explicitly rather than
+        // from each file's own ready hook so the order against settings registration is
+        // decided here and not by import order.
+        LoadingProgressManager.logActivity("Registering tool windows...");
+        try {
+            registerDiceTray();
+            registerMacros();
+            registerHealth();
+            // Reopen whatever the user left open. After registration, since it opens
+            // through the same code paths the menubar tools use.
+            await restoreToolWindows();
+        } catch (e) {
+            console.error(`${MODULE.ID}: tool window registration failed`, e);
+        }
 
         // Apply any existing custom CSS
         LoadingProgressManager.logActivity("Applying custom styles...");
@@ -1006,6 +1038,14 @@ Hooks.once('init', async function() {
         formatCR: EncounterManager.formatCR.bind(EncounterManager),
         getPartyHealthSummary: PartyManager.getPartyHealthSummary.bind(PartyManager),
         getPartyActorHp: PartyManager.getActorHp.bind(PartyManager),
+        // Health severity: the one definition of "bloodied", exposed so a consuming
+        // module colours health the same way Blacksmith does rather than keeping its
+        // own thresholds. Readable without a window open -- see utility-health.js.
+        getActorHP,
+        getHealthPercent,
+        getHealthSeverity,
+        getHealthSeverityForHP,
+        getHealthThresholds,
         getPartyReputation: ReputationManager.getPartyReputation.bind(ReputationManager),
         setPartyReputation: ReputationManager.setPartyReputation.bind(ReputationManager),
         getReputationScaleEntry: ReputationManager.getScaleEntry.bind(ReputationManager),

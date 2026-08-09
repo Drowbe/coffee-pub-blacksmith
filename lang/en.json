@@ -149,6 +149,12 @@
 				"sidebarCombatChatEnabled-Label": "Combat Chat",
 				"sidebarCombatChatEnabled-Hint": "Add a tab that will combine the combat and chat tabs into a single tab. This is useful for players to see the combat and chat log in one place.",
 
+			"headingH3MenubarTools-Label": "Menubar Tools",
+			"headingH3MenubarTools-Hint": "",
+
+				"showHealthMenubarTool-Label": "Show Health Tool",
+				"showHealthMenubarTool-Hint": "Display a Health icon in the menubar. The Health window shows hit points for whatever tokens you have selected and lets you apply damage or healing to all of them at once.",
+
 			"headingH3Toolbar-Label": "Foundry Toolbar",
 			"headingH3Toolbar-Hint": "",
 		
@@ -498,7 +504,7 @@
 			"headingH3HealthIndicators-Hint": "",
 
 				"tokenBloodEnabled-Label": "Blood Damage",
-				"tokenBloodEnabled-Hint": "Show a pool of blood on the ground under tokens that grows as they lose hit points, with smaller splatters around it. Any damage at all shows a small pool and a few droplets; the pool deepens as health drops below 75%, 50%, and 25%, spreading widest at 0 HP. The Remove All Blood toolbar button clears the canvas until tokens take new damage.",
+				"tokenBloodEnabled-Hint": "Show a pool of blood on the ground under tokens that grows as they lose hit points, with smaller splatters around it. Any damage at all shows a small pool and a few droplets; the pool deepens as health crosses the Injured, Bloodied, and Critical thresholds below, spreading widest at 0 HP. The Remove All Blood toolbar button clears the canvas until tokens take new damage.",
 
 				"tokenBloodHitEnabled-Label": "Blood Hit",
 				"tokenBloodHitEnabled-Hint": "Show a brief blood burst from a token the moment it takes damage, scaled to how hard the hit was. The burst fades out after about a second.",
@@ -518,6 +524,15 @@
 				"tokenBloodVisibility-Label": "Token Blood Visibility",
 				"tokenBloodVisibility-Hint": "Who can see blood damage pools and hit bursts. GM Only hides them from players so they cannot read enemy health from the canvas.",
 
+
+				"healthThresholdInjured-Label": "Injured Threshold",
+				"healthThresholdInjured-Hint": "Percent of hit points at or below which a creature counts as Injured. Applies everywhere health is shown in colour: blood on the canvas, the combat bar portrait rings, and the Health window.",
+
+				"healthThresholdBloodied-Label": "Bloodied Threshold",
+				"healthThresholdBloodied-Hint": "Percent of hit points at or below which a creature counts as Bloodied. Should be lower than the Injured threshold.",
+
+				"healthThresholdCritical-Label": "Critical Threshold",
+				"healthThresholdCritical-Hint": "Percent of hit points at or below which a creature counts as Critical. Should be lower than the Bloodied threshold.",
 
 	"headingH2Timers-Label": "Timers",
 	"headingH2Timers-Hint": "Blacksmith supports various timers for your game. This includes session timers, combat timers, and planning timers.",

@@ -135,6 +135,44 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
         return this.options?.windowPositionKey || `blacksmith-win-pos-${this.constructor.name}`;
     }
 
+    /**
+     * Move a window's stored presentation from an old localStorage key to a new one, once.
+     *
+     * Position, titlebar mode, and tool theme all hang off `windowPositionKey` (see `_positionKey`
+     * and the two preference getters in window-tool-base.js), so a window that changes its key --
+     * which is what happens when a tool moves between modules -- silently resets all three. This
+     * moves the three keys and deletes the originals, so it is a no-op on every load after the
+     * first.
+     *
+     * Static because it must run before the window is ever constructed: the position is read
+     * during the first render.
+     *
+     * @param {string} oldKey
+     * @param {string} newKey
+     * @returns {boolean} whether anything was moved
+     */
+    static migratePositionKey(oldKey, newKey) {
+        if (!oldKey || !newKey || oldKey === newKey) return false;
+        let moved = false;
+        // The base key plus the two derived preference keys. Adding a fourth derived key to
+        // window-tool-base.js means adding its suffix here.
+        for (const suffix of ['', '-titlebar', '-theme']) {
+            try {
+                const from = `${oldKey}${suffix}`;
+                const value = localStorage.getItem(from);
+                if (value === null) continue;
+                const to = `${newKey}${suffix}`;
+                // Never clobber a value the user already produced under the new key.
+                if (localStorage.getItem(to) === null) {
+                    localStorage.setItem(to, value);
+                    moved = true;
+                }
+                localStorage.removeItem(from);
+            } catch (_) {}
+        }
+        return moved;
+    }
+
     _saveWindowPosition() {
         if (this.options?.rememberPosition === false) return;
         try {

@@ -1,0 +1,346 @@
+/* ==================================================================
+   HEALTH WINDOW
+   Adopted from Squire. The healthbar severity colours at the bottom
+   were in Squire's common.css, since its tray handle used them too;
+   here they belong to the window that uses them, and the class names
+   match the severity strings utility-health.js returns.
+   ================================================================== */
+
+.blacksmith-health-tool-window .blacksmith-window-tool-body {
+    min-height: 0;
+    padding: 0;
+    overflow: auto;
+}
+
+.blacksmith-health-tool-window #blacksmith-health-content {
+    width: 100%;
+    min-width: 0;
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+.blacksmith-health-tool-window .bars {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.blacksmith-health-tool-window .health-row {
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) max-content;
+    gap: 4px;
+    min-width: 0;
+    padding: 3px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: var(--blacksmith-tool-surface-raised);
+    cursor: pointer;
+}
+
+.blacksmith-health-tool-window .health-row-aggregate {
+    background: var(--blacksmith-tool-surface-sunken);
+}
+
+.blacksmith-health-tool-window .health-portrait {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    overflow: hidden;
+    box-sizing: border-box;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(112, 85, 49, 0.34));
+    border-radius: 4px;
+    background: var(--blacksmith-tool-surface-sunken);
+    color: var(--blacksmith-tool-text-muted);
+}
+
+.blacksmith-health-tool-window .health-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.blacksmith-health-tool-window .health-portrait i {
+    font-size: 1.05em;
+}
+
+.blacksmith-health-tool-window .health-conditions {
+    width: 26px;
+    height: 26px;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.blacksmith-health-tool-window .health-aggregate-stat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(112, 85, 49, 0.34));
+    border-radius: 4px;
+    background: var(--blacksmith-tool-surface-sunken);
+    color: var(--blacksmith-tool-text);
+    font-family: "Signika", sans-serif;
+    font-size: 0.78em;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.blacksmith-health-tool-window .health-conditions {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(112, 85, 49, 0.34));
+    border-radius: 4px;
+    background: var(--blacksmith-tool-surface-sunken);
+    color: var(--blacksmith-tool-text);
+    line-height: 1;
+}
+
+.blacksmith-health-tool-window .health-conditions:hover {
+    border-color: var(--blacksmith-tool-field-focus-border);
+    color: var(--blacksmith-tool-accent);
+}
+
+.blacksmith-health-tool-window .health-condition-count {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    background: rgba(193, 42, 34, 1);
+    color: rgba(255, 255, 255, 1);
+    font-family: "Signika", sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow:
+        -1px -1px 1px rgba(0, 0, 0, 0.95),
+        1px -1px 1px rgba(0, 0, 0, 0.95),
+        -1px 1px 1px rgba(0, 0, 0, 0.95),
+        1px 1px 1px rgba(0, 0, 0, 0.95);
+}
+
+.blacksmith-health-tool-window .hp-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    height: 26px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(112, 85, 49, 0.34));
+    border-radius: 4px;
+    background: var(--blacksmith-tool-surface-sunken);
+    font-family: "Signika", sans-serif;
+}
+
+.blacksmith-health-tool-window .hp-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 1;
+    min-width: 0;
+}
+
+.blacksmith-health-tool-window .hp-primary,
+.blacksmith-health-tool-window .hp-max {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    color: rgba(248, 240, 223, 0.96);
+    font-size: 0.78em;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    text-transform: uppercase;
+}
+
+.blacksmith-health-tool-window .hp-primary {
+    flex: 1 1 auto;
+}
+
+.blacksmith-health-tool-window .health-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-health-tool-window .hp-value {
+    flex: 0 0 auto;
+}
+
+.blacksmith-health-tool-window .health-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    color: var(--blacksmith-tool-text-muted);
+    font-style: italic;
+}
+
+.blacksmith-health-tool-window .health-row:hover .health-portrait,
+.blacksmith-health-tool-window .health-row:hover .hp-bar,
+.blacksmith-health-tool-window .health-row:hover .health-conditions,
+.blacksmith-health-tool-window .health-row:hover .health-aggregate-stat {
+    border-color: var(--blacksmith-tool-field-focus-border);
+}
+
+.blacksmith-health-tool-window .health-row:hover {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+.blacksmith-health-tool-window .health-row.selected .health-portrait,
+.blacksmith-health-tool-window .health-row.selected .hp-bar,
+.blacksmith-health-tool-window .health-row.selected .health-conditions,
+.blacksmith-health-tool-window .health-row.selected .health-aggregate-stat {
+    border-color: var(--blacksmith-tool-accent);
+}
+
+.blacksmith-health-tool-window .health-row.selected {
+    border-color: var(--blacksmith-tool-accent);
+    background: var(--blacksmith-tool-surface-selected);
+    box-shadow: inset 0 0 0 1px var(--blacksmith-tool-field-focus-ring);
+}
+
+.blacksmith-health-tool-window .hp-controls {
+    display: grid;
+    grid-template-columns: repeat(4, 30px) minmax(48px, 1fr) repeat(4, 30px);
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.blacksmith-health-tool-window .hp-btn,
+.blacksmith-health-tool-window .hp-amount {
+    height: 30px;
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.blacksmith-health-tool-window .hp-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(112, 85, 49, 0.34));
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-health-tool-window .hp-btn:hover {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+.blacksmith-health-tool-window .hp-amount {
+    width: 100%;
+    padding: 4px 6px;
+    font-family: "Signika", sans-serif;
+    font-weight: 700;
+    text-align: center;
+}
+
+.blacksmith-health-tool-window .select-party,
+.blacksmith-health-tool-window .select-npcs {
+    color: rgba(72, 91, 119, 1.0);
+}
+
+.blacksmith-health-tool-window .death-toggle,
+.blacksmith-health-tool-window .hp-down,
+.blacksmith-health-tool-window .hp-down-ten {
+    color: rgba(156, 47, 39, 1.0);
+}
+
+.blacksmith-health-tool-window .hp-full,
+.blacksmith-health-tool-window .hp-up,
+.blacksmith-health-tool-window .hp-up-ten {
+    color: rgba(61, 112, 47, 1.0);
+}
+
+.blacksmith-health-tool-window .hp-controls.disabled,
+.blacksmith-health-tool-window .hp-btn:disabled,
+.blacksmith-health-tool-window .hp-amount:disabled {
+    opacity: 0.5;
+}
+
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-dark .select-party,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-dark .select-npcs,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-glass .select-party,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-glass .select-npcs {
+    color: rgba(151, 183, 229, 0.96);
+}
+
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-dark .death-toggle,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-dark .hp-down,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-dark .hp-down-ten,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-glass .death-toggle,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-glass .hp-down,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-glass .hp-down-ten {
+    color: rgba(239, 148, 138, 0.96);
+}
+
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-dark .hp-full,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-dark .hp-up,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-dark .hp-up-ten,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-glass .hp-full,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-glass .hp-up,
+.blacksmith-health-tool-window.blacksmith-window-tool-theme-glass .hp-up-ten {
+    color: rgba(151, 220, 157, 0.96);
+}
+
+/* ------------------------------------------------------------------
+   Severity colours
+   One class per value of getHealthSeverity(). 'hurt' deliberately
+   shares the healthy colour: it means damaged but above the injured
+   threshold, which is a distinction the blood indicators use and the
+   bar does not need to show.
+   ------------------------------------------------------------------ */
+
+.blacksmith-healthbar-healthy,
+.blacksmith-healthbar-hurt {
+    background-color: rgba(42, 100, 48, 1.0) !important;
+}
+
+.blacksmith-healthbar-injured {
+    background-color: rgba(115, 153, 0, 0.9) !important;
+}
+
+.blacksmith-healthbar-bloodied {
+    background-color: rgba(157, 116, 35, 0.9) !important;
+}
+
+.blacksmith-healthbar-critical {
+    background-color: rgba(117, 5, 7, 0.9) !important;
+    animation: blacksmith-healthbar-pulse 1.0s infinite alternate;
+}
+
+.blacksmith-healthbar-dead {
+    background-color: rgba(117, 5, 7, 0.1) !important;
+    width: 100%;
+    animation: blacksmith-healthbar-pulse 5.0s infinite alternate;
+}
+
+@keyframes blacksmith-healthbar-pulse {
+    from { opacity: 0.5; }
+    to { opacity: 1.0; }
+}

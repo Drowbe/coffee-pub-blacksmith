@@ -1,0 +1,75 @@
+<div id="blacksmith-health-content">
+    <div class="bars">
+        {{#if healthEntries}}
+            {{#each healthEntries as |entry|}}
+                <div class="health-row {{#if entry.isAggregate}}health-row-aggregate{{/if}} {{#if entry.isSelected}}selected{{/if}}" data-health-target="{{entry.target}}">
+                    <div class="health-portrait">
+                        {{#if entry.isAggregate}}
+                            <i class="{{entry.icon}}"></i>
+                        {{else}}
+                            <img src="{{entry.img}}" alt="">
+                        {{/if}}
+                    </div>
+                    <div class="hp-bar">
+                        <div class="hp-fill {{entry.healthbarStatus}}" style="width: {{entry.fillPercent}}%"></div>
+                        <div class="hp-primary">
+                            <span class="health-name">{{entry.name}}:</span>
+                            <span class="hp-value">{{entry.current}}</span>
+                        </div>
+                        <div class="hp-max">
+                            <span class="hp-value">{{entry.max}}</span>
+                        </div>
+                    </div>
+                    {{#if entry.isAggregate}}
+                        <div class="health-aggregate-stat" aria-label="{{entry.aggregateStatLabel}}" title="{{entry.aggregateStatLabel}}">
+                            {{entry.aggregateStat}}
+                        </div>
+                    {{else if entry.showConditions}}
+                        <button
+                            type="button"
+                            class="health-conditions"
+                            data-actor-uuid="{{entry.actorUuid}}"
+                            title="Add or Remove Conditions for {{entry.name}}"
+                            aria-label="Add or Remove Conditions for {{entry.name}}"
+                        >
+                            <i class="fa-solid fa-sparkles"></i>
+                            {{#if entry.showEffectCount}}
+                                <span class="health-condition-count">{{entry.effectCount}}</span>
+                            {{/if}}
+                        </button>
+                    {{/if}}
+                </div>
+            {{/each}}
+        {{/if}}
+    </div>
+
+    {{#if isGM}}
+        <div class="hp-controls {{#unless healthEntries}}disabled{{/unless}}">
+            <button class="hp-btn select-party" title="Select all party tokens">
+                <i class="fa-solid fa-users"></i>
+            </button>
+            <button class="hp-btn death-toggle" {{#unless healthEntries}}disabled{{/unless}} title="Set selected tokens to 0 HP">
+                <i class="fa-solid fa-skull"></i>
+            </button>
+            <button class="hp-btn hp-down-ten" {{#unless healthEntries}}disabled{{/unless}} title="Decrease HP by 10">
+                <i class="fa-solid fa-angles-down"></i>
+            </button>
+            <button class="hp-btn hp-down" {{#unless healthEntries}}disabled{{/unless}} title="Decrease HP by the entered amount">
+                <i class="fa-solid fa-caret-down"></i>
+            </button>
+            <input type="number" class="hp-amount" min="1" value="{{healthAdjustmentAmount}}" {{#unless healthEntries}}disabled{{/unless}} aria-label="Health adjustment amount">
+            <button class="hp-btn hp-up" {{#unless healthEntries}}disabled{{/unless}} title="Increase HP by the entered amount">
+                <i class="fa-solid fa-caret-up"></i>
+            </button>
+            <button class="hp-btn hp-up-ten" {{#unless healthEntries}}disabled{{/unless}} title="Increase HP by 10">
+                <i class="fa-solid fa-angles-up"></i>
+            </button>
+            <button class="hp-btn hp-full" {{#unless healthEntries}}disabled{{/unless}} title="Fully heal selected tokens">
+                <i class="fa-solid fa-heart"></i>
+            </button>
+            <button class="hp-btn select-npcs" title="Select all non-party tokens">
+                <i class="fa-solid fa-people-group"></i>
+            </button>
+        </div>
+    {{/if}}
+</div>

@@ -70,6 +70,20 @@ class MenuBar {
     static previousRemainingMinutes = null;
     static activeContextMenu = null;
 
+    /**
+     * Tool ids that some registered tool has declared it supersedes.
+     *
+     * Exists for the window during which a tool is moving between modules: both the old owner and
+     * the new one are installed, both register, and the user sees two identical icons. Registration
+     * order across modules is not something either module can control, so a rule that only works
+     * one way round is not a rule. A superseded id is dropped if it is already registered and
+     * refused if it registers later, which makes the outcome the same either way.
+     *
+     * Migration affordance with a defined end -- the entry is removed once the old owner's release
+     * has shipped. It is not a general priority system.
+     */
+    static supersededToolIds = new Set();
+
     // Secondary bar system
     static secondaryBar = {
         isOpen: false,
@@ -971,6 +985,8 @@ class MenuBar {
      * @param {boolean} toolData.leaderOnly - Whether tool is leader-only
      * @param {boolean} toolData.visible - Whether tool is visible (can be function)
      * @param {Array|Function} [toolData.contextMenuItems] - Optional: right-click context menu. Array of { name, icon, onClick } or function (toolId, tool) => array. If present, right-click on the tool shows this menu instead of browser default.
+     * @param {string[]} [toolData.intents] - Optional: capabilities this tool claims, for `invokeIntent` / `hasIntentHandler`.
+     * @param {string[]} [toolData.supersedes] - Optional: tool ids this tool replaces. Any listed id already registered is dropped, and any that registers later is refused, so the outcome does not depend on module load order. For a tool moving between modules; remove once the old owner's release has shipped.
      * @returns {boolean} Success status
      */
     static registerMenubarTool(toolId, toolData) {
@@ -1002,6 +1018,25 @@ class MenuBar {
             if (this.toolbarIcons.has(toolId)) {
                 postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool ID already exists", { toolId }, false, false);
                 return false;
+            }
+
+            // Refused because a tool registered earlier supersedes this id. Half of the
+            // order-independence: the other half drops an already-registered id, just below.
+            if (this.supersededToolIds.has(toolId)) {
+                postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool ID is superseded by an already-registered tool", { toolId }, false, false);
+                return false;
+            }
+
+            // Claim the ids this tool supersedes, dropping any that beat it to registration.
+            if (Array.isArray(toolData.supersedes)) {
+                for (const supersededId of toolData.supersedes) {
+                    if (typeof supersededId !== 'string' || !supersededId) continue;
+                    if (supersededId === toolId) continue;
+                    this.supersededToolIds.add(supersededId);
+                    if (this.toolbarIcons.delete(supersededId)) {
+                        postConsoleAndNotification(MODULE.NAME, "Menubar API: Superseded an already-registered tool", { toolId, supersededId }, true, false);
+                    }
+                }
             }
 
             // Determine group and groupOrder with Blacksmith priority
@@ -1062,7 +1097,10 @@ class MenuBar {
                 // silently dropped, and `intents` was: the lookup was written and the copy was not,
                 // so a module could claim an intent, get `true` back from registration, and never
                 // be found. Anything added to the API surface has to be added HERE too.
-                intents: Array.isArray(toolData.intents) ? [...toolData.intents] : []
+                intents: Array.isArray(toolData.intents) ? [...toolData.intents] : [],
+                // Carried on the tool so `unregisterMenubarTool` can release the claim -- see the
+                // note on `supersededToolIds`. Same normalised-copy rule as `intents` above.
+                supersedes: Array.isArray(toolData.supersedes) ? [...toolData.supersedes] : []
             };
 
             // Register the tool
@@ -1128,6 +1166,12 @@ class MenuBar {
             if (!this.toolbarIcons.has(toolId)) {
                 postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool ID not found for unregistration", { toolId }, false, false);
                 return false;
+            }
+
+            // Release any supersession this tool claimed, or unregistering the new owner would
+            // leave the old one permanently unable to register.
+            for (const supersededId of this.toolbarIcons.get(toolId)?.supersedes ?? []) {
+                this.supersededToolIds.delete(supersededId);
             }
 
             this.toolbarIcons.delete(toolId);

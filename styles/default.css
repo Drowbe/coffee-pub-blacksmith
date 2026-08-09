@@ -101,3 +101,12 @@
 
 /* --- Sidebar Combat (Chat + Combat Tab) ---------------------- */
 @import "sidebar-combat.css";
+
+/* --- Dice Tray Window ---------------------- */
+@import "window-dicetray.css";
+
+/* --- Macros Window ---------------------- */
+@import "window-macros.css";
+
+/* --- Health Window ---------------------- */
+@import "window-health.css";

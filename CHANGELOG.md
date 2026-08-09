@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+
+- **Dice Tray, Macros, and Health are now Blacksmith tools** (`scripts/window-dicetray.js`, `scripts/window-macros.js`, `scripts/window-health.js`, with templates and stylesheets of the same names). All three were Squire's; all three are used by an audience wider than Squire's tray, which is what makes them hub features rather than satellite ones. Roughly 3,000 lines moved -- 2,075 of JavaScript plus templates and five stylesheets that the original handover count omitted. Each window registers under two ids, its own `blacksmith-dice-tray` / `blacksmith-macros` / `blacksmith-health` and Squire's old `coffee-pub-squire-*-window`, so a macro in someone's world that calls `openWindow` with the old id keeps working.
+
+  In Squire each tool was a panel class plus a window shell. Here each is one file, because Blacksmith has no panel layer for the other half to belong to, and because two of the three panels existed largely to reach `PanelManager`. Dice Tray and Macros both called `PanelManager.ensureReadyForMenubar()` -- which boots Squire's entire panel stack, with two initialisation attempts and 120x50ms spin loops each -- purely to learn which actor to name in the title. That dependency is gone. Squire confirmed the spin loop was belt-and-braces around its own async initialisation rather than a Foundry race, so it was not reproduced.
+
+  **The actor these windows name is not what it was, and the difference is not selection.** Squire resolved it from its tray's current character, which had four inputs: the startup fallback chain, `controlToken` on gain only, the character switcher, and `renderActorSheet5e`. That last one is the change users will notice -- opening any actor sheet re-pointed the tray, so a GM who opened an NPC sheet to check something silently re-pointed the dice tray without touching the canvas. Blacksmith follows canvas selection with `game.user.character` as the fallback. For the Dice Tray this is cosmetic in the strictest sense: rolls call `ChatMessage.getSpeaker()` with no argument, so the speaker was always resolved by Foundry from the user's own token, never from the window's actor, in Squire either.
+
+- **`supersedes` on `registerMenubarTool`** (`scripts/api-menubar.js`). A tool declares the ids it replaces; any listed id already registered is dropped, and any that registers later is refused. Both halves exist because module load order is not something either module controls, so a rule that only works one way round is not a rule. Without it, a user who updates Blacksmith but not Squire -- or the reverse -- sees two identical icons until both releases land. The three entries pointing at Squire's tool ids are a migration affordance with a defined end and are removed once Squire's release dropping them has shipped.
+
+- **Settings adoption from sibling modules** (`scripts/manager-settings-adoption.js`, run from `ready` in `scripts/blacksmith.js` after registration). A table of `{fromModule, fromKey, toKey, scope}` rows, read once and never again. Blacksmith owns this rather than the departing module because a departing module can only migrate if the user happens to install the one release carrying the migration before removing it, and nothing guarantees that ordering; reading the old key from here works whether the sibling is still installed, was skipped over, or is already gone. Reads prefer `game.settings.get` when the sibling is still registered and fall back to the raw store otherwise, since `game.settings.get` throws on an unregistered key.
+
+  There is one ledger per scope, not one ledger, because "has this been adopted" has a different answer for different people: a world setting is adopted once for the world, a user setting once per user since each user owns their own value, and a client setting once per browser. **`userFavoriteMacros` is `client` scope, so favourites are per browser -- a user logging in from a second machine gets an empty list, and no migration can change that.** The macro list itself is `user` scope and follows the user across machines.
+
+- **Tool windows reopen if they were open** (`scripts/manager-tool-windows.js`). Squire did this from its tray rebuild, through a `windowStates` user flag that the handover note did not list because it is a flag rather than a setting -- so it would have been silently orphaned. Blacksmith keeps the behaviour as a small pass of its own in `ready`, and adopts Squire's flag once.
+
+- **`migratePositionKey` on the window base** (`scripts/window-base.js`). Window position does not key off the window id, which is what the handover assumed: `_positionKey` reads `options.windowPositionKey`, and `window-tool-base.js` derives the titlebar-mode and theme preference keys from it with `-titlebar` and `-theme` suffixes. Three localStorage keys per window, nine across these three. Renaming the key without moving them silently resets position, titlebar mode, and theme; this moves them once and deletes the originals, refusing to clobber any value already present under the new key.
+
+- **`includes` Handlebars helper** (`scripts/utility-handlebars.js`), for the macros template's favourite check.
+
+### Changed
+
+- **Health severity now has one definition, and it is configurable** (`scripts/utility-health.js`). `getHealthSeverity` read hardcoded 75/50/25 boundaries; it now reads the `healthThresholdInjured` / `Bloodied` / `Critical` settings adopted from Squire, whose defaults are exactly those numbers. This matters because the same concept had two definitions the moment the Health window arrived: Blacksmith's constants already drove the combat bar portrait rings and the token blood indicators, while Squire's settings drove its tray handle and the health bars. **For a GM who changed those thresholds, the combat bar rings and blood indicators will now agree with the health bars where previously they did not.** Boundaries are inclusive rather than exclusive, matching how the settings describe themselves; a creature at exactly the bloodied threshold is bloodied. `getHealthSeverityForHP` is added for callers holding a `{value, max}` pair rather than an Actor, and `getHealthThresholds` is exported so a consuming module can read the same numbers without a window open -- which the tray handle needs, since it rebuilds on every render.
+
+- **The Health window owns its own selection.** In Squire, eight-plus call sites pushed tokens into the health panel. The window now reads `canvas.tokens.controlled` through a `controlToken` hook registered on `HookManager` with a disposal context, so nothing outside has to remember to tell it, and "select the whole party" is implemented by selecting tokens rather than by pushing a list. The two Squire call sites that genuinely needed to show tokens *without* selecting them are served by `openWindow('blacksmith-health', { tokens })` -- an option on the opener rather than a public method on the instance, so the surface stays a registry call. The selection hook is debounced by one tick because `control()` fires per token, and a multi-select would otherwise re-render once per token.
+
+- **The token blood hint no longer quotes fixed percentages** (`lang/en.json`), since those boundaries are now settings.
+
+### Fixed
+
+- **Health bars no longer render at an undefined width when a group is empty.** The bar width was computed in the template as `multiply (divide current max) 100`; a Party or NPC row with no members has max 0, so the arithmetic produced NaN and Handlebars printed it straight into the style attribute. The percentage is computed in JavaScript and clamped. Inherited from Squire.
+
+- **Dice roll chat cards no longer carry their own stylesheet.** Squire shipped the roll description styling as a CSS string inside a message flag, so every roll ever made stored a copy of it. Same appearance, declared once in `styles/window-dicetray.css`.
+
+Verify: live, per the steps in `documentation/testing/testing-squire-tool-adoption.md`. Nothing here is proven yet.
+
 ## [13.16.0]
 
 ### Added

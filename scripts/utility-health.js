@@ -1,10 +1,15 @@
 // ==================================================================
 // ===== HEALTH UTILITY =============================================
 // ==================================================================
-// Shared HP-percent and severity classification. The combat bar and
-// party bar compute this independently today; new consumers (token
-// blood indicators) use this helper instead of adding another copy.
-// Severity tiers match manager-combatbar.js portrait ring classes.
+// Shared HP-percent and severity classification -- the single definition
+// of what "bloodied" means, used by the combat bar portrait rings, the
+// token blood indicators, and the Health window, and readable by
+// consuming modules so they do not grow a copy of their own.
+//
+// Severity boundaries are the healthThreshold* settings rather than
+// constants, so the colours a GM configures apply everywhere at once.
+
+import { MODULE } from './const.js';
 
 /**
  * Resolve current/max HP for an actor across the system shapes Blacksmith supports.
@@ -32,18 +37,66 @@ export function getHealthPercent(actor) {
 }
 
 /**
- * Classify a health percent into severity tiers. The 75/50/25/0 boundaries match
- * the combat bar's portrait ring classes; 'hurt' additionally distinguishes
- * "has taken any damage at all" from truly untouched 'healthy'.
+ * The percentages that divide the severity tiers, as configured.
+ *
+ * Read straight from settings with no caching and no instance to construct: the
+ * tray handle in a consuming module rebuilds on every render and cannot be made
+ * to depend on a window being open. Falls back to the values these tiers were
+ * hardcoded to before they became configurable, so a call made before settings
+ * registration still classifies correctly rather than throwing.
+ *
+ * @returns {{injured: number, bloodied: number, critical: number}}
+ */
+export function getHealthThresholds() {
+    const read = (key, fallback) => {
+        try {
+            const value = Number(game.settings.get(MODULE.ID, key));
+            return Number.isFinite(value) ? value : fallback;
+        } catch (_) {
+            return fallback;
+        }
+    };
+    return {
+        injured: read('healthThresholdInjured', 75),
+        bloodied: read('healthThresholdBloodied', 50),
+        critical: read('healthThresholdCritical', 25)
+    };
+}
+
+/**
+ * Classify a health percent into severity tiers.
+ *
+ * The one definition of what "bloodied" means, shared by the combat bar portrait
+ * rings, the token blood indicators, and the Health window, and readable by
+ * consuming modules so they do not grow a fourth. Boundaries are inclusive --
+ * a creature at exactly the bloodied threshold is bloodied -- which matches how
+ * the settings describe themselves.
+ *
+ * 'hurt' has no threshold of its own: it is "has taken damage but is still above
+ * the injured line", which distinguishes a scratch from an untouched creature.
+ *
  * @param {number | null} percent
  * @returns {'healthy' | 'hurt' | 'injured' | 'bloodied' | 'critical' | 'dead' | null}
  */
 export function getHealthSeverity(percent) {
     if (percent === null || percent === undefined || !Number.isFinite(percent)) return null;
     if (percent <= 0) return 'dead';
-    if (percent < 25) return 'critical';
-    if (percent < 50) return 'bloodied';
-    if (percent < 75) return 'injured';
+    const { injured, bloodied, critical } = getHealthThresholds();
+    if (percent <= critical) return 'critical';
+    if (percent <= bloodied) return 'bloodied';
+    if (percent <= injured) return 'injured';
     if (percent < 100) return 'hurt';
     return 'healthy';
+}
+
+/**
+ * Severity for a raw {value, max} pair, for callers holding HP rather than an Actor.
+ * @param {{value: number|string, max: number|string}} hp
+ * @returns {'healthy' | 'hurt' | 'injured' | 'bloodied' | 'critical' | 'dead' | null}
+ */
+export function getHealthSeverityForHP(hp) {
+    const value = Number(hp?.value) || 0;
+    const max = Number(hp?.max) || 0;
+    if (max <= 0) return null;
+    return getHealthSeverity(Math.max(0, Math.min(100, (value / max) * 100)));
 }

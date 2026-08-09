@@ -49,6 +49,10 @@ export function registerHandlebarsHelpers() {
     Handlebars.registerHelper('gt', function (a, b) {
         return a > b;
     });
+    /** Membership test for arrays; false for anything that is not one. */
+    Handlebars.registerHelper('includes', function (list, value) {
+        return Array.isArray(list) && list.includes(value);
+    });
 
     // ----- Arithmetic ------------------------------------------------------
     Handlebars.registerHelper('add', function (a, b) {

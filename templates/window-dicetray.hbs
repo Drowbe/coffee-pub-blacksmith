@@ -1,0 +1,56 @@
+<div id="blacksmith-dicetray-content" class="blacksmith-dicetray-content{{#unless showRecentRolls}} recent-rolls-hidden{{/unless}}">
+    <div class="blacksmith-dice-formula">
+        <div class="blacksmith-input-wrapper">
+            <input type="text" class="blacksmith-formula-input" placeholder="Enter dice formula">
+            <i class="fa-solid fa-times blacksmith-clear-button" title="Clear Formula"></i>
+        </div>
+        <i class="fa-solid fa-dice blacksmith-roll-button" title="Roll Formula"></i>
+        <i class="fa-solid fa-dice blacksmith-roll-button advantage" title="Roll with Advantage: Doubles the number of dice and keeps the higher half of the results"></i>
+        <i class="fa-solid fa-dice blacksmith-roll-button disadvantage" title="Roll with Disadvantage: Doubles the number of dice and keeps the lower half of the results"></i>
+    </div>
+
+    <div class="blacksmith-dice-row">
+        <i class="fa-solid fa-coin blacksmith-dice-icon" data-die="d2" title="D2: 1-2"></i>
+        <i class="fa-solid fa-dice-d4 blacksmith-dice-icon" data-die="d4" title="D4: 1-4"></i>
+        <i class="fa-solid fa-dice-d6 blacksmith-dice-icon" data-die="d6" title="D6: 1-6"></i>
+        <i class="fa-solid fa-dice-d8 blacksmith-dice-icon" data-die="d8" title="D8: 1-8"></i>
+        <i class="fa-solid fa-dice-d10 blacksmith-dice-icon" data-die="d10" title="D10: 1-10"></i>
+        <i class="fa-solid fa-dice-d12 blacksmith-dice-icon" data-die="d12" title="D12: 1-12"></i>
+        <i class="fa-solid fa-dice-d20 blacksmith-dice-icon" data-die="d20" title="D20: 1-20"></i>
+        <i class="fa-solid fa-hundred-points blacksmith-dice-icon" data-die="d100" title="D100: 1-100"></i>
+    </div>
+
+    <div class="blacksmith-controls-row">
+        <i class="fa-solid fa-plus blacksmith-operator-icon" data-op="+" title="Addition: add the previous dice to the next dice."></i>
+        <i class="fa-solid fa-minus blacksmith-operator-icon" data-op="-" title="Subtraction: subtract the previous dice from the next dice."></i>
+        <i class="fa-solid fa-times blacksmith-operator-icon" data-op="*" title="Multiplication: multiply the previous dice by the next dice."></i>
+        <i class="fa-solid fa-divide blacksmith-operator-icon" data-op="/" title="Division: divide the previous dice by the next dice."></i>
+        <i class="fa-solid fa-circle-arrow-up blacksmith-modifier-icon" data-mod="kh" title="Keep Highest: Keeps the highest results from the roll. Click once for kh1, click again to increase the number of dice kept"></i>
+        <i class="fa-solid fa-circle-arrow-down blacksmith-modifier-icon" data-mod="kl" title="Keep Lowest: Keeps the lowest results from the roll. Click once for kl1, click again to increase the number of dice kept"></i>
+        <i class="fa-solid fa-circle-plus blacksmith-modifier-icon" data-mod="bonus" title="Add Bonus: Adds to the final result. Click once for +1, click again to increase the bonus"></i>
+        <i class="fa-solid fa-circle-minus blacksmith-modifier-icon" data-mod="penalty" title="Add Penalty: Subtracts from the final result. Click once for -1, click again to increase the penalty"></i>
+    </div>
+
+    {{#if showRecentRolls}}
+        <div class="blacksmith-dice-history">
+            <div class="history-header">
+                <div class="blacksmith-tool-title-small">Recent Rolls</div>
+                <div class="history-controls">
+                    <i class="fa-solid fa-circle-xmark history-clear" title="Clear History"></i>
+                </div>
+            </div>
+            <div class="blacksmith-history-list">
+                {{#if rollHistory}}
+                    {{#each rollHistory as |roll|}}
+                        <div class="history-entry" data-formula="{{roll.formula}}">
+                            <span class="history-formula">{{roll.formula}} = {{roll.result}}</span>
+                            <i class="fa-solid fa-dice reroll-button" title="Re-roll this formula"></i>
+                        </div>
+                    {{/each}}
+                {{else}}
+                    <div class="history-entry empty-message">No recent rolls</div>
+                {{/if}}
+            </div>
+        </div>
+    {{/if}}
+</div>

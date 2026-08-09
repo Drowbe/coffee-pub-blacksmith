@@ -1656,6 +1656,30 @@ export const registerSettings = () => {
 	});
 
 	// --------------------------------------
+	// -- H3: MENUBAR TOOLS
+	// --------------------------------------
+	// User scope: every setting under it is player-visible, so a world-scope heading here
+	// would hide the heading from players while leaving its toggles on screen.
+	registerHeader('MenubarTools', 'headingH3MenubarTools-Label', 'headingH3MenubarTools-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
+
+	// -- Health Tool --
+	game.settings.register(MODULE.ID, 'showHealthMenubarTool', {
+		name: MODULE.ID + '.showHealthMenubarTool-Label',
+		hint: MODULE.ID + '.showHealthMenubarTool-Hint',
+		scope: 'user',
+		config: true,
+		type: Boolean,
+		default: true,
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE,
+		// Reached through the module api rather than importing MenuBar, to keep settings.js
+		// free of a subsystem import it otherwise has no need for.
+		onChange: () => {
+			try { game.modules.get(MODULE.ID)?.api?.renderMenubar?.(true); } catch (_) {}
+		}
+	});
+
+	// --------------------------------------
 	// -- H3: TOOLBAR
 	// --------------------------------------
 	registerHeader('Toolbar', 'headingH3Toolbar-Label', 'headingH3Toolbar-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
@@ -3034,6 +3058,47 @@ export const registerSettings = () => {
 			gmOnly: 'GM Only'
 		},
 		default: 'everyone',
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- HEALTH SEVERITY THRESHOLDS --
+	// The percentages that divide healthy from injured, bloodied, and critical. One
+	// definition, read by everything that colours by health: the blood indicators above,
+	// the combat bar portrait rings, and the health window. See scripts/utility-health.js.
+	// Defaults are the values those tiers were previously hardcoded to.
+	game.settings.register(MODULE.ID, 'healthThresholdInjured', {
+		name: MODULE.ID + '.healthThresholdInjured-Label',
+		hint: MODULE.ID + '.healthThresholdInjured-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 75,
+		range: { min: 0, max: 100, step: 1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'healthThresholdBloodied', {
+		name: MODULE.ID + '.healthThresholdBloodied-Label',
+		hint: MODULE.ID + '.healthThresholdBloodied-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 50,
+		range: { min: 0, max: 100, step: 1 },
+		requiresReload: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'healthThresholdCritical', {
+		name: MODULE.ID + '.healthThresholdCritical-Label',
+		hint: MODULE.ID + '.healthThresholdCritical-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 25,
+		range: { min: 0, max: 100, step: 1 },
 		requiresReload: false,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
@@ -4910,6 +4975,67 @@ export const registerSettings = () => {
 			'plain': 'Boring and Lame: Default console styles',
 		},
 		group: WORKFLOW_GROUPS.DEVELOPER_TOOLS
+	});
+
+	// ====================================================================================================================
+	// == INTERNAL - NOT SHOWN IN THE SETTINGS SHEET
+	// ====================================================================================================================
+
+	// -- SETTINGS ADOPTION LEDGERS --
+	// Which sibling-module settings have already been adopted, so adoption never runs
+	// twice and cannot overwrite a value the user changed afterwards. One ledger per
+	// scope because "already adopted" has a different answer per world, per user, and
+	// per browser -- see scripts/manager-settings-adoption.js. The client-scope ledger
+	// is not a setting at all; it lives in localStorage alongside the values it tracks.
+	game.settings.register(MODULE.ID, 'adoptedSettingsWorld', {
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: []
+	});
+
+	game.settings.register(MODULE.ID, 'adoptedSettingsUser', {
+		scope: 'user',
+		config: false,
+		type: Array,
+		default: []
+	});
+
+	// -- DICE TRAY --
+	// Toggled from inside the window's own titlebar, not the settings sheet.
+	game.settings.register(MODULE.ID, 'diceTrayShowRecentRolls', {
+		scope: 'client',
+		config: false,
+		type: Boolean,
+		default: true
+	});
+
+	// -- MACROS --
+	// Both hold user data rather than preferences. `userMacros` is the ordered list the
+	// window shows, as {id, name, img} pointers to Macro documents; `userFavoriteMacros`
+	// is the id list behind the menubar tool's right-click menu. Favourites are client
+	// scope, so they are per browser -- a user on a second machine starts empty.
+	game.settings.register(MODULE.ID, 'userMacros', {
+		scope: 'user',
+		config: false,
+		type: Array,
+		default: []
+	});
+
+	game.settings.register(MODULE.ID, 'userFavoriteMacros', {
+		scope: 'client',
+		config: false,
+		type: Array,
+		default: []
+	});
+
+	// -- HEALTH --
+	// Last amount typed into the health window's adjust field, remembered between opens.
+	game.settings.register(MODULE.ID, 'healthAdjustmentAmount', {
+		scope: 'client',
+		config: false,
+		type: Number,
+		default: 1
 	});
 
 	getActorChoices();

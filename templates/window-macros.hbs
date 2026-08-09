@@ -1,0 +1,16 @@
+<div id="blacksmith-macros-content">
+    <div class="macros-grid">
+        {{#each macros as |macro idx|}}
+            <div class="macro-slot {{#unless macro.id}}empty{{/unless}}" data-slot="{{idx}}" draggable="false" {{#if macro.id}}data-tooltip="<div class='blacksmith-data-tooltip-label'>{{macro.name}}</div><div class='blacksmith-data-tooltip-text'>Left-Click: Execute Macro<br>Right-Click: Favorite Macro<br>Middle-Click or Shift-Click: Remove Macro or Empty Slot</div>"{{/if}}>
+                {{#if macro.id}}
+                    <img src="{{macro.img}}" data-tooltip="{{macro.name}}" draggable="false" />
+                    {{#if (includes ../favoriteMacroIds macro.id)}}
+                        <i class="fa-solid fa-heart macro-favorite" data-tooltip="Favorited"></i>
+                    {{/if}}
+                {{else}}
+                    <div class="macro-placeholder"><i class="fa-solid fa-plus"></i></div>
+                {{/if}}
+            </div>
+        {{/each}}
+    </div>
+</div>

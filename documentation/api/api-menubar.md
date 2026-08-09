@@ -341,10 +341,10 @@ Runs a registered tool's `onClick` from anywhere, without clicking its icon. Ret
 An **intent** is a capability a tool claims, declared at registration:
 
 ```javascript
-blacksmith.registerMenubarTool('squire-health', {
+blacksmith.registerMenubarTool('my-module-vitals', {
     icon: 'fa-solid fa-heart',
-    name: 'Health',
-    onClick: () => HealthPanel.open(),
+    name: 'Vitals',
+    onClick: () => VitalsPanel.open(),
     intents: ['party-health']
 });
 ```
@@ -362,6 +362,27 @@ This is how a Blacksmith surface integrates with a sibling without naming it. Bl
 **Ask `hasIntentHandler` before offering the interaction**, not just before running it. A control that looks clickable and does nothing is the failure the readout styling rules exist to prevent, and an unclaimed intent is that failure in a different costume.
 
 Registration order decides ties. Two modules claiming one intent is a configuration the user chose, not an error to resolve here.
+
+Blacksmith's own Health tool claims `party-health`, so the combat bar's health bars are clickable without any sibling installed. A sibling claiming the same intent takes over only if it registers first.
+
+#### `supersedes` -- replacing a tool that moved modules
+
+A tool may declare the ids it replaces:
+
+```javascript
+blacksmith.registerMenubarTool('my-module-notes', {
+    icon: 'fa-solid fa-note',
+    name: 'Notes',
+    onClick: () => NotesWindow.open(),
+    supersedes: ['other-module-notes']
+});
+```
+
+A listed id already registered is dropped; a listed id registering later is refused and its `registerMenubarTool` call returns `false`. Both halves exist because module load order is not something either module controls, so the outcome is the same whichever registers first.
+
+This is for the window during which a tool has moved from one module to another and a user has updated one module but not the other -- without it they see two identical icons. It is not a priority system, and an entry should be removed once the release that dropped the old tool has shipped.
+
+`unregisterMenubarTool` releases whatever claims a tool made, so removing the new owner lets the old id register again.
 
 #### `unregisterMenubarTool(toolId)`
 

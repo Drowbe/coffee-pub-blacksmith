@@ -523,6 +523,40 @@ static ACTION_HANDLERS = {
 
 ---
 
+## Windows Blacksmith registers
+
+Three tool windows ship with Blacksmith and are openable by id from any module or macro.
+
+| Window | Id | Also registered as |
+|---|---|---|
+| Dice Tray | `blacksmith-dice-tray` | `coffee-pub-squire-dice-tray-window` |
+| Macros | `blacksmith-macros` | `coffee-pub-squire-macros-window` |
+| Health | `blacksmith-health` | `coffee-pub-squire-health-window` |
+
+The second id in each row is the id Squire used before these tools moved to Blacksmith. Both resolve to the
+same opener, so an existing macro keeps working.
+
+`blacksmith-health` accepts an option:
+
+```javascript
+// Show these tokens without changing what the GM has selected.
+blacksmith.openWindow('blacksmith-health', { tokens });
+```
+
+Without it the window follows the canvas selection on its own, so a caller that wants the selection shown
+should simply select the tokens.
+
+### Window ids another module may provide
+
+Blacksmith looks for one window it does not register itself:
+
+| Id | Effect when registered |
+|---|---|
+| `blacksmith-status-effects` | The Health window shows a conditions button on each row, opening this window with `{ actor, actorUuid }`. |
+
+The id names a capability rather than a module, the same way menubar intents do. When nobody registers it
+the button does not render, which is the correct behaviour for an optional integration.
+
 ## Version History
 
 - **Implemented** — Window registry (`api-windows.js`), standard template/base (`window-template.hbs`, `window-base.js`), and Tool template/base (`window-tool-template.hbs`, `window-tool-base.js`).

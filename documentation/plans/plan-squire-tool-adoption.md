@@ -1,6 +1,23 @@
 # Plan: Adopt Squire's Dice Tray, Macros, and Health tools
 
-**Status:** Planned. No phase started.
+**Status: Implemented (all three phases), unverified.** Written unattended on 2026-08-09 and never loaded in
+Foundry. The design content of this plan has moved to `architecture/architecture-tool-windows.md` and
+`api/api-health.md`; the history is in the `[Unreleased]` section of `CHANGELOG.md`; the verification owed is
+in `testing/testing-squire-tool-adoption.md`; Squire's remaining half is in `TODO-GLOBAL.md`.
+
+**This file is kept only until the testing document passes, because it is the record of what was decided and
+why while the work is still unproven. Delete it then.**
+
+Three deviations from the plan below, all deliberate:
+
+- **No `manager-health.js`.** Selection tracking is 30 lines and belongs to the window that uses it; a
+  manager would have been a file whose only caller is one constructor.
+- **`manager-tool-windows.js` was not planned.** Squire's `windowStates` user flag reopens tool windows on
+  load, and the handover note did not list it because it is a flag rather than a setting -- so it would have
+  been silently orphaned. Found while reading `panel-dicetray.js`.
+- **The health rows' conditions button opened a Squire window.** Not something the plan anticipated. It now
+  renders only when a module registers `blacksmith-status-effects`, naming a capability rather than a
+  sibling.
 
 Blacksmith adopts three tools that currently live in Squire but serve every module's audience: Dice Tray,
 Macros, and Health. Settled 2026-08-09: **Blacksmith pulls; Squire does not write Blacksmith code.** Every
@@ -315,34 +332,54 @@ matching Squire code change rather than a deletion.
 7. Disable Squire. Health still works, the intent still resolves, no console errors.
 8. As a player with `showHealthMenubarTool` off, the icon is absent; on, it is present.
 
-## Standing assumptions for unattended work
+## Resolved by Squire, 2026-08-09
 
-Each is an open question for Squire. Work proceeds on the stated assumption if unanswered; each is cheap to
-reverse and is called out in the phase's CHANGELOG entry so a wrong guess is visible rather than silent.
+**A. The actor source. Confirmed a behaviour change, and the divergence is not selection.**
+`PanelManager.instance.actor` is a "current character" with four inputs, not canvas selection:
 
-**A. What replaces `PanelManager.instance.actor`.** Squire's tray actor follows the tray's own tab
-selection, which is not always the canvas selection. Assumption: use canvas selection -
-`canvas.tokens.controlled[0]?.actor`, falling back to `game.user.character`. This is the semantics a
-Blacksmith-level tool should have, and it is what Health already uses. If Squire wanted tray semantics
-preserved, that is a Squire-specific behaviour and does not belong in the hub. The behaviour change is
-called out in the CHANGELOG either way.
+- Startup fallback chain (`squire/scripts/manager-panel.js:2014-2048`): controlled token, then
+  `game.user.character`, then first owned character token, then any owned token.
+- `controlToken`, gain only (`squire/scripts/squire.js:2449`). Release deliberately never re-initialises -
+  doing so resurrected the previous actor and swallowed character-switcher clicks.
+- `renderActorSheet5e` (`squire/scripts/squire.js:180-193`). Opening any actor sheet re-points the tray with
+  no canvas selection involved.
+- The character switcher (`squire/scripts/manager-panel.js:1550-1556`), which controls the token and
+  force-initialises.
 
-**B. Which oddities are load-bearing.** Four things look arbitrary and may be fixes for something.
-Assumption: preserve all four verbatim, comment them as inherited, and ask afterwards.
+Blacksmith uses canvas selection with a `game.user.character` fallback; Squire confirms that is right for a
+hub tool and is not asking for its semantics to be reproduced. **The CHANGELOG line calls out the
+sheet-open case, not selection** - a GM who opened an NPC sheet to check something used to re-point the
+dice tray without touching the canvas, and will no longer.
 
-- The dice tray's 280/150 height juggling in the constructor (`squire/scripts/window-dicetray.js:45-52`).
-- The `dropInProgress` re-entrancy guard (`squire/scripts/panel-macros.js:180`).
-- The `_registeredActors` Set in `squire/scripts/window-health.js:56`.
-- The double-init-with-spin-loop in `ensureReadyForMenubar` (`squire/scripts/manager-panel.js:139-162`).
-  This one dies with the `PanelManager` severance - but if it is guarding a real race, that race may
-  reappear in Blacksmith. Watch for it in Phase 1 step 7.
+**B. Three of the four are load-bearing; the fourth is dropped.**
 
-**C. Alias lifetime.** Assumption: the three window-id aliases are permanent and undocumented - they cost
-one Map entry each and exist so nobody's macro breaks. The `supersedes` entries are temporary and get
-removed once Squire's deletion release has shipped.
+- Dice tray 280/150 - **keep.** `diceTrayShowRecentRolls` hides the history block and the window then has
+  no content to size against. Paired with `_fitHiddenHistoryHeight()`, which measures the last child and
+  sets height from it. Port both or neither.
+- `dropInProgress` - **keep.** Guards a read-modify-write on `userMacros`
+  (`squire/scripts/panel-macros.js:186-189`). AppV2 windows share Foundry's global drag surface and two
+  handlers can see one drop; two concurrent adds would lose one.
+- `_registeredActors` - **keep**, and it is subtler than it looks. It is the unregister list. Registration
+  writes `actor.apps[this.id] = this`, and with nothing selected it registers **every token on the scene
+  with HP** (`_registerCurrentActors`, `squire/scripts/window-health.js:186-192`). Without the set those
+  cannot be cleaned up, leaving `apps` entries across the scene pointing at a closed window.
+- The spin loop - **drop.** Incidental; it arrived with the menubar fallback itself (Squire commit
+  `4198b7c`) as belt-and-braces around Squire's own async init, not a Foundry race. Severing `PanelManager`
+  removes what it was waiting for. Anything resembling it after the move is a real signal, not this
+  recurring.
 
-**D. The three dead settings.** Assumption: genuinely dead, not about to be wired up. Not ported. Squire
-removes them its side.
+**C. Thresholds - agreed, with one requirement.** Squire consumes Blacksmith's severity function and maps
+the returned string to its own `squire-tray-healthbar-*` classes at `manager-handle.js:75` and
+`panel-party.js:73,619`. **The thresholds must be readable without a window open**, since the handle renders
+on every tray build - so severity lives in `utility-health.js` and reads settings directly, with no window
+or manager instance required. The severity vocabulary goes to Squire when Phase 3 lands.
+
+**D. The three dead settings are confirmed dead**, as is the favourites context-building at
+`squire/scripts/manager-panel.js:414,490`. Squire deletes all four its side. Not ported.
+
+**E. Alias lifetime.** Blacksmith's call: the three window-id aliases are permanent and undocumented - one
+Map entry each, so nobody's macro breaks. The `supersedes` entries are temporary and are removed once
+Squire's deletion release has shipped.
 
 ## Squire's half, per phase
 
