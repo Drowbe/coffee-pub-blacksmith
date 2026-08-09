@@ -568,11 +568,18 @@ export class CombatBarManager {
         // is null for the first moments of a combat before the GM's first mirror lands -- in each
         // case "no data yet" and "no MVP" are the same answer here, which is to stay hidden.
         //
-        // Appearing is a STRUCTURAL change and needs a re-render to take effect. Both underlying
-        // reads change on events the bar already re-renders for -- `blacksmith.combatSummaryReady`
-        // for the standings, the combat flag write for the running fight -- so nothing extra is
-        // needed. A predicate depending on state those events do not cover would silently never
-        // appear; see the planning timer note above for what that failure looks like.
+        // Appearing is a STRUCTURAL change and needs a re-render to take effect. A predicate
+        // depending on state the bar does not re-render for would silently never appear; see the
+        // planning timer note above for what that failure looks like.
+        //
+        // This comment used to claim the re-render was already covered, because the standings
+        // change on `blacksmith.combatSummaryReady` and the running fight on the combat flag write.
+        // That was true of what CHANGES the numbers and false of what makes this read return null.
+        // The party cache is also invalidated by `updateActor`, `createActor` and `deleteActor`
+        // (`stats-party.js:38`), and an actor update is not a re-render trigger -- so a hit point
+        // change during a fight emptied every lifetime chip and nothing brought them back. The
+        // invalidation set is wider than the re-render set; `refreshReadoutItems` closes the gap by
+        // asking for a render when it has to rebuild the aggregate itself.
         const hasLifetimeMvp = () => {
             try {
                 return !!game.modules.get(MODULE.ID)?.api?.stats?.party?.getAggregateSync()?.topMvp?.name;
@@ -1319,7 +1326,9 @@ export class CombatBarManager {
      * the numbers have always meant: they answer whether the fight in front of
      * you is fair, not who is currently in the tracker.
      */
-    static refreshReadoutItems() {
+    static _lifetimeRenderPending = false;
+
+    static refreshReadoutItems(menuBar = null) {
         try {
             const api = game.modules.get(MODULE.ID)?.api;
             if (!api?.updateSecondaryBarItemInfo) return;
@@ -1645,8 +1654,30 @@ export class CombatBarManager {
             write(cached);
             return;
         }
+        // COLD CACHE, and writing the values on arrival is not enough on its own. The `visible`
+        // predicates above read the same synchronous accessor, so they have ALREADY resolved to
+        // false for every lifetime chip, and appearing is a structural change that only a render
+        // applies. Without the re-render below the standings stay hidden until some unrelated
+        // render brings them back.
+        //
+        // This is not a rare cold start. `updateActor` invalidates the aggregate
+        // (`stats-party.js:38`) and the same hook rebuilds this bar, in that order, so every hit
+        // point change during a fight lands here.
         api.stats.party.getAggregate()
-            .then(write)
+            .then((aggregate) => {
+                write(aggregate);
+                if (!aggregate || !menuBar || CombatBarManager._lifetimeRenderPending) return;
+                // Guarded rather than trusted to terminate. The re-render calls this method again,
+                // which takes the warm path and asks for nothing further -- unless another actor
+                // update invalidates the cache in between, which is precisely the condition that
+                // would otherwise make this chase itself.
+                CombatBarManager._lifetimeRenderPending = true;
+                try {
+                    CombatBarManager.updateCombatBar(menuBar);
+                } finally {
+                    CombatBarManager._lifetimeRenderPending = false;
+                }
+            })
             .catch((error) => postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error reading party stats', error?.message || error, false, false));
     }
 
@@ -2092,8 +2123,10 @@ export class CombatBarManager {
             // from the height variable as getCombatData runs.
             CombatBarManager.applyBarHeight(menuBar, !!combat);
             // Readout values are item state, not template data, so they have to
-            // be pushed before the render that reads them.
-            CombatBarManager.refreshReadoutItems();
+            // be pushed before the render that reads them. The bar is passed so a
+            // cold party cache can ask for a second render once it has rebuilt --
+            // visibility is decided here and cannot be patched in afterwards.
+            CombatBarManager.refreshReadoutItems(menuBar);
             const data = combatData || CombatBarManager.getCombatData(combat);
             CombatBarManager.hideCombatantHoverCard(menuBar);
             return menuBar.updateSecondaryBar(data);

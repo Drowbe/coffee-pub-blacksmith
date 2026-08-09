@@ -7,41 +7,25 @@ transitional document -- see the testing rules in `CLAUDE.md`. **Remove an item 
 ticking it, and delete this file when it is empty.** A checklist of ticked boxes cannot be told apart from one
 nobody ran.
 
-**Status: 25 items owed.** Nothing here is known broken; it is all unverified. Two suites in
-`utilities/tests/` cover the automatable half -- run `utilities/test-harness.js` in a script macro as GM and
-use "Run All Headless". Everything under a "cannot be automated" heading needs a second client, a browser
-reload, or a human judgement, and those are the items most likely to be skipped and most likely to matter.
+**Status: 21 items owed, and the harness half is finished.** A full "Run All Headless" passes **519/519** as of
+2026-08-09, across all nine suites. Everything still listed below is something a harness cannot reach: a second
+client, a browser reload, cross-module integration, or a judgement about what something looks like. Those are
+the items most likely to be skipped and most likely to matter.
 
 Results go to the **Verified** line of the relevant `CHANGELOG.md` entry, not back into this file.
-
-Everything below is written, syntax-checked, and passing both invariant checks, and **none of it has been
-exercised in a running world** except where noted. Delete an item when it passes; delete the whole section
-when it is empty.
-
-Two things are worth knowing before working through it. **The harness is the cheap half:** paste
-`utilities/test-harness.js` into a script macro as GM and use "Run All Headless", which covers 33 assertions
-across the two new suites. **The expensive half cannot be automated** - a second client, a browser reload, or
-a judgement about what a window looks like - and those are the items most likely to be skipped and most likely
-to matter.
 
 Highest risk first, if time is short: the two-client inventory case, the encumbrance guard with the guard
 switched off, and the XP reload case.
 
-**Answered. The 13 unnamed failures are identified and none were defects in the code under test.** The XP
-Record tab held four, from Blacksmith's own nameplate renaming overwriting a name two checks had just set,
-plus a check that renamed a token after the combatant already existed. XP Record now passes 35/35. The other
-nine were all in Readouts, from one cause: the suite read the party aggregate through `getAggregateSync`,
-which returns null on a cold cache and starts a rebuild (`api-stats.js:90`) - so ten rendered chips read as
-having nothing to report, and the rebuild landing mid-check re-rendered the row and inverted the entrance
-marking. The one code defect any of this exposed is in the `CHANGELOG.md` Fixed section.
+**Run the harness whole, not per tab.** Every defect found on 2026-08-09 was order-dependent - the per-tab runs
+were green while the full run was red, because the inventory and XP suites churn actors and combats while the
+readouts checks are reading the bar. A tab passing on its own proves less than it looks.
 
-## Harness - full headless run
+## Combat bar - live
 
-Readouts passed 34/34 and XP Record 35/35, each on its own tab.
-
-- [ ] Run "Run All Headless" and confirm 519/519. Worth doing separately from the per-tab runs: the two
-      failures fixed here were both order-dependent, visible only because a full run put other work between a
-      check and what it asserted on.
+- [ ] Watch the bar during an actual fight. The lifetime standings chips must stay put as hit points change,
+      rather than blanking and returning. The harness can only prove the chips are present at the moment it
+      looks; it cannot prove they never flickered.
 
 
 

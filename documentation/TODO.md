@@ -45,44 +45,6 @@ drew a visible box around every row instead of hinting an edge.
 Start with the highest-count values in the most-used sheets, and stop tokenising as soon as the values stop
 repeating.
 
-## BUG - lifetime readout chips vanish on any actor change and do not come back (found 2026-08-09)
-
-**Found by the harness, in a full run rather than a per-tab one, which is the argument for running it whole.**
-`readouts/empty-state` reported ten chips as having data and not being rendered. The bar is wrong, not the
-suite.
-
-The chain, and each link is fine on its own:
-
-1. `updateActor` invalidates the party aggregate - `stats-party.js:38`, registered alongside `createActor` and
-   `deleteActor`. `invalidate()` drops both `_cache` and the in-flight `_building`.
-2. The same `updateActor` rebuilds the combat bar when the actor is a combatant whose hit points moved
-   (`manager-combatbar.js:2472`).
-3. That rebuild decides visibility through `getAggregateSync()` (`manager-combatbar.js:578` and `:614`), which
-   returns null on a cold cache by contract (`api-stats.js:90`). Every lifetime chip is therefore hidden.
-4. `refreshReadoutItems` takes the cold path at `manager-combatbar.js:1643-1649`, awaits `getAggregate()`, and
-   writes on completion - but `write` patches **values only**. Visibility was settled in step 3 and is
-   structural, which the code says itself at `:571-575`.
-5. Nothing re-renders when the rebuild lands, so the chips stay gone until some unrelated structural render.
-
-**The reasoning that missed it is recorded at `manager-combatbar.js:571-575`: "both underlying reads change on
-events the bar already re-renders for."** That is true of `blacksmith.combatSummaryReady`. It is not true of the
-three actor hooks, which also invalidate. The invalidation set is wider than the re-render set, and the gap is
-exactly the difference.
-
-In play this should mean the lifetime chips blank on every hit point change during a fight - the most common
-actor update there is - and return only when something else re-renders the row.
-
-**Fix to weigh, smallest first.** Have the cold path at `:1648` request a structural re-render after `write`,
-since visibility may have changed while the cache was cold. It terminates: the re-render reads a now-warm cache
-through the sync path and asks for nothing further. The alternative is a rebuild-completed hook on `PartyStats`
-that the bar re-renders on, which is more explicit and adds a hook to a hot path. **Read
-`architecture-blacksmith.md` §9B before touching this** - the menubar render path is fingerprinted for
-performance and a re-render added carelessly is exactly what that section warns about.
-
-**Verification:** the assertion already exists. `readouts/empty-state` passes on a quiet bar and fails after
-actor churn; a full "Run All Headless" reproduces it because the inventory and XP suites create and delete
-actors. Fixed means 513/513 on a full run, not just 34/34 on the tab.
-
 ## Consider: `api.inventory.transferContainer()`
 
 **Deferred at design time, and there is now a concrete cost to point at.** A container move was left out of
