@@ -110,3 +110,6 @@
 
 /* --- Health Window ---------------------- */
 @import "window-health.css";
+
+/* --- Status Effects Window ---------------------- */
+@import "window-status-effects.css";

@@ -93,6 +93,7 @@ import { registerVoteWindow } from './window-vote-config.js';
 // this module's `init` keybinding and `ready` menubar registration only run because the
 // file is on the static import graph. The toolbar's dynamic import resolves from cache.
 import { registerCompendiumSearchWindow } from './window-compendium-search.js';
+import { registerStatusEffectsWindow } from './window-status-effects.js';
 import { restoreToolWindows } from './manager-tool-windows.js';
 import { getActorHP, getHealthPercent, getHealthPercentForHP, getHealthSeverity, getHealthSeverityForHP, getHealthThresholds } from './utility-health.js';
 import { PinManager } from './manager-pins.js';
@@ -569,6 +570,7 @@ Hooks.once('ready', async () => {
             registerToastSendWindow();
             registerVoteWindow();
             registerCompendiumSearchWindow();
+            registerStatusEffectsWindow();
             // Reopen whatever the user left open. After registration, since it opens
             // through the same code paths the menubar tools use.
             await restoreToolWindows();

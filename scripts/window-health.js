@@ -19,7 +19,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { HookManager } from './manager-hooks.js';
-import { registerWindow, openWindow, isWindowRegistered } from './api-windows.js';
+import { registerWindow, openWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
 import { getHealthSeverityForHP } from './utility-health.js';
 import { setToolWindowState } from './manager-tool-windows.js';
@@ -28,12 +28,13 @@ import { EncounterManager } from './manager-encounter.js';
 export const HEALTH_WINDOW_ID = 'blacksmith-health';
 
 /**
- * The window id another module may register to provide a conditions editor.
+ * The conditions editor opened by each row's conditions button.
  *
- * Blacksmith has no such window. Naming a capability rather than a module is the
- * same rule the `party-health` menubar intent follows: if nobody provides it the
- * button does not render, which is the correct behaviour for an optional
- * integration and avoids offering a click that would do nothing.
+ * This was briefly a capability id another module had to claim, because the window
+ * lived in Squire and Blacksmith will not name a sibling's window. That inversion --
+ * the hub advertising a slot and waiting -- is what a misplaced module looks like,
+ * and it is gone now that Blacksmith owns the window: the button always renders and
+ * the call is ordinary.
  */
 const STATUS_EFFECTS_WINDOW_ID = 'blacksmith-status-effects';
 
@@ -153,8 +154,6 @@ export class HealthWindow extends BlacksmithToolWindowBaseV2 {
     // ==============================================================
 
     async getData() {
-        const hasConditionsProvider = isWindowRegistered(STATUS_EFFECTS_WINDOW_ID);
-
         const individualEntries = this.tokens.map((token) => {
             const actor = token.actor;
             const hp = actor?.system?.attributes?.hp;
@@ -170,7 +169,6 @@ export class HealthWindow extends BlacksmithToolWindowBaseV2 {
                 actorUuid: actor?.uuid,
                 effectCount,
                 showEffectCount: effectCount > 1,
-                showConditions: hasConditionsProvider,
                 isSelected: this.selectedHealthTarget === `actor:${actor?.id}`,
                 isAggregate: false
             };

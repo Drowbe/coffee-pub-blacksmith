@@ -16,6 +16,34 @@ file. Same rule as `TODO.md`.
 
 1. **Blacksmith is the hub and must stay fast.** Features get extracted to their own modules; Blacksmith
    keeps shared infrastructure and the public API.
+
+   **This rule runs in both directions** (amended 2026-08-09, by the author, who wrote the original).
+   Extraction is the usual direction, but things move *in* as well, and a reader who sees only the first
+   sentence will conclude that any addition to the hub was a mistake. Four moved in on 2026-08-09.
+
+   The reason is structural rather than a matter of taste: **Blacksmith is the only module every sibling
+   already requires.** So "reachable by every module" and "lives in Blacksmith" are currently the same
+   statement. A tool parked in an optional module has exactly two outcomes -- nobody else can reach it, or
+   everybody rebuilds it. Both had already happened; several modules had grown their own window handling.
+
+   The test that separates the two directions:
+
+   - **A tool is generic over Foundry or dnd5e data, and holds no opinion about why you are looking at it.**
+     Dice tray, health, statistics, XP, status effects. Anything holding a token can want one. These belong
+     in the hub, because the alternative is every module rolling its own.
+   - **A feature encodes what a module is for.** Curator's image replacement, Regent's AI, Herald's
+     broadcast, Squire's tray. These get extracted, however reusable a piece of one might look.
+
+   Two things this rule does not license. It bounds *reachability*, not *volume* -- read as "anything
+   reusable belongs in Blacksmith" it is a recipe for the god module `blacksmith.js` already is. And it is
+   not a promise the hub keeps these forever: a shared "toolbox" module for the utility tools is a live
+   idea, deferred rather than rejected.
+
+   **If that toolbox is built, it has to be a required dependency of every sibling**, or Blacksmith has to
+   re-export its surface and stay the front door. An optional toolbox recreates the original problem one
+   module over. Deferring is cheap -- the migration machinery built on 2026-08-09 (per-scope settings
+   adoption, position-key migration, `supersedes`, the window registry making an id an indirection rather
+   than a location) makes moving a tool out the same operation as moving it in.
 2. **A module's docs describe only that module.** Blacksmith documentation does not describe Curator's
    image replacement, Regent's AI, or Herald's broadcast. Those references get **deleted**, not relinked —
    a corrected cross-module link is still coupling.

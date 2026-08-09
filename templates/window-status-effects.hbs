@@ -1,0 +1,150 @@
+<div class="blacksmith-window-template-root status-effects-window" data-app-id="{{appId}}">
+    <header class="blacksmith-window-template-header">
+        <div class="blacksmith-window-template-header-content">
+            <div class="blacksmith-window-template-header-icon status-effects-window-portrait">
+                <img src="{{actorImg}}" alt="{{actorName}}">
+            </div>
+            <div class="blacksmith-window-template-header-title-block">
+                <div class="blacksmith-window-template-header-title">Status Effects</div>
+                <div class="blacksmith-window-template-header-subtitle">{{actorName}}</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="blacksmith-window-template-body">
+        <div class="status-effects-window-layout">
+            <div class="status-effects-window-master">
+                <section class="blacksmith-window-section">
+                    <div class="blacksmith-window-section-header">
+                        <i class="fa-solid fa-sparkles"></i>
+                        <span>Conditions</span>
+                    </div>
+                    <div class="blacksmith-window-section-body">
+                        <div class="status-effects-grid">
+                            {{#each conditions}}
+                                <div class="status-effect-option-wrap {{#if isSelected}}is-selected{{/if}}">
+                                    <button
+                                        type="button"
+                                        class="status-effect-option {{#if isActive}}active{{/if}}"
+                                        data-action="toggleEffect"
+                                        data-condition-id="{{id}}"
+                                        aria-pressed="{{#if isActive}}true{{else}}false{{/if}}"
+                                        {{#unless ../canManage}}disabled{{/unless}}
+                                    >
+                                        <span class="status-effect-icon">
+                                            <img src="{{icon}}" alt="" onerror="this.src='icons/svg/unknown.svg'; this.onerror=null;">
+                                        </span>
+                                        <span class="status-effect-name" data-tooltip="{{name}}">{{name}}</span>
+                                        {{#if levelLabel}}<span class="status-effect-level">{{levelLabel}}</span>{{/if}}
+                                    </button>
+                                    {{#if isActive}}<i class="fa-solid fa-check status-effect-check"></i>{{/if}}
+                                    <button
+                                        type="button"
+                                        class="status-effect-description-button"
+                                        data-action="showDescription"
+                                        data-condition-id="{{id}}"
+                                        aria-label="Show {{name}} description"
+                                        data-tooltip="Show description"
+                                    >
+                                        <i class="fa-solid fa-circle-info"></i>
+                                    </button>
+                                </div>
+                            {{/each}}
+                        </div>
+                    </div>
+                </section>
+
+                <section class="blacksmith-window-section status-effects-other-section">
+                    <div class="blacksmith-window-section-header">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Other Effects</span>
+                    </div>
+                    <div class="blacksmith-window-section-body">
+                        {{#if hasOtherEffects}}
+                            <div class="status-effects-list">
+                                {{#each otherEffects}}
+                                    <div class="status-effects-list-row {{#if isSelected}}is-selected{{/if}} {{#if isDisabled}}is-disabled{{/if}} {{#if isSuppressed}}is-suppressed{{/if}}">
+                                        <img class="status-effects-list-icon" src="{{icon}}" alt="">
+                                        <button
+                                            type="button"
+                                            class="status-effects-list-details"
+                                            data-action="showDescription"
+                                            data-effect-id="{{id}}"
+                                            aria-label="Show {{name}} description"
+                                        >
+                                            <span class="status-effects-list-name">{{name}}</span>
+                                            <span class="status-effects-list-meta">
+                                                {{#if duration}}<span>{{duration}}</span>{{/if}}
+                                                {{#if isDisabled}}<span>Disabled</span>{{/if}}
+                                                {{#if isSuppressed}}<span>Suppressed</span>{{/if}}
+                                            </span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="status-effects-remove-effect blacksmith-window-btn-critical"
+                                            data-action="removeEffect"
+                                            data-effect-id="{{id}}"
+                                            aria-label="Remove {{name}}"
+                                            data-tooltip="Remove {{name}}"
+                                            {{#unless ../canManage}}disabled{{/unless}}
+                                        >
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                {{/each}}
+                            </div>
+                        {{else}}
+                            <div class="status-effects-empty">No other effects.</div>
+                        {{/if}}
+                    </div>
+                </section>
+            </div>
+
+            <aside class="status-effects-window-detail">
+                <div class="status-effects-detail-header">
+                    {{#if selectedDescription}}
+                        <img src="{{selectedDescription.icon}}" alt="">
+                        <div>
+                            <span class="status-effects-detail-label">Description</span>
+                            <h2>{{selectedDescription.name}}</h2>
+                        </div>
+                    {{else}}
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div>
+                            <span class="status-effects-detail-label">Description</span>
+                            <h2>Effect Details</h2>
+                        </div>
+                    {{/if}}
+                </div>
+                <div class="status-effects-description-content">
+                    {{#if selectedDescription}}
+                        {{{selectedDescription.html}}}
+                    {{else}}
+                        <div class="status-effects-description-empty">
+                            Select the information icon on a condition or choose an effect to view its description.
+                        </div>
+                    {{/if}}
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <section class="blacksmith-window-template-buttons">
+        <div class="blacksmith-window-template-action-bar">
+            <div class="blacksmith-window-template-action-left">
+                <button
+                    type="button"
+                    class="blacksmith-window-btn-critical"
+                    data-action="removeAll"
+                    {{#unless canRemoveAll}}disabled{{/unless}}
+                >
+                    <i class="fa-solid fa-trash-can"></i>
+                    Remove All
+                </button>
+            </div>
+            <div class="blacksmith-window-template-action-right">
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="close">Close</button>
+            </div>
+        </div>
+    </section>
+</div>

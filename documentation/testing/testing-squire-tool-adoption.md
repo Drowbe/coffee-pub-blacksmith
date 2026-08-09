@@ -99,6 +99,28 @@ threshold unification, which is the only item that changes behaviour users alrea
 - [ ] Confirm a creature at exactly the threshold classifies as bloodied. Boundaries are inclusive now.
 - [ ] Restore the thresholds and confirm everything returns to the previous appearance.
 
+## Status Effects (moved 2026-08-09, after the other three)
+
+- [ ] With Squire disabled, click the conditions button on a Health window row. The Status Effects window
+      opens for that actor. The button must be present unconditionally now -- if it is missing, the
+      `showConditions` branch was not fully removed.
+- [ ] Toggle several conditions on and off. Each shows a notification and the grid updates.
+- [ ] Toggle a condition from the **token HUD** while the window is open. The window redraws. This is the
+      HookManager registration, and it is the case a per-window listener would miss.
+- [ ] Change an actor's exhaustion level. The window redraws and the level label updates -- exhaustion is a
+      numeric attribute, so no effect hook fires for it and it has its own `updateActor` hook.
+- [ ] Remove All Conditions on an actor with several. All go.
+- [ ] Remove a non-condition Active Effect from the right-hand list.
+- [ ] Click a condition with no description of its own. dnd5e rules text appears, embedded from the
+      journal reference rather than blank.
+- [ ] Open for actor A, then open for actor B without closing. The window rebuilds for B rather than
+      showing A's effects under B's name.
+- [ ] Open for actor A, then open again for A with a different `descriptionStatusId`. The description pane
+      retargets **without** the window flashing closed and reopening.
+- [ ] Call `openWindow('blacksmith-status-effects', {})` with no actor. It warns and opens nothing.
+- [ ] As a player without ownership of the actor, the mutating controls refuse with a permission warning
+      rather than failing silently.
+
 ## Window reopen on load
 
 - [ ] Leave all three windows open, reload. All three reopen.

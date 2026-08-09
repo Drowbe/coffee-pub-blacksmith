@@ -535,6 +535,7 @@ These ship with Blacksmith and are openable by id from any module or macro.
 | Party Statistics | `blacksmith-stats-party` | none |
 | Player Statistics | `blacksmith-stats-player` | `{ actorId }` -- **required** |
 | XP Distribution | `blacksmith-xp` | none |
+| Status Effects | `blacksmith-status-effects` | `{ actor \| actorUuid, descriptionEffectId, descriptionStatusId }` -- see below |
 | Compendium Search | `blacksmith-compendium-search` | none |
 | Send Toast | `blacksmith-toast-send` | none |
 | Start a Vote | `blacksmith-vote` | none |
@@ -553,6 +554,36 @@ a second. What a second open does beyond raising differs by window, and the diff
 `blacksmith-stats-player` returns `undefined` if called without an `actorId`, rather than opening an empty
 frame. It also raises a toast, because the caller is another module's code and a console line alone would
 leave whoever clicked with nothing.
+
+### `blacksmith-status-effects` and its options
+
+```javascript
+// An actor, by document or by uuid. One of the two is required.
+blacksmith.openWindow('blacksmith-status-effects', { actor });
+blacksmith.openWindow('blacksmith-status-effects', { actorUuid });
+
+// Open with a particular row's description already showing.
+blacksmith.openWindow('blacksmith-status-effects', { actorUuid, descriptionEffectId });
+blacksmith.openWindow('blacksmith-status-effects', { actorUuid, descriptionStatusId });
+```
+
+| Option | Meaning |
+|---|---|
+| `actor` | The Actor to show. Wins over `actorUuid` when both are given. |
+| `actorUuid` | Resolved to an Actor when `actor` is absent. |
+| `descriptionEffectId` | Id of an ActiveEffect **already on the actor**. Opens with its description shown. |
+| `descriptionStatusId` | Id of a **configured status**, which may not be applied to the actor yet. Opens with that condition's rules text shown. |
+
+**The two description options are not interchangeable, and both are part of the contract.** They are listed
+here rather than left to be inferred from call sites because a consumer reading only existing callers would
+find `descriptionEffectId` and never learn the other exists -- which is exactly what happened while this
+window was being handed over.
+
+Returns `null` and warns if no actor can be resolved.
+
+Reopening for the **same** actor retargets the description in place rather than rebuilding, so clicking a
+second condition icon does not flash the window. A **different** actor closes and rebuilds, because the
+actor is bound at construction.
 
 Some windows are deliberately **not** in this list. Request a Roll has `blacksmith.requestRoll(options)`,
 GM Notes has `blacksmith.gmNotes`, and JSON import has `registerJsonImportKind` -- all of them take enough
