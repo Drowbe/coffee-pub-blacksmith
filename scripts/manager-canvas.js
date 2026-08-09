@@ -297,6 +297,13 @@ export class CanvasTools {
             return;
         }
 
+        // Every naming style below reads document.actor.name. A token with no actor at all reaches
+        // here as "not linked" and would throw inside the hook, so it is refused first.
+        if (!document.actor) {
+            postConsoleAndNotification(MODULE.NAME, "Token has no actor, so the name has not been changed.", "", true, false);
+            return;
+        }
+
         // Only modify tokens if not a linked actor. e.g a player
         if (!actorLink) {
             if (strTokenNameFormat == "name-replace" || strTokenNameFormat == "name-append-end" || strTokenNameFormat == "name-append-start" || strTokenNameFormat == "name-append-end-parenthesis" || strTokenNameFormat == "name-append-start-parenthesis" || strTokenNameFormat == "name-append-end-dash" || strTokenNameFormat == "name-append-start-dash" ) {
@@ -380,20 +387,22 @@ export class CanvasTools {
                     updatedName = baseName + " " + String(count).padStart(2, '0');
                 }
             } else {
-                // Do nothing
-                updatedName = document.actor.name;
+                // Nameplate style is "none", or an unrecognised value. There is no new name to
+                // apply, so return rather than fall through to the write below.
+                //
+                // Falling through was not a harmless no-op: it stamped the ACTOR's name onto the
+                // token, so a token deliberately created under another name lost it while the
+                // feature was switched off. It also cost one document write per token placed.
+                postConsoleAndNotification(MODULE.NAME, "Nameplate style is 'none' - leaving the token name alone.", "", true, false);
+                return;
             }
 
-            // Update the token
-            if (document.actor && !document.actor.isToken) {
-                // Update the linked actor's name
-                await document.parent.update({name: updatedName});
-                postConsoleAndNotification(MODULE.NAME, "Update the linked actor's name: " + updatedName, "", true, false);
-            } else {
-                // Update only the token's name
-                await document.update({name: updatedName});
-                postConsoleAndNotification(MODULE.NAME, "Update only the token's name: " + updatedName, "", true, false);
-            }
+            // Only ever the token. Reaching here means the token is UNLINKED - actorLink is false
+            // above, so document.actor.isToken is true and there is no world actor to rename. The
+            // linked-actor branch that used to sit here was unreachable for that reason, and wrong
+            // besides: a TokenDocument's parent is the SCENE, so it would have renamed the scene.
+            await document.update({name: updatedName});
+            postConsoleAndNotification(MODULE.NAME, "Update only the token's name: " + updatedName, "", true, false);
             postConsoleAndNotification(MODULE.NAME, "The token name has been changed to " + updatedName, "", true, false);
         } else {
             postConsoleAndNotification(MODULE.NAME, "The token is LINKED so the name has not been changed.", "", true, false);

@@ -108,6 +108,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Nameplate style "none" still renamed every token placed** (`scripts/manager-canvas.js`): with the feature switched off, `_onCreateToken` fell through to the write anyway and stamped the ACTOR's name onto the token. Usually invisible, because a token is normally created carrying its actor's name -- but it cost one document write per token placed, and it silently discarded a name a token was deliberately created under. It now returns without writing.
+
+  Found by the harness rather than reported: two XP checks set a token name and then asserted on it, and read a random roll-table name instead. Foundry does not await a create hook, so the rename lands after the caller's own, and which one wins is a race. The checks now switch the setting off for their duration (`suppressTokenRenaming` in `utilities/tests/harness-lib.js`) and assert the token kept the name they set, so the same clobbering is attributable next time instead of presenting as an XP bug.
+
+  Removed alongside it: the branch that renamed the "linked actor" was unreachable -- it sat inside a guard that only unlinked tokens pass -- and would have renamed the **scene** had anything reached it, since a TokenDocument's parent is the Scene. A token with no actor at all is now refused up front rather than throwing inside the hook on `document.actor.name`.
+
+  Two further corrections in the harness, neither a code defect. `resolution-survives-token-delete` read the combatant's stored name immediately after `token.delete()`; the stamp runs from `preDeleteToken`, which Foundry does not await, so the delete resolves while the write is still in flight -- "a moment later" is the contract the combat-tracker fix rests on, and the check now waits for it (`waitFor`). The same check also renamed the token *after* creating the combatant: `Combatant#name` is materialised during data preparation as `this.name ||= token?.name` rather than re-derived on read -- the same `||=` the stamp relies on -- so the combatant kept the pre-rename name and the check was measuring Foundry's caching. The rename now happens before the combatant exists.
+
+  **Verified:** `node --check` clean on all three files; both invariant checks pass. Live: `xp-record` went 29/33 (four name failures) to 34/35; the ordering fix above is the remaining one and has not been re-run yet.
+
 - **The shared context menu could not be dismissed in some windows, and Escape closed the wrong thing** (`scripts/ui-context-menu.js`, `styles/menu-context-global.css`): four fixes to a widely-used component, three of them reported from Cartographer's map-placement menu.
 
   **Dismissal now listens in the capture phase.** It listened on the document in the bubble phase, so a consumer whose own UI calls `stopPropagation()` on its clicks never let the event reach it -- the menu stayed open until an item inside it was clicked. Cartographer opens this menu on left click over a window map that swallows clicks, which is exactly that shape.

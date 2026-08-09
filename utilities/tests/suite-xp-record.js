@@ -21,7 +21,7 @@
 // at full health.
 // ==================================================================
 
-import { requireApi, settingRow } from './harness-lib.js';
+import { requireApi, settingRow, suppressTokenRenaming, waitFor } from './harness-lib.js';
 
 const TEMP_PREFIX = 'ZZ Harness XP';
 
@@ -78,18 +78,31 @@ export default {
                 const made = [];
                 let combat = null;
                 let token = null;
+                const restoreNaming = await suppressTokenRenaming();
                 try {
                     const proto = await tempNpc(10, 'victim');
                     made.push(proto);
                     token = await placeToken(proto);
 
+                    // Rename the TOKEN so the display name and the prototype name really differ.
+                    // Without this the name assertion below would pass by coincidence.
+                    //
+                    // BEFORE the combatant exists, and that order is load-bearing. Combatant#name is
+                    // MATERIALISED during data preparation -- `this.name ||= token?.name` -- not
+                    // re-derived on read, which is the same `||=` the name stamp relies on. Renaming
+                    // the token afterwards leaves the combatant holding the pre-rename name until
+                    // something re-prepares it, so the later order tested Foundry's caching rather
+                    // than anything here.
+                    await token.update({ name: 'Harness Display Name' });
+                    // Asserted separately from the combatant so a clobbered name is attributable.
+                    // Blacksmith's own nameplate renaming used to win this race and the failure read
+                    // as "the combatant does not derive from the token", which it was not.
+                    expect('the token kept the name this check set', token.name, 'Harness Display Name');
+
                     combat = await Combat.create({ active: true });
                     await combat.createEmbeddedDocuments('Combatant', [{
                         tokenId: token.id, sceneId: canvas.scene.id, actorId: proto.id
                     }]);
-                    // Rename the TOKEN so the display name and the prototype name really differ.
-                    // Without this the name assertion below would pass by coincidence.
-                    await token.update({ name: 'Harness Display Name' });
                     const combatant = combat.combatants.contents[0];
                     expect.ok('combatant created', Boolean(combatant));
                     expect('combatant reads the token name while the token exists', combatant.name, 'Harness Display Name');
@@ -136,6 +149,13 @@ export default {
                     // COMBAT TRACKER from reverting to the prototype a moment later.
                     // The stamp used to run after an await, by which time the token was gone and it
                     // wrote the PROTOTYPE name over the name it was trying to preserve.
+                    //
+                    // Waited for rather than read straight away. `stampName` runs from
+                    // `preDeleteToken`, and Foundry does not await a pre-hook -- so `token.delete()`
+                    // resolves while the combatant update is still in flight. "A moment later" is
+                    // the contract the tracker fix rests on; asserting immediately tests the
+                    // scheduler instead, and reported `undefined` for a stamp that did land.
+                    await waitFor(() => Boolean(stillThere._source?.name));
                     expect('the combatant stores the fought name, not the prototype', stillThere._source?.name, 'Harness Display Name');
                     expect.ok('and that is not simply the prototype name', proto.name !== stillThere._source?.name);
                     expect('so Combatant#name no longer derives from the prototype', stillThere.name, 'Harness Display Name');
@@ -143,6 +163,7 @@ export default {
                     if (token) { try { await token.delete(); } catch (_) { /* gone */ } }
                     if (combat) { try { await combat.delete(); } catch (_) { /* gone */ } }
                     await cleanup(made);
+                    await restoreNaming();
                 }
             }
         },
@@ -235,11 +256,13 @@ export default {
 
                 const made = [];
                 let combat = null, token = null;
+                const restoreNaming = await suppressTokenRenaming();
                 try {
                     const proto = await tempNpc(12, 'degrade');
                     made.push(proto);
                     token = await placeToken(proto);
                     await token.update({ name: 'Harness Fought Name' });
+                    expect('the token kept the name this check set', token.name, 'Harness Fought Name');
                     combat = await Combat.create({ active: true });
                     await combat.createEmbeddedDocuments('Combatant', [{
                         tokenId: token.id, sceneId: canvas.scene.id, actorId: proto.id

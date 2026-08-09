@@ -76,6 +76,53 @@ export function setting(key, fallback = null) {
 }
 
 /**
+ * Poll `predicate` until it is true or the timeout expires. Resolves to whether it became true.
+ *
+ * For asserting on work that a pre-hook starts and Foundry never awaits. `preDeleteToken` is the
+ * case here: the delete resolves while the handler is still writing, so reading straight after
+ * `await token.delete()` reads before the write lands. That is the production contract, not a
+ * defect -- a check that asserts immediately is testing the scheduler, not the code.
+ */
+export async function waitFor(predicate, { timeout = 3000, interval = 50 } = {}) {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+        try { if (predicate()) return true; } catch (_) { /* not ready */ }
+        await new Promise(resolve => setTimeout(resolve, interval));
+    }
+    try { return Boolean(predicate()); } catch (_) { return false; }
+}
+
+/**
+ * Switch Blacksmith's nameplate renaming off for the duration of a check, returning
+ * the function that restores it. Call it before creating a token and call the result
+ * from the check's `finally`.
+ *
+ * Necessary rather than tidy. `CanvasManager._onCreateToken` renames every unlinked
+ * token from a roll table (`scripts/manager-canvas.js`), and Foundry does not await a
+ * create hook -- so the rename lands AFTER a check has written the name it means to
+ * assert on. Four XP checks failed on exactly that, reading a random table name where
+ * they expected the one they had just set, which looks like a bug in the code under
+ * test and is not one.
+ *
+ * It writes a WORLD setting, so it is briefly visible to every connected client. That
+ * is the cost of testing anything that races a lifecycle hook, and the restore is
+ * unconditional.
+ */
+export async function suppressTokenRenaming() {
+    let previous;
+    try {
+        previous = game.settings.get(MODULE_ID, 'tokenNameFormat');
+    } catch (_) {
+        return async () => {};   // not registered -- nothing to suppress
+    }
+    if (previous === 'none') return async () => {};
+    await game.settings.set(MODULE_ID, 'tokenNameFormat', 'none');
+    return async () => {
+        try { await game.settings.set(MODULE_ID, 'tokenNameFormat', previous); } catch (_) { /* gone */ }
+    };
+}
+
+/**
  * The token a check operates on: targeted first, then selected.
  * Returns null and warns when there is none, so a check can bail cleanly.
  */
