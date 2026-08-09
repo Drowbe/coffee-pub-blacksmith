@@ -71,11 +71,14 @@ behavior:
 Run the relevant one after touching what it guards. CI (`.github/workflows/release.yml`) only zips and
 releases on `v*` tags; **it runs no checks**, so nothing runs these but you.
 
-## Documentation — there are only five kinds
+## Documentation — there are only six kinds
 
 This repo has repeatedly accumulated plans, migration guides, inventories, and "lessons learned" that
-nobody deletes. **Everything that isn't one of these five is noise.** Don't create a sixth kind, and don't
+nobody deletes. **Everything that isn't one of these six is noise.** Don't create a seventh kind, and don't
 add to a category by inventing a parallel file.
+
+Two of the six are **transitional**: plans and testing docs both exist to be dismantled and deleted. The
+other four are permanent. See the two scaffolding sections below.
 
 | Kind | Where | Audience | Rule |
 |---|---|---|---|
@@ -94,6 +97,7 @@ one you must not touch. Check `git log --oneline | grep BUILD` instead: if the t
 BUILD commit, open a new heading above it.
 | **Architecture** | `documentation/architecture/` | us, and the other Coffee Pub modules | How the module is built and why. **This is the anti-crawl artifact** — the place for things you can only learn by reading code. `architecture-blacksmith.md` is the map. |
 | **API** | `documentation/api/` | anyone leveraging Blacksmith — mostly the other Coffee Pub modules, and Blacksmith itself | The public surface. Authoritative. Update it when you change the surface. |
+| **Testing** | `documentation/testing/` | us | **Transitional.** What has shipped and is not yet proven, and how to prove it. Deleted when empty. Never a record of what passed — that is the `CHANGELOG.md` verification line. See below. |
 
 Cross-module work spanning the suite goes in `documentation/TODO-GLOBAL.md`, not `TODO.md`.
 
@@ -113,6 +117,36 @@ dismantled into the five kinds above: work → `TODO.md`, design → architectur
    overstayed — move that content to its real home.
 3. **Complete means delete.** Not archive, not "keep for reference". Distribute the content, then remove the
    file. Anything already landed in a TODO or an architecture doc must be *removed from the plan*.
+
+### Testing docs are scaffolding too
+
+`documentation/testing/` is the other transitional kind, added 2026-08-08. A testing doc holds **verification
+that is owed** — code that has shipped and has not been proven in a running world — and the steps to discharge
+it. Same lifecycle as a plan: it exists until it doesn't.
+
+It exists because the two homes that already existed are both wrong for it. `TODO.md` is *work we will do*, and
+unverified code is not work — the work is finished, the confidence is missing. `CHANGELOG.md` records what was
+verified in one line, not a live checklist. A verification backlog put in either one either bloats the backlog
+or rots inside a released section.
+
+Five rules:
+
+1. **It declares what is proven and what is not** at the top. A reader must be able to tell in one glance
+   whether anything here is still owed.
+2. **Checkboxes belong here.** This is the one kind where a task list is correct, because ticking items off is
+   the entire purpose. Everywhere else a checkbox means the content is in the wrong file.
+3. **Passing means delete.** Remove the item, not tick it and leave it. When the file is empty, delete the file.
+   A testing doc full of ticked boxes is indistinguishable from one nobody has run.
+4. **It is never a source of truth about behaviour.** It says "this is unproven", never "this is how it works".
+   The moment it explains a mechanism, that belongs in architecture.
+5. **Only for what a harness cannot do.** `utilities/tests/` covers what can be asserted automatically, and a
+   suite is better than a checklist because it runs again next month. A testing doc is for the rest: a second
+   client, a browser reload, cross-module integration, and anything needing a human to judge what it looks
+   like. If a step could be a harness check, write the check instead.
+
+**Internal, like plans and TODO.** Never added to the `PUBLISH` list in `tools/wiki-sync.mjs` — a verification
+backlog is not a consumer document, and publishing "we have not tested this yet" to the wiki is worse than
+useless.
 
 Prefer these docs over re-deriving from source. Point at them; don't duplicate them.
 

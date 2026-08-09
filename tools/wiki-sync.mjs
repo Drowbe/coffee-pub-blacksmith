@@ -95,7 +95,7 @@ const PUBLISH = [
 //   API:          api-importer.md (gate: JSON import verified — see TODO.md)
 //   Architecture: architecture-importer.md (same gate)
 //   Also held:    applicationv2-window/guidance-applicationv2.md (needs audit — see TODO.md)
-//   Internal:     TODO.md, TODO-GLOBAL.md, plans/* (not consumer docs)
+//   Internal:     TODO.md, TODO-GLOBAL.md, plans/*, testing/* (not consumer docs)
 //   Missing doc:  api-flags.md referenced in TODO but not written yet
 
 const HOME_SRC = 'guides/guide-registering-with-blacksmith.md';
