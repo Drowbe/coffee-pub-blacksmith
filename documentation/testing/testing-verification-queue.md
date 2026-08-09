@@ -7,7 +7,7 @@ transitional document -- see the testing rules in `CLAUDE.md`. **Remove an item 
 ticking it, and delete this file when it is empty.** A checklist of ticked boxes cannot be told apart from one
 nobody ran.
 
-**Status: 21 items owed, and the harness half is finished.** A full "Run All Headless" passes **519/519** as of
+**Status: 28 items owed, and the harness half is finished.** A full "Run All Headless" passes **519/519** as of
 2026-08-09, across all nine suites. Everything still listed below is something a harness cannot reach: a second
 client, a browser reload, cross-module integration, or a judgement about what something looks like. Those are
 the items most likely to be skipped and most likely to matter.
@@ -51,65 +51,52 @@ readouts checks are reading the bar. A tab passing on its own proves less than i
 
 
 
-## Encumbrance guard
-
-Three of these are done. The activation line appeared in a full run (`Encumbrance Guard active: serialising dnd5e encumbrance recomputes per actor (dnd5e 5.2.5)`), no libWrapper conflict warning appeared alongside it,
-and the harness proved the mechanism directly - six separate writes to one near-threshold actor produced zero
-duplicate-id rejections, and an unrelated failure still propagated rather than being swallowed by the narrow
-catch.
-
-- [x] **Switch** `enableEncumbranceGuard` **off, reload, and confirm** `guard-collapses-recomputes` **now FAILS.** A
-  ```
-  guard that cannot be turned off to watch the bug return is assumed rather than demonstrated. This is the
-  only item left that proves the guard does anything, and nothing in a passing run can substitute for it.
-  ```
-- [x] Loot several items onto a near-encumbered player through Curator's window. The harness covers the
-  ```
-  mechanism, so this is now a low-risk confirmation that the real path behaves the same rather than a
-  test of the guard itself.
-  ```
-
-
+Items are one line each on purpose. Wrapped continuations in this file keep being reformatted into code
+fences by an editor pass, which has mangled it twice; a single line cannot be mangled that way.
 
 ## Token interaction registry
 
-The permission bypass is **already confirmed** on a player session - a non-GM double-clicking a matched NPC
-ran the claim's handler and got no Actor sheet. What remains is whether the relaxation stays scoped.
+Confirmed on a player session: a non-GM double-clicking a matched NPC ran the claim's handler and got no Actor
+sheet. What remains is whether the relaxation stays scoped. **Highest-value item on this page** - a leak here
+is a permission bypass, not a cosmetic fault, and the answer is to pull the feature rather than patch around it.
 
-- [ ] **A non-matching token the same player lacks permission on: double-click must do nothing.** If a sheet
-  ```
-  opens, the relaxation is leaking past the claim. Treat that as a security regression and pull the
-  feature rather than patching around it.
-  ```
-- [ ] Same player, their own character: sheet opens normally.
-- [ ] A claim whose `handler` throws opens **nothing** - specifically not the Actor sheet. Permission has
-  ```
-  already been granted by that point, so falling through would leak the sheet.
-  ```
-- [ ] `disposeByContext` while a claimed token is on screen: double-click reverts immediately, without a redraw.
+Blacksmith side, with no claim registered:
 
+- [ ] A token the player lacks permission on: double-click does nothing, and no sheet opens.
+- [ ] The player's own character: sheet opens normally, unchanged.
+- [ ] A GM double-clicking any unclaimed token: sheet opens normally.
 
+Curator side, with its loot claim registered:
+
+- [ ] A claimed corpse: the loot window opens for a player who has no permission on it.
+- [ ] A **different** corpse the same claim does not match: double-click does nothing.
+- [ ] A claim whose `handler` throws opens nothing - specifically not the Actor sheet, since permission has already been granted by that point.
+- [ ] Disable Curator mid-session (`disposeByContext`): a claimed token reverts to normal double-click immediately, without a redraw.
 
 ## api.dialog modality (default changed to non-modal)
 
-- [ ] A quantity prompt raised from Curator's loot window leaves that window draggable and clickable.
+The only change in 13.16.0 with real regression risk for satellites: a caller that assumed nothing behind it
+could be touched now behaves differently. Blacksmith's own callers are all destructive or prompts, so the risk
+sits outside this repo.
+
+Blacksmith callers:
+
 - [ ] A **destructive** confirm still blocks everything behind it - delete a pin layer in Manage Pins.
-- [ ] A non-destructive confirm no longer blocks. This is the only item with real regression risk: a caller
-  ```
-  that assumed nothing behind it could be touched now behaves differently. Blacksmith's own callers are all
-  either destructive or prompts, so the risk sits with satellites.
-  ```
-- [ ] Escape still resolves to `closeValue` on both a modal and a non-modal dialog.
+- [ ] A non-destructive confirm no longer blocks - the window behind it stays draggable.
+- [ ] Escape resolves to `closeValue` on a modal dialog.
+- [ ] Escape resolves to `closeValue` on a non-modal dialog.
 
+Curator callers:
 
+- [ ] A quantity prompt from the loot window leaves that window draggable and clickable.
+- [ ] Taking a second item while a quantity prompt is open behaves sanely - either refused or queued, not two prompts fighting.
+- [ ] Any Curator confirm that was written expecting modal still reads correctly now it is not.
 
 ## Shared button width
 
-- [ ] A window with **two** footer buttons lays out correctly now the fixed 300px is gone from
-  ```
-  `.blacksmith-window-btn-primary`. That is the case the width was breaking.
-  ```
+- [ ] A window with **two** footer buttons lays out correctly now the fixed 300px is gone from `.blacksmith-window-btn-primary`.
 - [ ] Manage Pins and the pin config footers still look right - both had local resets that are now deleted.
+- [ ] A Curator window with a two-button footer, since Curator inherits the same base and the reset it relied on is gone.
 
 
 

@@ -712,9 +712,10 @@ The `isNew` flag itself is correct and should stay. It is the durable half of a 
 
 ## Curator: token interaction claim registry (approved 2026-08-07)
 
-**Approved and planned.** Design and work breakdown live in
-`documentation/plans/plan-token-interaction-registry.md`. **Do not restate the design here** - this section
-tracks only the cross-module coordination.
+**Shipped.** The surface is `documentation/api/api-tokens.md` and the mechanism is
+`documentation/architecture/architecture-token-interactions.md`; both are authoritative and both are on the
+wiki. The plan that carried the design has been dismantled into them and deleted. **Do not restate the design
+here** - this section tracks only the cross-module coordination.
 
 `blacksmith.tokens.registerInteraction` lets a module claim a gesture on a token it does not own. The
 outcome Curator needs: a player double-clicks a lootable corpse and gets Curator's loot window, and the
