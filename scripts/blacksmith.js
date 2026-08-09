@@ -94,7 +94,7 @@ import { registerVoteWindow } from './window-vote-config.js';
 // file is on the static import graph. The toolbar's dynamic import resolves from cache.
 import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { restoreToolWindows } from './manager-tool-windows.js';
-import { getActorHP, getHealthPercent, getHealthSeverity, getHealthSeverityForHP, getHealthThresholds } from './utility-health.js';
+import { getActorHP, getHealthPercent, getHealthPercentForHP, getHealthSeverity, getHealthSeverityForHP, getHealthThresholds } from './utility-health.js';
 import { PinManager } from './manager-pins.js';
 import { PinsAPI } from './api-pins.js';
 import { TagsAPI } from './api-tags.js';
@@ -1050,6 +1050,7 @@ Hooks.once('init', async function() {
         // own thresholds. Readable without a window open -- see utility-health.js.
         getActorHP,
         getHealthPercent,
+        getHealthPercentForHP,
         getHealthSeverity,
         getHealthSeverityForHP,
         getHealthThresholds,

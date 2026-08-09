@@ -31,9 +31,30 @@ export function getActorHP(actor) {
  * @returns {number | null} null when the actor has no readable HP
  */
 export function getHealthPercent(actor) {
-    const hp = getActorHP(actor);
-    if (!hp) return null;
-    return Math.max(0, Math.min(100, (hp.value / hp.max) * 100));
+    return getHealthPercentForHP(getActorHP(actor));
+}
+
+/**
+ * Percent HP remaining for a raw {value, max} pair, clamped 0-100.
+ *
+ * The primitive the other three read from. It exists as public surface because a
+ * Handlebars helper receives the HP object and not the Actor that owns it, so the
+ * actor-shaped entry point cannot reach that case -- and the arithmetic is exactly
+ * trivial enough that every module rewrites it slightly differently and nobody
+ * checks. Consumers have been found guarding `max > 0` in one place, clamping in
+ * another, and rendering `NaN%` in two more.
+ *
+ * Returns null rather than 0 when the pair is unusable. An actor with a max and no
+ * readable value is missing data, not a corpse, and 0 would classify it as dead.
+ *
+ * @param {{ value: number|string, max: number|string } | null} hp
+ * @returns {number | null} null when there is no usable max or value
+ */
+export function getHealthPercentForHP(hp) {
+    const value = Number(hp?.value);
+    const max = Number(hp?.max);
+    if (!Number.isFinite(value) || !Number.isFinite(max) || max <= 0) return null;
+    return Math.max(0, Math.min(100, (value / max) * 100));
 }
 
 /**
@@ -95,8 +116,5 @@ export function getHealthSeverity(percent) {
  * @returns {'healthy' | 'hurt' | 'injured' | 'bloodied' | 'critical' | 'dead' | null}
  */
 export function getHealthSeverityForHP(hp) {
-    const value = Number(hp?.value) || 0;
-    const max = Number(hp?.max) || 0;
-    if (max <= 0) return null;
-    return getHealthSeverity(Math.max(0, Math.min(100, (value / max) * 100)));
+    return getHealthSeverity(getHealthPercentForHP(hp));
 }

@@ -21,13 +21,23 @@ and every consumer follows.
 ```js
 const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
 
-blacksmith.getActorHP(actor);        // { value, max } or null when unreadable
-blacksmith.getHealthPercent(actor);  // 0-100, or null when unreadable
+blacksmith.getActorHP(actor);              // { value, max } or null when unreadable
+blacksmith.getHealthPercent(actor);        // 0-100, or null when unreadable
+blacksmith.getHealthPercentForHP(hp);      // same, from a raw { value, max }
 ```
 
 `getActorHP` resolves the shapes Blacksmith supports (`system.attributes.hp`, `system.vitals.hp`,
 `system.hp`) and returns `null` rather than zero when an actor has no readable hit points -- an actor with
 no HP is not an actor at 0 HP, and the two must not be conflated.
+
+`getHealthPercentForHP` is the same answer for callers holding the HP object rather than the Actor -- a
+Handlebars helper, most often. It clamps to 0-100 and returns `null` when there is no usable max **or no
+usable value**: an actor with a max and no readable value is missing data, not a corpse, and answering `0`
+would classify it as dead.
+
+Use one of these rather than dividing by hand. The arithmetic is exactly trivial enough that every module
+writes it slightly differently and nobody checks -- guarding `max > 0` in one place, clamping in another,
+and rendering `NaN%` everywhere else.
 
 ## Severity
 
