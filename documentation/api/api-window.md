@@ -533,15 +533,33 @@ Three tool windows ship with Blacksmith and are openable by id from any module o
 | Macros | `blacksmith-macros` |
 | Health | `blacksmith-health` |
 
-`blacksmith-health` accepts an option:
+### `blacksmith-health` and the `tokens` option
+
+Left alone, the Health window follows the canvas selection. A caller that wants the current selection shown
+should therefore just select the tokens and let the window follow -- no call is needed.
+
+`tokens` is for the other case: showing a set **without** changing what the GM has selected.
 
 ```javascript
-// Show these tokens without changing what the GM has selected.
-blacksmith.openWindow('blacksmith-health', { tokens });
+// One token.
+blacksmith.openWindow('blacksmith-health', { tokens: [token] });
+
+// Several.
+blacksmith.openWindow('blacksmith-health', { tokens: partyTokens });
 ```
 
-Without it the window follows the canvas selection on its own, so a caller that wants the selection shown
-should simply select the tokens.
+It is always an array of Token placeables, never an Actor and never a bare token. Entries whose token has
+no readable hit points are dropped rather than shown as an empty row.
+
+The call behaves the same whether the window is open or closed: closed, it opens showing those tokens;
+open, it raises and retargets. It returns the window.
+
+**The set is not sticky.** The window keeps following selection, so the next time the user changes what is
+selected on the canvas, the passed set is replaced. The meaning is "show this now, then resume following
+me" -- correct for a click on a health bar, wrong if a caller expects a lock.
+
+Passing `{ tokens }` through `invokeMenubarTool` or `invokeIntent` does **not** work -- the Health tool's
+`onClick` ignores its context argument. Use `openWindow`.
 
 ### Window ids another module may provide
 
