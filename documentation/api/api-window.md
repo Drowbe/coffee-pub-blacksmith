@@ -525,13 +525,40 @@ static ACTION_HANDLERS = {
 
 ## Windows Blacksmith registers
 
-Three tool windows ship with Blacksmith and are openable by id from any module or macro.
+These ship with Blacksmith and are openable by id from any module or macro.
 
-| Window | Id |
-|---|---|
-| Dice Tray | `blacksmith-dice-tray` |
-| Macros | `blacksmith-macros` |
-| Health | `blacksmith-health` |
+| Window | Id | Options |
+|---|---|---|
+| Dice Tray | `blacksmith-dice-tray` | none |
+| Macros | `blacksmith-macros` | none |
+| Health | `blacksmith-health` | `{ tokens }` -- see below |
+| Party Statistics | `blacksmith-stats-party` | none |
+| Player Statistics | `blacksmith-stats-player` | `{ actorId }` -- **required** |
+| XP Distribution | `blacksmith-xp` | none |
+| Compendium Search | `blacksmith-compendium-search` | none |
+| Send Toast | `blacksmith-toast-send` | none |
+| Start a Vote | `blacksmith-vote` | none |
+| Pin Layers | `blacksmith-pin-layers` | none |
+
+Each of these is a single-instance window: opening one that is already open raises it rather than creating
+a second. What a second open does beyond raising differs by window, and the difference is deliberate:
+
+- **Party Statistics** re-renders, because it is a read-only view and stale numbers would be misleading.
+- **Player Statistics** re-targets when given a different `actorId`, since opening it for another actor
+  means "show me that one instead".
+- **XP Distribution** raises and nothing more. It is a working surface -- the GM toggles players and
+  adversaries in and out of an award -- so recomputing would silently discard their setup.
+- **Health** re-targets when given `tokens`.
+
+`blacksmith-stats-player` returns `undefined` if called without an `actorId`, rather than opening an empty
+frame. It also raises a toast, because the caller is another module's code and a console line alone would
+leave whoever clicked with nothing.
+
+Some windows are deliberately **not** in this list. Request a Roll has `blacksmith.requestRoll(options)`,
+GM Notes has `blacksmith.gmNotes`, and JSON import has `registerJsonImportKind` -- all of them take enough
+configuration that a registry id would be the worse door. Pin configuration, bulk pin tags, and the
+combatant card are contextual: they exist against a specific pin or combatant and have no meaning opened
+cold. The CSS editor is a settings surface and stays internal.
 
 ### `blacksmith-health` and the `tokens` option
 

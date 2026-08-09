@@ -6,7 +6,11 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { registerWindow } from './api-windows.js';
 import { AdversaryRecord, getAdversaryRecord, ADVERSARY_FLAG_PATH } from './stats-adversaries.js';
+
+/** Registry id for the XP Distribution window. */
+export const XP_WINDOW_ID = 'blacksmith-xp';
 
 export class XpManager {
     // Standard D&D 5e CR to XP mapping (using decimal keys for math operations)
@@ -131,6 +135,13 @@ export class XpManager {
             if (typeof multiplier !== 'number') return '0.00';
             return multiplier.toFixed(2);
         });
+
+        // Make the window openable by id from any module or macro.
+        registerWindow(XP_WINDOW_ID, {
+            moduleId: MODULE.ID,
+            title: 'XP Distribution',
+            open: async () => XpManager.openXpDistributionWindow()
+        });
     }
 
     /**
@@ -245,10 +256,23 @@ export class XpManager {
     }
 
     /**
-     * Open the XP Distribution window (for menubar access)
+     * Open the XP Distribution window.
+     *
+     * Reached from the menubar tool and, through the window registry, from any module as
+     * `openWindow('blacksmith-xp')`.
+     *
+     * @returns {XpDistributionWindow|undefined}
      */
     static openXpDistributionWindow() {
         try {
+            // Raise rather than rebuild. The window is a working surface -- the GM toggles
+            // players and adversaries in and out of the award -- so recomputing on a second
+            // open would silently discard whatever they had set up.
+            if (XpDistributionWindow.activeWindow) {
+                XpDistributionWindow.activeWindow.bringToFront?.();
+                return XpDistributionWindow.activeWindow;
+            }
+
             // Check if there's an active combat
             const combat = game.combat;
             const hasCombat = combat && combat.started;
@@ -293,10 +317,12 @@ export class XpManager {
             
             // Create and show the XP distribution window
             const xpWindow = new XpDistributionWindow(xpData);
+            XpDistributionWindow.activeWindow = xpWindow;
             xpWindow.render(true);
-            
+
             // Ensure calculations are performed after window is created
             xpWindow.updateXpCalculations();
+            return xpWindow;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Error opening XP Distribution window", error, false, false);
             ui.notifications.error("Failed to open XP Distribution window");
@@ -957,6 +983,17 @@ export class XpManager {
 class XpDistributionWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'xp-distribution-window';
 
+    /**
+     * The open instance, so a second open raises it rather than stacking another.
+     *
+     * `DEFAULT_OPTIONS.id` is fixed, and ApplicationV2 keys its own registry on that id
+     * (`client/applications/api/application.mjs:512`), so a second instance overwrites the
+     * first in `foundry.applications.instances` and leaves it orphaned in the DOM with a
+     * duplicate id. Reachable today by clicking the menubar tool twice; guaranteed once
+     * other modules can open the window through the registry.
+     */
+    static activeWindow = null;
+
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
         {
@@ -989,6 +1026,11 @@ class XpDistributionWindow extends BlacksmithWindowBaseV2 {
         }
 
         this.updateXpCalculations();
+    }
+
+    _onClose(options) {
+        if (XpDistributionWindow.activeWindow === this) XpDistributionWindow.activeWindow = null;
+        super._onClose?.(options);
     }
 
     getData() {

@@ -3,8 +3,14 @@ import { postConsoleAndNotification, getPortraitImage } from './api-core.js';
 import { StatsAPI } from './api-stats.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
+/** Registry id for the Player Statistics window. */
+export const STATS_PLAYER_WINDOW_ID = 'blacksmith-stats-player';
+
 export class PlayerStatsWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-player-stats';
+
+    /** The open instance. See the note on StatsWindow.activeWindow -- same fixed-id problem. */
+    static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
@@ -31,8 +37,24 @@ export class PlayerStatsWindow extends BlacksmithWindowBaseV2 {
     }
 
     static async show(actorId) {
+        // Retarget rather than only raise: this window is one actor's numbers, so opening
+        // it for a different actor while it is up means "show me that one instead".
+        if (PlayerStatsWindow.activeWindow) {
+            const win = PlayerStatsWindow.activeWindow;
+            if (actorId) win.actorId = actorId;
+            win.bringToFront?.();
+            await win.render(false);
+            return win;
+        }
         const win = new PlayerStatsWindow(actorId);
-        win.render(true);
+        PlayerStatsWindow.activeWindow = win;
+        await win.render(true);
+        return win;
+    }
+
+    _onClose(options) {
+        if (PlayerStatsWindow.activeWindow === this) PlayerStatsWindow.activeWindow = null;
+        super._onClose?.(options);
     }
 
     async getData(options = {}) {

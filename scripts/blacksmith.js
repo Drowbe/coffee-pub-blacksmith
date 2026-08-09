@@ -66,10 +66,6 @@ import { JournalPagePins } from './ui-journal-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
-// Imported for its side effects, not its export: the module-scope `init` keybinding
-// and `ready` menubar registration only run if this file is on the static import
-// graph. The toolbar's dynamic import then resolves from the module cache.
-import './window-compendium-search.js';
 import { attachJsonImportButton, registerJsonImportKind } from './registry-json-import.js';
 import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';
@@ -90,6 +86,13 @@ import { SettingsAdoptionManager } from './manager-settings-adoption.js';
 import { registerDiceTray } from './window-dicetray.js';
 import { registerMacros } from './window-macros.js';
 import { registerHealth } from './window-health.js';
+import { registerStatsWindows } from './window-stats-party.js';
+import { registerToastSendWindow } from './window-toast-send.js';
+import { registerVoteWindow } from './window-vote-config.js';
+// Named import rather than a bare side-effect one, but it still carries the side effects:
+// this module's `init` keybinding and `ready` menubar registration only run because the
+// file is on the static import graph. The toolbar's dynamic import resolves from cache.
+import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { restoreToolWindows } from './manager-tool-windows.js';
 import { getActorHP, getHealthPercent, getHealthSeverity, getHealthSeverityForHP, getHealthThresholds } from './utility-health.js';
 import { PinManager } from './manager-pins.js';
@@ -562,6 +565,10 @@ Hooks.once('ready', async () => {
             registerDiceTray();
             registerMacros();
             registerHealth();
+            registerStatsWindows();
+            registerToastSendWindow();
+            registerVoteWindow();
+            registerCompendiumSearchWindow();
             // Reopen whatever the user left open. After registration, since it opens
             // through the same code paths the menubar tools use.
             await restoreToolWindows();

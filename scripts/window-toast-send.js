@@ -13,6 +13,7 @@ import { postConsoleAndNotification, playSound } from './api-core.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { ToastManager, sendToastToUsers, broadcastToast, isToastExcludedUser } from './api-toast.js';
 import { EntityListAPI } from './api-entity-list.js';
+import { registerWindow } from './api-windows.js';
 
 const APP_ID = 'blacksmith-toast-send-window';
 const PREFS_SETTING = 'toastSendPreferences';
@@ -79,6 +80,9 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
     static ROOT_CLASS = 'blacksmith-window-template-root';
     static _preferenceSaveQueue = Promise.resolve();
+
+    /** The open instance. Assigned before the first render is awaited -- see openToastSendWindow. */
+    static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
@@ -382,6 +386,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
     _onClose(options) {
         this._recipientList?.destroy();
+        if (ToastSendWindow.activeWindow === this) ToastSendWindow.activeWindow = null;
         return super._onClose?.(options);
     }
 
@@ -1014,4 +1019,36 @@ export async function quickSendToastTemplate(name, { asLeader = false } = {}) {
         ui.notifications.error('Failed to send toast — see console.');
         return false;
     }
+}
+
+/** Registry id for the Send Toast window. */
+export const TOAST_SEND_WINDOW_ID = 'blacksmith-toast-send';
+
+/**
+ * Open the Send Toast window, raising the existing one rather than stacking a second.
+ *
+ * The guard is a static assigned before the render is awaited, not a lookup in
+ * `foundry.applications.instances` -- that map is not written until the first render
+ * completes, so it cannot see a window that is currently opening.
+ *
+ * @returns {Promise<ToastSendWindow>}
+ */
+export async function openToastSendWindow() {
+    if (ToastSendWindow.activeWindow) {
+        ToastSendWindow.activeWindow.bringToFront?.();
+        return ToastSendWindow.activeWindow;
+    }
+    const win = new ToastSendWindow();
+    ToastSendWindow.activeWindow = win;
+    await win.render(true);
+    return win;
+}
+
+/** Make the window openable by id from any module or macro. */
+export function registerToastSendWindow() {
+    registerWindow(TOAST_SEND_WINDOW_ID, {
+        moduleId: MODULE.ID,
+        title: 'Send Toast',
+        open: async () => openToastSendWindow()
+    });
 }

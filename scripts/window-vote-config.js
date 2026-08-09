@@ -7,9 +7,18 @@ import { postConsoleAndNotification, isCurrentUserPartyLeader } from './api-core
 import { VoteManager } from "./manager-vote.js";
 import { MenuBar } from "./api-menubar.js";
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { registerWindow } from './api-windows.js';
 
 export class VoteConfig extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'vote-config';
+
+    /** The open instance. Assigned before the first render is awaited -- see openVoteConfig. */
+    static activeWindow = null;
+
+    _onClose(options) {
+        if (VoteConfig.activeWindow === this) VoteConfig.activeWindow = null;
+        return super._onClose?.(options);
+    }
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
@@ -198,4 +207,37 @@ export class VoteConfig extends BlacksmithWindowBaseV2 {
         });
         await dlg.render({ force: true });
     }
+}
+
+/** Registry id for the Vote configuration window. */
+export const VOTE_WINDOW_ID = 'blacksmith-vote';
+
+/**
+ * Open the vote configuration window, raising the existing one rather than stacking a
+ * second.
+ *
+ * The guard is a static assigned before the render is awaited, not a lookup in
+ * `foundry.applications.instances` -- that map is not written until the first render
+ * completes, so it cannot see a window that is currently opening.
+ *
+ * @returns {Promise<VoteConfig>}
+ */
+export async function openVoteConfig() {
+    if (VoteConfig.activeWindow) {
+        VoteConfig.activeWindow.bringToFront?.();
+        return VoteConfig.activeWindow;
+    }
+    const win = new VoteConfig();
+    VoteConfig.activeWindow = win;
+    await win.render(true);
+    return win;
+}
+
+/** Make the window openable by id from any module or macro. */
+export function registerVoteWindow() {
+    registerWindow(VOTE_WINDOW_ID, {
+        moduleId: MODULE.ID,
+        title: 'Start a Vote',
+        open: async () => openVoteConfig()
+    });
 }

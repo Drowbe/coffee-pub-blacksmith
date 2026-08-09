@@ -3,9 +3,23 @@ import { postConsoleAndNotification, isPlayerCharacter } from './api-core.js';
 import { StatsAPI } from './api-stats.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { registerWindow } from './api-windows.js';
+import { ToastAPI } from './api-toast.js';
+import { STATS_PLAYER_WINDOW_ID } from './window-stats-player.js';
+
+/** Registry id for the Party Statistics window. */
+export const STATS_PARTY_WINDOW_ID = 'blacksmith-stats-party';
 
 export class StatsWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-stats';
+
+    /**
+     * The open instance, so a second open raises it rather than stacking another.
+     * `DEFAULT_OPTIONS.id` is fixed and ApplicationV2 keys its own registry on that id
+     * (`client/applications/api/application.mjs:512`), so a duplicate leaves the first
+     * window orphaned in the DOM sharing an id with the second.
+     */
+    static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
@@ -26,8 +40,22 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
     static ACTION_HANDLERS = null;
 
     static async show() {
+        if (StatsWindow.activeWindow) {
+            StatsWindow.activeWindow.bringToFront?.();
+            // Read-only view, so a re-open should show current numbers rather than
+            // whatever was true when it was first opened.
+            await StatsWindow.activeWindow.render(false);
+            return StatsWindow.activeWindow;
+        }
         const win = new StatsWindow();
-        win.render(true);
+        StatsWindow.activeWindow = win;
+        await win.render(true);
+        return win;
+    }
+
+    _onClose(options) {
+        if (StatsWindow.activeWindow === this) StatsWindow.activeWindow = null;
+        super._onClose?.(options);
     }
 
     async getData(options = {}) {
@@ -704,4 +732,41 @@ export class StatsWindow extends BlacksmithWindowBaseV2 {
 
         return false;
     }
+}
+
+/**
+ * Make both statistics windows openable by id from any module or macro.
+ *
+ * The player window is imported lazily inside its opener rather than at the top of this
+ * file, keeping the existing one-way relationship: party knows about player, and only at
+ * the moment a row is clicked.
+ */
+export function registerStatsWindows() {
+    registerWindow(STATS_PARTY_WINDOW_ID, {
+        moduleId: MODULE.ID,
+        title: 'Party Statistics',
+        open: async () => StatsWindow.show()
+    });
+
+    registerWindow(STATS_PLAYER_WINDOW_ID, {
+        moduleId: MODULE.ID,
+        title: 'Player Statistics',
+        // actorId is required -- without one the window has nothing to show. Refuses
+        // rather than opening an empty frame, and says so on screen: the caller is
+        // another module's code, so a console line alone would strand whoever clicked.
+        open: async ({ actorId } = {}) => {
+            if (!actorId) {
+                postConsoleAndNotification(MODULE.NAME, 'Player Statistics: openWindow needs an actorId', '', false, false);
+                ToastAPI.show({
+                    title: 'Player Statistics',
+                    subtitle: 'No character was specified, so there are no statistics to show.',
+                    icon: 'fa-solid fa-chart-simple',
+                    moduleId: MODULE.ID
+                });
+                return undefined;
+            }
+            const { PlayerStatsWindow } = await import('./window-stats-player.js');
+            return PlayerStatsWindow.show(actorId);
+        }
+    });
 }

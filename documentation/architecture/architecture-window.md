@@ -45,6 +45,46 @@ These points affect how consumers implement interactive body content (worksheets
 
 ---
 
+## 2b. Single-instance windows
+
+A window that declares a fixed `DEFAULT_OPTIONS.id` and is opened by more than one route needs a guard, or a
+second open leaves the first orphaned in the DOM sharing an id with its replacement -- and overwrites it in
+`foundry.applications.instances`, so the first can never be found or closed again.
+
+**The guard is a static on the class, assigned before the first `await`, cleared in `_onClose`:**
+
+```js
+static activeWindow = null;
+
+static async open() {
+    if (MyWindow.activeWindow) {
+        MyWindow.activeWindow.bringToFront?.();
+        return MyWindow.activeWindow;
+    }
+    const win = new MyWindow();
+    MyWindow.activeWindow = win;   // before the await, not after
+    await win.render(true);
+    return win;
+}
+
+_onClose(options) {
+    if (MyWindow.activeWindow === this) MyWindow.activeWindow = null;
+    return super._onClose?.(options);
+}
+```
+
+**Do not guard with `foundry.applications.instances.get(id)` instead.** It reads as the tidier answer, since
+the id is already that map's key and there is no second thing to keep in step. But the map is written five
+awaits into `_doRender`, after `_prepareContext`, both pre-render events, `_renderFrame`, and `_renderHTML`
+have all resolved (`client/applications/api/application.mjs:511`). For the whole of a first render the
+window is invisible to that lookup, so two opens in quick succession -- a double-click, or a macro loop --
+both miss and both construct. Only a synchronous assignment closes it.
+
+What happens *after* the existing instance is found is per-window and varies on purpose: raise only,
+re-render, or re-target to new arguments. That is the body of the pattern, not a second pattern.
+
+---
+
 ## 3. Components
 
 ### 3.1 Window registry

@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`includes` Handlebars helper** (`scripts/utility-handlebars.js`), for the macros template's favourite check.
 
+- **Six more windows are openable by id** -- `blacksmith-xp` (`scripts/xp-manager.js`), `blacksmith-stats-party` and `blacksmith-stats-player` (`scripts/window-stats-party.js`), `blacksmith-compendium-search` (`scripts/window-compendium-search.js`), `blacksmith-toast-send` (`scripts/window-toast-send.js`), and `blacksmith-vote` (`scripts/window-vote-config.js`). All six existed and were reachable only by clicking a menubar or toolbar control, so a consuming module had no way to open what Blacksmith already knew how to show. `blacksmith-stats-player` takes a required `{ actorId }`; without one it declines and raises a toast rather than opening an empty frame, since the caller is another module's code and a console line would leave whoever clicked with nothing. The full list and its options are in `documentation/api/api-window.md`.
+
+  Some windows were deliberately left out. Request a Roll, GM Notes, and JSON import already have richer API doors than a registry id would be. Pin configuration, bulk pin tags, and the combatant card are contextual -- they exist against a specific pin or combatant and mean nothing opened cold. The CSS editor is a settings surface and stays internal.
+
 ### Changed
 
 - **Health severity now has one definition, and it is configurable** (`scripts/utility-health.js`). `getHealthSeverity` read hardcoded 75/50/25 boundaries; it now reads the `healthThresholdInjured` / `Bloodied` / `Critical` settings adopted from Squire, whose defaults are exactly those numbers. This matters because the same concept had two definitions the moment the Health window arrived: Blacksmith's constants already drove the combat bar portrait rings and the token blood indicators, while Squire's settings drove its tray handle and the health bars. **For a GM who changed those thresholds, the combat bar rings and blood indicators will now agree with the health bars where previously they did not.** Boundaries are inclusive rather than exclusive, matching how the settings describe themselves; a creature at exactly the bloodied threshold is bloodied. `getHealthSeverityForHP` is added for callers holding a `{value, max}` pair rather than an Actor, and `getHealthThresholds` is exported so a consuming module can read the same numbers without a window open -- which the tray handle needs, since it rebuilds on every render.
@@ -37,6 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The token blood hint no longer quotes fixed percentages** (`lang/en.json`), since those boundaries are now settings.
 
 ### Fixed
+
+- **Opening XP Distribution, either Statistics window, Send Toast, or Start a Vote twice no longer orphans the first one.** All five built a new instance on every call while declaring a fixed `DEFAULT_OPTIONS.id`, and ApplicationV2 keys its own instance registry on that id (`client/applications/api/application.mjs:512`), so the second overwrote the first in `foundry.applications.instances` and left it in the DOM sharing an id with its replacement -- reachable today by double-clicking a menubar tool, and guaranteed once other modules can open them. Each now raises the open one instead.
+
+  What raising does beyond that differs on purpose: Party Statistics re-renders because stale numbers mislead, Player Statistics re-targets to a new `actorId`, and XP Distribution does neither, because it is a working surface and recomputing would silently discard the GM's in-progress award.
+
+  **All of them guard with a static assigned before the first `await`, and `CompendiumSearchWindow` was changed to match.** It previously read `foundry.applications.instances.get(id)`, which looks like the tidier answer since the id is already that map's key -- but the map is written five awaits into `_doRender`, after the first render completes (`client/applications/api/application.mjs:511`). For the whole of that render a window is invisible to the lookup, so two rapid opens both miss and both construct. Only a synchronous assignment closes that, which makes the static the rule rather than the exception.
 
 - **Health bars no longer render at an undefined width when a group is empty.** The bar width was computed in the template as `multiply (divide current max) 100`; a Party or NPC row with no members has max 0, so the arithmetic produced NaN and Handlebars printed it straight into the style attribute. The percentage is computed in JavaScript and clamped. Inherited from Squire.
 

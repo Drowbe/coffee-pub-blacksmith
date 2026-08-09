@@ -24,6 +24,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
+import { registerWindow } from './api-windows.js';
 import { compendiumManager } from './manager-compendiums.js';
 import { normalizeType, getDocumentClass, getDocumentSubtype, getTypeLabel } from './compendium-types.js';
 
@@ -54,6 +55,20 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
 
     static ROOT_CLASS = 'blacksmith-window-tool-root';
 
+    /**
+     * The open instance, assigned before the first render is awaited.
+     *
+     * This used to read `foundry.applications.instances.get(APP_ID)` instead, which looks
+     * like the tidier answer -- the id is already that map's key -- but the map is only
+     * written after the first render COMPLETES (`client/applications/api/application.mjs:511`,
+     * five awaits into `_doRender`). For the whole of that render the window is invisible
+     * to the lookup, so two rapid opens both miss and both construct, and the second
+     * overwrites the first in Foundry's own registry while the first stays in the DOM.
+     *
+     * Assigning a static synchronously, before any await, is what actually closes that.
+     */
+    static activeWindow = null;
+
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
         {
@@ -74,12 +89,13 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
      * @returns {Promise<CompendiumSearchWindow>}
      */
     static async open() {
-        const existing = foundry.applications?.instances?.get(APP_ID);
-        if (existing) {
-            existing.bringToFront?.();
-            return existing;
+        if (CompendiumSearchWindow.activeWindow) {
+            CompendiumSearchWindow.activeWindow.bringToFront?.();
+            return CompendiumSearchWindow.activeWindow;
         }
         const win = new CompendiumSearchWindow();
+        // Assigned before the await, not after. See the note on activeWindow.
+        CompendiumSearchWindow.activeWindow = win;
         await win.render({ force: true });
         return win;
     }
@@ -257,6 +273,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
 
     _onClose(options) {
         clearTimeout(this._timer);
+        if (CompendiumSearchWindow.activeWindow === this) CompendiumSearchWindow.activeWindow = null;
         return super._onClose?.(options);
     }
 
@@ -499,6 +516,15 @@ function registerCompendiumSearchKeybinding() {
 Hooks.once('init', () => {
     registerCompendiumSearchKeybinding();
 });
+
+/** Make the window openable by id from any module or macro. */
+export function registerCompendiumSearchWindow() {
+    registerWindow(APP_ID, {
+        moduleId: MODULE.ID,
+        title: 'Compendium Search',
+        open: async () => CompendiumSearchWindow.open()
+    });
+}
 
 Hooks.once('ready', () => {
     const api = game.modules.get(MODULE.ID)?.api;
