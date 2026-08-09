@@ -510,6 +510,90 @@ Actor while it crosses an encumbrance threshold), and a harness check that demon
 (`utilities/tests/suite-inventory.js`, `one-write-per-actor`). Worth doing because the alternative is every
 module in the ecosystem routing around it separately, which is what we and Squire have each just done.
 
+## Forked hub code across the suite - swept 2026-08-08
+
+**Curator found two forks in its own tree, fixed both, and supplied the heuristic that found them.** Running
+that heuristic plus a stronger one across all twelve modules gives the picture below. The important part is
+what the sweep **cannot** see, so nobody reads this as an all-clear.
+
+### Confirmed and resolved
+
+**Curator: `ui-context-menu.js` and `manager-hooks.js`.** Both deleted. Diffed first, and the only lines unique
+to Curator's context-menu copy were precisely the four defects fixed upstream on the same day - a strict subset
+plus bugs, nothing worth preserving. The hook manager fork was 520 lines, 86% identical, missing three upstream
+fixes.
+
+Both files were kept as **thin forwarding accessors rather than deleted outright**, which is a better call than
+deletion: the filename is what someone searches for when they want a context menu or a hook manager, and an
+empty result invites writing a new one. Each file now states that the fork was removed, why, and where the
+shared surface is documented. Worth copying as a pattern for the others.
+
+**One consequence lands on us, not on Curator.** Their hook manager fork did not record `context` on the
+callback record, so every hook Curator has ever registered reported as `context: default` in Blacksmith's own
+`BlacksmithAPIHookStats` and `HookDetails`. Curator passes a context on every registration; the fork dropped it
+before our stats layer saw it. **Any past reading of hook stats that concluded Curator was not using contexts
+was wrong.** This is the class of defect that never generates a bug report, because a hook reporting the wrong
+context in someone else's diagnostic tool is invisible from both sides.
+
+Also worth noting for the `canCancel` work in `TODO.md`: Curator's fork restricted `pre*` cancellation to
+`preUpdateToken` only. They filed that as a missing upstream fix, and it is a divergence - but a whitelist is
+closer to the opt-in design that work is heading toward than our current "any `pre*` can veto for everyone".
+The fork was accidentally safer on that one axis.
+
+### Regent: window base fork - still open
+
+`regent-window-base-v2.js`, tracked in its own section above. **Neither heuristic below detects it**, because it
+is renamed on both axes: the file is not `window-base.js` and the class is `RegentWindowBaseV2`, not
+`BlacksmithWindowBaseV2`. A renamed fork is a semantic copy, not a textual one, and no filename or symbol match
+will find it.
+
+### What the sweep found, and what it means
+
+**Heuristic 1 - shared filename** (Curator's, one line, run from a module directory):
+
+```
+for f in scripts/*.js; do n=$(basename "$f"); [ -f "../coffee-pub-blacksmith/scripts/$n" ] && echo "$n"; done
+```
+
+Seven hits across six modules. Two were the real Curator forks. The other five are naming collisions or
+consumer adapters, and each was checked rather than assumed:
+
+| Module | File | Verdict |
+|---|---|---|
+| Squire | `manager-pins.js` (2325 lines) | **Consumer adapter.** Exports `getPinsApi`, `isPinsApiAvailable`, `getSquirePinType`; calls our pins API. Squire's own quest and codex pin domain logic. Correct architecture. |
+| Artificer | `manager-pins.js` (480) | Own pin logic, no shared exports. |
+| Bibliosoph | `manager-toolbar.js` (288) | Own toolbar, no shared exports. |
+| Cartographer | `manager-toolbar.js` (631), `manager-sockets.js` (278) | Own, no shared exports. A per-module socketlib registration is the correct pattern, not a fork of ours. |
+| Regent | `api-core.js` (16 lines) | A shim, not a copy - it re-exports `getSettingSafely`. Same shape as Curator's forwarding accessors. |
+
+`const.js` and `settings.js` collide legitimately in every module and are excluded.
+
+**Heuristic 2 - shared class name, filename-independent.** Sixty-nine exported class names from
+`coffee-pub-blacksmith/scripts/*.js`, grepped for `class <Name>` across every sibling. **One hit:** Artificer's
+`TagManager` (`systems/tag-manager.js`, 428 lines). Not a fork of ours - zero references to `blacksmith` or
+`api.tags`, and a different size and shape. It is Artificer's crafting taxonomy.
+
+That does raise a separate question rather than a fork finding: **Blacksmith owns a unified Tags system and
+Artificer has its own tag manager.** Whether a crafting taxonomy is genuinely a different concept from
+document tags, or a missed consolidation, is worth one conversation with Artificer. It is not duplicated code.
+
+### The heuristics are a first pass, not a sweep
+
+Both are textual, and both miss a renamed fork - demonstrated by Regent, the one we already knew about. Between
+them they produced eight hits, two of them real: a useful ratio for a one-line command, and not a clean bill of
+health.
+
+**The signal that actually worked is behavioural: a module that has a capability the hub exposes, and never
+references the hub's API for it.** That is what identified Curator's context menu - zero `uiContextMenu`
+references while shipping context menus - and it would identify Regent's window base, which the textual checks
+cannot. It needs a per-namespace question rather than a grep:
+
+- For each public surface (`uiContextMenu`, `pins`, `tags`, `dialog`, `sockets`, `toolbar`, the window bases,
+  `HookManager`), which modules have that capability in their UI but no reference to ours?
+
+Given this turned up two forks in Curator immediately and Regent's is still open, that per-namespace pass is
+worth doing properly rather than trusting the filename check to have covered it.
+
 ## Decision: no selector-based context menu variant (declined 2026-08-08)
 
 Offered to Squire and **declined by them**, which is worth recording because the offer will look obvious again

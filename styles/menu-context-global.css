@@ -67,22 +67,57 @@
    raw <img> rendered at its natural dimensions and stretched the row. The slot now has a size and
    anything inside it is constrained, so the documented image support works without every consumer
    remembering a helper class. */
+/* 24px so it matches .context-menu-item-portrait exactly. The two are deliberately the same size:
+   a generic `> img` selector outranks `.context-menu-item-portrait` on specificity (two classes plus
+   an element beats two classes), so a differently sized slot would silently override the portrait
+   variant rather than coexist with it. Keeping them equal makes the specificity irrelevant. */
 .context-menu .context-menu-item-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     line-height: 1;
 }
 
+/* An IMAGE in the icon slot is given a thumbnail treatment; a Font Awesome glyph is not.
+   Boxing a glyph in a bordered rounded square looks like a mistake, so this targets img and svg
+   only, never the slot -- the slot has to stay neutral because it holds both.
+
+   The subtle surface behind it matters more than it looks: a macro or item image is often a
+   transparent PNG, and against the menu's own translucent dark panel the artwork loses its edges
+   entirely. The fill gives it something to sit on. */
 .context-menu .context-menu-item-icon > img,
 .context-menu .context-menu-item-icon > svg {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
-    border: none;
+    /* A hint of an edge, not an outline. This first used the opaque --blacksmith-surface-dark-3
+       because it was the only token that read as a border colour, and an opaque grey against a
+       translucent dark panel draws a visible box around every row. A translucent neutral sits on
+       the panel instead of over it. Padding removed too: with a border and an inset, a 24px slot
+       left only 20px of artwork and the frame competed with the image. */
+    background-color: var(--blacksmith-fill-hint);
+    border: 1px solid var(--blacksmith-border-hint);
+    border-radius: var(--blacksmith-radius-md);
+    box-sizing: border-box;
+}
+
+/* A hovered row lifts its thumbnail with it, so the image does not read as a flat inert square
+   on an otherwise highlighted row. */
+.context-menu .context-menu-item:hover .context-menu-item-icon > img,
+.context-menu .context-menu-item:hover .context-menu-item-icon > svg {
+    /* Lifts with the row rather than announcing itself. The brand colour was tried here and was
+       too warm and too bright for something the eye should not be drawn to. */
+    border-color: var(--blacksmith-border-subtle);
+    background-color: var(--blacksmith-fill-subtle);
+}
+
+/* A disabled row's thumbnail is muted with the rest of it rather than staying vivid. */
+.context-menu .context-menu-item.is-disabled .context-menu-item-icon > img,
+.context-menu .context-menu-item.is-disabled .context-menu-item-icon > svg {
+    opacity: 0.45;
 }
 
 .context-menu .context-menu-item {
@@ -97,14 +132,18 @@
 
 /* Portrait thumbnail for rows that stand in for a combatant (Graveyard).
    Foundry's core img rule adds a border, hence the explicit reset. */
+/* Cropped square portrait, for a row standing in for an actor. Same border and radius treatment as
+   any other image in the slot so the two paths do not drift apart visually -- the difference is
+   `cover` and a fixed 24px rather than fitting the slot. */
 .context-menu .context-menu-item-portrait {
     display: block;
     width: 24px;
     height: 24px;
     object-fit: cover;
-    border: none;
-    border-radius: 3px;
+    border: 1px solid var(--blacksmith-border-hint);
+    border-radius: var(--blacksmith-radius-sm);
     flex: 0 0 auto;
+    box-sizing: border-box;
 }
 
 .context-menu .context-menu-item-content {

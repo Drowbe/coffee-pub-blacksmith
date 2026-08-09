@@ -190,6 +190,21 @@ Sizes are relative (`em`), so a component inherits the scale of whatever context
 | `--blacksmith-font-weight-bold` | `700` | Emphasis |
 | `--blacksmith-font-weight-black` | `900` | Stat values, strong display |
 
+## Neutral overlays
+
+Translucent neutrals, for edges and fills that sit on top of something rather than replacing it. The surface
+tokens are opaque by design, because a surface has to hide what is behind it -- which makes them the wrong
+choice for a border. An opaque grey outline reads as a drawn box rather than an edge.
+
+Pick by intent rather than by number. `hint` should be almost subliminal; `subtle` should be seen.
+
+| Token | Value | Use |
+|---|---|---|
+| `--blacksmith-border-hint` | `rgba(255, 255, 255, 0.08)` | Barely-there edge on a dark surface |
+| `--blacksmith-border-subtle` | `rgba(255, 255, 255, 0.16)` | Visible divider or panel edge |
+| `--blacksmith-fill-hint` | `rgba(255, 255, 255, 0.04)` | Faint backing, e.g. behind transparent artwork |
+| `--blacksmith-fill-subtle` | `rgba(255, 255, 255, 0.10)` | Hover lift, selected row |
+
 ## Border radius
 
 | Token | Value | Use |

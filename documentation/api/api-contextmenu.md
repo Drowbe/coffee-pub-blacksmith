@@ -62,8 +62,17 @@ icon: `<img class="context-menu-item-portrait" src="${actor.img}" alt="">`
 a portrait. The combat bar's Graveyard menu uses exactly this (`manager-combatbar.js:3591`).
 
 The icon slot itself is also sized, so a bare `<img>` no longer stretches the row - it is constrained to the
-slot with `object-fit: contain`. Use `.context-menu-item-portrait` when you want a cropped square thumbnail,
-and rely on the slot when you just want an image that fits.
+slot with `object-fit: contain`. Use `.context-menu-item-portrait` when you want the image cropped square, and
+rely on the slot when you want it fitted whole. Both are 24 pixels and both get the same border, radius and
+backing fill, so the choice is about cropping rather than appearance.
+
+An image in the slot is given a thumbnail treatment - a hairline border, a small radius, and a faint backing
+fill - and a Font Awesome glyph is not. That asymmetry is deliberate: a bordered rounded box around a glyph
+looks like a mistake. The backing fill matters more than it sounds, because item and macro artwork is often a
+transparent PNG that loses its edges against the menu's own dark translucent panel.
+
+Both treatments respond to row state: the border warms on hover, and both dim with a disabled row rather than
+staying vivid on a greyed-out entry.
 
 **The raw HTML form is inserted with `innerHTML`, so pass only markup you control.** An icon string built
 from a journal field, a chat message, an actor name, or anything else a player can influence is an injection

@@ -183,6 +183,31 @@
     /* --- BORDER RADIUS ------------------------------------- */
     /* -------------------------------------------------------- */
 
+    /* -------------------------------------------------------- */
+    /* --- COLOR: NEUTRAL OVERLAYS ---------------------------- */
+    /* -------------------------------------------------------- */
+    /*
+        Translucent neutrals, for edges and fills that sit ON something rather
+        than replacing it. The surface tokens above are opaque by design -- a
+        surface has to hide what is behind it -- which makes them the wrong tool
+        for a border: an opaque grey outline reads as a drawn box rather than an
+        edge, whatever it sits on.
+
+        These exist because the stylesheets already contained ~570 hardcoded
+        neutral rgba() overlays clustering on a handful of alpha values, with no
+        token to reach for. The variant borders were the only translucent tokens,
+        and they are all coloured.
+
+        Pick by intent, not by number: `hint` is meant to be almost subliminal,
+        `subtle` is meant to be seen.
+    */
+
+    --blacksmith-border-hint:   rgba(255, 255, 255, 0.08);  /* barely-there edge on a dark surface */
+    --blacksmith-border-subtle: rgba(255, 255, 255, 0.16);  /* visible divider or panel edge */
+    --blacksmith-fill-hint:     rgba(255, 255, 255, 0.04);  /* faint backing, e.g. behind transparent art */
+    --blacksmith-fill-subtle:   rgba(255, 255, 255, 0.10);  /* hover lift, selected row */
+
+
     --blacksmith-radius-sm:   3px;
     --blacksmith-radius-md:   4px;
     --blacksmith-radius-lg:   5px;

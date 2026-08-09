@@ -110,3 +110,24 @@
 .blacksmith-entity-group:first-child {
     margin-top: 0;
 }
+
+/* ----- The input in single-select mode -----
+   With radios, the row IS the control: `:has(input:checked)` already paints a
+   ring and hover paints a border, so a visible radio restates the selection a
+   second, uglier way. Foundry's themes size and colour bare inputs, so it also
+   changes appearance with the theme while the rest of the row does not.
+
+   Visually hidden rather than `display: none` — the input still has to be
+   focusable and reachable, and `:focus-within` on the row is what draws the
+   focus ring. Multi-select keeps its checkboxes: a checkbox is the affordance
+   people look for when several rows can be picked at once. */
+.blacksmith-entity-list-single .blacksmith-entity > input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
