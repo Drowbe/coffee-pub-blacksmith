@@ -259,8 +259,16 @@ export class NotesManager {
         // of them: sharing a note is not giving it away. Handing it over is done by
         // sharing and then removing yourself, which is why there is no separate
         // give-to feature.
-        for (const userId of sharedWith) {
-            if (userId) ownership[userId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+        for (const entry of sharedWith) {
+            // Tolerate an entity object as well as an id: the user picker returns
+            // objects from getSelection() and ids from getSelectedIds(), and passing
+            // the wrong one produced a "[object Object]" key that Foundry rejected
+            // only at save. Resolving against game.users means a key that is not a
+            // real user never reaches the document at all.
+            const userId = typeof entry === 'string' ? entry : entry?.id;
+            if (userId && game.users.get(userId)) {
+                ownership[userId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+            }
         }
         if (authorId) ownership[authorId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
         // GMs always own. Without this a GM could write a private note and then be
@@ -290,6 +298,35 @@ export class NotesManager {
         return {
             default: ownership.default ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
             users
+        };
+    }
+
+    /**
+     * Build the pin payload for a note.
+     *
+     * One builder for both callers (the list's Place and the editor's pin button)
+     * because they had drifted into two copies of the same object literal, and the
+     * copy that omitted the caller-supplied `id` failed validation at runtime.
+     * Pins does not generate ids -- see `documentation/api/api-pins.md`.
+     *
+     * @param {JournalEntryPage} note
+     * @returns {object} pin data for `PinsAPI.create`, unplaced (no x/y/sceneId)
+     */
+    static buildNotePinData(note) {
+        return {
+            id: crypto.randomUUID(),
+            moduleId: MODULE.ID,
+            type: 'note',
+            text: note.name,
+            // From the page's live ownership rather than rebuilt from flags: the
+            // ownership is the truth and already carries anyone the note was shared
+            // with. Converted because pins nest users and documents do not.
+            ownership: this.toPinOwnership(note.ownership),
+            config: {
+                noteUuid: note.uuid,
+                blacksmithAccess: 'private',
+                blacksmithVisibility: 'visible'
+            }
         };
     }
 
@@ -539,7 +576,12 @@ export class NotesManager {
             return 0;
         }
         const LEDGER_KEY = 'coffee-pub-squire:notes';
-        if (ledger.includes(LEDGER_KEY)) return 0;
+        // Deliberately NOT an early return on the ledger. While Squire still has
+        // Notes, a sticky note created after the first adoption would be stranded
+        // for good, which is exactly what happened once. The scan skips pages that
+        // are already ours, so re-running costs one pass over a single journal and
+        // the ledger only records that adoption has happened at least once.
+        const alreadyRun = ledger.includes(LEDGER_KEY);
 
         const journal = this.getNotesJournal();
         if (!journal) return 0;   // nothing to adopt into yet; try again next load
@@ -549,14 +591,21 @@ export class NotesManager {
             for (const page of journal.pages.contents) {
                 // Already ours, or never Squire's.
                 if (this.isNote(page)) continue;
-                if (page.getFlag('coffee-pub-squire', 'noteType') !== 'sticky') continue;
+                // Read the flag object directly rather than via getFlag(). getFlag
+                // throws for a scope that is not "currently active" -- the scope list
+                // is built from `module.active` (client/data/client-backend.mjs) -- so
+                // once Squire is disabled or uninstalled every read here would throw
+                // and adoption would strand the notes permanently. The flag DATA
+                // survives on the page either way, which is what we actually need.
+                const squire = page.flags?.['coffee-pub-squire'] ?? {};
+                if (squire.noteType !== 'sticky') continue;
 
-                const visibility = page.getFlag('coffee-pub-squire', 'visibility') === 'party'
+                const visibility = squire.visibility === 'party'
                     ? NOTE_VISIBILITY.PARTY
                     : NOTE_VISIBILITY.PRIVATE;
-                const authorId = page.getFlag('coffee-pub-squire', 'authorId') ?? null;
-                const timestamp = page.getFlag('coffee-pub-squire', 'timestamp') ?? null;
-                const tags = page.getFlag('coffee-pub-squire', 'tags');
+                const authorId = squire.authorId ?? null;
+                const timestamp = squire.timestamp ?? null;
+                const tags = squire.tags;
 
                 await page.update({
                     [`flags.${MODULE.ID}.${NOTE_TYPE_FLAG}`]: NOTE_TYPE,
@@ -572,7 +621,9 @@ export class NotesManager {
                 adopted++;
             }
 
-            await game.settings.set(MODULE.ID, 'adoptedSettingsWorld', [...ledger, LEDGER_KEY]);
+            if (!alreadyRun) {
+                await game.settings.set(MODULE.ID, 'adoptedSettingsWorld', [...ledger, LEDGER_KEY]);
+            }
             if (adopted) {
                 postConsoleAndNotification(MODULE.NAME, `Notes: adopted ${adopted} note(s) from Squire`, '', false, false);
             }

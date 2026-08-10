@@ -96,3 +96,21 @@ three can express, and which is the ordinary case for a note written in play.
 `api.gmNotes` is not being merged into this. Its provider sections are in-memory and rendered at request
 time, so a merge would have to keep two mechanisms anyway. It instead gains a read-only view of annotations
 targeting the document.
+
+## Adopting notes from Squire
+
+`NotesManager.adoptSquireNotes()` (`scripts/manager-notes.js`) flags Squire's sticky notes as Blacksmith
+notes in place. It runs GM-only, adds only Blacksmith flags, and never removes Squire's or rewrites
+ownership, so a world can be rolled back without the pages having been rewritten underneath it.
+
+It reads Squire's flags off `page.flags['coffee-pub-squire']` directly rather than through `getFlag()`.
+`Document#getFlag` throws for a scope that is not currently active, and the scope list is built from
+`module.active` (`client/data/client-backend.mjs`, `getFlagScopes`). So once Squire is disabled or
+uninstalled, `getFlag('coffee-pub-squire', ...)` throws on every page while the flag *data* is still sitting
+there intact. Reading the object avoids making adoption depend on the module it is adopting away from -
+which matters most at the end, when Squire is gone and any unadopted note would otherwise be stranded.
+
+The scan runs on every load rather than stopping at a ledger entry. It skips pages that are already notes,
+so re-running costs one pass over a single journal; the `coffee-pub-squire:notes` ledger entry only records
+that adoption has happened at least once. An early return there strands any note created in Squire after the
+first run.

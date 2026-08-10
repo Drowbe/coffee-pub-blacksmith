@@ -390,6 +390,71 @@ export default {
         },
 
         {
+            id: 'ownership-keys-are-users',
+            label: 'Ownership keys are real user ids, whatever the caller passes',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'The user picker has getSelection() (entity objects) and getSelectedIds() (strings). ' +
+                  'Passing objects made a "[object Object]" ownership key, which Foundry rejected only ' +
+                  'at save with "is not a mapping of user IDs and document permission levels".',
+            run: async ({ expect }) => {
+                const { NotesManager } = await import('../../scripts/manager-notes.js');
+                const me = game.user;
+
+                const fromIds = NotesManager.buildNoteOwnership('private', me.id, [me.id]);
+                const fromObjects = NotesManager.buildNoteOwnership('private', me.id, [{ id: me.id }]);
+
+                const badKeys = (o) => Object.keys(o).filter((k) => k !== 'default' && !game.users.get(k));
+                expect('no non-user keys from id strings', badKeys(fromIds).length, 0);
+                expect('no non-user keys from entity objects', badKeys(fromObjects).length, 0);
+
+                // Junk must be dropped, not written through as a key.
+                const junk = NotesManager.buildNoteOwnership('private', me.id, ['not-a-user', null, {}]);
+                expect('junk entries dropped', badKeys(junk).length, 0);
+
+                const levels = Object.values(fromIds);
+                expect.ok('every level is a valid ownership level',
+                    levels.every((v) => Object.values(CONST.DOCUMENT_OWNERSHIP_LEVELS).includes(v)));
+            }
+        },
+
+        {
+            id: 'pin-payload-valid',
+            label: 'The note pin payload passes Pins validation',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'Pins does not generate ids -- the caller supplies one, and omitting it throws ' +
+                  '"Pin id must be a non-empty string (UUID)" only when somebody actually clicks Place. ' +
+                  'Runs the real builder through the real validator so the two cannot drift.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — skipping.');
+                    return;
+                }
+
+                const { validatePinData } = await import('../../scripts/pins-schema.js');
+                const { NotesManager } = await import('../../scripts/manager-notes.js');
+
+                const note = await api.notes.createNote({ title: `ZZ Pin ${foundry.utils.randomID(6)}` });
+                if (!expect.ok('note created', !!note)) return;
+
+                try {
+                    const payload = NotesManager.buildNotePinData(note);
+                    // Unplaced: the note gets coordinates from the click, not from here.
+                    const result = validatePinData(payload, { allowUnplaced: true });
+                    expect.ok(`payload validates (${result.ok ? 'ok' : result.error})`, result.ok === true);
+                    expect.ok('id is a non-empty string', typeof payload.id === 'string' && !!payload.id.trim());
+                    expect('config points back at the note', payload.config?.noteUuid, note.uuid);
+                    expect.ok('ownership is the nested pin shape',
+                        !!payload.ownership && typeof payload.ownership.users === 'object');
+                } finally {
+                    await api.notes.deleteNote(note);
+                }
+            }
+        },
+
+        {
             id: 'ownership-shape',
             label: 'Note ownership is the flat document shape',
             tier: 'headless',

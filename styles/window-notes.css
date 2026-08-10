@@ -249,11 +249,6 @@
     opacity: 0.55;
 }
 
-.blacksmith-note-row-flags .placed {
-    color: var(--blacksmith-tool-accent);
-    opacity: 1;
-}
-
 /* Actions appear on hover: a permanent row of buttons reads as a toolbar,
    and the names are what the reader is scanning. */
 .blacksmith-note-row-actions {

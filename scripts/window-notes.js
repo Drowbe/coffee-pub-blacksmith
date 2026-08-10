@@ -196,7 +196,6 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                         <span class="blacksmith-note-row-name">${foundry.utils.escapeHTML(note.name)}</span>
                         <span class="blacksmith-note-row-flags">
                             ${privacy}
-                            ${placed ? '<i class="fa-solid fa-location-dot placed" title="Pinned to a scene"></i>' : ''}
                         </span>
                     </div>
                     <div class="blacksmith-note-row-actions">
@@ -291,15 +290,7 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
 
         let pinId = note.getFlag(MODULE.ID, 'pinId');
         if (!pinId) {
-            const pin = await PinsAPI.create({
-                moduleId: MODULE.ID,
-                type: 'note',
-                text: note.name,
-                // The page's live ownership, converted: pins nest their users map
-                // and documents keep it flat.
-                ownership: NotesManager.toPinOwnership(note.ownership),
-                config: { noteUuid: note.uuid, blacksmithAccess: 'private', blacksmithVisibility: 'visible' }
-            });
+            const pin = await PinsAPI.create(NotesManager.buildNotePinData(note));
             if (!pin) return;
             pinId = pin.id;
             await note.setFlag(MODULE.ID, 'pinId', pinId);

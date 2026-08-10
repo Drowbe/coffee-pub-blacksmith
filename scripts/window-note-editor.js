@@ -352,20 +352,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         const existing = this._pin();
         if (existing) return existing;
 
-        const pin = await PinsAPI.create({
-            moduleId: MODULE.ID,
-            type: 'note',
-            text: this.note.name,
-            // From the page's live ownership rather than rebuilt from flags: the
-            // ownership is the truth and already carries anyone the note was shared
-            // with. Converted because pins nest users and documents do not.
-            ownership: NotesManager.toPinOwnership(this.note.ownership),
-            config: {
-                noteUuid: this.note.uuid,
-                blacksmithAccess: 'private',
-                blacksmithVisibility: 'visible'
-            }
-        });
+        const pin = await PinsAPI.create(NotesManager.buildNotePinData(this.note));
         if (!pin) return null;
 
         await this.note.setFlag(MODULE.ID, 'pinId', pin.id);
@@ -414,7 +401,10 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             title: root?.querySelector('[name="note-title"]')?.value ?? '',
             content: this._editor?.value ?? '',
             shape,
-            sharedWith: shape === SHARED ? (this._userList?.getSelection?.() ?? []) : [],
+            // getSelectedIds, not getSelection: the latter returns entity objects,
+            // and an object used as an ownership key stringifies to "[object Object]"
+            // -- which Foundry rejects as "not a mapping of user IDs".
+            sharedWith: shape === SHARED ? (this._userList?.getSelectedIds?.() ?? []) : [],
             tags: raw.split(',').map((t) => t.trim()).filter(Boolean)
         };
     }
