@@ -250,6 +250,16 @@ export class NotesManager {
         // levels". Use toPinOwnership() to convert.
         const ownership = { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE };
 
+        // EVERY non-GM user is named explicitly, including the ones being denied.
+        // `ownership` is an ObjectField, so an update MERGES into what is stored --
+        // Foundry's own `-=userId` removal syntax (common/data/fields.mjs) exists
+        // precisely because of that. Omitting somebody therefore leaves their old
+        // level in place, which made granting access work and revoking it silently
+        // do nothing. Stating everyone makes the merge deterministic.
+        for (const user of game.users) {
+            if (!user.isGM) ownership[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
+        }
+
         if (visibility === NOTE_VISIBILITY.PARTY) {
             for (const user of game.users) {
                 if (!user.isGM) ownership[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
@@ -375,7 +385,7 @@ export class NotesManager {
      * @param {string[]} [data.tags] stored in Blacksmith's Tags registry, not on the page
      * @returns {Promise<JournalEntryPage|null>} null when refused
      */
-    static async createNote({ title = '', content = '', visibility = NOTE_VISIBILITY.PRIVATE, tags = [], sharedWith = [] } = {}) {
+    static async createNote({ title = '', content = '', visibility = NOTE_VISIBILITY.PRIVATE, tags = [], sharedWith = [], keepAuthor = true } = {}) {
         const journal = this.getNotesJournal();
         if (!journal) {
             ui.notifications.error('No notes journal is selected. A GM sets one in Blacksmith settings.');
@@ -395,7 +405,9 @@ export class NotesManager {
                 name: title?.trim() || 'Untitled Note',
                 type: 'text',
                 text: { content: content || '' },
-                ownership: this.buildNoteOwnership(resolvedVisibility, game.user.id, sharedWith),
+                // The authorId FLAG is recorded either way -- who wrote it is a fact.
+                // Ownership is the separate question of who can still open it.
+                ownership: this.buildNoteOwnership(resolvedVisibility, keepAuthor ? game.user.id : null, sharedWith),
                 flags: {
                     [MODULE.ID]: {
                         [NOTE_TYPE_FLAG]: NOTE_TYPE,
@@ -427,7 +439,7 @@ export class NotesManager {
      * Changing visibility rewrites ownership, which is the operation that actually
      * makes a note private or shared -- the flag is only a record of intent.
      */
-    static async updateNote(note, { title = null, content = null, visibility = null, sharedWith = null } = {}) {
+    static async updateNote(note, { title = null, content = null, visibility = null, sharedWith = null, keepAuthor = true } = {}) {
         const page = typeof note === 'string' ? fromUuidSync(note) : note;
         if (!page) return false;
         if (!page.isOwner) {
@@ -444,7 +456,12 @@ export class NotesManager {
                 ? NOTE_VISIBILITY.PARTY
                 : NOTE_VISIBILITY.PRIVATE;
             update[`flags.${MODULE.ID}.visibility`] = resolved;
-            const authorId = page.getFlag(MODULE.ID, 'authorId') ?? game.user.id;
+            // keepAuthor false is the author handing the note over: they drop out of
+            // ownership entirely. Passing a null authorId is how that is expressed,
+            // since buildNoteOwnership grants whatever author it is given.
+            const authorId = keepAuthor
+                ? (page.getFlag(MODULE.ID, 'authorId') ?? game.user.id)
+                : null;
             update.ownership = this.buildNoteOwnership(resolved, authorId, sharedWith ?? []);
         }
 

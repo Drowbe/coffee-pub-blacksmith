@@ -179,8 +179,8 @@ with no way to find them again.
 | `blacksmith-notes` | the list: search, tag chips, privacy and pin indicators, pin actions |
 | `blacksmith-note-editor` | one note; pass `{ note }` to edit, omit to create |
 
-Two menubar tools open them: **Notes** for the list (right-click for New Note) and **Quick note**, which goes
-straight to a blank editor.
+One menubar tool opens them. Left-click shows the list; right-click gives Quick Note and Open Notes, followed
+by the user's favourite notes, each opening straight into its editor.
 
 ### Sharing with named people
 

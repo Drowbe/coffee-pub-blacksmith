@@ -74,8 +74,8 @@
     opacity: 1;
 }
 
-.blacksmith-note-fav .fa-solid.fa-star {
-    color: var(--blacksmith-tool-accent);
+.blacksmith-note-fav .fa-solid.fa-heart {
+    color: var(--blacksmith-color-brand-accent);
     opacity: 1;
 }
 
@@ -171,23 +171,21 @@
     min-width: 0;
 }
 
-.blacksmith-note-everyone {
+/* Display only: the mode is derived from the toggles, never chosen. Pushed right
+   so the people stay left-justified. */
+.blacksmith-note-mode {
     flex: 0 0 auto;
+    margin-left: auto;
+    padding-left: 8px;
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 9px;
-    border: 1px solid var(--blacksmith-tool-divider);
-    border-radius: 4px;
-    background: var(--blacksmith-tool-surface-raised);
-    color: var(--blacksmith-tool-text);
-    white-space: nowrap;
-    cursor: pointer;
+    font-size: 1.05em;
+    opacity: 0.75;
 }
 
-.blacksmith-note-everyone.selected {
-    border-color: var(--blacksmith-tool-accent);
-    background: var(--blacksmith-tool-surface-hover);
+.blacksmith-note-mode[data-mode="party"] {
+    color: var(--blacksmith-color-brand-accent);
+    opacity: 1;
 }
 
 /* Horizontal strip of avatars rather than a stacked list. */
@@ -198,13 +196,6 @@
     overflow-y: hidden;
 }
 
-/* Everyone already covers all of them, so the individual picks read as inactive
-   rather than vanishing -- the row keeps its height and nothing jumps. */
-.blacksmith-note-shared.dimmed {
-    opacity: 0.4;
-    pointer-events: none;
-}
-
 .blacksmith-note-tag-suggestions button.selected {
     border-color: var(--blacksmith-tool-accent);
     background: var(--blacksmith-tool-surface-hover);
@@ -212,6 +203,9 @@
 
 /* ---- list rows ------------------------------------------------ */
 
+/* Display only -- there is nothing to click here, so it is not a button. Fixed
+   box and centred contents so an icon and an image line up with each other down
+   the column regardless of which a note uses. */
 .blacksmith-note-row-icon {
     flex: 0 0 auto;
     display: flex;
@@ -219,30 +213,30 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    padding: 0;
+    border-radius: 4px;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+    font-size: 0.95em;
+    overflow: hidden;
+}
+
+/* Display only in the resting row; the toggle lives in the hover actions. */
+.blacksmith-note-row-fav {
+    color: var(--blacksmith-tool-accent);
+}
+
+.blacksmith-notes-new {
+    flex: 0 0 auto;
     border: 1px solid var(--blacksmith-tool-divider);
     border-radius: 4px;
     background: var(--blacksmith-tool-surface-raised);
     color: var(--blacksmith-tool-text);
     cursor: pointer;
-    overflow: hidden;
+    padding: 3px 8px;
 }
 
-.blacksmith-note-row-fav {
-    border: none;
-    background: none;
-    color: var(--blacksmith-tool-text);
-    opacity: 0.4;
-    cursor: pointer;
-}
-
-.blacksmith-note-row-fav:hover,
-.blacksmith-note-row-fav.on {
-    opacity: 1;
-}
-
-.blacksmith-note-row-fav.on {
-    color: var(--blacksmith-tool-accent);
+.blacksmith-notes-new:hover {
+    background: var(--blacksmith-tool-surface-hover);
 }
 
 .blacksmith-note-tag-suggestions {
@@ -451,12 +445,15 @@ body.blacksmith-note-placing canvas {
     align-items: center;
 }
 
+/* Unselected keeps a real border rather than a transparent one, so every avatar
+   occupies the same box and the row reads as a set of equal toggles. A
+   transparent border made the unselected ones look ragged and half-drawn. */
 .blacksmith-note-user {
     position: relative;
     flex: 0 0 auto;
     display: block;
     padding: 0;
-    border: 2px solid transparent;
+    border: 2px solid var(--blacksmith-tool-divider);
     border-radius: 4px;
     cursor: pointer;
     line-height: 0;
@@ -476,25 +473,35 @@ body.blacksmith-note-placing canvas {
     display: none;
 }
 
+/* Desaturated rather than faded: opacity alone left portraits looking washed out
+   and inconsistent against the window background, since each one faded towards a
+   different colour. Greyscale reads as "off" uniformly. */
 .blacksmith-note-user .blacksmith-entity-img {
     width: 34px;
     height: 34px;
     object-fit: cover;
-    border-radius: 3px;
+    border-radius: 2px;
     display: block;
-    opacity: 0.45;
-    transition: opacity 100ms ease;
+    filter: grayscale(1);
+    opacity: 0.6;
+    transition: filter 100ms ease, opacity 100ms ease;
 }
 
 .blacksmith-note-user:hover .blacksmith-entity-img {
-    opacity: 0.8;
+    filter: grayscale(0.4);
+    opacity: 0.85;
 }
 
-.blacksmith-note-user:has(input:checked) {
-    border-color: var(--blacksmith-tool-accent);
+/* Driven by a class the editor sets, not by :has(). entity-list.css already has
+   a `.blacksmith-entity:has(input:checked)` rule at identical specificity, so
+   which one won came down to import order -- too fragile for the one signal this
+   strip exists to give. */
+.blacksmith-note-user.selected {
+    border-color: var(--blacksmith-color-brand-accent);
 }
 
-.blacksmith-note-user:has(input:checked) .blacksmith-entity-img {
+.blacksmith-note-user.selected .blacksmith-entity-img {
+    filter: none;
     opacity: 1;
 }
 

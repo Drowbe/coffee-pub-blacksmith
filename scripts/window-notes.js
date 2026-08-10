@@ -5,6 +5,10 @@
 // Every note you can see, with search and tag filters, and the pin
 // controls that make a note more than a journal page.
 //
+// ONE menubar tool, not two. Left-click opens this list; right-click
+// carries Quick Note, Open Notes, and the user's favourites. A separate
+// quick-note button was a second icon for what is one feature.
+//
 // WHAT IS DELIBERATELY ABSENT. Squire's panel also had a scene dropdown,
 // an ALL/PARTY/PRIVATE toggle, and a sort control -- five mechanisms on
 // one list, which is a fair share of the "klunky and just too much" the
@@ -221,20 +225,19 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
 
             return `
                 <li class="blacksmith-note-row" data-uuid="${note.uuid}" data-tooltip="${foundry.utils.escapeHTML(preview)}">
-                    <button type="button" class="blacksmith-note-row-icon" data-note-action="icon"
-                            title="Change this note’s icon">${noteIconHtml(pin?.image)}</button>
+                    <span class="blacksmith-note-row-icon">${noteIconHtml(pin?.image)}</span>
                     <div class="blacksmith-note-row-top">
                         <span class="blacksmith-note-row-name">${foundry.utils.escapeHTML(note.name)}</span>
                         <span class="blacksmith-note-row-flags">
-                            <button type="button" class="blacksmith-note-row-fav${fav ? ' on' : ''}"
-                                    data-note-action="favorite"
-                                    title="${fav ? 'Remove from favourites' : 'Add to favourites'}">
-                                <i class="${fav ? 'fa-solid' : 'fa-regular'} fa-star"></i>
-                            </button>
+                            ${fav ? '<i class="fa-solid fa-heart blacksmith-note-row-fav" title="Favourite"></i>' : ''}
                             ${privacy}
                         </span>
                     </div>
                     <div class="blacksmith-note-row-actions">
+                        <button type="button" data-note-action="favorite"
+                                title="${fav ? 'Remove from favourites' : 'Add to favourites'}">
+                            <i class="${fav ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
+                        </button>
                         ${placed ? '<button type="button" data-note-action="pan" title="Show on the map"><i class="fa-solid fa-crosshairs"></i></button>' : ''}
                         ${placed
                             ? '<button type="button" data-note-action="unpin" title="Unpin"><i class="fa-solid fa-link-slash"></i></button>'
@@ -251,12 +254,15 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                 <input type="text" name="notes-search" value="${foundry.utils.escapeHTML(this.search)}"
                        placeholder="Search notes" autocomplete="off">
                 ${this.search ? '<button type="button" data-note-action="clear-search" title="Clear"><i class="fa-solid fa-xmark"></i></button>' : ''}
+                <button type="button" class="blacksmith-notes-new" data-note-action="new" title="New note">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
             </div>
             ${chips.length ? `<div class="blacksmith-notes-chips">${chips.join('')}</div>` : ''}
             ${rows.length
                 ? `<ul class="blacksmith-notes-list">${rows.join('')}</ul>`
                 : `<div class="blacksmith-notes-empty"><p>${this.search || this.activeTags.size ? 'Nothing matches.' : 'No notes yet.'}</p>` +
-                  '<p class="blacksmith-notes-empty-hint">Use the + above, or the note icon in the menubar.</p></div>'}
+                  '<p class="blacksmith-notes-empty-hint">Use the + beside the search box, or the note icon in the menubar.</p></div>'}
         `;
 
         return { appId: this.id, bodyContent: body };
@@ -285,6 +291,9 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
             }
         }
 
+        root.querySelector('[data-note-action="new"]')
+            ?.addEventListener('click', () => void openNoteEditor());
+
         root.querySelector('[data-note-action="clear-search"]')?.addEventListener('click', () => {
             this.search = '';
             void this.render(false);
@@ -310,7 +319,6 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                 await NotesManager.toggleFavorite(uuid);
                 void this.render(false);
             });
-            act('icon', () => void openNoteEditor({ note: uuid }));
             act('delete', () => void this._confirmDelete(uuid));
             act('pan', () => {
                 const pinId = fromUuidSync(uuid)?.getFlag(MODULE.ID, 'pinId');
@@ -383,7 +391,44 @@ export async function openNotesWindow() {
     }
 }
 
-/** Register the list, and the two menubar tools: the list and quick note. */
+/**
+ * The note tool's right-click menu: the two actions, then your favourites.
+ *
+ * Built fresh on each open rather than at registration, so starring a note shows
+ * up here immediately. Follows the Macros tool, which does the same thing with
+ * the same shape.
+ */
+function buildNotesContextMenu() {
+    const items = [
+        { name: 'Quick Note', icon: 'fa-solid fa-square-plus', onClick: () => void openNoteEditor() },
+        { name: 'Open Notes', icon: 'fa-solid fa-list', onClick: () => void openNotesWindow() }
+    ];
+
+    // Resolved through listNotes so a favourite you can no longer see -- unshared,
+    // or deleted by its author -- does not appear as a dead row.
+    const visible = new Map(NotesManager.listNotes().map((n) => [n.uuid, n]));
+    const favorites = NotesManager.getFavorites()
+        .map((uuid) => visible.get(uuid))
+        .filter(Boolean);
+
+    if (favorites.length) {
+        items.push({ separator: true });
+        for (const note of favorites) {
+            const pinId = note.getFlag(MODULE.ID, 'pinId');
+            const pin = pinId ? PinsAPI.get(pinId) : null;
+            items.push({
+                name: note.name,
+                // The note's own icon, so the menu reads the way the list does.
+                icon: noteIconHtml(pin?.image),
+                onClick: () => void openNoteEditor({ note: note.uuid })
+            });
+        }
+    }
+
+    return items;
+}
+
+/** Register the list and its single menubar tool. */
 export function registerNotesWindow() {
     registerWindow(NOTES_WINDOW_ID, {
         moduleId: MODULE.ID,
@@ -397,12 +442,9 @@ export function registerNotesWindow() {
         title: null,
         tooltip: 'Notes',
         onClick: () => openNotesWindow(),
-        // Right-click writes one without opening the list first, which is the
-        // fastest path from "I should remember that" to a saved note.
-        contextMenuItems: () => [
-            { name: 'New Note', icon: 'fa-solid fa-plus', onClick: () => void openNoteEditor() },
-            { name: 'Show All Notes', icon: 'fa-solid fa-list', onClick: () => void openNotesWindow() }
-        ],
+        // Right-click carries everything else: writing one without opening the list
+        // first, and jumping straight to a favourite.
+        contextMenuItems: () => buildNotesContextMenu(),
         zone: 'left',
         group: 'general',
         order: 204,
@@ -412,20 +454,4 @@ export function registerNotesWindow() {
         visible: true
     });
 
-    // Quick note: its own tool, because the author's flow has it in the left zone
-    // as a one-click "write something down" separate from browsing.
-    MenuBar.registerMenubarTool('quick-note', {
-        icon: 'fa-solid fa-square-plus',
-        name: 'quick-note',
-        title: null,
-        tooltip: 'Quick note',
-        onClick: () => void openNoteEditor(),
-        zone: 'left',
-        group: 'general',
-        order: 205,
-        moduleId: MODULE.ID,
-        gmOnly: false,
-        leaderOnly: false,
-        visible: true
-    });
 }

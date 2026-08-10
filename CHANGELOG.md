@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Notes** (`scripts/manager-notes.js`, `scripts/window-notes.js`, `scripts/window-note-editor.js`, `scripts/manager-note-placement.js`). A list with search and tag filters, an editor with collaborative rich text, canvas pinning, and two menubar tools -- **Notes** for the list and **Quick note** straight to a blank one. Adopted from Squire and rebuilt against the author's own requirements rather than ported; the system it replaces is inventoried in `documentation/plans/plan-notes-inventory.md` and the design in `plan-notes.md`.
+- **Notes** (`scripts/manager-notes.js`, `scripts/window-notes.js`, `scripts/window-note-editor.js`, `scripts/manager-note-placement.js`). A list with search and tag filters, an editor with collaborative rich text, canvas pinning, and one menubar tool -- left-click for the list, right-click for Quick Note, Open Notes, and your favourites. Adopted from Squire and rebuilt against the author's own requirements rather than ported; the system it replaces is inventoried in `documentation/plans/plan-notes-inventory.md` and the design in `plan-notes.md`.
 
   A note is a plain text `JournalEntryPage` flagged as a note, with tags in the shared Tags registry rather than a private list, and privacy expressed as Foundry ownership rather than a flag.
 
@@ -20,9 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **Sharing has three shapes, one mechanism, and no mode control.** Only me, the whole party, or named people -- all expressed as page ownership, with the third being `private` plus a `sharedWith` list rather than a third flag value. Squire's give-to had its own transfer window; handing somebody a note is now sharing it with them and removing yourself.
 
-  The editor shows this as a single row: an **Everyone** chip followed by a strip of player avatars. Nobody picked is private, Everyone is the party, named people is shared -- so the shape is read off the controls instead of being chosen from a dropdown that then decided whether a picker appeared. Everyone stays a distinct state rather than being derived from "all players happen to be selected", because the two differ the moment a new player joins: the party includes them and a frozen list of five does not.
+  The editor shows this as one **Access** row: a strip of character toggles with a display-only badge on the right showing the resulting mode. Nothing selects a mode directly -- it is derived from who is ticked. Everybody ticked **is** the party, and is stored as the party flag rather than as a list of the people who exist today, so a player who joins next session can open the note without anyone editing it.
 
-  **Favourites are per user.** A star on each row and in the editor, sorted to the top of the list. Stored as a flag on the User, not on the note -- two people reading the same shared note will not favourite the same things, and a note-side flag would mean one player starring it starred it for everybody. It also means a player can favourite without a GM round trip.
+  GMs are not in the strip: a GM can open every note by construction, so offering one as a choice would imply it changed something. The current user sorts first. There is no separate party button -- ticking everyone already says it, and a second control for the same fact was the confusing part.
+
+  **Ownership names every user explicitly, including the denied ones.** `ownership` is an `ObjectField`, so an update merges into what is stored -- Foundry's `-=userId` removal syntax exists for exactly that reason. Omitting somebody left their previous level untouched, which meant granting access worked and revoking it silently did not. A note whose access is taken away closes on that user's client with a notice, rather than leaving them typing into something they can no longer save.
+
+  Removing yourself is how a note is handed over, and it warns first -- for a player it means losing access, so `keepAuthor: false` drops the author from ownership while the `authorId` flag still records who wrote it.
+
+  **Favourites are per user.** A heart on each row and in the editor, sorted to the top of the list. Stored as a flag on the User, not on the note -- two people reading the same shared note will not favourite the same things, and a note-side flag would mean one player starring it starred it for everybody. It also means a player can favourite without a GM round trip.
 
   **The pin owns the icon.** A note gets a pin lazily, the first time an icon is chosen or it is placed, and that pin may be unplaced -- a state Pins already models for exactly this. So "the pin just uses the icon I chose" is true by construction rather than by keeping two copies in step, and the ten `notePin*` appearance flags Squire kept on the page do not exist here. Choosing an icon opens Blacksmith's pin configuration window, which began life as Squire's note icon picker and is thereby back where it came from. Changing a note's visibility rewrites its pin's ownership, because hiding a marker from someone is done with ownership rather than `blacksmithVisibility`. Deleting a note deletes its pin; unpinning uses `unplace` so the design survives.
 

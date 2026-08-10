@@ -390,6 +390,49 @@ export default {
         },
 
         {
+            id: 'revoking-access-applies',
+            label: 'Removing somebody actually removes them',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'ownership is an ObjectField, so an update MERGES -- Foundry has a "-=userId" removal ' +
+                  'syntax precisely because of it. Omitting a user from the new map leaves their old ' +
+                  'level intact, so granting worked and revoking silently did nothing.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote', 'notes.updateNote');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — skipping.');
+                    return;
+                }
+                const player = game.users.find((u) => !u.isGM);
+                if (!player) {
+                    log('No non-GM user in this world — skipping.');
+                    return;
+                }
+
+                const note = await api.notes.createNote({ title: `ZZ Revoke ${foundry.utils.randomID(6)}` });
+                if (!expect.ok('note created', !!note)) return;
+
+                try {
+                    await api.notes.updateNote(note, {
+                        visibility: 'private',
+                        sharedWith: [player.id]
+                    });
+                    expect('shared: the player owns it',
+                        note.ownership?.[player.id], CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER);
+
+                    // The whole point: an update that simply does not mention them.
+                    await api.notes.updateNote(note, { visibility: 'private', sharedWith: [] });
+                    expect.ok('revoked: the player no longer owns it',
+                        note.ownership?.[player.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER);
+                    expect.ok('and cannot observe it',
+                        !note.testUserPermission(player, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER));
+                } finally {
+                    await api.notes.deleteNote(note);
+                }
+            }
+        },
+
+        {
             id: 'favorites-are-per-user',
             label: 'Favourites live on the user, not the note',
             tier: 'headless',

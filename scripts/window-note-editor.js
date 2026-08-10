@@ -41,6 +41,7 @@ import { PinsAPI } from './api-pins.js';
 import { TagsAPI } from './api-tags.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { PinConfigWindow } from './window-pin-configuration.js';
+import { PIN_ACCESS_ICONS } from './pin-permission-icons.js';
 
 export const NOTE_EDITOR_WINDOW_ID = 'blacksmith-note-editor';
 
@@ -100,11 +101,36 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         this._userList = null;
         if (this.noteUuid) NoteEditorWindow._open.set(this.noteUuid, this);
 
+        this._hookContext = `note-editor:${this.id}`;
+
+        // Losing access while the note is open. Their client still holds the page
+        // until the update lands, so without this they keep typing into something
+        // they can no longer save -- and collaborative steps make that worse, since
+        // the text looks accepted right up until it is refused.
+        HookManager.registerHook({
+            name: 'updateJournalEntryPage',
+            description: 'Note editor: close when the user loses access',
+            priority: 4,
+            context: this._hookContext,
+            callback: (page) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                if (!this.noteUuid || page?.uuid !== this.noteUuid) return;
+                if (page.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) return;
+                ui.notifications.warn(`"${page.name}" is no longer shared with you.`);
+                if (NoteEditorWindow._open.get(this.noteUuid) === this) {
+                    NoteEditorWindow._open.delete(this.noteUuid);
+                }
+                this.note = null;
+                this.noteUuid = null;
+                void this.close();
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
         // An editor whose note has been deleted has nothing to save into, and
         // saving would recreate a page the user just removed. Watch the document
         // hook rather than Blacksmith's own: deletion can come from the journal
         // sidebar or another client, and those never fire the Blacksmith one here.
-        this._hookContext = `note-editor:${this.id}`;
         HookManager.registerHook({
             name: 'deleteJournalEntryPage',
             description: 'Note editor: close when its note is deleted',
@@ -142,30 +168,24 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     // ==============================================================
 
     /**
-     * Party or private.
+     * Non-GM users who own this note -- the ticked avatars.
      *
-     * There is no separate "shared" state to return: sharing with named people is
-     * private ownership plus a `sharedWith` list, and the editor shows that by
-     * pre-selecting those users in the picker rather than by a third mode. Read
-     * from the flag, with ownership supplying the selection.
+     * Includes the current user: they are a chip in the strip like anybody else,
+     * so their own access is read from ownership rather than assumed. GMs are
+     * excluded because they own every note by construction and ticking them would
+     * describe nothing.
      */
-    _currentVisibility() {
-        if (!this.note) return NOTE_VISIBILITY.PRIVATE;
-        return this.note.getFlag(MODULE.ID, 'visibility') === NOTE_VISIBILITY.PARTY
-            ? NOTE_VISIBILITY.PARTY
-            : NOTE_VISIBILITY.PRIVATE;
-    }
-
-    /** Non-GM, non-author users who own this note. */
-    _sharedUserIds() {
-        if (!this.note) return [];
-        const authorId = this.note.getFlag(MODULE.ID, 'authorId');
+    _ownerUserIds() {
+        if (!this.note) {
+            // A new note starts owned by whoever is writing it, unless that is a GM,
+            // who is not in the strip at all.
+            return game.user.isGM ? [] : [game.user.id];
+        }
         const users = this.note.ownership ?? {};
         return Object.entries(users)
             .filter(([id, level]) => (
                 id !== 'default'
                 && level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-                && id !== authorId
                 && !game.users.get(id)?.isGM
             ))
             .map(([id]) => id);
@@ -182,7 +202,9 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     // ==============================================================
 
     async getData() {
-        const visibility = this._currentVisibility();
+        // No visibility read here: the strip is driven entirely by ownership via
+        // _ownerUserIds, and the mode is derived from what is ticked. The flag is
+        // written on save and never consulted to draw the window.
         const tags = this.note ? NotesManager.getNoteTags(this.note) : [];
         const authorId = this.note?.getFlag(MODULE.ID, 'authorId') ?? null;
         const author = authorId ? game.users.get(authorId) : null;
@@ -201,14 +223,23 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         // Rendered as a strip of avatars rather than a stacked list: this is one row
         // in a compact strip, and a name per line was most of why the old shape was
         // tall enough to change the window's layout between private and shared.
+        // Just the characters, in one row. GMs are absent because a GM can already
+        // open everything -- offering them as a choice would imply it changes
+        // something. The current user comes first so their own access is where they
+        // will look for it, rather than somewhere in the middle of the row.
+        const selfId = game.user.id;
+        const players = EntityListAPI.providers
+            .fromUsers({ includeGM: false, disableOffline: false })
+            .sort((a, b) => (a.id === selfId ? -1 : b.id === selfId ? 1 : 0));
+
         this._userList = EntityListAPI.create({
-            entities: EntityListAPI.providers.fromUsers({ includeGM: false, disableOffline: false }),
+            entities: players,
             mode: EntityListAPI.MODES.MULTI,
             inputName: 'note-shared-with',
-            selected: this._sharedUserIds(),
+            selected: this._ownerUserIds(),
             listClass: 'blacksmith-note-user-strip',
             itemClass: 'blacksmith-note-user',
-            emptyMessage: 'No other players.'
+            emptyMessage: 'No players.'
         });
 
         const body = `
@@ -222,7 +253,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                        placeholder="Untitled Note" autocomplete="off">
                 <button type="button" class="blacksmith-note-fav" data-note-action="favorite"
                         title="${fav ? 'Remove from favourites' : 'Add to favourites'}">
-                    <i class="${fav ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+                    <i class="${fav ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
                 </button>
             </div>
 
@@ -230,15 +261,10 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
 
             <div class="blacksmith-note-editor-strip">
                 <div class="blacksmith-note-vis">
-                    <span class="blacksmith-note-strip-label">Who can see this</span>
+                    <span class="blacksmith-note-strip-label">Access</span>
                     <div class="blacksmith-note-vis-row">
-                        <button type="button"
-                                class="blacksmith-note-everyone${visibility === NOTE_VISIBILITY.PARTY ? ' selected' : ''}"
-                                data-note-action="everyone"
-                                title="Everyone, including players who join later">
-                            <i class="fa-solid fa-users"></i><span>Everyone</span>
-                        </button>
-                        <div class="blacksmith-note-shared${visibility === NOTE_VISIBILITY.PARTY ? ' dimmed' : ''}">${this._userList.html}</div>
+                        <div class="blacksmith-note-shared">${this._userList.html}</div>
+                        <span class="blacksmith-note-mode" data-mode=""></span>
                     </div>
                 </div>
 
@@ -338,21 +364,32 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
 
         this._userList?.attach(root);
 
-        // Everyone and named people are mutually exclusive: picking a person is how
-        // you say "not the whole party", so it clears Everyone rather than fighting it.
-        const everyone = root.querySelector('.blacksmith-note-everyone');
+        // ---- the access strip ----
+        // One row of character toggles; the MODE is derived, never chosen. Ticking
+        // everybody IS the party, and is stored as the party flag rather than as a
+        // list of whoever exists today, so a player who joins later is included
+        // without anyone editing the note.
         const shared = root.querySelector('.blacksmith-note-shared');
-        everyone?.addEventListener('click', () => {
-            const on = everyone.classList.toggle('selected');
-            if (on) this._userList?.setSelection?.([]);
-            shared?.classList.toggle('dimmed', on);
-        });
-        shared?.addEventListener('change', () => {
-            if ((this._userList?.getSelectedIds?.() ?? []).length) {
-                everyone?.classList.remove('selected');
-                shared.classList.remove('dimmed');
+
+        shared?.addEventListener('change', async (event) => {
+            // Untick yourself and you lose the note. GMs are not in the strip, so
+            // this can only be a player removing their own access.
+            const input = event.target;
+            if (input?.value === game.user.id && input.checked === false) {
+                const ok = await foundry.applications.api.DialogV2.confirm({
+                    window: { title: 'Remove your own access?' },
+                    content: '<p>You will not be able to open this note again once you save. '
+                        + 'Somebody it is shared with would have to share it back.</p>',
+                    modal: true
+                }).catch(() => false);
+                if (!ok) {
+                    input.checked = true;
+                }
             }
+            this._syncAccess();
         });
+
+        this._syncAccess();
 
         // The text field stays the source of truth and a chip is a view of it, so a
         // tag removed by typing reappears as an available chip.
@@ -392,6 +429,58 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         on('place', () => void this._place());
         on('unpin', () => void this._unpin());
         on('pan', () => void PinsAPI.panTo?.(this.note?.getFlag(MODULE.ID, 'pinId')));
+    }
+
+    /** Every character in the strip -- all non-GM users. */
+    _allPlayerIds() {
+        return (this._userList?.entities ?? []).map((e) => e.id);
+    }
+
+    /**
+     * Derive the mode from the toggles and show it.
+     *
+     * The mode is a readout, not an input. Party is "all of them selected", which
+     * is the author's model: the user should not have to reason about which
+     * exclusive set they are in, only about who is ticked.
+     */
+    _syncAccess() {
+        const root = this.element;
+        if (!root) return;
+        const badge = root.querySelector('.blacksmith-note-mode');
+        if (!badge) return;
+
+        const everybody = this._allPlayerIds();
+        const selected = this._userList?.getSelectedIds?.() ?? [];
+        const allSelected = everybody.length > 0 && selected.length === everybody.length;
+
+        // Reflect each avatar's state as a class. The checkbox stays the source of
+        // truth; this is only what makes the accent border visible.
+        for (const label of root.querySelectorAll('.blacksmith-note-user')) {
+            label.classList.toggle('selected', !!label.querySelector('input')?.checked);
+        }
+
+        // All of them ticked IS the party, however it was arrived at.
+        // Nobody ticked means different things to different people: a GM still sees
+        // it, a player is describing a note only they can open.
+        const mode = allSelected
+            ? 'party'
+            : selected.length
+                ? 'shared'
+                : game.user.isGM ? 'gm' : 'private';
+
+        const shown = {
+            // The helmet is the party mark everywhere else in Blacksmith, and
+            // user-shield is the GM mark -- both taken from the vocabulary the pin
+            // permission UI already uses (scripts/pin-permission-icons.js).
+            party: { icon: 'fa-solid fa-helmet-battle', label: 'Everyone in the party' },
+            shared: { icon: 'fa-solid fa-user-group', label: `Shared with ${selected.length}` },
+            gm: { icon: PIN_ACCESS_ICONS.gm, label: 'GMs only' },
+            private: { icon: 'fa-solid fa-lock', label: 'Only me' }
+        }[mode];
+
+        badge.dataset.mode = mode;
+        badge.innerHTML = `<i class="${shown.icon}"></i>`;
+        badge.dataset.tooltip = shown.label;
     }
 
     /** Mark chips that are already in the field. Cheap enough to run on every keystroke. */
@@ -468,10 +557,13 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     _readForm() {
         const root = this.element;
         const raw = root?.querySelector('[name="note-tags"]')?.value ?? '';
-        // Derived from the controls rather than stored as a third state: Everyone
-        // means the party (and therefore anyone who joins later), any named people
-        // means shared, and neither means private. See the note on PARTY below.
-        const everyone = !!root?.querySelector('.blacksmith-note-everyone.selected');
+        // Everyone selected is STORED as party, not as a list of the people who
+        // exist today. That is the whole reason the normalisation happens here:
+        // ownership is rebuilt from the party flag, so a player who joins next
+        // session can open the note without anybody editing it.
+        const everybody = this._allPlayerIds();
+        const picked = this._userList?.getSelectedIds?.() ?? [];
+        const everyone = everybody.length > 0 && picked.length === everybody.length;
         const shape = everyone ? NOTE_VISIBILITY.PARTY : NOTE_VISIBILITY.PRIVATE;
         return {
             title: root?.querySelector('[name="note-title"]')?.value ?? '',
@@ -480,10 +572,12 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             // getSelectedIds, not getSelection: the latter returns entity objects,
             // and an object used as an ownership key stringifies to "[object Object]"
             // -- which Foundry rejects as "not a mapping of user IDs".
-            // Individually named people are dropped when Everyone is on: PARTY already
-            // grants every player, and keeping a stale list would make the note look
-            // shared-with-three when it is actually shared with all.
-            sharedWith: everyone ? [] : (this._userList?.getSelectedIds?.() ?? []),
+            // Dropped when it is the party: PARTY already grants every player, and a
+            // stale list would make the note read as shared-with-three.
+            sharedWith: everyone ? [] : picked,
+            // The author giving up their own access is how a note is handed over. A
+            // GM author is never in the strip and always owns the note anyway.
+            keepAuthor: game.user.isGM || everyone || picked.includes(game.user.id),
             tags: raw.split(',').map((t) => t.trim()).filter(Boolean)
         };
     }
@@ -500,7 +594,8 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                 content: form.content,
                 visibility,
                 tags: form.tags,
-                sharedWith: form.sharedWith
+                sharedWith: form.sharedWith,
+                keepAuthor: form.keepAuthor
             });
             if (!page) return;
             this.note = page;
@@ -517,7 +612,8 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             title: form.title,
             content: this.noteUuid ? null : form.content,
             visibility,
-            sharedWith: form.sharedWith
+            sharedWith: form.sharedWith,
+            keepAuthor: form.keepAuthor
         });
         if (!updated) return;
         await NotesManager.setNoteTags(this.note, form.tags);
