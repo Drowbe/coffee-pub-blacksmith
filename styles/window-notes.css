@@ -505,6 +505,71 @@ body.blacksmith-note-placing canvas {
     opacity: 1;
 }
 
+/* entity-list.css puts an outline on :focus-within, and ours added a second ring
+   on top of the border -- three rings on one avatar. Suppress theirs outright and
+   keep exactly one indicator, only for keyboard focus. */
+.blacksmith-note-user:focus-within {
+    outline: none;
+}
+
 .blacksmith-note-user:has(input:focus-visible) {
     outline: 2px solid var(--blacksmith-tool-field-focus-border);
+    outline-offset: 1px;
+}
+
+/* Foundry styles bare inputs inside forms; these are toggles drawn as avatars and
+   must not pick up a control's chrome. */
+.blacksmith-note-user input {
+    appearance: none;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
+/* ---- read view -------------------------------------------------- */
+
+/* Same box the editor occupies, so toggling does not resize the window.
+   Scrolls internally for the same reason the editor does. */
+.blacksmith-note-read {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 6px;
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-note-read img {
+    max-width: 100%;
+    height: auto;
+}
+
+.blacksmith-note-read-empty {
+    opacity: 0.6;
+    font-style: italic;
+}
+
+/* Content links have to look clickable here -- being able to follow them is the
+   entire reason this view exists. */
+.blacksmith-note-read a.content-link,
+.blacksmith-note-read a.inline-roll {
+    cursor: pointer;
+}
+
+.blacksmith-note-mode-toggle {
+    flex: 0 0 auto;
+    border: none;
+    background: none;
+    color: var(--blacksmith-tool-text);
+    opacity: 0.55;
+    cursor: pointer;
+}
+
+.blacksmith-note-mode-toggle:hover {
+    opacity: 1;
+}
+
+.blacksmith-note-mode-toggle.on {
+    color: var(--blacksmith-color-brand-accent);
+    opacity: 1;
 }

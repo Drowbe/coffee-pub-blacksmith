@@ -34,6 +34,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { PIN_ACCESS_ICONS } from './pin-permission-icons.js';
 
 /** Flag key on the note page holding its annotation array. */
 const FLAG_KEY = 'annotations';
@@ -905,4 +906,63 @@ export function noteIconHtml(image) {
         return `<i class="${foundry.utils.escapeHTML(classes)}"></i>`;
     }
     return `<img src="${foundry.utils.escapeHTML(value)}" alt="">`;
+}
+
+
+/**
+ * The users who can meaningfully be given a note.
+ *
+ * Excludes GMs, who own every note by construction, and excludes any user whose
+ * assigned character is a GROUP actor. A group actor is the party itself -- the
+ * Elegant Eight token, not a person -- so it is not an editor of anything and
+ * offering it in an access list is offering to share a note with a roster.
+ */
+export function noteAccessUsers() {
+    return (game.users?.contents ?? []).filter((user) => (
+        !user.isGM && user.character?.type !== 'group'
+    ));
+}
+
+/**
+ * The badge for "n of m people have this".
+ *
+ * THE one rule. The editor calls it with the live tick counts so the badge moves
+ * as you click; the list calls it through noteAccessMode with saved ownership.
+ * Each computed its own before, and they disagreed -- the list showed a padlock
+ * where the editor showed GMs only.
+ *
+ * @param {{ total: number, selected: number }} counts
+ * @returns {{ mode: string, icon: string, label: string }}
+ */
+export function noteAccessBadge({ total = 0, selected = 0 } = {}) {
+    if (total > 0 && selected === total) {
+        // The helmet is the party mark everywhere else in Blacksmith.
+        return { mode: 'party', icon: 'fa-solid fa-helmet-battle', label: 'Everyone in the party' };
+    }
+    if (selected > 0) {
+        return {
+            mode: 'shared',
+            icon: 'fa-solid fa-user-group',
+            label: `Shared with ${selected} ${selected === 1 ? 'person' : 'people'}`
+        };
+    }
+    // Nobody but GMs. A player looking at their own note calls that private; for a
+    // GM it is a note no player can see, which is a different statement.
+    return game.user.isGM
+        ? { mode: 'gm', icon: PIN_ACCESS_ICONS.gm, label: 'GMs only' }
+        : { mode: 'private', icon: 'fa-solid fa-lock', label: 'Only me' };
+}
+
+/**
+ * How a note is shared, read from saved ownership.
+ *
+ * @param {JournalEntryPage} note
+ * @returns {{ mode: string, icon: string, label: string }}
+ */
+export function noteAccessMode(note) {
+    const players = noteAccessUsers();
+    const owners = players.filter((user) => (
+        note?.ownership?.[user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+    ));
+    return noteAccessBadge({ total: players.length, selected: owners.length });
 }

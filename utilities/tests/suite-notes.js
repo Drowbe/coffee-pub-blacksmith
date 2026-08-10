@@ -390,6 +390,30 @@ export default {
         },
 
         {
+            id: 'access-list-excludes-groups',
+            label: 'The access list holds people, not the party token',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'A user whose assigned character is a GROUP actor is the party roster, not a person. ' +
+                  'It appeared in the sharing strip as something you could grant a note to.',
+            run: async ({ expect, log }) => {
+                const { noteAccessUsers } = await import('../../scripts/manager-notes.js');
+                const listed = noteAccessUsers();
+
+                expect('no GMs', listed.filter((u) => u.isGM).length, 0);
+                expect('no group actors',
+                    listed.filter((u) => u.character?.type === 'group').length, 0);
+
+                const groups = game.users.filter((u) => u.character?.type === 'group');
+                if (groups.length) {
+                    log(`excluded ${groups.length} group-actor user(s): ${groups.map((u) => u.name).join(', ')}`);
+                } else {
+                    log('no group-actor users in this world — the exclusion is untested here.');
+                }
+            }
+        },
+
+        {
             id: 'revoking-access-applies',
             label: 'Removing somebody actually removes them',
             tier: 'headless',

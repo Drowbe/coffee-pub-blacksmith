@@ -177,7 +177,7 @@ with no way to find them again.
 | Id | What |
 |---|---|
 | `blacksmith-notes` | the list: search, tag chips, privacy and pin indicators, pin actions |
-| `blacksmith-note-editor` | one note; pass `{ note }` to edit, omit to create |
+| `blacksmith-note-editor` | one note; pass `{ note }` to edit, omit to create. Opens in edit mode; a header toggle switches to a read view where content links are followable |
 
 One menubar tool opens them. Left-click shows the list; right-click gives Quick Note and Open Notes, followed
 by the user's favourite notes, each opening straight into its editor.

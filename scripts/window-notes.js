@@ -26,7 +26,7 @@ import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { HookManager } from './manager-hooks.js';
 import { registerWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
-import { NotesManager, NOTE_VISIBILITY, noteIconHtml } from './manager-notes.js';
+import { NotesManager, noteIconHtml, noteAccessMode } from './manager-notes.js';
 import { NotePlacementManager } from './manager-note-placement.js';
 import { PinsAPI } from './api-pins.js';
 import { openNoteEditor } from './window-note-editor.js';
@@ -205,19 +205,10 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
             const pinId = note.getFlag(MODULE.ID, 'pinId');
             const pin = pinId ? PinsAPI.get(pinId) : null;
             const placed = !!pin?.sceneId;
-            const visibility = note.getFlag(MODULE.ID, 'visibility') ?? NOTE_VISIBILITY.PRIVATE;
-            const shared = Object.entries(note.ownership ?? {})
-                .filter(([id, lvl]) => id !== 'default'
-                    && lvl === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-                    && !game.users.get(id)?.isGM
-                    && id !== note.getFlag(MODULE.ID, 'authorId'))
-                .length;
-
-            const privacy = visibility === NOTE_VISIBILITY.PARTY
-                ? '<i class="fa-solid fa-users" title="The whole party"></i>'
-                : shared
-                    ? `<i class="fa-solid fa-user-group" title="Shared with ${shared} ${shared === 1 ? 'person' : 'people'}"></i>`
-                    : '<i class="fa-solid fa-lock" title="Only me"></i>';
+            // The same derivation the editor's badge uses, so a note cannot read as
+            // locked here and "GMs only" there.
+            const access = noteAccessMode(note);
+            const privacy = `<i class="${access.icon}" title="${foundry.utils.escapeHTML(access.label)}"></i>`;
 
             const preview = toText(note.text?.content).slice(0, 140);
 

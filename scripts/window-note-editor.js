@@ -35,13 +35,13 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
-import { NotesManager, NOTE_VISIBILITY, NOTE_TAG_CONTEXT, noteIconHtml } from './manager-notes.js';
+import { NotesManager, NOTE_VISIBILITY, NOTE_TAG_CONTEXT, noteIconHtml, noteAccessUsers, noteAccessBadge } from './manager-notes.js';
 import { HookManager } from './manager-hooks.js';
 import { PinsAPI } from './api-pins.js';
+import { ToastAPI } from './api-toast.js';
 import { TagsAPI } from './api-tags.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { PinConfigWindow } from './window-pin-configuration.js';
-import { PIN_ACCESS_ICONS } from './pin-permission-icons.js';
 
 export const NOTE_EDITOR_WINDOW_ID = 'blacksmith-note-editor';
 
@@ -99,6 +99,10 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         this.noteUuid = note?.uuid ?? null;
         this._editor = null;
         this._userList = null;
+        // Edit is the default: a note is a thing you write. Read exists because
+        // ProseMirror renders an @UUID link as text you cannot click -- following a
+        // link out of a note is impossible while editing it.
+        this._readMode = false;
         if (this.noteUuid) NoteEditorWindow._open.set(this.noteUuid, this);
 
         this._hookContext = `note-editor:${this.id}`;
@@ -116,7 +120,12 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
                 if (!this.noteUuid || page?.uuid !== this.noteUuid) return;
                 if (page.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) return;
-                ui.notifications.warn(`"${page.name}" is no longer shared with you.`);
+                ToastAPI.show({
+                    title: 'Note unshared',
+                    subtitle: `"${page.name}" is no longer shared with you.`,
+                    icon: 'fa-solid fa-user-slash',
+                    moduleId: MODULE.ID
+                });
                 if (NoteEditorWindow._open.get(this.noteUuid) === this) {
                     NoteEditorWindow._open.delete(this.noteUuid);
                 }
@@ -228,8 +237,13 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         // something. The current user comes first so their own access is where they
         // will look for it, rather than somewhere in the middle of the row.
         const selfId = game.user.id;
+        // noteAccessUsers, not the raw provider: it drops GMs AND any user whose
+        // assigned character is a group actor -- the party token is a roster, not a
+        // person, and cannot be an editor of anything.
+        const allowed = new Set(noteAccessUsers().map((u) => u.id));
         const players = EntityListAPI.providers
             .fromUsers({ includeGM: false, disableOffline: false })
+            .filter((entity) => allowed.has(entity.id))
             .sort((a, b) => (a.id === selfId ? -1 : b.id === selfId ? 1 : 0));
 
         this._userList = EntityListAPI.create({
@@ -251,6 +265,12 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                 <input type="text" name="note-title" class="blacksmith-note-title"
                        value="${foundry.utils.escapeHTML(this.note?.name ?? '')}"
                        placeholder="Untitled Note" autocomplete="off">
+                ${this.note ? `
+                <button type="button" class="blacksmith-note-mode-toggle${this._readMode ? ' on' : ''}"
+                        data-note-action="toggle-read"
+                        title="${this._readMode ? 'Edit this note' : 'Read it, and follow its links'}">
+                    <i class="fa-solid ${this._readMode ? 'fa-pen-to-square' : 'fa-book-open'}"></i>
+                </button>` : ''}
                 <button type="button" class="blacksmith-note-fav" data-note-action="favorite"
                         title="${fav ? 'Remove from favourites' : 'Add to favourites'}">
                     <i class="${fav ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
@@ -326,7 +346,13 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
      */
     async _mountEditor() {
         const host = this.element?.querySelector?.('.blacksmith-note-editor-host');
-        if (!host || host.querySelector('prose-mirror')) return;
+        if (!host) return;
+
+        if (this._readMode) {
+            await this._mountReadView(host);
+            return;
+        }
+        if (host.querySelector('prose-mirror')) return;
 
         const Cls = foundry?.applications?.elements?.HTMLProseMirrorElement;
         if (!Cls?.create) {
@@ -356,6 +382,33 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
 
         host.replaceChildren(editor);
         this._editor = editor;
+    }
+
+    /**
+     * Render the note as enriched HTML.
+     *
+     * Enriched, so `@UUID[...]` becomes a real content link. Foundry delegates
+     * clicks on `.content-link` globally, so nothing here has to wire them -- the
+     * only requirement is that the markup exists outside a ProseMirror surface.
+     *
+     * Read from the live document rather than from the editor: collaborative edits
+     * are already on the page, so this cannot show something staler than the note.
+     */
+    async _mountReadView(host) {
+        const html = this.note?.text?.content ?? '';
+        if (!html) {
+            host.innerHTML = '<div class="blacksmith-note-read blacksmith-note-read-empty">Nothing written yet.</div>';
+            return;
+        }
+        const ns = foundry?.applications?.ux?.TextEditor;
+        const TE = ns?.implementation ?? ns ?? globalThis.TextEditor;
+        try {
+            const enriched = await TE.enrichHTML(html, { relativeTo: this.note, secrets: game.user.isGM });
+            host.innerHTML = `<div class="blacksmith-note-read">${enriched}</div>`;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not enrich the note body', error?.message ?? error, false, false);
+            host.innerHTML = `<div class="blacksmith-note-read">${html}</div>`;
+        }
     }
 
     _wire() {
@@ -423,6 +476,15 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             await NotesManager.toggleFavorite(this.note);
             this.render(false);
         });
+        on('toggle-read', () => {
+            this._readMode = !this._readMode;
+            // Drop the editor element so the next mount rebuilds cleanly; a
+            // collaborative ProseMirror left in the DOM keeps its session open.
+            const host = this.element?.querySelector?.('.blacksmith-note-editor-host');
+            if (host) host.replaceChildren();
+            this._editor = null;
+            void this.render(false);
+        });
         on('save', () => void this._save());
         on('cancel', () => void this.close());
         on('icon', () => void this._configureIcon());
@@ -460,25 +522,15 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         }
 
         // All of them ticked IS the party, however it was arrived at.
-        // Nobody ticked means different things to different people: a GM still sees
-        // it, a player is describing a note only they can open.
-        const mode = allSelected
-            ? 'party'
-            : selected.length
-                ? 'shared'
-                : game.user.isGM ? 'gm' : 'private';
+        // Mirrors noteAccessMode's rules against the LIVE ticks rather than saved
+        // ownership -- the badge has to move as you click, before anything is
+        // written. The saved-state version is what the list row uses.
+        const shown = noteAccessBadge({
+            total: everybody.length,
+            selected: selected.length
+        });
 
-        const shown = {
-            // The helmet is the party mark everywhere else in Blacksmith, and
-            // user-shield is the GM mark -- both taken from the vocabulary the pin
-            // permission UI already uses (scripts/pin-permission-icons.js).
-            party: { icon: 'fa-solid fa-helmet-battle', label: 'Everyone in the party' },
-            shared: { icon: 'fa-solid fa-user-group', label: `Shared with ${selected.length}` },
-            gm: { icon: PIN_ACCESS_ICONS.gm, label: 'GMs only' },
-            private: { icon: 'fa-solid fa-lock', label: 'Only me' }
-        }[mode];
-
-        badge.dataset.mode = mode;
+        badge.dataset.mode = shown.mode;
         badge.innerHTML = `<i class="${shown.icon}"></i>`;
         badge.dataset.tooltip = shown.label;
     }

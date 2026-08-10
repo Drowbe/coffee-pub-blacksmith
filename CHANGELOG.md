@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   A note is a plain text `JournalEntryPage` flagged as a note, with tags in the shared Tags registry rather than a private list, and privacy expressed as Foundry ownership rather than a flag.
 
+  **A read view, toggled from the header.** Editing is the default -- a note is a thing you write -- but ProseMirror renders `@UUID[...]` as inert text, so following a link out of a note was impossible while editing it. The read view enriches the body, which makes content links real; Foundry delegates clicks on `.content-link` globally, so nothing has to wire them. It reads from the live document rather than the editor, so a collaborative edit cannot leave it showing something staler than the note.
+
   **Notes are collaborative.** Two people can write in one note at once, which is what Squire wanted and could not achieve -- see the collaborative-editing fix below for why. Edit locks are therefore not ported: they existed as the fallback for collaboration not working.
 
   **And that removes the stray "Untitled Note" pages.** Squire created a draft page on first interaction *because collaborative editing needs a document to bind to*, so a click that went nowhere left an orphan behind. A note being created has no co-editors, so a new note gets a plain editor and its page is created on save. There is nothing to reap because nothing is created.
@@ -22,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   The editor shows this as one **Access** row: a strip of character toggles with a display-only badge on the right showing the resulting mode. Nothing selects a mode directly -- it is derived from who is ticked. Everybody ticked **is** the party, and is stored as the party flag rather than as a list of the people who exist today, so a player who joins next session can open the note without anyone editing it.
 
-  GMs are not in the strip: a GM can open every note by construction, so offering one as a choice would imply it changed something. The current user sorts first. There is no separate party button -- ticking everyone already says it, and a second control for the same fact was the confusing part.
+  GMs are not in the strip: a GM can open every note by construction, so offering one as a choice would imply it changed something. Nor is any user whose assigned character is a **group actor** -- that is the party roster, not a person, and it is not an editor of anything. The badge and the list row now share one derivation (`noteAccessBadge`), which is why a note can no longer read as a padlock in the list and "GMs only" in the editor. The current user sorts first. There is no separate party button -- ticking everyone already says it, and a second control for the same fact was the confusing part.
 
   **Ownership names every user explicitly, including the denied ones.** `ownership` is an `ObjectField`, so an update merges into what is stored -- Foundry's `-=userId` removal syntax exists for exactly that reason. Omitting somebody left their previous level untouched, which meant granting access worked and revoking it silently did not. A note whose access is taken away closes on that user's client with a notice, rather than leaving them typing into something they can no longer save.
 
