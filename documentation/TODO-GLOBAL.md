@@ -265,6 +265,65 @@ Being rebuilt, not ported — the old pack data is reference material at most.
 
 ---
 
+## Decided 2026-08-09 — Notes to Blacksmith, Codex and Quests to Librarian
+
+Squire is being dismantled. Where each piece lands is settled; the reasoning is here because it is the part
+that gets relitigated.
+
+**Codex and Quests go to Librarian** (a module that does not exist yet). Codex is a lore brain whose system of
+record is Obsidian — a densely interlinked knowledge graph, imported here rather than authored here. Quests
+are the same kind of thing. Both are campaign content: they encode what the module is *for*.
+
+**Notes go to Blacksmith.** A note is not campaign content. It is what a player writes in play — "we need to
+get that thing in that place" — and it is about things Foundry already owns.
+
+### The discriminator, because "it feels shared" is not one
+
+**Owning a document subtype means owning a domain. A surface over core documents does not.**
+
+Codex declares `documentTypes: { JournalEntryPage: { codex: {} } }`, so its entries are
+`coffee-pub-squire.codex` with their own data model and sheet. It is a *kind of thing*. Notes writes plain
+`type: 'text'` pages — it is a *view*. Pins, Tags, and GM Notes are all views over core documents and all
+already live in Blacksmith; none declares a subtype.
+
+This is also why **Blacksmith declares no document subtypes, ever**. That is now a rule rather than a
+coincidence, and the import/export phase depends on it — see `TODO.md`.
+
+### Notes must not arrive as a fourth annotation system
+
+Blacksmith already has "note to anything": `GMNotesAPI` attaches rich text to any Document by UUID, with a
+section registry so several modules contribute to one document's note without clobbering each other. Squire's
+Notes is the other direction — the note *is* a document, with tags and pins, that references targets.
+
+Landing this as `api.notes` beside `api.gmNotes` would give the hub two overlapping annotation systems, each
+with its own storage and its own idea of what a note is. The shape to build instead is **one relationship,
+several views**:
+
+- a **note** is a document
+- an **annotation** is a link from a note to a target
+- `gmNotes` is the *notes about this thing* view
+- the Notes window is the *the note itself* view
+- a **pin** is the *note on the canvas* view — already true, and why Squire's `manager-pins.js` is 2,325 lines
+  of wrapper around Blacksmith's pins API
+
+Cartographer is the consumer that proves the model: it already has a hand-rolled annotation system —
+freehand markup plus tooltip text anchored to a map region. That is the same primitive with a third anchor.
+Document, canvas point, map region.
+
+### The gate — apply it before shipping, not after
+
+**If Notes is a fancy journal, it is nothing.** Foundry journals already exist and are better suited to
+narrative and GM authoring than anything we would write. The value has to be in the relationship, not the
+document.
+
+The test: **can any surface ask "what is attached to this thing" and get an answer?** If the design cannot do
+that — from an actor sheet, a canvas point, a map region, a compendium entry — then it is a journal page with
+extra steps and should be abandoned rather than shipped.
+
+`utility-base-parser.js` is shared by Squire's Notes and Codex today. Do **not** hoist it to Blacksmith
+pre-emptively: if Notes converges on the annotation model it may not survive the move at all, and Librarian
+can simply take it.
+
 ## Squire tool adoption — Squire's half (Blacksmith side shipped 2026-08-09, unverified)
 
 Dice Tray, Macros, and Health now live in Blacksmith. Blacksmith's side is written but **has not been run in
