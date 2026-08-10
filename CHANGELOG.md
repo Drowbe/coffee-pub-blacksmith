@@ -10,9 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **The note data layer** (`scripts/manager-notes.js`, `scripts/api-notes.js`): `createNote`, `updateNote`, `deleteNote`, `listNotes`, `isNote`, `getNoteTags`, `setNoteTags`. Surface in `documentation/api/api-notes.md`. **No UI yet** -- the list and editor windows are not part of this release; see the note below.
+- **Notes** (`scripts/manager-notes.js`, `scripts/window-notes.js`, `scripts/window-note-editor.js`, `scripts/manager-note-placement.js`). A list with search and tag filters, an editor with collaborative rich text, canvas pinning, and two menubar tools -- **Notes** for the list and **Quick note** straight to a blank one. Adopted from Squire and rebuilt against the author's own requirements rather than ported; the system it replaces is inventoried in `documentation/plans/plan-notes-inventory.md` and the design in `plan-notes.md`.
 
   A note is a plain text `JournalEntryPage` flagged as a note, with tags in the shared Tags registry rather than a private list, and privacy expressed as Foundry ownership rather than a flag.
+
+  **Notes are collaborative.** Two people can write in one note at once, which is what Squire wanted and could not achieve -- see the collaborative-editing fix below for why. Edit locks are therefore not ported: they existed as the fallback for collaboration not working.
+
+  **And that removes the stray "Untitled Note" pages.** Squire created a draft page on first interaction *because collaborative editing needs a document to bind to*, so a click that went nowhere left an orphan behind. A note being created has no co-editors, so a new note gets a plain editor and its page is created on save. There is nothing to reap because nothing is created.
+
+  **Sharing has three shapes and one mechanism.** Only me, the whole party, or named people -- all expressed as page ownership, with the third being `private` plus a `sharedWith` list rather than a third flag value. Squire's give-to had its own transfer window; handing somebody a note is now sharing it with them and removing yourself.
+
+  **The pin owns the icon.** A note gets a pin lazily, the first time an icon is chosen or it is placed, and that pin may be unplaced -- a state Pins already models for exactly this. So "the pin just uses the icon I chose" is true by construction rather than by keeping two copies in step, and the ten `notePin*` appearance flags Squire kept on the page do not exist here. Choosing an icon opens Blacksmith's pin configuration window, which began life as Squire's note icon picker and is thereby back where it came from. Changing a note's visibility rewrites its pin's ownership, because hiding a marker from someone is done with ownership rather than `blacksmithVisibility`. Deleting a note deletes its pin; unpinning uses `unplace` so the design survives.
+
+  **Placing a note creates an annotation with a `point` anchor**, so `notes.getByTarget(scene)` returns the notes pinned to a scene. A pin the annotation layer did not know about would be a note you could not find from the thing it is attached to.
+
+  **Both windows are tool windows sharing one theme.** They are the same feature and were briefly not: the list was a tool window and the editor a full one, which made them read as two different products, and no styling could reconcile them because a tool window carries a user-chosen theme and a full window does not. Both now override `toolThemePreferenceKey` and `toolTitlebarPreferenceKey` to a shared key -- those default to each window's own position key, so without the override one could be light while the other was dark.
+
+  **What was deliberately dropped:** the scene dropdown, the ALL/PARTY/PRIVATE filter toggle, and the sort control. Five filtering mechanisms on one list was a fair share of what the author called klunky; search and tags answer "find the notes about Bob", and privacy is shown on each row because seeing it and filtering by it are different things.
 
   **Visibility is real ownership, not a flag.** `private` grants the author and every GM; `party` grants every player. Changing it rewrites the page's `ownership`, and `listNotes` filters on permission rather than on the flag -- a note somebody should not see is one they cannot load, which is the only version of privacy worth having. GMs are always granted, because a GM who writes a private note and then cannot open it is the failure every system that forgot this discovers late.
 
@@ -35,13 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The guard skips that notification when the sheet has no rendered form. Nothing is lost by doing so: the method exists only to disable save-source buttons that are not on screen. It declines and reports rather than throwing if libWrapper is absent or the core class moves.
 
   This is hub infrastructure rather than a Notes detail -- any module hosting a collaborative editor outside a document's own sheet hits the same wall.
-
-### Not in this release
-
-- **The Notes list and editor windows were built and then removed before release.** They were written without reading Squire's own `documents/architecture-notes.md`, and what they produced was a list of journal pages with tags -- which fails the test the design sets for itself, that a note system must answer "what is attached to this thing" rather than merely listing documents. Squire's Notes is a note, a canvas pin, and a tag assignment as one object; building the document and leaving the relationships as attributes is what produced a fancy journal.
-
-  The data layer above survives because it was built from the data model, which was read correctly. The design that replaces the UI is in `documentation/plans/plan-notes.md`, written against the author's own requirements, with the system it replaces inventoried in `plan-notes-inventory.md`. **Squire is not yet unblocked on Notes** -- it still owns the only working implementation.
-
 
 ## [13.16.1]
 

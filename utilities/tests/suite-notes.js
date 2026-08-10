@@ -389,6 +389,83 @@ export default {
             }
         },
 
+        {
+            id: 'ownership-shape',
+            label: 'Note ownership is the flat document shape',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'Documents use { default, userId: level }; Blacksmith pins use ' +
+                  '{ default, users: { userId: level } }. They look interchangeable and are not -- passing ' +
+                  'the pin shape to a page throws "is not a mapping of user IDs and document permission ' +
+                  'levels", and it only surfaces at save.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — skipping.');
+                    return;
+                }
+
+                const note = await api.notes.createNote({ title: `ZZ Own ${foundry.utils.randomID(6)}` });
+                if (!expect.ok('note created — a nested ownership map would have thrown here', !!note)) return;
+
+                try {
+                    expect.ok('no users key: the map is flat', note.ownership.users === undefined);
+                    expect('default is a level', typeof note.ownership.default, 'number');
+                    expect('the author owns it at the top level',
+                        note.ownership[game.user.id], CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER);
+                } finally {
+                    await api.notes.deleteNote(note);
+                }
+            }
+        },
+        {
+            id: 'shared-with-named-people',
+            label: 'Sharing with named people grants exactly them',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'The third visibility shape. Additive to the author -- sharing is not giving away.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote', 'notes.updateNote');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — skipping.');
+                    return;
+                }
+                const players = game.users.filter(u => !u.isGM);
+                if (!expect.ok('at least one non-GM user exists', players.length > 0)) return;
+
+                const target = players[0];
+                const note = await api.notes.createNote({
+                    title: `ZZ Share ${foundry.utils.randomID(6)}`,
+                    sharedWith: [target.id]
+                });
+                if (!expect.ok('note created', !!note)) return;
+
+                try {
+                    expect('the named person owns it', note.ownership[target.id], CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER);
+                    expect.ok('the author still owns it — sharing is not giving away',
+                        note.ownership[game.user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER);
+                    expect('default is still NONE', note.ownership.default, CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE);
+
+                    const others = players.filter(u => u.id !== target.id);
+                    if (others.length) {
+                        expect.ok('nobody else was granted',
+                            others.every(u => note.ownership[u.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER));
+                    } else {
+                        log('Only one non-GM user — could not check that others are excluded.');
+                    }
+
+                    // Stored as private plus an ownership map, not a third flag value.
+                    expect('visibility flag stays private', note.getFlag('coffee-pub-blacksmith', 'visibility'), 'private');
+
+                    await api.notes.updateNote(note, { visibility: 'private', sharedWith: [] });
+                    expect.ok('unsharing revokes them',
+                        note.ownership[target.id] !== CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER);
+                } finally {
+                    await api.notes.deleteNote(note);
+                }
+            }
+        },
+
         // ---------- the collaborative editing spike ----------
         //
         // The Notes design (documentation/plans/plan-notes.md, decision 1) rests

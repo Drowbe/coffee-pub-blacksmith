@@ -1,9 +1,9 @@
 # Plan: Notes
 
-**Status: designed, partly built, and part of what is built is wrong.** The annotation layer (phase 1) and
-the Related Notes section (phase 2) are shipped and verified. The note CRUD, list, and editor shipped on
-2026-08-09 were built without reading Squire's `documents/architecture-notes.md` and are a list of journal
-pages with tags -- they fail the gate below by its own terms. This plan replaces that design.
+**Status: built to this design, awaiting live verification.** The annotation layer and the Related Notes
+section are verified. The note CRUD, list, editor, and placement were rebuilt on 2026-08-10 against the
+requirements below, after a first attempt written without reading Squire's own
+`documents/architecture-notes.md` produced a list of journal pages with tags and was deleted.
 
 What exists today, in Squire, is inventoried separately in `plan-notes-inventory.md`. Read that first if you
 want to know what is being replaced.
@@ -127,6 +127,19 @@ Squire needed a `_cleanupMissingPins` sweep because it could not guarantee that;
 return the notes pinned to it, and it is the answer to the gate for the canvas. The pin id lives in the
 anchor, exactly as `api-notes.md` already specifies.
 
+**The note's pin is created lazily and may be unplaced.** Pins already models this: `create()` without
+`sceneId`/`x`/`y` makes an unplaced pin, and `architecture-pins.md` says that store exists "for notes,
+quests, etc." So a note gets a pin the first time it needs one -- an icon is chosen, or it is placed -- and
+not before.
+
+The consequence is the one that matters: **the pin owns the icon, and the note stores only `pinId`.** There
+is one source of truth rather than two kept in step, which is what makes "the pin just uses the icon I chose"
+true by construction instead of by synchronisation. Unpinning is `unplace()`, so the pin and its design
+survive and re-pinning restores them. It also means the pin config window always has a real pin to configure.
+
+The author's own history supports this shape: the pin configuration experience originated as Squire's note
+icon picker. Reusing it for a note's icon returns it to where it came from.
+
 ### 4. Tags are the relationship mechanism
 
 Already built, already shared with Pins. "All the bob notes" is a tag filter. No note-to-note linking
@@ -149,7 +162,18 @@ is "if we can make it easy to get to notes, simple is better."
 
 Both open the same editor. Quick note is the one that has to feel weightless.
 
-### 7. "Not like I opened Word"
+### 7. Both windows are tool windows, on one theme
+
+The list and the editor are the same feature and must not look like two products. Both extend
+`BlacksmithToolWindowBaseV2`, and both override `toolThemePreferenceKey` and `toolTitlebarPreferenceKey` to
+a shared `blacksmith-notes-*` key -- those default to the window's own position key, which would let one be
+light while the other is dark. The user switches the theme once and Notes follows.
+
+The tool base is also the lighter shape, which is the "not like Word" requirement expressed in chrome rather
+than in features. Loot, Health, and Recorded Maps show the base carries substantial content -- item lists,
+footer actions, scrolling sections -- so nothing about the editor's size argued for the full window.
+
+### 8. "Not like I opened Word"
 
 The one requirement with no obvious mechanism, so it is stated as a constraint on the UI rather than a
 feature: **title and body are visible; icon, pin, and sharing are reached for.** A note you never share and

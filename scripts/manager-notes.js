@@ -56,10 +56,18 @@ export const NOTE_TAG_CONTEXT = `${MODULE.ID}.note`;
 /**
  * Who can read a note.
  *
- * Two values only. `private` is the author plus GMs; `party` is every player.
- * Both are expressed as real Foundry ownership rather than a flag Blacksmith
- * checks, so permission holds even where Blacksmith is not the one asking --
- * a compendium export, a direct journal browse, another module's sheet.
+ * Two STORED values, but three shapes. `private` is the author plus GMs;
+ * `party` is every player. The third -- shared with named people -- is
+ * `private` plus a `sharedWith` list, because it is still "not everyone" and
+ * storing a third flag value would mean two places to look for the same fact.
+ * Ownership is the truth in every case; the flag only records intent.
+ *
+ * Expressed as real Foundry ownership rather than a flag Blacksmith checks, so
+ * permission holds where Blacksmith is not the one asking -- a compendium
+ * export, a direct journal browse, another module's sheet.
+ *
+ * This is also why there is no give-to feature: handing somebody a note is
+ * sharing it with them and removing yourself.
  */
 export const NOTE_VISIBILITY = Object.freeze({
     PRIVATE: 'private',
@@ -233,20 +241,56 @@ export class NotesManager {
      * a player should not see is one they cannot load, which is the only version
      * of privacy worth having.
      */
-    static buildNoteOwnership(visibility, authorId) {
-        const users = {};
+    static buildNoteOwnership(visibility, authorId, sharedWith = []) {
+        // FLAT: `{ default, [userId]: level }`. This is Foundry's document ownership
+        // shape (`DocumentOwnershipField`), and it is NOT the shape Blacksmith pins
+        // use -- pins take `{ default, users: { [userId]: level } }`. The two look
+        // interchangeable and are not; passing the pin shape to a document fails
+        // validation with "is not a mapping of user IDs and document permission
+        // levels". Use toPinOwnership() to convert.
+        const ownership = { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE };
+
         if (visibility === NOTE_VISIBILITY.PARTY) {
             for (const user of game.users) {
-                if (!user.isGM) users[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+                if (!user.isGM) ownership[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
             }
         }
-        if (authorId) users[authorId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+        // Named people, the third shape. Additive to the author rather than instead
+        // of them: sharing a note is not giving it away. Handing it over is done by
+        // sharing and then removing yourself, which is why there is no separate
+        // give-to feature.
+        for (const userId of sharedWith) {
+            if (userId) ownership[userId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+        }
+        if (authorId) ownership[authorId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
         // GMs always own. Without this a GM could write a private note and then be
         // unable to open it, which has happened in every system that forgot it.
         for (const user of game.users) {
-            if (user.isGM) users[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+            if (user.isGM) ownership[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
         }
-        return { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE, users };
+        return ownership;
+    }
+
+    /**
+     * Convert document ownership to the shape Blacksmith pins expect.
+     *
+     * Documents use a flat map; pins nest the users under a `users` key. Keeping
+     * the conversion in one named place means the difference is stated once rather
+     * than remembered at four call sites.
+     *
+     * @param {object} ownership flat document ownership
+     * @returns {{ default: number, users: Record<string, number> }}
+     */
+    static toPinOwnership(ownership = {}) {
+        const users = {};
+        for (const [key, level] of Object.entries(ownership)) {
+            if (key === 'default') continue;
+            users[key] = level;
+        }
+        return {
+            default: ownership.default ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
+            users
+        };
     }
 
     /**
@@ -259,7 +303,7 @@ export class NotesManager {
      * @param {string[]} [data.tags] stored in Blacksmith's Tags registry, not on the page
      * @returns {Promise<JournalEntryPage|null>} null when refused
      */
-    static async createNote({ title = '', content = '', visibility = NOTE_VISIBILITY.PRIVATE, tags = [] } = {}) {
+    static async createNote({ title = '', content = '', visibility = NOTE_VISIBILITY.PRIVATE, tags = [], sharedWith = [] } = {}) {
         const journal = this.getNotesJournal();
         if (!journal) {
             ui.notifications.error('No notes journal is selected. A GM sets one in Blacksmith settings.');
@@ -279,7 +323,7 @@ export class NotesManager {
                 name: title?.trim() || 'Untitled Note',
                 type: 'text',
                 text: { content: content || '' },
-                ownership: this.buildNoteOwnership(resolvedVisibility, game.user.id),
+                ownership: this.buildNoteOwnership(resolvedVisibility, game.user.id, sharedWith),
                 flags: {
                     [MODULE.ID]: {
                         [NOTE_TYPE_FLAG]: NOTE_TYPE,
@@ -311,7 +355,7 @@ export class NotesManager {
      * Changing visibility rewrites ownership, which is the operation that actually
      * makes a note private or shared -- the flag is only a record of intent.
      */
-    static async updateNote(note, { title = null, content = null, visibility = null } = {}) {
+    static async updateNote(note, { title = null, content = null, visibility = null, sharedWith = null } = {}) {
         const page = typeof note === 'string' ? fromUuidSync(note) : note;
         if (!page) return false;
         if (!page.isOwner) {
@@ -329,18 +373,46 @@ export class NotesManager {
                 : NOTE_VISIBILITY.PRIVATE;
             update[`flags.${MODULE.ID}.visibility`] = resolved;
             const authorId = page.getFlag(MODULE.ID, 'authorId') ?? game.user.id;
-            update.ownership = this.buildNoteOwnership(resolved, authorId);
+            update.ownership = this.buildNoteOwnership(resolved, authorId, sharedWith ?? []);
         }
 
         if (!Object.keys(update).length) return false;
 
         try {
             await page.update(update);
+            // A shared note's pin has to be visible to exactly the people the note
+            // is. Blacksmith owns both sides, so this is a direct write rather than
+            // Squire's resolveOwnership hook plus a reconciliation pass.
+            if (update.ownership) await this._syncPinOwnership(page, update.ownership);
             Hooks.callAll('blacksmith.notes.updated', { noteUuid: page.uuid });
             return true;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Notes: could not update the note', error?.message ?? error, false, false);
             return false;
+        }
+    }
+
+    /**
+     * Mirror a note's ownership onto its pin.
+     *
+     * Hiding a marker from someone is done with pin OWNERSHIP, not with
+     * `blacksmithVisibility` -- that only ghosts it for the GM. So the pin carries
+     * the same users map as the page, and a note shared with Bob shows Bob a pin
+     * while showing nobody else one.
+     *
+     * Lazily imported: a note that never gets pinned should not pull Pins in.
+     */
+    static async _syncPinOwnership(page, ownership) {
+        const pinId = page.getFlag(MODULE.ID, 'pinId');
+        if (!pinId) return;
+        try {
+            const { PinsAPI } = await import('./api-pins.js');
+            // Converted: the page's flat map is not the pin's nested one.
+            await PinsAPI.update(pinId, { ownership: this.toPinOwnership(ownership) });
+        } catch (error) {
+            // Not fatal: the note's own permission is already correct, and a pin
+            // whose ownership lags is a visibility bug rather than a data loss.
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not sync pin ownership', error?.message ?? error, false, false);
         }
     }
 
@@ -357,6 +429,20 @@ export class NotesManager {
             // Drop the tag assignments first: the record id is the page id, and once
             // the page is gone there is nothing left to say which entry was its.
             await this.setNoteTags(page, []);
+
+            // And the pin, for the same reason. Squire needed a periodic sweep for
+            // pins whose note had gone because it could not guarantee this ran;
+            // owning both sides, the sweep is unnecessary.
+            const pinId = page.getFlag(MODULE.ID, 'pinId');
+            if (pinId) {
+                try {
+                    const { PinsAPI } = await import('./api-pins.js');
+                    await PinsAPI.delete(pinId);
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, 'Notes: could not delete the note pin', error?.message ?? error, false, false);
+                }
+            }
+
             await page.delete();
             Hooks.callAll('blacksmith.notes.deleted', { noteUuid: uuid });
             return true;

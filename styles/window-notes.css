@@ -1,0 +1,303 @@
+/* ==================================================================
+   NOTES — editor and list
+   ================================================================== */
+
+/* ---- editor -------------------------------------------------- */
+
+/* The body is a column so the editor can take the leftover height rather
+   than a fixed one -- a note is as tall as the window the user dragged. */
+.blacksmith-note-editor .blacksmith-window-tool-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 8px;
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-note-editor-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.blacksmith-note-title {
+    flex: 1 1 auto;
+    border: 1px solid var(--blacksmith-tool-field-border);
+    background: var(--blacksmith-tool-field-background);
+    color: var(--blacksmith-tool-text);
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.blacksmith-note-title:focus,
+.blacksmith-note-title:focus-visible {
+    border-color: var(--blacksmith-tool-field-focus-border);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--blacksmith-tool-field-focus-ring);
+}
+
+.blacksmith-note-icon-btn {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border: 1px solid var(--blacksmith-tool-divider);
+    border-radius: 4px;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.blacksmith-note-icon-btn:hover {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+.blacksmith-note-editor-host {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* Without an explicit height the editor collapses to nothing and reads as
+   "the toolbar renders but I cannot type". See window-note-editor.js. */
+.blacksmith-note-editor-host prose-mirror {
+    flex: 1 1 auto;
+    min-height: 240px;
+}
+
+.blacksmith-note-editor-host .editor-content,
+.blacksmith-note-editor-host .ProseMirror {
+    min-height: 200px;
+}
+
+.blacksmith-note-editor-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.blacksmith-note-editor-strip > label {
+    display: flex;
+    flex: 1 1 200px;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.blacksmith-note-editor-strip > label > span {
+    font-size: 0.8em;
+    font-weight: 700;
+    opacity: 0.7;
+}
+
+.blacksmith-note-editor-strip input,
+.blacksmith-note-editor-strip select {
+    border: 1px solid var(--blacksmith-tool-field-border);
+    background: var(--blacksmith-tool-field-background);
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-note-tag-suggestions button {
+    border: 1px solid var(--blacksmith-tool-divider);
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-note-shared {
+    flex: 1 1 100%;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.blacksmith-note-shared.hidden {
+    display: none;
+}
+
+.blacksmith-note-tag-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.blacksmith-note-tag-suggestions button {
+    padding: 0 6px;
+    border-radius: 9px;
+    font-size: 0.75em;
+    line-height: 1.7;
+    cursor: pointer;
+    opacity: 0.75;
+}
+
+.blacksmith-note-tag-suggestions button:hover {
+    opacity: 1;
+}
+
+.blacksmith-note-meta {
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+/* ---- list ---------------------------------------------------- */
+
+.blacksmith-notes-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--blacksmith-tool-divider);
+}
+
+.blacksmith-notes-search i {
+    opacity: 0.5;
+}
+
+.blacksmith-notes-search input {
+    flex: 1 1 auto;
+    border: 0;
+    background: transparent;
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-notes-search input:focus,
+.blacksmith-notes-search input:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.blacksmith-notes-search button {
+    border: 0;
+    background: transparent;
+    color: var(--blacksmith-tool-text-muted);
+    cursor: pointer;
+}
+
+.blacksmith-notes-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--blacksmith-tool-divider);
+}
+
+.blacksmith-notes-chip {
+    display: flex;
+    gap: 4px;
+    padding: 1px 8px;
+    border: 1px solid var(--blacksmith-tool-divider);
+    border-radius: 10px;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+    font-size: 0.78em;
+    line-height: 1.7;
+    cursor: pointer;
+}
+
+.blacksmith-notes-chip:hover {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+.blacksmith-notes-chip.active {
+    background: var(--blacksmith-tool-surface-selected);
+    border-color: var(--blacksmith-tool-field-focus-border);
+}
+
+.blacksmith-notes-chip span {
+    opacity: 0.55;
+}
+
+.blacksmith-notes-list {
+    margin: 0;
+    padding: 2px;
+    list-style: none;
+    overflow-y: auto;
+}
+
+.blacksmith-note-row {
+    position: relative;
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--blacksmith-tool-divider);
+    cursor: pointer;
+}
+
+.blacksmith-note-row:last-child {
+    border-bottom: 0;
+}
+
+.blacksmith-note-row:hover {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+.blacksmith-note-row-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.blacksmith-note-row-name {
+    font-weight: 600;
+}
+
+.blacksmith-note-row-flags {
+    display: flex;
+    gap: 6px;
+    font-size: 0.85em;
+    opacity: 0.55;
+}
+
+.blacksmith-note-row-flags .placed {
+    color: var(--blacksmith-tool-accent);
+    opacity: 1;
+}
+
+/* Actions appear on hover: a permanent row of buttons reads as a toolbar,
+   and the names are what the reader is scanning. */
+.blacksmith-note-row-actions {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    display: flex;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 100ms ease;
+}
+
+.blacksmith-note-row:hover .blacksmith-note-row-actions {
+    opacity: 1;
+}
+
+.blacksmith-note-row-actions button {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--blacksmith-tool-divider);
+    border-radius: 3px;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+    cursor: pointer;
+}
+
+.blacksmith-note-row-actions button:hover {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+.blacksmith-notes-empty {
+    padding: 20px 14px;
+    text-align: center;
+    color: var(--blacksmith-tool-text-muted);
+}
+
+.blacksmith-notes-empty-hint {
+    font-size: 0.85em;
+    opacity: 0.8;
+}
+
+/* Placement cursor, set on <body> while the map is waiting for a click. */
+body.blacksmith-note-placing,
+body.blacksmith-note-placing canvas {
+    cursor: crosshair !important;
+}

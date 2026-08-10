@@ -113,3 +113,6 @@
 
 /* --- Status Effects Window ---------------------- */
 @import "window-status-effects.css";
+
+/* --- Notes (list + editor) ---------------------- */
+@import "window-notes.css";

@@ -172,8 +172,32 @@ with no way to find them again.
 
 `blacksmith.notes.created`, `blacksmith.notes.updated`, `blacksmith.notes.deleted`, each with `{ noteUuid }`.
 
-### No UI yet
+### Windows
 
-There is no notes list or editor window. The API above is complete and usable; the surfaces that consume it
-are being designed rather than ported, because the first attempt reproduced a journal listing. Until they
-exist, notes are created and edited through this API.
+| Id | What |
+|---|---|
+| `blacksmith-notes` | the list: search, tag chips, privacy and pin indicators, pin actions |
+| `blacksmith-note-editor` | one note; pass `{ note }` to edit, omit to create |
+
+Two menubar tools open them: **Notes** for the list (right-click for New Note) and **Quick note**, which goes
+straight to a blank editor.
+
+### Sharing with named people
+
+`createNote` and `updateNote` accept `sharedWith`, an array of user ids. It is additive to the author, so
+sharing a note is not giving it away -- handing somebody a note is sharing it with them and removing
+yourself, which is why there is no separate give-to call.
+
+Only two values are ever stored in the `visibility` flag. "Shared with named people" is `private` plus a
+non-empty ownership map, because it is still "not everyone" and a third flag value would mean two places to
+look for one fact. Read the shape from ownership, never from the flag.
+
+### Pins
+
+A note gets a pin lazily -- the first time an icon is chosen or it is placed -- and that pin may be
+unplaced, which Pins already models. **The pin owns the icon**, so "the pin uses the icon I chose" is true by
+construction rather than by keeping two copies in step. The note stores only `pinId`.
+
+Changing a note's visibility rewrites its pin's ownership to match, because hiding a marker from someone is
+done with pin ownership rather than `blacksmithVisibility`. Deleting a note deletes its pin. Unpinning uses
+`unplace`, so the icon and design survive and re-pinning restores them.
