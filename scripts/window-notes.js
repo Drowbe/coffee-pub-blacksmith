@@ -12,7 +12,7 @@
 // answered questions nobody asked. Privacy is shown on each row because
 // seeing it and filtering by it are different things.
 //
-// Sort is newest first and is not a control.
+// Sort is favourites first, then newest, and is not a control.
 //
 // ==================================================================
 
@@ -22,7 +22,7 @@ import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { HookManager } from './manager-hooks.js';
 import { registerWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
-import { NotesManager, NOTE_VISIBILITY } from './manager-notes.js';
+import { NotesManager, NOTE_VISIBILITY, noteIconHtml } from './manager-notes.js';
 import { NotePlacementManager } from './manager-note-placement.js';
 import { PinsAPI } from './api-pins.js';
 import { openNoteEditor } from './window-note-editor.js';
@@ -100,6 +100,28 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                 }
             });
         }
+
+        // Those hooks above are callAll on the client that made the change, so they
+        // never reach anybody else. The Foundry document hooks DO propagate, which is
+        // what makes "someone shared a note with me" appear without a reopen --
+        // gaining ownership arrives as a create or an update depending on whether the
+        // client already held the page. Filtered to this journal because they fire
+        // for every page in the world and a redraw per unrelated page is waste.
+        for (const name of ['createJournalEntryPage', 'updateJournalEntryPage', 'deleteJournalEntryPage']) {
+            HookManager.registerHook({
+                name,
+                description: 'Notes list: redraw when a note changes on another client',
+                priority: 4,
+                context: this._hookContext,
+                callback: (page) => {
+                    // --- BEGIN - HOOKMANAGER CALLBACK ---
+                    const journal = NotesManager.getNotesJournal();
+                    if (journal && page?.parent?.id !== journal.id) return;
+                    void this.render(false);
+                    // --- END - HOOKMANAGER CALLBACK ---
+                }
+            });
+        }
     }
 
     getToolHeaderActions() {
@@ -135,6 +157,11 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                 return `${note.name} ${toText(note.text?.content)}`.toLowerCase().includes(search);
             })
             .sort((a, b) => {
+                // Favourites first: they are the notes you came here for, and a
+                // favourite that scrolled off with age would defeat the point.
+                const af = NotesManager.isFavorite(a) ? 0 : 1;
+                const bf = NotesManager.isFavorite(b) ? 0 : 1;
+                if (af !== bf) return af - bf;
                 const at = a.getFlag(MODULE.ID, 'timestamp') ?? '';
                 const bt = b.getFlag(MODULE.ID, 'timestamp') ?? '';
                 return String(bt).localeCompare(String(at));
@@ -190,11 +217,20 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
 
             const preview = toText(note.text?.content).slice(0, 140);
 
+            const fav = NotesManager.isFavorite(note);
+
             return `
                 <li class="blacksmith-note-row" data-uuid="${note.uuid}" data-tooltip="${foundry.utils.escapeHTML(preview)}">
+                    <button type="button" class="blacksmith-note-row-icon" data-note-action="icon"
+                            title="Change this note’s icon">${noteIconHtml(pin?.image)}</button>
                     <div class="blacksmith-note-row-top">
                         <span class="blacksmith-note-row-name">${foundry.utils.escapeHTML(note.name)}</span>
                         <span class="blacksmith-note-row-flags">
+                            <button type="button" class="blacksmith-note-row-fav${fav ? ' on' : ''}"
+                                    data-note-action="favorite"
+                                    title="${fav ? 'Remove from favourites' : 'Add to favourites'}">
+                                <i class="${fav ? 'fa-solid' : 'fa-regular'} fa-star"></i>
+                            </button>
                             ${privacy}
                         </span>
                     </div>
@@ -270,6 +306,11 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                 ?.addEventListener('click', (ev) => { ev.stopPropagation(); handler(); });
 
             act('edit', () => void openNoteEditor({ note: uuid }));
+            act('favorite', async () => {
+                await NotesManager.toggleFavorite(uuid);
+                void this.render(false);
+            });
+            act('icon', () => void openNoteEditor({ note: uuid }));
             act('delete', () => void this._confirmDelete(uuid));
             act('pan', () => {
                 const pinId = fromUuidSync(uuid)?.getFlag(MODULE.ID, 'pinId');

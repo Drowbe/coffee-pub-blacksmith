@@ -390,6 +390,41 @@ export default {
         },
 
         {
+            id: 'favorites-are-per-user',
+            label: 'Favourites live on the user, not the note',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'Two people sharing a note will not favourite the same things. Stored on the note, ' +
+                  'one player starring it would star it for everyone.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — skipping.');
+                    return;
+                }
+                const { NotesManager } = await import('../../scripts/manager-notes.js');
+                const note = await api.notes.createNote({ title: `ZZ Fav ${foundry.utils.randomID(6)}` });
+                if (!expect.ok('note created', !!note)) return;
+
+                try {
+                    expect('starts unfavourited', NotesManager.isFavorite(note), false);
+                    expect('toggles on', await NotesManager.toggleFavorite(note), true);
+                    expect('reads back as favourite', NotesManager.isFavorite(note), true);
+
+                    // The note document must be untouched -- that is the whole point.
+                    expect.ok('nothing written to the note',
+                        note.flags?.[MODULE_ID]?.favorite === undefined);
+                    expect.ok('recorded on the user',
+                        (game.user.getFlag(MODULE_ID, 'favoriteNotes') ?? []).includes(note.uuid));
+
+                    expect('toggles off', await NotesManager.toggleFavorite(note), false);
+                } finally {
+                    await api.notes.deleteNote(note);
+                }
+            }
+        },
+
+        {
             id: 'ownership-keys-are-users',
             label: 'Ownership keys are real user ids, whatever the caller passes',
             tier: 'headless',

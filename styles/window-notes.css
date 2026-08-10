@@ -41,36 +41,78 @@
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 9px;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
     border: 1px solid var(--blacksmith-tool-divider);
     border-radius: 4px;
     background: var(--blacksmith-tool-surface-raised);
     color: var(--blacksmith-tool-text);
-    white-space: nowrap;
     cursor: pointer;
+    overflow: hidden;
+}
+
+.blacksmith-note-icon-btn img,
+.blacksmith-note-row-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.blacksmith-note-fav {
+    flex: 0 0 auto;
+    border: none;
+    background: none;
+    color: var(--blacksmith-tool-text);
+    opacity: 0.55;
+    cursor: pointer;
+}
+
+.blacksmith-note-fav:hover {
+    opacity: 1;
+}
+
+.blacksmith-note-fav .fa-solid.fa-star {
+    color: var(--blacksmith-tool-accent);
+    opacity: 1;
 }
 
 .blacksmith-note-icon-btn:hover {
     background: var(--blacksmith-tool-surface-hover);
 }
 
+/* The floor lives HERE, on the flex child, not on prose-mirror. A min-height on
+   the editor itself cannot shrink, so tall content (an image at natural size)
+   pushed straight through the strip below and overlapped "Who can see this".
+   overflow:hidden makes the editor scroll inside its own box instead. */
 .blacksmith-note-editor-host {
     display: flex;
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 180px;
+    overflow: hidden;
 }
 
-/* Without an explicit height the editor collapses to nothing and reads as
-   "the toolbar renders but I cannot type". See window-note-editor.js. */
 .blacksmith-note-editor-host prose-mirror {
+    display: flex;
+    flex-direction: column;
     flex: 1 1 auto;
-    min-height: 240px;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .blacksmith-note-editor-host .editor-content,
 .blacksmith-note-editor-host .ProseMirror {
-    min-height: 200px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* A pasted image is routinely wider than the window. */
+.blacksmith-note-editor-host .ProseMirror img {
+    max-width: 100%;
+    height: auto;
 }
 
 .blacksmith-note-editor-strip {
@@ -106,14 +148,101 @@
     color: var(--blacksmith-tool-text);
 }
 
-.blacksmith-note-shared {
+/* One row: Everyone, then the people. The old shape hid the picker unless a
+   dropdown said "just these people", which is why a private note and a shared
+   note laid out differently -- the strip changed height with the mode. */
+.blacksmith-note-vis {
+    display: flex;
     flex: 1 1 100%;
-    max-height: 160px;
-    overflow-y: auto;
+    flex-direction: column;
+    gap: 3px;
 }
 
-.blacksmith-note-shared.hidden {
-    display: none;
+.blacksmith-note-strip-label {
+    font-size: 0.8em;
+    font-weight: 700;
+    opacity: 0.7;
+}
+
+.blacksmith-note-vis-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.blacksmith-note-everyone {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border: 1px solid var(--blacksmith-tool-divider);
+    border-radius: 4px;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.blacksmith-note-everyone.selected {
+    border-color: var(--blacksmith-tool-accent);
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+/* Horizontal strip of avatars rather than a stacked list. */
+.blacksmith-note-shared {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Everyone already covers all of them, so the individual picks read as inactive
+   rather than vanishing -- the row keeps its height and nothing jumps. */
+.blacksmith-note-shared.dimmed {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.blacksmith-note-tag-suggestions button.selected {
+    border-color: var(--blacksmith-tool-accent);
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+/* ---- list rows ------------------------------------------------ */
+
+.blacksmith-note-row-icon {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--blacksmith-tool-divider);
+    border-radius: 4px;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.blacksmith-note-row-fav {
+    border: none;
+    background: none;
+    color: var(--blacksmith-tool-text);
+    opacity: 0.4;
+    cursor: pointer;
+}
+
+.blacksmith-note-row-fav:hover,
+.blacksmith-note-row-fav.on {
+    opacity: 1;
+}
+
+.blacksmith-note-row-fav.on {
+    color: var(--blacksmith-tool-accent);
 }
 
 .blacksmith-note-tag-suggestions {
@@ -216,8 +345,13 @@
     overflow-y: auto;
 }
 
+/* The row leads with its icon, so it is a flex row and the text column takes
+   the rest. The actions stay absolutely positioned over the right-hand side. */
 .blacksmith-note-row {
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 7px 8px;
     border-bottom: 1px solid var(--blacksmith-tool-divider);
     cursor: pointer;
@@ -233,9 +367,17 @@
 
 .blacksmith-note-row-top {
     display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+}
+
+.blacksmith-note-row-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .blacksmith-note-row-name {
@@ -295,4 +437,67 @@
 body.blacksmith-note-placing,
 body.blacksmith-note-placing canvas {
     cursor: crosshair !important;
+}
+
+/* ---- the shared-with avatar strip ------------------------------ */
+
+/* The entity list defaults to a stacked list with names. Here it is one row of
+   faces: the name is redundant next to a portrait the author already knows, and
+   the stacked form is what made the strip change height between modes. */
+.blacksmith-note-user-strip {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    align-items: center;
+}
+
+.blacksmith-note-user {
+    position: relative;
+    flex: 0 0 auto;
+    display: block;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 0;
+}
+
+/* The checkbox still carries the state and stays reachable by keyboard; the
+   visible selection is the border on the avatar. */
+.blacksmith-note-user input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+}
+
+.blacksmith-note-user .blacksmith-entity-body,
+.blacksmith-note-user .blacksmith-entity-badges {
+    display: none;
+}
+
+.blacksmith-note-user .blacksmith-entity-img {
+    width: 34px;
+    height: 34px;
+    object-fit: cover;
+    border-radius: 3px;
+    display: block;
+    opacity: 0.45;
+    transition: opacity 100ms ease;
+}
+
+.blacksmith-note-user:hover .blacksmith-entity-img {
+    opacity: 0.8;
+}
+
+.blacksmith-note-user:has(input:checked) {
+    border-color: var(--blacksmith-tool-accent);
+}
+
+.blacksmith-note-user:has(input:checked) .blacksmith-entity-img {
+    opacity: 1;
+}
+
+.blacksmith-note-user:has(input:focus-visible) {
+    outline: 2px solid var(--blacksmith-tool-field-focus-border);
 }

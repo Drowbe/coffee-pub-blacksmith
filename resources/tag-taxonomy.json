@@ -1,111 +1,307 @@
 {
   "version": 1,
-  "globalFlags": ["todo", "revisit", "avoid", "complete"],
+  "globalFlags": [
+    "todo",
+    "revisit",
+    "avoid",
+    "complete"
+  ],
   "contexts": {
     "coffee-pub-blacksmith.journal-pin": {
       "label": "Journal Page",
       "flags": [
-        { "key": "narrative" },
-        { "key": "backstory" },
-        { "key": "encounter" },
-        { "key": "travel" },
-        { "key": "location" },
-        { "key": "tavern" },
-        { "key": "shop" },
-        { "key": "character" },
-        { "key": "quest" },
-        { "key": "rumor" },
-        { "key": "information" }
+        {
+          "key": "narrative"
+        },
+        {
+          "key": "backstory"
+        },
+        {
+          "key": "encounter"
+        },
+        {
+          "key": "travel"
+        },
+        {
+          "key": "location"
+        },
+        {
+          "key": "tavern"
+        },
+        {
+          "key": "shop"
+        },
+        {
+          "key": "character"
+        },
+        {
+          "key": "quest"
+        },
+        {
+          "key": "rumor"
+        },
+        {
+          "key": "information"
+        }
+      ]
+    },
+    "coffee-pub-blacksmith.note": {
+      "label": "Note",
+      "tags": [
+        "npc",
+        "location",
+        "shop",
+        "faction",
+        "clue",
+        "quest",
+        "item",
+        "rumor",
+        "travel",
+        "session"
       ]
     },
     "coffee-pub-squire.note": {
       "label": "Note",
       "flags": [
-        { "key": "party", "protected": true },
-        { "key": "personal", "protected": true },
-        { "key": "location", "protected": true },
-        { "key": "backstory", "protected": true },
-        { "key": "sticky" }
+        {
+          "key": "party",
+          "protected": true
+        },
+        {
+          "key": "personal",
+          "protected": true
+        },
+        {
+          "key": "location",
+          "protected": true
+        },
+        {
+          "key": "backstory",
+          "protected": true
+        },
+        {
+          "key": "sticky"
+        }
       ]
     },
     "coffee-pub-squire.codex": {
       "label": "Codex",
       "flags": [
-        { "key": "artifact" },
-        { "key": "book" },
-        { "key": "character" },
-        { "key": "event" },
-        { "key": "faction" },
-        { "key": "location" },
-        { "key": "item" },
-        { "key": "map" }
+        {
+          "key": "artifact"
+        },
+        {
+          "key": "book"
+        },
+        {
+          "key": "character"
+        },
+        {
+          "key": "event"
+        },
+        {
+          "key": "faction"
+        },
+        {
+          "key": "location"
+        },
+        {
+          "key": "item"
+        },
+        {
+          "key": "map"
+        }
       ]
     },
     "coffee-pub-squire.quest": {
       "label": "Quest",
       "flags": [
-        { "key": "quest", "protected": true },
-        { "key": "main", "protected": true },
-        { "key": "side", "protected": true },
-        { "key": "backstory", "protected": true },
-        { "key": "faction" }
+        {
+          "key": "quest",
+          "protected": true
+        },
+        {
+          "key": "main",
+          "protected": true
+        },
+        {
+          "key": "side",
+          "protected": true
+        },
+        {
+          "key": "backstory",
+          "protected": true
+        },
+        {
+          "key": "faction"
+        }
       ]
     },
     "coffee-pub-squire.objective": {
       "label": "Objective",
       "flags": [
-        { "key": "objective", "protected": true },
-        { "key": "main", "protected": true },
-        { "key": "side", "protected": true },
-        { "key": "backstory", "protected": true },
-        { "key": "faction" }
+        {
+          "key": "objective",
+          "protected": true
+        },
+        {
+          "key": "main",
+          "protected": true
+        },
+        {
+          "key": "side",
+          "protected": true
+        },
+        {
+          "key": "backstory",
+          "protected": true
+        },
+        {
+          "key": "faction"
+        }
       ]
     },
     "coffee-pub-artificer.habitat-location": {
       "label": "Habitat Location",
       "flags": [
-        { "key": "mountain", "protected": true },
-        { "key": "arctic", "protected": true },
-        { "key": "planar", "protected": true },
-        { "key": "coastal", "protected": true },
-        { "key": "swamp", "protected": true },
-        { "key": "desert", "protected": true },
-        { "key": "underdark", "protected": true },
-        { "key": "forest", "protected": true },
-        { "key": "underwater", "protected": true },
-        { "key": "grassland", "protected": true },
-        { "key": "urban", "protected": true },
-        { "key": "hill", "protected": true }
+        {
+          "key": "mountain",
+          "protected": true
+        },
+        {
+          "key": "arctic",
+          "protected": true
+        },
+        {
+          "key": "planar",
+          "protected": true
+        },
+        {
+          "key": "coastal",
+          "protected": true
+        },
+        {
+          "key": "swamp",
+          "protected": true
+        },
+        {
+          "key": "desert",
+          "protected": true
+        },
+        {
+          "key": "underdark",
+          "protected": true
+        },
+        {
+          "key": "forest",
+          "protected": true
+        },
+        {
+          "key": "underwater",
+          "protected": true
+        },
+        {
+          "key": "grassland",
+          "protected": true
+        },
+        {
+          "key": "urban",
+          "protected": true
+        },
+        {
+          "key": "hill",
+          "protected": true
+        }
       ]
     },
     "coffee-pub-artificer.component-location": {
       "label": "Component Location",
       "flags": [
-        { "key": "creature", "protected": true },
-        { "key": "environmental", "protected": true },
-        { "key": "essence", "protected": true },
-        { "key": "gem", "protected": true },
-        { "key": "mineral", "protected": true  },
-        { "key": "plant", "protected": true  }
+        {
+          "key": "creature",
+          "protected": true
+        },
+        {
+          "key": "environmental",
+          "protected": true
+        },
+        {
+          "key": "essence",
+          "protected": true
+        },
+        {
+          "key": "gem",
+          "protected": true
+        },
+        {
+          "key": "mineral",
+          "protected": true
+        },
+        {
+          "key": "plant",
+          "protected": true
+        }
       ]
     },
     "coffee-pub-artificer.skill-location": {
       "label": "Skill",
       "flags": [
-        { "key": "herbalism", "protected": true  },
-        { "key": "alchemy", "protected": true  },
-        { "key": "poisoncraft", "protected": true },
-        { "key": "cooking", "protected": true },
-        { "key": "healing", "protected": true },
-        { "key": "smithing", "protected": true },
-        { "key": "leatherworking", "protected": true },
-        { "key": "tinkering", "protected": true },
-        { "key": "cartography", "protected": true },
-        { "key": "inscription", "protected": true },
-        { "key": "enchanting", "protected": true },
-        { "key": "gemcraft", "protected": true },
-        { "key": "tailoring", "protected": true },
-        { "key": "masonry", "protected": true }
+        {
+          "key": "herbalism",
+          "protected": true
+        },
+        {
+          "key": "alchemy",
+          "protected": true
+        },
+        {
+          "key": "poisoncraft",
+          "protected": true
+        },
+        {
+          "key": "cooking",
+          "protected": true
+        },
+        {
+          "key": "healing",
+          "protected": true
+        },
+        {
+          "key": "smithing",
+          "protected": true
+        },
+        {
+          "key": "leatherworking",
+          "protected": true
+        },
+        {
+          "key": "tinkering",
+          "protected": true
+        },
+        {
+          "key": "cartography",
+          "protected": true
+        },
+        {
+          "key": "inscription",
+          "protected": true
+        },
+        {
+          "key": "enchanting",
+          "protected": true
+        },
+        {
+          "key": "gemcraft",
+          "protected": true
+        },
+        {
+          "key": "tailoring",
+          "protected": true
+        },
+        {
+          "key": "masonry",
+          "protected": true
+        }
       ]
     }
   }

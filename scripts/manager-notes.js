@@ -330,6 +330,41 @@ export class NotesManager {
         };
     }
 
+    // ==============================================================
+    // ===== FAVOURITES =============================================
+    // ==============================================================
+
+    /**
+     * Favourites are per USER, not per note.
+     *
+     * Two people looking at the same shared note will not favourite the same
+     * things, so this cannot live on the page -- one player starring a note would
+     * star it for everybody. A user flag is also writable by the player who owns
+     * it without a GM round trip, which a world setting would not be.
+     */
+    static getFavorites() {
+        const raw = game.user?.getFlag(MODULE.ID, 'favoriteNotes');
+        return Array.isArray(raw) ? raw : [];
+    }
+
+    static isFavorite(note) {
+        const uuid = typeof note === 'string' ? note : note?.uuid;
+        return !!uuid && this.getFavorites().includes(uuid);
+    }
+
+    /** @returns {Promise<boolean>} the new state */
+    static async toggleFavorite(note) {
+        const uuid = typeof note === 'string' ? note : note?.uuid;
+        if (!uuid) return false;
+        const current = this.getFavorites();
+        const next = current.includes(uuid)
+            ? current.filter((u) => u !== uuid)
+            : [...current, uuid];
+        await game.user.setFlag(MODULE.ID, 'favoriteNotes', next);
+        Hooks.callAll('blacksmith.notes.favoritesChanged', { noteUuid: uuid });
+        return next.includes(uuid);
+    }
+
     /**
      * Create a note.
      *
@@ -825,4 +860,32 @@ export class NotesManager {
         this._notifyTarget(targetUuid);
         return removed;
     }
+}
+
+
+/** The icon a note shows when it has no pin of its own. Matches the menubar tool. */
+export const NOTE_DEFAULT_ICON = 'fa-solid fa-note-sticky';
+
+/**
+ * Markup for a note's icon.
+ *
+ * A note's icon IS its pin's image -- one copy, not two -- and Pins stores that
+ * either as a normalised Font Awesome class list or as an image path
+ * (`normalizePinImageForStorage`, scripts/pins-schema.js). Both windows render it,
+ * so the discrimination lives here rather than being written twice.
+ *
+ * @param {string|null} image the pin's stored image, if any
+ * @returns {string} HTML
+ */
+export function noteIconHtml(image) {
+    const raw = (typeof image === 'string' ? image : '').trim();
+    const value = raw || NOTE_DEFAULT_ICON;
+    const isIcon = /^fa-/.test(value) || value.startsWith('<i');
+    if (isIcon) {
+        const classes = value.startsWith('<i')
+            ? (value.match(/class=["']([^"']+)["']/)?.[1] ?? NOTE_DEFAULT_ICON)
+            : value;
+        return `<i class="${foundry.utils.escapeHTML(classes)}"></i>`;
+    }
+    return `<img src="${foundry.utils.escapeHTML(value)}" alt="">`;
 }

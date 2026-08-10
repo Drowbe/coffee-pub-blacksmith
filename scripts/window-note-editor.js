@@ -35,16 +35,14 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
-import { NotesManager, NOTE_VISIBILITY, NOTE_TAG_CONTEXT } from './manager-notes.js';
+import { NotesManager, NOTE_VISIBILITY, NOTE_TAG_CONTEXT, noteIconHtml } from './manager-notes.js';
+import { HookManager } from './manager-hooks.js';
 import { PinsAPI } from './api-pins.js';
 import { TagsAPI } from './api-tags.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { PinConfigWindow } from './window-pin-configuration.js';
 
 export const NOTE_EDITOR_WINDOW_ID = 'blacksmith-note-editor';
-
-/** Visibility shapes offered in the editor. `shared` reveals the user picker. */
-const SHARED = 'shared';
 
 export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-tool-root';
@@ -101,6 +99,32 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         this._editor = null;
         this._userList = null;
         if (this.noteUuid) NoteEditorWindow._open.set(this.noteUuid, this);
+
+        // An editor whose note has been deleted has nothing to save into, and
+        // saving would recreate a page the user just removed. Watch the document
+        // hook rather than Blacksmith's own: deletion can come from the journal
+        // sidebar or another client, and those never fire the Blacksmith one here.
+        this._hookContext = `note-editor:${this.id}`;
+        HookManager.registerHook({
+            name: 'deleteJournalEntryPage',
+            description: 'Note editor: close when its note is deleted',
+            priority: 4,
+            context: this._hookContext,
+            callback: (page) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                if (!this.noteUuid || page?.uuid !== this.noteUuid) return;
+                // Drop the registry entry here rather than leaving it to _onClose,
+                // which keys off noteUuid -- clearing it first would strand the entry
+                // and the next open of a note with this uuid would be refused.
+                if (NoteEditorWindow._open.get(this.noteUuid) === this) {
+                    NoteEditorWindow._open.delete(this.noteUuid);
+                }
+                this.note = null;
+                this.noteUuid = null;
+                void this.close();
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
     }
 
     get title() {
@@ -117,17 +141,19 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     // ===== STATE ==================================================
     // ==============================================================
 
-    /** Current visibility shape, derived from ownership rather than the flag. */
+    /**
+     * Party or private.
+     *
+     * There is no separate "shared" state to return: sharing with named people is
+     * private ownership plus a `sharedWith` list, and the editor shows that by
+     * pre-selecting those users in the picker rather than by a third mode. Read
+     * from the flag, with ownership supplying the selection.
+     */
     _currentVisibility() {
         if (!this.note) return NOTE_VISIBILITY.PRIVATE;
-        const flag = this.note.getFlag(MODULE.ID, 'visibility');
-        if (flag === NOTE_VISIBILITY.PARTY) return NOTE_VISIBILITY.PARTY;
-        // Anyone owning it who is neither the author nor a GM means it was shared
-        // with named people. Read from ownership because ownership is what is
-        // enforced; the flag only records intent.
-        const authorId = this.note.getFlag(MODULE.ID, 'authorId');
-        const shared = this._sharedUserIds();
-        return shared.length && shared.some((id) => id !== authorId) ? SHARED : NOTE_VISIBILITY.PRIVATE;
+        return this.note.getFlag(MODULE.ID, 'visibility') === NOTE_VISIBILITY.PARTY
+            ? NOTE_VISIBILITY.PARTY
+            : NOTE_VISIBILITY.PRIVATE;
     }
 
     /** Non-GM, non-author users who own this note. */
@@ -161,49 +187,59 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         const authorId = this.note?.getFlag(MODULE.ID, 'authorId') ?? null;
         const author = authorId ? game.users.get(authorId) : null;
         const pin = this._pin();
+        const fav = this.note ? NotesManager.isFavorite(this.note) : false;
 
         // Suggestions come from the shared taxonomy, so a note tag and a pin tag
         // are the same tag rather than two spellings of one.
         const choices = TagsAPI.getChoices?.(NOTE_TAG_CONTEXT) ?? [];
-        const suggestions = choices
-            .map((choice) => choice?.key)
-            .filter((key) => key && !tags.includes(key))
-            .slice(0, 14);
+        // Every choice is rendered; which ones look "taken" is decided live in
+        // _syncTagChips against the field's current value. Filtering the list here
+        // and removing the button on click was the old shape, and it meant a tag you
+        // deleted from the field never returned to the picker.
+        const suggestions = choices.map((choice) => choice?.key).filter(Boolean);
 
+        // Rendered as a strip of avatars rather than a stacked list: this is one row
+        // in a compact strip, and a name per line was most of why the old shape was
+        // tall enough to change the window's layout between private and shared.
         this._userList = EntityListAPI.create({
             entities: EntityListAPI.providers.fromUsers({ includeGM: false, disableOffline: false }),
             mode: EntityListAPI.MODES.MULTI,
             inputName: 'note-shared-with',
             selected: this._sharedUserIds(),
-            emptyMessage: 'No other players in this world.'
+            listClass: 'blacksmith-note-user-strip',
+            itemClass: 'blacksmith-note-user',
+            emptyMessage: 'No other players.'
         });
 
         const body = `
             <div class="blacksmith-note-editor-head">
+                <button type="button" class="blacksmith-note-icon-btn" data-note-action="icon"
+                        title="Choose this note’s icon">
+                    ${noteIconHtml(pin?.image)}
+                </button>
                 <input type="text" name="note-title" class="blacksmith-note-title"
                        value="${foundry.utils.escapeHTML(this.note?.name ?? '')}"
                        placeholder="Untitled Note" autocomplete="off">
-                <button type="button" class="blacksmith-note-icon-btn" data-note-action="icon"
-                        title="${pin ? 'Configure this note’s icon and pin' : 'Choose an icon for this note'}">
-                    ${pin ? '<i class="fa-solid fa-palette"></i>' : '<i class="fa-solid fa-circle-plus"></i>'}
-                    <span>${pin ? 'Icon' : 'Add icon'}</span>
+                <button type="button" class="blacksmith-note-fav" data-note-action="favorite"
+                        title="${fav ? 'Remove from favourites' : 'Add to favourites'}">
+                    <i class="${fav ? 'fa-solid' : 'fa-regular'} fa-star"></i>
                 </button>
             </div>
 
             <div class="blacksmith-note-editor-host"></div>
 
             <div class="blacksmith-note-editor-strip">
-                <label class="blacksmith-note-vis">
-                    <span>Who can see this</span>
-                    <select name="note-visibility">
-                        <option value="${NOTE_VISIBILITY.PRIVATE}" ${visibility === NOTE_VISIBILITY.PRIVATE ? 'selected' : ''}>Only me</option>
-                        <option value="${NOTE_VISIBILITY.PARTY}" ${visibility === NOTE_VISIBILITY.PARTY ? 'selected' : ''}>The whole party</option>
-                        <option value="${SHARED}" ${visibility === SHARED ? 'selected' : ''}>Just these people…</option>
-                    </select>
-                </label>
-
-                <div class="blacksmith-note-shared${visibility === SHARED ? '' : ' hidden'}">
-                    ${this._userList.html}
+                <div class="blacksmith-note-vis">
+                    <span class="blacksmith-note-strip-label">Who can see this</span>
+                    <div class="blacksmith-note-vis-row">
+                        <button type="button"
+                                class="blacksmith-note-everyone${visibility === NOTE_VISIBILITY.PARTY ? ' selected' : ''}"
+                                data-note-action="everyone"
+                                title="Everyone, including players who join later">
+                            <i class="fa-solid fa-users"></i><span>Everyone</span>
+                        </button>
+                        <div class="blacksmith-note-shared${visibility === NOTE_VISIBILITY.PARTY ? ' dimmed' : ''}">${this._userList.html}</div>
+                    </div>
                 </div>
 
                 <label class="blacksmith-note-tags">
@@ -302,35 +338,71 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
 
         this._userList?.attach(root);
 
-        const vis = root.querySelector('[name="note-visibility"]');
+        // Everyone and named people are mutually exclusive: picking a person is how
+        // you say "not the whole party", so it clears Everyone rather than fighting it.
+        const everyone = root.querySelector('.blacksmith-note-everyone');
         const shared = root.querySelector('.blacksmith-note-shared');
-        vis?.addEventListener('change', () => {
-            shared?.classList.toggle('hidden', vis.value !== SHARED);
+        everyone?.addEventListener('click', () => {
+            const on = everyone.classList.toggle('selected');
+            if (on) this._userList?.setSelection?.([]);
+            shared?.classList.toggle('dimmed', on);
+        });
+        shared?.addEventListener('change', () => {
+            if ((this._userList?.getSelectedIds?.() ?? []).length) {
+                everyone?.classList.remove('selected');
+                shared.classList.remove('dimmed');
+            }
         });
 
-        // Suggestions append rather than replace: the field is the source of truth
-        // and a click should never discard what was typed.
+        // The text field stays the source of truth and a chip is a view of it, so a
+        // tag removed by typing reappears as an available chip.
+        const tagInput = root.querySelector('[name="note-tags"]');
+        const readTags = () => (tagInput?.value ?? '')
+            .split(',').map((t) => t.trim()).filter(Boolean);
+
         for (const button of root.querySelectorAll('.blacksmith-note-tag-suggestions button')) {
             button.addEventListener('click', () => {
-                const input = root.querySelector('[name="note-tags"]');
-                if (!input) return;
-                const current = input.value.split(',').map((t) => t.trim()).filter(Boolean);
-                if (!current.includes(button.dataset.tag)) current.push(button.dataset.tag);
-                input.value = current.join(', ');
-                button.remove();
+                if (!tagInput) return;
+                const current = readTags();
+                const tag = button.dataset.tag;
+                tagInput.value = (current.includes(tag)
+                    ? current.filter((t) => t !== tag)
+                    : [...current, tag]).join(', ');
+                this._syncTagChips();
             });
         }
+        tagInput?.addEventListener('input', () => this._syncTagChips());
+        this._syncTagChips();
 
         const on = (action, handler) => root
             .querySelector(`[data-note-action="${action}"]`)
             ?.addEventListener('click', handler);
 
+        on('favorite', async () => {
+            if (!this.note) {
+                ui.notifications.info('Save the note first.');
+                return;
+            }
+            await NotesManager.toggleFavorite(this.note);
+            this.render(false);
+        });
         on('save', () => void this._save());
         on('cancel', () => void this.close());
         on('icon', () => void this._configureIcon());
         on('place', () => void this._place());
         on('unpin', () => void this._unpin());
         on('pan', () => void PinsAPI.panTo?.(this.note?.getFlag(MODULE.ID, 'pinId')));
+    }
+
+    /** Mark chips that are already in the field. Cheap enough to run on every keystroke. */
+    _syncTagChips() {
+        const root = this.element;
+        const input = root?.querySelector('[name="note-tags"]');
+        if (!input) return;
+        const current = new Set(input.value.split(',').map((t) => t.trim()).filter(Boolean));
+        for (const button of root.querySelectorAll('.blacksmith-note-tag-suggestions button')) {
+            button.classList.toggle('selected', current.has(button.dataset.tag));
+        }
     }
 
     // ==============================================================
@@ -396,7 +468,11 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     _readForm() {
         const root = this.element;
         const raw = root?.querySelector('[name="note-tags"]')?.value ?? '';
-        const shape = root?.querySelector('[name="note-visibility"]')?.value ?? NOTE_VISIBILITY.PRIVATE;
+        // Derived from the controls rather than stored as a third state: Everyone
+        // means the party (and therefore anyone who joins later), any named people
+        // means shared, and neither means private. See the note on PARTY below.
+        const everyone = !!root?.querySelector('.blacksmith-note-everyone.selected');
+        const shape = everyone ? NOTE_VISIBILITY.PARTY : NOTE_VISIBILITY.PRIVATE;
         return {
             title: root?.querySelector('[name="note-title"]')?.value ?? '',
             content: this._editor?.value ?? '',
@@ -404,7 +480,10 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             // getSelectedIds, not getSelection: the latter returns entity objects,
             // and an object used as an ownership key stringifies to "[object Object]"
             // -- which Foundry rejects as "not a mapping of user IDs".
-            sharedWith: shape === SHARED ? (this._userList?.getSelectedIds?.() ?? []) : [],
+            // Individually named people are dropped when Everyone is on: PARTY already
+            // grants every player, and keeping a stale list would make the note look
+            // shared-with-three when it is actually shared with all.
+            sharedWith: everyone ? [] : (this._userList?.getSelectedIds?.() ?? []),
             tags: raw.split(',').map((t) => t.trim()).filter(Boolean)
         };
     }
@@ -449,6 +528,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         if (this.noteUuid && NoteEditorWindow._open.get(this.noteUuid) === this) {
             NoteEditorWindow._open.delete(this.noteUuid);
         }
+        HookManager.disposeByContext?.(this._hookContext);
         super._onClose?.(options);
     }
 }

@@ -18,7 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **And that removes the stray "Untitled Note" pages.** Squire created a draft page on first interaction *because collaborative editing needs a document to bind to*, so a click that went nowhere left an orphan behind. A note being created has no co-editors, so a new note gets a plain editor and its page is created on save. There is nothing to reap because nothing is created.
 
-  **Sharing has three shapes and one mechanism.** Only me, the whole party, or named people -- all expressed as page ownership, with the third being `private` plus a `sharedWith` list rather than a third flag value. Squire's give-to had its own transfer window; handing somebody a note is now sharing it with them and removing yourself.
+  **Sharing has three shapes, one mechanism, and no mode control.** Only me, the whole party, or named people -- all expressed as page ownership, with the third being `private` plus a `sharedWith` list rather than a third flag value. Squire's give-to had its own transfer window; handing somebody a note is now sharing it with them and removing yourself.
+
+  The editor shows this as a single row: an **Everyone** chip followed by a strip of player avatars. Nobody picked is private, Everyone is the party, named people is shared -- so the shape is read off the controls instead of being chosen from a dropdown that then decided whether a picker appeared. Everyone stays a distinct state rather than being derived from "all players happen to be selected", because the two differ the moment a new player joins: the party includes them and a frozen list of five does not.
+
+  **Favourites are per user.** A star on each row and in the editor, sorted to the top of the list. Stored as a flag on the User, not on the note -- two people reading the same shared note will not favourite the same things, and a note-side flag would mean one player starring it starred it for everybody. It also means a player can favourite without a GM round trip.
 
   **The pin owns the icon.** A note gets a pin lazily, the first time an icon is chosen or it is placed, and that pin may be unplaced -- a state Pins already models for exactly this. So "the pin just uses the icon I chose" is true by construction rather than by keeping two copies in step, and the ten `notePin*` appearance flags Squire kept on the page do not exist here. Choosing an icon opens Blacksmith's pin configuration window, which began life as Squire's note icon picker and is thereby back where it came from. Changing a note's visibility rewrites its pin's ownership, because hiding a marker from someone is done with ownership rather than `blacksmithVisibility`. Deleting a note deletes its pin; unpinning uses `unplace` so the design survives.
 
@@ -37,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Squire's notes are adopted on first load** (`NotesManager.adoptSquireNotes`). Pages flagged `noteType: 'sticky'` under Squire's namespace become Blacksmith notes: visibility, author, and timestamp translate to equivalent flags, and tags move into the shared registry. Squire's own flags are **not** deleted -- leaving them costs a few bytes and means a world can be rolled back to a Squire release without its notes having been quietly rewritten. Ownership is not recomputed either, since Squire set it from the same model and a rewrite could only overwrite a GM's manual edit. Guarded per world, GM-only, and left unmarked on failure so it retries rather than losing anything.
 
   Squire's `notesJournal` setting is adopted alongside it, and had to be: without it the note adoption finds no journal and silently does nothing on the one load that was meant to migrate them.
+
+  Squire's flags are read straight off `page.flags['coffee-pub-squire']` rather than through `getFlag()`. `Document#getFlag` throws for a scope that is not currently active and the scope list is built from `module.active` (`client/data/client-backend.mjs`), so every read would have thrown the moment Squire was disabled -- which is precisely when the migration still needs to work. The flag data survives on the page regardless; only the accessor is gated.
+
+  The scan also runs on every load rather than stopping at its ledger entry. It skips pages that are already notes, so re-running costs one pass over a single journal, and an early return there stranded any note created in Squire after the first run.
 
 ### Fixed
 
