@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dice roll chat cards no longer carry their own stylesheet.** Squire shipped the roll description styling as a CSS string inside a message flag, so every roll ever made stored a copy of it. Same appearance, declared once in `styles/window-dicetray.css`.
 
-Verify: live, per the steps in `documentation/testing/testing-squire-tool-adoption.md`. Nothing here is proven yet.
+Verified live on 2026-08-09 with Squire disabled: all four windows open and operate, the adopted macro list, favourites, and thresholds are the user's own values rather than defaults, conditions toggle and follow the token selection, and a threshold change moves the Health window bars, the combat bar portrait rings, and the canvas blood indicators together. Outstanding: the second-user and second-browser scope checks in `documentation/testing/testing-squire-tool-adoption.md`, which a solo pass cannot cover.
 
 ## [13.16.0]
 

@@ -4,6 +4,37 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Import/export and module-owned document subtypes (opened 2026-08-09, before the phase starts)
+
+**Settle this before writing importer code, not after.** Raised by Squire while closing the tool adoption.
+
+Squire declares a document subtype in its `module.json` -- `documentTypes: { JournalEntryPage: { codex: {} } }`
+-- so every codex entry is stored as `type: "coffee-pub-squire.codex"`. Blacksmith declares no subtypes, and
+today's journal importer writes `type: "text"` (`scripts/utility-common.js:410,485,600`), so nothing is broken
+now. Extending import/export to codex pages is what makes it a question.
+
+**One option is off the table on mechanics rather than principle.** Foundry namespaces a module-declared
+subtype as `${module.id}.${subtype}` (`client/applications/settings/dependency-resolution.mjs:246`). Blacksmith
+*cannot* declare `coffee-pub-squire.codex`; putting `codex` in its manifest would produce
+`coffee-pub-blacksmith.codex`, a different type with no data model or sheet registered against it. So the
+importer stays agnostic. That is forced, not chosen.
+
+What agnostic has to mean, concretely:
+
+- **Preserve `type` verbatim on both sides.** An export that normalises a subtype to `text` silently
+  downgrades every codex page on the round trip, which looks like success.
+- **Check before writing, and refuse legibly.** An unknown subtype should produce a message naming the module
+  that owns it -- parsed from the prefix -- not a raw validation throw and not a silent skip.
+- **Export with the owner disabled is the dangerous direction, more than import.** Pages of an unregistered
+  subtype are refused at world load, so they are absent from `game.journal` entirely. An export would then
+  produce a file missing every codex page and report success. Import at least fails loudly.
+
+**It also changes how this phase gets verified.** "Load with the satellite disabled" has been the backbone of
+both tool phases, and it worked because none of those four tools read journal pages. It cannot be the pass
+condition here -- with Squire off, the codex pages under test do not exist. It becomes a *test case* instead:
+disabled proves the importer refuses legibly and the exporter does not quietly omit, while the round-trip pass
+condition needs Squire enabled.
+
 ## Asset sources - let a module supply the image library, and let users remap it (opened 2026-08-09)
 
 **The idea:** image choices in settings (backgrounds, icons, nameplates, and sounds alongside them) should be

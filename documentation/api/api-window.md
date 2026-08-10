@@ -569,7 +569,7 @@ blacksmith.openWindow('blacksmith-status-effects', { actorUuid, descriptionStatu
 
 | Option | Meaning |
 |---|---|
-| `actor` | The Actor to show. Wins over `actorUuid` when both are given. |
+| `actor` | The Actor to show. Wins over `actorUuid` when both are given. **Optional** -- falls back to the selected token, then to `game.user.character`. |
 | `actorUuid` | Resolved to an Actor when `actor` is absent. |
 | `descriptionEffectId` | Id of an ActiveEffect **already on the actor**. Opens with its description shown. |
 | `descriptionStatusId` | Id of a **configured status**, which may not be applied to the actor yet. Opens with that condition's rules text shown. |
@@ -579,11 +579,13 @@ here rather than left to be inferred from call sites because a consumer reading 
 find `descriptionEffectId` and never learn the other exists -- which is exactly what happened while this
 window was being handed over.
 
-Returns `null` and warns if no actor can be resolved.
+**No actor is required.** With none resolvable the window opens on an empty state -- the full conditions
+list, greyed out -- and fills in as soon as a token is selected. It follows the canvas selection thereafter,
+the same way `blacksmith-health` does, so a caller that means "whatever is selected" should pass nothing.
 
-Reopening for the **same** actor retargets the description in place rather than rebuilding, so clicking a
-second condition icon does not flash the window. A **different** actor closes and rebuilds, because the
-actor is bound at construction.
+Reopening never creates a second window: it retargets the existing one at the new actor and description.
+Changing actor clears the selected description, since both description ids name something belonging to the
+actor being replaced.
 
 Some windows are deliberately **not** in this list. Request a Roll has `blacksmith.requestRoll(options)`,
 GM Notes has `blacksmith.gmNotes`, and JSON import has `registerJsonImportKind` -- all of them take enough

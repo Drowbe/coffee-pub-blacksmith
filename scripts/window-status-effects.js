@@ -62,10 +62,10 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
      * awaited, which is what makes it a real guard. See architecture-window.md
      * section 2b for why `foundry.applications.instances` is not usable here.
      *
-     * This window needs more than "is one open": reopening compares the existing
-     * window's actor against the requested one and either retargets the
-     * description or closes and rebuilds. Foundry's registry would report that a
-     * window exists but not who it is showing.
+     * This window needs more than "is one open": reopening retargets the existing
+     * window at a new actor and description rather than making a second one, and
+     * Foundry's registry would report that a window exists but not who it is
+     * showing.
      */
     static activeWindow = null;
 
@@ -115,6 +115,8 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
         this._actionRoot = null;
         this._actionHandler = null;
         this._hookContext = `status-effects:${this.id}`;
+        this._hooksRegistered = false;
+        this._selectionTimer = null;
         StatusEffectsWindow.activeWindow = this;
     }
 
@@ -217,7 +219,11 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
         const canManage = !!this.actor?.isOwner;
         return {
             appId: this.id,
-            actorName: this.actor?.name || 'Unknown Actor',
+            // With nothing selected the window still lists every condition, greyed out
+            // by canManage. That is a better empty state than refusing to open: the
+            // conditions grid is worth reading on its own, and selecting a token fills
+            // it in without the user having to find the button again.
+            actorName: this.actor?.name || 'No character selected',
             actorImg: this.actor?.img || 'icons/svg/mystery-man.svg',
             canManage,
             canRemoveAll: canManage && configuredStatuses.some(condition => condition.isActive),
@@ -361,6 +367,12 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
      * the token HUD, or a character sheet.
      */
     _registerEffectHooks() {
+        // Once per window, not once per render. `_onRender` runs on every redraw and
+        // each of these hooks calls render, so re-registering here would compound:
+        // five more listeners per render, each firing a render of its own.
+        if (this._hooksRegistered) return;
+        this._hooksRegistered = true;
+
         const refreshEffect = (effect) => {
             // --- BEGIN - HOOKMANAGER CALLBACK ---
             if (effect?.parent?.uuid !== this.actorUuid) return;
@@ -394,6 +406,51 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
                 // --- END - HOOKMANAGER CALLBACK ---
             }
         });
+
+        // Follow the canvas, the same way the Health window does. Without this the
+        // window is pinned to whatever actor it was opened for, so selecting a
+        // different token leaves it showing the previous one -- which reads as stale
+        // rather than as deliberate.
+        HookManager.registerHook({
+            name: 'controlToken',
+            description: 'Status Effects: follow the token selection',
+            priority: 4,
+            context: this._hookContext,
+            callback: () => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Deferred a tick: control() fires once per token, so a multi-select
+                // would otherwise retarget repeatedly on its way to the final state.
+                clearTimeout(this._selectionTimer);
+                this._selectionTimer = setTimeout(() => {
+                    void this.updateActor(canvas?.tokens?.controlled?.[0]?.actor ?? null);
+                }, 0);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+    }
+
+    /**
+     * Show a different actor, or none.
+     *
+     * Clears the selected description, because both description ids name something
+     * belonging to the actor being replaced -- carrying them over would either show
+     * nothing or, worse, resolve against a same-named effect on the new actor.
+     *
+     * @param {Actor|null} actor
+     * @param {object} [options]
+     * @param {string|null} [options.descriptionEffectId]
+     * @param {string|null} [options.descriptionStatusId]
+     */
+    async updateActor(actor, { descriptionEffectId = null, descriptionStatusId = null } = {}) {
+        const nextUuid = actor?.uuid ?? null;
+        const sameActor = nextUuid === this.actorUuid;
+        if (sameActor && !descriptionEffectId && !descriptionStatusId) return;
+
+        this.actor = actor ?? null;
+        this.actorUuid = nextUuid;
+        this.descriptionEffectId = descriptionEffectId;
+        this.descriptionStatusId = descriptionStatusId;
+        await this.render({ force: true });
     }
 
     // ==============================================================
@@ -404,7 +461,10 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
     async _canMutate() {
         await this._resolveActor();
         if (!this.actor) {
-            ui.notifications.error('The actor for this status-effects window is no longer available.');
+            // Reachable two ways: nothing is selected yet, or the actor was deleted
+            // while the window was open. The controls are disabled in the first case,
+            // so this is mostly a backstop for the second.
+            ui.notifications.warn('Select a character before changing conditions.');
             return false;
         }
         if (!this.actor.isOwner) {
@@ -488,7 +548,9 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
     // ==============================================================
 
     async close(options = {}) {
+        clearTimeout(this._selectionTimer);
         HookManager.disposeByContext(this._hookContext);
+        this._hooksRegistered = false;
         if (this._actionRoot && this._actionHandler) {
             this._actionRoot.removeEventListener('click', this._actionHandler, true);
         }
@@ -500,39 +562,43 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
 }
 
 /**
- * Open the Status Effects window for an actor.
+ * Open the Status Effects window.
  *
- * @param {object} options
- * @param {Actor} [options.actor] The actor to show. Either this or actorUuid.
+ * An actor is optional. With none it opens on the current canvas selection, and
+ * with nothing selected it opens empty and fills in as soon as a token is selected
+ * -- the conditions list is worth reading on its own, and refusing to open would
+ * make the user find the button twice.
+ *
+ * @param {object} [options]
+ * @param {Actor} [options.actor] The actor to show. Wins over actorUuid.
  * @param {string} [options.actorUuid] Resolved to an Actor when `actor` is absent.
  * @param {string} [options.descriptionEffectId] Open with this ActiveEffect's description shown.
  * @param {string} [options.descriptionStatusId] Open with this configured status's description shown.
- * @returns {Promise<StatusEffectsWindow|null>} null when no actor could be resolved
+ * @returns {Promise<StatusEffectsWindow>}
  */
 export async function openStatusEffectsWindow(options = {}) {
     const actor = options.actor
-        || (options.actorUuid ? await foundry.utils.fromUuid(options.actorUuid) : null);
-    if (!actor) {
-        ui.notifications.warn('Select a character before opening Status Effects.');
-        return null;
-    }
+        || (options.actorUuid ? await foundry.utils.fromUuid(options.actorUuid) : null)
+        || getCurrentActor();
 
-    // Reopening for the SAME actor retargets the description rather than rebuilding,
-    // so clicking a second condition icon does not flash the window. A different
-    // actor rebuilds, because the actor is bound at construction.
+    // Always retarget an open window rather than closing and rebuilding it. The
+    // window follows selection anyway, so a rebuild on a different actor would be a
+    // visible flash doing what a retarget does silently.
     const existing = StatusEffectsWindow.activeWindow;
-    if (existing?.actorUuid === actor.uuid) {
-        if (options.descriptionEffectId || options.descriptionStatusId) {
-            existing.descriptionEffectId = options.descriptionEffectId || null;
-            existing.descriptionStatusId = options.descriptionStatusId || null;
-        }
+    if (existing) {
         existing.bringToFront?.();
-        await existing.render({ force: true });
+        await existing.updateActor(actor, {
+            descriptionEffectId: options.descriptionEffectId || null,
+            descriptionStatusId: options.descriptionStatusId || null
+        });
         return existing;
     }
-    if (existing) await existing.close();
 
-    const windowInstance = new StatusEffectsWindow({ ...options, actor, actorUuid: actor.uuid });
+    const windowInstance = new StatusEffectsWindow({
+        ...options,
+        actor: actor ?? null,
+        actorUuid: actor?.uuid ?? null
+    });
     await windowInstance.render(true);
     return windowInstance;
 }
