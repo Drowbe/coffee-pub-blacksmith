@@ -152,6 +152,25 @@ export class NotesManager {
         this._addToIndex(page);
     }
 
+    /**
+     * Tell any rendered GM Notes surface showing this target that its Related Notes
+     * section is out of date.
+     *
+     * Necessary because the section is a LIVE provider: its data is these
+     * annotations, not the target's own flags, so nothing the target does would
+     * trigger a re-render. Without this the section shows whatever it computed the
+     * first time the sheet opened, which reads as the feature not working at all.
+     *
+     * Imported lazily so this manager does not depend on GM Notes loading first -
+     * the notification is a courtesy to a surface that may not exist.
+     */
+    static _notifyTarget(targetUuid) {
+        if (!targetUuid) return;
+        import('./manager-gmnotes.js')
+            .then(({ GMNotesManager }) => GMNotesManager.notifySectionsChanged?.(targetUuid))
+            .catch(() => { /* GM Notes absent: nothing is showing the section anyway */ });
+    }
+
     // ==============================================================
     // ===== READS ==================================================
     // ==============================================================
@@ -283,6 +302,9 @@ export class NotesManager {
         await page.setFlag(MODULE.ID, FLAG_KEY, [...this._readRaw(page), annotation]);
         this._reindexPage(page);
         Hooks.callAll('blacksmith.notes.attached', { ...annotation, noteUuid: page.uuid });
+        // Any GM Notes surface showing the TARGET has a Related Notes section whose
+        // data just changed. Nothing else would tell it to look again.
+        this._notifyTarget(targetUuid);
         return { ...annotation, noteUuid: page.uuid };
     }
 
@@ -302,12 +324,16 @@ export class NotesManager {
         }
 
         const current = this._readRaw(page);
+        // Captured before the filter: after it, there is nothing left to say which
+        // target this annotation pointed at, and that is what needs refreshing.
+        const removedTargetUuid = current.find((a) => a?.id === annotationId)?.targetUuid ?? null;
         const remaining = current.filter((a) => a?.id !== annotationId);
         if (remaining.length === current.length) return false;
 
         await page.setFlag(MODULE.ID, FLAG_KEY, remaining);
         this._reindexPage(page);
         Hooks.callAll('blacksmith.notes.detached', { annotationId, noteUuid: page.uuid });
+        this._notifyTarget(removedTargetUuid);
         return true;
     }
 
@@ -332,6 +358,7 @@ export class NotesManager {
         await page.setFlag(MODULE.ID, FLAG_KEY, remaining);
         this._reindexPage(page);
         Hooks.callAll('blacksmith.notes.detached', { targetUuid, noteUuid: page.uuid, count: removed });
+        this._notifyTarget(targetUuid);
         return removed;
     }
 }

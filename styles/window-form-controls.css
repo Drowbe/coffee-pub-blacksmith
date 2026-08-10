@@ -559,3 +559,25 @@
 .blacksmith-quantity-split-caption-amount {
     font-size: 0.7em;
 }
+
+/* ------------------------------------------------------------------
+   Related Notes — the annotation layer's GM Notes section
+   ------------------------------------------------------------------ */
+
+.blacksmith-related-notes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.blacksmith-related-notes .blacksmith-related-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+}
+
+.blacksmith-related-notes .blacksmith-related-note i {
+    flex: 0 0 auto;
+    opacity: 0.7;
+}

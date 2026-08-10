@@ -26,6 +26,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`migratePositionKey` on the window base** (`scripts/window-base.js`). Window position does not key off the window id, which is what the handover assumed: `_positionKey` reads `options.windowPositionKey`, and `window-tool-base.js` derives the titlebar-mode and theme preference keys from it with `-titlebar` and `-theme` suffixes. Three localStorage keys per window, nine across these three. Renaming the key without moving them silently resets position, titlebar mode, and theme; this moves them once and deletes the originals, refusing to clobber any value already present under the new key.
 
+- **`blacksmith.notes` -- the annotation layer** (`scripts/manager-notes.js`, `scripts/api-notes.js`). An annotation is a triple: a note (`JournalEntryPage`), a target (any document's UUID), and an anchor saying where on the target it applies -- the whole document, a canvas point, or a region. `attach`, `detach`, `detachTarget`, `getByTarget`, `getByNote`, `hasTarget`, `canAnnotate`. Surface in `documentation/api/api-notes.md`, mechanism in `documentation/architecture/architecture-notes.md`, both published. First phase of moving Notes out of Squire; no UI yet.
+
+  **It exists to answer one question a journal cannot: what is attached to this thing.** Foundry journals are better at narrative and GM authoring than anything written here would be, so the value has to be in the relationship rather than the document. That is held honest by `utilities/tests/suite-notes.js`, whose first check asserts exactly it -- 35 assertions, verified 2026-08-09.
+
+  **Annotations live in flags on the note page, not in a central store, and that diverges from Tags on purpose.** A tag assignment has no owning document; an annotation always has one. Three things follow. A player who owns their note owns its flags, so player annotations need no GM proxy -- and since notes are player-authored in play, a central world setting would have put a GM round trip on the common case, as Pins has to live with (`manager-pins.js:2554`). Deleting a note takes its annotations with it, so there is no orphan sweep to write and forget. And annotations travel with the note through export and import.
+
+  The cost is that target lookups would be a scan, so there is an index -- `targetUuid -> Set<notePageUuid>`, built at `ready` and maintained by document hooks. **It is derived and never consulted as truth:** `getByTarget` resolves candidates through it and reads the answer from the pages, so a stale index can cost a miss but cannot invent an annotation. The flags staying authoritative also means the index can be replaced later without migrating anyone's data, which is the main reason truth lives on the document.
+
+  A `point` anchor carries a `pinId` rather than coordinates. There is one placement implementation in Blacksmith and it is Pins, whose `pinsUnplaced` store already models a pin with no location -- which is exactly a note that has not been placed. `region` is deliberately left undefined for a consuming module to specify.
+
+  Permission is gated on the **note's** ownership, not the target's. A player annotating an Actor they do not own is intended: annotating is note-taking, not editing the thing noted.
+
+- **A "Related Notes" section on every document that shows GM Notes** (`scripts/ui-notes-gmnotes-section.js`). Lists the notes attached to that document, grouped by note with an icon per anchor kind. Registered as a **live provider**, so it is computed at render time and never written into anyone's flags -- the section always reflects the current annotations rather than a copy that drifts, and removing the file removes the section without leaving orphaned text behind.
+
+  Read-only on purpose. Attaching is gated on the *note's* ownership, so an attach control here would offer an action against a note the viewer may not own. It also filters by the viewer's permission on each note before rendering its name: `getByTarget` reads the store and does not filter, so this is where that has to happen.
+
+  This is the visible half of the annotation layer. Until something asked "what is attached to this thing" on a real sheet, nothing showed that it could.
+
 - **`includes` Handlebars helper** (`scripts/utility-handlebars.js`), for the macros template's favourite check.
 
 - **The Status Effects window is now Blacksmith's** (`scripts/window-status-effects.js`, with template and stylesheet). Conditions and Active Effects for one actor: toggle a condition, remove an effect, read the enriched description of the selected row. Adopted from Squire, 424 lines, the smallest of the moves and the only one that removed machinery rather than adding it.

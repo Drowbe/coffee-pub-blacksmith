@@ -96,6 +96,7 @@ import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { registerStatusEffectsWindow } from './window-status-effects.js';
 import { NotesManager } from './manager-notes.js';
 import { NotesAPI } from './api-notes.js';
+import { registerRelatedNotesSection } from './ui-notes-gmnotes-section.js';
 import { restoreToolWindows } from './manager-tool-windows.js';
 import { getActorHP, getHealthPercent, getHealthPercentForHP, getHealthSeverity, getHealthSeverityForHP, getHealthThresholds } from './utility-health.js';
 import { PinManager } from './manager-pins.js';
@@ -565,6 +566,8 @@ Hooks.once('ready', async () => {
         LoadingProgressManager.logActivity("Indexing notes...");
         try {
             NotesManager.initialize();
+            // After the index: the provider reads it on every GM Notes render.
+            registerRelatedNotesSection();
         } catch (e) {
             // Non-fatal: a missing index costs "what is attached to this" until the
             // next rebuild, which is not worth stalling the load for.

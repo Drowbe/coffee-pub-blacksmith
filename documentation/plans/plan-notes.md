@@ -1,8 +1,8 @@
 # Plan: Notes
 
-**Status: Planned. No code written.** Design pass only -- the gate below has to be satisfied on paper before
-any port begins, because the wrong answer here ships a fourth annotation system into a hub that already has
-three.
+**Status: phases 1 and 2 shipped and verified. The gate passes.** The annotation layer and its harness suite
+landed 2026-08-09 (35/35 assertions), and `gmNotes` now carries a Related Notes section -- the first surface
+to ask "what is attached to this thing" in anger. The window port and the Squire migration have not started.
 
 Notes move from Squire to Blacksmith (decided 2026-08-09, `TODO-GLOBAL.md`). This plan is about what they
 become on arrival, not how to copy them.
@@ -131,12 +131,22 @@ A point anchor delegating to Pins is what stops this becoming a second placement
 
 ## Phasing
 
-1. **The annotation store and its API.** No UI. `attach`, `detach`, `getByTarget`, `getByNote`, with the
-   permission model and the index. This alone satisfies the gate and is independently useful.
-2. **The Notes window**, ported from Squire, reading the store rather than page flags.
-3. **Migration** from Squire's flags: `tags` into `tagAssignments`, `sceneId`/`x`/`y` into pins, targets into
+1. ~~**The annotation store and its API.**~~ **Done and verified 2026-08-09** -- 35/35 harness assertions,
+   `utilities/tests/suite-notes.js`. Surface in `api/api-notes.md`, mechanism in
+   `architecture/architecture-notes.md`, history in `CHANGELOG.md`. The gate passes.
+2. ~~**`gmNotes` gains a read-only "Related Notes" section.**~~ **Done 2026-08-09** --
+   `scripts/ui-notes-gmnotes-section.js`, registered as a live provider so it reads the index at render
+   time and writes nothing into anyone's flags. Brought forward from position 4 because Phase 1 shipped with
+   no visible surface at all, and a first consumer validates the API shape before the window port commits to
+   it. Filters by the viewer's permission on the NOTE -- `getByTarget` reads the store and does not.
+
+3. **The Notes window**, ported from Squire, reading the store rather than page flags. **Bigger than the
+   four tool ports and a different kind of work**: `squire/scripts/window-note.js` is 1,144 lines carrying an
+   edit-lock system with expiry and touch, draft handling, and visibility-to-ownership syncing. The locks are
+   a multi-user concurrency model that a single-client harness cannot verify, so that part needs a second
+   client and should be scoped as its own step rather than folded into the port.
+4. **Migration** from Squire's flags: `tags` into `tagAssignments`, `sceneId`/`x`/`y` into pins, targets into
    the annotation store. Squire's `windowStates` precedent applies -- do not orphan user data.
-4. **`gmNotes` convergence**, if question 1 says so.
 5. **Cartographer's region anchor**, which is the first consumer that is not Blacksmith or Squire.
 
 Squire keeps nothing here: Notes leaves whole, and its `manager-pins.js` wrapper largely stops existing.

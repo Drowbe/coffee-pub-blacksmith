@@ -18,6 +18,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { GMNotesAPI } from './api-gmnotes.js';
+import { GMNotesManager } from './manager-gmnotes.js';
 import { GMNotesWindow } from './window-gmnotes.js';
 
 // Item sheet render hooks in dnd5e 5.x (AppV2). ItemSheet5e is the
@@ -38,6 +39,10 @@ export class GMNotesSheetUI {
         }
         // Live-refresh any open cards when a note is saved/cleared.
         Hooks.on(GMNotesAPI.CHANGE_HOOK, ({ uuid }) => GMNotesSheetUI._refreshCards(uuid));
+        // And when a LIVE section's data changes. A contributed section's source is
+        // not this document's flags, so nothing the document does would say to look
+        // again -- without this the card shows whatever it computed on first render.
+        Hooks.on(GMNotesManager.SECTIONS_HOOK, ({ uuid }) => GMNotesSheetUI._refreshCards(uuid));
         postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | NOTES GM Notes item-sheet UI initialized', '', false, false);
     }
 
@@ -137,9 +142,51 @@ export class GMNotesSheetUI {
         const hasContent = !!(note && note.text && note.text.trim());
         const wrapper = card.querySelector('.editor.editor-content');
         const enriched = hasContent ? await GMNotesSheetUI._enrich(note.html, doc) : '';
-        wrapper.innerHTML = enriched || '';
-        card.classList.toggle('empty', !hasContent);
-        card.classList.toggle('has-notes', hasContent);
+
+        // Sections, persisted and live-contributed. This card used to render only
+        // the General note, which meant a module could register a provider, see it
+        // returned by getSections(), and still have it appear nowhere — the only
+        // surface that renders sections is GMNotesFieldController, which Blacksmith
+        // offers to consumers and never mounts itself.
+        const sections = await GMNotesSheetUI._renderSections(doc);
+
+        wrapper.innerHTML = (enriched || '') + sections;
+        const hasSections = !!sections;
+        card.classList.toggle('empty', !hasContent && !hasSections);
+        card.classList.toggle('has-notes', hasContent || hasSections);
+    }
+
+    /**
+     * Sections as HTML, or an empty string when there are none.
+     *
+     * Read-only here by design: the card is a read card, and a section's own
+     * editor lives behind the feather. Contributed sections are never editable
+     * anyway — they are computed at render time and own no storage.
+     */
+    static async _renderSections(doc) {
+        try {
+            const sections = await GMNotesManager.getSections(doc);
+            if (!sections.length) return '';
+
+            const blocks = [];
+            for (const section of sections) {
+                const body = await GMNotesSheetUI._enrich(section.html, doc);
+                if (!body) continue;
+                const icon = String(section.icon || 'fa-solid fa-puzzle-piece');
+                blocks.push(
+                    `<div class="blacksmith-gm-notes-card-section" data-section-id="${section.id}">` +
+                    `<h4 class="blacksmith-gm-notes-card-section-title"><i class="${icon}" inert></i> ${section.label || section.id}</h4>` +
+                    `<div class="blacksmith-gm-notes-card-section-body">${body}</div>` +
+                    `</div>`
+                );
+            }
+            return blocks.join('');
+        } catch (err) {
+            // Logged rather than swallowed: a section that renders nothing is
+            // indistinguishable from one with nothing to show.
+            console.error(`${MODULE.ID} | GM Notes card: sections failed to render`, err);
+            return '';
+        }
     }
 
     static _refreshCards(uuid) {

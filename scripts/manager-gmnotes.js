@@ -27,6 +27,11 @@ const SCHEMA_VERSION = 2;
 // sheet "has notes" badges) subscribe via Hooks.on(GMNotesManager.CHANGE_HOOK, ...).
 const CHANGE_HOOK = 'blacksmith.gmNotesChanged';
 const PROVIDERS_HOOK = 'blacksmith.gmNotesProvidersChanged';
+// A live provider's DATA changed for one document -- distinct from PROVIDERS_HOOK,
+// which means the provider registry itself changed. Without this a provider whose
+// source data moves has no way to invalidate an already-rendered section, and the
+// field goes on showing what it computed the first time.
+const SECTIONS_HOOK = 'blacksmith.gmNotesSectionsChanged';
 const NOTE_FIELDS = new Set(['schemaVersion', 'html', 'text', 'pinned', 'updatedAt']);
 
 export class GMNotesWriteError extends Error {
@@ -49,6 +54,19 @@ export class GMNotesManager {
 
     static get CHANGE_HOOK() { return CHANGE_HOOK; }
     static get PROVIDERS_HOOK() { return PROVIDERS_HOOK; }
+    static get SECTIONS_HOOK() { return SECTIONS_HOOK; }
+
+    /**
+     * Tell any rendered GM Notes surface that a live section's data changed for this
+     * document, so it recomputes. For providers whose source is not the document's
+     * own flags -- nothing else would tell the field to look again.
+     *
+     *  {string} uuid the TARGET document, not the provider's own data
+     */
+    static notifySectionsChanged(uuid) {
+        if (!uuid) return;
+        Hooks.callAll(SECTIONS_HOOK, { uuid });
+    }
     static _providers = new Map();
     static _providerOrder = 0;
 

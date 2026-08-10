@@ -250,3 +250,29 @@
     font-size: 0.82em;
     font-style: italic;
 }
+
+/* ------------------------------------------------------------------
+   Card sections
+   Persisted and live-contributed sections rendered inside the item
+   sheet's GM Notes card, under the General note.
+   ------------------------------------------------------------------ */
+
+.blacksmith-gm-notes-card-section {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--blacksmith-border-hint, rgba(0, 0, 0, 0.15));
+}
+
+.blacksmith-gm-notes-card-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 4px 0;
+    font-size: 0.9em;
+    font-weight: 700;
+    opacity: 0.85;
+}
+
+.blacksmith-gm-notes-card-section-body {
+    font-size: 0.95em;
+}

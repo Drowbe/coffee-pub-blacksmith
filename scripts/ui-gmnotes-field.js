@@ -43,6 +43,11 @@ export class GMNotesFieldController {
             if (uuid === this.document?.uuid) void this.refresh();
         });
         this._providersHookId = Hooks.on(GMNotesManager.PROVIDERS_HOOK, () => void this.refresh());
+        // A live provider's data changed for this document. Filtered by uuid so one
+        // note attachment does not re-render every open sheet.
+        this._sectionsHookId = Hooks.on(GMNotesManager.SECTIONS_HOOK, ({ uuid }) => {
+            if (uuid === this.document?.uuid) void this.refresh();
+        });
         return this;
     }
 
@@ -310,6 +315,7 @@ export class GMNotesFieldController {
         this._refreshQueued = false;
         if (this._hookId != null) Hooks.off(GMNotesManager.CHANGE_HOOK, this._hookId);
         if (this._providersHookId != null) Hooks.off(GMNotesManager.PROVIDERS_HOOK, this._providersHookId);
+        if (this._sectionsHookId != null) Hooks.off(GMNotesManager.SECTIONS_HOOK, this._sectionsHookId);
         this._hookId = null;
         this._providersHookId = null;
         this.element.remove();
