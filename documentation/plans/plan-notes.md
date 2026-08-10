@@ -52,6 +52,35 @@ does not exist yet.
 If collab turns out not to work in practice, the fallback is a lock -- but it is a fallback, not a
 second mechanism, and the new/existing split above stands either way.
 
+**Spiked 2026-08-09/10, and it revealed why Squire could never get this working.** Two clients connect and
+the presence avatars appear in the toolbar -- the collaboration session is live -- but no text syncs, and
+the console throws:
+
+```
+TypeError: Cannot read properties of undefined (reading 'querySelectorAll')
+    at JournalEntryPageProseMirrorSheet._onNewSteps
+```
+
+`ProseMirrorEditor#_onNewSteps` notifies the edited document's own sheet before applying incoming steps
+(`client/applications/ux/prosemirror-editor.mjs:92`):
+
+```js
+this.options.document?.sheet?._onNewSteps?.();
+```
+
+For a JournalEntryPage that is `JournalEntryPageProseMirrorSheet._onNewSteps`, one unguarded line that
+touches `this.form`. `document.sheet` is lazily constructed so it exists even when never rendered, and then
+`this.form` is undefined and it throws -- **before** `receiveTransaction` and `view.dispatch`. Every incoming
+step is discarded.
+
+So collaboration was never the problem. Foundry assumes the page's own sheet is the editing host, and any
+editor hosted elsewhere loses its steps to one line of UI bookkeeping. That is almost certainly what Squire
+hit, and it explains why it looked like collab simply did not work.
+
+Guarded in `scripts/manager-prosemirror-collab.js`: skip the notification when the sheet has no rendered
+form, since its only job is disabling save-source buttons that are not on screen. Registered with the other
+wrappers in `manager-libwrapper.js`. **Awaiting two-client confirmation that steps now apply.**
+
 ### 2. Visibility is ownership, in three shapes, and it absorbs give-to
 
 | Shape | Page ownership |

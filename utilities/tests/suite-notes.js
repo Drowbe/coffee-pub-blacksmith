@@ -389,6 +389,138 @@ export default {
             }
         },
 
+        // ---------- the collaborative editing spike ----------
+        //
+        // The Notes design (documentation/plans/plan-notes.md, decision 1) rests
+        // entirely on this working: if two clients can co-edit one note, the edit
+        // locks Squire built as a fallback are unnecessary, and the draft-page
+        // problem that produced hundreds of "Untitled Note" orphans dissolves.
+        //
+        // Squire wanted this and could not get it working. These checks establish
+        // whether that was a version problem or a real limitation, before anything
+        // is built on the assumption.
+        {
+            id: 'collab-preconditions',
+            label: 'Collaborative editing: the pieces exist',
+            tier: 'headless',
+            group: 'Collaborative editing spike',
+            note: 'Everything a collaborative editor needs, checked before asking a person to test it.',
+            run: async ({ expect }) => {
+                const Cls = foundry?.applications?.elements?.HTMLProseMirrorElement;
+                expect.ok('HTMLProseMirrorElement exists', !!Cls);
+                expect.ok('it has a create() factory', typeof Cls?.create === 'function');
+
+                // The element reads these off its own dataset at activation time and
+                // resolves the document itself (prosemirror-editor.mjs:202-207).
+                const editor = Cls?.create?.({
+                    name: 'text.content',
+                    value: '',
+                    collaborate: true,
+                    documentUUID: 'JournalEntryPage.spike'
+                });
+                expect.ok('create() accepts a collaborate config', !!editor);
+                expect.ok('the collaborate attribute is set', editor?.hasAttribute?.('collaborate') === true);
+                expect.ok('the document uuid reaches the dataset',
+                    editor?.dataset?.documentUuid === 'JournalEntryPage.spike');
+                expect('fieldName travels as the element name', editor?.getAttribute?.('name'), 'text.content');
+            }
+        },
+        {
+            id: 'collab-open',
+            label: 'Open a collaborative editor on a shared page',
+            tier: 'interactive',
+            group: 'Collaborative editing spike',
+            note: 'Run this on TWO clients, then type on one. If the text appears on the other, collab works ' +
+                  'and the edit locks in Squire were a workaround for a fixable problem. Both clients bind the ' +
+                  'same page, which is the whole point — a per-client page would prove nothing. ' +
+                  'Run "Clean up the collab spike" afterwards.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.getNotesJournal');
+                const journal = api.notes.getNotesJournal() ?? game.journal?.contents?.[0];
+                if (!expect.ok('a journal exists to hold the spike page', !!journal)) return;
+
+                // Reused by name, not created per run: both clients must bind the SAME
+                // document or there is nothing to collaborate over.
+                const NAME = 'ZZ Collab Spike';
+                let page = journal.pages.contents.find(p => p.name === NAME);
+                if (!page) {
+                    if (!game.user.isGM) {
+                        log('No spike page yet — a GM must run this first to create it.');
+                        return;
+                    }
+                    [page] = await journal.createEmbeddedDocuments('JournalEntryPage', [{
+                        name: NAME,
+                        type: 'text',
+                        text: { content: '<p>Type here on one client and watch the other.</p>' },
+                        ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER }
+                    }]);
+                    log(`Created ${NAME} — ownership is OWNER for everyone so any client can edit it.`);
+                }
+                if (!expect.ok('spike page resolved', !!page)) return;
+                expect.ok('this client may edit it', page.isOwner);
+
+                const Cls = foundry.applications.elements.HTMLProseMirrorElement;
+                const editor = Cls.create({
+                    name: 'text.content',
+                    value: page.text?.content ?? '',
+                    collaborate: true,
+                    documentUUID: page.uuid,
+                    compact: true
+                });
+                editor.disabled = false;
+                editor.removeAttribute('readonly');
+
+                const host = document.createElement('div');
+                host.style.minHeight = '260px';
+                host.appendChild(editor);
+
+                await foundry.applications.api.DialogV2.wait({
+                    window: { title: `Collab Spike — ${page.name}` },
+                    position: { width: 600, height: 420 },
+                    content: '<p>Type below. Open this same check on another client and watch.</p>',
+                    render: (_ev, dialog) => {
+                        dialog.element.querySelector('.window-content')?.appendChild(host);
+                        // The element mounts inactive; the open event is where it
+                        // actually activates and the collaboration session starts.
+                        editor.addEventListener('open', () => {
+                            editor.disabled = false;
+                            editor.removeAttribute('readonly');
+                            requestAnimationFrame(() => {
+                                const content = editor.querySelector('.editor-content');
+                                content?.setAttribute('contenteditable', 'true');
+                                content?.focus();
+                            });
+                            log('Editor activated. If a second client is open, type and compare.');
+                        }, { once: true });
+                    },
+                    buttons: [{ action: 'done', label: 'Close', default: true }]
+                }).catch(() => null);
+
+                log('Closed. Report whether text typed on one client appeared on the other.');
+            }
+        },
+        {
+            id: 'collab-cleanup',
+            label: 'Clean up the collab spike',
+            tier: 'interactive',
+            group: 'Collaborative editing spike',
+            note: 'Deletes the ZZ Collab Spike page. GM only.',
+            run: async ({ expect, log }) => {
+                if (!game.user.isGM) {
+                    log('GM only.');
+                    return;
+                }
+                const pages = game.journal.contents
+                    .flatMap(e => e.pages.contents)
+                    .filter(p => p.name === 'ZZ Collab Spike');
+                for (const page of pages) await page.delete();
+                expect('spike pages removed', game.journal.contents
+                    .flatMap(e => e.pages.contents)
+                    .filter(p => p.name === 'ZZ Collab Spike').length, 0);
+                log(`Deleted ${pages.length} spike page(s).`);
+            }
+        },
+
         // ---------- needs a person ----------
         {
             id: 'player-can-annotate-own-note',

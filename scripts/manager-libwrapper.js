@@ -2,6 +2,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { EncumbranceGuard } from './manager-encumbrance-guard.js';
+import { ProseMirrorCollabGuard } from './manager-prosemirror-collab.js';
 
 /**
  * Manages all libWrapper integrations for the Blacksmith module
@@ -73,6 +74,12 @@ export class WrapperManager {
             // A guard against a dnd5e bug rather than a Blacksmith feature, so it registers itself
             // and reports its own reasons for declining. See manager-encumbrance-guard.js.
             EncumbranceGuard.install();
+
+            // A guard against a Foundry core bug, same shape: it declines loudly rather
+            // than throwing. Without it, a collaborative ProseMirror editor hosted
+            // anywhere but the document's own sheet connects and silently discards every
+            // incoming step. See manager-prosemirror-collab.js.
+            ProseMirrorCollabGuard.initialize();
 
             // Register all wrappers and log their registration
             for (const reg of wrapperRegistrations) {
