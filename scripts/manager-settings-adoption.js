@@ -44,6 +44,12 @@ const ADOPTIONS = [
     { fromModule: 'coffee-pub-squire', fromKey: 'userMacros', toKey: 'userMacros', scope: 'user' },
     { fromModule: 'coffee-pub-squire', fromKey: 'userFavoriteMacros', toKey: 'userFavoriteMacros', scope: 'client' },
 
+    // --- Notes (adopted from Squire) ---
+    // Must come across, and early: it names the journal every note lives in, so
+    // without it NotesManager.adoptSquireNotes() finds no journal and silently
+    // does nothing on the load that was meant to migrate them.
+    { fromModule: 'coffee-pub-squire', fromKey: 'notesJournal', toKey: 'notesJournal', scope: 'world' },
+
     // --- Health (adopted from Squire) ---
     { fromModule: 'coffee-pub-squire', fromKey: 'showHealthMenubarTool', toKey: 'showHealthMenubarTool', scope: 'user' },
     { fromModule: 'coffee-pub-squire', fromKey: 'healthAdjustmentAmount', toKey: 'healthAdjustmentAmount', scope: 'client' },

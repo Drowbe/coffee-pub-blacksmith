@@ -1656,6 +1656,36 @@ export const registerSettings = () => {
 	});
 
 	// --------------------------------------
+	// -- H3: NOTES
+	// --------------------------------------
+	// World: the only setting under it is world-scope, so a 'user' heading would
+	// show players a heading with nothing beneath it.
+	registerHeader('Notes', 'headingH3Notes-Label', 'headingH3Notes-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
+
+	// -- Notes Journal --
+	// Notes are pages inside one journal rather than an entry each, so a world with
+	// two hundred notes does not get two hundred sidebar entries. The GM picks it
+	// because the ownership is theirs to set: players need OBSERVER on that entry
+	// before they can create a note at all.
+	game.settings.register(MODULE.ID, 'notesJournal', {
+		name: MODULE.ID + '.notesJournal-Label',
+		hint: MODULE.ID + '.notesJournal-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'none',
+		// Built here rather than as a function: registerSettings runs in `ready`, so
+		// game.journal is populated, and Blacksmith's other dropdowns do the same.
+		choices: (() => {
+			const choices = { 'none': '- Select Journal -' };
+			for (const journal of game.journal?.contents ?? []) choices[journal.id] = journal.name;
+			return choices;
+		})(),
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	// --------------------------------------
 	// -- H3: MENUBAR TOOLS
 	// --------------------------------------
 	// User scope: every setting under it is player-visible, so a world-scope heading here

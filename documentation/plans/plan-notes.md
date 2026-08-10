@@ -1,152 +1,148 @@
 # Plan: Notes
 
-**Status: phases 1 and 2 shipped and verified. The gate passes.** The annotation layer and its harness suite
-landed 2026-08-09 (35/35 assertions), and `gmNotes` now carries a Related Notes section -- the first surface
-to ask "what is attached to this thing" in anger. The window port and the Squire migration have not started.
+**Status: designed, partly built, and part of what is built is wrong.** The annotation layer (phase 1) and
+the Related Notes section (phase 2) are shipped and verified. The note CRUD, list, and editor shipped on
+2026-08-09 were built without reading Squire's `documents/architecture-notes.md` and are a list of journal
+pages with tags -- they fail the gate below by its own terms. This plan replaces that design.
 
-Notes move from Squire to Blacksmith (decided 2026-08-09, `TODO-GLOBAL.md`). This plan is about what they
-become on arrival, not how to copy them.
+What exists today, in Squire, is inventoried separately in `plan-notes-inventory.md`. Read that first if you
+want to know what is being replaced.
 
 ## The gate
 
-**If Notes is a fancy journal, it is nothing.** Foundry journals exist, and they are better at narrative and
-GM authoring than anything written here would be. The value has to be in the relationship, not the document.
+**If Notes is a fancy journal, it is nothing.** The value is the relationship, not the document.
 
-**The acceptance test: can any surface ask "what is attached to this thing" and get an answer?** From an
-actor sheet, a canvas point, a map region, a compendium entry. If the design cannot do that, it is a journal
-page with extra steps and should be abandoned rather than shipped.
+**Test: can any surface ask "what is attached to this thing" and get an answer?** The annotation layer
+passes it. The UI has to earn it too -- a list that only lists is the failure this gate exists to catch, and
+it has already happened once.
 
-Every decision below is answerable against that test.
+## The user's own words, which are the requirements
 
-## What already exists, and why that is the whole problem
+> I want to be able to create notes.
+> I want to give notes an icon or image for an icon.
+> I may want to pin that note to the canvas... and if I do, I want that pin to just go ahead and use the
+> icon or image I chose for my note.
+> I want to easily relate one note to another. I will do this by using tags. So if I create a bunch of notes
+> about my pal Bob and tag them all with bob, I will find all the bob notes.
+> Sometimes I don't want anyone else to see my notes.
+> Sometimes I want to share a note with the whole party.
+> Sometimes I may want to share the note with just one or two people.
+> I don't want taking notes to feel heavy and like I just opened Word.
 
-Blacksmith has **three annotation systems with three different storage strategies**. Notes would be a fourth.
+Everything below is answerable against those nine lines. Anything that is not traceable to one of them is a
+candidate for the "klunky and just too much" the author named.
 
-| System | Storage | Answers "what is attached to X?" | Answers "what is X attached to?" |
-|---|---|---|---|
-| **GM Notes** | `flags[MODULE.ID].gmNotes` on the target document, with a section map keyed by module | Yes -- read one flag | No -- a note cannot exist apart from its target |
-| **Tags** | Central world setting `tagAssignments`: `{ [contextKey]: { [recordId]: string[] } }` | Yes -- one lookup | Yes -- scan one store |
-| **Pins** | `scene.flags[MODULE.ID].pins` when placed, world setting `pinsUnplaced` when not | Partially -- scan scenes plus the unplaced store | Yes -- the pin carries its own target |
+## Decisions
 
-**Tags is the one that already passes the test**, and it passes it because the assignment store is central and
-consuming modules do not keep their own copy. That is the precedent to follow, and it is not theoretical --
-it is shipped and in use.
+### 1. Collaborative editing, and no locks
 
-**Pins already has the "annotation with no anchor yet" case solved.** The `pinsUnplaced` store exists and its
-documented purpose is "used for notes, quests, etc." A note with no location is an unplaced pin by another
-name.
+Foundry v13 supports it natively -- `HTMLProseMirrorElement.create({ collaborate: true, documentUUID,
+name: 'text.content' })`, per `client/applications/elements/prosemirror-editor.mjs:14-16,202-207,365-370`.
+Squire wanted this, could not get it working, and added edit locks as the fallback. Locks are the workaround,
+so if collab works they go entirely rather than sitting alongside it.
 
-## What a Squire note actually is
+**This also removes the untitled-notes bug, for free.** Squire created a draft page on first interaction
+*because collaborative editing needs a document to bind to*, which is why a click that went nowhere left an
+"Untitled Note" behind. But a note being created has no other editors -- nobody can co-edit something that
+does not exist yet.
 
-A `JournalEntryPage` of `type: 'text'` carrying `flags['coffee-pub-squire']`:
+- **New note:** plain editor, no document, page created on save. No draft, nothing to reap.
+- **Existing note:** collaborative editor bound to the page.
 
-| Flag | Duplicates |
+If collab turns out not to work in practice, the fallback is a lock -- but it is a fallback, not a
+second mechanism, and the new/existing split above stands either way.
+
+### 2. Visibility is ownership, in three shapes, and it absorbs give-to
+
+| Shape | Page ownership |
 |---|---|
-| `tags` | Blacksmith's Tags system, which has a central store this bypasses |
-| `sceneId`, `x`, `y` | Blacksmith's Pins, which is where a canvas anchor belongs |
-| `visibility`, `authorId`, `editorIds` | Foundry document ownership, partially |
-| `noteType: 'sticky'`, `timestamp` | nothing -- these are genuinely the note's own |
+| Private | author + GMs |
+| Party | every player + GMs |
+| Shared with... | author + chosen users + GMs |
 
-Plus a `pinId` flag linking to a real Blacksmith pin, and `manager-pins.js` -- 2,325 lines in Squire -- wrapping
-the pins API so panels never touch it directly.
+One mechanism, two presets, and a picker. Expressed as real Foundry ownership so it holds where Blacksmith
+is not the one asking -- a compendium export, a plain journal browse, another module's sheet.
 
-**So the port is a consolidation, not a transplant.** Three of the four flag groups already have a better home
-in Blacksmith. That is the argument for the move restated as code rather than principle.
+**Give-to stops being a feature.** Handing Bob a note is sharing it with Bob and optionally dropping
+yourself. Squire had a whole transfer window for this; it is one control now.
 
-## The model
+**Phase 1: the GM sees everything**, and can see and edit who has access. The "shared with Bob, Mira" display
+is a GM affordance, not a per-player one.
 
-**An annotation is a triple: `(note, target, anchor)`.**
+### 3. The pin mirrors the note
 
-- A **note** is a document. Keep using `JournalEntryPage` -- it brings Foundry's editor, ownership, search,
-  compendium export, and links for free. Reinventing that is how this becomes a fancy journal.
-- A **target** is a UUID: an Actor, Item, Scene, Journal Page, or anything else.
-- An **anchor** says *where* on the target: nothing at all (the whole document), a canvas point, or a region.
+The note carries **one** icon: `{ type: 'fa'|'img', value }`. When pinned, the pin uses it. The ten
+`notePin*` appearance flags Squire kept on the page stop existing -- pin design belongs to the pin, and
+Blacksmith's own pin config window already edits it for anyone who wants to override.
 
-Every existing system is then one view of that triple:
+**Pin ownership mirrors page ownership**, the same users map. This is the crossover the author flagged, and
+Blacksmith's own guidance already answers it: hiding a marker from a player is done with `ownership`, not
+`blacksmithVisibility` (`squire/documents/guides/developer-note-pin-editing-visibility.md`, "Solo" section).
+So:
 
-| View | What it is |
+| Note | Pin |
 |---|---|
-| GM Notes | annotations where the anchor is the whole document, rendered on the target's sheet |
-| Pins | annotations whose anchor is a canvas point -- already true today |
-| Cartographer's markup | annotations whose anchor is a map region -- the third anchor, and the reason the model needs to generalise |
-| The Notes window | the note itself, listing what it is attached to |
+| private | ownership: author + GMs; `blacksmithVisibility: 'visible'`; `blacksmithAccess: 'private'` |
+| party | ownership: everyone; same |
+| shared | ownership: author + chosen + GMs; same |
 
-**A note with many targets is the case none of the three current systems handles**, and it is the ordinary
-case: "we need to get that thing in that place" is one thought about two documents.
+`blacksmithVisibility` stays `visible` in every case. Re-sharing a note rewrites its pin's ownership in the
+same operation -- Blacksmith owns both sides now, so this is a direct write rather than Squire's
+`resolveOwnership` hook plus a sync pass.
 
-## Storage -- decided, and it diverges from Tags on purpose
+**Lifecycle:** deleting a note deletes its pin. Deleting a pin unpins the note, and does not delete it.
+Squire needed a `_cleanupMissingPins` sweep because it could not guarantee that; owning both sides, we can.
 
-**Annotations live in flags on the note page, with an in-memory index for target lookups.**
+**Is a pinned note an annotation with a `point` anchor?** Yes -- that is what makes `getByTarget(scene)`
+return the notes pinned to it, and it is the answer to the gate for the canvas. The pin id lives in the
+anchor, exactly as `api-notes.md` already specifies.
 
-`flags[MODULE.ID].annotations` on the `JournalEntryPage` holds an array of `{ id, targetUuid, anchor, ... }`.
-An index built at `ready` and maintained on page create/update/delete answers "what is attached to X".
+### 4. Tags are the relationship mechanism
 
-Tags uses a central world setting and that is right *for tags*, because a tag assignment has no owning
-document -- a tag on a pin is not itself a thing. An annotation always has one: the note. That difference
-drives three consequences, and they are why the precedent is not followed here:
+Already built, already shared with Pins. "All the bob notes" is a tag filter. No note-to-note linking
+feature is needed and none should be added.
 
-- **Player writes need no GM proxy.** A player who owns their note owns its flags. A central world setting
-  would force every player annotation through `requestGM`, which Pins has to do and which is the part most
-  likely to break quietly. Notes are player-authored in play; making the common case require a GM round trip
-  would be backwards.
-- **Lifecycle is automatic.** Delete the note, the annotations go with it. A central store needs orphan
-  cleanup forever, and orphan cleanup is a job nobody remembers to write.
-- **Annotations travel with the note** through export, import, and compendium moves.
+### 5. The list keeps search and tags. Everything else goes.
 
-The cost is that "what is attached to X" is a scan rather than a lookup, which is why the index exists. It is
-rebuilt at `ready` and kept current by hooks. **If the index turns out to be the wrong call, the flags remain
-the source of truth and it can be replaced without a data migration** -- which is the main reason to put truth
-on the document rather than in a derived store.
+Squire had search, tag chips, a scene dropdown, a visibility tri-toggle, and a sort mode. The author's test
+is "if we can make it easy to get to notes, simple is better."
 
-**Anchors are a discriminated shape**, not a set of loose fields:
+- **Keep:** search, tag chips. Those are "find the bob notes".
+- **Drop:** the scene dropdown and the ALL/PARTY/PRIVATE tri-toggle. A privacy *indicator* on each row stays;
+  filtering by it is a different thing and nobody asked for it.
+- **Sort:** newest first. Not a control.
 
-| `anchor.kind` | Payload | Owned by |
-|---|---|---|
-| `document` | none -- the annotation is about the whole target | Notes |
-| `point` | `pinId` | Pins. There is one placement implementation and this is it. |
-| `region` | Cartographer's shape, not yet defined | Cartographer |
+### 6. Creation stays two-doored
 
-A point anchor delegating to Pins is what stops this becoming a second placement system, and it reuses the
-`pinsUnplaced` store for a note that has no location yet.
+- A **quick note** tool in the menubar's left zone, as today.
+- A **new note** control inside the notes window.
 
-## Decisions taken 2026-08-09
+Both open the same editor. Quick note is the one that has to feel weightless.
 
-- **`api.gmNotes` is left alone** and gains one read-only "related notes" section listing annotations that
-  target the document. Nothing consuming gmNotes changes. Beyond being reversible, there is a technical
-  reason: gmNotes' provider sections are in-memory and rendered at request time, so a full merge would have
-  to keep two mechanisms anyway.
-- **Cartographer gets the annotation-first API**: attach a note to a region. That is what its current hacky
-  markup already does, so the demand is proven rather than assumed, and it is the smaller surface.
-- **World documents only.** A note about a packed compendium entry is curation, which is Codex and
-  Librarian's job. This keeps the Notes/Codex line where `TODO-GLOBAL.md` drew it. Pack UUIDs are not
-  structurally excluded, but nothing is built for them.
+### 7. "Not like I opened Word"
 
-## What Notes must NOT become
+The one requirement with no obvious mechanism, so it is stated as a constraint on the UI rather than a
+feature: **title and body are visible; icon, pin, and sharing are reached for.** A note you never share and
+never pin should require touching nothing but the title and the body.
 
-- **A second tag system.** Notes' tags go into `tagAssignments` under a Blacksmith context key. Squire's
-  per-page `tags` flag is migrated and then dropped.
-- **A second placement system.** A canvas anchor is a pin. There is one pin implementation.
-- **A second annotation API.** `api.gmNotes` stays as the surface it is; it becomes a view over the
-  relationship rather than a parallel store. Consumers of `gmNotes` should not have to change.
+## What of the shipped code survives
 
-## Phasing
+| Shipped | Verdict |
+|---|---|
+| annotation layer (`manager-notes.js` reads/writes, index) | keep -- verified, and it is the gate |
+| Related Notes gmNotes section | keep |
+| `createNote` / `updateNote` / `deleteNote` / `listNotes` | keep the shape; visibility grows the third case |
+| visibility as ownership | keep -- correct, just incomplete |
+| tags via the Tags registry | keep |
+| `notesJournal` setting, Squire adoption | keep |
+| the list window | **deleted 2026-08-09**, unbuilt. Keeping it would have anchored the rebuild to the wrong shape. |
+| the editor window | **deleted 2026-08-09**, unbuilt. Same reason. |
+| the harness suite | extend rather than replace |
 
-1. ~~**The annotation store and its API.**~~ **Done and verified 2026-08-09** -- 35/35 harness assertions,
-   `utilities/tests/suite-notes.js`. Surface in `api/api-notes.md`, mechanism in
-   `architecture/architecture-notes.md`, history in `CHANGELOG.md`. The gate passes.
-2. ~~**`gmNotes` gains a read-only "Related Notes" section.**~~ **Done 2026-08-09** --
-   `scripts/ui-notes-gmnotes-section.js`, registered as a live provider so it reads the index at render
-   time and writes nothing into anyone's flags. Brought forward from position 4 because Phase 1 shipped with
-   no visible surface at all, and a first consumer validates the API shape before the window port commits to
-   it. Filters by the viewer's permission on the NOTE -- `getByTarget` reads the store and does not.
+## Open, still
 
-3. **The Notes window**, ported from Squire, reading the store rather than page flags. **Bigger than the
-   four tool ports and a different kind of work**: `squire/scripts/window-note.js` is 1,144 lines carrying an
-   edit-lock system with expiry and touch, draft handling, and visibility-to-ownership syncing. The locks are
-   a multi-user concurrency model that a single-client harness cannot verify, so that part needs a second
-   client and should be scoped as its own step rather than folded into the port.
-4. **Migration** from Squire's flags: `tags` into `tagAssignments`, `sceneId`/`x`/`y` into pins, targets into
-   the annotation store. Squire's `windowStates` precedent applies -- do not orphan user data.
-5. **Cartographer's region anchor**, which is the first consumer that is not Blacksmith or Squire.
-
-Squire keeps nothing here: Notes leaves whole, and its `manager-pins.js` wrapper largely stops existing.
+1. **Does collab actually work** bound to a `JournalEntryPage` field in a world with two clients? Everything
+   in decision 1 rests on it, and it cannot be proven single-client.
+2. **Quick note's shape.** "Weightless" needs a concrete answer: a one-field capture that expands, or the
+   full editor opened small.
+3. **Does the icon picker fit the tool window**, or does choosing an icon open Blacksmith's pin config?

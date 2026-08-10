@@ -10,12 +10,56 @@
 //
 // ==================================================================
 
-import { NotesManager, ANCHOR_KINDS } from './manager-notes.js';
+import { NotesManager, ANCHOR_KINDS, NOTE_VISIBILITY, NOTE_TAG_CONTEXT } from './manager-notes.js';
 
 export const NotesAPI = {
 
     /** Anchor kinds: `document`, `point`, `region`. */
     ANCHOR_KINDS,
+
+    /** Visibility values: `private` (author + GMs) or `party` (everyone). */
+    VISIBILITY: NOTE_VISIBILITY,
+
+    /** Tag context key for notes, for anyone reading the Tags registry directly. */
+    TAG_CONTEXT: NOTE_TAG_CONTEXT,
+
+    // ---- the notes themselves ----
+
+    /**
+     * Create a note in the configured notes journal.
+     * @param {object} [data] `{ title, content, visibility, tags }`
+     * @returns {Promise<JournalEntryPage|null>} null when refused
+     */
+    createNote: (data) => NotesManager.createNote(data),
+
+    /**
+     * Change a note's title, content, or visibility.
+     * Visibility rewrites Foundry ownership -- that is what makes it private.
+     * @returns {Promise<boolean>}
+     */
+    updateNote: (note, changes) => NotesManager.updateNote(note, changes),
+
+    /** Delete a note. Its annotations and tags go with it. */
+    deleteNote: (note) => NotesManager.deleteNote(note),
+
+    /**
+     * Notes the current user can see, filtered by permission rather than by flag.
+     * @param {object} [options] `{ tag, authorId }`
+     * @returns {JournalEntryPage[]}
+     */
+    listNotes: (options) => NotesManager.listNotes(options),
+
+    /** Whether a page is a note. */
+    isNote: (page) => NotesManager.isNote(page),
+
+    /** The configured notes journal, or null when a GM has not chosen one. */
+    getNotesJournal: () => NotesManager.getNotesJournal(),
+
+    /** A note's tags, from the shared Tags registry. */
+    getNoteTags: (note) => NotesManager.getNoteTags(note),
+
+    /** Replace a note's tags. */
+    setNoteTags: (note, tags) => NotesManager.setNoteTags(note, tags),
 
     /**
      * Attach a note to a target.

@@ -115,3 +115,65 @@ refuses is the failure this call exists to prevent.
 **World documents only.** A note about a compendium entry is curation, which belongs to Codex rather than
 here. Pack UUIDs are not structurally rejected, but nothing is built for them and the index does not walk
 packs.
+
+## The notes themselves
+
+An annotation needs a note to point at. These create and manage them.
+
+```js
+const note = await blacksmith.notes.createNote({
+    title: 'The duke is lying',
+    content: '<p>He knew about the shipment.</p>',
+    visibility: blacksmith.notes.VISIBILITY.PARTY,   // or PRIVATE, the default
+    tags: ['intrigue', 'waterdeep']
+});
+
+await blacksmith.notes.updateNote(note, { title, content, visibility });
+await blacksmith.notes.deleteNote(note);
+
+blacksmith.notes.listNotes();                     // everything this user can see
+blacksmith.notes.listNotes({ tag: 'intrigue' });
+blacksmith.notes.listNotes({ authorId: game.user.id });
+blacksmith.notes.isNote(page);
+```
+
+A note is an ordinary `JournalEntryPage` of type `text`, flagged as a note. It is **not** a document
+subtype - so a note remains a readable journal page if Blacksmith is ever uninstalled, and Blacksmith
+declares no subtypes of its own.
+
+Notes live as pages inside one GM-chosen journal, named by the `notesJournal` world setting. `createNote`
+returns `null` and warns if no journal is configured, or if the user lacks OBSERVER on it.
+
+### Visibility is ownership
+
+| Value | Who owns the page |
+|---|---|
+| `private` | the author, plus every GM |
+| `party` | every player, plus every GM |
+
+Changing visibility **rewrites Foundry ownership**. The flag records the intent; the ownership is what is
+enforced. A note a player should not see is one they cannot load - which is why `listNotes` filters on
+permission rather than on the flag.
+
+### Tags
+
+```js
+blacksmith.notes.getNoteTags(note);
+await blacksmith.notes.setNoteTags(note, ['intrigue', 'waterdeep']);
+```
+
+Stored in the shared Tags registry under `blacksmith.notes.TAG_CONTEXT`, not on the page. That is why a tag
+used by a note and a tag used by a pin are the same tag rather than two spellings of one.
+
+Deleting a note clears its assignments. They are keyed by page id, so a missed cleanup would orphan them
+with no way to find them again.
+
+### Hooks
+
+`blacksmith.notes.created`, `blacksmith.notes.updated`, `blacksmith.notes.deleted`, each with `{ noteUuid }`.
+
+### No UI yet
+
+There is no notes list or editor window. The API above is complete and usable; the surfaces that consume it
+are being designed rather than ported, because the first attempt reproduced a journal listing. Until they
+exist, notes are created and edited through this API.

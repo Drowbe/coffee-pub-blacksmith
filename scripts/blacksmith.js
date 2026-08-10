@@ -566,6 +566,9 @@ Hooks.once('ready', async () => {
         LoadingProgressManager.logActivity("Indexing notes...");
         try {
             NotesManager.initialize();
+            // Claim Squire's note pages before any surface lists them, so a note
+            // never appears missing on the load that adopts it.
+            void NotesManager.adoptSquireNotes();
             // After the index: the provider reads it on every GM Notes render.
             registerRelatedNotesSection();
         } catch (e) {

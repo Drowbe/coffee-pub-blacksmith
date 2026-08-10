@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [unreleased]
+
+### Added
+
+- **The note data layer** (`scripts/manager-notes.js`, `scripts/api-notes.js`): `createNote`, `updateNote`, `deleteNote`, `listNotes`, `isNote`, `getNoteTags`, `setNoteTags`. Surface in `documentation/api/api-notes.md`. **No UI yet** -- the list and editor windows are not part of this release; see the note below.
+
+  A note is a plain text `JournalEntryPage` flagged as a note, with tags in the shared Tags registry rather than a private list, and privacy expressed as Foundry ownership rather than a flag.
+
+  **Visibility is real ownership, not a flag.** `private` grants the author and every GM; `party` grants every player. Changing it rewrites the page's `ownership`, and `listNotes` filters on permission rather than on the flag -- a note somebody should not see is one they cannot load, which is the only version of privacy worth having. GMs are always granted, because a GM who writes a private note and then cannot open it is the failure every system that forgot this discovers late.
+
+  **Notes are not a document subtype**, deliberately. They stay readable journal pages if Blacksmith is uninstalled, and Blacksmith continues to declare no subtypes at all -- the line `TODO-GLOBAL.md` draws between a surface and a domain, and the constraint the import/export work depends on.
+
+- **`notesJournal` setting.** Notes are pages inside one GM-chosen journal rather than an entry each, so a world with two hundred notes does not get two hundred sidebar entries. The GM picks it because the ownership is theirs to set: players need OBSERVER on that entry before they can write a note at all.
+
+- **Squire's notes are adopted on first load** (`NotesManager.adoptSquireNotes`). Pages flagged `noteType: 'sticky'` under Squire's namespace become Blacksmith notes: visibility, author, and timestamp translate to equivalent flags, and tags move into the shared registry. Squire's own flags are **not** deleted -- leaving them costs a few bytes and means a world can be rolled back to a Squire release without its notes having been quietly rewritten. Ownership is not recomputed either, since Squire set it from the same model and a rewrite could only overwrite a GM's manual edit. Guarded per world, GM-only, and left unmarked on failure so it retries rather than losing anything.
+
+  Squire's `notesJournal` setting is adopted alongside it, and had to be: without it the note adoption finds no journal and silently does nothing on the one load that was meant to migrate them.
+
+### Not in this release
+
+- **The Notes list and editor windows were built and then removed before release.** They were written without reading Squire's own `documents/architecture-notes.md`, and what they produced was a list of journal pages with tags -- which fails the test the design sets for itself, that a note system must answer "what is attached to this thing" rather than merely listing documents. Squire's Notes is a note, a canvas pin, and a tag assignment as one object; building the document and leaving the relationships as attributes is what produced a fancy journal.
+
+  The data layer above survives because it was built from the data model, which was read correctly. The design that replaces the UI is in `documentation/plans/plan-notes.md`, written against the author's own requirements, with the system it replaces inventoried in `plan-notes-inventory.md`. **Squire is not yet unblocked on Notes** -- it still owns the only working implementation.
+
+
 ## [13.16.1]
 
 ### Added

@@ -270,6 +270,125 @@ export default {
             }
         },
 
+        // ---------- the notes themselves ----------
+        {
+            id: 'create-read-delete',
+            label: 'Create, list, and delete a note',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'Needs a notes journal configured in Blacksmith settings. Skips cleanly without one.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote', 'notes.listNotes', 'notes.deleteNote');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — set one under Settings > Notes to run this.');
+                    return;
+                }
+
+                const title = `ZZ Harness ${foundry.utils.randomID(6)}`;
+                const note = await api.notes.createNote({ title, content: '<p>body</p>' });
+                if (!expect.ok('createNote returned a page', !!note)) return;
+
+                try {
+                    expect('title stored', note.name, title);
+                    expect.ok('flagged as a note', api.notes.isNote(note));
+                    expect.ok('appears in listNotes', api.notes.listNotes().some(n => n.id === note.id));
+                } finally {
+                    expect('deleteNote reported success', await api.notes.deleteNote(note), true);
+                    expect.ok('gone from listNotes', !api.notes.listNotes().some(n => n.id === note.id));
+                }
+            }
+        },
+        {
+            id: 'visibility-writes-ownership',
+            label: 'Visibility is real Foundry ownership, not a flag',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'The privacy model rests on this. A flag nobody enforces is not privacy.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote', 'notes.updateNote');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — skipping.');
+                    return;
+                }
+
+                const note = await api.notes.createNote({ title: `ZZ Vis ${foundry.utils.randomID(6)}` });
+                if (!expect.ok('note created', !!note)) return;
+
+                try {
+                    expect('default ownership is NONE', note.ownership.default, CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE);
+                    expect('private by default', note.getFlag('coffee-pub-blacksmith', 'visibility'), 'private');
+
+                    await api.notes.updateNote(note, { visibility: 'party' });
+                    const players = game.users.filter(u => !u.isGM);
+                    if (players.length) {
+                        expect.ok('party visibility grants every player ownership',
+                            players.every(u => note.ownership[u.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER));
+                    } else {
+                        log('No non-GM users in this world — the party half could not be checked.');
+                    }
+                    expect.ok('GMs always own it',
+                        game.users.filter(u => u.isGM).every(u => note.ownership[u.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER));
+                } finally {
+                    await api.notes.deleteNote(note);
+                }
+            }
+        },
+        {
+            id: 'tags-go-to-the-registry',
+            label: 'Note tags live in the shared Tags registry',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'Not on the page. Squire kept its own list, which is how one tag ends up spelled two ways.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote', 'notes.getNoteTags', 'tags.getTags');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — skipping.');
+                    return;
+                }
+
+                const note = await api.notes.createNote({
+                    title: `ZZ Tags ${foundry.utils.randomID(6)}`,
+                    tags: ['harness-alpha', 'harness-beta']
+                });
+                if (!expect.ok('note created', !!note)) return;
+
+                try {
+                    const tags = api.notes.getNoteTags(note);
+                    expect.ok('both tags read back', tags.includes('harness-alpha') && tags.includes('harness-beta'));
+                    expect.ok('and they are in the Tags store, not a page flag',
+                        (api.tags.getTags(api.notes.TAG_CONTEXT, note.id) ?? []).includes('harness-alpha'));
+                    expect('no tags flag on the page', note.getFlag('coffee-pub-blacksmith', 'tags'), undefined);
+                } finally {
+                    await api.notes.deleteNote(note);
+                }
+            }
+        },
+        {
+            id: 'delete-clears-tags',
+            label: 'Deleting a note clears its tag assignments',
+            tier: 'headless',
+            group: 'Notes',
+            note: 'Tags are keyed by page id, so a missed cleanup orphans them permanently.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('notes.createNote', 'tags.getTags');
+                if (!api.notes.getNotesJournal()) {
+                    log('No notes journal selected — skipping.');
+                    return;
+                }
+
+                const note = await api.notes.createNote({
+                    title: `ZZ Orphan ${foundry.utils.randomID(6)}`,
+                    tags: ['harness-orphan']
+                });
+                if (!expect.ok('note created', !!note)) return;
+
+                const pageId = note.id;
+                await api.notes.deleteNote(note);
+                expect('no assignments left behind',
+                    (api.tags.getTags(api.notes.TAG_CONTEXT, pageId) ?? []).length, 0);
+            }
+        },
+
         // ---------- needs a person ----------
         {
             id: 'player-can-annotate-own-note',

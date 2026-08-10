@@ -39,6 +39,34 @@ import { HookManager } from './manager-hooks.js';
 const FLAG_KEY = 'annotations';
 
 /**
+ * Marks a JournalEntryPage as a note.
+ *
+ * A note is an ordinary text page, not a document subtype. That is deliberate and
+ * it is the line drawn in TODO-GLOBAL: owning a subtype means owning a domain, and
+ * notes are a surface over documents Foundry already owns. It also means a note
+ * survives Blacksmith being uninstalled -- it degrades to the journal page it
+ * always was, rather than becoming unreadable.
+ */
+const NOTE_TYPE_FLAG = 'noteType';
+const NOTE_TYPE = 'note';
+
+/** Tag context key, so note tags land in the shared registry rather than a private list. */
+export const NOTE_TAG_CONTEXT = `${MODULE.ID}.note`;
+
+/**
+ * Who can read a note.
+ *
+ * Two values only. `private` is the author plus GMs; `party` is every player.
+ * Both are expressed as real Foundry ownership rather than a flag Blacksmith
+ * checks, so permission holds even where Blacksmith is not the one asking --
+ * a compendium export, a direct journal browse, another module's sheet.
+ */
+export const NOTE_VISIBILITY = Object.freeze({
+    PRIVATE: 'private',
+    PARTY: 'party'
+});
+
+/**
  * Where an annotation attaches on its target.
  *
  * `point` carries a `pinId` rather than coordinates, because Pins already owns
@@ -169,6 +197,305 @@ export class NotesManager {
         import('./manager-gmnotes.js')
             .then(({ GMNotesManager }) => GMNotesManager.notifySectionsChanged?.(targetUuid))
             .catch(() => { /* GM Notes absent: nothing is showing the section anyway */ });
+    }
+
+    // ==============================================================
+    // ===== NOTES: THE DOCUMENTS ===================================
+    // ==============================================================
+
+    /** Whether a page is one of ours. */
+    static isNote(page) {
+        return page?.getFlag?.(MODULE.ID, NOTE_TYPE_FLAG) === NOTE_TYPE;
+    }
+
+    /**
+     * The journal notes are written into, or null.
+     *
+     * Notes are pages in one GM-chosen JournalEntry rather than an entry each,
+     * because a world with two hundred notes should not have two hundred entries
+     * in the sidebar. The GM picks it so the ownership is theirs to set -- players
+     * need OBSERVER on that entry to create notes at all.
+     */
+    static getNotesJournal() {
+        try {
+            const id = game.settings.get(MODULE.ID, 'notesJournal');
+            if (!id || id === 'none') return null;
+            return game.journal.get(id) ?? null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    /**
+     * Foundry ownership for a note, derived from its visibility.
+     *
+     * Expressed as real ownership rather than a flag readers must consult: a note
+     * a player should not see is one they cannot load, which is the only version
+     * of privacy worth having.
+     */
+    static buildNoteOwnership(visibility, authorId) {
+        const users = {};
+        if (visibility === NOTE_VISIBILITY.PARTY) {
+            for (const user of game.users) {
+                if (!user.isGM) users[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+            }
+        }
+        if (authorId) users[authorId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+        // GMs always own. Without this a GM could write a private note and then be
+        // unable to open it, which has happened in every system that forgot it.
+        for (const user of game.users) {
+            if (user.isGM) users[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+        }
+        return { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE, users };
+    }
+
+    /**
+     * Create a note.
+     *
+     * @param {object} [data]
+     * @param {string} [data.title]
+     * @param {string} [data.content] HTML
+     * @param {string} [data.visibility] `private` (default) or `party`
+     * @param {string[]} [data.tags] stored in Blacksmith's Tags registry, not on the page
+     * @returns {Promise<JournalEntryPage|null>} null when refused
+     */
+    static async createNote({ title = '', content = '', visibility = NOTE_VISIBILITY.PRIVATE, tags = [] } = {}) {
+        const journal = this.getNotesJournal();
+        if (!journal) {
+            ui.notifications.error('No notes journal is selected. A GM sets one in Blacksmith settings.');
+            return null;
+        }
+        if (!journal.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) {
+            ui.notifications.error('You do not have permission to create notes in that journal.');
+            return null;
+        }
+
+        const resolvedVisibility = visibility === NOTE_VISIBILITY.PARTY
+            ? NOTE_VISIBILITY.PARTY
+            : NOTE_VISIBILITY.PRIVATE;
+
+        try {
+            const [page] = await journal.createEmbeddedDocuments('JournalEntryPage', [{
+                name: title?.trim() || 'Untitled Note',
+                type: 'text',
+                text: { content: content || '' },
+                ownership: this.buildNoteOwnership(resolvedVisibility, game.user.id),
+                flags: {
+                    [MODULE.ID]: {
+                        [NOTE_TYPE_FLAG]: NOTE_TYPE,
+                        visibility: resolvedVisibility,
+                        authorId: game.user.id,
+                        timestamp: new Date().toISOString()
+                    }
+                }
+            }]);
+            if (!page) return null;
+
+            // Tags go to the shared registry rather than a flag on the page. Squire
+            // kept its own list, which is why the same tag existed twice with two
+            // spellings depending on which surface wrote it.
+            if (tags.length) await this.setNoteTags(page, tags);
+
+            Hooks.callAll('blacksmith.notes.created', { noteUuid: page.uuid });
+            return page;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not create the note', error?.message ?? error, false, false);
+            ui.notifications.error('Could not create the note.');
+            return null;
+        }
+    }
+
+    /**
+     * Update a note's content, title, or visibility.
+     *
+     * Changing visibility rewrites ownership, which is the operation that actually
+     * makes a note private or shared -- the flag is only a record of intent.
+     */
+    static async updateNote(note, { title = null, content = null, visibility = null } = {}) {
+        const page = typeof note === 'string' ? fromUuidSync(note) : note;
+        if (!page) return false;
+        if (!page.isOwner) {
+            ui.notifications.warn('You do not have permission to edit that note.');
+            return false;
+        }
+
+        const update = {};
+        if (title !== null) update.name = title.trim() || 'Untitled Note';
+        if (content !== null) update['text.content'] = content;
+
+        if (visibility !== null) {
+            const resolved = visibility === NOTE_VISIBILITY.PARTY
+                ? NOTE_VISIBILITY.PARTY
+                : NOTE_VISIBILITY.PRIVATE;
+            update[`flags.${MODULE.ID}.visibility`] = resolved;
+            const authorId = page.getFlag(MODULE.ID, 'authorId') ?? game.user.id;
+            update.ownership = this.buildNoteOwnership(resolved, authorId);
+        }
+
+        if (!Object.keys(update).length) return false;
+
+        try {
+            await page.update(update);
+            Hooks.callAll('blacksmith.notes.updated', { noteUuid: page.uuid });
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not update the note', error?.message ?? error, false, false);
+            return false;
+        }
+    }
+
+    /** Delete a note. Its annotations go with it -- they live on the page. */
+    static async deleteNote(note) {
+        const page = typeof note === 'string' ? fromUuidSync(note) : note;
+        if (!page) return false;
+        if (!page.isOwner) {
+            ui.notifications.warn('You do not have permission to delete that note.');
+            return false;
+        }
+        const uuid = page.uuid;
+        try {
+            // Drop the tag assignments first: the record id is the page id, and once
+            // the page is gone there is nothing left to say which entry was its.
+            await this.setNoteTags(page, []);
+            await page.delete();
+            Hooks.callAll('blacksmith.notes.deleted', { noteUuid: uuid });
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not delete the note', error?.message ?? error, false, false);
+            return false;
+        }
+    }
+
+    /**
+     * Every note the current user can see.
+     *
+     * Filtered by permission rather than by the visibility flag, because ownership
+     * is the thing that is actually enforced and the flag is only its record.
+     *
+     * @param {object} [options]
+     * @param {string} [options.tag] only notes carrying this tag
+     * @param {string} [options.authorId] only notes by this user
+     * @returns {JournalEntryPage[]}
+     */
+    static listNotes({ tag = null, authorId = null } = {}) {
+        const journal = this.getNotesJournal();
+        if (!journal) return [];
+
+        let notes = journal.pages.contents.filter((page) => (
+            this.isNote(page) && page.testUserPermission(game.user, 'OBSERVER')
+        ));
+
+        if (authorId) {
+            notes = notes.filter((page) => page.getFlag(MODULE.ID, 'authorId') === authorId);
+        }
+        if (tag) {
+            notes = notes.filter((page) => this.getNoteTags(page).includes(tag));
+        }
+        return notes;
+    }
+
+    // ---- tags, delegated to the Tags system ----
+
+    /** Tags on a note. Read from the shared registry, not from the page. */
+    static getNoteTags(note) {
+        const page = typeof note === 'string' ? fromUuidSync(note) : note;
+        if (!page) return [];
+        try {
+            return game.modules.get(MODULE.ID)?.api?.tags?.getTags?.(NOTE_TAG_CONTEXT, page.id) ?? [];
+        } catch (_) {
+            return [];
+        }
+    }
+
+    /** Replace a note's tags. */
+    static async setNoteTags(note, tags = []) {
+        const page = typeof note === 'string' ? fromUuidSync(note) : note;
+        if (!page) return false;
+        try {
+            await game.modules.get(MODULE.ID)?.api?.tags?.setTags?.(NOTE_TAG_CONTEXT, page.id, tags);
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not write tags', error?.message ?? error, true, false);
+            return false;
+        }
+    }
+
+    // ==============================================================
+    // ===== ADOPTING SQUIRE'S NOTES ================================
+    // ==============================================================
+
+    /**
+     * Claim Squire's note pages as Blacksmith notes, once.
+     *
+     * Squire stored a note as a text page flagged `noteType: 'sticky'` under its own
+     * namespace, carrying `tags`, `visibility`, `authorId`, and `timestamp`. Three of
+     * those have a better home here, so this is a translation rather than a copy:
+     * tags move into the shared registry, and everything else becomes Blacksmith
+     * flags of the same meaning.
+     *
+     * What it does NOT do is delete Squire's flags. Leaving them costs a few bytes
+     * and means a world can be rolled back to a Squire release without the notes
+     * having been quietly rewritten out from under it. Squire drops them when it
+     * removes the feature.
+     *
+     * GM only -- it writes page flags across the whole notes journal, and a player
+     * would fail on every page they do not own. Guarded per world.
+     *
+     * @returns {Promise<number>} how many notes were adopted this run
+     */
+    static async adoptSquireNotes() {
+        if (!game.user?.isGM) return 0;
+
+        let ledger;
+        try {
+            ledger = game.settings.get(MODULE.ID, 'adoptedSettingsWorld') ?? [];
+        } catch (_) {
+            return 0;
+        }
+        const LEDGER_KEY = 'coffee-pub-squire:notes';
+        if (ledger.includes(LEDGER_KEY)) return 0;
+
+        const journal = this.getNotesJournal();
+        if (!journal) return 0;   // nothing to adopt into yet; try again next load
+
+        let adopted = 0;
+        try {
+            for (const page of journal.pages.contents) {
+                // Already ours, or never Squire's.
+                if (this.isNote(page)) continue;
+                if (page.getFlag('coffee-pub-squire', 'noteType') !== 'sticky') continue;
+
+                const visibility = page.getFlag('coffee-pub-squire', 'visibility') === 'party'
+                    ? NOTE_VISIBILITY.PARTY
+                    : NOTE_VISIBILITY.PRIVATE;
+                const authorId = page.getFlag('coffee-pub-squire', 'authorId') ?? null;
+                const timestamp = page.getFlag('coffee-pub-squire', 'timestamp') ?? null;
+                const tags = page.getFlag('coffee-pub-squire', 'tags');
+
+                await page.update({
+                    [`flags.${MODULE.ID}.${NOTE_TYPE_FLAG}`]: NOTE_TYPE,
+                    [`flags.${MODULE.ID}.visibility`]: visibility,
+                    [`flags.${MODULE.ID}.authorId`]: authorId,
+                    [`flags.${MODULE.ID}.timestamp`]: timestamp
+                    // Ownership is deliberately NOT rewritten. Squire already set it
+                    // from the same visibility model, so recomputing would at best
+                    // change nothing and at worst overwrite a GM's manual edit.
+                });
+
+                if (Array.isArray(tags) && tags.length) await this.setNoteTags(page, tags);
+                adopted++;
+            }
+
+            await game.settings.set(MODULE.ID, 'adoptedSettingsWorld', [...ledger, LEDGER_KEY]);
+            if (adopted) {
+                postConsoleAndNotification(MODULE.NAME, `Notes: adopted ${adopted} note(s) from Squire`, '', false, false);
+            }
+        } catch (error) {
+            // Not marked done, so a failure retries next load rather than losing the
+            // notes. Partial progress is safe: adopted pages are skipped by isNote.
+            postConsoleAndNotification(MODULE.NAME, 'Notes: adopting Squire notes failed; will retry next load', error?.message ?? error, false, false);
+        }
+        return adopted;
     }
 
     // ==============================================================

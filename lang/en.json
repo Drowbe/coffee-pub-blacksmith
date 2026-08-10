@@ -149,6 +149,12 @@
 				"sidebarCombatChatEnabled-Label": "Combat Chat",
 				"sidebarCombatChatEnabled-Hint": "Add a tab that will combine the combat and chat tabs into a single tab. This is useful for players to see the combat and chat log in one place.",
 
+			"headingH3Notes-Label": "Notes",
+			"headingH3Notes-Hint": "",
+
+				"notesJournal-Label": "Notes Journal",
+				"notesJournal-Hint": "The journal that holds player and GM notes. Give it 'All Players = Observer' ownership so players can create their own notes; each note's own privacy is set on the note itself.",
+
 			"headingH3MenubarTools-Label": "Menubar Tools",
 			"headingH3MenubarTools-Hint": "",
 
