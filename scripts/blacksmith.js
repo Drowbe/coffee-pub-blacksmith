@@ -11,7 +11,8 @@ import { compendiumManager } from './manager-compendiums.js';
 // -- Load the shared GLOBAL functions --
 import { 
     registerBlacksmithUpdatedHook, 
-    resetModuleSettings
+    resetModuleSettings,
+    isCurrentUserPartyLeader
 } from './api-core.js';
 // -- Global utilities --
 import { 
@@ -61,6 +62,7 @@ import { EncounterToolbar } from './ui-journal-encounter.js';
 import { EncounterManager } from './manager-encounter.js';
 import { PartyManager } from './manager-party.js';
 import { ReputationManager } from './manager-reputation.js';
+import { deployParty, clearPartyFromCanvas } from './utility-party.js';
 import { JournalTools } from './manager-journal-tools.js';
 import { JournalPagePins } from './ui-journal-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
@@ -568,6 +570,10 @@ Hooks.once('ready', async () => {
         // HookManager.initialize() above, since it registers hooks to stay current.
         LoadingProgressManager.logActivity("Indexing notes...");
         try {
+            // Re-emits blacksmith.partyReputationChanged on every client. Registered
+            // beside the other ready-time hook owners so it is disposed the same way.
+            ReputationManager.initialize();
+
             NotesManager.initialize();
             // Claim Squire's note pages before any surface lists them, so a note
             // never appears missing on the load that adopts it.
@@ -1082,6 +1088,18 @@ Hooks.once('init', async function() {
         getHealthSeverity,
         getHealthSeverityForHP,
         getHealthThresholds,
+        // PARTY ACTIONS. Both already refuse for non-GMs with a warning of their own
+        // (utility-party.js), so there is no extra gate here -- one guard, at the
+        // place that does the work. Reimplementing either in a satellite would mean
+        // a second copy of the deployment-pattern logic, which is the thing the
+        // module split exists to prevent.
+        deployParty,
+        clearPartyFromCanvas,
+        // The predicate behind `leaderOnly: true` in the menubar registration API.
+        // Wrapped rather than passed straight through: its `moduleId` parameter is
+        // an internal detail, and a caller passing their own id would silently get
+        // false rather than an answer about the party leader.
+        isCurrentUserPartyLeader: () => isCurrentUserPartyLeader(),
         getPartyReputation: ReputationManager.getPartyReputation.bind(ReputationManager),
         setPartyReputation: ReputationManager.setPartyReputation.bind(ReputationManager),
         getReputationScaleEntry: ReputationManager.getScaleEntry.bind(ReputationManager),

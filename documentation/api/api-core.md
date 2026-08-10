@@ -109,12 +109,25 @@ Function groups on `api` directly:
 | Canvas | `CanvasLayer`, `getCanvasLayer` | `api-canvas.md` |
 | Rolls | `openRequestRollDialog`, `rolls` | `api-requestroll.md`, `api-rolls.md` |
 | Encounters | `getPartyCR`, `getMonsterCR`, `parseCR`, `formatCR`, `calculateEncounterDifficulty`, `getCombatAssessment`, `deployMonsters` | this document |
-| Party | `getPartyHealthSummary`, `getPartyActorHp`, `getPartyReputation`, `setPartyReputation`, `getReputationScaleEntry`, `postCurrentReputationCard`, `postNewReputationCard` | this document |
+| Party | `getPartyHealthSummary`, `getPartyActorHp`, `deployParty`, `clearPartyFromCanvas`, `isCurrentUserPartyLeader`, `getPartyReputation`, `setPartyReputation`, `getReputationScaleEntry`, `postCurrentReputationCard`, `postNewReputationCard` | this document |
 | Hooks | `BlacksmithHookManager` (global) | `api-hookmanager.md` |
 | Utilities | `api.utils` | below |
 | Constants | `api.BLACKSMITH`, `BlacksmithConstants` (global) | below |
 
 The `test*` members on the API (`testMenubarAPI`, `testNotificationSystem`, and similar) are Blacksmith's own development helpers. They are not a supported contract; do not build against them.
+
+## Party actions
+
+| Member | Signature | Notes |
+|---|---|---|
+| `deployParty` | `({ pattern?, prompt? }) => Promise<Token[]>` | Places the party's player characters on the current scene, skipping any that already have a token there. With no arguments it asks which formation to use (grid, circle, line, scatter, sequential) and remembers the answer as the default. Pass `pattern` to skip the picker, or `prompt: false` to use the saved default silently -- a scripted caller is never blocked on a dialog. Dismissing the picker returns an empty array. GM only: a non-GM gets a logged warning and an empty array. |
+| `clearPartyFromCanvas` | `() => Promise<number>` | Removes party tokens from the current scene and returns how many went. GM only, same shape as above. |
+| `isCurrentUserPartyLeader` | `() => boolean` | True when the stored party leader is this user, or this user owns the leader's character. This is the predicate behind `leaderOnly: true` in the menubar registration API; use it to gate a control the same way the menubar does, rather than reading the `partyLeader` setting. |
+
+`blacksmith.partyReputationChanged` fires on **every** client whenever party reputation changes,
+carrying `{ sceneId, reputation }`. It is emitted from Foundry's `updateSetting`, not from
+`setPartyReputation`, so it arrives however the value was changed and on every client rather than only
+the one that made the change.
 
 ## Utilities (`api.utils`)
 

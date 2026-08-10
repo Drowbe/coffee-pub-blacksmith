@@ -4,7 +4,8 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, isPlayerCharacter } from './api-core.js';
-import { deployTokens, deployTokensSequential } from './api-tokens.js';
+import { deployTokens, deployTokensSequential, getDeploymentPatternName } from './api-tokens.js';
+import { DialogAPI } from './api-dialog.js';
 import { ToastAPI } from './api-toast.js';
 
 /**
@@ -20,6 +21,25 @@ export function getPartyMembers() {
 }
 
 /**
+ * Party actors that already have a token on a scene.
+ *
+ * Matches on `token.actorId`, the same test clearPartyFromCanvas uses to decide
+ * what to remove. Keeping the two symmetric is the point: deploy adds exactly
+ * what clear would take away, so the pair round-trips instead of drifting into
+ * "deployed a duplicate" or "left one behind".
+ *
+ * @param {Scene} [scene] defaults to the active scene
+ * @returns {Set<string>} actor ids present on the scene
+ */
+export function getPartyActorIdsOnCanvas(scene = canvas?.scene) {
+    const ids = new Set();
+    for (const token of scene?.tokens ?? []) {
+        if (token.actorId) ids.add(token.actorId);
+    }
+    return ids;
+}
+
+/**
  * Get party member UUIDs
  * @returns {Array<string>} Array of actor UUIDs
  */
@@ -27,11 +47,82 @@ export function getPartyMemberUUIDs() {
     return getPartyMembers().map(actor => actor.uuid);
 }
 
+/** The deployment patterns offered, in the order they are shown. */
+const DEPLOYMENT_PATTERNS = ['grid', 'circle', 'line', 'scatter', 'sequential'];
+
+/** Icons for the pattern picker, one per DEPLOYMENT_PATTERNS entry. */
+const DEPLOYMENT_PATTERN_ICONS = {
+    grid: 'fa-solid fa-grid-2',
+    circle: 'fa-solid fa-circle-dot',
+    line: 'fa-solid fa-grip-lines',
+    scatter: 'fa-solid fa-shuffle',
+    sequential: 'fa-solid fa-arrow-progress'
+};
+
+/** What each pattern actually does, so the choice does not require prior knowledge. */
+const DEPLOYMENT_PATTERN_HINTS = {
+    grid: 'Rows and columns around the point you click',
+    circle: 'A ring around the point you click',
+    line: 'A single row from the point you click',
+    scatter: 'Loosely spread around the point you click',
+    sequential: 'Place each member individually, one click each'
+};
+
 /**
- * Deploy party members to the canvas
+ * Ask which formation to deploy in.
+ *
+ * Asking beats remembering: the pattern used to live in a world setting cycled
+ * from a menubar button, which meant the answer to "how will this deploy" was
+ * somewhere else entirely and you had to go and look. It is a per-deployment
+ * decision, so it is asked per deployment.
+ *
+ * The chosen pattern is written back to the setting so it becomes the default
+ * next time, which is what the cycling button was really providing.
+ *
+ * @returns {Promise<string|null>} the pattern, or null if dismissed
+ */
+async function promptDeploymentPattern() {
+    const current = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern') || 'grid';
+
+    const outcome = await DialogAPI.choose({
+        title: 'Deploy Party',
+        content: '<p>How should the party be placed?</p>',
+        choices: DEPLOYMENT_PATTERNS.map((pattern) => ({
+            id: pattern,
+            label: getDeploymentPatternName(pattern),
+            icon: DEPLOYMENT_PATTERN_ICONS[pattern],
+            description: DEPLOYMENT_PATTERN_HINTS[pattern],
+            default: pattern === current
+        })),
+        closeValue: null
+    });
+
+    if (outcome?.action !== 'submit' || !outcome.value) return null;
+
+    if (outcome.value !== current) {
+        try {
+            await game.settings.set(MODULE.ID, 'encounterToolbarDeploymentPattern', outcome.value);
+        } catch (error) {
+            // Not fatal: the deployment still happens with the chosen pattern, it
+            // just will not be the default next time.
+            postConsoleAndNotification(MODULE.NAME, 'Party Tools: could not save the deployment pattern', error?.message ?? error, false, false);
+        }
+    }
+    return outcome.value;
+}
+
+/**
+ * Deploy party members to the canvas.
+ *
+ * @param {object} [options]
+ * @param {string} [options.pattern] One of grid/circle/line/scatter/sequential.
+ *   Supplying it SKIPS the picker -- a scripted caller must never be blocked on a
+ *   dialog it did not ask for.
+ * @param {boolean} [options.prompt=true] Set false to use the saved default
+ *   silently without asking.
  * @returns {Promise<Array>} Array of created token documents
  */
-export async function deployParty() {
+export async function deployParty({ pattern = null, prompt = true } = {}) {
     // Check if user has permission
     if (!game.user.isGM) {
         postConsoleAndNotification(MODULE.NAME, "Party Tools: Only GMs can deploy party members", "", false, false);
@@ -43,17 +134,55 @@ export async function deployParty() {
     
     if (partyMembers.length === 0) {
         postConsoleAndNotification(MODULE.NAME, "Party Tools: No party members found", "", false, false);
-        ui.notifications.warn("No party members found. Party members must be player characters.");
+        ToastAPI.show({
+            title: 'Deploy Party',
+            subtitle: 'No party members found. Party members are player characters.',
+            icon: 'fa-solid fa-triangle-exclamation',
+            duration: 4,
+            moduleId: 'blacksmith-core',
+            stackKey: 'blacksmith-encounter-tokens'
+        });
         return [];
     }
     
-    const partyUUIDs = partyMembers.map(actor => actor.uuid);
+    // Only the ones not already standing on the scene. Deploying the whole party
+    // over the top of itself produced duplicate tokens, and the GM's only recourse
+    // was to clear everyone and start again.
+    const onCanvas = getPartyActorIdsOnCanvas();
+    const pending = partyMembers.filter(actor => !onCanvas.has(actor.id));
+    const alreadyPlaced = partyMembers.length - pending.length;
+
+    if (pending.length === 0) {
+        postConsoleAndNotification(MODULE.NAME, "Party Tools: Every party member is already on the canvas", "", true, false);
+        ToastAPI.show({
+            title: 'Deploy Party',
+            subtitle: 'Every party member is already on this scene.',
+            icon: 'fa-solid fa-users',
+            duration: 4,
+            moduleId: 'blacksmith-core',
+            stackKey: 'blacksmith-encounter-tokens'
+        });
+        return [];
+    }
+
+    const partyUUIDs = pending.map(actor => actor.uuid);
     
-    postConsoleAndNotification(MODULE.NAME, "Party Tools: Deploying party", `${partyMembers.length} members`, true, false);
+    postConsoleAndNotification(MODULE.NAME, "Party Tools: Deploying party",
+        `${pending.length} member(s)${alreadyPlaced ? `, ${alreadyPlaced} already placed` : ''}`, true, false);
     postConsoleAndNotification(MODULE.NAME, "Party Tools: Party UUIDs", partyUUIDs, true, false);
     
-    // Get deployment settings (reuse encounter settings or use defaults)
-    const deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern') || 'line';
+    // An explicit pattern wins; otherwise ask, unless the caller opted out.
+    let deploymentPattern = pattern;
+    if (!deploymentPattern && prompt) {
+        deploymentPattern = await promptDeploymentPattern();
+        if (!deploymentPattern) {
+            postConsoleAndNotification(MODULE.NAME, 'Party Tools: deployment cancelled at the pattern picker', '', true, false);
+            return [];
+        }
+    }
+    if (!deploymentPattern) {
+        deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern') || 'grid';
+    }
     const deploymentHidden = false; // Party members should be visible by default
     
     // Deploy using shared API
@@ -83,7 +212,14 @@ export async function deployParty() {
         };
         
         // Show notification that user needs to click on canvas
-        ui.notifications.info("Click on the canvas to place party members. Right-click to cancel.");
+        ToastAPI.show({
+            title: 'Deploy Party',
+            subtitle: 'Click the canvas to place the party. Right-click cancels.',
+            icon: 'fa-solid fa-map-marker-alt',
+            duration: 4,
+            moduleId: 'blacksmith-core',
+            stackKey: 'blacksmith-encounter-tokens'
+        });
         
         deployedTokens = await deployTokens(partyUUIDs, {
             deploymentPattern: deploymentPattern,
@@ -94,7 +230,15 @@ export async function deployParty() {
     
     if (deployedTokens.length > 0) {
         postConsoleAndNotification(MODULE.NAME, "Party Tools: Party deployed successfully", `${deployedTokens.length} tokens created`, false, false);
-        ui.notifications.info(`Successfully deployed ${deployedTokens.length} party member(s) to the canvas.`);
+        ToastAPI.show({
+            title: 'Deploy Party',
+            subtitle: `${deployedTokens.length} deployed`
+                + (alreadyPlaced ? `, ${alreadyPlaced} already on the scene.` : '.'),
+            icon: 'fa-solid fa-map-marker-alt',
+            duration: 4,
+            moduleId: 'blacksmith-core',
+            stackKey: 'blacksmith-encounter-tokens'
+        });
     } else {
         postConsoleAndNotification(MODULE.NAME, "Party Tools: Party deployment cancelled or failed", "", false, false);
         // Don't show error notification - user may have intentionally cancelled

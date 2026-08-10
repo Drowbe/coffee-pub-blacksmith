@@ -9,6 +9,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { HookManager } from './manager-hooks.js';
 
 const REPUTATION_MIN = -100;
 const REPUTATION_MAX = 100;
@@ -19,6 +20,37 @@ const REPUTATION_JSON_PATH = `modules/${MODULE.ID}/resources/reputation.json`;
 let _reputationData = null;
 
 export class ReputationManager {
+
+    /**
+     * Emit `blacksmith.partyReputationChanged` on every client.
+     *
+     * Deliberately driven off Foundry's `updateSetting` rather than called from
+     * setPartyReputation. `Hooks.callAll` only fires on the client that ran it, so
+     * emitting from the setter would reach the GM who made the change and nobody
+     * else -- which is precisely the client that already knows. `updateSetting`
+     * arrives everywhere the setting landed, so consumers get it in both
+     * directions and however the value was changed, including from settings.
+     *
+     * Called once from ready.
+     */
+    static initialize() {
+        HookManager.registerHook({
+            name: 'updateSetting',
+            description: 'Reputation: broadcast party reputation changes to consumers',
+            priority: 4,
+            context: 'reputation',
+            callback: (setting) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                if (setting?.key !== `${MODULE.ID}.${SETTING_PARTY_DATA}`) return;
+                const sceneId = canvas?.scene?.id ?? null;
+                Hooks.callAll('blacksmith.partyReputationChanged', {
+                    sceneId,
+                    reputation: sceneId ? this.getPartyReputation() : null
+                });
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+    }
 
     /**
      * Load reputation scale from resources/reputation.json. Cached after first load.

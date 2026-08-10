@@ -12,7 +12,6 @@ import { VoteConfig } from './window-vote-config.js';
 import { XpManager } from './xp-manager.js';
 import { StatsWindow } from './window-stats-party.js';
 import { deployParty, clearPartyFromCanvas } from './utility-party.js';
-import { getDeploymentPatternName } from './api-tokens.js';
 import { EncounterToolbar } from './ui-journal-encounter.js';
 import { ToastAPI } from './api-toast.js';
 import { routeTimerNotification } from './timer-notifications.js';
@@ -689,45 +688,6 @@ class MenuBar {
      */
     static _registerPartyTools() {
         // Helper function to get current deployment pattern name
-        const getCurrentPatternName = () => {
-            const currentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern');
-            return getDeploymentPatternName(currentPattern);
-        };
-        
-        // Register Deployment Pattern button (cycles through patterns) — middle zone
-        this.registerSecondaryBarItem('party', 'deployment-pattern', {
-            zone: 'middle',
-            icon: 'fas fa-grid-2-plus',
-            label: getCurrentPatternName(),
-            tooltip: `Click to cycle deployment pattern (Current: ${getCurrentPatternName()})`,
-            group: 'default',
-            order: 0,
-            visible: () => game.user.isGM,
-            onClick: async () => {
-                postConsoleAndNotification(MODULE.NAME, "Party Tools: Cycling deployment pattern", "", true, false);
-                try {
-                    // Use the same cycle function from encounter toolbar
-                    await EncounterToolbar._cycleDeploymentPattern();
-                    
-                    // Update the button label to show new pattern
-                    const items = this.secondaryBarItems.get('party');
-                    if (items) {
-                        const patternItem = items.get('deployment-pattern');
-                        if (patternItem) {
-                            patternItem.label = getCurrentPatternName();
-                            patternItem.tooltip = `Click to cycle deployment pattern (Current: ${getCurrentPatternName()})`;
-                            // Re-render if party bar is open
-                            if (this.secondaryBar.isOpen && this.secondaryBar.type === 'party') {
-                                this.renderMenubar(true);
-                            }
-                        }
-                    }
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, "Party Tools: Error cycling deployment pattern", error.message, false, false);
-                }
-            }
-        });
-        
         // Register Deploy Party tool — middle zone
         this.registerSecondaryBarItem('party', 'deploy-party', {
             zone: 'middle',
@@ -735,7 +695,9 @@ class MenuBar {
             label: 'Deploy Party',
             tooltip: 'Deploy all party members to the canvas',
             group: 'default',
-            order: 1,
+            // First item since the deployment-pattern button was removed: the
+            // pattern is now asked at deploy time rather than cycled beforehand.
+            order: 0,
             visible: () => game.user.isGM,
             onClick: async () => {
                 postConsoleAndNotification(MODULE.NAME, "Party Tools: Deploy Party button clicked", "", true, false);
@@ -875,33 +837,6 @@ class MenuBar {
         // Initial refresh of party health progressbar
         this._refreshPartyBarInfo();
 
-        // Listen for deployment pattern setting changes to update the button label
-        HookManager.registerSettingChangeCallback({
-            description: 'Party Tools: Update deployment pattern button label when pattern changes',
-            context: 'party-deployment-pattern',
-            priority: 5,
-            key: 'encounterToolbarDeploymentPattern',
-            callback: async (moduleId, settingKey, value) => {
-                //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                
-                if (moduleId === MODULE.ID && settingKey === 'encounterToolbarDeploymentPattern') {
-                    const items = this.secondaryBarItems.get('party');
-                    if (items) {
-                        const patternItem = items.get('deployment-pattern');
-                        if (patternItem) {
-                            patternItem.label = getCurrentPatternName();
-                            patternItem.tooltip = `Click to cycle deployment pattern (Current: ${getCurrentPatternName()})`;
-                            // Re-render if party bar is open
-                            if (this.secondaryBar.isOpen && this.secondaryBar.type === 'party') {
-                                this.renderMenubar(true);
-                            }
-                        }
-                    }
-                }
-                
-                //  ------------------- END - HOOKMANAGER CALLBACK -------------------
-            }
-        });
 
         postConsoleAndNotification(MODULE.NAME, "Menubar: Party tools registered", "", true, false);
     }
