@@ -94,6 +94,8 @@ import { registerVoteWindow } from './window-vote-config.js';
 // file is on the static import graph. The toolbar's dynamic import resolves from cache.
 import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { registerStatusEffectsWindow } from './window-status-effects.js';
+import { NotesManager } from './manager-notes.js';
+import { NotesAPI } from './api-notes.js';
 import { restoreToolWindows } from './manager-tool-windows.js';
 import { getActorHP, getHealthPercent, getHealthPercentForHP, getHealthSeverity, getHealthSeverityForHP, getHealthThresholds } from './utility-health.js';
 import { PinManager } from './manager-pins.js';
@@ -557,6 +559,17 @@ Hooks.once('ready', async () => {
         // Initialize XP manager
         LoadingProgressManager.logActivity("Initializing XP system...");
         XpManager.initialize();
+
+        // Notes: builds the annotation index from journal page flags. After
+        // HookManager.initialize() above, since it registers hooks to stay current.
+        LoadingProgressManager.logActivity("Indexing notes...");
+        try {
+            NotesManager.initialize();
+        } catch (e) {
+            // Non-fatal: a missing index costs "what is attached to this" until the
+            // next rebuild, which is not worth stalling the load for.
+            console.error(`${MODULE.ID}: notes index failed to build`, e);
+        }
 
         // Tool windows (dice tray, macros, health). Registered explicitly rather than
         // from each file's own ready hook so the order against settings registration is
@@ -1028,6 +1041,7 @@ Hooks.once('init', async function() {
         pins: PinsAPI,
         tags: TagsAPI,
         gmNotes: GMNotesAPI,
+        notes: NotesAPI,
         chatCards: ChatCardsAPI,
         toast: ToastAPI,
         dialog: DialogAPI,
