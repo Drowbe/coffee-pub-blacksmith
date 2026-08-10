@@ -14,6 +14,8 @@ import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { ToastManager, sendToastToUsers, broadcastToast, isToastExcludedUser } from './api-toast.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { registerWindow } from './api-windows.js';
+import { MenuBar } from './api-menubar.js';
+import { isCurrentUserPartyLeader } from './api-core.js';
 
 const APP_ID = 'blacksmith-toast-send-window';
 const PREFS_SETTING = 'toastSendPreferences';
@@ -1044,11 +1046,79 @@ export async function openToastSendWindow() {
     return win;
 }
 
-/** Make the window openable by id from any module or macro. */
+/**
+ * The Send Toast tool's right-click menu: saved templates, fired as-is.
+ *
+ * ONE MENU, TWO AUDIENCES. The elected party leader sees only the templates the
+ * GM ticked "Enable Leader Access" on, and does not get the composer entry. A
+ * second registration would mean two `visible` predicates and two menus kept
+ * honest with each other; the menu already knows who opened it.
+ */
+function buildQuickToastItems() {
+    // A GM who also happens to be the leader is still a GM: the wider menu wins.
+    const asLeader = !game.user.isGM;
+    const targetLabel = { stream: ' (stream)', both: ' (game + stream)' };
+
+    const items = getQuickToastTemplates({ leaderOnly: asLeader }).map(({ name, tpl }) => ({
+        name: `${name}${targetLabel[tpl.publish] ?? ''}`,
+        description: tpl.subtitle ? `${tpl.title} — ${tpl.subtitle}` : tpl.title,
+        icon: tpl.image ? 'fa-solid fa-image' : (tpl.icon || 'fa-solid fa-bullhorn'),
+        onClick: () => void quickSendToastTemplate(name, { asLeader })
+    }));
+
+    if (!items.length) {
+        items.push({
+            name: 'No quick toasts yet',
+            description: asLeader
+                ? 'Your GM has not shared any toasts with the party leader.'
+                : 'Save a template with a title in Send Toast to list it here.',
+            icon: 'fa-solid fa-circle-info',
+            disabled: true
+        });
+    }
+
+    if (!asLeader) {
+        items.push({ separator: true });
+        items.push({
+            name: 'Open Send Toast',
+            description: 'Compose a toast and manage templates',
+            icon: 'fa-solid fa-bullhorn',
+            onClick: () => void openToastSendWindow()
+        });
+    }
+    return items;
+}
+
+/** Make the window openable by id from any module or macro, and add its tool. */
 export function registerToastSendWindow() {
     registerWindow(TOAST_SEND_WINDOW_ID, {
         moduleId: MODULE.ID,
         title: 'Send Toast',
         open: async () => openToastSendWindow()
+    });
+
+    // ONE TOOL, NOT TWO. Send Toast and Quick Toast were separate buttons on the
+    // party bar for the same capability: compose one now, or fire a saved one.
+    // That is a left-click and a right-click, the same shape the Notes tool uses.
+    //
+    // Visible to the party leader as well as the GM, because the leader can fire
+    // the templates a GM ticked for them. The composer is GM-only, so a leader's
+    // left-click opens the menu instead of doing nothing.
+    MenuBar.registerMenubarTool('send-toast', {
+        icon: 'fas fa-bullhorn',
+        name: 'send-toast',
+        title: null,
+        tooltip: 'Send a toast',
+        onClick: () => {
+            if (game.user.isGM) void openToastSendWindow();
+        },
+        contextMenuItems: () => buildQuickToastItems(),
+        zone: 'left',
+        group: 'general',
+        order: 205,
+        moduleId: MODULE.ID,
+        gmOnly: false,
+        leaderOnly: false,
+        visible: () => game.user.isGM || isCurrentUserPartyLeader()
     });
 }

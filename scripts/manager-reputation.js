@@ -2,9 +2,15 @@
 // ===== MANAGER-REPUTATION – scene/campaign and party/player reputation
 // ==================================================================
 // Party reputation is stored in world setting blacksmithPartyData, per scene
-// (blacksmithPartyData.scenes[sceneId].reputation). The party bar balancebar
-// shows the current scene's reputation. Uses resources/reputation.json for
-// scale labels and descriptions. Future: campaign reputation, player-level reputation.
+// (blacksmithPartyData.scenes[sceneId].reputation). Uses resources/reputation.json
+// for scale labels and descriptions.
+//
+// NO UI LIVES HERE. The balancebar this manager used to register on the party bar
+// is gone with that bar; Squire's Party tab shows the value through the API, which
+// is the shape the module split is built on -- Blacksmith owns the capability, a
+// satellite renders it. What remains is the value, the scale, the chat cards, and
+// the blacksmith.partyReputationChanged broadcast.
+// Future: campaign reputation, player-level reputation.
 // ==================================================================
 
 import { MODULE } from './const.js';
@@ -200,119 +206,4 @@ export class ReputationManager {
         }
     }
 
-    /**
-     * Register the Reputation balancebar with the party secondary bar. Call once when setting up the party bar (e.g. from api-menubar).
-     * @param {Object} api - Blacksmith module API (registerSecondaryBarItem, updateSecondaryBarItemInfo, setPartyReputation).
-     */
-    static registerPartyBarItem(api) {
-        if (!api?.registerSecondaryBarItem) return;
-        const itemConfig = {
-            kind: 'balancebar',
-            zone: 'left',
-            title: '',
-            icon: '',
-            width: 300,
-            height: 20,
-            borderColor: 'rgba(0,0,0,0.5)',
-            barColorLeft: 'rgba(110, 25, 3, 0.8)',
-            barColorRight: 'rgba(4, 77, 12, 0.8)',
-            markerColor: 'rgba(255, 255, 255, 0.6)',
-            percentProgress: this.getPartyReputation(),
-            leftIcon: 'fa-solid fa-face-angry-horns',
-            rightIcon: 'fa-solid fa-face-smile-halo',
-            leftLabel: '',
-            rightLabel: '',
-            group: 'health',
-            order: 1,
-            tooltip: 'Party reputation (scene). Right-click for options.',
-            contextMenuItems: this._getReputationContextMenuItems(api)
-        };
-        api.registerSecondaryBarItem('party', 'reputation', itemConfig);
-    }
-
-    /**
-     * Context menu items for the reputation balancebar (right-click).
-     * Party (non-GM) can only send current reputation to chat; GM can also set values.
-     * @param {Object} api - Blacksmith module API.
-     * @returns {Array<{ name: string, icon: string, onClick: Function }>}
-     * @private
-     */
-    static _getReputationContextMenuItems(api) {
-        if (!api?.setPartyReputation || !api?.updateSecondaryBarItemInfo) return [];
-        const items = [
-            {
-                name: 'Send Current Reputation',
-                icon: 'fas fa-message',
-                onClick: async () => { await this.postCurrentReputationCard(api); }
-            }
-        ];
-        if (!game.user?.isGM) return items;
-        items.push(
-            {
-                name: 'Increase Reputation by 5',
-                icon: 'fas fa-arrow-up',
-                onClick: async () => {
-                    const prev = this.getPartyReputation();
-                    const next = Math.min(REPUTATION_MAX, prev + 5);
-                    await api.setPartyReputation(next);
-                    api.updateSecondaryBarItemInfo('party', 'reputation', { percentProgress: next });
-                    await this.postNewReputationCard(5, prev, next, api);
-                }
-            },
-            {
-                name: 'Increase Reputation by 1',
-                icon: 'fas fa-chevron-up',
-                onClick: async () => {
-                    const prev = this.getPartyReputation();
-                    const next = Math.min(REPUTATION_MAX, prev + 1);
-                    await api.setPartyReputation(next);
-                    api.updateSecondaryBarItemInfo('party', 'reputation', { percentProgress: next });
-                    await this.postNewReputationCard(1, prev, next, api);
-                }
-            },
-            {
-                name: 'Reset Reputation to 0',
-                icon: 'fas fa-equals',
-                onClick: async () => {
-                    const prev = this.getPartyReputation();
-                    await api.setPartyReputation(0);
-                    api.updateSecondaryBarItemInfo('party', 'reputation', { percentProgress: 0 });
-                    await this.postNewReputationCard(-prev, prev, 0, api);
-                }
-            },
-            {
-                name: 'Decrease Reputation by 1',
-                icon: 'fas fa-chevron-down',
-                onClick: async () => {
-                    const prev = this.getPartyReputation();
-                    const next = Math.max(REPUTATION_MIN, prev - 1);
-                    await api.setPartyReputation(next);
-                    api.updateSecondaryBarItemInfo('party', 'reputation', { percentProgress: next });
-                    await this.postNewReputationCard(-1, prev, next, api);
-                }
-            },
-            {
-                name: 'Decrease Reputation by 5',
-                icon: 'fas fa-arrow-down',
-                onClick: async () => {
-                    const prev = this.getPartyReputation();
-                    const next = Math.max(REPUTATION_MIN, prev - 5);
-                    await api.setPartyReputation(next);
-                    api.updateSecondaryBarItemInfo('party', 'reputation', { percentProgress: next });
-                    await this.postNewReputationCard(-5, prev, next, api);
-                }
-            }
-        );
-        return items;
-    }
-
-    /**
-     * Refresh the party bar reputation item with the current scene's value. Call when the party bar is refreshed (e.g. from api-menubar _refreshPartyBarInfo).
-     * @param {Object} api - Blacksmith module API (updateSecondaryBarItemInfo).
-     */
-    static refreshPartyBarReputation(api) {
-        if (!api?.updateSecondaryBarItemInfo) return;
-        const value = this.getPartyReputation();
-        api.updateSecondaryBarItemInfo('party', 'reputation', { percentProgress: value });
-    }
 }

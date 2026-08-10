@@ -1863,9 +1863,6 @@ export class CombatBarManager {
                 // The health readouts cover the canvas out of combat, so they
                 // follow any actor's HP and not only a combatant's.
                 CombatBarManager.scheduleReadoutRefresh(menuBar);
-                if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'party') {
-                    menuBar._refreshPartyBarInfo();
-                }
             }
         });
 
@@ -3491,6 +3488,37 @@ export class CombatBarManager {
                     await EncounterManager.revealHiddenTokens();
                 })
             },
+            // From the old party bar. Deploy sits next to the removal it undoes;
+            // Clear Party was NOT brought across because `removeParty` below is
+            // already that action, and two buttons calling clearPartyFromCanvas
+            // would be the duplication this move exists to remove.
+            deployParty: {
+                name: 'Deploy Party to Canvas',
+                icon: 'fa-solid fa-map-marker-alt',
+                run: () => run('Deploy Party', async () => {
+                    const { deployParty } = await import('./utility-party.js');
+                    await deployParty();
+                })
+            },
+            experience: {
+                name: 'Distribute Experience',
+                icon: 'fa-solid fa-star',
+                // Imported on demand for the window id, the same way the encounter
+                // actions are: the id is taken from its owner rather than copied
+                // here, where it would drift the first time it changed.
+                run: () => run('Experience', async () => {
+                    const { XP_WINDOW_ID } = await import('./xp-manager.js');
+                    api?.openWindow?.(XP_WINDOW_ID);
+                })
+            },
+            statistics: {
+                name: 'Statistics',
+                icon: 'fa-solid fa-chart-line',
+                run: () => run('Statistics', async () => {
+                    const { STATS_PARTY_WINDOW_ID } = await import('./window-stats-party.js');
+                    api?.openWindow?.(STATS_PARTY_WINDOW_ID);
+                })
+            },
             removeParty: {
                 name: 'Remove Party from Canvas',
                 icon: 'fa-solid fa-users-slash',
@@ -3537,7 +3565,8 @@ export class CombatBarManager {
      */
     static OUT_OF_COMBAT_ACTIONS = [
         'toggleTracker', 'createCombat', 'quickEncounter',
-        'revealHidden', 'removeParty', 'removeMonsters', 'removeNpcs'
+        'revealHidden', 'deployParty', 'removeParty', 'removeMonsters', 'removeNpcs',
+        'experience', 'statistics'
     ];
 
     /**

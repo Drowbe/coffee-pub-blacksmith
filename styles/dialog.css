@@ -74,3 +74,19 @@
     color: var(--blacksmith-text-light);
     font-size: var(--blacksmith-font-size-sm);
 }
+
+/* Deploy Party: the "include owned NPCs" toggle sits under the question, above
+   the formation buttons. A plain row so it reads as part of the question rather
+   than as a sixth choice. */
+.blacksmith-deploy-npcs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    cursor: pointer;
+}
+
+.blacksmith-deploy-npcs input {
+    flex: 0 0 auto;
+    margin: 0;
+}

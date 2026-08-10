@@ -1044,6 +1044,18 @@ export const registerSettings = () => {
 		});
 	}
 
+	// Remembered from the Deploy Party dialog rather than configured here: it is
+	// the dialog's memory of the last answer, not a world policy.
+	game.settings.register(MODULE.ID, 'partyDeployIncludeOwnedNpcs', {
+		name: MODULE.ID + '.partyDeployIncludeOwnedNpcs-Label',
+		hint: MODULE.ID + '.partyDeployIncludeOwnedNpcs-Hint',
+		scope: 'world',
+		config: false,
+		requiresReload: false,
+		type: Boolean,
+		default: false
+	});
+
 	game.settings.register(MODULE.ID, 'defaultPartyMakeup', {
 		name: MODULE.ID + '.defaultPartyMakeup-Label',
 		hint: MODULE.ID + '.defaultPartyMakeup-Hint',

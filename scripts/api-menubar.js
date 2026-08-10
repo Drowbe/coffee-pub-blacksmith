@@ -11,11 +11,9 @@ import { CoreUIUtility } from './utility-core.js';
 import { VoteConfig } from './window-vote-config.js';
 import { XpManager } from './xp-manager.js';
 import { StatsWindow } from './window-stats-party.js';
-import { deployParty, clearPartyFromCanvas } from './utility-party.js';
 import { EncounterToolbar } from './ui-journal-encounter.js';
 import { ToastAPI } from './api-toast.js';
 import { routeTimerNotification } from './timer-notifications.js';
-import { PartyManager } from './manager-party.js';
 import { ReputationManager } from './manager-reputation.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { PinManager } from './manager-pins.js';
@@ -235,9 +233,6 @@ class MenuBar {
                     // its idle form instead of losing it.
                     CombatBarManager.updateCombatBar(this);
                 }
-                if (this.secondaryBar?.isOpen && this.secondaryBar?.type === 'party') {
-                    this._refreshPartyBarInfo();
-                }
                 this.renderMenubar(true);
             }
         });
@@ -411,39 +406,11 @@ class MenuBar {
         // (skillcheck registered via API from window-skillcheck.js)
 
 
-        // *** GROUP: PARTY ***
-
-
-        // PARTY
-        this.registerMenubarTool('party', {
-            icon: "fas fa-users",
-            name: "party",
-            title: () => {
-                return "Party";
-            },
-            tooltip: () => {
-                // Dynamic tooltip based on party bar state
-                const isPartyBarOpen = this.secondaryBar.isOpen && this.secondaryBar.type === 'party';
-                return isPartyBarOpen ? "Hide party tools secondary bar" : "Show party tools secondary bar";
-            },
-            onClick: () => {
-                // Toggle the party bar
-                this.toggleSecondaryBar('party');
-            },
-            zone: "middle",
-            group: "party",
-            groupOrder: this.GROUP_ORDER.PARTY,
-            order: 1,
-            moduleId: "blacksmith-core",
-            gmOnly: false,
-            leaderOnly: false,
-            visible: true,
-            toggleable: true,
-            active: false,
-            iconColor: null,
-            buttonNormalTint: null,
-            buttonSelectedTint: null
-        });
+        // THE PARTY BAR IS GONE. Its four action buttons moved to the combat bar
+        // (they act on the encounter, so they sit with it), Send Toast became a
+        // left-zone tool, Vote moved into the party leader's own menu, and the
+        // health and reputation readouts were already shown elsewhere. Nothing was
+        // left to toggle, so the toggle went too.
 
         // *** GROUP: GENERAL (Default/overflow group)***
 
@@ -457,9 +424,6 @@ class MenuBar {
         // Always last
 
 
-        // Map secondary bars to their toggle tools for button state syncing
-        this.secondaryBarToolMapping.set('party', 'party');
-
         // **************** RIGHT ZONE ****************
         
         // SELECT LEADER
@@ -468,8 +432,11 @@ class MenuBar {
             name: "leader-section",
             title: "Party Leader",
             tooltip: null,
+            // Opens for the elected leader too, not only the GM. Calling a vote was
+            // the leader's own power and it lived on the party bar; moving it here
+            // GM-only would have taken it away from the one person it is for.
             onClick: (event) => {
-                if (game.user.isGM) {
+                if (game.user.isGM || isCurrentUserPartyLeader()) {
                     this.showLeaderMenu(event);
                 }
             },
@@ -652,194 +619,10 @@ class MenuBar {
         // Encounter bar type is registered by ui-journal-encounter.js with info items + buttons
 
         // Register party secondary bar (default tool system)
-        // No size: the party bar is a row of buttons and readouts with nothing
-        // that needs the room, so it takes the house default like anything else.
-        await this.registerSecondaryBarType('party', {
-            persistence: 'manual'
-        });
-
-        // Register party tools (must be called after party bar type is registered)
-        this._registerPartyTools();
-
         postConsoleAndNotification(MODULE.NAME, "Menubar: Secondary bar types registered", "", true, false);
     }
 
 
-    /**
-     * Refresh party bar info items (e.g. party health progressbar). Called on register, when party bar opens, and on updateActor.
-     * @private
-     */
-    static _refreshPartyBarInfo() {
-        const api = game.modules.get(MODULE.ID)?.api;
-        if (!api?.updateSecondaryBarItemInfo) return;
-        const health = PartyManager.getPartyHealthSummary();
-        api.updateSecondaryBarItemInfo('party', 'party-health', {
-            percentProgress: health.percent,
-            leftLabel: health.currentDisplay,
-            rightLabel: health.maxDisplay
-        });
-        ReputationManager.refreshPartyBarReputation(api);
-    }
-
-    /**
-     * Register party tools in the party secondary bar.
-     * Layout: middle zone = action buttons (Deployment, Deploy Party, Vote, Statistics, Experience); right zone = party health progressbar.
-     * @private
-     */
-    static _registerPartyTools() {
-        // Helper function to get current deployment pattern name
-        // Register Deploy Party tool — middle zone
-        this.registerSecondaryBarItem('party', 'deploy-party', {
-            zone: 'middle',
-            icon: 'fas fa-map-marker-alt',
-            label: 'Deploy Party',
-            tooltip: 'Deploy all party members to the canvas',
-            group: 'default',
-            // First item since the deployment-pattern button was removed: the
-            // pattern is now asked at deploy time rather than cycled beforehand.
-            order: 0,
-            visible: () => game.user.isGM,
-            onClick: async () => {
-                postConsoleAndNotification(MODULE.NAME, "Party Tools: Deploy Party button clicked", "", true, false);
-                try {
-                    await deployParty();
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, "Party Tools: Error in deployParty", error.message, false, false);
-                }
-            }
-        });
-
-        // Vote (visible to GM or current session leader only) — middle zone
-        this.registerSecondaryBarItem('party', 'vote', {
-            zone: 'middle',
-            icon: 'fa-solid fa-check-to-slot',
-            label: 'Vote',
-            tooltip: 'Vote',
-            group: 'default',
-            order: 2,
-            visible: () => game.user.isGM || isCurrentUserPartyLeader(),
-            onClick: () => {
-                new VoteConfig().render(true);
-            }
-        });
-
-        // Party Statistics — middle zone
-        this.registerSecondaryBarItem('party', 'party-stats', {
-            zone: 'middle',
-            icon: 'fas fa-chart-line',
-            label: 'Statistics',
-            tooltip: 'Open combat statistics, history, and leaderboard',
-            group: 'default',
-            order: 3,
-            onClick: () => {
-                this.openStatsWindow();
-            }
-        });
-
-        // Experience (GM only) — middle zone
-        this.registerSecondaryBarItem('party', 'xp-distribution', {
-            zone: 'middle',
-            icon: 'fas fa-star',
-            label: 'Experience',
-            tooltip: 'Open Experience Points Distribution Worksheet',
-            group: 'default',
-            order: 4,
-            visible: () => game.user.isGM,
-            onClick: () => {
-                this.openXpDistribution();
-            }
-        });
-
-        // Clear Party (GM only) — middle zone
-        this.registerSecondaryBarItem('party', 'clear-party', {
-            zone: 'middle',
-            icon: 'fas fa-users-slash',
-            label: 'Clear Party',
-            tooltip: 'Remove all party member tokens from the canvas',
-            group: 'default',
-            order: 5,
-            visible: () => game.user.isGM,
-            onClick: async () => {
-                try {
-                    await clearPartyFromCanvas();
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, "Party Tools: Error clearing party", error.message, false, false);
-                }
-            }
-        });
-
-        // Send Toast (GM only) — middle zone: large styled toast to selected players
-        this.registerSecondaryBarItem('party', 'send-toast', {
-            zone: 'middle',
-            icon: 'fas fa-bullhorn',
-            label: 'Send Toast',
-            tooltip: 'Send an on-screen toast to selected players',
-            group: 'default',
-            order: 6,
-            visible: () => game.user.isGM,
-            onClick: async () => {
-                try {
-                    const { ToastSendWindow } = await import('./window-toast-send.js');
-                    new ToastSendWindow().render(true);
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, "Party Tools: Error opening Send Toast", error.message, false, false);
-                }
-            }
-        });
-
-        // Quick Toast — middle zone: menu of saved Send Toast templates that carry text,
-        // fired as-is with one click (party-wide delivery, the template's own publish
-        // target). Send logic lives in window-toast-send.js.
-        //
-        // ONE ITEM, TWO AUDIENCES. The elected party leader gets the same button, listing
-        // only the templates the GM ticked "Enable Leader Access" on. A second registration
-        // would have to keep two `visible` predicates and two menus honest with each other;
-        // the menu already knows who it is being opened by. `templateData.isLeader` is part
-        // of the menubar structure fingerprint, so a leader change re-renders and the button
-        // appears or leaves on its own — the same rail the vote button rides.
-        this.registerSecondaryBarItem('party', 'quick-toast', {
-            zone: 'middle',
-            icon: 'fas fa-bolt',
-            label: 'Quick Toast',
-            tooltip: 'Send a saved toast with one click',
-            group: 'default',
-            order: 7,
-            visible: () => game.user.isGM || isCurrentUserPartyLeader(),
-            onClick: (event) => {
-                void MenuBar.showQuickToastMenu(event);
-            }
-        });
-
-        // Party health progressbar — right zone (sum of party HP current/max, 100% = total max)
-        const initialHealth = PartyManager.getPartyHealthSummary();
-        this.registerSecondaryBarItem('party', 'party-health', {
-            kind: 'progressbar',
-            zone: 'right',
-            icon: '',
-            title: '',
-            width: 300,
-            height: 20,
-            borderColor: 'rgba(0,0,0,0.5)',
-            barColor: '#2d5016',
-            progressColor: '#4a7c23',
-            leftIcon: 'fa-solid fa-skull',
-            rightIcon: 'fa-solid fa-heart',
-            percentProgress: initialHealth.percent,
-            leftLabel: initialHealth.currentDisplay,
-            rightLabel: initialHealth.maxDisplay,
-            group: 'health',
-            order: 0,
-            tooltip: 'Party total HP'
-        });
-
-        ReputationManager.registerPartyBarItem(game.modules.get(MODULE.ID)?.api);
-
-        // Initial refresh of party health progressbar
-        this._refreshPartyBarInfo();
-
-
-        postConsoleAndNotification(MODULE.NAME, "Menubar: Party tools registered", "", true, false);
-    }
 
     // MENUBAR API METHODS 
 
@@ -2634,11 +2417,6 @@ class MenuBar {
             this.secondaryBar.persistence = options.persistence || barType.persistence;
             this.secondaryBar.data = options.data || {};
 
-            // For party bar, refresh party health progressbar so it shows current HP
-            if (typeId === 'party') {
-                this._refreshPartyBarInfo();
-            }
-
             // Set the CSS variables for secondary bar height and total height
             document.documentElement.style.setProperty('--blacksmith-menubar-secondary-height', `${this.secondaryBar.height}px`);
             this._applyBannerAllowance(barType);
@@ -3440,6 +3218,9 @@ class MenuBar {
         return [
             templateData.isGM ? '1' : '0',
             templateData.isLeader ? '1' : '0',
+            // Part of the structure: it decides whether the leader control renders
+            // as active, and it can change without isLeader changing.
+            templateData.isPartyLeader ? '1' : '0',
             String(templateData.leaderText ?? ''),
             String(mov.name ?? ''),
             String(mov.icon ?? ''),
@@ -4028,6 +3809,10 @@ class MenuBar {
             const templateData = {
                 isGM: game.user.isGM,
                 isLeader: isLeader,
+                // Broader than isLeader above, which only matches the stored userId.
+                // This is the same predicate showLeaderMenu gates on, so the control
+                // looks interactive exactly when clicking it does something.
+                isPartyLeader: isCurrentUserPartyLeader(),
                 leaderText: this.getLeaderDisplayText(),
                 timerText: this.getTimerText(),
                 timerProgress: this.getTimerProgress(),
@@ -4899,9 +4684,14 @@ class MenuBar {
     }
 
     static showLeaderMenu(event) {
-        if (!game.user?.isGM) return;
+        const isGM = !!game.user?.isGM;
+        const isLeader = isCurrentUserPartyLeader();
+        if (!isGM && !isLeader) return;
         if (!event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
-            this.showLeaderDialog();
+            // No coordinates means no menu to place. The GM falls back to the
+            // assignment dialog; a leader must not, since that dialog is exactly
+            // the thing their menu withholds.
+            if (isGM) this.showLeaderDialog();
             return;
         }
         this._closeMenubarContextMenu();
@@ -4911,6 +4701,33 @@ class MenuBar {
         const currentActorId = leaderData?.actorId || '';
 
         const items = [
+            {
+                // Was its own party-bar button. It is a leader action, so it lives
+                // with the leader.
+                name: 'Start a Vote',
+                description: 'Run a vote on anything.',
+                icon: 'fa-solid fa-check-to-slot',
+                callback: () => {
+                    new VoteConfig().render(true);
+                }
+            }
+        ];
+
+        // Everything below is the GM's. Choosing who leads -- by vote or by picking
+        // one -- is not something the current leader gets a say in from their own
+        // menu, so a leader's menu is the vote entry and nothing else.
+        if (!isGM) {
+            UIContextMenu.show({
+                id: 'blacksmith-menubar-leader-menu',
+                x: event.clientX,
+                y: event.clientY,
+                zones: items,
+                zoneClass: 'core'
+            });
+            return;
+        }
+
+        items.push(
             {
                 name: 'Vote for Leader',
                 description: 'Vote for a party leader from among the active players.',
@@ -4936,7 +4753,7 @@ class MenuBar {
                     await this.updateLeader(null);
                 }
             }
-        ];
+        );
 
         for (const entry of characterEntries) {
             const label = entry.labelUser
@@ -5015,63 +4832,9 @@ class MenuBar {
      * Opened by the elected party leader it lists only the templates marked "Enable
      * Leader Access" and offers no window — that tool is the GM's.
      */
-    static async showQuickToastMenu(event) {
-        try {
-            const { ToastSendWindow, getQuickToastTemplates, quickSendToastTemplate } = await import('./window-toast-send.js');
-            // A GM who also happens to be the leader is still a GM: the wider menu wins.
-            const asLeader = !game.user.isGM;
-            if (!event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
-                // No coordinates means no menu to place. The GM gets the window instead; a
-                // leader has no window to fall back to, so there is nothing to do.
-                if (!asLeader) new ToastSendWindow().render(true);
-                return;
-            }
-            this._closeMenubarContextMenu();
-
-            const targetLabel = { stream: ' (stream)', both: ' (game + stream)' };
-            const items = getQuickToastTemplates({ leaderOnly: asLeader }).map(({ name, tpl }) => ({
-                name: `${name}${targetLabel[tpl.publish] ?? ''}`,
-                description: tpl.subtitle ? `${tpl.title} — ${tpl.subtitle}` : tpl.title,
-                icon: tpl.image ? 'fa-solid fa-image' : (tpl.icon || 'fa-solid fa-bullhorn'),
-                callback: () => {
-                    void quickSendToastTemplate(name, { asLeader });
-                }
-            }));
-            if (!items.length) {
-                items.push({
-                    name: 'No quick toasts yet',
-                    description: asLeader
-                        ? 'Your GM has not shared any toasts with the party leader.'
-                        : 'Save a template with a title in Send Toast to list it here.',
-                    icon: 'fa-solid fa-circle-info',
-                    disabled: true
-                });
-            }
-            if (!asLeader) {
-                items.push({ separator: true });
-                items.push({
-                    name: 'Open Send Toast',
-                    description: 'Compose a toast and manage templates',
-                    icon: 'fa-solid fa-bullhorn',
-                    callback: () => {
-                        new ToastSendWindow().render(true);
-                    }
-                });
-            }
-
-            UIContextMenu.show({
-                id: 'blacksmith-menubar-quick-toast-menu',
-                x: event.clientX,
-                y: event.clientY,
-                zones: items,
-                zoneClass: 'core'
-            });
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Party Tools: Error opening Quick Toast menu', error.message, false, false);
-        }
-    }
-
     static async showLeaderDialog() {
+        // Assigning the leader is the GM's alone, wherever this is reached from.
+        if (!game.user?.isGM) return;
         const characterEntries = this._getLeaderEntries();
         const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
         const currentActorId = leaderData?.actorId || '';
@@ -5662,7 +5425,10 @@ class MenuBar {
                     icon: 'fa-solid fa-check',
                     default: true,
                     callback: async (event, button, dialog) => {
-                        const root = dialog.form;
+                        // button.form: DialogV2 exposes no `form` property, so
+                        // dialog.form is undefined and every lookup below returned
+                        // nothing. See manager-vote.js for the same note.
+                        const root = button?.form ?? dialog?.element?.querySelector('form');
                         const hoursSelect = root?.querySelector('#hours-select');
                         const minutesSelect = root?.querySelector('#minutes-select');
                         const presetSelect = root?.querySelector('#duration-preset');
@@ -5755,7 +5521,10 @@ class MenuBar {
                     icon: 'fa-solid fa-check',
                     default: true,
                     callback: async (event, button, dialog) => {
-                        const root = dialog.form;
+                        // button.form: DialogV2 exposes no `form` property, so
+                        // dialog.form is undefined and every lookup below returned
+                        // nothing. See manager-vote.js for the same note.
+                        const root = button?.form ?? dialog?.element?.querySelector('form');
                         const presetSelect = root?.querySelector('#end-time-preset');
                         const presetValue = presetSelect?.value ?? 'custom';
                         const hourSelect = root?.querySelector('#end-hour');
@@ -5847,7 +5616,10 @@ class MenuBar {
                     icon: 'fa-solid fa-check',
                     default: true,
                     callback: async (event, button, dialog) => {
-                        const root = dialog.form;
+                        // button.form: DialogV2 exposes no `form` property, so
+                        // dialog.form is undefined and every lookup below returned
+                        // nothing. See manager-vote.js for the same note.
+                        const root = button?.form ?? dialog?.element?.querySelector('form');
                         const hoursSelect = root?.querySelector('#hours-select');
                         const minutesSelect = root?.querySelector('#minutes-select');
                         const setDefaultCheckbox = root?.querySelector('#set-default');

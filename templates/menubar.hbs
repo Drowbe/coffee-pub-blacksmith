@@ -65,7 +65,10 @@
     {{!-- RIGHT ZONE --}}
     <div class="blacksmith-menubar-right">
         {{!-- LEADER --}}
-        <div class="button leader-section {{#if isGM}}button-active{{else}}tool-readonly{{/if}}" data-tooltip="{{#if isGM}}Set the session leader.{{else}}Session leader.{{/if}}" data-tool="leader-section">
+        {{!-- Active for the leader too, not only the GM: the leader's menu is where
+              starting a vote now lives, so a control that looked read-only would be
+              hiding their own capability. --}}
+        <div class="button leader-section {{#if isGM}}button-active{{else}}{{#if isPartyLeader}}button-active{{else}}tool-readonly{{/if}}{{/if}}" data-tooltip="{{#if isGM}}Set the session leader.{{else}}{{#if isPartyLeader}}Start a vote.{{else}}Session leader.{{/if}}{{/if}}" data-tool="leader-section">
             <i class="fas fa-crown"></i>
             <span class="party-leader">{{leaderText}}</span>
         </div>

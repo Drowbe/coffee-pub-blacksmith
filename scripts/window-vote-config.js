@@ -172,7 +172,11 @@ export class VoteConfig extends BlacksmithWindowBaseV2 {
                     icon: 'fa-solid fa-check',
                     default: true,
                     callback: async (event, button, dialog) => {
-                        const form = dialog.form;
+                        // button.form, not dialog.form: DialogV2 has no `form`
+                        // property, so this silently returned and Create Vote did
+                        // nothing at all -- no error, no vote. `button.form` is the
+                        // native association from a button to its owning form.
+                        const form = button?.form ?? dialog?.element?.querySelector('form');
                         if (!form) return;
                         const title = (form.elements.title?.value ?? '').trim();
                         const optionsText = (form.elements.options?.value ?? '').trim();

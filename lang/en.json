@@ -21,6 +21,9 @@
 			"defaultPartySize-Label": "Party Size", 
 			"defaultPartySize-Hint": "How many party-member dropdowns to expose below.",
 
+			"partyDeployIncludeOwnedNpcs-Label": "Deploy Party: Include Owned NPCs",
+			"partyDeployIncludeOwnedNpcs-Hint": "Remembered from the Deploy Party dialog: whether player-owned NPCs (familiars, summons, companions) deploy alongside the characters.",
+
 			"defaultPartyMakeup-Label": "Default Party Makeup",
 			"defaultPartyMakeup-Hint": "The default party makeup to use when creating new narratives.",
 

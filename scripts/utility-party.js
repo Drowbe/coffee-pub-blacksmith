@@ -21,6 +21,28 @@ export function getPartyMembers() {
 }
 
 /**
+ * Player-owned actors that are not player characters.
+ *
+ * Familiars, summons, companions, animated weapons -- the things a player owns
+ * and expects to appear beside them. `isPlayerCharacter` deliberately excludes
+ * them because it answers "is this a party member"; this answers the separate
+ * question of what else belongs on the table.
+ *
+ * GROUP ACTORS ARE EXCLUDED and that is load-bearing: a dnd5e group actor is
+ * routinely owned by every player at the table, so ownership alone would drag the
+ * party roster itself onto the canvas as a token.
+ *
+ * @returns {Array} Array of actor documents
+ */
+export function getOwnedNpcs() {
+    return game.actors.filter(actor => (
+        actor.type !== 'character'
+        && actor.type !== 'group'
+        && actor.hasPlayerOwner
+    ));
+}
+
+/**
  * Party actors that already have a token on a scene.
  *
  * Matches on `token.actorId`, the same test clearPartyFromCanvas uses to decide
@@ -81,12 +103,27 @@ const DEPLOYMENT_PATTERN_HINTS = {
  *
  * @returns {Promise<string|null>} the pattern, or null if dismissed
  */
-async function promptDeploymentPattern() {
+async function promptDeploymentPattern({ npcCount = 0 } = {}) {
     const current = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern') || 'grid';
+    const includeDefault = !!game.settings.get(MODULE.ID, 'partyDeployIncludeOwnedNpcs');
+
+    // Tracked through a change listener rather than read off the element after the
+    // dialog resolves: the node is detached by then, and depending on a detached
+    // node still reporting its state is the kind of thing that works until it does
+    // not. The listener also means the value is correct even if DialogV2 moves the
+    // content around.
+    let includeNpcs = includeDefault;
+
+    const npcRow = npcCount
+        ? `<label class="blacksmith-deploy-npcs">
+               <input type="checkbox" name="include-owned-npcs"${includeDefault ? ' checked' : ''}>
+               <span>Include owned NPCs (${npcCount})</span>
+           </label>`
+        : '';
 
     const outcome = await DialogAPI.choose({
         title: 'Deploy Party',
-        content: '<p>How should the party be placed?</p>',
+        content: `<p>How should the party be placed?</p>${npcRow}`,
         choices: DEPLOYMENT_PATTERNS.map((pattern) => ({
             id: pattern,
             label: getDeploymentPatternName(pattern),
@@ -94,21 +131,32 @@ async function promptDeploymentPattern() {
             description: DEPLOYMENT_PATTERN_HINTS[pattern],
             default: pattern === current
         })),
-        closeValue: null
+        closeValue: null,
+        onRender: (element) => {
+            element?.querySelector('[name="include-owned-npcs"]')
+                ?.addEventListener('change', (event) => {
+                    includeNpcs = !!event.target.checked;
+                });
+        }
     });
 
     if (outcome?.action !== 'submit' || !outcome.value) return null;
 
-    if (outcome.value !== current) {
-        try {
+    // Both answers are remembered, so the next deployment defaults to this one.
+    try {
+        if (outcome.value !== current) {
             await game.settings.set(MODULE.ID, 'encounterToolbarDeploymentPattern', outcome.value);
-        } catch (error) {
-            // Not fatal: the deployment still happens with the chosen pattern, it
-            // just will not be the default next time.
-            postConsoleAndNotification(MODULE.NAME, 'Party Tools: could not save the deployment pattern', error?.message ?? error, false, false);
         }
+        if (npcCount && includeNpcs !== includeDefault) {
+            await game.settings.set(MODULE.ID, 'partyDeployIncludeOwnedNpcs', includeNpcs);
+        }
+    } catch (error) {
+        // Not fatal: this deployment still uses what was chosen, it just will not
+        // be the default next time.
+        postConsoleAndNotification(MODULE.NAME, 'Party Tools: could not save the deployment choices', error?.message ?? error, false, false);
     }
-    return outcome.value;
+
+    return { pattern: outcome.value, includeNpcs };
 }
 
 /**
@@ -120,9 +168,11 @@ async function promptDeploymentPattern() {
  *   dialog it did not ask for.
  * @param {boolean} [options.prompt=true] Set false to use the saved default
  *   silently without asking.
+ * @param {boolean} [options.includeOwnedNpcs] Also deploy player-owned NPCs
+ *   (familiars, summons, companions). Defaults to the remembered answer.
  * @returns {Promise<Array>} Array of created token documents
  */
-export async function deployParty({ pattern = null, prompt = true } = {}) {
+export async function deployParty({ pattern = null, prompt = true, includeOwnedNpcs = null } = {}) {
     // Check if user has permission
     if (!game.user.isGM) {
         postConsoleAndNotification(MODULE.NAME, "Party Tools: Only GMs can deploy party members", "", false, false);
@@ -150,10 +200,49 @@ export async function deployParty({ pattern = null, prompt = true } = {}) {
     // was to clear everyone and start again.
     const onCanvas = getPartyActorIdsOnCanvas();
     const pending = partyMembers.filter(actor => !onCanvas.has(actor.id));
-    const alreadyPlaced = partyMembers.length - pending.length;
 
-    if (pending.length === 0) {
-        postConsoleAndNotification(MODULE.NAME, "Party Tools: Every party member is already on the canvas", "", true, false);
+    // Owned NPCs get the same already-placed treatment, so ticking the box twice
+    // in a row cannot duplicate a familiar either.
+    const ownedNpcs = getOwnedNpcs();
+    const pendingNpcs = ownedNpcs.filter(actor => !onCanvas.has(actor.id));
+
+    if (pending.length === 0 && pendingNpcs.length === 0) {
+        postConsoleAndNotification(MODULE.NAME, "Party Tools: Everyone is already on the canvas", "", true, false);
+        ToastAPI.show({
+            title: 'Deploy Party',
+            subtitle: 'Everyone is already on this scene.',
+            icon: 'fa-solid fa-users',
+            duration: 4,
+            moduleId: 'blacksmith-core',
+            stackKey: 'blacksmith-encounter-tokens'
+        });
+        return [];
+    }
+
+    // An explicit pattern wins; otherwise ask, unless the caller opted out. The
+    // checkbox is only offered when there is something for it to include.
+    let deploymentPattern = pattern;
+    let withNpcs = includeOwnedNpcs ?? !!game.settings.get(MODULE.ID, 'partyDeployIncludeOwnedNpcs');
+
+    if (!deploymentPattern && prompt) {
+        const answer = await promptDeploymentPattern({ npcCount: pendingNpcs.length });
+        if (!answer) {
+            postConsoleAndNotification(MODULE.NAME, 'Party Tools: deployment cancelled at the pattern picker', '', true, false);
+            return [];
+        }
+        deploymentPattern = answer.pattern;
+        // An explicit argument still wins over what the dialog reported, so a
+        // caller passing includeOwnedNpcs gets what it asked for either way.
+        if (includeOwnedNpcs === null) withNpcs = answer.includeNpcs;
+    }
+    if (!deploymentPattern) {
+        deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern') || 'grid';
+    }
+
+    const roster = withNpcs ? [...pending, ...pendingNpcs] : pending;
+    if (roster.length === 0) {
+        // Only reachable by declining the NPCs when the characters were all placed.
+        postConsoleAndNotification(MODULE.NAME, 'Party Tools: nothing left to deploy', '', true, false);
         ToastAPI.show({
             title: 'Deploy Party',
             subtitle: 'Every party member is already on this scene.',
@@ -165,24 +254,19 @@ export async function deployParty({ pattern = null, prompt = true } = {}) {
         return [];
     }
 
-    const partyUUIDs = pending.map(actor => actor.uuid);
-    
+    // Counted against the roster actually being deployed, so declining the NPCs
+    // does not report them as "already placed".
+    const considered = withNpcs
+        ? partyMembers.length + ownedNpcs.length
+        : partyMembers.length;
+    const alreadyPlaced = considered - roster.length;
+
+    const partyUUIDs = roster.map(actor => actor.uuid);
+
     postConsoleAndNotification(MODULE.NAME, "Party Tools: Deploying party",
-        `${pending.length} member(s)${alreadyPlaced ? `, ${alreadyPlaced} already placed` : ''}`, true, false);
+        `${roster.length} actor(s)${alreadyPlaced ? `, ${alreadyPlaced} already placed` : ''}`, true, false);
     postConsoleAndNotification(MODULE.NAME, "Party Tools: Party UUIDs", partyUUIDs, true, false);
-    
-    // An explicit pattern wins; otherwise ask, unless the caller opted out.
-    let deploymentPattern = pattern;
-    if (!deploymentPattern && prompt) {
-        deploymentPattern = await promptDeploymentPattern();
-        if (!deploymentPattern) {
-            postConsoleAndNotification(MODULE.NAME, 'Party Tools: deployment cancelled at the pattern picker', '', true, false);
-            return [];
-        }
-    }
-    if (!deploymentPattern) {
-        deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern') || 'grid';
-    }
+
     const deploymentHidden = false; // Party members should be visible by default
     
     // Deploy using shared API
