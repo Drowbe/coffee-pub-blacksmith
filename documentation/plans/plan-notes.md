@@ -79,7 +79,8 @@ hit, and it explains why it looked like collab simply did not work.
 
 Guarded in `scripts/manager-prosemirror-collab.js`: skip the notification when the sheet has no rendered
 form, since its only job is disabling save-source buttons that are not on screen. Registered with the other
-wrappers in `manager-libwrapper.js`. **Awaiting two-client confirmation that steps now apply.**
+wrappers in `manager-libwrapper.js`. **Confirmed working with two clients, 2026-08-10.** Decision 1 stands: collaborative editing in, edit locks
+out, and the untitled-note orphans go with the draft page they existed to support.
 
 ### 2. Visibility is ownership, in three shapes, and it absorbs give-to
 

@@ -24,6 +24,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Squire's `notesJournal` setting is adopted alongside it, and had to be: without it the note adoption finds no journal and silently does nothing on the one load that was meant to migrate them.
 
+### Fixed
+
+- **Collaborative ProseMirror editing now works outside a document's own sheet** (`scripts/manager-prosemirror-collab.js`, registered with the other wrappers in `manager-libwrapper.js`). Verified with two clients on 2026-08-10.
+
+  Foundry notifies the edited document's sheet before applying incoming collaborative steps (`client/applications/ux/prosemirror-editor.mjs:92`): `this.options.document?.sheet?._onNewSteps?.()`. For a JournalEntryPage that resolves to `JournalEntryPageProseMirrorSheet._onNewSteps`, one unguarded line reading `this.form.querySelectorAll(...)`. Because `document.sheet` is lazily constructed it exists even when it has never been rendered, so `this.form` is undefined and it throws -- **before** `receiveTransaction` and `view.dispatch`. Every incoming step is discarded.
+
+  The symptom is badly misleading: two clients connect, both presence avatars appear in the editor toolbar, and no text ever syncs. It reads as "collaborative editing does not work" when collaboration is working correctly and one line of UI bookkeeping is failing in front of it. Squire attempted collaborative notes, could not get them working, and shipped an edit-lock system as the fallback -- this is almost certainly what it hit.
+
+  The guard skips that notification when the sheet has no rendered form. Nothing is lost by doing so: the method exists only to disable save-source buttons that are not on screen. It declines and reports rather than throwing if libWrapper is absent or the core class moves.
+
+  This is hub infrastructure rather than a Notes detail -- any module hosting a collaborative editor outside a document's own sheet hits the same wall.
+
 ### Not in this release
 
 - **The Notes list and editor windows were built and then removed before release.** They were written without reading Squire's own `documents/architecture-notes.md`, and what they produced was a list of journal pages with tags -- which fails the test the design sets for itself, that a note system must answer "what is attached to this thing" rather than merely listing documents. Squire's Notes is a note, a canvas pin, and a tag assignment as one object; building the document and leaving the relationships as attributes is what produced a fancy journal.
