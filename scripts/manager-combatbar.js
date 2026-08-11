@@ -3644,7 +3644,7 @@ export class CombatBarManager {
             // already that action, and two buttons calling clearPartyFromCanvas
             // would be the duplication this move exists to remove.
             deployParty: {
-                name: 'Deploy Party to Canvas',
+                name: 'Deploy Party',
                 icon: 'fa-solid fa-map-marker-alt',
                 run: () => run('Deploy Party', async () => {
                     const { deployParty } = await import('./utility-party.js');
@@ -3652,7 +3652,7 @@ export class CombatBarManager {
                 })
             },
             experience: {
-                name: 'Distribute Experience',
+                name: 'Party Experience',
                 icon: 'fa-solid fa-star',
                 // Imported on demand for the window id, the same way the encounter
                 // actions are: the id is taken from its owner rather than copied
@@ -3670,11 +3670,29 @@ export class CombatBarManager {
                     api?.openWindow?.(STATS_PARTY_WINDOW_ID);
                 })
             },
+            // Reading hit points, which changes nothing. Shown on the bar out of
+            // combat as well as in the Combatants menu, so the definition lives
+            // here rather than staying menu-local.
+            viewPartyHealth: {
+                name: 'Party Health',
+                icon: 'fa-solid fa-heart',
+                run: () => menuViewHealth('party', 'Party Health')
+            },
+            viewNpcHealth: {
+                name: 'NPC Health',
+                icon: 'fa-solid fa-heart-crack',
+                run: () => menuViewHealth('npc', 'NPC Health')
+            },
+            viewCanvasHealth: {
+                name: 'Canvas Health',
+                icon: 'fa-solid fa-heart-pulse',
+                run: () => menuViewHealth('all', 'Canvas Health')
+            },
             removeParty: {
-                name: 'Remove Party from Canvas',
+                name: 'Remove Party',
                 icon: 'fa-solid fa-users-slash',
                 run: confirmThenRun(
-                    'Remove Party from Canvas',
+                    'Remove Party',
                     'Delete every party token from this scene?',
                     async () => {
                         const { clearPartyFromCanvas } = await import('./utility-party.js');
@@ -3683,10 +3701,10 @@ export class CombatBarManager {
                 )
             },
             removeMonsters: {
-                name: 'Remove Monsters from Canvas',
+                name: 'Remove Monsters',
                 icon: 'fa-solid fa-dragon',
                 run: confirmThenRun(
-                    'Remove Monsters from Canvas',
+                    'Remove Monsters',
                     'Delete every monster token from this scene? Humanoid NPCs are left in place.',
                     async () => {
                         const { EncounterManager } = await import('./manager-encounter.js');
@@ -3695,10 +3713,10 @@ export class CombatBarManager {
                 )
             },
             removeNpcs: {
-                name: 'Remove NPCs from Canvas',
+                name: 'Remove NPCs',
                 icon: 'fa-solid fa-people-line',
                 run: confirmThenRun(
-                    'Remove NPCs from Canvas',
+                    'Remove NPCs',
                     'Delete every humanoid NPC token from this scene? Party and monsters are left in place.',
                     async () => {
                         const { EncounterManager } = await import('./manager-encounter.js');
@@ -3715,8 +3733,12 @@ export class CombatBarManager {
      * absent because they need an encounter to act on.
      */
     static OUT_OF_COMBAT_ACTIONS = [
-        'toggleTracker', 'createCombat', 'quickEncounter',
-        'revealHidden', 'deployParty', 'removeParty', 'removeMonsters', 'removeNpcs',
+        // No toggleTracker: the tracker is of no use with no encounter running,
+        // and it remains one row down in the Encounter menu for when it is.
+        'createCombat', 'quickEncounter',
+        'deployParty', 'revealHidden',
+        'removeParty', 'removeMonsters', 'removeNpcs',
+        'viewPartyHealth', 'viewNpcHealth', 'viewCanvasHealth',
         'experience', 'statistics'
     ];
 
@@ -3762,9 +3784,10 @@ export class CombatBarManager {
         });
 
         gm.push({ separator: true });
-        gm.push({ name: 'View Party Health', icon: 'fa-solid fa-heart', callback: () => menuViewHealth('party', 'View Party Health') });
-        gm.push({ name: 'View NPC Health', icon: 'fa-solid fa-heart-crack', callback: () => menuViewHealth('npc', 'View NPC Health') });
-        gm.push({ name: 'View Canvas Health', icon: 'fa-solid fa-heart-pulse', callback: () => menuViewHealth('all', 'View Canvas Health') });
+        // Shared names now: these are bar buttons as well as menu rows.
+        gm.push({ name: a.viewPartyHealth.name, icon: a.viewPartyHealth.icon, callback: a.viewPartyHealth.run });
+        gm.push({ name: a.viewNpcHealth.name, icon: a.viewNpcHealth.icon, callback: a.viewNpcHealth.run });
+        gm.push({ name: a.viewCanvasHealth.name, icon: a.viewCanvasHealth.icon, callback: a.viewCanvasHealth.run });
 
         gm.push({ separator: true });
         // Menu-local label again; the button row keeps "Reveal Hidden".

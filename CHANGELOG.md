@@ -20,7 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **Graveyard rows now answer to the same two clicks as a portrait**: left-click pans to the token, right-click opens that combatant's own menu. A graveyard row stands in for a portrait that is not on the bar, so it behaves like one. The hover card does not follow, because the handler that shows it is delegated from the document and scoped to the portrait strip.
 
-  Menu labels are written in the menu builders rather than taken from the shared action definitions, so the out-of-combat button row keeps its own wording. The separators are made visible for these three menus only -- the global rule draws a fully transparent line -- since five other menus use the same class and none of them changed.
+  **The out-of-combat button row gains the health views and loses the tracker.** Showing the combat tracker is of no use with no encounter running, so that button is gone; it stays one row down in the Encounter menu for when there is one. Party Health, NPC Health and Canvas Health join the row, which is why those three moved from menu-local rows to shared action definitions.
+
+  **Names shortened where the surface already said it.** "Deploy Party to Canvas" is Deploy Party, the three removals drop "from Canvas", the health views drop "View", and "Distribute Experience" is Party Experience. These are changed at the single definition, so the menu row and the bar button read the same.
+
+  Remaining menu labels are written in the menu builders rather than taken from the shared action definitions, so the out-of-combat button row keeps its own wording. The separators are made visible for these three menus only -- the global rule draws a fully transparent line -- since five other menus use the same class and none of them changed.
 
 - **The party bar is gone; its contents moved to where they belong** (`scripts/api-menubar.js`, `scripts/manager-combatbar.js`, `scripts/window-toast-send.js`, `scripts/manager-reputation.js`). It was a second toggle hiding four buttons and two readouts, half of which were shown elsewhere already.
 
