@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { getSettingSafely, postConsoleAndNotification, formatTime, playSound, getPortraitImage } from './api-core.js';
+import { getSettingSafely, postConsoleAndNotification, formatTime, playSound, getPortraitImage, isPlayerCharacter } from './api-core.js';
 import { RoundTimer } from './timer-round.js';
 import { CombatTracker } from './ui-combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
@@ -110,6 +110,119 @@ class CombatantCardToolWindow extends BlacksmithToolWindowBaseV2 {
     _onClose(options) {
         super._onClose?.(options);
         CombatBarManager._combatantPopoutCards.delete(this.popoutId);
+    }
+}
+
+// ==================================================================
+// ===== CONTEXT MENU HELPERS =======================================
+// ==================================================================
+//
+// Module-level on purpose. These serve the three context menus and nothing
+// else, so they are deliberately NOT on CombatBarManager and NOT in
+// getBarActions() -- that object is shared with the out-of-combat button row,
+// and reaching into it to serve a menu is how the button row got changed once
+// already. Nothing outside the menu builders below may call these.
+// ==================================================================
+
+/**
+ * Canvas tokens with an actor, optionally narrowed to a side.
+ *
+ * PLACEABLES, not TokenDocuments: the health window reads `token.document.name`
+ * and `canStillFight` reads `.actor`/`.id`, so the placeable is the one currency
+ * every consumer here accepts.
+ *
+ * `npc` means everything that is not the party -- monsters and shopkeepers
+ * alike. Deliberately NOT the monster/humanoid split the removals use, where
+ * "clear the monsters but leave the merchant" is the actual intent.
+ *
+ * @param {'party'|'npc'|'all'} [side]
+ * @returns {Token[]}
+ */
+function menuCanvasTokens(side = 'all') {
+    const tokens = (canvas?.tokens?.placeables ?? []).filter((t) => !!t.actor);
+    if (side === 'party') return tokens.filter((t) => isPlayerCharacter(t.actor));
+    if (side === 'npc') return tokens.filter((t) => !isPlayerCharacter(t.actor));
+    return tokens;
+}
+
+/** Toast on the same stack the other canvas token actions use. */
+function menuToast(title, subtitle, icon = 'fa-solid fa-swords') {
+    ToastAPI.show({
+        title,
+        subtitle,
+        icon,
+        duration: 4,
+        moduleId: 'blacksmith-core',
+        stackKey: 'blacksmith-encounter-tokens'
+    });
+}
+
+/**
+ * Add the canvas tokens of one side that are not already in the encounter.
+ *
+ * Creates the combat when there is none, which is why the Encounter menu no
+ * longer needs a separate Create row: "add all remaining" with nothing to add
+ * them to means "start the encounter with them".
+ *
+ * Ignores the current selection. "Remaining" is a statement about the canvas;
+ * selection-first belongs to the Create Combat button, where choosing the
+ * tokens first is the point.
+ *
+ * @param {'party'|'npc'|'all'} side
+ * @param {string} label for the toast
+ */
+async function menuAddRemaining(side, label) {
+    if (!game.user?.isGM) return;
+    const scene = canvas?.scene;
+    if (!scene) {
+        menuToast(label, 'No active scene.', 'fa-solid fa-triangle-exclamation');
+        return;
+    }
+
+    try {
+        const combat = game.combats?.active ?? null;
+        const present = new Set((combat?.combatants ?? []).map((c) => c.tokenId));
+        // Yesterday's corpses are still on the canvas, so the same rules
+        // asymmetry the encounter builder uses applies: a monster at zero is
+        // out, a character at zero is dying and still belongs in the fight.
+        const candidates = menuCanvasTokens(side)
+            .filter((t) => !present.has(t.id))
+            .filter((t) => EncounterManager.canStillFight(t));
+
+        if (!candidates.length) {
+            menuToast(label, 'Nothing left to add.', 'fa-solid fa-circle-info');
+            return;
+        }
+
+        const target = combat ?? await Combat.create({
+            scene: scene.id,
+            name: 'Combat Encounter',
+            active: true
+        });
+        await target.createEmbeddedDocuments('Combatant', candidates.map((t) => ({
+            tokenId: t.id,
+            actorId: t.actor.id,
+            sceneId: scene.id
+        })));
+        menuToast(label, `${candidates.length} added.`);
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error in ${label}`, error?.message || error, false, false);
+        menuToast(label, 'Could not add them. See the console.', 'fa-solid fa-triangle-exclamation');
+    }
+}
+
+/** Open the health window over a token set, without disturbing the selection. */
+async function menuViewHealth(side, label) {
+    try {
+        const tokens = menuCanvasTokens(side);
+        if (!tokens.length) {
+            menuToast(label, 'No tokens to show.', 'fa-solid fa-circle-info');
+            return;
+        }
+        const { openHealthWindow } = await import('./window-health.js');
+        await openHealthWindow({ tokens });
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error in ${label}`, error?.message || error, false, false);
     }
 }
 
@@ -3619,22 +3732,46 @@ export class CombatBarManager {
             .filter((entry) => entry.name && (!entry.available || entry.available()));
     }
 
+    /**
+     * The COMBATANTS menu -- what acts on the tokens rather than on the encounter
+     * record. Reading hit points, then changing what is on the canvas.
+     */
     static showTokensMenu(_menuBar, anchorEl) {
         if (!game.user.isGM) return;
 
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
         const a = CombatBarManager.getBarActions();
+        const combat = game.combat;
 
         const gm = [
-            { name: a.revealHidden.name, icon: a.revealHidden.icon, callback: a.revealHidden.run },
-            { separator: true },
-            // Beside the removal it undoes: putting tokens on the canvas and taking
-            // them off is the same menu's job.
-            { name: a.deployParty.name, icon: a.deployParty.icon, callback: a.deployParty.run },
-            { name: a.removeParty.name, icon: a.removeParty.icon, callback: a.removeParty.run },
-            { name: a.removeMonsters.name, icon: a.removeMonsters.icon, callback: a.removeMonsters.run },
-            { name: a.removeNpcs.name, icon: a.removeNpcs.icon, callback: a.removeNpcs.run }
+            { name: a.deployParty.name, icon: a.deployParty.icon, callback: a.deployParty.run }
         ];
+        gm.push({
+            // Moved here from the Encounter menu: it acts on tokens, not on the
+            // encounter record.
+            name: 'Clear Movement Histories',
+            icon: 'fa-solid fa-shoe-prints',
+            disabled: !combat?.combatants?.size,
+            callback: async () => {
+                try {
+                    await combat.clearMovementHistories();
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error clearing movement histories', error?.message || error, false, false);
+                }
+            }
+        });
+
+        gm.push({ separator: true });
+        gm.push({ name: 'View Party Health', icon: 'fa-solid fa-heart', callback: () => menuViewHealth('party', 'View Party Health') });
+        gm.push({ name: 'View NPC Health', icon: 'fa-solid fa-heart-crack', callback: () => menuViewHealth('npc', 'View NPC Health') });
+        gm.push({ name: 'View Canvas Health', icon: 'fa-solid fa-heart-pulse', callback: () => menuViewHealth('all', 'View Canvas Health') });
+
+        gm.push({ separator: true });
+        // Menu-local label again; the button row keeps "Reveal Hidden".
+        gm.push({ name: 'Reveal Hidden NPCs', icon: a.revealHidden.icon, callback: a.revealHidden.run });
+        gm.push({ name: a.removeParty.name, icon: a.removeParty.icon, callback: a.removeParty.run });
+        gm.push({ name: a.removeMonsters.name, icon: a.removeMonsters.icon, callback: a.removeMonsters.run });
+        gm.push({ name: a.removeNpcs.name, icon: a.removeNpcs.icon, callback: a.removeNpcs.run });
 
         UIContextMenu.show({
             id: 'blacksmith-combat-tokens-menu',
@@ -3648,7 +3785,7 @@ export class CombatBarManager {
      * Whether a combatant counts as dead for the bar's purposes. PCs are dead
      * only when marked defeated (three failed death saves), NPCs when their HP
      * hits zero. Shared by the strip and the Graveyard so the two can never
-     * disagree about who is dead — a disagreement would drop someone from both.
+     * disagree about who is dead - a disagreement would drop someone from both.
      */
     static isCombatantDead(combatant) {
         const actor = combatant?.actor;
@@ -3677,7 +3814,7 @@ export class CombatBarManager {
 
     /**
      * The Graveyard list. Each row stands in for a portrait that is not on the
-     * bar, so clicking one opens that combatant's own menu — the same menu a
+     * bar, so clicking one opens that combatant's own menu - the same menu a
      * right-click on its portrait would give, Pan to Token included.
      */
     static showGraveyardMenu(menuBar, anchorEl) {
@@ -3851,19 +3988,9 @@ export class CombatBarManager {
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
         const unrolled = combat.combatants.filter(c => c.initiative === null).length;
 
+        // No Roll All: it and Roll Remaining both roll everything still unrolled,
+        // so the pair was two labels for one outcome.
         const gm = [
-            {
-                name: 'Roll All',
-                icon: 'fa-solid fa-dice',
-                disabled: !unrolled,
-                callback: async () => {
-                    try {
-                        await combat.rollAll();
-                    } catch (error) {
-                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error rolling all initiatives', error?.message || error, false, false);
-                    }
-                }
-            },
             {
                 name: 'Roll Remaining',
                 icon: 'fa-solid fa-users-medical',
@@ -3937,35 +4064,61 @@ export class CombatBarManager {
      */
     static showEncounterMenu(_menuBar, anchorEl) {
         if (!game.user.isGM) return;
-        // No early return on a missing combat: Create Combat is precisely the
-        // row you want when there is not one yet. Rows that need a combat drop
-        // out instead, so the menu shrinks to what currently applies.
+        // No early return on a missing combat: Add All Remaining is precisely the
+        // row you want when there is not one yet -- it creates the encounter with
+        // whatever is standing. Rows needing a combat drop out instead.
         const combat = game.combat;
 
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
         const a = CombatBarManager.getBarActions();
 
+        // Labels are given HERE rather than taken from the action, so the
+        // out-of-combat button row keeps its own wording. getBarActions is shared;
+        // renaming in it changes buttons nobody asked to change.
         const gm = [
             { name: a.toggleTracker.name, icon: a.toggleTracker.icon, callback: a.toggleTracker.run }
         ];
+        if (a.quickEncounter.available()) {
+            gm.push({ name: a.quickEncounter.name, icon: a.quickEncounter.icon, callback: a.quickEncounter.run });
+        }
+        gm.push({ name: 'View Current Statistics', icon: a.statistics.icon, callback: a.statistics.run });
+        gm.push({ name: 'View Pending Experience', icon: a.experience.icon, callback: a.experience.run });
+
+        gm.push({ separator: true });
+        gm.push({
+            name: 'Add Remaining Players',
+            icon: 'fa-solid fa-users',
+            callback: () => menuAddRemaining('party', 'Add Remaining Players')
+        });
+        gm.push({
+            name: 'Add Remaining NPCs',
+            icon: 'fa-solid fa-dragon',
+            callback: () => menuAddRemaining('npc', 'Add Remaining NPCs')
+        });
+        gm.push({
+            name: 'Add All Remaining',
+            icon: 'fa-solid fa-swords',
+            callback: () => menuAddRemaining('all', 'Add All Remaining')
+        });
 
         if (combat) {
             const isLinked = !!combat.scene;
             gm.push({ separator: true });
             gm.push({
-                name: 'Clear Movement Histories',
-                icon: 'fa-solid fa-shoe-prints',
-                disabled: !combat.combatants.size,
+                name: 'Delete Encounter',
+                icon: 'fa-solid fa-trash',
                 callback: async () => {
                     try {
-                        await combat.clearMovementHistories();
+                        // endCombat, not delete: it is the path carrying core's
+                        // confirmation prompt.
+                        await combat.endCombat();
                     } catch (error) {
-                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error clearing movement histories', error?.message || error, false, false);
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error deleting encounter', error?.message || error, false, false);
                     }
                 }
             });
             gm.push({
-                // One toggle, two truths — an unlinked encounter needs the
+                // One toggle, two truths -- an unlinked encounter needs the
                 // inverse label or the row lies about what it will do.
                 name: isLinked ? 'Unlink from Scene' : 'Link to Scene',
                 icon: isLinked ? 'fa-solid fa-unlink' : 'fa-solid fa-link',
@@ -3974,32 +4127,6 @@ export class CombatBarManager {
                         await combat.toggleSceneLink();
                     } catch (error) {
                         postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error toggling scene link', error?.message || error, false, false);
-                    }
-                }
-            });
-        }
-
-        gm.push({ separator: true });
-
-        // One handler for both labels: MenuBar.createCombat already creates
-        // an encounter when there is none and otherwise folds the tokens into
-        // the running one. The label changes because the outcome does.
-        gm.push({ name: a.createCombat.name, icon: a.createCombat.icon, callback: a.createCombat.run });
-
-        if (a.quickEncounter.available()) {
-            gm.push({ name: a.quickEncounter.name, icon: a.quickEncounter.icon, callback: a.quickEncounter.run });
-        }
-
-        if (combat) {
-            gm.push({ separator: true });
-            gm.push({
-                name: 'Delete Encounter',
-                icon: 'fa-solid fa-trash',
-                callback: async () => {
-                    try {
-                        await combat.endCombat();
-                    } catch (error) {
-                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error deleting encounter', error?.message || error, false, false);
                     }
                 }
             });
