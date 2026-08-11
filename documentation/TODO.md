@@ -117,6 +117,29 @@ drew a visible box around every row instead of hinting an edge.
 Start with the highest-count values in the most-used sheets, and stop tokenising as soon as the values stop
 repeating.
 
+## Window presentation is per DEVICE and should be per USER (opened 2026-08-11)
+
+**The rule, stated by the author:** favourites, sorting, and window sizes are *user* settings - remembered
+for a person across every device they log in from. Notes favourites (`favoriteNotes`) and the notes list
+sort (`notesSort`) already are, as flags on the User. Window presentation is not.
+
+`BlacksmithWindowBase` writes position and size to **`localStorage`** (`window-base.js`, `_positionKey`), and
+`BlacksmithToolWindowBase V2` does the same for the tool theme and title-bar mode
+(`_toolThemePreferenceKey`, `_toolTitlebarPreferenceKey`). So a GM who moves a window on the desktop client
+finds it back at its default on a laptop, and their chosen light/dark theme does not travel either.
+
+Moving it to user flags is the fix, but it is not a find-and-replace:
+
+- **Writes become async.** `localStorage.setItem` is synchronous and is called from drag/resize handlers;
+  `User#setFlag` is a document update. It needs debouncing or a drag will fire an update per frame.
+- **Reads happen before `ready` in places.** A flag read needs `game.user` to exist; localStorage does not.
+- **Existing values must migrate**, once, per key - there is already a `migratePositionKey` helper for the
+  old-key-to-new-key case that shows the shape.
+- **Six windows carry position keys** today, plus whatever the satellites set through the same base.
+
+Decide whether `windowPositionKey` stays the storage key or becomes a flag path before starting; that
+choice is what makes the migration one pass or several.
+
 ## Overall party reputation, for external consumers (opened 2026-08-10)
 
 Reputation is per-scene and nothing aggregates it. The API is `getPartyReputation(scene)`,

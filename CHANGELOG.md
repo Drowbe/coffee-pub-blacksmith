@@ -40,9 +40,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   A note is a plain text `JournalEntryPage` flagged as a note, with tags in the shared Tags registry rather than a private list, and privacy expressed as Foundry ownership rather than a flag.
 
+  **The read view shows the note as it is now.** It used to show the text from when the window opened: the collaborative editor persists to `text.content` on a debounce, so the document is behind the screen at the moment you toggle. The editor's own value is taken on the way out, and an update landing for that page -- from this client's debounced write or another client's edit -- drops it so the document is authoritative again.
+
   **A read view, toggled from the header.** Editing is the default -- a note is a thing you write -- but ProseMirror renders `@UUID[...]` as inert text, so following a link out of a note was impossible while editing it. The read view enriches the body, which makes content links real; Foundry delegates clicks on `.content-link` globally, so nothing has to wire them. It reads from the live document rather than the editor, so a collaborative edit cannot leave it showing something staler than the note.
 
   **Notes are collaborative.** Two people can write in one note at once, which is what Squire wanted and could not achieve -- see the collaborative-editing fix below for why. Edit locks are therefore not ported: they existed as the fallback for collaboration not working.
+
+  **There is no Save button.** The body is written by the editor window itself -- see the note below on why nothing else does it -- and title, access, and tags are small enough to commit as they change: typing settles after a pause, leaving a field or toggling access commits at once, and closing flushes anything still pending. A brand-new note is created **on close, and only if something was typed**; an untouched one is never written at all, which is what keeps this from reintroducing the orphan problem below. A note deleted or unshared from under an open editor sets a discard flag first, so closing cannot resurrect it.
+
+  **The body is saved by the window, because nothing else was.** `HTMLProseMirrorElement`'s save only updates the element's own `_value` and fires a `change` event; in a journal sheet that event reaches the sheet's form and the sheet writes the document. This window is not a sheet, so the body reached disk only through collaborative step sync on the server -- an edit showed up if you waited and was lost if you closed first, and the editor toolbar's own save button did nothing. The window now listens for that `change` and writes `text.content` itself, and flushes before closing or switching to the read view, since both destroy the element.
 
   **And that removes the stray "Untitled Note" pages.** Squire created a draft page on first interaction *because collaborative editing needs a document to bind to*, so a click that went nowhere left an orphan behind. A note being created has no co-editors, so a new note gets a plain editor and its page is created on save. There is nothing to reap because nothing is created.
 

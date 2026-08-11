@@ -16,7 +16,19 @@
 // That split is what removes Squire's draft-page problem -- it created a
 // page on first interaction purely so collaboration had something to bind
 // to, which is where the hundreds of stray "Untitled Note" pages came
-// from. Here the page is created on save.
+// from. Here the page is created on CLOSE, and only if something was
+// actually typed -- an untouched note is never written at all.
+//
+// THERE IS NO SAVE BUTTON. Title, access, and tags commit as they change,
+// and the body is written by _commitBody.
+//
+// THE BODY DOES NOT SAVE ITSELF. HTMLProseMirrorElement's save only sets
+// the element's own `_value` and fires `change`; in a journal sheet that
+// event reaches the sheet's form and the SHEET writes the document. This
+// window is not a sheet, so without _commitBody the body reached disk only
+// through collaborative step sync on the server -- an edit appeared if you
+// waited and vanished if you closed first, and the toolbar's own save
+// button did nothing at all.
 //
 // Collaboration only works because of the guard in
 // manager-prosemirror-collab.js; without it every incoming step is
@@ -103,9 +115,31 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         // ProseMirror renders an @UUID link as text you cannot click -- following a
         // link out of a note is impossible while editing it.
         this._readMode = false;
+        /** Editor text carried into read mode, ahead of the debounced document write. */
+        this._liveHtml = null;
+        /** Set when the note is gone from under us, so close() does not recreate it. */
+        this._discarded = false;
         if (this.noteUuid) NoteEditorWindow._open.set(this.noteUuid, this);
 
         this._hookContext = `note-editor:${this.id}`;
+
+        // Keep the read view current. Its content is a snapshot taken when the
+        // editor was torn down, so an edit arriving from another client -- or this
+        // client's own debounced write landing -- has to invalidate it, or read
+        // mode quietly shows an older note than the one on disk.
+        HookManager.registerHook({
+            name: 'updateJournalEntryPage',
+            description: 'Note editor: refresh the read view when the note changes',
+            priority: 4,
+            context: this._hookContext,
+            callback: (page) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                if (!this._readMode || !this.noteUuid || page?.uuid !== this.noteUuid) return;
+                this._liveHtml = null;
+                void this.render(false);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
 
         // Losing access while the note is open. Their client still holds the page
         // until the update lands, so without this they keep typing into something
@@ -120,6 +154,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
                 if (!this.noteUuid || page?.uuid !== this.noteUuid) return;
                 if (page.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) return;
+                this._discarded = true;
                 ToastAPI.show({
                     title: 'Note unshared',
                     subtitle: `"${page.name}" is no longer shared with you.`,
@@ -148,6 +183,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             callback: (page) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
                 if (!this.noteUuid || page?.uuid !== this.noteUuid) return;
+                this._discarded = true;
                 // Drop the registry entry here rather than leaving it to _onClose,
                 // which keys off noteUuid -- clearing it first would strand the entry
                 // and the next open of a note with this uuid would be refused.
@@ -213,7 +249,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     async getData() {
         // No visibility read here: the strip is driven entirely by ownership via
         // _ownerUserIds, and the mode is derived from what is ticked. The flag is
-        // written on save and never consulted to draw the window.
+        // written on change and never consulted to draw the window.
         const tags = this.note ? NotesManager.getNoteTags(this.note) : [];
         const authorId = this.note?.getFlag(MODULE.ID, 'authorId') ?? null;
         const author = authorId ? game.users.get(authorId) : null;
@@ -321,10 +357,8 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                 : '',
             toolFooterRight:
                 pinButton +
-                '<button type="button" class="blacksmith-window-btn-secondary" data-note-action="cancel">' +
-                '<i class="fas fa-xmark"></i> Close</button>' +
-                '<button type="button" class="blacksmith-window-btn-primary" data-note-action="save">' +
-                '<i class="fas fa-floppy-disk"></i> Save</button>'
+                '<button type="button" class="blacksmith-window-btn-primary" data-note-action="cancel">' +
+                '<i class="fas fa-xmark"></i> Close</button>'
         };
     }
 
@@ -368,6 +402,10 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             ...(collaborative ? { collaborate: true, documentUUID: this.noteUuid } : {})
         });
         editor.classList.add('blacksmith-notes-editor');
+        // The element emits `change` when it saves -- on its toolbar button, and
+        // when it is removed from the DOM. This is the listener a sheet's form
+        // would be; without it the save button is inert.
+        editor.addEventListener('change', () => void this._commitBody(editor.value));
         editor.disabled = false;
         editor.removeAttribute('readonly');
         editor.addEventListener('open', () => {
@@ -395,7 +433,10 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
      * are already on the page, so this cannot show something staler than the note.
      */
     async _mountReadView(host) {
-        const html = this.note?.text?.content ?? '';
+        // The value carried over from the editor wins while it is fresher than the
+        // document; once an update for this page lands, _liveHtml is dropped and
+        // the document is authoritative again.
+        const html = this._liveHtml ?? this.note?.text?.content ?? '';
         if (!html) {
             host.innerHTML = '<div class="blacksmith-note-read blacksmith-note-read-empty">Nothing written yet.</div>';
             return;
@@ -440,6 +481,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                 }
             }
             this._syncAccess();
+            void this._commitNow();
         });
 
         this._syncAccess();
@@ -459,10 +501,21 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                     ? current.filter((t) => t !== tag)
                     : [...current, tag]).join(', ');
                 this._syncTagChips();
+                void this._commitNow();
             });
         }
-        tagInput?.addEventListener('input', () => this._syncTagChips());
+        tagInput?.addEventListener('input', () => {
+            this._syncTagChips();
+            this._commitSoon();
+        });
         this._syncTagChips();
+
+        // Typing commits on a delay; leaving the field commits at once, so a
+        // closed window never loses the last few characters to a pending timer.
+        const titleInput = root.querySelector('[name="note-title"]');
+        titleInput?.addEventListener('input', () => this._commitSoon());
+        titleInput?.addEventListener('change', () => void this._commitNow());
+        tagInput?.addEventListener('change', () => void this._commitNow());
 
         const on = (action, handler) => root
             .querySelector(`[data-note-action="${action}"]`)
@@ -478,6 +531,14 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         });
         on('toggle-read', () => {
             this._readMode = !this._readMode;
+            // Take the editor's CURRENT value on the way out. The collaborative
+            // editor persists to `text.content` on a debounce, so the document is
+            // behind what is on screen the moment you toggle -- which showed the
+            // note as it was when the window opened. The editor's own value is the
+            // live text, including steps received from other clients.
+            this._liveHtml = this._readMode ? (this._editor?.value ?? null) : null;
+            // The editor is about to be destroyed; write what it holds.
+            if (this._liveHtml != null) void this._commitBody(this._liveHtml);
             // Drop the editor element so the next mount rebuilds cleanly; a
             // collaborative ProseMirror left in the DOM keeps its session open.
             const host = this.element?.querySelector?.('.blacksmith-note-editor-host');
@@ -485,7 +546,6 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             this._editor = null;
             void this.render(false);
         });
-        on('save', () => void this._save());
         on('cancel', () => void this.close());
         on('icon', () => void this._configureIcon());
         on('place', () => void this._place());
@@ -634,45 +694,120 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         };
     }
 
-    async _save() {
-        const form = this._readForm();
-        const visibility = form.shape === NOTE_VISIBILITY.PARTY
-            ? NOTE_VISIBILITY.PARTY
-            : NOTE_VISIBILITY.PRIVATE;
+    /**
+     * Persist the editor's body to the page.
+     *
+     * NOTHING ELSE DOES THIS. `HTMLProseMirrorElement`'s own save only updates the
+     * element's internal `_value` and fires a `change` event
+     * (client/applications/elements/prosemirror-editor.mjs) -- in a journal sheet
+     * that event bubbles to the sheet's form and the SHEET writes the document.
+     * This window is not a sheet, so the body only ever reached disk through
+     * collaborative step sync on the server, which is why an edit appeared if you
+     * waited and was lost if you closed first. Even the toolbar's save button did
+     * nothing here, for the same reason.
+     *
+     * @param {string|null} html
+     */
+    async _commitBody(html) {
+        if (!this.note || typeof html !== 'string') return;
+        if (html === (this.note.text?.content ?? '')) return;
+        try {
+            await this.note.update({ 'text.content': html });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not save the note body', error?.message ?? error, false, false);
+        }
+    }
 
-        if (!this.note) {
-            const page = await NotesManager.createNote({
+    /** Commit after a pause in typing. */
+    _commitSoon() {
+        clearTimeout(this._commitTimer);
+        this._commitTimer = setTimeout(() => void this._commit(), 600);
+    }
+
+    /** Commit now, cancelling any pending debounce. */
+    async _commitNow() {
+        clearTimeout(this._commitTimer);
+        await this._commit();
+    }
+
+    /**
+     * Write the fields an existing note owns, as they change.
+     *
+     * There is no Save button. The body never needed one -- collaborative editing
+     * has been writing it as you type since the beginning -- and title, access, and
+     * tags are small enough to commit on change. Serialised through `_committing`
+     * so a fast typist plus an access toggle cannot interleave two updates.
+     */
+    async _commit() {
+        if (!this.note || this._committing) return;
+        this._committing = true;
+        try {
+            const form = this._readForm();
+            const visibility = form.shape === NOTE_VISIBILITY.PARTY
+                ? NOTE_VISIBILITY.PARTY
+                : NOTE_VISIBILITY.PRIVATE;
+            await NotesManager.updateNote(this.note, {
                 title: form.title,
-                content: form.content,
+                // Never the body: the collaborative editor owns it, and posting a
+                // snapshot here would clobber whatever a co-editor added.
+                content: null,
                 visibility,
-                tags: form.tags,
                 sharedWith: form.sharedWith,
                 keepAuthor: form.keepAuthor
             });
-            if (!page) return;
-            this.note = page;
-            this.noteUuid = page.uuid;
-            NoteEditorWindow._open.set(page.uuid, this);
-            ui.notifications.info(`Created "${page.name}".`);
-            return this.close();
+            await NotesManager.setNoteTags(this.note, form.tags);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not save the note', error?.message ?? error, false, false);
+        } finally {
+            this._committing = false;
+        }
+    }
+
+    /**
+     * Closing is how a new note comes into being, and how a pending edit lands.
+     *
+     * An EMPTY new note is never created -- that is what keeps this from becoming
+     * Squire's orphan problem, where a page appeared on first interaction and a
+     * click that went nowhere left "Untitled Note" behind. Nothing typed, nothing
+     * written. Anything typed is kept, because with no Save button the only other
+     * reading of Close is "throw away what I just wrote".
+     */
+    async close(options = {}) {
+        if (this._discarded) return super.close(options);
+
+        if (this.note) {
+            // Body first, then the fields. Both before the window goes: closing
+            // removes the editor element, and whatever it held is gone with it.
+            await this._commitBody(this._editor?.value ?? null);
+            await this._commitNow();
+            return super.close(options);
         }
 
-        // Content is omitted when collaborative: the editor has been writing to the
-        // page as you type, and posting a stale snapshot here would clobber whatever
-        // a co-editor added since this window last rendered.
-        const updated = await NotesManager.updateNote(this.note, {
+        const form = this._readForm();
+        const bodyText = (() => {
+            const div = document.createElement('div');
+            div.innerHTML = String(form.content ?? '');
+            return (div.textContent ?? '').trim();
+        })();
+        if (!form.title.trim() && !bodyText) return super.close(options);
+
+        const page = await NotesManager.createNote({
             title: form.title,
-            content: this.noteUuid ? null : form.content,
-            visibility,
+            content: form.content,
+            visibility: form.shape === NOTE_VISIBILITY.PARTY ? NOTE_VISIBILITY.PARTY : NOTE_VISIBILITY.PRIVATE,
+            tags: form.tags,
             sharedWith: form.sharedWith,
             keepAuthor: form.keepAuthor
         });
-        if (!updated) return;
-        await NotesManager.setNoteTags(this.note, form.tags);
-        return this.close();
+        if (page) {
+            this.note = page;
+            this.noteUuid = page.uuid;
+        }
+        return super.close(options);
     }
 
     _onClose(options) {
+        clearTimeout(this._commitTimer);
         if (this.noteUuid && NoteEditorWindow._open.get(this.noteUuid) === this) {
             NoteEditorWindow._open.delete(this.noteUuid);
         }
