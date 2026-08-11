@@ -3732,14 +3732,21 @@ export class CombatBarManager {
      * combat-only rows (scene link, movement histories, delete encounter) are
      * absent because they need an encounter to act on.
      */
+    /**
+     * The actions shown as buttons on the bar out of combat, in order.
+     *
+     * Ordered the way the context menus file them -- encounter-level first, then
+     * what acts on the tokens -- without the headings that named those groups:
+     * they were tried and read as clutter next to the buttons they captioned.
+     *
+     * No toggleTracker: the tracker is of no use with no encounter running, and
+     * it remains in the Encounter menu for when there is one.
+     */
     static OUT_OF_COMBAT_ACTIONS = [
-        // No toggleTracker: the tracker is of no use with no encounter running,
-        // and it remains one row down in the Encounter menu for when it is.
-        'createCombat', 'quickEncounter',
-        'deployParty', 'revealHidden',
-        'removeParty', 'removeMonsters', 'removeNpcs',
+        'createCombat', 'quickEncounter', 'experience', 'statistics',
+        'deployParty',
         'viewPartyHealth', 'viewNpcHealth', 'viewCanvasHealth',
-        'experience', 'statistics'
+        'revealHidden', 'removeParty', 'removeMonsters', 'removeNpcs'
     ];
 
     /**
