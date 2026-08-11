@@ -51,6 +51,38 @@ const FLAG_KEY = 'annotations';
 const NOTE_TYPE_FLAG = 'noteType';
 const NOTE_TYPE = 'note';
 
+/**
+ * How a note's pin looks and behaves when it is first created.
+ *
+ * Field names and permitted values come from `pins-schema.js` -- `textLayout`
+ * normalises "below the pin" to `under`, and an animation of `null` is the
+ * config window's "None". Only the starting point: the pin belongs to the note
+ * and the pin config window overwrites any of this.
+ */
+const NOTE_PIN_DESIGN = Object.freeze({
+    // The note icon, so a marker reads as a note before anyone changes it.
+    image: '<i class="fa-solid fa-note-sticky"></i>',
+    size: { w: 50, h: 50 },
+    shape: 'circle',
+    style: { fill: '#c4ac12', stroke: '#ffffff', strokeWidth: 5, iconColor: '#ffffff' },
+    dropShadow: true,
+    textLayout: 'under',
+    textDisplay: 'hover',
+    textColor: '#ffffff',
+    textSize: 20,
+    // 0 is "no limit"; the config window shows it as an empty Max Characters.
+    textMaxLength: 0,
+    textMaxWidth: 50,
+    textScaleWithPin: true,
+    eventAnimations: {
+        hover: { animation: 'ripple', sound: null },
+        click: { animation: null, sound: null },
+        doubleClick: { animation: 'scale-medium', sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-01.mp3' },
+        add: { animation: 'rotate', sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-02.mp3' },
+        delete: { animation: 'dissolve', sound: 'modules/coffee-pub-blacksmith/sounds/interface-pop-03.mp3' }
+    }
+});
+
 /** Socket channel for the GM-side ownership write. See NotesManager.applyOwnership. */
 const NOTES_GM_PROXY = 'blacksmith-notes-gm-proxy';
 
@@ -326,6 +358,11 @@ export class NotesManager {
      * copy that omitted the caller-supplied `id` failed validation at runtime.
      * Pins does not generate ids -- see `documentation/api/api-pins.md`.
      *
+     * The design comes from NOTE_PIN_DESIGN so a note's marker looks like a note
+     * before anybody configures it. Whatever is set here is only the starting
+     * point -- the pin is the note's own, and editing it through the pin config
+     * window overwrites these.
+     *
      * @param {JournalEntryPage} note
      * @returns {object} pin data for `PinsAPI.create`, unplaced (no x/y/sceneId)
      */
@@ -335,6 +372,7 @@ export class NotesManager {
             moduleId: MODULE.ID,
             type: 'note',
             text: note.name,
+            ...NOTE_PIN_DESIGN,
             // From the page's live ownership rather than rebuilt from flags: the
             // ownership is the truth and already carries anyone the note was shared
             // with. Converted because pins nest users and documents do not.
