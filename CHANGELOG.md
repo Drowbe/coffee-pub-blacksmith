@@ -68,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **Both windows are tool windows sharing one theme.** They are the same feature and were briefly not: the list was a tool window and the editor a full one, which made them read as two different products, and no styling could reconcile them because a tool window carries a user-chosen theme and a full window does not. Both now override `toolThemePreferenceKey` and `toolTitlebarPreferenceKey` to a shared key -- those default to each window's own position key, so without the override one could be light while the other was dark.
 
+  **One sort toggle** beside the search box: newest first, or by name. Remembered per user, like favourites -- which order you read your notes in is personal, and a world setting would impose one person's on the table. Favourites stay pinned above both orders, because pinning is a separate axis from sorting.
+
   **What was deliberately dropped:** the scene dropdown, the ALL/PARTY/PRIVATE filter toggle, and the sort control. Five filtering mechanisms on one list was a fair share of what the author called klunky; search and tags answer "find the notes about Bob", and privacy is shown on each row because seeing it and filtering by it are different things.
 
   **Visibility is real ownership, not a flag.** `private` grants the author and every GM; `party` grants every player. Changing it rewrites the page's `ownership`, and `listNotes` filters on permission rather than on the flag -- a note somebody should not see is one they cannot load, which is the only version of privacy worth having. GMs are always granted, because a GM who writes a private note and then cannot open it is the failure every system that forgot this discovers late.

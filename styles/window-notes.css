@@ -61,6 +61,18 @@
     display: block;
 }
 
+
+.blacksmith-note-icon-btn i {
+    font-size: 28px;
+    line-height: 1;
+}
+
+
+
+.blacksmith-note-icon-btn:hover {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
 .blacksmith-note-fav {
     flex: 0 0 auto;
     border: none;
@@ -79,9 +91,7 @@
     opacity: 1;
 }
 
-.blacksmith-note-icon-btn:hover {
-    background: var(--blacksmith-tool-surface-hover);
-}
+
 
 /* The floor lives HERE, on the flex child, not on prose-mirror. A min-height on
    the editor itself cannot shrink, so tall content (an image at natural size)
@@ -216,8 +226,15 @@
     border-radius: 4px;
     background: var(--blacksmith-tool-surface-raised);
     color: var(--blacksmith-tool-text);
-    font-size: 0.95em;
     overflow: hidden;
+}
+
+/* An image fills the box through object-fit; a glyph only takes the inherited
+   text size, so the two read as different sizes in the same column. Sized to the
+   box in px rather than em so it cannot drift with the surrounding text. */
+.blacksmith-note-row-icon i {
+    font-size: 18px;
+    line-height: 1;
 }
 
 /* Display only in the resting row; the toggle lives in the hover actions. */
@@ -225,6 +242,7 @@
     color: var(--blacksmith-tool-accent);
 }
 
+.blacksmith-notes-sort,
 .blacksmith-notes-new {
     flex: 0 0 auto;
     border: 1px solid var(--blacksmith-tool-divider);
@@ -235,6 +253,7 @@
     padding: 3px 8px;
 }
 
+.blacksmith-notes-sort:hover,
 .blacksmith-notes-new:hover {
     background: var(--blacksmith-tool-surface-hover);
 }

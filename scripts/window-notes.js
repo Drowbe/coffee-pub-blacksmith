@@ -16,7 +16,8 @@
 // answered questions nobody asked. Privacy is shown on each row because
 // seeing it and filtering by it are different things.
 //
-// Sort is favourites first, then newest, and is not a control.
+// Sort is favourites first, then either newest or by name -- one
+// toggle, remembered per user. Nothing else about the order is a control.
 //
 // ==================================================================
 
@@ -33,6 +34,10 @@ import { PinManager } from './manager-pins.js';
 import { openNoteEditor } from './window-note-editor.js';
 
 export const NOTES_WINDOW_ID = 'blacksmith-notes';
+
+/** Sort orders offered by the list. Favourites stay pinned above both. */
+const SORT_CREATED = 'created';
+const SORT_ALPHA = 'alpha';
 
 /** Strip HTML to plain text for search and the hover preview. */
 function toText(html) {
@@ -84,6 +89,12 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
 
         this.search = '';
         this.activeTags = new Set();
+        // Per user, like favourites: which order you read your notes in is a
+        // personal preference, and a world setting would impose one GM's on the
+        // table. Written on toggle, so it survives a reload.
+        this.sort = game.user?.getFlag(MODULE.ID, 'notesSort') === SORT_ALPHA
+            ? SORT_ALPHA
+            : SORT_CREATED;
         this._hookContext = `notes-list:${this.id}`;
         NotesWindow.activeWindow = this;
 
@@ -145,7 +156,7 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
     // ===== RENDER =================================================
     // ==============================================================
 
-    /** Notes matching the current search and tag filters, newest first. */
+    /** Notes matching the current search and tag filters, in the chosen order. */
     _visibleNotes() {
         const all = NotesManager.listNotes();
         const search = this.search.trim().toLowerCase();
@@ -162,11 +173,18 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                 return `${note.name} ${toText(note.text?.content)}`.toLowerCase().includes(search);
             })
             .sort((a, b) => {
-                // Favourites first: they are the notes you came here for, and a
-                // favourite that scrolled off with age would defeat the point.
+                // Favourites first in BOTH orders: pinning is a separate axis from
+                // sorting, and a favourite that sorted away with the rest would
+                // defeat the point of pinning it.
                 const af = NotesManager.isFavorite(a) ? 0 : 1;
                 const bf = NotesManager.isFavorite(b) ? 0 : 1;
                 if (af !== bf) return af - bf;
+
+                if (this.sort === SORT_ALPHA) {
+                    // localeCompare, not <: it sorts accented names where a reader
+                    // expects them rather than after Z.
+                    return String(a.name ?? '').localeCompare(String(b.name ?? ''));
+                }
                 const at = a.getFlag(MODULE.ID, 'timestamp') ?? '';
                 const bt = b.getFlag(MODULE.ID, 'timestamp') ?? '';
                 return String(bt).localeCompare(String(at));
@@ -246,6 +264,10 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                 <input type="text" name="notes-search" value="${foundry.utils.escapeHTML(this.search)}"
                        placeholder="Search notes" autocomplete="off">
                 ${this.search ? '<button type="button" data-note-action="clear-search" title="Clear"><i class="fa-solid fa-xmark"></i></button>' : ''}
+                <button type="button" class="blacksmith-notes-sort" data-note-action="sort"
+                        title="${this.sort === SORT_ALPHA ? 'Sorted by name — click for newest first' : 'Sorted newest first — click for name'}">
+                    <i class="fa-solid ${this.sort === SORT_ALPHA ? 'fa-arrow-down-a-z' : 'fa-arrow-down-wide-short'}"></i>
+                </button>
                 <button type="button" class="blacksmith-notes-new" data-note-action="new" title="New note">
                     <i class="fa-solid fa-plus"></i>
                 </button>
@@ -282,6 +304,13 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
                 search.setSelectionRange(search.value.length, search.value.length);
             }
         }
+
+        root.querySelector('[data-note-action="sort"]')
+            ?.addEventListener('click', async () => {
+                this.sort = this.sort === SORT_ALPHA ? SORT_CREATED : SORT_ALPHA;
+                await game.user.setFlag(MODULE.ID, 'notesSort', this.sort);
+                void this.render(false);
+            });
 
         root.querySelector('[data-note-action="new"]')
             ?.addEventListener('click', () => void openNoteEditor());

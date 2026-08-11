@@ -282,8 +282,9 @@ export class XpManager {
             let monsters = [];
             
             if (hasCombat) {
-                // If there's combat, use existing combat logic (no changes)
-                monsters = this.getCombatMonsters(combat);
+                // Shaped, not raw. The window renders cr/baseXp/multiplier/finalXp;
+                // handing it Combatants gave it none of those.
+                monsters = this.buildMonsterRows(this.getCombatMonsters(combat), combat);
             } else {
                 // No active combat: this shows what is ON THE CANVAS, not what was fought. A corpse
                 // that was looted and cleared during the fight is simply absent, and anything
@@ -350,26 +351,9 @@ export class XpManager {
         const partySizeHandling = game.settings.get(MODULE.ID, 'xpPartySizeHandling');
 
         // Calculate monster XP data
-            const resolutionMultipliers = this.getResolutionMultipliers();
             const partySizeMultipliers = this.getPartySizeMultipliers();
 
-        const monsterXpData = monsters.map(monster => {
-                const baseXp = this.getMonsterBaseXp(monster, combat);
-                const resolutionType = this.detectMonsterResolution(monster, combat);
-                const multiplier = resolutionMultipliers[resolutionType] || 0;
-                const finalXp = Math.floor(baseXp * multiplier);
-
-                return {
-                    id: monster.id,
-                    name: this.getMonsterDisplayName(monster, combat),
-                    cr: this.getMonsterCR(monster, combat),
-                    baseXp: baseXp,
-                    resolutionType: resolutionType,
-                    multiplier: multiplier,
-                    finalXp: finalXp,
-                    actorId: monster.actorId
-                };
-            });
+        const monsterXpData = this.buildMonsterRows(monsters, combat);
 
         const monsterXp = monsterXpData.reduce((sum, monster) => sum + monster.finalXp, 0);
             // Size the distribution by who is actually included, matching the toggles the window opens with
@@ -417,6 +401,43 @@ export class XpManager {
     /**
      * Get all monsters from the combat
      */
+    /**
+     * Shape combatants into the rows the XP window renders.
+     *
+     * `getCombatMonsters` returns raw Combatants, which carry `name` and nothing
+     * else this window needs. Handed straight to the window they rendered as a
+     * blank CR, an empty base XP, and an `undefined` finalXp -- and one undefined
+     * in the finalXp sum makes the total NaN, which is what put NaN in Per Player
+     * and every player row. The shaping used to exist only inside
+     * calculateXpDistribution, so the window path silently skipped it.
+     *
+     * @param {Combatant[]} combatants
+     * @param {Combat} combat
+     * @returns {object[]} rows with cr, baseXp, resolutionType, multiplier, finalXp
+     */
+    static buildMonsterRows(combatants, combat) {
+        const resolutionMultipliers = this.getResolutionMultipliers();
+        return combatants.map((monster) => {
+            const baseXp = this.getMonsterBaseXp(monster, combat);
+            const resolutionType = this.detectMonsterResolution(monster, combat);
+            const multiplier = resolutionMultipliers[resolutionType] || 0;
+            // Coerced rather than trusted: a row whose XP is not a number poisons
+            // every total downstream, and 0 is the honest answer for "we could not
+            // work this one out".
+            const safeBase = Number.isFinite(Number(baseXp)) ? Number(baseXp) : 0;
+            return {
+                id: monster.id,
+                name: this.getMonsterDisplayName(monster, combat),
+                cr: this.getMonsterCR(monster, combat),
+                baseXp: safeBase,
+                resolutionType,
+                multiplier,
+                finalXp: Math.floor(safeBase * multiplier),
+                actorId: monster.actorId
+            };
+        });
+    }
+
     static getCombatMonsters(combat) {
         const record = getAdversaryRecord(combat);
         return combat.combatants.filter(combatant => {
@@ -1073,7 +1094,11 @@ class XpDistributionWindow extends BlacksmithWindowBaseV2 {
         let monsterBucket = 0;
         if (this.xpData.modeExperiencePoints) {
             // Calculate total XP from current monster finalXp values
-            const totalMonsterXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
+            // Coerced per row: one non-numeric finalXp used to turn the whole sum
+            // into NaN, and NaN then propagated through combinedXp to Per Player
+            // and every player row. A row that cannot be worth a number is worth 0.
+            const totalMonsterXp = this.xpData.monsters.reduce(
+                (sum, monster) => sum + (Number.isFinite(Number(monster?.finalXp)) ? Number(monster.finalXp) : 0), 0);
             // Apply party multiplier
             monsterBucket = Math.floor(totalMonsterXp * (this.xpData.partyMultiplier || 1));
         }
@@ -1083,7 +1108,12 @@ class XpDistributionWindow extends BlacksmithWindowBaseV2 {
         
         // Total XP is always the sum of both buckets
         this.xpData.combinedXp = monsterBucket + milestoneBucket;
-        this.xpData.xpPerPlayer = this.xpData.partySize > 0 ? Math.floor(this.xpData.combinedXp / this.xpData.partySize) : 0;
+        const perPlayer = this.xpData.partySize > 0
+            ? Math.floor(this.xpData.combinedXp / this.xpData.partySize)
+            : 0;
+        // Last line of defence: this value is rendered directly and added to every
+        // player's adjustment, so a NaN reaching here shows up in six places at once.
+        this.xpData.xpPerPlayer = Number.isFinite(perPlayer) ? perPlayer : 0;
         
         // Debug logging
     }
@@ -1297,7 +1327,8 @@ class XpDistributionWindow extends BlacksmithWindowBaseV2 {
         this.updateXpCalculations();
         
         // Calculate totals for display (updateXpCalculations now handles the main logic)
-        this.xpData.totalXp = this.xpData.monsters.reduce((sum, monster) => sum + monster.finalXp, 0);
+        this.xpData.totalXp = this.xpData.monsters.reduce(
+            (sum, monster) => sum + (Number.isFinite(Number(monster?.finalXp)) ? Number(monster.finalXp) : 0), 0);
         this.xpData.adjustedTotalXp = Math.floor(this.xpData.totalXp * (this.xpData.partyMultiplier || 1));
 
         // Get included count for display purposes
