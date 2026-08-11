@@ -3822,6 +3822,8 @@ export class CombatBarManager {
         if (!dead.length) return;
 
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
+        const MENU_ID = 'blacksmith-combat-graveyard-menu';
+
         const core = dead.map(combatant => {
             const actor = combatant.actor;
             const portrait = actor?.img || combatant.token?.texture?.src
@@ -3829,17 +3831,45 @@ export class CombatBarManager {
             return {
                 name: combatant.token?.name || actor?.name || 'Unknown',
                 icon: `<img class="context-menu-item-portrait" src="${portrait}" alt="">`,
+                // Left-click pans, the same as clicking a portrait on the strip.
+                // A graveyard row stands in for a portrait that is not on the bar,
+                // so it should answer to the same two clicks.
                 callback: async () => {
-                    CombatBarManager.showCombatantPortraitContextMenu(menuBar, combatant.id, x, y);
+                    CombatBarManager.panToCombatant(menuBar, combatant.id, { selectToken: game.user.isGM });
                 }
             };
         });
 
         UIContextMenu.show({
-            id: 'blacksmith-combat-graveyard-menu',
+            id: MENU_ID,
             x,
             y,
             zones: { core }
+        });
+
+        // Right-click opens the combatant's own menu. Attached to the rendered
+        // rows because UIContextMenu items carry a click callback and nothing
+        // else -- there is no contextmenu hook to pass in. The portraits get this
+        // from a delegated document handler, but that one is scoped to
+        // `.blacksmith-menubar-secondary .combat-portrait-container`, and these
+        // rows are in document.body.
+        //
+        // Index-mapped to `dead` because these rows are built from it one-for-one
+        // with no separators between them; a separator would shift the mapping.
+        const menuEl = document.getElementById(MENU_ID);
+        const rows = menuEl ? [...menuEl.querySelectorAll('.context-menu-item')] : [];
+        rows.forEach((row, i) => {
+            const combatant = dead[i];
+            if (!combatant) return;
+            row.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                // Close the graveyard first, or two menus sit open at once.
+                UIContextMenu.close(MENU_ID);
+                CombatBarManager.showCombatantPortraitContextMenu(
+                    menuBar, combatant.id, event.clientX, event.clientY
+                );
+            });
         });
     }
 
