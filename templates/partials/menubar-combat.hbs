@@ -72,6 +72,9 @@
         {{#unless isInCombat}}
         <div class="combat-bar-actions">
             {{#each barActions}}
+            {{#if divider}}
+            <div class="menu-divider line combat-bar-action-divider"></div>
+            {{else}}
             <a class="secondary-bar-item combat-bar-action"
                role="button"
                data-tooltip="{{name}}"
@@ -79,6 +82,7 @@
                 <i class="{{icon}}"></i>
                 <span class="secondary-bar-item-label">{{name}}</span>
             </a>
+            {{/if}}
             {{/each}}
         </div>
         {{/unless}}

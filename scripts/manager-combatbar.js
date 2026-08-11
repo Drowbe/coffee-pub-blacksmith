@@ -3728,25 +3728,22 @@ export class CombatBarManager {
     }
 
     /**
-     * The actions shown as buttons on the bar out of combat, in order. The
-     * combat-only rows (scene link, movement histories, delete encounter) are
-     * absent because they need an encounter to act on.
-     */
-    /**
      * The actions shown as buttons on the bar out of combat, in order.
      *
-     * Ordered the way the context menus file them -- encounter-level first, then
-     * what acts on the tokens -- without the headings that named those groups:
-     * they were tried and read as clutter next to the buttons they captioned.
+     * `null` is a divider. The bar reads left to right as: start the fight, then
+     * what is on the canvas, then what those things are worth, then the record.
      *
      * No toggleTracker: the tracker is of no use with no encounter running, and
      * it remains in the Encounter menu for when there is one.
      */
     static OUT_OF_COMBAT_ACTIONS = [
-        'createCombat', 'quickEncounter', 'experience', 'statistics',
-        'deployParty',
-        'viewPartyHealth', 'viewNpcHealth', 'viewCanvasHealth',
-        'revealHidden', 'removeParty', 'removeMonsters', 'removeNpcs'
+        'createCombat', 'quickEncounter', 'deployParty',
+        null,
+        'revealHidden', 'removeParty', 'removeMonsters', 'removeNpcs',
+        null,
+        'viewCanvasHealth', 'viewPartyHealth', 'viewNpcHealth',
+        null,
+        'experience', 'statistics'
     ];
 
     /**
@@ -3756,9 +3753,25 @@ export class CombatBarManager {
     static getOutOfCombatActions() {
         if (!game.user.isGM) return [];
         const actions = CombatBarManager.getBarActions();
-        return CombatBarManager.OUT_OF_COMBAT_ACTIONS
-            .map((id) => ({ id, ...actions[id] }))
-            .filter((entry) => entry.name && (!entry.available || entry.available()));
+        const rows = CombatBarManager.OUT_OF_COMBAT_ACTIONS
+            .map((id) => {
+                if (id === null) return { divider: true };
+                const action = actions[id];
+                if (!action?.name) return null;
+                if (action.available && !action.available()) return null;
+                return { id, ...action };
+            })
+            .filter(Boolean);
+
+        // Drop dividers that ended up with nothing to divide -- leading, trailing,
+        // or doubled once a conditional action filtered out. Without this, a world
+        // without the Quick Encounter tool would show a rule against the bar edge.
+        return rows.filter((row, i) => {
+            if (!row.divider) return true;
+            const prev = rows.slice(0, i).findLast((r) => !r.divider);
+            const next = rows.slice(i + 1).find((r) => !r.divider);
+            return !!prev && !!next;
+        });
     }
 
     /**

@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **The out-of-combat button row gains the health views and loses the tracker.** Showing the combat tracker is of no use with no encounter running, so that button is gone; it stays one row down in the Encounter menu for when there is one. Party Health, NPC Health and Canvas Health join the row, which is why those three moved from menu-local rows to shared action definitions.
 
-  **Ordered the way the context menus file them** -- encounter-level first, then what acts on the tokens. Headings naming those groups were tried and removed: beside buttons that already carry their own labels they read as clutter, and the bar's registered readouts deliberately have no banners for the same reason.
+  **Ordered and divided**: start the fight, then what is on the canvas, then what those things are worth, then the record -- separated by the module's own `menu-divider`. Headings naming the groups were tried and removed: beside buttons that already carry their own labels they read as clutter, which is the same reason the bar's registered readouts have no banners. A divider with nothing on one side of it is dropped, so a world without the Quick Encounter tool does not get a rule against the bar edge.
 
   **Names shortened where the surface already said it.** "Deploy Party to Canvas" is Deploy Party, the three removals drop "from Canvas", the health views drop "View", and "Distribute Experience" is Party Experience. These are changed at the single definition, so the menu row and the bar button read the same.
 

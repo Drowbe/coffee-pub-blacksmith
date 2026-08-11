@@ -206,6 +206,15 @@
     white-space: nowrap;
 }
 
+/* The module's own divider, borrowed from the primary menubar. Its height there
+   is measured off the PRIMARY bar, which is a different height from this one, so
+   the only thing overridden is the size. */
+.blacksmith-menubar-secondary .combat-bar-action-divider {
+    flex: 0 0 auto;
+    height: 20px;
+    margin: 0 4px;
+}
+
 /* THE BALANCE MARKER IS A GAUGE NEEDLE.
 
    It has been three things. The shared 10px circle read as a draggable handle
