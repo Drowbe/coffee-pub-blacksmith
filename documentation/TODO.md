@@ -117,6 +117,29 @@ drew a visible box around every row instead of hinting an edge.
 Start with the highest-count values in the most-used sheets, and stop tokenising as soon as the values stop
 repeating.
 
+## Overall party reputation, for external consumers (opened 2026-08-10)
+
+Reputation is per-scene and nothing aggregates it. The API is `getPartyReputation(scene)`,
+`setPartyReputation(value, scene)`, `getReputationScaleEntry(value)`, and the two chat cards; storage is
+`blacksmithPartyData.scenes[sceneId].reputation`. Squire shows the current scene's value and wants an overall
+one, so this is **API surface, not an internal helper** - get the shape right rather than widen it later.
+
+**The trap is that 0 is both "neutral" and "never set".** `getPartyReputation` returns 0 for a scene with no
+entry, and 0 is also the dead centre of the -100..+100 scale. A naive average over `game.scenes` drags toward
+zero in proportion to how many scenes have never been touched, which in a real world is nearly all of them.
+So the aggregate must read `blacksmithPartyData.scenes` directly and count only scenes with a stored entry -
+not iterate scenes and call the getter.
+
+Decide which of these it is before building:
+
+- **Mean of scenes with an entry.** The places you have actually been. Probably what "overall" means.
+- **Weighted by visits.** Nothing tracks visits today, so this needs new data first.
+- **A campaign-level value set directly**, with scene reputation staying local colour. This is what "Future:
+  campaign reputation" in `manager-reputation.js` means, and it is a different feature, not an aggregate.
+
+Whichever it is, return the matching `getReputationScaleEntry` band alongside the number - a consumer showing
+"overall reputation" wants the word, not the integer.
+
 ## Consider: `api.inventory.transferContainer()`
 
 **Deferred at design time, and there is now a concrete cost to point at.** A container move was left out of

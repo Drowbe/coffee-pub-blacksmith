@@ -29,6 +29,7 @@ import { MenuBar } from './api-menubar.js';
 import { NotesManager, noteIconHtml, noteAccessMode } from './manager-notes.js';
 import { NotePlacementManager } from './manager-note-placement.js';
 import { PinsAPI } from './api-pins.js';
+import { PinManager } from './manager-pins.js';
 import { openNoteEditor } from './window-note-editor.js';
 
 export const NOTES_WINDOW_ID = 'blacksmith-notes';
@@ -364,6 +365,45 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
     }
 }
 
+/**
+ * Double-clicking a note's pin opens the note.
+ *
+ * A pin whose marker does nothing when you double-click it is a marker for
+ * something you cannot reach, which is most of the point of placing it. Follows
+ * the journal pin handler in ui-journal-pins.js: filter on the pin type first,
+ * resolve from `config`, and check permission before opening.
+ *
+ * Registered against PinManager rather than `module.api.pins` so it does not
+ * depend on the api object being assigned yet -- the same reason the journal
+ * pins do it that way.
+ */
+function registerNotePinEvents() {
+    // Filtered by the registration options rather than by an `if` in the body:
+    // PinManager already narrows on moduleId and pin type (_invokeRegisteredHandlers),
+    // so the handler only runs for our note pins.
+    PinManager.registerHandler('doubleClick', async (evt) => {
+        try {
+            const noteUuid = evt?.pin?.config?.noteUuid;
+            if (!noteUuid) return;
+
+            const note = await fromUuid(noteUuid);
+            if (!note) {
+                // The pin outlived its note. Say so rather than doing nothing,
+                // since a silent no-op reads as a broken pin.
+                ui.notifications.warn('That note no longer exists.');
+                return;
+            }
+            if (!note.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) {
+                ui.notifications.warn('You do not have permission to read that note.');
+                return;
+            }
+            await openNoteEditor({ note: noteUuid });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: error opening a note from its pin', error?.message ?? error, false, false);
+        }
+    }, { moduleId: MODULE.ID, type: 'note' });
+}
+
 /** Open the notes list, or raise it. */
 export async function openNotesWindow() {
     try {
@@ -426,6 +466,8 @@ export function registerNotesWindow() {
         title: 'Notes',
         open: async () => openNotesWindow()
     });
+
+    registerNotePinEvents();
 
     MenuBar.registerMenubarTool('notes', {
         icon: 'fa-solid fa-note-sticky',

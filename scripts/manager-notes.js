@@ -51,6 +51,9 @@ const FLAG_KEY = 'annotations';
 const NOTE_TYPE_FLAG = 'noteType';
 const NOTE_TYPE = 'note';
 
+/** Socket channel for the GM-side ownership write. See NotesManager.applyOwnership. */
+const NOTES_GM_PROXY = 'blacksmith-notes-gm-proxy';
+
 /** Tag context key, so note tags land in the shared registry rather than a private list. */
 export const NOTE_TAG_CONTEXT = `${MODULE.ID}.note`;
 
@@ -102,6 +105,9 @@ export class NotesManager {
 
     /** Whether the index has been built. Reads build it on demand if not. */
     static _indexed = false;
+
+    /** Whether the GM-side ownership handler has been registered on this client. */
+    static _gmProxyRegistered = false;
 
     // ==============================================================
     // ===== LIFECYCLE ==============================================
@@ -408,7 +414,13 @@ export class NotesManager {
                 text: { content: content || '' },
                 // The authorId FLAG is recorded either way -- who wrote it is a fact.
                 // Ownership is the separate question of who can still open it.
-                ownership: this.buildNoteOwnership(resolvedVisibility, keepAuthor ? game.user.id : null, sharedWith),
+                // GM only. A player's create carrying a gmOnly field is refused the
+                // same way an update is, and the whole page creation fails with it,
+                // so a player's note is created first and its ownership applied a
+                // moment later through the GM -- see below.
+                ...(game.user.isGM
+                    ? { ownership: this.buildNoteOwnership(resolvedVisibility, keepAuthor ? game.user.id : null, sharedWith) }
+                    : {}),
                 flags: {
                     [MODULE.ID]: {
                         [NOTE_TYPE_FLAG]: NOTE_TYPE,
@@ -419,6 +431,19 @@ export class NotesManager {
                 }
             }]);
             if (!page) return null;
+
+            // A player could not send ownership with the create, so it is applied
+            // here through a GM. Until it lands the page inherits the notes
+            // journal's ownership, which players hold OBSERVER on -- so a private
+            // note written by a player is briefly visible to the others. Closing
+            // that gap entirely means creating the page GM-side as well, which is
+            // worth doing if notes ever carry anything a player must not glimpse.
+            if (!game.user.isGM) {
+                await this.applyOwnership(
+                    page,
+                    this.buildNoteOwnership(resolvedVisibility, keepAuthor ? game.user.id : null, sharedWith)
+                );
+            }
 
             // Tags go to the shared registry rather than a flag on the page. Squire
             // kept its own list, which is why the same tag existed twice with two
@@ -469,16 +494,96 @@ export class NotesManager {
         if (!Object.keys(update).length) return false;
 
         try {
-            await page.update(update);
+            // Ownership is split out and written separately: it is a gmOnly field, so
+            // including it in a player's update makes the WHOLE update fail -- title
+            // and body along with it. Everything else here a note's owner may write.
+            const { ownership, ...playerWritable } = update;
+            if (Object.keys(playerWritable).length) await page.update(playerWritable);
+            if (ownership) {
+                const applied = await this.applyOwnership(page, ownership);
+                if (!applied) return false;
+            }
             // A shared note's pin has to be visible to exactly the people the note
             // is. Blacksmith owns both sides, so this is a direct write rather than
             // Squire's resolveOwnership hook plus a reconciliation pass.
-            if (update.ownership) await this._syncPinOwnership(page, update.ownership);
+            if (ownership) await this._syncPinOwnership(page, ownership);
             Hooks.callAll('blacksmith.notes.updated', { noteUuid: page.uuid });
             return true;
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Notes: could not update the note', error?.message ?? error, false, false);
             return false;
+        }
+    }
+
+    /**
+     * Write a note's ownership, through a GM when the caller is not one.
+     *
+     * `ownership` is a `gmOnly` field (DocumentOwnershipField, common/data/fields.mjs),
+     * and the server enforces it: a player editing a note they OWN still cannot
+     * change who else can see it, and gets "The ownership field may only be
+     * modified by a GM or Assistant GM user." That is not a permission we can
+     * grant -- it is refused above us -- so the write is delegated instead.
+     *
+     * Same shape as PinManager.requestGM, for the same reason.
+     *
+     * @param {JournalEntryPage} page
+     * @param {object} ownership flat document ownership
+     * @returns {Promise<boolean>}
+     */
+    static async applyOwnership(page, ownership) {
+        if (game.user?.isGM) {
+            await page.update({ ownership });
+            return true;
+        }
+
+        const gms = game.users?.filter((u) => u.isGM && u.active) ?? [];
+        if (!gms.length) {
+            ui.notifications.warn('A GM must be online to change who can see a note.');
+            return false;
+        }
+
+        try {
+            const { SocketManager } = await import('./manager-sockets.js');
+            await SocketManager.waitForReady?.();
+            const socket = SocketManager.getSocket();
+            if (!socket?.executeAsGM) {
+                ui.notifications.warn('Could not reach a GM to change who can see that note.');
+                return false;
+            }
+            if (!this._gmProxyRegistered && socket.register) {
+                socket.register(NOTES_GM_PROXY, (data) => NotesManager._handleOwnershipRequest(data));
+                this._gmProxyRegistered = true;
+            }
+            const result = await socket.executeAsGM(NOTES_GM_PROXY, {
+                pageUuid: page.uuid,
+                ownership
+            });
+            if (result?.error) throw new Error(result.error);
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Notes: could not update ownership through a GM', error?.message ?? error, false, false);
+            ui.notifications.error('Could not change who can see that note.');
+            return false;
+        }
+    }
+
+    /**
+     * GM side of applyOwnership.
+     *
+     * Re-checks that the requester may edit the note rather than trusting the
+     * message: this runs with GM authority, so an unchecked handler would let any
+     * client rewrite the ownership of any page in the world.
+     */
+    static async _handleOwnershipRequest({ pageUuid, ownership } = {}) {
+        try {
+            if (!game.user?.isGM) return { error: 'Not a GM.' };
+            const page = await fromUuid(pageUuid);
+            if (!page) return { error: 'Note not found.' };
+            if (!this.isNote(page)) return { error: 'That page is not a note.' };
+            await page.update({ ownership });
+            return { ok: true };
+        } catch (error) {
+            return { error: error?.message ?? String(error) };
         }
     }
 
@@ -965,4 +1070,21 @@ export function noteAccessMode(note) {
         note?.ownership?.[user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
     ));
     return noteAccessBadge({ total: players.length, selected: owners.length });
+}
+
+// The GM must have the ownership handler registered BEFORE any player asks for a
+// write. Lazy registration inside applyOwnership only runs on the calling client,
+// which is by definition not the GM. Mirrors the pins proxy in manager-pins.js.
+if (typeof Hooks !== 'undefined') {
+    Hooks.once('blacksmith.socketReady', async () => {
+        try {
+            const { SocketManager } = await import('./manager-sockets.js');
+            const socket = SocketManager.getSocket();
+            if (!socket?.register || NotesManager._gmProxyRegistered) return;
+            socket.register(NOTES_GM_PROXY, (data) => NotesManager._handleOwnershipRequest(data));
+            NotesManager._gmProxyRegistered = true;
+        } catch (_) {
+            // applyOwnership still attempts lazy registration when called.
+        }
+    });
 }
