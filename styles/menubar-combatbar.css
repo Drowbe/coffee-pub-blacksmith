@@ -1462,3 +1462,20 @@
     clip-path: polygon(0 0, 100% 0, 50% 100%);
     filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.65));
 }
+
+/* ---- combat bar context menus ---------------------------------- */
+
+/* The three combat bar menus group their rows deliberately, and the global
+   separator rule (menu-context-global.css) draws nothing: zero height with a
+   fully transparent border, so it reads as a 6px gap rather than a divider.
+   Scoped by menu id -- the ids UIContextMenu writes onto the element -- rather
+   than fixed globally, because five other menus in the module use the same
+   class and none of them asked to change. */
+#blacksmith-combat-encounter-menu .context-menu-separator,
+#blacksmith-combat-tokens-menu .context-menu-separator,
+#blacksmith-combat-initiative-menu .context-menu-separator {
+    height: 0;
+    margin: 5px 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    background-color: transparent;
+}
