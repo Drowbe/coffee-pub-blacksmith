@@ -1959,7 +1959,17 @@ export class CombatBarManager {
 
         const contentWidth = portraits.scrollWidth;
         const visibleWidth = portraits.clientWidth;
-        const overflowing = contentWidth > visibleWidth + 1 || (visibleWidth < 80 && contentWidth > 0);
+        // Content wider than the box it sits in, and nothing else. The old second
+        // clause -- `visibleWidth < 80 && contentWidth > 0` -- fired on a SINGLE
+        // combatant, because the strip is `flex: 0 1 auto` and so measures its own
+        // content: one portrait is under 80px wide. Being marked overflowing then
+        // applied `flex: 1; max-width: 70%; justify-content: flex-start`, which
+        // stretched the strip across most of the bar, left-aligned the one portrait,
+        // and pushed the action button to the far edge. A second combatant cleared
+        // 80px and it corrected itself, which is what made it look like a width bug.
+        // It was also redundant: an unlaid-out strip measures 0 and the first clause
+        // already catches that.
+        const overflowing = contentWidth > visibleWidth + 1;
         wrapper.classList.toggle('combat-portraits-overflowing', overflowing);
 
         if (!overflowing) {
@@ -2351,6 +2361,9 @@ export class CombatBarManager {
                 return {
                     id: combatant.id,
                     name: token?.name || actor?.name || 'Unknown',
+                    // The same overlay the hover card composites, so a portrait
+                    // reads the same whether or not the pointer is on it.
+                    bloodOverlay: CombatBarManager.getBloodOverlay(actor),
                     dispositionKey: disposition.key,
                     dispositionLabel: disposition.label,
                     portrait: actor?.img || token?.img || 'modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp',
@@ -3221,10 +3234,7 @@ export class CombatBarManager {
             maxHP = Number(actor.system.hitPoints.max ?? 0);
         }
         const hpPercent = maxHP > 0 ? Math.max(0, Math.min(100, (currentHP / maxHP) * 100)) : 0;
-        const damagePercent = maxHP > 0 ? Math.max(0, Math.min(100, 100 - hpPercent)) : 0;
-        const bloodStep = Math.round(damagePercent / 5) * 5;
-        const bloodValue = currentHP <= 0 ? 101 : Math.max(0, Math.min(100, bloodStep));
-        const bloodOverlay = `modules/coffee-pub-blacksmith/images/portraits/blood/blood-${bloodValue}.webp`;
+        const bloodOverlay = CombatBarManager.getBloodOverlay(actor);
 
         const ownerUsers = (game.users?.contents || [])
             .filter((u) => actor?.testUserPermission?.(u, CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER));
@@ -3427,6 +3437,34 @@ export class CombatBarManager {
     }
 
     /**
+     * The blood overlay image for an actor's current wounds.
+     *
+     * Stepped to 5% so the strip is not swapping images on every point of damage,
+     * and 101 is the dead sheet rather than a 100% one -- being at zero is a
+     * different state from having taken all your hit points in damage.
+     *
+     * ONE definition: the hover card and the portrait strip must not disagree
+     * about how bloodied somebody is, and they were separate arithmetic away from
+     * exactly that.
+     *
+     * @param {Actor} actor
+     * @returns {string|null} image path, or null when there is nothing to show
+     */
+    static getBloodOverlay(actor) {
+        const hp = actor?.system?.attributes?.hp ?? actor?.system?.hitPoints;
+        const currentHP = Number(hp?.value ?? 0);
+        const maxHP = Number(hp?.max ?? 0);
+        if (!maxHP) return null;
+
+        const hpPercent = Math.max(0, Math.min(100, (currentHP / maxHP) * 100));
+        const bloodStep = Math.round(Math.max(0, 100 - hpPercent) / 5) * 5;
+        const bloodValue = currentHP <= 0 ? 101 : Math.max(0, Math.min(100, bloodStep));
+        // Unwounded gets no element at all rather than a blank sheet to composite.
+        if (bloodValue === 0) return null;
+        return `modules/coffee-pub-blacksmith/images/portraits/blood/blood-${bloodValue}.webp`;
+    }
+
+    /**
      * The encounter and token actions, as one definition.
      *
      * In combat these are rows in the Encounter and Tokens context menus; out
@@ -3590,6 +3628,9 @@ export class CombatBarManager {
         const gm = [
             { name: a.revealHidden.name, icon: a.revealHidden.icon, callback: a.revealHidden.run },
             { separator: true },
+            // Beside the removal it undoes: putting tokens on the canvas and taking
+            // them off is the same menu's job.
+            { name: a.deployParty.name, icon: a.deployParty.icon, callback: a.deployParty.run },
             { name: a.removeParty.name, icon: a.removeParty.icon, callback: a.removeParty.run },
             { name: a.removeMonsters.name, icon: a.removeMonsters.icon, callback: a.removeMonsters.run },
             { name: a.removeNpcs.name, icon: a.removeNpcs.icon, callback: a.removeNpcs.run }

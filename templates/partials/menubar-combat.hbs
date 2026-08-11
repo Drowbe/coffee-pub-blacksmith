@@ -180,6 +180,11 @@
                    {{/if}}
                    <div class="combat-portrait-image">
                        <img src="{{portrait}}" alt="{{name}}" onerror="this.src='modules/coffee-pub-blacksmith/images/portraits/portrait-noimage.webp'">
+                       {{!-- Inside the image wrapper so the round or square mask
+                            clips it with the portrait. --}}
+                       {{#if bloodOverlay}}
+                       <img class="combat-portrait-blood" src="{{bloodOverlay}}" alt="" aria-hidden="true">
+                       {{/if}}
                    </div>
                    
                    {{!-- Dead overlay - always show for defeated characters --}}

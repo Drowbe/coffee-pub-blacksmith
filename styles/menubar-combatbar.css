@@ -472,7 +472,7 @@
    .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-portraits {
     flex: 1;
     min-width: 0;
-    max-width: 70%;
+    max-width: 100%;
     justify-content: flex-start;
    }
    
@@ -664,6 +664,16 @@
         -webkit-user-drag: none;
         user-select: none;
         border: 0px solid rgba(0, 0, 0, 0.05);
+    }
+
+    /* The wound overlay, the same sheet the hover card composites. Positioned
+       inside the image wrapper, above the portrait but below the dead skull and
+       the initiative die. Nothing here touches layout or width. */
+    .blacksmith-menubar-secondary .combat-portrait-image .combat-portrait-blood {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
     }
 
     /* Portrait States
