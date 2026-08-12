@@ -2950,8 +2950,21 @@ export class CombatBarManager {
                 const bar = event.target.closest('.combat-tracker-bar');
                 const portraits = bar?.querySelector('.combat-portraits');
                 if (portraits) {
+                    // A PAGE, NOT A PORTRAIT. One portrait per click meant a twenty-combatant
+                    // fight took twenty clicks to cross, so a click now moves nearly the whole
+                    // visible strip and leaves ONE portrait of overlap as a visual anchor --
+                    // you can see where you came from, which a clean page-flip loses.
+                    //
+                    // Derived from the measured widths rather than a fixed count of portraits,
+                    // because both terms move: the bar is as wide as the user's screen and the
+                    // portrait size is a setting. A fixed "three portraits" still crawls on a
+                    // wide bar and overshoots on a narrow one.
                     const first = portraits.querySelector('.combat-portrait-container');
-                    const step = first ? first.offsetWidth + (parseInt(getComputedStyle(portraits).gap, 10) || 2) : Math.floor(portraits.clientWidth * 0.4);
+                    const gap = parseInt(getComputedStyle(portraits).gap, 10) || 2;
+                    const portraitStep = first ? first.offsetWidth + gap : 0;
+                    // Floor of one portrait: when only one fits, "a page minus one" is zero or
+                    // negative and the button would do nothing at all.
+                    const step = Math.max(portraitStep || Math.floor(portraits.clientWidth * 0.4), portraits.clientWidth - portraitStep);
                     const delta = scrollLeftBtn ? -step : step;
                     CombatBarManager.easeHorizontalScroll(portraits, delta, 220, () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar));
                     setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 400);

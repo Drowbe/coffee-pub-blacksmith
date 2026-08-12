@@ -475,7 +475,12 @@
     max-width: 100%;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    scroll-behavior: smooth;
+    /* NO `scroll-behavior: smooth` HERE. The arrows animate through
+       CombatBarManager.easeHorizontalScroll, which writes `scrollLeft` once per
+       frame. Under smooth behaviour the browser starts its own animation toward
+       each of those writes and keeps re-targeting, so the 220ms cubic arrives as
+       a much longer, mushier drift -- the "laggy" feel. The JS owns this
+       animation; the strip must jump exactly where it is told. */
    }
    
    .blacksmith-menubar-secondary .combat-portraits-scroll-wrapper.combat-portraits-overflowing .combat-portraits {

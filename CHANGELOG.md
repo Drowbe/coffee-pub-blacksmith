@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The combat bar's scroll arrows move a page at a time, and actually feel like 220ms** (`scripts/manager-combatbar.js`, `styles/menubar-combatbar.css`). A click used to advance exactly one portrait, so crossing a twenty-combatant fight took twenty clicks. It now moves the visible width of the strip less one portrait -- nearly a full screenful, with one portrait of overlap left as an anchor so you can see where you came from. The step is measured from `clientWidth` and the real portrait width rather than being a fixed count, because the bar is as wide as the user's screen and portrait size is a setting; a fixed three-portrait step would still crawl on a wide bar. It is floored at one portrait, so a strip only wide enough for a single combatant still moves.
+
+  The lag was separate and had nothing to do with the step size: `.combat-portraits` carried `scroll-behavior: smooth` while `CombatBarManager.easeHorizontalScroll` writes `scrollLeft` once per frame. The browser answered each of those writes by starting its own animation toward it and re-targeting on the next frame, so the hand-rolled 220ms cubic arrived as a much longer drift. The CSS property is gone; the JS owns the animation. This also sharpens `ensureCurrentCombatantVisible`, which eases through the same helper on every turn change.
+
 ## [13.17.1]
 
 ### Added
