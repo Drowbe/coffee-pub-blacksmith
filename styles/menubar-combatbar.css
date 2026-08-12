@@ -762,8 +762,8 @@
 
     /* No `.current.combat-token-hidden` rule any more. One existed only to reconcile two
        treatments that both wanted the border -- the turn's colour and hidden's dotted stroke.
-       The turn is size and corner ticks now, so hidden keeps its own border unchallenged and
-       the two states simply stack. */
+       The turn is size and the spotlight now, neither of which touches the border, so hidden
+       keeps its own unchallenged and the two states simply stack. */
 
     /* The dead keep their side — a corpse is still an enemy corpse — but stop competing with
        the living for attention. Draining the colour rather than painting over it is what leaves
@@ -778,6 +778,42 @@
        always-on no-op filter just to make two custom properties compose. */
     .blacksmith-menubar-secondary .combat-portrait-container.defeated:hover {
         filter: grayscale(0.7) brightness(1.35);
+    }
+
+    /* THE SPOTLIGHT: EVERYONE NOT TAKING THEIR TURN STEPS BACK.
+
+       Size alone was carrying the whole reading of whose turn it is -- a pulse between 0.92 and 1
+       against a resting 0.85. That is a couple of pixels on a portrait this small, and in a fight
+       of sixty near-identical cultists it is not findable at all; the honest report from the table
+       was "I have no idea whose turn it is."
+
+       OPACITY, because every other channel is spent or has already been tried and rejected. The
+       fill belongs to disposition. A coloured border and an inset glow WERE the turn once and were
+       rolled back for competing with that fill -- see the rollback note above -- and corner ticks
+       were rejected between then and now. An outer glow would be sliced flat, because
+       `.combat-portraits` sets `overflow-y: hidden`. Stepping the OTHERS back spends none of that:
+       it leaves the active combatant drawn exactly as it always was and simply removes the
+       competition. It is also the move `.defeated` already makes, for the same reason.
+
+       Scoped with `:has()` so a strip with no active combatant -- before initiative is rolled --
+       is not a row of dimmed portraits with nothing lit. */
+    .blacksmith-menubar-secondary .combat-portraits:has(.combat-portrait-container.current)
+        .combat-portrait-container:not(.current) {
+        opacity: 0.4;
+    }
+
+    /* Hovering one of them brings it most of the way back, so a reader can still look down the
+       strip without the dimming getting in the way of a portrait they care about. */
+    .blacksmith-menubar-secondary .combat-portraits:has(.combat-portrait-container.current)
+        .combat-portrait-container:not(.current):hover {
+        opacity: 0.9;
+    }
+
+    /* Full strength for the active combatant even when it is also dead. `.defeated` sets 0.75 and
+       sits after the `.current` rule, so without this a dead combatant's own turn would be dimmer
+       than the living combatants around it, which is precisely backwards. */
+    .blacksmith-menubar-secondary .combat-portrait-container.current {
+        opacity: 1;
     }
 
 /* Health Ring */

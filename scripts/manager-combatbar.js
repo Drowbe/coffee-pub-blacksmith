@@ -237,43 +237,179 @@ export class CombatBarManager {
     }
 
     /**
-     * Smooth horizontal scroll with easing for predictable per-click movement.
-     * @param {HTMLElement} element
-     * @param {number} deltaX
-     * @param {number} durationMs
-     * @param {() => void} [onUpdate]
+     * THE PORTRAIT STRIP'S SCROLL POSITION BELONGS TO THIS MANAGER, NOT TO THE DOM.
+     *
+     * `renderMenubar` in api-menubar.js removes the whole menubar element and re-inserts it
+     * whenever the structure fingerprint changes, and for a bar with its own template that
+     * fingerprint is `JSON.stringify(secondaryBar.data)` (api-menubar.js `_secondaryBarStateSignature`)
+     * -- which for this bar contains every combatant's health. A single point of damage therefore
+     * hands back a BRAND NEW strip sitting at scrollLeft 0, and during a fight that happens
+     * constantly: damage, effects, hidden state, disposition, timers.
+     *
+     * So the position is kept here and written back onto whatever element is current. Three values,
+     * because a rebuild can land in the middle of an animation and all three have to survive it:
+     * where we are, where we are going, and whose turn we went there for.
+     * @type {number}
      */
-    static easeHorizontalScroll(element, deltaX, durationMs = 220, onUpdate) {
-        if (!element || !Number.isFinite(deltaX) || deltaX === 0) return;
-        const start = element.scrollLeft || 0;
-        const max = Math.max(0, element.scrollWidth - element.clientWidth);
-        const target = Math.min(max, Math.max(0, start + deltaX));
-        if (Math.abs(target - start) < 0.5) return;
+    static _portraitScrollLeft = 0;
 
-        if (element._blacksmithScrollRafId) {
-            cancelAnimationFrame(element._blacksmithScrollRafId);
-            element._blacksmithScrollRafId = null;
+    /** Destination of the animation in flight, or null when the strip is at rest. @type {number|null} */
+    static _portraitScrollTarget = null;
+
+    /** rAF handle for the animation in flight. @type {number|null} */
+    static _portraitScrollRaf = null;
+
+    /**
+     * Whether the reader has scrolled the strip themselves since the turn last changed.
+     *
+     * The strip corrects itself when the active combatant is off screen -- a first render measured
+     * before layout settled leaves it that way, and an uncorrected strip is one where nobody can
+     * tell whose turn it is. That correction must not fight somebody who deliberately scrolled off
+     * to look at what is coming, so their scroll switches it off until the next turn.
+     * @type {boolean}
+     */
+    static _userScrolledThisTurn = false;
+
+    /**
+     * Whose turn the strip was last scrolled FOR.
+     *
+     * Only a genuine change of turn may move the strip on its own. Without this it re-centres on
+     * every render, so a damage roll drags the view back from wherever the reader had scrolled it.
+     * @type {string|null}
+     */
+    static _centredCombatantId = null;
+
+    /** The strip as it exists RIGHT NOW. Never cached -- see `easePortraitScrollTo`. */
+    static _portraitStrip() {
+        return document.querySelector('.combat-portraits-scroll-wrapper .combat-portraits');
+    }
+
+    /**
+     * Put the remembered scroll position back on a freshly rendered strip.
+     *
+     * Written directly rather than eased: this is not a movement, it is the absence of one. Called
+     * from the post-render `requestAnimationFrame`, which runs before the frame is painted, so the
+     * strip never appears at 0. Mid-animation this restores the animation's latest frame, which is
+     * what lets the glide carry on across the rebuild without a seam.
+     */
+    static restorePortraitScroll() {
+        const strip = CombatBarManager._portraitStrip();
+        if (!strip) return;
+        const max = Math.max(0, strip.scrollWidth - strip.clientWidth);
+        strip.scrollLeft = Math.min(max, Math.max(0, CombatBarManager._portraitScrollLeft));
+    }
+
+    /** Forget the strip's position. For when the fight it was measured against is over. */
+    static resetPortraitScroll() {
+        if (CombatBarManager._portraitScrollRaf != null) {
+            cancelAnimationFrame(CombatBarManager._portraitScrollRaf);
+            CombatBarManager._portraitScrollRaf = null;
+        }
+        CombatBarManager._portraitScrollTarget = null;
+        CombatBarManager._portraitScrollLeft = 0;
+        CombatBarManager._centredCombatantId = null;
+        CombatBarManager._userScrolledThisTurn = false;
+    }
+
+    /**
+     * Put the strip at an absolute scroll position NOW, cancelling anything in flight.
+     *
+     * For positions that were never a movement: the first paint after the bar opens, and the
+     * silent correction when the active combatant turns out not to be on screen. Animating either
+     * would be announcing a change that did not happen.
+     *
+     * @param {object} menuBar
+     * @param {number} target Absolute scrollLeft; clamped to the scrollable range.
+     */
+    static jumpPortraitScrollTo(menuBar, target) {
+        const strip = CombatBarManager._portraitStrip();
+        if (!strip || !Number.isFinite(target)) return;
+        if (CombatBarManager._portraitScrollRaf != null) {
+            cancelAnimationFrame(CombatBarManager._portraitScrollRaf);
+            CombatBarManager._portraitScrollRaf = null;
+        }
+        CombatBarManager._portraitScrollTarget = null;
+        const max = Math.max(0, strip.scrollWidth - strip.clientWidth);
+        const dest = Math.min(max, Math.max(0, target));
+        strip.scrollLeft = dest;
+        CombatBarManager._portraitScrollLeft = dest;
+        CombatBarManager.updateCombatPortraitScrollArrows(menuBar);
+    }
+
+    /**
+     * Ease the portrait strip to an ABSOLUTE scroll position.
+     *
+     * TWO THINGS HERE ARE LOAD-BEARING, and the previous version of this helper got both wrong.
+     *
+     * It takes a DESTINATION, not a delta. A delta is only meaningful against the position it was
+     * measured from, and by the time a later frame runs the strip may have been rebuilt underneath
+     * it; an absolute position stays true because the content either side of it is the same.
+     *
+     * It RE-RESOLVES the element every frame instead of capturing it. The old helper held the node
+     * it was given and wrote `scrollLeft` to it for the whole animation -- so the moment a render
+     * replaced the strip, it went on animating an orphan that had been removed from the document
+     * while the visible strip sat wherever it had been restored to. Since renders fire throughout a
+     * turn, a single glide was routinely cut into pieces and restarted, which is what made turn
+     * advancement stutter and appear to re-scroll from where it had already been.
+     *
+     * @param {object} menuBar
+     * @param {number} target Absolute scrollLeft to settle on; clamped to the scrollable range.
+     * @param {number} [durationMs]
+     */
+    static easePortraitScrollTo(menuBar, target, durationMs = 220) {
+        const strip = CombatBarManager._portraitStrip();
+        if (!strip || !Number.isFinite(target)) return;
+
+        const max = Math.max(0, strip.scrollWidth - strip.clientWidth);
+        const dest = Math.min(max, Math.max(0, target));
+
+        // ALREADY ON ITS WAY THERE: let it finish. A rebuild reaches this line every time the bar
+        // redraws mid-animation, and restarting the ease on each one is the stutter itself.
+        if (CombatBarManager._portraitScrollRaf != null
+            && CombatBarManager._portraitScrollTarget != null
+            && Math.abs(CombatBarManager._portraitScrollTarget - dest) < 1) return;
+
+        if (CombatBarManager._portraitScrollRaf != null) {
+            cancelAnimationFrame(CombatBarManager._portraitScrollRaf);
+            CombatBarManager._portraitScrollRaf = null;
         }
 
+        const start = strip.scrollLeft || 0;
+        if (Math.abs(dest - start) < 0.5) {
+            CombatBarManager._portraitScrollLeft = dest;
+            CombatBarManager._portraitScrollTarget = null;
+            return;
+        }
+
+        CombatBarManager._portraitScrollTarget = dest;
         const t0 = performance.now();
         const easeInOutCubic = (t) => (t < 0.5)
             ? 4 * t * t * t
             : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
         const tick = (now) => {
-            const elapsed = now - t0;
-            const progress = Math.min(1, elapsed / durationMs);
-            const eased = easeInOutCubic(progress);
-            element.scrollLeft = start + ((target - start) * eased);
-            if (typeof onUpdate === 'function') onUpdate();
+            const el = CombatBarManager._portraitStrip();
+            if (!el) {
+                CombatBarManager._portraitScrollRaf = null;
+                CombatBarManager._portraitScrollTarget = null;
+                return;
+            }
+            const progress = Math.min(1, (now - t0) / durationMs);
+            const value = start + ((dest - start) * easeInOutCubic(progress));
+            el.scrollLeft = value;
+            // Recorded per frame, so a rebuild between any two frames restores to exactly here.
+            CombatBarManager._portraitScrollLeft = value;
+            CombatBarManager.updateCombatPortraitScrollArrows(menuBar);
             if (progress < 1) {
-                element._blacksmithScrollRafId = requestAnimationFrame(tick);
+                CombatBarManager._portraitScrollRaf = requestAnimationFrame(tick);
             } else {
-                element._blacksmithScrollRafId = null;
+                CombatBarManager._portraitScrollLeft = dest;
+                CombatBarManager._portraitScrollTarget = null;
+                CombatBarManager._portraitScrollRaf = null;
             }
         };
 
-        element._blacksmithScrollRafId = requestAnimationFrame(tick);
+        CombatBarManager._portraitScrollRaf = requestAnimationFrame(tick);
     }
 
     static initialize(menuBar) {
@@ -390,7 +526,19 @@ export class CombatBarManager {
             const result = await originalRenderMenubar(...args);
             if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
                 requestAnimationFrame(() => {
+                    // ORDER MATTERS, and getting it wrong truncates the scroll position.
+                    //
+                    // updateCombatPortraitScrollArrows is what applies `combat-portraits-overflowing`,
+                    // and that class changes the strip from `flex: 0 1 auto` to `flex: 1` and reveals
+                    // the two arrows -- so it changes clientWidth, and with it the maximum scroll.
+                    // Restoring before it ran clamped the remembered position against a maximum that
+                    // was about to grow, and since the scroll listener writes the clamped result
+                    // straight back, the loss was permanent rather than momentary.
+                    //
+                    // The restore still happens inside this rAF, which runs before the frame is
+                    // painted, so a rebuild never shows the strip sitting at 0.
                     CombatBarManager.updateCombatPortraitScrollArrows(menuBar);
+                    CombatBarManager.restorePortraitScroll();
                     CombatBarManager.attachCombatPortraitScrollListener(menuBar);
                     CombatBarManager.ensureCurrentCombatantVisible(menuBar);
                     // The timer bars are written per tick, so a fresh render
@@ -1940,6 +2088,9 @@ export class CombatBarManager {
             priority: 3,
             callback: () => {
                 CombatBarManager.closeAllCombatantPopoutCards();
+                // The strip is about to empty, so forget where it was scrolled to: a position
+                // measured against this fight's combatants means nothing to the next fight's.
+                CombatBarManager.resetPortraitScroll();
                 // Ending an encounter empties the bar; it does not remove it.
                 CombatBarManager.updateCombatBar(menuBar);
             }
@@ -2115,33 +2266,75 @@ export class CombatBarManager {
         rightBtn.disabled = currentScrollLeft >= (maxScrollLeft - tolerance);
     }
 
-    static ensureCurrentCombatantVisible(menuBar) {
+    /**
+     * Bring the combatant whose turn it is to the middle of the strip.
+     *
+     * @param {object} menuBar
+     * @param {object} [options]
+     * @param {boolean} [options.instant] Place it without animating.
+     */
+    static ensureCurrentCombatantVisible(menuBar, { instant = false } = {}) {
         const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
         const portraits = wrapper?.querySelector('.combat-portraits');
         if (!portraits) return;
 
         const currentPortrait = portraits.querySelector('.combat-portrait-container.current');
-        if (!currentPortrait) return;
+        if (!currentPortrait) {
+            CombatBarManager._centredCombatantId = null;
+            return;
+        }
 
+        // Nothing to centre within: the strip fits, so every combatant is already on screen.
+        if (portraits.scrollWidth <= portraits.clientWidth + 1) {
+            CombatBarManager._centredCombatantId = currentPortrait.dataset.combatantId || null;
+            return;
+        }
+
+        // CENTRED, not merely on screen. Scrolling by the overhang -- the original behaviour --
+        // parks the active combatant hard against whichever edge it arrived from, and since turn
+        // order runs left to right that edge is the right one. Everyone still to act was therefore
+        // off screen, which makes "who is up next" a question you had to scroll to answer.
+        //
+        // Measured from rects rather than offsetLeft: the strip is not a positioned ancestor, so
+        // offsetLeft would be relative to something further up and would not account for the scroll.
+        // Rects also account for the scale the portraits carry, so this centres what is drawn.
         const portRect = portraits.getBoundingClientRect();
         const currentRect = currentPortrait.getBoundingClientRect();
-        let delta = 0;
+        const delta = (currentRect.left + (currentRect.width / 2)) - (portRect.left + (portRect.width / 2));
+        // Converted to an absolute destination before it is handed over: the animation outlives the
+        // measurement, and a delta stops meaning anything once the strip has been rebuilt under it.
+        // Both helpers clamp, so a combatant near either end settles against that end rather than
+        // leaving dead space beside it.
+        const target = (portraits.scrollLeft || 0) + delta;
 
-        // Only scroll when the current combatant is actually clipped off-screen.
-        if (currentRect.left < portRect.left) {
-            delta = currentRect.left - portRect.left;
-        } else if (currentRect.right > portRect.right) {
-            delta = currentRect.right - portRect.right;
+        const combatantId = currentPortrait.dataset.combatantId || null;
+        if (combatantId !== CombatBarManager._centredCombatantId) {
+            // THE FIRST PLACEMENT DOES NOT ANIMATE. On a fresh client the strip starts at the far
+            // left and the active combatant is routinely fifty portraits along; gliding there is a
+            // long journey past fifty identical portraits that says nothing. It should simply
+            // already be in the right place. After that a turn passing is a change worth showing,
+            // so it eases.
+            const firstPlacement = CombatBarManager._centredCombatantId === null;
+            CombatBarManager._centredCombatantId = combatantId;
+            CombatBarManager._userScrolledThisTurn = false;
+            if (firstPlacement || instant) CombatBarManager.jumpPortraitScrollTo(menuBar, target);
+            else CombatBarManager.easePortraitScrollTo(menuBar, target, 220);
+            return;
         }
 
-        if (Math.abs(delta) > 1) {
-            CombatBarManager.easeHorizontalScroll(
-                portraits,
-                delta,
-                220,
-                () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar)
-            );
-        }
+        // SAME TURN. A rebuild is not a turn, and this runs after every render -- damage, effects,
+        // hidden state, disposition, timers -- so by default the strip stays where the reader left it.
+        //
+        // The one exception is a strip whose active combatant is not on screen at all. That is not a
+        // preference to be respected, it is a bar nobody can read: with sixty combatants the turn
+        // could be in either overflow and there is no way to tell which. It happens when a render
+        // measured the strip before its layout had settled. Corrected silently, never animated, and
+        // never against a reader who scrolled away deliberately.
+        if (CombatBarManager._portraitScrollTarget != null) return;
+        if (CombatBarManager._userScrolledThisTurn) return;
+        const clipped = currentRect.left < (portRect.left - 1) || currentRect.right > (portRect.right + 1);
+        if (!clipped) return;
+        CombatBarManager.jumpPortraitScrollTo(menuBar, target);
     }
 
     static attachCombatPortraitScrollListener(menuBar) {
@@ -2149,7 +2342,20 @@ export class CombatBarManager {
         const portraits = wrapper?.querySelector('.combat-portraits');
         if (!portraits || portraits.dataset.scrollListenerAttached === 'true') return;
         portraits.dataset.scrollListenerAttached = 'true';
-        portraits.addEventListener('scroll', () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), { passive: true });
+        // A wheel over the strip is the other way a reader moves it deliberately. Taken from the
+        // wheel rather than from the scroll event, which cannot tell a person from an animation.
+        // Horizontal intent only. A plain vertical wheel over the bar is the page being scrolled
+        // past it and moves this strip not at all, so counting it would switch the correction off
+        // for the rest of the turn on the strength of a gesture aimed at something else.
+        portraits.addEventListener('wheel', (event) => {
+            if (Math.abs(event.deltaX) > 0) CombatBarManager._userScrolledThisTurn = true;
+        }, { passive: true });
+        // Every scroll is recorded, whoever caused it -- an arrow click, a wheel, or the easing
+        // itself, which writes scrollLeft per frame and so leaves the final value here for free.
+        portraits.addEventListener('scroll', () => {
+            CombatBarManager._portraitScrollLeft = portraits.scrollLeft || 0;
+            CombatBarManager.updateCombatPortraitScrollArrows(menuBar);
+        }, { passive: true });
         if (wrapper) {
             menuBar._combatBarResizeObserver?.disconnect();
             const ro = new ResizeObserver(() => {
@@ -2986,8 +3192,15 @@ export class CombatBarManager {
                     // Floor of one portrait: when only one fits, "a page minus one" is zero or
                     // negative and the button would do nothing at all.
                     const step = Math.max(portraitStep || Math.floor(portraits.clientWidth * 0.4), portraits.clientWidth - portraitStep);
-                    const delta = scrollLeftBtn ? -step : step;
-                    CombatBarManager.easeHorizontalScroll(portraits, delta, 220, () => CombatBarManager.updateCombatPortraitScrollArrows(menuBar));
+                    // Measured from the destination of any glide already running, not from where the
+                    // strip happens to be this instant -- otherwise a second click lands mid-animation
+                    // and only advances a fraction of a page, so clicking twice quickly moves less
+                    // than clicking twice slowly.
+                    // Deliberate: the strip must stop correcting itself onto the active combatant
+                    // until the turn passes, or it would drag the reader straight back.
+                    CombatBarManager._userScrolledThisTurn = true;
+                    const base = CombatBarManager._portraitScrollTarget ?? (portraits.scrollLeft || 0);
+                    CombatBarManager.easePortraitScrollTo(menuBar, base + (scrollLeftBtn ? -step : step), 220);
                     setTimeout(() => CombatBarManager.updateCombatPortraitScrollArrows(menuBar), 400);
                 }
                 return;
