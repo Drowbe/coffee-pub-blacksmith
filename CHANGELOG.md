@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [13.17.1]
+
+### Added
+
+- **A Tools menu on the combat bar, and the only one players get** (`scripts/manager-combatbar.js`, `templates/partials/menubar-combat.hbs`). Select Tokens, Select Targets, Clear All Targets, Measure Distance -- in combat, for everybody. The Encounter, Combatants and Initiatives menus are GM-only because they change the encounter or the canvas; these are things a player does on their own turn, and hunting for them in the scene controls while the clock runs is the friction this removes. Select, target and measure switch Foundry's active tool through `ui.controls.activate({control, tool})` rather than doing anything themselves, using the token layer's own tool names (`select`, `target`, `ruler`); Clear All Targets repeats the one line the toolbar tool of that name already runs.
 
 ## [13.17.0]
 
@@ -15,8 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Encounter**: tracker, quick encounter, statistics and experience -- then **Add Remaining Players**, **Add Remaining NPCs**, **Add All Remaining** -- then Delete Encounter and Unlink from Scene. The three Add rows are new. They ignore the current selection, because "remaining" is a statement about the canvas while selection-first belongs to Create Combat, and they skip anything already out of the fight on the same rules asymmetry the encounter builder uses. Add All Remaining creates the encounter when there is none, which is why the menu carries no separate Create row.
 
   **Tokens is now Combatants**, named for what it holds: Deploy Party, Clear Movement Histories (moved here from Encounter, where an action on tokens sat under the encounter record) -- then **View Party Health**, **View NPC Health**, **View Canvas Health** -- then Reveal Hidden NPCs and the three removals. The health rows are new and hand the health window a token set, so hit points can be read without disturbing the GM's selection. Here "NPC" means everything that is not the party; the removals keep their own monster/humanoid split, where leaving the shopkeeper standing is the point.
-
-  **A fourth menu, Tools, and the only one players get.** Select Tokens, Select Targets, Clear All Targets, Measure Distance -- in combat, for everybody. The other three menus are GM-only because they change the encounter or the canvas; these are things a player does on their own turn, and hunting for them in the scene controls while the clock runs is the friction this removes. The first, second and fourth switch Foundry's active tool through `ui.controls.activate({control, tool})` rather than doing anything themselves, using the token layer's own tool names; Clear All Targets repeats the one line the toolbar tool of that name already runs.
 
   **Initiatives loses Roll All** -- it and Roll Remaining both roll everything still unrolled, so the pair was two labels for one outcome.
 
