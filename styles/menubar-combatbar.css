@@ -1400,31 +1400,32 @@
    forbids a FALSE affordance: chrome that promises a click and delivers
    nothing. Here the click is real, so the obligation is to signal it honestly.
 
-   Signalled as a GROUP, not per chip. The wash covers every statistic at once,
-   so it reads as "this panel opens" rather than "these are seventeen buttons" --
-   which is also the truth, since there is one destination. `:has()` is what
-   lets the container respond to a hover on any of its children; the group
-   element itself carries no id, only the items inside it do. */
+   Signalled PER CHIP, not as a group. The wash used to cover the whole strip at
+   once, on the reasoning that one destination should present one target. That
+   was honest about today and dishonest about tomorrow: these chips are being
+   given experiences of their own, and a single wash teaches the reader that the
+   row is one button -- a lesson we would then have to take back. Seventeen
+   targets that happen to agree cost nothing to learn; one target that later
+   splits into seventeen costs the reader's whole model of the row.
+
+   The `:has()` on the container stays, but only to SCOPE the rule: it selects
+   the group holding the statistics, because the group element itself carries no
+   id -- only the items inside it do. The appearance now lands on each item. */
 .blacksmith-menubar-secondary .combat-data-row
-    .secondary-bar-group-items:has([data-group-id="stats"]) {
+    .secondary-bar-group-items:has([data-group-id="stats"]) .secondary-bar-item {
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.15s ease;
 }
 
+/* Beats the readout reset's `:hover { background-color: transparent }`, which is
+   four class selectors to this rule's six -- the `:has()` counts as its most
+   specific argument, the `[data-group-id]` attribute. */
 .blacksmith-menubar-secondary .combat-data-row
-    .secondary-bar-group-items:has([data-group-id="stats"]):hover {
+    .secondary-bar-group-items:has([data-group-id="stats"]) .secondary-bar-item:hover {
     background-color: rgba(255, 255, 255, 0.07);
 }
 
-/* The chips themselves keep `cursor: default` from the readout reset, which
-   would beat the group's pointer on whichever chip is under the mouse -- so the
-   cursor would flicker between chips and gaps. The pointer is restated on them
-   for that reason, not because each chip is its own control. */
-.blacksmith-menubar-secondary .combat-data-row
-    .secondary-bar-group-items:has([data-group-id="stats"]) .secondary-bar-item {
-    cursor: pointer;
-}
 
 /* HEALTH BARS ARE CLICKABLE ONLY WHEN SOMETHING CAN ANSWER.
    Blacksmith has no health panel; a sibling may. `has-health-tool` is written by

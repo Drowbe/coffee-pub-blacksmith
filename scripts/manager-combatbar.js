@@ -2062,6 +2062,23 @@ export class CombatBarManager {
         postConsoleAndNotification(MODULE.NAME, "MenuBar: Combat hooks registered", "", true, false);
     }
 
+    /**
+     * Where one statistic chip goes when it is clicked.
+     *
+     * The single seam between a chip and its destination, so that giving a chip somewhere of its
+     * own to go is a branch here rather than another arm of the bar's click handler. Every chip
+     * lands on the Party Statistics window today because that window explains all of them; the
+     * `itemId` is dispatched on regardless, so the chips are already separate controls and it is
+     * only their destinations that have yet to diverge.
+     *
+     * @param {object} menuBar
+     * @param {string} itemId Registered id of the chip, e.g. `stat-total-kills`.
+     */
+    static openStatDestination(menuBar, itemId) {
+        postConsoleAndNotification(MODULE.NAME, "Combat Bar: Statistic clicked", itemId || "(unknown)", true, false);
+        menuBar.openStatsWindow();
+    }
+
     static updateCombatPortraitScrollArrows(_menuBar) {
         const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
         if (!wrapper) return;
@@ -2780,24 +2797,28 @@ export class CombatBarManager {
                 return;
             }
 
-            // THE STATISTICS OPEN THE WINDOW THAT EXPLAINS THEM.
+            // EACH STATISTIC IS ITS OWN CONTROL.
             //
             // This is the one interactive thing in a row of readouts, and it does not break the
             // no-affordance rule so much as clarify it. That rule exists to forbid a FALSE
             // affordance -- chrome that promises a click and delivers nothing. Here the click is
-            // real, so what the rule demands is that it be signalled honestly, which the group
+            // real, so what the rule demands is that it be signalled honestly, which the per-chip
             // hover in `menubar-combatbar.css` does.
             //
-            // Bound to the GROUP, never to each chip. Seventeen individually clickable chips would
-            // imply seventeen destinations; one target says "these numbers, explained", which is
-            // the only thing on the other side of it. The MVP plate rides along, since it belongs
-            // to the same group and the same window has its leaderboard.
-            const statsGroup = event.target.closest('.combat-data-row [data-group-id="stats"]');
-            if (statsGroup) {
+            // Answered PER CHIP. The selector always resolved to one item -- `data-group-id` sits
+            // on each item, not on the group -- but the chip was then thrown away and the hover
+            // wash covered the whole group, so the row presented and behaved as a single control.
+            // That was true of the destinations as they are, and is about to stop being true:
+            // these chips are being wired to experiences of their own. A reader who has learned
+            // that the strip is one button has learned something we would have to take back, and
+            // re-teaching one target as seventeen costs far more than teaching seventeen while
+            // they happen to agree.
+            const statChip = event.target.closest('.combat-data-row [data-group-id="stats"]');
+            if (statChip) {
                 event.preventDefault();
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
-                menuBar.openStatsWindow();
+                CombatBarManager.openStatDestination(menuBar, statChip.dataset.itemId);
                 return;
             }
 
