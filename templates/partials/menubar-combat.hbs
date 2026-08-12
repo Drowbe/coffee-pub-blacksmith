@@ -66,6 +66,20 @@
         </div>
         {{/if}}
 
+        {{!-- Tools: the one menu everybody gets, so it sits OUTSIDE the isGM
+              gate above. In combat only, like the rest. --}}
+        {{#if isInCombat}}
+        <div class="combatbar-button-control-container action-button combat-bar-edge-button">
+            <a class="combatbar-button action-type-general"
+               aria-label="Tools"
+               role="button"
+               data-tooltip="Tools"
+               data-control="toolsMenu">
+                <i class="fa-solid fa-crosshairs"></i>
+            </a>
+        </div>
+        {{/if}}
+
         {{!-- Out-of-combat actions as real bar buttons. They use the shared
               secondary-bar item classes rather than combatbar-button ones, so
               they inherit the default button look instead of overriding it. --}}

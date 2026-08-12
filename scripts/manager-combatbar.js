@@ -2816,6 +2816,15 @@ export class CombatBarManager {
                 return;
             }
 
+            const toolsMenuBtn = event.target.closest('.combatbar-button[data-control="toolsMenu"]');
+            if (toolsMenuBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
+                CombatBarManager.showToolsMenu(menuBar, toolsMenuBtn);
+                return;
+            }
+
             const initiativeMenuBtn = event.target.closest('.combatbar-button[data-control="initiativeMenu"]');
             if (initiativeMenuBtn) {
                 event.preventDefault();
@@ -3771,6 +3780,68 @@ export class CombatBarManager {
             const prev = rows.slice(0, i).findLast((r) => !r.divider);
             const next = rows.slice(i + 1).find((r) => !r.divider);
             return !!prev && !!next;
+        });
+    }
+
+    /**
+     * The TOOLS menu -- canvas tools everybody needs mid-fight.
+     *
+     * The one menu on this bar that is NOT GM-only: selecting, targeting and
+     * measuring are things a player does on their own turn, and hunting for them
+     * in the scene controls while the clock runs is the friction this removes.
+     *
+     * The first three switch Foundry's active tool rather than doing anything
+     * themselves. `ui.controls.activate({control, tool})` is the supported way in
+     * v13 (client/applications/ui/scene-controls.mjs) and the tool names are the
+     * token layer's own: select, target, ruler (client/canvas/layers/tokens.mjs).
+     */
+    static showToolsMenu(_menuBar, anchorEl) {
+        const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
+
+        const useTool = (tool, label) => async () => {
+            try {
+                await ui.controls?.activate?.({ control: 'tokens', tool });
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Combat Bar: Error activating ${label}`, error?.message || error, false, false);
+            }
+        };
+
+        const core = [
+            {
+                name: 'Select Tokens',
+                icon: 'fa-solid fa-expand',
+                callback: useTool('select', 'Select Tokens')
+            },
+            {
+                name: 'Select Targets',
+                icon: 'fa-solid fa-bullseye',
+                callback: useTool('target', 'Select Targets')
+            },
+            {
+                name: 'Clear All Targets',
+                // Same icon and the same one-liner as the toolbar tool of this
+                // name (manager-toolbar.js), so the two cannot drift.
+                icon: 'fa-regular fa-circle-xmark',
+                callback: () => {
+                    try {
+                        canvas?.tokens?.setTargets?.([], { mode: 'replace' });
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error clearing targets', error?.message || error, false, false);
+                    }
+                }
+            },
+            {
+                name: 'Measure Distance',
+                icon: 'fa-solid fa-ruler',
+                callback: useTool('ruler', 'Measure Distance')
+            }
+        ];
+
+        UIContextMenu.show({
+            id: 'blacksmith-combat-tools-menu',
+            x,
+            y,
+            zones: { core }
         });
     }
 
