@@ -1,0 +1,15 @@
+{{!-- Boxed sub-block with icon rows. --}}
+<div class="cpb-part-panel">
+    {{#if label}}
+    <div class="cpb-part-panel-header">
+        {{#if icon}}<i class="{{icon}}"></i> {{/if}}{{{label}}}
+    </div>
+    {{/if}}
+    {{#each rows}}
+    <div class="cpb-part-panel-row">
+        {{#if this.icon}}<i class="{{this.icon}}"></i>{{/if}}
+        <span class="cpb-part-panel-label">{{{this.label}}}</span>
+        {{#if this.value}}<span class="cpb-part-panel-value">{{{this.value}}}</span>{{/if}}
+    </div>
+    {{/each}}
+</div>

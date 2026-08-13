@@ -16,6 +16,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { ChatCardsAPI } from './api-chat-cards.js';
 
 const REPUTATION_MIN = -100;
 const REPUTATION_MAX = 100;
@@ -141,33 +142,31 @@ export class ReputationManager {
 
     /**
      * Post a "Current Reputation" chat card: scene name, current value, and scale data from reputation.json.
-     * @param {Object} [api] - Optional; if provided and bar is open, no need to pass for card posting. Used for chatCards theme.
+     * @returns {Promise<void>}
      */
-    static async postCurrentReputationCard(api = null) {
+    static async postCurrentReputationCard() {
         const scene = canvas?.scene;
         const sceneName = scene?.name ?? 'Unknown Scene';
         const value = this.getPartyReputation(scene);
         const scaleEntry = await this.getScaleEntry(value);
-        const chatCardsAPI = api ?? game.modules.get(MODULE.ID)?.api?.chatCards;
-        const themeClassName = chatCardsAPI?.getThemeClassName?.('default') ?? 'theme-default';
-        const templateData = {
-            sceneName,
-            value,
-            scaleLabel: scaleEntry?.label ?? '—',
-            scaleDescription: scaleEntry?.description ?? ''
-        };
-        try {
-            const html = await foundry.applications.handlebars.renderTemplate(
-                `modules/${MODULE.ID}/templates/cards-reputation-current.hbs`,
-                { ...templateData, themeClassName }
-            );
-            await ChatMessage.create({
-                content: html,
-                speaker: ChatMessage.getSpeaker({ alias: game.user?.name })
-            });
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'ReputationManager: Error posting current reputation card', error?.message ?? error, false, true);
-        }
+        const scaleLabel = scaleEntry?.label ?? '-';
+
+        const blocks = [{
+            type: 'paragraph',
+            text: `The party's current reputation is at **${value}** points, so they are **${scaleLabel}** in this area.`
+        }];
+        if (scaleEntry?.description) blocks.push({ type: 'paragraph', text: scaleEntry.description });
+
+        await ChatCardsAPI.post({
+            moduleId: MODULE.ID,
+            type: 'reputation-current',
+            parts: [
+                { part: 'header', icon: 'fa-solid fa-medal', title: `Reputation: ${scaleLabel}` },
+                { part: 'section', label: sceneName },
+                { part: 'prose', blocks }
+            ],
+            speaker: ChatMessage.getSpeaker({ alias: game.user?.name })
+        });
     }
 
     /**
@@ -175,35 +174,33 @@ export class ReputationManager {
      * @param {number} change - Delta (e.g. +5, -1).
      * @param {number} previousValue - Value before the change.
      * @param {number} newValue - Value after the change.
-     * @param {Object} [api] - Optional; for chatCards theme.
+     * @returns {Promise<void>}
      */
-    static async postNewReputationCard(change, previousValue, newValue, api = null) {
+    static async postNewReputationCard(change, previousValue, newValue) {
         const scene = canvas?.scene;
         const sceneName = scene?.name ?? 'Unknown Scene';
         const scaleEntry = await this.getScaleEntry(newValue);
-        const chatCardsAPI = api ?? game.modules.get(MODULE.ID)?.api?.chatCards;
-        const themeClassName = chatCardsAPI?.getThemeClassName?.('default') ?? 'theme-default';
+        const scaleLabel = scaleEntry?.label ?? '-';
         const changeText = change >= 0 ? `+${change}` : String(change);
-        const templateData = {
-            sceneName,
-            change: changeText,
-            previousValue,
-            newValue,
-            scaleLabel: scaleEntry?.label ?? '—',
-            scaleDescription: scaleEntry?.description ?? ''
-        };
-        try {
-            const html = await foundry.applications.handlebars.renderTemplate(
-                `modules/${MODULE.ID}/templates/cards-reputation-new.hbs`,
-                { ...templateData, themeClassName }
-            );
-            await ChatMessage.create({
-                content: html,
-                speaker: ChatMessage.getSpeaker({ alias: game.user?.name })
-            });
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'ReputationManager: Error posting new reputation card', error?.message ?? error, false, true);
-        }
+
+        const blocks = [{
+            type: 'paragraph',
+            text: `The party has had a **${changeText}** change in their reputation. `
+                + `Their reputation has gone from **${previousValue}** to **${newValue}** points, `
+                + `making them **${scaleLabel}** in this area.`
+        }];
+        if (scaleEntry?.description) blocks.push({ type: 'paragraph', text: scaleEntry.description });
+
+        await ChatCardsAPI.post({
+            moduleId: MODULE.ID,
+            type: 'reputation-change',
+            parts: [
+                { part: 'header', icon: 'fa-solid fa-arrow-trend-up', title: 'Reputation Change' },
+                { part: 'section', label: sceneName },
+                { part: 'prose', blocks }
+            ],
+            speaker: ChatMessage.getSpeaker({ alias: game.user?.name })
+        });
     }
 
 }

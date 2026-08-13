@@ -9,6 +9,7 @@ import { MenuBar } from "./api-menubar.js";
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { ToastAPI } from './api-toast.js';
+import { postMovementCard } from './cards-blacksmith.js';
 
 // ================================================================== 
 // ===== STATE VARIABLES ============================================
@@ -609,19 +610,10 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
         // by its own notifyMarchingOrder setting.
         const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
         if (notifyMode === 'chat' || notifyMode === 'both') {
-            const basicTemplateData = {
-                isPublic: true,
-                isMovementChange: true,
-                movementIcon: movementType.icon,
-                movementLabel: movementType.name,
-                movementDescription: movementType.description
-            };
-
-            const basicContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', basicTemplateData);
-
-            ChatMessage.create({
-                content: basicContent,
-                type: CONST.CHAT_MESSAGE_STYLES.OTHER
+            await postMovementCard({
+                icon: movementType.icon,
+                label: movementType.name,
+                description: movementType.description
             });
         }
 
@@ -1468,19 +1460,12 @@ async function postMarchingOrder() {
     const spacingText = spacing > 0 ? `${spacing} grid space${spacing > 1 ? 's' : ''}` : '';
 
     // Create chat message
-    const content = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
-        isPublic: true,
-        isMovementChange: true,
-        movementIcon: movementType.icon,
-        movementLabel: movementType.name,
-        movementDescription: movementType.description,
-        movementMarchingOrder: marchingOrder,
-        spacingText: spacingText
-    });
-
-    ChatMessage.create({
-        content: content,
-        type: CONST.CHAT_MESSAGE_STYLES.OTHER
+    await postMovementCard({
+        icon: movementType.icon,
+        label: movementType.name,
+        description: movementType.description,
+        marchingOrder,
+        spacingText
     });
 }
 
@@ -1574,19 +1559,13 @@ const createCombatHookId = HookManager.registerHook({
             // the toast half fires on every client from the movementType write above
             const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
             if (notifyMode === 'chat' || notifyMode === 'both') {
-                const combatTemplateData = {
-                    isPublic: true,
-                    isMovementChange: true,
-                    movementIcon: combatModeType?.icon ?? 'fa-person-harassing',
-                    movementLabel: combatModeType?.name ?? 'Combat',
-                    movementDescription: `When combat ends <strong>${prevModeType.name}</strong> will be restored.<br><br>${combatModeType.description}`
-                };
-
-                const combatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', combatTemplateData);
-
-                ChatMessage.create({
-                    content: combatContent,
-                    type: CONST.CHAT_MESSAGE_STYLES.OTHER
+                await postMovementCard({
+                    icon: combatModeType?.icon ?? 'fa-person-harassing',
+                    label: combatModeType?.name ?? 'Combat',
+                    description: [
+                        `When combat ends **${prevModeType.name}** will be restored.`,
+                        combatModeType.description
+                    ]
                 });
             }
 
@@ -1654,19 +1633,13 @@ const deleteCombatHookId = HookManager.registerHook({
         // the toast half fires on every client from the movementType write above
         const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
         if (notifyMode === 'chat' || notifyMode === 'both') {
-            const endCombatTemplateData = {
-                isPublic: true,
-                isMovementChange: true,
-                movementIcon: movementType.icon,
-                movementLabel: movementType.name,
-                movementDescription: `${movementType.name} Mode restored.<br><br>${movementType.description}`
-            };
-
-            const endCombatContent = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', endCombatTemplateData);
-
-            ChatMessage.create({
-                content: endCombatContent,
-                type: CONST.CHAT_MESSAGE_STYLES.OTHER
+            await postMovementCard({
+                icon: movementType.icon,
+                label: movementType.name,
+                description: [
+                    `${movementType.name} Mode restored.`,
+                    movementType.description
+                ]
             });
         }
 

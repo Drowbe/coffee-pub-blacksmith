@@ -1,0 +1,8 @@
+{{!-- Standalone state chips. --}}
+<div class="cpb-part-badges">
+    {{#each items}}
+    <span class="cpb-part-badge">
+        {{#if this.icon}}<i class="{{this.icon}}"></i>{{/if}}{{{this.label}}}
+    </span>
+    {{/each}}
+</div>

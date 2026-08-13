@@ -112,6 +112,7 @@ import { TagWidget } from './widget-tags.js';
 import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
+import { ChatCardsManager } from './manager-chat-cards.js';
 import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
 import { EntityListAPI } from './api-entity-list.js';
@@ -653,6 +654,9 @@ Hooks.once('ready', async () => {
         LoadingProgressManager.logActivity("Loading roll system...");
         await _registerUnifiedHeaderPartial();
         await TagWidget.registerPartial();
+
+        // Chat card parts: preload so the first card does not pay compile cost
+        await ChatCardsManager.preloadTemplates();
 
         // Initialize the Tags system: load taxonomy, register GM proxy, run migration
         LoadingProgressManager.logActivity("Initializing tags system...");
@@ -2283,32 +2287,119 @@ const coffeePubChatCardPaddingHookId = HookManager.registerHook({
 
 postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-chat-card-padding", true, false);
 
-const coffeePubDefaultThemeHookId = HookManager.registerHook({
+// The old 'blacksmith-default-card-theme' hook lived here. It rewrote every
+// .blacksmith-card.theme-default on screen to the world's configured theme,
+// which made 'theme-default' a sentinel rather than a colour: a consumer could
+// not pin a card to Tan, and an unknown theme id silently became whatever the
+// GM had chosen. The world default is now resolved once, at post time, in
+// ChatCardsManager.resolveThemeId, so what is stored on the message is always a
+// concrete theme and needs no reinterpretation at render.
+
+// Re-render parts-based cards from their stored composition.
+//
+// A card stores its composition and data in flags and bakes rendered HTML into
+// content. Re-rendering here is what makes "improve a part and every existing
+// card improves" true, and what isolates Foundry markup churn to this module.
+// The baked HTML is what the message already shows, so this never leaves a
+// blank card: it replaces good markup with newer markup.
+const coffeePubCardRerenderHookId = HookManager.registerHook({
     name: 'renderChatMessageHTML',
-    description: 'Blacksmith: Apply configured default theme to Coffee Pub chat cards',
-    context: 'blacksmith-default-card-theme',
+    description: 'Blacksmith: Re-render parts-based chat cards from stored composition',
+    context: 'blacksmith-card-rerender',
     priority: 3,
-    callback: (_message, html) => {
+    callback: (message, html) => {
+        const card = message?.flags?.[MODULE.ID]?.card;
+        if (!card?.parts) return;
+
         const htmlElement = getChatMessageElement(html);
-        if (!htmlElement) {
-            return;
-        }
+        if (!htmlElement) return;
 
-        const selectedTheme = getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
-        const themeClassName = ChatCardsAPI.getThemeClassName(selectedTheme);
-        if (!themeClassName || themeClassName === 'theme-default') {
-            return;
-        }
+        const host = htmlElement.querySelector('.blacksmith-card');
+        if (!host) return;
 
-        const defaultCards = htmlElement.querySelectorAll('.blacksmith-card.theme-default');
-        for (const card of defaultCards) {
-            card.classList.remove('theme-default');
-            card.classList.add(themeClassName);
-        }
+        // enrichHTML is async, so this cannot complete inside the hook. The card
+        // is already painted from its baked HTML; this swaps in the fresh render
+        // a tick later. Failure leaves the baked markup untouched.
+        ChatCardsManager.renderCard(card, { relativeTo: message })
+            .then((rendered) => {
+                if (!rendered || !host.isConnected) return;
+                const fresh = document.createElement('div');
+                fresh.innerHTML = rendered;
+                const freshCard = fresh.querySelector('.blacksmith-card');
+                if (!freshCard) return;
+                host.replaceWith(freshCard);
+                // The dispatcher already ran against the baked markup; these
+                // buttons are new elements and carry no listeners yet.
+                bindCardActions(message, freshCard);
+            })
+            .catch((error) => {
+                postConsoleAndNotification(MODULE.NAME, "Chat Cards | Re-render failed, keeping baked HTML", error?.message ?? error, false, false);
+            });
     }
 });
 
-postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-default-card-theme", true, false);
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-card-rerender", true, false);
+
+/**
+ * Bind every card button under `root` to its registered handler.
+ *
+ * Called from the dispatcher hook on render, and again after a re-render swaps
+ * the card element -- fresh markup carries fresh buttons with no listeners, so
+ * binding only on render would leave every button on a re-rendered card dead.
+ * The dataset flag keeps binding idempotent when markup survives instead.
+ */
+function bindCardActions(message, root) {
+    if (!root) return;
+
+    const buttons = root.querySelectorAll('[data-cpb-action]');
+    if (!buttons.length) return;
+
+    for (const button of buttons) {
+        if (button.dataset.cpbBound === 'true') continue;
+        button.dataset.cpbBound = 'true';
+
+        button.addEventListener('click', async (event) => {
+            event.preventDefault();
+            const target = event.currentTarget;
+            const moduleId = target.dataset.cpbModule;
+            const action = target.dataset.cpbAction;
+            const handler = ChatCardsAPI.getAction(moduleId, action);
+
+            if (!handler) {
+                postConsoleAndNotification(MODULE.NAME, "Chat Cards | No handler registered for card action", `${moduleId}:${action}`, true, false);
+                return;
+            }
+
+            try {
+                await handler({ message, value: target.dataset.cpbValue ?? null, event, button: target });
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Chat Cards | Action "${moduleId}:${action}" threw`, error?.message ?? error, false, false);
+            }
+        });
+    }
+}
+
+// Delegated card-action dispatcher.
+//
+// A ChatMessage is data on every client, so a handler cannot ride the document:
+// buttons carry the module id and action name, and the handler is resolved fresh
+// from the registry on each render. That is why buttons still work after a
+// browser reload, and why a card whose module is disabled degrades to an inert
+// button rather than an error.
+//
+// The attributes are namespaced rather than using data-action, which
+// ApplicationV2 already claims.
+const coffeePubCardActionHookId = HookManager.registerHook({
+    name: 'renderChatMessageHTML',
+    description: 'Blacksmith: Dispatch chat card button actions to registered handlers',
+    context: 'blacksmith-card-actions',
+    priority: 3,
+    callback: (message, html) => {
+        bindCardActions(message, getChatMessageElement(html));
+    }
+});
+
+postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-card-actions", true, false);
 
 // Register renderJournalDirectory hook
 const renderJournalDirectoryHookId = HookManager.registerHook({

@@ -1,830 +1,151 @@
-# Chat Cards API Documentation
+# Chat Cards API
 
-**Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
+**Audience:** Developers building on Blacksmith who need to post chat cards.
 
-This API provides theme access for dropdowns and card styling. It does not create, update, or delete messages — render your own HTML against the card contract (see "Building chat cards" below) and post it with `ChatMessage.create`.
+How to post a themed chat card by describing it as data. You do not write card HTML; you name a composition of parts and supply their content. How the system is built is in `../architecture/architecture-chatcards.md`.
 
-## Overview
-
-The Chat Cards API provides programmatic access to Blacksmith's chat card theme system, allowing external modules to:
-- Get lists of available themes for dropdowns
-- Filter themes by type (card vs. announcement)
-- Look up theme information by ID
-- Get CSS class names for themes
-- Integrate with Blacksmith's chat card styling system
-
-### Theme Types
-
-Blacksmith themes are organized into two types:
-
-- **`card`**: Regular card themes with light backgrounds and dark text. Suitable for general chat cards, skill checks, combat summaries, etc.
-- **`announcement`**: Announcement themes with dark backgrounds and light header text. Designed for important announcements that need to stand out.
-
-## Getting Started
-
-### Accessing the API
+## Accessing the API
 
 ```javascript
-// Via game.modules (no imports – use in browser console or other modules)
-const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
-
-// Or via Blacksmith API bridge
-import { BlacksmithAPI } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
-const blacksmith = await BlacksmithAPI.get();
-const chatCardsAPI = blacksmith?.chatCards;
+const chatCards = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
+if (!chatCards) return;
 ```
 
-### API Availability Check
+## Posting a card
 
 ```javascript
-const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
-if (!chatCardsAPI) {
-    console.warn('Blacksmith Chat Cards API not available');
-    return;
-}
-```
-
-## Available Methods
-
-### `chatCards.getThemes([type])`
-
-Returns an array of available chat card themes with full information. Optionally filter by type.
-
-**Parameters**:
-- `type` (string, optional): Filter by type - `'card'` or `'announcement'`. If omitted, returns all themes.
-
-**Returns**: `Array<{id: string, name: string, className: string, type: string, description: string}>`
-
-```javascript
-// Get all themes
-const allThemes = chatCardsAPI.getThemes();
-// Returns:
-// [
-//   {
-//     id: 'default',
-//     name: 'Tan',
-//     className: 'theme-default',
-//     type: 'card',
-//     description: 'Tan parchment theme with subtle borders'
-//   },
-//   {
-//     id: 'blue',
-//     name: 'Blue',
-//     className: 'theme-blue',
-//     type: 'card',
-//     description: 'Blue accent theme'
-//   },
-//   ...
-// ]
-
-// Get only card themes
-const cardThemes = chatCardsAPI.getThemes('card');
-
-// Get only announcement themes
-const announcementThemes = chatCardsAPI.getThemes('announcement');
-```
-
-**Use Case**: When you need full theme information for custom UI or detailed displays.
-
-### `chatCards.getCardThemes()`
-
-Returns an array of all card themes (light backgrounds).
-
-**Returns**: `Array<{id: string, name: string, className: string, type: string, description: string}>`
-
-```javascript
-const cardThemes = chatCardsAPI.getCardThemes();
-// Returns only themes with type: 'card'
-```
-
-**Use Case**: Convenience method to get only regular card themes.
-
-### `chatCards.getAnnouncementThemes()`
-
-Returns an array of all announcement themes (dark backgrounds).
-
-**Returns**: `Array<{id: string, name: string, className: string, type: string, description: string}>`
-
-```javascript
-const announcementThemes = chatCardsAPI.getAnnouncementThemes();
-// Returns only themes with type: 'announcement'
-```
-
-**Use Case**: Convenience method to get only announcement themes.
-
-### `chatCards.getThemesByType(type)`
-
-Get themes filtered by a specific type.
-
-**Parameters**:
-- `type` (string): Theme type - `'card'` or `'announcement'`
-
-**Returns**: `Array<{id: string, name: string, className: string, type: string, description: string}>`
-
-```javascript
-const cardThemes = chatCardsAPI.getThemesByType('card');
-const announcementThemes = chatCardsAPI.getThemesByType('announcement');
-```
-
-**Use Case**: When you need to filter themes by type programmatically.
-
-### `chatCards.getThemeChoices([type])`
-
-Returns an object suitable for Foundry settings dropdowns (key-value pairs). Optionally filter by type.
-
-**Parameters**:
-- `type` (string, optional): Filter by type - `'card'` or `'announcement'`. If omitted, returns all themes.
-
-**Returns**: `Object<string, string>` - Object mapping theme IDs to display names
-
-```javascript
-// Get all theme choices
-const allChoices = chatCardsAPI.getThemeChoices();
-// Returns:
-// {
-//   'default': 'Tan',
-//   'amber': 'Amber',
-//   'blue': 'Blue',
-//   'green': 'Green',
-//   'red': 'Red',
-//   'orange': 'Orange',
-//   'announcement-green': 'Announcement Green',
-//   'announcement-blue': 'Announcement Blue',
-//   'announcement-red': 'Announcement Red'
-// }
-
-// Get only card theme choices
-const cardChoices = chatCardsAPI.getThemeChoices('card');
-// Returns: { 'default': 'Tan', 'amber': 'Amber', 'blue': 'Blue', ... }
-
-// Get only announcement theme choices
-const announcementChoices = chatCardsAPI.getThemeChoices('announcement');
-// Returns: { 'announcement-green': 'Announcement Green', ... }
-```
-
-**Use Case**: Perfect for Foundry settings registration where you need a choices object.
-
-```javascript
-// For regular chat cards
-game.settings.register('my-module', 'cardTheme', {
-    name: 'Chat Card Theme',
-    hint: 'Choose the theme for chat cards created by this module',
-    scope: 'world',
-    config: true,
-    type: String,
-    default: 'default',
-    choices: chatCardsAPI.getThemeChoices('card')  // Only card themes
-});
-
-// For announcements
-game.settings.register('my-module', 'announcementTheme', {
-    name: 'Announcement Theme',
-    hint: 'Choose the theme for announcements',
-    scope: 'world',
-    config: true,
-    type: String,
-    default: 'announcement-blue',
-    choices: chatCardsAPI.getThemeChoices('announcement')  // Only announcement themes
+await chatCards.post({
+    moduleId: 'coffee-pub-yourmodule',
+    type: 'loot-drop',
+    parts: [
+        { part: 'header', icon: 'fa-solid fa-coins', title: 'Loot Dropped' },
+        { part: 'prose', blocks: [
+            { type: 'paragraph', text: '**Gorak** has been defeated and dropped their belongings.' }
+        ] }
+    ]
 });
 ```
 
-### `chatCards.getCardThemeChoices()`
+### `post(options)`
 
-Returns theme choices for card themes only (convenience method).
+| Option | Type | Notes |
+|---|---|---|
+| `moduleId` | string | Required. Your module id. |
+| `parts` | array | Required. The composition, in render order. |
+| `type` | string | Optional. Your own card type id, stored on the message. |
+| `theme` | string | Optional theme id. Omit to use the world default. |
+| `relativeTo` | Document | Optional enrichment context for relative `@UUID` links. |
+| `whisper` | array | Optional user ids. Omit for a public card. |
+| `speaker` | object | Optional. Defaults to the current user. |
+| `rollMode` | string | Optional Foundry roll mode. |
+| `flags` | object | Optional. Merged under your module id on the message. |
 
-**Returns**: `Object<string, string>` - Object mapping theme IDs to display names
+Returns the created `ChatMessage`, or `null` if posting failed.
+
+`postAnnouncement(options)` is the same call with an announcement theme by default.
+
+## Parts
+
+`getParts()` returns the available part ids; `CARD_PARTS` in `scripts/manager-chat-cards.js` is the definition. The library is closed - compose these, and ask for a new part rather than working around a missing one. Every part is an object with a `part` key naming it.
+
+| Part | Fields |
+|---|---|
+| `header` | `icon`, `title` |
+| `actor` | `img`, `name`, `subtitle` |
+| `image` | `src`, `alt`, `caption` |
+| `meter` | `value`, `max`, `label`, `tone` (`ok`/`warn`/`danger`; derived if omitted) |
+| `nameplate` | `text` |
+| `stats` | `items: [{ label, value }]` |
+| `section` | `icon`, `label` |
+| `prose` | `blocks` (see below) |
+| `entities` | `items: [{ img, uuid, label, count }]` |
+| `status` | `items: [{ img, icon, label, sublabel, trailing, action, actionIcon, value, moduleId }]` |
+| `badges` | `items: [{ icon, label }]` |
+| `panel` | `icon`, `label`, `rows: [{ icon, label, value }]` |
+| `notes` | `items: [{ icon, text }]` |
+| `actions` | `instruction`, `buttons: [{ action, label, icon, value, moduleId, disabled }]` |
+| `richtext` | `html` (document-sourced only - see below) |
+
+On `entities`, supplying `uuid` renders a real Foundry document link; `label` becomes its display text.
+
+## Prose
+
+The `prose` part takes structured blocks rather than an HTML string, so Blacksmith owns how a list or table looks inside a card.
 
 ```javascript
-const cardChoices = chatCardsAPI.getCardThemeChoices();
-// Returns only card theme choices
+{ part: 'prose', blocks: [
+    { type: 'paragraph', text: 'A figure shifts position just ahead.' },
+    { type: 'list', items: ['Mutual awareness', 'A brief pause'], ordered: false },
+    { type: 'table', rows: [['Coins', '3 gp'], ['Weight', '12 lb']] },
+    { type: 'quote', text: 'The moment stays safe.' }
+] }
 ```
 
-**Use Case**: Convenience method to get choices for regular card themes.
+### Text, marks, and links
 
-### `chatCards.getAnnouncementThemeChoices()`
+Text fields accept three inline marks and Foundry's enricher syntax:
 
-Returns theme choices for announcement themes only (convenience method).
-
-**Returns**: `Object<string, string>` - Object mapping theme IDs to display names
+- `**bold**`, `*italic*`, `` `code` ``
+- `@UUID[Actor.abc]{Ogre}`, `[[/r 1d20]]`, `@Check[dexterity]`
 
 ```javascript
-const announcementChoices = chatCardsAPI.getAnnouncementThemeChoices();
-// Returns only announcement theme choices
+{ type: 'paragraph',
+  text: 'You see an @UUID[Actor.ogre123]{Ogre} with a big stick. ' +
+        'They hit you on the head **3 times** with the stick.' }
 ```
 
-**Use Case**: Convenience method to get choices for announcement themes.
+**HTML is not accepted.** Text is escaped before anything else touches it, so `<b>x</b>` renders as those visible characters, not as bold. This is enforced at runtime, not by convention. Block syntax beyond the three marks is not markdown and is not supported - use the block types above.
 
-### `chatCards.getThemeChoicesWithClassNames([type])`
+### `richtext`, for content out of a document
 
-Returns theme choices with **CSS class names as keys** instead of theme IDs. This is ideal when you need to use the CSS class name directly in templates or HTML without conversion.
-
-**Parameters**:
-- `type` (string, optional): Filter by type - `'card'` or `'announcement'`. If omitted, returns all themes.
-
-**Returns**: `Object<string, string>` - Object mapping CSS class names to display names
+Use `richtext` only for HTML that already exists in a Foundry document - a journal page, a roll-table description, an editor field:
 
 ```javascript
-// Get all theme choices with class names as keys
-const allChoices = chatCardsAPI.getThemeChoicesWithClassNames();
-// Returns:
-// {
-//   'theme-default': 'Tan',
-//   'theme-amber': 'Amber',
-//   'theme-blue': 'Blue',
-//   'theme-green': 'Green',
-//   'theme-red': 'Red',
-//   'theme-orange': 'Orange',
-//   'theme-announcement-green': 'Announcement Green',
-//   'theme-announcement-blue': 'Announcement Blue',
-//   'theme-announcement-red': 'Announcement Red'
-// }
-
-// Get only card theme choices with class names
-const cardChoices = chatCardsAPI.getThemeChoicesWithClassNames('card');
-// Returns: { 'theme-default': 'Tan', 'theme-amber': 'Amber', 'theme-blue': 'Blue', ... }
-
-// Get only announcement theme choices with class names
-const announcementChoices = chatCardsAPI.getThemeChoicesWithClassNames('announcement');
-// Returns: { 'theme-announcement-green': 'Announcement Green', ... }
+{ part: 'richtext', html: journalPage.text.content }
 ```
 
-**Use Case**: When registering Foundry settings or rendering templates where you need the CSS class name directly to use in HTML like `<div class="blacksmith-card {{theme}}">`. This eliminates the need to convert IDs to class names.
+It is enriched and scoped to card typography. Building an HTML string in JavaScript and passing it here defeats the system; pass structured prose instead.
+
+## Buttons
+
+Register handlers at startup, on every client - not at post time, and not only on the GM:
 
 ```javascript
-// Register setting that stores CSS class name directly
-game.settings.register('my-module', 'cardTheme', {
-    name: 'Chat Card Theme',
-    hint: 'Choose the theme for chat cards created by this module',
-    scope: 'world',
-    config: true,
-    type: String,
-    default: 'theme-default',  // CSS class name, not ID
-    choices: chatCardsAPI.getThemeChoicesWithClassNames('card')
-});
-
-// In template, use directly:
-// <div class="blacksmith-card {{cardTheme}}">
-// No conversion needed!
-```
-
-### `chatCards.getCardThemeChoicesWithClassNames()`
-
-Returns card theme choices with CSS class names as keys (convenience method).
-
-**Returns**: `Object<string, string>` - Object mapping CSS class names to display names
-
-```javascript
-const cardChoices = chatCardsAPI.getCardThemeChoicesWithClassNames();
-// Returns: { 'theme-default': 'Default', 'theme-blue': 'Blue', ... }
-```
-
-**Use Case**: Convenience method to get card theme choices with class names as keys.
-
-### `chatCards.getAnnouncementThemeChoicesWithClassNames()`
-
-Returns announcement theme choices with CSS class names as keys (convenience method).
-
-**Returns**: `Object<string, string>` - Object mapping CSS class names to display names
-
-```javascript
-const announcementChoices = chatCardsAPI.getAnnouncementThemeChoicesWithClassNames();
-// Returns: { 'theme-announcement-green': 'Announcement Green', ... }
-```
-
-**Use Case**: Convenience method to get announcement theme choices with class names as keys.
-
-### `chatCards.getTheme(themeId)`
-
-Get a specific theme by its ID.
-
-**Parameters**:
-- `themeId` (string): The theme ID (e.g., 'default', 'blue', 'announcement-green')
-
-**Returns**: `{id: string, name: string, className: string, type: string, description: string} | null`
-
-```javascript
-const theme = chatCardsAPI.getTheme('blue');
-// Returns:
-// {
-//   id: 'blue',
-//   name: 'Blue',
-//   className: 'theme-blue',
-//   type: 'card',
-//   description: 'Blue accent theme'
-// }
-
-const announcementTheme = chatCardsAPI.getTheme('announcement-green');
-// Returns:
-// {
-//   id: 'announcement-green',
-//   name: 'Announcement Green',
-//   className: 'theme-announcement-green',
-//   type: 'announcement',
-//   description: 'Dark green background for announcements'
-// }
-
-// Returns null if theme not found
-const invalid = chatCardsAPI.getTheme('invalid');
-// Returns: null
-```
-
-**Use Case**: When you need to look up specific theme details, including its type.
-
-### `chatCards.getThemeClassName(themeId)`
-
-Get the CSS class name for a theme ID.
-
-**Parameters**:
-- `themeId` (string): The theme ID
-
-**Returns**: `string` - The CSS class name (e.g., 'theme-default')
-
-```javascript
-const className = chatCardsAPI.getThemeClassName('blue');
-// Returns: 'theme-blue'
-
-// Falls back to 'theme-default' if theme not found
-const invalid = chatCardsAPI.getThemeClassName('invalid');
-// Returns: 'theme-default'
-```
-
-**Use Case**: When rendering templates and you need the CSS class name.
-
-**Card HTML structure**: Use these classes inside `.blacksmith-card` for theme-aware layout. All are optional except the card wrapper and theme class.
-
-| Class | Purpose |
-|-------|---------|
-| `.card-header` | Main card title (top). Often includes an icon and title text. |
-| `.section-header` | Section heading inside the body (e.g. "Requested Rolls", "Challengers"). Optional icon. Uses theme variables for border and text color. |
-| `.section-content` | Main body content. Put section-headers and your content inside this. |
-
-```javascript
-const themeId = game.settings.get('my-module', 'cardTheme') || 'default';
-const themeClassName = chatCardsAPI.getThemeClassName(themeId);
-
-const html = `<div class="blacksmith-card ${themeClassName}">
-    <div class="card-header">My Card</div>
-    <div class="section-content">
-        <div class="section-header"><i class="fas fa-dice-d20"></i> Requested Rolls</div>
-        <p>Content here</p>
-    </div>
-</div>`;
-```
-
-## Available Themes
-
-The following themes are available, organized by type:
-
-### Card Themes (Light Backgrounds)
-
-| ID | Name | CSS Class | Description |
-|---|---|---|---|
-| `default` | Tan | `theme-default` | Tan parchment theme with subtle borders |
-| `amber` | Amber | `theme-amber` | Warm amber and brown narration theme |
-| `blue` | Blue | `theme-blue` | Blue accent theme |
-| `green` | Green | `theme-green` | Green accent theme |
-| `red` | Red | `theme-red` | Red accent theme |
-| `orange` | Orange | `theme-orange` | Orange accent theme |
-
-The `default` id is named "Tan" — the id and the display name deliberately differ, so the theme setting doesn't read "Default default". Don't hardcode this table: call `getThemeChoices()`, which is generated from `CHAT_CARD_THEMES` in `scripts/api-chat-cards.js` and cannot drift.
-
-### Announcement Themes (Dark Backgrounds)
-
-| ID | Name | CSS Class | Description |
-|---|---|---|---|
-| `announcement-green` | Announcement Green | `theme-announcement-green` | Dark green background for announcements |
-| `announcement-blue` | Announcement Blue | `theme-announcement-blue` | Dark blue background for announcements |
-| `announcement-red` | Announcement Red | `theme-announcement-red` | Dark red background for announcements |
-
-## Usage Examples
-
-### Example 1: Settings Dropdown (All Themes)
-
-```javascript
-Hooks.once('init', () => {
-    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
-    
-    if (!chatCardsAPI) {
-        console.warn('Blacksmith Chat Cards API not available');
-        return;
-    }
-    
-    // Register setting with all themes
-    game.settings.register('my-module', 'cardTheme', {
-        name: 'Chat Card Theme',
-        hint: 'Choose the theme for chat cards created by this module',
-        scope: 'world',
-        config: true,
-        type: String,
-        default: 'default',
-        choices: chatCardsAPI.getThemeChoices()  // All themes
+Hooks.once('ready', () => {
+    const chatCards = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
+    chatCards?.registerAction('coffee-pub-yourmodule', 'accept', async ({ message, value }) => {
+        await acceptTransfer(value);
     });
 });
 ```
 
-### Example 1b: Separate Settings for Card vs Announcement Themes
+Then reference the action when composing:
 
 ```javascript
-Hooks.once('init', () => {
-    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
-    
-    if (!chatCardsAPI) {
-        console.warn('Blacksmith Chat Cards API not available');
-        return;
-    }
-    
-    // Register setting for regular chat cards (card themes only)
-    game.settings.register('my-module', 'cardTheme', {
-        name: 'Chat Card Theme',
-        hint: 'Choose the theme for regular chat cards',
-        scope: 'world',
-        config: true,
-        type: String,
-        default: 'default',
-        choices: chatCardsAPI.getCardThemeChoices()  // Only card themes
-    });
-    
-    // Register separate setting for announcements (announcement themes only)
-    game.settings.register('my-module', 'announcementTheme', {
-        name: 'Announcement Theme',
-        hint: 'Choose the theme for announcements',
-        scope: 'world',
-        config: true,
-        type: String,
-        default: 'announcement-blue',
-        choices: chatCardsAPI.getAnnouncementThemeChoices()  // Only announcement themes
-    });
-});
+{ part: 'actions', instruction: 'Choose one.', buttons: [
+    { moduleId: 'coffee-pub-yourmodule', action: 'accept', label: 'Accept',
+      icon: 'fa-solid fa-check', value: transferId }
+] }
 ```
 
-### Example 1c: Using CSS Class Names Directly (Recommended for Templates)
+The handler receives `{ message, value, event, button }`. A chat message is data on every client, so handlers cannot travel with the card - each client resolves them from its own registry at render time. This is why registration belongs in `ready` rather than alongside the post, and why buttons keep working after a browser reload.
 
-This approach stores CSS class names directly in settings, eliminating the need to convert IDs to class names in templates.
+`unregisterAction(moduleId, action)` removes one. `getRegisteredActions()` lists what is registered, for diagnostics.
 
-```javascript
-Hooks.once('init', () => {
-    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
-    
-    if (!chatCardsAPI) {
-        console.warn('Blacksmith Chat Cards API not available');
-        return;
-    }
-    
-    // Register setting that stores CSS class name directly
-    game.settings.register('my-module', 'cardTheme', {
-        name: 'Chat Card Theme',
-        hint: 'Choose the theme for chat cards created by this module',
-        scope: 'world',
-        config: true,
-        type: String,
-        default: 'theme-default',  // CSS class name, not ID
-        choices: chatCardsAPI.getThemeChoicesWithClassNames('card')  // Keys are CSS class names
-    });
-});
+## Themes
 
-// In your Handlebars template (my-card.hbs):
-// <div class="blacksmith-card {{cardTheme}}">
-//     <div class="card-header">{{title}}</div>
-//     <div class="section-content">{{content}}</div>
-// </div>
+Themes set colour only; structure comes from parts.
 
-// In JavaScript, use the setting value directly:
-async function sendMyCard(data) {
-    // Get CSS class name directly from settings - no conversion needed!
-    const themeClassName = game.settings.get('my-module', 'cardTheme') || 'theme-default';
-    
-    const templateData = {
-        title: data.title || "Default Title",
-        icon: data.icon || "fa-info-circle",
-        content: data.content || "No content provided",
-        cardTheme: themeClassName  // Pass directly to template
-    };
-    
-    const html = await foundry.applications.handlebars.renderTemplate(
-        'modules/my-module/templates/my-card.hbs',
-        templateData
-    );
-    
-    await ChatMessage.create({
-        content: html,
-        style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-        speaker: ChatMessage.getSpeaker({ user: game.user.id })
-    });
-}
-```
+- `getThemes([type])` - theme objects, optionally filtered by `'card'` or `'announcement'`.
+- `getThemeChoices([type])` - id-to-name map for a settings dropdown.
+- `getTheme(themeId)` - one theme, or null.
 
-**Benefits of this approach:**
-- No ID-to-class-name conversion needed
-- Setting value can be used directly in templates
-- More efficient (no API calls during rendering)
-- Cleaner code
+Pass a theme **id** to `post`. Omitting `theme` uses the world default, resolved when the card is posted.
 
-### Example 2: Template Rendering with Theme (Using ID Conversion)
+Several class-name accessors (`getThemeClassName`, `getThemeChoicesWithClassNames`, and their card and announcement variants) remain for modules that still build their own card HTML. They exist for the migration and nothing new should use them - a card posted through `post` never needs a class name.
 
-This example shows the traditional approach where settings store theme IDs and you convert them to class names. **Note:** Example 1c above is recommended for new code as it's more efficient.
+## Notes
 
-```javascript
-async function sendMyCard(data) {
-    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
-    
-    // Get theme ID from settings (stored as ID, not class name)
-    const themeId = game.settings.get('my-module', 'cardTheme') || 'default';
-    // Convert ID to class name
-    const themeClassName = chatCardsAPI?.getThemeClassName(themeId) || 'theme-default';
-    
-    const templateData = {
-        title: data.title || "Default Title",
-        icon: data.icon || "fa-info-circle",
-        content: data.content || "No content provided",
-        themeClassName: themeClassName
-    };
-    
-    // Render template (themeClassName used in template)
-    const html = await foundry.applications.handlebars.renderTemplate(
-        'modules/my-module/templates/my-card.hbs',
-        templateData
-    );
-    
-    await ChatMessage.create({
-        content: html,
-        style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-        speaker: ChatMessage.getSpeaker({ user: game.user.id })
-    });
-}
-```
-
-### Example 3: Dynamic Theme Selection UI
-
-```javascript
-function createThemeSelector() {
-    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
-    if (!chatCardsAPI) return null;
-    
-    const themes = chatCardsAPI.getThemes();
-    const currentTheme = game.settings.get('my-module', 'cardTheme') || 'default';
-    
-    const select = document.createElement('select');
-    themes.forEach(theme => {
-        const option = document.createElement('option');
-        option.value = theme.id;
-        option.textContent = theme.name;
-        option.title = theme.description;
-        if (theme.id === currentTheme) {
-            option.selected = true;
-        }
-        select.appendChild(option);
-    });
-    
-    select.addEventListener('change', (e) => {
-        game.settings.set('my-module', 'cardTheme', e.target.value);
-    });
-    
-    return select;
-}
-```
-
-### Example 4: Theme Preview
-
-```javascript
-function showThemePreview(themeId) {
-    const chatCardsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.chatCards;
-    if (!chatCardsAPI) return;
-    
-    const theme = chatCardsAPI.getTheme(themeId);
-    if (!theme) {
-        console.warn(`Theme '${themeId}' not found`);
-        return;
-    }
-    
-    console.log(`Theme: ${theme.name}`);
-    console.log(`CSS Class: ${theme.className}`);
-    console.log(`Description: ${theme.description}`);
-    
-    // Use in preview
-    const previewHtml = `<div class="blacksmith-card ${theme.className}">
-        <div class="card-header">Preview</div>
-        <div class="section-content">
-            <div class="section-header"><i class="fas fa-palette"></i> Theme sample</div>
-            <p>This is how ${theme.name} theme looks.</p>
-        </div>
-    </div>`;
-    
-    return previewHtml;
-}
-```
-
-## Integration with Chat Card System
-
-The Chat Cards API works with the chat card HTML/CSS framework (see "Building chat cards" below). Use the API to:
-
-1. **Get theme choices** for settings dropdowns (with IDs or CSS class names as keys)
-2. **Look up theme class names** when rendering templates
-3. **Use the card structure**: `.card-header` (main title), `.section-header` (section headings like "Requested Rolls"), and `.section-content` (body) so themes style your card correctly
-4. **Filter themes by type** (card vs. announcement)
-5. **Validate theme IDs** before using them
-6. **Build dynamic UI** that adapts to available themes
-
-### Recommended Approach: Use CSS Class Names Directly
-
-For new code, we recommend using `getThemeChoicesWithClassNames()` to store CSS class names directly in settings. This eliminates the need for ID-to-class-name conversion:
-
-```handlebars
-{{!-- templates/my-card.hbs --}}
-<span style="visibility: hidden">coffeepub-hide-header</span>
-<div class="blacksmith-card {{cardTheme}}">
-    <div class="card-header">
-        <i class="fas fa-{{icon}}"></i> {{title}}
-    </div>
-    <div class="section-content">
-        {{#if sectionTitle}}
-        <div class="section-header"><i class="fas fa-dice-d20"></i> {{sectionTitle}}</div>
-        {{/if}}
-        <p>{{{content}}}</p>
-    </div>
-</div>
-```
-
-```javascript
-// JavaScript - Register setting with CSS class names as keys
-game.settings.register('my-module', 'cardTheme', {
-    name: 'Chat Card Theme',
-    scope: 'world',
-    config: true,
-    type: String,
-    default: 'theme-default',
-    choices: chatCardsAPI.getThemeChoicesWithClassNames('card')
-});
-
-// Use setting value directly in template - no conversion needed!
-const html = await renderTemplate('modules/my-module/templates/my-card.hbs', {
-    title: "My Card",
-    icon: "fa-dice",
-    content: "Card content",
-    cardTheme: game.settings.get('my-module', 'cardTheme')  // Already a CSS class name
-});
-```
-
-### Alternative Approach: Convert IDs to Class Names
-
-If you prefer to store theme IDs in settings and convert them when rendering:
-
-```handlebars
-{{!-- templates/my-card.hbs --}}
-<span style="visibility: hidden">coffeepub-hide-header</span>
-<div class="blacksmith-card {{themeClassName}}">
-    <div class="card-header">
-        <i class="fas fa-{{icon}}"></i> {{title}}
-    </div>
-    <div class="section-content">
-        {{#if sectionTitle}}
-        <div class="section-header"><i class="fas fa-dice-d20"></i> {{sectionTitle}}</div>
-        {{/if}}
-        <p>{{{content}}}</p>
-    </div>
-</div>
-```
-
-```javascript
-// JavaScript - Convert ID to class name
-const themeId = game.settings.get('my-module', 'cardTheme') || 'default';
-const themeClassName = chatCardsAPI.getThemeClassName(themeId);
-const html = await renderTemplate('modules/my-module/templates/my-card.hbs', {
-    title: "My Card",
-    icon: "fa-dice",
-    content: "Card content",
-    themeClassName: themeClassName
-});
-```
-
-## Building chat cards (HTML and CSS)
-
-The methods above style cards; this section is the HTML/CSS contract for building them. A "chat card" is a chat message whose content follows this structure, so Blacksmith's CSS themes it.
-
-### Card structure
-
-```html
-<span style="visibility: hidden">coffeepub-hide-header</span>
-<div class="blacksmith-card theme-default">
-    <div class="card-header">
-        <i class="fa-solid fa-dice"></i> Card Title
-    </div>
-    <div class="section-content">
-        <!-- your content -->
-    </div>
-</div>
-```
-
-- `.blacksmith-card` — base container (required).
-- `.theme-{name}` — theme class (required); see Available Themes above.
-- `.card-header` — title row with optional icon. The theme owns its styling; do not style it yourself.
-- `.section-content` — body. Put your content and section headers here, and style only inside here.
-
-The leading `<span style="visibility: hidden">coffeepub-hide-header</span>` hides Foundry's default message header. Use `visibility: hidden` — `visibility: none` is invalid CSS.
-
-### Layout components
-
-Inside `.section-content`:
-
-- **Section header** — `<div class="section-header"><i class="fa-solid fa-list"></i> Summary</div>` — a divider with optional icon; theme-aware.
-- **Section subheader** — `<div class="section-subheader">Results</div>` — a prominent centered title with a background highlight.
-- **Data table** — a two-column label/content grid; `label-dimmed` and `label-highlighted` are label variants:
-
-```html
-<div class="section-table">
-    <div class="row-label">Label</div>
-    <div class="row-content">Value</div>
-    <div class="row-label label-dimmed">Dimmed label</div>
-    <div class="row-content">Value</div>
-</div>
-```
-
-- **Buttons** — `.blacksmith-chat-buttons` wrapping `<button class="chat-button" data-action="...">`; use `data-*` attributes for event handling:
-
-```html
-<div class="blacksmith-chat-buttons">
-    <button class="chat-button" data-action="accept"><i class="fa-solid fa-check"></i> Accept</button>
-    <button class="chat-button" data-action="reject"><i class="fa-solid fa-xmark"></i> Reject</button>
-</div>
-```
-
-### CSS variables
-
-Themes are driven by `--blacksmith-card-*` variables (all prefixed to avoid clashes): `--blacksmith-card-bg`, `-border`, `-text`, `-header-text`, `-section-header-text`, `-section-header-border`, `-section-subheader-text`, `-section-subheader-bg`, `-section-content-text`, `-hover-color`, `-button-text`, `-button-border`, `-button-hover-bg`, `-button-container-bg`. Define a custom theme by setting these on your own selector:
-
-```css
-.blacksmith-card.theme-custom {
-    --blacksmith-card-bg: rgba(100, 50, 200, 0.1);
-    --blacksmith-card-border: rgba(100, 50, 200, 0.3);
-    --blacksmith-card-header-text: #6432c8;
-}
-```
-
-### Rendering and sending
-
-Render a Handlebars template and post it with `ChatMessage.create`:
-
-```javascript
-const html = await foundry.applications.handlebars.renderTemplate(
-    'modules/my-module/templates/my-card.hbs',
-    { title: 'My Card', icon: 'dice', content: 'Content here', cardTheme: 'theme-default' }
-);
-
-await ChatMessage.create({
-    content: html,
-    style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-    speaker: ChatMessage.getSpeaker({ user: game.user.id })
-});
-```
-
-A matching template:
-
-```handlebars
-<span style="visibility: hidden">coffeepub-hide-header</span>
-<div class="blacksmith-card {{cardTheme}}">
-    <div class="card-header"><i class="fa-solid fa-{{icon}}"></i> {{title}}</div>
-    <div class="section-content">
-        <p>{{{content}}}</p>
-    </div>
-</div>
-```
-
-### Event handling
-
-Wire button clicks in the `renderChatMessageHTML` hook. On v13 the second argument is a native `HTMLElement`, not jQuery — use DOM methods:
-
-```javascript
-Hooks.on('renderChatMessageHTML', (message, html) => {
-    html.querySelectorAll('.chat-button').forEach((button) => {
-        button.addEventListener('click', async (event) => {
-            event.preventDefault();
-            const { action, id } = event.currentTarget.dataset;
-            // handle action
-        });
-    });
-});
-```
-
-### Icons
-
-Icons are Font Awesome 6; prefer the `fa-solid` prefix (e.g. `fa-solid fa-dice`). The older `fas fa-...` form still resolves where supported.
-
-### Best practices
-
-- Start from `.blacksmith-card` plus a theme class, and use the semantic classes for consistency.
-- Style only inside `.blacksmith-card .section-content` (and your own ids/classes, e.g. `[id^="my-module-"]`). Do not style `.card-header`, the header icon, or the wrapper — the theme owns those.
-- Keep card themes and announcement themes in separate settings/dropdowns (`getCardThemeChoicesWithClassNames()` vs `getAnnouncementThemeChoicesWithClassNames()`); do not mix them in one dropdown.
-- Store CSS class names in settings (not ids) and pass them straight into templates — no id-to-class conversion at render time.
-- Theme choices come from the API, so register those settings in a `ready` hook and `await` your registration before reading them; registering in `init` can hit "setting is not registered" at startup.
-- Prefer attribute selectors (`[id^="my-module-"]`) over theme-specific classes so new themes work without CSS changes.
-
-### Troubleshooting
-
-- **Card not styled** — confirm Blacksmith is active, the base class is `.blacksmith-card`, and a theme class is applied. Don't add your own `.card-header` CSS.
-- **"Setting is not registered" at startup** — register theme-backed settings in `ready` and `await` registration before reading them.
-- **Buttons not firing** — confirm the listener is on `renderChatMessageHTML` (not `renderChatMessage`) and uses native DOM, and that `data-action` is set.
-
-## Related Documentation
-
-- **`api-core.md`** - Core Blacksmith API documentation.
-- **`../architecture/architecture-chatcards.md`** - how the chat card system is built (contributors); CSS lives in `styles/cards-common-layout.css` and `styles/cards-common-themes.css`.
-- Card templates: `templates/cards-common.hbs`, `templates/cards-xp.hbs`, `templates/card-skill-check.hbs`.
+- `post` is async and must be awaited if you depend on the returned message.
+- Cards store their composition on the message, so improving a part improves cards that already exist.
+- Blacksmith owns the card wrapper, the theme class, and the message header handling. Do not add your own.

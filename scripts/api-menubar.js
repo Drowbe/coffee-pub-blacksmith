@@ -13,6 +13,8 @@ import { XpManager } from './xp-manager.js';
 import { StatsWindow } from './window-stats-party.js';
 import { EncounterToolbar } from './ui-journal-encounter.js';
 import { ToastAPI } from './api-toast.js';
+import { ChatCardsAPI } from './api-chat-cards.js';
+import { postTimerCard } from './cards-blacksmith.js';
 import { routeTimerNotification } from './timer-notifications.js';
 import { ReputationManager } from './manager-reputation.js';
 import { UIContextMenu } from './ui-context-menu.js';
@@ -191,7 +193,6 @@ class MenuBar {
         // Load the templates
         foundry.applications.handlebars.loadTemplates([
             'modules/coffee-pub-blacksmith/templates/menubar.hbs',
-            'modules/coffee-pub-blacksmith/templates/cards-common.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-window.hbs',
             'modules/coffee-pub-blacksmith/templates/vote-card.hbs'
         ]);
@@ -4620,38 +4621,6 @@ class MenuBar {
         }
     }
 
-    static async sendLeaderMessages(leaderName, leaderId) {
-        // Get the GM user to send messages from
-        const gmUser = game.users.find(u => u.isGM);
-        if (!gmUser) return;
-
-        // Render public message
-        const publicHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
-            isPublic: true,
-            leaderName: leaderName
-        });
-        
-        await ChatMessage.create({
-            content: publicHtml,
-            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-            user: gmUser.id,
-            speaker: { alias: gmUser.name }
-        });
-
-        // Render private message
-        const privateHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', {
-            isPublic: false,
-            leaderName: leaderName
-        });
-
-        await ChatMessage.create({
-            content: privateHtml,
-            user: gmUser.id,
-            speaker: { alias: gmUser.name },
-            whisper: [leaderId]
-        });
-    }
-
     static _getLeaderEntries() {
         const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
             ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
@@ -5645,24 +5614,7 @@ class MenuBar {
         const gmUser = game.users.find(u => u.isGM);
         if (!gmUser) return;
 
-        // Prepare the message data with timer info
-        const messageData = {
-            isPublic: true,
-            isTimer: true,
-            timerLabel: 'Session',
-            theme: data.isTimerWarning ? 'orange' : 
-                   data.isTimerExpired ? 'red' : 
-                   (data.isTimerStart || data.isTimerSet) ? 'blue' : 'default',
-            ...data
-        };
-
-        const messageHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
-
-        await ChatMessage.create({
-            content: messageHtml,
-            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-            speaker: ChatMessage.getSpeaker({ user: gmUser })
-        });
+        await postTimerCard('Session', data, gmUser);
     }
 
     // Socket receiver functions
@@ -5790,33 +5742,39 @@ class MenuBar {
                 }
 
                 if (notifyMode === 'chat' || notifyMode === 'both') {
-                    // Send public message
-                    const publicData = {
-                        isPublic: true,
-                        isLeaderChange: true,
-                        leaderName: actor.name,
-                        playerName: user.name
-                    };
+                    const speaker = ChatMessage.getSpeaker({ user: game.user });
 
-                    const publicHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', publicData);
-                    await ChatMessage.create({
-                        content: publicHtml,
-                        style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                        speaker: ChatMessage.getSpeaker({ user: game.user })
+                    // Public announcement
+                    await ChatCardsAPI.post({
+                        moduleId: MODULE.ID,
+                        type: 'leader-change',
+                        parts: [
+                            { part: 'header', icon: 'fas fa-crown', title: `${actor.name} is Party Leader` },
+                            { part: 'prose', blocks: [
+                                { type: 'paragraph', text: `All hail **${actor.name}**, party leader for this session!` },
+                                { type: 'list', items: [
+                                    `${actor.name} has access to leader-only tools.`,
+                                    'They facilitate decision-making and pace.',
+                                    'They are the Point when movement mode is Fastest Path or Conga.'
+                                ] },
+                                { type: 'paragraph', text: `${actor.name} is being played by ${user.name}.` }
+                            ] }
+                        ],
+                        speaker
                     });
 
-                    // Send private message to new leader
-                    const privateData = {
-                        isPublic: false,
-                        isLeaderChange: true,
-                        leaderName: actor.name
-                    };
-
-                    const privateHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', privateData);
-                    await ChatMessage.create({
-                        content: privateHtml,
-                        style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                        speaker: ChatMessage.getSpeaker({ user: game.user }),
+                    // Private note to the new leader
+                    await ChatCardsAPI.post({
+                        moduleId: MODULE.ID,
+                        type: 'leader-change-private',
+                        theme: 'red',
+                        parts: [
+                            { part: 'header', icon: 'fas fa-crown', title: 'You Are Party Leader!' },
+                            { part: 'prose', blocks: [
+                                { type: 'paragraph', text: `The party has chosen ${actor.name} to be their leader.` }
+                            ] }
+                        ],
+                        speaker,
                         whisper: [leaderData.userId]
                     });
                 }

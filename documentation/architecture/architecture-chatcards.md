@@ -2,84 +2,92 @@
 
 **Audience:** Contributors to the Blacksmith codebase.
 
-This document describes how Blacksmith's chat card system is built: the HTML/CSS contract, the theme system, and the current theme API. It is an architecture reference; for how to build cards in your own module, see `../api/api-chatcards.md`.
+How Blacksmith's chat card system is built: the parts model, how a card is stored, the text pipeline, and how buttons find their handlers. For building cards from another module, see `../api/api-chatcards.md`.
 
-## Overview
+## The model
 
-The chat card system renders styled, themeable messages in the FoundryVTT chat log. There is no central card store — a "chat card" is an ordinary chat message whose HTML follows a fixed contract, so Blacksmith's CSS styles it. The pieces:
+A chat card is **data, not markup**. A consumer names a composition of parts and supplies their data; Blacksmith renders every part from its own template and assembles the card. No consumer writes card HTML, and no consumer template exists.
 
-- **HTML contract** - semantic classes (`.blacksmith-card`, `.card-header`, `.section-content`, ...) that every card follows.
-- **CSS layers** - layout and typography in one file, theme colors (CSS variables) in another, plus card-type-specific overrides (XP, skill check, stats).
-- **Theme system** - named themes applied as `theme-{id}` classes; colors are CSS variables, so themes can be extended or overridden without touching layout.
-- **Theme API** - `module.api.chatCards`: programmatic access to the theme list and class names, for dropdowns and templates.
-- **Rendering** - consumers render a template to HTML and send it with `ChatMessage.create()`; the consumer owns the message lifecycle.
+The part library is **closed**. Modules compose the built-in parts and cannot register their own, because a registration hook is what lets per-module markup back in and reopens the drift the system removes. A card that cannot be composed is a request for a new part.
+
+Three files carry the system:
+
+- `scripts/manager-chat-cards.js` - the part registry, the renderer, the text pipeline, and theme resolution.
+- `scripts/api-chat-cards.js` - the public surface: posting, action registration, theme access.
+- `scripts/cards-blacksmith.js` - Blacksmith's own compositions, for cards more than one caller posts.
 
 Target: FoundryVTT v13+.
 
-## HTML contract
+## Storage: flags plus a baked snapshot
 
-All Blacksmith-style cards share this structure so layout and themes apply consistently:
+`post()` writes the card twice.
 
-- **Root**: `<div class="blacksmith-card theme-{name}">` - required. `theme-{name}` selects the theme (e.g. `theme-default`, `theme-blue`, `theme-announcement-green`).
-- **Header**: `<div class="card-header">` - optional; typically an icon and title. Uses "Modesto Condensed" and the theme header color.
-- **Body**: `<div class="section-content">` - main content area.
-- **Sections**: `<div class="section-header">`, `<div class="section-subheader">` - dividers with optional icons.
-- **Data**: `<div class="section-table">` with `.row-label` and `.row-content` for key-value rows; variants `.label-dimmed`, `.label-highlighted`.
-- **Actions**: `<div class="blacksmith-chat-buttons">` with `<button class="chat-button" data-action="...">`.
+- **Flags** carry the re-renderable payload at `flags['coffee-pub-blacksmith'].card`: schema version, module id, card type, resolved theme, and the parts array. This is what makes improving a part improve cards that already exist, and it confines Foundry markup churn to this module.
+- **`content`** carries rendered HTML. This is what survives Blacksmith being disabled, and it is what Foundry's chat search indexes.
 
-To hide Foundry's default chat message header, a template can start with:
+On render, the hook at `blacksmith.js` (context `blacksmith-card-rerender`) re-renders from flags and replaces the baked markup. Because enrichment is async, the card paints from its baked HTML first and the fresh render lands a tick later; a failed re-render leaves the baked markup in place, so the card is never blank.
 
-```html
-<span style="visibility: hidden">coffeepub-hide-header</span>
-```
+Cards posted before this system have no flags. They keep whatever HTML they were posted with and are not catered for.
 
-Layout and semantics come from these classes; theme colors are applied via CSS variables scoped to `.blacksmith-card.theme-*`.
+## The part library
 
-## CSS layers
+Parts are declared in `CARD_PARTS` in `scripts/manager-chat-cards.js`, each naming its template under `templates/parts/` and which of its fields carry consumer prose. Read that object rather than a list here; it is the only place the set is defined.
 
-- **`styles/cards-common-layout.css`** - base layout, spacing, typography, and default CSS-variable values (`:root`). Structure only; colors use variables so themes can override.
-- **`styles/cards-common-themes.css`** - theme definitions only. Each theme is a selector like `.blacksmith-card.theme-default` that sets `--blacksmith-card-*` variables. No layout rules.
-- **Card-type files** - `cards-xp.css`, `cards-skill-check.css`, `cards-stats.css` add styles for specific card types (XP, skill checks, combat/stats). These still contain hardcoded colors rather than the theme variables.
+Parts that match structure the card system already had - header, actor chip, section divider, prose, key/value table, buttons - render into the existing classes in `styles/cards-common-layout.css`. Only parts with no prior equivalent have rules in `styles/cards-parts.css`.
 
-Card CSS is imported through `styles/default.css`. Theme variables resolve at use; layout variables can be set in `:root` or overridden per theme.
+## The text pipeline
 
-## Theme system
+Consumer text runs through three stages in `processText`, and the order is load-bearing:
 
-- **Types**: `card` (light background, dark text) and `announcement` (dark background, light header text).
-- **Theme list**: defined in `scripts/api-chat-cards.js` as `CHAT_CARD_THEMES` (id, name, className, type, description). The current ids are `default`, `amber`, `blue`, `green`, `red`, `orange`, `announcement-green`, `announcement-blue`, `announcement-red`. Class names follow `theme-{id}`. Treat `CHAT_CARD_THEMES` as the source of truth rather than this list.
-- **Variables** (per theme, in `cards-common-themes.css`): `--blacksmith-card-bg`, `--blacksmith-card-border`, `--blacksmith-card-text`, `--blacksmith-card-header-text`, `--blacksmith-card-section-header-text`, `--blacksmith-card-section-header-border`, `--blacksmith-card-section-subheader-*`, `--blacksmith-card-section-content-text`, `--blacksmith-card-hover-color`, `--blacksmith-card-button-*`, `--blacksmith-card-button-container-bg`. All prefixed `--blacksmith-card-` to avoid clashes.
-- **Custom themes**: external modules or world CSS can add new `.blacksmith-card.theme-*` rules that set the same variables; the HTML contract does not change.
+1. **Escape** every HTML-special character.
+2. **Convert inline marks** - bold, italic, code. Code spans are lifted out first so asterisks inside them are left alone.
+3. **Enrich** through Foundry's `TextEditor.enrichHTML`, which resolves `@UUID[]{}`, `[[/r]]`, and `@Check[]`.
 
-## Rendering flow
+Escaping first is what makes "consumers do not pass HTML" a runtime guarantee rather than a documented request: a module that passes `<b>x</b>` sees those characters on the card. Escaping does not damage enricher syntax, because `@`, `[`, `]`, `{`, and `}` are not HTML-special.
 
-1. **Template** produces HTML that conforms to the contract (root `blacksmith-card` plus a theme class, header, section-content, ...).
-2. **Data** - the caller passes title, icon, content, theme id, etc. into the template.
-3. **Render** - the template renders to an HTML string; the theme class can come from `chatCards.getThemeClassName(themeId)`.
-4. **Send** - the caller calls `ChatMessage.create({ content: html, ... })`. No Blacksmith API creates or updates the message today; the consumer owns its lifecycle.
-5. **Display** - Foundry renders the message; Blacksmith CSS applies because the content carries the `.blacksmith-card` and theme classes.
+Foundry performs stage 3 on any chat content. Stages 1 and 2 exist nowhere else - Foundry has no markdown support - which is why mark conversion is central rather than per-module.
 
-## Theme API (current surface)
+`node tools/check-card-prose.mjs` asserts these properties against the real functions and exits non-zero if escaping or enricher preservation regresses.
 
-Exposed at `game.modules.get('coffee-pub-blacksmith')?.api?.chatCards` (and via the Blacksmith API bridge). Implemented in `scripts/api-chat-cards.js` (`ChatCardsAPI`), attached to `module.api.chatCards` in `blacksmith.js`. It is theme-only — it does not create, update, or delete messages:
+**Structured prose.** The `prose` part takes blocks - paragraph, list, table, quote - rather than a string, so Blacksmith owns what a list or table looks like inside a card. Only the text within a block comes from the consumer.
 
-- **getThemes([type])** - theme objects (id, name, className, type, description); optional filter by `'card'` or `'announcement'`.
-- **getCardThemes()** / **getAnnouncementThemes()** - card vs announcement convenience.
-- **getThemeChoices([type])** - `{ [themeId]: displayName }` for dropdowns.
-- **getThemeChoicesWithClassNames([type])** - `{ [className]: displayName }` for templates that need the class name directly.
-- **getTheme(themeId)** - single theme object, or null.
-- **getThemeClassName(themeId)** - CSS class name for a theme id (e.g. `'theme-default'`).
+**Document-sourced HTML** goes through the separate `richtext` part, which enriches but does not escape. It is for content that already exists as ProseMirror HTML in a Foundry document - a journal page, a roll-table description. A module hand-building an HTML string and passing it there is the one misuse the part cannot detect on its own.
 
-A broader posting API — create/update/delete for themed cards — does not exist; the surface is theme-only. Render your own HTML against the contract and send it with `ChatMessage.create()`. Method-level documentation lives in `../api/api-chatcards.md`.
+## Themes
+
+Themes are colour. A part looks the same in every theme; the theme tints it through the `--blacksmith-card-*` variables defined per theme in `styles/cards-common-themes.css`. The theme list is `CHAT_CARD_THEMES` in `scripts/manager-chat-cards.js`.
+
+The world default is resolved **once, at post time**, in `ChatCardsManager.resolveThemeId`, and the concrete theme id is what gets stored. An unknown theme id falls back to Tan and logs.
+
+## Card actions
+
+Buttons carry `data-cpb-module` and `data-cpb-action`, deliberately not `data-action`, which ApplicationV2 claims.
+
+Handlers are registered at startup through `ChatCardsAPI.registerAction(moduleId, action, handler)` and held in a module-level registry. A single delegated `renderChatMessageHTML` hook (context `blacksmith-card-actions`) resolves the handler fresh on every render and binds the click. Binding is idempotent, because re-rendering replaces the card element.
+
+A ChatMessage is data on every client, so a callback cannot ride the document. Resolving on render is why buttons keep working after a browser reload, and why a card whose module is disabled degrades to an inert button rather than an error.
+
+## Posting
+
+`post()` sends through `ChatMessage.create`, not around it. `scripts/manager-libwrapper.js` wraps that call to stamp `isCoffeePubCard` and `removeChatCardPadding` and to fire `preCoffeePubChatMessage`; bypassing it would give API-posted cards different flags from directly-posted ones.
+
+## What has not moved yet
+
+Combat and round statistics cards (`scripts/stats-cards.js`), the vote card (`scripts/manager-vote.js`), and the skill check card (`scripts/window-skillcheck.js`) still render their own templates and post directly. They keep the legacy `.cpb-chat-card` and `.vote-card` roots and their own CSS. Sibling modules also still build their own card HTML.
 
 ## Integration points
 
-| Concern | Location / mechanism |
-|--------|----------------------|
-| HTML contract | `.blacksmith-card`, `.theme-*`, `.card-header`, `.section-*`, `.section-table`, `.blacksmith-chat-buttons` |
-| Layout & base variables | `styles/cards-common-layout.css` |
-| Theme colors | `styles/cards-common-themes.css` (per-theme variable blocks) |
-| Card-type styles | `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css` |
-| Theme list & API | `scripts/api-chat-cards.js` (`CHAT_CARD_THEMES`, `ChatCardsAPI`); `module.api.chatCards` in `blacksmith.js` |
+| Concern | Location |
+|--------|----------|
+| Part registry, renderer, text pipeline, themes | `scripts/manager-chat-cards.js` |
+| Public API: post, actions, themes | `scripts/api-chat-cards.js` |
+| Blacksmith's own compositions | `scripts/cards-blacksmith.js` |
+| Part templates | `templates/parts/` |
+| Part styles | `styles/cards-parts.css` |
+| Shared card layout and base variables | `styles/cards-common-layout.css` |
+| Theme colours | `styles/cards-common-themes.css` |
+| Re-render and action hooks | `scripts/blacksmith.js`, contexts `blacksmith-card-rerender` and `blacksmith-card-actions` |
+| Posting interception | `scripts/manager-libwrapper.js` |
 | Style loading | `styles/default.css` |
-| Rendering | caller renders template -> HTML string -> `ChatMessage.create({ content: html, ... })` |
+| Prose pipeline invariants | `tools/check-card-prose.mjs` |
 | API reference | `../api/api-chatcards.md` |

@@ -17,6 +17,7 @@
 import { MODULE } from './const.js';
 import { getSettingSafely, playSound, postConsoleAndNotification, getPortraitImage } from './api-core.js';
 import { broadcastToast, sendToastToUsers, ToastAPI, registerToastChannel } from './api-toast.js';
+import { postNotice } from './cards-blacksmith.js';
 
 // Blacksmith declares its own channels like any sender, so they appear in the GM's list
 // beside the siblings' rather than being a name only this file knows.
@@ -92,7 +93,7 @@ const HURRY_MESSAGES = [
  * to every connected client for the full table-razzing effect (the sender
  * sees it too, so no confirmation). Either way the toast is a small shaking
  * billboard with the nudge sound riding the payload. The chat half is the
- * public card-hurry-up.hbs banter with the table-wide sound. In 'both' mode
+ * public Hurry Up notice card with the table-wide sound. In 'both' mode
  * the toast carries no sound — the chat broadcast already covers everyone,
  * including the target. The channel setting is absolute: when no owner of the
  * combatant is online, a direct toast is simply not delivered and the sender
@@ -165,14 +166,10 @@ export async function sendHurryUpNudge(targetName, targetActor, scope = 'direct'
         }
 
         if (sendChat) {
-            const html = await foundry.applications.handlebars.renderTemplate(
-                `modules/${MODULE.ID}/templates/card-hurry-up.hbs`,
-                { message }
-            );
-            // No style field: OTHER is the default, and CHAT_MESSAGE_TYPES is
-            // deprecated in v12+ (renamed to CHAT_MESSAGE_STYLES).
-            await ChatMessage.create({
-                content: html,
+            await postNotice({
+                icon: 'fa-solid fa-rabbit-running',
+                title: 'Hurry Up',
+                text: message,
                 speaker: ChatMessage.getSpeaker({ alias: game.user?.name })
             });
             if (soundPath) {

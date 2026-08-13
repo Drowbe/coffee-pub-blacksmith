@@ -1,0 +1,9 @@
+{{!-- Chip grid of labelled values (ability scores and similar). --}}
+<div class="cpb-part-stats">
+    {{#each items}}
+    <div class="cpb-part-stat">
+        <div class="cpb-part-stat-label">{{this.label}}</div>
+        <div class="cpb-part-stat-value">{{this.value}}</div>
+    </div>
+    {{/each}}
+</div>

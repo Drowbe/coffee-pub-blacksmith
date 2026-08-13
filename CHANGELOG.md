@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Chat cards are now composed from parts rather than written as HTML** (`scripts/manager-chat-cards.js`, `scripts/api-chat-cards.js`, `scripts/cards-blacksmith.js`, `templates/parts/`, `styles/cards-parts.css`). `chatCards.post({ moduleId, parts, ... })` takes a composition and its data; Blacksmith renders every part from its own template and sends the message. Fifteen parts -- header, actor, image, meter, nameplate, stats, section, prose, entities, status, badges, panel, notes, actions, richtext -- compose every card in the suite, including the ones sibling modules build today. The library is deliberately closed: a module composes built-ins and cannot register a part of its own, because a registration hook is exactly what lets per-module markup back in. The problem this solves is measurable rather than theoretical -- 84 posting sites across the suite, 21 card templates, five modules writing card HTML inline in JavaScript, and `templates/cards-common.hbs` and Squire's `templates/chat-cards.hbs` forked from each other with 231 lines diverged, the same invalid `visibility: none` on line 1 of both, and the same transfer described in two different sentences.
+
+- **Card buttons find their handlers through one delegated dispatcher** (`scripts/api-chat-cards.js`, `scripts/blacksmith.js` context `blacksmith-card-actions`). Modules call `registerAction(moduleId, action, handler)` at startup; buttons carry `data-cpb-module` and `data-cpb-action`, and a single `renderChatMessageHTML` hook resolves the handler fresh on every render. Namespaced attributes rather than `data-action`, which ApplicationV2 already claims. A ChatMessage is data on every client, so a callback cannot ride the document -- resolving at render is why buttons still work after a browser reload, and why a card whose module is disabled degrades to an inert button instead of an error. Because re-rendering from flags replaces the card element with fresh buttons that carry no listeners, the re-render re-binds after the swap; binding is idempotent so markup that survives is not double-bound.
+
+- **Cards store their composition, so improving a part improves cards that already exist** (`scripts/api-chat-cards.js`, `scripts/blacksmith.js` context `blacksmith-card-rerender`). `post` writes the parts and data into `flags['coffee-pub-blacksmith'].card` and bakes rendered HTML into `content`. The hook re-renders from flags on display and swaps the fresh markup in. Storing HTML alone -- what happened before -- meant every card already in a log kept its old markup forever and a Foundry markup change broke all of chat history rather than only new messages; storing data alone would blank every card when Blacksmith is disabled and take card text out of Foundry's chat search. Enrichment is async, so the card paints from its baked HTML and the re-render lands a tick later; a failure leaves the baked markup untouched, so a card is never blank.
+
+- **Prose is structured, and HTML from consumers is neutralised at runtime** (`scripts/manager-chat-cards.js`). The `prose` part takes blocks -- paragraph, list, table, quote -- so Blacksmith owns what a list looks like inside a card instead of each module's CSS deciding. Within a block, text supports three inline marks (`**bold**`, `*italic*`, `` `code` ``) and Foundry's enricher syntax (`@UUID[]{}`, `[[/r]]`, `@Check[]`). The pipeline escapes, then converts marks, then enriches, and the order is load-bearing: escaping first means a module that passes `<b>x</b>` sees those characters on the card, which makes "consumers do not pass HTML" a runtime property rather than a documented request. Escaping leaves enricher syntax alone because `@`, `[`, `]`, `{`, `}` are not HTML-special. Mark conversion has to be ours -- Foundry renders `**3 times**` as those literal characters, verified directly in chat. Markdown was rejected as the transport on evidence: Bibliosoph already runs a markdown-to-HTML-then-enrich path (`manager-conversations.js:849`), which did not remove the HTML step but added one in front of it. Document-sourced HTML has its own part, `richtext`, enriched but not escaped, for journal pages and roll-table text that already exist as ProseMirror HTML.
+
+- **`node tools/check-card-prose.mjs`** -- 14 invariant checks asserting that escaping happens, that marks convert, that code spans protect their contents, that enricher syntax survives, and that the internal code-span sentinel cannot leak or be smuggled in by a consumer. It loads the real functions out of `scripts/manager-chat-cards.js` rather than copying them, so it cannot drift from what it guards. This is the one check worth having automatically: the HTML guarantee is one regex away from being lost silently, and nothing would look broken until something malformed arrived.
+
+### Changed
+
+- **The world default card theme is resolved once, when a card is posted** (`scripts/manager-chat-cards.js`, `scripts/blacksmith.js`). `theme-default` used to be a sentinel rather than a colour: a hook rewrote every `.blacksmith-card.theme-default` on screen to the configured theme, so a consumer could not pin a card to Tan at all, and an unknown theme id silently became whatever the GM had chosen. The stored theme is now always a concrete id, and the render-time rewrite hook is gone.
+
+- **Migrated to parts: reputation (both cards), the combat, planning, and session timers across all seven states, the leader change announcement and its private whisper, all four movement-mode cards, the hurry-up nudge, and XP distribution** (`scripts/manager-reputation.js`, `scripts/timer-combat.js`, `scripts/timer-planning.js`, `scripts/api-menubar.js`, `scripts/token-movement.js`, `scripts/timer-notifications.js`, `scripts/xp-manager.js`). The combat and planning timers built the same card from two copies of the same code; both now call `postTimerCard` in `scripts/cards-blacksmith.js`, which is where a composition lives when more than one caller posts it.
+
+- **`status` rows carry a trailing value** (`templates/parts/part-status.hbs`, `styles/cards-parts.css`). The XP card needs a portrait, a name, a sub-line, and a value on the right; the reference cards needed a button in that position. Both now fit the same part.
+
+### Fixed
+
+- **Six chat messages passed `type:` where Foundry v13 wants `style:`** (`scripts/token-movement.js` x4, `scripts/xp-manager.js` x2). On v13 `type` is the document subtype, so a numeric value there is wrong. Four sibling sites were fixed in July and these were the remainder; they are now gone because every one of these cards posts through a single sender.
+
+- **Leader change announcements rendered as empty cards** (`scripts/api-menubar.js`). `sendLeaderMessages` never set the `isLeaderChange` flag its template branched on, so both the public card and the private whisper produced a card with no content. Nothing in the suite called it, so the live path was elsewhere and this was dead as well as broken. Deleted.
+
+### Removed
+
+- **Dead code**: `sendLeaderMessages` (`scripts/api-menubar.js`), `generateXpChatMessage` (`scripts/xp-manager.js`) -- neither had a caller anywhere in the suite.
+- **Retired templates**: `templates/cards-common.hbs`, `templates/cards-xp.hbs`, `templates/card-hurry-up.hbs`, `templates/cards-reputation-current.hbs`, `templates/cards-reputation-new.hbs`.
+
 ## [13.17.2]
 
 ### Changed

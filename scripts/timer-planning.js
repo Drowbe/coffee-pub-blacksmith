@@ -9,6 +9,7 @@ import { CombatStats } from './stats-combat.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
 import { routeTimerNotification } from './timer-notifications.js';
+import { postTimerCard } from './cards-blacksmith.js';
 
 export class PlanningTimer {
     static DEFAULTS = {
@@ -1102,24 +1103,7 @@ export class PlanningTimer {
         }
 
         // Prepare the message data with timer info
-        const messageData = {
-            isPublic: true,
-            isTimer: true,
-            timerLabel,
-            theme: data.isTimerWarning ? 'orange' : 
-                   data.isTimerExpired ? 'red' : 
-                   (data.isTimerStart || data.isTimerSet) ? 'blue' : 'default',
-            ...data
-        };
-
-        const messageHtml = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-common.hbs', messageData);
-
-        await ChatMessage.create({
-            content: messageHtml,
-            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-            user: gmUser.id,
-            speaker: { alias: gmUser.name }
-        });
+        await postTimerCard(timerLabel, data, gmUser);
     }
 }
 

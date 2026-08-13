@@ -1,0 +1,303 @@
+/* ------------------------------------ */
+/* --- CHAT CARDS - PARTS ------------- */
+/* ------------------------------------ */
+
+/*
+    Styling for the composable card parts rendered by manager-chat-cards.js.
+
+    Parts that map onto structure the card system already had -- header, actor
+    chip, section divider, prose, key/value table, buttons -- reuse the existing
+    classes in cards-common-layout.css rather than restating them here. Only
+    parts with no prior equivalent get rules below.
+
+    Every colour comes from a --blacksmith-card-* variable so themes tint parts
+    without any part knowing which theme is active.
+*/
+
+/* ---------- IMAGE ---------- */
+
+.blacksmith-card .cpb-part-image {
+    margin: var(--blacksmith-space-sm) 0;
+}
+
+.blacksmith-card .cpb-part-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--blacksmith-card-border-color);
+    border-radius: var(--blacksmith-radius-md);
+}
+
+.blacksmith-card .cpb-part-image-caption {
+    margin-top: var(--blacksmith-space-xs);
+    text-align: center;
+    font-style: italic;
+    font-size: 0.85em;
+    color: var(--blacksmith-card-section-content-text);
+    opacity: 0.8;
+}
+
+/* ---------- METER ---------- */
+
+.blacksmith-card .cpb-part-meter {
+    margin: var(--blacksmith-space-sm) 0;
+}
+
+.blacksmith-card .cpb-part-meter-track {
+    width: 100%;
+    height: 14px;
+    background: var(--blacksmith-card-background);
+    border: 1px solid var(--blacksmith-card-border-color);
+    border-radius: var(--blacksmith-radius-pill);
+    overflow: hidden;
+}
+
+.blacksmith-card .cpb-part-meter-fill {
+    height: 100%;
+    border-radius: var(--blacksmith-radius-pill);
+    transition: width 0.2s ease-out;
+    background: var(--blacksmith-card-header-text);
+}
+
+.blacksmith-card .cpb-meter-ok .cpb-part-meter-fill { background: #6a9a4a; }
+.blacksmith-card .cpb-meter-warn .cpb-part-meter-fill { background: #d08a24; }
+.blacksmith-card .cpb-meter-danger .cpb-part-meter-fill { background: #a63a2f; }
+
+.blacksmith-card .cpb-part-meter-label {
+    margin-top: var(--blacksmith-space-xs);
+    font-size: 0.85em;
+    text-align: center;
+    color: var(--blacksmith-card-section-content-text);
+}
+
+/* ---------- NAMEPLATE ---------- */
+
+.blacksmith-card .cpb-part-nameplate {
+    margin: var(--blacksmith-space-sm) 0;
+    padding: var(--blacksmith-space-sm);
+    text-align: center;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--blacksmith-card-background);
+    border-radius: var(--blacksmith-radius-sm);
+    color: var(--blacksmith-card-section-header-text);
+}
+
+/* ---------- STATS ---------- */
+
+.blacksmith-card .cpb-part-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(44px, 1fr));
+    gap: var(--blacksmith-space-xs);
+    margin: var(--blacksmith-space-sm) 0;
+}
+
+.blacksmith-card .cpb-part-stat {
+    padding: var(--blacksmith-space-xs);
+    text-align: center;
+    background: var(--blacksmith-card-background);
+    border-radius: var(--blacksmith-radius-sm);
+}
+
+.blacksmith-card .cpb-part-stat-label {
+    font-size: 0.7em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    color: var(--blacksmith-card-section-content-text);
+}
+
+.blacksmith-card .cpb-part-stat-value {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: var(--blacksmith-card-text);
+}
+
+/* ---------- ENTITIES ---------- */
+
+.blacksmith-card .cpb-part-entities {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-xs);
+    margin: var(--blacksmith-space-sm) 0;
+}
+
+.blacksmith-card .cpb-part-entity {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-space-sm);
+    padding: var(--blacksmith-space-xs);
+    background: var(--blacksmith-card-background);
+    border-radius: var(--blacksmith-radius-sm);
+}
+
+.blacksmith-card .cpb-part-entity-img {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border: 1px solid var(--blacksmith-card-border-color);
+    border-radius: var(--blacksmith-radius-sm);
+}
+
+.blacksmith-card .cpb-part-entity-label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blacksmith-card .cpb-part-entity-count {
+    font-weight: bold;
+    color: var(--blacksmith-card-section-header-text);
+}
+
+/* ---------- STATUS ---------- */
+
+.blacksmith-card .cpb-part-status {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-xs);
+    margin: var(--blacksmith-space-sm) 0;
+}
+
+.blacksmith-card .cpb-part-status-row {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-space-sm);
+}
+
+.blacksmith-card .cpb-part-status-img {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: var(--blacksmith-radius-sm);
+}
+
+.blacksmith-card .cpb-part-status-icon {
+    flex: 0 0 auto;
+}
+
+.blacksmith-card .cpb-part-status-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blacksmith-card .cpb-part-status-label {
+    font-weight: bold;
+    color: var(--blacksmith-card-text);
+}
+
+.blacksmith-card .cpb-part-status-sublabel {
+    font-size: 0.85em;
+    opacity: 0.75;
+    color: var(--blacksmith-card-section-content-text);
+}
+
+.blacksmith-card .cpb-part-status-action {
+    flex: 0 0 auto;
+    width: auto;
+    padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
+}
+
+/* ---------- BADGES ---------- */
+
+.blacksmith-card .cpb-part-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--blacksmith-space-xs);
+    margin: var(--blacksmith-space-sm) 0;
+}
+
+.blacksmith-card .cpb-part-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
+    font-size: 0.85em;
+    background: var(--blacksmith-card-background);
+    border: 1px solid var(--blacksmith-card-border-color);
+    border-radius: var(--blacksmith-radius-pill);
+    color: var(--blacksmith-card-section-content-text);
+}
+
+/* ---------- PANEL ---------- */
+
+.blacksmith-card .cpb-part-panel {
+    margin: var(--blacksmith-space-sm) 0;
+    padding: var(--blacksmith-space-sm);
+    background: var(--blacksmith-card-background);
+    border: 1px solid var(--blacksmith-card-border-color);
+    border-radius: var(--blacksmith-radius-md);
+}
+
+.blacksmith-card .cpb-part-panel-header {
+    margin-bottom: var(--blacksmith-space-xs);
+    font-weight: bold;
+    color: var(--blacksmith-card-section-header-text);
+}
+
+.blacksmith-card .cpb-part-panel-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--blacksmith-space-xs);
+}
+
+.blacksmith-card .cpb-part-panel-label {
+    flex: 1 1 auto;
+}
+
+.blacksmith-card .cpb-part-panel-value {
+    flex: 0 0 auto;
+    font-weight: bold;
+}
+
+/* ---------- NOTES ---------- */
+
+.blacksmith-card .cpb-part-notes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-xs);
+    margin-top: var(--blacksmith-space-sm);
+    padding-top: var(--blacksmith-space-sm);
+    border-top: 1px solid var(--blacksmith-card-section-header-border);
+}
+
+.blacksmith-card .cpb-part-note {
+    display: flex;
+    align-items: baseline;
+    gap: var(--blacksmith-space-xs);
+    font-size: 0.85em;
+    opacity: 0.85;
+    color: var(--blacksmith-card-section-content-text);
+}
+
+/* ---------- ACTIONS ---------- */
+
+.blacksmith-card .cpb-part-actions-instruction {
+    margin-top: var(--blacksmith-space-sm);
+    text-align: center;
+    font-size: 0.85em;
+    opacity: 0.8;
+    color: var(--blacksmith-card-section-content-text);
+}
+
+/* ---------- RICHTEXT ---------- */
+
+/*
+    Document-sourced HTML. Scoped so that whatever a journal page or roll table
+    happens to contain is governed by card typography rather than its own.
+*/
+.blacksmith-card .cpb-part-richtext img {
+    max-width: 100%;
+    height: auto;
+}
+
+.blacksmith-card .cpb-part-richtext > :first-child { margin-top: 0; }
+.blacksmith-card .cpb-part-richtext > :last-child { margin-bottom: 0; }
+
+.blacksmith-card .cpb-part-status-trailing {
+    flex: 0 0 auto;
+    font-weight: bold;
+    white-space: nowrap;
+    color: var(--blacksmith-card-section-header-text);
+}

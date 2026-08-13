@@ -7,10 +7,20 @@ import { postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { registerWindow } from './api-windows.js';
+import { ChatCardsAPI } from './api-chat-cards.js';
 import { AdversaryRecord, getAdversaryRecord, ADVERSARY_FLAG_PATH } from './stats-adversaries.js';
 
 /** Registry id for the XP Distribution window. */
 export const XP_WINDOW_ID = 'blacksmith-xp';
+
+/** Header icon per monster resolution, as the XP card renders it. */
+const RESOLUTION_ICONS = Object.freeze({
+    DEFEATED: 'fas fa-skull',
+    NEGOTIATED: 'fas fa-people-arrows',
+    ESCAPED: 'fas fa-running',
+    IGNORED: 'fas fa-person-walking-arrow-loop-left',
+    CAPTURED: 'fas fa-person-praying'
+});
 
 export class XpManager {
     // Standard D&D 5e CR to XP mapping (using decimal keys for math operations)
@@ -872,55 +882,44 @@ export class XpManager {
      */
     static async postXpResults(xpData, results) {
         try {
-            // Log the final xpData for debugging
-    
-
-            const content = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
-                xpData: xpData,
-                results: results
-            });
-            
-
-            
-            // Play notification sound
             playSound(window.COFFEEPUB?.SOUNDNOTIFICATION02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
-            
-            // Get the GM user for the speaker (messages always appear from GM)
+
             const gmUser = game.users.find(u => u.isGM);
             if (!gmUser) {
                 postConsoleAndNotification(MODULE.NAME, 'No GM user found', "", false, false);
                 return;
             }
-            
+
             const isShared = game.settings.get(MODULE.ID, 'shareXpResults');
-            
-            // Create chat message using the same pattern as other systems
-            await ChatMessage.create({
-                content: content,
-                type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+
+            await ChatCardsAPI.post({
+                moduleId: MODULE.ID,
+                type: 'xp-distribution',
+                parts: this._buildXpCardParts(xpData, results),
                 speaker: ChatMessage.getSpeaker({ user: gmUser }),
-                whisper: isShared ? [] : [game.user.id], // Empty array means visible to all
-                flags: {
-                    'coffee-pub-blacksmith': {
-                        type: 'xpDistribution',
-                        xpData: xpData,
-                        results: results
-                    }
-                }
+                whisper: isShared ? [] : [game.user.id],
+                flags: { type: 'xpDistribution', xpData, results }
             });
-            
 
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Error posting XP results', error, false, false);
-            
-            // Fallback: post a simple text message instead
-            const fallbackMessage = `XP Distribution Complete!\nTotal XP: ${xpData.adjustedTotalXp}\nPlayers: ${results.map(r => `${r.name}: +${r.xpGained} XP`).join(', ')}`;
-            
+
+            // Fallback: a plain notice, so the numbers still reach the table even
+            // if composing the full card failed.
             const gmUser = game.users.find(u => u.isGM);
             if (gmUser) {
-                await ChatMessage.create({
-                    content: fallbackMessage,
-                    type: CONST.CHAT_MESSAGE_STYLES.OTHER,
+                await ChatCardsAPI.post({
+                    moduleId: MODULE.ID,
+                    type: 'xp-distribution-fallback',
+                    parts: [
+                        { part: 'header', icon: 'fas fa-star', title: 'XP Distribution Complete' },
+                        { part: 'prose', blocks: [
+                            { type: 'table', rows: [
+                                ['Total XP', String(xpData.adjustedTotalXp)],
+                                ...results.map(r => [r.name, `+${r.xpGained} XP`])
+                            ] }
+                        ] }
+                    ],
                     speaker: ChatMessage.getSpeaker({ user: gmUser }),
                     whisper: [game.user.id]
                 });
@@ -929,26 +928,64 @@ export class XpManager {
     }
 
     /**
-     * Generate XP distribution chat message
+     * Compose the XP distribution card.
+     *
+     * Summary and milestone are key/value tables; monsters and players are status
+     * rows, which carry an icon or portrait plus a trailing value.
      */
-    static async generateXpChatMessage(xpData, results) {
-        try {
-            postConsoleAndNotification(MODULE.NAME, 'Rendering template with data', { 
-                xpDataKeys: Object.keys(xpData),
-                resultsLength: results.length 
-            }, true, false);
-            
-            const template = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/cards-xp.hbs', {
-                xpData: xpData,
-                results: results
-            });
-            
+    static _buildXpCardParts(xpData, results) {
+        const parts = [
+            { part: 'header', icon: 'fas fa-star', title: 'XP Distribution' },
+            { part: 'section', icon: 'fas fa-list-ol', label: 'XP Summary' }
+        ];
 
-            return template;
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, 'Error rendering template', error, false, false);
-            throw error;
+        const summary = [['Distribution', `${xpData.partySize} Players x ${Number(xpData.partyMultiplier ?? 0).toFixed(2)} Multiplier`]];
+        if (xpData.modeExperiencePoints) summary.push(['Monster XP', String(xpData.adjustedTotalXp)]);
+        if (xpData.modeMilestone) summary.push(['Milestone XP', String(xpData.milestoneXp)]);
+        summary.push(['Total XP', String(xpData.combinedXp)], ['Per Player', String(xpData.xpPerPlayer)]);
+        parts.push({ part: 'prose', blocks: [{ type: 'table', rows: summary }] });
+
+        if (xpData.modeMilestone) {
+            const milestone = xpData.milestoneData ?? {};
+            const rows = [];
+            if (milestone.title) rows.push(['Milestone', milestone.title]);
+            if (milestone.description) rows.push(['Detail', milestone.description]);
+            if (milestone.xpAmount) rows.push(['Milestone XP', String(xpData.milestoneXp)]);
+            parts.push({ part: 'section', icon: 'fas fa-star', label: `${milestone.category ?? ''} Milestone`.trim() });
+            if (rows.length) parts.push({ part: 'prose', blocks: [{ type: 'table', rows }] });
         }
+
+        if (xpData.modeExperiencePoints) {
+            const monsters = (xpData.monsters ?? []).filter(m => m.resolutionType !== 'REMOVED');
+            if (monsters.length) {
+                parts.push({ part: 'section', icon: 'fas fa-dragon', label: 'Monster Resolutions' });
+                parts.push({
+                    part: 'status',
+                    items: monsters.map(m => ({
+                        icon: RESOLUTION_ICONS[m.resolutionType] ?? 'fas fa-question',
+                        label: m.name,
+                        trailing: `${m.finalXp} XP`
+                    }))
+                });
+            }
+        }
+
+        if (results?.length) {
+            parts.push({ part: 'section', icon: 'fas fa-users', label: 'Experience Allocations' });
+            parts.push({
+                part: 'status',
+                items: results.map(r => ({
+                    img: r.img,
+                    label: r.name,
+                    sublabel: (r.leveledUp || r.nextLevelXp <= 0)
+                        ? `${r.totalXp} XP | LEVEL UP!`
+                        : `${r.totalXp} XP | ${r.nextLevelXp} to lvl ${r.nextLevel}`,
+                    trailing: r.excluded ? 'No Combat' : (r.xpGained > 0 ? `+${r.xpGained} XP` : '0 XP')
+                }))
+            });
+        }
+
+        return parts;
     }
 
     /**

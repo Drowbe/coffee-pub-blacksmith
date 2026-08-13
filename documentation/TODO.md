@@ -791,41 +791,11 @@ Design is settled in `documentation/plans/plan-chat-cards.md` (decisions 1-9). T
 *why*; the items below are the work. Steps run in order and each is verified in a live world before the next
 begins. Sibling migration is step 7 and lives in `TODO-GLOBAL.md`, not here.
 
+Steps 1 to 3 are built and are in `CHANGELOG.md` under Unreleased -- the parts library and renderer, the
+action dispatcher, and Blacksmith's simple cards. **None of it has been verified in a running world yet**;
+the verification steps travelled with the work and are the first thing to do before step 4.
+
 **The gate for every item**: if a consuming module still writes card HTML, the item is not done.
-
-#### 1. Parts library, renderer, and `post()`
-- **Work**: Build the 15 parts from the plan's catalog, the composition renderer, and
-  `chatCards.post(options)` / `postAnnouncement(options)`. Storage is card type + composition + data in
-  flags, with a rendered snapshot baked into `content`. Route through the existing `ChatMessage.create`
-  libwrapper (`manager-libwrapper.js:102`), not around it. Resolve the world default theme at post time.
-  Prose is structured blocks; the escape -> marks -> enrich pipeline is decision 9 and its order is
-  load-bearing.
-- **Location**: `scripts/api-chat-cards.js`, new part templates, `scripts/blacksmith.js` (`module.api.chatCards`)
-- **How to verify**: post one card of each part type from the console; confirm each renders, the flags carry
-  type/composition/data, and `content` holds usable HTML. Pass `<b>bold</b>` as prose text and confirm it
-  displays as literal characters, not markup -- that is the runtime enforcement of "no HTML". Pass
-  `@UUID[...]{Name}` and `**bold**` in one paragraph and confirm the pill resolves and the bold renders.
-  Disable Blacksmith and confirm existing cards still show their baked HTML.
-
-#### 2. Action registration and the delegated dispatcher
-- **Work**: `registerAction(moduleId, name, handler)` at startup, plus one delegated `renderChatMessageHTML`
-  listener that matches namespaced markup attributes to registered handlers. Do not claim `data-action`;
-  ApplicationV2 already uses it.
-- **Location**: `scripts/api-chat-cards.js`, `scripts/blacksmith.js`
-- **How to verify**: post a card with two actions, click both as GM and as a player, confirm the right
-  handler fires on the clicking client only. Reload the browser and confirm the buttons still work on the
-  existing message (handlers re-resolve on render rather than riding the document). Confirm a card whose
-  registering module is disabled renders without console errors.
-
-#### 3. Blacksmith's simple cards
-- **Work**: Migrate notice, details, entities, and request cards to compositions. Retires
-  `templates/cards-common.hbs`.
-- **Location**: `templates/cards-common.hbs` (deleted), `timer-*.js`, `token-movement.js`,
-  `manager-reputation.js`, `api-menubar.js`, `xp-manager.js`
-- **How to verify**: trigger each in a live world -- planning start/pause/resume, all 7 timer states, leader
-  change, movement change, reputation, XP distribution, item transfer accept and reject. Each renders and
-  each still does what it did. Fix the six `type:` sites (`token-movement.js` x4, `xp-manager.js` x2) as part
-  of this; they become one call site.
 
 #### 4. Stats simplification
 - **Work**: Collapse round and combat summaries to a key-data card plus a "View Details" button opening a
@@ -851,6 +821,10 @@ begins. Sibling migration is step 7 and lives in `TODO-GLOBAL.md`, not here.
   render-time rewrite hook in `blacksmith.js` -- the world default is resolved at post time as of step 1.
   No legacy CSS is preserved for old chat history (decision 8).
 - **Location**: `styles/cards-*.css`, `styles/default.css` (imports), `scripts/blacksmith.js`
+- **`cards-xp.css` cannot simply be deleted** (found 2026-08-13 when the XP card migrated). No template uses
+  its card-side classes any more, but `player-portrait`, `player-list`, and `cpb-actor-name` are still used by
+  `templates/window-xp.hbs`, `templates/window-stats-party.hbs`, and `templates/window-stats-player.hbs`.
+  Consolidation has to split the file and move the window-side rules somewhere honest, not remove it.
 - **How to verify**: post one card of every type in each of the 9 themes and confirm none has lost styling.
   Confirm a new CSS file added without an `@import` in `default.css` is silently unstyled -- so check the
   import chain explicitly. Run `node tools/check-design-tokens.mjs`.

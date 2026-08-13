@@ -1,0 +1,21 @@
+{{!-- Icon, label, sublabel, optional trailing action button. --}}
+<div class="cpb-part-status">
+    {{#each items}}
+    <div class="cpb-part-status-row">
+        {{#if this.img}}<img class="cpb-part-status-img" src="{{this.img}}" alt="" />{{/if}}
+        {{#if this.icon}}<i class="cpb-part-status-icon {{this.icon}}"></i>{{/if}}
+        <div class="cpb-part-status-text">
+            <div class="cpb-part-status-label">{{{this.label}}}</div>
+            {{#if this.sublabel}}<div class="cpb-part-status-sublabel">{{{this.sublabel}}}</div>{{/if}}
+        </div>
+        {{#if this.trailing}}<div class="cpb-part-status-trailing">{{{this.trailing}}}</div>{{/if}}
+        {{#if this.action}}
+        <button type="button" class="cpb-part-status-action chat-button"
+                data-cpb-module="{{this.moduleId}}" data-cpb-action="{{this.action}}"
+                {{#if this.value}}data-cpb-value="{{this.value}}"{{/if}}>
+            <i class="{{#if this.actionIcon}}{{this.actionIcon}}{{else}}fa-solid fa-ellipsis{{/if}}"></i>
+        </button>
+        {{/if}}
+    </div>
+    {{/each}}
+</div>

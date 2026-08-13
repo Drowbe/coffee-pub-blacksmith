@@ -1,0 +1,8 @@
+{{!-- Footer notes: icon and text. --}}
+<div class="cpb-part-notes">
+    {{#each items}}
+    <div class="cpb-part-note">
+        {{#if this.icon}}<i class="{{this.icon}}"></i>{{/if}}<span>{{{this.label}}}</span>
+    </div>
+    {{/each}}
+</div>

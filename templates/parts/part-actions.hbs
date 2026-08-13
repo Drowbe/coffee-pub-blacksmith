@@ -1,0 +1,14 @@
+{{!-- Instruction line and buttons. Buttons carry the namespaced attributes the
+      delegated dispatcher matches on; `data-action` is deliberately not used,
+      because ApplicationV2 already claims it. --}}
+{{#if instruction}}<div class="cpb-part-actions-instruction">{{{instruction}}}</div>{{/if}}
+<div class="blacksmith-chat-buttons">
+    {{#each buttons}}
+    <button type="button" class="chat-button"
+            data-cpb-module="{{this.moduleId}}" data-cpb-action="{{this.action}}"
+            {{#if this.value}}data-cpb-value="{{this.value}}"{{/if}}
+            {{#if this.disabled}}disabled{{/if}}>
+        {{#if this.icon}}<i class="{{this.icon}}"></i> {{/if}}{{this.label}}
+    </button>
+    {{/each}}
+</div>

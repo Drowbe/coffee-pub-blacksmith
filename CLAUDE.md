@@ -67,6 +67,7 @@ behavior:
 |---|---|
 | `node tools/check-design-tokens.mjs` | `styles/vars.css` and `design-system/design-tokens.md` agree, both ways |
 | `node tools/check-settings-headings.mjs` | no settings heading hides itself from players who can see settings under it |
+| `node tools/check-card-prose.mjs` | chat-card prose still escapes consumer HTML and still preserves Foundry enricher syntax |
 
 Run the relevant one after touching what it guards. CI (`.github/workflows/release.yml`) only zips and
 releases on `v*` tags; **it runs no checks**, so nothing runs these but you.
