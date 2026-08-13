@@ -1,7 +1,12 @@
 # Plan: Chat Cards
 
-**Status: Planned.** Nothing below is built. The inventory in "What exists today" was gathered from code on
-2026-08-13 and is evidence, not design. The design starts at "Decisions".
+**Status: Implemented through step 3, unverified in a live world beyond a first smoke test.** The parts
+library, the renderer, the posting API, the action dispatcher, and Blacksmith's simple cards are built; steps
+4 to 7 are not. What is owed before this plan can be dismantled is in
+`documentation/testing/testing-chat-cards.md`.
+
+The inventory in "What exists today" was gathered from code on 2026-08-13 and is evidence, not design. The
+design starts at "Decisions".
 
 ## The gate
 
@@ -228,6 +233,28 @@ render hook: a card paints and its pills resolve a tick later. The baked snapsho
 blank. If the pop-in looks wrong in practice, the fallback is to enrich at post time and re-enrich only when
 the composition changes.
 
+## Decision 10: parts are named for their shape
+
+Added 2026-08-13, after the first live render.
+
+The catalog below was first written with names taken from the reference card each part was found in --
+`stats` for the ability-score grid, `status` for the conditions list, `actor` for the character chip. Two of
+those were wrong within a day: `status` was carrying monsters and player awards in the XP card, and `actor`
+was carrying "Game Master / Cocktail Craftsman" on the crit card.
+
+**A part is named for what it looks like, never for what a caller might put in it.** `tiles` is a grid of
+caption-over-value boxes; `rows` is a list of thumbnail-label-trailing rows. The renames were `stats` to
+`tiles`, `actor` to `identity`, `nameplate` to `band`, and `status` to `rows`.
+
+The same test collapsed two parts into one. `entities` and `status` were the same shape -- a row with a
+thumbnail, a label, and something trailing -- differing only in which optional fields were filled. They are
+now one `rows` part, where a `uuid` makes the label a document link, `count` prefixes it, `trailing` follows
+it, and `action` puts a button at the end. Fourteen parts rather than fifteen.
+
+This matters more for a **closed** library than it would for an open one. A use-case name invites the next
+caller either to misuse it or to ask for a near-duplicate part, and granting those requests is how a closed
+library stops being closed.
+
 ## The parts catalog
 
 Derived from nine reference cards supplied by the author (Crier turn card, Bibliosoph no-encounter,
@@ -237,22 +264,21 @@ posting sites.
 | Part | Renders | Seen in |
 |---|---|---|
 | `header` | icon and title bar | every card |
-| `actor` | avatar, primary name, secondary line (player name, or status) | encounter, investigation, crit, fumble, check-up, inspiration |
+| `identity` | avatar, primary name, secondary line | encounter, investigation, crit, fumble, check-up, inspiration |
 | `image` | banner or portrait, optional caption | turn card, encounter, crit, fumble, injury, inspiration |
-| `meter` | proportional bar (HP) | turn card, check-up |
-| `nameplate` | full-width labelled band | turn card |
-| `stats` | chip grid of labelled values (ability scores) | turn card |
+| `meter` | proportional bar | turn card, check-up |
+| `band` | full-width emphasised text | turn card |
+| `tiles` | grid of caption-over-value boxes | turn card (ability scores) |
 | `section` | icon, uppercase label, rule | nearly all |
 | `prose` | structured blocks: paragraph, list, table, quote (decision 9) | nearly all |
-| `richtext` | document-sourced HTML, enriched and whitelisted (decision 9) | journal snippets, roll-table text |
-| `entities` | image, pill link, optional count | encounter adversaries, investigation items |
-| `status` | icon, label, sublabel, optional trailing button | turn card, check-up |
+| `richtext` | document-sourced HTML, enriched (decision 9) | journal snippets, roll-table text |
+| `rows` | thumbnail or icon, label, optional sub-line, optional count, trailing value, or button (decision 10) | encounter adversaries, investigation items, turn card conditions, check-up |
 | `badges` | standalone state chips ("Poisoned for 4 rounds") | fumble, injury |
 | `panel` | boxed sub-block with icon rows (Treatment) | injury |
 | `notes` | icon and footer note ("added to inventory") | investigation, injury, inspiration |
 | `actions` | instruction line and buttons | crit, fumble |
 
-Fifteen parts compose all nine reference cards. Two checks that the set is sufficient:
+Fourteen parts compose all nine reference cards. Two checks that the set is sufficient:
 
 - Crier's turn card is `header + image + meter + nameplate + stats + section + status`. Its 59 CSS overrides
   exist because those parts were unavailable, and go when they are.

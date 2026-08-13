@@ -1,0 +1,11 @@
+{{!-- Grid of boxes, each a caption above a value. Ability scores are one use;
+      currency, resources, and counts are others. Column count comes from the
+      renderer rather than being inferred by the grid. --}}
+<div class="cpb-part-tiles" style="grid-template-columns: repeat({{columns}}, 1fr)">
+    {{#each items}}
+    <div class="cpb-part-tile">
+        <div class="cpb-part-tile-label">{{this.label}}</div>
+        <div class="cpb-part-tile-value">{{this.value}}</div>
+    </div>
+    {{/each}}
+</div>

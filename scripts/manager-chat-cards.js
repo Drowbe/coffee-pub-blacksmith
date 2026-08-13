@@ -50,26 +50,33 @@ export const CHAT_CARD_THEMES = Object.freeze([
  * parts (see plan decision "compose-only"). A part that does not exist here is
  * a request for Blacksmith to add one.
  *
+ * **Parts are named for their shape, never for what you might put in them.**
+ * `tiles` is a grid of caption-over-value boxes, not "ability scores"; `rows` is
+ * a list of thumbnail-label-trailing rows, not "conditions". The first pass at
+ * this named three parts after the reference card each was first seen in, and
+ * `status` was carrying monsters and players before the ink was dry. A
+ * use-case name is a bug report waiting to happen -- the next caller either
+ * misuses the name or asks for a near-duplicate part.
+ *
  * `text` lists the fields on each part that carry consumer prose and therefore
  * run through the escape -> marks -> enrich pipeline. Every other field is
  * escaped by Handlebars on output.
  */
 export const CARD_PARTS = Object.freeze({
-    header:    { template: 'part-header',    text: ['title'] },
-    actor:     { template: 'part-actor',     text: [] },
-    image:     { template: 'part-image',     text: ['caption'] },
-    meter:     { template: 'part-meter',     text: ['label'] },
-    nameplate: { template: 'part-nameplate', text: ['text'] },
-    stats:     { template: 'part-stats',     text: [] },
-    section:   { template: 'part-section',   text: ['label'] },
-    prose:     { template: 'part-prose',     text: [] },
-    entities:  { template: 'part-entities',  text: [] },
-    status:    { template: 'part-status',    text: [] },
-    badges:    { template: 'part-badges',    text: [] },
-    panel:     { template: 'part-panel',     text: ['label'] },
-    notes:     { template: 'part-notes',     text: [] },
-    actions:   { template: 'part-actions',   text: ['instruction'] },
-    richtext:  { template: 'part-richtext',  text: [] }
+    header:   { template: 'part-header',   text: ['title'] },
+    identity: { template: 'part-identity', text: [] },
+    image:    { template: 'part-image',    text: ['caption'] },
+    meter:    { template: 'part-meter',    text: ['label'] },
+    band:     { template: 'part-band',     text: ['text'] },
+    tiles:    { template: 'part-tiles',    text: [] },
+    section:  { template: 'part-section',  text: ['label'] },
+    prose:    { template: 'part-prose',    text: [] },
+    rows:     { template: 'part-rows',     text: [] },
+    badges:   { template: 'part-badges',   text: [] },
+    panel:    { template: 'part-panel',    text: ['label'] },
+    notes:    { template: 'part-notes',    text: [] },
+    actions:  { template: 'part-actions',  text: ['instruction'] },
+    richtext: { template: 'part-richtext', text: [] }
 });
 
 const PART_PATH = `modules/${MODULE.ID}/templates/parts`;
@@ -254,26 +261,25 @@ export class ChatCardsManager {
             context.html = await enrich(String(part.html ?? ''), options);
         }
 
-        if (id === 'entities') {
+        if (id === 'rows' || id === 'badges' || id === 'notes') {
             context.items = await Promise.all((part.items ?? []).map(async (item) => ({
                 ...item,
+                // A uuid turns the label into a real document link; without one it
+                // is ordinary consumer text and goes through the full pipeline.
                 label: item.uuid
                     ? await enrich(`@UUID[${item.uuid}]{${escapeHtml(item.label ?? item.uuid)}}`, options)
-                    : await processText(item.label, options)
-            })));
-        }
-
-        if (id === 'status' || id === 'badges' || id === 'notes') {
-            context.items = await Promise.all((part.items ?? []).map(async (item) => ({
-                ...item,
-                label: await processText(item.label ?? item.text, options),
+                    : await processText(item.label ?? item.text, options),
                 sublabel: item.sublabel ? await processText(item.sublabel, options) : '',
                 trailing: item.trailing ? await processText(item.trailing, options) : ''
             })));
         }
 
-        if (id === 'stats') {
+        if (id === 'tiles') {
             context.items = (part.items ?? []).map((item) => ({ label: item.label, value: item.value }));
+            // Column count is stated rather than inferred by the grid. Six boxes
+            // must sit on one row; auto-fit sized them right at the width where
+            // only five fit, so the sixth wrapped alone.
+            context.columns = Math.min(part.columns || context.items.length || 1, 6);
         }
 
         if (id === 'panel') {

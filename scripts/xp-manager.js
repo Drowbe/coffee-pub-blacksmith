@@ -930,7 +930,7 @@ export class XpManager {
     /**
      * Compose the XP distribution card.
      *
-     * Summary and milestone are key/value tables; monsters and players are status
+     * Summary and milestone are key/value tables; monsters and players are detail
      * rows, which carry an icon or portrait plus a trailing value.
      */
     static _buildXpCardParts(xpData, results) {
@@ -960,7 +960,7 @@ export class XpManager {
             if (monsters.length) {
                 parts.push({ part: 'section', icon: 'fas fa-dragon', label: 'Monster Resolutions' });
                 parts.push({
-                    part: 'status',
+                    part: 'rows',
                     items: monsters.map(m => ({
                         icon: RESOLUTION_ICONS[m.resolutionType] ?? 'fas fa-question',
                         label: m.name,
@@ -973,7 +973,7 @@ export class XpManager {
         if (results?.length) {
             parts.push({ part: 'section', icon: 'fas fa-users', label: 'Experience Allocations' });
             parts.push({
-                part: 'status',
+                part: 'rows',
                 items: results.map(r => ({
                     img: r.img,
                     label: r.name,

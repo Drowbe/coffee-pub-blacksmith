@@ -56,7 +56,7 @@ const MOVEMENT_TYPES = [
     {
         id: 'no-movement',
         name: 'Locked',
-        description: 'Movement is completly locked down for all party members.',
+        description: 'Movement is completely locked down for all party members.',
         icon: 'fa-person-circle-xmark'
     },
     {
@@ -68,13 +68,13 @@ const MOVEMENT_TYPES = [
     {
         id: 'conga-movement',
         name: 'Conga',
-        description: 'The party leader moves freely while the ramaining party will follow the exact path set by the leader.',
+        description: 'The party leader moves freely while the remaining party will follow the exact path set by the leader.',
         icon: 'fa-people-pulling'
     },
     {
         id: 'follow-movement',
         name: 'Fastest Path',
-        description: 'The party leader moves freely while the reamining party loosely follows them in line.',
+        description: 'The party leader moves freely while the remaining party loosely follows them in line.',
         icon: 'fa-person-running'
     },
     {

@@ -48,25 +48,26 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 
 `getParts()` returns the available part ids; `CARD_PARTS` in `scripts/manager-chat-cards.js` is the definition. The library is closed - compose these, and ask for a new part rather than working around a missing one. Every part is an object with a `part` key naming it.
 
-| Part | Fields |
-|---|---|
-| `header` | `icon`, `title` |
-| `actor` | `img`, `name`, `subtitle` |
-| `image` | `src`, `alt`, `caption` |
-| `meter` | `value`, `max`, `label`, `tone` (`ok`/`warn`/`danger`; derived if omitted) |
-| `nameplate` | `text` |
-| `stats` | `items: [{ label, value }]` |
-| `section` | `icon`, `label` |
-| `prose` | `blocks` (see below) |
-| `entities` | `items: [{ img, uuid, label, count }]` |
-| `status` | `items: [{ img, icon, label, sublabel, trailing, action, actionIcon, value, moduleId }]` |
-| `badges` | `items: [{ icon, label }]` |
-| `panel` | `icon`, `label`, `rows: [{ icon, label, value }]` |
-| `notes` | `items: [{ icon, text }]` |
-| `actions` | `instruction`, `buttons: [{ action, label, icon, value, moduleId, disabled }]` |
-| `richtext` | `html` (document-sourced only - see below) |
+**Parts are named for their shape, not for what you put in them.** `tiles` is a grid of caption-over-value boxes - ability scores are one use, currency and resource counts are others. `rows` is a list of thumbnail-label-trailing rows, whether those are creatures, items, or conditions. If a part's name seems not to describe your content, that is usually the right part anyway.
 
-On `entities`, supplying `uuid` renders a real Foundry document link; `label` becomes its display text.
+| Part | Renders | Fields |
+|---|---|---|
+| `header` | icon and title bar | `icon`, `title` |
+| `identity` | avatar, primary name, secondary line | `img`, `name`, `subtitle` |
+| `image` | picture with optional caption | `src`, `alt`, `caption` |
+| `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`warn`/`danger`; derived if omitted) |
+| `band` | full-width emphasised text | `text` |
+| `tiles` | grid of caption-over-value boxes | `items: [{ label, value }]`, `columns` (defaults to the item count, max 6) |
+| `section` | divider with icon and label | `icon`, `label` |
+| `prose` | structured text blocks | `blocks` (see below) |
+| `rows` | thumbnail or icon, label, optional sub-line, optional trailing value or button | `items: [{ img, icon, uuid, label, sublabel, count, trailing, action, actionIcon, value, moduleId }]` |
+| `badges` | inline chips | `items: [{ icon, label }]` |
+| `panel` | boxed sub-block | `icon`, `label`, `rows: [{ icon, label, value }]` |
+| `notes` | footer annotations | `items: [{ icon, text }]` |
+| `actions` | instruction line and buttons | `instruction`, `buttons: [{ action, label, icon, value, moduleId, disabled }]` |
+| `richtext` | document-sourced HTML | `html` (see below) |
+
+On `rows`, supplying `uuid` turns the label into a real Foundry document link, with `label` as its display text. `count` prefixes the label; `trailing` follows it; `action` puts a button at the end.
 
 ## Prose
 

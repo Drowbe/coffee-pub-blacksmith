@@ -33,7 +33,9 @@ Cards posted before this system have no flags. They keep whatever HTML they were
 
 Parts are declared in `CARD_PARTS` in `scripts/manager-chat-cards.js`, each naming its template under `templates/parts/` and which of its fields carry consumer prose. Read that object rather than a list here; it is the only place the set is defined.
 
-Parts that match structure the card system already had - header, actor chip, section divider, prose, key/value table, buttons - render into the existing classes in `styles/cards-common-layout.css`. Only parts with no prior equivalent have rules in `styles/cards-parts.css`.
+**Parts are named for their shape, never for what a caller might put in them.** `tiles` is a grid of caption-over-value boxes, not "ability scores"; `rows` is a list of thumbnail-label-trailing rows, not "conditions". The first pass named three parts after the reference card each was first seen in, and the one called `status` was carrying monsters and player awards within a day. A use-case name invites the next caller to either misuse it or ask for a near-duplicate, which is how a closed library stops being closed.
+
+Parts that match structure the card system already had - header, identity chip, section divider, prose, key/value table, buttons - render into the existing classes in `styles/cards-common-layout.css`. Only parts with no prior equivalent have rules in `styles/cards-parts.css`.
 
 ## The text pipeline
 
@@ -63,7 +65,7 @@ The world default is resolved **once, at post time**, in `ChatCardsManager.resol
 
 Buttons carry `data-cpb-module` and `data-cpb-action`, deliberately not `data-action`, which ApplicationV2 claims.
 
-Handlers are registered at startup through `ChatCardsAPI.registerAction(moduleId, action, handler)` and held in a module-level registry. A single delegated `renderChatMessageHTML` hook (context `blacksmith-card-actions`) resolves the handler fresh on every render and binds the click. Binding is idempotent, because re-rendering replaces the card element.
+Handlers are registered at startup through `ChatCardsAPI.registerAction(moduleId, action, handler)` and held in a module-level registry. A single delegated `renderChatMessageHTML` hook (context `blacksmith-card-actions`) resolves the handler fresh on every render and binds the click, through `bindCardActions` in `scripts/blacksmith.js`. Re-rendering from flags replaces the card element with buttons that carry no listeners, so the re-render calls the same binder after the swap; binding is idempotent so markup that survives is not bound twice.
 
 A ChatMessage is data on every client, so a callback cannot ride the document. Resolving on render is why buttons keep working after a browser reload, and why a card whose module is disabled degrades to an inert button rather than an error.
 
