@@ -554,6 +554,28 @@
            The row's total width does not change as the turn moves: exactly one button is at
            full size at any moment, so one growing is always paid for by another shrinking. */
         --portrait-rest-scale: 0.85;
+
+        /* HOW FAR THE ACTIVE COMBATANT'S BREATH DIPS BELOW ITS NEIGHBOURS.
+
+           A single value, because the keyframes below need it at BOTH ends of the cycle and 0%
+           and 100% are the same instant -- an infinite animation loops straight from one to the
+           other, so any difference between them is a step the browser applies in one frame, read
+           as a flick at the bottom of the breath just as it turns to grow again. Two troughs
+           0.02 apart is exactly how that happened. Naming it here is what makes them the same
+           value rather than two values that have to be kept equal.
+
+           Derived from the resting scale rather than stated outright, for the same reason the
+           negative margin is: the pulse's whole job is to cross its neighbours' size, so it is
+           defined relative to that size and follows it when it changes. Tune the 0.05. */
+        --portrait-pulse-trough: calc(var(--portrait-rest-scale) - 0.05);
+
+        /* ONE TEMPO FOR EVERY PULSE ON A PORTRAIT, declared here so all three inherit it and
+           cannot drift apart. The turn's breath and the two dead pulses (the round ring's stroke
+           and the square bar's fill) deliberately share a beat -- a dead combatant taking its turn
+           runs both at once, and on two different periods they slide against each other and read
+           as a fault rather than as two states. Restating the duration three times is exactly how
+           that would happen the next time one of them is tuned. */
+        --combat-pulse-tempo: 3.5s;
         scale: var(--portrait-rest-scale);
         margin-left: calc(var(--portrait-container-width) * (var(--portrait-rest-scale) - 1) / 2);
         margin-right: calc(var(--portrait-container-width) * (var(--portrait-rest-scale) - 1) / 2);
@@ -732,9 +754,9 @@
 
        Transform-only, so this composites on the GPU with no layout or paint per frame, and only
        ever one element animates. Infinite animation is an established pattern here --
-       `blacksmith-pulse-dead` on the health ring is the other -- and shares its 2s tempo, so a
-       dead combatant taking its turn breathes and pulses together rather than beating against
-       itself.
+       `blacksmith-pulse-dead` on the health ring is the other -- and the two share a tempo
+       through `--combat-pulse-tempo`, so a dead combatant taking its turn breathes and pulses
+       together rather than beating against itself.
 
        ROLLBACK NOTE: the turn was `border-color: rgba(255,170,60,.95)` plus
        `box-shadow: inset 0 0 8px rgba(255,150,30,.75)` on the container. That was a second
@@ -742,22 +764,34 @@
        ticks were tried between then and now, and rejected. A resting shrink was too -- that one
        SURVIVES, but applied to the button's contents rather than to the button, because on the
        button it was paid for in gap between portraits. */
+    /* Both ends read the same custom property, so they cannot drift apart -- see the note on
+       --portrait-pulse-trough for why that matters and what it looked like when they did. */
     @keyframes blacksmith-combat-turn-pulse {
-        0%   { scale: 0.92; }
+        0%   { scale: var(--portrait-pulse-trough); }
         50%  { scale: 1; }
-        100% { scale: 0.92; }
+        100% { scale: var(--portrait-pulse-trough); }
     }
 
     /* The BUTTON breathes, so portrait, health reading and disposition fill all move together
-       as one object. The trough (0.92) sits above the resting 0.85, so the active combatant is
-       larger than the rest at every point in the cycle rather than only at the top of it.
+       as one object.
+
+       THE PULSE STRADDLES THE RESTING SIZE rather than sitting above it. The trough is
+       `--portrait-pulse-trough`, so the active combatant swings visibly smaller than its
+       neighbours and then visibly larger, twice a cycle. An earlier version held the trough above
+       the resting size so the turn was larger at every point in the cycle -- which sounds like
+       the safer reading and is in fact a weaker one, because a size that never crosses its
+       neighbours' is a size you have to compare rather than notice. Crossing them is the signal.
+
+       Derived from the resting scale, not restated, for the same reason the negative margin
+       above is: change the resting scale alone and this follows it.
+
        Margins go back to zero: this button draws at full size, so it needs its full footprint,
        and that is what keeps the row's total width constant as the turn moves. */
     .blacksmith-menubar-secondary .combat-portrait-container.current {
         scale: 1;
         margin-left: 0;
         margin-right: 0;
-        animation: blacksmith-combat-turn-pulse 2s ease-in-out infinite;
+        animation: blacksmith-combat-turn-pulse var(--combat-pulse-tempo) ease-in-out infinite;
     }
 
     /* No `.current.combat-token-hidden` rule any more. One existed only to reconcile two
@@ -782,10 +816,11 @@
 
     /* THE SPOTLIGHT: EVERYONE NOT TAKING THEIR TURN STEPS BACK.
 
-       Size alone was carrying the whole reading of whose turn it is -- a pulse between 0.92 and 1
-       against a resting 0.85. That is a couple of pixels on a portrait this small, and in a fight
-       of sixty near-identical cultists it is not findable at all; the honest report from the table
-       was "I have no idea whose turn it is."
+       Size alone was carrying the whole reading of whose turn it is, and it barely moved: a pulse
+       that stayed above the resting size, a couple of pixels on a portrait this small. In a fight
+       of sixty near-identical cultists it was not findable at all; the honest report from the
+       table was "I have no idea whose turn it is." The pulse now straddles the resting size, and
+       this steps the rest of the strip back behind it.
 
        OPACITY, because every other channel is spent or has already been tried and rejected. The
        fill belongs to disposition. A coloured border and an inset glow WERE the turn once and were
@@ -799,11 +834,11 @@
        is not a row of dimmed portraits with nothing lit. */
     .blacksmith-menubar-secondary .combat-portraits:has(.combat-portrait-container.current)
         .combat-portrait-container:not(.current) {
-        opacity: 0.4;
+        opacity: 0.6;
     }
 
-    /* Hovering one of them brings it most of the way back, so a reader can still look down the
-       strip without the dimming getting in the way of a portrait they care about. */
+    /* Hovering one of them brings it the rest of the way back, so a reader can still look down
+       the strip without the dimming getting in the way of a portrait they care about. */
     .blacksmith-menubar-secondary .combat-portraits:has(.combat-portrait-container.current)
         .combat-portrait-container:not(.current):hover {
         opacity: 0.9;
@@ -865,7 +900,7 @@
         100% { background-color: #a11c1b; }
     }
     .blacksmith-menubar-secondary .combat-portrait-ring-dead circle {
-        animation: blacksmith-pulse-dead 2s ease-in-out infinite;
+        animation: blacksmith-pulse-dead var(--combat-pulse-tempo) ease-in-out infinite;
     }
 
     /* THE TRACK — the depleted part of the ring.
@@ -933,7 +968,7 @@
     }
 
     .blacksmith-menubar-secondary .combat-portrait-healthbar-fill.combat-portrait-ring-dead {
-        animation: blacksmith-pulse-dead-bar 2s ease-in-out infinite;
+        animation: blacksmith-pulse-dead-bar var(--combat-pulse-tempo) ease-in-out infinite;
     }
 
 /* Control Buttons */

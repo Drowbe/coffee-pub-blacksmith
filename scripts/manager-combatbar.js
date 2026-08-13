@@ -271,6 +271,14 @@ export class CombatBarManager {
     static _userScrolledThisTurn = false;
 
     /**
+     * Stands in for a combatant id in `_centredCombatantId` while the strip is parked at its right
+     * end waiting for initiative. A sentinel rather than a second boolean, so that leaving the
+     * state is the same comparison as any other change of anchor and cannot be forgotten.
+     * @type {string}
+     */
+    static INITIATIVE_ANCHOR = '__awaiting-initiative__';
+
+    /**
      * Whose turn the strip was last scrolled FOR.
      *
      * Only a genuine change of turn may move the strip on its own. Without this it re-centres on
@@ -2277,6 +2285,27 @@ export class CombatBarManager {
         const wrapper = document.querySelector('.combat-portraits-scroll-wrapper');
         const portraits = wrapper?.querySelector('.combat-portraits');
         if (!portraits) return;
+
+        // UNTIL INITIATIVE IS ROLLED, THE RIGHT END IS THE END THAT MATTERS.
+        //
+        // A combatant with no initiative sorts to the end of the order, and its portrait carries
+        // the die a player clicks to roll -- so the portraits nobody has acted on yet are exactly
+        // the ones stacked off the right edge. Centring the active combatant there would hide the
+        // only thing anyone is being asked to do. Checked before the active combatant is even
+        // looked for, because initiative is normally owed before there is a current turn at all.
+        //
+        // scrollWidth is past the end by definition; jumpPortraitScrollTo clamps it to the end.
+        if (portraits.querySelector('.combat-portrait-initiative-dice')) {
+            const alreadyWaiting = CombatBarManager._centredCombatantId === CombatBarManager.INITIATIVE_ANCHOR;
+            CombatBarManager._centredCombatantId = CombatBarManager.INITIATIVE_ANCHOR;
+            if (!alreadyWaiting) CombatBarManager._userScrolledThisTurn = false;
+            // A reader who scrolled off to look elsewhere keeps their position, exactly as during
+            // a turn -- rolls keep arriving and each one would otherwise haul them back.
+            if (!CombatBarManager._userScrolledThisTurn) {
+                CombatBarManager.jumpPortraitScrollTo(menuBar, portraits.scrollWidth);
+            }
+            return;
+        }
 
         const currentPortrait = portraits.querySelector('.combat-portrait-container.current');
         if (!currentPortrait) {
