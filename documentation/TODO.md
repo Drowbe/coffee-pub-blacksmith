@@ -785,13 +785,75 @@ Recorded so a future pass doesn't mistake silence for a clean bill of health.
 - **`architecture-*.md`**: 10 docs, still substantially unverified. `architecture-socketmanager.md` is known fiction (30/30 symbols phantom). `architecture-hookmanager.md` needs ~900 of 1411 lines cut.
 - **Fence checker**: `scratchpad/check-fences.ps1` syntax-checks all 378 JS fences across the API docs (tries whole-module, function-body, class-body, and object-literal readings before reporting). ~29 remaining hits are pseudo-code fragments, not defects. Worth keeping if you want it in the repo.
 
-### Chat Card API (first-class posting + docs)
-- **Issue**: Theme helpers exist (`module.api.chatCards` → `scripts/api-chat-cards.js`: `getThemes`, `getThemeClassName`, etc.), but there is no first-class API for **posting** themed chat cards. Every coffee-pub module (Squire, Minstrel, Curator, etc.) has built its own card templating system, each reusing Blacksmith's CSS but independently constructing HTML and calling `ChatMessage.create()` directly. This is the same problem that was solved for windows with `BlacksmithWindowBaseV2` — duplicate templating logic scattered across modules means bugs get fixed in some but not others and styling drifts.
-- **Status**: PENDING – not current priority; tackle after bugs/performance
-- **Contract decision**: Add `chatCards.post(content, options)` / `chatCards.postAnnouncement(content, options)` helpers that wrap `ChatMessage.create` + canonical Blacksmith card HTML, so modules call one API and get a correctly-structured themed card without knowing the HTML internals. Mirror the window API normalization pattern.
-- **Interaction contract (scope added 2026-07-24)**: full windows-API parity means consumers hand Blacksmith their **actions and callbacks** too, not just content — today every interactive card wires its own `renderChatMessageHTML` handling (skill-check cards via `SkillCheckDialog.handleChatMessageClick` re-bound in `blacksmith.js`, vote cards in `manager-vote.js`), which is exactly the duplicated plumbing the posting API should absorb. Sketch: `chatCards.post({ theme, content, actions: [{ name, label, callback }] })`; Blacksmith owns one delegated `renderChatMessageHTML` listener that matches `data-action` markup to registered callbacks. Key constraint: a ChatMessage is data on every client — callbacks cannot ride the document — so modules must register their card actions at startup (by module id + action name) and every client re-resolves handlers on render; same receipt-side model as toast callbacks never crossing the socket. Centralizing posting also gives one place for message-API churn (the v12 `type`→`style` rename was fixed at four scattered sites on 2026-07-24; a single sender would have been one).
-- **Location**: `scripts/api-chat-cards.js`, `scripts/blacksmith.js` (`module.api.chatCards`); consumers to migrate: all coffee-pub-* modules that post chat cards
-- **Priority**: High – same class of problem as window normalization; do after current bug/performance pass
+### Chat Cards: parts system (supersedes the old posting-API entry)
+
+Design is settled in `documentation/plans/plan-chat-cards.md` (decisions 1-9). That plan is the reference for
+*why*; the items below are the work. Steps run in order and each is verified in a live world before the next
+begins. Sibling migration is step 7 and lives in `TODO-GLOBAL.md`, not here.
+
+**The gate for every item**: if a consuming module still writes card HTML, the item is not done.
+
+#### 1. Parts library, renderer, and `post()`
+- **Work**: Build the 15 parts from the plan's catalog, the composition renderer, and
+  `chatCards.post(options)` / `postAnnouncement(options)`. Storage is card type + composition + data in
+  flags, with a rendered snapshot baked into `content`. Route through the existing `ChatMessage.create`
+  libwrapper (`manager-libwrapper.js:102`), not around it. Resolve the world default theme at post time.
+  Prose is structured blocks; the escape -> marks -> enrich pipeline is decision 9 and its order is
+  load-bearing.
+- **Location**: `scripts/api-chat-cards.js`, new part templates, `scripts/blacksmith.js` (`module.api.chatCards`)
+- **How to verify**: post one card of each part type from the console; confirm each renders, the flags carry
+  type/composition/data, and `content` holds usable HTML. Pass `<b>bold</b>` as prose text and confirm it
+  displays as literal characters, not markup -- that is the runtime enforcement of "no HTML". Pass
+  `@UUID[...]{Name}` and `**bold**` in one paragraph and confirm the pill resolves and the bold renders.
+  Disable Blacksmith and confirm existing cards still show their baked HTML.
+
+#### 2. Action registration and the delegated dispatcher
+- **Work**: `registerAction(moduleId, name, handler)` at startup, plus one delegated `renderChatMessageHTML`
+  listener that matches namespaced markup attributes to registered handlers. Do not claim `data-action`;
+  ApplicationV2 already uses it.
+- **Location**: `scripts/api-chat-cards.js`, `scripts/blacksmith.js`
+- **How to verify**: post a card with two actions, click both as GM and as a player, confirm the right
+  handler fires on the clicking client only. Reload the browser and confirm the buttons still work on the
+  existing message (handlers re-resolve on render rather than riding the document). Confirm a card whose
+  registering module is disabled renders without console errors.
+
+#### 3. Blacksmith's simple cards
+- **Work**: Migrate notice, details, entities, and request cards to compositions. Retires
+  `templates/cards-common.hbs`.
+- **Location**: `templates/cards-common.hbs` (deleted), `timer-*.js`, `token-movement.js`,
+  `manager-reputation.js`, `api-menubar.js`, `xp-manager.js`
+- **How to verify**: trigger each in a live world -- planning start/pause/resume, all 7 timer states, leader
+  change, movement change, reputation, XP distribution, item transfer accept and reject. Each renders and
+  each still does what it did. Fix the six `type:` sites (`token-movement.js` x4, `xp-manager.js` x2) as part
+  of this; they become one call site.
+
+#### 4. Stats simplification
+- **Work**: Collapse round and combat summaries to a key-data card plus a "View Details" button opening a
+  dashboard window; combat is the aggregate of round. Retires 8 templates and `styles/cards-stats.css`.
+- **Location**: `templates/card-stats-*.hbs` (deleted), `styles/cards-stats.css` (deleted),
+  `scripts/stats-cards.js`, new window
+- **How to verify**: run a combat to completion. The round card and the combat card each show key data and a
+  working button; the dashboard opens with the same numbers the old cards showed. Compare against a
+  screenshot of the old cards for parity of the underlying stats.
+
+#### 5. Blacksmith's interactive cards
+- **Work**: Migrate skill check and vote to compositions and the action dispatcher. Retires the legacy
+  `.cpb-chat-card` root and `templates/vote-card.hbs`, and removes the per-card `renderChatMessageHTML`
+  plumbing in `blacksmith.js` and `manager-vote.js`.
+- **Location**: `window-skillcheck.js`, `manager-vote.js`, `blacksmith.js`, `templates/card-skill-check.hbs`,
+  `templates/vote-card.hbs`
+- **How to verify**: run a skill check with several actors -- confirm non-owners see disabled rows, owners can
+  roll, and results fill in. Open a vote, cast from two player clients, confirm the tally updates on both and
+  the GM cannot vote. Close the vote and confirm the result renders.
+
+#### 6. CSS consolidation
+- **Work**: Collapse the five card CSS files to one layout file and one theme file. Delete the `theme-default`
+  render-time rewrite hook in `blacksmith.js` -- the world default is resolved at post time as of step 1.
+  No legacy CSS is preserved for old chat history (decision 8).
+- **Location**: `styles/cards-*.css`, `styles/default.css` (imports), `scripts/blacksmith.js`
+- **How to verify**: post one card of every type in each of the 9 themes and confirm none has lost styling.
+  Confirm a new CSS file added without an `@import` in `default.css` is silently unstyled -- so check the
+  import chain explicitly. Run `node tools/check-design-tokens.mjs`.
 
 ## ENHANCEMENTS
 

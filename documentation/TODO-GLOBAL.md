@@ -743,6 +743,50 @@ cannot. It needs a per-namespace question rather than a grep:
 Given this turned up two forks in Curator immediately and Regent's is still open, that per-namespace pass is
 worth doing properly rather than trusting the filename check to have covered it.
 
+**Both heuristics only looked at `scripts/*.js`, and a template fork was sitting in plain sight.** Found
+2026-08-13 while inventorying chat cards: Squire's `templates/chat-cards.hbs` (505 lines) is a fork of
+Blacksmith's `templates/cards-common.hbs` (324 lines) - same variant names in the same order, same invalid
+`visibility: none` on line 1, 231 lines now diverged. Neither heuristic could see it, because both were
+scoped to JS. **Whatever per-namespace pass gets run, run it over `templates/` and `styles/` too.** This one
+is being resolved by the chat cards parts system below rather than separately.
+
+## Chat cards: sibling migration to the parts system (planned 2026-08-13)
+
+Blacksmith's side is steps 1-6 in its own `TODO.md`; the design and its nine decisions are in
+`coffee-pub-blacksmith/documentation/plans/plan-chat-cards.md`. This section is step 7 - the siblings.
+
+**What changes for a consuming module.** It stops owning card HTML entirely. It calls
+`chatCards.post({ type, composition, data })`, registers any button actions at startup, and deletes its card
+templates and card CSS. Prose arrives as structured blocks (paragraph, list, table, quote) with a three-mark
+inline subset plus Foundry enricher syntax; HTML built in JS is not accepted, and is escaped on sight rather
+than rendered. Document-sourced HTML - a journal page, a roll-table description - goes through the separate
+`richtext` part.
+
+**Backwards compatibility is not a goal.** Confirmed by the author. Every module migrates; nothing is
+deprecated in place.
+
+**The gate, which applies per module:** delete that module's card templates. If the suite cannot still render
+every one of its cards, the parts library is missing a part - and the fix is to add the part in Blacksmith,
+never to let the module keep a template.
+
+### Order, easiest first
+
+| Module | Posting sites | What it owns today | Notes |
+|---|---|---|---|
+| Curator | 1 | `templates/card-loot.hbs` | Already conforms to the contract. Smallest possible first migration. |
+| Regent | 2 | inline HTML, 4 CSS rules | Query card. |
+| Artificer | 7 | 2 templates, 4 local classes | **Not a rogue design.** It conforms and invented `gather-result-*` only because no `entities` part existed. Those four classes go when the part lands. |
+| Crier | 4 | inline HTML, 59 CSS rules | Its turn card is the widest composition in the suite - `header + image + meter + nameplate + stats + section + status`. The 59 overrides exist because those parts were unavailable. Good proof case for the catalog. |
+| Bibliosoph | 10 | 2 templates | Encounter, investigation, crit, fumble, injury, check-up, inspiration - one card shape, many variants. Already emits `@UUID[]{}` pills (`manager-encounters.js:678`, `manager-inspiration.js:109`), which the prose pipeline preserves. Its markdown-to-enriched-HTML path (`manager-conversations.js:849`) is why markdown was rejected as the transport; that path can go. |
+| Scribe | 3 | inline HTML, own theme system (7 files) | **The real outlier** - uses none of Blacksmith's card classes, posts a raw `<blockquote>`, and carries a competing theme layer (`theme-blue/dark/earth/green/red/none.css` plus `cards.css`). All seven files go. Its journal-snippet-to-chat is the one genuinely new capability found in the sweep, and it needs no new part: `header + image + prose + actions`. Legacy module; adopts the plan. |
+| Squire | 26 | `templates/chat-cards.hbs` (505 lines) | Largest, and a fork of Blacksmith's `cards-common.hbs` (see the forked-hub-code section above). Migrate last, after every part it needs is proven by the modules ahead of it. Its extra variants (`isRoundAnnouncement`, `isGMApproval`, transfer-request-rejected) must land as compositions, not be dropped. |
+
+Cartographer, Herald, Minstrel, Monarch, and Vault post no chat cards and are unaffected.
+
+**How to verify, per module**: trigger every card that module posts in a live world with a second client
+connected; confirm each renders, each button works on the clicking client only, and whisper and GM-only cards
+still reach the right audience. Then delete that module's card templates and CSS and confirm nothing changed.
+
 ## Decision: no selector-based context menu variant (declined 2026-08-08)
 
 Offered to Squire and **declined by them**, which is worth recording because the offer will look obvious again
