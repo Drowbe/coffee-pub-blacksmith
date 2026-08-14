@@ -28,6 +28,7 @@ import { requireApi, settingRow, stylesheetContains } from '../harness-lib.js';
 // light image border reads as absent against it --
 // which is exactly the judgement these cards exist to support.
 // Campaign art, so it may not resolve outside the author's install.
+const MOD = 'coffee-pub-blacksmith';
 const IMG = 'modules/campaigns/images/portraits/elegant-eight/character-favia.webp';
 
 // Foundry's own placeholder: a transparent SVG, so it shows the shared image
@@ -522,10 +523,64 @@ export default {
                   icon: 'fa-solid fa-ban', disabled: true } ] }
         ], { group: 'Cards', note: 'the panel should match the injury card, not read tighter than it' }),
 
+        card('c-buttons', 'Buttons: the three weights, and disabled', [
+            { part: 'header', icon: 'fa-solid fa-hand-pointer', title: 'Button Weights' },
+            { part: 'section', label: 'Primary is listed FIRST here' },
+            // Deliberately out of order. The renderer moves the primary button to the
+            // right, so a card cannot put the confirm action somewhere unexpected.
+            { part: 'actions', instruction: 'It should still render on the right.', buttons: [
+                { moduleId: MOD, action: TEST_ACTION, label: 'Confirm', variant: 'primary',
+                  icon: 'fa-solid fa-check', value: 'primary' },
+                { moduleId: MOD, action: TEST_ACTION, label: 'Cancel', variant: 'secondary',
+                  icon: 'fa-solid fa-xmark', value: 'secondary' } ] },
+            { part: 'section', label: 'Critical, and the default weight' },
+            { part: 'actions', buttons: [
+                { moduleId: MOD, action: TEST_ACTION, label: 'No variant given', value: 'default' },
+                { moduleId: MOD, action: TEST_ACTION, label: 'Delete', variant: 'critical',
+                  icon: 'fa-solid fa-trash', value: 'critical' } ] },
+            { part: 'section', label: 'Disabled, and a rejected variant' },
+            { part: 'actions', buttons: [
+                { moduleId: MOD, action: TEST_ACTION, label: 'Disabled primary', variant: 'primary',
+                  icon: 'fa-solid fa-ban', disabled: true },
+                // Not in the allowlist -- must fall back to secondary, not reach the class.
+                { moduleId: MOD, action: TEST_ACTION, label: 'Bogus variant', variant: 'card-header',
+                  value: 'bogus' } ] },
+            // Stacked: a list of alternatives rather than a confirm/cancel pair.
+            { part: 'section', label: 'Stacked -- one button per row' },
+            { part: 'actions', layout: 'stacked', instruction: 'Choose a formation.', buttons: [
+                { moduleId: MOD, action: TEST_ACTION, label: 'Line abreast', icon: 'fa-solid fa-grip-lines', value: 'line' },
+                { moduleId: MOD, action: TEST_ACTION, label: 'Wedge', icon: 'fa-solid fa-play', value: 'wedge' },
+                { moduleId: MOD, action: TEST_ACTION, label: 'Scatter -- a deliberately long label to prove it never wraps',
+                  icon: 'fa-solid fa-arrows-to-circle', value: 'scatter' },
+                // Listed first again; stacked puts it at the BOTTOM, the same end of
+                // the list that "right" means when inline.
+                { moduleId: MOD, action: TEST_ACTION, label: 'Deploy', variant: 'primary',
+                  icon: 'fa-solid fa-check', value: 'deploy' } ] }
+        ], { group: 'Cards', note: 'Confirm on the RIGHT when inline and at the BOTTOM when stacked, both despite being listed first' }),
+
         card('c-richtext', 'Richtext, from document HTML', [
             { part: 'header', icon: 'fa-solid fa-file-lines', title: 'Richtext' },
-            { part: 'richtext', html: '<p>A paragraph from a document, with <strong>bold</strong> and <em>italic</em>.</p><ul><li>A list item</li><li>Another</li></ul><blockquote>And a blockquote.</blockquote>' }
-        ], { group: 'Cards', note: 'document typography should be governed by the card, not by itself' }),
+            // Every element a journal page can realistically contain. The point is
+            // that the CARD governs all of it -- a table authored elsewhere must not
+            // arrive carrying its own look.
+            { part: 'richtext', html: [
+                '<p>A paragraph from a document, with <strong>bold</strong> and <em>italic</em>.</p>',
+                '<h2>A heading two</h2>',
+                '<p>Text under the heading.</p>',
+                '<h3>A heading three</h3>',
+                '<ul><li>An unordered item</li><li>Another</li></ul>',
+                '<ol><li>An ordered item</li><li>Another</li></ol>',
+                '<table><thead><tr><th>Roll</th><th>Result</th><th>Notes</th></tr></thead>',
+                '<tbody>',
+                '<tr><td>1-2</td><td>Nothing happens</td><td>Move along</td></tr>',
+                '<tr><td>3-5</td><td>A wandering merchant</td><td>Has rope</td></tr>',
+                '<tr><td>6</td><td>Something with far too many teeth for the number of eyes it has</td><td>Run</td></tr>',
+                '</tbody></table>',
+                '<blockquote>And a blockquote.</blockquote>',
+                '<hr />',
+                '<pre>preformatted text, which should wrap rather than overflow the card when the line is a long one</pre>'
+            ].join('') }
+        ], { group: 'Cards', note: 'the table must be governed by the card: collapsed borders, full width, theme colours -- check it on a dark theme too' }),
 
         {
             id: 'c-themes',

@@ -85,6 +85,27 @@ export const CARD_PARTS = Object.freeze({
 
 const PART_PATH = `modules/${MODULE.ID}/templates/parts`;
 
+/**
+ * The weights a card button may carry, mirroring the window buttons in
+ * `styles/window-template.css` so one vocabulary covers both surfaces.
+ *
+ * An allowlist rather than a pass-through, for the same reason `safeColour`
+ * exists: `class="card-button-{{variant}}"` with an unchecked value lets a
+ * consumer name any class on the page and style its button however it likes,
+ * which is the presentation injection this system exists to prevent.
+ */
+const BUTTON_VARIANTS = new Set(['primary', 'secondary', 'critical']);
+
+/**
+ * How a button row arranges itself. `inline` sits them side by side and lets a
+ * row that does not fit reflow onto another line; `stacked` gives each button its
+ * own full-width row.
+ *
+ * Allowlisted for the same reason as the variant -- it is interpolated into a
+ * class attribute.
+ */
+const BUTTON_LAYOUTS = new Set(['inline', 'stacked']);
+
 /** Parts whose body is a full card wrapper rather than a child of section-content. */
 const TEMPLATE_PATHS = Object.freeze(
     Object.fromEntries(Object.entries(CARD_PARTS).map(([id, def]) => [id, `${PART_PATH}/${def.template}.hbs`]))
@@ -269,6 +290,22 @@ export class ChatCardsManager {
 
         for (const field of CARD_PARTS[id].text) {
             if (part[field] !== undefined) context[field] = await processText(part[field], options);
+        }
+
+        if (id === 'actions') {
+            const buttons = (part.buttons ?? []).map((button) => ({
+                ...button,
+                variant: BUTTON_VARIANTS.has(button.variant) ? button.variant : 'secondary'
+            }));
+            // The primary action is ALWAYS the rightmost button, whatever order the
+            // caller listed them in. Position carries meaning, so the system owns it
+            // rather than the caller: left to each module, every card puts "confirm"
+            // somewhere slightly different and a player has to find it again each time.
+            context.buttons = [
+                ...buttons.filter((button) => button.variant !== 'primary'),
+                ...buttons.filter((button) => button.variant === 'primary')
+            ];
+            context.layout = BUTTON_LAYOUTS.has(part.layout) ? part.layout : 'inline';
         }
 
         if (id === 'prose') {

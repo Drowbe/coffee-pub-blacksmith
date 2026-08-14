@@ -33,6 +33,7 @@ import { dirname, resolve, join } from 'node:path';
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = join(REPO, 'scripts/manager-chat-cards.js');
 const PARTS_DIR = join(REPO, 'templates/parts');
+const STYLES_DIR = join(REPO, 'styles');
 
 /**
  * The complete list of parts allowed to take a colour from the caller.
@@ -162,6 +163,43 @@ if (!existsSync(PARTS_DIR)) {
 checked++;
 if (!src.includes('function safeColour(')) {
     problems.push('colour: safeColour() is gone from manager-chat-cards.js -- caller colours would reach a style attribute unvalidated');
+}
+
+// A button variant is interpolated straight into a class attribute, so it is the
+// same hazard as a colour: unchecked, a consumer names any class on the page.
+// Both halves are asserted -- the allowlist exists, and every name in it is
+// actually styled, since a variant that validates but has no rule is a button
+// that silently renders as nothing in particular.
+const buttonCss = readFileSync(join(STYLES_DIR, 'cards-common-layout.css'), 'utf8');
+
+/** The quoted names inside `const <constant> = new Set([...])`, or null if absent. */
+function allowlist(constant) {
+    const at = src.indexOf(`const ${constant} = new Set([`);
+    if (at === -1) return null;
+    const open = src.indexOf('[', at);
+    const close = src.indexOf(']', open);
+    return src.slice(open + 1, close).match(/'([a-z-]+)'/g)?.map((name) => name.slice(1, -1)) ?? [];
+}
+
+for (const [constant, selectorFor] of [
+    ['BUTTON_VARIANTS', (name) => `button.card-button-${name}`],
+    ['BUTTON_LAYOUTS',  (name) => `.blacksmith-buttons-${name}`]
+]) {
+    checked++;
+    const names = allowlist(constant);
+    if (names === null) {
+        problems.push(`buttons: ${constant} is gone from manager-chat-cards.js -- part-actions.hbs would take any class the caller names`);
+        continue;
+    }
+    for (const name of names) {
+        checked++;
+        // `secondary` is the default weight and inherits the base button rule, so
+        // it is the one name that legitimately has no rule of its own.
+        if (constant === 'BUTTON_VARIANTS' && name === 'secondary') continue;
+        if (!buttonCss.includes(selectorFor(name))) {
+            problems.push(`buttons: ${constant} allows "${name}" but cards-common-layout.css has no ${selectorFor(name)} rule`);
+        }
+    }
 }
 
 if (problems.length) {

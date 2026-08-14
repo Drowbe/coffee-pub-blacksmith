@@ -799,20 +799,38 @@
 
 /* ---------- BADGES ---------- */
 
+/*
+    A badge is a dnd5e `.pill.transparent`. Not "like" one -- the system renders its
+    own item tags in the same chat log a few pixels below ours, so anything short of
+    a match reads as a mistake. Fully rounded filled chips were the tell: nothing
+    else in the log is shaped that way, so a card wearing them announced which
+    module made it. Unfilled with a dotted edge, because a badge annotates the card
+    it sits on rather than being another object stacked on it.
+
+    See --blacksmith-card-badge-padding for where the numbers come from.
+*/
 .blacksmith-card .blacksmith-part-badges {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--blacksmith-space-xs);
+    gap: var(--blacksmith-space-sm);
 }
 
 .blacksmith-card .blacksmith-part-badge {
     display: inline-flex;
     align-items: center;
-    padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
-    font-size: 0.85em;
-    background: var(--blacksmith-card-box-fill);
-    border: 1px solid var(--blacksmith-card-border-color);
-    border-radius: var(--blacksmith-radius-pill);
+    gap: var(--blacksmith-space-sm);
+    padding: var(--blacksmith-card-badge-padding);
+    /* Roboto, not the card's inherited face. Matching dnd5e's 11px was not enough on
+       its own -- the card's own font is wider and taller at the same pixel size, so
+       ours read noticeably bigger sitting next to a real item card's tags. Matching
+       the face closes most of that gap; the last step down closes the rest. */
+    font-family: var(--dnd5e-font-roboto);
+    font-size: var(--font-size-10);
+    font-weight: bold;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px dotted var(--blacksmith-card-badge-border);
+    border-radius: var(--blacksmith-radius-sm);
     color: var(--blacksmith-card-section-content-text);
 }
 

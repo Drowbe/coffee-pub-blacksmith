@@ -67,7 +67,7 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `badges` | inline chips | `items: [{ icon, label }]` |
 | `panel` | boxed sub-block | `icon`, `label`, `intro`, `rows: [{ icon, label, value }]` |
 | `notes` | footer annotations | `items: [{ icon, text }]` |
-| `actions` | instruction line and buttons | `instruction`, `buttons: [{ action, label, icon, value, moduleId, disabled }]` |
+| `actions` | instruction line and buttons | `instruction`, `layout`, `buttons: [{ action, label, icon, value, moduleId, variant, disabled }]` |
 | `richtext` | document-sourced HTML | `html` (see below) |
 
 On `rows`, supplying `uuid` turns the label into a real Foundry document link, with `label` as its display text. `count` prefixes the label; `trailing` follows it; `action` puts a button at the end.
@@ -280,9 +280,35 @@ Then reference the action when composing:
 ```javascript
 { part: 'actions', instruction: 'Choose one.', buttons: [
     { moduleId: 'coffee-pub-yourmodule', action: 'accept', label: 'Accept',
-      icon: 'fa-solid fa-check', value: transferId }
+      icon: 'fa-solid fa-check', value: transferId, variant: 'primary' }
 ] }
 ```
+
+### Button weight
+
+`variant` is one of `primary`, `secondary` or `critical`, and defaults to `secondary`.
+Any other value is treated as `secondary`. The names match the window buttons in
+`styles/window-template.css`, so one vocabulary covers both surfaces.
+
+`secondary` is outlined. `primary` fills with the colour `secondary` writes in, so it
+follows whichever card theme is active. `critical` fills dark red. A button carrying
+`disabled` renders at reduced opacity with a not-allowed cursor, matching the window
+buttons.
+
+The primary button renders as the rightmost button regardless of its position in the
+array. Position is not a caller decision.
+
+### Row layout
+
+`layout` on the part is `inline` or `stacked`, and defaults to `inline`. Any other
+value is treated as `inline`.
+
+`inline` places buttons side by side, reflowing onto another line when they do not
+fit. `stacked` gives each button its own full-width row, which suits a list of
+alternatives rather than a confirm/cancel pair. A button never wraps its label in
+either layout.
+
+The primary button is last in both, so changing the layout does not move it.
 
 The handler receives `{ message, value, event, button }`. A chat message is data on every client, so handlers cannot travel with the card - each client resolves them from its own registry at render time. This is why registration belongs in `ready` rather than alongside the post, and why buttons keep working after a browser reload.
 

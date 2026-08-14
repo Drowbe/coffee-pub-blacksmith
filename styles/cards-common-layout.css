@@ -32,6 +32,28 @@
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
 
+    /* A button states its weight, the way window buttons do (window-template.css
+       `.blacksmith-window-btn-*`). Same three names on both surfaces so one
+       vocabulary covers the suite; different colours, because a window's chrome is
+       dark and a card's ground is parchment, and lifting the window's greens and
+       greys onto a card looked like a foreign control dropped on it.
+
+       PRIMARY is the secondary inverted -- it fills with the colour secondary
+       writes in. That is deliberate: it derives from `--blacksmith-card-button-text`,
+       which every theme already defines, so all nine themes get a primary button
+       that belongs to them without one of them naming a new colour.
+
+       Hover is a brightness step rather than a colour, for the same reason: there is
+       no way in plain CSS to derive "slightly lighter than whatever the theme set",
+       and hard-coding a hover fill per theme is nine more values to drift. */
+    --blacksmith-card-button-primary-bg: var(--blacksmith-card-button-text);
+    --blacksmith-card-button-primary-text: rgba(248, 244, 241, 1.0);
+    --blacksmith-card-button-critical-bg: rgba(120, 30, 30, 0.9);
+    --blacksmith-card-button-critical-text: rgba(248, 244, 241, 1.0);
+    /* Matches the window buttons exactly -- a disabled control should not read as
+       one thing in a dialog and another in a card. */
+    --blacksmith-card-button-disabled-opacity: 0.6;
+
     /* generic colors */
     /* The fill behind every box on a card. Was two values doing one job: this
        token at 0.08 for the panel, identity chip, subject and badge, and a literal
@@ -40,7 +62,6 @@
        kind of inconsistency. Named to match -box-padding and -box-radius, since
        the three describe the same object. */
     --blacksmith-card-box-fill: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-border-color: rgba(0, 0, 0, 0.05);
 
     /* Borders are black with transparency, never white. A light border only works
        over a dark ground, and a card's ground is light -- a white edge tried here
@@ -89,6 +110,33 @@
        the frame. */
     --blacksmith-card-thumb-icon-scale: 0.75;
     --blacksmith-card-row-border: var(--blacksmith-card-border-strong);
+    /* Darker than -border-strong on purpose, and NOT derived from it. A dotted
+       edge shows perhaps half the ink of a solid one of the same colour, so at the
+       shared 0.2 weight the badge outline all but disappeared. This is the weight
+       that makes a DOTTED line read as the shared weight does solid. */
+    --blacksmith-card-badge-border: rgba(0, 0, 0, 0.4);
+
+    /* A table arrives inside richtext, authored in a journal, so the card cannot
+       negotiate with it -- it can only govern how it looks. These were five
+       hardcoded parchment colours (#BDB7A0, #E5E1D5, #F3F1E9, #CAC5B0) that ignored
+       every card theme: a table on a dark theme rendered as a pale beige slab
+       floating in it. Black-with-transparency like every other card edge, so a
+       table takes on whatever ground the theme provides. */
+    --blacksmith-card-table-border: var(--blacksmith-card-border-strong);
+    --blacksmith-card-table-rule: rgba(0, 0, 0, 0.12);
+    --blacksmith-card-table-head-fill: rgba(0, 0, 0, 0.14);
+    --blacksmith-card-table-row-fill: rgba(0, 0, 0, 0.04);
+
+    /* A badge is a dnd5e pill -- specifically `.pill.transparent`, the variant the
+       system uses for item tags (ACTION, REACH 10 FT, PROFICIENT). It should be
+       indistinguishable from one: dnd5e renders those in the same chat log a few
+       pixels below our cards, and two near-identical chip styles slightly apart
+       reads as a bug rather than as a house style.
+
+       From dnd5e.css `.dnd5e2 .pills .pill` and its `.transparent` variant: 3px/6px
+       padding, 3px radius, 11px bold uppercase, no fill, dotted edge. Its own token
+       so a badge can be retuned without moving anything else. */
+    --blacksmith-card-badge-padding: 3px 6px;
     --blacksmith-card-bar-border: var(--blacksmith-card-border-strong);
 
     /* Every box on a card -- row, tile, band, panel, meter track, pip strip,
@@ -341,10 +389,49 @@
     margin-left: 0px;
     margin-right: 0px;
     gap: var(--blacksmith-space-xs);
+    /* Buttons reflow onto another line rather than being squeezed narrower than
+       their own label. Three buttons in a card this narrow is what broke it.
+       Stated on the base rule as well as on `.blacksmith-buttons-inline`, because
+       the legacy `.blacksmith-chat-buttons` markup carries no layout class. */
+    flex-wrap: wrap;
+}
+
+/*
+    How the row arranges itself, chosen by the caller with `layout` on the part.
+
+    INLINE is the default and the old behaviour: side by side, reflowing onto
+    another line when they do not fit rather than squeezing a button below its own
+    label.
+
+    STACKED gives every button its own full-width row. It is the right choice when
+    the buttons are a list of alternatives rather than a confirm/cancel pair -- four
+    formations to deploy in, six targets to apply an effect to -- where reading them
+    as a column is the point and equal width makes them look equally weighted.
+
+    The primary button is last in BOTH, so its position does not move when a caller
+    changes the layout. Bottom of a stack and right of a row are the same place: the
+    end of the list.
+*/
+.blacksmith-card-buttons.blacksmith-buttons-inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.blacksmith-card-buttons.blacksmith-buttons-stacked {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
 }
 .blacksmith-card-buttons button.card-button,
 .blacksmith-chat-buttons button.chat-button {
-    width: 100%;
+    /* A button NEVER wraps its label. `width: 100%` let flex shrink each button
+       below its text and split words across lines ("PRIMA / RY"). Growing from auto
+       instead keeps a lone button full-width, while min-width pins the floor at the
+       label's own width so the container wraps before the text ever does. */
+    width: auto;
+    flex: 1 1 auto;
+    min-width: max-content;
+    white-space: nowrap;
     text-align: left;
     background: none;
     border: 1px solid var(--blacksmith-card-button-border);
@@ -360,13 +447,45 @@
     color: var(--blacksmith-card-button-text);
     font-weight: var(--blacksmith-font-weight-bold);
 }
-.blacksmith-card-buttons button.card-button:hover,
+
+/* SECONDARY -- outlined, and the default. An unmarked button is a secondary one,
+   so a card that never thinks about weight still gets a coherent row. */
+.blacksmith-card-buttons button.card-button-primary {
+    background: var(--blacksmith-card-button-primary-bg);
+    border-color: var(--blacksmith-card-button-primary-bg);
+    color: var(--blacksmith-card-button-primary-text);
+}
+
+.blacksmith-card-buttons button.card-button-critical {
+    background: var(--blacksmith-card-button-critical-bg);
+    border-color: var(--blacksmith-card-button-critical-bg);
+    color: var(--blacksmith-card-button-critical-text);
+}
+
+/* Only the outlined buttons take the wash; a fill must not be replaced by it, or
+   the primary turns grey the moment the pointer touches it. */
+.blacksmith-card-buttons button.card-button-secondary:hover:not(:disabled),
 .blacksmith-chat-buttons button.chat-button:hover {
     background: var(--blacksmith-card-button-hover-bg);
 }
+
+.blacksmith-card-buttons button.card-button-primary:hover:not(:disabled),
+.blacksmith-card-buttons button.card-button-critical:hover:not(:disabled) {
+    filter: brightness(1.25);
+}
+
+/* Disabled says so on its own. It had NO styling at all before this -- the
+   attribute was emitted and the button looked identical to a live one. */
+.blacksmith-card-buttons button.card-button:disabled {
+    opacity: var(--blacksmith-card-button-disabled-opacity);
+    cursor: not-allowed;
+}
+
+/* Inherit, so an icon follows whatever colour its button set rather than pinning
+   itself to the outlined one and going invisible on a fill. */
 .blacksmith-card-buttons button.card-button i,
 .blacksmith-chat-buttons button.chat-button i {
-    color: var(--blacksmith-card-button-text);
+    color: inherit;
     margin-top: 0px;
     margin-right: var(--blacksmith-space-sm);
     flex-shrink: 0;
@@ -432,32 +551,46 @@
     padding: var(--blacksmith-space-xs) 0;
 }
 /* Table */
+/*
+    Tables come in through `richtext`, authored in a journal, so the card governs
+    how they look rather than how they are built.
+
+    `border-collapse` matters more than it looks: without it every cell draws its
+    own edge beside its neighbour's and the internal rules render doubled. The rule
+    was absent here, which is why the old table read as heavier than the rest of a
+    card. `width: 100%` because a journal table set to a pixel width would otherwise
+    overflow a chat card, and `table-layout` is left alone so columns still size to
+    their content.
+
+    Colour comes from tokens now -- see --blacksmith-card-table-border. The
+    font-size declared on the table element was overridden on every th, tr and td
+    below it, so it never applied to anything; stating the size once on the table
+    and letting cells inherit is the same result with three fewer declarations.
+*/
 .blacksmith-card table {
-    font-size: var(--blacksmith-font-size-xs);
+    width: 100%;
     margin: var(--blacksmith-space-md) 0;
-    border-top: 1px solid #BDB7A0;
-	border-bottom: 1px solid #BDB7A0;
-	border-left: 1px dotted #BDB7A0;
-	border-right: 1px dotted #BDB7A0;
+    border-collapse: collapse;
+    font-size: var(--blacksmith-font-size-base);
+    border: 1px solid var(--blacksmith-card-table-border);
 }
-/* Table Heading */
+
 .blacksmith-card table th {
-    font-size: var(--blacksmith-font-size-base);
-	vertical-align: bottom;
+    vertical-align: bottom;
+    text-align: left;
     padding: 3px var(--blacksmith-space-md);
-    background: #E5E1D5;
-	border-bottom: 1px solid #BDB7A0;
+    background: var(--blacksmith-card-table-head-fill);
+    border-bottom: 1px solid var(--blacksmith-card-table-border);
 }
-/* Table Row */
+
+/* `padding` on a row is ignored by every browser -- it belongs on the cells, which
+   is where it now is. It was declared here for years and did nothing. */
 .blacksmith-card table tr {
-    font-size: var(--blacksmith-font-size-base);
-    padding: 3px var(--blacksmith-space-sm);
-    background: #F3F1E9;
-    border-bottom: 1px dotted #CAC5B0;
+    background: var(--blacksmith-card-table-row-fill);
+    border-bottom: 1px dotted var(--blacksmith-card-table-rule);
 }
-/* Table Cell */
+
 .blacksmith-card table td {
-    font-size: var(--blacksmith-font-size-base);
     padding: 3px var(--blacksmith-space-md);
 }
 /* Preformatted */
@@ -467,10 +600,8 @@
 	font-family: var(--font-primary);
     margin: 0;
     padding: 3px 0;
-    border-top: 0px solid #7A7972;
-	border-bottom: 0px solid #7A7972;
-	border-left: 0px dotted #BDB7A0;
-	border-right: 0px dotted #BDB7A0;
+    /* Four border declarations lived here, all at 0px, so they drew nothing and
+       had nothing to do with the colours they named. */
 }
 
 
