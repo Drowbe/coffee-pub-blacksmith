@@ -4,7 +4,7 @@
       conditions" differ only in which of these fields are filled. --}}
 <div class="cpb-part-rows">
     {{#each items}}
-    <div class="cpb-part-row">
+    <div class="cpb-part-row{{#if this.tone}} cpb-tone-{{this.tone}}{{/if}}{{#if this.emphasis}} cpb-emphasis{{/if}}{{#if this.animation}} cpb-anim-{{this.animation}}{{/if}}">
         {{#if this.img}}<img class="cpb-part-row-img" src="{{this.img}}" alt="" />{{/if}}
         {{#if this.icon}}<i class="cpb-part-row-icon {{this.icon}}"></i>{{/if}}
         <div class="cpb-part-row-text">

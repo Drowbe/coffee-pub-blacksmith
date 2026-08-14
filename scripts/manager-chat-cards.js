@@ -71,9 +71,10 @@ export const CARD_PARTS = Object.freeze({
     tiles:    { template: 'part-tiles',    text: [] },
     section:  { template: 'part-section',  text: ['label'] },
     prose:    { template: 'part-prose',    text: [] },
+    pips:     { template: 'part-pips',     text: [] },
     rows:     { template: 'part-rows',     text: [] },
     badges:   { template: 'part-badges',   text: [] },
-    panel:    { template: 'part-panel',    text: ['label'] },
+    panel:    { template: 'part-panel',    text: ['label', 'intro'] },
     notes:    { template: 'part-notes',    text: [] },
     actions:  { template: 'part-actions',  text: ['instruction'] },
     richtext: { template: 'part-richtext', text: [] }
@@ -272,6 +273,23 @@ export class ChatCardsManager {
                 sublabel: item.sublabel ? await processText(item.sublabel, options) : '',
                 trailing: item.trailing ? await processText(item.trailing, options) : ''
             })));
+        }
+
+        if (id === 'pips') {
+            // Groups arrive as counts; the template wants an array per slot so it
+            // can mark each one filled or empty. The leading group is reversed so
+            // that with a centre marker both groups fill outward from it.
+            const groups = (part.groups ?? []).slice(0, 2).map((group) => ({
+                tone: group.tone ?? 'neutral',
+                pips: Array.from({ length: Math.max(0, Number(group.total) || 0) },
+                                 (_slot, index) => index < (Number(group.filled) || 0))
+            }));
+
+            const center = part.center ?? null;
+            context.center = center;
+            context.leading = groups[0] ?? null;
+            context.trailing = groups[1] ?? null;
+            if (center && groups[0]) context.leading.pips = [...groups[0].pips].reverse();
         }
 
         if (id === 'tiles') {

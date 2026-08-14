@@ -37,6 +37,36 @@
     opacity: 0.8;
 }
 
+/* ---------- IMAGE STACK ---------- */
+
+.blacksmith-card .cpb-part-image-stack {
+    position: relative;
+    line-height: 0;
+}
+
+.blacksmith-card .cpb-part-image-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* The base image owns the frame; an overlay sits inside it, so it must not
+       repeat the border or it draws a second one a pixel off. */
+    border: none !important;
+    pointer-events: none;
+}
+
+/* ---------- SECTION ALIGNMENT ---------- */
+
+/*
+    A centred section is the contested-roll separator ("Arcana - VS - Arcana").
+    It drops the rule, because a divider that is already flanked by two labelled
+    groups does not need a second horizontal line to say the same thing.
+*/
+.blacksmith-card .section-header.cpb-section-center {
+    text-align: center;
+    border-bottom: none;
+}
+
 /* ---------- METER ---------- */
 
 .blacksmith-card .cpb-part-meter {
@@ -129,55 +159,40 @@
     display: flex;
     align-items: center;
     gap: var(--blacksmith-space-sm);
-    padding: var(--blacksmith-space-xs);
+    /* Matches the horizontal-over-vertical padding of .section-dark. The first
+       pass used a flat space-xs and read visibly meaner than the hand-written
+       cards it replaces. */
+    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
     background: var(--blacksmith-card-background);
-    border-radius: var(--blacksmith-radius-sm);
-}
-
-.blacksmith-card .cpb-part-row-img {
-    flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
-    object-fit: cover;
     border: 1px solid var(--blacksmith-card-border-color);
-    border-radius: var(--blacksmith-radius-sm);
+    border-radius: var(--blacksmith-radius-md);
 }
 
-.blacksmith-card .cpb-part-row-icon {
-    flex: 0 0 auto;
+/*
+    Outcome tone and emphasis. `tone` sets the colour; `emphasis` promotes it to
+    a filled, bordered, glowing treatment. Neither implies motion -- animation is
+    a separate, named choice, so a card can pair any tone with any animation or
+    none. Tying the two together would have hard-coded "critical shakes
+    vertically, fumble shakes horizontally" into the part, which is a d20 rule
+    living somewhere it has no business being.
+*/
+.blacksmith-card .cpb-part-row.cpb-tone-success .cpb-part-row-trailing { color: rgba(36, 91, 23, 1.0); font-weight: 900; }
+.blacksmith-card .cpb-part-row.cpb-tone-failure .cpb-part-row-trailing { color: #952023; font-weight: 900; }
+.blacksmith-card .cpb-part-row.cpb-tone-pending { opacity: 0.65; }
+
+.blacksmith-card .cpb-part-row.cpb-tone-success.cpb-emphasis {
+    background: rgba(36, 91, 23, 0.15);
+    border-color: rgba(36, 91, 23, 0.4);
+    box-shadow: 0 0 2px rgba(98, 150, 2, 0.5);
 }
 
-.blacksmith-card .cpb-part-row-text {
-    flex: 1 1 auto;
-    min-width: 0;
+.blacksmith-card .cpb-part-row.cpb-tone-failure.cpb-emphasis {
+    background: rgba(149, 32, 35, 0.15);
+    border-color: rgba(149, 32, 35, 0.4);
+    box-shadow: 0 0 5px rgba(149, 32, 35, 0.3);
 }
 
-.blacksmith-card .cpb-part-row-label {
-    color: var(--blacksmith-card-text);
-}
-
-.blacksmith-card .cpb-part-row-sublabel {
-    font-size: 0.85em;
-    opacity: 0.75;
-    color: var(--blacksmith-card-section-content-text);
-}
-
-.blacksmith-card .cpb-part-row-count,
-.blacksmith-card .cpb-part-row-trailing {
-    font-weight: bold;
-    color: var(--blacksmith-card-section-header-text);
-}
-
-.blacksmith-card .cpb-part-row-trailing {
-    flex: 0 0 auto;
-    white-space: nowrap;
-}
-
-.blacksmith-card .cpb-part-row-action {
-    flex: 0 0 auto;
-    width: auto;
-    padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
-}
+.blacksmith-card .cpb-part-row.cpb-emphasis .cpb-part-row-label { font-weight: 900; }
 
 /* ---------- BADGES ---------- */
 
@@ -201,33 +216,19 @@
 
 /* ---------- PANEL ---------- */
 
-.blacksmith-card .cpb-part-panel {
-    margin: var(--blacksmith-space-sm) 0;
-    padding: var(--blacksmith-space-sm);
-    background: var(--blacksmith-card-background);
-    border: 1px solid var(--blacksmith-card-border-color);
-    border-radius: var(--blacksmith-radius-md);
+/*
+    The box itself is .section-content.section-dark from cards-common-layout.css,
+    so a panel is the same object the injury and outcome cards already used. Only
+    the bits that class does not cover are below.
+*/
+
+.blacksmith-card .cpb-part-panel .cpb-part-panel-value {
+    font-weight: normal;
+    opacity: 0.9;
 }
 
-.blacksmith-card .cpb-part-panel-header {
-    margin-bottom: var(--blacksmith-space-xs);
-    font-weight: bold;
-    color: var(--blacksmith-card-section-header-text);
-}
-
-.blacksmith-card .cpb-part-panel-row {
-    display: flex;
-    align-items: baseline;
-    gap: var(--blacksmith-space-xs);
-}
-
-.blacksmith-card .cpb-part-panel-label {
-    flex: 1 1 auto;
-}
-
-.blacksmith-card .cpb-part-panel-value {
-    flex: 0 0 auto;
-    font-weight: bold;
+.blacksmith-card .cpb-part-panel p:last-child {
+    margin-bottom: 0;
 }
 
 /* ---------- NOTES ---------- */
@@ -273,3 +274,124 @@
 
 .blacksmith-card .cpb-part-richtext > :first-child { margin-top: 0; }
 .blacksmith-card .cpb-part-richtext > :last-child { margin-bottom: 0; }
+
+/* ---------- PIPS ---------- */
+
+/*
+    Discrete state slots around an optional centre marker. Sizes and colours are
+    Crier's, so the death-save widget is visually the same object after migration
+    as before -- 13px rounded squares, dark green for a success, dark red for a
+    failure, near-transparent when empty.
+*/
+
+.blacksmith-card .cpb-part-pips {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--blacksmith-space-xs);
+    margin: var(--blacksmith-space-sm) 0;
+}
+
+.blacksmith-card .cpb-part-pips.cpb-pips-centred {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+}
+
+.blacksmith-card .cpb-part-pip-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.blacksmith-card .cpb-pips-centred .cpb-pip-lead { justify-content: flex-end; }
+.blacksmith-card .cpb-pips-centred .cpb-pip-trail { justify-content: flex-start; }
+
+.blacksmith-card .cpb-part-pip {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border-radius: 25%;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.blacksmith-card .cpb-pip-tone-success .cpb-part-pip.cpb-pip-filled { background-color: rgba(27, 63, 31, 0.9); }
+.blacksmith-card .cpb-pip-tone-failure .cpb-part-pip.cpb-pip-filled { background-color: rgba(119, 20, 16, 0.9); }
+.blacksmith-card .cpb-pip-tone-neutral .cpb-part-pip.cpb-pip-filled { background-color: var(--blacksmith-card-header-text); }
+
+.blacksmith-card .cpb-part-pip-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+}
+
+/* The centre is the click target when the card supplies an action. Styled as a
+   bare icon rather than a button so an interactive widget does not read as a
+   form control sitting in the middle of a card. */
+.blacksmith-card .cpb-part-pip-button {
+    width: auto;
+    padding: 0 var(--blacksmith-space-xs);
+    margin: 0;
+    line-height: 1;
+    background: none;
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+    color: inherit;
+}
+
+.blacksmith-card .cpb-part-pip-button:hover {
+    color: var(--blacksmith-card-hover-color);
+}
+
+/* ---------- ANIMATIONS ---------- */
+
+/*
+    A named vocabulary any part can opt into, applied as `animation: 'shake-x'`
+    and rendered as .cpb-anim-{name}. Callers name a motion, never a meaning:
+    a critical hit is tone success plus shake-y, but nothing here knows that, so
+    a crafting success or a countdown can use the same motion.
+
+    Add a name here and it is available to every part at once.
+
+    The shakes move for the first ~16% of the cycle and then rest, so a card
+    twitches every few seconds rather than vibrating continuously -- important
+    when several animated rows sit in one card. The pulse is a double-blink
+    heartbeat, carried over from Crier's death-save skull.
+*/
+
+.cpb-anim-shake-x { animation: cpb-shake-x 4s ease-in-out infinite; }
+.cpb-anim-shake-y { animation: cpb-shake-y 5s ease-in-out infinite; }
+.cpb-anim-pulse   { animation: cpb-pulse 3s infinite; }
+.cpb-anim-glow    { animation: cpb-glow 2.5s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+    .cpb-anim-shake-x,
+    .cpb-anim-shake-y,
+    .cpb-anim-pulse,
+    .cpb-anim-glow { animation: none; }
+}
+
+@keyframes cpb-shake-x {
+    0%, 100%          { transform: translateX(0); }
+    2%, 6%, 10%, 14%  { transform: translateX(-2px); }
+    4%, 8%, 12%       { transform: translateX(2px); }
+    16%, 100%         { transform: translateX(0); }
+}
+
+@keyframes cpb-shake-y {
+    0%, 100%          { transform: translateY(0); }
+    2%, 6%, 10%, 14%  { transform: translateY(-2px); }
+    4%, 8%, 12%       { transform: translateY(2px); }
+    16%, 100%         { transform: translateY(0); }
+}
+
+@keyframes cpb-pulse {
+    0%, 40%, 60%, 100% { opacity: 1; }
+    45%, 55%           { opacity: 0.6; }
+}
+
+@keyframes cpb-glow {
+    0%, 100% { filter: drop-shadow(0 0 0 currentColor); }
+    50%      { filter: drop-shadow(0 0 3px currentColor); }
+}

@@ -1,4 +1,5 @@
-{{!-- Section divider: icon, label, rule. --}}
-<div class="section-header">
+{{!-- Section divider: icon, label, rule. `align: 'center'` drops the rule and
+      centres the label, which is the contested-roll separator shape. --}}
+<div class="section-header{{#if align}} cpb-section-{{align}}{{/if}}">
     {{#if icon}}<i class="{{icon}}"></i> {{/if}}{{{label}}}
 </div>

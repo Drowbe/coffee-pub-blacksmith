@@ -37,6 +37,16 @@ Parts are declared in `CARD_PARTS` in `scripts/manager-chat-cards.js`, each nami
 
 Parts that match structure the card system already had - header, identity chip, section divider, prose, key/value table, buttons - render into the existing classes in `styles/cards-common-layout.css`. Only parts with no prior equivalent have rules in `styles/cards-parts.css`.
 
+## Animations
+
+Motion is a named vocabulary in `styles/cards-parts.css` - `shake-x`, `shake-y`, `pulse`, `glow` - applied as `.cpb-anim-{name}`. A part that accepts an `animation` field takes one of those names.
+
+**A name describes a motion, never a meaning.** The crit and fumble rules in `cards-skill-check.css` bind green to a vertical shake and red to a horizontal one; those are d20 rules, and the parts system deliberately does not know them. A card states its tone and its motion separately, so the same shake is available to a crafting result or a countdown.
+
+All animations are suppressed under `prefers-reduced-motion`. Adding a name makes it available to every part at once.
+
+The `pips` centre and `rows` items accept one today. The shake keyframes live here rather than in `cards-skill-check.css` because that file is scheduled for deletion and keyframes are document-global, so the definition must outlive its first caller.
+
 ## The text pipeline
 
 Consumer text runs through three stages in `processText`, and the order is load-bearing:

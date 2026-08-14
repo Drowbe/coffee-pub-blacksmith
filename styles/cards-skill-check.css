@@ -134,26 +134,11 @@
 }
 
 /* Animations */
-@keyframes cpb-shake-x {
-    /* First 0–16% (≈0.5s of 3s) does the shake */
-    0%, 100%   { transform: translateX(0); }
-    2%, 6%, 10%, 14%   { transform: translateX(-2px); }
-    4%, 8%, 12%        { transform: translateX(2px); }
-    /* Rest of the cycle (16%–100%) stays still */
-    16%, 100% { transform: translateX(0); }
-}
 
-@keyframes cpb-shake-y {
-    /* First 0–16% (≈0.5s of 3s) does the shake */
-    0%, 100%   { transform: translateY(0); }
-    2%, 6%, 10%, 14%   { transform: translateY(-2px); }
-    4%, 8%, 12%        { transform: translateY(2px); }
-    /* Rest of the cycle (16%–100%) stays still */
-    16%, 100% { transform: translateY(0); }
-}
-
-
-
+/* cpb-shake-x and cpb-shake-y now live in cards-parts.css, alongside the named
+   animation vocabulary the parts system uses. Keyframes are document-global, so
+   the rules below still resolve. When this file goes, these rules go with it --
+   a parts-based roll card names its motion instead. */
 
 /* Roll Results */
 

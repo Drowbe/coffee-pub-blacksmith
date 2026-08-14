@@ -54,20 +54,57 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 |---|---|---|
 | `header` | icon and title bar | `icon`, `title` |
 | `identity` | avatar, primary name, secondary line | `img`, `name`, `subtitle` |
-| `image` | picture with optional caption | `src`, `alt`, `caption` |
+| `image` | picture with optional caption and stacked overlays | `src`, `alt`, `caption`, `overlays: [src]` |
 | `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`warn`/`danger`; derived if omitted) |
 | `band` | full-width emphasised text | `text` |
 | `tiles` | grid of caption-over-value boxes | `items: [{ label, value }]`, `columns` (defaults to the item count, max 6) |
-| `section` | divider with icon and label | `icon`, `label` |
+| `section` | divider with icon and label | `icon`, `label`, `align` (`center` drops the rule) |
 | `prose` | structured text blocks | `blocks` (see below) |
-| `rows` | thumbnail or icon, label, optional sub-line, optional trailing value or button | `items: [{ img, icon, uuid, label, sublabel, count, trailing, action, actionIcon, value, moduleId }]` |
+| `pips` | discrete state slots around an optional centre marker | `groups: [{ total, filled, tone }]`, `center` (see below) |
+| `rows` | thumbnail or icon, label, optional sub-line, optional trailing value or button | `items: [{ img, icon, uuid, label, sublabel, count, trailing, tone, emphasis, action, actionIcon, value, moduleId }]` |
 | `badges` | inline chips | `items: [{ icon, label }]` |
-| `panel` | boxed sub-block | `icon`, `label`, `rows: [{ icon, label, value }]` |
+| `panel` | boxed sub-block | `icon`, `label`, `intro`, `rows: [{ icon, label, value }]` |
 | `notes` | footer annotations | `items: [{ icon, text }]` |
 | `actions` | instruction line and buttons | `instruction`, `buttons: [{ action, label, icon, value, moduleId, disabled }]` |
 | `richtext` | document-sourced HTML | `html` (see below) |
 
 On `rows`, supplying `uuid` turns the label into a real Foundry document link, with `label` as its display text. `count` prefixes the label; `trailing` follows it; `action` puts a button at the end.
+
+### Pips
+
+Discrete slots - death saves, hit dice, charges, ammunition, legendary actions. With a centre marker the two groups fill outward from it.
+
+```javascript
+{ part: 'pips',
+  center: { icon: 'fa-solid fa-skull', animation: 'pulse',
+            moduleId: 'coffee-pub-yourmodule', action: 'roll-death-save',
+            tooltip: 'Roll a death saving throw' },
+  groups: [{ total: 3, filled: 1, tone: 'success' },
+           { total: 3, filled: 2, tone: 'failure' }] }
+```
+
+The centre is the click target; supply `action` to make it interactive, omit it for a readout. Individual pips are display-only. At most two groups are rendered.
+
+### Animations
+
+Any part that accepts an `animation` takes a name from a shared vocabulary: `shake-x`, `shake-y`, `pulse`, `glow`. `rows` items and a `pips` centre accept one today.
+
+Name a **motion, never a meaning**. A critical hit is `tone: 'success'` with `animation: 'shake-y'`, but nothing in the part knows that - the same motion is available to a crafting success or a countdown. Animations are suppressed under `prefers-reduced-motion`. New names are added centrally in `styles/cards-parts.css` and become available to every part at once.
+
+### Row outcome states
+
+A row can carry an outcome. `tone` is `success`, `failure`, or `pending`, and sets colour. `emphasis` promotes it to a filled, bordered, glowing treatment. Motion is separate - add `animation` if you want it.
+
+```javascript
+{ label: 'Kar-ahn', trailing: '21', tone: 'success', emphasis: true, animation: 'shake-y' }
+{ label: 'Skylar',  trailing: '16', tone: 'success' }
+{ label: 'Noodle',  trailing: '2',  tone: 'failure', emphasis: true, animation: 'shake-x' }
+{ label: 'Cyrus',   tone: 'pending' }
+```
+
+Say what happened and how much it matters; the part chooses the colours. Nothing in the vocabulary assumes a die was rolled - a failed import or a rejected transfer uses the same fields.
+
+On `panel`, `label` is the bold lead and `intro` is prose that follows it on the same line ("**Treatment**: Cool your wounds by..."). Each row is a flowing line of icon plus statement, not a label/value column.
 
 ## Prose
 

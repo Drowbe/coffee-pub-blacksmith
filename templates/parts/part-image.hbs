@@ -1,5 +1,12 @@
-{{!-- Banner or portrait, with optional caption. --}}
+{{!-- Banner or portrait, with optional caption and optional stacked overlays.
+      Crier lays a blood layer over a character portrait, chosen by remaining hit
+      points -- overlays are ordinary images drawn on top, not a special case. --}}
 <div class="cpb-part-image">
-    <img src="{{src}}" alt="{{alt}}" />
+    <div class="cpb-part-image-stack">
+        <img src="{{src}}" alt="{{alt}}" />
+        {{#each overlays}}
+        <img class="cpb-part-image-overlay" src="{{this}}" alt="" />
+        {{/each}}
+    </div>
     {{#if caption}}<div class="cpb-part-image-caption">{{{caption}}}</div>{{/if}}
 </div>

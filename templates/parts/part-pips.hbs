@@ -1,0 +1,45 @@
+{{!-- Discrete state slots, optionally split around a centre marker.
+
+      Death saves are one use; hit dice, charges, ammunition, and legendary
+      actions are the same shape. With a centre marker, the leading group is
+      right-aligned and the trailing group left-aligned, so both fill outward
+      from the centre -- the marker is the pivot, which is how Crier's widget has
+      always read.
+
+      The centre is the click target when an action is supplied; individual pips
+      stay display-only. --}}
+<div class="cpb-part-pips{{#if center}} cpb-pips-centred{{/if}}">
+
+    {{#if leading}}
+    <div class="cpb-part-pip-group cpb-pip-lead cpb-pip-tone-{{leading.tone}}">
+        {{#each leading.pips}}
+        <span class="cpb-part-pip{{#if this}} cpb-pip-filled{{/if}}"></span>
+        {{/each}}
+    </div>
+    {{/if}}
+
+    {{#if center}}
+    <div class="cpb-part-pip-center">
+        {{#if center.action}}
+        <button type="button" class="cpb-part-pip-button"
+                data-cpb-module="{{center.moduleId}}" data-cpb-action="{{center.action}}"
+                {{#if center.value}}data-cpb-value="{{center.value}}"{{/if}}
+                {{#if center.tooltip}}data-tooltip="{{center.tooltip}}"{{/if}}>
+            <i class="{{center.icon}}{{#if center.animation}} cpb-anim-{{center.animation}}{{/if}}"></i>
+        </button>
+        {{else}}
+        <i class="{{center.icon}}{{#if center.animation}} cpb-anim-{{center.animation}}{{/if}}"
+           {{#if center.tooltip}}data-tooltip="{{center.tooltip}}"{{/if}}></i>
+        {{/if}}
+    </div>
+    {{/if}}
+
+    {{#if trailing}}
+    <div class="cpb-part-pip-group cpb-pip-trail cpb-pip-tone-{{trailing.tone}}">
+        {{#each trailing.pips}}
+        <span class="cpb-part-pip{{#if this}} cpb-pip-filled{{/if}}"></span>
+        {{/each}}
+    </div>
+    {{/if}}
+
+</div>

@@ -1,15 +1,18 @@
-{{!-- Boxed sub-block with icon rows. --}}
-<div class="cpb-part-panel">
+{{!-- Boxed sub-block. Renders as .section-content.section-dark -- the same
+      treatment the injury and outcome cards have always used -- so a panel looks
+      identical whether it was hand-written before or composed now. Rows are
+      flowing lines of icon plus text, not a label/value table: the originals put
+      the whole statement in the line ("Permanent", "13% of max Hit Points"), and
+      forcing a right-aligned value stretched them apart. --}}
+<div class="section-content section-dark cpb-part-panel">
     {{#if label}}
-    <div class="cpb-part-panel-header">
-        {{#if icon}}<i class="{{icon}}"></i> {{/if}}{{{label}}}
-    </div>
+    <p class="cpb-part-panel-lead">
+        {{#if icon}}<i class="{{icon}}"></i>{{/if}}<strong>{{{label}}}</strong>{{#if intro}}: {{{intro}}}{{/if}}
+    </p>
     {{/if}}
     {{#each rows}}
-    <div class="cpb-part-panel-row">
-        {{#if this.icon}}<i class="{{this.icon}}"></i>{{/if}}
-        <span class="cpb-part-panel-label">{{{this.label}}}</span>
-        {{#if this.value}}<span class="cpb-part-panel-value">{{{this.value}}}</span>{{/if}}
-    </div>
+    <p>
+        {{#if this.icon}}<i class="{{this.icon}}"></i>{{/if}}<strong>{{{this.label}}}</strong>{{#if this.value}} <span class="cpb-part-panel-value">{{{this.value}}}</span>{{/if}}
+    </p>
     {{/each}}
 </div>
