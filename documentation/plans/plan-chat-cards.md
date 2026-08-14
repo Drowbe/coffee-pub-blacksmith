@@ -3,7 +3,7 @@
 **Status: Implemented through step 3, unverified in a live world beyond a first smoke test.** The parts
 library, the renderer, the posting API, the action dispatcher, and Blacksmith's simple cards are built; steps
 4 to 7 are not. What is owed before this plan can be dismantled is in
-`documentation/testing/testing-chat-cards.md`.
+`testing/chat-cards.md`.
 
 The inventory in "What exists today" was gathered from code on 2026-08-13 and is evidence, not design. The
 design starts at "Decisions".

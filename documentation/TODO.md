@@ -951,6 +951,13 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
   code: values already saved in world settings, journal entries, tiles, and playlists that point at
   `modules/coffee-pub-blacksmith/images/...`. Those live in the author's world, not this repo, and moving
   the file silently breaks them.
+- **Status: deferred (2026-08-13).** Not blocked on anything, just not now.
+- **When it happens it needs a migration tool, not a `git mv`.** The author's call. A world already holds
+  paths pointing at the old locations in settings, journals, tiles, and playlists, and only a tool that
+  walks those documents and rewrites them can move the files without breaking a live world. Writing that
+  tool is the bulk of this item; moving the files is the easy part. It belongs in `testing/`'s neighbour
+  `utilities/`, since it is a one-off action a person runs, and it should report what it changed rather
+  than changing things silently.
 - **Therefore**: this needs a decision on whether to leave redirect stubs, ship a one-time migration that
   rewrites stored setting values, or accept the breakage and fix references by hand. Do not start the move
   before that is settled.

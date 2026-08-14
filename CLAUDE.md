@@ -66,6 +66,7 @@ pasted into a script macro. It is not an automated suite and there is no runner.
 | `testing/suites/suite-*.js` | The suites themselves, loaded by the harness. |
 | `testing/data/` | JSON fixtures fed to the importer by hand. Data, not code. |
 | `testing/preview-chat-cards.js` | Posts every chat-card part and variant, for visual comparison. |
+| `testing/*.md` | Verification owed: what has shipped and is not yet proven, and how to prove it. Never published — see the testing-doc rules below. |
 
 **Do not confuse `testing/` with the other four directories that look adjacent.** They differ by *who runs
 them and where*:
@@ -118,7 +119,7 @@ one you must not touch. Check `git log --oneline | grep BUILD` instead: if the t
 BUILD commit, open a new heading above it.
 | **Architecture** | `documentation/architecture/` | us, and the other Coffee Pub modules | How the module is built and why. **This is the anti-crawl artifact** — the place for things you can only learn by reading code. `architecture-blacksmith.md` is the map. |
 | **API** | `documentation/api/` | anyone leveraging Blacksmith — mostly the other Coffee Pub modules, and Blacksmith itself | The public surface. Authoritative. Update it when you change the surface. |
-| **Testing** | `documentation/testing/` | us | **Transitional.** What has shipped and is not yet proven, and how to prove it. Deleted when empty. Never a record of what passed — that is the `CHANGELOG.md` verification line. See below. |
+| **Testing** | `testing/` | us | **Transitional.** What has shipped and is not yet proven, and how to prove it. Deleted when empty. Never a record of what passed — that is the `CHANGELOG.md` verification line. See below. |
 
 Cross-module work spanning the suite goes in `documentation/TODO-GLOBAL.md`, not `TODO.md`.
 
@@ -141,9 +142,15 @@ dismantled into the five kinds above: work → `TODO.md`, design → architectur
 
 ### Testing docs are scaffolding too
 
-`documentation/testing/` is the other transitional kind, added 2026-08-08. A testing doc holds **verification
-that is owed** — code that has shipped and has not been proven in a running world — and the steps to discharge
-it. Same lifecycle as a plan: it exists until it doesn't.
+`testing/` holds the other transitional kind, added 2026-08-08. A testing doc holds **verification that is
+owed** — code that has shipped and has not been proven in a running world — and the steps to discharge it.
+Same lifecycle as a plan: it exists until it doesn't.
+
+**It lives in `testing/` rather than `documentation/`, next to the harness and the suites that discharge it.**
+A verification backlog and the scripts that clear it are one job, and splitting them across two trees meant
+reading a checklist in one place and running it from another. It is also the only doc kind that is never
+published — `tools/wiki-sync.mjs` only scans `documentation/`, so being outside that tree means a
+verification backlog cannot leak to the wiki by accident rather than merely by policy.
 
 It exists because the two homes that already existed are both wrong for it. `TODO.md` is *work we will do*, and
 unverified code is not work — the work is finished, the confidence is missing. `CHANGELOG.md` records what was

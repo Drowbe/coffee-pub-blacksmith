@@ -327,7 +327,7 @@ can simply take it.
 ## Squire tool adoption — Squire's half (Blacksmith side shipped 2026-08-09, unverified)
 
 Dice Tray, Macros, and Health now live in Blacksmith. Blacksmith's side is written but **has not been run in
-a world** — see `documentation/testing/testing-squire-tool-adoption.md`. **Squire must not delete anything
+a world** — see `testing/squire-tool-adoption.md`. **Squire must not delete anything
 until the relevant section of that document passes**, or there is a release with no dice tray at all.
 
 Once it passes, Squire:
