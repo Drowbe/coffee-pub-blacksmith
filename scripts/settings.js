@@ -1397,40 +1397,15 @@ export const registerSettings = () => {
 	// --------------------------------------
 	registerHeader('FoundryEnhancements', 'headingH2FoundryEnhancements-Label', 'headingH2FoundryEnhancements-Hint', 'H2', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'user');
 
-	// --------------------------------------
-	// -- H3: QUALITY OF LIFE
-	// --------------------------------------
-	// World: the only setting under it (objectLinkStyle) is world. `coreLoadingProgress`
-	// looks like it belongs here but does not -- it is registered from blacksmith.js
-	// during `init`, long before registerSettings() runs in `ready`, so it renders at
-	// the very top of Blacksmith's settings above every heading, not under this one.
-	registerHeader('QualityOfLife', 'headingH3QualityOfLife-Label', 'headingH3QualityOfLife-Hint', 'H3', WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE, 'world');
-
+	// No H3 here. There was a Quality of Life heading, but its only member was the
+	// object link style, and `coreLoadingProgress` below never rendered under it --
+	// it is registered from blacksmith.js during `init`, long before registerSettings()
+	// runs in `ready`, so it appears at the very top of Blacksmith's settings above
+	// every heading. Removing the link style would have left an empty heading.
 
 	// -- Foundry Loading Progress--
 	ensureCoreLoadingProgressSettingRegistered();
 
-
-	// -- Object Link Style --
-	game.settings.register(MODULE.ID, 'objectLinkStyle', {
-		name: MODULE.ID + '.objectLinkStyle-Label',
-		hint: MODULE.ID + '.objectLinkStyle-Hint',
-		scope: 'world',
-		config: true,
-		requiresReload: true,
-		type: String,
-		default: 'none',
-		choices: {
-			'none': 'Foundry Default',
-			'text': 'Simple Text',
-			'green': 'Green',
-			'red': 'Red',
-			'blue': 'Blue',
-			'light': 'Light Mode',
-			'dark': 'Dark Mode',
-		},
-		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
-	});
 
 	// --------------------------------------
 	// -- H3: CANVAS TOOLS

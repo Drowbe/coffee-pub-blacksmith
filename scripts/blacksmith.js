@@ -713,8 +713,6 @@ function initializeSettingsDependentFeatures() {
     updateChatStyles();
     // Update any scene overrides
     updateSceneStyles();
-    // Update any link style overrides
-    updateObjectLinkStyles();
     // Set default card theme
     let strDefaultCardTheme = getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
     BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
@@ -2440,112 +2438,6 @@ function _scrollChatToBottom() {
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, `_scrollChatToBottom error:`, error, true, false);
     }
-}
-
-// ***************************************************
-// ** UTILITY Update Link Styles
-// ***************************************************
-
-function updateObjectLinkStyles() {
-    // Get the settings
-    const objectLinkStyle = getCachedSetting('objectLinkStyle');
-    // Set defaults
-    var strAContentLinkColor = "#191814";
-    var strAContentLinkBackground = "#dddddd";
-    var strAContentLinkBorder = "#4b4a45";
-    var strAContentLinkHoverBackground = "#dddddd";
-    var strAContentLinkHoverBorder = "#4b4a45";
-    var strAContentLinkBoxShadowColor = "#4f4a4a";
-    var strAContentLinkBoxShadowBorder = "0px";
-    var strAContentLinkIColor = "#7a7972";
-    var strAContentLinkBorderRadius = "0px";
-    var strAContentLinkTextTransform = "none";
-    // Set the Style
-	if (objectLinkStyle == "green") {
-		strAContentLinkColor = "#ffffff";
-        strAContentLinkIColor = "#ffffff";
-        strAContentLinkBackground = "#0D551A";
-        strAContentLinkBorder = "#0A4715";
-        strAContentLinkHoverBackground = "#082405";
-        strAContentLinkHoverBorder = "#082405";
-        strAContentLinkBoxShadowColor = "#4f4a4a";
-        strAContentLinkBoxShadowBorder = "3px";
-        strAContentLinkBorderRadius = "3px";
-        strAContentLinkTextTransform = "uppercase";
-    } else if (objectLinkStyle == "dark") {
-        strAContentLinkColor = "#ffffff";
-        strAContentLinkIColor = "#B8AFAF";
-        strAContentLinkBackground = "#121212";
-        strAContentLinkBorder = "#000000";
-        strAContentLinkHoverBackground = "#4F4A4A";
-        strAContentLinkHoverBorder = "#4F4A4A";
-        strAContentLinkBoxShadowColor = "#4f4a4a";
-        strAContentLinkBoxShadowBorder = "3px";
-        strAContentLinkBorderRadius = "3px";
-        strAContentLinkTextTransform = "uppercase";
-    } else if (objectLinkStyle == "red") {
-        strAContentLinkColor = "#ffffff";
-        strAContentLinkIColor = "#ffffff";
-        strAContentLinkBackground = "#7B0A00";
-        strAContentLinkBorder = "#2F0400";
-        strAContentLinkHoverBackground = "#2F0400";
-        strAContentLinkHoverBorder = "#2F0400";
-        strAContentLinkBoxShadowColor = "#311210";
-        strAContentLinkBoxShadowBorder = "3px";
-        strAContentLinkBorderRadius = "3px";
-        strAContentLinkTextTransform = "uppercase";
-    } else if (objectLinkStyle == "blue") {
-        strAContentLinkColor = "#ffffff";
-        strAContentLinkIColor = "#B8AFAF";
-        strAContentLinkBackground = "#173E56";
-        strAContentLinkBorder = "#0E2737";
-        strAContentLinkHoverBackground = "#0E2737";
-        strAContentLinkHoverBorder = "#2F6C95";
-        strAContentLinkBoxShadowColor = "#202020";
-        strAContentLinkBoxShadowBorder = "3px";
-        strAContentLinkBorderRadius = "3px";
-        strAContentLinkTextTransform = "uppercase";
-    } else if (objectLinkStyle == "text") {
-        strAContentLinkColor = "#191814";
-        strAContentLinkIColor = "#7a7972";
-        strAContentLinkBackground = "#00000000";
-        strAContentLinkBorder = "#7a797200";
-        strAContentLinkHoverBackground = "#00000000";
-        strAContentLinkHoverBorder = "#FF4F0F";
-        strAContentLinkBoxShadowColor = "#00000000";
-        strAContentLinkBoxShadowBorder = "0px";
-        strAContentLinkBorderRadius = "0px";
-        strAContentLinkTextTransform = "uppercase";
-    } else if (objectLinkStyle == "light") {
-        strAContentLinkColor = "#191814";
-        strAContentLinkIColor = "#7a7972";
-        strAContentLinkBackground = "#7a797240";
-        strAContentLinkBorder = "#7a797259";
-        strAContentLinkHoverBackground = "#7a7972A6";
-        strAContentLinkHoverBorder = "#7a7972ff";
-        strAContentLinkBoxShadowColor = "#00000000";
-        strAContentLinkBoxShadowBorder = "0px";
-        strAContentLinkBorderRadius = "0px";
-        strAContentLinkTextTransform = "uppercase";
-	} else {
-        // DO Not Update.
-	}
-   
-    // Update the stylesheet variables for cards and such if needed
-    if (objectLinkStyle !== "none") {
-        const root = getRootElement();
-        root.style.setProperty('--a-content-link-color', strAContentLinkColor);
-        root.style.setProperty('--a-content-link-background', strAContentLinkBackground);
-        root.style.setProperty('--a-content-link-border', strAContentLinkBorder);
-        root.style.setProperty('--a-content-link-hover-background', strAContentLinkHoverBackground);
-        root.style.setProperty('--a-content-link-hover-border', strAContentLinkHoverBorder);
-        root.style.setProperty('--a-content-link-box-shadow-color:', strAContentLinkBoxShadowColor);
-        root.style.setProperty('--a-content-link-box-shadow-border', strAContentLinkBoxShadowBorder);
-        root.style.setProperty('--a-content-link-i-color', strAContentLinkIColor);
-        root.style.setProperty('--a-content-link-border-radius', strAContentLinkBorderRadius);
-        root.style.setProperty('--a-content-link-text-transform', strAContentLinkTextTransform);
-    }
-
 }
 
 // ***************************************************

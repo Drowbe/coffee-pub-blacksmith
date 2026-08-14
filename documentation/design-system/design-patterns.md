@@ -38,7 +38,7 @@ the tag widget, whose template and script are complete but which no template cur
 The rest are per-feature: `toast.css`, `vote.css`, `settings.css`, `combat-tools.css`,
 `token-movement.css`, `latency.css`, `loading-progress.css`, `menu-context-global.css`,
 `tabs-scenes.css`, `utility-quickview.css`, `notes-gm.css`, `widget-tags.css`,
-`overrides-foundry.css`, `overrides-modules.css`, `links-themes.css`.
+`overrides-foundry.css`, `overrides-modules.css`.
 
 Two conventions hold across the tree. `cards-common-themes.css` contains color declarations only -- no
 radius, spacing, typography, or layout -- which is what makes a new theme a pure color exercise. And
@@ -64,8 +64,8 @@ are separate classes applied alongside the base: `.is-active`, `.active`, `.coll
 
 Global tokens are `--blacksmith-[category]-[step]` and live in `vars.css`. Component-scoped properties
 follow `--blacksmith-[component]-[property]` and live with their component: `--blacksmith-card-*` (16),
-`--blacksmith-menubar-*` (32), `--blacksmith-pin-*` (6). Two families predate the convention and keep
-their own shape: `--secondary-bar-*` (6) and `--a-content-link-*` (10, in `styles/links-themes.css:6`).
+`--blacksmith-menubar-*` (32), `--blacksmith-pin-*` (6). One family predates the convention and keeps
+its own shape: `--secondary-bar-*` (6).
 
 Nine legacy Hungarian-notation properties remain in `styles/common.css:8-16` --- `--intChatSpacing`,
 `--strHideRollTableIcon`, and the `--strScene*` set. They are written by the scene-title and chat settings

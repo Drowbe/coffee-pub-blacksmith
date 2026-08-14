@@ -76,14 +76,8 @@
 		"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
 		"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",
 		
-			"headingH3QualityOfLife-Label": "Quality of Life",
-			"headingH3QualityOfLife-Hint": "Quality of life improvements and user experience enhancements",
-			
 				"coreLoadingProgress-Label": "Foundry Loading Progress",
 				"coreLoadingProgress-Hint": "Show a loading progress indicator during FoundryVTT world loading making it clear when the cleitn is fully loaded and ready to use.",
-
-				"objectLinkStyle-Label": "Object Link Style",
-				"objectLinkStyle-Hint": "Styling for object links in chat and journals",
 
 			"headingH3CanvasTools-Label": "Canvas",
 			"headingH3CanvasTools-Hint": "Hide/Show UI affects only the parts you mark below. You can also use the hamburger menu (Manage UI) or a keyboard shortcut: open Foundry Configure Controls, choose this module, and edit Toggle Hide/Show Interface (default Ctrl+I), same idea as GM Quickview’s keybinding.",

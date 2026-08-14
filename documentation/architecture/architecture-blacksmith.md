@@ -189,7 +189,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 - **Cards:** cards-common-layout, cards-common-themes, cards-xp, cards-stats, cards-skill-check.
 - **Menubar:** menubar, menubar-combatbar.
 - **Context menus:** menu-context-global.
-- **Pins:** pins. **Links:** links-themes.
+- **Pins:** pins.
 - **Timers:** timer-combat, timer-planning, timer-round.
 - **Other:** vote, latency, combat-tools, utility-quickview, sidebar-pin, sidebar-style, sidebar-combat.
 
