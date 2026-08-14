@@ -57,7 +57,7 @@ follows: an allowlist, not trust.
 
 ## Animations
 
-Motion is a named vocabulary in `styles/cards-parts.css` - `shake-x`, `shake-y`, `pulse`, `glow` - applied as `.cpb-anim-{name}`. A part that accepts an `animation` field takes one of those names.
+Motion is a named vocabulary in `styles/cards-parts.css` - `shake-x`, `shake-y`, `pulse`, `glow` - applied as `.blacksmith-anim-{name}`. A part that accepts an `animation` field takes one of those names.
 
 **A name describes a motion, never a meaning.** The crit and fumble rules in `cards-skill-check.css` bind green to a vertical shake and red to a horizontal one; those are d20 rules, and the parts system deliberately does not know them. A card states its tone and its motion separately, so the same shake is available to a crafting result or a countdown.
 
@@ -99,7 +99,7 @@ The world default is resolved **once, at post time**, in `ChatCardsManager.resol
 
 ## Card actions
 
-Buttons carry `data-cpb-module` and `data-cpb-action`, deliberately not `data-action`, which ApplicationV2 claims.
+Buttons carry `data-blacksmith-module` and `data-blacksmith-action`, deliberately not `data-action`, which ApplicationV2 claims.
 
 Handlers are registered at startup through `ChatCardsAPI.registerAction(moduleId, action, handler)` and held in a module-level registry. A single delegated `renderChatMessageHTML` hook (context `blacksmith-card-actions`) resolves the handler fresh on every render and binds the click, through `bindCardActions` in `scripts/blacksmith.js`. Re-rendering from flags replaces the card element with buttons that carry no listeners, so the re-render calls the same binder after the swap; binding is idempotent so markup that survives is not bound twice.
 

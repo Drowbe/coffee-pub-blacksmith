@@ -8,36 +8,36 @@
 
       The centre is the click target when an action is supplied; individual pips
       stay display-only. --}}
-<div class="cpb-part-pips{{#if center}} cpb-pips-centred{{/if}}">
+<div class="blacksmith-part-pips{{#if center}} blacksmith-pips-centred{{/if}}">
 
     {{#if leading}}
-    <div class="cpb-part-pip-group cpb-pip-lead cpb-pip-tone-{{leading.tone}}">
+    <div class="blacksmith-part-pip-group blacksmith-pip-lead blacksmith-pip-tone-{{leading.tone}}">
         {{#each leading.pips}}
-        <span class="cpb-part-pip{{#if this}} cpb-pip-filled{{/if}}"></span>
+        <span class="blacksmith-part-pip{{#if this}} blacksmith-pip-filled{{/if}}"></span>
         {{/each}}
     </div>
     {{/if}}
 
     {{#if center}}
-    <div class="cpb-part-pip-center">
+    <div class="blacksmith-part-pip-center">
         {{#if center.action}}
-        <button type="button" class="cpb-part-pip-button"
-                data-cpb-module="{{center.moduleId}}" data-cpb-action="{{center.action}}"
-                {{#if center.value}}data-cpb-value="{{center.value}}"{{/if}}
+        <button type="button" class="blacksmith-part-pip-button"
+                data-blacksmith-module="{{center.moduleId}}" data-blacksmith-action="{{center.action}}"
+                {{#if center.value}}data-blacksmith-value="{{center.value}}"{{/if}}
                 {{#if center.tooltip}}data-tooltip="{{center.tooltip}}"{{/if}}>
-            <i class="{{center.icon}}{{#if center.animation}} cpb-anim-{{center.animation}}{{/if}}"></i>
+            <i class="{{center.icon}}{{#if center.animation}} blacksmith-anim-{{center.animation}}{{/if}}"></i>
         </button>
         {{else}}
-        <i class="{{center.icon}}{{#if center.animation}} cpb-anim-{{center.animation}}{{/if}}"
+        <i class="{{center.icon}}{{#if center.animation}} blacksmith-anim-{{center.animation}}{{/if}}"
            {{#if center.tooltip}}data-tooltip="{{center.tooltip}}"{{/if}}></i>
         {{/if}}
     </div>
     {{/if}}
 
     {{#if trailing}}
-    <div class="cpb-part-pip-group cpb-pip-trail cpb-pip-tone-{{trailing.tone}}">
+    <div class="blacksmith-part-pip-group blacksmith-pip-trail blacksmith-pip-tone-{{trailing.tone}}">
         {{#each trailing.pips}}
-        <span class="cpb-part-pip{{#if this}} cpb-pip-filled{{/if}}"></span>
+        <span class="blacksmith-part-pip{{#if this}} blacksmith-pip-filled{{/if}}"></span>
         {{/each}}
     </div>
     {{/if}}

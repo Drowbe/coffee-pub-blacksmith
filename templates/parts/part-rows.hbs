@@ -1,26 +1,33 @@
-{{!-- Detail rows: a thumbnail -- a picture, or an icon standing in for one -- an optional small
+{{!-- Detail rows: a thumbnail -- a picture or an icon, optionally on its own ground and under
+      overlays -- an optional small
       marker qualifying the label, a label that may be a document
       link, an optional sub-line, and an optional trailing value or button.
       One part rather than two, because "a list of creatures" and "a list of
       conditions" differ only in which of these fields are filled. --}}
-<div class="cpb-part-rows{{#if plain}} cpb-rows-plain{{/if}}">
+<div class="blacksmith-part-rows{{#if plain}} blacksmith-rows-plain{{/if}}">
     {{#each items}}
-    <div class="cpb-part-row{{#if this.tone}} cpb-tone-{{this.tone}}{{/if}}{{#if this.emphasis}} cpb-emphasis{{/if}}{{#if this.animation}} cpb-anim-{{this.animation}}{{/if}}">
-        {{#if this.img}}<img class="cpb-part-row-img{{#if this.cover}} cpb-row-img-cover{{/if}}" src="{{this.img}}" alt="" />
-        {{else if this.icon}}<span class="cpb-part-row-img cpb-row-img-icon"><i class="{{this.icon}}"></i></span>{{/if}}
-        {{#if this.marker}}<i class="cpb-part-row-marker {{this.marker}}"></i>{{/if}}
-        <div class="cpb-part-row-text">
-            <div class="cpb-part-row-label">
-                {{#if this.count}}<span class="cpb-part-row-count">{{this.count}} &times;</span> {{/if}}{{{this.label}}}
+    <div class="blacksmith-part-row{{#if this.tone}} blacksmith-tone-{{this.tone}}{{/if}}{{#if this.emphasis}} blacksmith-emphasis{{/if}}{{#if this.animation}} blacksmith-anim-{{this.animation}}{{/if}}">
+        {{#if this.thumb}}
+        <span class="blacksmith-part-row-thumb{{#if this.icon}} blacksmith-row-thumb-icon{{/if}}"
+              {{#if this.ground}}style="background: {{this.ground}}"{{/if}}>
+            {{#if this.img}}<img class="blacksmith-part-row-art{{#if this.cover}} blacksmith-row-art-cover{{/if}}" src="{{this.img}}" alt="" />{{/if}}
+            {{#if this.icon}}<i class="{{this.icon}}"{{#if this.iconColor}} style="color: {{this.iconColor}}"{{/if}}></i>{{/if}}
+            {{#each this.overlays}}<img class="blacksmith-part-row-overlay" src="{{this}}" alt="" />{{/each}}
+        </span>
+        {{/if}}
+        {{#if this.marker}}<i class="blacksmith-part-row-marker {{this.marker}}"></i>{{/if}}
+        <div class="blacksmith-part-row-text">
+            <div class="blacksmith-part-row-label">
+                {{#if this.count}}<span class="blacksmith-part-row-count">{{this.count}} &times;</span> {{/if}}{{{this.label}}}
             </div>
-            {{#if this.sublabel}}<div class="cpb-part-row-sublabel">{{{this.sublabel}}}</div>{{/if}}
+            {{#if this.sublabel}}<div class="blacksmith-part-row-sublabel">{{{this.sublabel}}}</div>{{/if}}
         </div>
-        {{#if this.trailing}}<div class="cpb-part-row-trailing{{#if this.trailingSize}} cpb-trailing-{{this.trailingSize}}{{/if}}">{{{this.trailing}}}</div>{{/if}}
-        {{#if this.trailingIcon}}<i class="cpb-part-row-trailing-icon {{this.trailingIcon}}"></i>{{/if}}
+        {{#if this.trailing}}<div class="blacksmith-part-row-trailing{{#if this.trailingSize}} blacksmith-trailing-{{this.trailingSize}}{{/if}}">{{{this.trailing}}}</div>{{/if}}
+        {{#if this.trailingIcon}}<i class="blacksmith-part-row-trailing-icon {{this.trailingIcon}}"></i>{{/if}}
         {{#if this.action}}
-        <button type="button" class="cpb-part-row-action chat-button"
-                data-cpb-module="{{this.moduleId}}" data-cpb-action="{{this.action}}"
-                {{#if this.value}}data-cpb-value="{{this.value}}"{{/if}}>
+        <button type="button" class="blacksmith-part-row-action card-button"
+                data-blacksmith-module="{{this.moduleId}}" data-blacksmith-action="{{this.action}}"
+                {{#if this.value}}data-blacksmith-value="{{this.value}}"{{/if}}>
             <i class="{{#if this.actionIcon}}{{this.actionIcon}}{{else}}fa-solid fa-ellipsis{{/if}}"></i>
         </button>
         {{/if}}

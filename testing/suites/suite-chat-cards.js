@@ -33,6 +33,11 @@ const IMG = 'modules/campaigns/images/portraits/elegant-eight/character-favia.we
 // Foundry's own placeholder: a transparent SVG, so it shows the shared image
 // ground through the art. Real portraits are opaque and would hide it.
 const PLACEHOLDER = 'icons/svg/mystery-man.svg';
+
+// A real overlay: transparent PNG-style art meant to sit over a portrait. Using
+// the placeholder here made the overlay test prove nothing, since one opaque
+// silhouette over another shows no stacking at all.
+const OVERLAY = 'modules/coffee-pub-blacksmith/images/portraits/blood/blood-60.webp';
 const TEST_ACTION = 'harness-card-action';
 
 /** Post, hand the message to `inspect`, then delete it whatever happened. */
@@ -85,7 +90,7 @@ export default {
         return [
             settingRow('api.chatCards', api?.chatCards ? 'available' : 'MISSING'),
             settingRow('Parts registered', parts.length ? `${parts.length} — ${parts.join(', ')}` : 'NONE'),
-            settingRow('cards-parts.css', stylesheetContains('.cpb-part-rows')
+            settingRow('cards-parts.css', stylesheetContains('.blacksmith-part-rows')
                 ? 'loaded'
                 : 'NOT LOADED — check the @import in styles/default.css'),
             settingRow('Preview image', IMG.split('/').slice(-2).join('/'),
@@ -304,7 +309,7 @@ export default {
         card('c-identity', 'Identity and image', [
             { part: 'header', icon: 'fa-solid fa-user', title: 'Identity and Image' },
             { part: 'identity', img: IMG, name: 'Character Name', subtitle: 'Player Name' },
-            { part: 'image', src: IMG, caption: 'A caption under the image' }
+            { part: 'image', src: IMG, overlays: [OVERLAY], caption: 'A caption under the image' }
         ], { group: 'Cards' }),
 
         card('c-subjects', 'Subjects: image, title, value, bar', [
@@ -427,14 +432,22 @@ export default {
             { part: 'tiles', items: Array.from({ length: 8 }, (_v, i) => ({ label: `S${i + 1}`, value: i + 1 })) }
         ], { group: 'Cards' }),
 
-        card('c-rows-thumbs', 'Rows: the three thumbnail treatments', [
+        card('c-rows-thumbs', 'Rows: thumbnail treatments', [
             { part: 'header', icon: 'fa-solid fa-image', title: 'Row Thumbnails' },
             { part: 'rows', items: [
                 { img: IMG, label: 'Default', sublabel: 'contain — fits the whole image' },
                 { img: IMG, cover: true, label: 'Cover', sublabel: 'crops square, for a portrait' },
                 { img: PLACEHOLDER, label: 'Transparent art', sublabel: 'lands on the shared ground, no flag needed' },
-                { icon: 'fa-solid fa-note-sticky', label: 'An icon instead of a picture', sublabel: 'same box, 85% of it' },
-                { icon: 'fa-solid fa-scroll', label: 'Mixed with images', sublabel: 'the column still lines up' } ] }
+                { icon: 'fa-solid fa-note-sticky', label: 'A sparse glyph', sublabel: 'thin strokes, lots of whitespace' },
+                { icon: 'fa-solid fa-scroll', label: 'A dense glyph', sublabel: 'wide and solid -- must sit inset too' },
+                { icon: 'fa-solid fa-scroll', label: 'Mixed with images', sublabel: 'the column still lines up' },
+                { icon: 'fa-solid fa-scroll', ground: 'rgba(72, 21, 21, 0.85)', iconColor: 'rgba(255, 235, 200, 0.95)',
+                  label: 'Quest', sublabel: 'its own ground and icon colour' },
+                { icon: 'fa-solid fa-note-sticky', ground: 'rgba(21, 52, 72, 0.85)', iconColor: 'rgba(210, 235, 255, 0.95)',
+                  label: 'Note', sublabel: 'a different category, a different palette' },
+                { img: IMG, overlays: [OVERLAY], label: 'With an overlay', sublabel: 'blood over the portrait, inside the frame' },
+                { icon: 'fa-solid fa-skull', ground: 'red; background-image: url(x)',
+                  label: 'Rejected colour', sublabel: 'ground should be the default, console says why' } ] }
         ], { group: 'Cards', note: 'all three the same size, edge and ground; only the fit differs' }),
 
         card('c-rows-outcomes', 'Rows: outcome tones', [

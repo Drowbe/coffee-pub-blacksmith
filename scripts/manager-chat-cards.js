@@ -292,7 +292,14 @@ export class ChatCardsManager {
                     ? await enrich(`@UUID[${item.uuid}]{${escapeHtml(item.label ?? item.uuid)}}`, options)
                     : await processText(item.label ?? item.text, options),
                 sublabel: item.sublabel ? await processText(item.sublabel, options) : '',
-                trailing: item.trailing ? await processText(item.trailing, options) : ''
+                trailing: item.trailing ? await processText(item.trailing, options) : '',
+                // A thumbnail exists if there is anything to put in it.
+                thumb: Boolean(item.img || item.icon),
+                // Categorical colour: a quest's palette identifies it the way a
+                // reputation ramp reports a value. Validated like any other
+                // caller colour before it reaches a style attribute.
+                ground: safeColour(item.ground),
+                iconColor: safeColour(item.iconColor)
             })));
         }
 
@@ -414,8 +421,8 @@ export class ChatCardsManager {
         const body = rendered.filter(Boolean).join('');
 
         const themeClass = this.resolveThemeClass(card?.theme);
-        const moduleAttr = card?.moduleId ? ` data-cpb-module="${escapeHtml(card.moduleId)}"` : '';
-        const typeAttr = card?.type ? ` data-cpb-card="${escapeHtml(card.type)}"` : '';
+        const moduleAttr = card?.moduleId ? ` data-blacksmith-module="${escapeHtml(card.moduleId)}"` : '';
+        const typeAttr = card?.type ? ` data-blacksmith-card="${escapeHtml(card.type)}"` : '';
 
         return `<span style="visibility: hidden">coffeepub-hide-header</span>`
              + `<div class="blacksmith-card ${themeClass}"${moduleAttr}${typeAttr}>${body}</div>`;

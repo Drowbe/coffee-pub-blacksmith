@@ -15,22 +15,22 @@
       stays a div and gains role and tabindex: the delegated dispatcher binds
       Enter and Space for anything that is not already a button, so a clickable
       part is reachable from the keyboard without wrapping a meter in a <button>. --}}
-<div class="cpb-part-subject{{#unless bar}} cpb-subject-compact{{/unless}}{{#if action}} cpb-subject-clickable{{/if}}"
+<div class="blacksmith-part-subject{{#unless bar}} blacksmith-subject-compact{{/unless}}{{#if action}} blacksmith-subject-clickable{{/if}}"
      {{#if action}}role="button" tabindex="0"
-     data-cpb-module="{{moduleId}}" data-cpb-action="{{action}}"
-     {{#if actionValue}}data-cpb-value="{{actionValue}}"{{/if}}
+     data-blacksmith-module="{{moduleId}}" data-blacksmith-action="{{action}}"
+     {{#if actionValue}}data-blacksmith-value="{{actionValue}}"{{/if}}
      {{#if tooltip}}data-tooltip="{{tooltip}}"{{/if}}{{/if}}>
 
     {{#if img}}
-    <img class="cpb-part-subject-img" src="{{img}}" alt="" />
+    <img class="blacksmith-part-subject-img" src="{{img}}" alt="" />
     {{/if}}
 
-    <div class="cpb-part-subject-body">
-        <div class="cpb-part-subject-head">
-            {{#if index}}<span class="cpb-part-subject-marker cpb-subject-number">{{index}}</span>{{/if}}
-            {{#if marker}}<i class="cpb-part-subject-marker {{marker}}"></i>{{/if}}
-            <span class="cpb-part-subject-title">{{{title}}}</span>
-            {{#if value}}<span class="cpb-part-subject-value">{{{value}}}</span>{{/if}}
+    <div class="blacksmith-part-subject-body">
+        <div class="blacksmith-part-subject-head">
+            {{#if index}}<span class="blacksmith-part-subject-marker blacksmith-subject-number">{{index}}</span>{{/if}}
+            {{#if marker}}<i class="blacksmith-part-subject-marker {{marker}}"></i>{{/if}}
+            <span class="blacksmith-part-subject-title">{{{title}}}</span>
+            {{#if value}}<span class="blacksmith-part-subject-value">{{{value}}}</span>{{/if}}
         </div>
         {{#if bar}}{{{bar}}}{{/if}}
     </div>

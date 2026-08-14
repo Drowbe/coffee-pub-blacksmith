@@ -2351,12 +2351,12 @@ postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", 
 function bindCardActions(message, root) {
     if (!root) return;
 
-    const buttons = root.querySelectorAll('[data-cpb-action]');
+    const buttons = root.querySelectorAll('[data-blacksmith-action]');
     if (!buttons.length) return;
 
     for (const button of buttons) {
-        if (button.dataset.cpbBound === 'true') continue;
-        button.dataset.cpbBound = 'true';
+        if (button.dataset.blacksmithBound === 'true') continue;
+        button.dataset.blacksmithBound = 'true';
 
         // A card action does not have to live on a button. A whole part can be the
         // target, and such a part stays a div with role and tabindex rather than
@@ -2373,8 +2373,8 @@ function bindCardActions(message, root) {
         button.addEventListener('click', async (event) => {
             event.preventDefault();
             const target = event.currentTarget;
-            const moduleId = target.dataset.cpbModule;
-            const action = target.dataset.cpbAction;
+            const moduleId = target.dataset.blacksmithModule;
+            const action = target.dataset.blacksmithAction;
             const handler = ChatCardsAPI.getAction(moduleId, action);
 
             if (!handler) {
@@ -2383,7 +2383,7 @@ function bindCardActions(message, root) {
             }
 
             try {
-                await handler({ message, value: target.dataset.cpbValue ?? null, event, button: target });
+                await handler({ message, value: target.dataset.blacksmithValue ?? null, event, button: target });
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Chat Cards | Action "${moduleId}:${action}" threw`, error?.message ?? error, false, false);
             }

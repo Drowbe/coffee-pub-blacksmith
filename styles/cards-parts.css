@@ -16,10 +16,10 @@
 
 /* ---------- IMAGE ---------- */
 
-.blacksmith-card .cpb-part-image {
+.blacksmith-card .blacksmith-part-image {
 }
 
-.blacksmith-card .cpb-part-image img {
+.blacksmith-card .blacksmith-part-image img {
     display: block;
     width: 100%;
     height: auto;
@@ -28,7 +28,7 @@
     border-radius: var(--blacksmith-radius-md);
 }
 
-.blacksmith-card .cpb-part-image-caption {
+.blacksmith-card .blacksmith-part-image-caption {
     margin-top: var(--blacksmith-space-xs);
     text-align: center;
     font-style: italic;
@@ -39,12 +39,12 @@
 
 /* ---------- IMAGE STACK ---------- */
 
-.blacksmith-card .cpb-part-image-stack {
+.blacksmith-card .blacksmith-part-image-stack {
     position: relative;
     line-height: 0;
 }
 
-.blacksmith-card .cpb-part-image-overlay {
+.blacksmith-card .blacksmith-part-image-overlay {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -70,7 +70,7 @@
     word, and mixed case breaks that.
 */
 
-.blacksmith-card .cpb-part-ribbon {
+.blacksmith-card .blacksmith-part-ribbon {
     position: absolute;
     top: 0;
     right: 0;
@@ -82,7 +82,7 @@
     z-index: 2;
 }
 
-.blacksmith-card .cpb-part-ribbon-text {
+.blacksmith-card .blacksmith-part-ribbon-text {
     position: absolute;
     top: 16px;
     right: -42px;
@@ -104,9 +104,9 @@
     text-overflow: ellipsis;
 }
 
-.blacksmith-card .cpb-part-ribbon.cpb-tone-negative .cpb-part-ribbon-text { background: var(--blacksmith-card-tone-negative); }
-.blacksmith-card .cpb-part-ribbon.cpb-tone-info .cpb-part-ribbon-text     { background: var(--blacksmith-card-tone-info); }
-.blacksmith-card .cpb-part-ribbon.cpb-tone-warn .cpb-part-ribbon-text    { background: var(--blacksmith-card-bar-warn); }
+.blacksmith-card .blacksmith-part-ribbon.blacksmith-tone-negative .blacksmith-part-ribbon-text { background: var(--blacksmith-card-tone-negative); }
+.blacksmith-card .blacksmith-part-ribbon.blacksmith-tone-info .blacksmith-part-ribbon-text     { background: var(--blacksmith-card-tone-info); }
+.blacksmith-card .blacksmith-part-ribbon.blacksmith-tone-warn .blacksmith-part-ribbon-text    { background: var(--blacksmith-card-bar-warn); }
 
 /*
     A NOTE ON CASE, since several parts used to force it.
@@ -134,7 +134,7 @@
     elaborate it belong in the parts below.
 */
 
-.blacksmith-card .cpb-part-subject {
+.blacksmith-card .blacksmith-part-subject {
     display: flex;
     align-items: center;
     gap: var(--blacksmith-space-md);
@@ -149,7 +149,7 @@
     text is a picture with a caption, which is a different thing from a title with
     a picture.
 */
-.blacksmith-card .cpb-part-subject-img {
+.blacksmith-card .blacksmith-part-subject-img {
     flex: 0 0 auto;
     width: 40px;
     height: 40px;
@@ -159,37 +159,37 @@
     border-radius: var(--blacksmith-card-box-radius);
 }
 
-.blacksmith-card .cpb-subject-compact .cpb-part-subject-img {
+.blacksmith-card .blacksmith-subject-compact .blacksmith-part-subject-img {
     width: 24px;
     height: 24px;
 }
 
-.blacksmith-card .cpb-subject-compact .cpb-part-subject-head {
+.blacksmith-card .blacksmith-subject-compact .blacksmith-part-subject-head {
     margin-bottom: 0;
 }
 
 /* Clickable subjects say so on hover and take a focus ring, since they are not
    buttons and get none for free. */
-.blacksmith-card .cpb-subject-clickable {
+.blacksmith-card .blacksmith-subject-clickable {
     cursor: pointer;
     transition: background 0.15s ease;
 }
 
-.blacksmith-card .cpb-subject-clickable:hover {
+.blacksmith-card .blacksmith-subject-clickable:hover {
     background: var(--blacksmith-card-button-hover-bg);
 }
 
-.blacksmith-card .cpb-subject-clickable:focus-visible {
+.blacksmith-card .blacksmith-subject-clickable:focus-visible {
     outline: 2px solid var(--blacksmith-card-hover-color);
     outline-offset: 1px;
 }
 
-.blacksmith-card .cpb-part-subject-body {
+.blacksmith-card .blacksmith-part-subject-body {
     flex: 1 1 auto;
     min-width: 0;
 }
 
-.blacksmith-card .cpb-part-subject-head {
+.blacksmith-card .blacksmith-part-subject-head {
     display: flex;
     align-items: baseline;
     gap: var(--blacksmith-space-sm);
@@ -203,7 +203,7 @@
     Both occupy the same width so titles line up down a stack of subjects whether
     the marker is a glyph, a number, or absent.
 */
-.blacksmith-card .cpb-part-subject-marker {
+.blacksmith-card .blacksmith-part-subject-marker {
     flex: 0 0 auto;
     width: 1.5em;
     margin: 0;
@@ -213,7 +213,7 @@
     color: var(--blacksmith-card-section-header-text);
 }
 
-.blacksmith-card .cpb-part-subject-marker.cpb-subject-number {
+.blacksmith-card .blacksmith-part-subject-marker.blacksmith-subject-number {
     padding: 1px 0;
     background: var(--blacksmith-card-text);
     color: rgba(255, 255, 255, 0.95);
@@ -222,7 +222,7 @@
     line-height: 1.4;
 }
 
-.blacksmith-card .cpb-part-subject-title {
+.blacksmith-card .blacksmith-part-subject-title {
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -232,7 +232,7 @@
     color: var(--blacksmith-card-text);
 }
 
-.blacksmith-card .cpb-part-subject-value {
+.blacksmith-card .blacksmith-part-subject-value {
     flex: 0 0 auto;
     font-weight: 900;
     font-size: 0.85em;
@@ -241,8 +241,8 @@
 }
 
 /* The nested bar loses its own container: the subject is already the box. */
-.blacksmith-card .cpb-part-subject .cpb-part-meter-track,
-.blacksmith-card .cpb-part-subject .cpb-part-gauge-track {
+.blacksmith-card .blacksmith-part-subject .blacksmith-part-meter-track,
+.blacksmith-card .blacksmith-part-subject .blacksmith-part-gauge-track {
     padding: 0;
     background: none;
 }
@@ -263,8 +263,8 @@
     here would have made two of the three indicators look like rows.
 */
 
-.blacksmith-card .cpb-part-meter-track,
-.blacksmith-card .cpb-part-gauge-track {
+.blacksmith-card .blacksmith-part-meter-track,
+.blacksmith-card .blacksmith-part-gauge-track {
     padding: var(--blacksmith-card-box-padding);
     background-color: var(--blacksmith-card-box-fill);
     border-radius: var(--blacksmith-card-box-radius);
@@ -280,8 +280,8 @@
     claw it back, and at zero width it would still paint two pixels of edge with
     no bar between them. An empty meter should show nothing, not a sliver.
 */
-.blacksmith-card .cpb-part-meter-fill,
-.blacksmith-card .cpb-part-gauge-bar {
+.blacksmith-card .blacksmith-part-meter-fill,
+.blacksmith-card .blacksmith-part-gauge-bar {
     height: var(--blacksmith-card-bar-height);
     border-radius: 2px;
     box-shadow: inset 0 0 0 1px var(--blacksmith-card-bar-border);
@@ -296,19 +296,19 @@
     encumbrance being the obvious one, sets its tone explicitly.
 */
 
-.blacksmith-card .cpb-part-meter-fill {
+.blacksmith-card .blacksmith-part-meter-fill {
     transition: width 0.2s ease-out;
     background: var(--blacksmith-card-header-text);
 }
 
-.blacksmith-card .cpb-meter-ok .cpb-part-meter-fill      { background: var(--blacksmith-card-bar-ok); }
-.blacksmith-card .cpb-meter-caution .cpb-part-meter-fill { background: var(--blacksmith-card-bar-caution); }
-.blacksmith-card .cpb-meter-warn .cpb-part-meter-fill    { background: var(--blacksmith-card-bar-warn); }
-.blacksmith-card .cpb-meter-danger .cpb-part-meter-fill  { background: var(--blacksmith-card-bar-danger); }
-.blacksmith-card .cpb-meter-empty .cpb-part-meter-fill   { background: var(--blacksmith-card-bar-empty); }
+.blacksmith-card .blacksmith-meter-ok .blacksmith-part-meter-fill      { background: var(--blacksmith-card-bar-ok); }
+.blacksmith-card .blacksmith-meter-caution .blacksmith-part-meter-fill { background: var(--blacksmith-card-bar-caution); }
+.blacksmith-card .blacksmith-meter-warn .blacksmith-part-meter-fill    { background: var(--blacksmith-card-bar-warn); }
+.blacksmith-card .blacksmith-meter-danger .blacksmith-part-meter-fill  { background: var(--blacksmith-card-bar-danger); }
+.blacksmith-card .blacksmith-meter-empty .blacksmith-part-meter-fill   { background: var(--blacksmith-card-bar-empty); }
 
-.blacksmith-card .cpb-part-meter-label,
-.blacksmith-card .cpb-part-gauge-label {
+.blacksmith-card .blacksmith-part-meter-label,
+.blacksmith-card .blacksmith-part-gauge-label {
     margin-top: var(--blacksmith-space-xs);
     font-size: 0.85em;
     text-align: center;
@@ -328,17 +328,17 @@
     and a caller should have to say so only when it wants something else.
 */
 
-.blacksmith-card .cpb-part-gauge {
+.blacksmith-card .blacksmith-part-gauge {
     display: flex;
     align-items: center;
     gap: var(--blacksmith-space-sm);
 }
 
-.blacksmith-card .cpb-part-gauge-track {
+.blacksmith-card .blacksmith-part-gauge-track {
     flex: 1 1 auto;
 }
 
-.blacksmith-card .cpb-part-gauge-bar {
+.blacksmith-card .blacksmith-part-gauge-bar {
     position: relative;
     display: flex;
     overflow: hidden;
@@ -349,18 +349,18 @@
 
 /* Blocks divide the bar by weight, so equal spans give equal widths. The hairline
    between them is the ratio bar's, and it reads on any fill. */
-.blacksmith-card .cpb-part-gauge-segment {
+.blacksmith-card .blacksmith-part-gauge-segment {
     height: 100%;
     border-right: 1px dotted rgba(255, 255, 255, 0.4);
 }
 
-.blacksmith-card .cpb-part-gauge-segment:last-child {
+.blacksmith-card .blacksmith-part-gauge-segment:last-child {
     border-right: none;
 }
 
 /* A tick for a meaningful value in the range, usually zero, so a marker can be
    read against it at a glance rather than estimated. */
-.blacksmith-card .cpb-part-gauge-midpoint {
+.blacksmith-card .blacksmith-part-gauge-midpoint {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -379,8 +379,8 @@
     overridden through a custom property, so the same rule serves both directions
     without the template branching on which border to paint.
 */
-.blacksmith-card .cpb-part-gauge-marker {
-    --cpb-gauge-marker-size: calc(var(--blacksmith-card-bar-height) / 2 - 1px);
+.blacksmith-card .blacksmith-part-gauge-marker {
+    --blacksmith-gauge-marker-size: calc(var(--blacksmith-card-bar-height) / 2 - 1px);
     position: absolute;
     z-index: 3;
     width: 0;
@@ -393,17 +393,17 @@
     pointer-events: none;
 }
 
-.blacksmith-card .cpb-part-gauge-marker.cpb-gauge-marker-top {
+.blacksmith-card .blacksmith-part-gauge-marker.blacksmith-gauge-marker-top {
     top: 0;
-    border-top: var(--cpb-gauge-marker-size) solid var(--cpb-gauge-marker-colour, rgba(255, 255, 255, 0.95));
+    border-top: var(--blacksmith-gauge-marker-size) solid var(--blacksmith-gauge-marker-colour, rgba(255, 255, 255, 0.95));
 }
 
-.blacksmith-card .cpb-part-gauge-marker.cpb-gauge-marker-bottom {
+.blacksmith-card .blacksmith-part-gauge-marker.blacksmith-gauge-marker-bottom {
     bottom: 0;
-    border-bottom: var(--cpb-gauge-marker-size) solid var(--cpb-gauge-marker-colour, rgba(255, 255, 255, 0.95));
+    border-bottom: var(--blacksmith-gauge-marker-size) solid var(--blacksmith-gauge-marker-colour, rgba(255, 255, 255, 0.95));
 }
 
-.blacksmith-card .cpb-part-gauge-icon {
+.blacksmith-card .blacksmith-part-gauge-icon {
     flex: 0 0 auto;
     width: auto;
     margin: 0;
@@ -433,7 +433,7 @@
     `align` becomes a justify-content, and the flanking terms of a versus line
     centre against the middle term instead of sitting on its baseline.
 */
-.blacksmith-card .cpb-part-band {
+.blacksmith-card .blacksmith-part-band {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -448,19 +448,19 @@
     color: var(--blacksmith-card-section-header-text);
 }
 
-.blacksmith-card .cpb-part-band.cpb-align-left { justify-content: flex-start; }
-.blacksmith-card .cpb-part-band.cpb-align-right { justify-content: flex-end; }
+.blacksmith-card .blacksmith-part-band.blacksmith-align-left { justify-content: flex-start; }
+.blacksmith-card .blacksmith-part-band.blacksmith-align-right { justify-content: flex-end; }
 
 /* The centre term. 900 is the weight both the versus separator and the roll
    card's subheader use. */
-.blacksmith-card .cpb-part-band-text {
+.blacksmith-card .blacksmith-part-band-text {
     font-weight: 900;
 }
 
 /* Escapes the card-wide icon rule, which pins every .fa-solid to 14px with a
    right margin. Correct for an icon before a line of text, wrong for one that is
    the centre term of a band -- and it would not grow with `size: large`. */
-.blacksmith-card .cpb-part-band-text i {
+.blacksmith-card .blacksmith-part-band-text i {
     width: auto;
     margin: 0;
     padding: 0;
@@ -473,7 +473,7 @@
     because the band's own 0.9em would compound and land it at 1.17em -- which
     is what the first pass shipped.
 */
-.blacksmith-card .cpb-part-band.cpb-band-large .cpb-part-band-text {
+.blacksmith-card .blacksmith-part-band.blacksmith-band-large .blacksmith-part-band-text {
     font-size: 1.44em;   /* 1.3 / 0.9, so it resolves to 1.3em of the card */
 }
 
@@ -483,25 +483,25 @@
     plain one -- an extracted value that only worked in the card it came from.
     0.8em keeps the centre dominant while leaving the flanks readable at any size.
 */
-.blacksmith-card .cpb-part-band-flank {
+.blacksmith-card .blacksmith-part-band-flank {
     font-weight: 600;
     font-size: 0.8em;
     opacity: 0.85;
 }
 
-.blacksmith-card .cpb-part-band.cpb-tone-positive {
+.blacksmith-card .blacksmith-part-band.blacksmith-tone-positive {
     background: var(--blacksmith-card-tone-positive-bg);
     border-color: var(--blacksmith-card-tone-positive-border);
     color: var(--blacksmith-card-tone-positive);
 }
 
-.blacksmith-card .cpb-part-band.cpb-tone-negative {
+.blacksmith-card .blacksmith-part-band.blacksmith-tone-negative {
     background: var(--blacksmith-card-tone-negative-bg);
     border-color: var(--blacksmith-card-tone-negative-border);
     color: var(--blacksmith-card-tone-negative);
 }
 
-.blacksmith-card .cpb-part-band.cpb-tone-info {
+.blacksmith-card .blacksmith-part-band.blacksmith-tone-info {
     background: var(--blacksmith-card-tone-info-bg);
     border-color: var(--blacksmith-card-tone-info-border);
     color: var(--blacksmith-card-tone-info);
@@ -513,7 +513,7 @@
     as a plain band -- a lighter ground made it read as a third kind of band
     rather than as the same one saying less.
 */
-.blacksmith-card .cpb-part-band.cpb-band-quiet {
+.blacksmith-card .blacksmith-part-band.blacksmith-band-quiet {
     background-color: var(--blacksmith-card-box-fill);
     border-color: transparent;
 }
@@ -530,7 +530,7 @@
     cramped next to the original.
 */
 
-.blacksmith-card .cpb-part-tiles {
+.blacksmith-card .blacksmith-part-tiles {
     display: grid;
     /* Column count comes from the part; see manager-chat-cards.js. This is the
        fallback for a tiles part rendered without one. */
@@ -538,14 +538,14 @@
     grid-gap: 5px;
 }
 
-.blacksmith-card .cpb-part-tile {
+.blacksmith-card .blacksmith-part-tile {
     padding: var(--blacksmith-card-box-padding);
     text-align: center;
     background-color: var(--blacksmith-card-box-fill);
     border-radius: var(--blacksmith-card-box-radius);
 }
 
-.blacksmith-card .cpb-part-tile-label {
+.blacksmith-card .blacksmith-part-tile-label {
     display: block;
     font-weight: 400;
     font-size: 0.6em;
@@ -553,7 +553,7 @@
     color: var(--blacksmith-card-section-content-text);
 }
 
-.blacksmith-card .cpb-part-tile-value {
+.blacksmith-card .blacksmith-part-tile-value {
     display: block;
     font-weight: 550;
     font-size: 1.1em;
@@ -570,13 +570,13 @@
     the value sits against the name and the column disappears.
 */
 
-.blacksmith-card .cpb-part-rows {
+.blacksmith-card .blacksmith-part-rows {
     display: flex;
     flex-direction: column;
     gap: var(--blacksmith-space-sm);
 }
 
-.blacksmith-card .cpb-part-row {
+.blacksmith-card .blacksmith-part-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -590,47 +590,69 @@
 /* Plain rows drop the box. Crier's conditions list is icon-and-text with no
    container; the roll cards are boxed. Both are rows, so the container is an
    option rather than a second part. */
-.blacksmith-card .cpb-part-rows.cpb-rows-plain .cpb-part-row {
+.blacksmith-card .blacksmith-part-rows.blacksmith-rows-plain .blacksmith-part-row {
     background: none;
     border: none;
     padding: var(--blacksmith-space-sm) 0;
 }
 
 /*
-    Every thumbnail is the same size, carries the same edge as the identity avatar,
-    and sits on the same ground. One variant, changing exactly one thing: `cover`
-    crops instead of fitting.
+    The thumbnail box. One size, one edge, one ground, whatever goes in it: a
+    picture, an icon standing in for one, or a picture under overlays.
 
-    There was a `framed` variant that put a near-black ground behind token art. It
-    is gone. Once every image has a ground, transparent art works without anyone
-    asking for it -- and a flag whose job the default already does is a flag people
-    have to know about for no reason.
+    Ground and icon colour may be supplied by the caller, because on a thumbnail
+    they are categorical data -- a quest's palette identifies it the way a
+    reputation ramp reports a value, and swapping it for the notes palette would
+    tell the reader something untrue. That is the same test the gauge passes; see
+    decision 5 in the plan, and DATA_VISUALISATION_PARTS in
+    tools/check-card-contracts.mjs, which is the enforced list.
+
+    Overlays stack on the art exactly as they do on the image part -- a blood
+    splatter over a portrait is the same idea at a different size.
 */
-.blacksmith-card .cpb-part-row-img {
+.blacksmith-card .blacksmith-part-row-thumb {
+    position: relative;
     flex: 0 0 auto;
     width: var(--blacksmith-card-thumb-size);
     height: var(--blacksmith-card-thumb-size);
-    object-fit: contain;
     margin-right: var(--blacksmith-space-md);
+    overflow: hidden;
     background: var(--blacksmith-card-image-ground);
     border: 1px solid var(--blacksmith-card-image-border);
     border-radius: var(--blacksmith-radius-md);
 }
 
-.blacksmith-card .cpb-part-row-img.cpb-row-img-cover {
+.blacksmith-card .blacksmith-part-row-art {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border: none;
+}
+
+.blacksmith-card .blacksmith-part-row-art.blacksmith-row-art-cover {
     object-fit: cover;
 }
 
-/*
-    An icon can stand in for the picture, which is what a note or a category wants
-    when it has no art. It takes the same box, ground and edge as an image, so a
-    list mixing the two still reads as one column.
+/* An overlay covers the art, never the box: the frame belongs to the thumbnail. */
+.blacksmith-card .blacksmith-part-row-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none !important;
+    pointer-events: none;
+}
 
-    Sized at 85% of the box rather than at a fixed number or at the text's size: a
-    glyph is the picture here, so it fills its frame the way a picture does, and it
-    follows if the box is ever retuned.
+/*
+    An icon standing in for a picture. Sized as a fraction of the box rather than
+    at a fixed number or at the text's size, so it follows if the box is retuned.
+
+    See the token for why that fraction is lower than it looks like it needs to be:
+    it is set by the densest glyph, since font-size fixes the em box and not the
+    ink within it.
 */
-.blacksmith-card .cpb-part-row-img.cpb-row-img-icon {
+.blacksmith-card .blacksmith-part-row-thumb.blacksmith-row-thumb-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -638,11 +660,11 @@
 
 /* Escapes the card-wide icon rule, which pins every .fa-solid to 14px with a
    right margin. Third part to need that exemption -- see the watchlist. */
-.blacksmith-card .cpb-row-img-icon i {
+.blacksmith-card .blacksmith-row-thumb-icon i {
     width: auto;
     margin: 0;
     padding: 0;
-    font-size: calc(var(--blacksmith-card-thumb-size) * 0.85);
+    font-size: calc(var(--blacksmith-card-thumb-size) * var(--blacksmith-card-thumb-icon-scale));
     line-height: 1;
     color: var(--blacksmith-card-section-header-text);
 }
@@ -657,7 +679,7 @@
     beside the point: the roll cards do exactly this, and the question is whether
     the OUTCOME is still reachable, not whether the rule had a caller yet.
 */
-.blacksmith-card .cpb-part-row-marker {
+.blacksmith-card .blacksmith-part-row-marker {
     flex: 0 0 auto;
     width: 1.25em;
     margin: 0 var(--blacksmith-space-md) 0 0;
@@ -667,13 +689,13 @@
 }
 
 /* Flexes, so everything after it is pushed to the right edge. */
-.blacksmith-card .cpb-part-row-text {
+.blacksmith-card .blacksmith-part-row-text {
     flex: 1;
     min-width: 0;
     margin-right: var(--blacksmith-space-md);
 }
 
-.blacksmith-card .cpb-part-row-label {
+.blacksmith-card .blacksmith-part-row-label {
     font-weight: bold;
     color: var(--blacksmith-card-text);
     overflow: hidden;
@@ -681,14 +703,14 @@
     white-space: nowrap;
 }
 
-.blacksmith-card .cpb-part-row-sublabel {
+.blacksmith-card .blacksmith-part-row-sublabel {
     font-size: 0.85em;
     font-weight: normal;
     opacity: 0.75;
     color: var(--blacksmith-card-section-content-text);
 }
 
-.blacksmith-card .cpb-part-row-count {
+.blacksmith-card .blacksmith-part-row-count {
     font-weight: bold;
     color: var(--blacksmith-card-section-header-text);
 }
@@ -704,24 +726,24 @@
     roll-specific dark red and shipping it as the default tinted every trailing
     value in the suite to match one card.
 */
-.blacksmith-card .cpb-part-row-trailing {
+.blacksmith-card .blacksmith-part-row-trailing {
     flex-shrink: 0;
     font-weight: 900;
     color: var(--blacksmith-card-text);
 }
 
-.blacksmith-card .cpb-part-row-trailing.cpb-trailing-large {
+.blacksmith-card .blacksmith-part-row-trailing.blacksmith-trailing-large {
     font-family: var(--dnd5e-font-roboto-slab);
     font-size: 1.2em;
 }
 
-.blacksmith-card .cpb-part-row-trailing-icon {
+.blacksmith-card .blacksmith-part-row-trailing-icon {
     flex-shrink: 0;
     margin-left: var(--blacksmith-space-sm);
     font-weight: 900;
 }
 
-.blacksmith-card .cpb-part-row-action {
+.blacksmith-card .blacksmith-part-row-action {
     flex: 0 0 auto;
     width: auto;
     margin-left: var(--blacksmith-space-sm);
@@ -734,44 +756,44 @@
     adds a glow and bolds the label, which is what crit and fumble have always
     had. Motion is separate: add `animation` for that.
 */
-.blacksmith-card .cpb-part-row.cpb-tone-positive {
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-positive {
     background: var(--blacksmith-card-tone-positive-bg);
     border-color: var(--blacksmith-card-tone-positive-border);
 }
 
-.blacksmith-card .cpb-part-row.cpb-tone-negative {
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-negative {
     background: var(--blacksmith-card-tone-negative-bg);
     border-color: var(--blacksmith-card-tone-negative-border);
 }
 
-.blacksmith-card .cpb-part-row.cpb-tone-info {
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-info {
     background: var(--blacksmith-card-tone-info-bg);
     border-color: var(--blacksmith-card-tone-info-border);
 }
 
-.blacksmith-card .cpb-part-row.cpb-tone-pending { opacity: 0.55; }
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-pending { opacity: 0.55; }
 
-.blacksmith-card .cpb-part-row.cpb-tone-positive .cpb-part-row-trailing,
-.blacksmith-card .cpb-part-row.cpb-tone-positive .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-positive); }
-.blacksmith-card .cpb-part-row.cpb-tone-negative .cpb-part-row-trailing,
-.blacksmith-card .cpb-part-row.cpb-tone-negative .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-negative); }
-.blacksmith-card .cpb-part-row.cpb-tone-info .cpb-part-row-trailing,
-.blacksmith-card .cpb-part-row.cpb-tone-info .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-info); }
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-positive .blacksmith-part-row-trailing,
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-positive .blacksmith-part-row-trailing-icon { color: var(--blacksmith-card-tone-positive); }
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-negative .blacksmith-part-row-trailing,
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-negative .blacksmith-part-row-trailing-icon { color: var(--blacksmith-card-tone-negative); }
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-info .blacksmith-part-row-trailing,
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-info .blacksmith-part-row-trailing-icon { color: var(--blacksmith-card-tone-info); }
 
-.blacksmith-card .cpb-part-row.cpb-emphasis { box-shadow: 0 0 4px currentColor; }
-.blacksmith-card .cpb-part-row.cpb-emphasis .cpb-part-row-label { font-weight: 900; }
-.blacksmith-card .cpb-part-row.cpb-tone-positive.cpb-emphasis .cpb-part-row-label { color: var(--blacksmith-card-tone-positive); }
-.blacksmith-card .cpb-part-row.cpb-tone-negative.cpb-emphasis .cpb-part-row-label { color: var(--blacksmith-card-tone-negative); }
+.blacksmith-card .blacksmith-part-row.blacksmith-emphasis { box-shadow: 0 0 4px currentColor; }
+.blacksmith-card .blacksmith-part-row.blacksmith-emphasis .blacksmith-part-row-label { font-weight: 900; }
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-positive.blacksmith-emphasis .blacksmith-part-row-label { color: var(--blacksmith-card-tone-positive); }
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-negative.blacksmith-emphasis .blacksmith-part-row-label { color: var(--blacksmith-card-tone-negative); }
 
 /* ---------- BADGES ---------- */
 
-.blacksmith-card .cpb-part-badges {
+.blacksmith-card .blacksmith-part-badges {
     display: flex;
     flex-wrap: wrap;
     gap: var(--blacksmith-space-xs);
 }
 
-.blacksmith-card .cpb-part-badge {
+.blacksmith-card .blacksmith-part-badge {
     display: inline-flex;
     align-items: center;
     padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
@@ -790,18 +812,18 @@
     the bits that class does not cover are below.
 */
 
-.blacksmith-card .cpb-part-panel .cpb-part-panel-value {
+.blacksmith-card .blacksmith-part-panel .blacksmith-part-panel-value {
     font-weight: normal;
     opacity: 0.9;
 }
 
-.blacksmith-card .cpb-part-panel p:last-child {
+.blacksmith-card .blacksmith-part-panel p:last-child {
     margin-bottom: 0;
 }
 
 /* ---------- NOTES ---------- */
 
-.blacksmith-card .cpb-part-notes {
+.blacksmith-card .blacksmith-part-notes {
     display: flex;
     flex-direction: column;
     gap: var(--blacksmith-space-xs);
@@ -810,7 +832,7 @@
     border-top: 1px solid var(--blacksmith-card-section-header-border);
 }
 
-.blacksmith-card .cpb-part-note {
+.blacksmith-card .blacksmith-part-note {
     display: flex;
     align-items: baseline;
     gap: var(--blacksmith-space-xs);
@@ -821,7 +843,7 @@
 
 /* ---------- ACTIONS ---------- */
 
-.blacksmith-card .cpb-part-actions-instruction {
+.blacksmith-card .blacksmith-part-actions-instruction {
     margin-top: var(--blacksmith-space-sm);
     text-align: center;
     font-size: 0.85em;
@@ -835,13 +857,13 @@
     Document-sourced HTML. Scoped so that whatever a journal page or roll table
     happens to contain is governed by card typography rather than its own.
 */
-.blacksmith-card .cpb-part-richtext img {
+.blacksmith-card .blacksmith-part-richtext img {
     max-width: 100%;
     height: auto;
 }
 
-.blacksmith-card .cpb-part-richtext > :first-child { margin-top: 0; }
-.blacksmith-card .cpb-part-richtext > :last-child { margin-bottom: 0; }
+.blacksmith-card .blacksmith-part-richtext > :first-child { margin-top: 0; }
+.blacksmith-card .blacksmith-part-richtext > :last-child { margin-bottom: 0; }
 
 /* ---------- PIPS ---------- */
 
@@ -859,7 +881,7 @@
     recedes instead of reading as a line of empty checkboxes.
 */
 
-.blacksmith-card .cpb-part-pips {
+.blacksmith-card .blacksmith-part-pips {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -868,12 +890,12 @@
     border-radius: var(--blacksmith-card-box-radius);
 }
 
-.blacksmith-card .cpb-part-pip-group {
+.blacksmith-card .blacksmith-part-pip-group {
     display: flex;
     align-items: center;
 }
 
-.blacksmith-card .cpb-part-pip {
+.blacksmith-card .blacksmith-part-pip {
     display: inline-block;
     width: 13px;
     height: 13px;
@@ -882,11 +904,11 @@
     background-color: rgba(0, 0, 0, 0.12);
 }
 
-.blacksmith-card .cpb-pip-tone-positive .cpb-part-pip.cpb-pip-filled { background-color: rgba(27, 63, 31, 0.9); }
-.blacksmith-card .cpb-pip-tone-negative .cpb-part-pip.cpb-pip-filled { background-color: rgba(119, 20, 16, 0.9); }
-.blacksmith-card .cpb-pip-tone-neutral .cpb-part-pip.cpb-pip-filled { background-color: var(--blacksmith-card-header-text); }
+.blacksmith-card .blacksmith-pip-tone-positive .blacksmith-part-pip.blacksmith-pip-filled { background-color: rgba(27, 63, 31, 0.9); }
+.blacksmith-card .blacksmith-pip-tone-negative .blacksmith-part-pip.blacksmith-pip-filled { background-color: rgba(119, 20, 16, 0.9); }
+.blacksmith-card .blacksmith-pip-tone-neutral .blacksmith-part-pip.blacksmith-pip-filled { background-color: var(--blacksmith-card-header-text); }
 
-.blacksmith-card .cpb-part-pip-center {
+.blacksmith-card .blacksmith-part-pip-center {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -899,7 +921,7 @@
     text and wrong for a marker that is the centre of its own widget -- it was
     what made the skull look undersized and sit off-centre.
 */
-.blacksmith-card .cpb-part-pip-center i {
+.blacksmith-card .blacksmith-part-pip-center i {
     width: auto;
     margin: 0;
     padding: 0;
@@ -909,7 +931,7 @@
 /* The centre is the click target when the card supplies an action. Styled as a
    bare icon rather than a button so an interactive widget does not read as a
    form control parked in the middle of a card. */
-.blacksmith-card .cpb-part-pip-button {
+.blacksmith-card .blacksmith-part-pip-button {
     width: auto;
     height: auto;
     padding: 0;
@@ -922,13 +944,13 @@
     color: inherit;
 }
 
-.blacksmith-card .cpb-part-pip-button:hover { color: var(--blacksmith-card-hover-color); }
+.blacksmith-card .blacksmith-part-pip-button:hover { color: var(--blacksmith-card-hover-color); }
 
 /* ---------- ANIMATIONS ---------- */
 
 /*
     A named vocabulary any part can opt into, applied as `animation: 'shake-x'`
-    and rendered as .cpb-anim-{name}. Callers name a motion, never a meaning:
+    and rendered as .blacksmith-anim-{name}. Callers name a motion, never a meaning:
     a critical hit is tone success plus shake-y, but nothing here knows that, so
     a crafting success or a countdown can use the same motion.
 
@@ -940,38 +962,38 @@
     heartbeat, carried over from Crier's death-save skull.
 */
 
-.cpb-anim-shake-x { animation: cpb-shake-x 4s ease-in-out infinite; }
-.cpb-anim-shake-y { animation: cpb-shake-y 5s ease-in-out infinite; }
-.cpb-anim-pulse   { animation: cpb-pulse 3s infinite; }
-.cpb-anim-glow    { animation: cpb-glow 2.5s ease-in-out infinite; }
+.blacksmith-anim-shake-x { animation: blacksmith-shake-x 4s ease-in-out infinite; }
+.blacksmith-anim-shake-y { animation: blacksmith-shake-y 5s ease-in-out infinite; }
+.blacksmith-anim-pulse   { animation: blacksmith-pulse 3s infinite; }
+.blacksmith-anim-glow    { animation: blacksmith-glow 2.5s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-    .cpb-anim-shake-x,
-    .cpb-anim-shake-y,
-    .cpb-anim-pulse,
-    .cpb-anim-glow { animation: none; }
+    .blacksmith-anim-shake-x,
+    .blacksmith-anim-shake-y,
+    .blacksmith-anim-pulse,
+    .blacksmith-anim-glow { animation: none; }
 }
 
-@keyframes cpb-shake-x {
+@keyframes blacksmith-shake-x {
     0%, 100%          { transform: translateX(0); }
     2%, 6%, 10%, 14%  { transform: translateX(-2px); }
     4%, 8%, 12%       { transform: translateX(2px); }
     16%, 100%         { transform: translateX(0); }
 }
 
-@keyframes cpb-shake-y {
+@keyframes blacksmith-shake-y {
     0%, 100%          { transform: translateY(0); }
     2%, 6%, 10%, 14%  { transform: translateY(-2px); }
     4%, 8%, 12%       { transform: translateY(2px); }
     16%, 100%         { transform: translateY(0); }
 }
 
-@keyframes cpb-pulse {
+@keyframes blacksmith-pulse {
     0%, 40%, 60%, 100% { opacity: 1; }
     45%, 55%           { opacity: 0.6; }
 }
 
-@keyframes cpb-glow {
+@keyframes blacksmith-glow {
     0%, 100% { filter: drop-shadow(0 0 0 currentColor); }
     50%      { filter: drop-shadow(0 0 3px currentColor); }
 }

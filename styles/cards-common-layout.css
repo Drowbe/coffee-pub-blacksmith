@@ -71,6 +71,23 @@
     /* The thumbnail box. Declared so an icon standing in for a picture can size
        itself against the box rather than carrying a number of its own. */
     --blacksmith-card-thumb-size: 32px;
+
+    /* The em box of a glyph standing in for a picture, as a fraction of the
+       thumbnail. Proportional rather than fixed, so retuning the box moves the
+       glyph with it, and no other value needs touching.
+
+       Two different glyphs at one font-size do NOT render at one visual size, and
+       nothing here can change that: font-size fixes the em box, while Font Awesome
+       draws each icon to its own silhouette within that box -- fa-note-sticky is a
+       tall near-square, fa-scroll is wide and short. CSS cannot measure ink, so the
+       variance is a property of the icon set rather than something to tune out.
+
+       Judge it on a real card rather than on the harness thumbnail row, which stacks
+       unrelated glyphs in identical frames and is the worst case for it. Beware of
+       contrast too: light ink on a dark ground reads noticeably larger than dark ink
+       on a light one at identical size, which is what made 0.85 look like it filled
+       the frame. */
+    --blacksmith-card-thumb-icon-scale: 0.75;
     --blacksmith-card-row-border: var(--blacksmith-card-border-strong);
     --blacksmith-card-bar-border: var(--blacksmith-card-border-strong);
 
@@ -306,6 +323,11 @@
 /* GLOBAL BUTTONS */
 
 
+/* `.blacksmith-chat-buttons` / `.chat-button` are the old names, kept as
+   aliases because Regent and Squire still emit them. They go when those
+   modules migrate -- step 7 in TODO-GLOBAL. A card is an affordance, not a
+   delivery context, so the new names say card rather than chat. */
+.blacksmith-card-buttons,
 .blacksmith-chat-buttons {
     display: flex;
     align-items: center;
@@ -320,6 +342,7 @@
     margin-right: 0px;
     gap: var(--blacksmith-space-xs);
 }
+.blacksmith-card-buttons button.card-button,
 .blacksmith-chat-buttons button.chat-button {
     width: 100%;
     text-align: left;
@@ -337,9 +360,11 @@
     color: var(--blacksmith-card-button-text);
     font-weight: var(--blacksmith-font-weight-bold);
 }
+.blacksmith-card-buttons button.card-button,
 .blacksmith-chat-buttons button.chat-button:hover {
     background: var(--blacksmith-card-button-hover-bg);
 }
+.blacksmith-card-buttons button.card-button,
 .blacksmith-chat-buttons button.chat-button i {
     color: var(--blacksmith-card-button-text);
     margin-top: 0px;

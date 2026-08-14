@@ -26,8 +26,8 @@ themed styling to apply.
 | Section subheader | `.section-subheader` | `cards-common-layout.css:127` |
 | Body content | `.section-content` | `cards-common-layout.css:148` |
 | Dark section | `.section-dark` | `cards-common-layout.css:156` |
-| Button row | `.blacksmith-chat-buttons` | `cards-common-layout.css:306` |
-| Button | `.chat-button` | `cards-common-layout.css:320` |
+| Button row | `.blacksmith-card-buttons` | `cards-common-layout.css:306` |
+| Button | `.card-button` | `cards-common-layout.css:320` |
 | Data table | `.section-table` | `cards-common-layout.css:258` |
 | Table label cell | `.row-label` | `cards-common-layout.css:269` |
 | Table value cell | `.row-content` | `cards-common-layout.css:290` |

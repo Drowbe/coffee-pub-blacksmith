@@ -8,25 +8,25 @@
 
       Two ways to build the track because the real instances split that way: a
       reputation scale is a gradient, a damage ratio is blocks. --}}
-<div class="cpb-part-gauge">
-    {{#if iconStart}}<i class="cpb-part-gauge-icon cpb-gauge-icon-start {{iconStart}}"></i>{{/if}}
+<div class="blacksmith-part-gauge">
+    {{#if iconStart}}<i class="blacksmith-part-gauge-icon blacksmith-gauge-icon-start {{iconStart}}"></i>{{/if}}
 
-    <div class="cpb-part-gauge-track">
-        <div class="cpb-part-gauge-bar" style="{{trackStyle}}">
+    <div class="blacksmith-part-gauge-track">
+        <div class="blacksmith-part-gauge-bar" style="{{trackStyle}}">
             {{#each segments}}
-            <div class="cpb-part-gauge-segment" style="flex: {{this.span}}; background: {{this.color}}"></div>
+            <div class="blacksmith-part-gauge-segment" style="flex: {{this.span}}; background: {{this.color}}"></div>
             {{/each}}
 
-            {{#if midpoint}}<div class="cpb-part-gauge-midpoint" style="left: {{midpoint}}%"></div>{{/if}}
+            {{#if midpoint}}<div class="blacksmith-part-gauge-midpoint" style="left: {{midpoint}}%"></div>{{/if}}
 
         {{#each markers}}
-            <div class="cpb-part-gauge-marker cpb-gauge-marker-{{this.from}}"
-                 style="left: {{this.percent}}%{{#if this.color}}; --cpb-gauge-marker-colour: {{this.color}}{{/if}}"
+            <div class="blacksmith-part-gauge-marker blacksmith-gauge-marker-{{this.from}}"
+                 style="left: {{this.percent}}%{{#if this.color}}; --blacksmith-gauge-marker-colour: {{this.color}}{{/if}}"
                  {{#if this.tooltip}}data-tooltip="{{this.tooltip}}"{{/if}}></div>
             {{/each}}
         </div>
     </div>
 
-    {{#if iconEnd}}<i class="cpb-part-gauge-icon cpb-gauge-icon-end {{iconEnd}}"></i>{{/if}}
+    {{#if iconEnd}}<i class="blacksmith-part-gauge-icon blacksmith-gauge-icon-end {{iconEnd}}"></i>{{/if}}
 </div>
-{{#if label}}<div class="cpb-part-gauge-label">{{{label}}}</div>{{/if}}
+{{#if label}}<div class="blacksmith-part-gauge-label">{{{label}}}</div>{{/if}}

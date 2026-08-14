@@ -165,6 +165,16 @@ That enforcement exists because this is the rule most likely to drift: every fut
 where passing a colour looks harmless. The day a row takes one is the day cards stop rethemeing, and the day
 after that a module passes a gradient.
 
+**Widened once, deliberately, 2026-08-14: row thumbnails.** A row's thumbnail takes a ground and an icon
+colour because those are *categorical* data -- a quest's palette identifies it, and swapping it for the notes
+palette would tell the reader something untrue. Categorical colour is data visualisation as surely as a ramp
+is, so the rule admitted it rather than bending for it.
+
+The widening is coarser than the rule: the enforced allowlist works per template, so admitting the thumbnail
+admits the whole `rows` template. Nothing else in it may take a colour, and the check cannot tell the
+difference -- that restraint lives in review. Worth knowing, because it is the first place the enforcement is
+weaker than the principle.
+
 **A theme may offer a palette; a module may always drive its own.** Squire already builds for this, using
 `var(--squire-rep-hostile, <fallback>)` so the value is overridable. Parts that carry data-bearing colour
 take stops or segments from the caller and fall back to theme-offered defaults.

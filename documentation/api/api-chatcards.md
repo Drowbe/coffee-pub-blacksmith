@@ -63,7 +63,7 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `section` | divider with icon and label | `icon`, `label` |
 | `prose` | structured text blocks | `blocks` (see below) |
 | `pips` | discrete state slots around an optional centre marker | `groups: [{ total, filled, tone }]`, `center` (see below) |
-| `rows` | thumbnail, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, icon, cover, marker, uuid, label, sublabel, count, trailing, trailingSize, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
+| `rows` | thumbnail, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, icon, cover, ground, iconColor, overlays, marker, uuid, label, sublabel, count, trailing, trailingSize, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
 | `badges` | inline chips | `items: [{ icon, label }]` |
 | `panel` | boxed sub-block | `icon`, `label`, `intro`, `rows: [{ icon, label, value }]` |
 | `notes` | footer annotations | `items: [{ icon, text }]` |
@@ -203,6 +203,14 @@ Set `plain: true` on the part to drop the row boxes entirely - a conditions list
 **A thumbnail and a marker are different things.** The thumbnail is the row's picture and fills a 32px box;
 the marker is a small symbol qualifying the label, like a d20 on a roll result. A row may have either, both,
 or neither.
+
+A thumbnail may carry `overlays: [src]`, stacked on the art inside the frame, exactly as the `image` part
+does - a blood splatter over a portrait is the same idea at a different size.
+
+It may also take `ground` and `iconColor`. **This is the second and only other place a caller passes a
+colour**, and it passes the same test as `gauge`: on a thumbnail those colours are categorical data. A
+quest's palette identifies it, and rendering it in the notes palette would tell the reader something untrue.
+Both are validated like any other caller colour.
 
 A row's thumbnail is an `img` or an `icon` - an icon standing in for a picture takes the same box, ground and edge, and fills 85% of it, so a list mixing the two still reads as one column. Supply one or the other; `img` wins if both are given.
 

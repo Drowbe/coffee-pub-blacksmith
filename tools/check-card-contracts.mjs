@@ -42,7 +42,19 @@ const PARTS_DIR = join(REPO, 'templates/parts');
  * qualification. Adding a name here is a deliberate widening of the contract and
  * should be argued for in documentation/plans/plan-chat-cards.md, decision 5.
  */
-const DATA_VISUALISATION_PARTS = ['gauge'];
+const DATA_VISUALISATION_PARTS = [
+    // A gauge's colour reports a value: position along a ramp IS the reading.
+    'gauge',
+    // A row's THUMBNAIL takes a ground and an icon colour, because those are
+    // categorical -- a quest's palette identifies it, and swapping it for the
+    // notes palette would tell the reader something untrue. Categorical colour
+    // is data visualisation as much as a ramp is.
+    //
+    // Note this admits the whole `rows` template, which is coarser than the rule.
+    // Nothing else in that template may take a colour, and the check cannot tell
+    // the difference -- so that restraint lives in review rather than in code.
+    'rows'
+];
 
 /** CSS properties that set a colour, which is what the rule is about. */
 // Custom properties count: `--anything-colour: red` sets a colour just as surely
