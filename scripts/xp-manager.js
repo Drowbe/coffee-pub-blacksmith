@@ -978,6 +978,9 @@ export class XpManager {
                     const levelled = r.leveledUp || r.nextLevelXp <= 0;
                     return {
                         img: r.img,
+                        // A character portrait, so it crops square rather than
+                        // fitting whole -- .player-portrait in cards-xp.css.
+                        cover: true,
                         label: r.name,
                         sublabel: levelled
                             ? `${r.totalXp} XP | **LEVEL UP!**`
@@ -987,7 +990,7 @@ export class XpManager {
                         // (cards-xp.css .xp-gained, #18520b, which is what tone success
                         // resolves to) and mutes a player who was not in the combat, as
                         // .cpb-xp-not-in-combat did.
-                        tone: r.excluded ? 'pending' : (r.xpGained > 0 ? 'success' : null),
+                        tone: r.excluded ? 'pending' : 'success',
                         emphasis: levelled
                     };
                 })

@@ -25,7 +25,7 @@
 // filtering returns nothing, preferring falls back to everything.
 // ==================================================================
 
-import { requireApi, settingRow } from './harness-lib.js';
+import { requireApi, settingRow } from '../harness-lib.js';
 
 const TIER_RANK = { exact: 0, startsWith: 1, includes: 2 };
 const RESULT_KEYS = ['uuid', 'name', 'type', 'documentClass', 'img', 'source', 'sourceLabel', 'sourcePackage', 'matchType'];

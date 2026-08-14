@@ -21,7 +21,7 @@
 // client — which is why this is asserted rather than eyeballed.
 // ==================================================================
 
-import { requireApi, settingRow } from './harness-lib.js';
+import { requireApi, settingRow } from '../harness-lib.js';
 
 /** Let a render settle before touching the DOM it produced. */
 const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));

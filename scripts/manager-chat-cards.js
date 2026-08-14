@@ -109,39 +109,21 @@ function escapeHtml(text) {
 }
 
 /**
- * Placeholder delimiter for lifted-out code spans. A private-use codepoint,
- * because it must not collide with anything a consumer could legitimately write
- * and must survive HTML escaping. Constructed with String.fromCharCode rather
- * than written inline so this source file stays plain ASCII; an embedded control
- * character makes the file read as binary to git and grep, which cost an hour
- * once already.
- */
-const MARK_SENTINEL = String.fromCharCode(0xE000);
-const MARK_SENTINEL_PATTERN = new RegExp(MARK_SENTINEL + '(\\d+)' + MARK_SENTINEL, 'g');
-
-/**
- * Convert the three permitted inline marks. Deliberately not markdown: no block
- * syntax, no raw-HTML passthrough. Code spans are lifted out first so that
- * asterisks inside them are not treated as emphasis.
+ * Convert the two permitted inline marks. Deliberately not markdown: no block
+ * syntax, no raw-HTML passthrough.
+ *
+ * There is no inline code mark. A chat card never has inline code -- the case
+ * does not arise in play -- and carrying a mark nobody uses means carrying the
+ * lifted-out code-span machinery that protected it, which is the fiddliest part
+ * of this pipeline. A backtick now passes through as an ordinary character. If a
+ * code BLOCK is ever wanted, it belongs in the prose block types, not here.
  */
 function applyInlineMarks(escaped) {
-    const codeSpans = [];
-    let out = escaped.replace(/`([^`]+)`/g, (_match, code) => {
-        codeSpans.push(code);
-        return `${MARK_SENTINEL}${codeSpans.length - 1}${MARK_SENTINEL}`;
-    });
-
-    out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-    return out.replace(MARK_SENTINEL_PATTERN, (_match, i) => `<code>${codeSpans[Number(i)]}</code>`);
+    return escaped
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 }
 
-/**
- * Run Foundry's enrichers. This is what turns `@UUID[...]{Name}` into a document
- * link and `[[/r 1d20]]` into an inline roll. It is async, which is why every
- * render path in this file is async.
- */
 async function enrich(html, options = {}) {
     const ns = globalThis.foundry?.applications?.ux?.TextEditor;
     const TE = ns?.implementation ?? ns ?? globalThis.TextEditor;

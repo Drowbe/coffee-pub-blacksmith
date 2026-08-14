@@ -29,7 +29,7 @@
 // across two points in time.
 // ==================================================================
 
-import { requireApi, settingRow } from './harness-lib.js';
+import { requireApi, settingRow } from '../harness-lib.js';
 
 const MODULE_ID = 'coffee-pub-blacksmith';
 

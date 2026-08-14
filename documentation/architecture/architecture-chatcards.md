@@ -52,7 +52,7 @@ The `pips` centre and `rows` items accept one today. The shake keyframes live he
 Consumer text runs through three stages in `processText`, and the order is load-bearing:
 
 1. **Escape** every HTML-special character.
-2. **Convert inline marks** - bold, italic, code. Code spans are lifted out first so asterisks inside them are left alone.
+2. **Convert inline marks** - bold and italic only. There is no inline code mark: chat cards do not have inline code in practice, and the mark required lifting code spans out of the string to protect the asterisks inside them, which was the fiddliest part of the pipeline.
 3. **Enrich** through Foundry's `TextEditor.enrichHTML`, which resolves `@UUID[]{}`, `[[/r]]`, and `@Check[]`.
 
 Escaping first is what makes "consumers do not pass HTML" a runtime guarantee rather than a documented request: a module that passes `<b>x</b>` sees those characters on the card. Escaping does not damage enricher syntax, because `@`, `[`, `]`, `{`, and `}` are not HTML-special.

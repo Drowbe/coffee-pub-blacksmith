@@ -61,7 +61,7 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `section` | divider with icon and label | `icon`, `label` |
 | `prose` | structured text blocks | `blocks` (see below) |
 | `pips` | discrete state slots around an optional centre marker | `groups: [{ total, filled, tone }]`, `center` (see below) |
-| `rows` | thumbnail or icon, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, framed, icon, uuid, label, sublabel, count, trailing, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
+| `rows` | thumbnail or icon, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, framed, cover, icon, uuid, label, sublabel, count, trailing, trailingSize, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
 | `badges` | inline chips | `items: [{ icon, label }]` |
 | `panel` | boxed sub-block | `icon`, `label`, `intro`, `rows: [{ icon, label, value }]` |
 | `notes` | footer annotations | `items: [{ icon, text }]` |
@@ -108,9 +108,9 @@ Name a **motion, never a meaning**. A critical hit is `tone: 'success'` with `an
 A row can carry an outcome. `tone` is `success`, `failure`, `tie`, or `pending`, and tints the whole row. `emphasis` adds a glow and bolds the label. `trailingIcon` puts a result mark after the value. Motion is separate again - add `animation` if you want it.
 
 ```javascript
-{ label: 'Kar-ahn', trailing: '21', trailingIcon: 'fa-solid fa-check', tone: 'success', emphasis: true, animation: 'shake-y' }
-{ label: 'Skylar',  trailing: '16', trailingIcon: 'fa-solid fa-check' }
-{ label: 'Noodle',  trailing: '2',  trailingIcon: 'fa-solid fa-xmark', tone: 'failure', emphasis: true, animation: 'shake-x' }
+{ label: 'Kar-ahn', trailing: '21', trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'success', emphasis: true, animation: 'shake-y' }
+{ label: 'Skylar',  trailing: '16', trailingSize: 'large', trailingIcon: 'fa-solid fa-check' }
+{ label: 'Noodle',  trailing: '2',  trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark', tone: 'failure', emphasis: true, animation: 'shake-x' }
 { label: 'Cyrus',   tone: 'pending' }
 ```
 
@@ -121,6 +121,10 @@ Tone and the trailing mark are independent, which is what lets one card mark eve
 Set `plain: true` on the part to drop the row boxes entirely - a conditions list reads better as icon and text than as a stack of containers.
 
 Set `framed: true` on an item to put a dark ground and light border behind its thumbnail. Token art is usually transparent PNG drawn against a dark canvas, so on a light card it needs something behind it; item and portrait art usually does not.
+
+Set `cover: true` for a character portrait, which crops square. Thumbnails otherwise fit the whole image, because cropping token and item art removes the parts that carry it.
+
+Set `trailingSize: 'large'` when the trailing value is the point of the row rather than an annotation on it - a roll total rather than an XP award. It renders larger and in the slab face.
 
 On `panel`, `label` is the bold lead and `intro` is prose that follows it on the same line ("**Treatment**: Cool your wounds by..."). Each row is a flowing line of icon plus statement, not a label/value column.
 
@@ -139,9 +143,9 @@ The `prose` part takes structured blocks rather than an HTML string, so Blacksmi
 
 ### Text, marks, and links
 
-Text fields accept three inline marks and Foundry's enricher syntax:
+Text fields accept two inline marks and Foundry's enricher syntax:
 
-- `**bold**`, `*italic*`, `` `code` ``
+- `**bold**` and `*italic*`
 - `@UUID[Actor.abc]{Ogre}`, `[[/r 1d20]]`, `@Check[dexterity]`
 
 ```javascript
@@ -150,7 +154,9 @@ Text fields accept three inline marks and Foundry's enricher syntax:
         'They hit you on the head **3 times** with the stick.' }
 ```
 
-**HTML is not accepted.** Text is escaped before anything else touches it, so `<b>x</b>` renders as those visible characters, not as bold. This is enforced at runtime, not by convention. Block syntax beyond the three marks is not markdown and is not supported - use the block types above.
+**HTML is not accepted.** Text is escaped before anything else touches it, so `<b>x</b>` renders as those visible characters, not as bold. This is enforced at runtime, not by convention. Block syntax beyond the two marks is not markdown and is not supported - use the block types above.
+
+There is no inline code mark; a backtick is an ordinary character. Chat cards do not have inline code in practice, and carrying an unused mark meant carrying the machinery that protected it.
 
 ### `richtext`, for content out of a document
 

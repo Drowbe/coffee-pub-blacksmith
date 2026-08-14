@@ -14,7 +14,7 @@
 // bounds, and Give + Keep always equalling Max.
 // ==================================================================
 
-import { requireApi, settingRow, stylesheetContains } from './harness-lib.js';
+import { requireApi, settingRow, stylesheetContains } from '../harness-lib.js';
 
 /** Render into a detached container and attach, so DOM behavior is testable. */
 function mount(control) {

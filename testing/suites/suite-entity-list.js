@@ -10,7 +10,7 @@
 // Implementation: scripts/api-entity-list.js
 // ==================================================================
 
-import { requireApi, settingRow, stylesheetContains } from './harness-lib.js';
+import { requireApi, settingRow, stylesheetContains } from '../harness-lib.js';
 
 const fixtures = () => ([
     { id: 'a', name: 'Alice', img: 'icons/svg/mystery-man.svg', type: 'Fighter', badges: [{ label: 'Lv 5' }] },

@@ -36,11 +36,16 @@
     --blacksmith-card-background: rgba(0, 0, 0, 0.08);
     --blacksmith-card-border-color: rgba(0, 0, 0, 0.05);
 
-    /* Row borders are deliberately four times stronger than the generic border.
-       --blacksmith-card-border-color is for hairlines inside a filled box; a row
-       is its own object and needs an edge you can see, which is the value the
-       hand-written roll cards have always used. */
-    --blacksmith-card-row-border: rgba(0, 0, 0, 0.2);
+    /* Borders come in two weights and both are black with transparency, never
+       white. A light border only works over a dark ground, and a card's ground is
+       light -- the white edge tried here first vanished against pale art and
+       glowed against dark art, which is the wrong way round.
+
+       -border-color is a hairline INSIDE something already filled. -border-strong
+       is the edge of a discrete object sitting ON the card: a row, an image, a
+       thumbnail. Named for weight rather than for the thing that first needed it,
+       so the next object with an edge does not arrive with a third token. */
+    --blacksmith-card-border-strong: rgba(0, 0, 0, 0.2);
 
     /* Outcome tones, matching the roll cards. */
     --blacksmith-card-tone-success: #18520b;
@@ -107,9 +112,6 @@
     gap: var(--blacksmith-space-md);
 }
 
-.blacksmith-card .card-header {
-    margin-bottom: 0px;
-}
 
 
 /* Section Header Icons */
@@ -132,7 +134,7 @@
     font-size: var(--blacksmith-font-size-base);
     font-weight: var(--blacksmith-font-weight-black);
     text-transform: uppercase;
-    color: var(--blacksmith-card-section-header-text);
+    color: var(--blacksmith-card-section-content-text);
 }
 
 .blacksmith-card .section-header i {
@@ -163,7 +165,6 @@
 .blacksmith-card .section-content {
     font-family: var(--dnd5e-font-roboto);
     font-size: var(--blacksmith-font-size-base);
-    margin-top: var(--blacksmith-space-lg) !important;
     color: var(--blacksmith-card-section-content-text);
 }
 
@@ -189,7 +190,7 @@
 
 
 .blacksmith-card .section-content img {
-    border: 1px solid var(--blacksmith-card-border-color) !important;
+    border: 1px solid var(--blacksmith-card-border-strong) !important;
     border-radius: var(--blacksmith-radius-md) !important;
     margin: var(--blacksmith-space-md) auto;
     padding: 0 !important;
@@ -531,6 +532,7 @@
 }
 .blacksmith-card .container-user .token-image {
     height: 32px;
+    border: 1px solid var(--blacksmith-card-border-strong);
     border-radius: var(--blacksmith-radius-md);
     margin-right: var(--blacksmith-space-sm);
     flex-shrink: 0;
@@ -548,12 +550,19 @@
     font-weight: var(--blacksmith-font-weight-black);
     font-size: var(--blacksmith-font-size-md);
     margin: 0;
+    /* Stated rather than inherited. Nothing between here and the chat message
+       sets a colour, so an unstated name rendered in Foundry's black while every
+       other part took the theme's. */
+    color: var(--blacksmith-card-text);
 }
 
 .blacksmith-card .container-user .token-character {
     font-weight: var(--blacksmith-font-weight-light);
     font-size: var(--blacksmith-font-size-sm);
     margin: 0;
+    /* Matches the row sub-line, so a secondary line reads the same wherever it is. */
+    color: var(--blacksmith-card-section-content-text);
+    opacity: 0.75;
 }
 
 .blacksmith-card .container-user .token-name,

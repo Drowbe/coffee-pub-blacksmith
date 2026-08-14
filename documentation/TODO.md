@@ -803,28 +803,53 @@ the verification steps travelled with the work and are the first thing to do bef
 - **Location**: `templates/*.hbs` (windows, menubar, toolbars); zero in `templates/parts/`
 - **How to verify**: hover a converted element and confirm exactly one tooltip appears, styled as Foundry's. Grep for elements carrying both attributes first -- those are the visible bugs; the rest is consistency.
 
-#### Extract the remaining source card styles before migrating their cards
-- **Issue**: values have been pulled into `styles/cards-parts.css` from **two** sources only -- Crier's
-  `turns.css` (tiles, band, pips, rhythm) and the roll-row/tone/versus family in `cards-skill-check.css`.
-  Everything extracted did land, but the extraction was driven by whichever card was on screen at the time,
-  which is the slow way to converge and leaves gaps nobody can see.
-- **Bibliosoph is the best reference in the suite and is not one of ours.** Its cards are built almost
-  entirely from Blacksmith's own classes -- `blacksmith-card`, `card-header`, `section-header` (8 uses),
-  `section-content`, `section-dark`, and the `container-user` identity chip -- with only a handful of local
-  row classes in `coffee-pub-bibliosoph/styles/default.css:85-140`. Read those before steps 4 and 5 too.
-  Its `.encounter-monster-row` and `.investigation-item-row` are the same shape with and without a box,
-  which is the distinction `rows` now carries as `plain`, and it already proved out the framed-thumbnail
-  treatment. It is the closest thing the suite has to a worked example of the parts model, written by hand.
-- **Not yet extracted**: all 71 selectors in `cards-stats.css` (MVP ribbons, moment cards, damage-ratio
-  bars, party stats grids, portraits); roughly 45 of the 56 in `cards-skill-check.css` (`.cpb-skill-check-actor`,
-  `.cpb-skill-check-buttons`, `.cpb-skill-roll`, `.cpb-roll-explanation`, the pending-roll states,
-  `.cpb-roll-requested-mode`); and all 29 in `cards-xp.css`.
-- **Do this before steps 4 and 5, not during.** Read each file end to end, decide for each rule whether it
-  is a part value, a card-specific quirk to drop, or a gap needing a new part -- then migrate. See the
-  standing rule in `CLAUDE.md` about starting from the working implementation.
-- **How to verify**: for each migrated card, post it beside a screenshot of the original and compare
-  padding, weights, and colours. `testing/preview-chat-cards.js` renders the parts side by side.
-- **Priority**: High -- it is a prerequisite for steps 4 and 5 rather than separate work.
+#### Card style extraction — done reading, gaps below
+
+All three source stylesheets and Bibliosoph's have been read end to end (2026-08-13). Values that were
+clearly part values are applied; what remains is listed here because each needs either a new part or a
+judgement call. **Read this before steps 4 and 5** — it is the reason those steps exist in this order.
+
+**Applied from the read**: large band sized against the card rather than against the band (the source
+subheader is 1.3em of the card; compounding against the band's own 0.9em had shipped it at 1.17em); a
+`cover` thumbnail variant, because portraits crop square and token art must not; and the XP card's player
+portraits switched to it.
+
+**Gaps needing a new part.** None of these compose today:
+
+- **Clickable row.** `.cpb-roll-result.pending-roll` makes the whole row a button, not a row with a trailing
+  button. It is how an unrolled skill check invites the click, and it is a different affordance from
+  `rows`' trailing action. Needed by step 5.
+- **Segmented comparison bar.** `.damage-ratio-bar` in `cards-stats.css`: a track of equal segments split
+  red/green with a triangular marker positioned by a CSS variable. It is not `meter` — `meter` is one value
+  against a maximum, this is a ratio between two quantities with a pointer. Needed by step 4 unless the
+  stats simplification drops it.
+- **Corner ribbon.** `.blacksmith-mvp-ribbon` is absolutely positioned, rotated 25 degrees, and overflows
+  its container. Genuinely new, and worth confirming it survives step 4 before building a part for it.
+
+**Judgement calls, not gaps:**
+
+- **Trailing text has two legitimate treatments.** The roll card's `.cpb-roll-total` is 1.2em roboto-slab
+  because the number is the point; the XP card's `.xp-gained` is 0.85em/900 sans because the name is. The
+  parts system currently ships the roll treatment as the only one, so migrated XP awards render larger and
+  in a different face than they did. Decide whether the default flips and roll cards opt in, or a variant
+  is added.
+- **Two section-header treatments exist.** Generic `.section-header` versus `.cpb-card-section-header`
+  (900, uppercase, `#481515`). The roll cards have always looked different here. Unify or keep both.
+- **Sub-line colour.** `.total-xp` is a strong `rgba(62, 18, 18, 0.9)`; the generic row sub-line is muted
+  grey. The XP card reads quieter than it did.
+- **Level-up marker.** `.level-up` is orange with a text-shadow. There is no tone for it, and inventing a
+  `celebration` tone for one card is the naming mistake this system already made once.
+- **Bordered band with a tone.** `.cpb-roll-requested-mode` is a band with a dotted border whose colour
+  changes for advantage, disadvantage, and locked. `band` tints fills, not borders.
+
+**Dead in the source, do not carry across**: `.legend-items`, `.resolution-type`, `.monster-name`,
+`.monster-xp` in `cards-xp.css` — none appear in any template.
+
+**How to verify**: post each migrated card beside a screenshot of the original and compare padding,
+weights, and colours. The Chat Cards suite in `testing/test-harness.js` posts one card per button.
+
+**Priority**: the three gaps are prerequisites for steps 4 and 5. The judgement calls are not blocking, but
+the trailing-text one is already visible on a shipped card.
 
 #### 4. Stats simplification
 - **Work**: Collapse round and combat summaries to a key-data card plus a "View Details" button opening a

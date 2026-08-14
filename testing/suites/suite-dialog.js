@@ -15,7 +15,7 @@
 // DOM. The headless tier covers the surface and the argument guards.
 // ==================================================================
 
-import { requireApi, setting, settingRow, stylesheetContains } from './harness-lib.js';
+import { requireApi, setting, settingRow, stylesheetContains } from '../harness-lib.js';
 
 export default {
     id: 'dialog',

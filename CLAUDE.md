@@ -65,7 +65,6 @@ pasted into a script macro. It is not an automated suite and there is no runner.
 | `testing/harness-lib.js` | Shared helpers and the contract a suite must export. |
 | `testing/suites/suite-*.js` | The suites themselves, loaded by the harness. |
 | `testing/data/` | JSON fixtures fed to the importer by hand. Data, not code. |
-| `testing/preview-chat-cards.js` | Posts every chat-card part and variant, for visual comparison. |
 | `testing/*.md` | Verification owed: what has shipped and is not yet proven, and how to prove it. Never published — see the testing-doc rules below. |
 
 **Do not confuse `testing/` with the other four directories that look adjacent.** They differ by *who runs
@@ -89,6 +88,7 @@ behavior:
 | `node tools/check-design-tokens.mjs` | `styles/vars.css` and `design-system/design-tokens.md` agree, both ways |
 | `node tools/check-settings-headings.mjs` | no settings heading hides itself from players who can see settings under it |
 | `node tools/check-card-prose.mjs` | chat-card prose still escapes consumer HTML and still preserves Foundry enricher syntax |
+| `node tools/check-harness-paths.mjs` | the test harness will load: paths resolve, every suite on disk is registered, imports resolve, and `expect()` calls pass their label first |
 
 Run the relevant one after touching what it guards. CI (`.github/workflows/release.yml`) only zips and
 releases on `v*` tags; **it runs no checks**, so nothing runs these but you.

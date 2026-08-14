@@ -21,7 +21,7 @@
 // at full health.
 // ==================================================================
 
-import { requireApi, settingRow, suppressTokenRenaming, waitFor } from './harness-lib.js';
+import { requireApi, settingRow, suppressTokenRenaming, waitFor } from '../harness-lib.js';
 
 const TEMP_PREFIX = 'ZZ Harness XP';
 

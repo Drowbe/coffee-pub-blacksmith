@@ -33,7 +33,7 @@
 // amount of CSS will fix it. That check tells the two failures apart.
 // ==================================================================
 
-import { requireApi, settingRow, stylesheetContains } from './harness-lib.js';
+import { requireApi, settingRow, stylesheetContains } from '../harness-lib.js';
 
 const MODULE_ID = 'coffee-pub-blacksmith';
 

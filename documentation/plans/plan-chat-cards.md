@@ -188,7 +188,7 @@ Lists, tables, and quotes arrive as data, so Blacksmith owns what a list looks l
 `<ul>` instead would mean every module's list looks like whatever its own CSS does, which is the current
 failure restated.
 
-**Inline marks only, inside the text strings.** Bold, italic, and code -- three marks -- plus Foundry
+**Inline marks only, inside the text strings.** Bold and italic -- two marks -- plus Foundry
 enricher syntax (`@UUID[]`, `[[/r 1d20]]`, `@Check[]`). This is deliberately not "we support markdown":
 markdown's block syntax (headings, tables, lists) and its raw-HTML passthrough are exactly the side door
 that lets structure back in. An inline-only subset cannot express layout.
@@ -201,7 +201,7 @@ not our markup, and enrichers run only on HTML.
 **Processing order, which is load-bearing:**
 
 1. Escape HTML (`<`, `>`, `&`).
-2. Convert the three inline marks to `<strong>`, `<em>`, `<code>`.
+2. Convert the inline marks to `<strong>` and `<em>`.
 3. Run `enrichHTML`.
 4. Insert into the part's container.
 

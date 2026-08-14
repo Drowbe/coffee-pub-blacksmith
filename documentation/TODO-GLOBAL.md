@@ -782,7 +782,47 @@ never to let the module keep a template.
 | Artificer | 7 | 2 templates, 4 local classes | **Not a rogue design.** It conforms and invented `gather-result-*` only because no `entities` part existed. Those four classes go when the part lands. |
 | Crier | 4 | inline HTML, 59 CSS rules | Its turn card is the widest composition in the suite - `header + image + meter + nameplate + stats + section + status`. The 59 overrides exist because those parts were unavailable. Good proof case for the catalog. |
 | Bibliosoph | 10 | 2 templates | Encounter, investigation, crit, fumble, injury, check-up, inspiration - one card shape, many variants. Already emits `@UUID[]{}` pills (`manager-encounters.js:678`, `manager-inspiration.js:109`), which the prose pipeline preserves. Its markdown-to-enriched-HTML path (`manager-conversations.js:849`) is why markdown was rejected as the transport; that path can go. |
-| Scribe | 3 | inline HTML, own theme system (7 files) | **The real outlier** - uses none of Blacksmith's card classes, posts a raw `<blockquote>`, and carries a competing theme layer (`theme-blue/dark/earth/green/red/none.css` plus `cards.css`). All seven files go. Its journal-snippet-to-chat is the one genuinely new capability found in the sweep, and it needs no new part: `header + image + prose + actions`. Legacy module; adopts the plan. |
+| Scribe | 3 | inline HTML, own theme system (7 files) |
+
+**Scribe reaches outside its own cards.** `coffee-pub-scribe/styles/cards.css:8` styles
+`.message-content blockquote` -- every blockquote in every chat message in the world, not just Scribe's.
+Its comment says "Overrides the BlockQuote", so the reach is deliberate, and its `theme-*.css` files supply
+the fill. It ties on specificity with Blacksmith's own `.blacksmith-card blockquote` and wins on load order,
+because `scribe` sorts after `blacksmith`. Blacksmith now scopes through `.section-content` to win on
+specificity instead, which stops the bleeding without fixing the cause.
+
+That is worth holding onto as the concrete example of why Scribe's parallel theme system has to go rather
+than merely be tolerated: a global selector in one module silently restyled another module's component, and
+nothing about the symptom pointed at the source.
+
+**Removed 2026-08-13, chat only.** Two places, not one -- the first fix missed the second and did not work.
+Each of the five themes carried its own `.message-content blockquote` rules supplying the colour, fill and
+border, *separately* from the layout rules in `cards.css`. Dropping only the `cards.css` import left the
+appearance rules live. Both are now gone. `theme-none.css` never had either.
+
+**Found by measuring rather than reading.** Three rounds of grepping the wrong files failed because the
+rules were reachable only through an `@import` chain; a console pass over `document.styleSheets` that
+recursed into imported sheets and tested `el.matches(rule.selectorText)` named the file and rule in one
+step. Worth reaching for immediately the next time a style has no visible source.
+
+**A second Scribe bug surfaced while doing it: two themes load at once.** That measurement showed
+`theme-dark.css` and `theme-earth.css` both live, with earth winning on order. `changeCSS()` in
+`scribe.js:1201` builds a `<link>` whose `id` is a file path and checks `document.getElementById(oldlink)`
+against a *different* path than the one it sets, so the guard never matches and the previous theme is never
+removed. Every theme switch adds another stylesheet. Not fixed here -- it is Scribe's, and its migration
+may retire the whole theme-swapping mechanism -- but it should not be rediscovered.
+
+The `cards.css` import was also dropped from all five themes; that file is the only
+one of its four stylesheets carrying chat rules -- `common.css` and `journals.css` have none, so journals,
+dialogues and common styling are untouched.
+
+**The file is kept on disk deliberately.** Its values are the reference for what Scribe's cards should look
+like once they are compositions, and deleting the source before rebuilding against it is how the detail
+gets lost -- the same mistake that cost the XP card three of its own styles.
+
+**Consequence to expect until Scribe migrates:** its two chat outputs, the journal-narration blockquote and
+the illustration card, now render with Blacksmith's card styling and Foundry's defaults rather than
+Scribe's. That is the intended direction, not a regression, but it is visible before the migration lands. **The real outlier** - uses none of Blacksmith's card classes, posts a raw `<blockquote>`, and carries a competing theme layer (`theme-blue/dark/earth/green/red/none.css` plus `cards.css`). All seven files go. Its journal-snippet-to-chat is the one genuinely new capability found in the sweep, and it needs no new part: `header + image + prose + actions`. Legacy module; adopts the plan. |
 | Squire | 26 | `templates/chat-cards.hbs` (505 lines) | Largest, and a fork of Blacksmith's `cards-common.hbs` (see the forked-hub-code section above). Migrate last, after every part it needs is proven by the modules ahead of it. Its extra variants (`isRoundAnnouncement`, `isGMApproval`, transfer-request-rejected) must land as compositions, not be dropped. |
 
 Cartographer, Herald, Minstrel, Monarch, and Vault post no chat cards and are unaffected.

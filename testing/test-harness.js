@@ -34,9 +34,14 @@
 //   to the docs.
 // ==================================================================
 
-const BASE = '/modules/coffee-pub-blacksmith/testing/suites';
+// harness-lib.js is shared infrastructure and sits at the testing/ root; the
+// suites sit one level below it. Two constants rather than one, because a
+// single BASE sent the lib lookup into suites/ and 404'd.
+const ROOT = '/modules/coffee-pub-blacksmith/testing';
+const BASE = `${ROOT}/suites`;
 
 const SUITES = [
+    `${BASE}/suite-chat-cards.js`,
     `${BASE}/suite-compendiums.js`,
     `${BASE}/suite-dialog.js`,
     `${BASE}/suite-entity-list.js`,
@@ -57,7 +62,7 @@ const SUITES = [
 // is supposed to remove.
 const VERSION = `?v=${Date.now()}`;
 
-const { createRecorder, display } = await import(`${BASE}/harness-lib.js${VERSION}`);
+const { createRecorder, display } = await import(`${ROOT}/harness-lib.js${VERSION}`);
 
 const loaded = [];
 const loadErrors = [];

@@ -5,7 +5,7 @@
 <div class="cpb-part-rows{{#if plain}} cpb-rows-plain{{/if}}">
     {{#each items}}
     <div class="cpb-part-row{{#if this.tone}} cpb-tone-{{this.tone}}{{/if}}{{#if this.emphasis}} cpb-emphasis{{/if}}{{#if this.animation}} cpb-anim-{{this.animation}}{{/if}}">
-        {{#if this.img}}<img class="cpb-part-row-img{{#if this.framed}} cpb-row-img-framed{{/if}}" src="{{this.img}}" alt="" />{{/if}}
+        {{#if this.img}}<img class="cpb-part-row-img{{#if this.framed}} cpb-row-img-framed{{/if}}{{#if this.cover}} cpb-row-img-cover{{/if}}" src="{{this.img}}" alt="" />{{/if}}
         {{#if this.icon}}<i class="cpb-part-row-icon {{this.icon}}"></i>{{/if}}
         <div class="cpb-part-row-text">
             <div class="cpb-part-row-label">
@@ -13,7 +13,7 @@
             </div>
             {{#if this.sublabel}}<div class="cpb-part-row-sublabel">{{{this.sublabel}}}</div>{{/if}}
         </div>
-        {{#if this.trailing}}<div class="cpb-part-row-trailing">{{{this.trailing}}}</div>{{/if}}
+        {{#if this.trailing}}<div class="cpb-part-row-trailing{{#if this.trailingSize}} cpb-trailing-{{this.trailingSize}}{{/if}}">{{{this.trailing}}}</div>{{/if}}
         {{#if this.trailingIcon}}<i class="cpb-part-row-trailing-icon {{this.trailingIcon}}"></i>{{/if}}
         {{#if this.action}}
         <button type="button" class="cpb-part-row-action chat-button"

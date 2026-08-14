@@ -24,7 +24,7 @@
 // finally, so a failed run leaves no residue in the world.
 // ==================================================================
 
-import { requireApi, settingRow } from './harness-lib.js';
+import { requireApi, settingRow } from '../harness-lib.js';
 
 const MODULE_ID = 'coffee-pub-blacksmith';
 

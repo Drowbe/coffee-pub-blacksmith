@@ -10,7 +10,7 @@ What remains is everything that needs a second client, a browser reload, a diffe
 
 Results go to the relevant `CHANGELOG.md` entry, not back into this file.
 
-**Use `testing/preview-chat-cards.js`** for most of what follows. Pasted into a script macro it posts every part and every variant, plus one card per theme, which covers the rendering and theme items in a single run.
+**Use the Chat Cards suite in `testing/test-harness.js`** for most of what follows. Its headless tier asserts the escaping, enricher, storage and theme contracts and runs under "Run All Headless". Its interactive tier posts **one card per button** -- baseline, identity, meters and pips, bands, tiles, the three thumbnail treatments, outcome tones, quiet rows, emphasis blocks, richtext, and one card per theme. One card at a time is the point: a card showing every part at once proves the parts render and hides how they sit together.
 
 ## Rendering
 

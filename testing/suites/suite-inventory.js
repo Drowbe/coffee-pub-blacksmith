@@ -27,7 +27,7 @@
 //                            encumbrance recompute; see the architecture doc.
 // ==================================================================
 
-import { requireApi, settingRow } from './harness-lib.js';
+import { requireApi, settingRow } from '../harness-lib.js';
 
 const TEMP_PREFIX = 'ZZ Harness Inventory';
 
