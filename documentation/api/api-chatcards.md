@@ -54,7 +54,7 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 |---|---|---|
 | `header` | icon and title bar | `icon`, `title` |
 | `identity` | avatar, primary name, secondary line | `img`, `name`, `subtitle` |
-| `subject` | one subject and how it stands: image beside a title, optional value opposite, optional bar beneath | `img`, `framed`, `icon` or `index`, `title`, `value`, and one of `meter` / `gauge` |
+| `subject` | one subject and how it stands: image beside a title, optional value opposite, optional bar beneath | `img`, `marker` or `index`, `title`, `value`, and one of `meter` / `gauge` |
 | `image` | picture with optional caption and stacked overlays | `src`, `alt`, `caption`, `overlays: [src]` |
 | `gauge` | a scale you read a position off | `min`, `max`, `stops` or `segments`, `markers`, `midpoint`, `iconStart`, `iconEnd`, `label` |
 | `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`caution`/`warn`/`danger`/`empty`; derived from the percentage if omitted, assuming low is bad) |
@@ -63,7 +63,7 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `section` | divider with icon and label | `icon`, `label` |
 | `prose` | structured text blocks | `blocks` (see below) |
 | `pips` | discrete state slots around an optional centre marker | `groups: [{ total, filled, tone }]`, `center` (see below) |
-| `rows` | thumbnail or icon, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, framed, cover, icon, uuid, label, sublabel, count, trailing, trailingSize, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
+| `rows` | thumbnail, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, icon, cover, marker, uuid, label, sublabel, count, trailing, trailingSize, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
 | `badges` | inline chips | `items: [{ icon, label }]` |
 | `panel` | boxed sub-block | `icon`, `label`, `intro`, `rows: [{ icon, label, value }]` |
 | `notes` | footer annotations | `items: [{ icon, text }]` |
@@ -111,11 +111,11 @@ lines, so a title and a bar sit beside it rather than under it.
 { part: 'subject', img: actor.img, index: 1, title: 'Cyrus Bing', value: '39s',
   meter: { value: 71, max: 101 } }
 
-{ part: 'subject', img: actor.img, icon: 'fa-solid fa-crown', title: 'Party Leader',
+{ part: 'subject', img: actor.img, marker: 'fa-solid fa-crown', title: 'Party Leader',
   gauge: { min: -100, max: 100, midpoint: 0, markers: [{ at: 45 }] } }
 ```
 
-The leading marker is `index` (a number) or `icon` (a glyph), and both occupy the same width so titles line
+The leading marker is `index` (a number) or `marker` (a glyph), and both occupy the same width so titles line
 up down a stack of subjects. Everything except `title` is optional; with no image and no bar it degrades to
 a heading with a value.
 
@@ -200,7 +200,13 @@ Tone and the trailing mark are independent, which is what lets one card mark eve
 
 Set `plain: true` on the part to drop the row boxes entirely - a conditions list reads better as icon and text than as a stack of containers.
 
-Set `framed: true` on an item to put a dark ground and light border behind its thumbnail. Token art is usually transparent PNG drawn against a dark canvas, so on a light card it needs something behind it; item and portrait art usually does not.
+**A thumbnail and a marker are different things.** The thumbnail is the row's picture and fills a 32px box;
+the marker is a small symbol qualifying the label, like a d20 on a roll result. A row may have either, both,
+or neither.
+
+A row's thumbnail is an `img` or an `icon` - an icon standing in for a picture takes the same box, ground and edge, and fills 85% of it, so a list mixing the two still reads as one column. Supply one or the other; `img` wins if both are given.
+
+Every image in a card sits on a subtle ground pitched at the tile fill. Opaque art covers it and nothing shows; transparent art - which most token and item icons are - lands on it rather than dissolving into the card. You do not ask for this and there is no flag: it just happens.
 
 Set `cover: true` for a character portrait, which crops square. Thumbnails otherwise fit the whole image, because cropping token and item art removes the parts that carry it.
 

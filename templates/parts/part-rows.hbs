@@ -1,12 +1,14 @@
-{{!-- Detail rows: an optional thumbnail or icon, a label that may be a document
+{{!-- Detail rows: a thumbnail -- a picture, or an icon standing in for one -- an optional small
+      marker qualifying the label, a label that may be a document
       link, an optional sub-line, and an optional trailing value or button.
       One part rather than two, because "a list of creatures" and "a list of
       conditions" differ only in which of these fields are filled. --}}
 <div class="cpb-part-rows{{#if plain}} cpb-rows-plain{{/if}}">
     {{#each items}}
     <div class="cpb-part-row{{#if this.tone}} cpb-tone-{{this.tone}}{{/if}}{{#if this.emphasis}} cpb-emphasis{{/if}}{{#if this.animation}} cpb-anim-{{this.animation}}{{/if}}">
-        {{#if this.img}}<img class="cpb-part-row-img{{#if this.framed}} cpb-row-img-framed{{/if}}{{#if this.cover}} cpb-row-img-cover{{/if}}" src="{{this.img}}" alt="" />{{/if}}
-        {{#if this.icon}}<i class="cpb-part-row-icon {{this.icon}}"></i>{{/if}}
+        {{#if this.img}}<img class="cpb-part-row-img{{#if this.cover}} cpb-row-img-cover{{/if}}" src="{{this.img}}" alt="" />
+        {{else if this.icon}}<span class="cpb-part-row-img cpb-row-img-icon"><i class="{{this.icon}}"></i></span>{{/if}}
+        {{#if this.marker}}<i class="cpb-part-row-marker {{this.marker}}"></i>{{/if}}
         <div class="cpb-part-row-text">
             <div class="cpb-part-row-label">
                 {{#if this.count}}<span class="cpb-part-row-count">{{this.count}} &times;</span> {{/if}}{{{this.label}}}

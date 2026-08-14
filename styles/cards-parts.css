@@ -23,6 +23,7 @@
     display: block;
     width: 100%;
     height: auto;
+    background: var(--blacksmith-card-image-ground);
     border: 1px solid var(--blacksmith-card-image-border);
     border-radius: var(--blacksmith-radius-md);
 }
@@ -138,7 +139,7 @@
     align-items: center;
     gap: var(--blacksmith-space-md);
     padding: var(--blacksmith-card-box-padding);
-    background: var(--blacksmith-card-background);
+    background: var(--blacksmith-card-box-fill);
     border-radius: var(--blacksmith-card-box-radius);
 }
 
@@ -153,14 +154,9 @@
     width: 40px;
     height: 40px;
     object-fit: cover;
+    background: var(--blacksmith-card-image-ground);
     border: 1px solid var(--blacksmith-card-image-border);
     border-radius: var(--blacksmith-card-box-radius);
-}
-
-.blacksmith-card .cpb-part-subject-img.cpb-subject-img-framed {
-    padding: 2px;
-    object-fit: contain;
-    background: rgba(0, 0, 0, 0.9);
 }
 
 .blacksmith-card .cpb-subject-compact .cpb-part-subject-img {
@@ -270,7 +266,7 @@
 .blacksmith-card .cpb-part-meter-track,
 .blacksmith-card .cpb-part-gauge-track {
     padding: var(--blacksmith-card-box-padding);
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--blacksmith-card-box-fill);
     border-radius: var(--blacksmith-card-box-radius);
 }
 
@@ -446,7 +442,7 @@
     font-weight: 550;
     font-size: 0.9em;
     text-transform: uppercase;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--blacksmith-card-box-fill);
     border: 1px solid transparent;
     border-radius: var(--blacksmith-card-box-radius);
     color: var(--blacksmith-card-section-header-text);
@@ -518,7 +514,7 @@
     rather than as the same one saying less.
 */
 .blacksmith-card .cpb-part-band.cpb-band-quiet {
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--blacksmith-card-box-fill);
     border-color: transparent;
 }
 
@@ -545,7 +541,7 @@
 .blacksmith-card .cpb-part-tile {
     padding: var(--blacksmith-card-box-padding);
     text-align: center;
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--blacksmith-card-box-fill);
     border-radius: var(--blacksmith-card-box-radius);
 }
 
@@ -601,56 +597,73 @@
 }
 
 /*
-    Thumbnail. 32px and `contain` rather than 28px and `cover`, from Bibliosoph's
-    .encounter-monster-img and .investigation-item-img. `cover` crops, which is
-    wrong for token and item art -- the subject is centred in the frame and the
-    edges are the parts that carry it. This was a real defect, not a preference.
+    Every thumbnail is the same size, carries the same edge as the identity avatar,
+    and sits on the same ground. One variant, changing exactly one thing: `cover`
+    crops instead of fitting.
+
+    There was a `framed` variant that put a near-black ground behind token art. It
+    is gone. Once every image has a ground, transparent art works without anyone
+    asking for it -- and a flag whose job the default already does is a flag people
+    have to know about for no reason.
 */
 .blacksmith-card .cpb-part-row-img {
     flex: 0 0 auto;
-    width: 32px;
-    height: 32px;
+    width: var(--blacksmith-card-thumb-size);
+    height: var(--blacksmith-card-thumb-size);
     object-fit: contain;
     margin-right: var(--blacksmith-space-md);
+    background: var(--blacksmith-card-image-ground);
     border: 1px solid var(--blacksmith-card-image-border);
     border-radius: var(--blacksmith-radius-md);
 }
 
-/*
-    Portraits crop; token and item art does not. `.player-portrait` in
-    cards-xp.css is 36px, `cover`, and borderless, because a character portrait
-    is a photograph of a face and cropping it square is correct. Everything else
-    keeps `contain`.
-*/
 .blacksmith-card .cpb-part-row-img.cpb-row-img-cover {
-    width: 36px;
-    height: 36px;
     object-fit: cover;
 }
 
 /*
-    Framed thumbnails, for token art. Token art is usually transparent PNG drawn
-    for a dark canvas, so on a light card it reads as a smudge without a ground
-    behind it. Per item rather than global, because a creature or item token wants
-    this and a portrait or an illustration does not.
+    An icon can stand in for the picture, which is what a note or a category wants
+    when it has no art. It takes the same box, ground and edge as an image, so a
+    list mixing the two still reads as one column.
 
-    The dark ground is the whole of what `framed` adds. The border is the same
-    black translucent edge every other image gets -- the pattern came from
-    Bibliosoph, which paired the dark tile with a white border, but a value
-    extracted from a module is a starting point and the system's own rule wins
-    where the two disagree. Carrying the exception across would have made the
-    parts library a collection of everyone's special cases, which is the thing it
-    exists to replace.
+    Sized at 85% of the box rather than at a fixed number or at the text's size: a
+    glyph is the picture here, so it fills its frame the way a picture does, and it
+    follows if the box is ever retuned.
 */
-.blacksmith-card .cpb-part-row-img.cpb-row-img-framed {
-    padding: 2px;
-    background: rgba(0, 0, 0, 0.9);
-    border: 1px solid var(--blacksmith-card-image-border);
+.blacksmith-card .cpb-part-row-img.cpb-row-img-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.blacksmith-card .cpb-part-row-icon {
+/* Escapes the card-wide icon rule, which pins every .fa-solid to 14px with a
+   right margin. Third part to need that exemption -- see the watchlist. */
+.blacksmith-card .cpb-row-img-icon i {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    font-size: calc(var(--blacksmith-card-thumb-size) * 0.85);
+    line-height: 1;
+    color: var(--blacksmith-card-section-header-text);
+}
+
+/*
+    A marker is a small symbol qualifying the label -- a d20 on a roll row, a suit
+    on a category. Distinct from a thumbnail, which is the row's PICTURE and fills
+    a 32px box.
+
+    Both existed before the parts system and both are needed. An earlier pass
+    deleted this one on the grounds that nothing referenced it, which was true and
+    beside the point: the roll cards do exactly this, and the question is whether
+    the OUTCOME is still reachable, not whether the rule had a caller yet.
+*/
+.blacksmith-card .cpb-part-row-marker {
     flex: 0 0 auto;
-    margin-right: var(--blacksmith-space-md);
+    width: 1.25em;
+    margin: 0 var(--blacksmith-space-md) 0 0;
+    padding: 0;
+    text-align: center;
+    color: var(--blacksmith-card-section-header-text);
 }
 
 /* Flexes, so everything after it is pushed to the right edge. */
@@ -763,7 +776,7 @@
     align-items: center;
     padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
     font-size: 0.85em;
-    background: var(--blacksmith-card-background);
+    background: var(--blacksmith-card-box-fill);
     border: 1px solid var(--blacksmith-card-border-color);
     border-radius: var(--blacksmith-radius-pill);
     color: var(--blacksmith-card-section-content-text);
@@ -851,7 +864,7 @@
     align-items: center;
     justify-content: center;
     padding: var(--blacksmith-card-box-padding);
-    background-color: rgba(0, 0, 0, 0.1);
+    background-color: var(--blacksmith-card-box-fill);
     border-radius: var(--blacksmith-card-box-radius);
 }
 

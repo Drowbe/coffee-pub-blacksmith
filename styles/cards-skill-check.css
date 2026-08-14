@@ -34,7 +34,7 @@
     font-weight: 900;
     font-size: 1.3em;
     padding: 6px;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--blacksmith-card-box-fill);
     border: 0px solid rgba(170, 2, 0, 0.4);
     border-radius: 4px;
     margin-top: 10px;
@@ -210,7 +210,7 @@
     padding: 4px;
     border-radius: 4px;
     text-align: left;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--blacksmith-card-box-fill);
 }
 .cpb-roll-result-success-container {
     border: 1px solid rgba(24, 82, 11, 0.6);
@@ -322,7 +322,7 @@
 }
 .cpb-roll-result.pending-roll button.skill-roll:hover,
 .cpb-roll-result.pending-roll button.cpb-skill-roll:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--blacksmith-card-box-fill);
 }
 
 .cpb-group-roll-result-pending {
@@ -330,7 +330,7 @@
     padding: 4px;
     border-radius: 4px;
     text-align: left;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--blacksmith-card-box-fill);
     border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
@@ -388,7 +388,7 @@
 }
 
 .cpb-skill-check-roll .cpb-skill-roll:hover {
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--blacksmith-card-box-fill);
     border-color: var(--color-border-highlight);
 }
 

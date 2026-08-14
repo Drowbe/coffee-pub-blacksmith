@@ -25,10 +25,14 @@
 import { requireApi, settingRow, stylesheetContains } from '../harness-lib.js';
 
 // Real art, not a placeholder: the core mystery-man svg is nearly white, so a
-// light image border and a framed thumbnail both read as absent against it --
+// light image border reads as absent against it --
 // which is exactly the judgement these cards exist to support.
 // Campaign art, so it may not resolve outside the author's install.
 const IMG = 'modules/campaigns/images/portraits/elegant-eight/character-favia.webp';
+
+// Foundry's own placeholder: a transparent SVG, so it shows the shared image
+// ground through the art. Real portraits are opaque and would hide it.
+const PLACEHOLDER = 'icons/svg/mystery-man.svg';
 const TEST_ACTION = 'harness-card-action';
 
 /** Post, hand the message to `inspect`, then delete it whatever happened. */
@@ -314,13 +318,13 @@ export default {
               meter: { value: 12, max: 101 } },
 
             { part: 'section', label: 'Icon instead of a number, and a gauge instead of a meter' },
-            { part: 'subject', img: IMG, icon: 'fa-solid fa-crown', title: 'Party Leader',
+            { part: 'subject', img: IMG, marker: 'fa-solid fa-crown', title: 'Party Leader',
               value: '+45',
               gauge: { min: -100, max: 100, midpoint: 0, markers: [{ at: 45 }] } },
 
             { part: 'section', label: 'Compact: image beside a title, no bar' },
             { part: 'subject', img: IMG, title: 'Small image next to a title', value: '412 gp' },
-            { part: 'subject', img: IMG, icon: 'fa-solid fa-coins', title: 'With a marker too' },
+            { part: 'subject', img: IMG, marker: 'fa-solid fa-coins', title: 'With a marker too' },
 
             { part: 'section', label: 'Clickable -- try the mouse, then Tab to it and press Enter' },
             { part: 'subject', img: IMG, index: 4, title: 'Click me', value: 'action',
@@ -329,7 +333,7 @@ export default {
               meter: { value: 60, max: 100 } },
 
             { part: 'section', label: 'No image, no bar -- it degrades to a heading with a value' },
-            { part: 'subject', icon: 'fa-solid fa-coins', title: 'Party Funds', value: '412 gp' },
+            { part: 'subject', marker: 'fa-solid fa-coins', title: 'Party Funds', value: '412 gp' },
             { part: 'subject', title: 'Nothing but a title' }
         ], { group: 'Cards', note: 'titles should line up whether the marker is a number, an icon, or absent' }),
 
@@ -428,24 +432,26 @@ export default {
             { part: 'rows', items: [
                 { img: IMG, label: 'Default', sublabel: 'contain — fits the whole image' },
                 { img: IMG, cover: true, label: 'Cover', sublabel: 'crops square, for a portrait' },
-                { img: IMG, framed: true, label: 'Framed', sublabel: 'dark ground, for token art' } ] }
-        ], { group: 'Cards', note: 'framed should have a dark backing and a light border' }),
+                { img: PLACEHOLDER, label: 'Transparent art', sublabel: 'lands on the shared ground, no flag needed' },
+                { icon: 'fa-solid fa-note-sticky', label: 'An icon instead of a picture', sublabel: 'same box, 85% of it' },
+                { icon: 'fa-solid fa-scroll', label: 'Mixed with images', sublabel: 'the column still lines up' } ] }
+        ], { group: 'Cards', note: 'all three the same size, edge and ground; only the fit differs' }),
 
         card('c-rows-outcomes', 'Rows: outcome tones', [
             { part: 'header', icon: 'fa-solid fa-dice-d20', title: 'Outcome Tones' },
             { part: 'rows', items: [
-                { icon: 'fa-solid fa-dice-d20', label: 'Success', trailing: '18',
+                { marker: 'fa-solid fa-dice-d20', label: 'Success', trailing: '18',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'positive' },
-                { icon: 'fa-solid fa-dice-d20', label: 'Success, emphasised, shaking', trailing: '20',
+                { marker: 'fa-solid fa-dice-d20', label: 'Success, emphasised, shaking', trailing: '20',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-check',
                   tone: 'positive', emphasis: true, animation: 'shake-y' },
-                { icon: 'fa-solid fa-dice-d20', label: 'Failure', trailing: '7',
+                { marker: 'fa-solid fa-dice-d20', label: 'Failure', trailing: '7',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark', tone: 'negative' },
-                { icon: 'fa-solid fa-dice-d20', label: 'Failure, emphasised, shaking', trailing: '1',
+                { marker: 'fa-solid fa-dice-d20', label: 'Failure, emphasised, shaking', trailing: '1',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark',
                   tone: 'negative', emphasis: true, animation: 'shake-x' },
-                { icon: 'fa-solid fa-dice-d20', label: 'Tie', trailing: '12', trailingSize: 'large', tone: 'info' },
-                { icon: 'fa-solid fa-dice-d20', label: 'Pending', tone: 'pending' } ] }
+                { marker: 'fa-solid fa-dice-d20', label: 'Tie', trailing: '12', trailingSize: 'large', tone: 'info' },
+                { marker: 'fa-solid fa-dice-d20', label: 'Pending', tone: 'pending' } ] }
         ], { group: 'Cards', note: 'the two emphasised rows should shake on different axes' }),
 
         card('c-rows-quiet', 'Rows: quiet trailing, plain rows, links', () => {
@@ -464,7 +470,7 @@ export default {
                     { img: IMG, label: 'Floor is Lava', sublabel: 'Fumble - Nasty' },
                     { img: IMG, label: 'Bloodied', sublabel: 'Effect' } ] },
                 { part: 'rows', items: [
-                    { img: IMG, framed: true, uuid: actor?.uuid, label: actor?.name ?? 'No actor', count: 5 } ] }
+                    { img: IMG, uuid: actor?.uuid, label: actor?.name ?? 'No actor', count: 5 } ] }
             ];
         }, { group: 'Cards', note: 'compare against the XP card and the Crier turn card' }),
 
@@ -472,7 +478,7 @@ export default {
             { part: 'header', icon: 'fa-solid fa-kit-medical', title: 'Emphasis Blocks' },
             { part: 'badges', items: [
                 { icon: 'fa-solid fa-skull', label: 'Poisoned for 4 rounds' },
-                { icon: 'fa-solid fa-dice-d20', label: '-1 to ability checks' },
+                { marker: 'fa-solid fa-dice-d20', label: '-1 to ability checks' },
                 { label: 'No icon' } ] },
             { part: 'prose', blocks: [{ type: 'paragraph', text: 'Prose above the panel, to check the gap between them.' }] },
             { part: 'panel', icon: 'fa-solid fa-heart-pulse', label: 'Treatment',

@@ -22,13 +22,13 @@
      {{#if tooltip}}data-tooltip="{{tooltip}}"{{/if}}{{/if}}>
 
     {{#if img}}
-    <img class="cpb-part-subject-img{{#if framed}} cpb-subject-img-framed{{/if}}" src="{{img}}" alt="" />
+    <img class="cpb-part-subject-img" src="{{img}}" alt="" />
     {{/if}}
 
     <div class="cpb-part-subject-body">
         <div class="cpb-part-subject-head">
             {{#if index}}<span class="cpb-part-subject-marker cpb-subject-number">{{index}}</span>{{/if}}
-            {{#if icon}}<i class="cpb-part-subject-marker {{icon}}"></i>{{/if}}
+            {{#if marker}}<i class="cpb-part-subject-marker {{marker}}"></i>{{/if}}
             <span class="cpb-part-subject-title">{{{title}}}</span>
             {{#if value}}<span class="cpb-part-subject-value">{{{value}}}</span>{{/if}}
         </div>
