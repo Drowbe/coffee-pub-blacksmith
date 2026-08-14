@@ -127,6 +127,12 @@
        table takes on whatever ground the theme provides. */
     --blacksmith-card-table-border: var(--blacksmith-card-border-strong);
     --blacksmith-card-table-rule: rgba(0, 0, 0, 0.12);
+
+    /* The hairline that separates prose: a horizontal rule, and the line under an h3.
+       Black with transparency like every other card edge, so it reads on any theme
+       rather than being a fixed grey. Foundry core draws both of these itself, in its
+       own colours, and they arrived far heavier than anything else on a card. */
+    --blacksmith-card-rule: rgba(0, 0, 0, 0.15);
     --blacksmith-card-table-head-fill: rgba(0, 0, 0, 0.14);
     --blacksmith-card-table-row-fill: rgba(0, 0, 0, 0.04);
 
@@ -239,6 +245,17 @@
 /* ********** CARD ********** */
 
 .blacksmith-card .card-header {
+    /* The header is a BAND, in every theme. Ordinary themes tint it faintly so it
+       reads as a header rather than as the first line of the card; a -dark variant
+       fills it. Both come from one token, so there is a single rule here and the
+       theme decides how loud it is.
+
+       The negative margin bleeds the band out through the card's 0.5em padding to
+       its edges, and the top corners match the card's own radius. */
+    background: var(--blacksmith-card-header-bg);
+    margin: -0.5em -0.5em var(--blacksmith-space-md) -0.5em;
+    padding: var(--blacksmith-space-md) 0.5em;
+    border-radius: var(--blacksmith-radius-lg) var(--blacksmith-radius-lg) 0 0;
     font-family: "Modesto Condensed";
     font-size: var(--blacksmith-font-size-xl);
     font-weight: var(--blacksmith-font-weight-black);
@@ -252,30 +269,17 @@
 
 
 /*
-    The -dark variants, in one rule, because the header is the ONLY thing they change.
-    Everything else on the card -- body text, sections, rows, buttons, tables -- comes
-    from the ordinary theme, whose token block each -dark class shares by sitting in
-    the same selector list (see cards-common-themes.css).
+    A card that is nothing but its header. The band already bleeds through the card's
+    padding on three sides; here it takes the fourth as well and rounds all four
+    corners, so the card IS the band rather than a band sitting on an empty card with
+    a strip of ground below it.
 
-    This replaced three `theme-announcement-*` themes that darkened the WHOLE card and
-    then left every text token at its light-theme value, so body text was dark brown on
-    near-black. Only the header had ever been given a light colour, which is the tell
-    that only the header was ever used.
-
-    The negative margin bleeds the band out through the card's 0.5em padding to its
-    edges, and the top corners are rounded to match the card's own radius.
+    `:only-child` is exactly the right test: parts render as siblings inside the card
+    wrapper, so a header is an only child precisely when nothing else was composed.
 */
-.blacksmith-card.theme-default-dark .card-header,
-.blacksmith-card.theme-amber-dark .card-header,
-.blacksmith-card.theme-blue-dark .card-header,
-.blacksmith-card.theme-green-dark .card-header,
-.blacksmith-card.theme-red-dark .card-header,
-.blacksmith-card.theme-orange-dark .card-header {
-    background: var(--blacksmith-card-header-dark-bg);
-    color: var(--blacksmith-card-header-dark-text);
-    margin: -0.5em -0.5em var(--blacksmith-space-md) -0.5em;
-    padding: var(--blacksmith-space-md) 0.5em;
-    border-radius: var(--blacksmith-radius-lg) var(--blacksmith-radius-lg) 0 0;
+.blacksmith-card .card-header:only-child {
+    margin-bottom: -0.5em;
+    border-radius: var(--blacksmith-radius-lg);
 }
 
 /* Section Header Icons */
@@ -557,7 +561,7 @@
     margin: var(--blacksmith-space-sm) 0;
     padding: 0;
     border: none;
-    border-top: 1px dotted #323030;
+    border-top: 1px solid var(--blacksmith-card-rule);
 }
 /* H1 */
 /*
@@ -587,12 +591,22 @@
        it was wrong: a section header is OUR furniture marking a region of the card,
        while these headings are the author's content. Painting content in the
        furniture's colour made a journal read as though the card had authored it. */
-    font-family: inherit;
+    /* The card header's own face. A heading inside a card and the card's header are
+       the same kind of thing -- a title -- so they are set the same way, and the ramp
+       below reads as continuing from the header rather than starting a second voice.
+
+       Note the deepest levels stay legible because h5 and h6 also lighten rather than
+       shrinking much further; Modesto Condensed is a display face and gets hard to
+       read quickly if it is only made smaller. */
+    font-family: "Modesto Condensed";
     color: var(--blacksmith-card-text);
     font-style: normal;
     font-weight: 550;
     margin: var(--blacksmith-space-md) 0 var(--blacksmith-space-sm) 0;
     padding: 0;
+    /* Foundry core underlines headings in its own weight and colour. We draw our own
+       on h3 below and leave the rest clean. */
+    border: none;
 }
 
 /* A heading opening a block should not push it open further. */
@@ -607,17 +621,49 @@
 
 .blacksmith-card h1 { font-size: 1.3em;  text-transform: uppercase; }
 .blacksmith-card h2 { font-size: 1.15em; text-transform: uppercase; }
-.blacksmith-card h3 { font-size: 1em; }
+/* h3 is the level that divides a page, so it keeps a rule -- but a hairline in the
+   card's own colour, not core's heavy one. */
+.blacksmith-card h3 {
+    font-size: 1em;
+    padding-bottom: var(--blacksmith-space-xs);
+    border-bottom: 1px solid var(--blacksmith-card-rule);
+}
+
 .blacksmith-card h4 { font-size: 0.9em; }
+
+/* h5 and h6 are used as sub-text as often as they are used as headings, so they
+   recede rather than announce. */
+.blacksmith-card h5,
+.blacksmith-card h6 {
+    color: var(--blacksmith-card-section-content-text);
+    opacity: 0.8;
+}
+
 .blacksmith-card h5 { font-size: 0.85em; }
 .blacksmith-card h6 { font-size: 0.8em; font-style: italic; }
 /* Lists */
+/*
+    Lists indent from their own marker rather than from a fixed left margin, so a
+    two-digit number in an ordered list stays aligned with a one-digit one instead of
+    hanging outside the text column.
+*/
 .blacksmith-card ol,
 .blacksmith-card ul {
 	font-weight: var(--blacksmith-font-weight-normal);
     font-size: var(--blacksmith-font-size-base);
-    margin: 5px 0 5px var(--blacksmith-space-xl);
-    padding: 0;
+    margin: var(--blacksmith-space-sm) 0;
+    padding-left: var(--blacksmith-space-xl);
+}
+
+.blacksmith-card ul { list-style-type: disc; }
+.blacksmith-card ol { list-style-type: decimal; }
+
+/* The marker takes the card's accent rather than the text colour, which is what makes
+   a list read as ours: the same colour a section header is written in, at the same
+   weight, so the bullets and numbers line up with the card's own furniture. */
+.blacksmith-card li::marker {
+    color: var(--blacksmith-card-section-header-text);
+    font-weight: var(--blacksmith-font-weight-bold);
 }
 /* List Items */
 .blacksmith-card li {

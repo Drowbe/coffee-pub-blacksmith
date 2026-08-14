@@ -591,23 +591,57 @@ export default {
             tier: 'interactive',
             group: 'Cards',
             label: 'One card per theme',
-            note: 'posts nine cards; structure must be identical and only colour differ',
+            note: 'one per theme, light and dark; structure identical, only colour differs',
             run: async ({ log }) => {
                 const { chatCards } = requireApi('chatCards');
                 for (const theme of chatCards.getThemes()) {
                     await chatCards.post({
-                        moduleId: 'coffee-pub-blacksmith',
+                        moduleId: MOD,
                         type: 'harness-theme',
                         theme: theme.id,
+                        // Real content rather than a placeholder line: a portrait, a
+                        // meter and a couple of rows are what a theme actually has to
+                        // hold, and a card of one grey sentence hides every problem.
                         parts: [
                             { part: 'header', icon: 'fa-solid fa-palette', title: theme.name },
-                            { part: 'band', text: theme.id },
-                            { part: 'prose', blocks: [{ type: 'paragraph', text: 'Only colour should change.' }] },
-                            { part: 'rows', items: [{ icon: 'fa-solid fa-circle', label: 'A row', trailing: '10', tone: 'positive' }] }
+                            { part: 'identity', img: IMG, name: 'Favia Gita', subtitle: 'Half-Elf Ranger' },
+                            { part: 'prose', blocks: [{ type: 'paragraph', text: 'Only colour should change between these cards.' }] },
+                            { part: 'section', label: 'The Party' },
+                            { part: 'rows', items: [
+                                { img: IMG, cover: true, label: 'Favia Gita', sublabel: 'Ranger 4', trailing: '18',
+                                  trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'positive' },
+                                { icon: 'fa-solid fa-scroll', label: 'A quest thumbnail', sublabel: 'with its own ground',
+                                  ground: 'rgba(72, 21, 21, 0.85)', iconColor: 'rgba(255, 235, 200, 0.95)' } ] },
+                            { part: 'badges', items: [{ label: 'Action' }, { label: 'Reach 10 ft' }] },
+                            { part: 'actions', buttons: [
+                                { moduleId: MOD, action: TEST_ACTION, label: 'Cancel' },
+                                { moduleId: MOD, action: TEST_ACTION, label: 'Confirm', variant: 'primary',
+                                  icon: 'fa-solid fa-check', value: theme.id } ] }
                         ]
                     });
                 }
                 log(`Posted ${chatCards.getThemes().length} theme cards.`);
+            }
+        },
+
+        {
+            id: 'c-themes-header-only',
+            tier: 'interactive',
+            group: 'Cards',
+            label: 'Dark headers, header only',
+            note: 'the case the -dark variants exist for: a card that is nothing but its header',
+            run: async ({ log }) => {
+                const { chatCards } = requireApi('chatCards');
+                const dark = chatCards.getThemes().filter((theme) => theme.id.endsWith('-dark'));
+                for (const theme of dark) {
+                    await chatCards.post({
+                        moduleId: MOD,
+                        type: 'harness-theme',
+                        theme: theme.id,
+                        parts: [{ part: 'header', icon: 'fa-solid fa-bullhorn', title: theme.name }]
+                    });
+                }
+                log(`Posted ${dark.length} header-only cards.`);
             }
         },
 

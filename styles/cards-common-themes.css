@@ -23,14 +23,28 @@
     --blacksmith-card-button-text: #594a3c;
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
+    /* A hint of the theme, so the header reads as a header rather than as the
+       first line of the card. The -dark variant swaps this for the ground below. */
+    --blacksmith-card-header-bg: rgba(0, 0, 0, 0.08);
+
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
     /* Header ground for the -dark variant (dark brown, the tan theme at full strength). */
     --blacksmith-card-header-dark-bg: rgba(50, 42, 34, 1.0);
 }
 
+/* The whole of the -dark variant: two tokens. */
+.blacksmith-card.theme-default-dark {
+    --blacksmith-card-header-bg: var(--blacksmith-card-header-dark-bg);
+    --blacksmith-card-header-text: var(--blacksmith-card-header-dark-text);
+}
+
 /* Amber Theme */
 .blacksmith-card.theme-amber,
 .blacksmith-card.theme-amber-dark {
+    /* A hint of the theme, so the header reads as a header rather than as the
+       first line of the card. The -dark variant swaps this for the ground below. */
+    --blacksmith-card-header-bg: rgba(191, 142, 63, 0.22);
+
     --blacksmith-card-bg: rgba(191, 142, 63, 0.12);
     --blacksmith-card-border: rgba(122, 83, 31, 0.18);
     --blacksmith-card-text: #5b4630;
@@ -47,6 +61,12 @@
     --blacksmith-card-button-container-bg: rgba(122, 83, 31, 0.06);
     /* Header ground for the -dark variant (deep amber). */
     --blacksmith-card-header-dark-bg: rgba(74, 52, 20, 1.0);
+}
+
+/* The whole of the -dark variant: two tokens. */
+.blacksmith-card.theme-amber-dark {
+    --blacksmith-card-header-bg: var(--blacksmith-card-header-dark-bg);
+    --blacksmith-card-header-text: var(--blacksmith-card-header-dark-text);
 }
 
 
@@ -67,8 +87,18 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* A hint of the theme, so the header reads as a header rather than as the
+       first line of the card. The -dark variant swaps this for the ground below. */
+    --blacksmith-card-header-bg: rgba(247, 140, 1, 0.18);
+
     /* Header ground for the -dark variant (burnt orange). */
     --blacksmith-card-header-dark-bg: rgba(120, 60, 2, 1.0);
+}
+
+/* The whole of the -dark variant: two tokens. */
+.blacksmith-card.theme-orange-dark {
+    --blacksmith-card-header-bg: var(--blacksmith-card-header-dark-bg);
+    --blacksmith-card-header-text: var(--blacksmith-card-header-dark-text);
 }
 
 /* Red Theme */
@@ -88,8 +118,18 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* A hint of the theme, so the header reads as a header rather than as the
+       first line of the card. The -dark variant swaps this for the ground below. */
+    --blacksmith-card-header-bg: rgba(118, 31, 19, 0.18);
+
     /* Header ground for the -dark variant (was theme-announcement-red). */
     --blacksmith-card-header-dark-bg: rgba(97, 2, 2, 1.0);
+}
+
+/* The whole of the -dark variant: two tokens. */
+.blacksmith-card.theme-red-dark {
+    --blacksmith-card-header-bg: var(--blacksmith-card-header-dark-bg);
+    --blacksmith-card-header-text: var(--blacksmith-card-header-dark-text);
 }
 
 /* Blue Theme */
@@ -109,8 +149,18 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* A hint of the theme, so the header reads as a header rather than as the
+       first line of the card. The -dark variant swaps this for the ground below. */
+    --blacksmith-card-header-bg: rgba(0, 120, 212, 0.16);
+
     /* Header ground for the -dark variant (was theme-announcement-blue). */
     --blacksmith-card-header-dark-bg: rgba(0, 63, 88, 1.0);
+}
+
+/* The whole of the -dark variant: two tokens. */
+.blacksmith-card.theme-blue-dark {
+    --blacksmith-card-header-bg: var(--blacksmith-card-header-dark-bg);
+    --blacksmith-card-header-text: var(--blacksmith-card-header-dark-text);
 }
 
 /* Green Theme */
@@ -130,7 +180,17 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* A hint of the theme, so the header reads as a header rather than as the
+       first line of the card. The -dark variant swaps this for the ground below. */
+    --blacksmith-card-header-bg: rgba(0, 212, 64, 0.16);
+
     /* Header ground for the -dark variant (was theme-announcement-green). */
     --blacksmith-card-header-dark-bg: rgba(25, 49, 0, 1.0);
+}
+
+/* The whole of the -dark variant: two tokens. */
+.blacksmith-card.theme-green-dark {
+    --blacksmith-card-header-bg: var(--blacksmith-card-header-dark-bg);
+    --blacksmith-card-header-text: var(--blacksmith-card-header-dark-text);
 }
 
