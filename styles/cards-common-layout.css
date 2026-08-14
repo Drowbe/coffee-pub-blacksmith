@@ -360,11 +360,11 @@
     color: var(--blacksmith-card-button-text);
     font-weight: var(--blacksmith-font-weight-bold);
 }
-.blacksmith-card-buttons button.card-button,
+.blacksmith-card-buttons button.card-button:hover,
 .blacksmith-chat-buttons button.chat-button:hover {
     background: var(--blacksmith-card-button-hover-bg);
 }
-.blacksmith-card-buttons button.card-button,
+.blacksmith-card-buttons button.card-button i,
 .blacksmith-chat-buttons button.chat-button i {
     color: var(--blacksmith-card-button-text);
     margin-top: 0px;

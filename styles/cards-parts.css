@@ -751,26 +751,38 @@
 }
 
 /*
-    Outcome tone and emphasis. `tone` tints the whole row -- the contested-roll
-    card tints every result, because comparing them is the point. `emphasis`
-    adds a glow and bolds the label, which is what crit and fumble have always
-    had. Motion is separate: add `animation` for that.
+    Outcome tone and emphasis, in two deliberately unequal steps.
+
+    `tone` alone colours the TRAILING VALUE AND ITS MARK, and nothing else. The row
+    keeps the ordinary ground. A pass is reported by a green tick and a fail by a red
+    cross; filling the whole row for either one spends the loudest treatment the card
+    has on its most ordinary event, and a list where every row is filled reports
+    nothing at all, because there is no longer a quiet row to be louder than.
+
+    `tone` PLUS `emphasis` fills the row, bolds the label and adds the glow. That is
+    reserved for the exceptional result -- a critical or a fumble -- and it is the
+    rule the roll cards have always followed (cards-skill-check.css tints only
+    .cpb-chat-critical and .cpb-chat-fumble, never an ordinary success or failure).
+    Motion is a third, separate step: add `animation`.
+
+    So: ordinary outcome -> tone. Exceptional outcome -> tone + emphasis (+ animation).
 */
-.blacksmith-card .blacksmith-part-row.blacksmith-tone-positive {
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-positive.blacksmith-emphasis {
     background: var(--blacksmith-card-tone-positive-bg);
     border-color: var(--blacksmith-card-tone-positive-border);
 }
 
-.blacksmith-card .blacksmith-part-row.blacksmith-tone-negative {
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-negative.blacksmith-emphasis {
     background: var(--blacksmith-card-tone-negative-bg);
     border-color: var(--blacksmith-card-tone-negative-border);
 }
 
-.blacksmith-card .blacksmith-part-row.blacksmith-tone-info {
+.blacksmith-card .blacksmith-part-row.blacksmith-tone-info.blacksmith-emphasis {
     background: var(--blacksmith-card-tone-info-bg);
     border-color: var(--blacksmith-card-tone-info-border);
 }
 
+/* Not an outcome at all -- nothing has happened yet, so the row recedes. */
 .blacksmith-card .blacksmith-part-row.blacksmith-tone-pending { opacity: 0.55; }
 
 .blacksmith-card .blacksmith-part-row.blacksmith-tone-positive .blacksmith-part-row-trailing,

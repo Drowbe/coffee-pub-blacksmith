@@ -452,20 +452,31 @@ export default {
 
         card('c-rows-outcomes', 'Rows: outcome tones', [
             { part: 'header', icon: 'fa-solid fa-dice-d20', title: 'Outcome Tones' },
+            // Against a DC: the mark reports the outcome, the row stays quiet.
+            { part: 'section', label: 'Rolled against a DC' },
             { part: 'rows', items: [
-                { marker: 'fa-solid fa-dice-d20', label: 'Success', trailing: '18',
+                { label: 'Success', trailing: '18',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'positive' },
-                { marker: 'fa-solid fa-dice-d20', label: 'Success, emphasised, shaking', trailing: '20',
+                { label: 'Failure', trailing: '7',
+                  trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark', tone: 'negative' },
+                // Crit and fumble are the ONLY rows that fill. Emphasis is what fills them.
+                { label: 'Critical -- fills, bolds, shakes', trailing: '20',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-check',
                   tone: 'positive', emphasis: true, animation: 'shake-y' },
-                { marker: 'fa-solid fa-dice-d20', label: 'Failure', trailing: '7',
-                  trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark', tone: 'negative' },
-                { marker: 'fa-solid fa-dice-d20', label: 'Failure, emphasised, shaking', trailing: '1',
+                { label: 'Fumble -- fills, bolds, shakes', trailing: '1',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark',
-                  tone: 'negative', emphasis: true, animation: 'shake-x' },
-                { marker: 'fa-solid fa-dice-d20', label: 'Tie', trailing: '12', trailingSize: 'large', tone: 'info' },
+                  tone: 'negative', emphasis: true, animation: 'shake-x' } ] },
+            // No DC means there is no pass or fail to report, so there is no mark.
+            { part: 'section', label: 'Rolled with no DC -- totals only' },
+            { part: 'rows', items: [
+                { label: 'Just a total', trailing: '15', trailingSize: 'large' },
+                { label: 'Still a fumble without a DC', trailing: '1', trailingSize: 'large',
+                  tone: 'negative', emphasis: true, animation: 'shake-x' } ] },
+            // The die means ROLL ME. It belongs only to a row that has not rolled.
+            { part: 'section', label: 'Not yet rolled' },
+            { part: 'rows', items: [
                 { marker: 'fa-solid fa-dice-d20', label: 'Pending', tone: 'pending' } ] }
-        ], { group: 'Cards', note: 'the two emphasised rows should shake on different axes' }),
+        ], { group: 'Cards', note: 'only the crit and fumble rows should be filled; only the pending row should carry a die' }),
 
         card('c-rows-quiet', 'Rows: quiet trailing, plain rows, links', () => {
             const actor = game.actors.contents[0];
