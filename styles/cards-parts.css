@@ -56,28 +56,42 @@
 
 /* ---------- METER ---------- */
 
-.blacksmith-card .cpb-part-meter {
-}
+/*
+    Proportional bar.
+
+    Geometry and colour are Crier's HP bar, which is the bar this replaces:
+    a 3px-padded container at 0.1 alpha holding a 10px fill, container radius 4px
+    and fill radius 2px. The first pass invented a 14px pill with a border and
+    matched nothing on any existing card.
+
+    Five tones, not three. Crier steps its colour at 25/50/75, which reads as a
+    real gradient of alarm rather than a traffic light, and the fifth is for a
+    value that has run out rather than merely got low.
+
+    The tone names are severity, not hit points, so a meter can carry charges or
+    supply or fuel. `tone` is derived from the percentage when the caller omits
+    it, and that derivation assumes DEPLETION -- low is bad. A meter where high is
+    bad, encumbrance being the obvious one, sets its tone explicitly.
+*/
 
 .blacksmith-card .cpb-part-meter-track {
-    width: 100%;
-    height: 14px;
-    background: var(--blacksmith-card-background);
-    border: 1px solid var(--blacksmith-card-border-color);
-    border-radius: var(--blacksmith-radius-pill);
-    overflow: hidden;
+    padding: var(--blacksmith-card-box-padding);
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: var(--blacksmith-card-box-radius);
 }
 
 .blacksmith-card .cpb-part-meter-fill {
-    height: 100%;
-    border-radius: var(--blacksmith-radius-pill);
+    height: 10px;
+    border-radius: 2px;
     transition: width 0.2s ease-out;
     background: var(--blacksmith-card-header-text);
 }
 
-.blacksmith-card .cpb-meter-ok .cpb-part-meter-fill { background: #6a9a4a; }
-.blacksmith-card .cpb-meter-warn .cpb-part-meter-fill { background: #d08a24; }
-.blacksmith-card .cpb-meter-danger .cpb-part-meter-fill { background: #a63a2f; }
+.blacksmith-card .cpb-meter-ok .cpb-part-meter-fill      { background: rgba(98, 150, 2, 0.9); }
+.blacksmith-card .cpb-meter-caution .cpb-part-meter-fill { background: rgba(223, 134, 1, 0.9); }
+.blacksmith-card .cpb-meter-warn .cpb-part-meter-fill    { background: rgba(119, 40, 16, 0.9); }
+.blacksmith-card .cpb-meter-danger .cpb-part-meter-fill  { background: rgba(119, 20, 16, 0.9); }
+.blacksmith-card .cpb-meter-empty .cpb-part-meter-fill   { background: rgba(66, 66, 66, 0.9); }
 
 .blacksmith-card .cpb-part-meter-label {
     margin-top: var(--blacksmith-space-xs);
@@ -98,14 +112,14 @@
 */
 
 .blacksmith-card .cpb-part-band {
-    padding: 5px 10px;
+    padding: var(--blacksmith-card-box-padding);
     text-align: center;
     font-weight: 550;
     font-size: 0.9em;
     text-transform: uppercase;
     background-color: rgba(0, 0, 0, 0.1);
     border: 1px solid transparent;
-    border-radius: var(--blacksmith-radius-sm);
+    border-radius: var(--blacksmith-card-box-radius);
     color: var(--blacksmith-card-section-header-text);
     vertical-align: middle;
 }
@@ -123,8 +137,8 @@
     is what the first pass shipped.
 */
 .blacksmith-card .cpb-part-band.cpb-band-large {
-    padding: 6px;
-    border-radius: var(--blacksmith-radius-md);
+    padding: var(--blacksmith-card-box-padding);
+    border-radius: var(--blacksmith-card-box-radius);
 }
 
 .blacksmith-card .cpb-part-band.cpb-band-large .cpb-part-band-text {
@@ -188,10 +202,10 @@
 }
 
 .blacksmith-card .cpb-part-tile {
-    padding: 5px 10px;
+    padding: var(--blacksmith-card-box-padding);
     text-align: center;
     background-color: rgba(0, 0, 0, 0.1);
-    border-radius: var(--blacksmith-radius-md);
+    border-radius: var(--blacksmith-card-box-radius);
 }
 
 .blacksmith-card .cpb-part-tile-label {
@@ -231,10 +245,10 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px var(--blacksmith-space-md);
+    padding: var(--blacksmith-card-box-padding);
     background: rgba(0, 0, 0, 0.05);
     border: 1px solid var(--blacksmith-card-border-strong);
-    border-radius: var(--blacksmith-radius-md);
+    border-radius: var(--blacksmith-card-box-radius);
     min-width: 0;
 }
 
@@ -497,9 +511,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--blacksmith-space-md);
+    padding: var(--blacksmith-card-box-padding);
     background-color: rgba(0, 0, 0, 0.1);
-    border-radius: var(--blacksmith-radius-md);
+    border-radius: var(--blacksmith-card-box-radius);
 }
 
 .blacksmith-card .cpb-part-pip-group {

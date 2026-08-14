@@ -289,16 +289,18 @@ export default {
 
         card('c-meter-pips', 'Meters and pips', [
             { part: 'header', icon: 'fa-solid fa-heart', title: 'Meters and Pips' },
-            { part: 'meter', value: 80, max: 100, label: 'Healthy' },
-            { part: 'meter', value: 45, max: 100, label: 'Warning tone, derived' },
-            { part: 'meter', value: 10, max: 100, label: 'Danger tone, derived' },
+            { part: 'meter', value: 90, max: 100, label: 'ok, derived above 75' },
+            { part: 'meter', value: 70, max: 100, label: 'caution, derived 51-75' },
+            { part: 'meter', value: 40, max: 100, label: 'warn, derived 26-50' },
+            { part: 'meter', value: 15, max: 100, label: 'danger, derived 1-25' },
+            { part: 'meter', value: 0, max: 100, label: 'empty, derived at zero' },
             { part: 'pips',
               center: { icon: 'fa-solid fa-skull', animation: 'pulse',
                         moduleId: 'coffee-pub-blacksmith', action: TEST_ACTION, value: 'skull',
                         tooltip: 'Clickable centre' },
               groups: [{ total: 3, filled: 1, tone: 'success' }, { total: 3, filled: 2, tone: 'failure' }] },
             { part: 'pips', groups: [{ total: 6, filled: 4, tone: 'neutral' }] }
-        ], { group: 'Cards', note: 'do both pip groups fill OUTWARD from the skull, and does the skull pulse' }),
+        ], { group: 'Cards', note: 'compare the bars against the Crier turn card -- same container, same five colours' }),
 
         card('c-bands', 'Bands, all variants', [
             { part: 'header', icon: 'fa-solid fa-bullhorn', title: 'Bands' },

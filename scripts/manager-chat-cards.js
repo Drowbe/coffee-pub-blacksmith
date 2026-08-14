@@ -300,9 +300,19 @@ export class ChatCardsManager {
         return context;
     }
 
+    /**
+     * Tone for a meter the caller did not tone itself.
+     *
+     * Steps at 25/50/75, matching Crier's HP bar, which is where the colours came
+     * from too. Assumes DEPLETION: a low value is the alarming one. A meter where
+     * a high value is the problem sets its tone explicitly rather than relying on
+     * this.
+     */
     static _meterTone(percent) {
+        if (percent <= 0) return 'empty';
         if (percent <= 25) return 'danger';
         if (percent <= 50) return 'warn';
+        if (percent <= 75) return 'caution';
         return 'ok';
     }
 

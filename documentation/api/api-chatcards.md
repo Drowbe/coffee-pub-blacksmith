@@ -55,7 +55,7 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `header` | icon and title bar | `icon`, `title` |
 | `identity` | avatar, primary name, secondary line | `img`, `name`, `subtitle` |
 | `image` | picture with optional caption and stacked overlays | `src`, `alt`, `caption`, `overlays: [src]` |
-| `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`warn`/`danger`; derived if omitted) |
+| `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`caution`/`warn`/`danger`/`empty`; derived from the percentage if omitted, assuming low is bad) |
 | `band` | full-width centred emphasis | `text`, `lead`, `trail`, `icon`, `tone` (`success`/`failure`/`tie`), `size` (`large`), `quiet` |
 | `tiles` | grid of caption-over-value boxes | `items: [{ label, value }]`, `columns` (defaults to the item count, max 6) |
 | `section` | divider with icon and label | `icon`, `label` |

@@ -47,6 +47,20 @@
        so the next object with an edge does not arrive with a third token. */
     --blacksmith-card-border-strong: rgba(0, 0, 0, 0.2);
 
+    /* Every box on a card -- row, tile, band, panel, meter track, pip strip,
+       identity chip -- takes the same inset and the same corner. Five different
+       paddings had accumulated, each correct for the one card it was lifted from
+       and wrong as a set: 3px, 4px 8px, 5px 10px, 6px 8px and 8px, with one lone
+       radius-sm among the radius-md. Extracted values are a starting point; where
+       they disagree with each other the system picks one.
+
+       Symmetric, deliberately. A box whose sides are inset further than its top
+       and bottom reads as a wider gutter on the left and right of whatever it
+       holds, which is visible the moment two boxes of different heights sit above
+       one another. One value on all four sides. */
+    --blacksmith-card-box-padding: 5px;
+    --blacksmith-card-box-radius: var(--blacksmith-radius-md);
+
     /* Outcome tones, matching the roll cards. */
     --blacksmith-card-tone-success: #18520b;
     --blacksmith-card-tone-success-bg: rgba(24, 82, 11, 0.1);
@@ -171,8 +185,8 @@
 .blacksmith-card .section-content.section-dark {
     background-color: var(--blacksmith-card-background);
     border: 1px solid var(--blacksmith-card-border-color);
-    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
-    border-radius: var(--blacksmith-radius-md);
+    padding: var(--blacksmith-card-box-padding);
+    border-radius: var(--blacksmith-card-box-radius);
 }
 
 .blacksmith-card .section-content p {
@@ -526,9 +540,8 @@
     display: flex;
     align-items: center;
     background: var(--blacksmith-card-background);
-    border-radius: var(--blacksmith-radius-md);
-    padding: var(--blacksmith-space-md);
-    margin: var(--blacksmith-space-md) 0;
+    border-radius: var(--blacksmith-card-box-radius);
+    padding: var(--blacksmith-card-box-padding);
 }
 .blacksmith-card .container-user .token-image {
     height: 32px;
