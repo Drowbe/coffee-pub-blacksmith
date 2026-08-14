@@ -87,7 +87,7 @@ behavior:
 |---|---|
 | `node tools/check-design-tokens.mjs` | `styles/vars.css` and `design-system/design-tokens.md` agree, both ways |
 | `node tools/check-settings-headings.mjs` | no settings heading hides itself from players who can see settings under it |
-| `node tools/check-card-prose.mjs` | chat-card prose still escapes consumer HTML and still preserves Foundry enricher syntax |
+| `node tools/check-card-contracts.mjs` | a consumer cannot inject presentation into a chat card: prose is escaped, and caller-supplied colour stays confined to data-visualisation parts |
 | `node tools/check-harness-paths.mjs` | the test harness will load: paths resolve, every suite on disk is registered, imports resolve, and `expect()` calls pass their label first |
 
 Run the relevant one after touching what it guards. CI (`.github/workflows/release.yml`) only zips and

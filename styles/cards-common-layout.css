@@ -61,6 +61,18 @@
     --blacksmith-card-box-padding: 5px;
     --blacksmith-card-box-radius: var(--blacksmith-radius-md);
 
+    /* Indicators -- meter, gauge, pips -- share a bar height and a palette so
+       they read as one language rather than three that happen to be nearby. The
+       colours are Crier's HP ramp, which is the bar every other bar is compared
+       against. They are tokens rather than literals so a theme can offer its own
+       and a gauge can reference them by name as stops. */
+    --blacksmith-card-bar-height: 14px;
+    --blacksmith-card-bar-ok: rgba(98, 150, 2, 0.9);
+    --blacksmith-card-bar-caution: rgba(223, 134, 1, 0.9);
+    --blacksmith-card-bar-warn: rgba(119, 40, 16, 0.9);
+    --blacksmith-card-bar-danger: rgba(119, 20, 16, 0.9);
+    --blacksmith-card-bar-empty: rgba(66, 66, 66, 0.9);
+
     /* Outcome tones, matching the roll cards. */
     --blacksmith-card-tone-success: #18520b;
     --blacksmith-card-tone-success-bg: rgba(24, 82, 11, 0.1);

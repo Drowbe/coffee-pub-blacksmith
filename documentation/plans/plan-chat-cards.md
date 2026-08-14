@@ -138,6 +138,40 @@ whatever the GM chose. Neither doc mentions this.
 Under the new system the world default is resolved **at post time, in one place**, and the stored theme is
 always a real theme. The render-time rewrite hook is deleted.
 
+**Amended 2026-08-13: colour that encodes data is content, and the module owns it.**
+
+"Themes are colour" means a theme must not change structure. It does not follow that every colour belongs
+to the theme. The test is whether changing the colour would change what the reader learns:
+
+- **A meter's tone** -- no. A red bar and an orange bar both say the value is low; the colour is emphasis.
+  The theme owns it, and the caller says `tone: 'danger'` rather than naming a red.
+- **A reputation gradient** -- yes. Position along red-gold-green *is* the value. The colour is the data.
+
+Squire's reputation bar (`coffee-pub-squire/styles/panel-party.css:563`) is the case that settles it. Its
+gradient deliberately pitches neutral as gold rather than yellow, because red-amber-green reads as a traffic
+light and a yellow centre would say *caution* -- a mild kind of bad -- when neutral means no opinion either
+way. No fixed palette could make that judgement, and forcing it onto one would destroy the meaning.
+
+**The rule, stated once: a consumer may supply a colour only where the colour encodes a value.** In practice
+that means data visualisation and nothing else. Not "where it would look better", not "where the module has
+a brand" -- only where changing the colour would change what the reader learns.
+
+**It is enforced, not merely written down.** `tools/check-card-contracts.mjs` holds the complete list of
+parts allowed to take a colour and fails if any other part sets one from its template context. Adding a name
+to that list is a deliberate widening of this decision and belongs here, argued, rather than in a commit that
+needed it for something.
+
+That enforcement exists because this is the rule most likely to drift: every future part will have a moment
+where passing a colour looks harmless. The day a row takes one is the day cards stop rethemeing, and the day
+after that a module passes a gradient.
+
+**A theme may offer a palette; a module may always drive its own.** Squire already builds for this, using
+`var(--squire-rep-hostile, <fallback>)` so the value is overridable. Parts that carry data-bearing colour
+take stops or segments from the caller and fall back to theme-offered defaults.
+
+This does not loosen the rule elsewhere. A module still cannot colour a row, a band, or a header: those are
+emphasis, and emphasis is the theme's.
+
 ### 6. One root contract
 
 `.cpb-chat-card` and `.vote-card` go. Every card roots at `.blacksmith-card` with a theme class. The legacy

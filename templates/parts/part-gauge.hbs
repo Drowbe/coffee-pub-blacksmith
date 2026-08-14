@@ -1,0 +1,32 @@
+{{!-- A scale you read a position off, as distinct from `meter`, which is one
+      value against a maximum.
+
+      On a gauge the colour IS the data -- a reputation ramp means something a
+      fixed palette could not say -- so stops and segments come from the caller.
+      They are validated as plain CSS colours before they reach a style attribute;
+      see safeColour() in manager-chat-cards.js.
+
+      Two ways to build the track because the real instances split that way: a
+      reputation scale is a gradient, a damage ratio is blocks. --}}
+<div class="cpb-part-gauge">
+    {{#if iconStart}}<i class="cpb-part-gauge-icon cpb-gauge-icon-start {{iconStart}}"></i>{{/if}}
+
+    <div class="cpb-part-gauge-track">
+        <div class="cpb-part-gauge-bar" style="{{trackStyle}}">
+            {{#each segments}}
+            <div class="cpb-part-gauge-segment" style="flex: {{this.span}}; background: {{this.color}}"></div>
+            {{/each}}
+
+            {{#if midpoint}}<div class="cpb-part-gauge-midpoint" style="left: {{midpoint}}%"></div>{{/if}}
+
+        {{#each markers}}
+            <div class="cpb-part-gauge-marker cpb-gauge-marker-{{this.from}}"
+                 style="left: {{this.percent}}%{{#if this.color}}; --cpb-gauge-marker-colour: {{this.color}}{{/if}}"
+                 {{#if this.tooltip}}data-tooltip="{{this.tooltip}}"{{/if}}></div>
+            {{/each}}
+        </div>
+    </div>
+
+    {{#if iconEnd}}<i class="cpb-part-gauge-icon cpb-gauge-icon-end {{iconEnd}}"></i>{{/if}}
+</div>
+{{#if label}}<div class="cpb-part-gauge-label">{{{label}}}</div>{{/if}}

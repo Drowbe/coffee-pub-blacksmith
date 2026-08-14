@@ -4,7 +4,7 @@
 
 Scope: the parts-based chat card system shipped 2026-08-13 (plan steps 1 to 3). This is a transitional document -- see the testing rules in `CLAUDE.md`. **Remove an item when it passes rather than ticking it, and delete this file when it is empty.**
 
-**Status: rendering is proven; everything about persistence and multi-client is not.** A card using all fifteen parts rendered correctly on 2026-08-13, escaping held against an injection test, both enricher paths produced real document links, both button paths fired, and the stored composition was confirmed on the message. The prose pipeline is also covered by `node tools/check-card-prose.mjs` (14 checks).
+**Status: rendering is proven; everything about persistence and multi-client is not.** A card using every part rendered correctly on 2026-08-13, escaping held against an injection test, both enricher paths produced real document links, both button paths fired, and the stored composition was confirmed on the message. The consumer/presentation boundary is also covered by `node tools/check-card-contracts.mjs`.
 
 What remains is everything that needs a second client, a browser reload, a different theme, or one of the migrated cards actually triggered in play.
 

@@ -819,7 +819,15 @@ portraits switched to it.
 - **Clickable row.** `.cpb-roll-result.pending-roll` makes the whole row a button, not a row with a trailing
   button. It is how an unrolled skill check invites the click, and it is a different affordance from
   `rows`' trailing action. Needed by step 5.
-- **Segmented comparison bar.** `.damage-ratio-bar` in `cards-stats.css`: a track of equal segments split
+- **Gauge -- a scale you read a position off.** Distinct from `meter`, which is one value against a maximum
+  with the colour as emphasis. A gauge's colour *is* the data, so the caller supplies it: either a gradient
+  of stops or a set of segments, plus one or more markers positioned along the range. Three real instances,
+  all different: Squire's party reputation (gradient, one marker, a midpoint tick,
+  `coffee-pub-squire/styles/panel-party.css:546-620`), Blacksmith's own balance bar (two solid segments, two
+  markers), and `.damage-ratio-bar` in `cards-stats.css` (equal segments split red/green with a triangular
+  marker positioned by a CSS variable). Build it to cover all three rather than one at a time. A theme may
+  offer a palette; the module always overrides -- see the amendment to decision 5 in the plan.
+- **Segmented comparison bar.** Folded into the gauge above. `.damage-ratio-bar` in `cards-stats.css`: a track of equal segments split
   red/green with a triangular marker positioned by a CSS variable. It is not `meter` — `meter` is one value
   against a maximum, this is a ratio between two quantities with a pointer. Needed by step 4 unless the
   stats simplification drops it.

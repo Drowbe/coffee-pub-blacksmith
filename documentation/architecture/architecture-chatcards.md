@@ -37,6 +37,24 @@ Parts are declared in `CARD_PARTS` in `scripts/manager-chat-cards.js`, each nami
 
 Parts that match structure the card system already had - header, identity chip, section divider, prose, key/value table, buttons - render into the existing classes in `styles/cards-common-layout.css`. Only parts with no prior equivalent have rules in `styles/cards-parts.css`.
 
+## Colour from consumers
+
+**A consumer may supply a colour only where the colour encodes a value.** That is the whole rule. In
+practice it means data visualisation and nothing else: today, one part.
+
+Everywhere else `tone` names a meaning and the theme decides what it looks like, which is what makes a card
+retheme at all.
+
+`gauge` is the exception, and the exception is principled: on a gauge the colour encodes the value rather
+than emphasising it, so a fixed palette cannot express it. See the amendment to decision 5 in
+`../plans/plan-chat-cards.md` for the test that separates the two.
+
+Those colours reach a `style` attribute, so they go through `safeColour` in `scripts/manager-chat-cards.js`,
+which allows `#hex`, `rgb()`/`rgba()`, `hsl()`/`hsla()`, `var(--property)` and keywords, and drops anything
+else with a log line. Handlebars escaping alone would stop a value breaking out of the attribute but would
+happily pass `red; background-image: url(...)` straight through. The rule is the same one the prose pipeline
+follows: an allowlist, not trust.
+
 ## Animations
 
 Motion is a named vocabulary in `styles/cards-parts.css` - `shake-x`, `shake-y`, `pulse`, `glow` - applied as `.cpb-anim-{name}`. A part that accepts an `animation` field takes one of those names.
@@ -59,7 +77,7 @@ Escaping first is what makes "consumers do not pass HTML" a runtime guarantee ra
 
 Foundry performs stage 3 on any chat content. Stages 1 and 2 exist nowhere else - Foundry has no markdown support - which is why mark conversion is central rather than per-module.
 
-`node tools/check-card-prose.mjs` asserts these properties against the real functions and exits non-zero if escaping or enricher preservation regresses.
+`node tools/check-card-contracts.mjs` asserts these properties against the real functions and exits non-zero if escaping or enricher preservation regresses.
 
 **Structured prose.** The `prose` part takes blocks - paragraph, list, table, quote - rather than a string, so Blacksmith owns what a list or table looks like inside a card. Only the text within a block comes from the consumer.
 
@@ -101,5 +119,5 @@ Combat and round statistics cards (`scripts/stats-cards.js`), the vote card (`sc
 | Re-render and action hooks | `scripts/blacksmith.js`, contexts `blacksmith-card-rerender` and `blacksmith-card-actions` |
 | Posting interception | `scripts/manager-libwrapper.js` |
 | Style loading | `styles/default.css` |
-| Prose pipeline invariants | `tools/check-card-prose.mjs` |
+| Consumer/presentation boundary | `tools/check-card-contracts.mjs` |
 | API reference | `../api/api-chatcards.md` |

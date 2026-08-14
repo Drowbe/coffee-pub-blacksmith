@@ -54,50 +54,158 @@
     pointer-events: none;
 }
 
-/* ---------- METER ---------- */
+/* ---------- INDICATORS: METER AND GAUGE ---------- */
 
 /*
-    Proportional bar.
+    Two parts, one visual language.
 
-    Geometry and colour are Crier's HP bar, which is the bar this replaces:
-    a 3px-padded container at 0.1 alpha holding a 10px fill, container radius 4px
-    and fill radius 2px. The first pass invented a 14px pill with a border and
-    matched nothing on any existing card.
+    `meter` is one value against a maximum and the theme owns its colour.
+    `gauge` is a scale you read a position off and the caller owns its colour.
+    They mean different things and must not LOOK like different things, so the
+    container, the bar height and the palette are shared here rather than
+    maintained twice and allowed to drift apart.
 
-    Five tones, not three. Crier steps its colour at 25/50/75, which reads as a
-    real gradient of alarm rather than a traffic light, and the fifth is for a
-    value that has run out rather than merely got low.
-
-    The tone names are severity, not hit points, so a meter can carry charges or
-    supply or fuel. `tone` is derived from the percentage when the caller omits
-    it, and that derivation assumes DEPLETION -- low is bad. A meter where high is
-    bad, encumbrance being the obvious one, sets its tone explicitly.
+    The container is the same box every other part uses -- box padding, box radius,
+    a 0.1 fill, no border. Tiles and the pip strip already read that way; a border
+    here would have made two of the three indicators look like rows.
 */
 
-.blacksmith-card .cpb-part-meter-track {
+.blacksmith-card .cpb-part-meter-track,
+.blacksmith-card .cpb-part-gauge-track {
     padding: var(--blacksmith-card-box-padding);
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: var(--blacksmith-card-box-radius);
 }
 
-.blacksmith-card .cpb-part-meter-fill {
-    height: 10px;
+.blacksmith-card .cpb-part-meter-fill,
+.blacksmith-card .cpb-part-gauge-bar {
+    height: var(--blacksmith-card-bar-height);
     border-radius: 2px;
+}
+
+/* ---------- METER ---------- */
+
+/*
+    Tones are severity, not hit points, so a meter can carry charges or supply or
+    fuel. `tone` is derived from the percentage when the caller omits it, and that
+    derivation assumes DEPLETION -- low is bad. A meter where high is bad,
+    encumbrance being the obvious one, sets its tone explicitly.
+*/
+
+.blacksmith-card .cpb-part-meter-fill {
     transition: width 0.2s ease-out;
     background: var(--blacksmith-card-header-text);
 }
 
-.blacksmith-card .cpb-meter-ok .cpb-part-meter-fill      { background: rgba(98, 150, 2, 0.9); }
-.blacksmith-card .cpb-meter-caution .cpb-part-meter-fill { background: rgba(223, 134, 1, 0.9); }
-.blacksmith-card .cpb-meter-warn .cpb-part-meter-fill    { background: rgba(119, 40, 16, 0.9); }
-.blacksmith-card .cpb-meter-danger .cpb-part-meter-fill  { background: rgba(119, 20, 16, 0.9); }
-.blacksmith-card .cpb-meter-empty .cpb-part-meter-fill   { background: rgba(66, 66, 66, 0.9); }
+.blacksmith-card .cpb-meter-ok .cpb-part-meter-fill      { background: var(--blacksmith-card-bar-ok); }
+.blacksmith-card .cpb-meter-caution .cpb-part-meter-fill { background: var(--blacksmith-card-bar-caution); }
+.blacksmith-card .cpb-meter-warn .cpb-part-meter-fill    { background: var(--blacksmith-card-bar-warn); }
+.blacksmith-card .cpb-meter-danger .cpb-part-meter-fill  { background: var(--blacksmith-card-bar-danger); }
+.blacksmith-card .cpb-meter-empty .cpb-part-meter-fill   { background: var(--blacksmith-card-bar-empty); }
 
-.blacksmith-card .cpb-part-meter-label {
+.blacksmith-card .cpb-part-meter-label,
+.blacksmith-card .cpb-part-gauge-label {
     margin-top: var(--blacksmith-space-xs);
     font-size: 0.85em;
     text-align: center;
     color: var(--blacksmith-card-section-content-text);
+}
+
+/* ---------- GAUGE ---------- */
+
+/*
+    A scale you read a position off. Geometry follows Squire's party reputation bar
+    (coffee-pub-squire/styles/panel-party.css:546-620) and the damage ratio bar in
+    cards-stats.css: blocks or a gradient, with triangular markers positioned along
+    the range.
+
+    With no stops or segments supplied it falls back to the shared palette's red
+    through green, because that is the ramp nearly every scale in the suite wants
+    and a caller should have to say so only when it wants something else.
+*/
+
+.blacksmith-card .cpb-part-gauge {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-space-sm);
+}
+
+.blacksmith-card .cpb-part-gauge-track {
+    flex: 1 1 auto;
+}
+
+.blacksmith-card .cpb-part-gauge-bar {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    background: linear-gradient(to right,
+        var(--blacksmith-card-bar-danger),
+        var(--blacksmith-card-bar-ok));
+}
+
+/* Blocks divide the bar by weight, so equal spans give equal widths. The hairline
+   between them is the ratio bar's, and it reads on any fill. */
+.blacksmith-card .cpb-part-gauge-segment {
+    height: 100%;
+    border-right: 1px dotted rgba(255, 255, 255, 0.4);
+}
+
+.blacksmith-card .cpb-part-gauge-segment:last-child {
+    border-right: none;
+}
+
+/* A tick for a meaningful value in the range, usually zero, so a marker can be
+   read against it at a glance rather than estimated. */
+.blacksmith-card .cpb-part-gauge-midpoint {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 1px;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+/*
+    Markers hang from the top or stand on the bottom, so two can point at the same
+    value without colliding -- a current reading against a target, say.
+
+    Just under half the bar's height, derived from it rather than stated again: a
+    marker that reached the middle would look like a divider, and one that crossed
+    it would obscure the fill it is pointing at. Colour defaults to white and is
+    overridden through a custom property, so the same rule serves both directions
+    without the template branching on which border to paint.
+*/
+.blacksmith-card .cpb-part-gauge-marker {
+    --cpb-gauge-marker-size: calc(var(--blacksmith-card-bar-height) / 2 - 1px);
+    position: absolute;
+    z-index: 3;
+    width: 0;
+    height: 0;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8));
+    transition: left 0.25s ease;
+    pointer-events: none;
+}
+
+.blacksmith-card .cpb-part-gauge-marker.cpb-gauge-marker-top {
+    top: 0;
+    border-top: var(--cpb-gauge-marker-size) solid var(--cpb-gauge-marker-colour, rgba(255, 255, 255, 0.95));
+}
+
+.blacksmith-card .cpb-part-gauge-marker.cpb-gauge-marker-bottom {
+    bottom: 0;
+    border-bottom: var(--cpb-gauge-marker-size) solid var(--cpb-gauge-marker-colour, rgba(255, 255, 255, 0.95));
+}
+
+.blacksmith-card .cpb-part-gauge-icon {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85em;
+    opacity: 0.8;
 }
 
 /* ---------- BAND ---------- */

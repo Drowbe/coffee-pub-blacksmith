@@ -55,6 +55,7 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `header` | icon and title bar | `icon`, `title` |
 | `identity` | avatar, primary name, secondary line | `img`, `name`, `subtitle` |
 | `image` | picture with optional caption and stacked overlays | `src`, `alt`, `caption`, `overlays: [src]` |
+| `gauge` | a scale you read a position off | `min`, `max`, `stops` or `segments`, `markers`, `midpoint`, `iconStart`, `iconEnd`, `label` |
 | `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`caution`/`warn`/`danger`/`empty`; derived from the percentage if omitted, assuming low is bad) |
 | `band` | full-width centred emphasis | `text`, `lead`, `trail`, `icon`, `tone` (`success`/`failure`/`tie`), `size` (`large`), `quiet` |
 | `tiles` | grid of caption-over-value boxes | `items: [{ label, value }]`, `columns` (defaults to the item count, max 6) |
@@ -81,6 +82,44 @@ One shape covers every banner: a plain line, a tinted outcome banner, and a vers
 ```
 
 `lead` and `trail` render small and muted either side of `text`, so the eye reads the centre first. `quiet` keeps the colour and weight but drops the filled panel, which is what a separator wants.
+
+### Gauges, and who owns colour
+
+`meter` and `gauge` look similar and are not the same part.
+
+- **`meter`** is one value against a maximum. The colour is emphasis, so the theme owns it and you pass a `tone`.
+- **`gauge`** is a scale you read a position off. The colour *is* the data, so **you** pass it.
+
+**The rule: you may pass a colour only for data visualisation — only where the colour encodes a value.**
+Nowhere else. `gauge` is currently the only such part, and `node tools/check-card-contracts.mjs` fails the
+build if a colour appears in any other.
+
+The test for which you want: would changing the colour change what the reader learns? A red HP bar and an
+orange one both say the value is low. A reputation ramp is different - position along red-gold-green is the
+value itself, and no fixed palette can make that judgement for your domain.
+
+```javascript
+{ part: 'gauge', min: -100, max: 100, midpoint: 0,
+  stops: [{ at: -100, color: 'rgba(150, 40, 30, 0.95)' },
+          { at: 0,    color: 'rgba(186, 162, 92, 0.85)' },
+          { at: 100,  color: 'rgba(58, 160, 70, 0.95)' }],
+  markers: [{ at: 45, tooltip: 'Docks: 45' }],
+  label: 'Party reputation' }
+```
+
+Use **`stops`** for a gradient or **`segments`** for discrete blocks; segments take a `span` weight, so equal
+spans give equal widths. `markers` are triangles positioned by value. Each takes `from` (`top`, the default, or `bottom`), an
+optional `color` defaulting to white, and an optional `tooltip`. Two markers may sit at the same value from
+opposite sides -- a current reading against a target -- because each is just under half the bar's height and
+they meet rather than overlap. `midpoint` draws a tick at a value worth reading against, usually zero.
+
+A theme may offer a palette through CSS custom properties, and `var(--your-property, fallback)` is accepted
+as a colour - but a module can always drive its own.
+
+**Colours are validated, not trusted.** Only `#hex`, `rgb()`/`rgba()`, `hsl()`/`hsla()`, `var(--property)`
+and plain keywords are accepted; anything else is dropped and logged. These values reach a `style`
+attribute, so a string like `red; background-image: url(...)` would otherwise smuggle in a second
+declaration. Passing colour is not passing CSS.
 
 ### Pips
 

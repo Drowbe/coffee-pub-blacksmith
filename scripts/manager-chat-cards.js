@@ -67,6 +67,7 @@ export const CARD_PARTS = Object.freeze({
     identity: { template: 'part-identity', text: [] },
     image:    { template: 'part-image',    text: ['caption'] },
     meter:    { template: 'part-meter',    text: ['label'] },
+    gauge:    { template: 'part-gauge',    text: ['label'] },
     band:     { template: 'part-band',     text: ['text', 'lead', 'trail'] },
     tiles:    { template: 'part-tiles',    text: [] },
     section:  { template: 'part-section',  text: ['label'] },
@@ -106,6 +107,42 @@ function escapeHtml(text) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+/**
+ * A CSS colour, or null.
+ *
+ * The gauge part takes colours from the caller, because on a gauge the colour IS
+ * the data -- see the amendment to decision 5 in the plan. Those values reach a
+ * style attribute, so they get the same treatment as prose: an allowlist rather
+ * than trust. Handlebars escaping stops a value breaking out of the attribute;
+ * this stops one smuggling a second declaration in through a semicolon, which
+ * escaping alone would happily pass through.
+ *
+ * Permitted: #hex, rgb()/rgba(), hsl()/hsla(), var(--custom-property), and the
+ * plain colour keywords. Anything else is dropped and logged.
+ */
+const COLOUR_PATTERNS = [
+    /^#[0-9a-f]{3,8}$/i,
+    /^rgba?\(\s*[\d.\s,%/]+\)$/i,
+    /^hsla?\(\s*[\d.\s,%/deg]+\)$/i,
+    /^var\(\s*--[\w-]+\s*(,\s*[^;()]*)?\)$/,
+    /^[a-z]+$/i
+];
+
+function safeColour(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return null;
+    if (COLOUR_PATTERNS.some((pattern) => pattern.test(text))) return text;
+    postConsoleAndNotification(MODULE.NAME, 'Chat Cards | Rejected a colour that is not a plain CSS colour', text, false, false);
+    return null;
+}
+
+/** Position of `value` along min..max, as a percentage, clamped. */
+function positionOf(value, min, max) {
+    const span = Number(max) - Number(min);
+    if (!Number.isFinite(span) || span === 0) return 0;
+    return Math.max(0, Math.min(100, ((Number(value) - Number(min)) / span) * 100));
 }
 
 /**
@@ -288,6 +325,44 @@ export class ChatCardsManager {
                 label: await processText(row.label, options),
                 value: row.value !== undefined ? await processText(row.value, options) : ''
             })));
+        }
+
+        if (id === 'gauge') {
+            const min = Number(part.min ?? 0);
+            const max = Number(part.max ?? 100);
+
+            // Two ways to build the track, because the real instances split that
+            // way: a reputation scale is a gradient, a damage ratio is blocks.
+            const stops = (part.stops ?? [])
+                .map((stop) => (typeof stop === 'string' ? { color: stop } : stop))
+                .map((stop, index, all) => ({
+                    color: safeColour(stop.color),
+                    at: stop.at === undefined
+                        ? (all.length < 2 ? 0 : (index / (all.length - 1)) * 100)
+                        : positionOf(stop.at, min, max)
+                }))
+                .filter((stop) => stop.color);
+
+            context.segments = (part.segments ?? [])
+                .map((segment) => ({ span: Number(segment.span) || 1, color: safeColour(segment.color) }))
+                .filter((segment) => segment.color);
+
+            context.trackStyle = stops.length
+                ? `background: linear-gradient(to right, ${stops.map(s => `${s.color} ${s.at}%`).join(', ')})`
+                : '';
+
+            context.markers = (part.markers ?? []).map((marker) => ({
+                percent: positionOf(marker.at, min, max),
+                // Hangs from the top unless told otherwise, so two markers can
+                // point at the same value from opposite sides without colliding.
+                from: marker.from === 'bottom' ? 'bottom' : 'top',
+                color: safeColour(marker.color),
+                tooltip: marker.tooltip ?? null
+            }));
+
+            context.midpoint = part.midpoint === undefined || part.midpoint === null
+                ? null
+                : positionOf(part.midpoint, min, max);
         }
 
         if (id === 'meter') {

@@ -302,6 +302,53 @@ export default {
             { part: 'pips', groups: [{ total: 6, filled: 4, tone: 'neutral' }] }
         ], { group: 'Cards', note: 'compare the bars against the Crier turn card -- same container, same five colours' }),
 
+        card('c-gauges', 'Gauges: all three real instances', [
+            { part: 'header', icon: 'fa-solid fa-gauge', title: 'Gauges' },
+            { part: 'section', label: 'Reputation: gradient, one marker, midpoint tick' },
+            { part: 'gauge', min: -100, max: 100, midpoint: 0,
+              stops: [
+                  { at: -100, color: 'rgba(150, 40, 30, 0.95)' },
+                  { at: -56,  color: 'rgba(194, 86, 61, 0.85)' },
+                  { at: -12,  color: 'rgba(186, 162, 92, 0.85)' },
+                  { at: 12,   color: 'rgba(186, 162, 92, 0.85)' },
+                  { at: 56,   color: 'rgba(78, 150, 80, 0.85)' },
+                  { at: 100,  color: 'rgba(58, 160, 70, 0.95)' } ],
+              markers: [{ at: 45, tooltip: 'Docks: 45' }],
+              label: 'Squire party reputation' },
+
+            { part: 'section', label: 'Balance: two segments, two markers' },
+            { part: 'gauge', min: 0, max: 100,
+              segments: [{ span: 1, color: 'rgba(160, 38, 27, 0.6)' },
+                         { span: 1, color: 'rgba(58, 138, 67, 0.6)' }],
+              markers: [{ at: 38 }, { at: 62, from: 'bottom', color: 'rgba(223, 134, 1, 0.95)' }],
+              label: "Blacksmith's balance bar" },
+
+            { part: 'section', label: 'Damage ratio: equal segments, flanking icons' },
+            { part: 'gauge', min: 0, max: 100, midpoint: 50,
+              iconStart: 'fa-solid fa-burst', iconEnd: 'fa-solid fa-heart',
+              segments: [{ span: 1, color: 'rgba(160, 38, 27, 0.6)' },
+                         { span: 1, color: 'rgba(160, 38, 27, 0.6)' },
+                         { span: 1, color: 'rgba(58, 138, 67, 0.6)' },
+                         { span: 1, color: 'rgba(58, 138, 67, 0.6)' }],
+              markers: [{ at: 62 }],
+              label: 'Damage dealt against healing done' },
+
+            { part: 'section', label: 'Two markers on one value, from opposite sides' },
+            { part: 'gauge', min: 0, max: 100,
+              segments: [{ span: 1, color: 'rgba(160, 38, 27, 0.6)' },
+                         { span: 1, color: 'rgba(58, 138, 67, 0.6)' }],
+              markers: [{ at: 50, tooltip: 'current, from the top' },
+                        { at: 50, from: 'bottom', color: 'rgba(223, 134, 1, 0.95)', tooltip: 'target, from below' }],
+              label: 'they should meet without overlapping' },
+
+            { part: 'section', label: 'A colour that is not a colour is dropped, not rendered' },
+            { part: 'gauge', min: 0, max: 100,
+              segments: [{ span: 1, color: 'red; background-image: url(x)' },
+                         { span: 1, color: 'rgba(58, 138, 67, 0.6)' }],
+              markers: [{ at: 50 }],
+              label: 'the first segment should be absent, and the console should say why' }
+        ], { group: 'Cards', note: "compare the first against Squire's party reputation bar" }),
+
         card('c-bands', 'Bands, all variants', [
             { part: 'header', icon: 'fa-solid fa-bullhorn', title: 'Bands' },
             { part: 'band', text: 'Plain band' },
