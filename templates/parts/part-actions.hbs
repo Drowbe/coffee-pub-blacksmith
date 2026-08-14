@@ -8,7 +8,7 @@
             data-blacksmith-module="{{this.moduleId}}" data-blacksmith-action="{{this.action}}"
             {{#if this.value}}data-blacksmith-value="{{this.value}}"{{/if}}
             {{#if this.disabled}}disabled{{/if}}>
-        {{#if this.icon}}<i class="{{this.icon}}"></i> {{/if}}{{this.label}}
+        {{#if this.icon}}<i class="{{this.icon}}"></i>{{/if}}<span class="card-button-label">{{this.label}}</span>
     </button>
     {{/each}}
 </div>

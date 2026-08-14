@@ -379,6 +379,26 @@ Uses today: `openRequestRollDialog`, `api.compendiums` (awareness / quick encoun
 
 ---
 
+## Announcement themes removed — Crier and Artificer (2026-08-14)
+
+Blacksmith no longer has `announcement-green`, `announcement-blue` or `announcement-red`, nor
+`postAnnouncement()`, `getAnnouncementThemes()`, `getAnnouncementThemeChoices()` or
+`getAnnouncementThemeChoicesWithClassNames()`. Each theme now has a `-dark` partner that fills
+only the card header; the three announcement grounds survive as the `-dark` grounds of blue,
+green and red.
+
+Neither sibling crashes. Both need a small change to look right again.
+
+- **Crier** — `scripts/settings.js` calls `getAnnouncementThemeChoicesWithClassNames()` inside a
+  try/catch, so it falls back to a hardcoded list of the three old class names. Those classes no
+  longer exist in CSS, so a round or combat card renders with no theme at all. It defaults to
+  `theme-announcement-green` in three places (`scripts/crier.js` round and combat card style, and
+  the `cardSettings` default). Point them at `theme-green-dark` and swap the accessor for
+  `getCardThemeChoicesWithClassNames()`. Existing worlds have the old string SAVED in settings, so
+  the default change alone will not fix a world that has already stored one.
+- **Artificer** — `scripts/manager-gather.js` guards with `?.` and a `themeType === 'announcement'`
+  test, so it silently skips. Drop the announcement branch and use a `-dark` theme id.
+
 ## Sibling deprecation warnings (spotted 2026-07-24)
 
 - **Bibliosoph registers the deprecated `renderChatMessage` hook** (`coffee-pub-bibliosoph/scripts/bibliosoph.js`, raw `Hooks.on`): Foundry v13 logs "The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead" on every chat message render; support is removed in v15. Not a rename-only fix — `renderChatMessageHTML` passes an `HTMLElement` where the old hook passed jQuery, so the callback body must drop jQuery calls (or wrap the element itself). Fix belongs in the Bibliosoph repo with its own verification. (Blacksmith is clean: its `HookManager` remaps legacy `renderChatMessage` registrations to `renderChatMessageHTML` automatically, and the module's own `CHAT_MESSAGE_TYPES` uses were removed 2026-07-24 — see Blacksmith `CHANGELOG.md`.)

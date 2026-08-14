@@ -27,7 +27,15 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
  * and the API layer imports the renderer; keeping it here avoids a cycle.
  * `api-chat-cards.js` re-exports it, so existing importers are unaffected.
  *
- * Types: 'card' (light background, dark text), 'announcement' (dark background).
+ * Every theme is type 'card'. Each colour comes in two: the ordinary one, and a
+ * `-dark` variant that changes NOTHING but the card header, which it fills with a
+ * dark ground and light text.
+ *
+ * The `-dark` variants replaced three `theme-announcement-*` themes that darkened the
+ * whole card. Those were named for an occasion rather than for a look, and they
+ * darkened the ground while leaving every text token at its light value -- readable
+ * only for a card that was nothing but a header, which is what they were always used
+ * for. The variant now does that one thing honestly.
  */
 export const CHAT_CARD_THEMES = Object.freeze([
     { id: 'default', name: 'Tan', className: 'theme-default', type: 'card', description: 'Tan parchment theme with subtle borders' },
@@ -36,9 +44,12 @@ export const CHAT_CARD_THEMES = Object.freeze([
     { id: 'green', name: 'Green', className: 'theme-green', type: 'card', description: 'Green accent theme' },
     { id: 'red', name: 'Red', className: 'theme-red', type: 'card', description: 'Red accent theme' },
     { id: 'orange', name: 'Orange', className: 'theme-orange', type: 'card', description: 'Orange accent theme' },
-    { id: 'announcement-green', name: 'Announcement Green', className: 'theme-announcement-green', type: 'announcement', description: 'Dark green background for announcements' },
-    { id: 'announcement-blue', name: 'Announcement Blue', className: 'theme-announcement-blue', type: 'announcement', description: 'Dark blue background for announcements' },
-    { id: 'announcement-red', name: 'Announcement Red', className: 'theme-announcement-red', type: 'announcement', description: 'Dark red background for announcements' }
+    { id: 'default-dark', name: 'Tan (dark header)', className: 'theme-default-dark', type: 'card', description: 'Tan card with a dark brown header band' },
+    { id: 'amber-dark', name: 'Amber (dark header)', className: 'theme-amber-dark', type: 'card', description: 'Amber card with a deep amber header band' },
+    { id: 'blue-dark', name: 'Blue (dark header)', className: 'theme-blue-dark', type: 'card', description: 'Blue card with a dark blue header band' },
+    { id: 'green-dark', name: 'Green (dark header)', className: 'theme-green-dark', type: 'card', description: 'Green card with a dark green header band' },
+    { id: 'red-dark', name: 'Red (dark header)', className: 'theme-red-dark', type: 'card', description: 'Red card with a dark red header band' },
+    { id: 'orange-dark', name: 'Orange (dark header)', className: 'theme-orange-dark', type: 'card', description: 'Orange card with a burnt orange header band' }
 ]);
 
 // ==================================================================

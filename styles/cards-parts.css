@@ -545,12 +545,18 @@
     border-radius: var(--blacksmith-card-box-radius);
 }
 
+/* Both tile lines ellipsise rather than wrap. A tile is a fixed cell in a grid and
+   its whole job is that every cell matches every other; a value that wrapped to two
+   lines would make one tile taller than its neighbours and break the row. */
 .blacksmith-card .blacksmith-part-tile-label {
     display: block;
     font-weight: 400;
     font-size: 0.6em;
     text-align: center;
     color: var(--blacksmith-card-section-content-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .blacksmith-card .blacksmith-part-tile-value {
@@ -559,6 +565,9 @@
     font-size: 1.1em;
     text-align: center;
     color: var(--blacksmith-card-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ---------- ROWS ---------- */
@@ -832,6 +841,12 @@
     border: 1px dotted var(--blacksmith-card-badge-border);
     border-radius: var(--blacksmith-radius-sm);
     color: var(--blacksmith-card-section-content-text);
+    /* A badge sizes to its content, so a long one runs past the card rather than
+       wrapping. Tags are short by nature; when one is not, it ellipsises. */
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ---------- PANEL ---------- */

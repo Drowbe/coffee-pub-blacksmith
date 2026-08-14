@@ -8,7 +8,8 @@
 */
 
 /* Default Theme */
-.blacksmith-card.theme-default {
+.blacksmith-card.theme-default,
+.blacksmith-card.theme-default-dark {
     --blacksmith-card-bg: rgba(0, 0, 0, 0.05);
     --blacksmith-card-border: rgba(0, 0, 0, 0.07);
     --blacksmith-card-text: #594a3c;
@@ -23,10 +24,13 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* Header ground for the -dark variant (dark brown, the tan theme at full strength). */
+    --blacksmith-card-header-dark-bg: rgba(50, 42, 34, 1.0);
 }
 
 /* Amber Theme */
-.blacksmith-card.theme-amber {
+.blacksmith-card.theme-amber,
+.blacksmith-card.theme-amber-dark {
     --blacksmith-card-bg: rgba(191, 142, 63, 0.12);
     --blacksmith-card-border: rgba(122, 83, 31, 0.18);
     --blacksmith-card-text: #5b4630;
@@ -41,63 +45,14 @@
     --blacksmith-card-button-border: rgba(122, 83, 31, 0.45);
     --blacksmith-card-button-hover-bg: rgba(143, 104, 42, 0.12);
     --blacksmith-card-button-container-bg: rgba(122, 83, 31, 0.06);
+    /* Header ground for the -dark variant (deep amber). */
+    --blacksmith-card-header-dark-bg: rgba(74, 52, 20, 1.0);
 }
 
-
-/* Announcement Green Theme */
-.blacksmith-card.theme-announcement-green {
-    --blacksmith-card-bg: rgba(25, 49, 0, 1.0);
-    --blacksmith-card-border: rgba(0, 0, 0, 0.2);
-    --blacksmith-card-text: rgba(89, 74, 60, 1.0);
-    --blacksmith-card-header-text: rgba(235, 233, 225, 1.0);
-    --blacksmith-card-section-header-text: #481515;
-    --blacksmith-card-section-header-border: rgba(0, 0, 0, 0.2);
-    --blacksmith-card-section-subheader-text: #481515;
-    --blacksmith-card-section-subheader-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-section-content-text: #594a3c;
-    --blacksmith-card-hover-color: #c15701;
-    --blacksmith-card-button-text: #594a3c;
-    --blacksmith-card-button-border: #999;
-    --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
-}
-/* Announcement Blue Theme */
-.blacksmith-card.theme-announcement-blue {
-    --blacksmith-card-bg: rgba(0, 63, 88, 1.0);
-    --blacksmith-card-border: rgba(0, 0, 0, 0.2);
-    --blacksmith-card-text: rgba(89, 74, 60, 1.0);
-    --blacksmith-card-header-text: rgba(235, 233, 225, 1.0);
-    --blacksmith-card-section-header-text: #481515;
-    --blacksmith-card-section-header-border: rgba(0, 0, 0, 0.2);
-    --blacksmith-card-section-subheader-text: #481515;
-    --blacksmith-card-section-subheader-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-section-content-text: #594a3c;
-    --blacksmith-card-hover-color: #c15701;
-    --blacksmith-card-button-text: #594a3c;
-    --blacksmith-card-button-border: #999;
-    --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
-}
-/* Announcement Red Theme */
-.blacksmith-card.theme-announcement-red {
-    --blacksmith-card-bg: rgba(97, 2, 2, 1.0);
-    --blacksmith-card-border: rgba(0, 0, 0, 0.2);
-    --blacksmith-card-text: rgba(89, 74, 60, 1.0);
-    --blacksmith-card-header-text: rgba(235, 233, 225, 1.0);
-    --blacksmith-card-section-header-text: #481515;
-    --blacksmith-card-section-header-border: rgba(0, 0, 0, 0.2);
-    --blacksmith-card-section-subheader-text: #481515;
-    --blacksmith-card-section-subheader-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-section-content-text: #594a3c;
-    --blacksmith-card-hover-color: #c15701;
-    --blacksmith-card-button-text: #594a3c;
-    --blacksmith-card-button-border: #999;
-    --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
-}
 
 /* Orange Theme */
-.blacksmith-card.theme-orange {
+.blacksmith-card.theme-orange,
+.blacksmith-card.theme-orange-dark {
     --blacksmith-card-bg: rgba(247, 140, 1, 0.1);
     --blacksmith-card-border: rgba(247, 140, 1, 0.07);
     --blacksmith-card-text: #594a3c;
@@ -112,10 +67,13 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* Header ground for the -dark variant (burnt orange). */
+    --blacksmith-card-header-dark-bg: rgba(120, 60, 2, 1.0);
 }
 
 /* Red Theme */
-.blacksmith-card.theme-red {
+.blacksmith-card.theme-red,
+.blacksmith-card.theme-red-dark {
     --blacksmith-card-bg: rgba(118, 31, 19, 0.1);
     --blacksmith-card-border: rgba(118, 31, 19, 0.07);
     --blacksmith-card-text: #594a3c;
@@ -130,10 +88,13 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* Header ground for the -dark variant (was theme-announcement-red). */
+    --blacksmith-card-header-dark-bg: rgba(97, 2, 2, 1.0);
 }
 
 /* Blue Theme */
-.blacksmith-card.theme-blue {
+.blacksmith-card.theme-blue,
+.blacksmith-card.theme-blue-dark {
     --blacksmith-card-bg: rgba(0, 120, 212, 0.1);
     --blacksmith-card-border: rgba(0, 120, 212, 0.07);
     --blacksmith-card-text: #594a3c;
@@ -148,10 +109,13 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* Header ground for the -dark variant (was theme-announcement-blue). */
+    --blacksmith-card-header-dark-bg: rgba(0, 63, 88, 1.0);
 }
 
 /* Green Theme */
-.blacksmith-card.theme-green {
+.blacksmith-card.theme-green,
+.blacksmith-card.theme-green-dark {
     --blacksmith-card-bg: rgba(0, 212, 64, 0.1);
     --blacksmith-card-border: rgba(0, 212, 64, 0.07);
     --blacksmith-card-text: #594a3c;
@@ -166,5 +130,7 @@
     --blacksmith-card-button-border: #999;
     --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
     --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    /* Header ground for the -dark variant (was theme-announcement-green). */
+    --blacksmith-card-header-dark-bg: rgba(25, 49, 0, 1.0);
 }
 

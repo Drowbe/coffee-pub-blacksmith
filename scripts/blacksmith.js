@@ -2329,6 +2329,7 @@ const coffeePubCardRerenderHookId = HookManager.registerHook({
                 // The dispatcher already ran against the baked markup; these
                 // buttons are new elements and carry no listeners yet.
                 bindCardActions(message, freshCard);
+                applyTruncationTooltips(freshCard);
             })
             .catch((error) => {
                 postConsoleAndNotification(MODULE.NAME, "Chat Cards | Re-render failed, keeping baked HTML", error?.message ?? error, false, false);
@@ -2346,6 +2347,50 @@ postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", 
  * binding only on render would leave every button on a re-rendered card dead.
  * The dataset flag keeps binding idempotent when markup survives instead.
  */
+/**
+ * Text the card deliberately truncates rather than wraps.
+ *
+ * Each of these sits in a box whose shape matters -- a table column, a button, a
+ * grid cell -- so an over-long value is clipped with an ellipsis instead of being
+ * allowed to reflow. Truncation hides content, so anything actually clipped gets a
+ * `data-tooltip` carrying the full text back.
+ */
+const TRUNCATING_SELECTORS = [
+    '.blacksmith-part-richtext table th',
+    '.blacksmith-card-buttons .card-button-label',
+    '.blacksmith-part-badge',
+    '.blacksmith-part-tile-label',
+    '.blacksmith-part-tile-value',
+    '.blacksmith-part-row-label'
+].join(', ');
+
+/**
+ * Give every clipped element a tooltip carrying what was clipped.
+ *
+ * Measured rather than assumed: only an element whose content is genuinely wider
+ * than its box gets one, so a header that fits is not saddled with a tooltip
+ * repeating a label already fully visible.
+ *
+ * The measurement waits for a frame because `renderChatMessageHTML` can fire before
+ * the message is in the document, and an unattached element reports every width as
+ * zero -- which reads as "nothing is clipped" and would silently do nothing at all.
+ *
+ * `data-tooltip` only, never `title`: Foundry renders the former in its own styled
+ * tooltip while the browser renders the latter natively, so an element carrying both
+ * shows two. An element that already has either is left alone.
+ */
+function applyTruncationTooltips(root) {
+    if (!root) return;
+    requestAnimationFrame(() => {
+        for (const element of root.querySelectorAll(TRUNCATING_SELECTORS)) {
+            if (element.dataset.tooltip || element.title) continue;
+            if (element.scrollWidth <= element.clientWidth) continue;
+            const text = element.textContent?.trim();
+            if (text) element.dataset.tooltip = text;
+        }
+    });
+}
+
 function bindCardActions(message, root) {
     if (!root) return;
 
@@ -2405,7 +2450,11 @@ const coffeePubCardActionHookId = HookManager.registerHook({
     context: 'blacksmith-card-actions',
     priority: 3,
     callback: (message, html) => {
-        bindCardActions(message, getChatMessageElement(html));
+        const root = getChatMessageElement(html);
+        bindCardActions(message, root);
+        // Not folded into bindCardActions: that returns early when a card carries no
+        // action, and a card of nothing but a table needs this pass.
+        applyTruncationTooltips(root);
     }
 });
 

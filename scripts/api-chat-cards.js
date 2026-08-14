@@ -116,16 +116,6 @@ export class ChatCardsAPI {
         }
     }
 
-    /**
-     * Post a card using an announcement theme (dark background, light header).
-     * Identical to `post` other than the default theme.
-     * @param {object} options - As `post`; `theme` defaults to 'announcement-blue'.
-     * @returns {Promise<ChatMessage|null>}
-     */
-    static async postAnnouncement(options = {}) {
-        return this.post({ theme: 'announcement-blue', ...options });
-    }
-
     // ==============================================================
     // ===== ACTIONS ================================================
     // ==============================================================
@@ -196,7 +186,7 @@ export class ChatCardsAPI {
 
     /**
      * Get available themes.
-     * @param {string} [type] - Optional filter: 'card' or 'announcement'.
+     * @param {string} [type] - Optional filter. Every theme is currently type 'card'.
      * @returns {Array<{id: string, name: string, className: string, type: string, description: string}>}
      */
     static getThemes(type = null) {
@@ -206,7 +196,7 @@ export class ChatCardsAPI {
 
     /**
      * Theme choices for a Foundry settings dropdown.
-     * @param {string} [type] - Optional filter: 'card' or 'announcement'.
+     * @param {string} [type] - Optional filter. Every theme is currently type 'card'.
      * @returns {Object<string, string>} Theme id to display name.
      */
     static getThemeChoices(type = null) {
@@ -239,20 +229,12 @@ export class ChatCardsAPI {
         return this.getThemes('card');
     }
 
-    static getAnnouncementThemes() {
-        return this.getThemes('announcement');
-    }
-
     static getThemesByType(type) {
         return this.getThemes(type);
     }
 
     static getCardThemeChoices() {
         return this.getThemeChoices('card');
-    }
-
-    static getAnnouncementThemeChoices() {
-        return this.getThemeChoices('announcement');
     }
 
     static getThemeChoicesWithClassNames(type = null) {
@@ -263,10 +245,6 @@ export class ChatCardsAPI {
 
     static getCardThemeChoicesWithClassNames() {
         return this.getThemeChoicesWithClassNames('card');
-    }
-
-    static getAnnouncementThemeChoicesWithClassNames() {
-        return this.getThemeChoicesWithClassNames('announcement');
     }
 
     static getThemeClassName(themeId) {

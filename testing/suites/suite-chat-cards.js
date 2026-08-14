@@ -109,10 +109,10 @@ export default {
             id: 'surface',
             tier: 'headless',
             group: 'API surface',
-            label: 'post, postAnnouncement, actions, parts and themes are exposed',
+            label: 'post, actions, parts and themes are exposed',
             run: async ({ expect }) => {
                 const { chatCards } = requireApi('chatCards');
-                for (const fn of ['post', 'postAnnouncement', 'registerAction', 'unregisterAction',
+                for (const fn of ['post', 'registerAction', 'unregisterAction',
                                   'getAction', 'getParts', 'getThemes', 'getTheme']) {
                     expect.ok(`chatCards.${fn} is a function`, typeof chatCards[fn] === 'function');
                 }
@@ -565,9 +565,13 @@ export default {
             // arrive carrying its own look.
             { part: 'richtext', html: [
                 '<p>A paragraph from a document, with <strong>bold</strong> and <em>italic</em>.</p>',
+                '<h1>A heading one</h1>',
                 '<h2>A heading two</h2>',
                 '<p>Text under the heading.</p>',
                 '<h3>A heading three</h3>',
+                '<h4>A heading four</h4>',
+                '<h5>A heading five</h5>',
+                '<h6>A heading six</h6>',
                 '<ul><li>An unordered item</li><li>Another</li></ul>',
                 '<ol><li>An ordered item</li><li>Another</li></ol>',
                 '<table><thead><tr><th>Roll</th><th>Result</th><th>Notes</th></tr></thead>',
@@ -580,7 +584,7 @@ export default {
                 '<hr />',
                 '<pre>preformatted text, which should wrap rather than overflow the card when the line is a long one</pre>'
             ].join('') }
-        ], { group: 'Cards', note: 'the table must be governed by the card: collapsed borders, full width, theme colours -- check it on a dark theme too' }),
+        ], { group: 'Cards', note: 'h1-h6 must descend in size; table header smaller than its data, themed not red, never breaking mid-word; hover a truncated header for its tooltip' }),
 
         {
             id: 'c-themes',

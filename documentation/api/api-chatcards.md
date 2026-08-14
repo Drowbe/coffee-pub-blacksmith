@@ -42,7 +42,6 @@ await chatCards.post({
 
 Returns the created `ChatMessage`, or `null` if posting failed.
 
-`postAnnouncement(options)` is the same call with an announcement theme by default.
 
 ## Parts
 
@@ -318,13 +317,19 @@ The handler receives `{ message, value, event, button }`. A chat message is data
 
 Themes set colour only; structure comes from parts.
 
-- `getThemes([type])` - theme objects, optionally filtered by `'card'` or `'announcement'`.
+Each colour comes in two: the ordinary theme, and a `-dark` variant -- `red` and
+`red-dark`, `blue` and `blue-dark`, and so on. A `-dark` variant changes one thing,
+the card header, which it fills with a dark ground and light text. Everything else
+on the card is identical to the ordinary theme. It suits a card that is little more
+than a header; a full card in a `-dark` variant simply has a banner across the top.
+
+- `getThemes([type])` - theme objects, optionally filtered by type. Every theme is currently type `'card'`.
 - `getThemeChoices([type])` - id-to-name map for a settings dropdown.
 - `getTheme(themeId)` - one theme, or null.
 
 Pass a theme **id** to `post`. Omitting `theme` uses the world default, resolved when the card is posted.
 
-Several class-name accessors (`getThemeClassName`, `getThemeChoicesWithClassNames`, and their card and announcement variants) remain for modules that still build their own card HTML. They exist for the migration and nothing new should use them - a card posted through `post` never needs a class name.
+Several class-name accessors (`getThemeClassName`, `getThemeChoicesWithClassNames`, and their card variants) remain for modules that still build their own card HTML. They exist for the migration and nothing new should use them - a card posted through `post` never needs a class name.
 
 ## Notes
 

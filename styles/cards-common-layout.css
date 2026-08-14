@@ -21,6 +21,9 @@
     --blacksmith-card-border: var(--blacksmith-color-brand);
     --blacksmith-card-text: var(--blacksmith-color-brand);
     --blacksmith-card-header-text: var(--blacksmith-color-brand);
+    /* Text on a filled dark header. One value for all six -dark variants: the grounds
+       differ, the text on them does not. */
+    --blacksmith-card-header-dark-text: rgba(235, 233, 225, 1.0);
     --blacksmith-card-section-header-text: var(--blacksmith-color-brand-dark);
     --blacksmith-card-section-header-border: rgba(0, 0, 0, 0.2);
     --blacksmith-card-section-subheader-text: var(--blacksmith-color-brand-dark);
@@ -189,14 +192,21 @@
     /* A positioning context, so a ribbon can hang off the corner without the
        card needing to know it is there. */
     position: relative;
-    padding: 0;
-    margin: 0;
+    /* The other half of the overflow rule. Structured single-line labels -- button
+       labels, badges, tile lines -- ellipsise, because they sit in a box whose shape
+       matters. PROSE wraps instead, and this is what makes it wrap even when there is
+       no space to wrap at: one unbroken token (a URL, a pasted id, a name with no
+       spaces) is otherwise wider than the card and pushes straight past its edge. */
+    overflow-wrap: break-word;
+    /* 0.5em, and the -dark header band relies on it: that rule bleeds out through
+       this padding with a matching negative margin. `padding: 0` and `margin: 0` were
+       also declared above these and overridden two lines later, doing nothing. */
+    padding: 0.5em;
+    margin: 0 0 0 0;
     font-family: var(--dnd5e-font-roboto);
     background-color: var(--blacksmith-card-bg);
     border: 1px solid var(--blacksmith-card-border);
     border-radius: var(--blacksmith-radius-lg);
-    padding: 0.5em;
-    margin-bottom: 0em;
 }
 
 /* Common Icon Styles */
@@ -240,6 +250,33 @@
 }
 
 
+
+/*
+    The -dark variants, in one rule, because the header is the ONLY thing they change.
+    Everything else on the card -- body text, sections, rows, buttons, tables -- comes
+    from the ordinary theme, whose token block each -dark class shares by sitting in
+    the same selector list (see cards-common-themes.css).
+
+    This replaced three `theme-announcement-*` themes that darkened the WHOLE card and
+    then left every text token at its light-theme value, so body text was dark brown on
+    near-black. Only the header had ever been given a light colour, which is the tell
+    that only the header was ever used.
+
+    The negative margin bleeds the band out through the card's 0.5em padding to its
+    edges, and the top corners are rounded to match the card's own radius.
+*/
+.blacksmith-card.theme-default-dark .card-header,
+.blacksmith-card.theme-amber-dark .card-header,
+.blacksmith-card.theme-blue-dark .card-header,
+.blacksmith-card.theme-green-dark .card-header,
+.blacksmith-card.theme-red-dark .card-header,
+.blacksmith-card.theme-orange-dark .card-header {
+    background: var(--blacksmith-card-header-dark-bg);
+    color: var(--blacksmith-card-header-dark-text);
+    margin: -0.5em -0.5em var(--blacksmith-space-md) -0.5em;
+    padding: var(--blacksmith-space-md) 0.5em;
+    border-radius: var(--blacksmith-radius-lg) var(--blacksmith-radius-lg) 0 0;
+}
 
 /* Section Header Icons */
 .blacksmith-card .card-header i {
@@ -430,7 +467,14 @@
        label's own width so the container wraps before the text ever does. */
     width: auto;
     flex: 1 1 auto;
-    min-width: max-content;
+    /* At least as wide as its own label, but never wider than the row. Plain
+       `max-content` was the first fix and it only solved half the problem: it stops
+       flex squeezing a button until its text wraps, but it also means a label longer
+       than the whole card forces the button past the card's edge, where it is cut
+       off mid-word. min() gives both -- content width when that fits, the row's
+       width when it does not, and the label ellipsises inside it. */
+    min-width: min(100%, max-content);
+    max-width: 100%;
     white-space: nowrap;
     text-align: left;
     background: none;
@@ -481,6 +525,18 @@
     cursor: not-allowed;
 }
 
+/* The label is a box of its own because `text-overflow` needs one: the button is a
+   flex container, and a bare text node inside it is an anonymous flex item, which
+   ellipsis does not apply to. `min-width: 0` is what lets it shrink at all -- a flex
+   child defaults to `min-width: auto`, meaning "never smaller than my content",
+   which is the single most common reason a label pushes its container off the edge. */
+.blacksmith-card-buttons button.card-button .card-button-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Inherit, so an icon follows whatever colour its button set rather than pinning
    itself to the outlined one and going invisible on a fill. */
 .blacksmith-card-buttons button.card-button i,
@@ -504,30 +560,57 @@
     border-top: 1px dotted #323030;
 }
 /* H1 */
-.blacksmith-card h1 {
-    font-weight: 550;
-    font-size: 1.2em;
+/*
+    All six levels, because rich text arrives from a journal page and a journal uses
+    whatever its author used. Only h1, h2 and h3 were styled; h4 to h6 fell through
+    to Foundry's defaults, which is how a heading can end up larger than the one
+    above it. The stats cards use h4 today and pick this up.
+
+    One ramp, each step smaller than the last, uppercase reserved for the top two so
+    the deeper levels stay readable at small sizes. h1 carried `display: inline`,
+    which made a journal h1 run into the paragraph after it -- no part template uses
+    a heading element, so nothing depended on that.
+*/
+.blacksmith-card h1,
+.blacksmith-card h2,
+.blacksmith-card h3,
+.blacksmith-card h4,
+.blacksmith-card h5,
+.blacksmith-card h6 {
+    display: block;
+    /* The card's own face and text colour, not the heading treatment dnd5e applies.
+       dnd5e sets Modesto Condensed on headings, which is why a journal heading
+       arrived in a serif nothing else on the card uses; `inherit` picks up Roboto
+       from `.section-content`, which is what the body text beside it is set in.
+
+       Colour is the body colour too. Section-header maroon was the first choice and
+       it was wrong: a section header is OUR furniture marking a region of the card,
+       while these headings are the author's content. Painting content in the
+       furniture's colour made a journal read as though the card had authored it. */
+    font-family: inherit;
+    color: var(--blacksmith-card-text);
     font-style: normal;
-    text-transform: uppercase;
-	display: inline;
-    margin: var(--blacksmith-space-sm) 0;
-    padding: 0 0 var(--blacksmith-space-sm) 0;
-}
-/* H2 */
-.blacksmith-card h2 {
-	font-weight: 550;
-    font-size: var(--blacksmith-font-size-base);
-	text-transform: uppercase;
-    margin: var(--blacksmith-space-sm) 0;
+    font-weight: 550;
+    margin: var(--blacksmith-space-md) 0 var(--blacksmith-space-sm) 0;
     padding: 0;
 }
-/* H3 */
-.blacksmith-card h3 {
-	font-weight: var(--blacksmith-font-weight-normal);
-    font-size: var(--blacksmith-font-size-sm);
-    margin: var(--blacksmith-space-lg) 0 0 0;
-    padding: 0;
+
+/* A heading opening a block should not push it open further. */
+.blacksmith-card h1:first-child,
+.blacksmith-card h2:first-child,
+.blacksmith-card h3:first-child,
+.blacksmith-card h4:first-child,
+.blacksmith-card h5:first-child,
+.blacksmith-card h6:first-child {
+    margin-top: 0;
 }
+
+.blacksmith-card h1 { font-size: 1.3em;  text-transform: uppercase; }
+.blacksmith-card h2 { font-size: 1.15em; text-transform: uppercase; }
+.blacksmith-card h3 { font-size: 1em; }
+.blacksmith-card h4 { font-size: 0.9em; }
+.blacksmith-card h5 { font-size: 0.85em; }
+.blacksmith-card h6 { font-size: 0.8em; font-style: italic; }
 /* Lists */
 .blacksmith-card ol,
 .blacksmith-card ul {
@@ -571,27 +654,78 @@
     width: 100%;
     margin: var(--blacksmith-space-md) 0;
     border-collapse: collapse;
-    font-size: var(--blacksmith-font-size-base);
+    /* Table text sits a step below body text. A table is reference material, read by
+       scanning rather than in flow, and at body size it dominates the card holding it. */
+    font-size: var(--blacksmith-font-size-sm);
     border: 1px solid var(--blacksmith-card-table-border);
 }
 
-.blacksmith-card table th {
+/*
+    Nothing in a table breaks mid-word. The card sets `overflow-wrap: break-word` so an
+    unbreakable token in prose cannot run off the edge, and that inherits into table
+    cells, where a squeezed column turned "Roll" into "R / oll". Prose has room to wrap
+    and a narrow column does not, so the two want opposite answers.
+
+    `padding` also moves here from the row, where it was declared for years and did
+    nothing -- no browser applies padding to a `tr`.
+*/
+.blacksmith-card table :is(th, td) {
+    overflow-wrap: normal;
+    word-break: normal;
+    padding: 3px var(--blacksmith-space-md);
+}
+
+/*
+    dnd5e paints `table thead` with a red gradient and white text
+    (dnd5e.css, `:is(.dnd5e, .dnd5e2, .dnd5e2-journal) table thead`) and stripes rows at
+    a specificity our plain `.blacksmith-card table tr` could not reach. So the header
+    rendered maroon whatever the card theme, and the row token did nothing at all. The
+    translucent fill we set on `th` was layering OVER that gradient rather than
+    replacing it, which is where the faded red came from.
+
+    These selectors run through `.blacksmith-part-richtext` to outrank it. That is
+    honest rather than a specificity trick: a table can only reach a card through the
+    richtext part, because no other part emits one.
+*/
+.blacksmith-card .blacksmith-part-richtext table :is(thead, thead tr) {
+    background: none;
+    color: inherit;
+    text-shadow: none;
+    text-align: left;
+    border-color: var(--blacksmith-card-table-border);
+}
+
+.blacksmith-card .blacksmith-part-richtext table th {
+    /* Smaller than the data it heads, not larger. A header labels a column; the
+       values under it are what the reader came for. */
+    font-size: 0.9em;
+    font-weight: bold;
+    text-transform: uppercase;
     vertical-align: bottom;
     text-align: left;
-    padding: 3px var(--blacksmith-space-md);
+    color: var(--blacksmith-card-section-header-text);
     background: var(--blacksmith-card-table-head-fill);
     border-bottom: 1px solid var(--blacksmith-card-table-border);
+    /* A header never wraps: a narrow column truncates instead, and the render pass
+       attaches a data-tooltip carrying the full text when it does. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* `padding` on a row is ignored by every browser -- it belongs on the cells, which
-   is where it now is. It was declared here for years and did nothing. */
-.blacksmith-card table tr {
+/* Our own zebra, in our own tokens. The alternation earns its keep -- it is what makes
+   a wide row readable across -- but dnd5e's is a fixed pair of light values that sit
+   wrong on a dark card theme. */
+.blacksmith-card .blacksmith-part-richtext table tbody tr:nth-child(odd) {
+    background: none;
+}
+
+.blacksmith-card .blacksmith-part-richtext table tbody tr:nth-child(even) {
     background: var(--blacksmith-card-table-row-fill);
-    border-bottom: 1px dotted var(--blacksmith-card-table-rule);
 }
 
-.blacksmith-card table td {
-    padding: 3px var(--blacksmith-space-md);
+.blacksmith-card table tr {
+    border-bottom: 1px dotted var(--blacksmith-card-table-rule);
 }
 /* Preformatted */
 .blacksmith-card pre {
