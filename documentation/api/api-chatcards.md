@@ -54,10 +54,11 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 |---|---|---|
 | `header` | icon and title bar | `icon`, `title` |
 | `identity` | avatar, primary name, secondary line | `img`, `name`, `subtitle` |
+| `subject` | one subject and how it stands: image beside a title, optional value opposite, optional bar beneath | `img`, `framed`, `icon` or `index`, `title`, `value`, and one of `meter` / `gauge` |
 | `image` | picture with optional caption and stacked overlays | `src`, `alt`, `caption`, `overlays: [src]` |
 | `gauge` | a scale you read a position off | `min`, `max`, `stops` or `segments`, `markers`, `midpoint`, `iconStart`, `iconEnd`, `label` |
 | `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`caution`/`warn`/`danger`/`empty`; derived from the percentage if omitted, assuming low is bad) |
-| `band` | full-width centred emphasis | `text`, `lead`, `trail`, `icon`, `tone` (`success`/`failure`/`tie`), `size` (`large`), `quiet` |
+| `band` | full-width emphasis, centred by default | `text`, `lead`, `trail`, `icon`, `tone` (`positive`/`negative`/`info`), `size` (`large`), `quiet`, `align` (`left`/`right`) |
 | `tiles` | grid of caption-over-value boxes | `items: [{ label, value }]`, `columns` (defaults to the item count, max 6) |
 | `section` | divider with icon and label | `icon`, `label` |
 | `prose` | structured text blocks | `blocks` (see below) |
@@ -77,11 +78,51 @@ One shape covers every banner: a plain line, a tinted outcome banner, and a vers
 
 ```javascript
 { part: 'band', text: 'DC 11' }
-{ part: 'band', text: 'Stalemate', icon: 'fa-solid fa-circle-exclamation', tone: 'tie', size: 'large' }
-{ part: 'band', lead: 'Arcana', text: 'VS', trail: 'Arcana', tone: 'failure', quiet: true }
+{ part: 'band', text: 'Stalemate', icon: 'fa-solid fa-circle-exclamation', tone: 'info', size: 'large' }
+{ part: 'band', lead: 'Arcana', text: 'VS', trail: 'Arcana', tone: 'negative', quiet: true }
 ```
 
-`lead` and `trail` render small and muted either side of `text`, so the eye reads the centre first. `quiet` keeps the colour and weight but drops the filled panel, which is what a separator wants.
+The centre may be `text`, an `icon`, or both - `{ lead: 'Arcana', icon: 'fa-solid fa-swords', trail: 'Athletics' }` is as valid as spelling out VS. An icon in the centre scales with `size`, because it sits inside the centre term rather than beside it.
+
+`lead` and `trail` render either side of `text`, smaller and lighter so the eye reads the centre first. They
+are not versus-specific: any pair of flanking terms works, and either may be omitted.
+
+`quiet` keeps the colour and weight but drops the filled panel, which is what a separator wants. `align`
+moves the whole row left or right; it is centred otherwise.
+
+**Tones are a fixed set, and they are named for the reading rather than for any one domain.** `positive`,
+`negative`, `info`, `pending`. A band saying "Encounter!" or "No Herbs!" chooses from the same four as a
+saving throw does, which is why they are not called success and failure - a band tinted `failure` for a
+missing ingredient reads as a bug in the card.
+
+You cannot pass a colour to a band. Only `gauge` takes colours, and only because there the colour is the
+data.
+
+**A band is uppercased.** So is a ribbon. Those are the only two, and the line is stamps versus labels: a
+stamp is read as a shape before it is read as a word, so it shouts. Titles, section labels and tile captions
+render exactly as you typed them.
+
+### Subject, and the one piece of nesting
+
+`identity` is the chip -- avatar, name, sub-line, one line tall. `subject` is the block: the image spans two
+lines, so a title and a bar sit beside it rather than under it.
+
+```javascript
+{ part: 'subject', img: actor.img, index: 1, title: 'Cyrus Bing', value: '39s',
+  meter: { value: 71, max: 101 } }
+
+{ part: 'subject', img: actor.img, icon: 'fa-solid fa-crown', title: 'Party Leader',
+  gauge: { min: -100, max: 100, midpoint: 0, markers: [{ at: 45 }] } }
+```
+
+The leading marker is `index` (a number) or `icon` (a glyph), and both occupy the same width so titles line
+up down a stack of subjects. Everything except `title` is optional; with no image and no bar it degrades to
+a heading with a value.
+
+**`subject` is the only part that contains another.** Its bar is a real `meter` or `gauge` rendered through
+the same renderer, so it cannot drift from the standalone one. This is not general nesting: parts do not
+contain parts, and rows holding gauges or panels holding rows remain out of scope. A subject carries a bar
+because a subject and its standing are one idea, not because composition is recursive.
 
 ### Gauges, and who owns colour
 
@@ -130,8 +171,8 @@ Discrete slots - death saves, hit dice, charges, ammunition, legendary actions. 
   center: { icon: 'fa-solid fa-skull', animation: 'pulse',
             moduleId: 'coffee-pub-yourmodule', action: 'roll-death-save',
             tooltip: 'Roll a death saving throw' },
-  groups: [{ total: 3, filled: 1, tone: 'success' },
-           { total: 3, filled: 2, tone: 'failure' }] }
+  groups: [{ total: 3, filled: 1, tone: 'positive' },
+           { total: 3, filled: 2, tone: 'negative' }] }
 ```
 
 The centre is the click target; supply `action` to make it interactive, omit it for a readout. Individual pips are display-only. At most two groups are rendered.
@@ -140,16 +181,16 @@ The centre is the click target; supply `action` to make it interactive, omit it 
 
 Any part that accepts an `animation` takes a name from a shared vocabulary: `shake-x`, `shake-y`, `pulse`, `glow`. `rows` items and a `pips` centre accept one today.
 
-Name a **motion, never a meaning**. A critical hit is `tone: 'success'` with `animation: 'shake-y'`, but nothing in the part knows that - the same motion is available to a crafting success or a countdown. Animations are suppressed under `prefers-reduced-motion`. New names are added centrally in `styles/cards-parts.css` and become available to every part at once.
+Name a **motion, never a meaning**. A critical hit is `tone: 'positive'` with `animation: 'shake-y'`, but nothing in the part knows that - the same motion is available to a crafting success or a countdown. Animations are suppressed under `prefers-reduced-motion`. New names are added centrally in `styles/cards-parts.css` and become available to every part at once.
 
 ### Row outcome states
 
-A row can carry an outcome. `tone` is `success`, `failure`, `tie`, or `pending`, and tints the whole row. `emphasis` adds a glow and bolds the label. `trailingIcon` puts a result mark after the value. Motion is separate again - add `animation` if you want it.
+A row can carry an outcome. `tone` is `positive`, `negative`, `info`, or `pending`, and tints the whole row. `emphasis` adds a glow and bolds the label. `trailingIcon` puts a result mark after the value. Motion is separate again - add `animation` if you want it.
 
 ```javascript
-{ label: 'Kar-ahn', trailing: '21', trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'success', emphasis: true, animation: 'shake-y' }
+{ label: 'Kar-ahn', trailing: '21', trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'positive', emphasis: true, animation: 'shake-y' }
 { label: 'Skylar',  trailing: '16', trailingSize: 'large', trailingIcon: 'fa-solid fa-check' }
-{ label: 'Noodle',  trailing: '2',  trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark', tone: 'failure', emphasis: true, animation: 'shake-x' }
+{ label: 'Noodle',  trailing: '2',  trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark', tone: 'negative', emphasis: true, animation: 'shake-x' }
 { label: 'Cyrus',   tone: 'pending' }
 ```
 

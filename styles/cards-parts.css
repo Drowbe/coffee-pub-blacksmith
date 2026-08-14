@@ -23,7 +23,7 @@
     display: block;
     width: 100%;
     height: auto;
-    border: 1px solid var(--blacksmith-card-border-strong);
+    border: 1px solid var(--blacksmith-card-image-border);
     border-radius: var(--blacksmith-radius-md);
 }
 
@@ -54,6 +54,203 @@
     pointer-events: none;
 }
 
+/* ---------- RIBBON ---------- */
+
+/*
+    A diagonal banner across the card's top-right corner, from
+    .blacksmith-mvp-ribbon in cards-stats.css.
+
+    It clips against its own square rather than against the card, so the card does
+    not need overflow:hidden -- which it must not have, since a marker on a gauge
+    and a shadow on an emphasised row both sit proud of their boxes.
+
+    The text is the one thing in the system still transformed to uppercase. A
+    ribbon is a stamp, not a label: it is read as a shape before it is read as a
+    word, and mixed case breaks that.
+*/
+
+.blacksmith-card .cpb-part-ribbon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 110px;
+    height: 110px;
+    margin: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.blacksmith-card .cpb-part-ribbon-text {
+    position: absolute;
+    top: 16px;
+    right: -42px;
+    width: 170px;
+    padding: 3px 10px;
+    transform: rotate(35deg);
+    display: block;
+    background: rgba(46, 113, 33, 0.9);
+    color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 0.65em;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.blacksmith-card .cpb-part-ribbon.cpb-tone-negative .cpb-part-ribbon-text { background: var(--blacksmith-card-tone-negative); }
+.blacksmith-card .cpb-part-ribbon.cpb-tone-info .cpb-part-ribbon-text     { background: var(--blacksmith-card-tone-info); }
+.blacksmith-card .cpb-part-ribbon.cpb-tone-warn .cpb-part-ribbon-text    { background: var(--blacksmith-card-bar-warn); }
+
+/*
+    A NOTE ON CASE, since several parts used to force it.
+
+    Nothing transforms caller text. A title, a band, a section label and a tile
+    caption all render exactly as they were passed. Forcing uppercase overrode a
+    decision the caller had already made, and did it unevenly -- the identity chip
+    never transformed, so the same name arrived shouting in one part and not in
+    another on the same card.
+
+    Type the capitals you want. The only text still transformed is the ribbon,
+    which is a stamp rather than a label.
+*/
+
+/* ---------- SUBJECT ---------- */
+
+/*
+    One subject and how it stands. `identity` is the chip; this is the block.
+
+    The image spans both lines, which is the whole reason this is not `identity`
+    followed by `meter` -- those stack full width and put the picture above the
+    reading rather than beside it.
+
+    Deliberately holds no data line. A subject tells one story; the numbers that
+    elaborate it belong in the parts below.
+*/
+
+.blacksmith-card .cpb-part-subject {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-space-md);
+    padding: var(--blacksmith-card-box-padding);
+    background: var(--blacksmith-card-background);
+    border-radius: var(--blacksmith-card-box-radius);
+}
+
+/*
+    Sized to the block it sits in: 40px when a bar makes the subject two lines
+    tall, 24px when it collapses to one. A 40px picture beside a single line of
+    text is a picture with a caption, which is a different thing from a title with
+    a picture.
+*/
+.blacksmith-card .cpb-part-subject-img {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border: 1px solid var(--blacksmith-card-image-border);
+    border-radius: var(--blacksmith-card-box-radius);
+}
+
+.blacksmith-card .cpb-part-subject-img.cpb-subject-img-framed {
+    padding: 2px;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.blacksmith-card .cpb-subject-compact .cpb-part-subject-img {
+    width: 24px;
+    height: 24px;
+}
+
+.blacksmith-card .cpb-subject-compact .cpb-part-subject-head {
+    margin-bottom: 0;
+}
+
+/* Clickable subjects say so on hover and take a focus ring, since they are not
+   buttons and get none for free. */
+.blacksmith-card .cpb-subject-clickable {
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.blacksmith-card .cpb-subject-clickable:hover {
+    background: var(--blacksmith-card-button-hover-bg);
+}
+
+.blacksmith-card .cpb-subject-clickable:focus-visible {
+    outline: 2px solid var(--blacksmith-card-hover-color);
+    outline-offset: 1px;
+}
+
+.blacksmith-card .cpb-part-subject-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blacksmith-card .cpb-part-subject-head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--blacksmith-space-sm);
+    margin-bottom: var(--blacksmith-space-xs);
+}
+
+/*
+    The leading marker. An icon sits bare; a number sits in a filled box, because
+    a bare digit beside a title reads as part of the title rather than as a rank.
+
+    Both occupy the same width so titles line up down a stack of subjects whether
+    the marker is a glyph, a number, or absent.
+*/
+.blacksmith-card .cpb-part-subject-marker {
+    flex: 0 0 auto;
+    width: 1.5em;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    font-weight: 900;
+    color: var(--blacksmith-card-section-header-text);
+}
+
+.blacksmith-card .cpb-part-subject-marker.cpb-subject-number {
+    padding: 1px 0;
+    background: var(--blacksmith-card-text);
+    color: rgba(255, 255, 255, 0.95);
+    border-radius: var(--blacksmith-radius-sm);
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+.blacksmith-card .cpb-part-subject-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: bold;
+    color: var(--blacksmith-card-text);
+}
+
+.blacksmith-card .cpb-part-subject-value {
+    flex: 0 0 auto;
+    font-weight: 900;
+    font-size: 0.85em;
+    opacity: 0.75;
+    color: var(--blacksmith-card-section-content-text);
+}
+
+/* The nested bar loses its own container: the subject is already the box. */
+.blacksmith-card .cpb-part-subject .cpb-part-meter-track,
+.blacksmith-card .cpb-part-subject .cpb-part-gauge-track {
+    padding: 0;
+    background: none;
+}
+
 /* ---------- INDICATORS: METER AND GAUGE ---------- */
 
 /*
@@ -77,10 +274,21 @@
     border-radius: var(--blacksmith-card-box-radius);
 }
 
+/*
+    The bar carries the same edge an image does, for the same reason: a pale fill
+    against a pale container has nothing to define it. That matters most on a
+    gauge, where the caller picks the colours and may well pick light ones.
+
+    Drawn as an inset shadow rather than a border so it costs no layout -- a real
+    border would either grow the bar past the shared height or need box-sizing to
+    claw it back, and at zero width it would still paint two pixels of edge with
+    no bar between them. An empty meter should show nothing, not a sliver.
+*/
 .blacksmith-card .cpb-part-meter-fill,
 .blacksmith-card .cpb-part-gauge-bar {
     height: var(--blacksmith-card-bar-height);
     border-radius: 2px;
+    box-shadow: inset 0 0 0 1px var(--blacksmith-card-bar-border);
 }
 
 /* ---------- METER ---------- */
@@ -219,9 +427,22 @@
     approximated, so a migrated card is the same object it was.
 */
 
+/*
+    A band is a stamp, not a label, so it shouts. That is the line on case in this
+    system: stamps -- bands and ribbons -- are uppercased; titles, section labels
+    and tile captions render exactly as the caller typed them. A stamp is read as
+    a shape before it is read as a word.
+
+    Laid out as a flex row rather than centred text, which does two things at once:
+    `align` becomes a justify-content, and the flanking terms of a versus line
+    centre against the middle term instead of sitting on its baseline.
+*/
 .blacksmith-card .cpb-part-band {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--blacksmith-space-sm);
     padding: var(--blacksmith-card-box-padding);
-    text-align: center;
     font-weight: 550;
     font-size: 0.9em;
     text-transform: uppercase;
@@ -229,13 +450,25 @@
     border: 1px solid transparent;
     border-radius: var(--blacksmith-card-box-radius);
     color: var(--blacksmith-card-section-header-text);
-    vertical-align: middle;
 }
+
+.blacksmith-card .cpb-part-band.cpb-align-left { justify-content: flex-start; }
+.blacksmith-card .cpb-part-band.cpb-align-right { justify-content: flex-end; }
 
 /* The centre term. 900 is the weight both the versus separator and the roll
    card's subheader use. */
 .blacksmith-card .cpb-part-band-text {
     font-weight: 900;
+}
+
+/* Escapes the card-wide icon rule, which pins every .fa-solid to 14px with a
+   right margin. Correct for an icon before a line of text, wrong for one that is
+   the centre term of a band -- and it would not grow with `size: large`. */
+.blacksmith-card .cpb-part-band-text i {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    font-size: inherit;
 }
 
 /*
@@ -244,48 +477,48 @@
     because the band's own 0.9em would compound and land it at 1.17em -- which
     is what the first pass shipped.
 */
-.blacksmith-card .cpb-part-band.cpb-band-large {
-    padding: var(--blacksmith-card-box-padding);
-    border-radius: var(--blacksmith-card-box-radius);
-}
-
 .blacksmith-card .cpb-part-band.cpb-band-large .cpb-part-band-text {
     font-size: 1.44em;   /* 1.3 / 0.9, so it resolves to 1.3em of the card */
 }
 
 /*
-    Flanking terms sit either side of the centre at 0.65em -- small enough that
-    the eye reads the centre first, which is the whole point of a versus line.
+    Flanking terms sit either side of the centre. The source had these at 0.65em,
+    which was legible beside a 1.3em centre term and shrank to nothing beside a
+    plain one -- an extracted value that only worked in the card it came from.
+    0.8em keeps the centre dominant while leaving the flanks readable at any size.
 */
 .blacksmith-card .cpb-part-band-flank {
     font-weight: 600;
-    font-size: 0.65em;
-    padding: 2px;
-    margin: 0 2px;
+    font-size: 0.8em;
     opacity: 0.85;
 }
 
-.blacksmith-card .cpb-part-band.cpb-tone-success {
-    background: var(--blacksmith-card-tone-success-bg);
-    border-color: var(--blacksmith-card-tone-success-border);
-    color: var(--blacksmith-card-tone-success);
+.blacksmith-card .cpb-part-band.cpb-tone-positive {
+    background: var(--blacksmith-card-tone-positive-bg);
+    border-color: var(--blacksmith-card-tone-positive-border);
+    color: var(--blacksmith-card-tone-positive);
 }
 
-.blacksmith-card .cpb-part-band.cpb-tone-failure {
-    background: var(--blacksmith-card-tone-failure-bg);
-    border-color: var(--blacksmith-card-tone-failure-border);
-    color: var(--blacksmith-card-tone-failure);
+.blacksmith-card .cpb-part-band.cpb-tone-negative {
+    background: var(--blacksmith-card-tone-negative-bg);
+    border-color: var(--blacksmith-card-tone-negative-border);
+    color: var(--blacksmith-card-tone-negative);
 }
 
-.blacksmith-card .cpb-part-band.cpb-tone-tie {
-    background: var(--blacksmith-card-tone-tie-bg);
-    border-color: var(--blacksmith-card-tone-tie-border);
-    color: var(--blacksmith-card-tone-tie);
+.blacksmith-card .cpb-part-band.cpb-tone-info {
+    background: var(--blacksmith-card-tone-info-bg);
+    border-color: var(--blacksmith-card-tone-info-border);
+    color: var(--blacksmith-card-tone-info);
 }
 
-/* A separator carries colour and weight but not a filled panel. */
+/*
+    `quiet` keeps the ordinary band ground and drops only the tint: the tone
+    colours the text and nothing else. A separator should sit on the same surface
+    as a plain band -- a lighter ground made it read as a third kind of band
+    rather than as the same one saying less.
+*/
 .blacksmith-card .cpb-part-band.cpb-band-quiet {
-    background: rgba(0, 0, 0, 0.03);
+    background-color: rgba(0, 0, 0, 0.1);
     border-color: transparent;
 }
 
@@ -320,7 +553,6 @@
     display: block;
     font-weight: 400;
     font-size: 0.6em;
-    text-transform: uppercase;
     text-align: center;
     color: var(--blacksmith-card-section-content-text);
 }
@@ -329,7 +561,6 @@
     display: block;
     font-weight: 550;
     font-size: 1.1em;
-    text-transform: uppercase;
     text-align: center;
     color: var(--blacksmith-card-text);
 }
@@ -355,7 +586,7 @@
     justify-content: space-between;
     padding: var(--blacksmith-card-box-padding);
     background: rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--blacksmith-card-border-strong);
+    border: 1px solid var(--blacksmith-card-row-border);
     border-radius: var(--blacksmith-card-box-radius);
     min-width: 0;
 }
@@ -381,7 +612,7 @@
     height: 32px;
     object-fit: contain;
     margin-right: var(--blacksmith-space-md);
-    border: 1px solid var(--blacksmith-card-border-strong);
+    border: 1px solid var(--blacksmith-card-image-border);
     border-radius: var(--blacksmith-radius-md);
 }
 
@@ -414,7 +645,7 @@
 .blacksmith-card .cpb-part-row-img.cpb-row-img-framed {
     padding: 2px;
     background: rgba(0, 0, 0, 0.9);
-    border: 1px solid var(--blacksmith-card-border-strong);
+    border: 1px solid var(--blacksmith-card-image-border);
 }
 
 .blacksmith-card .cpb-part-row-icon {
@@ -490,34 +721,34 @@
     adds a glow and bolds the label, which is what crit and fumble have always
     had. Motion is separate: add `animation` for that.
 */
-.blacksmith-card .cpb-part-row.cpb-tone-success {
-    background: var(--blacksmith-card-tone-success-bg);
-    border-color: var(--blacksmith-card-tone-success-border);
+.blacksmith-card .cpb-part-row.cpb-tone-positive {
+    background: var(--blacksmith-card-tone-positive-bg);
+    border-color: var(--blacksmith-card-tone-positive-border);
 }
 
-.blacksmith-card .cpb-part-row.cpb-tone-failure {
-    background: var(--blacksmith-card-tone-failure-bg);
-    border-color: var(--blacksmith-card-tone-failure-border);
+.blacksmith-card .cpb-part-row.cpb-tone-negative {
+    background: var(--blacksmith-card-tone-negative-bg);
+    border-color: var(--blacksmith-card-tone-negative-border);
 }
 
-.blacksmith-card .cpb-part-row.cpb-tone-tie {
-    background: var(--blacksmith-card-tone-tie-bg);
-    border-color: var(--blacksmith-card-tone-tie-border);
+.blacksmith-card .cpb-part-row.cpb-tone-info {
+    background: var(--blacksmith-card-tone-info-bg);
+    border-color: var(--blacksmith-card-tone-info-border);
 }
 
 .blacksmith-card .cpb-part-row.cpb-tone-pending { opacity: 0.55; }
 
-.blacksmith-card .cpb-part-row.cpb-tone-success .cpb-part-row-trailing,
-.blacksmith-card .cpb-part-row.cpb-tone-success .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-success); }
-.blacksmith-card .cpb-part-row.cpb-tone-failure .cpb-part-row-trailing,
-.blacksmith-card .cpb-part-row.cpb-tone-failure .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-failure); }
-.blacksmith-card .cpb-part-row.cpb-tone-tie .cpb-part-row-trailing,
-.blacksmith-card .cpb-part-row.cpb-tone-tie .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-tie); }
+.blacksmith-card .cpb-part-row.cpb-tone-positive .cpb-part-row-trailing,
+.blacksmith-card .cpb-part-row.cpb-tone-positive .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-positive); }
+.blacksmith-card .cpb-part-row.cpb-tone-negative .cpb-part-row-trailing,
+.blacksmith-card .cpb-part-row.cpb-tone-negative .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-negative); }
+.blacksmith-card .cpb-part-row.cpb-tone-info .cpb-part-row-trailing,
+.blacksmith-card .cpb-part-row.cpb-tone-info .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-info); }
 
 .blacksmith-card .cpb-part-row.cpb-emphasis { box-shadow: 0 0 4px currentColor; }
 .blacksmith-card .cpb-part-row.cpb-emphasis .cpb-part-row-label { font-weight: 900; }
-.blacksmith-card .cpb-part-row.cpb-tone-success.cpb-emphasis .cpb-part-row-label { color: var(--blacksmith-card-tone-success); }
-.blacksmith-card .cpb-part-row.cpb-tone-failure.cpb-emphasis .cpb-part-row-label { color: var(--blacksmith-card-tone-failure); }
+.blacksmith-card .cpb-part-row.cpb-tone-positive.cpb-emphasis .cpb-part-row-label { color: var(--blacksmith-card-tone-positive); }
+.blacksmith-card .cpb-part-row.cpb-tone-negative.cpb-emphasis .cpb-part-row-label { color: var(--blacksmith-card-tone-negative); }
 
 /* ---------- BADGES ---------- */
 
@@ -638,8 +869,8 @@
     background-color: rgba(0, 0, 0, 0.12);
 }
 
-.blacksmith-card .cpb-pip-tone-success .cpb-part-pip.cpb-pip-filled { background-color: rgba(27, 63, 31, 0.9); }
-.blacksmith-card .cpb-pip-tone-failure .cpb-part-pip.cpb-pip-filled { background-color: rgba(119, 20, 16, 0.9); }
+.blacksmith-card .cpb-pip-tone-positive .cpb-part-pip.cpb-pip-filled { background-color: rgba(27, 63, 31, 0.9); }
+.blacksmith-card .cpb-pip-tone-negative .cpb-part-pip.cpb-pip-filled { background-color: rgba(119, 20, 16, 0.9); }
 .blacksmith-card .cpb-pip-tone-neutral .cpb-part-pip.cpb-pip-filled { background-color: var(--blacksmith-card-header-text); }
 
 .blacksmith-card .cpb-part-pip-center {

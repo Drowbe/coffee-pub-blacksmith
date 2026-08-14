@@ -2358,6 +2358,18 @@ function bindCardActions(message, root) {
         if (button.dataset.cpbBound === 'true') continue;
         button.dataset.cpbBound = 'true';
 
+        // A card action does not have to live on a button. A whole part can be the
+        // target, and such a part stays a div with role and tabindex rather than
+        // becoming a <button> wrapped around a meter. Binding the keys here means
+        // every part gets that for free instead of each one solving it.
+        if (button.tagName !== 'BUTTON') {
+            button.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                button.click();
+            });
+        }
+
         button.addEventListener('click', async (event) => {
             event.preventDefault();
             const target = event.currentTarget;

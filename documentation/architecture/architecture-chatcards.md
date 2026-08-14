@@ -65,6 +65,14 @@ All animations are suppressed under `prefers-reduced-motion`. Adding a name make
 
 The `pips` centre and `rows` items accept one today. The shake keyframes live here rather than in `cards-skill-check.css` because that file is scheduled for deletion and keyframes are document-global, so the definition must outlive its first caller.
 
+## Composition is flat
+
+A card is a list of parts; a part is not a list of parts. The one exception is `subject`, which carries a
+`meter` or a `gauge` because a subject and its standing are one idea -- and it renders that bar by calling
+`renderPart` on a real part rather than reimplementing one, so the nested bar cannot drift from the
+standalone. See decision 12 in `../plans/plan-chat-cards.md` for why the exception is stated rather than
+left to judgement.
+
 ## The text pipeline
 
 Consumer text runs through three stages in `processText`, and the order is load-bearing:

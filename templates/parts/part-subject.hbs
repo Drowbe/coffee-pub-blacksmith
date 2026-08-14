@@ -1,0 +1,37 @@
+{{!-- One subject and how it stands: an image beside a title, an optional value
+      opposite it, and an optional bar beneath.
+
+      Distinct from `identity`, which is the chip -- avatar, name, sub-line, one
+      line tall. A subject is the block: the image spans both lines, so the title
+      and the bar sit beside it rather than under it. With no bar it collapses to
+      one line and the image shrinks to match, which is the common case of a small
+      picture beside a title.
+
+      The bar is rendered by the meter or gauge part through the same renderer,
+      not reimplemented here, so it cannot drift from the standalone one. That is
+      the only nesting in the system and it is deliberate -- see the plan.
+
+      A subject can be the click target itself rather than carrying a button. It
+      stays a div and gains role and tabindex: the delegated dispatcher binds
+      Enter and Space for anything that is not already a button, so a clickable
+      part is reachable from the keyboard without wrapping a meter in a <button>. --}}
+<div class="cpb-part-subject{{#unless bar}} cpb-subject-compact{{/unless}}{{#if action}} cpb-subject-clickable{{/if}}"
+     {{#if action}}role="button" tabindex="0"
+     data-cpb-module="{{moduleId}}" data-cpb-action="{{action}}"
+     {{#if actionValue}}data-cpb-value="{{actionValue}}"{{/if}}
+     {{#if tooltip}}data-tooltip="{{tooltip}}"{{/if}}{{/if}}>
+
+    {{#if img}}
+    <img class="cpb-part-subject-img{{#if framed}} cpb-subject-img-framed{{/if}}" src="{{img}}" alt="" />
+    {{/if}}
+
+    <div class="cpb-part-subject-body">
+        <div class="cpb-part-subject-head">
+            {{#if index}}<span class="cpb-part-subject-marker cpb-subject-number">{{index}}</span>{{/if}}
+            {{#if icon}}<i class="cpb-part-subject-marker {{icon}}"></i>{{/if}}
+            <span class="cpb-part-subject-title">{{{title}}}</span>
+            {{#if value}}<span class="cpb-part-subject-value">{{{value}}}</span>{{/if}}
+        </div>
+        {{#if bar}}{{{bar}}}{{/if}}
+    </div>
+</div>

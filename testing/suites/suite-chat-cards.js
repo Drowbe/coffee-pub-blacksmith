@@ -270,6 +270,22 @@ export default {
             }
         },
 
+        card('c-ribbon', 'Ribbon: the corner stamp', [
+            { part: 'ribbon', text: 'Executioner' },
+            { part: 'header', icon: 'fa-solid fa-trophy', title: 'Round 5 MVP' },
+            { part: 'subject', img: IMG, title: 'Cyrus Bing',
+              meter: { value: 71, max: 101 } },
+            { part: 'prose', blocks: [{ type: 'paragraph', text: 'Cyrus Bing carved a path to victory. 20 damage dealt.' }] },
+            { part: 'section', icon: 'fa-solid fa-khanda', label: 'Combat' },
+            { part: 'prose', blocks: [{ type: 'table', rows: [['Hits', '2/2'], ['Crits', '0'], ['Kills', '1']] }] }
+        ], { group: 'Cards', note: 'the ribbon must clip to the corner without cutting off the gauge markers on other cards' }),
+
+        card('c-ribbon-tones', 'Ribbon tones', [
+            { part: 'ribbon', text: 'Fumbled', tone: 'negative' },
+            { part: 'header', icon: 'fa-solid fa-face-dizzy', title: 'A Bad Round' },
+            { part: 'prose', blocks: [{ type: 'paragraph', text: 'Same shape, different tone.' }] }
+        ], { group: 'Cards' }),
+
         card('c-baseline', 'Baseline: header, section, prose', [
             { part: 'header', icon: 'fa-solid fa-flask', title: 'Baseline' },
             { part: 'section', icon: 'fa-solid fa-paragraph', label: 'A section' },
@@ -287,6 +303,36 @@ export default {
             { part: 'image', src: IMG, caption: 'A caption under the image' }
         ], { group: 'Cards' }),
 
+        card('c-subjects', 'Subjects: image, title, value, bar', [
+            { part: 'header', icon: 'fa-solid fa-users', title: 'Subjects' },
+            { part: 'section', label: 'Numbered, with a meter -- the party stats shape' },
+            { part: 'subject', img: IMG, index: 1, title: 'Cyrus Bing', value: '39s',
+              meter: { value: 71, max: 101 } },
+            { part: 'subject', img: IMG, index: 2, title: 'Favia Gita', value: '1m 0s',
+              meter: { value: 40, max: 101 } },
+            { part: 'subject', img: IMG, index: 3, title: 'Kar-ahn', value: '0s',
+              meter: { value: 12, max: 101 } },
+
+            { part: 'section', label: 'Icon instead of a number, and a gauge instead of a meter' },
+            { part: 'subject', img: IMG, icon: 'fa-solid fa-crown', title: 'Party Leader',
+              value: '+45',
+              gauge: { min: -100, max: 100, midpoint: 0, markers: [{ at: 45 }] } },
+
+            { part: 'section', label: 'Compact: image beside a title, no bar' },
+            { part: 'subject', img: IMG, title: 'Small image next to a title', value: '412 gp' },
+            { part: 'subject', img: IMG, icon: 'fa-solid fa-coins', title: 'With a marker too' },
+
+            { part: 'section', label: 'Clickable -- try the mouse, then Tab to it and press Enter' },
+            { part: 'subject', img: IMG, index: 4, title: 'Click me', value: 'action',
+              moduleId: 'coffee-pub-blacksmith', action: TEST_ACTION, actionValue: 'subject',
+              tooltip: 'The whole subject is the target',
+              meter: { value: 60, max: 100 } },
+
+            { part: 'section', label: 'No image, no bar -- it degrades to a heading with a value' },
+            { part: 'subject', icon: 'fa-solid fa-coins', title: 'Party Funds', value: '412 gp' },
+            { part: 'subject', title: 'Nothing but a title' }
+        ], { group: 'Cards', note: 'titles should line up whether the marker is a number, an icon, or absent' }),
+
         card('c-meter-pips', 'Meters and pips', [
             { part: 'header', icon: 'fa-solid fa-heart', title: 'Meters and Pips' },
             { part: 'meter', value: 90, max: 100, label: 'ok, derived above 75' },
@@ -298,7 +344,7 @@ export default {
               center: { icon: 'fa-solid fa-skull', animation: 'pulse',
                         moduleId: 'coffee-pub-blacksmith', action: TEST_ACTION, value: 'skull',
                         tooltip: 'Clickable centre' },
-              groups: [{ total: 3, filled: 1, tone: 'success' }, { total: 3, filled: 2, tone: 'failure' }] },
+              groups: [{ total: 3, filled: 1, tone: 'positive' }, { total: 3, filled: 2, tone: 'negative' }] },
             { part: 'pips', groups: [{ total: 6, filled: 4, tone: 'neutral' }] }
         ], { group: 'Cards', note: 'compare the bars against the Crier turn card -- same container, same five colours' }),
 
@@ -352,10 +398,17 @@ export default {
         card('c-bands', 'Bands, all variants', [
             { part: 'header', icon: 'fa-solid fa-bullhorn', title: 'Bands' },
             { part: 'band', text: 'Plain band' },
-            { part: 'band', text: 'Large tinted', icon: 'fa-solid fa-circle-exclamation', tone: 'tie', size: 'large' },
-            { part: 'band', text: 'Large success', tone: 'success', size: 'large' },
-            { part: 'band', text: 'Large failure', tone: 'failure', size: 'large' },
-            { part: 'band', lead: 'Arcana', text: 'VS', trail: 'Athletics', tone: 'failure', quiet: true }
+            { part: 'band', text: 'Large tinted', icon: 'fa-solid fa-circle-exclamation', tone: 'info', size: 'large' },
+            { part: 'band', text: 'Large success', tone: 'positive', size: 'large' },
+            { part: 'band', text: 'Large failure', tone: 'negative', size: 'large' },
+            { part: 'band', lead: 'Arcana', text: 'VS', trail: 'Athletics', tone: 'negative', quiet: true },
+            { part: 'band', lead: 'Before', text: 'then', trail: 'After', quiet: true },
+            { part: 'band', lead: 'Arcana', icon: 'fa-solid fa-swords', trail: 'Athletics', quiet: true },
+            { part: 'band', lead: 'Attacker', icon: 'fa-solid fa-burst', trail: 'Defender',
+              tone: 'negative', size: 'large', quiet: true },
+            { part: 'band', text: 'Left aligned', align: 'left' },
+            { part: 'band', text: 'Right aligned', align: 'right' },
+            { part: 'band', icon: 'fa-solid fa-clock', text: 'With an icon', align: 'left' }
         ], { group: 'Cards', note: 'the large text should read as 1.3em of the card, not smaller' }),
 
         card('c-tiles', 'Tiles at three widths', [
@@ -382,16 +435,16 @@ export default {
             { part: 'header', icon: 'fa-solid fa-dice-d20', title: 'Outcome Tones' },
             { part: 'rows', items: [
                 { icon: 'fa-solid fa-dice-d20', label: 'Success', trailing: '18',
-                  trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'success' },
+                  trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'positive' },
                 { icon: 'fa-solid fa-dice-d20', label: 'Success, emphasised, shaking', trailing: '20',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-check',
-                  tone: 'success', emphasis: true, animation: 'shake-y' },
+                  tone: 'positive', emphasis: true, animation: 'shake-y' },
                 { icon: 'fa-solid fa-dice-d20', label: 'Failure', trailing: '7',
-                  trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark', tone: 'failure' },
+                  trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark', tone: 'negative' },
                 { icon: 'fa-solid fa-dice-d20', label: 'Failure, emphasised, shaking', trailing: '1',
                   trailingSize: 'large', trailingIcon: 'fa-solid fa-xmark',
-                  tone: 'failure', emphasis: true, animation: 'shake-x' },
-                { icon: 'fa-solid fa-dice-d20', label: 'Tie', trailing: '12', trailingSize: 'large', tone: 'tie' },
+                  tone: 'negative', emphasis: true, animation: 'shake-x' },
+                { icon: 'fa-solid fa-dice-d20', label: 'Tie', trailing: '12', trailingSize: 'large', tone: 'info' },
                 { icon: 'fa-solid fa-dice-d20', label: 'Pending', tone: 'pending' } ] }
         ], { group: 'Cards', note: 'the two emphasised rows should shake on different axes' }),
 
@@ -402,9 +455,9 @@ export default {
                 { part: 'section', label: 'Trailing as annotation, not headline' },
                 { part: 'rows', items: [
                     { img: IMG, cover: true, label: 'A Character', sublabel: '1450 XP | 550 to lvl 5',
-                      trailing: '+50 XP', tone: 'success' },
+                      trailing: '+50 XP', tone: 'positive' },
                     { img: IMG, cover: true, label: 'Another', sublabel: '1200 XP | **LEVEL UP!**',
-                      trailing: '+50 XP', tone: 'success', emphasis: true },
+                      trailing: '+50 XP', tone: 'positive', emphasis: true },
                     { img: IMG, cover: true, label: 'Absent', sublabel: '900 XP', trailing: 'No Combat', tone: 'pending' } ] },
                 { part: 'section', label: 'Plain rows and a document link' },
                 { part: 'rows', plain: true, items: [
@@ -461,7 +514,7 @@ export default {
                             { part: 'header', icon: 'fa-solid fa-palette', title: theme.name },
                             { part: 'band', text: theme.id },
                             { part: 'prose', blocks: [{ type: 'paragraph', text: 'Only colour should change.' }] },
-                            { part: 'rows', items: [{ icon: 'fa-solid fa-circle', label: 'A row', trailing: '10', tone: 'success' }] }
+                            { part: 'rows', items: [{ icon: 'fa-solid fa-circle', label: 'A row', trailing: '10', tone: 'positive' }] }
                         ]
                     });
                 }

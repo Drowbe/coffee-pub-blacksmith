@@ -64,7 +64,9 @@ export const CHAT_CARD_THEMES = Object.freeze([
  */
 export const CARD_PARTS = Object.freeze({
     header:   { template: 'part-header',   text: ['title'] },
+    ribbon:   { template: 'part-ribbon',   text: [] },
     identity: { template: 'part-identity', text: [] },
+    subject:  { template: 'part-subject',  text: ['title', 'value'] },
     image:    { template: 'part-image',    text: ['caption'] },
     meter:    { template: 'part-meter',    text: ['label'] },
     gauge:    { template: 'part-gauge',    text: ['label'] },
@@ -325,6 +327,16 @@ export class ChatCardsManager {
                 label: await processText(row.label, options),
                 value: row.value !== undefined ? await processText(row.value, options) : ''
             })));
+        }
+
+        if (id === 'subject') {
+            // The bar is a real meter or gauge, rendered through this same
+            // renderer rather than reimplemented, so it cannot drift from the
+            // standalone part. This is the only place one part renders another.
+            const bar = part.meter ? { part: 'meter', ...part.meter }
+                : part.gauge ? { part: 'gauge', ...part.gauge }
+                : null;
+            context.bar = bar ? await this.renderPart(bar, options) : '';
         }
 
         if (id === 'gauge') {

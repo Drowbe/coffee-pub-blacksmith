@@ -1,0 +1,10 @@
+{{!-- A diagonal banner across the card's top-right corner. Flair, for a card
+      that has earned a stamp -- an MVP, a critical, a first blood.
+
+      Sits outside the card's flow and clips itself against its own corner box, so
+      it needs nothing from the card but a positioning context. Order in the parts
+      list does not matter; put it first so a reader of the composition meets it
+      where it appears. --}}
+<div class="cpb-part-ribbon{{#if tone}} cpb-tone-{{tone}}{{/if}}">
+    <span class="cpb-part-ribbon-text">{{text}}</span>
+</div>

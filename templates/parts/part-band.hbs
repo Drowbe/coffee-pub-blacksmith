@@ -1,8 +1,12 @@
 {{!-- Full-width centred emphasis. One shape covers every banner in the
       reference cards: a plain DC line, a tinted outcome banner, and the versus
-      separator, which is a prominent centre term between two muted ones. --}}
-<div class="cpb-part-band{{#if tone}} cpb-tone-{{tone}}{{/if}}{{#if size}} cpb-band-{{size}}{{/if}}{{#if quiet}} cpb-band-quiet{{/if}}">
+      separator, which is a prominent centre term between two muted ones.
+
+      The centre may be text, an icon, or both. Putting the icon inside the centre
+      span rather than beside it means it scales with the term -- a large band
+      gets a large icon without a second rule saying so. --}}
+<div class="cpb-part-band{{#if tone}} cpb-tone-{{tone}}{{/if}}{{#if size}} cpb-band-{{size}}{{/if}}{{#if quiet}} cpb-band-quiet{{/if}}{{#if align}} cpb-align-{{align}}{{/if}}">
     {{#if lead}}<span class="cpb-part-band-flank">{{{lead}}}</span>{{/if}}
-    {{#if icon}}<i class="{{icon}}"></i> {{/if}}<span class="cpb-part-band-text">{{{text}}}</span>
+    <span class="cpb-part-band-text">{{#if icon}}<i class="{{icon}}"></i>{{/if}}{{#if text}}{{#if icon}} {{/if}}{{{text}}}{{/if}}</span>
     {{#if trail}}<span class="cpb-part-band-flank">{{{trail}}}</span>{{/if}}
 </div>

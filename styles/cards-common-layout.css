@@ -36,16 +36,24 @@
     --blacksmith-card-background: rgba(0, 0, 0, 0.08);
     --blacksmith-card-border-color: rgba(0, 0, 0, 0.05);
 
-    /* Borders come in two weights and both are black with transparency, never
-       white. A light border only works over a dark ground, and a card's ground is
-       light -- the white edge tried here first vanished against pale art and
-       glowed against dark art, which is the wrong way round.
+    /* Borders are black with transparency, never white. A light border only works
+       over a dark ground, and a card's ground is light -- a white edge tried here
+       first vanished against pale art and glowed against dark art, which is the
+       wrong way round.
 
-       -border-color is a hairline INSIDE something already filled. -border-strong
-       is the edge of a discrete object sitting ON the card: a row, an image, a
-       thumbnail. Named for weight rather than for the thing that first needed it,
-       so the next object with an edge does not arrive with a third token. */
+       -border-color is a hairline INSIDE something already filled.
+       -border-strong is the shared WEIGHT for the edge of a discrete object.
+
+       Everything that draws such an edge takes its own token defaulting to that
+       weight, rather than referencing it directly. One token for all of them read
+       as tidy and was not: tweaking a portrait's edge would silently have moved
+       every row and every bar with it. Change one line below to retune one kind of
+       thing; change -border-strong to retune all of them at once. */
+    --blacksmith-card-border-color: rgba(0, 0, 0, 0.05);
     --blacksmith-card-border-strong: rgba(0, 0, 0, 0.2);
+    --blacksmith-card-image-border: var(--blacksmith-card-border-strong);
+    --blacksmith-card-row-border: var(--blacksmith-card-border-strong);
+    --blacksmith-card-bar-border: var(--blacksmith-card-border-strong);
 
     /* Every box on a card -- row, tile, band, panel, meter track, pip strip,
        identity chip -- takes the same inset and the same corner. Five different
@@ -73,21 +81,30 @@
     --blacksmith-card-bar-danger: rgba(119, 20, 16, 0.9);
     --blacksmith-card-bar-empty: rgba(66, 66, 66, 0.9);
 
-    /* Outcome tones, matching the roll cards. */
-    --blacksmith-card-tone-success: #18520b;
-    --blacksmith-card-tone-success-bg: rgba(24, 82, 11, 0.1);
-    --blacksmith-card-tone-success-border: rgba(24, 82, 11, 0.6);
-    --blacksmith-card-tone-failure: #aa0200;
-    --blacksmith-card-tone-failure-bg: rgba(170, 2, 0, 0.1);
-    --blacksmith-card-tone-failure-border: rgba(170, 2, 0, 0.6);
-    --blacksmith-card-tone-tie: rgb(3, 109, 151);
-    --blacksmith-card-tone-tie-bg: rgba(3, 109, 151, 0.1);
-    --blacksmith-card-tone-tie-border: rgba(3, 109, 151, 0.6);
+    /* The tone palette: a fixed set a caller chooses from, never a colour it
+       passes. Named for the READING rather than for any one domain's outcomes --
+       these have to serve "Encounter!" and "No Herbs!" as readily as a saving
+       throw, and a band tinted `failure` for a missing ingredient reads as a bug.
+
+       Distinct from the meter's ok/caution/warn/danger/empty, which is a five-step
+       ramp of severity rather than a valence. */
+    --blacksmith-card-tone-positive: #18520b;
+    --blacksmith-card-tone-positive-bg: rgba(24, 82, 11, 0.1);
+    --blacksmith-card-tone-positive-border: rgba(24, 82, 11, 0.6);
+    --blacksmith-card-tone-negative: #aa0200;
+    --blacksmith-card-tone-negative-bg: rgba(170, 2, 0, 0.1);
+    --blacksmith-card-tone-negative-border: rgba(170, 2, 0, 0.6);
+    --blacksmith-card-tone-info: rgb(3, 109, 151);
+    --blacksmith-card-tone-info-bg: rgba(3, 109, 151, 0.1);
+    --blacksmith-card-tone-info-border: rgba(3, 109, 151, 0.6);
 }
 
 /* Base Container */
 .blacksmith-card {
     /* Layout Properties */
+    /* A positioning context, so a ribbon can hang off the corner without the
+       card needing to know it is there. */
+    position: relative;
     padding: 0;
     margin: 0;
     font-family: var(--dnd5e-font-roboto);
@@ -159,7 +176,6 @@
     padding-bottom: 3px;
     font-size: var(--blacksmith-font-size-base);
     font-weight: var(--blacksmith-font-weight-black);
-    text-transform: uppercase;
     color: var(--blacksmith-card-section-content-text);
 }
 
@@ -178,7 +194,6 @@
     border-radius: var(--blacksmith-radius-md);
     margin-top: var(--blacksmith-space-lg);
     margin-bottom: var(--blacksmith-space-md);
-    text-transform: uppercase;
 }
 .blacksmith-card .section-subheader i {
     margin-right: 3px;
@@ -216,7 +231,7 @@
 
 
 .blacksmith-card .section-content img {
-    border: 1px solid var(--blacksmith-card-border-strong) !important;
+    border: 1px solid var(--blacksmith-card-image-border) !important;
     border-radius: var(--blacksmith-radius-md) !important;
     margin: var(--blacksmith-space-md) auto;
     padding: 0 !important;
@@ -318,7 +333,6 @@
     justify-content: flex-start;
     color: var(--blacksmith-card-button-text);
     font-weight: var(--blacksmith-font-weight-bold);
-    text-transform: uppercase;
 }
 .blacksmith-chat-buttons button.chat-button:hover {
     background: var(--blacksmith-card-button-hover-bg);
@@ -557,7 +571,7 @@
 }
 .blacksmith-card .container-user .token-image {
     height: 32px;
-    border: 1px solid var(--blacksmith-card-border-strong);
+    border: 1px solid var(--blacksmith-card-image-border);
     border-radius: var(--blacksmith-radius-md);
     margin-right: var(--blacksmith-space-sm);
     flex-shrink: 0;

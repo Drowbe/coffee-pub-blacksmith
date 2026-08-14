@@ -990,7 +990,7 @@ export class XpManager {
                         // (cards-xp.css .xp-gained, #18520b, which is what tone success
                         // resolves to) and mutes a player who was not in the combat, as
                         // .cpb-xp-not-in-combat did.
-                        tone: r.excluded ? 'pending' : 'success',
+                        tone: r.excluded ? 'pending' : 'positive',
                         emphasis: levelled
                     };
                 })

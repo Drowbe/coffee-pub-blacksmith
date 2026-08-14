@@ -312,6 +312,28 @@ in place is not a second answer to the same question.
 `.collapsible-content`, `.section-content.collapsed`, `.collapsible .summary`, and `.card-header.collapsible`
 -- had no caller in any module and is deleted.
 
+## Decision 12: parts do not contain parts, with one stated exception
+
+Settled 2026-08-14 while adding `subject`.
+
+**Composition is flat.** A card is a list of parts; a part is not a list of parts. Rows do not hold gauges,
+panels do not hold rows, and a request for either is a request for a new part or a different composition.
+
+The exception is `subject`, which carries a `meter` or a `gauge`. It earns it on one ground: a subject and
+its standing are a single idea, and splitting them into `identity` followed by `meter` produces a different
+thing -- those stack full width and put the picture above the reading rather than beside it. The layout is
+the reason, not convenience.
+
+**The exception is implemented so it cannot spread.** `subject` does not reimplement a bar; it calls the
+same renderer on a real `meter` or `gauge` part, so the nested bar is the standalone bar. Anything else
+wanting to embed a part has to do the same, and will find the same question waiting: is this one idea, or
+two parts that happen to appear together?
+
+Without this written down the pressure is one-directional. Every card that nearly composes will suggest a
+small nesting, each defensible on its own, and the flat model becomes a tree without anyone deciding it
+should. The stats party card is exactly that pressure: it wants rows containing gauges, and the answer is
+`subject` rather than a nestable row.
+
 ## The parts catalog
 
 Derived from nine reference cards supplied by the author (Crier turn card, Bibliosoph no-encounter,
