@@ -974,14 +974,23 @@ export class XpManager {
             parts.push({ part: 'section', icon: 'fas fa-users', label: 'Experience Allocations' });
             parts.push({
                 part: 'rows',
-                items: results.map(r => ({
-                    img: r.img,
-                    label: r.name,
-                    sublabel: (r.leveledUp || r.nextLevelXp <= 0)
-                        ? `${r.totalXp} XP | LEVEL UP!`
-                        : `${r.totalXp} XP | ${r.nextLevelXp} to lvl ${r.nextLevel}`,
-                    trailing: r.excluded ? 'No Combat' : (r.xpGained > 0 ? `+${r.xpGained} XP` : '0 XP')
-                }))
+                items: results.map(r => {
+                    const levelled = r.leveledUp || r.nextLevelXp <= 0;
+                    return {
+                        img: r.img,
+                        label: r.name,
+                        sublabel: levelled
+                            ? `${r.totalXp} XP | **LEVEL UP!**`
+                            : `${r.totalXp} XP | ${r.nextLevelXp} to lvl ${r.nextLevel}`,
+                        trailing: r.excluded ? 'No Combat' : (r.xpGained > 0 ? `+${r.xpGained} XP` : '0 XP'),
+                        // Carries the green the hand-written card used for awarded XP
+                        // (cards-xp.css .xp-gained, #18520b, which is what tone success
+                        // resolves to) and mutes a player who was not in the combat, as
+                        // .cpb-xp-not-in-combat did.
+                        tone: r.excluded ? 'pending' : (r.xpGained > 0 ? 'success' : null),
+                        emphasis: levelled
+                    };
+                })
             });
         }
 

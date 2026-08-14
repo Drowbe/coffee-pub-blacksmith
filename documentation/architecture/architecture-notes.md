@@ -17,7 +17,7 @@ one question: can any surface ask "what is attached to this thing" and get an an
 canvas point, a map region. If that stops being true, the layer is a journal page with extra steps and should
 be deleted rather than patched.
 
-That is asserted rather than asserted-to: `utilities/tests/suite-notes.js` holds it as its first check.
+That is asserted rather than asserted-to: `testing/suites/suite-notes.js` holds it as its first check.
 
 ## Storage: on the note, not in a central store
 

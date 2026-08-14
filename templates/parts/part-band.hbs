@@ -1,2 +1,8 @@
-{{!-- Full-width emphasised text band. --}}
-<div class="cpb-part-band">{{{text}}}</div>
+{{!-- Full-width centred emphasis. One shape covers every banner in the
+      reference cards: a plain DC line, a tinted outcome banner, and the versus
+      separator, which is a prominent centre term between two muted ones. --}}
+<div class="cpb-part-band{{#if tone}} cpb-tone-{{tone}}{{/if}}{{#if size}} cpb-band-{{size}}{{/if}}{{#if quiet}} cpb-band-quiet{{/if}}">
+    {{#if lead}}<span class="cpb-part-band-flank">{{{lead}}}</span>{{/if}}
+    {{#if icon}}<i class="{{icon}}"></i> {{/if}}<span class="cpb-part-band-text">{{{text}}}</span>
+    {{#if trail}}<span class="cpb-part-band-flank">{{{trail}}}</span>{{/if}}
+</div>

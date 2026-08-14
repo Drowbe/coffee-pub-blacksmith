@@ -56,8 +56,28 @@ The single exception: `npm run build:cm6` bundles CodeMirror 6 via `build-codemi
 `scripts/vendor/codemirror.mjs` is **committed**, and CI does not rebuild it — if you change the editor
 vendor entry, rebuild and commit the bundle yourself.
 
-`utilities/` and `test-data/` are manual console scripts and fixtures, not an automated suite —
-`utilities/test-harness.js` is the entry point, pasted into a script macro (see its own header).
+`testing/` holds everything that exists to check the module, and it runs **inside Foundry**, by a person, 
+pasted into a script macro. It is not an automated suite and there is no runner.
+
+| Path | What it is |
+|---|---|
+| `testing/test-harness.js` | The entry point. Paste into a script macro; it loads the suites and opens a tabbed dialog. See its own header. |
+| `testing/harness-lib.js` | Shared helpers and the contract a suite must export. |
+| `testing/suites/suite-*.js` | The suites themselves, loaded by the harness. |
+| `testing/data/` | JSON fixtures fed to the importer by hand. Data, not code. |
+| `testing/preview-chat-cards.js` | Posts every chat-card part and variant, for visual comparison. |
+
+**Do not confuse `testing/` with the other four directories that look adjacent.** They differ by *who runs
+them and where*:
+
+| Path | Runs where | Runs when |
+|---|---|---|
+| `tools/*.mjs` | Node, on the command line | You run it, or the wiki Action does |
+| `testing/` | Foundry, pasted into a macro | A person checking the module |
+| `utilities/` | Foundry, pasted into a macro | A person performing a one-off action — repair, fetch, delete. Not checks. |
+| `themes/` | Foundry, at runtime | **Shipped content.** `theme-requestroll.json` plus its images and sounds; `settings.js` points at it. Nothing to do with testing. |
+| `packs/` | nowhere | Gitignored, untracked, and not ours — see Packs below. |
+| `node_modules/` | Node | Gitignored. Only `npm run build:cm6` needs it. |
 
 What *is* automated is a small set of **invariant checks** in `tools/`, each runnable standalone and each
 exiting non-zero on a violation. They verify things a reader cannot reasonably hold in their head, not
@@ -140,7 +160,7 @@ Five rules:
    A testing doc full of ticked boxes is indistinguishable from one nobody has run.
 4. **It is never a source of truth about behaviour.** It says "this is unproven", never "this is how it works".
    The moment it explains a mechanism, that belongs in architecture.
-5. **Only for what a harness cannot do.** `utilities/tests/` covers what can be asserted automatically, and a
+5. **Only for what a harness cannot do.** `testing/suites/` covers what can be asserted automatically, and a
    suite is better than a checklist because it runs again next month. A testing doc is for the rest: a second
    client, a browser reload, cross-module integration, and anything needing a human to judge what it looks
    like. If a step could be a harness check, write the check instead.
@@ -290,6 +310,10 @@ decision about who owns the value and never changes to satisfy it.
 `node tools/check-settings-headings.mjs` enforces this and exits non-zero on a violation. Run it after
 touching settings. Note that `registerHeader`'s **level argument is authoritative for nesting, not the
 H-number in the label key** — they disagree in places (`headingH3CampaignCommon` registers at level H2).
+
+**Tooltips** — use **`data-tooltip`** and nothing else. Never a bare `title=`, and never both on
+the same element: Foundry renders `data-tooltip` in its own styled tooltip while the browser renders
+`title` natively, so an element carrying both shows two tooltips.
 
 **CSS** — `styles/default.css` is the only real entry; ~50 other files are `@import`ed from it. **A new CSS
 file without an `@import` is silently unstyled.**

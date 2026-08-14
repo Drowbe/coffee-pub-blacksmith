@@ -255,6 +255,29 @@ This matters more for a **closed** library than it would for an open one. A use-
 caller either to misuse it or to ask for a near-duplicate part, and granting those requests is how a closed
 library stops being closed.
 
+## Decision 11: cards do not collapse
+
+Settled by the author 2026-08-13, after Foundry's own item and attack cards were compared against ours.
+
+**If it is important enough to include, it is important enough to see.** There is no collapsible part, and
+none is planned.
+
+The author had previously supported collapsing and withdrew it on evidence: players did not expand collapsed
+content, Foundry ships its cards expanded by default so a weapon roll narrates everything about the weapon
+and nobody reads it, and nobody discovered the world setting that would have posted cards collapsed instead.
+A control nobody uses is not a feature.
+
+The one case that survives is midi-qol's -- hiding *how a number was calculated* behind an affordance. That
+is served by `data-tooltip`, not by collapsing a section.
+
+This also settles a question step 4 would otherwise have answered twice. The statistics cards get a "View
+Details" button opening a window, and that is the answer to "this content is too long for a card". Expanding
+in place is not a second answer to the same question.
+
+**Consequence, already applied:** the collapsible CSS in `styles/cards-common-layout.css` -- 63 lines across
+`.collapsible-content`, `.section-content.collapsed`, `.collapsible .summary`, and `.card-header.collapsible`
+-- had no caller in any module and is deleted.
+
 ## The parts catalog
 
 Derived from nine reference cards supplied by the author (Crier turn card, Bibliosoph no-encounter,

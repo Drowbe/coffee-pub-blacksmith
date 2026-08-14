@@ -56,12 +56,12 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `identity` | avatar, primary name, secondary line | `img`, `name`, `subtitle` |
 | `image` | picture with optional caption and stacked overlays | `src`, `alt`, `caption`, `overlays: [src]` |
 | `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`warn`/`danger`; derived if omitted) |
-| `band` | full-width emphasised text | `text` |
+| `band` | full-width centred emphasis | `text`, `lead`, `trail`, `icon`, `tone` (`success`/`failure`/`tie`), `size` (`large`), `quiet` |
 | `tiles` | grid of caption-over-value boxes | `items: [{ label, value }]`, `columns` (defaults to the item count, max 6) |
-| `section` | divider with icon and label | `icon`, `label`, `align` (`center` drops the rule) |
+| `section` | divider with icon and label | `icon`, `label` |
 | `prose` | structured text blocks | `blocks` (see below) |
 | `pips` | discrete state slots around an optional centre marker | `groups: [{ total, filled, tone }]`, `center` (see below) |
-| `rows` | thumbnail or icon, label, optional sub-line, optional trailing value or button | `items: [{ img, icon, uuid, label, sublabel, count, trailing, tone, emphasis, action, actionIcon, value, moduleId }]` |
+| `rows` | thumbnail or icon, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, framed, icon, uuid, label, sublabel, count, trailing, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
 | `badges` | inline chips | `items: [{ icon, label }]` |
 | `panel` | boxed sub-block | `icon`, `label`, `intro`, `rows: [{ icon, label, value }]` |
 | `notes` | footer annotations | `items: [{ icon, text }]` |
@@ -69,6 +69,18 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `richtext` | document-sourced HTML | `html` (see below) |
 
 On `rows`, supplying `uuid` turns the label into a real Foundry document link, with `label` as its display text. `count` prefixes the label; `trailing` follows it; `action` puts a button at the end.
+
+### Bands
+
+One shape covers every banner: a plain line, a tinted outcome banner, and a versus separator.
+
+```javascript
+{ part: 'band', text: 'DC 11' }
+{ part: 'band', text: 'Stalemate', icon: 'fa-solid fa-circle-exclamation', tone: 'tie', size: 'large' }
+{ part: 'band', lead: 'Arcana', text: 'VS', trail: 'Arcana', tone: 'failure', quiet: true }
+```
+
+`lead` and `trail` render small and muted either side of `text`, so the eye reads the centre first. `quiet` keeps the colour and weight but drops the filled panel, which is what a separator wants.
 
 ### Pips
 
@@ -93,16 +105,22 @@ Name a **motion, never a meaning**. A critical hit is `tone: 'success'` with `an
 
 ### Row outcome states
 
-A row can carry an outcome. `tone` is `success`, `failure`, or `pending`, and sets colour. `emphasis` promotes it to a filled, bordered, glowing treatment. Motion is separate - add `animation` if you want it.
+A row can carry an outcome. `tone` is `success`, `failure`, `tie`, or `pending`, and tints the whole row. `emphasis` adds a glow and bolds the label. `trailingIcon` puts a result mark after the value. Motion is separate again - add `animation` if you want it.
 
 ```javascript
-{ label: 'Kar-ahn', trailing: '21', tone: 'success', emphasis: true, animation: 'shake-y' }
-{ label: 'Skylar',  trailing: '16', tone: 'success' }
-{ label: 'Noodle',  trailing: '2',  tone: 'failure', emphasis: true, animation: 'shake-x' }
+{ label: 'Kar-ahn', trailing: '21', trailingIcon: 'fa-solid fa-check', tone: 'success', emphasis: true, animation: 'shake-y' }
+{ label: 'Skylar',  trailing: '16', trailingIcon: 'fa-solid fa-check' }
+{ label: 'Noodle',  trailing: '2',  trailingIcon: 'fa-solid fa-xmark', tone: 'failure', emphasis: true, animation: 'shake-x' }
 { label: 'Cyrus',   tone: 'pending' }
 ```
 
 Say what happened and how much it matters; the part chooses the colours. Nothing in the vocabulary assumes a die was rolled - a failed import or a rejected transfer uses the same fields.
+
+Tone and the trailing mark are independent, which is what lets one card mark every result while tinting only the exceptional ones, and another tint all of them.
+
+Set `plain: true` on the part to drop the row boxes entirely - a conditions list reads better as icon and text than as a stack of containers.
+
+Set `framed: true` on an item to put a dark ground and light border behind its thumbnail. Token art is usually transparent PNG drawn against a dark canvas, so on a light card it needs something behind it; item and portrait art usually does not.
 
 On `panel`, `label` is the bold lead and `intro` is prose that follows it on the same line ("**Treatment**: Cool your wounds by..."). Each row is a flowing line of icon plus statement, not a label/value column.
 

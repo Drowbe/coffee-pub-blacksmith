@@ -1,5 +1,5 @@
 // ==================================================================
-// ===== BLACKSMITH TEST HARNESS (utilities/test-harness.js) ========
+// ===== BLACKSMITH TEST HARNESS (testing/test-harness.js) ========
 // ==================================================================
 // Paste this entire file into a Foundry SCRIPT MACRO and run it as the
 // GM. It loads the suites listed in SUITES below and opens a tabbed
@@ -20,8 +20,8 @@
 //                 client). One button each.
 //
 // ADDING A SUITE
-//   1. Write utilities/tests/suite-<name>.js exporting the shape
-//      documented in utilities/tests/harness-lib.js.
+//   1. Write testing/suites/suite-<name>.js exporting the shape
+//      documented in testing/harness-lib.js.
 //   2. Add its path to SUITES below.
 //   An explicit list, not a glob — same reasoning as the PUBLISH list in
 //   tools/wiki-sync.mjs: what runs should be a decision, not a side effect
@@ -34,7 +34,7 @@
 //   to the docs.
 // ==================================================================
 
-const BASE = '/modules/coffee-pub-blacksmith/utilities/tests';
+const BASE = '/modules/coffee-pub-blacksmith/testing/suites';
 
 const SUITES = [
     `${BASE}/suite-compendiums.js`,

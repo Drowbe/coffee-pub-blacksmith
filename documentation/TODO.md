@@ -506,7 +506,7 @@ Shipped unverified, and it touches settings storage, so worth a careful pass in 
 
 ## Live-verify the Compendium Search tool window
 
-`api.compendiums.search()` itself is verified — 57/57 headless assertions, grouping proven across 10 sources (`utilities/tests/suite-compendiums.js`). The palette built on it is not. There are three ways in — the Blacksmith scene-controls toolbar (Utilities zone, `fa-book-atlas`), the menubar left zone (magnifying glass, beside menu/settings/refresh), and Ctrl+Space. Confirm all three reach the same single window rather than opening duplicates, then check:
+`api.compendiums.search()` itself is verified — 57/57 headless assertions, grouping proven across 10 sources (`testing/suites/suite-compendiums.js`). The palette built on it is not. There are three ways in — the Blacksmith scene-controls toolbar (Utilities zone, `fa-book-atlas`), the menubar left zone (magnifying glass, beside menu/settings/refresh), and Ctrl+Space. Confirm all three reach the same single window rather than opening duplicates, then check:
 
 - **Drag lands on a character sheet.** Drag an Item row onto an open dnd5e character sheet and confirm the item is added. Then drag an Actor row onto the canvas and confirm a token is placed. Both ride Foundry's native `{type, uuid}` drop contract, so a failure here means the payload is wrong, not the sheet.
 - **Drag as a player.** Log in as a player who owns a character and repeat. The tool is not GM-only, and a player sees only the packs they have permission on.
@@ -797,6 +797,35 @@ the verification steps travelled with the work and are the first thing to do bef
 
 **The gate for every item**: if a consuming module still writes card HTML, the item is not done.
 
+#### Tooltip convention sweep
+- **Work**: `CLAUDE.md` now requires `data-tooltip` and forbids a bare `title=` or both on one element (an element carrying both shows two tooltips -- Foundry's styled one and the browser's native one). **139 `title=` attributes remain across Blacksmith's templates**, all pre-dating the convention. The new chat-card parts are already clean.
+- **Not a blanket replace.** Some sites may want `title` deliberately, and some elements may already carry both, where the fix is to delete one rather than convert. Judge per site.
+- **Location**: `templates/*.hbs` (windows, menubar, toolbars); zero in `templates/parts/`
+- **How to verify**: hover a converted element and confirm exactly one tooltip appears, styled as Foundry's. Grep for elements carrying both attributes first -- those are the visible bugs; the rest is consistency.
+
+#### Extract the remaining source card styles before migrating their cards
+- **Issue**: values have been pulled into `styles/cards-parts.css` from **two** sources only -- Crier's
+  `turns.css` (tiles, band, pips, rhythm) and the roll-row/tone/versus family in `cards-skill-check.css`.
+  Everything extracted did land, but the extraction was driven by whichever card was on screen at the time,
+  which is the slow way to converge and leaves gaps nobody can see.
+- **Bibliosoph is the best reference in the suite and is not one of ours.** Its cards are built almost
+  entirely from Blacksmith's own classes -- `blacksmith-card`, `card-header`, `section-header` (8 uses),
+  `section-content`, `section-dark`, and the `container-user` identity chip -- with only a handful of local
+  row classes in `coffee-pub-bibliosoph/styles/default.css:85-140`. Read those before steps 4 and 5 too.
+  Its `.encounter-monster-row` and `.investigation-item-row` are the same shape with and without a box,
+  which is the distinction `rows` now carries as `plain`, and it already proved out the framed-thumbnail
+  treatment. It is the closest thing the suite has to a worked example of the parts model, written by hand.
+- **Not yet extracted**: all 71 selectors in `cards-stats.css` (MVP ribbons, moment cards, damage-ratio
+  bars, party stats grids, portraits); roughly 45 of the 56 in `cards-skill-check.css` (`.cpb-skill-check-actor`,
+  `.cpb-skill-check-buttons`, `.cpb-skill-roll`, `.cpb-roll-explanation`, the pending-roll states,
+  `.cpb-roll-requested-mode`); and all 29 in `cards-xp.css`.
+- **Do this before steps 4 and 5, not during.** Read each file end to end, decide for each rule whether it
+  is a part value, a card-specific quirk to drop, or a gap needing a new part -- then migrate. See the
+  standing rule in `CLAUDE.md` about starting from the working implementation.
+- **How to verify**: for each migrated card, post it beside a screenshot of the original and compare
+  padding, weights, and colours. `testing/preview-chat-cards.js` renders the parts side by side.
+- **Priority**: High -- it is a prerequisite for steps 4 and 5 rather than separate work.
+
 #### 4. Stats simplification
 - **Work**: Collapse round and combat summaries to a key-data card plus a "View Details" button opening a
   dashboard window; combat is the aggregate of round. Retires 8 templates and `styles/cards-stats.css`.
@@ -846,7 +875,7 @@ required mode in the request title and detect what was actually rolled by sniffi
 
 #### Grow the test harness as APIs get touched
 
-- **Landed 2026-07-30**: `utilities/test-harness.js` plus suites for `api.dialog`, `api.entityList`, `api.quantitySplit`, and window delegation — 83 headless assertions, all passing. Two tiers: headless assertions behind a "Run All Headless" button, and interactive checks for what only a person can judge. Contract and suite shape are documented in `utilities/tests/harness-lib.js`.
+- **Landed 2026-07-30**: `testing/test-harness.js` plus suites for `api.dialog`, `api.entityList`, `api.quantitySplit`, and window delegation — 83 headless assertions, all passing. Two tiers: headless assertions behind a "Run All Headless" button, and interactive checks for what only a person can judge. Contract and suite shape are documented in `testing/harness-lib.js`.
 - **The rule that keeps it honest**: a harness asserting a stale contract is worse than none, because it manufactures confidence. Update the relevant suite **as part of** the change that alters an API, the same way the workflow already treats the docs. If it is optional, it rots.
 - **`compendiums` suite added** when `search()` landed, per the rule below — it derives every fixture from the live world rather than naming content, which is the pattern any suite over user-configurable data should follow.
 - **Next suites, in priority order**: `hookManager` and `sockets` — the two siblings actually break against, and `sockets` is already the #1 post-reset rewrite, so a suite written before that rewrite gives it a regression net. Then `tags`, `toast`. Do not port all twenty APIs speculatively; add a suite when its API is next touched.
@@ -907,10 +936,37 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
 - **`--blacksmith-variant-timeline-`* duplicates `--blacksmith-variant-info-*`.** Both pairs are `rgba(47, 68, 106, ...)` (`styles/vars.css:112-113` and `:124-125`), so the two variants render indistinguishably despite being presented as distinct. Decide: give `timeline` its own hue, or drop it and alias consumers to `info`. This is a design call, not a cleanup — the published token page currently states the duplication as fact.
 - **Priority**: Low.
 
+#### Move media under a single `assets/` folder
+- **Issue**: media is scattered across three top-level folders plus one nested inside `themes/`. Foundry's
+  convention is a single `assets/` root, and adopting it collapses four entries out of a top-level listing
+  that already has nineteen directories.
+- **What moves** (counts are tracked files): `images/` (466 across banners, pins-map, pins-note, tokens,
+  tiles, markers, backgrounds, portraits, overlays, misc), `sounds/` (135 across reactions, steps, objects,
+  gore, general, cartoon), and `themes/request-roll/{images,sounds}` (16). Target shape:
+  `assets/images/...`, `assets/sounds/...`, with the theme's media either alongside them or left in place
+  as part of that theme's self-contained bundle -- decide which, because a theme is arguably one unit.
+- **Blast radius**: 95 references to `images/` and 12 to `sounds/` across `scripts/`, `styles/`, `templates/`,
+  and `lang/`. `module.json` declares none of it, so nothing there changes. **The risk is not the code
+  references** -- those are greppable and a compile check catches a miss. It is the paths that are not in
+  code: values already saved in world settings, journal entries, tiles, and playlists that point at
+  `modules/coffee-pub-blacksmith/images/...`. Those live in the author's world, not this repo, and moving
+  the file silently breaks them.
+- **Therefore**: this needs a decision on whether to leave redirect stubs, ship a one-time migration that
+  rewrites stored setting values, or accept the breakage and fix references by hand. Do not start the move
+  before that is settled.
+- **How to verify**: `grep -rn "modules/coffee-pub-blacksmith/\(images\|sounds\)/"` returns nothing outside
+  `assets/`; then load a world and check the surfaces that pull media -- pin icons, token replacement
+  images, the sound picker in settings, nameplate backgrounds, and the request-roll theme.
+- **Priority**: Low. Pure housekeeping with a real breakage risk, so it wants a quiet moment, not a
+  moment between features.
+
 #### `applicationv2-window/` — decide its disposition
 - **Issue**: `documentation/applicationv2-window/guidance-applicationv2.md` (539 lines) has never been audited and is **not published to the wiki**, yet three published pages point at it by repo path — `api-window.md`, `architecture-window.md`, and `architecture-blacksmith.md`. Those render as plain text on the wiki (the sync downgrades unpublished targets), so nothing is broken, but a wiki reader is sent off-wiki to the repo to find how to build an Application V2 window.
 - **Options**: (a) audit, scrub to the formatting standard, and publish it as its own page; or (b) fold it into the design-system split as originally planned, since window guidance is design-system material. Either way `applicationv2-window/README.md` (27 lines, quick start for the example) gets deleted and the `.webp`/`.png`/example files stay as repo assets.
 - **If it publishes**, revisit the wording of those three references so they name a wiki page rather than a repo path.
+- **Artificer has its own copy** of `guidance-applicationv2.md` (found 2026-08-13). Whatever happens here
+  has to account for it, or one gets fixed and the other drifts -- the same shape as the `cards-common.hbs`
+  fork, one layer up. Tracked in `TODO-GLOBAL.md` under forked hub code.
 - **Priority**: Medium — fold it into the design-system effort rather than doing it standalone.
 
 #### Publish the importer docs once the import work is verified

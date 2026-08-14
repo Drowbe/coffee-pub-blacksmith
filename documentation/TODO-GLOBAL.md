@@ -619,7 +619,7 @@ re-read the effects collection immediately before creating. Squire has offered t
 
 We have what a report needs: the mechanism with line numbers, a minimal reproduction (two writes to one
 Actor while it crosses an encumbrance threshold), and a harness check that demonstrates it
-(`utilities/tests/suite-inventory.js`, `one-write-per-actor`). Worth doing because the alternative is every
+(`testing/suites/suite-inventory.js`, `one-write-per-actor`). Worth doing because the alternative is every
 module in the ecosystem routing around it separately, which is what we and Squire have each just done.
 
 ## Suite-wide: a document write inside a timer needs the liveness check INSIDE the callback (2026-08-08)
@@ -747,7 +747,11 @@ worth doing properly rather than trusting the filename check to have covered it.
 2026-08-13 while inventorying chat cards: Squire's `templates/chat-cards.hbs` (505 lines) is a fork of
 Blacksmith's `templates/cards-common.hbs` (324 lines) - same variant names in the same order, same invalid
 `visibility: none` on line 1, 231 lines now diverged. Neither heuristic could see it, because both were
-scoped to JS. **Whatever per-namespace pass gets run, run it over `templates/` and `styles/` too.** This one
+scoped to JS. **Whatever per-namespace pass gets run, run it over `templates/`, `styles/` and `documentation/` too.**
+A second instance turned up the same day in the third of those: Artificer carries its own copy of
+`documentation/applicationv2-window/guidance-applicationv2.md`, forked from Blacksmith's. Forked *guidance*
+drifts exactly like forked code and is worse to detect, because nothing breaks when it goes stale -- it just
+quietly teaches the wrong thing. Its disposition is tracked in Blacksmith's `TODO.md`. This one
 is being resolved by the chat cards parts system below rather than separately.
 
 ## Chat cards: sibling migration to the parts system (planned 2026-08-13)

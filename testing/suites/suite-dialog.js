@@ -3,7 +3,7 @@
 // ==================================================================
 //
 // DO NOT PASTE THIS INTO A FOUNDRY MACRO — it is an ES module and a macro
-// rejects it on the export. Paste utilities/test-harness.js instead; it
+// rejects it on the export. Paste testing/test-harness.js instead; it
 // loads this suite itself.
 //
 // Contract: documentation/api/api-dialog.md

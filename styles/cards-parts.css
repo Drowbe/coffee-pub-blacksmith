@@ -55,18 +55,6 @@
     pointer-events: none;
 }
 
-/* ---------- SECTION ALIGNMENT ---------- */
-
-/*
-    A centred section is the contested-roll separator ("Arcana - VS - Arcana").
-    It drops the rule, because a divider that is already flanked by two labelled
-    groups does not need a second horizontal line to say the same thing.
-*/
-.blacksmith-card .section-header.cpb-section-center {
-    text-align: center;
-    border-bottom: none;
-}
-
 /* ---------- METER ---------- */
 
 .blacksmith-card .cpb-part-meter {
@@ -102,97 +90,269 @@
 
 /* ---------- BAND ---------- */
 
+/*
+    Full-width centred emphasis. Every banner in the reference cards is this one
+    shape with different settings: "DC 11" is plain, "STALEMATE" is tinted and
+    large, and the versus separator is a prominent centre term flanked by two
+    muted ones. Values are lifted from .cpb-versus-separator and
+    .cpb-roll-result-*-container in cards-skill-check.css rather than
+    approximated, so a migrated card is the same object it was.
+*/
+
 .blacksmith-card .cpb-part-band {
-    margin: var(--blacksmith-space-sm) 0;
-    padding: var(--blacksmith-space-sm);
+    padding: 5px 10px;
     text-align: center;
-    font-weight: bold;
-    letter-spacing: 0.04em;
+    font-weight: 550;
+    font-size: 0.9em;
     text-transform: uppercase;
-    background: var(--blacksmith-card-background);
+    background-color: rgba(0, 0, 0, 0.1);
+    border: 1px solid transparent;
     border-radius: var(--blacksmith-radius-sm);
     color: var(--blacksmith-card-section-header-text);
+    vertical-align: middle;
+}
+
+/* The centre term. 1.3em/900 is the versus separator's own weight. */
+.blacksmith-card .cpb-part-band-text {
+    font-weight: 900;
+}
+
+.blacksmith-card .cpb-part-band.cpb-band-large .cpb-part-band-text {
+    font-size: 1.3em;
+}
+
+/*
+    Flanking terms sit either side of the centre at 0.65em -- small enough that
+    the eye reads the centre first, which is the whole point of a versus line.
+*/
+.blacksmith-card .cpb-part-band-flank {
+    font-weight: 600;
+    font-size: 0.65em;
+    padding: 2px;
+    margin: 0 2px;
+    opacity: 0.85;
+}
+
+.blacksmith-card .cpb-part-band.cpb-tone-success {
+    background: var(--blacksmith-card-tone-success-bg);
+    border-color: var(--blacksmith-card-tone-success-border);
+    color: var(--blacksmith-card-tone-success);
+}
+
+.blacksmith-card .cpb-part-band.cpb-tone-failure {
+    background: var(--blacksmith-card-tone-failure-bg);
+    border-color: var(--blacksmith-card-tone-failure-border);
+    color: var(--blacksmith-card-tone-failure);
+}
+
+.blacksmith-card .cpb-part-band.cpb-tone-tie {
+    background: var(--blacksmith-card-tone-tie-bg);
+    border-color: var(--blacksmith-card-tone-tie-border);
+    color: var(--blacksmith-card-tone-tie);
+}
+
+/* A separator carries colour and weight but not a filled panel. */
+.blacksmith-card .cpb-part-band.cpb-band-quiet {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: transparent;
 }
 
 /* ---------- TILES ---------- */
 
+/*
+    Grid of caption-over-value boxes.
+
+    Values pulled from Crier's ability-score block (turns.css
+    [id^="ability-container-"]), which is the card these replace: 5px grid gap,
+    5px/10px cell padding, 0.1 alpha fill, a 0.6em/400 caption over a 1.1em/550
+    value. The first pass guessed 2px padding and a heavier caption, and read
+    cramped next to the original.
+*/
+
 .blacksmith-card .cpb-part-tiles {
     display: grid;
     /* Column count comes from the part; see manager-chat-cards.js. This is the
-       fallback for a stats part rendered without one. */
+       fallback for a tiles part rendered without one. */
     grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
-    gap: var(--blacksmith-space-xs);
-    margin: var(--blacksmith-space-sm) 0;
+    grid-gap: 5px;
 }
 
 .blacksmith-card .cpb-part-tile {
-    padding: var(--blacksmith-space-xs);
+    padding: 5px 10px;
     text-align: center;
-    background: var(--blacksmith-card-background);
-    border-radius: var(--blacksmith-radius-sm);
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: var(--blacksmith-radius-md);
 }
 
 .blacksmith-card .cpb-part-tile-label {
-    font-size: 0.7em;
-    letter-spacing: 0.06em;
+    display: block;
+    font-weight: 400;
+    font-size: 0.6em;
     text-transform: uppercase;
-    opacity: 0.75;
+    text-align: center;
     color: var(--blacksmith-card-section-content-text);
 }
 
 .blacksmith-card .cpb-part-tile-value {
+    display: block;
+    font-weight: 550;
     font-size: 1.1em;
-    font-weight: bold;
+    text-transform: uppercase;
+    text-align: center;
     color: var(--blacksmith-card-text);
 }
 
 /* ---------- ROWS ---------- */
 
+/*
+    Detail rows. Geometry comes from .cpb-roll-result in cards-skill-check.css --
+    6px/8px padding, a 0.2 alpha border, and the label flexing so the trailing
+    value is pushed to the right edge. That last rule is load-bearing: without it
+    the value sits against the name and the column disappears.
+*/
+
 .blacksmith-card .cpb-part-rows {
     display: flex;
     flex-direction: column;
-    gap: var(--blacksmith-space-xs);
-    margin: var(--blacksmith-space-sm) 0;
+    gap: var(--blacksmith-space-sm);
 }
 
 .blacksmith-card .cpb-part-row {
     display: flex;
     align-items: center;
-    gap: var(--blacksmith-space-sm);
-    /* Matches the horizontal-over-vertical padding of .section-dark. The first
-       pass used a flat space-xs and read visibly meaner than the hand-written
-       cards it replaces. */
-    padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
-    background: var(--blacksmith-card-background);
-    border: 1px solid var(--blacksmith-card-border-color);
+    justify-content: space-between;
+    padding: 6px var(--blacksmith-space-md);
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--blacksmith-card-row-border);
+    border-radius: var(--blacksmith-radius-md);
+    min-width: 0;
+}
+
+/* Plain rows drop the box. Crier's conditions list is icon-and-text with no
+   container; the roll cards are boxed. Both are rows, so the container is an
+   option rather than a second part. */
+.blacksmith-card .cpb-part-rows.cpb-rows-plain .cpb-part-row {
+    background: none;
+    border: none;
+    padding: var(--blacksmith-space-sm) 0;
+}
+
+/*
+    Thumbnail. 32px and `contain` rather than 28px and `cover`, from Bibliosoph's
+    .encounter-monster-img and .investigation-item-img. `cover` crops, which is
+    wrong for token and item art -- the subject is centred in the frame and the
+    edges are the parts that carry it. This was a real defect, not a preference.
+*/
+.blacksmith-card .cpb-part-row-img {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    margin-right: var(--blacksmith-space-md);
+    border: 1px solid var(--blacksmith-card-row-border);
     border-radius: var(--blacksmith-radius-md);
 }
 
 /*
-    Outcome tone and emphasis. `tone` sets the colour; `emphasis` promotes it to
-    a filled, bordered, glowing treatment. Neither implies motion -- animation is
-    a separate, named choice, so a card can pair any tone with any animation or
-    none. Tying the two together would have hard-coded "critical shakes
-    vertically, fumble shakes horizontally" into the part, which is a d20 rule
-    living somewhere it has no business being.
+    Framed thumbnails, from Bibliosoph's encounter adversaries: a dark ground and
+    a light border behind the art. Token art is usually transparent PNG drawn for
+    a dark canvas, so on a light card it reads as a smudge without something
+    behind it. Per item rather than global, because Bibliosoph frames its
+    adversaries and deliberately does not frame its investigation items.
 */
-.blacksmith-card .cpb-part-row.cpb-tone-success .cpb-part-row-trailing { color: rgba(36, 91, 23, 1.0); font-weight: 900; }
-.blacksmith-card .cpb-part-row.cpb-tone-failure .cpb-part-row-trailing { color: #952023; font-weight: 900; }
-.blacksmith-card .cpb-part-row.cpb-tone-pending { opacity: 0.65; }
-
-.blacksmith-card .cpb-part-row.cpb-tone-success.cpb-emphasis {
-    background: rgba(36, 91, 23, 0.15);
-    border-color: rgba(36, 91, 23, 0.4);
-    box-shadow: 0 0 2px rgba(98, 150, 2, 0.5);
+.blacksmith-card .cpb-part-row-img.cpb-row-img-framed {
+    padding: 2px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
-.blacksmith-card .cpb-part-row.cpb-tone-failure.cpb-emphasis {
-    background: rgba(149, 32, 35, 0.15);
-    border-color: rgba(149, 32, 35, 0.4);
-    box-shadow: 0 0 5px rgba(149, 32, 35, 0.3);
+.blacksmith-card .cpb-part-row-icon {
+    flex: 0 0 auto;
+    margin-right: var(--blacksmith-space-md);
 }
 
+/* Flexes, so everything after it is pushed to the right edge. */
+.blacksmith-card .cpb-part-row-text {
+    flex: 1;
+    min-width: 0;
+    margin-right: var(--blacksmith-space-md);
+}
+
+.blacksmith-card .cpb-part-row-label {
+    font-weight: bold;
+    color: var(--blacksmith-card-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-card .cpb-part-row-sublabel {
+    font-size: 0.85em;
+    font-weight: normal;
+    opacity: 0.75;
+    color: var(--blacksmith-card-section-content-text);
+}
+
+.blacksmith-card .cpb-part-row-count {
+    font-weight: bold;
+    color: var(--blacksmith-card-section-header-text);
+}
+
+.blacksmith-card .cpb-part-row-trailing {
+    flex-shrink: 0;
+    font-family: var(--dnd5e-font-roboto-slab);
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #461313;
+}
+
+.blacksmith-card .cpb-part-row-trailing-icon {
+    flex-shrink: 0;
+    margin-left: var(--blacksmith-space-sm);
+    font-weight: 900;
+}
+
+.blacksmith-card .cpb-part-row-action {
+    flex: 0 0 auto;
+    width: auto;
+    margin-left: var(--blacksmith-space-sm);
+    padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
+}
+
+/*
+    Outcome tone and emphasis. `tone` tints the whole row -- the contested-roll
+    card tints every result, because comparing them is the point. `emphasis`
+    adds a glow and bolds the label, which is what crit and fumble have always
+    had. Motion is separate: add `animation` for that.
+*/
+.blacksmith-card .cpb-part-row.cpb-tone-success {
+    background: var(--blacksmith-card-tone-success-bg);
+    border-color: var(--blacksmith-card-tone-success-border);
+}
+
+.blacksmith-card .cpb-part-row.cpb-tone-failure {
+    background: var(--blacksmith-card-tone-failure-bg);
+    border-color: var(--blacksmith-card-tone-failure-border);
+}
+
+.blacksmith-card .cpb-part-row.cpb-tone-tie {
+    background: var(--blacksmith-card-tone-tie-bg);
+    border-color: var(--blacksmith-card-tone-tie-border);
+}
+
+.blacksmith-card .cpb-part-row.cpb-tone-pending { opacity: 0.55; }
+
+.blacksmith-card .cpb-part-row.cpb-tone-success .cpb-part-row-trailing,
+.blacksmith-card .cpb-part-row.cpb-tone-success .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-success); }
+.blacksmith-card .cpb-part-row.cpb-tone-failure .cpb-part-row-trailing,
+.blacksmith-card .cpb-part-row.cpb-tone-failure .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-failure); }
+.blacksmith-card .cpb-part-row.cpb-tone-tie .cpb-part-row-trailing,
+.blacksmith-card .cpb-part-row.cpb-tone-tie .cpb-part-row-trailing-icon { color: var(--blacksmith-card-tone-tie); }
+
+.blacksmith-card .cpb-part-row.cpb-emphasis { box-shadow: 0 0 4px currentColor; }
 .blacksmith-card .cpb-part-row.cpb-emphasis .cpb-part-row-label { font-weight: 900; }
+.blacksmith-card .cpb-part-row.cpb-tone-success.cpb-emphasis .cpb-part-row-label { color: var(--blacksmith-card-tone-success); }
+.blacksmith-card .cpb-part-row.cpb-tone-failure.cpb-emphasis .cpb-part-row-label { color: var(--blacksmith-card-tone-failure); }
 
 /* ---------- BADGES ---------- */
 
@@ -278,40 +438,40 @@
 /* ---------- PIPS ---------- */
 
 /*
-    Discrete state slots around an optional centre marker. Sizes and colours are
-    Crier's, so the death-save widget is visually the same object after migration
-    as before -- 13px rounded squares, dark green for a success, dark red for a
-    failure, near-transparent when empty.
+    Discrete state slots around an optional centre marker.
+
+    The container is Crier's hp-container (turns.css [id^="hp-container-"]) --
+    4px radius, 0.1 alpha fill -- because on the turn card the pips occupy the
+    slot the HP bar vacates and must carry the same weight. Pip geometry is
+    Crier's too: 13px, 25% radius, 6px apart.
+
+    Two deliberate departures from the source, both from review: the container
+    gets real vertical padding rather than Crier's 3px, and the centre marker is
+    sized up. Empty pips are lighter than Crier's 0.2 so that a row of them
+    recedes instead of reading as a line of empty checkboxes.
 */
 
 .blacksmith-card .cpb-part-pips {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--blacksmith-space-xs);
-    margin: var(--blacksmith-space-sm) 0;
-}
-
-.blacksmith-card .cpb-part-pips.cpb-pips-centred {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    padding: var(--blacksmith-space-md);
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: var(--blacksmith-radius-md);
 }
 
 .blacksmith-card .cpb-part-pip-group {
     display: flex;
     align-items: center;
-    gap: 12px;
 }
-
-.blacksmith-card .cpb-pips-centred .cpb-pip-lead { justify-content: flex-end; }
-.blacksmith-card .cpb-pips-centred .cpb-pip-trail { justify-content: flex-start; }
 
 .blacksmith-card .cpb-part-pip {
     display: inline-block;
     width: 13px;
     height: 13px;
+    margin: 0 6px;
     border-radius: 25%;
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.12);
 }
 
 .blacksmith-card .cpb-pip-tone-success .cpb-part-pip.cpb-pip-filled { background-color: rgba(27, 63, 31, 0.9); }
@@ -322,15 +482,29 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2em;
+    padding: 0 var(--blacksmith-space-lg);
+}
+
+/*
+    Escapes the card-wide icon rule, which pins every .fa-solid to width 14px
+    with a right margin. That rule is right for an icon sitting before a line of
+    text and wrong for a marker that is the centre of its own widget -- it was
+    what made the skull look undersized and sit off-centre.
+*/
+.blacksmith-card .cpb-part-pip-center i {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    font-size: 1.6em;
 }
 
 /* The centre is the click target when the card supplies an action. Styled as a
    bare icon rather than a button so an interactive widget does not read as a
-   form control sitting in the middle of a card. */
+   form control parked in the middle of a card. */
 .blacksmith-card .cpb-part-pip-button {
     width: auto;
-    padding: 0 var(--blacksmith-space-xs);
+    height: auto;
+    padding: 0;
     margin: 0;
     line-height: 1;
     background: none;
@@ -340,9 +514,7 @@
     color: inherit;
 }
 
-.blacksmith-card .cpb-part-pip-button:hover {
-    color: var(--blacksmith-card-hover-color);
-}
+.blacksmith-card .cpb-part-pip-button:hover { color: var(--blacksmith-card-hover-color); }
 
 /* ---------- ANIMATIONS ---------- */
 
@@ -394,4 +566,30 @@
 @keyframes cpb-glow {
     0%, 100% { filter: drop-shadow(0 0 0 currentColor); }
     50%      { filter: drop-shadow(0 0 3px currentColor); }
+}
+
+/* ---------- VERTICAL RHYTHM ---------- */
+
+/*
+    Every part contributes the same gap below itself and none above, so spacing
+    between parts is a single value rather than the sum of whatever two adjacent
+    parts each decided. The first pass let each part set its own margins and the
+    result drifted visibly wider than the hand-written cards.
+*/
+
+.blacksmith-card > .cpb-part-image,
+.blacksmith-card > .cpb-part-meter,
+.blacksmith-card > .cpb-part-band,
+.blacksmith-card > .cpb-part-tiles,
+.blacksmith-card > .cpb-part-rows,
+.blacksmith-card > .cpb-part-badges,
+.blacksmith-card > .cpb-part-pips,
+.blacksmith-card > .cpb-part-notes,
+.blacksmith-card > .container-user {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.blacksmith-card > :last-child {
+    margin-bottom: 0;
 }

@@ -1,16 +1,16 @@
 // ==================================================================
-// ===== TEST HARNESS LIB (utilities/tests/harness-lib.js) ==========
+// ===== TEST HARNESS LIB (testing/harness-lib.js) ==========
 // ==================================================================
 //
 // DO NOT PASTE THIS INTO A FOUNDRY MACRO. It is an ES module, so a macro
 // rejects it with "must be valid JavaScript for an asynchronous scope:
 // Unexpected token 'export'". Everything else in utilities/ is a
 // paste-into-a-macro script and this directory is the exception — the only
-// file here that goes in a macro is utilities/test-harness.js, which
+// file here that goes in a macro is testing/test-harness.js, which
 // import()s this one and every suite.
 //
 // Shared helpers for Blacksmith test suites. Loaded by
-// utilities/test-harness.js; suites import what they need from here.
+// testing/test-harness.js; suites import what they need from here.
 //
 // Two tiers, deliberately:
 //
@@ -49,7 +49,7 @@
 // tier passes roughly five checks; below that it is noise.
 //   }
 //
-// Register the suite's path in SUITES in utilities/test-harness.js.
+// Register the suite's path in SUITES in testing/test-harness.js.
 // ==================================================================
 
 export const MODULE_ID = 'coffee-pub-blacksmith';

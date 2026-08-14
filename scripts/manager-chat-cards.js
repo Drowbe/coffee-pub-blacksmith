@@ -67,7 +67,7 @@ export const CARD_PARTS = Object.freeze({
     identity: { template: 'part-identity', text: [] },
     image:    { template: 'part-image',    text: ['caption'] },
     meter:    { template: 'part-meter',    text: ['label'] },
-    band:     { template: 'part-band',     text: ['text'] },
+    band:     { template: 'part-band',     text: ['text', 'lead', 'trail'] },
     tiles:    { template: 'part-tiles',    text: [] },
     section:  { template: 'part-section',  text: ['label'] },
     prose:    { template: 'part-prose',    text: [] },

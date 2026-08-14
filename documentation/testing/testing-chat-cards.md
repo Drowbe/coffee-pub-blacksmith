@@ -10,6 +10,8 @@ What remains is everything that needs a second client, a browser reload, a diffe
 
 Results go to the relevant `CHANGELOG.md` entry, not back into this file.
 
+**Use `testing/preview-chat-cards.js`** for most of what follows. Pasted into a script macro it posts every part and every variant, plus one card per theme, which covers the rendering and theme items in a single run.
+
 ## Rendering
 
 - [ ] **Themes tint without changing structure.** Post the same composition in each of the nine themes. Structure identical, colours differ. Announcement themes give a dark background with light header text.
