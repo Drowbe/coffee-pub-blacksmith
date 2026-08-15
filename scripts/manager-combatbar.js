@@ -2104,6 +2104,38 @@ export class CombatBarManager {
             }
         });
 
+        // A combat belongs to a scene, so changing scene changes which combat the
+        // bar should be reflecting -- or whether there is one at all.
+        //
+        // Nothing asked that question before. Every other trigger here is a combat
+        // event (created, updated, deleted), and switching scenes is none of those:
+        // the combat documents do not change, only which of them is in front of you.
+        // So the bar kept showing the fight from the scene you left.
+        //
+        // `canvasReady` rather than a scene hook, because it fires once the new
+        // scene is actually drawn -- `game.scenes.current` is settled by then, which
+        // is what getActiveCombat() reads.
+        const sceneChangeHookId = HookManager.registerHook({
+            name: 'canvasReady',
+            description: 'MenuBar: Point the combat bar at the newly viewed scene combat',
+            context: 'menubar-combat-scene',
+            priority: 3,
+            callback: () => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                // Popouts belong to the combatants of the fight we are leaving.
+                CombatBarManager.closeAllCombatantPopoutCards();
+                // A scroll position measured against another scene's combatants
+                // means nothing here.
+                CombatBarManager.resetPortraitScroll();
+
+                const combat = CombatBarManager.getActiveCombat();
+                const shouldShow = getSettingSafely(MODULE.ID, 'menubarCombatShow', true);
+                if (combat && shouldShow) CombatBarManager.openCombatBar(menuBar);
+                else CombatBarManager.updateCombatBar(menuBar);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
         const combatTrackerRenderHookId = HookManager.registerHook({
             name: 'renderApplication',
             description: 'MenuBar: Update combat tracker button when combat tracker window opens',
@@ -2513,7 +2545,28 @@ export class CombatBarManager {
      * so both ask the same question rather than each testing for themselves.
      */
     static getActiveCombat() {
-        return game.combats?.active ?? game.combat ?? null;
+        // SCENE-SCOPED, deliberately. A combat belongs to a scene, so the bar must
+        // show the combat for the scene being LOOKED AT -- not whichever fight
+        // happens to be running somewhere in the world.
+        //
+        // `game.combats.active` already answers exactly that: it matches only a
+        // combat whose scene is the current one, or which has no scene at all
+        // (combat-encounters.mjs:54). It was the `?? game.combat` fallback that
+        // broke it, and that fallback was worse than doing nothing. `game.combat`
+        // resolves to `ui.combat.viewed`, a STICKY field the tracker sets from
+        // `#inferCombat()`, and that method returns the first ACTIVE combat in the
+        // world regardless of scene (combat-tracker.mjs:730). So switching to a
+        // quiet scene kept showing the previous scene's fight, complete with its
+        // combatants.
+        const active = game.combats?.active ?? null;
+        if (active) return active;
+
+        // No ACTIVE combat here, but this scene may still own a paused or
+        // not-yet-started one. That is this scene's combat and worth showing; a
+        // combat on any other scene is not.
+        const sceneId = game.scenes?.current?.id ?? null;
+        if (!sceneId) return null;
+        return game.combats?.find((combat) => combat.scene?.id === sceneId) ?? null;
     }
 
     /**
