@@ -6,7 +6,7 @@
 // rejects it on the export. Paste testing/test-harness.js instead.
 //
 // Contract:       documentation/architecture/architecture-xp.md
-// Implementation: scripts/stats-adversaries.js, scripts/xp-manager.js
+// Implementation: scripts/stats-adversaries.js, scripts/manager-xp.js
 //
 // THIS SUITE MUTATES DOCUMENTS. It creates its own Combat, Actors and Tokens,
 // prefixed with TEMP_PREFIX, and deletes them in a finally block. It never
@@ -69,7 +69,7 @@ export default {
             note: 'The reported bug, as an assertion. Looting a corpse mid-fight deletes the token; without the record the award re-derives from the base prototype at full health and pays nothing.',
             run: async ({ expect, log }) => {
                 requireApi('inventory');   // proves the module API is reachable
-                const { XpManager } = await import('/modules/coffee-pub-blacksmith/scripts/xp-manager.js');
+                const { XpManager } = await import('/modules/coffee-pub-blacksmith/scripts/manager-xp.js');
                 const { getAdversaryRecord, AdversaryRecord } = await import('/modules/coffee-pub-blacksmith/scripts/stats-adversaries.js');
 
                 if (game.combat) { log('A combat is active -- end it and re-run. Refusing to create a second.'); return; }

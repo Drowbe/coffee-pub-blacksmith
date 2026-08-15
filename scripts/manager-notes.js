@@ -34,7 +34,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { PIN_ACCESS_ICONS } from './pin-permission-icons.js';
+import { PIN_ACCESS_ICONS } from './manager-pins-permission-icons.js';
 
 /** Flag key on the note page holding its annotation array. */
 const FLAG_KEY = 'annotations';

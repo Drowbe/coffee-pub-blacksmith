@@ -26,7 +26,7 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
 import { compendiumManager } from './manager-compendiums.js';
-import { normalizeType, getDocumentClass, getDocumentSubtype, getTypeLabel } from './compendium-types.js';
+import { normalizeType, getDocumentClass, getDocumentSubtype, getTypeLabel } from './utility-compendium-types.js';
 
 const APP_ID = 'blacksmith-compendium-search';
 const PREFS_SETTING = 'compendiumSearchPreferences';

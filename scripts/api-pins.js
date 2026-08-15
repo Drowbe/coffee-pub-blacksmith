@@ -6,7 +6,7 @@
 // ==================================================================
 
 import { PinManager } from './manager-pins.js';
-import { assetLookup } from './asset-lookup.js';
+import { assetLookup } from './utility-asset-lookup.js';
 
 /** Module ID for availability checks. */
 const MODULE_ID = 'coffee-pub-blacksmith';
@@ -665,7 +665,7 @@ export class PinsAPI {
      * @returns {Promise<{ stop: () => void, promise: Promise<void> } | void>} When untilStopped is true, resolves with a controller object; otherwise resolves when the animation completes.
      */
     static async ping(pinId, options) {
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         return PinRenderer.ping(pinId, options);
     }
 
@@ -679,7 +679,7 @@ export class PinsAPI {
      * @returns {Promise<boolean>} - True if pin was refreshed, false if not found
      */
     static async refreshPin(pinId, options = {}) {
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         return PinRenderer.refreshPin(pinId, options);
     }
 
@@ -697,7 +697,7 @@ export class PinsAPI {
             throw new Error('No scene; ensure canvas is ready and a scene is active.');
         }
         const pins = PinManager.list({ sceneId });
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         
         // Check if system is initialized, if not try to initialize
         let containerReady = PinRenderer.getContainer();

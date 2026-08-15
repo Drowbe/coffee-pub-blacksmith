@@ -11,7 +11,7 @@ import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, 
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
 import { getUnknownExcludedUserNames, flushToastChannelSettings } from './api-toast.js';
 import { getNamingKeyList, tokenNameTableSettingId, NAMING_TAXONOMY_SETTING, DEFAULT_TAXONOMY_PATH } from './utility-token-naming.js';
-import { assetLookup } from './asset-lookup.js';
+import { assetLookup } from './utility-asset-lookup.js';
 import {
 	SESSION_TIMER_DEFAULT_MODES,
 	getSessionEndTimeChoicesObject,
@@ -32,7 +32,7 @@ import {
 	compendiumOffersType,
 	describeCompendiumContents,
 	SYNTHETIC_TYPES
-} from './compendium-types.js';
+} from './utility-compendium-types.js';
 
 // Re-exported for consumers that historically imported it from settings.js.
 export { extractTypeFromCompendiumSetting };
@@ -1373,7 +1373,7 @@ export const registerSettings = () => {
 			filePicker: true,
 			group: WORKFLOW_GROUPS.MANAGE_CONTENT,
 			onChange: () => {
-				void import('./asset-loader.js').then(m => m.reloadAssetManifestsFromWorldSettings());
+				void import('./utility-asset-loader.js').then(m => m.reloadAssetManifestsFromWorldSettings());
 			}
 		});
 	};
@@ -4077,7 +4077,7 @@ export const registerSettings = () => {
 		filePicker: true,
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION,
 		onChange: () => {
-			void import('./theme-request-roll.js').then(m => m.invalidateRequestRollThemeCache());
+			void import('./utility-theme-request-roll.js').then(m => m.invalidateRequestRollThemeCache());
 		}
 	});
 

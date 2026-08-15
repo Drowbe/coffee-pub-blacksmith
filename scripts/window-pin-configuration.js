@@ -12,7 +12,7 @@ import {
     normalizePinTags,
     normalizeBlacksmithAccess,
     normalizeBlacksmithVisibility
-} from './pins-schema.js';
+} from './manager-pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 
 /**

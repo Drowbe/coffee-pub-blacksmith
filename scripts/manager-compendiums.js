@@ -41,7 +41,7 @@ import {
     isSyntheticType,
     getPackPackageLabel,
     formatPackLabel
-} from './compendium-types.js';
+} from './utility-compendium-types.js';
 import { isNativeFoundryItemData, parseFlatItemToFoundry } from './parsers/parse-item.js';
 
 /** Match tiers in priority order. */

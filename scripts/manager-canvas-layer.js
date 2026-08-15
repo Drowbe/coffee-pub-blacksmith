@@ -1,6 +1,6 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { PinRenderer } from './pins-renderer.js';
+import { PinRenderer } from './manager-pins-renderer.js';
 
 export class BlacksmithLayer extends foundry.canvas.layers.CanvasLayer {
     constructor() {

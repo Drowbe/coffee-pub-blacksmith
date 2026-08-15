@@ -3943,7 +3943,7 @@ export class CombatBarManager {
                 // actions are: the id is taken from its owner rather than copied
                 // here, where it would drift the first time it changed.
                 run: () => run('Experience', async () => {
-                    const { XP_WINDOW_ID } = await import('./xp-manager.js');
+                    const { XP_WINDOW_ID } = await import('./manager-xp.js');
                     api?.openWindow?.(XP_WINDOW_ID);
                 })
             },

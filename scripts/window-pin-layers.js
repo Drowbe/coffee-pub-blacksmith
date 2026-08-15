@@ -1,10 +1,10 @@
 import { MODULE } from './const.js';
 import { PinManager } from './manager-pins.js';
-import { normalizePinTags, normalizeBlacksmithAccess, normalizeBlacksmithVisibility } from './pins-schema.js';
+import { normalizePinTags, normalizeBlacksmithAccess, normalizeBlacksmithVisibility } from './manager-pins-schema.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { DialogAPI } from './api-dialog.js';
 import { HookManager } from './manager-hooks.js';
-import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './pin-permission-icons.js';
+import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './manager-pins-permission-icons.js';
 
 const APP_ID = 'blacksmith-pin-layers';
 const BULK_TAGS_APP_ID = 'blacksmith-bulk-pin-tags';

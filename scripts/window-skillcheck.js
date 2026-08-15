@@ -3,7 +3,7 @@ import { MODULE } from './const.js';
 import { playSound, postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
-import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';
+import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './utility-theme-request-roll.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { skillCheckMessageData } from './cards-skill-check.js';
 

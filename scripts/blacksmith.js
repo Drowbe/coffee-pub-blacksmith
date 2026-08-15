@@ -39,7 +39,7 @@ import {
 } from './utility-common.js';
 // -- Import special page variables --
 import { registerSettings, ensureCoreLoadingProgressSettingRegistered, buildSelectedCompendiumArrays, buildSelectedCampaignArrays, reorderCompendiumsForType, extractTypeFromCompendiumSetting, refreshAssetDerivedChoices, primeCoreChoiceCaches, compactCompendiumMappingsOnLoad } from './settings.js';
-import { BlacksmithLayer } from './canvas-layer.js';
+import { BlacksmithLayer } from './manager-canvas-layer.js';
 import { addToolbarButton } from './manager-toolbar.js';
 import { CombatTimer } from './timer-combat.js';
 import { PlanningTimer } from './timer-planning.js';
@@ -73,12 +73,12 @@ import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';
 import './registry-json-import-journals.js';
 import { JOURNAL_JSON_IMPORT_KIND_ID, buildJournalVisualPrompt, getJournalPortraitPromptFields } from './registry-json-import-journals.js';
-import { buildActorImportPrompt, buildActorJsonTemplate, buildActorAuthoringGuide, getActorPromptFields, getActorPromptCheckboxes } from './prompt-builder-actors.js';
-import { XpManager } from './xp-manager.js';
+import { buildActorImportPrompt, buildActorJsonTemplate, buildActorAuthoringGuide, getActorPromptFields, getActorPromptCheckboxes } from './utility-prompt-builder-actors.js';
+import { XpManager } from './manager-xp.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
-import { assetLookup, initializeAssetLookupInstance } from './asset-lookup.js';
-import { loadAssetBundlesWithOverrides, loadDefaultAssetBundlesFromJson } from './asset-loader.js';
+import { assetLookup, initializeAssetLookupInstance } from './utility-asset-lookup.js';
+import { loadAssetBundlesWithOverrides, loadDefaultAssetBundlesFromJson } from './utility-asset-loader.js';
 import { loadNamingTaxonomy } from './utility-token-naming.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { SidebarPin } from './ui-sidebar-pin.js';
@@ -138,7 +138,7 @@ import {
     BLACKSMITH_TOOL_TITLEBARS,
     BLACKSMITH_TOOL_THEMES
 } from './window-tool-base.js';
-import './sidebar-combat.js';
+import './ui-sidebar-combat.js';
 import './ui-combat-tools.js';
 
 // Expose Application V2 base as soon as this module script runs (before hooks), so dependent modules
@@ -798,7 +798,7 @@ function initializeSettingsDependentFeatures() {
                             
                             // Load pins for current scene (renderer should be initialized by now via _draw)
                             if (canvas.scene) {
-                                const { PinRenderer } = await import('./pins-renderer.js');
+                                const { PinRenderer } = await import('./manager-pins-renderer.js');
                                 const { PinManager } = await import('./manager-pins.js');
                                 const pins = PinManager.list({ sceneId: canvas.scene.id });
                                 if (pins.length > 0) {
@@ -847,7 +847,7 @@ function initializeSettingsDependentFeatures() {
                     // If scene was activated, reload its pins
                     if (data.active === true && scene.id === canvas?.scene?.id) {
                         const layer = canvas?.['blacksmith-utilities-layer'];
-                        const { PinRenderer } = await import('./pins-renderer.js');
+                        const { PinRenderer } = await import('./manager-pins-renderer.js');
                         const { PinManager } = await import('./manager-pins.js');
                         const pins = PinManager.list({ sceneId: scene.id });
                         if (pins.length > 0 && layer && !layer.active) {

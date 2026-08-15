@@ -5,11 +5,11 @@ import { EntityListAPI } from './api-entity-list.js';
 import { SocketManager } from './manager-sockets.js';
 import { ModuleManager } from './manager-modules.js';
 import { HookManager } from './manager-hooks.js';
-import { MovementConfig } from './token-movement.js';
+import { setMovementType, getMovementTypes } from './token-movement.js';
 import { EncounterManager } from './manager-encounter.js';
 import { CoreUIUtility } from './utility-core.js';
 import { VoteConfig } from './window-vote-config.js';
-import { XpManager } from './xp-manager.js';
+import { XpManager } from './manager-xp.js';
 import { StatsWindow } from './window-stats-party.js';
 import { EncounterToolbar } from './ui-journal-encounter.js';
 import { ToastAPI } from './api-toast.js';
@@ -463,10 +463,8 @@ class MenuBar {
             tooltip: null,
             onClick: (event) => {
                 if (!game.user.isGM) return;
-                if (!event || typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
-                    new MovementConfig().render(true);
-                    return;
-                }
+                // No coordinates means no anchor for the menu -- fall back to the
+                // centre of the screen rather than to a window, which no longer exists.
                 this.showMovementMenu(event);
             },
             zone: "right",
@@ -482,9 +480,6 @@ class MenuBar {
             iconColor: null,
             buttonNormalTint: null,
             buttonSelectedTint: null,
-            contextMenuItems: [
-                { name: 'Movement Settings', icon: 'fa-solid fa-gear', onClick: () => new MovementConfig().render(true) }
-            ]
         });
 
         // SESSION TIMER
@@ -4749,8 +4744,7 @@ class MenuBar {
 
     static async showMovementMenu(event) {
         this._closeMenubarContextMenu();
-        const config = new MovementConfig();
-        const movementTypes = config.getData().MovementTypes || [];
+        const movementTypes = getMovementTypes(game.user.isGM);
         const currentMovement = game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
         const spacing = game.settings.get(MODULE.ID, 'tokenSpacing') || 0;
 
@@ -4760,7 +4754,7 @@ class MenuBar {
             icon: `fa-solid ${type.icon}`,
             disabled: type.id === currentMovement,
             callback: async () => {
-                await config._handleMovementChange(type.id);
+                await setMovementType(type.id);
             }
         }));
 

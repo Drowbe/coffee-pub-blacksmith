@@ -18,7 +18,7 @@
  */
 
 import { compendiumManager, parseQuantity, formatLink } from './manager-compendiums.js';
-import { normalizeType, getTypeLabel, getChoicesArrayKey } from './compendium-types.js';
+import { normalizeType, getTypeLabel, getChoicesArrayKey } from './utility-compendium-types.js';
 import { BLACKSMITH } from './const.js';
 
 export const CompendiumsAPI = {

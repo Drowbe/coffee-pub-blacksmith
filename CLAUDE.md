@@ -355,7 +355,12 @@ you are tempted to add a `packs` array, that's a decision to re-litigate, not a 
 
 **This repo is public.** Never commit machine-specific paths, local absolute paths, or personal config.
 Personal Claude Code settings belong in `.claude/settings.local.json` (gitignored) — the committed
-`.claude/settings.json` should stay empty, since permissions there would apply to anyone who clones the repo.
+`.claude/settings.json` grants nothing, since permissions there would apply to anyone who clones the repo.
+
+**It holds `{}`, not `{"permissions": {"allow": []}}`.** Those are not the same thing. An explicit empty
+allow-list at project scope reads as "this project permits nothing" and appears to override what the local
+file grants, which is why this module prompted for every shell command while the ten siblings with no
+project settings file at all did not. Changed 2026-08-15. If prompting returns, check this file first.
 
 Do not commit or push to the main repo unless asked. The author reviews diffs in Cursor and commits himself —
 this covers both the milestone check-ins and the final release commit in the workflow above. Claude stages

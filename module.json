@@ -79,7 +79,7 @@
     "scripts/settings.js",
     "scripts/manager-compendiums.js",
     "scripts/blacksmith.js",
-    "scripts/sidebar-combat.js",
+    "scripts/ui-sidebar-combat.js",
     "scripts/ui-journal-pins.js",
     "scripts/window-pin-layers.js",
     "api/blacksmith-api.js"

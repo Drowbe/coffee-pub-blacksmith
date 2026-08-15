@@ -519,184 +519,110 @@ function handleTokenOrdering(token, isFirstTimeSetup, isGMMoveOfFollower) {
 
 
 
-export class MovementConfig extends BlacksmithWindowBaseV2 {
-    static ROOT_CLASS = 'movement-config';
+/**
+ * Change the party movement type.
+ *
+ * Was `MovementConfig._handleMovementChange`, a method on a window that no longer
+ * exists. The window offered movement types and a spacing slider; the menubar
+ * offers both from the same MOVEMENT_TYPES list, so the window was a second door
+ * to one room -- and the menubar was already instantiating the window purely to
+ * read this data off it.
+ *
+ * GM only, checked here rather than at the call site, because this is the only
+ * way to change the setting.
+ */
+/**
+ * The movement types this user may choose from. GM-only types are filtered out,
+ * which is the one thing the removed window's `getData()` did that a bare export
+ * of MOVEMENT_TYPES would not.
+ */
+export function getMovementTypes(isGM = game.user.isGM) {
+    return MOVEMENT_TYPES.filter((type) => !type.gmOnly || isGM);
+}
 
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
-        {
-            id: 'movement-config',
-            classes: ['coffee-pub-blacksmith', 'movement-config'],
-            position: { width: 300, height: 'auto' },
-            window: { title: 'Configure Movement', resizable: false, minimizable: true }
-        }
-    );
+export async function setMovementType(movementId) {
+    // Only GM can change movement
+    if (!game.user.isGM) return;
 
-    static PARTS = {
-        body: {
-            template: `modules/${MODULE.ID}/templates/window-token-movement.hbs`
-        }
-    };
+    // Clear path and followers when changing movement mode
+    leaderMovementPath = [];
+    tokenFollowers.clear();
+    marchingOrderJustCalculated = false;
+    processingCongaMovement = false;
 
-    static ACTION_HANDLERS = null;
+    // Store the movement type in game settings
+    await game.settings.set(MODULE.ID, 'movementType', movementId);
 
-    getData() {
-        // Check if user is GM or current leader
-        const isGM = game.user.isGM;
-        const currentSpacing = game.settings.get(MODULE.ID, 'tokenSpacing') || 0;
+    // Play movement change sound
+    playSound(window.COFFEEPUB?.SOUNDBUTTON05, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
-        return {
-            currentSpacing,
-            MovementTypes: MOVEMENT_TYPES.filter(type => !type.gmOnly || isGM)
-        };
-    }
+    // Get the movement type name for the notification
+    const movementType = MOVEMENT_TYPES.find(t => t.id === movementId);
+    if (!movementType) return;
 
-    async _onRender(context, options) {
-        await super._onRender?.(context, options);
-        this._attachLocalListeners();
-    }
-
-    _attachLocalListeners() {
-        const el = this.element;
-
-        el.querySelectorAll('.movement-type').forEach(button => {
-            button.addEventListener('click', async (event) => {
-                const currentTarget = event.currentTarget;
-                if (!(currentTarget instanceof HTMLElement)) return;
-                const movementId = currentTarget.dataset.movementId;
-                await this._handleMovementChange(movementId);
-            });
+    // Announce the movement change — chat half of the notifyMovementChange channel;
+    // the toast half fires receipt-side from the updateSetting hook. Applies to every
+    // movement type; conga/follow additionally post the marching order below, gated
+    // by its own notifyMarchingOrder setting.
+    const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
+    if (notifyMode === 'chat' || notifyMode === 'both') {
+        await postMovementCard({
+            icon: movementType.icon,
+            label: movementType.name,
+            description: movementType.description
         });
-
-        const spacingSlider = el.querySelector('.token-spacing-slider');
-        if (spacingSlider) {
-            const onSpacingChange = async (event) => {
-                const currentTarget = event.currentTarget;
-                if (!(currentTarget instanceof HTMLInputElement)) return;
-                const spacing = parseInt(currentTarget.value);
-                await game.settings.set(MODULE.ID, 'tokenSpacing', spacing);
-                tokenSpacing = spacing;
-                const spacingValue = el.querySelector('.spacing-value');
-                if (spacingValue) spacingValue.textContent = spacing;
-            };
-            spacingSlider.addEventListener('input', onSpacingChange);
-            spacingSlider.addEventListener('change', onSpacingChange);
-        }
     }
 
-    async _handleMovementChange(movementId) {
-        // Only GM can change movement
-        if (!game.user.isGM) return;
-
-        // Clear path and followers when changing movement mode
-        leaderMovementPath = [];
-        tokenFollowers.clear();
-        marchingOrderJustCalculated = false;
-        processingCongaMovement = false;
-
-        // Store the movement type in game settings
-        await game.settings.set(MODULE.ID, 'movementType', movementId);
-
-        // Play movement change sound
-        playSound(window.COFFEEPUB?.SOUNDBUTTON05, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
-
-        // Get the movement type name for the notification
-        const movementType = this.getData().MovementTypes.find(t => t.id === movementId);
-        if (!movementType) return;
-
-        // Announce the movement change — chat half of the notifyMovementChange channel;
-        // the toast half fires receipt-side from the updateSetting hook. Applies to every
-        // movement type; conga/follow additionally post the marching order below, gated
-        // by its own notifyMarchingOrder setting.
-        const notifyMode = getSettingSafely(MODULE.ID, 'notifyMovementChange', 'toast');
-        if (notifyMode === 'chat' || notifyMode === 'both') {
-            await postMovementCard({
-                icon: movementType.icon,
-                label: movementType.name,
-                description: movementType.description
-            });
-        }
-
-        // Special handling for conga/follow movement
-        if (movementId === 'conga-movement' || movementId === 'follow-movement') {
-            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-            if (!leaderData?.actorId) {
-                ui.notifications.warn(`No party leader set for ${movementType.name}. Please set a party leader in the leader panel (crown icon).`);
-            } else {
-                // Find the leader's token on the canvas
-                const leaderToken = canvas.tokens.placeables.find(token => 
-                    token.actor?.id === leaderData.actorId
-                );
-                
-                if (leaderToken) {
-                    currentLeaderTokenId = leaderToken.id;
-                    
-
-                    
-                    // Reset state for movement
-                    lastLeaderMoveTime = Date.now();
-                    marchingOrderJustDetermined = false;
-                    
-                    // Calculate initial marching order and post it
-                    await calculateMarchingOrder(leaderToken, true, movementId === 'conga-movement');
-                } else {
-                    ui.notifications.warn("Could not find a leader token on the canvas. Make sure the party leader has at least one token placed.");
-                }
-            }
-        }
-
-        // Force refresh of the menubar
-        ui.chat.render();
-
-        // Update menubar locally immediately for GM
-        const movementIcon = document.querySelector('.movement-icon');
-        const movementLabel = document.querySelector('.movement-label');
-        
-        if (movementIcon) movementIcon.className = `fa-solid ${movementType.icon} movement-icon`;
-        if (movementLabel) movementLabel.textContent = movementType.name;
-
-        // Notify all users about the movement change
-        const socket = SocketManager.getSocket();
-        if (socket) {
-            await socket.executeForOthers("movementChange", {
-                type: "movementChange",  // Add type property
-                movementId,
-                name: movementType.name
-            });
-        }
-
-        // Close the config window
-        this.close();
-    }
-
-    // Helper method to get current movement type
-    static getCurrentMovementType() {
-        return game.settings.get(MODULE.ID, 'movementType') || 'normal-movement';
-    }
-
-    static getLeaderToken() {
-        try {
-            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-            if (!leaderData?.actorId) return null;
-
-            // Find the first token for this actor in the current scene
-            return canvas.tokens.placeables.find(token => 
+    // Special handling for conga/follow movement
+    if (movementId === 'conga-movement' || movementId === 'follow-movement') {
+        const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
+        if (!leaderData?.actorId) {
+            ui.notifications.warn(`No party leader set for ${movementType.name}. Please set a party leader in the leader panel (crown icon).`);
+        } else {
+            // Find the leader's token on the canvas
+            const leaderToken = canvas.tokens.placeables.find(token => 
                 token.actor?.id === leaderData.actorId
             );
-        } catch (error) {
-            return null;
+            
+            if (leaderToken) {
+                currentLeaderTokenId = leaderToken.id;
+                
+
+                
+                // Reset state for movement
+                lastLeaderMoveTime = Date.now();
+                marchingOrderJustDetermined = false;
+                
+                // Calculate initial marching order and post it
+                await calculateMarchingOrder(leaderToken, true, movementId === 'conga-movement');
+            } else {
+                ui.notifications.warn("Could not find a leader token on the canvas. Make sure the party leader has at least one token placed.");
+            }
         }
     }
 
-    static isLeaderToken(token) {
-        try {
-            const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
-            return token.actor?.id === leaderData?.actorId;
-        } catch (error) {
-            return false;
-        }
+    // Force refresh of the menubar
+    ui.chat.render();
+
+    // Update menubar locally immediately for GM
+    const movementIcon = document.querySelector('.movement-icon');
+    const movementLabel = document.querySelector('.movement-label');
+    
+    if (movementIcon) movementIcon.className = `fa-solid ${movementType.icon} movement-icon`;
+    if (movementLabel) movementLabel.textContent = movementType.name;
+
+    // Notify all users about the movement change
+    const socket = SocketManager.getSocket();
+    if (socket) {
+        await socket.executeForOthers("movementChange", {
+            type: "movementChange",  // Add type property
+            movementId,
+            name: movementType.name
+        });
     }
-} 
+
+}
+
 
 // Add debug function to check the current leader
 function checkPartyLeader() {
@@ -1412,7 +1338,7 @@ async function postMarchingOrder() {
 
     // Get current movement type
     const currentMovement = game.settings.get(MODULE.ID, 'movementType');
-    const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === currentMovement);
+    const movementType = getMovementTypes().find(t => t.id === currentMovement);
     
     // Create marching order array
     const marchingOrder = [{
@@ -1539,9 +1465,9 @@ const createCombatHookId = HookManager.registerHook({
         }
         
         // Get the previous mode's name
-        const prevModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === preCombatMovementMode);
+        const prevModeType = getMovementTypes().find(t => t.id === preCombatMovementMode);
         // Get the combat mode type
-        const combatModeType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === 'combat-movement');
+        const combatModeType = getMovementTypes().find(t => t.id === 'combat-movement');
         
         // Switch to combat movement mode
         if (preCombatMovementMode !== 'combat-movement') {
@@ -1615,7 +1541,7 @@ const deleteCombatHookId = HookManager.registerHook({
 
         
         // Get the movement type info
-        const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === storedPreCombatMode);
+        const movementType = getMovementTypes().find(t => t.id === storedPreCombatMode);
         if (!movementType) return;
         
         // Restore previous movement mode
@@ -1710,7 +1636,7 @@ const readyHookId = HookManager.registerHook({
                 preCombatMovementMode = storedPreCombatMode;
                 
                 // Get the movement type info for UI update
-                const movementType = MovementConfig.prototype.getData().MovementTypes.find(t => t.id === storedPreCombatMode);
+                const movementType = getMovementTypes().find(t => t.id === storedPreCombatMode);
                 if (movementType) {
                     // Update UI
                     const movementIcon = document.querySelector('.movement-icon');

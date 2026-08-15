@@ -27,7 +27,7 @@ import { CombatMvp, MVPDescriptionGenerator } from './stats-mvp.js';
 // see the note at the top of stats-sources.js before adding a static field
 // there that references CombatStats.
 import { CombatSources } from './stats-sources.js';
-import { assetLookup } from './asset-lookup.js';
+import { assetLookup } from './utility-asset-lookup.js';
 
 class CombatStats {
     static currentStats = null;

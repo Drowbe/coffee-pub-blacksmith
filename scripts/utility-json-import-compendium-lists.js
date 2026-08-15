@@ -3,7 +3,7 @@
 // ==================================================================
 
 import { compendiumManager } from './manager-compendiums.js';
-import { formatPackLabel } from './compendium-types.js';
+import { formatPackLabel } from './utility-compendium-types.js';
 import {
     getCompendiumActorsList,
     getCompendiumItemsList,

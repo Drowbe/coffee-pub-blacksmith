@@ -8,7 +8,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
-import { normalizePinGroup } from './pins-schema.js';
+import { normalizePinGroup } from './manager-pins-schema.js';
 
 // ----------------------------------------------------------------
 // Setting keys

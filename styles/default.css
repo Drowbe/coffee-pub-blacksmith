@@ -18,7 +18,6 @@
 @import "window-common.css";
 @import "window-gmtools.css";
 @import "window-skillcheck.css";
-@import "window-token-movement.css";
 @import "window-xp.css";
 @import "window-stats.css";
 @import "window-roll-normal.css";
@@ -93,7 +92,7 @@
 @import "sidebar-style.css";
 
 /* --- Sidebar Combat (Chat + Combat Tab) ---------------------- */
-@import "sidebar-combat.css";
+@import "ui-sidebar-combat.css";
 
 /* --- Dice Tray Window ---------------------- */
 @import "window-dicetray.css";

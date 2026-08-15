@@ -4,7 +4,7 @@
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { getWorldCollection as getMappedWorldCollection, getDocumentSubtype, normalizeType } from './compendium-types.js';
+import { getWorldCollection as getMappedWorldCollection, getDocumentSubtype, normalizeType } from './utility-compendium-types.js';
 import { compendiumManager } from './manager-compendiums.js';
 
 const ITEM_RARITY_ORDER = ['common', 'uncommon', 'rare', 'very rare', 'legendary', 'artifact'];

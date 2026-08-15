@@ -161,7 +161,7 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 - **SkillCheckDialog** (`window-skillcheck.js`) — Skill check dialog; uses manager-rolls for orchestration and delivery.
 - **CSSEditor** (`window-gmtools.js`) — GM custom CSS.
 - **StatsWindow** (`window-stats-party.js`), **PlayerStatsWindow** (`window-stats-player.js`).
-- **MovementConfig** (`token-movement.js`), **VoteConfig** (`window-vote-config.js`).
+- **VoteConfig** (`window-vote-config.js`). MovementConfig was removed 2026-08-15: the menubar tool already offered every movement type and the spacing control, from the same list, so the window was a second door to one room.
 
 All new windows should use Application V2 patterns per project rules; existing windows are being migrated (see architecture-window.md).
 
@@ -182,7 +182,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 
 - **Design tokens (first):** vars.
 - **Shared:** common, settings, loading-progress.
-- **Windows:** window-common, window-gmtools, window-skillcheck, window-token-movement, window-vote, window-xp, window-stats, window-roll-normal, window-roll-cinematic, window-pin-config, window-pin-layers, window-template, window-json-import, window-form-controls, window-tabs, window-list, window-panels.
+- **Windows:** window-common, window-gmtools, window-skillcheck, window-vote, window-xp, window-stats, window-roll-normal, window-roll-cinematic, window-pin-config, window-pin-layers, window-template, window-json-import, window-form-controls, window-tabs, window-list, window-panels.
 - **Tabs:** tabs-scenes.
 - **Toolbars:** toolbars, toolbar-zones, toolbar-encounter, journal-tools, journal-pins.
 - **Cards:** cards-common-layout, cards-common-themes, cards-parts.

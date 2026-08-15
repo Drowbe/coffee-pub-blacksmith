@@ -2,7 +2,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
-import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';
+import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './utility-theme-request-roll.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { extractActiveD20, classifyCritFumble, coerceDc } from './utility-roll-classification.js';
 

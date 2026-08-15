@@ -535,7 +535,7 @@ export default {
                     return;
                 }
 
-                const { validatePinData } = await import('../../scripts/pins-schema.js');
+                const { validatePinData } = await import('../../scripts/manager-pins-schema.js');
                 const { NotesManager } = await import('../../scripts/manager-notes.js');
 
                 const note = await api.notes.createNote({ title: `ZZ Pin ${foundry.utils.randomID(6)}` });

@@ -12,8 +12,8 @@ import {
     PIN_ACCESS_SUBMENU_ICON,
     PIN_VISIBILITY_ICONS,
     pinIconTag
-} from './pin-permission-icons.js';
-import { normalizeBlacksmithAccess, normalizeBlacksmithVisibility } from './pins-schema.js';
+} from './manager-pins-permission-icons.js';
+import { normalizeBlacksmithAccess, normalizeBlacksmithVisibility } from './manager-pins-schema.js';
 
 /** @typedef {import('./manager-pins.js').PinData} PinData */
 

@@ -19,7 +19,7 @@ import {
     normalizeTextLayout,
     normalizePinGroup,
     normalizePinTags
-} from './pins-schema.js';
+} from './manager-pins-schema.js';
 // normalizePinGroup is still used for tag normalization (tags use the same key-normalization function)
 
 const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
@@ -525,7 +525,7 @@ export class PinManager {
         else for (const candidate of this._typeTagKeys(moduleId, type, tag)) delete map[candidate];
         await game.settings.set(MODULE.ID, this.HIDDEN_TYPE_TAGS_SETTING_KEY, map);
         await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
 
@@ -551,13 +551,13 @@ export class PinManager {
         if (!changed) return;
         await game.settings.set(MODULE.ID, this.HIDDEN_TYPE_TAGS_SETTING_KEY, map);
         await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
 
     static async clearTypeTagHiddenState() {
         await game.settings.set(MODULE.ID, this.HIDDEN_TYPE_TAGS_SETTING_KEY, {});
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
 
@@ -1047,7 +1047,7 @@ export class PinManager {
     static async setGlobalHidden(hidden) {
         await game.settings.set(MODULE.ID, this.HIDE_ALL_SETTING_KEY, !!hidden);
         await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
 
@@ -1058,7 +1058,7 @@ export class PinManager {
         else delete map[moduleId];
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULES_SETTING_KEY, map);
         await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
 
@@ -1070,7 +1070,7 @@ export class PinManager {
         else for (const candidate of this._pinVisibilityTypeKeys(moduleId, type)) delete map[candidate];
         await game.settings.set(MODULE.ID, this.HIDDEN_MODULE_TYPES_SETTING_KEY, map);
         await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
 
@@ -1082,7 +1082,7 @@ export class PinManager {
         else delete map[key];
         await game.settings.set(MODULE.ID, this.HIDDEN_TAGS_SETTING_KEY, map);
         await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, '');
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         PinRenderer.applyVisibilityFilters();
     }
 
@@ -1128,7 +1128,7 @@ export class PinManager {
         if (options.activeProfileName !== undefined) {
             await game.settings.set(MODULE.ID, this.ACTIVE_FILTER_PROFILE_SETTING_KEY, this._normalizeProfileName(options.activeProfileName));
         }
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         await PinRenderer.applyVisibilityFilters();
     }
 
@@ -1553,7 +1553,7 @@ export class PinManager {
     /**
      * Invoke handlers for an event. Used by rendering system (Phase 3).
      * @param {string} eventType
-     * @param {import('./pins-schema.js').PinData} pin
+     * @param {import('./manager-pins-schema.js').PinData} pin
      * @param {string} sceneId
      * @param {string} userId
      * @param {Object} modifiers
@@ -1824,7 +1824,7 @@ export class PinManager {
             pin: apiPin
         });
         if (scene.id === canvas?.scene?.id) {
-            import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+            import('./manager-pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
                 if (pin.moduleId && this.isModuleTypeHidden(pin.moduleId, pin.type)) {
                     await this.setModuleTypeHidden(pin.moduleId, pin.type, false);
@@ -1892,7 +1892,7 @@ export class PinManager {
                     pin: apiPin
                 });
                 if (scene.id === canvas?.scene?.id) {
-                    import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                    import('./manager-pins-renderer.js').then(async ({ PinRenderer }) => {
                         if (!PinRenderer.getContainer()) return;
                         await PinRenderer.updatePin(placed);
                         if (placed.eventAnimations?.add?.animation) {
@@ -1939,7 +1939,7 @@ export class PinManager {
                 options
             });
             if (result != null && scene.id === canvas?.scene?.id) {
-                import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                import('./manager-pins-renderer.js').then(async ({ PinRenderer }) => {
                     if (!PinRenderer.getContainer()) return;
                     await PinRenderer.updatePin(result);
                     if (result.eventAnimations?.add?.animation) {
@@ -1973,7 +1973,7 @@ export class PinManager {
             pin: apiPin
         });
         if (scene.id === canvas?.scene?.id) {
-            import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+            import('./manager-pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
                 await PinRenderer.updatePin(updated);
             }).catch(err => {
@@ -2110,7 +2110,7 @@ export class PinManager {
         if (!game.user?.isGM) {
             const result = await this.requestGM('place', { pinId, placement });
             if (result != null && placement.sceneId === canvas?.scene?.id) {
-                import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+                import('./manager-pins-renderer.js').then(async ({ PinRenderer }) => {
                     if (!PinRenderer.getContainer()) return;
                     await PinRenderer.updatePin(result);
                     if (result.eventAnimations?.add?.animation) {
@@ -2145,7 +2145,7 @@ export class PinManager {
             pin: apiPin
         });
         if (scene.id === canvas?.scene?.id) {
-            import('./pins-renderer.js').then(async ({ PinRenderer }) => {
+            import('./manager-pins-renderer.js').then(async ({ PinRenderer }) => {
                 if (!PinRenderer.getContainer()) return;
                 if (placed.moduleId && this.isModuleTypeHidden(placed.moduleId, placed.type)) {
                     await this.setModuleTypeHidden(placed.moduleId, placed.type, false);
@@ -2181,7 +2181,7 @@ export class PinManager {
         if (!game.user?.isGM) {
             const result = await this.requestGM('unplace', { pinId, sceneId: loc.scene.id });
             if (result != null && loc.scene.id === canvas?.scene?.id) {
-                import('./pins-renderer.js').then(({ PinRenderer }) => {
+                import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
                     PinRenderer.removePin(pinId);
                 }).catch(err => {
                     console.error('BLACKSMITH | PINS Error removing pin from renderer after requestGM unplace:', err);
@@ -2208,7 +2208,7 @@ export class PinManager {
             pin: apiPin
         });
         if (loc.scene.id === canvas?.scene?.id) {
-            import('./pins-renderer.js').then(({ PinRenderer }) => {
+            import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
                 PinRenderer.removePin(pinId);
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error removing pin from renderer:', err);
@@ -2235,7 +2235,7 @@ export class PinManager {
         }
         if (loc.location === 'scene' && loc.scene.id === canvas?.scene?.id && existing.eventAnimations?.delete?.animation) {
             try {
-                const { PinRenderer } = await import('./pins-renderer.js');
+                const { PinRenderer } = await import('./manager-pins-renderer.js');
                 await PinRenderer.playDeleteAnimation(pinId, existing.eventAnimations.delete);
             } catch (err) {
                 console.warn('BLACKSMITH | PINS Delete animation failed:', err);
@@ -2247,7 +2247,7 @@ export class PinManager {
             const wasOnCurrentScene = loc.location === 'scene' && loc.scene.id === canvas?.scene?.id;
             await this.requestGM('delete', { sceneId, pinId, options });
             if (wasOnCurrentScene) {
-                import('./pins-renderer.js').then(({ PinRenderer }) => {
+                import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
                     PinRenderer.removePin(pinId);
                 }).catch(() => {});
             }
@@ -2262,7 +2262,7 @@ export class PinManager {
             await loc.scene.setFlag(MODULE.ID, this.FLAG_KEY, pins);
             this._clearTagsForPin(existing);
             if (loc.scene.id === canvas?.scene?.id) {
-                import('./pins-renderer.js').then(({ PinRenderer }) => {
+                import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
                     PinRenderer.removePin(pinId);
                 }).catch(() => {});
             }
@@ -2372,7 +2372,7 @@ export class PinManager {
         }
 
         // Remove from renderer
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         for (const pin of pins) {
             PinRenderer.removePin(pin.id);
         }
@@ -2434,7 +2434,7 @@ export class PinManager {
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, remainingPins);
 
         // Remove from renderer
-        const { PinRenderer } = await import('./pins-renderer.js');
+        const { PinRenderer } = await import('./manager-pins-renderer.js');
         for (const pin of pinsToDelete) {
             PinRenderer.removePin(pin.id);
         }

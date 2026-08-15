@@ -5,7 +5,7 @@ import { getCachedTemplate } from './blacksmith.js';
 import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
-import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './pin-permission-icons.js';
+import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './manager-pins-permission-icons.js';
 
 /** Foundry ownership levels (align with Configure Pin). */
 const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;

@@ -8,7 +8,7 @@
  */
 
 import { MODULE } from './const.js';
-import { initializeAssetLookupInstance } from './asset-lookup.js';
+import { initializeAssetLookupInstance } from './utility-asset-lookup.js';
 
 function cloneDeep(obj) {
     if (typeof structuredClone === 'function') return structuredClone(obj);
