@@ -437,7 +437,12 @@ export class ChatCardsManager {
                 // reputation ramp reports a value. Validated like any other
                 // caller colour before it reaches a style attribute.
                 ground: safeColour(item.ground),
-                iconColor: safeColour(item.iconColor)
+                iconColor: safeColour(item.iconColor),
+                // An action lands in one of two places and never both, so the
+                // template does not have to work it out: `clickable` makes the whole
+                // row the target, otherwise it gets a small trailing button.
+                rowIsButton: Boolean(item.action && item.clickable),
+                trailingButton: Boolean(item.action && !item.clickable)
             })));
         }
 

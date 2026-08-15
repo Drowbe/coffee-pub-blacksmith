@@ -112,6 +112,7 @@ import { TagWidget } from './widget-tags.js';
 import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
+import { skillCheckMessageData, SKILL_CHECK_ROLL_ACTION } from './cards-skill-check.js';
 import { ChatCardsManager } from './manager-chat-cards.js';
 import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
@@ -657,6 +658,13 @@ Hooks.once('ready', async () => {
 
         // Chat card parts: preload so the first card does not pay compile cost
         await ChatCardsManager.preloadTemplates();
+
+        // The skill check card's roll action. Registered rather than bound: a chat
+        // message is data on every client, so a handler cannot travel with the card
+        // -- each client resolves it from its own registry when the card renders,
+        // which is what keeps the buttons alive after a browser reload.
+        ChatCardsAPI.registerAction(MODULE.ID, SKILL_CHECK_ROLL_ACTION,
+            (context) => SkillCheckDialog.handleRollAction(context));
 
         // Initialize the Tags system: load taxonomy, register GM proxy, run migration
         LoadingProgressManager.logActivity("Initializing tags system...");
@@ -1207,25 +1215,24 @@ Hooks.once('init', async function() {
             }
             
             if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
-                // Check ownership and disable buttons for non-owners
-                const skillCheckActors = htmlElement.querySelectorAll('.cpb-skill-check-actor');
-                
-                skillCheckActors.forEach((actorDiv) => {
-                    const actorId = actorDiv.getAttribute('data-actor-id');
-                    const isGM = game.user.isGM;
-                    
-                    if (actorId) {
-                        const actor = game.actors.get(actorId);
-                        const isOwner = actor?.isOwner || false;
-                        
-                        // Disable if not owner and not GM
-                        if (!isOwner && !isGM) {
-                            actorDiv.classList.add('disabled');
-                        }
+                // Dim the rows this reader cannot roll for. Only the appearance --
+                // the permission itself is checked in the action handler, because the
+                // card is public and anyone could fire the action regardless of what
+                // their copy of it looks like.
+                //
+                // Rendering, not composition: which rows are yours depends on who is
+                // reading, and the composition is written once for everybody.
+                htmlElement.querySelectorAll('.blacksmith-row-clickable[data-blacksmith-action]').forEach((row) => {
+                    let actorId = null;
+                    try {
+                        actorId = JSON.parse(row.dataset.blacksmithValue ?? '{}').actorId ?? null;
+                    } catch (error) {
+                        return;
                     }
+                    if (!actorId) return;
+                    const actor = game.actors.get(actorId);
+                    if (!game.user.isGM && !actor?.isOwner) row.classList.add('blacksmith-row-not-yours');
                 });
-                
-                SkillCheckDialog.handleChatMessageClick(message, htmlElement);
             }
         }
     });
@@ -2666,13 +2673,11 @@ export async function handleSkillRollUpdate(data) {
         contestedRoll
     };
 
-    const content = await foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/card-skill-check.hbs', updatedMessageData);
-    await message.update({
-        content,
-        flags: {
-            'coffee-pub-blacksmith': updatedMessageData
-        }
-    });
+    // Rebuild the whole card from the new state. Cheap, and it means there is one
+    // description of what this card looks like rather than a create path and a
+    // separate update path drifting apart -- which is how the old template ended up
+    // with two identical eighty-line actor blocks, one per group.
+    await message.update(await skillCheckMessageData(updatedMessageData));
 
     const allComplete = (updatedMessageData.actors || []).length > 0 &&
         (updatedMessageData.actors || []).every(a => a.result);

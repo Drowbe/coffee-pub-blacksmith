@@ -3,10 +3,24 @@
       marker qualifying the label, a label that may be a document
       link, an optional sub-line, and an optional trailing value or button.
       One part rather than two, because "a list of creatures" and "a list of
-      conditions" differ only in which of these fields are filled. --}}
+      conditions" differ only in which of these fields are filled.
+
+      A row can carry an action two ways. `action` alone puts a small button at the
+      end of the row -- the row reports, the button does something to it. `action`
+      with `clickable` makes the WHOLE ROW the target instead, for a row that IS the
+      affordance: an actor waiting to roll is a thing you click, not a thing with a
+      button beside it. Like a clickable subject it stays a div and gains role and
+      tabindex, and the delegated dispatcher binds Enter and Space for it. --}}
 <div class="blacksmith-part-rows{{#if plain}} blacksmith-rows-plain{{/if}}">
     {{#each items}}
-    <div class="blacksmith-part-row{{#if this.tone}} blacksmith-tone-{{this.tone}}{{/if}}{{#if this.emphasis}} blacksmith-emphasis{{/if}}{{#if this.animation}} blacksmith-anim-{{this.animation}}{{/if}}">
+    <div class="blacksmith-part-row{{#if this.tone}} blacksmith-tone-{{this.tone}}{{/if}}{{#if this.emphasis}} blacksmith-emphasis{{/if}}{{#if this.animation}} blacksmith-anim-{{this.animation}}{{/if}}{{#if this.rowIsButton}} blacksmith-row-clickable{{/if}}"
+         {{!-- Outside the clickable block: a row that reports a number wants to
+               explain it (the roll formula behind a total) just as much as one you
+               can click wants to say what clicking does. --}}
+         {{#if this.tooltip}}data-tooltip="{{this.tooltip}}"{{/if}}
+         {{#if this.rowIsButton}}role="button" tabindex="0"
+         data-blacksmith-module="{{this.moduleId}}" data-blacksmith-action="{{this.action}}"
+         {{#if this.value}}data-blacksmith-value="{{this.value}}"{{/if}}{{/if}}>
         {{#if this.thumb}}
         <span class="blacksmith-part-row-thumb{{#if this.icon}} blacksmith-row-thumb-icon{{/if}}"
               {{#if this.ground}}style="background: {{this.ground}}"{{/if}}>
@@ -24,7 +38,7 @@
         </div>
         {{#if this.trailing}}<div class="blacksmith-part-row-trailing{{#if this.trailingSize}} blacksmith-trailing-{{this.trailingSize}}{{/if}}">{{{this.trailing}}}</div>{{/if}}
         {{#if this.trailingIcon}}<i class="blacksmith-part-row-trailing-icon {{this.trailingIcon}}"></i>{{/if}}
-        {{#if this.action}}
+        {{#if this.trailingButton}}
         <button type="button" class="blacksmith-part-row-action card-button"
                 data-blacksmith-module="{{this.moduleId}}" data-blacksmith-action="{{this.action}}"
                 {{#if this.value}}data-blacksmith-value="{{this.value}}"{{/if}}>

@@ -5,6 +5,7 @@ import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './theme-request-roll.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { skillCheckMessageData } from './cards-skill-check.js';
 
 
 export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
@@ -1526,13 +1527,16 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             // Create the chat message
             // v13: CONST.CHAT_MESSAGE_TYPES is deprecated, use style instead
             // Since this is a roll request (not an actual roll), use OTHER style
+            // `rollMode` is deliberately NOT passed to create(). Foundry applies a
+            // roll mode through applyRollMode/whisper, and whispering this card would
+            // hide it from the very players whose roll buttons it carries. The mode
+            // instead selects who may READ each total, resolved per client -- see
+            // documentation/plans/plan-card-visibility.md, decision 2.
             const message = await ChatMessage.create({
                 user: game.user.id,
                 speaker: ChatMessage.getSpeaker(),
-                content: await SkillCheckDialog.formatChatMessage(messageData),
-                flags: { 'coffee-pub-blacksmith': messageData },
-                style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-                rollMode: rollMode
+                ...(await SkillCheckDialog.formatChatMessage(messageData)),
+                style: CONST.CHAT_MESSAGE_STYLES.OTHER
             });
 
             // Register API callback so the calling module receives roll results when players roll
@@ -1987,12 +1991,19 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
     }
 
     /**
-     * Centralized chat message formatting for skill check results.
-     * @param {object} messageData - The chat message data (flags) for the skill check.
-     * @returns {Promise<string>} The rendered chat message content.
+     * The message payload for a skill check: baked content plus the flags that
+     * carry both the card and the state behind it.
+     *
+     * Returns `{ content, flags }` rather than a string, because a parts card needs
+     * its composition stored as well as rendered -- the composition is what each
+     * client re-renders from, and it is the only thing that can show one message
+     * differently to two readers. Callers spread it into `create` or `update`.
+     *
+     * @param {object} messageData - the skill check state (the module's own flags)
+     * @returns {Promise<{content: string, flags: object}>}
      */
     static async formatChatMessage(messageData) {
-        return foundry.applications.handlebars.renderTemplate('modules/coffee-pub-blacksmith/templates/card-skill-check.hbs', messageData);
+        return skillCheckMessageData(messageData);
     }
 
     /**
@@ -2328,14 +2339,13 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             messageData.explanation = String(options.explanation);
         }
 
-        const content = await SkillCheckDialog.formatChatMessage(messageData);
+        // See the note at the other create site: the roll mode selects who may read
+        // a total, not who receives the message.
         const message = await ChatMessage.create({
             user: game.user.id,
             speaker: ChatMessage.getSpeaker(),
-            content,
-            flags: { 'coffee-pub-blacksmith': messageData },
-            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
-            rollMode
+            ...(await SkillCheckDialog.formatChatMessage(messageData)),
+            style: CONST.CHAT_MESSAGE_STYLES.OTHER
         });
 
         if (typeof options.onRollComplete === 'function') {
@@ -2686,69 +2696,67 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
 
     /**
-     * Attach listeners to chat card roll buttons and handle roll logic.
-     * @param {object} message - The chat message object.
-     * @param {object} html - The jQuery-wrapped HTML of the chat card.
+     * A player (or the GM) clicked a pending row to roll for that actor.
+     *
+     * Registered against `SKILL_CHECK_ROLL_ACTION` and reached through the card
+     * system's one delegated dispatcher, rather than by this class attaching its own
+     * listeners on every chat render. That matters beyond tidiness: the card is
+     * rebuilt after every roll, so hand-attached listeners had to be re-attached
+     * each time and a missed re-attach left a dead button.
+     *
+     * @param {object} context - `{ message, value }` from the dispatcher. `value` is
+     *   the JSON the composition packed into the row, since a data attribute is the
+     *   only thing that survives being stored on a message and re-rendered.
      */
-    static handleChatMessageClick(message, html) {
-        // Only treat as jQuery if html.jquery is set — the compat shim in blacksmith.js adds
-        // .find() to plain HTMLElements, so checking typeof html.find is not a reliable test.
-        const htmlElement = html?.jquery
-            ? (html[0] ?? html.get?.(0))
-            : html;
-        if (!htmlElement?.querySelectorAll) return;
+    static async handleRollAction({ message, value } = {}) {
+        let request;
+        try {
+            request = JSON.parse(value ?? '{}');
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Skill Check | unreadable roll request on card', String(value), false, false);
+            return;
+        }
 
-        // Use the native DOM element
-        htmlElement.querySelectorAll('.cpb-skill-roll').forEach((btn) => {
-            btn.addEventListener('click', async (event) => {
-                const button = event.currentTarget;
-                if (!(button instanceof HTMLElement)) return;
-                const actorId = button.dataset.actorId;
-                const tokenId = button.dataset.tokenId;
-                const type = button.dataset.type || 'skill';
-                const value = button.dataset.value;
-                const rollTitle = button.dataset.rollTitle;
+        const { tokenId, actorId, type = 'skill', value: rollValue, title } = request;
+        const flags = message?.flags?.[MODULE.ID];
+        if (!flags?.actors) return;
 
-                // Find the corresponding actor data in the message flags to get the token ID
-                const flags = message.flags['coffee-pub-blacksmith'];
-                if (!flags) return;
-                const actorData = flags.actors.find(a => a.actorId === actorId && a.id === tokenId);
-                if (!actorData) {
-                    ui.notifications.error(`Could not find actor data for ID ${actorId} and token ID ${tokenId} in the chat message.`);
-                    return;
-                }
+        const actorData = flags.actors.find((a) => a.actorId === actorId && a.id === tokenId);
+        if (!actorData) {
+            ui.notifications.error(`Could not find actor data for ID ${actorId} and token ID ${tokenId} in the chat message.`);
+            return;
+        }
 
-                // Check ownership - only allow GM or character owner to roll
-                const actor = game.actors.get(actorId);
-                if (!game.user.isGM && !actor?.isOwner) {
-                    ui.notifications.warn("You don't have permission to roll for this character.");
-                    return;
-                }
-                // Requested advantage mode for this row (per-actor wins over the request-level value)
-                const requested = SkillCheckDialog.resolveRollAdvantage(actorData, flags);
+        // The card is public -- it has to be, since it carries everyone's buttons --
+        // so the check that you may roll for this character lives here rather than in
+        // what gets rendered.
+        const actor = game.actors.get(actorId);
+        if (!game.user.isGM && !actor?.isOwner) {
+            ui.notifications.warn("You don't have permission to roll for this character.");
+            return;
+        }
 
-                // Use the new unified system directly - pass existing messageId to prevent duplicate cards
-                const { orchestrateRoll } = await import('./manager-rolls.js');
-                await orchestrateRoll({
-                    actors: [{ actorId, tokenId, name: actorData.name }],
-                    challengerRollType: type,
-                    challengerRollValue: value,
-                    challengerRollTitle: rollTitle, // Pass the roll title from the button
-                    defenderRollType: flags.defenderRollType || null,
-                    defenderRollValue: flags.defenderRollValue || null,
-                    dc: flags.dc || null,
-                    showDC: flags.showDC || false,
-                    groupRoll: flags.isGroupRoll || false,
-                    rollMode: flags.rollMode || 'roll',
-                    situationalBonus: actorData.situationalBonus ?? flags.situationalBonus,
-                    customModifier: actorData.customModifier ?? flags.customModifier,
-                    rollAdvantage: requested.mode,
-                    lockRollAdvantage: requested.locked,
-                    isCinematic: false, // This is window mode
-                    showRollExplanation: false
-                }, message.id); // Pass existing messageId to prevent duplicate card creation
-            });
-        });
+        const requested = SkillCheckDialog.resolveRollAdvantage(actorData, flags);
+
+        const { orchestrateRoll } = await import('./manager-rolls.js');
+        await orchestrateRoll({
+            actors: [{ actorId, tokenId, name: actorData.name }],
+            challengerRollType: type,
+            challengerRollValue: rollValue,
+            challengerRollTitle: title,
+            defenderRollType: flags.defenderRollType || null,
+            defenderRollValue: flags.defenderRollValue || null,
+            dc: flags.dc || null,
+            showDC: flags.showDC || false,
+            groupRoll: flags.isGroupRoll || false,
+            rollMode: flags.rollMode || 'roll',
+            situationalBonus: actorData.situationalBonus ?? flags.situationalBonus,
+            customModifier: actorData.customModifier ?? flags.customModifier,
+            rollAdvantage: requested.mode,
+            lockRollAdvantage: requested.locked,
+            isCinematic: false,
+            showRollExplanation: false
+        }, message.id); // existing messageId, so the roll updates this card rather than posting a second
     }
 
     /**

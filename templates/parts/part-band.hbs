@@ -4,8 +4,14 @@
 
       The centre may be text, an icon, or both. Putting the icon inside the centre
       span rather than beside it means it scales with the term -- a large band
-      gets a large icon without a second rule saying so. --}}
-<div class="blacksmith-part-band{{#if tone}} blacksmith-tone-{{tone}}{{/if}}{{#if size}} blacksmith-band-{{size}}{{/if}}{{#if quiet}} blacksmith-band-quiet{{/if}}{{#if align}} blacksmith-align-{{align}}{{/if}}">
+      gets a large icon without a second rule saying so.
+
+      `tooltip` is for how a headline was arrived at, never for the headline itself:
+      a contest banner says who won and the tooltip carries the two scores. If it is
+      important enough to include it is important enough to see, and the one
+      exception is showing the arithmetic behind a number already on screen. --}}
+<div class="blacksmith-part-band{{#if tone}} blacksmith-tone-{{tone}}{{/if}}{{#if size}} blacksmith-band-{{size}}{{/if}}{{#if quiet}} blacksmith-band-quiet{{/if}}{{#if align}} blacksmith-align-{{align}}{{/if}}"
+     {{#if tooltip}}data-tooltip="{{tooltip}}"{{/if}}>
     {{#if lead}}<span class="blacksmith-part-band-flank">{{{lead}}}</span>{{/if}}
     <span class="blacksmith-part-band-text">{{#if icon}}<i class="{{icon}}"></i>{{/if}}{{#if text}}{{#if icon}} {{/if}}{{{text}}}{{/if}}</span>
     {{#if trail}}<span class="blacksmith-part-band-flank">{{{trail}}}</span>{{/if}}

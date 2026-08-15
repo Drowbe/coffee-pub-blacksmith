@@ -878,6 +878,28 @@ the trailing-text one is already visible on a shipped card.
   roll, and results fill in. Open a vote, cast from two player clients, confirm the tally updates on both and
   the GM cannot vote. Close the vote and confirm the result renders.
 
+#### 5b. Skill check migration -- UNVERIFIED IN A LIVE WORLD (2026-08-14)
+
+The card is composed from parts (`scripts/cards-skill-check.js`), `templates/card-skill-check.hbs` is
+deleted, and all three render sites go through `skillCheckMessageData()`. **Nothing has been run in
+Foundry.** This is the largest untested change in the card work; treat every item below as owed.
+
+- **How to verify**: request a roll for two actors. The card must show a header, a "Requested Rolls"
+  section and one clickable row per actor. Click a row: it rolls, and that row becomes a result. Then a
+  contested roll (two groups), a group roll with a DC, and a roll with no DC.
+- **Two clients**: a `blindroll` must show the total to the GM and a veil to the player, on the same
+  message at the same time. A player's own row must stay clickable in every mode -- the card is public on
+  purpose.
+- **Rows a player cannot roll** get `.blacksmith-row-not-yours` at render, dimmed. The permission itself
+  is checked in `SkillCheckDialog.handleRollAction`.
+- **`styles/cards-skill-check.css` is now mostly dead but MUST NOT be deleted wholesale.** Audited
+  2026-08-14: every `cpb-roll-*`, `cpb-versus-*`, `cpb-skill-check-*`, `cpb-chat-critical/fumble` and
+  `cpb-card-section-*` class had its only emitter in the deleted template. But `cpb-actor-name` /
+  `actor-name` are used by `templates/partials/unified-header.hbs`, `templates/window-skillcheck.hbs` and
+  `scripts/window-skillcheck.js`, and `advantage` is used by the dice tray and both roll windows. Split
+  those out before deleting the rest -- the same trap `cards-xp.css` set, where a class name appearing in
+  a live template did not mean the RULE was live.
+
 #### 6. CSS consolidation
 - **Work**: Collapse the five card CSS files to one layout file and one theme file. Delete the `theme-default`
   render-time rewrite hook in `blacksmith.js` -- the world default is resolved at post time as of step 1.

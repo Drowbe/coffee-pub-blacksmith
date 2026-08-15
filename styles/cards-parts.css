@@ -184,6 +184,56 @@
     outline-offset: 1px;
 }
 
+/*
+    A clickable ROW: the row IS the affordance, so it has to look like one.
+
+    Values are the roll card's own, from `.cpb-roll-result.pending-roll` and the
+    button inside it: a #999 edge, bold #594a3c text, and the die in the brand
+    colour. All three already exist as button tokens, which is why this reads as a
+    button without restating a single literal -- and why it follows a theme.
+
+    It must NOT be toned down. The first version of the skill check card marked
+    pending rows `tone: 'pending'`, which dimmed the die and the name to 55% and made
+    the one row you are meant to click look disabled. A row waiting for you is the
+    loudest thing on the card, not the quietest.
+*/
+.blacksmith-card .blacksmith-row-clickable {
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    border-color: var(--blacksmith-card-button-border);
+    color: var(--blacksmith-card-button-text);
+    font-weight: var(--blacksmith-font-weight-bold);
+}
+
+/* The die says "roll me", so it carries the accent rather than the muted grey a
+   marker gets when it is only qualifying a label. */
+.blacksmith-card .blacksmith-row-clickable .blacksmith-part-row-marker {
+    color: var(--blacksmith-color-brand-dark);
+}
+
+.blacksmith-card .blacksmith-row-clickable:hover {
+    background: var(--blacksmith-card-button-hover-bg);
+    border-color: var(--blacksmith-card-hover-color);
+}
+
+.blacksmith-card .blacksmith-row-clickable:focus-visible {
+    outline: 2px solid var(--blacksmith-card-hover-color);
+    outline-offset: 1px;
+}
+
+/* A clickable row for someone else's character. Appearance only -- the permission
+   itself is checked when the action fires, because the card is public and anyone
+   could trigger it whatever their copy looks like. Applied at render, not in the
+   composition: which rows are yours depends on who is reading. */
+.blacksmith-card .blacksmith-row-clickable.blacksmith-row-not-yours {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.blacksmith-card .blacksmith-row-clickable.blacksmith-row-not-yours:hover {
+    background: none;
+}
+
 .blacksmith-card .blacksmith-part-subject-body {
     flex: 1 1 auto;
     min-width: 0;
