@@ -583,6 +583,27 @@
     border: none;
     border-top: 1px solid var(--blacksmith-card-rule);
 }
+
+/*
+    A veiled value -- what a reader who is not entitled to something sees in its
+    place. It can appear in any part, because a veil is a property of a field
+    rather than of a part, so it is styled here rather than with any one of them.
+
+    `min-width` is what "holds its space" amounts to in practice: the field itself
+    still renders, so the row does not reflow, and the veil does not collapse to a
+    sliver where a two-digit total used to be. It cannot reserve the exact width of
+    a value this client is never told, and should not pretend to.
+
+    Muted rather than hidden. The reader is meant to see that there IS something
+    here and that it is not for them -- a blank would read as a bug.
+*/
+.blacksmith-card .blacksmith-veil {
+    display: inline-block;
+    min-width: 1.25em;
+    text-align: center;
+    font-style: normal;
+    opacity: 0.45;
+}
 /* H1 */
 /*
     All six levels, because rich text arrives from a journal page and a journal uses

@@ -313,6 +313,28 @@ The handler receives `{ message, value, event, button }`. A chat message is data
 
 `unregisterAction(moduleId, action)` removes one. `getRegisteredActions()` lists what is registered, for diagnostics.
 
+## Veiled values
+
+Anywhere a part accepts consumer text, it also accepts a veiled form: a value shown to entitled readers and replaced by a placeholder for everyone else.
+
+```javascript
+{ part: 'rows', items: [
+    { label: 'Favia Gita',
+      trailing: { value: '18', readableBy: 'owner', actorId: actor.id } }
+] }
+```
+
+- `value` - what an entitled reader sees. Goes through the same escape, marks and enrich pipeline as any other text.
+- `readableBy` - `'gm'`, `'owner'`, `'author'`, or an array of user ids. Any other value is treated as readable by nobody.
+- `actorId` - required by `'owner'`, which resolves against the actor's ownership. A GM owns every actor, so `'owner'` reads as "the GM and the owning player".
+- `veil` - optional. A Font Awesome class renders as an icon; anything else is escaped and shown as text. Defaults to an eye icon.
+
+Only the field carrying it is veiled. The `label` beside a veiled `trailing` stays visible to every reader.
+
+Resolution happens in each reader's own browser when the card re-renders, so one message shows different things on different screens. The snapshot stored on the message is always rendered veiled, whoever posted it, because that copy is delivered to everybody and is what a client shows until its own re-render lands.
+
+**A veil is presentation, not secrecy.** The value travels to every client inside the message flags, because that is how the card re-renders, and a reader with a browser console can find it. A veil stops a value appearing on screen. It does not keep a secret. Anything that must not reach a client at all belongs in a whispered message instead, which is a property of the message rather than of a part.
+
 ## Themes
 
 Themes set colour only; structure comes from parts.

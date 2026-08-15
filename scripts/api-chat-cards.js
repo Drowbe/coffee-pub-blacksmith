@@ -85,7 +85,11 @@ export class ChatCardsAPI {
             parts
         };
 
-        const content = await ChatCardsManager.renderCard(card, relativeTo ? { relativeTo } : {});
+        // `baked: true` marks this as the SNAPSHOT render -- the copy stored on the
+        // message and shown by every client until its own re-render lands. Any veiled
+        // value renders veiled here regardless of who is posting, because this one
+        // string is delivered to everybody. See mayRead() in manager-chat-cards.js.
+        const content = await ChatCardsManager.renderCard(card, relativeTo ? { relativeTo, baked: true } : { baked: true });
 
         // Merged rather than built as one literal: when a Blacksmith card is posted
         // moduleId IS our own id, so a second key of the same name would replace the

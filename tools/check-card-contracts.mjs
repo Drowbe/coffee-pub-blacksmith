@@ -202,6 +202,30 @@ for (const [constant, selectorFor] of [
     }
 }
 
+// ---------------------------------------------------------------------------
+// Veiled values must fail closed.
+//
+// A veil is presentation privacy, not secrecy -- but it has one hard guarantee:
+// a value the reader may not see must never render in the clear, and above all
+// must never be baked into the shared snapshot. Three things carry that, and
+// each is one edit away from being silently undone.
+// ---------------------------------------------------------------------------
+checked++;
+if (allowlist('READABLE_BY') === null) {
+    problems.push('veil: READABLE_BY is gone from manager-chat-cards.js -- an unrecognised readableBy would no longer fail closed');
+}
+
+checked++;
+if (!/if\s*\(\s*options\.baked\s*\)\s*return false;/.test(src)) {
+    problems.push('veil: mayRead() no longer refuses outright on the baked pass -- a revealed value could be written into the shared snapshot every client receives');
+}
+
+checked++;
+const apiSrc = readFileSync(join(REPO, 'scripts/api-chat-cards.js'), 'utf8');
+if (!/renderCard\([^)]*baked:\s*true/s.test(apiSrc)) {
+    problems.push('veil: post() no longer renders the stored snapshot with `baked: true` -- the poster\'s own entitlements would decide what every reader gets');
+}
+
 if (problems.length) {
     console.error('check-card-contracts: a consumer could inject presentation.\n');
     for (const problem of problems) console.error(`  ${problem}`);

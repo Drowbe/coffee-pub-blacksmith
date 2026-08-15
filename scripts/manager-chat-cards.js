@@ -207,12 +207,102 @@ async function enrich(html, options = {}) {
     }
 }
 
+// ==================================================================
+// ===== VEILED VALUES ==============================================
+// ==================================================================
+
+/**
+ * Who may read a veiled value. An allowlist, like BUTTON_VARIANTS, because an
+ * unrecognised name must fail CLOSED rather than fall through to "everyone".
+ *
+ * `owner` covers a GM as well, because a GM owns every actor in Foundry's
+ * permission model. That is not a loophole -- it is exactly the rule a private
+ * roll wants: the GM and the player who rolled, nobody else.
+ */
+const READABLE_BY = new Set(['gm', 'owner', 'author']);
+
+/**
+ * A veiled value is `{ value, readableBy, actorId?, veil? }` wherever a part
+ * accepts consumer text. See documentation/plans/plan-card-visibility.md.
+ *
+ * This is PRESENTATION privacy and nothing more. The value travels to every
+ * client inside the message flags, because that is how the card re-renders; a
+ * reader with a console can find it. It stops a number appearing on screen. It
+ * does not keep a secret, and the API documentation says so in those words.
+ */
+function isVeiled(value) {
+    return Boolean(value)
+        && typeof value === 'object'
+        && !Array.isArray(value)
+        && 'value' in value
+        && 'readableBy' in value;
+}
+
+/**
+ * May THIS client read it?
+ *
+ * Fails closed in every uncertain case: the baked pass, an unknown role, a
+ * missing actor, no game.user. The one thing that must never happen is a veiled
+ * value rendering in the clear for someone not entitled to it, so every path
+ * that is not a positive match returns false.
+ */
+function mayRead(field, options = {}) {
+    // The baked snapshot is written once, by the poster, and is what every OTHER
+    // client shows until its re-render lands -- and what it keeps forever if the
+    // re-render fails or the module is disabled. It can therefore never contain a
+    // revealed value. This single line is the whole of that guarantee.
+    if (options.baked) return false;
+
+    const user = globalThis.game?.user;
+    if (!user) return false;
+
+    const who = field.readableBy;
+    if (Array.isArray(who)) return who.includes(user.id);
+    if (!READABLE_BY.has(who)) return false;
+
+    if (who === 'gm') return Boolean(user.isGM);
+    if (who === 'author') return user.id === options.relativeTo?.author?.id;
+    if (who === 'owner') {
+        // Resolved against the ACTOR (plan decision 7): ownership lives on the
+        // Actor and tokens inherit it. An unlinked token whose permissions differ
+        // is not covered -- such a caller passes explicit user ids.
+        const actor = field.actorId ? globalThis.game?.actors?.get(field.actorId) : null;
+        return Boolean(actor?.isOwner);
+    }
+    return false;
+}
+
+/**
+ * What an unentitled reader sees. Rendered in the space the value would have
+ * occupied (plan decision 8) so a list of pending results does not reflow as they
+ * arrive, and nothing jumps at the moment of a reveal.
+ *
+ * The caller's `veil` reaches a class attribute, so it is validated the same way
+ * a colour or a button variant is: a Font Awesome class passes as an icon, and
+ * anything else is escaped and shown as text rather than trusted as markup.
+ */
+function veilMarkup(field) {
+    const raw = typeof field.veil === 'string' ? field.veil.trim() : '';
+    if (!raw) return '<i class="fa-solid fa-eye blacksmith-veil"></i>';
+    if (/^fa[a-z]*\s+fa-[\w-]+$/.test(raw)) return `<i class="${raw} blacksmith-veil"></i>`;
+    return `<span class="blacksmith-veil">${escapeHtml(raw)}</span>`;
+}
+
 /**
  * The full consumer-text pipeline: escape, then marks, then enrich. The order is
  * load-bearing -- escaping last would strip the tags the marks just produced,
  * and enriching before escaping would let enricher output be escaped.
+ *
+ * Veiled values are resolved HERE rather than in each part, because every
+ * consumer-supplied string in the system already flows through this one function.
+ * Handling it per part would mean remembering to, eighteen times.
  */
 export async function processText(text, options = {}) {
+    if (isVeiled(text)) {
+        return mayRead(text, options)
+            ? processText(text.value, options)
+            : veilMarkup(text);
+    }
     if (text === null || text === undefined || text === '') return '';
     return enrich(applyInlineMarks(escapeHtml(text)), options);
 }

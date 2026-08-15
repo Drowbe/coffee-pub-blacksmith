@@ -1,6 +1,9 @@
 # Plan: Card Visibility
 
-**Status: Planned.** Nothing is built. This exists to be dismantled: the design goes to
+**Status: Implemented through step 4, unverified in a live world.** The veiled value, its per-client
+resolution, the fail-closed baked snapshot, the contract checks and the harness card are built; skill
+check has not been migrated onto it. What is owed before this plan can be dismantled is step 6 and the
+verification below. This exists to be dismantled: the design goes to
 `documentation/architecture/architecture-chatcards.md`, the surface to
 `documentation/api/api-chatcards.md`, the work to `TODO.md`, and the history to `CHANGELOG.md`.
 
@@ -171,6 +174,8 @@ can infer that something is hidden either way, so collapsing buys nothing but mo
    fail-closed baked form. There is no separate roll-mode repair -- see decision 2. The dead `rollMode`
    key in the `ChatMessage.create` data (`window-skillcheck.js:1535`, `:2338`) is removed as part of the
    migration, because it reads as though visibility is handled and it is not.
+   **Done 2026-08-14.** Resolution went into `processText`, the single function every consumer string
+   already passes through, so all eighteen parts gained it without being edited.
 4. **Extend `tools/check-card-contracts.mjs`** so a `readableBy` outside the allowlist is a build failure,
    and so the baked form cannot contain a revealed value.
 5. **Harness card** covering each `readableBy`, an unentitled reader, and the pre-re-render baked state.

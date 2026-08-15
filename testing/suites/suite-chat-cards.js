@@ -558,6 +558,46 @@ export default {
                   icon: 'fa-solid fa-check', value: 'deploy' } ] }
         ], { group: 'Cards', note: 'Confirm on the RIGHT when inline and at the BOTTOM when stacked, both despite being listed first' }),
 
+        // Veiled values. Most of this card can only be judged from a SECOND client:
+        // the harness runs as GM, and a GM reads almost everything. What it proves
+        // here is that the veil renders at all, and that the closed cases are closed.
+        card('c-veiled', 'Veiled values (run as GM; check a player too)', () => {
+            const actor = game.actors.contents[0];
+            return [
+                { part: 'header', icon: 'fa-solid fa-eye-slash', title: 'Veiled Values' },
+                { part: 'section', label: 'Should be VISIBLE to a GM' },
+                { part: 'rows', items: [
+                    { icon: 'fa-solid fa-dice-d20', label: 'readableBy gm', trailing: { value: '18', readableBy: 'gm' },
+                      trailingSize: 'large' },
+                    { icon: 'fa-solid fa-dice-d20', label: 'readableBy author (you posted this)',
+                      trailing: { value: '17', readableBy: 'author' }, trailingSize: 'large' },
+                    // A GM owns every actor, which is why one role covers a private
+                    // roll: the GM and the player who rolled, nobody else.
+                    { icon: 'fa-solid fa-dice-d20', label: `readableBy owner (${actor?.name ?? 'no actor found'})`,
+                      trailing: { value: '16', readableBy: 'owner', actorId: actor?.id }, trailingSize: 'large' } ] },
+                { part: 'section', label: 'Should be VEILED even for a GM' },
+                { part: 'rows', items: [
+                    // Nobody is entitled, so this proves the veil renders rather than
+                    // relying on a second client to see it.
+                    { icon: 'fa-solid fa-dice-d20', label: 'readableBy [] -- nobody',
+                      trailing: { value: '20', readableBy: [] }, trailingSize: 'large' },
+                    // Not in the allowlist: must fail CLOSED, not fall through to open.
+                    { icon: 'fa-solid fa-dice-d20', label: 'readableBy "everyone" -- not a real role',
+                      trailing: { value: '20', readableBy: 'everyone' }, trailingSize: 'large' },
+                    // owner with no actorId: nothing to resolve against, so closed.
+                    { icon: 'fa-solid fa-dice-d20', label: 'readableBy owner, no actorId given',
+                      trailing: { value: '20', readableBy: 'owner' }, trailingSize: 'large' },
+                    // A custom veil, and one that is not a valid icon class so must be
+                    // escaped and shown as text rather than trusted as markup.
+                    { icon: 'fa-solid fa-dice-d20', label: 'custom veil icon',
+                      trailing: { value: '20', readableBy: [], veil: 'fa-solid fa-lock' }, trailingSize: 'large' },
+                    { icon: 'fa-solid fa-dice-d20', label: 'veil that is not an icon class',
+                      trailing: { value: '20', readableBy: [], veil: '<b>hidden</b>' }, trailingSize: 'large' } ] },
+                { part: 'notes', items: [{ icon: 'fa-solid fa-triangle-exclamation',
+                    text: 'A veil is presentation only. The value is in this message’s flags on every client.' }] }
+            ];
+        }, { group: 'Cards', note: 'top three visible to a GM, bottom five veiled for everyone; the last must show escaped text, not bold' }),
+
         card('c-richtext', 'Richtext, from document HTML', [
             { part: 'header', icon: 'fa-solid fa-file-lines', title: 'Richtext' },
             // Every element a journal page can realistically contain. The point is

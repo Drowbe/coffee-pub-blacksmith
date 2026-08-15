@@ -389,13 +389,29 @@ green and red.
 
 Neither sibling crashes. Both need a small change to look right again.
 
-- **Crier** — `scripts/settings.js` calls `getAnnouncementThemeChoicesWithClassNames()` inside a
-  try/catch, so it falls back to a hardcoded list of the three old class names. Those classes no
-  longer exist in CSS, so a round or combat card renders with no theme at all. It defaults to
-  `theme-announcement-green` in three places (`scripts/crier.js` round and combat card style, and
-  the `cardSettings` default). Point them at `theme-green-dark` and swap the accessor for
-  `getCardThemeChoicesWithClassNames()`. Existing worlds have the old string SAVED in settings, so
-  the default change alone will not fix a world that has already stored one.
+- **Crier** — observed live 2026-08-14: `TypeError: chatCardsAPI.getAnnouncementThemeChoicesWithClassNames
+  is not a function` at `scripts/settings.js:32`. It is inside a try/catch, so nothing crashes; it falls
+  back to a hardcoded list of the three old class names, which no longer exist in CSS, and round and
+  combat cards render with no theme at all.
+
+  Five edits, then a sixth that is the one that actually matters:
+
+  | Where | Change |
+  |---|---|
+  | `settings.js:32` | `getAnnouncementThemeChoicesWithClassNames()` → `getCardThemeChoicesWithClassNames()` |
+  | `settings.js:44-46` | fallback list → `theme-green-dark`, `theme-red-dark`, `theme-blue-dark` |
+  | `settings.js:112`, `:180` | `default: 'theme-announcement-green'` → `'theme-green-dark'` |
+  | `crier.js:977`, `:1063` | the `getSettingSafely` fallback argument, same swap |
+
+  **None of that repairs an existing world.** A default applies only when nothing is stored, and any
+  world configured before today has `theme-announcement-green` SAVED. `mapRoundCardStyleToTheme`
+  (`crier.js:926-929`) passes anything starting with `theme-` straight through, so the dead class reaches
+  the card untouched. Normalise there — map `theme-announcement-{green,red,blue}` to
+  `theme-{green,red,blue}-dark` on the way through — and every stored value is repaired without a
+  migration script. Every path already goes through that function.
+
+  Blacksmith cannot help from its side: Crier applies the class to its own template, so there is nothing
+  for the card API to resolve.
 - **Artificer** — `scripts/manager-gather.js` guards with `?.` and a `themeType === 'announcement'`
   test, so it silently skips. Drop the announcement branch and use a `-dark` theme id.
 
