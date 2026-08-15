@@ -342,9 +342,33 @@ Anywhere a part accepts consumer text, it also accepts a veiled form: a value sh
 
 Only the field carrying it is veiled. The `label` beside a veiled `trailing` stays visible to every reader.
 
+A whole part can carry `readableBy` too, for a block only some readers should see:
+
+```javascript
+{ part: 'actions', readableBy: 'gm', buttons: [{ action: 'close-vote', label: 'Close Vote' }] }
+```
+
+Same rules and the same caveat: it decides what renders, never what travels. Hiding a button is not authorisation - check the permission in the action handler as well, because any client can fire an action whatever its copy of the card looks like.
+
 Resolution happens in each reader's own browser when the card re-renders, so one message shows different things on different screens. The snapshot stored on the message is always rendered veiled, whoever posted it, because that copy is delivered to everybody and is what a client shows until its own re-render lands.
 
 **A veil is presentation, not secrecy.** The value travels to every client inside the message flags, because that is how the card re-renders, and a reader with a browser console can find it. A veil stops a value appearing on screen. It does not keep a secret. Anything that must not reach a client at all belongs in a whispered message instead, which is a property of the message rather than of a part.
+
+## Render passes
+
+Some things cannot be composed, because they depend on who is looking: which row is the reader's own vote, which characters they may roll for, which label is truncated on their screen. A composition is written once and read by everybody.
+
+```javascript
+chatCards.registerRenderPass('coffee-pub-yourmodule', 'own-choice', ({ message, card, root }) => {
+    // `root` is the .blacksmith-card element, freshly rendered for THIS client.
+});
+```
+
+Use this rather than a `renderChatMessageHTML` hook. A parts card re-renders from its stored composition a tick after Foundry paints it, and that swap replaces the card element - anything a hook decorated is silently discarded. Passes run after the initial paint and after every re-render.
+
+A pass must be **idempotent**: it can run more than once on the same card, so guard anything it appends. One pass throwing does not stop the others.
+
+`unregisterRenderPass(moduleId, name)` removes one.
 
 ## Themes
 

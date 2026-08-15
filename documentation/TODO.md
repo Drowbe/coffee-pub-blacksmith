@@ -912,57 +912,23 @@ nothing had rendered in a long time. **Unverified in a live world.**
   (`.mvp-info .player-name`, `.status-tag.rank`, `.turn-time.expired`, `.mvp-stat-card h4 .fas`,
   `.party-timing-stats .timing-stat .label`). Nothing in the file could match anything.
 
-#### 5d. Vote card -- CONFIRMED LEAK, migrate with care (2026-08-15)
+#### 5d. Vote card -- MIGRATED, verified live (2026-08-15)
 
-The vote card is the last chat card not composed from parts (`templates/vote-card.hbs`,
-`scripts/manager-vote.js:813`, `styles/vote.css`). Migrating it also has to close a confirmed
-information leak, which changes what the migration is.
+Composed from parts (`scripts/cards-vote.js`); `templates/vote-card.hbs` deleted and the card rules
+split out of `styles/vote.css`, which keeps the vote window's. The confirmed leak is closed: the card
+re-renders per client, and the voter detail is not on it at all.
 
-**The leak, confirmed live on 2026-08-15.** `_updateVoteMessage()` is gated by
-`(isGM || isLeader) && isInitiator` (`manager-vote.js:568, 887, 913`), so ONLY the initiator ever
-renders the card, and `userId` / `currentUserIsGM` are always theirs. The result is baked into one
-stored `content` string that every client receives. Reading a live vote message gave:
+Verified with two clients: only the GM sees Close Vote, the count updates as votes arrive, a player's
+own choice highlights with a tick on their screen alone, and the GM sees "Waiting on" shrink.
 
-    m.content.match(/data-tooltip="([^"]*)"/)[1]
-    -> "<div ...><b>RESULTS</b>...<li><b>Alicia Panicucci</b>: Yes</li>..."
+**Do not put the voter detail back on this card.** A veiled value is presentation privacy -- the value
+still travels to every client -- and a ballot a player can read from the flags is not a ballot. The
+count is fine, and "who has not voted yet" is fine, because a name there says only that someone has yet
+to act. If the detail is ever wanted on the card, the honest mechanism is a whisper.
 
-That is `getVoteDetails`, marked GM-only at `vote-card.hbs:28`, sitting in every player's browser.
-
-**The same defect fails the opposite way when a LEADER starts the vote.** Confirmed the same day: with a
-leader as initiator, `currentUserIsGM: false` is what gets baked, so the tooltip renders for nobody --
-including the GM, who silently loses the feature. Checked on three clients, all `undefined`. One stored
-string rendered from one person's point of view cannot be right for both, which is the whole argument for
-per-client rendering rather than a patch to the condition.
-
-**This one CANNOT be solved by a veiled value.** A veil is presentation privacy: the value still
-travels to every client and a console finds it. That was an acceptable trade for a roll total, which
-only needs to be off-screen. Who voted for what IS the secret, so it must not be in a public message
-at all. The card may say how many have voted -- `3/5` is not secret -- and must not say who chose what.
-The GM gets the detail from the vote window, an on-demand call, or a whisper.
-
-A second, narrower leak is likely but NOT CONFIRMED: `vote.votes.[userId]` at `vote-card.hbs:44` should
-render "Voted" against the INITIATOR's choice for everyone. It cannot fire when the GM initiates, since the
-GM has no vote -- only when a party leader starts a vote and has voted. An attempt to observe it returned
-`false` for `vote-status-message`, but that was a FALSE NEGATIVE, and the test itself caused it: the
-instruction was to have both the leader and a player vote, which CLOSES the vote, and that class only
-exists in the active branch (`vote-card.hbs:41-55`). To catch it the vote must stay OPEN with the
-initiator having voted -- leader starts, leader votes, nobody else votes, inspect then. Not worth chasing
-(same root cause, same fix), but do not read the `false` as evidence the bug is absent.
-
-**The two parts-system gaps this card needs** (agreed 2026-08-15):
-
-1. **Part-level `readableBy`.** "Close Vote" is GM-only. Decision 6 of `plan-card-visibility.md`
-   deferred this until "a GM-only block turns up"; one has. Note this is for UI, not secrecy -- the
-   authority stays in the action handler.
-2. **A row whose SHAPE differs per reader.** An option is a button for someone who has not voted and
-   static "Voted" text for someone who has. Compose every option as a clickable row and mark the
-   reader's own choice at render time, the same pass as `blacksmith-row-not-yours` in `blacksmith.js`.
-
-- **How to verify**: two clients. Start a vote as GM, have the player vote, then on the PLAYER's console
-  confirm `m.content` contains no voter names and no `data-tooltip` carrying them. Separately, confirm the
-  GM DOES see the voter detail on a leader-started vote, which is the half that is broken today. For the
-  second leak, leave the vote open: leader starts, leader votes, nobody else votes -- a vote where everyone
-  has voted has closed, and the active branch it lives in no longer renders.
+**Still owed**: headless harness assertions for `composeVoteCard`, matching the ones for the skill
+check and stats composers. It is pure, so every branch -- active, closed, no options, a winner, the
+GM-only parts -- is assertable without a vote happening.
 
 #### 6. CSS consolidation
 - **Work**: Collapse the five card CSS files to one layout file and one theme file. Delete the `theme-default`
