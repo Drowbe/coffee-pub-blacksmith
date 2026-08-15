@@ -35,10 +35,10 @@ the tag widget, whose template and script are complete but which no template cur
 | `journal-*.css` | Journal tools, pins, toolbars |
 | `pins.css` | Canvas pins |
 
-The rest are per-feature: `toast.css`, `vote.css`, `settings.css`, `combat-tools.css`,
+The rest are per-feature: `toast.css`, `settings.css`, `combat-tools.css`,
 `token-movement.css`, `latency.css`, `loading-progress.css`, `menu-context-global.css`,
 `tabs-scenes.css`, `utility-quickview.css`, `notes-gm.css`, `widget-tags.css`,
-`overrides-foundry.css`, `overrides-modules.css`.
+`overrides-foundry.css`.
 
 Two conventions hold across the tree. `cards-common-themes.css` contains color declarations only -- no
 radius, spacing, typography, or layout -- which is what makes a new theme a pure color exercise. And

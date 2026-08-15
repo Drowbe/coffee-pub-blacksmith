@@ -1,7 +1,12 @@
 /* Latency Display */
 
 
-.player-name {
+/* Scoped to Foundry's player list, which is the only place we mean it.
+   `.player-name` is FOUNDRY's class, not ours, so a bare rule here reached every
+   element anywhere carrying that name -- including the XP window's own player
+   rows, which set their own weight and colour and had this positioning applied
+   underneath them for no reason. */
+#players .player-name {
     position: relative;  /* Ensure absolute positioning of latency works */
 }
 

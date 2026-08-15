@@ -12,7 +12,6 @@
 
 /* --- Overrides ------------------- */
 @import "overrides-foundry.css"; 
-@import "overrides-modules.css"; 
 
 /* --- Shared UI components ------- */
 @import "entity-list.css";
@@ -76,7 +75,7 @@
 @import "timer-round.css";   
 
 /* --- Voting ---------------------- */
-@import "vote.css";   
+@import "window-vote.css";   
 
 /* --- Latency Display ---------------------- */
 @import "latency.css";

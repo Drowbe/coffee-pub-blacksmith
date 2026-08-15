@@ -229,7 +229,10 @@ gap: 2px; /* small space between label and slider */
 
 
 /* Hidden sections */
-.hidden {
+/* Scoped. A bare `.hidden { display: none !important }` matched every hidden
+   element Foundry, dnd5e or any other module owns -- with !important, so it won
+   every argument it picked. */
+.xp-distribution .hidden {
   display: none !important;
 }
 
@@ -350,8 +353,11 @@ gap: 2px; /* small space between label and slider */
   border-bottom: none;
 }
 
-.monster-name,
-.player-name {
+/* Both are generic enough to exist elsewhere: `.player-name` is Foundry's own in
+   the players list, and `.monster-name` is emitted by three other Blacksmith
+   features. Scoped to this window. */
+.xp-distribution .monster-name,
+.xp-distribution .player-name {
   min-width: 120px;
   font-weight: 500;
   color: #e0e0e0;
@@ -694,7 +700,7 @@ gap: 2px; /* small space between label and slider */
   flex-shrink: 0;
 }
 
-.player-name {
+.xp-distribution .player-name {
   font-weight: 500;
   color: #e0e0e0;
   font-weight: 900;

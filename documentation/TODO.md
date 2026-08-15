@@ -915,7 +915,7 @@ nothing had rendered in a long time. **Unverified in a live world.**
 #### 5d. Vote card -- MIGRATED, verified live (2026-08-15)
 
 Composed from parts (`scripts/cards-vote.js`); `templates/vote-card.hbs` deleted and the card rules
-split out of `styles/vote.css`, which keeps the vote window's. The confirmed leak is closed: the card
+split out of what is now `styles/window-vote.css`, renamed because it holds only the window's rules. The confirmed leak is closed: the card
 re-renders per client, and the voter detail is not on it at all.
 
 Verified with two clients: only the GM sees Close Vote, the count updates as votes arrive, a player's

@@ -43,21 +43,9 @@ div#coffee-pub-blacksmith .window-content {
 
 /* Form */
 div#coffee-pub-blacksmith,
-div#coffee-pub-bibliosoph {
-    overflow: hidden;
-    min-width: var(--base-width);
-    transition: min-width 0.3s ease;
-    box-sizing: border-box;
-}
 
 /* Window Background */
 div#coffee-pub-blacksmith .window-content,
-div#coffee-pub-bibliosoph .window-content {
-	opacity: var(--container-opacity);
-    padding: var(--container-padding);
-    overflow: hidden;
-	padding: 10px;
-}
 
 div#coffee-pub-blacksmith {
 	min-height: 506px;
@@ -78,41 +66,12 @@ div#coffee-pub-blacksmith {
 
 /* Text Area */
 .blacksmith-textarea,
-.bibliosoph-textarea {
-    font-family: var(--font-primary);
-    border: none;
-    padding: 12px;
-    font-size: 1.1em;
-    height: auto;
-    border-radius: var(--element-radius);
-    word-break: break-word;
-
-}
 
 
 /* Button: Small Round Pill Button */
 .blacksmith-send-button-round,
-.bibliosoph-send-button-round {
-    flex: 0 1 0;
-	content: "";
-    padding: 2px;
-    font-size: 28px;
-    position: absolute;
-    right: 15px;
-    width: 32px;
-    height: 32px;
-    border-radius: 16px;
-    bottom: 20px;
-}
 /* Button: Standard Button */
 .blacksmith-send-button-normal,
-.bibliosoph-send-button-normal {
-    padding: 2px;
-	margin-top: 4px;
-    font-size: 0.9em;
-    border-radius: var(--element-radius);
-
-}
 
 
 /* -- BLACKSMITH SPECIFIC -- */
@@ -288,32 +247,13 @@ div#blacksmith-message-toolbar button[data-label] span {
 
 /* Window Background */
 div#coffee-pub-blacksmith .window-content,
-div#coffee-pub-bibliosoph .window-content {
-    background: #222222;
-	color: #ffffff;
-}
 
 
 /* Button: Small Round Pill Button */
 .blacksmith-send-button-round,
-.bibliosoph-send-button-round {
-    background-color: var(--color-text-light-0);
-    color: rgba(0, 170, 0, 0.8);
-}
 /* Button: Standard Button */
 .blacksmith-send-button-normal,
-.bibliosoph-send-button-normal {
-    background-color: #0e0c0c;
-    color: #ffffff;
-    border: 1px solid #4b4b4b;
-}
 .blacksmith-send-button-normal:hover,
-.bibliosoph-send-button-normal:hover {
-    background-color: #000000;
-    color: #AEADAD;
-    border: 1px solid #767676;
-    box-shadow: none;
-}
 
 
 /* -- BLACKSMITH SPECIFIC -- */
@@ -424,59 +364,15 @@ div#blacksmith-message-content h5 {
 /* -- BIBLIOSOPH SPECIFIC -- */
 
 /* Text Area (INPUTS) */
-.bibliosoph-textarea {
-    color: #000000;
-    background-color: #cfd0ba;
-	background: url(../../coffee-pub-blacksmith/images/tiles/tile-parchment.webp) repeat;
-}
 
 /* Option Container */
-.bibliosoph-options {
-	color: #ffffff;
-	background-color: #0e0c0c;
-}
 /* Option items */
-.bibliosoph-options option {
-	color: #ffffff;
-	background-color: #0e0c0c;
-}
 
-.bibliosoph-option-image {
-	border-color: #4b4b4b;
-	filter: brightness(75%);
-}
-.bibliosoph-option-image:hover {
-	border-color: #f4eb72;
-	filter: brightness(125%);
-}
-.bibliosoph-option-image-selected {
-    /* Add your preferred styling here */
-    border-color: #a4c76a;
-	filter: brightness(100%);
-}
 
 
 /* Div Selector - legacy (cardsdark) */
-#cards-user-cardsdark.bibliosoph-option-div-selected {
-	background-color: #a4c76a;
-	color: #000000;
-	filter: brightness(100%);
-}
-#cards-user-cardsdark.bibliosoph-option-div-selected img {
-	border-color: #293C00;
-	filter: brightness(120%);
-}
 
 /* Div Selector - namespaced (blacksmith-card) */
-.blacksmith-card .container-user.bibliosoph-option-div-selected {
-	background-color: #a4c76a;
-	color: #000000;
-	filter: brightness(100%);
-}
-.blacksmith-card .container-user.bibliosoph-option-div-selected img {
-	border-color: #293C00;
-	filter: brightness(120%);
-}
 
 
 
@@ -520,64 +416,13 @@ div#blacksmith-message-content h5 {
 
 /* -- BIBLIOSOPH SPECIFIC -- */
 
-.bibliosoph-send-button-normal::after {
-	content: " Send Message";
-	text-transform: uppercase;
-}
 
 /* Option Container */
-.bibliosoph-options {
-	color: #ffffff;
-	background-color: #0e0c0c;
-}
 /* Option items */
-.bibliosoph-options option {
-	border: none;
-}
 
 /* Checkbox */
-.bibliosoph-checkbox-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-right: 5px;
-}
-.bibliosoph-checkbox {
-	border-radius: 2px;
-}
-.bibliosoph-checkbox-label {
-	display: inline-block; 
-	vertical-align: middle; 
-	width: 100; 
-	margin-top: 5px;
-	margin-bottom: 5px;
-	margin-left: 2px;
-	margin-right: 8px;
-	text-align :left;
-}
 /* Image Selector */
-.bibliosoph-option-image-container {
-	border: 0px;
-}
-.bibliosoph-option-image {
-	margin-top: 0px;
-	margin-bottom: 4px;
-	margin-right: 4px;
-	margin-left: 0px;
-	width: 50px;
-	border-radius: 6px;
-	border-width: 2px;
-	cursor: pointer;
-}
 
-#cards-user-cardsdark.bibliosoph-option-div-selected img {
-	border-width: 1px;
-	border-style: solid;
-}
-.blacksmith-card .container-user.bibliosoph-option-div-selected img {
-	border-width: 1px;
-	border-style: solid;
-}
 
 
 /* ----- TOOLTIPS ----- */
