@@ -186,7 +186,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 - **Windows:** window-common, window-gmtools, window-skillcheck, token-movement, window-xp, window-stats, window-roll-normal, window-roll-cinematic, window-pin-config, window-pin-layers, window-template, window-json-import, window-form-controls, window-tabs, window-list, window-panels.
 - **Tabs:** tabs-scenes.
 - **Toolbars:** toolbars, toolbar-zones, toolbar-encounter, journal-tools, journal-pins.
-- **Cards:** cards-common-layout, cards-common-themes, cards-parts, cards-stats.
+- **Cards:** cards-common-layout, cards-common-themes, cards-parts.
 - **Menubar:** menubar, menubar-combatbar.
 - **Context menus:** menu-context-global.
 - **Pins:** pins.

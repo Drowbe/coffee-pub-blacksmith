@@ -86,8 +86,19 @@ function participantSubject(participant, rank) {
 export function composeStatsCard(data = {}, scope = 'round') {
     const parts = [];
     const isRound = scope === 'round';
-    const stats = data.partyStats ?? {};
     const participants = Array.isArray(data.turnDetails) ? data.turnDetails : [];
+
+    // The two scopes hand over their totals under different keys AND different
+    // names: a round returns `partyStats` with `healingDone`, a combat returns
+    // `totals` with `healingGiven` (stats-cards.js:643). Reading only the round
+    // shape rendered every combat card as 0 / 0 / 0, which is the sort of thing a
+    // card reports confidently and wrongly. Normalised here, once.
+    const raw = data.partyStats ?? data.totals ?? {};
+    const stats = {
+        damageDealt: Number(raw.damageDealt) || 0,
+        kills: Number(raw.kills) || 0,
+        healing: Number(raw.healingDone ?? raw.healingGiven) || 0
+    };
 
     // The MVP is the top-scoring participant, and the collector already sorted them.
     // `themeLabel` is absent when nothing worth naming happened -- see stats-mvp.js,
@@ -132,9 +143,9 @@ export function composeStatsCard(data = {}, scope = 'round') {
         part: 'tiles',
         columns: 3,
         items: [
-            { label: 'Damage', value: `${stats.damageDealt ?? 0} hp` },
-            { label: 'Kills', value: String(stats.kills ?? 0) },
-            { label: 'Healing', value: `${stats.healingDone ?? 0} hp` }
+            { label: 'Damage', value: `${stats.damageDealt} hp` },
+            { label: 'Kills', value: String(stats.kills) },
+            { label: 'Healing', value: `${stats.healing} hp` }
         ]
     });
 

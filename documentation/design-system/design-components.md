@@ -250,18 +250,13 @@ State classes are applied by JavaScript at runtime, not present in the template:
 
 ## Damage ratio bar
 
-`styles/cards-stats.css`, template `templates/card-stats-combat-breakdown.hbs`.
+`styles/cards-parts.css`, part `templates/parts/part-gauge.hbs`.
 
-Structure is `.damage-ratio-bar` > `.ratio-bar-container` (`:292`) > `.ratio-bar-background` (`:316`). The
-bar is a **discrete ten-tick scale**, not two proportional segments: ten `.ratio-segment` elements, five
-`.ratio-segment-red` then five `.ratio-segment-green` (`:325, 335, 339`;
-`templates/card-stats-combat-breakdown.hbs:27-36`). Each is `flex: 1` (`:326`) with no inline width; the
-last resets its border (`:331`).
+A discrete ten-tick scale rather than two proportional segments: ten equal segments, five red then five
+green, with a triangular marker placed along the track at the measured position and an icon flanking each
+end. It is composed as a `gauge` -- `documentation/api/api-chatcards.md` lists the fields -- and a stats
+card nests one inside each party member's `subject`.
 
-The marker is `.ratio-marker` (`:343`), which spans the full width and draws via `.ratio-marker::before`
-(`:354`). Position comes from the `--marker-position` custom property set on the marker element
-(`templates/card-stats-combat-breakdown.hbs:38`) and read at `:356` -- an inline `left` has no effect,
-since the rule hardcodes `left: 0; width: 100%`.
-
-Icons are `.ratio-icon-left` and `.ratio-icon-right` (`:300-312`), rendered outside the bar container
-(`templates/card-stats-combat-breakdown.hbs:24, 40`).
+This was previously eleven hand-written divs in `styles/cards-stats.css` with a template of its own. Both
+were deleted when the stats cards moved to parts. The gauge part was built from them, so the geometry
+carried over rather than being reinvented.

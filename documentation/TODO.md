@@ -904,17 +904,13 @@ nothing had rendered in a long time. **Unverified in a live world.**
   subject per actor carrying the red-to-green ratio bar, and a "View the details" button that opens the
   stats window. Then end a combat for the aggregated version. Then a round where nothing happened, to
   confirm the ribbon and MVP block drop out rather than render empty.
-- **`styles/cards-stats.css` MUST NOT be deleted yet.** Audited 2026-08-14 and it is NOT like
-  `cards-xp.css` or `cards-skill-check.css`, which were safe because their rules were scoped under a
-  card class. Here **73 of 74 rules are unscoped bare class selectors** -- `.stat-label`, `.stat-value`,
-  `.combat-stats`, `.turn-time`, `.rank`, `.player-name` -- which reach any element on the page with
-  those names. `scripts/manager-combatbar.js` emits `combat-stats`, `stat-label` and `stat-value`, and
-  `.combat-stats`, `.turn-time` and `.rank` are defined NOWHERE ELSE, so deleting the file would strip
-  styling from the combat bar. `stat-label` and `stat-value` are also in `menubar-combatbar.css`; check
-  which wins before assuming the combat bar is covered.
-- **The likely truth is that this file has been bleeding into the combat bar all along**, since a card
-  stylesheet has no business defining `.stat-label` globally. Establish that first: the fix is to scope
-  the card rules under `.blacksmith-card` and see what visibly changes, not to delete and hope.
+- **`styles/cards-stats.css` is deleted (2026-08-14).** The caution recorded here was based on two false
+  positives: `stat-label` matches inside `combat-hover-stat-label`, which is what the combat bar
+  actually emits, and a bare class NAME appearing in a live template says nothing about whether its
+  RULE can match. Re-audited with whole-token matching and a self-check: of 58 classes, six appear in
+  live markup, and every one of their rules is a compound selector needing a dead ancestor
+  (`.mvp-info .player-name`, `.status-tag.rank`, `.turn-time.expired`, `.mvp-stat-card h4 .fas`,
+  `.party-timing-stats .timing-stat .label`). Nothing in the file could match anything.
 
 #### 6. CSS consolidation
 - **Work**: Collapse the five card CSS files to one layout file and one theme file. Delete the `theme-default`
@@ -1049,9 +1045,9 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
 - **Priority**: Medium — this closes the documentation set with nothing held back.
 
 #### Card CSS migration to theme system
-- **Issue**: `styles/cards-stats.css` still uses hardcoded colors; it should use the CSS variable theme system for consistency and themeability. (`cards-xp.css` and `cards-skill-check.css` were deleted with their cards.)
+- **Issue**: RESOLVED. All three card-type stylesheets (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.css`) were deleted with the cards they styled; what replaced them takes its colour from the theme variables throughout.
 - **Status**: PENDING
-- **Location**: `styles/cards-stats.css`; new variables go in `styles/cards-common-layout.css` (`:root`) and `styles/cards-common-themes.css` (per theme). The as-built theme system is described in `documentation/architecture/architecture-chatcards.md`.
+- **Location**: nothing left to do. The as-built theme system is described in `documentation/architecture/architecture-chatcards.md`.
 - **Need**: Grep each card-type file for hardcoded `color`/`background`/`border-color` values and replace with `var(--blacksmith-card-*)`, reusing existing theme variables where the meaning matches and adding XP/skill-check/stats-specific or semantic (success/failure/warning) variables — all `--blacksmith-card-` prefixed — where none fit. Decide per semantic color whether it is theme-dependent (add to each theme) or fixed (keep hardcoded, document). Keep layout/spacing in the layout file, colors in the variable blocks. Test every card type under all themes.
 - **Priority**: High – Improves theme consistency and maintainability
 

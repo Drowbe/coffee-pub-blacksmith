@@ -231,8 +231,8 @@ and they are not part of the global token contract: treat them as internal unles
 otherwise.
 
 A few are written by JavaScript at runtime rather than declared in CSS, so they hold no value in a static
-stylesheet read. `--marker-position` is set per-card at `scripts/` render time and read by
-`styles/cards-stats.css:356` to place the damage-ratio marker. On canvas pins, `--pin-stroke-color`,
+stylesheet read. `--marker-position` is set per marker as the `gauge` part renders and read by
+`styles/cards-parts.css` to place it along the track. On canvas pins, `--pin-stroke-color`,
 `--pin-stroke-px` and `--gm-indicator-size-px` are set per-pin at `scripts/pins-renderer.js:514-519`.
 
 `--pin-size-px` is set at `scripts/pins-renderer.js:512` but is read by no stylesheet in the module: pin

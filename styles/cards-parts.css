@@ -59,7 +59,8 @@
 
 /*
     A diagonal banner across the card's top-right corner, from
-    .blacksmith-mvp-ribbon in cards-stats.css.
+    .blacksmith-mvp-ribbon in the stats cards' own stylesheet (cards-stats.css, since
+    deleted along with those cards).
 
     It clips against its own square rather than against the card, so the card does
     not need overflow:hidden -- which it must not have, since a marker on a gauge
@@ -370,7 +371,8 @@
 /*
     A scale you read a position off. Geometry follows Squire's party reputation bar
     (coffee-pub-squire/styles/panel-party.css:546-620) and the damage ratio bar in
-    cards-stats.css: blocks or a gradient, with triangular markers positioned along
+    the stats cards' stylesheet (cards-stats.css, since deleted): blocks or a
+    gradient, with triangular markers positioned along
     the range.
 
     With no stops or segments supplied it falls back to the shared palette's red

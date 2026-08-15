@@ -24,6 +24,7 @@
 
 import { requireApi, settingRow, stylesheetContains } from '../harness-lib.js';
 import { composeSkillCheckCard } from '/modules/coffee-pub-blacksmith/scripts/cards-skill-check.js';
+import { composeStatsCard } from '/modules/coffee-pub-blacksmith/scripts/cards-stats.js';
 
 // Real art, not a placeholder: the core mystery-man svg is nearly white, so a
 // light image border reads as absent against it --
@@ -222,6 +223,99 @@ export default {
                 });
                 expect.ok('an unfinished group roll announces nothing',
                           !find(partial, 'band').some((b) => String(b.text).includes('Group')));
+            }
+        },
+
+        // Same reasoning as the skill check composer: pure function, so the shape of
+        // the card is assertable without a combat having to happen. Several of these
+        // are bugs that reached a live world first -- the missing bar and the tiles
+        // reading as the MVP's own numbers -- and they are here so they cannot again.
+        {
+            id: 'stats-compose',
+            tier: 'headless',
+            group: 'Combat stats',
+            label: 'the round and combat cards match the state they were built from',
+            run: async ({ expect }) => {
+                const find = (parts, kind) => parts.filter((p) => p.part === kind);
+                const state = (extra = {}) => ({
+                    roundNumber: 2,
+                    partyStats: { damageDealt: 69, kills: 0, healingDone: 5 },
+                    turnDetails: [
+                        { name: 'Noodle HOM', tokenImg: PLACEHOLDER, damageRatioGreen: 80 },
+                        { name: 'Kar-ahn', tokenImg: PLACEHOLDER, damageRatioGreen: 35 }
+                    ],
+                    roundMVP: { name: 'Noodle HOM', tokenImg: PLACEHOLDER,
+                                themeLabel: 'Clutch Healer', description: 'Kept the party standing.' },
+                    ...extra
+                });
+
+                const round = composeStatsCard(state(), 'round');
+
+                // --- one card, not four -------------------------------------
+                expect('the round card names the round', find(round, 'header')[0].title, 'Round 2 Summary');
+                expect.ok('the award banner is present', find(round, 'ribbon')[0]?.text === 'Clutch Healer');
+                expect.ok('the MVP is identified', find(round, 'identity').length === 1);
+                expect.ok('the MVP description is prose', find(round, 'prose').length === 1);
+
+                // --- the tiles are the PARTY's, and say so -------------------
+                // They sit under the MVP's portrait, so without a heading they read
+                // as the MVP's own numbers. That shipped once.
+                const sections = find(round, 'section');
+                expect.ok('the totals carry their own heading',
+                          sections.some((s) => s.label === 'Round Totals'));
+                const tiles = find(round, 'tiles')[0];
+                expect('three totals', tiles.items.length, 3);
+                expect('damage is the party total', tiles.items[0].value, '69 hp');
+                expect('healing is the party total', tiles.items[2].value, '5 hp');
+
+                // --- one subject per participant, each WITH a bar ------------
+                const subjects = find(round, 'subject');
+                expect('one subject per participant', subjects.length, 2);
+                expect('participants are ranked', subjects[0].index, 1);
+                // The bug this exists to prevent: the config went on `bar`, which the
+                // subject part ignores, so every bar silently vanished.
+                expect.ok('a subject carries its gauge on `gauge`', Boolean(subjects[0].gauge));
+                expect.ok('no subject uses the ignored `bar` key', !subjects.some((s) => s.bar));
+                // A subject builds the part itself, so the config must NOT be one.
+                expect('the gauge config is config, not a part', subjects[0].gauge.part, undefined);
+                expect('the marker sits at the measured ratio', subjects[0].gauge.markers[0].at, 80);
+
+                expect.ok('the details button is present',
+                          find(round, 'actions')[0].buttons[0].label === 'View the details');
+
+                // --- a round nobody did anything in --------------------------
+                const quiet = composeStatsCard(state({ roundMVP: { name: 'x' } }), 'round');
+                expect('no MVP means no banner', find(quiet, 'ribbon').length, 0);
+                expect('no MVP means no portrait', find(quiet, 'identity').length, 0);
+                expect('no MVP means no description', find(quiet, 'prose').length, 0);
+                expect.ok('but the totals still report', find(quiet, 'tiles').length === 1);
+
+                // --- combat is the same card over DIFFERENTLY SHAPED data ----
+                // The two scopes disagree on both the key and the field names: a
+                // round sends `partyStats.healingDone`, a combat sends
+                // `totals.healingGiven`. The first version of this test used the
+                // round shape for both, so it passed while every real combat card
+                // rendered 0 / 0 / 0. The fixture below is the combat shape.
+                const combat = composeStatsCard({
+                    turnDetails: state().turnDetails,
+                    roundMVP: state().roundMVP,
+                    totals: { damageDealt: 120, kills: 3, healingGiven: 18 }
+                }, 'combat');
+                const combatTiles = find(combat, 'tiles')[0];
+                expect('combat damage comes from totals', combatTiles.items[0].value, '120 hp');
+                expect('combat kills come from totals', combatTiles.items[1].value, '3');
+                expect('combat healing reads healingGiven', combatTiles.items[2].value, '18 hp');
+                expect('the combat card is not numbered', find(combat, 'header')[0].title, 'Combat Summary');
+                expect.ok('and labels its totals for the combat',
+                          find(combat, 'section').some((s) => s.label === 'Combat Totals'));
+                expect('the two cards are otherwise the same shape',
+                       combat.map((part) => part.part).join(), round.map((part) => part.part).join());
+
+                // --- a ratio outside 0-100 cannot escape the track -----------
+                const wild = composeStatsCard(state({
+                    turnDetails: [{ name: 'x', tokenImg: PLACEHOLDER, damageRatioGreen: 140 }]
+                }), 'round');
+                expect('an out-of-range ratio is clamped', find(wild, 'subject')[0].gauge.markers[0].at, 100);
             }
         },
 
@@ -505,15 +599,22 @@ export default {
               markers: [{ at: 38 }, { at: 62, from: 'bottom', color: 'rgba(223, 134, 1, 0.95)' }],
               label: "Blacksmith's balance bar" },
 
-            { part: 'section', label: 'Damage ratio: equal segments, flanking icons' },
+            // Exactly what a stats card composes -- ten segments, five red then five
+            // green, with the heart-crack and droplet flanking it. This sample used
+            // to be four segments with different icons, an approximation made while
+            // the gauge part was being built. That meant the reviewed gauge and the
+            // shipped one were different objects, and the difference was only spotted
+            // on a live card. A sample that does not match what ships is worse than
+            // no sample: it certifies the wrong thing.
+            { part: 'section', label: 'Damage ratio: ten segments, flanking icons' },
             { part: 'gauge', min: 0, max: 100, midpoint: 50,
-              iconStart: 'fa-solid fa-burst', iconEnd: 'fa-solid fa-heart',
-              segments: [{ span: 1, color: 'rgba(160, 38, 27, 0.6)' },
-                         { span: 1, color: 'rgba(160, 38, 27, 0.6)' },
-                         { span: 1, color: 'rgba(58, 138, 67, 0.6)' },
-                         { span: 1, color: 'rgba(58, 138, 67, 0.6)' }],
+              iconStart: 'fa-solid fa-heart-crack', iconEnd: 'fa-solid fa-droplet',
+              segments: Array.from({ length: 10 }, (_slot, index) => ({
+                  span: 1,
+                  color: index < 5 ? 'rgba(160, 38, 27, 0.55)' : 'rgba(58, 138, 67, 0.55)'
+              })),
               markers: [{ at: 62 }],
-              label: 'Damage dealt against healing done' },
+              label: 'Damage dealt against damage taken' },
 
             { part: 'section', label: 'Two markers on one value, from opposite sides' },
             { part: 'gauge', min: 0, max: 100,
