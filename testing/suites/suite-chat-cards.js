@@ -241,8 +241,10 @@ export default {
                     roundNumber: 2,
                     partyStats: { damageDealt: 69, kills: 0, healingDone: 5 },
                     turnDetails: [
-                        { name: 'Noodle HOM', tokenImg: PLACEHOLDER, damageRatioGreen: 80 },
-                        { name: 'Kar-ahn', tokenImg: PLACEHOLDER, damageRatioGreen: 35 }
+                        { name: 'Noodle HOM', tokenImg: PLACEHOLDER, damageRatioGreen: 80, turnDuration: 45000,
+                          score: 1.2, damage: { dealt: 32, taken: 8 } },
+                        { name: 'Kar-ahn', tokenImg: PLACEHOLDER, damageRatioGreen: 35, turnDuration: 95000,
+                          score: 0.8, damage: { dealt: 9, taken: 21 } }
                     ],
                     roundMVP: { name: 'Noodle HOM', tokenImg: PLACEHOLDER,
                                 themeLabel: 'Clutch Healer', description: 'Kept the party standing.' },
@@ -279,6 +281,22 @@ export default {
                 // A subject builds the part itself, so the config must NOT be one.
                 expect('the gauge config is config, not a part', subjects[0].gauge.part, undefined);
                 expect('the marker sits at the measured ratio', subjects[0].gauge.markers[0].at, 80);
+                // A gradient rather than ticks: ten segments implied ten meaningful
+                // steps in a continuous number.
+                expect.ok('the bar is a gradient, not segments',
+                          Array.isArray(subjects[0].gauge.stops) && !subjects[0].gauge.segments);
+                expect('the gradient has three stops', subjects[0].gauge.stops.length, 3);
+                expect('no flanking icon', subjects[0].gauge.iconStart, undefined);
+                expect.ok('the bar says which end is which',
+                          subjects[0].gauge.tooltip.includes('damage dealt'));
+                // Damage DEALT: the magnitude the bar cannot show. The gauge gives
+                // the share of activity that was dealing; an 80% bar beside 4 hp and
+                // beside 112 hp are very different rounds.
+                expect('the row reports damage dealt', subjects[0].value, '32 hp');
+                expect('for every participant', subjects[1].value, '9 hp');
+                expect.ok('damage taken stays in the tooltip', subjects[1].tooltip.includes('21 hp taken'));
+                expect.ok('as does the raw MVP score', subjects[1].tooltip.includes('0.8'));
+                expect.ok('as does the turn time', subjects[1].tooltip.includes('1m 35s'));
 
                 expect.ok('the details button is present',
                           find(round, 'actions')[0].buttons[0].label === 'View the details');
@@ -310,6 +328,13 @@ export default {
                           find(combat, 'section').some((s) => s.label === 'Combat Totals'));
                 expect('the two cards are otherwise the same shape',
                        combat.map((part) => part.part).join(), round.map((part) => part.part).join());
+
+                // --- nobody scored: no share rather than NaN% ----------------
+                const scoreless = composeStatsCard(state({
+                    turnDetails: [{ name: 'x', tokenImg: PLACEHOLDER, damageRatioGreen: 0 }]
+                }), 'round');
+                expect('a participant who dealt nothing reads zero, not blank',
+                       find(scoreless, 'subject')[0].value, '0 hp');
 
                 // --- a ratio outside 0-100 cannot escape the track -----------
                 const wild = composeStatsCard(state({

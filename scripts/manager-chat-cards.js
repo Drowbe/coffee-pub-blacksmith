@@ -544,6 +544,14 @@ export class ChatCardsManager {
             const value = Number(part.value) || 0;
             context.percent = max > 0 ? Math.max(0, Math.min(100, Math.round((value / max) * 100))) : 0;
             context.tone = part.tone ?? this._meterTone(context.percent);
+
+            // A meter reports a number by hiding it: the reader sees a proportion
+            // and never the figures behind it. So the numbers become the default
+            // tooltip -- the one piece of information the part is definitely not
+            // showing. A caller with something better to say passes its own.
+            if (part.tooltip === undefined && max > 0) {
+                context.tooltip = `${value} / ${max}`;
+            }
         }
 
         return context;

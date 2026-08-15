@@ -55,8 +55,8 @@ Returns the created `ChatMessage`, or `null` if posting failed.
 | `identity` | avatar, primary name, secondary line | `img`, `name`, `subtitle` |
 | `subject` | one subject and how it stands: image beside a title, optional value opposite, optional bar beneath | `img`, `marker` or `index`, `title`, `value`, and one of `meter` / `gauge` |
 | `image` | picture with optional caption and stacked overlays | `src`, `alt`, `caption`, `overlays: [src]` |
-| `gauge` | a scale you read a position off | `min`, `max`, `stops` or `segments`, `markers`, `midpoint`, `iconStart`, `iconEnd`, `label` |
-| `meter` | proportional bar | `value`, `max`, `label`, `tone` (`ok`/`caution`/`warn`/`danger`/`empty`; derived from the percentage if omitted, assuming low is bad) |
+| `gauge` | a scale you read a position off | `min`, `max`, `stops` or `segments`, `markers`, `midpoint`, `iconStart`, `iconEnd`, `label`, `tooltip` |
+| `meter` | proportional bar | `value`, `max`, `label`, `tooltip`, `tone` (`ok`/`caution`/`warn`/`danger`/`empty`; derived from the percentage if omitted, assuming low is bad) |
 | `band` | full-width emphasis, centred by default | `text`, `lead`, `trail`, `icon`, `tone` (`positive`/`negative`/`info`), `size` (`large`), `quiet`, `align` (`left`/`right`) |
 | `tiles` | grid of caption-over-value boxes | `items: [{ label, value }]`, `columns` (defaults to the item count, max 6) |
 | `section` | divider with icon and label | `icon`, `label` |
@@ -312,6 +312,17 @@ The primary button is last in both, so changing the layout does not move it.
 The handler receives `{ message, value, event, button }`. A chat message is data on every client, so handlers cannot travel with the card - each client resolves them from its own registry at render time. This is why registration belongs in `ready` rather than alongside the post, and why buttons keep working after a browser reload.
 
 `unregisterAction(moduleId, action)` removes one. `getRegisteredActions()` lists what is registered, for diagnostics.
+
+## Tooltips on bars
+
+A bar reports a number by hiding it -- the reader sees a proportion and never the figures. Both bar parts take tooltips, at the level that matches what is being explained.
+
+- `meter` takes `tooltip` on the part. **It defaults to `value / max`**, so the numbers are always one hover away without a caller thinking of it. Pass your own to say something better.
+- `gauge` takes `tooltip` on the part, for what the scale MEANS -- red-to-green does not say which end is which.
+- `gauge` segments each take a `tooltip`, for what a discrete band means. A gradient built from `stops` has no bands, so it explains itself on the part instead.
+- `gauge` markers each take a `tooltip`, for what that one position is.
+
+Use `data-tooltip` semantics: a tooltip explains a value already on screen or supplies one the shape is hiding. It is not a place to put something the reader needs to see.
 
 ## Veiled values
 

@@ -264,13 +264,17 @@
     color: var(--blacksmith-card-section-header-text);
 }
 
+/* A rank badge, not a headline. It sat at 0.85em in a 1.5em box, which next to a
+   name made the NUMBER the loudest thing in the row -- and the rank is the least
+   interesting fact on it. Small enough to read as an ordinal. */
 .blacksmith-card .blacksmith-part-subject-marker.blacksmith-subject-number {
-    padding: 1px 0;
+    width: 1.4em;
+    padding: 0;
     background: var(--blacksmith-card-text);
     color: rgba(255, 255, 255, 0.95);
     border-radius: var(--blacksmith-radius-sm);
-    font-size: 0.85em;
-    line-height: 1.4;
+    font-size: 0.65em;
+    line-height: 1.6;
 }
 
 .blacksmith-card .blacksmith-part-subject-title {

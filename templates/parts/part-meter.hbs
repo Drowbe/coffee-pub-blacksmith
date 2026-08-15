@@ -1,6 +1,11 @@
-{{!-- Proportional bar. Percent and tone are computed by the renderer. --}}
+{{!-- Proportional bar. Percent and tone are computed by the renderer.
+
+      The track carries a tooltip because a meter is the one part that shows a
+      number by hiding it: the reader sees a proportion and never the figures behind
+      it. The renderer defaults it to `value / max`, so the numbers are always one
+      hover away without a caller having to think of it. --}}
 <div class="blacksmith-part-meter blacksmith-meter-{{tone}}">
-    <div class="blacksmith-part-meter-track">
+    <div class="blacksmith-part-meter-track"{{#if tooltip}} data-tooltip="{{tooltip}}"{{/if}}>
         <div class="blacksmith-part-meter-fill" style="width: {{percent}}%"></div>
     </div>
     {{#if label}}<div class="blacksmith-part-meter-label">{{{label}}}</div>{{/if}}

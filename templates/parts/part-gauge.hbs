@@ -8,13 +8,14 @@
 
       Two ways to build the track because the real instances split that way: a
       reputation scale is a gradient, a damage ratio is blocks. --}}
-<div class="blacksmith-part-gauge">
+<div class="blacksmith-part-gauge"{{#if tooltip}} data-tooltip="{{tooltip}}"{{/if}}>
     {{#if iconStart}}<i class="blacksmith-part-gauge-icon blacksmith-gauge-icon-start {{iconStart}}"></i>{{/if}}
 
     <div class="blacksmith-part-gauge-track">
         <div class="blacksmith-part-gauge-bar" style="{{trackStyle}}">
             {{#each segments}}
-            <div class="blacksmith-part-gauge-segment" style="flex: {{this.span}}; background: {{this.color}}"></div>
+            <div class="blacksmith-part-gauge-segment" style="flex: {{this.span}}; background: {{this.color}}"
+                 {{#if this.tooltip}}data-tooltip="{{this.tooltip}}"{{/if}}></div>
             {{/each}}
 
             {{#if midpoint}}<div class="blacksmith-part-gauge-midpoint" style="left: {{midpoint}}%"></div>{{/if}}

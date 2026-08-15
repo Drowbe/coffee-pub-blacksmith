@@ -36,42 +36,89 @@ export const STATS_DETAILS_ACTION = 'stats-view-details';
  * a gauge instead of eleven hand-written divs.
  */
 function ratioBar(participant) {
-    const red = 'rgba(160, 38, 27, 0.55)';
-    const green = 'rgba(58, 138, 67, 0.55)';
     // No `part: 'gauge'` key: a subject takes the gauge's CONFIG on its `gauge`
     // field and builds the part itself (manager-chat-cards.js:486). Passing a
     // ready-made part under `bar` is silently ignored, which renders the subject
     // compact with no bar at all and no error anywhere.
+    //
+    // A GRADIENT, not segments. The ten-tick version came from the card this
+    // replaced, and ten ticks imply ten meaningful steps when the underlying number
+    // is continuous -- a reader counts them looking for a scale that is not there.
+    // Three stops say the same thing without inviting the question.
+    //
+    // No flanking icons either. They labelled the ends of a bar whose ends are
+    // already obvious from its colour, and in a list of six they were six pairs of
+    // decoration competing with six portraits.
     return {
         min: 0,
         max: 100,
         midpoint: 50,
-        iconStart: 'fa-solid fa-heart-crack',
-        iconEnd: 'fa-solid fa-droplet',
-        segments: Array.from({ length: 10 }, (_slot, index) => ({
-            span: 1,
-            color: index < 5 ? red : green
-        })),
+        stops: [
+            { at: 0,   color: 'rgba(160, 38, 27, 0.75)' },
+            { at: 50,  color: 'rgba(186, 162, 92, 0.75)' },
+            { at: 100, color: 'rgba(58, 138, 67, 0.75)' }
+        ],
+        // What the bar MEANS, since red-to-green alone does not say which end is
+        // which. On the whole part rather than per stop: a gradient has no discrete
+        // bands to attach a meaning to.
+        tooltip: 'Left: damage taken. Right: damage dealt.',
         markers: [{
             at: Math.max(0, Math.min(100, Number(participant.damageRatioGreen) || 0)),
-            tooltip: `${Math.round(Number(participant.damageRatioGreen) || 0)}% dealt`
+            tooltip: `${Math.round(Number(participant.damageRatioGreen) || 0)}% of activity was damage dealt`
         }]
     };
 }
 
 /**
- * One participant: rank, portrait, name, and the ratio bar beneath.
+ * How long a turn took, in the shape the stats cards have always shown it.
+ *
+ * Duplicated rather than imported from `CombatStats._formatTime` on purpose: this
+ * module is pure so the harness can assert it, and reaching into the stats tracker
+ * would drag Foundry's globals in behind it. Six lines is a cheaper price than that.
+ */
+function formatDuration(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '';
+    const seconds = value > 1000 ? Math.round(value / 1000) : Math.round(value);
+    if (seconds < 60) return `${seconds}s`;
+    return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
+
+/**
+ * One participant: rank, portrait, name, MVP share, and the ratio bar beneath.
  *
  * A `subject` rather than a `row` because a row cannot hold a bar -- and a subject
  * is exactly the part that was asked for: an image on the left, a title with an
  * optional right-aligned value, and a gauge under it.
+ *
+ * The right-aligned value is DAMAGE DEALT, which is the magnitude the bar cannot
+ * show. The gauge reports what SHARE of a participant's activity was dealing rather
+ * than taking; it says nothing about how much. An 80% bar beside "4 hp" and beside
+ * "112 hp" are very different rounds and were indistinguishable without this.
+ *
+ * It was briefly the MVP score as a percentage of the leader's. That number is
+ * readable but not useful: it ranks people the badge has already ranked, and a
+ * reader cannot act on "67% of the best". The raw score is worse still -- it is a
+ * weighted sum whose weights are settings (stats-mvp.js:118), so "1.2" answers
+ * nothing. Both stay in the tooltip, where a curious reader can find them.
  */
 function participantSubject(participant, rank) {
+    const dealt = Number(participant.damage?.dealt) || 0;
+    const score = Number(participant.score);
+    const detail = [
+        Number.isFinite(score) ? `MVP score ${score}` : null,
+        `${Number(participant.damage?.taken) || 0} hp taken`,
+        formatDuration(participant.turnDuration)
+            ? `turn took ${formatDuration(participant.turnDuration)}`
+            : null
+    ].filter(Boolean).join(' - ');
+
     return {
         part: 'subject',
         index: rank,
         img: participant.tokenImg,
         title: participant.name,
+        value: `${dealt} hp`,
+        tooltip: detail || undefined,
         gauge: ratioBar(participant)
     };
 }
