@@ -62,9 +62,36 @@ control.
 other.** A composition asking to veil a value gets presentation privacy and says so. A caller wanting
 delivery privacy whispers the message, which is a property of the message rather than of a part.
 
-**Decision 2: skill check needs both, in that order.** Fix the roll mode so `gmroll` and `blindroll`
-whisper (delivery), and veil the totals so a public `roll` card can still stage a reveal
-(presentation). Fixing only the second would leave the leak and dress it up.
+**Decision 2: the skill check card cannot use delivery privacy at all, so presentation privacy is the
+whole of the mechanism -- and the API must say so.**
+
+An earlier draft of this plan said to fix the roll mode by whispering `gmroll` and `blindroll` messages.
+That is wrong and would have broken the feature. **The card carries the players' roll buttons**
+(`card-skill-check.hbs:124`): a player clicks their own name on the shared card to roll. Whisper it to the
+GM and the players never see the card, so nobody can roll. The card is necessarily public, and everything
+on it -- including every result -- is necessarily delivered to every client.
+
+The consequence has to be stated rather than hidden: **a determined player can read another player's
+blind roll out of the message flags in the console.** No arrangement of a single interactive message
+avoids that, because the interaction requires the message and the flags are how the card re-renders.
+Anything that must be genuinely secret does not belong on this card; it belongs in a whispered message of
+its own, which is a separate feature and not this one.
+
+What the veil buys is the thing actually wanted at a table: the number does not appear on screen. That is
+worth building. It is not a control, and the API documentation must not imply it is.
+
+**Decision 2b: the roll mode selects the veil rule.** It stops being a message property and becomes a
+composition input:
+
+| Roll mode | Who reads a result |
+|---|---|
+| `roll` | everyone -- no veil |
+| `gmroll` | the GM, and the owner of the rolling actor |
+| `blindroll` | the GM only -- not even the roller |
+| `selfroll` | the message author only |
+
+This is what `card-skill-check.hbs:92-113` already intends. The bug was never the intent; it was that the
+branch is evaluated once, by the composer, and baked.
 
 ## The design
 
@@ -79,10 +106,14 @@ Anywhere a part accepts a text field, it also accepts a veiled form:
 ```
 
 - `value` -- what an entitled reader sees.
-- `readableBy` -- who is entitled. `'gm'`, `'owner'` (the actor's owner), `'author'` (whoever posted), or
-  an explicit array of user ids. Validated against an allowlist, like `variant` and `tone`, because it
-  reaches a render decision.
-- `veil` -- what everyone else sees. An icon class or a short string. Defaults to an eye icon.
+- `readableBy` -- who is entitled. `'gm'`, `'owner'` (the ACTOR's owner, decision 7), `'author'` (whoever
+  posted), or an explicit array of user ids. Validated against an allowlist, like `variant` and `tone`,
+  because it reaches a render decision.
+- `veil` -- what everyone else sees, rendered in the space the value would have occupied (decision 8). An
+  icon class or a short string. Defaults to an eye icon.
+
+It marks that one field and nothing else (decision 6): the `label` beside this `trailing` stays visible to
+every reader.
 
 **Decision 3: resolution happens in the renderer, per client, not in the composer.** The composer runs
 once on one machine; the renderer runs in every reader's browser. `manager-chat-cards.js` already
@@ -104,23 +135,42 @@ same escape, marks and enrich pipeline. A veil is about who reads it, not about 
 Anything that must not reach a client at all is a whisper, and the API documentation has to say so plainly
 next to `readableBy`, or someone will reach for the wrong one.
 
-## Open questions
+## The three questions that were open
 
-- **Does `owner` mean the actor's owner or the token's?** Skill check wants "the player who was asked to
-  roll", which is usually but not always the actor owner.
-- **Does a veiled value collapse the row, or hold its space?** Holding space keeps a list from reflowing
-  as rolls come in, which argues for it.
-- **Is `readableBy` per field or per part?** Per field is more precise and more verbose. Skill check needs
-  only the trailing value, which argues per field; a GM-only section would want per part.
+Settled 2026-08-14 by the author.
+
+**Decision 6: `readableBy` marks a FIELD, not a part.** Skill check needs exactly that -- the total hides
+while the actor's name beside it stays visible -- and veiling the whole row would hide who was asked to
+roll, which is the opposite of useful. A part-level veil is a plausible second step if a GM-only block ever
+turns up; it is not built on speculation.
+
+**Decision 7: `owner` is the ACTOR's owner.** Ownership lives on the Actor in dnd5e and tokens inherit it,
+so the actor is the authoritative record, and skill check rows are keyed by `actorId` already. An unlinked
+token whose permissions diverge from its actor is a real case and is not covered; a caller needing it
+passes explicit user ids.
+
+**Decision 8: a veiled value holds its space.** The veil renders where the value would have been. A list of
+pending rolls then does not reflow as results arrive, and nothing on the card jumps at the moment of a
+reveal -- which is exactly the card where results land one at a time and a jump is most visible. A reader
+can infer that something is hidden either way, so collapsing buys nothing but movement.
 
 ## The work
 
-1. **Confirm the leak** in a live world, per "What exists today". If it does not reproduce, stop and
-   rewrite this plan.
-2. **Apply the roll mode properly** in `window-skillcheck.js`, so `gmroll` and `blindroll` whisper. This is
-   a bug fix and can ship on its own, ahead of everything below.
-3. **Add the veiled value** to `manager-chat-cards.js`: the allowlist, the per-client resolution, and the
-   fail-closed baked form.
+1. **Confirm the leak** in a live world, per "What exists today". **Done 2026-08-14, from the PLAYER's
+   console** on a live blind-roll message:
+   - `game.messages.contents.at(-1).whisper` returned `[]`. The roll mode never became a whisper, and the
+     message is delivered in full to a player who is not entitled to its results. Finding 1 confirmed.
+   - `...flags['coffee-pub-blacksmith'].isGM` returned `true` -- on the player's own machine. The
+     composing GM's value is sitting in the player's client, where every render decision keyed to it treats
+     that player as a GM. Finding 2 confirmed, observed rather than inferred.
+
+   Finding 3 follows: the content was rendered once with `isGM: true`, took the revealing branch, and that
+   markup is what the player holds. The symptom on screen has not been eyeballed and does not need to be
+   -- both mechanisms were read directly off the affected client.
+2. **Add the veiled value** to `manager-chat-cards.js`: the allowlist, the per-client resolution, and the
+   fail-closed baked form. There is no separate roll-mode repair -- see decision 2. The dead `rollMode`
+   key in the `ChatMessage.create` data (`window-skillcheck.js:1535`, `:2338`) is removed as part of the
+   migration, because it reads as though visibility is handled and it is not.
 4. **Extend `tools/check-card-contracts.mjs`** so a `readableBy` outside the allowlist is a build failure,
    and so the baked form cannot contain a revealed value.
 5. **Harness card** covering each `readableBy`, an unentitled reader, and the pre-re-render baked state.
@@ -130,9 +180,12 @@ next to `readableBy`, or someone will reach for the wrong one.
 
 Two clients, a GM and a player, because a one-client test cannot see this class of bug at all.
 
-- A `gmroll` request: the player's client must not receive the total in the message at all. Check the
-  player's console, not just the screen.
-- A public `roll` with veiled totals: the player sees the veil, the GM sees the value, and the *same
-  message* shows differently on the two screens at the same time.
+- A `blindroll` request: the player rolls, and the player's SCREEN shows a veil where the total would be
+  while the GM's screen shows the number -- the same message, differing on two screens at once. The value
+  is still in the player's flags and that is expected (decision 2); do not write a check that asserts
+  otherwise, because it would be asserting something the design does not claim.
+- A `gmroll` request: the rolling player sees their own total, other players see a veil.
+- The player can still click their own roll button in every mode. This is the regression to watch for --
+  the card has to stay public and interactive for the veil to be worth anything.
 - Disable Blacksmith on the player's client and reload: the baked copy must still show the veil.
 - Roll, then reload the player's browser: the veil survives a re-render from flags.
