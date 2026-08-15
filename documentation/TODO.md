@@ -893,6 +893,29 @@ Foundry.** This is the largest untested change in the card work; treat every ite
 - **Rows a player cannot roll** get `.blacksmith-row-not-yours` at render, dimmed. The permission itself
   is checked in `SkillCheckDialog.handleRollAction`.
 
+#### 5c. Stats cards migrated -- CSS NOT YET SAFE TO DELETE (2026-08-14)
+
+Round and combat now post ONE card each (`scripts/cards-stats.js`), replacing four messages apiece.
+Nine templates deleted: the eight `card-stats-*` and the orphaned `templates/stats-combat.hbs`, which
+nothing had rendered in a long time. **Unverified in a live world.**
+
+- **How to verify**: end a round with the stats settings on -- expect exactly ONE card, not four:
+  header, MVP ribbon and portrait, three tiles (Damage / Kills / Healing), a Party section with one
+  subject per actor carrying the red-to-green ratio bar, and a "View the details" button that opens the
+  stats window. Then end a combat for the aggregated version. Then a round where nothing happened, to
+  confirm the ribbon and MVP block drop out rather than render empty.
+- **`styles/cards-stats.css` MUST NOT be deleted yet.** Audited 2026-08-14 and it is NOT like
+  `cards-xp.css` or `cards-skill-check.css`, which were safe because their rules were scoped under a
+  card class. Here **73 of 74 rules are unscoped bare class selectors** -- `.stat-label`, `.stat-value`,
+  `.combat-stats`, `.turn-time`, `.rank`, `.player-name` -- which reach any element on the page with
+  those names. `scripts/manager-combatbar.js` emits `combat-stats`, `stat-label` and `stat-value`, and
+  `.combat-stats`, `.turn-time` and `.rank` are defined NOWHERE ELSE, so deleting the file would strip
+  styling from the combat bar. `stat-label` and `stat-value` are also in `menubar-combatbar.css`; check
+  which wins before assuming the combat bar is covered.
+- **The likely truth is that this file has been bleeding into the combat bar all along**, since a card
+  stylesheet has no business defining `.stat-label` globally. Establish that first: the fix is to scope
+  the card rules under `.blacksmith-card` and see what visibly changes, not to delete and hope.
+
 #### 6. CSS consolidation
 - **Work**: Collapse the five card CSS files to one layout file and one theme file. Delete the `theme-default`
   render-time rewrite hook in `blacksmith.js` -- the world default is resolved at post time as of step 1.

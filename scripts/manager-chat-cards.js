@@ -486,6 +486,18 @@ export class ChatCardsManager {
             const bar = part.meter ? { part: 'meter', ...part.meter }
                 : part.gauge ? { part: 'gauge', ...part.gauge }
                 : null;
+
+            // `bar` is the rendered OUTPUT, not an input. A caller passing a
+            // ready-made part under `bar` -- the obvious guess, since that is what
+            // the template calls it -- got silently nothing: no bar, no error, and a
+            // subject that quietly collapsed to its compact one-line form. That cost
+            // a round trip to find, so it says so now.
+            if (!bar && part.bar) {
+                postConsoleAndNotification(MODULE.NAME,
+                    'Chat Cards | subject: a bar goes on `meter` or `gauge`, not `bar`',
+                    'the `bar` field was ignored', false, false);
+            }
+
             context.bar = bar ? await this.renderPart(bar, options) : '';
         }
 

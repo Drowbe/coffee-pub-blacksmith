@@ -88,7 +88,7 @@ import { SettingsAdoptionManager } from './manager-settings-adoption.js';
 import { registerDiceTray } from './window-dicetray.js';
 import { registerMacros } from './window-macros.js';
 import { registerHealth } from './window-health.js';
-import { registerStatsWindows } from './window-stats-party.js';
+import { registerStatsWindows, StatsWindow } from './window-stats-party.js';
 import { registerToastSendWindow } from './window-toast-send.js';
 import { registerVoteWindow } from './window-vote-config.js';
 // Named import rather than a bare side-effect one, but it still carries the side effects:
@@ -113,6 +113,7 @@ import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { skillCheckMessageData, SKILL_CHECK_ROLL_ACTION } from './cards-skill-check.js';
+import { STATS_DETAILS_ACTION } from './cards-stats.js';
 import { ChatCardsManager } from './manager-chat-cards.js';
 import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
@@ -665,6 +666,10 @@ Hooks.once('ready', async () => {
         // which is what keeps the buttons alive after a browser reload.
         ChatCardsAPI.registerAction(MODULE.ID, SKILL_CHECK_ROLL_ACTION,
             (context) => SkillCheckDialog.handleRollAction(context));
+
+        // "View the details" on a stats card. The card carries the headline; the
+        // window carries the tables that a chat card is the wrong shape for.
+        ChatCardsAPI.registerAction(MODULE.ID, STATS_DETAILS_ACTION, () => StatsWindow.show());
 
         // Initialize the Tags system: load taxonomy, register GM proxy, run migration
         LoadingProgressManager.logActivity("Initializing tags system...");

@@ -26,6 +26,8 @@
  */
 
 import { MODULE } from './const.js';
+import { ChatCardsAPI } from './api-chat-cards.js';
+import { composeStatsCard } from './cards-stats.js';
 import { getPortraitImage, postConsoleAndNotification } from './api-core.js';
 import { CombatStats } from './stats-combat.js';
 // stats-mvp.js is a leaf — it imports neither this file nor the tracker — so
@@ -379,47 +381,16 @@ export class CombatCards {
                            templateData.settings.showPartyBreakdown;
         if (!showAnyCard) return;
 
-        // Collect all message promises to send them simultaneously
-        const messagePromises = [];
-
-        // 2. Round Summary Card
-        if (templateData.settings.showRoundSummary) {
-            const summaryContent = await foundry.applications.handlebars.renderTemplate(
-                'modules/' + MODULE.ID + '/templates/card-stats-round-summary.hbs',
-                templateData
-            );
-            messagePromises.push(ChatMessage.create({ content: summaryContent, whisper, speaker }));
-        }
-
-        // 3. Round MVP Card
-        if (templateData.settings.showRoundMVP) {
-            const mvpContent = await foundry.applications.handlebars.renderTemplate(
-                'modules/' + MODULE.ID + '/templates/card-stats-round-mvp.hbs',
-                templateData
-            );
-            messagePromises.push(ChatMessage.create({ content: mvpContent, whisper, speaker }));
-        }
-
-        // 4. Notable Moments Card
-        if (templateData.settings.showNotableMoments) {
-            const momentsContent = await foundry.applications.handlebars.renderTemplate(
-                'modules/' + MODULE.ID + '/templates/card-stats-round-moments.hbs',
-                templateData
-            );
-            messagePromises.push(ChatMessage.create({ content: momentsContent, whisper, speaker }));
-        }
-
-        // 5. Party Breakdown Card
-        if (templateData.settings.showPartyBreakdown) {
-            const breakdownContent = await foundry.applications.handlebars.renderTemplate(
-                'modules/' + MODULE.ID + '/templates/card-stats-round-breakdown.hbs',
-                templateData
-            );
-            messagePromises.push(ChatMessage.create({ content: breakdownContent, whisper, speaker }));
-        }
-
-        // Send all messages simultaneously
-        await Promise.all(messagePromises);
+        // ONE card, where this posted up to four. The four settings above still
+        // decide whether a round says anything at all; what they no longer do is
+        // each add a separate ChatMessage to the log.
+        await ChatCardsAPI.post({
+            moduleId: MODULE.ID,
+            type: 'stats-round',
+            parts: composeStatsCard(templateData, 'round'),
+            whisper,
+            speaker
+        });
     }
 
     /**
@@ -712,63 +683,16 @@ export class CombatCards {
             participantsCount: templateData.participants?.length || 0
         }, true, false);
 
-        // Collect all message promises to send them simultaneously
-        const messagePromises = [];
-
-        // 1. Combat Summary Card
-        if (templateData.settings.showCombatSummary) {
-            try {
-                const summaryContent = await foundry.applications.handlebars.renderTemplate(
-                    'modules/' + MODULE.ID + '/templates/card-stats-combat-summary.hbs',
-                    templateData
-                );
-                messagePromises.push(ChatMessage.create({ content: summaryContent, whisper, speaker }));
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat summary card', error, false, false);
-            }
-        }
-
-        // 2. Combat MVP Card
-        if (templateData.settings.showCombatMVP) {
-            try {
-                const mvpContent = await foundry.applications.handlebars.renderTemplate(
-                    'modules/' + MODULE.ID + '/templates/card-stats-combat-mvp.hbs',
-                    templateData
-                );
-                messagePromises.push(ChatMessage.create({ content: mvpContent, whisper, speaker }));
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat MVP card', error, false, false);
-            }
-        }
-
-        // 3. Notable Moments Card
-        if (templateData.settings.showCombatNotableMoments) {
-            try {
-                const momentsContent = await foundry.applications.handlebars.renderTemplate(
-                    'modules/' + MODULE.ID + '/templates/card-stats-combat-moments.hbs',
-                    templateData
-                );
-                messagePromises.push(ChatMessage.create({ content: momentsContent, whisper, speaker }));
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat notable moments card', error, false, false);
-            }
-        }
-
-        // 4. Party Breakdown Card
-        if (templateData.settings.showCombatPartyBreakdown) {
-            try {
-                const breakdownContent = await foundry.applications.handlebars.renderTemplate(
-                    'modules/' + MODULE.ID + '/templates/card-stats-combat-breakdown.hbs',
-                    templateData
-                );
-                messagePromises.push(ChatMessage.create({ content: breakdownContent, whisper, speaker }));
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, 'Error rendering combat party breakdown card', error, false, false);
-            }
-        }
-
-        // Send all messages simultaneously
-        await Promise.all(messagePromises);
+        // ONE card, as with the round. See composeStatsCard: a combat card is the
+        // same shape read over aggregated data, which is why there is one composer
+        // and not two.
+        await ChatCardsAPI.post({
+            moduleId: MODULE.ID,
+            type: 'stats-combat',
+            parts: composeStatsCard(templateData, 'combat'),
+            whisper,
+            speaker
+        });
     }
 
     // Enrich notable moments with portrait images
