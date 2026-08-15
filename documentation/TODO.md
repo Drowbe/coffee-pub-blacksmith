@@ -883,10 +883,6 @@ the trailing-text one is already visible on a shipped card.
   render-time rewrite hook in `blacksmith.js` -- the world default is resolved at post time as of step 1.
   No legacy CSS is preserved for old chat history (decision 8).
 - **Location**: `styles/cards-*.css`, `styles/default.css` (imports), `scripts/blacksmith.js`
-- **`cards-xp.css` cannot simply be deleted** (found 2026-08-13 when the XP card migrated). No template uses
-  its card-side classes any more, but `player-portrait`, `player-list`, and `cpb-actor-name` are still used by
-  `templates/window-xp.hbs`, `templates/window-stats-party.hbs`, and `templates/window-stats-player.hbs`.
-  Consolidation has to split the file and move the window-side rules somewhere honest, not remove it.
 - **How to verify**: post one card of every type in each of the 9 themes and confirm none has lost styling.
   Confirm a new CSS file added without an `@import` in `default.css` is silently unstyled -- so check the
   import chain explicitly. Run `node tools/check-design-tokens.mjs`.

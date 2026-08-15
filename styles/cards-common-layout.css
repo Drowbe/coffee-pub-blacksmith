@@ -133,6 +133,13 @@
        rather than being a fixed grey. Foundry core draws both of these itself, in its
        own colours, and they arrived far heavier than anything else on a card. */
     --blacksmith-card-rule: rgba(0, 0, 0, 0.15);
+
+    /* The radius anything flush against the INSIDE of the card's border must use.
+       A border-radius applies to the border box, so the curve left on the padding box
+       is smaller by the border width. Reusing the card's own 5px on the header band
+       gave the band a wider curve than the space it sits in, and its corners crossed
+       the border -- visible as the header overlapping the card's rounded corners. */
+    --blacksmith-card-inner-radius: calc(var(--blacksmith-radius-lg) - 1px);
     --blacksmith-card-table-head-fill: rgba(0, 0, 0, 0.14);
     --blacksmith-card-table-row-fill: rgba(0, 0, 0, 0.04);
 
@@ -255,7 +262,7 @@
     background: var(--blacksmith-card-header-bg);
     margin: -0.5em -0.5em var(--blacksmith-space-md) -0.5em;
     padding: var(--blacksmith-space-md) 0.5em;
-    border-radius: var(--blacksmith-radius-lg) var(--blacksmith-radius-lg) 0 0;
+    border-radius: var(--blacksmith-card-inner-radius) var(--blacksmith-card-inner-radius) 0 0;
     font-family: "Modesto Condensed";
     font-size: var(--blacksmith-font-size-xl);
     font-weight: var(--blacksmith-font-weight-black);
@@ -279,7 +286,7 @@
 */
 .blacksmith-card .card-header:only-child {
     margin-bottom: -0.5em;
-    border-radius: var(--blacksmith-radius-lg);
+    border-radius: var(--blacksmith-card-inner-radius);
 }
 
 /* Section Header Icons */

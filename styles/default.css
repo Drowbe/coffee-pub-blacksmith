@@ -53,7 +53,6 @@
 @import "cards-common-layout.css"; /* master Layout */
 @import "cards-common-themes.css"; /* master Themes */
 @import "cards-parts.css"; /* composable card parts */
-@import "cards-xp.css";
 @import "cards-stats.css";
 @import "cards-skill-check.css";
 
