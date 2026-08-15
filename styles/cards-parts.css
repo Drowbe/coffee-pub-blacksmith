@@ -222,13 +222,44 @@
     outline-offset: 1px;
 }
 
-/* A clickable row for someone else's character. Appearance only -- the permission
-   itself is checked when the action fires, because the card is public and anyone
-   could trigger it whatever their copy looks like. Applied at render, not in the
-   composition: which rows are yours depends on who is reading. */
+/* A clickable row that is not available to this reader -- someone else's character
+   to roll for, or an option they can no longer choose because they have voted.
+   Appearance only: the permission itself is checked when the action fires, because
+   the card is public and anyone could trigger it whatever their copy looks like.
+   Applied at render, not in the composition, since which rows are yours depends
+   entirely on who is reading. */
 .blacksmith-card .blacksmith-row-clickable.blacksmith-row-not-yours {
     cursor: default;
     opacity: 0.55;
+}
+
+/*
+    The one this reader chose. The counterpart to -not-yours: both are decided per
+    client, because a composition is written once and read by everybody.
+
+    THE TICK IS THE SIGNAL; the green only reinforces it. Colour on its own cannot
+    carry meaning -- a reader who does not separate red from green sees a row no
+    different from the rest of them.
+
+    The mark is a real element added by the render pass rather than a `::after`. A
+    pseudo-element has to name the Font Awesome family by hand, and the first
+    version of this both guessed the family and lost the backslash from its glyph
+    escape to a scripting bug, leaving a literal control character in the file.
+*/
+.blacksmith-card .blacksmith-row-clickable.blacksmith-row-chosen {
+    cursor: default;
+    background: var(--blacksmith-card-tone-positive-bg);
+    border-color: var(--blacksmith-card-tone-positive-border);
+    color: var(--blacksmith-card-tone-positive);
+}
+
+/* `margin-left: auto` rather than a fixed gap: it absorbs whatever slack is left in
+   the row, so the tick sits hard against the right edge whatever else the row
+   carries. */
+.blacksmith-card .blacksmith-row-chosen-mark {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: var(--blacksmith-card-tone-positive);
 }
 
 .blacksmith-card .blacksmith-row-clickable.blacksmith-row-not-yours:hover {

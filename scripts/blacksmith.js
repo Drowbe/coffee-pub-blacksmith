@@ -114,6 +114,7 @@ import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { skillCheckMessageData, SKILL_CHECK_ROLL_ACTION } from './cards-skill-check.js';
 import { STATS_DETAILS_ACTION } from './cards-stats.js';
+import { VOTE_CAST_ACTION, VOTE_CLOSE_ACTION } from './cards-vote.js';
 import { ChatCardsManager } from './manager-chat-cards.js';
 import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
@@ -671,6 +672,18 @@ Hooks.once('ready', async () => {
         // window carries the tables that a chat card is the wrong shape for.
         ChatCardsAPI.registerAction(MODULE.ID, STATS_DETAILS_ACTION, () => StatsWindow.show());
 
+        // Vote card. Both handlers re-check who is allowed to do this: the card is
+        // public, so hiding a button decides what a reader SEES and never what they
+        // may DO.
+        ChatCardsAPI.registerAction(MODULE.ID, VOTE_CAST_ACTION, ({ value }) => {
+            if (game.user.isGM) return ui.notifications.warn('GMs cannot participate in voting.');
+            return VoteManager.castVote(game.user.id, value);
+        });
+        ChatCardsAPI.registerAction(MODULE.ID, VOTE_CLOSE_ACTION, () => {
+            if (!game.user.isGM) return ui.notifications.warn('Only a GM can close a vote.');
+            return VoteManager.closeVote();
+        });
+
         // Initialize the Tags system: load taxonomy, register GM proxy, run migration
         LoadingProgressManager.logActivity("Initializing tags system...");
         await TagManager.ensureTaxonomyLoaded();
@@ -1205,45 +1218,32 @@ Hooks.once('init', async function() {
         }
     });
 
-    // Register chat message click handler for skill rolls
-    // v13: renderChatMessage is deprecated, use renderChatMessageHTML instead
-    const skillCheckChatHookId = HookManager.registerHook({
-        name: 'renderChatMessageHTML',
-        description: 'Blacksmith: Handle skill check chat message clicks',
-        context: 'blacksmith-skill-check',
-        priority: 3, // Normal priority - UI interaction
-        callback: (message, html) => {
-            // v13: renderChatMessageHTML always passes HTMLElement (not jQuery)
-            const htmlElement = getChatMessageElement(html);
-            if (!htmlElement) {
+    // Dim the skill check rows this reader cannot roll for.
+    //
+    // A REGISTERED RENDER PASS rather than a renderChatMessageHTML hook, and this
+    // was a latent bug rather than a preference: a parts card re-renders from its
+    // composition a tick after Foundry paints it, and that swap replaces the
+    // element. As a hook this decorated markup that was about to be discarded, so
+    // the dimming reverted a frame later. It was found on the vote card, where the
+    // same mistake was visible -- a player's own choice never highlighting -- and
+    // fixed in both places at once.
+    //
+    // Appearance only. The permission is checked in the action handler, because the
+    // card is public and anyone can fire the action whatever their copy looks like.
+    ChatCardsAPI.registerRenderPass(MODULE.ID, 'skill-check-ownership', ({ message, root }) => {
+        if (message?.flags?.[MODULE.ID]?.type !== 'skillCheck') return;
+        root.querySelectorAll(`.blacksmith-row-clickable[data-blacksmith-action="${SKILL_CHECK_ROLL_ACTION}"]`).forEach((row) => {
+            let actorId = null;
+            try {
+                actorId = JSON.parse(row.dataset.blacksmithValue ?? '{}').actorId ?? null;
+            } catch (error) {
                 return;
             }
-            
-            if (message.flags?.['coffee-pub-blacksmith']?.type === 'skillCheck') {
-                // Dim the rows this reader cannot roll for. Only the appearance --
-                // the permission itself is checked in the action handler, because the
-                // card is public and anyone could fire the action regardless of what
-                // their copy of it looks like.
-                //
-                // Rendering, not composition: which rows are yours depends on who is
-                // reading, and the composition is written once for everybody.
-                htmlElement.querySelectorAll('.blacksmith-row-clickable[data-blacksmith-action]').forEach((row) => {
-                    let actorId = null;
-                    try {
-                        actorId = JSON.parse(row.dataset.blacksmithValue ?? '{}').actorId ?? null;
-                    } catch (error) {
-                        return;
-                    }
-                    if (!actorId) return;
-                    const actor = game.actors.get(actorId);
-                    if (!game.user.isGM && !actor?.isOwner) row.classList.add('blacksmith-row-not-yours');
-                });
-            }
-        }
+            if (!actorId) return;
+            const actor = game.actors.get(actorId);
+            if (!game.user.isGM && !actor?.isOwner) row.classList.add('blacksmith-row-not-yours');
+        });
     });
-    
-    // Log hook registration
-    postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "blacksmith-skill-check", true, false);
 
     // Hide initiative roll chat cards without blocking the dice animation.
     // DSN hooks createChatMessage to trigger its animation, so we must let the message be created.
@@ -2338,10 +2338,13 @@ const coffeePubCardRerenderHookId = HookManager.registerHook({
                 const freshCard = fresh.querySelector('.blacksmith-card');
                 if (!freshCard) return;
                 host.replaceWith(freshCard);
-                // The dispatcher already ran against the baked markup; these
-                // buttons are new elements and carry no listeners yet.
+                // Everything below decorates the NEW element. The dispatcher
+                // already ran against the baked markup, and every per-reader pass
+                // decorated markup that has just been thrown away -- so both have
+                // to happen again, against what is now on screen.
                 bindCardActions(message, freshCard);
                 applyTruncationTooltips(freshCard);
+                ChatCardsAPI.applyRenderPasses(message, freshCard);
             })
             .catch((error) => {
                 postConsoleAndNotification(MODULE.NAME, "Chat Cards | Re-render failed, keeping baked HTML", error?.message ?? error, false, false);
@@ -2467,6 +2470,9 @@ const coffeePubCardActionHookId = HookManager.registerHook({
         // Not folded into bindCardActions: that returns early when a card carries no
         // action, and a card of nothing but a table needs this pass.
         applyTruncationTooltips(root);
+        // Per-reader decoration on the baked markup. It runs again after the
+        // re-render swap, because that discards this element entirely.
+        ChatCardsAPI.applyRenderPasses(message, root?.querySelector?.('.blacksmith-card') ?? root);
     }
 });
 

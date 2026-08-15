@@ -35,6 +35,14 @@ const CARD_SCHEMA_VERSION = 1;
  */
 const CARD_ACTIONS = new Map();
 
+/**
+ * Per-client render passes, keyed by module id.
+ *
+ * Client-side and transient like the actions above, for the same reason: what a
+ * card looks like to YOU cannot travel with the message.
+ */
+const CARD_RENDER_PASSES = new Map();
+
 export class ChatCardsAPI {
 
     // ==============================================================
@@ -150,6 +158,77 @@ export class ChatCardsAPI {
      */
     static unregisterAction(moduleId, action) {
         return CARD_ACTIONS.delete(`${moduleId}:${action}`);
+    }
+
+    // ==============================================================
+    // ===== RENDER PASSES ==========================================
+    // ==============================================================
+
+    /**
+     * Register a pass that decorates a rendered card for THIS reader.
+     *
+     * For the things a composition cannot express, because they depend on who is
+     * looking: which row is your own vote, which characters you may roll for,
+     * which label is truncated on this screen at this width. A composition is
+     * written once and read by everybody; these are decided per client.
+     *
+     * WHY THIS EXISTS RATHER THAN A `renderChatMessageHTML` HOOK. A parts card
+     * re-renders from its stored composition a tick after Foundry paints it, and
+     * that swap REPLACES the card element. Anything a hook decorated is on the old
+     * element and is silently discarded -- markup that looked right for a frame and
+     * then reverted. That cost two bugs before this existed: vote cards never
+     * showing the reader their own vote, and skill check rows never dimming.
+     * Passes registered here run after the initial paint AND after every re-render.
+     *
+     * A pass must be idempotent: it can run more than once on the same card.
+     *
+     * Named as well as namespaced, because one module has more than one: Blacksmith
+     * alone dims skill check rows and marks vote choices, and keying by module id
+     * would have let the second silently replace the first.
+     *
+     * @param {string} moduleId - Your module id; namespaces the pass.
+     * @param {string} name - Distinguishes your passes from each other.
+     * @param {(context: {message: ChatMessage, card: object, root: HTMLElement}) => void} handler
+     * @returns {boolean} Whether the registration was accepted.
+     */
+    static registerRenderPass(moduleId, name, handler) {
+        if (!moduleId || !name || typeof handler !== 'function') {
+            postConsoleAndNotification(MODULE.NAME, 'Chat Cards | registerRenderPass requires moduleId, name, and a function', String(moduleId), false, false);
+            return false;
+        }
+        CARD_RENDER_PASSES.set(`${moduleId}:${name}`, handler);
+        return true;
+    }
+
+    /**
+     * Remove a registered render pass.
+     * @param {string} moduleId
+     * @param {string} name
+     * @returns {boolean} Whether a pass was removed.
+     */
+    static unregisterRenderPass(moduleId, name) {
+        return CARD_RENDER_PASSES.delete(`${moduleId}:${name}`);
+    }
+
+    /**
+     * Run every registered pass over a freshly rendered card.
+     *
+     * One pass throwing must not stop the others, and must never leave the card
+     * unusable -- decoration is the least important thing on it.
+     *
+     * @param {ChatMessage} message
+     * @param {HTMLElement} root - the `.blacksmith-card` element
+     */
+    static applyRenderPasses(message, root) {
+        if (!root) return;
+        const card = message?.flags?.[MODULE.ID]?.card ?? null;
+        for (const [key, handler] of CARD_RENDER_PASSES) {
+            try {
+                handler({ message, card, root });
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, `Chat Cards | render pass "${key}" threw`, error?.message ?? error, false, false);
+            }
+        }
     }
 
     /**

@@ -1,205 +1,42 @@
 /* ------------------------------------ */
-/* --- VOTE CARDS --------------------- */
+/* --- VOTING ------------------------- */
 /* ------------------------------------ */
 
-.vote-card {
-    padding: 0.5em;
-    margin-bottom: 0.5em;
-    font-family: var(--dnd5e-font-roboto);
-    background-color: #ffffff;
-    border: 1px solid #594a3c;
-    border-radius: 5px;
-}
+/*
+    The vote WINDOW and its dialogs. The vote CARD used to live here too; it is
+    composed from parts now (scripts/cards-vote.js), so its rules went with the
+    template.
 
-.vote-header {
-    font-family: var(--dnd5e-font-roboto-slab);
-    font-size: .9em;
-    font-weight: bold;
-    color: #594a3c;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    border-bottom: 1px dotted rgba(89, 74, 60, 0.2);
-    padding-bottom: 5px;
-	margin-top: 5px;
-}
+    Three `.vote-status.*` rules survived the first pass because they pair a card
+    class with `.active`, which other features do use -- but `.vote-status` itself
+    had no emitter left, so nothing could match them. That pairing is the trap in
+    any "is this class used" audit: a rule is live only if EVERY class in its
+    selector can appear on one element together.
+*/
 
-.vote-header h3 {
-    font-family: var(--dnd5e-font-roboto-slab); 
-    font-size: 1.1em;
-    font-weight: bold;
-    color: #594a3c;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    border: 0px solid rgb(245, 245, 245);
-}
 
-.vote-header h3 i {
-    font-size: 1.3em;
-	margin-top: 3px;
-	margin-bottom: 0px;
-}
 
-.vote-status {
-    font-size: 0.9em;
-    padding-top: 2px;
-	padding-bottom: 2px;
-	padding-left: 4px;
-	padding-right: 4px;
-    border-radius: 3px;
-	margin-top: 0px;
-	margin-bottom: 8px;
-    font-family: var(--dnd5e-font-roboto);
-}
 
-.vote-status.active {
-    background: rgba(51, 122, 183, 0.1);
-    border: 1px solid #337ab7;
-    color: #337ab7;
-}
 
-.vote-status.complete {
-    background: rgba(45, 138, 69, 0.1);
-    border: 1px solid #2d8a45;
-    color: #2d8a45;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-	padding-top: 4px;
-	padding-bottom: 2px;
-	padding-left: 4px;
-	padding-right: 4px;
-    border-radius: 3px;
-	margin-top: 0px;
-	margin-bottom: 8px;
-}
 
-.vote-status.complete i {
-    font-size: 1.1em;
-}
 
-.vote-status-message {
-    width: 100%;
-    text-align: center;
-    padding: 8px;
-    background: rgba(45, 138, 69, 0.1);
-    border: 1px solid #2d8a45;
-    border-radius: 4px;
-    color: #2d8a45;
-    font-family: var(--dnd5e-font-roboto);
-}
 
-.vote-status-message i {
-    margin-right: 5px;
-}
 
-.vote-options {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 0.5em;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 5px;
-}
 
-.vote-option button {
-    width: 100%;
-    text-align: left;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid var(--color-border-light-primary);
-    border-radius: 4px;
-    color: #594a3c;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: var(--dnd5e-font-roboto);
-    transition: all 0.2s ease;
-}
 
-.vote-option button:hover:not(:disabled) {
-    color: #c15701;
-    border-color: #c15701;
-}
 
-.vote-option button:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
 
-.vote-controls {
-    margin-top: 15px;
-    text-align: right;
-}
 
-.close-vote {
-    background: rgba(193, 87, 1, 0.1);
-    color: #c15701;
-    padding: 5px 10px;
-    border-radius: 3px;
-    border: 1px solid #c15701;
-    font-family: var(--dnd5e-font-roboto);
-    transition: all 0.2s ease;
-}
 
-.close-vote:hover {
-    background: rgba(193, 87, 1, 0.2);
-}
 
-.vote-results {
-    padding: 0.5em;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 5px;
-}
 
-.vote-results h4 {
-    font-family: var(--dnd5e-font-roboto-slab);
-    font-size: 1.1em;
-    font-weight: bold;
-    color: #594a3c;
-    margin: 0 0 10px 0;
-}
 
-.result-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid var(--color-border-light-primary);
-    border-radius: 4px;
-    margin-bottom: 4px;
-}
 
-.result-row:last-child {
-    margin-bottom: 0;
-}
 
-.option-name {
-    flex: 1;
-    color: #594a3c;
-    font-family: var(--dnd5e-font-roboto);
-}
 
-.vote-count {
-    margin: 0 10px;
-    color: #461313;
-    font-weight: bold;
-}
 
-.winner-icon {
-    color: #c15701;
-}
 
-.total-votes {
-    margin-top: 10px;
-    text-align: right;
-    font-style: italic;
-    color: #594a3c;
-    font-size: 0.9em;
-}
+
 
 /* Vote Config Dialog */
 .vote-config-content {
@@ -260,16 +97,6 @@
     line-height: 1.4;
 }
 
-.vote-description {
-    color: #594a3c;
-    font-size: 1.2em;
-    line-height: 1.2;
-	padding-top: 8px;
-	padding-bottom: 8px;
-	padding-left: 8px;
-	padding-right: 8px;
-	margin-bottom: 8px;
-}
 
 /* Leader tie-breaker — DialogV2 (Application V2) */
 .application.blacksmith-leader-tie-breaker .window-content {

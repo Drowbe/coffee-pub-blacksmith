@@ -372,6 +372,18 @@ export class ChatCardsManager {
             return '';
         }
 
+        // A whole part may be limited to some readers, not just a field within one.
+        // `plan-card-visibility.md` decision 6 kept this out until something needed
+        // it, rather than building on speculation; the vote card's GM-only "Close
+        // Vote" is that something.
+        //
+        // Same rules as a veiled value, and the same guarantee: it uses mayRead(),
+        // so it fails closed on the baked snapshot and on any name not in the
+        // allowlist. And the same caveat -- this decides what RENDERS, not what
+        // travels. Anything that must not reach a client stays out of the
+        // composition altogether.
+        if (part.readableBy !== undefined && !mayRead(part, options)) return '';
+
         const context = await this._prepareContext(id, part, options);
 
         try {

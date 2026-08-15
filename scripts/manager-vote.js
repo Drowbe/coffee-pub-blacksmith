@@ -3,6 +3,9 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
+import { ChatCardsAPI } from './api-chat-cards.js';
+import { ChatCardsManager } from './manager-chat-cards.js';
+import { composeVoteCard, VOTE_CARD_TYPE, VOTE_CAST_ACTION } from './cards-vote.js';
 import { postConsoleAndNotification, playSound, getSettingSafely, isCurrentUserPartyLeader, ownsAnyCharacter } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { MenuBar } from './api-menubar.js';
@@ -81,91 +84,50 @@ export class VoteManager {
             return '<div style="text-align: left;"><b>RESULTS</b><br><br><ul>' + voteDetails.join('<br>') + '</ul></div>';
         });
 
-        // Register click handlers for vote cards
-        // v13: renderChatMessage is deprecated, use renderChatMessageHTML instead
-        const renderChatMessageHookId = HookManager.registerHook({
-            name: 'renderChatMessageHTML',
-            description: 'Vote Manager: Handle vote card interactions and button styling',
-            context: 'vote-manager-chat',
-            priority: 3, // Normal priority - UI interaction
-            callback: (message, html) => {
-                if (message.flags?.['coffee-pub-blacksmith']?.isVoteCard) {
-                    // v13: renderChatMessageHTML always passes HTMLElement (not jQuery)
-                    // Keep jQuery detection as defensive programming, but it should not be needed
-                    let nativeHtml = html;
-                    if (html && (html.jquery || typeof html.find === 'function')) {
-                        nativeHtml = html[0] || html.get?.(0) || html;
-                    }
+        // Mark the reader's OWN vote, per client.
+        //
+        // A REGISTERED RENDER PASS, not a renderChatMessageHTML hook. A parts card
+        // re-renders from its composition a tick after Foundry paints it, and that
+        // swap replaces the element -- so anything a hook decorated is discarded.
+        // The first version of this WAS a hook, and the symptom was exactly that: a
+        // player voted and their own option never changed, because the class was
+        // added to markup that was about to be thrown away.
+        //
+        // What it decides cannot be composed: which option belongs to the person
+        // looking at it. The composition is written once and read by everyone.
+        ChatCardsAPI.registerRenderPass(MODULE.ID, 'vote-own-choice', ({ message, root }) => {
+            if (!message?.flags?.[MODULE.ID]?.isVoteCard) return;
 
-                    // Vote button click handler (use VoteManager explicitly - hook callback "this" is not VoteManager)
-                    nativeHtml.querySelectorAll('.vote-button').forEach(button => {
-                        button.addEventListener('click', async (event) => {
-                            event.preventDefault();
-                            // Prevent GMs from voting
-                            if (game.user.isGM) {
-                                ui.notifications.warn("GMs cannot participate in voting.");
-                                return;
-                            }
-                            const currentTarget = event.currentTarget;
-                            if (!(currentTarget instanceof HTMLElement)) return;
-                            const optionId = currentTarget.dataset.optionId;
-                            await VoteManager.castVote(game.user.id, optionId);
-                        });
-                    });
+            const rows = root.querySelectorAll(`.blacksmith-row-clickable[data-blacksmith-action="${VOTE_CAST_ACTION}"]`);
+            if (!rows.length) return;
 
-                    // Handle close button visibility and click event
-                    const closeButton = nativeHtml.querySelector('.vote-controls');
-                    if (closeButton) {
-                        if (!game.user.isGM) {
-                            closeButton.style.display = 'none';
-                        } else {
-                            const closeVoteButton = closeButton.querySelector('.close-vote');
-                            if (closeVoteButton) {
-                                closeVoteButton.addEventListener('click', async (event) => {
-                                    event.preventDefault();
-                                    await VoteManager.closeVote();
-                                });
-                            }
-                        }
-                    }
-
-                    // Add visual indicators for votes and GM status
-                    if (VoteManager.activeVote?.votes) {
-                        const userVote = VoteManager.activeVote.votes[game.user.id];
-                        nativeHtml.querySelectorAll('.vote-button').forEach((button) => {
-                            const optionId = button.dataset.optionId;
-
-                            // Disable buttons for GMs
-                            if (game.user.isGM) {
-                                button.disabled = true;
-                                button.style.opacity = '0.6';
-                                button.style.cursor = 'not-allowed';
-                                button.style.pointerEvents = 'none';
-                            } else if (userVote === optionId) {
-                                // Add check mark to voted option
-                                const icon = document.createElement('i');
-                                icon.className = 'fas fa-check';
-                                icon.style.marginLeft = '10px';
-                                icon.style.color = '#2d8a45';
-                                button.appendChild(icon);
-                                button.style.background = 'rgba(45, 138, 69, 0.1)';
-                                button.style.borderColor = '#2d8a45';
-                                button.style.color = '#2d8a45';
-                                button.style.pointerEvents = 'none';
-                            } else if (userVote) {
-                                // Style non-selected options when user has voted
-                                button.style.opacity = '0.6';
-                                button.style.cursor = 'not-allowed';
-                                button.style.pointerEvents = 'none';
-                            }
-                        });
-                    }
-                }
+            // A GM may not vote, so every option is inert for them.
+            if (game.user.isGM) {
+                rows.forEach((row) => row.classList.add('blacksmith-row-not-yours'));
+                return;
             }
-        });
 
-        // Log hook registration
-        postConsoleAndNotification(MODULE.NAME, "Hook Manager | renderChatMessageHTML", "vote-manager-chat", true, false);
+            const myVote = VoteManager.activeVote?.votes?.[game.user.id];
+            if (!myVote) return;
+
+            rows.forEach((row) => {
+                if (row.dataset.blacksmithValue === myVote) {
+                    row.classList.add('blacksmith-row-chosen');
+                    // A tick, not just a tint. Colour on its own does not tell a
+                    // reader who cannot separate red from green which row is theirs.
+                    // Guarded because a pass may run more than once on the same card.
+                    if (!row.querySelector('.blacksmith-row-chosen-mark')) {
+                        const mark = document.createElement('i');
+                        mark.className = 'fa-solid fa-check blacksmith-row-chosen-mark';
+                        mark.dataset.tooltip = 'Your vote';
+                        row.appendChild(mark);
+                    }
+                } else {
+                    // Voted already, so the others are no longer offers.
+                    row.classList.add('blacksmith-row-not-yours');
+                }
+            });
+        });
     }
 
     /**
@@ -783,12 +745,25 @@ export class VoteManager {
      */
     static _getVotingProgress() {
         const eligibleIds = this._getEligibleIds();
-        const nonGMVotes = Object.entries(this.activeVote.votes || {}).filter(([userId]) =>
-            eligibleIds.has(userId)
-        ).length;
+        const cast = new Set(Object.keys(this.activeVote.votes || {}).filter((id) => eligibleIds.has(id)));
+
+        // WHO HAS NOT VOTED, by name. This is safe to put on the card and the
+        // detail it replaced was not: a name here says only that someone has yet to
+        // act, never what anybody chose. "Who voted for what" is the secret, and it
+        // stays out of the message entirely -- see cards-vote.js.
+        //
+        // The GM needs this to chase people, which is what the old GM-only tooltip
+        // was really for. Removing that tooltip took the chasing away with the leak.
+        const waitingOn = [...eligibleIds]
+            .filter((id) => !cast.has(id))
+            .map((id) => game.users.get(id)?.name)
+            .filter(Boolean)
+            .sort();
+
         return {
-            current: nonGMVotes,
-            total: eligibleIds.size
+            current: cast.size,
+            total: eligibleIds.size,
+            waitingOn
         };
     }
 
@@ -803,29 +778,19 @@ export class VoteManager {
         // Play notification sound
         playSound(window.COFFEEPUB?.SOUNDNOTIFICATION02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
 
-        const messageData = {
-            vote: this.activeVote,
-            userId: game.user.id,
-            progress: this._getVotingProgress(),
-            currentUserIsGM: game.user.isGM
-        };
-
-        const content = await foundry.applications.handlebars.renderTemplate(
-            'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
-            messageData,
-        );
-
-        // Create a single message from the GM
-        const message = await ChatMessage.create({
-            content: content,
-            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+        // No `userId` and no `currentUserIsGM` in here any more. Both were the
+        // INITIATOR's, baked into one string every client shares, which is what made
+        // the GM-only voter detail readable by every player. The card is composed
+        // once and rendered per client now; anything that differs by reader is
+        // decided in the reader's own browser.
+        const message = await ChatCardsAPI.post({
+            moduleId: MODULE.ID,
+            type: VOTE_CARD_TYPE,
+            parts: composeVoteCard(this.activeVote, this._getVotingProgress()),
             speaker: ChatMessage.getSpeaker({ user: gmUser }),
-            whisper: [], // Empty array means visible to all
             flags: {
-                'coffee-pub-blacksmith': {
-                    isVoteCard: true,
-                    voteId: this.activeVote.id
-                }
+                isVoteCard: true,
+                voteId: this.activeVote.id
             }
         });
 
@@ -841,19 +806,21 @@ export class VoteManager {
         const message = game.messages.get(this.activeVote.messageId);
         if (!message) return;
 
-        const messageData = {
-            vote: this.activeVote,
-            userId: game.user.id,
-            progress: this._getVotingProgress(),
-            currentUserIsGM: game.user.isGM
+        // Rebuild the composition and the baked snapshot together. Still only the
+        // initiator runs this -- that guard is unchanged and is about who may WRITE
+        // to the message -- but it no longer decides what anyone SEES, because each
+        // client renders the stored composition for itself.
+        const card = {
+            v: 1,
+            moduleId: MODULE.ID,
+            type: VOTE_CARD_TYPE,
+            theme: ChatCardsManager.resolveThemeId(null),
+            parts: composeVoteCard(this.activeVote, this._getVotingProgress())
         };
-
-        const content = await foundry.applications.handlebars.renderTemplate(
-            'modules/coffee-pub-blacksmith/templates/vote-card.hbs',
-            messageData,
-        );
-
-        await message.update({ content: content });
+        await message.update({
+            content: await ChatCardsManager.renderCard(card, { baked: true }),
+            flags: { [MODULE.ID]: { card, isVoteCard: true, voteId: this.activeVote.id } }
+        });
     }
 
     /**
