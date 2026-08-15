@@ -2137,7 +2137,7 @@ export class JournalToolsWindow extends BlacksmithWindowBaseV2 {
 
     static PARTS = {
         body: {
-            template: `modules/${MODULE.ID}/templates/journal-tools-window.hbs`
+            template: `modules/${MODULE.ID}/templates/window-journal-tools.hbs`
         }
     };
 

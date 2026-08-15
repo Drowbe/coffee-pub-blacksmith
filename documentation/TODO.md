@@ -930,6 +930,39 @@ to act. If the detail is ever wanted on the card, the honest mechanism is a whis
 check and stats composers. It is pure, so every branch -- active, closed, no options, a winner, the
 GM-only parts -- is assertable without a vote happening.
 
+#### 5e. Imported journal pages need their own styling (2026-08-15)
+
+`styles/overrides-foundry.css` was deleted. It restyled `.journal-page-content` -- Foundry's own journal
+body -- for EVERY journal in the world: core content, compendium pages, and anything Cartographer,
+Scribe or a third-party module writes. Not gated behind a setting; the file itself said "These are not
+in Settings yet".
+
+**Four of its five rules were not taste. They fixed OUR import output**, and that problem comes back
+with the deletion. Recorded here so it is not rediscovered from scratch:
+
+    /* Breathing room between stacked JSON-import sections
+       (themes often collapse margins) */
+    .journal-page-content ul + h2,
+    .journal-page-content ul + h3,
+    .journal-page-content blockquote + h2,
+    .journal-page-content blockquote + h3 { margin-top: 1.1em; }
+    .journal-page-content h2 + h3          { margin-top: 0.85em; }
+
+    /* Taste, not a fix -- emphasis on journal headings */
+    .journal-page-content h2 { font-weight: 700; font-size: 1.9em; }
+    .journal-page-content h4 { font-weight: 900; font-size: 1.25em; }
+    section.journal-page-content img { border-radius: 4px; }
+
+**Do this as part of the Scribe / import / cards effort, not before it.** Scoping these rules now would
+be scoping a hack we are about to replace: we got here by styling CORE elements to bend them into shape,
+and the direction of travel is that our content carries its own elements. An imported page should be
+recognisable as ours -- a class the importer stamps, or a custom element -- and styled through that,
+so the fix reaches our pages and no one else's.
+
+- **Where**: whatever stamps imported journal pages (the JSON import registry), plus a scoped stylesheet.
+- **How to verify**: import a page with stacked lists and blockquotes; the spacing holds. Then open a
+  core compendium journal and confirm it renders exactly as Foundry draws it, with nothing of ours on it.
+
 #### 6. CSS consolidation
 - **Work**: Collapse the five card CSS files to one layout file and one theme file. Delete the `theme-default`
   render-time rewrite hook in `blacksmith.js` -- the world default is resolved at post time as of step 1.

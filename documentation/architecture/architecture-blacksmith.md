@@ -182,8 +182,7 @@ All new windows should use Application V2 patterns per project rules; existing w
 
 - **Design tokens (first):** vars.
 - **Shared:** common, settings, loading-progress.
-- **Overrides:** overrides-foundry.
-- **Windows:** window-common, window-gmtools, window-skillcheck, token-movement, window-xp, window-stats, window-roll-normal, window-roll-cinematic, window-pin-config, window-pin-layers, window-template, window-json-import, window-form-controls, window-tabs, window-list, window-panels.
+- **Windows:** window-common, window-gmtools, window-skillcheck, window-token-movement, window-vote, window-xp, window-stats, window-roll-normal, window-roll-cinematic, window-pin-config, window-pin-layers, window-template, window-json-import, window-form-controls, window-tabs, window-list, window-panels.
 - **Tabs:** tabs-scenes.
 - **Toolbars:** toolbars, toolbar-zones, toolbar-encounter, journal-tools, journal-pins.
 - **Cards:** cards-common-layout, cards-common-themes, cards-parts.

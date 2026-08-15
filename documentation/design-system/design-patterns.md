@@ -36,9 +36,8 @@ the tag widget, whose template and script are complete but which no template cur
 | `pins.css` | Canvas pins |
 
 The rest are per-feature: `toast.css`, `settings.css`, `combat-tools.css`,
-`token-movement.css`, `latency.css`, `loading-progress.css`, `menu-context-global.css`,
-`tabs-scenes.css`, `utility-quickview.css`, `notes-gm.css`, `widget-tags.css`,
-`overrides-foundry.css`.
+`latency.css`, `loading-progress.css`, `menu-context-global.css`,
+`tabs-scenes.css`, `utility-quickview.css`, `notes-gm.css`, `widget-tags.css`.
 
 Two conventions hold across the tree. `cards-common-themes.css` contains color declarations only -- no
 radius, spacing, typography, or layout -- which is what makes a new theme a pure color exercise. And
@@ -97,7 +96,9 @@ carry Hungarian prefixes in older code -- `str`, `int`, `bln`.
 
 `templates/` holds 41 root templates plus `templates/partials/`. Cards are `card-*.hbs` with shared
 structure in `cards-common.hbs`; windows are `window-*.hbs`; timers are `timer-*.hbs`. Feature templates
-are named for their feature (`menubar.hbs`, `vote-window.hbs`, `journal-tools-window.hbs`).
+are named for their feature (`menubar.hbs`, `encounter-toolbar.hbs`). Three windows used to be named the
+other way round -- `movement-window.hbs`, `vote-window.hbs`, `journal-tools-window.hbs` -- and were renamed
+to the prefix form so the convention has no exceptions to remember.
 
 Partials are registered with `Handlebars.registerPartial` under an explicit alias rather than by path --
 the shared header is registered as `partial-unified-header` (`scripts/blacksmith.js:841-844`). Template
@@ -134,5 +135,5 @@ Named animations are defined near the components that use them: pin animations i
 (ten `blacksmith-pin-*` keyframes), card and roll animations in `styles/cards-parts.css`,
 cinematic roll animations in `styles/window-roll-cinematic.css`, and per-feature keyframes in
 `styles/menubar.css`, `styles/menubar-combatbar.css`, `styles/timer-planning.css`,
-`styles/token-movement.css`, `styles/combat-tools.css`, `styles/loading-progress.css`,
+`styles/window-token-movement.css`, `styles/combat-tools.css`, `styles/loading-progress.css`,
 `styles/window-common.css`, `styles/window-json-import.css`, and `styles/window-skillcheck.css`.

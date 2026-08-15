@@ -193,7 +193,7 @@ class MenuBar {
         // Load the templates
         foundry.applications.handlebars.loadTemplates([
             'modules/coffee-pub-blacksmith/templates/menubar.hbs',
-            'modules/coffee-pub-blacksmith/templates/vote-window.hbs'
+            'modules/coffee-pub-blacksmith/templates/window-vote.hbs'
         ]);
 
         // (Menubar ready logic is registered at module load — see bottom of this file — so it runs when Foundry emits ready.)

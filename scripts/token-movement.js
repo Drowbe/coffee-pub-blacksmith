@@ -534,7 +534,7 @@ export class MovementConfig extends BlacksmithWindowBaseV2 {
 
     static PARTS = {
         body: {
-            template: `modules/${MODULE.ID}/templates/movement-window.hbs`
+            template: `modules/${MODULE.ID}/templates/window-token-movement.hbs`
         }
     };
 

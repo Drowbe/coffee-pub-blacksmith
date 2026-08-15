@@ -113,26 +113,15 @@
 
 
 
-/* UNSUED CLASSES FOR NOW */
+/*
+    `.movement-in-progress` and its `pulse-border` keyframes lived here: a
+    not-allowed cursor and a pulsing red border for a token being moved. Nothing
+    ever set the class, so neither ever fired, and the keyframes had no other user.
 
-/* Movement in progress styles */
-.movement-in-progress {
-    cursor: not-allowed !important;
-    border: 2px solid rgba(255, 0, 0, 0.5) !important;
-    animation: pulse-border 1s infinite;
-}
-
-@keyframes pulse-border {
-    0% {
-        border-color: rgba(255, 0, 0, 0.3);
-    }
-    50% {
-        border-color: rgba(255, 0, 0, 0.7);
-    }
-    100% {
-        border-color: rgba(255, 0, 0, 0.3);
-    }
-}
+    The section was headed "UNSUED CLASSES FOR NOW", which is the tell -- a comment
+    admitting code is dead is not a reason to keep it. Deleted rather than left,
+    because the next reader has to prove it is dead all over again.
+*/
 
 
 

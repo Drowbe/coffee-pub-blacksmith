@@ -32,7 +32,7 @@ export class VoteConfig extends BlacksmithWindowBaseV2 {
 
     static PARTS = {
         body: {
-            template: `modules/${MODULE.ID}/templates/vote-window.hbs`
+            template: `modules/${MODULE.ID}/templates/window-vote.hbs`
         }
     };
 

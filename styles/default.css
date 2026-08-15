@@ -10,9 +10,6 @@
 @import "settings.css";
 @import "loading-progress.css";
 
-/* --- Overrides ------------------- */
-@import "overrides-foundry.css"; 
-
 /* --- Shared UI components ------- */
 @import "entity-list.css";
 
@@ -21,7 +18,7 @@
 @import "window-common.css";
 @import "window-gmtools.css";
 @import "window-skillcheck.css";
-@import "token-movement.css";
+@import "window-token-movement.css";
 @import "window-xp.css";
 @import "window-stats.css";
 @import "window-roll-normal.css";
