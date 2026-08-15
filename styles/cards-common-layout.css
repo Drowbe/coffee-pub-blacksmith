@@ -140,6 +140,15 @@
        gave the band a wider curve than the space it sits in, and its corners crossed
        the border -- visible as the header overlapping the card's rounded corners. */
     --blacksmith-card-inner-radius: calc(var(--blacksmith-radius-lg) - 1px);
+
+    /* The card's inset, and ABSOLUTE rather than em on purpose.
+       It was `0.5em`, which the header could not correctly cancel: `em` resolves
+       against the element's OWN font-size, and the header is 1.5em, so the card
+       inset 0.5 x 13px = 6.5px while the header bled out 0.5 x 19.5px = 9.75px.
+       The band overshot by ~3px on each side and sat outside the card's border,
+       which is what made the corners look wrong however the radius was tuned.
+       Anything cancelling this padding must derive from this token. */
+    --blacksmith-card-padding: var(--blacksmith-space-md);
     --blacksmith-card-table-head-fill: rgba(0, 0, 0, 0.14);
     --blacksmith-card-table-row-fill: rgba(0, 0, 0, 0.04);
 
@@ -211,10 +220,11 @@
        no space to wrap at: one unbroken token (a URL, a pasted id, a name with no
        spaces) is otherwise wider than the card and pushes straight past its edge. */
     overflow-wrap: break-word;
-    /* 0.5em, and the -dark header band relies on it: that rule bleeds out through
-       this padding with a matching negative margin. `padding: 0` and `margin: 0` were
-       also declared above these and overridden two lines later, doing nothing. */
-    padding: 0.5em;
+    /* The -dark header band relies on this: that rule bleeds out through this padding
+       with a matching negative margin derived from the same token, which is what keeps
+       the two exactly equal. `padding: 0` and `margin: 0` were also declared above
+       these and overridden two lines later, doing nothing. */
+    padding: var(--blacksmith-card-padding);
     margin: 0 0 0 0;
     font-family: var(--dnd5e-font-roboto);
     background-color: var(--blacksmith-card-bg);
@@ -257,11 +267,14 @@
        fills it. Both come from one token, so there is a single rule here and the
        theme decides how loud it is.
 
-       The negative margin bleeds the band out through the card's 0.5em padding to
-       its edges, and the top corners match the card's own radius. */
+       The negative margin bleeds the band out through the card's padding to its edges,
+       derived from the same token so the two cancel exactly, and the top corners use
+       the INNER radius -- the curve left inside the card's 1px border. */
     background: var(--blacksmith-card-header-bg);
-    margin: -0.5em -0.5em var(--blacksmith-space-md) -0.5em;
-    padding: var(--blacksmith-space-md) 0.5em;
+    margin: calc(-1 * var(--blacksmith-card-padding))
+            calc(-1 * var(--blacksmith-card-padding))
+            var(--blacksmith-space-md);
+    padding: var(--blacksmith-space-md) var(--blacksmith-card-padding);
     border-radius: var(--blacksmith-card-inner-radius) var(--blacksmith-card-inner-radius) 0 0;
     font-family: "Modesto Condensed";
     font-size: var(--blacksmith-font-size-xl);
@@ -285,7 +298,7 @@
     wrapper, so a header is an only child precisely when nothing else was composed.
 */
 .blacksmith-card .card-header:only-child {
-    margin-bottom: -0.5em;
+    margin-bottom: calc(-1 * var(--blacksmith-card-padding));
     border-radius: var(--blacksmith-card-inner-radius);
 }
 
