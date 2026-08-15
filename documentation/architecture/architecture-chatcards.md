@@ -59,11 +59,11 @@ follows: an allowlist, not trust.
 
 Motion is a named vocabulary in `styles/cards-parts.css` - `shake-x`, `shake-y`, `pulse`, `glow` - applied as `.blacksmith-anim-{name}`. A part that accepts an `animation` field takes one of those names.
 
-**A name describes a motion, never a meaning.** The crit and fumble rules in `cards-skill-check.css` bind green to a vertical shake and red to a horizontal one; those are d20 rules, and the parts system deliberately does not know them. A card states its tone and its motion separately, so the same shake is available to a crafting result or a countdown.
+**A name describes a motion, never a meaning.** The roll card's crit and fumble rules bound green to a vertical shake and red to a horizontal one; those are d20 rules, and the parts system deliberately does not know them. A card states its tone and its motion separately, so the same shake is available to a crafting result or a countdown.
 
 All animations are suppressed under `prefers-reduced-motion`. Adding a name makes it available to every part at once.
 
-The `pips` centre and `rows` items accept one today. The shake keyframes live here rather than in `cards-skill-check.css` because that file is scheduled for deletion and keyframes are document-global, so the definition must outlive its first caller.
+The `pips` centre and `rows` items accept one today. The shake keyframes live in `styles/cards-parts.css` rather than beside the roll card that first used them, because keyframes are document-global and the definition had to outlive its first caller -- which it now has, that stylesheet having been deleted.
 
 ## Composition is flat
 

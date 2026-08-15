@@ -23,6 +23,7 @@
 // ==================================================================
 
 import { requireApi, settingRow, stylesheetContains } from '../harness-lib.js';
+import { composeSkillCheckCard } from '/modules/coffee-pub-blacksmith/scripts/cards-skill-check.js';
 
 // Real art, not a placeholder: the core mystery-man svg is nearly white, so a
 // light image border reads as absent against it --
@@ -105,6 +106,125 @@ export default {
 
         // ---------- HEADLESS ----------
 
+        // The skill check composer is a PURE function -- data in, parts out, no
+        // globals, no DOM. It is the one thing in the card system that can be
+        // asserted properly rather than eyeballed, so it is asserted properly. Every
+        // case below is one a person would otherwise have to set up a live roll to
+        // see, and three of them are cases nobody remembers to set up.
+        {
+            id: 'skill-check-compose',
+            tier: 'headless',
+            group: 'Skill check',
+            label: 'the composition matches the state it was built from',
+            run: async ({ expect }) => {
+                const find = (parts, kind) => parts.filter((p) => p.part === kind);
+                const rowsOf = (parts) => find(parts, 'rows').flatMap((p) => p.items);
+
+                // --- pending: the row IS the button, and is not toned down --------
+                const pending = composeSkillCheckCard({
+                    rollTitle: 'Acrobatics', rollType: 'skill', skillAbbr: 'acr', rollMode: 'roll',
+                    actors: [{ id: 't1', actorId: 'a1', name: 'Favia', group: 1 }]
+                });
+                const pendingRow = rowsOf(pending)[0];
+                expect.ok('a pending row is clickable', pendingRow.clickable === true);
+                expect.ok('a pending row carries the die', pendingRow.marker?.includes('dice-d20'));
+                // The bug this exists to prevent: `tone: 'pending'` dims to 55% and
+                // made the one row you are meant to click look disabled.
+                expect('a pending row has no tone', pendingRow.tone, undefined);
+                expect.ok('a pending row packs what the roll needs',
+                          JSON.parse(pendingRow.value).actorId === 'a1');
+
+                // --- a result against a DC ---------------------------------------
+                const passed = composeSkillCheckCard({
+                    rollTitle: 'Acrobatics', rollMode: 'roll', dc: 15,
+                    actors: [{ id: 't1', actorId: 'a1', name: 'Favia', group: 1,
+                               result: { total: 18, formula: '1d20+3' } }]
+                });
+                const passedRow = rowsOf(passed)[0];
+                expect('a pass is marked with a check', passedRow.trailingIcon, 'fa-solid fa-check');
+                expect('a pass is toned positive', passedRow.tone, 'positive');
+                expect.ok('an ordinary pass does NOT fill the row', !passedRow.emphasis);
+
+                // --- no DC: nothing to pass or fail ------------------------------
+                const noDc = composeSkillCheckCard({
+                    rollTitle: 'Acrobatics', rollMode: 'roll',
+                    actors: [{ id: 't1', actorId: 'a1', name: 'Favia', group: 1,
+                               result: { total: 18 } }]
+                });
+                const noDcRow = rowsOf(noDc)[0];
+                expect('no DC means no mark', noDcRow.trailingIcon, undefined);
+                expect('no DC means no tone', noDcRow.tone, undefined);
+
+                // --- crit and fumble are the only rows that fill ------------------
+                const crit = composeSkillCheckCard({
+                    rollTitle: 'Acrobatics', rollMode: 'roll', dc: 15,
+                    actors: [{ id: 't1', actorId: 'a1', name: 'Favia', group: 1,
+                               result: { total: 20, isCritical: true } }]
+                });
+                const critRow = rowsOf(crit)[0];
+                expect.ok('a critical fills the row', critRow.emphasis === true);
+                expect('a critical shakes vertically', critRow.animation, 'shake-y');
+
+                // --- visibility follows the roll mode ----------------------------
+                const blind = composeSkillCheckCard({
+                    rollTitle: 'Acrobatics', rollMode: 'blindroll', dc: 15,
+                    actors: [{ id: 't1', actorId: 'a1', name: 'Favia', group: 1,
+                               result: { total: 18 } }]
+                });
+                expect('a blind roll is readable by the GM only',
+                       rowsOf(blind)[0].trailing.readableBy, 'gm');
+
+                const private_ = composeSkillCheckCard({
+                    rollTitle: 'Acrobatics', rollMode: 'gmroll', dc: 15,
+                    actors: [{ id: 't1', actorId: 'a1', name: 'Favia', group: 1,
+                               result: { total: 18 } }]
+                });
+                const privateTrailing = rowsOf(private_)[0].trailing;
+                expect('a private roll is readable by the owner', privateTrailing.readableBy, 'owner');
+                // Without the actorId there is nothing to resolve ownership against,
+                // and mayRead() would fail closed -- hiding it from the roller too.
+                expect('a private roll names the actor to resolve against',
+                       privateTrailing.actorId, 'a1');
+
+                const publicRoll = composeSkillCheckCard({
+                    rollTitle: 'Acrobatics', rollMode: 'roll', dc: 15,
+                    actors: [{ id: 't1', actorId: 'a1', name: 'Favia', group: 1,
+                               result: { total: 18 } }]
+                });
+                expect('a public roll is a plain string, not a veil',
+                       typeof rowsOf(publicRoll)[0].trailing, 'string');
+
+                // --- contested: two groups, a VS band, and a winner ---------------
+                const contested = composeSkillCheckCard({
+                    rollTitle: 'Athletics', skillName: 'Athletics', defenderSkillName: 'Deception',
+                    rollMode: 'roll', hasMultipleGroups: true,
+                    contestedRoll: { winningGroup: 1, group1Highest: 20, group2Highest: 12, isTie: false },
+                    actors: [
+                        { id: 't1', actorId: 'a1', name: 'Favia', group: 1, result: { total: 20 } },
+                        { id: 't2', actorId: 'a2', name: 'Cultist', group: 2, result: { total: 12 } }
+                    ]
+                });
+                expect('a contest renders two row groups', find(contested, 'rows').length, 2);
+                expect('a contest renders two sections', find(contested, 'section').length, 2);
+                const bands = find(contested, 'band');
+                expect.ok('a contest announces its winner',
+                          bands.some((b) => b.text === 'Challengers Win' && b.tone === 'positive'));
+                expect.ok('a contest carries the scores as a tooltip',
+                          bands.some((b) => b.tooltip === '20 vs 12'));
+                expect.ok('a contest renders the VS band',
+                          bands.some((b) => b.text === 'VS' && b.trail === 'Deception'));
+
+                // --- a group roll waits for everyone before announcing ------------
+                const partial = composeSkillCheckCard({
+                    rollTitle: 'Stealth', rollMode: 'roll', dc: 15, isGroupRoll: true,
+                    allRollsComplete: false, groupSuccess: false, successCount: 0, totalCount: 2,
+                    actors: [{ id: 't1', actorId: 'a1', name: 'Favia', group: 1 }]
+                });
+                expect.ok('an unfinished group roll announces nothing',
+                          !find(partial, 'band').some((b) => String(b.text).includes('Group')));
+            }
+        },
+
         {
             id: 'surface',
             tier: 'headless',
@@ -139,7 +259,13 @@ export default {
                     rows: { items: [{ label: 'x' }] }, badges: { items: [{ label: 'x' }] },
                     panel: { label: 'x' }, notes: { items: [{ text: 'x' }] },
                     actions: { buttons: [{ action: 'a', label: 'x' }] },
-                    richtext: { html: '<p>x</p>' }
+                    richtext: { html: '<p>x</p>' },
+                    // Added 2026-08-14. These three parts shipped without sample data
+                    // and this check caught it, which is the whole point of it: the
+                    // registry is the source of truth and this map has to keep up.
+                    ribbon: { text: 'x' },
+                    subject: { title: 'x' },
+                    gauge: { segments: [{ from: 0, to: 100, color: 'var(--blacksmith-card-bar-ok)' }] }
                 };
                 for (const id of chatCards.getParts()) {
                     const data = sample[id];
@@ -159,7 +285,7 @@ export default {
             tier: 'headless',
             group: 'Prose contract',
             label: 'Consumer HTML is escaped, not rendered',
-            note: 'the one contract worth halting on — see tools/check-card-prose.mjs',
+            note: 'the one contract worth halting on — see tools/check-card-contracts.mjs',
             run: async ({ expect }) => {
                 await postAndInspect(
                     [{ part: 'prose', blocks: [{ type: 'paragraph', text: '<b>x</b><script>alert(1)</script>' }] }],

@@ -131,7 +131,7 @@ Transitions cluster on a small set of durations -- `0.15s ease` and `0.2s ease` 
 in smaller numbers across the tree, so this is the prevailing set rather than an enforced one.
 
 Named animations are defined near the components that use them: pin animations in `styles/pins.css:366-569`
-(ten `blacksmith-pin-*` keyframes), card and skill-check animations in `styles/cards-skill-check.css`,
+(ten `blacksmith-pin-*` keyframes), card and roll animations in `styles/cards-parts.css`,
 cinematic roll animations in `styles/window-roll-cinematic.css`, and per-feature keyframes in
 `styles/menubar.css`, `styles/menubar-combatbar.css`, `styles/timer-planning.css`,
 `styles/token-movement.css`, `styles/combat-tools.css`, `styles/loading-progress.css`,

@@ -468,9 +468,11 @@
     Full-width centred emphasis. Every banner in the reference cards is this one
     shape with different settings: "DC 11" is plain, "STALEMATE" is tinted and
     large, and the versus separator is a prominent centre term flanked by two
-    muted ones. Values are lifted from .cpb-versus-separator and
-    .cpb-roll-result-*-container in cards-skill-check.css rather than
-    approximated, so a migrated card is the same object it was.
+    muted ones. Values were lifted from .cpb-versus-separator and
+    .cpb-roll-result-*-container in the roll card's own stylesheet rather than
+    approximated, so a migrated card is the same object it was. That stylesheet
+    (cards-skill-check.css) has since been deleted; these rules are where those
+    values live now.
 */
 
 /*
@@ -518,8 +520,8 @@
 }
 
 /*
-    Large band, from .cpb-card-section-subheader in cards-skill-check.css:
-    1.3em at weight 900. Sized against the card rather than against the band,
+    Large band, from .cpb-card-section-subheader in the roll card's stylesheet
+    (cards-skill-check.css, since deleted): 1.3em at weight 900. Sized against the card rather than against the band,
     because the band's own 0.9em would compound and land it at 1.17em -- which
     is what the first pass shipped.
 */
@@ -623,7 +625,8 @@
 /* ---------- ROWS ---------- */
 
 /*
-    Detail rows. Geometry comes from .cpb-roll-result in cards-skill-check.css --
+    Detail rows. Geometry came from .cpb-roll-result in the roll card's stylesheet
+    (cards-skill-check.css, since deleted) --
     6px/8px padding, a 0.2 alpha border, and the label flexing so the trailing
     value is pushed to the right edge. That last rule is load-bearing: without it
     the value sits against the name and the column disappears.
@@ -820,7 +823,7 @@
 
     `tone` PLUS `emphasis` fills the row, bolds the label and adds the glow. That is
     reserved for the exceptional result -- a critical or a fumble -- and it is the
-    rule the roll cards have always followed (cards-skill-check.css tints only
+    rule the roll cards have always followed (their stylesheet tinted only
     .cpb-chat-critical and .cpb-chat-fumble, never an ordinary success or failure).
     Motion is a third, separate step: add `animation`.
 

@@ -892,13 +892,6 @@ Foundry.** This is the largest untested change in the card work; treat every ite
   purpose.
 - **Rows a player cannot roll** get `.blacksmith-row-not-yours` at render, dimmed. The permission itself
   is checked in `SkillCheckDialog.handleRollAction`.
-- **`styles/cards-skill-check.css` is now mostly dead but MUST NOT be deleted wholesale.** Audited
-  2026-08-14: every `cpb-roll-*`, `cpb-versus-*`, `cpb-skill-check-*`, `cpb-chat-critical/fumble` and
-  `cpb-card-section-*` class had its only emitter in the deleted template. But `cpb-actor-name` /
-  `actor-name` are used by `templates/partials/unified-header.hbs`, `templates/window-skillcheck.hbs` and
-  `scripts/window-skillcheck.js`, and `advantage` is used by the dice tray and both roll windows. Split
-  those out before deleting the rest -- the same trap `cards-xp.css` set, where a class name appearing in
-  a live template did not mean the RULE was live.
 
 #### 6. CSS consolidation
 - **Work**: Collapse the five card CSS files to one layout file and one theme file. Delete the `theme-default`
@@ -1033,9 +1026,9 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
 - **Priority**: Medium — this closes the documentation set with nothing held back.
 
 #### Card CSS migration to theme system
-- **Issue**: Card-type CSS files (`cards-xp.css`, `cards-skill-check.css`, `cards-stats.css`) still use hardcoded colors; they should use the CSS variable theme system for consistency and themeability.
+- **Issue**: `styles/cards-stats.css` still uses hardcoded colors; it should use the CSS variable theme system for consistency and themeability. (`cards-xp.css` and `cards-skill-check.css` were deleted with their cards.)
 - **Status**: PENDING
-- **Location**: `styles/cards-xp.css`, `styles/cards-skill-check.css`, `styles/cards-stats.css`; new variables go in `styles/cards-common-layout.css` (`:root`) and `styles/cards-common-themes.css` (per theme). The as-built theme system is described in `documentation/architecture/architecture-chatcards.md`.
+- **Location**: `styles/cards-stats.css`; new variables go in `styles/cards-common-layout.css` (`:root`) and `styles/cards-common-themes.css` (per theme). The as-built theme system is described in `documentation/architecture/architecture-chatcards.md`.
 - **Need**: Grep each card-type file for hardcoded `color`/`background`/`border-color` values and replace with `var(--blacksmith-card-*)`, reusing existing theme variables where the meaning matches and adding XP/skill-check/stats-specific or semantic (success/failure/warning) variables — all `--blacksmith-card-` prefixed — where none fit. Decide per semantic color whether it is theme-dependent (add to each theme) or fixed (keep hardcoded, document). Keep layout/spacing in the layout file, colors in the variable blocks. Test every card type under all themes.
 - **Priority**: High – Improves theme consistency and maintainability
 

@@ -103,9 +103,10 @@ It contains **two sibling** `.cpb-dialog-header-content` blocks: the first holds
 | Controls | `.cpb-dialog-controls` | `window-skillcheck.css:166` |
 
 Title and subtitle are `<div>` elements, not heading or paragraph tags
-(`templates/partials/unified-header.hbs:29, 30`). `.cpb-actor-name` appears in header markup but has no
-rule in the window stylesheet -- it is styled only inside chat-card result contexts
-(`styles/cards-skill-check.css:79, 99`), so it renders unstyled in a dialog header.
+(`templates/partials/unified-header.hbs:29, 30`). `.cpb-actor-name` appears in header markup and is styled by
+`styles/window-skillcheck.css:636` (weight 900, 1.1em), which is unscoped and so reaches the dialog header.
+An earlier note here said it had no rule in the window stylesheet and was styled only by chat-card result
+selectors; that was wrong, and those chat-card selectors have since been deleted with the roll card anyway.
 
 ### Buttons
 

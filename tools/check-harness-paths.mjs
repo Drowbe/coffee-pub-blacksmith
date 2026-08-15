@@ -97,15 +97,34 @@ if (ROOT && BASE) {
 
 const suitesOnDisk = join(REPO, 'testing/suites');
 
-// Relative imports inside each suite.
+// Imports inside each suite, BOTH kinds.
+//
+// Relative ones reach the harness's own files. Absolute ones reach the module's
+// source -- a suite testing a pure function imports it directly rather than going
+// through the API, which is the only way to assert something the API does not
+// expose. Both are checked, because a suite fetches over HTTP at runtime and a
+// wrong path is a 404 the harness reports as a dead suite rather than a bad import.
+// Only relative imports were checked until 2026-08-14, so the first absolute one
+// added went unverified.
 if (existsSync(suitesOnDisk)) {
     for (const name of readdirSync(suitesOnDisk).filter(f => f.endsWith('.js'))) {
         const file = join(suitesOnDisk, name);
         const text = readFileSync(file, 'utf-8');
+
         for (const match of text.matchAll(/from\s+'(\.[^']+)'/g)) {
             const target = normalize(join(dirname(file), match[1]));
             checked++;
             if (!existsSync(target)) {
+                problems.push(`testing/suites/${name} imports ${match[1]} - no such file`);
+            }
+        }
+
+        for (const match of text.matchAll(/from\s+'(\/modules\/[^']+)'/g)) {
+            checked++;
+            const target = onDisk(match[1]);
+            if (!target) {
+                problems.push(`testing/suites/${name} imports ${match[1]} - not a path inside this module`);
+            } else if (!existsSync(target)) {
                 problems.push(`testing/suites/${name} imports ${match[1]} - no such file`);
             }
         }
