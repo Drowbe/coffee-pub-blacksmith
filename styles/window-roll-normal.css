@@ -295,26 +295,25 @@ div#roll-window .window-content {
    chip owns which term once the text is hand-edited, and the first edit that
    removes a term without un-toggling its chip makes the two disagree.
 
-   THIS is the row that scrolls, and the dice row above it is the one that does
-   not: the dice are a fixed set of ten and must all be reachable, while this list
-   has no ceiling. Scrolling the growing row also keeps the fixed row from moving
-   as the list changes. `nowrap` rather than wrapping, so the window's height does
-   not jump when a bonus is added. */
+   THEY WRAP RATHER THAN SCROLL. This row first scrolled sideways, on the argument
+   that a growing list should not change the window's height -- but a horizontal
+   scroller hides its own contents behind an edge, and a bonus you cannot see is a
+   bonus you will not use. These are a menu, not a filmstrip: all of them should be
+   readable at once, and the window growing by a row is the honest cost of adding
+   one. It also removed the scrollbar that was sitting under the last chip.
+
+   Wrapping brings the hover ring back into view for free -- `overflow-x: auto`
+   used to force the other axis to compute as `auto` whatever it was set to, so
+   `overflow-y: visible` was unavailable and a hovered tag's 1px lift and 2px glow
+   were sliced off the top. With no overflow set, they simply draw. The padding
+   stays as breathing room from the dice row above. */
 .roll-presets {
   display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
+  flex-wrap: wrap;
   gap: 0.4em;
   margin-top: 0.6em;
-  /* ROOM FOR THE HOVER TO GROW INTO. A tag lifts 1px and draws a 2px glow ring on
-     hover, and this row clips: `overflow-x: auto` forces the other axis to compute
-     as `auto` whatever it is set to, so `overflow-y: visible` is not available and
-     the ring was being sliced off the top. Padding is the only way to give it the
-     space. 4px covers the 1px lift plus the 2px ring with one to spare. */
   padding-top: 4px;
   padding-bottom: 0.3em;
-  scrollbar-width: thin;
 }
 
 .roll-presets .roll-preset {
