@@ -315,10 +315,25 @@
     margin-bottom: 0;
 }
 
+/*
+    THE HEIGHT IS FIXED BY THE HEADER, NOT BY WHAT IS PUT IN IT.
+
+    Without `min-height` a header's height is whatever its tallest child happens to
+    be, so two headers side by side came out 32.8px and 23.88px purely because one
+    held a button and the other a toggle. Same class, same font, same padding,
+    different height -- which reads as a layout bug and is really a content
+    accident. A section header is a rule of the layout; its own size should not
+    depend on what a consumer drops into it.
+
+    1.6em rather than a pixel value so it tracks the header's own text if the base
+    size changes.
+*/
 .blacksmith-window-section-header {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-height: 1.6em;
+    box-sizing: content-box;
     font-size: 0.85em;
     font-weight: 700;
     text-transform: uppercase;
@@ -332,6 +347,48 @@
 .blacksmith-window-section-header i {
     color: var(--blacksmith-window-accent-color);
     font-size: 0.9em;
+}
+
+/*
+    A section header's right-hand action -- "New", "Clear", "Refresh".
+    `margin-left: auto` rather than `justify-content: space-between` on the parent,
+    so the icon and label keep sitting together on the left however many actions
+    are added on the right.
+
+    An ACTION, not a button: an icon and a word in the header's own voice. A
+    bordered control here reads as a second button competing with whatever the
+    section contains, and at this size it looks like a tag rather than something
+    you press. It borrows the header's letter-spacing and weight for the same
+    reason -- it belongs to the header, not to the body below it.
+*/
+.blacksmith-window-section-header-action {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    /* Foundry gives every `button` a height, a line-height and a minimum, and
+       `padding: 0` alone leaves all three -- which is what made a header holding an
+       action 9px taller than the one beside it. Reset the box as well as the paint,
+       or the element keeps its chrome's size while losing its chrome's look. */
+    height: auto;
+    min-height: 0;
+    line-height: 1;
+    padding: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: var(--blacksmith-window-accent-color);
+    opacity: 0.75;
+    cursor: pointer;
+    transition: opacity 100ms ease;
+}
+
+.blacksmith-window-section-header-action:hover {
+    opacity: 1;
 }
 
 .blacksmith-window-section-body {

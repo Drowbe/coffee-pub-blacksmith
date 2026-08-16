@@ -369,52 +369,70 @@ div#skill-check-dialog .window-content {
     min-width: 0;
 }
 
-/* COL HEADER */
-
-.cpb-column-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-
-  color: rgba(145, 133, 107, 1.0);
-  background: rgba(0, 0, 0, 1.0);
-  display: flex;
-  align-items: center;
-  
-  margin-bottom: 0px;
-  border-top: 0px solid rgba(255, 255, 255, 0.9);
-  border-bottom: 1px solid #444;
-  border-left: 0px solid #444;
-  border-right: 0px solid #444;
-  border-radius: 0px;
-
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 6px;
-  padding-right: 6px;
-
-}
+/* COL HEADER — the section header itself is the framework's; only the right-hand
+   group is local. See templates/window-skillcheck.hbs. */
 
    
-.cpb-header-left {
-    display: flex;
-    align-items: center;
-    
-    font-size: 1.1em;
-    font-weight: 800;
-    text-transform: uppercase;
-    gap: 4px;
-}
-
-.cpb-header-left i {
-    font-size: .8em;
-    padding-top: 1px;
+/* The right-hand group inside a section header -- a toggle in one column, the
+   count and Deselect All in the other. `margin-left: auto` rather than a justify
+   change on the header, so the icon and label stay together on the left. */
+.blacksmith-window-section-header .cpb-header-right {
+    margin-left: auto;
 }
 
 .cpb-header-right {
     display: flex;
     align-items: center;
+    gap: 10px;
+}
+
+/*
+    A column header's action -- an icon and a word in the header's own colour and
+    weight, not a bordered control. The right column puts a toggle in this slot, so
+    whatever sits here has to read as part of the header rather than as the first
+    control of the panel below it; a button with a border does the opposite.
+
+    Muted until hovered, because it is available rather than suggested: the header
+    should not compete with the list it labels.
+*/
+.cpb-header-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    /* Same reset as the framework's header action: Foundry sizes every `button`,
+       and clearing only its paint leaves it taller than the text beside it. */
+    height: auto;
+    min-height: 0;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: opacity 100ms ease, color 100ms ease;
+}
+
+.cpb-header-action:hover {
+    opacity: 1;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* The selection count. Reads as a quiet fact rather than a control -- it is
+   information sitting next to the action that acts on it, so it must not look
+   pressable. `[hidden]` needs the explicit `display: none` because the flex
+   parent would otherwise override it. */
+.cpb-header-count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.65;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.cpb-header-count[hidden] {
+    display: none;
 }
 
 .cpb-dialog-column h2 {

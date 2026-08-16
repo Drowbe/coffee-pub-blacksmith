@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, playSound, getSettingSafely, getPortraitImage } from './api-core.js';
 import { DialogAPI, DIALOG_ACTIONS } from './api-dialog.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
@@ -1017,7 +1017,11 @@ async function showRollWindow(rollData) {
         dialogRollData.rollValueKey = rollData.rollValueKey;
         dialogRollData.actorId = rollData.actorId;
         dialogRollData.rollMode = rollData.rollMode || 'roll';
-        dialogRollData.dcValue = rollData.dc || ' ';
+        // A DC box with nothing in it is not a DC of nothing, it is a control that
+        // should not be there. `|| ' '` filled it with a space, so the label and the
+        // empty frame rendered on every roll without one.
+        dialogRollData.dcValue = rollData.dc ?? null;
+        dialogRollData.hasDC = rollData.dc != null && rollData.dc !== '';
         
         // Preserve the original title from the skillcheck dialog
         if (rollData.rollTitle) {
@@ -1044,10 +1048,27 @@ async function showRollWindow(rollData) {
             dialogRollData.showNormalButton = true;
         }
         
-        // Add actor portrait
-        const actor = game.actors.get(rollData.actorId);
+        // THE TOKEN'S ACTOR, NOT THE PROTOTYPE -- and its PORTRAIT, not its token art.
+        //
+        // Two separate things go wrong here if you take the obvious route twice.
+        //
+        // `game.actors.get(actorId)` returns the base actor, which for an unlinked
+        // NPC is what the token was stamped from: a token renamed "Brialla Mourn"
+        // showed as "Cultist" with the prototype's art, while the card that opened
+        // this window said "Brialla Mourn". Resolving through the token fixes that,
+        // and per-token overrides come with it.
+        //
+        // But the token's TEXTURE is the map art -- frequently a top-down piece, and
+        // for the cultists here a scene illustration. The circle wants a face, which
+        // is the portrait, and `getPortraitImage()` is the house resolution for it
+        // (`actor.img`, falling back to the prototype token's texture) used in ten
+        // other places. Reaching for `token.document.texture.src` put the battle map
+        // in the header.
+        const token = rollData.tokenId ? canvas?.tokens?.get(rollData.tokenId) : null;
+        const actor = token?.actor ?? game.actors.get(rollData.actorId);
         if (actor) {
-            dialogRollData.actorPortrait = actor.img;
+            dialogRollData.actorPortrait = getPortraitImage(actor) || null;
+            dialogRollData.actorName = token?.name || actor.name || 'Unknown Actor';
         }
         
         
@@ -1198,11 +1219,44 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         return String(text ?? '').match(/[^\s\[]+(?:\[[^\]]*\])?/g) ?? [];
     }
 
-    /** The field's text with every `[label]` removed, ready for `Roll`. */
+    /**
+     * The field as a list of terms: `{ op, value, label }`.
+     *
+     * AN OPERATOR IS NOT A TERM. The builder's `+` and `-` buttons append a bare
+     * operator, and treating those as tokens in their own right produced a term with
+     * an empty value and an implied `+` in front of it -- the formula line read
+     * `1D8 + + 1D20 - + 1D8`, and the same string reached `Roll` as
+     * `... + + + 1d20 + - + 1d8`, which does not evaluate. An operator now sets the
+     * sign of the term that FOLLOWS it, which is what clicking it means.
+     *
+     * A term's own sign wins over a pending operator: typing `-2` after clicking `+`
+     * gives a subtraction, because the sign attached to the value is the more
+     * specific statement. A trailing operator with nothing after it is dropped --
+     * mid-edit is the normal state of a text field, and a half-finished expression
+     * should show nothing rather than an error.
+     */
+    static parseModifierTerms(text) {
+        const terms = [];
+        let pendingOp = null;
+
+        for (const token of RollWindow.tokenizeModifiers(text)) {
+            if (token === '+' || token === '-') { pendingOp = token; continue; }
+
+            const { value, label } = RollWindow.splitModifierToken(token);
+            const ownSign = value.startsWith('-') ? '-' : (value.startsWith('+') ? '+' : null);
+            const body = value.replace(/^[+-]/, '');
+            if (!body) { pendingOp = null; continue; }
+
+            terms.push({ op: ownSign ?? pendingOp ?? '+', value: body, label });
+            pendingOp = null;
+        }
+        return terms;
+    }
+
+    /** The field's text as a formula fragment, labels removed, ready for `Roll`. */
     static stripModifierLabels(text) {
-        return RollWindow.tokenizeModifiers(text)
-            .map((token) => RollWindow.splitModifierToken(token).value)
-            .filter(Boolean)
+        return RollWindow.parseModifierTerms(text)
+            .map((term) => `${term.op}${term.value}`)
             .join(' ');
     }
 
@@ -1487,22 +1541,17 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         const esc = (s) => String(s ?? '')
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        /** One token of the modifier field as a renderable term. */
-        const modifierTerm = (token) => {
-            const { value, label } = RollWindow.splitModifierToken(token);
-            const sign = value.startsWith('-') ? '-' : '+';
-            const body = value.replace(/^[+-]/, '');
-            return {
-                op: sign,
-                // The LABEL is what the formula shows beside the value, which is the
-                // whole reason the label travels in the field at all: "1D4 BLESS"
-                // says what the term is for, where the old "1D4 MOD" said only that
-                // somebody typed something.
-                text: label ? `${body} ${label}` : body,
-                icon: /\d*d\d+/i.test(body) ? getDiceIcon(body) : null,
-                cls: 'formula-custom-modifier'
-            };
-        };
+        /** A parsed modifier term as a renderable one. */
+        const modifierTerm = ({ op, value, label }) => ({
+            op,
+            // The LABEL is what the formula shows beside the value, which is the
+            // whole reason the label travels in the field at all: "1D4 BLESS" says
+            // what the term is for, where the old "1D4 MOD" said only that somebody
+            // typed something.
+            text: label ? `${value} ${label}` : value,
+            icon: /\d*d\d+/i.test(value) ? getDiceIcon(value) : null,
+            cls: 'formula-custom-modifier'
+        });
 
         const updateFormula = () => {
             const terms = [{ text: baseRoll, icon: getDiceIcon(baseRoll) }];
@@ -1513,8 +1562,8 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             if (proficiencyBonus > 0) {
                 terms.push({ op: '+', text: `${proficiencyBonus} prof` });
             }
-            for (const token of RollWindow.tokenizeModifiers(modifierInput.value)) {
-                terms.push(modifierTerm(token));
+            for (const parsed of RollWindow.parseModifierTerms(modifierInput.value)) {
+                terms.push(modifierTerm(parsed));
             }
 
             formulaElement.innerHTML = terms.map((term, index) => {
@@ -1556,8 +1605,10 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             op.addEventListener('click', () => append(op.dataset.op === '-' ? '-' : '+'));
         }
 
-        // The clear sits in the formula row, because the formula is what it clears.
-        const clearButton = htmlElement.querySelector('.roll-formula-clear');
+        // The clear sits inside the field, because the field is what it clears --
+        // not the formula, which also contains the base roll and the ability and
+        // proficiency terms that no control here removes.
+        const clearButton = htmlElement.querySelector('.roll-modifier-clear');
         if (clearButton) {
             clearButton.addEventListener('click', () => {
                 modifierInput.value = '';

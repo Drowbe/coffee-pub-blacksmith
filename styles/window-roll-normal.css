@@ -212,36 +212,33 @@ div#roll-window .window-content {
   width: 100%;
 }
 
-/* The clear, right-aligned in the formula row. `margin-left: auto` rather than a
-   justify change on the parent, so the formula keeps growing from the left and the
-   clear stays pinned however long the formula gets. */
-.roll-formula-clear {
-  margin-left: auto;
-  flex-shrink: 0;
-  padding-left: 0.6em;
+/* The clear lives INSIDE the field. Absolute rather than a flex sibling so the
+   input keeps its own full width and background -- a flex row around an input
+   makes the field look like two controls, and the padding below is what keeps the
+   text from running under the icon. */
+.roll-modifier-field {
+  position: relative;
+  display: block;
+}
+
+.roll-modifier-field .roll-modifier {
+  width: 100%;
+  padding-right: 2em;
+}
+
+.roll-modifier-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.6em;
+  transform: translateY(-50%);
   cursor: pointer;
-  opacity: 0.5;
+  opacity: 0.45;
   transition: opacity 100ms ease, color 100ms ease;
 }
 
-.roll-formula-clear:hover {
+.roll-modifier-clear:hover {
   opacity: 1;
   color: rgba(198, 71, 71, 1.0);
-}
-
-/* Field label and its New button on one line. */
-.roll-field-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5em;
-  margin-bottom: 0.25em;
-}
-
-.roll-field-header .roll-preset-add {
-  cursor: pointer;
-  font-size: 0.85em;
-  flex-shrink: 0;
 }
 
 /* Named bonuses under the dice.
@@ -287,49 +284,82 @@ div#roll-window .window-content {
 
 /* FORMULA BUILDER.
 
-   The dice tray's own control styling is scoped to `.blacksmith-dicetray-tool-window`,
-   so it cannot simply be borrowed. The geometry below is taken from that file rather
-   than eyeballed -- 34px tall, 5px/7px padding, 4px radius, 1.3em glyph, the inset
-   highlight and the same transition -- so the two windows' dice read as the same
-   control rather than as two attempts at one. The `--dice-control-*` tokens are
-   declared there too; the fallbacks keep this honest if that file is ever renamed.
+   The dice tray's control styling is scoped to `.blacksmith-dicetray-tool-window`
+   and cannot be borrowed, so the 34px box and 4px radius are taken from that file
+   deliberately -- the two windows' dice should read as one control rather than as
+   two attempts at it. Colour comes from the global tokens instead; see the rule
+   below for why borrowing the tray's custom properties did not work.
 
-   `flex: 1` on the children, as in the tray: eight dice across a row look like a
-   set, and eight content-sized dice look like a sentence. */
-/* ONE row, and it never scrolls: ten controls that must all be reachable without
-   hunting. They share the width equally, so the row reads as a set. */
+   ONE row, and it never scrolls: ten controls that must all be reachable without
+   hunting.
+
+   SQUARE, NOT STRETCHED. `flex: 1` was the first attempt, copied from the dice
+   tray -- but the tray is a narrow docked panel where stretching fills it neatly,
+   and this window is three times wider, so ten stretched dice became ten flat
+   letterboxes with a die floating in each. A die is a square object; the control
+   holding it should be one, and a row of squares reads as a set of dice where a
+   row of wide rectangles reads as a toolbar.
+
+   Left-aligned rather than spread: `space-between` in a wide window pushes them to
+   the edges and the grouping is lost. */
 .roll-builder-row {
   display: flex;
-  gap: 5px;
+  flex-wrap: wrap;
+  gap: 6px;
   width: 100%;
   margin-top: 0.6em;
 }
 
+/*
+    Surface and hover come from the GLOBAL tokens, not the dice tray's.
+
+    This first borrowed `--dice-control-bg` and friends, which read correctly in
+    that file and resolve to nothing here: they are declared on
+    `.blacksmith-dicetray-tool-window #blacksmith-dicetray-content`, and so is the
+    `--blacksmith-tool-*` set they fall back to. Two levels of fallback, both scoped
+    to a window this is not, so the dice rendered as bare glyphs on the panel with
+    no box at all -- a custom property that resolves to nothing fails silently, which
+    is what makes borrowing one across a scope boundary worth avoiding.
+
+    `--blacksmith-surface-dark-2` is documented as the button background and
+    `-dark-3` as borders; hover and press use the shared interactive pair, so these
+    behave like every other pressable thing in the suite.
+*/
 .roll-builder-die,
 .roll-builder-op {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
+  width: 34px;
   height: 34px;
-  padding: 5px 7px;
   box-sizing: border-box;
-  border: 1px solid var(--dice-control-border, var(--blacksmith-tool-divider));
+  border: 1px solid var(--blacksmith-surface-dark-3);
   border-radius: 4px;
-  background: var(--dice-control-bg, var(--blacksmith-tool-surface-raised));
-  color: var(--dice-control-text, var(--blacksmith-tool-text));
-  font-size: 1.3em;
+  background: var(--blacksmith-surface-dark-2);
+  color: rgba(235, 233, 225, 0.85);
+  font-size: 1.15em;
   cursor: pointer;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.28);
   transition: background 100ms ease, border-color 100ms ease, color 100ms ease;
+}
+
+/* The operators are the same size but not dice, so they sit a shade back and
+   separate from the faces rather than reading as two more of them. */
+.roll-builder-op {
+  margin-left: 4px;
+  color: rgba(235, 233, 225, 0.6);
 }
 
 .roll-builder-die:hover,
 .roll-builder-op:hover {
-  border-color: var(--blacksmith-tool-field-focus-border);
-  background: var(--dice-control-bg-hover, var(--blacksmith-tool-surface-hover));
-  color: var(--blacksmith-tool-text);
+  background: var(--blacksmith-interactive-hover);
+  border-color: var(--blacksmith-interactive-active);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.roll-builder-die:active,
+.roll-builder-op:active {
+  background: var(--blacksmith-interactive-active);
 }
 
 

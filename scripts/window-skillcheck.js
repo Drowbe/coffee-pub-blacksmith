@@ -592,9 +592,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             });
         }
 
-        // Check if there are any selected tokens
+        // Check if there are any selected tokens. `'selected'` resolves to `'canvas'`
+        // -- see the note in _attachLocalListeners; the value stays public, the
+        // filter button does not exist.
         const hasSelectedTokens = controlled.length > 0;
-        const initialFilter = this.initialFilter ?? (hasSelectedTokens ? 'selected' : 'party');
+        const requestedFilter = this.initialFilter ?? (hasSelectedTokens ? 'canvas' : 'party');
+        const initialFilter = requestedFilter === 'selected' ? 'canvas' : requestedFilter;
 
         // Get tools directly using _getToolProficiencies
         const tools = this._getToolProficiencies();
@@ -780,14 +783,87 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         postConsoleAndNotification(MODULE.NAME, "SKILLROLLL | LOCATION CHECK: We are in skill-check-dialogue.js and in _attachLocalListeners()...", "", true, false);
 
         // Apply initial filter (API can pass initialFilter; else selected tokens or party)
+        //
+        // `'selected'` RESOLVES TO `'canvas'`. The Selected filter button is gone --
+        // a selected token is on the canvas by definition, so Canvas already shows
+        // it, and the tokens are pre-selected in the list below regardless. The
+        // VALUE stays supported because it is public: `api.rolls` documents
+        // `initialFilter: 'selected'` and an error message names it, so a consumer
+        // passing it gets the canvas view with its tokens already chosen rather
+        // than a filter with no button to un-press.
         const hasSelectedTokens = (canvas?.tokens?.controlled?.length ?? 0) > 0;
-        const initialFilter = this.initialFilter ?? (hasSelectedTokens ? 'selected' : 'party');
+        const requestedFilter = this.initialFilter ?? (hasSelectedTokens ? 'canvas' : 'party');
+        const initialFilter = requestedFilter === 'selected' ? 'canvas' : requestedFilter;
 
         // Set initial active state on actor filter button (left column) (v13: native DOM)
         const firstColumn = htmlElement.querySelector('.cpb-dialog-column:first-child');
         const initialFilterBtn = firstColumn?.querySelector(`.cpb-filter-btn[data-filter="${initialFilter}"]`);
         if (initialFilterBtn) initialFilterBtn.classList.add('active');
         
+        // How many contestants are selected, and on which side.
+        //
+        // Counted across the WHOLE list rather than the visible rows, for the same
+        // reason Deselect All clears the whole list: a filter hides selections
+        // without clearing them, and the number exists precisely to catch the ones
+        // you cannot see. A count that agreed with the filter would go quiet in
+        // exactly the situation it is for.
+        //
+        // Hidden at zero. A permanent "0 selected" is noise on a fresh window, and
+        // the control beside it already says what to do about a number.
+        const updateSelectionCount = () => {
+            const badge = htmlElement.querySelector('.cpb-selection-count');
+            if (!badge) return;
+            const items = htmlElement.querySelectorAll('.cpb-actor-list .cpb-actor-item');
+            const challengers = [...items].filter((i) => i.classList.contains('cpb-group-1')).length;
+            const defenders = [...items].filter((i) => i.classList.contains('cpb-group-2')).length;
+            const total = challengers + defenders;
+
+            badge.hidden = total === 0;
+            if (!total) return;
+            // Sides are named only when there are two of them; on an ordinary roll
+            // everyone is a challenger and saying so adds a word without a fact.
+            badge.textContent = defenders
+                ? `${challengers} vs ${defenders}`
+                : `${total} selected`;
+            badge.dataset.tooltip = defenders
+                ? `${challengers} challenger${challengers === 1 ? '' : 's'}, ${defenders} defender${defenders === 1 ? '' : 's'}`
+                : `${total} contestant${total === 1 ? '' : 's'} selected, including any hidden by the current filter`;
+        };
+
+        // Delegated and on the bubble phase, so it runs AFTER the per-item handlers
+        // that do the selecting. Binding per item would mean finding every path that
+        // selects -- click, right-click, the party auto-select, the token pre-select
+        // -- and the one that gets missed is a count that silently drifts.
+        const actorList = htmlElement.querySelector('.cpb-actor-list');
+        if (actorList) {
+            actorList.addEventListener('click', updateSelectionCount);
+            actorList.addEventListener('contextmenu', updateSelectionCount);
+        }
+
+        // Deselect every contestant, both groups at once.
+        //
+        // It clears ALL items rather than only the visible ones. A filter hides
+        // rows without deselecting them, so "deselect all" that respected the
+        // filter would leave selections behind on rows you cannot see -- and the
+        // whole reason to reach for it is a selection you have lost track of.
+        //
+        // The group indicator is emptied alongside the classes because the two are
+        // the selection: `_resolveContestantFromElement` reads the classes and the
+        // click handler reads the indicator's contents, so leaving either behind
+        // gives a row that is half-selected.
+        const deselectAll = htmlElement.querySelector('.cpb-deselect-all');
+        if (deselectAll) {
+            deselectAll.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                htmlElement.querySelectorAll('.cpb-actor-list .cpb-actor-item').forEach((item) => {
+                    item.classList.remove('selected', 'cpb-group-1', 'cpb-group-2');
+                    const indicator = item.querySelector('.cpb-group-indicator') || item.querySelector('.group-indicator');
+                    if (indicator) indicator.innerHTML = '';
+                });
+                this._updateToolList();
+            });
+        }
+
         // Apply initial actor filter
         this._applyFilter(htmlElement, initialFilter);
         

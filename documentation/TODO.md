@@ -4,6 +4,25 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## CRITICAL - the window framework does not own the frame, and we are building on it
+
+**Plan: `documentation/plans/plan-window-framework.md`** (opened 2026-08-16). Not started.
+
+The window API provides a zone contract and base classes; the consumer owns the markup. **Of 15
+`BlacksmithWindowBaseV2` subclasses in Blacksmith, 4 render `window-template.hbs`.** Two header systems
+exist, and the button vocabulary is used by 3 of 15.
+
+**Why critical rather than tidy:** on 2026-08-16 the roll window rendered *Regent's* copy of its header,
+because `Handlebars.partials` is a global namespace, both modules registered `partial-unified-header`, and
+both registrations `await` a fetch -- so the winner was a race. It presented as a layout bug, logged
+nothing, and changed between loads with no edit to either file. Blacksmith's side is fixed by namespacing;
+the conditions that produced it are not.
+
+Every window shipped against the current contract is another copy of the frame to migrate later.
+
+**Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
+not last: a frame validated only on simple windows will fail on them after everything else has moved.
+
 ## Advantage/disadvantage discards a built formula's keep modifier (opened 2026-08-16)
 
 **Reported from play:** build `4d6kh3` in the dice tray, click Disadvantage, and the `kh3` is gone.

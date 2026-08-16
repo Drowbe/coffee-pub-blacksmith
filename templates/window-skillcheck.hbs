@@ -16,11 +16,27 @@
     <div class="cpb-dialog-content">
         <!-- Left Column -->
         <div class="cpb-dialog-column">
-            <div class="cpb-column-header">
-                <div class="cpb-header-left">
-                    <i class="fas fa-helmet-battle"></i> Contestants
+            {{!-- The framework's section header rather than this dialog's own. The
+                  local `.cpb-column-header` set 1.1em/800 against the design
+                  system's 0.85em/700, so it read as a title rather than a section
+                  label -- and it was a reinvention of a component that already
+                  exists. See documentation/plans/plan-window-framework.md. --}}
+            <div class="blacksmith-window-section-header">
+                <i class="fas fa-helmet-battle"></i>
+                <span>Contestants</span>
+                <div class="cpb-header-right">
+                    {{!-- A COUNT, not a sort. What you want to know when the list is
+                          long is whether you have left somebody selected from a
+                          previous roll -- which is a "how many", and a number moves
+                          nothing. Sorting the picked rows to the top answers a
+                          question you are asking less often, at the cost of the list
+                          rearranging under the cursor mid-task. --}}
+                    <span class="cpb-header-count cpb-selection-count" hidden></span>
+                    <button type="button" class="cpb-header-action cpb-deselect-all"
+                            data-tooltip="Clear every contestant selection, challengers and defenders alike">
+                        <i class="fa-solid fa-users-slash"></i> Deselect All
+                    </button>
                 </div>
-                <div class="cpb-header-right"></div>
             </div>
 
             <div class="cpb-form-group">
@@ -38,11 +54,14 @@
                 <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'party')}}active{{/if}}" data-filter="party">
                     <i class="fas fa-helmet-battle"></i> Party
                 </button>
+                {{!-- No "Selected" filter. Selected tokens are on the canvas by
+                      definition, so Canvas already shows them -- and opening with
+                      tokens controlled pre-selects them in the list, which is the
+                      part that mattered. A filter that hides everything except what
+                      is already highlighted mostly removes the context you need to
+                      add somebody to the group. --}}
                 <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'monster')}}active{{/if}}" data-filter="monster">
                     <i class="fas fa-dragon"></i> NPCs
-                </button>
-                <button type="button" class="cpb-filter-btn {{#if (eq initialFilter 'selected')}}active{{/if}}" data-filter="selected">
-                    <i class="fas fa-square-dashed"></i> Selected
                 </button>
             </div>
             <div class="cpb-actor-list">
@@ -67,10 +86,9 @@
 
         <!-- Right Column -->
         <div class="cpb-dialog-column">
-            <div class="cpb-column-header">
-                <div class="cpb-header-left">
-                    <i class="fas fa-dice"></i> Roll Type
-                </div>
+            <div class="blacksmith-window-section-header">
+                <i class="fas fa-dice"></i>
+                <span>Roll Type</span>
                 <div class="cpb-header-right">
 
                     <div class="cpb-toggle-container">

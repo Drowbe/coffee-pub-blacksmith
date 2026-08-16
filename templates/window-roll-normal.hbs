@@ -7,6 +7,7 @@
       subtitle=rollSubtitle
       rollMode=rollMode
       dcValue=dcValue
+      hasDC=hasDC
       isReadOnly=true
       showToggles=false
       actorName=actorName
@@ -19,7 +20,6 @@
   <div class="roll-summary-row">
     <div class="roll-summary-item roll-formula-row">
       <span class="roll-formula">{{rollFormula}}</span>
-      <i class="fa-solid fa-circle-xmark roll-formula-clear" data-tooltip="Clear all bonuses and modifiers"></i>
     </div>
   </div>
 
@@ -41,20 +41,29 @@
           `situational-bonus` has NOT gone away as a concept: a GM can still attach
           one per actor when requesting a roll, and it arrives pre-filled here. --}}
     <div class="roll-section">
-      <div class="roll-config-item">
-        <div class="roll-field-header">
-          <label class="label-small" for="roll-modifier">Bonus and Modifiers</label>
-          {{#if canEditPresets}}
-          <button type="button" class="roll-preset-add blacksmith-tag"
-                  data-tooltip="Save a new named bonus. Shared with the whole table.">
-            <i class="fa-solid fa-plus"></i> New
-          </button>
-          {{/if}}
-        </div>
+      {{!-- The framework's section header, with its right-hand action slot, rather
+            than a label and a tag-shaped button invented here. --}}
+      <div class="blacksmith-window-section-header">
+        <i class="fa-solid fa-plus-minus"></i>
+        <span>Bonus and Modifiers</span>
+        {{#if canEditPresets}}
+        <button type="button" class="blacksmith-window-section-header-action roll-preset-add"
+                data-tooltip="Save a new named bonus. Shared with the whole table.">
+          <i class="fa-solid fa-plus"></i> New
+        </button>
+        {{/if}}
+      </div>
+
+      {{!-- The clear sits INSIDE the field, because what it clears is the field.
+            It was in the formula row, which reads as clearing the formula -- but
+            the formula includes the base roll and the ability and proficiency
+            terms, none of which this removes or could. --}}
+      <div class="roll-modifier-field">
         <input type="text" id="roll-modifier" class="roll-modifier" name="modifier"
                value="{{modifier}}"
                placeholder="+2, 1d4, -1 — separate several with spaces"
                data-tooltip="Anything Foundry can roll: a flat bonus like +2, dice like 1d4 for Guidance, or several separated by spaces.">
+        <i class="fa-solid fa-circle-xmark roll-modifier-clear" data-tooltip="Clear the bonuses and modifiers"></i>
       </div>
 
       {{!-- DICE FIRST, then the named bonuses.
