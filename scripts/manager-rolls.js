@@ -596,7 +596,11 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
             postConsoleAndNotification(MODULE.NAME, `Creating manual skill roll for: ${value}`, null, true, false);
             // Build skill roll formula manually: 1d20 + abilityMod + profBonus
             const skillData = CONFIG.DND5E.skills[value];
-            const skillAbility = skillData?.ability || 'int';
+            // `options.ability` is the roll window's override. A skill has a default
+            // ability, not a fixed one -- Intimidation with Strength is the standard
+            // example, and the core dnd5e dialog offers the same swap. Falls back to
+            // the skill's own ability when nothing overrides it.
+            const skillAbility = options.ability || skillData?.ability || 'int';
             const skillAbilityMod = foundry.utils.getProperty(actor.system.abilities, `${skillAbility}.mod`) || 0;
             const skillProfBonus = actor.system.attributes.prof || 0;
             const skillIsProficient = foundry.utils.getProperty(actor.system.skills, `${value}.value`) > 0;
@@ -828,7 +832,9 @@ async function _executeBuiltInRoll(actor, type, value, options = {}) {
                 }
             }
             if (toolItem) {
-                const ability = toolItem.system.ability || "int";
+                // Overridable for the same reason a skill's is: the tool names a
+                // default ability, and a table may rule a different one applies.
+                const ability = options.ability || toolItem.system.ability || "int";
                 const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${ability}.mod`) || 0;
                 const profBonus = actor.system.attributes.prof || 0;
                 const isProficient = toolItem.system.proficient > 0;
@@ -1285,11 +1291,32 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         if (incoming !== 0) seeded.push(incoming > 0 ? `+${incoming}` : String(incoming));
         if (this.rollData.customModifier) seeded.push(String(this.rollData.customModifier).trim());
 
+        // ABILITY OVERRIDE, for the roll types where the ability is a DEFAULT rather
+        // than the roll itself.
+        //
+        // A skill names an ability and a table may rule a different one applies --
+        // Intimidation on Strength is the stock example, and the core dnd5e dialog
+        // offers the same swap. A tool works the same way.
+        //
+        // Deliberately absent for `ability` and `save` rolls: there the ability IS
+        // the roll, so a picker would not be overriding a default, it would be
+        // quietly turning a Strength save into a Charisma one. Someone who wants
+        // that wants a different roll.
+        const overridable = this.rollData.rollTypeKey === 'skill' || this.rollData.rollTypeKey === 'tool';
+        const abilityChoices = overridable
+            ? Object.entries(CONFIG.DND5E?.abilities ?? {}).map(([key, config]) => ({
+                key,
+                label: config?.label ?? key.toUpperCase(),
+                selected: key === (this.rollData.abilityKey ?? '')
+            }))
+            : null;
+
         return {
             ...this.rollData,
             modifier: seeded.join(' '),
             presets: RollWindow.getPresets(),
             dice: RollWindow.BUILDER_DICE,
+            abilityChoices,
             // The list is world-scoped, so only a GM can write it. Everyone uses it.
             canEditPresets: game.user.isGM
         };
@@ -1382,12 +1409,18 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             // attach one per actor when requesting a roll, and it arrives pre-filled
             // in this field (see _prepareContext). Sending it as well would apply it
             // twice.
+            // The ability override, when this roll type has one. Absent means "use
+            // the skill's or tool's own", which is what processRoll falls back to --
+            // so an untouched picker and no picker at all behave identically.
+            const abilitySelect = element.querySelector('select[name="ability"]');
+
             const rollOptions = {
                 advantage: advantage,
                 disadvantage: disadvantage,
                 customModifier: modifier,
                 fastForward: true,
-                rollMode: rollMode
+                rollMode: rollMode,
+                ...(abilitySelect?.value ? { ability: abilitySelect.value } : {})
             };
             
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll options:`, rollOptions, true, false);
@@ -1552,9 +1585,19 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         if (!formulaElement || !modifierInput) return;
 
         const baseRoll = this.rollData.baseRoll || '1d20';
-        const abilityMod = this.rollData.abilityMod || 0;
-        const abilityKey = this.rollData.abilityKey || 'dex';
         const proficiencyBonus = this.rollData.proficiencyBonus || 0;
+
+        // The ability is READ FRESH each render rather than captured, because the
+        // override below changes it: a captured value would leave the formula
+        // showing the modifier of the ability the window opened with.
+        const abilitySelect = htmlElement.querySelector('select[name="ability"]');
+        const currentAbility = () => abilitySelect?.value || this.rollData.abilityKey || 'dex';
+        const abilityModFor = (key) => {
+            const actor = this.rollData.tokenId
+                ? canvas?.tokens?.get(this.rollData.tokenId)?.actor
+                : game.actors.get(this.rollData.actorId);
+            return foundry.utils.getProperty(actor?.system?.abilities ?? {}, `${key}.mod`) ?? 0;
+        };
 
         // The field's value reaches innerHTML, so it is escaped on the way. It is
         // the user's own text in the user's own window, but "mostly harmless input"
@@ -1582,6 +1625,8 @@ class RollWindow extends BlacksmithWindowBaseV2 {
 
             // `label` is rendered as a tag rather than as more of the value, so the
             // number stays the thing you read and the reason sits beside it.
+            const abilityKey = currentAbility();
+            const abilityMod = abilityModFor(abilityKey);
             if (abilityMod !== 0) {
                 terms.push({ op: abilityMod < 0 ? '-' : '+', text: String(Math.abs(abilityMod)), label: abilityKey });
             }
@@ -1603,6 +1648,11 @@ class RollWindow extends BlacksmithWindowBaseV2 {
 
         modifierInput.addEventListener('input', updateFormula);
         modifierInput.addEventListener('change', updateFormula);
+
+        // Swapping the ability changes the modifier, so the formula has to follow it
+        // immediately -- the point of the control is seeing what the swap costs
+        // before committing to the roll.
+        if (abilitySelect) abilitySelect.addEventListener('change', updateFormula);
 
         /**
          * Append a token to the field, keeping it the single source of truth.

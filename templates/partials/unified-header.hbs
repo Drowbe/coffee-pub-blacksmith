@@ -62,7 +62,10 @@
                         </div>
                     </div>
                 {{/if}}
-                <!-- Roll Mode Selector -->
+                {{!-- Roll Mode, only when the caller passes one. The roll window
+                      renders its own in a tool row beside the ability override, so
+                      it passes none and this collapses. --}}
+                {{#if rollMode}}
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
                         {{!-- The framework's select. `.cpb-select` was a local rule
@@ -77,6 +80,7 @@
                         </select>
                     </div>
                 </div>
+                {{/if}}
                 {{!-- DC Box. Read-only means it REPORTS a DC, so with none to report
                       there is nothing to render -- an empty box with a label is a
                       control that looks broken rather than a roll without a DC. The

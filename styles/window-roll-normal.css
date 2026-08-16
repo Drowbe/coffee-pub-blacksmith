@@ -166,6 +166,32 @@ div#roll-window .window-content {
 }
 
 
+/* TOOL ROW — configuration of this roll, between the header and the formula.
+
+   Side by side and equal width, because Ability and Roll Mode are the same kind of
+   decision and neither leads. They wrap on a narrow window rather than squeezing,
+   since a select that cannot show its longest option is worse than a second row. */
+.roll-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 0.5em 1em;
+  border-bottom: 1px solid #444;
+}
+
+.roll-tool {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+/* The framework select is `width: 100%`, which is what this row wants. */
+.roll-tool .blacksmith-select {
+  width: 100%;
+}
+
 /* Roll formula */
 
 .roll-formula {

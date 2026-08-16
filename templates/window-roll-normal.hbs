@@ -14,7 +14,6 @@
   {{> "blacksmith-unified-header"
       diceIcon=diceIcon
       mainTitle=rollTitle
-      rollMode=rollMode
       dcValue=dcValue
       hasDC=hasDC
       isReadOnly=true
@@ -26,6 +25,35 @@
   {{!-- No "Formula" label: the row is a formula, which the dice in it say plainly.
         The clear lives here rather than among the builder buttons because what it
         clears is this line, and a control belongs with the thing it acts on. --}}
+  {{!-- TOOL ROW. Configuration of the roll, sitting between the header (who and
+        what) and the formula it changes.
+
+        Roll Mode moved down here from the header to sit beside Ability, because
+        they are the same kind of thing -- decisions about THIS roll -- and the core
+        dnd5e dialog groups them the same way. The header is left saying who is
+        rolling and what for. --}}
+  <div class="roll-tools">
+    {{#if abilityChoices}}
+    <label class="roll-tool">
+      <span class="label-small">Ability</span>
+      <select name="ability" class="blacksmith-select roll-ability-select">
+        {{#each abilityChoices}}
+        <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+        {{/each}}
+      </select>
+    </label>
+    {{/if}}
+    <label class="roll-tool">
+      <span class="label-small">Roll Mode</span>
+      <select name="rollMode" class="blacksmith-select">
+        <option value="roll" {{#if (eq rollMode "roll")}}selected{{/if}}>Public Roll</option>
+        <option value="gmroll" {{#if (eq rollMode "gmroll")}}selected{{/if}}>Private GM Roll</option>
+        <option value="blindroll" {{#if (eq rollMode "blindroll")}}selected{{/if}}>Blind GM Roll</option>
+        <option value="selfroll" {{#if (eq rollMode "selfroll")}}selected{{/if}}>Self Roll</option>
+      </select>
+    </label>
+  </div>
+
   <div class="roll-summary-row">
     <div class="roll-summary-item roll-formula-row">
       <span class="roll-formula">{{rollFormula}}</span>
