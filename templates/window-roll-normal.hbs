@@ -1,10 +1,19 @@
 {{!-- Roll Configuration Window Template    roll-config-label       --}}
 <div class="window-roll-normal foundry-style-window">
-  {{!-- Unified Header --}}
-  {{> "blacksmith-unified-header" 
+  {{!-- Unified Header.
+
+       No `subtitle` is passed. `rollSubtitle` is the roll type, the DC and the
+       group-roll flag strung together, and this window shows all three elsewhere;
+       the actor's name alone is what the caption is for. `rollSubtitle` itself is
+       NOT dropped -- orchestrateRoll reads it as `skillName` for the chat card, so
+       it is passed over here rather than stopped at the source.
+
+       The comment sits out here on purpose: Handlebars does not allow a comment
+       inside a partial invocation, and one placed among the parameters below is a
+       parse error that takes the whole window down. --}}
+  {{> "blacksmith-unified-header"
       diceIcon=diceIcon
       mainTitle=rollTitle
-      subtitle=rollSubtitle
       rollMode=rollMode
       dcValue=dcValue
       hasDC=hasDC

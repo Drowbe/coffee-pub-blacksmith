@@ -151,12 +151,11 @@ div#skill-check-dialog .window-content {
     font-size: 1.1em;
 }
 
-/* The actor leads the subtitle, so it is lifted out of the caption colour -- it is
-   the subject of the line, and the roll type is what qualifies it. */
-.cpb-dialog-header-sticky .cpb-subtitle-actor {
-    color: rgba(255, 255, 255, 0.85);
-    font-weight: 700;
-}
+/* `.cpb-subtitle-actor` is gone. The actor's name was lifted to white and bold as
+   "the subject of the line" -- but once the qualifiers after it were removed the
+   name IS the line, and emphasising a caption that has nothing to contrast with
+   makes it a second headline under the first. It reads in the subtitle's own
+   voice now. */
 
 
 
@@ -418,21 +417,6 @@ div#skill-check-dialog .window-content {
 .cpb-header-action:hover {
     opacity: 1;
     color: rgba(255, 255, 255, 0.9);
-}
-
-/* The selection count. Reads as a quiet fact rather than a control -- it is
-   information sitting next to the action that acts on it, so it must not look
-   pressable. `[hidden]` needs the explicit `display: none` because the flex
-   parent would otherwise override it. */
-.cpb-header-count {
-    font-variant-numeric: tabular-nums;
-    opacity: 0.65;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.cpb-header-count[hidden] {
-    display: none;
 }
 
 .cpb-dialog-column h2 {

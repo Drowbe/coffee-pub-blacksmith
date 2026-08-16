@@ -23,7 +23,15 @@
             <div class="cpb-dialog-title-section">
 
                 <div class="cpb-dialog-main-title">{{mainTitle}}</div>
-                <div class="cpb-dialog-subtitle">{{#if actorName}}<span class="cpb-subtitle-actor">{{actorName}}</span> &middot; {{/if}}{{subtitle}}</div>
+                {{!-- The actor's name is the subtitle, in the subtitle's own voice.
+                      It was lifted to white and bold while a trail of qualifiers
+                      followed it -- the roll type, the DC, whether it was a group
+                      roll -- each of which the window already states somewhere it
+                      belongs: the title names the roll, the DC has its own box. A
+                      caption repeating three things the reader can see is noise,
+                      and emphasising the one word that is not a repeat made it a
+                      second headline under the first. --}}
+                <div class="cpb-dialog-subtitle">{{#if actorName}}{{actorName}}{{#if subtitle}} &middot; {{/if}}{{/if}}{{subtitle}}</div>
             </div>
             <!-- HEADER CONTROLS -->
             <div class="cpb-dialog-controls">

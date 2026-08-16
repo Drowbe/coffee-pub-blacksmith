@@ -810,22 +810,29 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         //
         // Hidden at zero. A permanent "0 selected" is noise on a fresh window, and
         // the control beside it already says what to do about a number.
+        // It writes into the WINDOW HEADER'S SUBTITLE, which previously held a
+        // static "Skill Checks • Ability Checks • Saving Throws" -- a line that
+        // restated the six roll-type buttons in the next column and never changed.
+        // A caption is better spent on something that does.
         const updateSelectionCount = () => {
-            const badge = htmlElement.querySelector('.cpb-selection-count');
-            if (!badge) return;
+            const subtitle = htmlElement.querySelector('.cpb-dialog-subtitle');
+            if (!subtitle) return;
             const items = htmlElement.querySelectorAll('.cpb-actor-list .cpb-actor-item');
             const challengers = [...items].filter((i) => i.classList.contains('cpb-group-1')).length;
             const defenders = [...items].filter((i) => i.classList.contains('cpb-group-2')).length;
             const total = challengers + defenders;
 
-            badge.hidden = total === 0;
-            if (!total) return;
+            if (!total) {
+                subtitle.textContent = '';
+                delete subtitle.dataset.tooltip;
+                return;
+            }
             // Sides are named only when there are two of them; on an ordinary roll
             // everyone is a challenger and saying so adds a word without a fact.
-            badge.textContent = defenders
+            subtitle.textContent = defenders
                 ? `${challengers} vs ${defenders}`
                 : `${total} selected`;
-            badge.dataset.tooltip = defenders
+            subtitle.dataset.tooltip = defenders
                 ? `${challengers} challenger${challengers === 1 ? '' : 's'}, ${defenders} defender${defenders === 1 ? '' : 's'}`
                 : `${total} contestant${total === 1 ? '' : 's'} selected, including any hidden by the current filter`;
         };
@@ -861,6 +868,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     if (indicator) indicator.innerHTML = '';
                 });
                 this._updateToolList();
+                // Called explicitly: this button lives in the header, so the
+                // delegated listener on the actor list never sees it.
+                updateSelectionCount();
             });
         }
 
@@ -910,6 +920,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             }
         }
 
+
         // Debug: Check if classes are being applied (v13: native DOM)
         const unavailableTools = htmlElement.querySelectorAll('.cpb-tool-unavailable');
         postConsoleAndNotification(MODULE.NAME, 'Tool items with unavailable class:', unavailableTools.length, true, false);
@@ -951,6 +962,11 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             this._updateToolList();
             this._updateSkillKitState();
         }
+
+        // Reflect whatever the auto-selection chose. The listeners only fire on a
+        // click, so without this the count stays blank on a window that opened with
+        // tokens already controlled -- which is the common case.
+        updateSelectionCount();
 
         // Handle actor selection (v13: native DOM)
         htmlElement.querySelectorAll('.cpb-actor-item').forEach(item => {

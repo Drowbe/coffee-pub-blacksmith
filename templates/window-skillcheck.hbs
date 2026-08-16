@@ -1,9 +1,18 @@
 <div class="skill-check-dialog">
-    {{!-- Unified Header --}}
-    {{> "blacksmith-unified-header" 
+    {{!-- Unified Header.
+
+         `subtitle` is deliberately empty. It held "Skill Checks • Ability Checks •
+         Saving Throws", which restated the six buttons in the right-hand column and
+         never changed; the line now carries the selection count, written by
+         _attachLocalListeners.
+
+         Note the comment sits OUT here rather than among the parameters below --
+         Handlebars does not allow a comment inside a partial invocation, and one
+         placed there is a parse error that takes the whole window down. --}}
+    {{> "blacksmith-unified-header"
         diceIcon="fas fa-dice-d20"
         mainTitle="Request a Roll"
-        subtitle="Skill Checks • Ability Checks • Saving Throws"
+        subtitle=""
         rollMode="roll"
         dcValue=dcValue
         isReadOnly=false
@@ -25,13 +34,10 @@
                 <i class="fas fa-helmet-battle"></i>
                 <span>Contestants</span>
                 <div class="cpb-header-right">
-                    {{!-- A COUNT, not a sort. What you want to know when the list is
-                          long is whether you have left somebody selected from a
-                          previous roll -- which is a "how many", and a number moves
-                          nothing. Sorting the picked rows to the top answers a
-                          question you are asking less often, at the cost of the list
-                          rearranging under the cursor mid-task. --}}
-                    <span class="cpb-header-count cpb-selection-count" hidden></span>
+                    {{!-- The count lives in the WINDOW header's subtitle, not here --
+                          that line was a static list of what the dialog does, which
+                          the six roll-type buttons below already say. A caption is
+                          better spent on something that changes. --}}
                     <button type="button" class="cpb-header-action cpb-deselect-all"
                             data-tooltip="Clear every contestant selection, challengers and defenders alike">
                         <i class="fa-solid fa-users-slash"></i> Deselect All

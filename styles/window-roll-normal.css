@@ -350,16 +350,23 @@ div#roll-window .window-content {
   color: rgba(235, 233, 225, 0.6);
 }
 
+/* THE HOUSE HOVER IS THE SIDEBAR'S: `rgba(201, 89, 63, …)`, background at 0.9 with
+   a 0.7 border, matching `sidebar-style.css:39` and the sidebar pins.
+
+   This first used `--blacksmith-interactive-hover` / `-active`, which read like the
+   right tokens and are a dark brown nothing else uses -- a check found this file was
+   their ONLY consumer, so they are aspirational and the literal is the practice.
+   Matching what is on screen beats matching what is in the variables file. */
 .roll-builder-die:hover,
 .roll-builder-op:hover {
-  background: var(--blacksmith-interactive-hover);
-  border-color: var(--blacksmith-interactive-active);
+  background: rgba(201, 89, 63, 0.9);
+  border-color: rgba(201, 89, 63, 0.7);
   color: rgba(255, 255, 255, 0.95);
 }
 
 .roll-builder-die:active,
 .roll-builder-op:active {
-  background: var(--blacksmith-interactive-active);
+  background: rgba(168, 71, 49, 0.95);
 }
 
 
