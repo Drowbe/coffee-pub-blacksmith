@@ -211,6 +211,25 @@ checked++;
     }
 }
 
+// Redundant on this path -- toAnchor's text node already does what a literal asks
+// for -- but wrapping every untrusted name is the right reflex once a consumer has
+// one, and `String({literal})` is "[object Object]".
+await expectLink('a literal label on a linked row is unwrapped, not stringified',
+    { uuid: RESOLVES, label: { literal: HOSTILE } },
+    `<a class="content-link" data-uuid="${RESOLVES}">${HOSTILE}</a>`);
+
+// A link whose name is withheld still tells the reader the document exists, and
+// the anchor carries the uuid, so the veil replaces the whole link.
+globalThis.game.user.isGM = false;
+await expectLink('a veiled label withholds the whole link, not just its text',
+    { uuid: RESOLVES, label: { value: 'Secret Ring', readableBy: 'gm' } },
+    '<i class="fa-solid fa-eye blacksmith-veil"></i>');
+
+globalThis.game.user.isGM = true;
+await expectLink('an entitled reader gets the link, veil resolved',
+    { uuid: RESOLVES, label: { value: { literal: HOSTILE }, readableBy: 'gm' } },
+    `<a class="content-link" data-uuid="${RESOLVES}">${HOSTILE}</a>`);
+
 await expectLink('an unresolvable uuid falls back to the escaped name',
     { uuid: 'Item.missing', label: '<b>Ghost</b>' }, '&lt;b&gt;Ghost&lt;/b&gt;');
 

@@ -361,6 +361,25 @@ export async function processText(text, options = {}) {
 }
 
 /**
+ * The plain string behind a label that may be wrapped.
+ *
+ * A LITERAL IS ACCEPTED HERE RATHER THAN REJECTED, even though it is redundant:
+ * `toAnchor` appends the name as a text node, which is precisely the guarantee
+ * `{ literal }` asks for, so the wrapper buys nothing on this path. But once a
+ * consumer has a literal, wrapping every untrusted name is the correct reflex, and
+ * the reflex must not be punished -- `String({ literal })` is `[object Object]`,
+ * which is a silent, ugly failure for a caller doing the right thing. Reported by
+ * Artificer 2026-08-15 after their migration.
+ *
+ * Recurses, so a literal nested inside a veiled value resolves too.
+ */
+function anchorLabel(value) {
+    if (isLiteral(value)) return String(value.literal ?? '');
+    if (isVeiled(value)) return anchorLabel(value.value);
+    return String(value ?? '');
+}
+
+/**
  * A `rows`/`badges`/`notes` item's label: a document link when it carries a uuid,
  * ordinary consumer text when it does not.
  *
@@ -400,7 +419,14 @@ export async function documentLinkOrText(item, options) {
     if (!item.uuid) return processText(text, options);
 
     const uuid = String(item.uuid);
-    const label = String(item.label ?? uuid);
+    const raw = item.label ?? uuid;
+
+    // A veiled label withholds the WHOLE link, not just its text. Linking to the
+    // document while hiding its name tells the reader what they were not meant to
+    // know, and the anchor carries the uuid regardless.
+    if (isVeiled(raw) && !mayRead(raw, options)) return veilMarkup(raw);
+
+    const label = anchorLabel(raw);
     if (/[[\]{}]/.test(uuid)) return escapeHtml(label);
 
     try {

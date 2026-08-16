@@ -438,6 +438,15 @@ not the name, and does nothing about enricher syntax.
 To veil a literal, nest it: `{ value: { literal: name }, readableBy: 'gm' }`. A
 `readableBy` alongside `literal` is treated as that nesting rather than ignored.
 
+**On a `rows` item that carries a `uuid`, a literal is accepted but unnecessary.**
+That label becomes a document link, and the link is built rather than written - the
+name is appended as a text node, which is already the guarantee a literal asks for.
+Wrap it or don't; both render the same. Nothing about a name can affect the link.
+
+A veiled label on a linked row withholds the whole link rather than its text, since
+a link whose name is hidden still tells the reader the document exists and the
+anchor carries the uuid regardless.
+
 ## Veiled values
 
 Anywhere a part accepts consumer text, it also accepts a veiled form: a value shown to entitled readers and replaced by a placeholder for everyone else.
