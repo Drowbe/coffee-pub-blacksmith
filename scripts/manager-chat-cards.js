@@ -361,6 +361,57 @@ export async function processText(text, options = {}) {
 }
 
 /**
+ * `escapeHtml`, plus the braces that DELIMIT an enricher label.
+ *
+ * `escapeHtml` covers the characters that matter to an HTML parser -- & < > " ' --
+ * and `{` `}` are not among them, because in HTML they are ordinary text. Inside
+ * `@UUID[uuid]{label}` they are not ordinary text: they close the expression. A
+ * name containing `}` therefore ends the link early and hands the remainder of
+ * ITSELF to the enricher, which will build a second link or a live roll out of it.
+ *
+ * Encoded rather than stripped. Stripping is what the label helper in
+ * `ui-notes-gmnotes-section.js` does, and it is the same trade this system rejected
+ * when it added `{ literal }`: it renders a name that is not the name. An entity
+ * renders as the character and cannot terminate anything.
+ *
+ * Order matters. `escapeHtml` runs first and turns `&` into `&amp;`; the ampersands
+ * introduced here arrive after that pass, so they are not double-escaped.
+ */
+function escapeEnricherLabel(text) {
+    return escapeHtml(text)
+        .replace(/\{/g, '&#123;')
+        .replace(/\}/g, '&#125;');
+}
+
+/**
+ * A `rows`/`badges`/`notes` item's label: a document link when it carries a uuid,
+ * ordinary consumer text when it does not.
+ *
+ * THIS IS THE ONE CONSUMER-TEXT PATH THAT DOES NOT GO THROUGH `processText`, and
+ * that is exactly why it is a named function rather than a conditional inline in
+ * `_prepareContext`. It has to build enricher syntax around a caller's string and
+ * then ask the enricher to parse it -- the one place in the system where consumer
+ * text is deliberately handed to something that interprets it. Everything that
+ * makes that safe lives here, where it can be read in one piece.
+ *
+ * The UUID is checked as well as the label. `@UUID[...]` ends at the first `]`, so
+ * a uuid carrying one closes the expression early with the same consequence. No
+ * real Foundry uuid contains a bracket or a brace; one that does is malformed or
+ * hostile, and either way must not reach the enricher. Such an item renders its
+ * name as inert text -- a plain name is a better failure than a link built from a
+ * value that could not be vetted.
+ */
+async function documentLinkOrText(item, options) {
+    const text = item.label ?? item.text;
+    if (!item.uuid) return processText(text, options);
+
+    const uuid = String(item.uuid);
+    if (/[[\]{}]/.test(uuid)) return escapeHtml(text ?? uuid);
+
+    return enrich(`@UUID[${uuid}]{${escapeEnricherLabel(item.label ?? uuid)}}`, options);
+}
+
+/**
  * Render one prose block to HTML. Block structure is Blacksmith's; only the text
  * inside comes from the consumer, and it goes through `processText`.
  */
@@ -491,9 +542,7 @@ export class ChatCardsManager {
                 ...item,
                 // A uuid turns the label into a real document link; without one it
                 // is ordinary consumer text and goes through the full pipeline.
-                label: item.uuid
-                    ? await enrich(`@UUID[${item.uuid}]{${escapeHtml(item.label ?? item.uuid)}}`, options)
-                    : await processText(item.label ?? item.text, options),
+                label: await documentLinkOrText(item, options),
                 sublabel: item.sublabel ? await processText(item.sublabel, options) : '',
                 trailing: item.trailing ? await processText(item.trailing, options) : '',
                 // A thumbnail exists if there is anything to put in it.

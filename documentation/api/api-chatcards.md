@@ -411,12 +411,26 @@ joined. That is how you mark up the words you wrote while passing a name through
 untouched:
 
 ```javascript
-{ type: 'paragraph', text: ['Created ', { literal: item.name }, ' for **', { literal: actor.name }, '**'] }
+{ type: 'paragraph', text: ['Created ', { literal: item.name }, ' for **the party**'] }
 ```
 
 Marks and enricher syntax cannot span a segment boundary. That is the guarantee
 rather than a limitation - a literal must not be able to close a run its neighbour
 opened.
+
+**So a mark must open and close inside ONE segment, and an untrusted value cannot
+be emphasised.** Wrapping a literal in marks from the neighbouring segments does
+not make it bold; it renders the asterisks:
+
+```javascript
+// Wrong - renders: Created Ring of Power for **Bob**
+['Created ', { literal: item.name }, ' for **', { literal: actor.name }, '**']
+```
+
+There is no way around this, and there should not be: emphasis is markup, and
+markup is the thing a literal exists to withhold. Where a name needs to stand out,
+give it a part that carries weight of its own - a `rows` label, a `subject`, a
+trailing value - rather than marks inside a sentence.
 
 Do not strip characters from a name before passing it. That renders a name which is
 not the name, and does nothing about enricher syntax.

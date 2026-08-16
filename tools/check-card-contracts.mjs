@@ -226,6 +226,35 @@ if (!/renderCard\([^)]*baked:\s*true/s.test(apiSrc)) {
     problems.push('veil: post() no longer renders the stored snapshot with `baked: true` -- the poster\'s own entitlements would decide what every reader gets');
 }
 
+/*
+    3. A CALLER'S STRING NEVER REACHES THE ENRICHER UNGUARDED.
+
+    One path deliberately builds enricher syntax around consumer text: a rows item
+    with a `uuid` becomes `@UUID[uuid]{label}`, which is then parsed. `escapeHtml`
+    is not sufficient there -- it covers what matters to an HTML parser, and `{`
+    `}` are ordinary text to HTML but DELIMITERS to the enricher. A name containing
+    `}` closes the link early and hands the rest of itself to the enricher, which
+    will build a second link or a live roll from it.
+
+    Reported by Artificer 2026-08-15 against exactly this line. It survived the
+    `{ literal }` work because it is the one consumer-text path that does not flow
+    through `processText`.
+*/
+checked++;
+const cardTextSrc = readFileSync(SOURCE, 'utf8');
+if (!/&#123;/.test(cardTextSrc) || !/&#125;/.test(cardTextSrc)) {
+    problems.push('enricher: the label escaper no longer encodes both braces -- a name containing `}` would close a @UUID link early and hand the remainder to the enricher');
+}
+
+checked++;
+for (const line of cardTextSrc.split('\n')) {
+    // Interpolation only: the file also names @UUID[] in prose, which is fine.
+    if (!line.includes('@UUID[') || !line.includes('${')) continue;
+    if (!line.includes('escapeEnricherLabel')) {
+        problems.push(`enricher: a @UUID interpolation does not use escapeEnricherLabel -- escapeHtml alone leaves the braces that terminate the label:\n      ${line.trim()}`);
+    }
+}
+
 if (problems.length) {
     console.error('check-card-contracts: a consumer could inject presentation.\n');
     for (const problem of problems) console.error(`  ${problem}`);
