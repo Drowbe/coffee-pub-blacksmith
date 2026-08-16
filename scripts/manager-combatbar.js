@@ -52,7 +52,7 @@ class CombatantCardToolWindow extends BlacksmithToolWindowBaseV2 {
     }
 
     get title() {
-        return game.combats?.active?.combatants?.get(this.combatantId)?.name
+        return CombatBarManager.getActiveCombat()?.combatants?.get(this.combatantId)?.name
             ?? super.title;
     }
 
@@ -79,7 +79,7 @@ class CombatantCardToolWindow extends BlacksmithToolWindowBaseV2 {
     async getData() {
         const combatantId = this.combatantId;
         const renderVersion = ++this.renderVersion;
-        const combatant = game.combats?.active?.combatants?.get(combatantId);
+        const combatant = CombatBarManager.getActiveCombat()?.combatants?.get(combatantId);
         if (!combatant) {
             queueMicrotask(() => { void this.close({ animate: false }); });
             return {
@@ -180,7 +180,7 @@ async function menuAddRemaining(side, label) {
     }
 
     try {
-        const combat = game.combats?.active ?? null;
+        const combat = CombatBarManager.getActiveCombat();
         const present = new Set((combat?.combatants ?? []).map((c) => c.tokenId));
         // Yesterday's corpses are still on the canvas, so the same rules
         // asymmetry the encounter builder uses applies: a monster at zero is
@@ -523,7 +523,7 @@ export class CombatBarManager {
             const payload = data?.data;
             const isMissing = !payload || Object.keys(payload).length === 0;
             if (data?.isOpen && data.type === 'combat' && isMissing) {
-                const combat = game.combats?.active ?? game.combat;
+                const combat = CombatBarManager.getActiveCombat();
                 data.data = CombatBarManager.getCombatData(combat);
             }
             return data;
@@ -2920,7 +2920,7 @@ export class CombatBarManager {
         try {
             if (!CombatBarManager.isCombatBarActive(menuBar)) return;
             if (!CombatBarManager.didHpChange(updateData)) return;
-            const combat = game.combats?.active;
+            const combat = CombatBarManager.getActiveCombat();
             if (!combat) {
                 postConsoleAndNotification(MODULE.NAME, 'Menubar: actor HP changed with no active combat', { actorId: actor?.id }, true, false);
                 return;
@@ -2954,7 +2954,7 @@ export class CombatBarManager {
             const hiddenChanged = 'hidden' in updateData;
             const dispositionChanged = 'disposition' in updateData;
             if (!hpChanged && !hiddenChanged && !dispositionChanged) return;
-            const combat = game.combats?.active;
+            const combat = CombatBarManager.getActiveCombat();
             if (!combat) return;
             const tokenId = token?.id;
             const actorId = token?.actor?.id;
@@ -3473,7 +3473,7 @@ export class CombatBarManager {
 
     static async showCombatantHoverCard(menuBar, combatantId, event) {
         if (menuBar._combatHoverCardPendingId === combatantId) return;
-        const combat = game.combats?.active;
+        const combat = CombatBarManager.getActiveCombat();
         const combatant = combat?.combatants?.get(combatantId);
         if (!combatant) {
             CombatBarManager.hideCombatantHoverCard(menuBar);
@@ -3556,7 +3556,7 @@ export class CombatBarManager {
         const combatantId = menuBar?._combatHoverCardCombatantId;
         const card = menuBar?._combatHoverCardEl;
         if (!combatantId || !card) return;
-        const combatant = game.combats?.active?.combatants?.get(combatantId);
+        const combatant = CombatBarManager.getActiveCombat()?.combatants?.get(combatantId);
         if (!combatant) return;
         if (changedActor && combatant.actor?.uuid !== changedActor?.uuid && combatant.actor?.id !== changedActor?.id) return;
 
@@ -3584,7 +3584,7 @@ export class CombatBarManager {
             return existing;
         }
 
-        const combatant = game.combats?.active?.combatants?.get(combatantId);
+        const combatant = CombatBarManager.getActiveCombat()?.combatants?.get(combatantId);
         if (!combatant) return null;
         const popoutId = `blacksmith-combatant-card-${++CombatBarManager._combatantPopoutSequence}`;
         const windowInstance = new CombatantCardToolWindow({
@@ -3624,7 +3624,7 @@ export class CombatBarManager {
         if (!actor) return;
         const refreshes = [];
         for (const [popoutId, windowInstance] of CombatBarManager._combatantPopoutCards) {
-            const combatant = game.combats?.active?.combatants?.get(windowInstance.combatantId);
+            const combatant = CombatBarManager.getActiveCombat()?.combatants?.get(windowInstance.combatantId);
             if (combatant?.actor?.uuid === actor.uuid || combatant?.actor?.id === actor.id) {
                 refreshes.push(CombatBarManager.refreshCombatantPopoutCard(menuBar, popoutId));
             }
@@ -3649,7 +3649,7 @@ export class CombatBarManager {
     }
 
     static async syncFollowingCombatPopouts(menuBar) {
-        const activeCombatantId = game.combats?.active?.combatant?.id ?? game.combat?.combatant?.id;
+        const activeCombatantId = CombatBarManager.getActiveCombat()?.combatant?.id ?? null;
         if (!activeCombatantId) return;
         const refreshes = [];
         for (const [popoutId, windowInstance] of CombatBarManager._combatantPopoutCards) {

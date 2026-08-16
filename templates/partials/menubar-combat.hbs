@@ -156,6 +156,20 @@
                <div class="combat-portrait-container disposition-{{dispositionKey}} {{#if isSquarePortrait}}shape-square{{else}}shape-round{{/if}} {{#if isCurrent}}current{{/if}} {{#if isDefeated}}defeated{{/if}} {{#if isHidden}}combat-token-hidden{{/if}}"
                     data-combatant-id="{{id}}"
                     data-disposition="{{dispositionKey}}">
+                   {{!-- WHOSE TURN IT IS, stated ABSOLUTELY.
+
+                         Everything else marking the turn is RELATIVE: bigger than its
+                         neighbours, brighter than its neighbours, moving while they are
+                         still. All three need a comparison to read, so all three fail in
+                         the cases people actually hit -- two combatants and nothing to
+                         compare against, a scrolled strip showing only the current one, a
+                         glance too quick to resolve 0.85 against 1.0, or reduced motion
+                         taking the pulse away.
+
+                         A caret is either there or it is not. No neighbour required, no
+                         colour, and it does not touch the border, which disposition and
+                         the hidden stroke both already own. --}}
+                   {{#if isCurrent}}<i class="fa-solid fa-caret-down combat-portrait-turn-marker" aria-hidden="true"></i>{{/if}}
                    {{!-- TWO READINGS, NOT ONE READING IN TWO COSTUMES. Round wraps the portrait
                          in a ring; square lays a bar across the bottom of it. A square ring was
                          built first and dropped: it drained from a corner, because an SVG rect's
