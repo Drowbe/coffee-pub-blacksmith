@@ -99,13 +99,17 @@ export class ChatCardsAPI {
         // string is delivered to everybody. See mayRead() in manager-chat-cards.js.
         const content = await ChatCardsManager.renderCard(card, relativeTo ? { relativeTo, baked: true } : { baked: true });
 
-        // Merged rather than built as one literal: when a Blacksmith card is posted
-        // moduleId IS our own id, so a second key of the same name would replace the
-        // card payload with the caller's flags and silently disable re-rendering.
-        const messageFlags = { [MODULE.ID]: { [CARD_FLAG]: card } };
+        // Caller flags first, the card payload stamped LAST so it always wins. When a
+        // Blacksmith card is posted the caller's moduleId IS our own, so the two share
+        // a namespace and whichever is spread second decides. A caller passing its own
+        // `card` key -- deliberately or by handing back flags it read off a message --
+        // would otherwise replace the composition and silently disable re-rendering.
+        // See update(), where exactly that shipped.
+        const messageFlags = {};
         if (flags && Object.keys(flags).length) {
-            messageFlags[moduleId] = { ...(messageFlags[moduleId] ?? {}), ...flags };
+            messageFlags[moduleId] = { ...flags };
         }
+        messageFlags[MODULE.ID] = { ...(messageFlags[MODULE.ID] ?? {}), [CARD_FLAG]: card };
 
         const messageData = {
             content,
@@ -200,14 +204,23 @@ export class ChatCardsAPI {
 
         const content = await ChatCardsManager.renderCard(card, relativeTo ? { relativeTo, baked: true } : { baked: true });
 
-        // Same merge shape as post(), and for the same reason: when the card is
-        // Blacksmith's own, caller flags and the card payload share a namespace, and
-        // one literal would drop the card.
-        const messageFlags = { [MODULE.ID]: { [CARD_FLAG]: card } };
+        // THE CARD PAYLOAD IS STAMPED LAST AND ALWAYS WINS.
+        //
+        // A caller that derives its flags from the message -- which every
+        // update-in-place flow does, since the state it is updating lives there --
+        // hands back a `card` key holding the composition as it was BEFORE this
+        // change. Spread caller flags over the card and that stale copy silently
+        // replaces the composition just rendered: `content` updates, the flag does
+        // not, and every client's re-render puts the old card back a tick later.
+        //
+        // That shipped, and it is what stopped skill check results appearing on the
+        // card. The symptom is the worst kind -- the write succeeds, no error is
+        // logged, and the stored message and the baked HTML disagree.
+        const messageFlags = {};
         if (flags && Object.keys(flags).length) {
-            const ns = card.moduleId;
-            messageFlags[ns] = { ...(messageFlags[ns] ?? {}), ...flags };
+            messageFlags[card.moduleId] = { ...flags };
         }
+        messageFlags[MODULE.ID] = { ...(messageFlags[MODULE.ID] ?? {}), [CARD_FLAG]: card };
 
         try {
             return await doc.update({ content, flags: messageFlags });

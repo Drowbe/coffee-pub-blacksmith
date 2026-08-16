@@ -68,9 +68,16 @@ globalThis.fetch = async (url) => {
 // below about escaping and marks, which are what this file is asserting.
 let enrichCalls = 0;
 globalThis.foundry = {
-    applications: { ux: { TextEditor: { implementation: {
-        enrichHTML: async (html) => { enrichCalls++; return html; }
-    } } } }
+    // `deepClone` and `renderTemplate` are here for group 5, which exercises
+    // ChatCardsAPI.update() rather than the text pipeline. Neither needs to be
+    // faithful: the assertion is about which card object survives the flag merge.
+    utils: { deepClone: (o) => JSON.parse(JSON.stringify(o)) },
+    applications: {
+        ux: { TextEditor: { implementation: {
+            enrichHTML: async (html) => { enrichCalls++; return html; }
+        } } },
+        handlebars: { renderTemplate: async () => '<div>baked</div>' }
+    }
 };
 
 /**
@@ -274,6 +281,43 @@ await expectLink('a uuid carrying a bracket builds no link at all',
 // Without a uuid it is ordinary consumer text again, marks and all.
 await expectLink('no uuid falls back to the full text pipeline',
     { label: '**bold**' }, '<strong>bold</strong>');
+
+// --- 5. update() keeps the composition it just rendered ---------------------
+//
+// The regression this exists for: a caller that derives its flags from the message
+// hands back the `card` key it read there, holding the PREVIOUS composition. If
+// caller flags are spread over the card payload, that stale copy wins -- `content`
+// updates, the flag does not, and every client's re-render restores the old card a
+// tick later. It broke skill check results and logged nothing.
+
+checked++;
+{
+    const { ChatCardsAPI } = await import(
+        pathToFileURL(join(REPO, 'scripts/api-chat-cards.js')).href
+    );
+
+    const OLD = { v: 1, moduleId: 'coffee-pub-blacksmith', type: 'skill-check',
+                  theme: 'default', parts: [{ part: 'header', title: 'STALE' }] };
+    let written = null;
+    const message = {
+        id: 'msg1',
+        flags: { 'coffee-pub-blacksmith': { type: 'skillCheck', card: OLD } },
+        canUserModify: () => true,
+        update: async (d) => { written = d; return message; }
+    };
+
+    await ChatCardsAPI.update(message, {
+        parts: [{ part: 'header', title: 'FRESH' }],
+        // Precisely what handleSkillRollUpdate passes: the message's own flags,
+        // `card` included, plus the new state.
+        flags: { ...message.flags['coffee-pub-blacksmith'], isCoffeePubCard: true }
+    });
+
+    const stored = written?.flags?.['coffee-pub-blacksmith']?.card;
+    if (stored?.parts?.[0]?.title !== 'FRESH') {
+        problems.push(`update() let caller flags overwrite the card payload -- the stored composition is "${stored?.parts?.[0]?.title}", not the one just rendered. Every client's re-render will restore the old card.`);
+    }
+}
 
 // --- Report ----------------------------------------------------------------
 
