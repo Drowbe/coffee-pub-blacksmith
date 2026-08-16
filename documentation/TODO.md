@@ -4,6 +4,42 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
+## Advantage/disadvantage discards a built formula's keep modifier (opened 2026-08-16)
+
+**Reported from play:** build `4d6kh3` in the dice tray, click Disadvantage, and the `kh3` is gone.
+Normal works; the advantage and disadvantage buttons are what lose it.
+
+**The mechanism is confirmed in source, the behaviour is not yet verified in a world.**
+`manager-rolls.js:902-903` handles the `dice` roll type by *replacing* the formula outright:
+
+```js
+if (options.advantage) diceFormula = '2d20kh';
+else if (options.disadvantage) diceFormula = '2d20kl';
+```
+
+Every other roll type does the same thing (`:605`, `:668`, `:727`, `:753`, `:837`, `:959`), but for those
+the base roll genuinely is a d20 and replacing it is right. For a dice-tray formula it throws away what the
+user built -- not only `kh3` but the dice themselves, so `4d6kh3` becomes `2d20kh`.
+
+**What to decide before fixing**, because the fix depends on the answer and it is a rules question rather
+than a code one: what does advantage *mean* for an arbitrary formula? Doubling the first dice term and
+keeping highest is one reading; rolling the whole expression twice and taking the better total is another,
+and they give different distributions. dnd5e itself only defines advantage for a d20 test.
+
+Options worth weighing:
+- **Disable advantage/disadvantage for the `dice` roll type** and say why in the UI. Honest, smallest, and
+  arguably correct since the concept is not defined for an arbitrary formula.
+- **Apply it to the leading dice term only**, leaving the rest of the expression intact.
+- **Roll twice, keep the better total.** Closest to the intent, furthest from the current code.
+
+Related and already decided: the roll configuration window deliberately offers no keep-highest/keep-lowest
+buttons, because advantage and disadvantage are the three buttons in its footer and two controls reaching
+the same ruling can disagree. That decision is why this bug cannot appear there -- it is the dice tray's
+alone.
+
+**How to verify:** open the dice tray, build `4d6kh3`, click each of Normal, Advantage and Disadvantage,
+and read the resulting formula in the chat card. Normal should keep `4d6kh3`; today the other two do not.
+
 ## Import/export and module-owned document subtypes (opened 2026-08-09, before the phase starts)
 
 **Settle this before writing importer code, not after.** Raised by Squire while closing the tool adoption.

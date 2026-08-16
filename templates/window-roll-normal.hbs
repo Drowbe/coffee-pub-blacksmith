@@ -1,7 +1,7 @@
 {{!-- Roll Configuration Window Template    roll-config-label       --}}
 <div class="window-roll-normal foundry-style-window">
   {{!-- Unified Header --}}
-  {{> "partial-unified-header" 
+  {{> "blacksmith-unified-header" 
       diceIcon=diceIcon
       mainTitle=rollTitle
       subtitle=rollSubtitle
@@ -13,8 +13,14 @@
       actorPortrait=actorPortrait
   }}
   
+  {{!-- No "Formula" label: the row is a formula, which the dice in it say plainly.
+        The clear lives here rather than among the builder buttons because what it
+        clears is this line, and a control belongs with the thing it acts on. --}}
   <div class="roll-summary-row">
-    <div class="roll-summary-item"><span class="label-small">Formula</span><span class="roll-formula">{{rollFormula}}</span></div>
+    <div class="roll-summary-item roll-formula-row">
+      <span class="roll-formula">{{rollFormula}}</span>
+      <i class="fa-solid fa-circle-xmark roll-formula-clear" data-tooltip="Clear all bonuses and modifiers"></i>
+    </div>
   </div>
 
   {{#if rollAdvantageLabel}}
@@ -36,50 +42,47 @@
           one per actor when requesting a roll, and it arrives pre-filled here. --}}
     <div class="roll-section">
       <div class="roll-config-item">
-        <label class="label-small" for="roll-modifier">Modifiers</label>
+        <div class="roll-field-header">
+          <label class="label-small" for="roll-modifier">Bonus and Modifiers</label>
+          {{#if canEditPresets}}
+          <button type="button" class="roll-preset-add blacksmith-tag"
+                  data-tooltip="Save a new named bonus. Shared with the whole table.">
+            <i class="fa-solid fa-plus"></i> New
+          </button>
+          {{/if}}
+        </div>
         <input type="text" id="roll-modifier" class="roll-modifier" name="modifier"
                value="{{modifier}}"
                placeholder="+2, 1d4, -1 — separate several with spaces"
                data-tooltip="Anything Foundry can roll: a flat bonus like +2, dice like 1d4 for Guidance, or several separated by spaces.">
       </div>
 
-      {{!-- Named bonuses. A bonus almost always has a reason, and naming it is
-            what makes the formula read "1D4 BLESS" instead of "1D4 MOD". --}}
+      {{!-- DICE FIRST, then the named bonuses.
+
+            The dice are a fixed, complete set -- eight faces and two operators --
+            so they get one row that always shows all of them. The named list grows
+            without limit, so it is the one that scrolls. Putting the scrolling row
+            second also means the fixed row never moves as the list changes.
+
+            Advantage and disadvantage are the three buttons in the footer, so keep
+            highest and keep lowest are not offered here: the same ruling reached by
+            two controls that can disagree is worse than one control. No multiply or
+            divide either, because these only ever append a term and would introduce
+            operator precedence into an expression read at a glance. --}}
+      <div class="roll-builder-row">
+        {{#each dice}}
+        <i class="{{this.icon}} roll-builder-die" data-token="{{this.token}}" data-tooltip="{{this.tooltip}}"></i>
+        {{/each}}
+        <i class="fa-solid fa-plus roll-builder-op" data-op="+" data-tooltip="Add the next term"></i>
+        <i class="fa-solid fa-minus roll-builder-op" data-op="-" data-tooltip="Subtract the next term"></i>
+      </div>
+
       <div class="roll-presets" data-tooltip="Click to add. The name travels with the value, so the formula says what each term is for.">
         {{#each presets}}
-        <button type="button" class="roll-preset blacksmith-tag" data-value="{{this.value}}" data-label="{{this.label}}">
+        <button type="button" class="roll-preset blacksmith-tag" data-index="{{@index}}" data-value="{{this.value}}" data-label="{{this.label}}">
           {{this.label}} <span class="roll-preset-value">{{this.value}}</span>
         </button>
         {{/each}}
-        {{#if canEditPresets}}
-        <button type="button" class="roll-preset roll-preset-add blacksmith-tag"
-                data-tooltip="Add a house rule to this list. Shared with the whole table.">
-          <i class="fa-solid fa-plus"></i> Add
-        </button>
-        {{/if}}
-      </div>
-    </div>
-
-    {{!-- FORMULA BUILDER. The dice tray's vocabulary, minus what this window
-          already says another way.
-
-          Advantage and disadvantage are the three buttons in the footer, so keep
-          highest and keep lowest are not offered here -- the same ruling reached
-          by two controls that can disagree is worse than one control.
-
-          No multiply or divide either: the base roll is fixed and these only ever
-          append a term, so `x` and `/` would introduce operator precedence into an
-          expression a player is reading at a glance. --}}
-    <div class="roll-section roll-builder">
-      <div class="roll-builder-row">
-        {{#each dice}}
-        <i class="{{this.icon}} blacksmith-dice-icon roll-builder-die" data-token="{{this.token}}" data-tooltip="{{this.tooltip}}"></i>
-        {{/each}}
-      </div>
-      <div class="roll-builder-row">
-        <i class="fa-solid fa-plus blacksmith-operator-icon roll-builder-op" data-op="+" data-tooltip="Add the next term"></i>
-        <i class="fa-solid fa-minus blacksmith-operator-icon roll-builder-op" data-op="-" data-tooltip="Subtract the next term"></i>
-        <i class="fa-solid fa-delete-left blacksmith-operator-icon roll-builder-clear" data-tooltip="Clear all modifiers"></i>
       </div>
     </div>
   </div>

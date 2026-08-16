@@ -3,7 +3,7 @@
 // ================================================================== 
 
 import { MODULE, BLACKSMITH } from './const.js';
-import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely , fetchTemplateText} from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { compendiumManager } from './manager-compendiums.js';
@@ -52,11 +52,11 @@ export class JournalTools {
     static async _registerPartials() {
         try {
             // Load and register the entity replacement partial
-            const entityReplacementTemplate = await fetch(BLACKSMITH.JOURNAL_TOOLS_ENTITY_REPLACEMENT_PARTIAL).then(response => response.text());
+            const entityReplacementTemplate = await fetchTemplateText(BLACKSMITH.JOURNAL_TOOLS_ENTITY_REPLACEMENT_PARTIAL);
             Handlebars.registerPartial('partials/entity-replacement', entityReplacementTemplate);
             
             // Load and register the search & replace partial
-            const searchReplaceTemplate = await fetch(BLACKSMITH.JOURNAL_TOOLS_SEARCH_REPLACE_PARTIAL).then(response => response.text());
+            const searchReplaceTemplate = await fetchTemplateText(BLACKSMITH.JOURNAL_TOOLS_SEARCH_REPLACE_PARTIAL);
             Handlebars.registerPartial('partials/search-replace', searchReplaceTemplate);
             
             postConsoleAndNotification(MODULE.NAME, "Journal Tools: Partials registered successfully", "", false, false);

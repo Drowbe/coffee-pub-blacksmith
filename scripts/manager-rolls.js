@@ -1356,6 +1356,39 @@ class RollWindow extends BlacksmithWindowBaseV2 {
     }
     
     /**
+     * Edit or remove a named bonus. GM only; see the binding site for why.
+     *
+     * Identified by INDEX, which is safe because the list is re-read immediately
+     * before it is written and the window re-renders after every change -- there is
+     * no window in which the index on a chip refers to a different entry than the
+     * one the GM right-clicked. A generated id would be more robust against two GMs
+     * editing at once, and is what to reach for if that ever happens.
+     */
+    async _presetContextMenu(index) {
+        const presets = RollWindow.getPresets();
+        const preset = presets[index];
+        if (!preset) return;
+
+        const choice = await DialogAPI.choose({
+            title: `${preset.label} (${preset.value})`,
+            choices: [
+                { id: 'edit', label: 'Edit', icon: 'fa-solid fa-pen' },
+                { id: 'delete', label: 'Delete', icon: 'fa-solid fa-trash', destructive: true }
+            ]
+        });
+
+        if (choice?.value === 'edit') {
+            await this._promptForPreset(index);
+            return;
+        }
+        if (choice?.value !== 'delete') return;
+
+        const next = RollWindow.getPresets().filter((_, i) => i !== index);
+        await game.settings.set(MODULE.ID, 'rollModifierPresets', next);
+        await this.render(false);
+    }
+
+    /**
      * Add a named bonus to the shared preset list.
      *
      * The list is world-scoped, so this is GM-only and the button that reaches it is
@@ -1368,23 +1401,27 @@ class RollWindow extends BlacksmithWindowBaseV2 {
      * and a house rule that fails at roll time because our pattern was narrower than
      * Foundry's is the worst of both.
      *
-     * @param {Function} [onAdded] - called after the list changes, to re-render.
+     * @param {number} [index] - editing an existing entry, or undefined to add.
      */
-    async _promptForPreset(onAdded) {
+    async _promptForPreset(index) {
+        const existing = Number.isInteger(index) ? RollWindow.getPresets()[index] : null;
+        const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
         const result = await DialogAPI.prompt({
-            title: 'Add a Named Bonus',
+            title: existing ? 'Edit Named Bonus' : 'Add a Named Bonus',
             content: `
                 <p>Named bonuses are shared with the whole table.</p>
                 <div class="form-group">
                     <label for="preset-label">Name</label>
-                    <input type="text" name="label" id="preset-label" placeholder="Inspiration" autofocus>
+                    <input type="text" name="label" id="preset-label" placeholder="Inspiration" value="${esc(existing?.label)}" autofocus>
                 </div>
                 <div class="form-group">
                     <label for="preset-value">Value</label>
-                    <input type="text" name="value" id="preset-value" placeholder="1d4, +2, -1">
+                    <input type="text" name="value" id="preset-value" placeholder="1d4, +2, -1" value="${esc(existing?.value)}">
                 </div>`,
-            submitLabel: 'Add',
-            submitIcon: 'fa-solid fa-plus',
+            submitLabel: existing ? 'Save' : 'Add',
+            submitIcon: existing ? 'fa-solid fa-check' : 'fa-solid fa-plus',
             getValue: (root) => ({
                 label: root.elements.label?.value?.trim() ?? '',
                 value: root.elements.value?.value?.trim() ?? ''
@@ -1398,7 +1435,12 @@ class RollWindow extends BlacksmithWindowBaseV2 {
                 return null;
             },
             onSubmit: async ({ label, value }) => {
-                const presets = [...RollWindow.getPresets(), { label, value }];
+                // Re-read rather than reusing the copy taken when the dialog opened:
+                // another GM may have changed the list while it sat there, and
+                // writing a stale array would silently drop their entry.
+                const presets = [...RollWindow.getPresets()];
+                if (Number.isInteger(index) && presets[index]) presets[index] = { label, value };
+                else presets.push({ label, value });
                 await game.settings.set(MODULE.ID, 'rollModifierPresets', presets);
                 return { label, value };
             }
@@ -1406,10 +1448,9 @@ class RollWindow extends BlacksmithWindowBaseV2 {
 
         if (result?.action !== DIALOG_ACTIONS.SUBMIT) return;
 
-        // Re-render so the new chip appears beside the others. The field keeps
-        // whatever the player had already built.
+        // Re-render so the chip row matches the list. The modifier field keeps
+        // whatever was already built -- editing the list is not editing the roll.
         await this.render(false);
-        if (typeof onAdded === 'function') onAdded();
     }
 
     /**
@@ -1514,7 +1555,9 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         for (const op of htmlElement.querySelectorAll('.roll-builder-op')) {
             op.addEventListener('click', () => append(op.dataset.op === '-' ? '-' : '+'));
         }
-        const clearButton = htmlElement.querySelector('.roll-builder-clear');
+
+        // The clear sits in the formula row, because the formula is what it clears.
+        const clearButton = htmlElement.querySelector('.roll-formula-clear');
         if (clearButton) {
             clearButton.addEventListener('click', () => {
                 modifierInput.value = '';
@@ -1525,7 +1568,26 @@ class RollWindow extends BlacksmithWindowBaseV2 {
 
         const addButton = htmlElement.querySelector('.roll-preset-add');
         if (addButton) {
-            addButton.addEventListener('click', () => this._promptForPreset(updateFormula));
+            addButton.addEventListener('click', () => this._promptForPreset());
+        }
+
+        // EDIT AND DELETE LIVE ON RIGHT-CLICK rather than on a per-chip "x".
+        //
+        // A delete control on every chip is a permanent target sitting inside a
+        // control whose ordinary use is a single click, and the two are a few pixels
+        // apart -- the common action and the irreversible one should not be
+        // neighbours. Right-click also keeps the row reading as a list of bonuses
+        // rather than a list of things to remove.
+        //
+        // GM only, because the list is world-scoped and a player's write would fail
+        // at the setting rather than here. The menu is simply not bound for them.
+        if (game.user.isGM) {
+            for (const preset of htmlElement.querySelectorAll('.roll-preset')) {
+                preset.addEventListener('contextmenu', (event) => {
+                    event.preventDefault();
+                    this._presetContextMenu(Number(preset.dataset.index));
+                });
+            }
         }
 
         updateFormula();

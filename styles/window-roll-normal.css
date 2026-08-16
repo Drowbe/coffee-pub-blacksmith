@@ -202,17 +202,73 @@ div#roll-window .window-content {
   opacity: 0.85;
 }
 
-/* Named bonuses under the modifier field.
+/* `.roll-summary-item` is a COLUMN, which is right for a label above a value and
+   wrong for a formula with a control at its end -- `margin-left: auto` in a column
+   pushes down, not right. This row opts out rather than changing the shared class,
+   which other summary items still use as intended. */
+.roll-summary-item.roll-formula-row {
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+}
+
+/* The clear, right-aligned in the formula row. `margin-left: auto` rather than a
+   justify change on the parent, so the formula keeps growing from the left and the
+   clear stays pinned however long the formula gets. */
+.roll-formula-clear {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding-left: 0.6em;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 100ms ease, color 100ms ease;
+}
+
+.roll-formula-clear:hover {
+  opacity: 1;
+  color: rgba(198, 71, 71, 1.0);
+}
+
+/* Field label and its New button on one line. */
+.roll-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-bottom: 0.25em;
+}
+
+.roll-field-header .roll-preset-add {
+  cursor: pointer;
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+
+/* Named bonuses under the dice.
 
    They APPEND to the field rather than toggling a selection, so the field stays
    the single answer to "what will be rolled". A toggle would need to track which
    chip owns which term once the text is hand-edited, and the first edit that
-   removes a term without un-toggling its chip makes the two disagree. */
+   removes a term without un-toggling its chip makes the two disagree.
+
+   THIS is the row that scrolls, and the dice row above it is the one that does
+   not: the dice are a fixed set of ten and must all be reachable, while this list
+   has no ceiling. Scrolling the growing row also keeps the fixed row from moving
+   as the list changes. `nowrap` rather than wrapping, so the window's height does
+   not jump when a bonus is added. */
 .roll-presets {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   gap: 0.4em;
   margin-top: 0.6em;
+  padding-bottom: 0.3em;
+  scrollbar-width: thin;
+}
+
+.roll-presets .roll-preset {
+  flex: 0 0 auto;
 }
 
 .roll-preset {
@@ -240,21 +296,17 @@ div#roll-window .window-content {
 
    `flex: 1` on the children, as in the tray: eight dice across a row look like a
    set, and eight content-sized dice look like a sentence. */
-.roll-builder {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
+/* ONE row, and it never scrolls: ten controls that must all be reachable without
+   hunting. They share the width equally, so the row reads as a set. */
 .roll-builder-row {
   display: flex;
   gap: 5px;
   width: 100%;
+  margin-top: 0.6em;
 }
 
 .roll-builder-die,
-.roll-builder-op,
-.roll-builder-clear {
+.roll-builder-op {
   flex: 1;
   display: flex;
   align-items: center;
@@ -274,19 +326,12 @@ div#roll-window .window-content {
 }
 
 .roll-builder-die:hover,
-.roll-builder-op:hover,
-.roll-builder-clear:hover {
+.roll-builder-op:hover {
   border-color: var(--blacksmith-tool-field-focus-border);
   background: var(--dice-control-bg-hover, var(--blacksmith-tool-surface-hover));
   color: var(--blacksmith-tool-text);
 }
 
-/* Clearing is the one destructive control in the row, so it says so on hover
-   rather than sitting there looking like a ninth die. */
-.roll-builder-clear:hover {
-  border-color: rgba(198, 71, 71, 1.0);
-  color: rgba(198, 71, 71, 1.0);
-}
 
 
 

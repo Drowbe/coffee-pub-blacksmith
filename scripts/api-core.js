@@ -12,9 +12,52 @@ import { MODULE } from './const.js';
 import { HookManager } from './manager-hooks.js';
 
 
-// ================================================================== 
+// ==================================================================
+// ===== TEMPLATE FETCHING ==========================================
+// ==================================================================
+
+/**
+ * Fetch a Handlebars template's source, bypassing the browser's cache.
+ *
+ * USE THIS FOR EVERY `.hbs` FETCHED BY HAND. Foundry cache-busts the module's
+ * SCRIPTS, and its own template loader manages templates it loads -- but a partial
+ * fetched directly is an ordinary static asset, and the browser caches it like an
+ * image. After an update that means new JavaScript and new CSS running against the
+ * PREVIOUS version of the markup, on any client whose browser kept the old copy.
+ *
+ * The failure is silent and it does not look like a caching problem. Moving the
+ * roll window's portrait into its icon circle produced it: the old two-block header
+ * rendered under the new stylesheet, so the portrait lost the rule that had
+ * constrained it to 48px and filled the window, while the name lost its 3em rule
+ * and shrank to nothing. Three symptoms, one stale file, and every one of them
+ * reads as a layout bug in whatever feature is on screen.
+ *
+ * `no-cache` revalidates rather than re-downloading, so an unchanged file costs a
+ * 304 and nothing more. These are a handful of small files fetched once at startup.
+ * A version query string was the other candidate and is wrong for one caller:
+ * `api-menubar.js` fetches a template path supplied by ANOTHER module, whose file
+ * changes when that module updates and not when this one does.
+ *
+ * @param {string} path - Foundry-relative path to the template file.
+ * @returns {Promise<string>} The template source, or '' if it could not be read.
+ */
+export async function fetchTemplateText(path) {
+    try {
+        const response = await fetch(path, { cache: 'no-cache' });
+        if (!response.ok) {
+            postConsoleAndNotification(MODULE.NAME, 'Template fetch failed', `${response.status} ${path}`, false, false);
+            return '';
+        }
+        return await response.text();
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, 'Template fetch threw', `${path}: ${error?.message ?? error}`, false, false);
+        return '';
+    }
+}
+
+// ==================================================================
 // ===== SAFE SETTINGS ACCESS =======================================
-// ================================================================== 
+// ==================================================================
 
 /**
  * Safely get a setting value, returning a default if the setting isn't registered yet

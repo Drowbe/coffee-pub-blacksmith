@@ -9,8 +9,8 @@ import { compendiumManager } from './manager-compendiums.js';
 // -- Import the shared GLOBAL variables --
 // COFFEEPUB is now provided by AssetLookup for backward compatibility
 // -- Load the shared GLOBAL functions --
-import { 
-    registerBlacksmithUpdatedHook, 
+import {
+    registerBlacksmithUpdatedHook,
     resetModuleSettings,
     isCurrentUserPartyLeader
 } from './api-core.js';
@@ -30,7 +30,7 @@ import {
     toSentenceCase, 
     convertSecondsToRounds, 
     getSettingSafely
-} from './api-core.js';
+, fetchTemplateText} from './api-core.js';
 // -- Common Imports --
 import {
     createJournalEntry,
@@ -971,19 +971,37 @@ function initializeSettingsDependentFeatures() {
 // ***************************************************
 
 /**
- * Register the unified-header Handlebars partial as "partial-unified-header" for RollWindow and SkillCheckDialog.
- * File lives at templates/partials/unified-header.hbs; templates reference {{> "partial-unified-header" }}.
+ * Register the unified-header Handlebars partial as "blacksmith-unified-header" for RollWindow and SkillCheckDialog.
+ * File lives at templates/partials/unified-header.hbs; templates reference {{> "blacksmith-unified-header" }}.
  * @private
  */
 async function _registerUnifiedHeaderPartial() {
     try {
+        // REGISTERED UNDER A NAMESPACED NAME, and that is the whole point.
+        //
+        // `Handlebars.partials` is a single global namespace shared by every module
+        // in the world, and registration is last-one-wins. This partial was called
+        // `partial-unified-header` -- a name with nothing in it that says whose it
+        // is -- and `coffee-pub-regent` registers the same name from its own forked
+        // copy of this file. Both registrations `await` a fetch, so which one
+        // survived was a RACE, decided by which request came back last.
+        //
+        // That is what made it look like a caching problem: the roll window rendered
+        // Regent's older markup on some loads and ours on others, with no change to
+        // either file in between. Regent depends on Blacksmith so it loads second
+        // and usually won, and the header lost its portrait-in-the-circle while
+        // keeping the stylesheet that assumed it.
+        //
+        // A prefixed name cannot collide with a sibling's, so this no longer depends
+        // on winning anything. Regent keeps `partial-unified-header` for its own
+        // windows; nothing here references it.
         const path = `modules/${MODULE.ID}/templates/partials/unified-header.hbs`;
-        const template = await fetch(path).then(r => r.text());
+        const template = await fetchTemplateText(path);
         if (template) {
-            Handlebars.registerPartial('partial-unified-header', template);
+            Handlebars.registerPartial('blacksmith-unified-header', template);
         }
     } catch (e) {
-        console.error(`${MODULE.NAME}: Failed to register partial-unified-header`, e);
+        console.error(`${MODULE.NAME}: Failed to register blacksmith-unified-header`, e);
     }
 }
 

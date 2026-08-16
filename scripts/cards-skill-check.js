@@ -223,6 +223,16 @@ export function composeSkillCheckCard(data = {}) {
         parts.push({ part: 'rows', items: challengers.map((actor) => actorRow(actor, data, false)) });
     }
 
+    // THE VERSUS BAND AND THE HEADING BELONG TO A CONTEST. The defenders' ROWS do
+    // not: they belong to whoever is on the card.
+    //
+    // These were one block, so a group-2 actor on a non-contested card was dropped
+    // silently -- no row, no button, no error, and nothing on screen to say an actor
+    // had gone missing. The selection UI guards against that combination arriving
+    // (it refuses defenders on a non-contested roll type), but a guard upstream is
+    // not a reason for the renderer to discard actors it was handed. An actor that
+    // reaches this function gets a row; a card that cannot be rolled from is a
+    // worse failure than a card whose heading is missing.
     if (contested) {
         parts.push({
             part: 'band',
@@ -232,9 +242,9 @@ export function composeSkillCheckCard(data = {}) {
             quiet: true
         });
         parts.push({ part: 'section', icon: 'fa-solid fa-shield-halved', label: 'Defenders' });
-        if (defenders.length) {
-            parts.push({ part: 'rows', items: defenders.map((actor) => actorRow(actor, data, true)) });
-        }
+    }
+    if (defenders.length) {
+        parts.push({ part: 'rows', items: defenders.map((actor) => actorRow(actor, data, contested)) });
     }
 
     // --- Why this roll was asked for ---------------------------------------

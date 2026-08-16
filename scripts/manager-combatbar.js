@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { getSettingSafely, postConsoleAndNotification, formatTime, playSound, getPortraitImage, isPlayerCharacter } from './api-core.js';
+import { getSettingSafely, postConsoleAndNotification, formatTime, playSound, getPortraitImage, isPlayerCharacter , fetchTemplateText} from './api-core.js';
 import { RoundTimer } from './timer-round.js';
 import { CombatTracker } from './ui-combat-tracker.js';
 import { UIContextMenu } from './ui-context-menu.js';
@@ -562,8 +562,7 @@ export class CombatBarManager {
         };
     }
     static async registerCombatPartial() {
-        const combatBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs')
-            .then(response => response.text());
+        const combatBarTemplate = await fetchTemplateText('modules/coffee-pub-blacksmith/templates/partials/menubar-combat.hbs');
         Handlebars.registerPartial('menubar-combat', combatBarTemplate);
     }
 

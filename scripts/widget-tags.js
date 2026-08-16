@@ -7,6 +7,7 @@
 // ==================================================================
 
 import { TagManager } from './manager-tags.js';
+import { fetchTemplateText } from './api-core.js';
 
 export class TagWidget {
 
@@ -162,7 +163,7 @@ export class TagWidget {
     static async registerPartial() {
         try {
             const path = `modules/coffee-pub-blacksmith/templates/partials/tag-widget.hbs`;
-            const template = await fetch(path).then(r => r.text());
+            const template = await fetchTemplateText(path);
             if (template) Handlebars.registerPartial('blacksmith-tag-widget', template);
         } catch (e) {
             console.error('BLACKSMITH | TAGS Failed to register tag-widget partial', e);

@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, isCurrentUserPartyLeader } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, setSettingSafely, playSound, isCurrentUserPartyLeader , fetchTemplateText} from './api-core.js';
 import { DialogAPI } from './api-dialog.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { SocketManager } from './manager-sockets.js';
@@ -244,11 +244,11 @@ class MenuBar {
         try {
             // The item partial must register BEFORE the bar that invokes it: Handlebars resolves a
             // partial at render time, but a bar rendered in between would fail rather than wait.
-            const itemTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-item.hbs').then(response => response.text());
+            const itemTemplate = await fetchTemplateText('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-item.hbs');
             Handlebars.registerPartial('menubar-secondary-item', itemTemplate);
 
             // Load and register the default secondary bar template
-            const defaultBarTemplate = await fetch('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-default.hbs').then(response => response.text());
+            const defaultBarTemplate = await fetchTemplateText('modules/coffee-pub-blacksmith/templates/partials/menubar-secondary-default.hbs');
             Handlebars.registerPartial('menubar-secondary-default', defaultBarTemplate);
 
             postConsoleAndNotification(MODULE.NAME, "Menubar: Partials registered successfully", "", false, false);
@@ -1871,7 +1871,7 @@ class MenuBar {
             // If custom template provided, load and register it
             if (config.templatePath) {
                 try {
-                    const templateContent = await fetch(config.templatePath).then(r => r.text());
+                    const templateContent = await fetchTemplateText(config.templatePath);
                     const partialName = `menubar-${typeId}`;
                     Handlebars.registerPartial(partialName, templateContent);
                     postConsoleAndNotification(MODULE.NAME, "Secondary Bar: Custom template registered", 
