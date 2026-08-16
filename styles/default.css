@@ -108,3 +108,11 @@
 
 /* --- Notes (list + editor) ---------------------- */
 @import "window-notes.css";
+
+/* --- Tags widget ----------------------
+   Registered as the `blacksmith-tag-widget` partial in widget-tags.js, so it
+   renders wherever a consumer embeds it. This import was missing, which meant the
+   whole widget rendered unstyled -- the failure mode the note at the top of this
+   file warns about: a stylesheet with no @import is silently dead, and nothing
+   errors. Found 2026-08-16 by diffing the files on disk against this list. */
+@import "widget-tags.css";

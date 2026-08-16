@@ -465,7 +465,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             const favBtn = document.createElement('button');
             favBtn.type = 'button';
             favBtn.className = 'cpb-favorite-toggle cpb-favorite-is-active';
-            favBtn.title = 'Remove from favorites';
+            favBtn.dataset.tooltip = 'Remove from favorites';
             favBtn.setAttribute('aria-label', 'Remove from favorites');
             favBtn.innerHTML = '<i class="fas fa-heart"></i>';
             const auto = document.createElement('div');

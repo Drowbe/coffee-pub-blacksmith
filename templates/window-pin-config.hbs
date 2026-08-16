@@ -228,7 +228,7 @@
                     </label>
                     <label class="blacksmith-field">
                         <span class="blacksmith-field-label">Chars per line</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-width" min="0" step="1" value="{{pinTextMaxWidthDisplay}}" placeholder="" title="Max characters per line before wrap; empty = single line, no wrap">
+                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-width" min="0" step="1" value="{{pinTextMaxWidthDisplay}}" placeholder="" data-tooltip="Max characters per line before wrap; empty = single line, no wrap">
                     </label>
                 </div>
                 <div class="blacksmith-toggle-row">
@@ -363,7 +363,7 @@
                         <label class="blacksmith-field">
                             <span class="blacksmith-field-label">Zoom level</span>
                             <div class="blacksmith-pin-config-zoom-control">
-                                <input type="range" class="blacksmith-pin-config-image-zoom" min="100" max="200" step="5" value="{{pinImageZoomPercent}}" title="100% = same as Cover">
+                                <input type="range" class="blacksmith-pin-config-image-zoom" min="100" max="200" step="5" value="{{pinImageZoomPercent}}" data-tooltip="100% = same as Cover">
                                 <span class="blacksmith-pin-config-zoom-value">{{pinImageZoomPercent}}%</span>
                             </div>
                         </label>
@@ -371,7 +371,7 @@
                 </div>
                 <div class="blacksmith-pin-config-image-row">
                     <input type="text" class="blacksmith-input blacksmith-pin-config-image-input" placeholder="Paste image URL..." value="{{imageValue}}">
-                    <button type="button" class="btn-secondary blacksmith-pin-config-browse"><i class="fa-solid fa-folder-open"></i> Browse</button>
+                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-config-browse"><i class="fa-solid fa-folder-open"></i> Browse</button>
                 </div>
                 <div class="blacksmith-pin-config-image-preview-wrap">
                     <img class="blacksmith-pin-config-image-preview {{#unless imageValue}}is-hidden{{/unless}}" src="{{imageValue}}" alt="Pin preview">
@@ -397,7 +397,7 @@
                     {{/if}}
                     <div class="blacksmith-pin-config-icon-grid">
                         {{#each this.icons}}
-                        <button type="button" class="blacksmith-pin-config-icon-option {{#if this.isSelected}}selected{{/if}}" data-type="fa" data-value="{{this.value}}" data-label="{{this.label}}" data-category="{{../category}}" title="{{this.label}}">
+                        <button type="button" class="blacksmith-pin-config-icon-option {{#if this.isSelected}}selected{{/if}}" data-type="fa" data-value="{{this.value}}" data-label="{{this.label}}" data-category="{{../category}}" data-tooltip="{{this.label}}">
                             <i class="{{this.value}}"></i>
                         </button>
                         {{/each}}

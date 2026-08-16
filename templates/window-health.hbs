@@ -21,7 +21,7 @@
                         </div>
                     </div>
                     {{#if entry.isAggregate}}
-                        <div class="health-aggregate-stat" aria-label="{{entry.aggregateStatLabel}}" title="{{entry.aggregateStatLabel}}">
+                        <div class="health-aggregate-stat" aria-label="{{entry.aggregateStatLabel}}" data-tooltip="{{entry.aggregateStatLabel}}">
                             {{entry.aggregateStat}}
                         </div>
                     {{else}}
@@ -29,7 +29,7 @@
                             type="button"
                             class="health-conditions"
                             data-actor-uuid="{{entry.actorUuid}}"
-                            title="Add or Remove Conditions for {{entry.name}}"
+                            data-tooltip="Add or Remove Conditions for {{entry.name}}"
                             aria-label="Add or Remove Conditions for {{entry.name}}"
                         >
                             <i class="fa-solid fa-sparkles"></i>
@@ -45,29 +45,29 @@
 
     {{#if isGM}}
         <div class="hp-controls {{#unless healthEntries}}disabled{{/unless}}">
-            <button class="hp-btn select-party" title="Select all party tokens">
+            <button class="hp-btn select-party" data-tooltip="Select all party tokens">
                 <i class="fa-solid fa-users"></i>
             </button>
-            <button class="hp-btn death-toggle" {{#unless healthEntries}}disabled{{/unless}} title="Set selected tokens to 0 HP">
+            <button class="hp-btn death-toggle" {{#unless healthEntries}}disabled{{/unless}} data-tooltip="Set selected tokens to 0 HP">
                 <i class="fa-solid fa-skull"></i>
             </button>
-            <button class="hp-btn hp-down-ten" {{#unless healthEntries}}disabled{{/unless}} title="Decrease HP by 10">
+            <button class="hp-btn hp-down-ten" {{#unless healthEntries}}disabled{{/unless}} data-tooltip="Decrease HP by 10">
                 <i class="fa-solid fa-angles-down"></i>
             </button>
-            <button class="hp-btn hp-down" {{#unless healthEntries}}disabled{{/unless}} title="Decrease HP by the entered amount">
+            <button class="hp-btn hp-down" {{#unless healthEntries}}disabled{{/unless}} data-tooltip="Decrease HP by the entered amount">
                 <i class="fa-solid fa-caret-down"></i>
             </button>
             <input type="number" class="hp-amount" min="1" value="{{healthAdjustmentAmount}}" {{#unless healthEntries}}disabled{{/unless}} aria-label="Health adjustment amount">
-            <button class="hp-btn hp-up" {{#unless healthEntries}}disabled{{/unless}} title="Increase HP by the entered amount">
+            <button class="hp-btn hp-up" {{#unless healthEntries}}disabled{{/unless}} data-tooltip="Increase HP by the entered amount">
                 <i class="fa-solid fa-caret-up"></i>
             </button>
-            <button class="hp-btn hp-up-ten" {{#unless healthEntries}}disabled{{/unless}} title="Increase HP by 10">
+            <button class="hp-btn hp-up-ten" {{#unless healthEntries}}disabled{{/unless}} data-tooltip="Increase HP by 10">
                 <i class="fa-solid fa-angles-up"></i>
             </button>
-            <button class="hp-btn hp-full" {{#unless healthEntries}}disabled{{/unless}} title="Fully heal selected tokens">
+            <button class="hp-btn hp-full" {{#unless healthEntries}}disabled{{/unless}} data-tooltip="Fully heal selected tokens">
                 <i class="fa-solid fa-heart"></i>
             </button>
-            <button class="hp-btn select-npcs" title="Select all non-party tokens">
+            <button class="hp-btn select-npcs" data-tooltip="Select all non-party tokens">
                 <i class="fa-solid fa-people-group"></i>
             </button>
         </div>

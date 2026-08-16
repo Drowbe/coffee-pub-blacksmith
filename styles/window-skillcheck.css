@@ -1044,39 +1044,29 @@ tor-item.selected {
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 4px;
 }
-.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button {
-    height: 32px;
-    color: rgba(255, 255, 255, 0.9);
-    border-radius: 4px;
-    font-size: var(--font-size-14);
-    line-height: 32px;
-    padding: 0 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
+/*
+    The footer buttons are `blacksmith-window-btn-primary` and `-secondary` now, so
+    everything about how they look comes from `window-template.css`.
+
+    What was here was a second implementation of that button: its own height,
+    line-height, padding, radius, uppercase, flex centring, and its own greens and
+    greys, none of which were the shared ones. A confirm button in this window
+    therefore did not match a confirm button in any other, and the two palettes
+    drifted independently.
+
+    `cpb-dialog-button` and its `.button-requestroll` / `.button-cancel` modifiers
+    are gone with it. They were styling hooks only -- the dialog binds these
+    buttons through `data-button="roll"` and `data-button="cancel"`, which is
+    untouched.
+
+    Only the width survives, and only because the shared class deliberately sets
+    none: a fixed width on a shared button stretches the primary action across a
+    flex footer. A window wanting a wide button says so in its own scope, which is
+    what this is.
+*/
+.skill-check-dialog .cpb-dialog-buttons .blacksmith-window-btn-primary,
+.skill-check-dialog .cpb-dialog-buttons .blacksmith-window-btn-secondary {
     min-width: 100px;
-    text-transform: uppercase;
-}
-.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button i {
-    font-size: var(--font-size-14);
-    margin-right: 4px;
-}
-.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button.button-requestroll {
-    background: rgba(59, 128, 65, 0.9);
-    border: 1px solid rgba(59, 128, 65, 0.5);
-}
-.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button.button-requestroll:hover {
-    background: rgba(76, 166, 84, 0.9);
-    border: 1px solid rgba(59, 128, 65, 0.5);
-}
-.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button.button-cancel {
-    background: rgba(95, 95, 95, 0.9);
-    border: 1px solid rgba(95, 95, 95, 0.5);
-}
-.skill-check-dialog .cpb-dialog-buttons .cpb-dialog-button.button-cancel:hover {
-    background: rgba(106, 106, 106, 0.9);
-    border: 1px solid rgba(106, 106, 106, 0.5);
+    justify-content: center;
 }
 

@@ -157,7 +157,7 @@
         <i class="fas fa-crosshairs"></i> Recent Encounter History
         <div class="stats-section-header-actions">
           {{#if combats.length}}
-          <button type="button" class="stats-action-btn delete-history-btn" title="Delete all combat history"><i class="fas fa-trash"></i> Delete Stats</button>
+          <button type="button" class="stats-action-btn delete-history-btn" data-tooltip="Delete all combat history"><i class="fas fa-trash"></i> Delete Stats</button>
           <span class="button-divider">|</span>
           <button type="button" class="stats-action-btn export-history"><i class="fas fa-file-download"></i> Export Stats</button>
           <span class="button-divider">|</span>
@@ -186,7 +186,7 @@
                 <span class="stats-table-col stats-col-size-20 stats-col-left">{{mvpName}} ({{mvpScore}})</span>
                 <span class="stats-table-col stats-col-size-10 stats-col-left">{{duration}}</span>
                 <span class="stats-table-col stats-col-size-05 stats-col-right">
-                  <button type="button" class="stats-action-icon-btn delete-combat-btn" title="Delete this Encounter" data-combat-id="{{combatId}}">
+                  <button type="button" class="stats-action-icon-btn delete-combat-btn" data-tooltip="Delete this Encounter" data-combat-id="{{combatId}}">
                     <i class="fas fa-times"></i>
                   </button>
                 </span>
@@ -232,10 +232,10 @@
                 <span class="stats-table-col stats-col-size-05 stats-col-center">{{fumbles}}</span>
                 <span class="stats-table-col stats-col-size-10 stats-col-right">{{biggestHit}}</span>
                 <span class="stats-table-col stats-col-size-08 stats-col-center">
-                  <button type="button" class="stats-action-icon-btn view-player-stats-btn" title="View Player Stats" data-actor-id="{{actorId}}">
+                  <button type="button" class="stats-action-icon-btn view-player-stats-btn" data-tooltip="View Player Stats" data-actor-id="{{actorId}}">
                     <i class="fas fa-search"></i>
                   </button>
-                  <button type="button" class="stats-action-icon-btn clear-player-stats-btn" title="Clear Player Stats" data-actor-id="{{actorId}}">
+                  <button type="button" class="stats-action-icon-btn clear-player-stats-btn" data-tooltip="Clear Player Stats" data-actor-id="{{actorId}}">
                     <i class="fas fa-times"></i>
                   </button>
                 </span>

@@ -597,7 +597,7 @@ export class DiceTrayWindow extends BlacksmithToolWindowBaseV2 {
 
         const rerollButton = document.createElement('i');
         rerollButton.className = 'fa-solid fa-dice reroll-button';
-        rerollButton.title = 'Re-roll this formula';
+        rerollButton.dataset.tooltip = 'Re-roll this formula';
         historyEntry.append(historyFormula, rerollButton);
 
         rerollButton.addEventListener('click', (ev) => {

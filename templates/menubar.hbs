@@ -105,9 +105,14 @@
         {{!-- Custom template (e.g., combat bar, encounter bar) --}}
         {{#if (eq secondaryBar.type "combat")}}
         {{> "menubar-combat" secondaryBar.data}}
-        {{else if (eq secondaryBar.type "encounter")}}
-        {{> "menubar-encounter" secondaryBar.data}}
         {{else}}
+            {{!-- An "encounter" branch used to sit here naming a `menubar-encounter`
+                  partial that does not exist and never did. It was unreachable --
+                  `hasCustomTemplate` is `!!config.templatePath` and the encounter bar
+                  registers none -- so it was waiting to fire the day someone gave it
+                  one, and would then have failed on a missing partial INSTEAD of
+                  falling through to the dynamic lookup below, which handles exactly
+                  that case correctly. --}}
             {{!-- Dynamic custom template --}}
             {{> (lookup . (concat "menubar-" secondaryBar.type)) secondaryBar.data}}
         {{/if}}

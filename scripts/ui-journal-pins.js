@@ -414,14 +414,14 @@ export class JournalPagePins {
                 icon.className = isMultiple ? 'fa-solid fa-clone' : 'fa-solid fa-map-pin';
             }
             const modeKey = isMultiple ? 'multiple' : 'single';
-            modeBtn.title = `Placement: ${PLACEMENT_MODE_LABELS[modeKey]}`;
+            modeBtn.dataset.tooltip = `Placement: ${PLACEMENT_MODE_LABELS[modeKey]}`;
         }
 
         const accessBtn = bar.querySelector('.journal-page-pin-access-toggle');
         if (accessBtn) {
             accessBtn.dataset.accessMode = accessMode;
             const icon = accessBtn.querySelector('i');
-            accessBtn.title = PIN_EDITING_LABELS[accessMode] || PIN_EDITING_LABELS.gm;
+            accessBtn.dataset.tooltip = PIN_EDITING_LABELS[accessMode] || PIN_EDITING_LABELS.gm;
             if (icon) {
                 icon.className = PIN_ACCESS_ICONS[accessMode] || PIN_ACCESS_ICONS.gm;
             }
@@ -437,7 +437,7 @@ export class JournalPagePins {
                 visBtn.style.display = '';
                 visBtn.dataset.visibilityMode = visibilityMode;
                 const icon = visBtn.querySelector('i');
-                visBtn.title = PIN_VISIBILITY_LABELS[visibilityMode] || PIN_VISIBILITY_LABELS.visible;
+                visBtn.dataset.tooltip = PIN_VISIBILITY_LABELS[visibilityMode] || PIN_VISIBILITY_LABELS.visible;
                 if (icon) {
                     icon.className = PIN_VISIBILITY_ICONS[visibilityMode] || PIN_VISIBILITY_ICONS.visible;
                 }
