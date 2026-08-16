@@ -4,7 +4,6 @@
 
 import { MODULE } from './const.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
-import { ChatCardsManager } from './manager-chat-cards.js';
 import { composeVoteCard, VOTE_CARD_TYPE, VOTE_CAST_ACTION } from './cards-vote.js';
 import { postConsoleAndNotification, playSound, getSettingSafely, isCurrentUserPartyLeader, ownsAnyCharacter } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
@@ -810,16 +809,20 @@ export class VoteManager {
         // initiator runs this -- that guard is unchanged and is about who may WRITE
         // to the message -- but it no longer decides what anyone SEES, because each
         // client renders the stored composition for itself.
-        const card = {
-            v: 1,
-            moduleId: MODULE.ID,
-            type: VOTE_CARD_TYPE,
-            theme: ChatCardsManager.resolveThemeId(null),
-            parts: composeVoteCard(this.activeVote, this._getVotingProgress())
-        };
-        await message.update({
-            content: await ChatCardsManager.renderCard(card, { baked: true }),
-            flags: { [MODULE.ID]: { card, isVoteCard: true, voteId: this.activeVote.id } }
+        //
+        // Goes through the public API deliberately. This used to hand-build the card
+        // object and call renderCard directly, which worked only because it is inside
+        // Blacksmith: no consumer can reach renderCard or resolveThemeId, so the vote
+        // card was built with a capability the API withheld. Bibliosoph pointed that
+        // out, and Crier had already copied the workaround by writing our flag
+        // namespace by hand. A rule its author steps outside of does not hold.
+        //
+        // Passing no theme also fixes a bug the old code had: it re-resolved the world
+        // default on every update, so a vote card pinned to a theme reverted the first
+        // time anybody voted.
+        await ChatCardsAPI.update(message, {
+            parts: composeVoteCard(this.activeVote, this._getVotingProgress()),
+            flags: { isVoteCard: true, voteId: this.activeVote.id }
         });
     }
 

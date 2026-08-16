@@ -842,11 +842,41 @@
     font-weight: 900;
 }
 
+/*
+    THE TRAILING BUTTON IS ICON-ONLY, so it has to centre its glyph rather than set
+    it on a text baseline.
+
+    Without `display: flex` the `<i>` is laid out as inline text, and a Font Awesome
+    glyph sits on the baseline with the font's descender space still reserved below
+    it -- so the icon rides visibly high in the box, on every row button on every
+    card. It looked like a padding problem and is not one; symmetric padding cannot
+    fix a baseline offset.
+
+    The glyph also gets a fixed em box. Advance widths differ per icon -- an
+    `fa-ellipsis` is wider than an `fa-asterisk` -- so a button sized by its content
+    is a different width per row, and a card whose rows carry different action icons
+    gets a ragged right edge. One em box makes every row's button the same width
+    whatever icon the caller passed, which is the caller's choice to make freely.
+
+    This button deliberately does NOT share the `.blacksmith-card-buttons` treatment.
+    It is a small affordance attached to a row, not one of the card's actions, and
+    giving it the bordered/filled look would have a row's ellipsis competing with the
+    card's primary button.
+*/
 .blacksmith-card .blacksmith-part-row-action {
     flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: auto;
     margin-left: var(--blacksmith-space-sm);
     padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
+    line-height: 1;
+}
+
+.blacksmith-card .blacksmith-part-row-action i {
+    width: 1em;
+    text-align: center;
 }
 
 /*

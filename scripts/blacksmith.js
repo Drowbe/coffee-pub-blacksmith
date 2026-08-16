@@ -112,7 +112,7 @@ import { TagWidget } from './widget-tags.js';
 import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
-import { skillCheckMessageData, SKILL_CHECK_ROLL_ACTION } from './cards-skill-check.js';
+import { updateSkillCheckMessage, SKILL_CHECK_ROLL_ACTION } from './cards-skill-check.js';
 import { STATS_DETAILS_ACTION } from './cards-stats.js';
 import { VOTE_CAST_ACTION, VOTE_CLOSE_ACTION } from './cards-vote.js';
 import { ChatCardsManager } from './manager-chat-cards.js';
@@ -2688,7 +2688,7 @@ export async function handleSkillRollUpdate(data) {
     // description of what this card looks like rather than a create path and a
     // separate update path drifting apart -- which is how the old template ended up
     // with two identical eighty-line actor blocks, one per group.
-    await message.update(await skillCheckMessageData(updatedMessageData));
+    await updateSkillCheckMessage(message, updatedMessageData);
 
     const allComplete = (updatedMessageData.actors || []).length > 0 &&
         (updatedMessageData.actors || []).every(a => a.result);

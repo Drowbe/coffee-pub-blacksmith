@@ -43,6 +43,70 @@ await chatCards.post({
 Returns the created `ChatMessage`, or `null` if posting failed.
 
 
+## Changing a posted card
+
+A card is not frozen once posted. State that belongs to the card rather than to the
+reader - a spent button retiring to a stamp, a pick counter counting down, a row
+that has been treated - is expressed by recomposing and calling `update`.
+
+```javascript
+const card = chatCards.getCard(message);
+card.parts[2].buttons = [{ label: 'Applied to Gorak', icon: 'fa-solid fa-check', variant: 'disabled' }];
+await chatCards.update(message, { parts: card.parts });
+```
+
+### `update(message, options)`
+
+| Option | Type | Notes |
+|---|---|---|
+| `parts` | array | Required. The new composition. |
+| `theme` | string | Optional. Omit to keep the card's current theme. |
+| `relativeTo` | Document | Optional enrichment context for relative `@UUID` links. |
+| `flags` | object | Optional. Merged under the card's own module id. |
+
+`message` may be a `ChatMessage` or a message id. Returns the updated message, or
+`null` if the message is not a parts card, the composition is empty, or the current
+user may not modify the message.
+
+`update` rewrites the composition flag and the baked `content` together, and that is
+the reason to use it rather than writing the flag yourself. A card lives in two
+places: the composition, which every Blacksmith client re-renders from, and the
+baked HTML in `content`, which is what chat search, exports, and clients without
+Blacksmith actually show. Writing only the flag leaves `content` frozen at post
+time, so the stored message and the table disagree permanently.
+
+Permission is checked before the write, so a client that may not modify the message
+gets a logged warning rather than a rejected update. In practice route updates
+through the GM or the card's author rather than having every client attempt one.
+
+Flags you already set are preserved: Foundry merges flag updates rather than
+replacing them, so updating a card does not clear the state you keep beside it.
+Pass `flags` only for what you want to change.
+
+### `getCard(message)`
+
+Returns the stored composition as `{ v, moduleId, type, theme, parts }`, or `null`
+if the message is not a parts card. `message` may be a `ChatMessage` or a message id.
+
+The result is a deep clone, so the read-splice-write cycle above cannot mutate the
+document's live flags by accident - an in-place edit appears to work on the editing
+client and changes nothing anywhere else.
+
+### Which mechanism for which change
+
+Three things look similar and are not interchangeable.
+
+| You want | Use |
+|---|---|
+| Something that has actually changed, for everyone, surviving a refresh | `update` |
+| Something that depends on who is looking | a render pass |
+| Something that depends on state you keep elsewhere | your own flags, then `update` |
+
+A render pass cannot record that a pick was spent: it decorates one client's DOM,
+so two players in two browsers each see their own decoration and neither sees the
+other's. State that stops a button firing twice has to be on the message.
+
+
 ## Parts
 
 `getParts()` returns the available part ids; `CARD_PARTS` in `scripts/manager-chat-cards.js` is the definition. The library is closed - compose these, and ask for a new part rather than working around a missing one. Every part is an object with a `part` key naming it.
@@ -313,7 +377,7 @@ The handler receives `{ message, value, event, button }`. A chat message is data
 
 `unregisterAction(moduleId, action)` removes one. `getRegisteredActions()` lists what is registered, for diagnostics.
 
-## Tooltips on bars
+## Tooltips
 
 A bar reports a number by hiding it -- the reader sees a proportion and never the figures. Both bar parts take tooltips, at the level that matches what is being explained.
 
@@ -321,6 +385,9 @@ A bar reports a number by hiding it -- the reader sees a proportion and never th
 - `gauge` takes `tooltip` on the part, for what the scale MEANS -- red-to-green does not say which end is which.
 - `gauge` segments each take a `tooltip`, for what a discrete band means. A gradient built from `stops` has no bands, so it explains itself on the part instead.
 - `gauge` markers each take a `tooltip`, for what that one position is.
+- `rows` items each take a `tooltip`, on the row. For a row that reports a number, it explains the number; for a clickable row, it says what clicking does.
+
+A row tooltip is used as supplied rather than run through the text pipeline, so it takes HTML directly - enrich it yourself if you want a document's description in there. That is the one place in the card vocabulary where consumer HTML is passed through, and it is deliberate: a tooltip is Foundry's own surface, not part of the card body.
 
 Use `data-tooltip` semantics: a tooltip explains a value already on screen or supplies one the shape is hiding. It is not a place to put something the reader needs to see.
 
@@ -336,11 +403,17 @@ Anywhere a part accepts consumer text, it also accepts a veiled form: a value sh
 ```
 
 - `value` - what an entitled reader sees. Goes through the same escape, marks and enrich pipeline as any other text.
-- `readableBy` - `'gm'`, `'owner'`, `'author'`, or an array of user ids. Any other value is treated as readable by nobody.
+- `readableBy` - `'gm'`, `'player'`, `'owner'`, `'author'`, or an array of user ids. Any other value is treated as readable by nobody.
 - `actorId` - required by `'owner'`, which resolves against the actor's ownership. A GM owns every actor, so `'owner'` reads as "the GM and the owning player".
 - `veil` - optional. A Font Awesome class renders as an icon; anything else is escaped and shown as text. Defaults to an eye icon.
 
 Only the field carrying it is veiled. The `label` beside a veiled `trailing` stays visible to every reader.
+
+`'player'` is the complement of `'gm'`, for a card that says one thing to the GM and
+another to everyone else - a linked adversary list against a plain one. The two are
+complements at render time only: both fail closed in the stored snapshot, so a card
+built from a `'gm'`/`'player'` pair shows neither half until a client re-renders it.
+Keep anything the card cannot do without out of that pair.
 
 A whole part can carry `readableBy` too, for a block only some readers should see:
 

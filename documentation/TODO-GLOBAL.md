@@ -412,8 +412,17 @@ Neither sibling crashes. Both need a small change to look right again.
 
   Blacksmith cannot help from its side: Crier applies the class to its own template, so there is nothing
   for the card API to resolve.
-- **Artificer** — `scripts/manager-gather.js` guards with `?.` and a `themeType === 'announcement'`
-  test, so it silently skips. Drop the announcement branch and use a `-dark` theme id.
+- **Artificer** — nothing to repair, and less than it looks. `scripts/manager-gather.js:306` guards with
+  `?.` and a `themeType === 'announcement'` test, so it silently skips. But all three callers
+  (`:352`, `:392`, `:408`) pass `'card'`, so that branch **never executed even before the removal** — the
+  `themeType` parameter and the branch are both dead code and can be deleted outright. No `-dark` theme id
+  is wanted here; nothing about the rendered card changes.
+
+  What Artificer actually needs is the migration proper: `buildChatCardHtml` hand-writes
+  `<div class="blacksmith-card ...">` with a `card-header` and a `section-content`, which is exactly what
+  `chatCards.post({ parts })` exists to replace. Its two `getThemeClassName` calls (`:305`, `:427`) are on
+  the pre-migration accessor list in `api-chat-cards.js`, which is removed once every sibling has migrated —
+  so those calls have a deadline the dead branch does not.
 
 ## Sibling deprecation warnings (spotted 2026-07-24)
 
@@ -819,6 +828,26 @@ never to let the module keep a template.
 | Crier | 4 | inline HTML, 59 CSS rules | Its turn card is the widest composition in the suite - `header + image + meter + nameplate + stats + section + status`. The 59 overrides exist because those parts were unavailable. Good proof case for the catalog. |
 | Bibliosoph | 10 | 2 templates | Encounter, investigation, crit, fumble, injury, check-up, inspiration - one card shape, many variants. Already emits `@UUID[]{}` pills (`manager-encounters.js:678`, `manager-inspiration.js:109`), which the prose pipeline preserves. Its markdown-to-enriched-HTML path (`manager-conversations.js:849`) is why markdown was rejected as the transport; that path can go. |
 | Scribe | 3 | inline HTML, own theme system (7 files) |
+
+**Cards that change after posting are unblocked — `chatCards.update` shipped (2026-08-15).** Four of
+Bibliosoph's ten (injury, crit/fumble, check-up, inspiration) and Crier's health refresh all needed a posted
+card to change: a spent button retiring to a stamp, a pick counter, a treated row. That state has to be on
+the message rather than in a render pass, because a pass decorates one client's DOM and the whole point is
+that two players in two browsers see the same spent button. `chatCards.update(message, { parts })` plus
+`chatCards.getCard(message)` covers it; see `documentation/api/api-chatcards.md`.
+
+Two things to do on the sibling side when each migrates:
+
+- **Crier deletes its flag-poke.** `crier.js:815` (`refreshTurnCardHealth`) clones
+  `message.flags['coffee-pub-blacksmith'].card`, mutates the parts, and writes the flag back directly. It
+  works only because the re-render path reads that flag on every paint, which is an implementation detail
+  and not a contract. It also carries a real defect: `content` is never rewritten, so the baked snapshot
+  stays frozen at post time and the stored message permanently disagrees with what the table sees — visible
+  in chat search, in exports, and on any client not rendering through Blacksmith. `update` rewrites both
+  together. Crier is not at fault here; the alternative was not shipping the feature.
+- **Nobody writes Blacksmith's flag namespace by hand.** That Crier did is the evidence for the general
+  rule: the workaround spread because the API withheld a capability Blacksmith used twice internally. Both
+  of those internal sites (`manager-vote.js`, `cards-skill-check.js`) now go through the public method.
 
 **Scribe reaches outside its own cards.** `coffee-pub-scribe/styles/cards.css:8` styles
 `.message-content blockquote` -- every blockquote in every chat message in the world, not just Scribe's.

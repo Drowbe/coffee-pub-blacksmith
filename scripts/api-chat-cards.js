@@ -128,6 +128,112 @@ export class ChatCardsAPI {
         }
     }
 
+    /**
+     * Rebuild a posted card from a new composition.
+     *
+     * For state that belongs to the card rather than to the reader: a spent button
+     * retiring to a stamp, a pick counter counting down, a row that has been
+     * treated. That state has to survive a refresh and read identically on every
+     * client, which is what makes it a property of the message and not something a
+     * render pass can carry. Use `registerRenderPass` for what depends on WHO IS
+     * LOOKING; use this for what has actually changed.
+     *
+     * CONTENT AND FLAGS ARE REWRITTEN TOGETHER, and that is the whole point of the
+     * method. A card lives in two places -- the composition in flags, which every
+     * Blacksmith client re-renders from, and the baked HTML in `content`, which is
+     * what chat search, exports, and any client without Blacksmith actually see.
+     * Updating the flag alone leaves `content` frozen at post time, so the stored
+     * message and the table permanently disagree. That is not hypothetical: it
+     * shipped, because this method did not exist and writing the flag directly was
+     * the only way through.
+     *
+     * The theme is NOT re-resolved unless you pass one. A card pinned to a theme at
+     * post time stays pinned; re-resolving the world default on every update is how
+     * a pinned card silently reverts.
+     *
+     * Requires permission to update the message -- checked here so the failure is a
+     * readable warning rather than a rejected socket call. In practice that means
+     * the GM or the message's author, so route updates through whoever owns the
+     * card rather than having every client attempt one.
+     *
+     * @param {ChatMessage|string} message - The message, or its id.
+     * @param {object} options
+     * @param {Array<object>} options.parts - The new composition. Required.
+     * @param {string} [options.theme] - Omit to keep the card's current theme.
+     * @param {ClientDocument} [options.relativeTo] - Enrichment context for `@UUID` links.
+     * @param {object} [options.flags] - Extra flags merged under the card's own module id.
+     * @returns {Promise<ChatMessage|null>} The updated message, or null on failure.
+     */
+    static async update(message, options = {}) {
+        const { parts, theme = null, relativeTo = null, flags = {} } = options;
+
+        const doc = (typeof message === 'string') ? game.messages?.get(message) : message;
+        if (!doc) {
+            postConsoleAndNotification(MODULE.NAME, 'Chat Cards | update() requires a ChatMessage', String(message), false, false);
+            return null;
+        }
+        if (!Array.isArray(parts) || parts.length === 0) {
+            postConsoleAndNotification(MODULE.NAME, 'Chat Cards | update() requires a non-empty parts array', doc.id, false, false);
+            return null;
+        }
+
+        // Read through getCard so a non-card message is rejected here rather than
+        // producing a message with a card flag and unrelated baked content.
+        const existing = this.getCard(doc);
+        if (!existing) {
+            postConsoleAndNotification(MODULE.NAME, 'Chat Cards | update() called on a message that is not a parts card', doc.id, false, false);
+            return null;
+        }
+
+        if (!doc.canUserModify(game.user, 'update')) {
+            postConsoleAndNotification(MODULE.NAME, 'Chat Cards | update() denied: no permission to modify this message', doc.id, false, false);
+            return null;
+        }
+
+        // Identity carries over: a card does not change owner or type by being
+        // updated, and `v` is the schema the payload was written against.
+        const card = {
+            ...existing,
+            theme: theme || existing.theme,
+            parts
+        };
+
+        const content = await ChatCardsManager.renderCard(card, relativeTo ? { relativeTo, baked: true } : { baked: true });
+
+        // Same merge shape as post(), and for the same reason: when the card is
+        // Blacksmith's own, caller flags and the card payload share a namespace, and
+        // one literal would drop the card.
+        const messageFlags = { [MODULE.ID]: { [CARD_FLAG]: card } };
+        if (flags && Object.keys(flags).length) {
+            const ns = card.moduleId;
+            messageFlags[ns] = { ...(messageFlags[ns] ?? {}), ...flags };
+        }
+
+        try {
+            return await doc.update({ content, flags: messageFlags });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Chat Cards | update() failed', error?.message ?? error, false, false);
+            return null;
+        }
+    }
+
+    /**
+     * The composition stored on a message, or null if it is not a parts card.
+     *
+     * Returned as a DEEP CLONE, so the read-splice-write cycle this exists for
+     * cannot mutate the document's live flags by accident -- an in-place edit would
+     * appear to work on the editing client and change nothing anywhere else.
+     *
+     * @param {ChatMessage|string} message - The message, or its id.
+     * @returns {{v: number, moduleId: string, type: string|null, theme: string, parts: Array<object>} | null}
+     */
+    static getCard(message) {
+        const doc = (typeof message === 'string') ? game.messages?.get(message) : message;
+        const card = doc?.flags?.[MODULE.ID]?.[CARD_FLAG] ?? null;
+        if (!card || !Array.isArray(card.parts)) return null;
+        return foundry.utils.deepClone(card);
+    }
+
     // ==============================================================
     // ===== ACTIONS ================================================
     // ==============================================================

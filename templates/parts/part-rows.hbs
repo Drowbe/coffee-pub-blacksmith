@@ -39,7 +39,7 @@
         {{#if this.trailing}}<div class="blacksmith-part-row-trailing{{#if this.trailingSize}} blacksmith-trailing-{{this.trailingSize}}{{/if}}">{{{this.trailing}}}</div>{{/if}}
         {{#if this.trailingIcon}}<i class="blacksmith-part-row-trailing-icon {{this.trailingIcon}}"></i>{{/if}}
         {{#if this.trailingButton}}
-        <button type="button" class="blacksmith-part-row-action card-button"
+        <button type="button" class="blacksmith-part-row-action"
                 data-blacksmith-module="{{this.moduleId}}" data-blacksmith-action="{{this.action}}"
                 {{#if this.value}}data-blacksmith-value="{{this.value}}"{{/if}}>
             <i class="{{#if this.actionIcon}}{{this.actionIcon}}{{else}}fa-solid fa-ellipsis{{/if}}"></i>

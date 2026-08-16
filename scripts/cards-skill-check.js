@@ -21,7 +21,7 @@
  */
 
 import { MODULE } from './const.js';
-import { CARD_FLAG } from './api-chat-cards.js';
+import { CARD_FLAG, ChatCardsAPI } from './api-chat-cards.js';
 import { ChatCardsManager } from './manager-chat-cards.js';
 
 /** The action a pending row fires. Registered in `blacksmith.js`. */
@@ -290,4 +290,29 @@ export async function skillCheckMessageData(data, theme) {
             }
         }
     };
+}
+
+/**
+ * Rewrite a posted skill check card after a roll.
+ *
+ * The create path above and this one are deliberately separate now. Creating needs
+ * a `{content, flags}` blob to hand to `ChatMessage.create`; updating goes through
+ * `ChatCardsAPI.update`, which is the same thing a consumer would use. It used to
+ * call `message.update(await skillCheckMessageData(...))`, which reached past the
+ * API into `renderCard` -- available here only because this file is inside
+ * Blacksmith. Routing it through the public method is what makes the API's promise
+ * true for everyone rather than for consumers only.
+ *
+ * The flag shape stays described in this one file, which is why this is a function
+ * here rather than an API call at the roll site.
+ *
+ * @param {ChatMessage} message
+ * @param {object} data - The full post-roll state; stored as the card's data flag.
+ * @returns {Promise<ChatMessage|null>}
+ */
+export async function updateSkillCheckMessage(message, data) {
+    return ChatCardsAPI.update(message, {
+        parts: composeSkillCheckCard(data),
+        flags: { ...data, isCoffeePubCard: true }
+    });
 }

@@ -218,8 +218,15 @@ async function enrich(html, options = {}) {
  * `owner` covers a GM as well, because a GM owns every actor in Foundry's
  * permission model. That is not a loophole -- it is exactly the rule a private
  * roll wants: the GM and the player who rolled, nobody else.
+ *
+ * `player` is the complement of `gm`, and exists for the two-versions card: the
+ * GM gets the linked, detailed part and everyone else gets the plain one. Without
+ * it only half of that could be said, and the other half had to be a render pass.
+ * Note that the two are complements at RENDER time only -- both fail closed on the
+ * baked snapshot, so a card built from a `gm`/`player` pair shows NEITHER until a
+ * client re-renders it. Keep anything the card cannot do without out of that pair.
  */
-const READABLE_BY = new Set(['gm', 'owner', 'author']);
+const READABLE_BY = new Set(['gm', 'player', 'owner', 'author']);
 
 /**
  * A veiled value is `{ value, readableBy, actorId?, veil? }` wherever a part
@@ -261,6 +268,7 @@ function mayRead(field, options = {}) {
     if (!READABLE_BY.has(who)) return false;
 
     if (who === 'gm') return Boolean(user.isGM);
+    if (who === 'player') return !user.isGM;
     if (who === 'author') return user.id === options.relativeTo?.author?.id;
     if (who === 'owner') {
         // Resolved against the ACTOR (plan decision 7): ownership lives on the
