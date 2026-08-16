@@ -14,7 +14,7 @@ Results go to the relevant `CHANGELOG.md` entry, not back into this file.
 
 ## Rendering
 
-- [ ] **Themes tint without changing structure.** Post the same composition in each of the nine themes. Structure identical, colours differ. Announcement themes give a dark background with light header text.
+- [ ] **Themes tint without changing structure.** Post the same composition in each theme. Structure identical, colours differ. Each theme's `-dark` partner fills only the card header, leaving the body as the light theme has it.
 - [ ] **The world default applies.** With `defaultCardTheme` set to something other than Tan, post a card with no `theme`. It uses the configured theme. Then post one with `theme: 'default'` and confirm it is Tan and **stays** Tan -- that pinning is the thing the old sentinel made impossible.
 
 ## Storage and re-render
@@ -42,6 +42,6 @@ Each of these replaced a template. Trigger it and confirm it says the same thing
 
 ## Regressions to rule out
 
-- [ ] **Sibling cards still render.** Squire, Bibliosoph, Artificer, Crier, Curator, Regent, and Scribe have not migrated and still build their own HTML. Post at least one card from each and confirm the theme accessors they call still work.
+- [ ] **Unmigrated sibling cards still render.** Squire, Crier, Curator, Regent and Scribe still build their own HTML. Post at least one card from each and confirm the theme accessors they call still work. Artificer migrated fully on 2026-08-15 and Bibliosoph has migrated its nine, so neither calls those accessors any more -- when the remaining five are done, the accessors go and this item goes with them.
 - [ ] **Cards posted before this change still render.** Old messages have no flags and keep their baked HTML.
 - [ ] **Card padding still applies.** The `removeChatCardPadding` setting still affects new parts-based cards -- they go through the same libwrapper path.
