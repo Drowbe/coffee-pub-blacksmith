@@ -151,7 +151,20 @@ export function composeStatsCard(data = {}, scope = 'round') {
     // `themeLabel` is absent when nothing worth naming happened -- see stats-mvp.js,
     // which has a `noMvp` theme for exactly that round.
     const mvp = data.roundMVP ?? data.combatMVP ?? null;
-    const hasMvp = Boolean(mvp?.themeLabel);
+
+    // AN AWARD AND A WINNER ARE DIFFERENT QUESTIONS, and conflating them is what put
+    // an empty portrait on every quiet round.
+    //
+    // `noMvp` is a THEME, not the absence of one: stats-mvp.js:355 gives it
+    // `label: 'No MVP'` and its own templates, so `themeLabel` is truthy on exactly
+    // the round this was written to exclude. The comment that used to sit here said
+    // the opposite and had been wrong since the theme was added.
+    //
+    // A quiet round still has something to SAY -- the ribbon naming it, and a line
+    // about saving your big moment -- but nobody to SHOW. So the portrait drops and
+    // the rest stays.
+    const hasAward = Boolean(mvp?.themeLabel);
+    const hasWinner = hasAward && mvp.themeKey !== 'noMvp' && Boolean(mvp.name);
 
     // --- Header --------------------------------------------------------------
     parts.push({
@@ -163,12 +176,14 @@ export function composeStatsCard(data = {}, scope = 'round') {
     });
 
     // --- The award ------------------------------------------------------------
-    // Dropped entirely when there is no MVP rather than shown empty: a banner with
-    // nothing behind it reads as a bug, and a quiet round should not carry the same
-    // visual weight as a decisive one.
-    if (hasMvp) {
+    // The portrait is the part that needs a winner. A banner with nothing behind it
+    // reads as a bug, and an identity chip with no image and no name is exactly that
+    // -- a blank strip between the header and the text, which is how this was found.
+    if (hasAward) {
         parts.push({ part: 'ribbon', text: mvp.themeLabel });
-        parts.push({ part: 'identity', img: mvp.tokenImg, name: mvp.name });
+        if (hasWinner) {
+            parts.push({ part: 'identity', img: mvp.tokenImg, name: { literal: mvp.name } });
+        }
         if (mvp.description) {
             parts.push({ part: 'prose', blocks: [{ type: 'paragraph', text: mvp.description }] });
         }
