@@ -264,6 +264,45 @@ if (!/toAnchor\(\s*\{\s*name/.test(cardTextSrc)) {
     problems.push('enricher: the row document link no longer builds its anchor with doc.toAnchor({ name }) -- if it went back to writing @UUID syntax, a name containing `}` can inject a second link or a live roll');
 }
 
+/*
+    4. A PIPELINE FIELD IS RENDERED UNESCAPED.
+
+    Declaring a field in a part's `text` list and rendering it with `{{field}}`
+    are a contradiction: the pipeline returns HTML, and Handlebars would escape it
+    again, so a card would display `&lt;strong&gt;` instead of bold text.
+
+    The two halves are in different files, which is what makes this worth checking
+    rather than remembering. Moving `identity`, `ribbon` and `tiles` onto the
+    pipeline on 2026-08-16 required editing both, and doing only the first would
+    have shipped visible tags on the most-used part in the library.
+*/
+const PARTS_BLOCK = /CARD_PARTS = Object\.freeze\(\{(.+?)\}\);/s.exec(readFileSync(SOURCE, 'utf8'))?.[1] ?? '';
+if (!PARTS_BLOCK) {
+    problems.push('pipeline fields: could not find CARD_PARTS to check -- this guard is no longer guarding anything');
+}
+for (const entry of PARTS_BLOCK.matchAll(/(\w+):\s*\{\s*template:\s*'([\w-]+)',\s*text:\s*\[([^\]]*)\]/g)) {
+    const [, partId, templateName, fieldList] = entry;
+    const fields = fieldList.split(',').map((f) => f.trim().replace(/'/g, '')).filter(Boolean);
+    if (!fields.length) continue;
+
+    const templatePath = join(PARTS_DIR, `${templateName}.hbs`);
+    if (!existsSync(templatePath)) {
+        problems.push(`pipeline fields: part "${partId}" names a template that does not exist: ${templateName}.hbs`);
+        continue;
+    }
+    const template = readFileSync(templatePath, 'utf8');
+
+    for (const field of fields) {
+        checked++;
+        if (new RegExp(`\\{\\{\\{\\s*${field}\\s*\\}\\}\\}`).test(template)) continue;
+        if (new RegExp(`\\{\\{\\s*${field}\\s*\\}\\}`).test(template)) {
+            problems.push(`pipeline fields: "${partId}.${field}" runs through the text pipeline but ${templateName}.hbs renders it with {{${field}}} -- the returned HTML would be escaped again and shown as tags`);
+        } else {
+            problems.push(`pipeline fields: "${partId}.${field}" is declared as consumer text but ${templateName}.hbs never renders it`);
+        }
+    }
+}
+
 if (problems.length) {
     console.error('check-card-contracts: a consumer could inject presentation.\n');
     for (const problem of problems) console.error(`  ${problem}`);

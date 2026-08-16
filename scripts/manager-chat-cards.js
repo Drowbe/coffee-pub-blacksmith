@@ -72,11 +72,23 @@ export const CHAT_CARD_THEMES = Object.freeze([
  * `text` lists the fields on each part that carry consumer prose and therefore
  * run through the escape -> marks -> enrich pipeline. Every other field is
  * escaped by Handlebars on output.
+ *
+ * EVERY FIELD THAT CARRIES CONSUMER TEXT IS ON THIS LIST. It has to be, and the
+ * reason is not escaping -- Handlebars escapes perfectly well. It is that a field
+ * off the pipeline does not understand the vocabulary: `{ literal }` stringifies
+ * to "[object Object]", a veil renders as one, a `mark` does nothing, and a
+ * segment array joins with commas. So the failure is silent and lands on exactly
+ * the caller who did the careful thing.
+ *
+ * `identity`, `ribbon` and `tiles` were off the list until 2026-08-16, when Regent
+ * hit it on `identity.name` -- one of the likeliest places in the whole library for
+ * a consumer to put a user-supplied name. Adding a part with a text field and
+ * forgetting to declare it here reproduces that trap exactly.
  */
 export const CARD_PARTS = Object.freeze({
     header:   { template: 'part-header',   text: ['title'] },
-    ribbon:   { template: 'part-ribbon',   text: [] },
-    identity: { template: 'part-identity', text: [] },
+    ribbon:   { template: 'part-ribbon',   text: ['text'] },
+    identity: { template: 'part-identity', text: ['name', 'subtitle'] },
     subject:  { template: 'part-subject',  text: ['title', 'value'] },
     image:    { template: 'part-image',    text: ['caption'] },
     meter:    { template: 'part-meter',    text: ['label'] },
@@ -651,7 +663,14 @@ export class ChatCardsManager {
         }
 
         if (id === 'tiles') {
-            context.items = (part.items ?? []).map((item) => ({ label: item.label, value: item.value }));
+            // On the pipeline like every other consumer field, so a tile caption or
+            // value takes a literal, a veil, a mark and a segment array. Handlebars
+            // escaping alone was safe but silently stringified `{ literal }` to
+            // "[object Object]" -- see the note on the text list above.
+            context.items = await Promise.all((part.items ?? []).map(async (item) => ({
+                label: await processText(item.label, options),
+                value: await processText(item.value, options)
+            })));
             // Column count is stated rather than inferred by the grid. Six boxes
             // must sit on one row; auto-fit sized them right at the width where
             // only five fit, so the sixth wrapped alone.

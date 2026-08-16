@@ -1,4 +1,9 @@
-{{!-- Footer notes: icon and text. --}}
+{{!-- Footer notes: icon and text.
+
+      `label` rather than `text`, because rows, badges and notes share ONE item
+      builder in manager-chat-cards.js and `label` is its canonical field; a caller
+      passing `text` reaches this through that builder's `label ?? text` fallback.
+      Reading this template alone makes the two look unrelated -- they are not. --}}
 <div class="blacksmith-part-notes">
     {{#each items}}
     <div class="blacksmith-part-note">

@@ -816,7 +816,7 @@ never to let the module keep a template.
 | Module | Posting sites | What it owns today | Notes |
 |---|---|---|---|
 | Curator | 1 | `templates/card-loot.hbs` | Already conforms to the contract. Smallest possible first migration. |
-| Regent | 2 | inline HTML, 4 CSS rules | Query card. |
+| ~~Regent~~ | ~~2~~ | — | **DONE 2026-08-16.** `_onSendToChat` and the GM "Regent Report" whisper. It had **no card CSS at all** -- the "4 rules" in the original survey were wrong, every rule in `styles/` being scoped to `#coffee-pub-regent-wrapper`. That has a consequence worth carrying into every remaining migration: the GM whisper posted `regent-message-header-answer` markup into the chat log **where those rules never applied**, so it had rendered unstyled for its entire life and nobody reported it. **Ask a migrating module to check its card selectors actually reach chat before asking it to port anything.** Its `chatCardTheme` setting was converted to `getThemeChoices('card')` with stored class names normalised on read in `blacksmith-bridge.js`, so Regent no longer calls any class-name accessor. It settled the `richtext` scope question by parsing AI HTML into parts rather than asking for the contract to widen -- see the api doc. |
 | ~~Artificer~~ | ~~7~~ | — | **DONE 2026-08-15.** `rows` covered `gather-result-*` as predicted, and also absorbed the hand-built `@UUID[...]{...}` strings and a local `escapeHtml`, since `rows` takes `uuid` + `label` and does both. `notes` took the craft failure list, `tiles` the rarity breakdown. No new part was needed. |
 | Crier | 4 | inline HTML, 59 CSS rules | Its turn card is the widest composition in the suite - `header + image + meter + nameplate + stats + section + status`. The 59 overrides exist because those parts were unavailable. Good proof case for the catalog. |
 | ~~Bibliosoph~~ | ~~10~~ | — | **DONE 2026-08-15.** Five migrated directly; the four needing a card to change after posting (injury, critical/fumble, check-up, inspiration) landed once `chatCards.update` shipped and are **confirmed working live**. Its reports drove three fixes: `chatCards.update` itself, `readableBy: 'player'`, and the row-button icon alignment. |
@@ -881,9 +881,28 @@ gets lost -- the same mistake that cost the XP card three of its own styles.
 **Consequence to expect until Scribe migrates:** its two chat outputs, the journal-narration blockquote and
 the illustration card, now render with Blacksmith's card styling and Foundry's defaults rather than
 Scribe's. That is the intended direction, not a regression, but it is visible before the migration lands. **The real outlier** - uses none of Blacksmith's card classes, posts a raw `<blockquote>`, and carries a competing theme layer (`theme-blue/dark/earth/green/red/none.css` plus `cards.css`). All seven files go. Its journal-snippet-to-chat is the one genuinely new capability found in the sweep, and it needs no new part: `header + image + prose + actions`. Legacy module; adopts the plan. |
-| Squire | 26 | `templates/chat-cards.hbs` (505 lines) | **Next, and unblocked as of 2026-08-15.** Largest, and a fork of Blacksmith's `cards-common.hbs` (see the forked-hub-code section above). It was scheduled last so every part it needs would be proven first; Artificer and Bibliosoph have now done that, Bibliosoph including the cards that change after posting. Its extra variants (`isRoundAnnouncement`, `isGMApproval`, transfer-request-rejected) must land as compositions, not be dropped. One thing to settle with them before they start: its transfer cards vary by reader, where `readableBy` covers `'gm'`, `'player'` and explicit user ids but has no way to say "everyone except these users" -- and a reader who is neither sender nor receiver currently gets an empty card body, which should be fixed on the way through rather than reproduced. The other blocker is gone: Squire wraps untrusted item and actor names in `<strong>` throughout, which literals could not express until `{ literal, mark }` shipped 2026-08-15 for exactly this reason. |
+| ~~Squire~~ | ~~26~~ | — | **DONE 2026-08-15.** `templates/chat-cards.hbs` deleted; no `ChatMessage.create` left in any card path. **Half the fork was dead and nobody had noticed**: the entire public half -- planning start/paused/resumed, combat timer, round announcement, loot drop, movement change, leader change -- was unreachable, because nothing had set `isPlanningStart`, `isTimer`, `isLootDrop`, `isMovementChange` or `isLeaderChange` in a long time. It was carried forward untouched on every edit because there was never a reason to check. Fourteen types were live, all whispered. **Lesson for the next inventory: a fork rots as well as drifts, and the rot is the cheaper half to remove** -- count reachable variants, not lines. `{ literal, mark }` landed days before they set a house style around not having it. Their reports produced three more fixes: the silent action-handler failure, the `notes` doc/template mismatch, and the retire-then-work guidance. |
 
 Cartographer, Herald, Minstrel, Monarch, and Vault post no chat cards and are unaffected.
+
+**"Everyone except these users" is NOT needed — do not build it.** It was raised as the likely gap in
+`readableBy` when Squire's transfer cards were inspected, because sender, receiver and bystander each read
+differently. Squire's migration answered it: they already whisper a separate message per audience, so each
+card carries one unconditional sentence written for its one audience and needs no `readableBy` at all. That
+also disposed of the empty-card-body case by construction rather than by patch, since the else-less branches
+had nowhere to survive. If a transfer flow is the archetype for reader-varying cards, the gap is less
+pressing than it looked. Revisit only if a module has a genuinely single-message case.
+
+**The theme accessors cannot be removed on "everyone has migrated."** Checked 2026-08-15: Bibliosoph
+(`settings.js`), Crier (`settings.js`, `crier.js:1359`) and Scribe (`settings.js`) still call them, and
+**Bibliosoph and Scribe have both migrated.** (Regent cleared itself on 2026-08-16 by converting its
+setting to `getThemeChoices('card')` and normalising stored class names on read -- the pattern the other
+three should copy.) Migration replaces card *markup*; it does not touch
+a module's theme-choice *setting*, which is where the class-name variants are used. So removal needs its own
+sweep with its own criterion -- no module builds theme choices from class names -- and each of those settings
+stores a CSS class where `post()` wants an id. `resolveThemeId` now falls back to the world default rather
+than Tan, so those worlds degrade gracefully instead of pinning every card to Tan, but the settings still
+want converting to `getThemeChoices()` with their stored values normalised on read.
 
 **How to verify, per module**: trigger every card that module posts in a live world with a second client
 connected; confirm each renders, each button works on the clicking client only, and whisper and GM-only cards

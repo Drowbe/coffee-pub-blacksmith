@@ -2443,7 +2443,27 @@ function bindCardActions(message, root) {
             try {
                 await handler({ message, value: target.dataset.blacksmithValue ?? null, event, button: target });
             } catch (error) {
+                // The catch stays: one module's bad handler must not break a card, or
+                // take the other buttons on it down. What changed is that it no longer
+                // fails SILENTLY.
+                //
+                // A card commonly retires its own buttons before doing the work -- that
+                // is what removes them on every client, where disabling them only
+                // changes one browser's DOM. So a handler that throws leaves a card
+                // already showing the outcome it was going to produce, and the console
+                // line is seen by nobody. Squire shipped exactly that: a GM approving a
+                // transfer got a green "Approved" band and the receiver got nothing,
+                // and it was found by reading the code rather than by using it.
+                //
+                // The notification says nothing about which module or action failed.
+                // That is the console's job; a player should not be shown provenance
+                // they cannot act on.
                 postConsoleAndNotification(MODULE.NAME, `Chat Cards | Action "${moduleId}:${action}" threw`, error?.message ?? error, false, false);
+                try {
+                    ui.notifications?.error('That action could not be completed. See the console for details.');
+                } catch (_e) {
+                    /* notifications unavailable; the console line still stands */
+                }
             }
         });
     }

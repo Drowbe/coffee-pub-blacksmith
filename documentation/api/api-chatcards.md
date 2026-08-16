@@ -92,6 +92,41 @@ The result is a deep clone, so the read-splice-write cycle above cannot mutate t
 document's live flags by accident - an in-place edit appears to work on the editing
 client and changes nothing anywhere else.
 
+### Retiring a button, and when to update
+
+Retire a card's buttons by recomposing and calling `update`, not by disabling them
+in the DOM. Disabling changes one browser; the card is read by everyone, and only a
+new composition removes the button on every client. That is also what actually
+prevents a double-click, since a second client's copy was never disabled.
+
+This means the card usually changes **before** the work it triggered has finished,
+so the rule is: **never let the card assert an outcome that has not happened.**
+
+Two shapes satisfy that, and which one you want depends on what the new state says.
+
+**One update, when the card records the decision.** "Accepted" means *you accepted*,
+which is true the moment it is clicked and stays true whether or not the goods move.
+A later card can report the result. This is the simpler shape and usually the
+honest one.
+
+**Two updates, when the card reports the result.** Recompose to a pending state
+first - buttons gone, no outcome claimed - then again with the real outcome:
+
+```javascript
+await chatCards.update(message, { parts: withPendingBand(card.parts) });
+const result = await doTheWork();
+await chatCards.update(message, { parts: withOutcomeBand(card.parts, result) });
+```
+
+The pending state is what makes the failure case survivable: if the work throws, the
+card is sitting on "Processing" rather than on a green success band, and a catch can
+recompose it to a failure the reader can act on.
+
+A handler that throws is logged and shows the clicking user an error, but Blacksmith
+cannot put the card back - it does not know what the card looked like before, or
+what your failure state should say. Recomposing on failure is the consumer's job,
+which is the other reason to prefer the one-update shape where it fits.
+
 ### Which mechanism for which change
 
 Three things look similar and are not interchangeable.
@@ -129,11 +164,13 @@ other's. State that stops a button firing twice has to be on the message.
 | `rows` | thumbnail, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, icon, cover, ground, iconColor, overlays, marker, uuid, label, sublabel, count, trailing, trailingSize, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
 | `badges` | inline chips | `items: [{ icon, label }]` |
 | `panel` | boxed sub-block | `icon`, `label`, `intro`, `rows: [{ icon, label, value }]` |
-| `notes` | footer annotations | `items: [{ icon, text }]` |
+| `notes` | footer annotations | `items: [{ icon, label }]` |
 | `actions` | instruction line and buttons | `instruction`, `layout`, `buttons: [{ action, label, icon, value, moduleId, variant, disabled }]` |
 | `richtext` | document-sourced HTML | `html` (see below) |
 
 On `rows`, supplying `uuid` turns the label into a real Foundry document link, with `label` as its display text. `count` prefixes the label; `trailing` follows it; `action` puts a button at the end.
+
+`rows`, `badges` and `notes` share one item builder, so `label` is the field for all three. `text` is accepted as an alias on any of them and is what `notes` was previously documented as; both work, `label` is canonical.
 
 ### Bands
 
@@ -323,7 +360,11 @@ Use `richtext` only for HTML that already exists in a Foundry document - a journ
 { part: 'richtext', html: journalPage.text.content }
 ```
 
-It is enriched and scoped to card typography. Building an HTML string in JavaScript and passing it here defeats the system; pass structured prose instead.
+It is enriched and scoped to card typography.
+
+**`richtext` is enriched, not sanitised. It inherits its safety from the fact that a person authored the journal page.** That is the whole of why its scope is narrow, and it is a statement about trust rather than about style. Content with no author has no such safety: an `<img src=x onerror=...>` in a machine-generated reply goes straight through. Passing model output, scraped HTML, or anything else nobody vouched for admits the least-vetted content in your module through the one part that assumes vetted content - not a contract getting blurry, but its premise being false.
+
+So building an HTML string in JavaScript and passing it here defeats the system twice over. Pass structured prose instead, and for generated content parse it into parts, which terminates every fragment inside `{ literal }` and costs less than it sounds - see the note below.
 
 **Check whether the content opens with its own title, and lift it into the header.** A journal blockquote or page often begins with a heading that the source styled as a title bar rather than as a heading in the body - full-bleed, uppercase, an icon in `::before`. Passed to `richtext` unchanged it renders as an ordinary heading inside the card body, and the card has no title bar at all:
 
@@ -334,6 +375,16 @@ It is enriched and scoped to card typography. Building an HTML string in JavaScr
 ```
 
 Found by Scribe migrating its journal narration, and it applies to any module sending document content to chat.
+
+### Generated content: parse it into parts
+
+If your content is machine-generated, parse it into a composition rather than reaching for `richtext`. Regent does this for AI replies, and two findings from that work are worth borrowing.
+
+**Do not trust your own format instruction.** Regent's prompt says "HTML only, never Markdown". Real replies come back with headings and bold as tags, emphasis as `*marks*`, and rules and tables as Markdown - the model half-obeys, and the half it ignores is everything Markdown does more conveniently. Enumerate what your content actually looks like from real samples, not from what you asked for.
+
+**Consume marks, never forward them.** Recognise `**bold**` yourself and emit `{ literal: text, mark: 'strong' }` rather than passing the asterisks through to prose. Generated text is full of stray asterisks - `5 * 3 gp and 2 * 4 sp` pairs into an italic run otherwise - and a literal is the only thing that stops one opening a run that closes somewhere it should not.
+
+Degrade rather than drop: an element with no mapping should contribute its text as a paragraph, and a failed parse should fall back to the whole reply as plain text. A missing section is a worse failure than a plainly-rendered one.
 
 ## Buttons
 
