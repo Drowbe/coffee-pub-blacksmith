@@ -138,6 +138,32 @@ await expect('a literal survives inside marked prose',
 await expect('a marked run cannot span a segment boundary',
     ['**a', 'b**'], '**ab**');
 
+// --- 2b. A literal can be emphasised without carrying markup ----------------
+//
+// The caller names a treatment; Blacksmith emits the tags around text it has
+// already escaped. So the name is bold AND inert, which is the combination that
+// was impossible before and that modules were about to standardise around.
+
+await expect('a marked literal is emphasised and still inert',
+    { literal: 'Ring of *Power*', mark: 'strong' },
+    '<strong>Ring of *Power*</strong>');
+
+await expect('em is available too',
+    { literal: 'Bob', mark: 'em' }, '<em>Bob</em>');
+
+// The tag name reaches a tag, so an unknown one must fail closed, not be written.
+await expect('an unrecognised mark renders unmarked rather than becoming a tag',
+    { literal: 'Bob', mark: 'script' }, 'Bob');
+
+await expect('a marked literal is still escaped inside its tag',
+    { literal: '<b>x</b>', mark: 'strong' },
+    '<strong>&lt;b&gt;x&lt;/b&gt;</strong>');
+
+// The Squire sentence, which is what this was built for.
+await expect('a marked literal inside a sentence',
+    ['You have sent ', { literal: 'Ring of *Power*', mark: 'strong' }, ' to Kar-ahn'],
+    'You have sent <strong>Ring of *Power*</strong> to Kar-ahn');
+
 // --- 3. The veil fails closed ----------------------------------------------
 
 globalThis.game.user.isGM = true;
@@ -159,6 +185,14 @@ await expect('the baked snapshot never reveals, whoever renders it',
 // The wrong-nesting case: a privacy key must never be silently ignored.
 await expect('literal + readableBy is veiled rather than rendered in the clear',
     { literal: 'Secret Ring', readableBy: 'gm' }, VEIL);
+
+// ...and the mark has to travel into that nesting, or veiling a name would quietly
+// un-emphasise it for the readers still entitled to see it.
+globalThis.game.user.isGM = true;
+await expect('a mark survives the wrong-nesting rewrite',
+    { literal: 'Secret Ring', mark: 'strong', readableBy: 'gm' },
+    '<strong>Secret Ring</strong>');
+globalThis.game.user.isGM = false;
 
 // And the same reader, entitled, still gets it -- so the rule above is denial,
 // not a blanket refusal that would hide the value from everyone.

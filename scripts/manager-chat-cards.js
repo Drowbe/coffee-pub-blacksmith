@@ -309,12 +309,50 @@ function veilMarkup(field) {
  * The alternative consumers reach for is stripping the offending characters before
  * interpolating, which is worse than it looks -- it silently renders a name that is
  * not the name, and does nothing at all about enricher syntax.
+ *
+ * A literal may carry `mark`, which is how a name gets emphasis without getting
+ * markup. See LITERAL_MARKS.
  */
 function isLiteral(value) {
     return Boolean(value)
         && typeof value === 'object'
         && !Array.isArray(value)
         && 'literal' in value;
+}
+
+/**
+ * The emphasis a literal may carry, as an allowlist, for the same reason
+ * BUTTON_VARIANTS and READABLE_BY are ones: the value reaches a TAG NAME, and an
+ * unrecognised entry must fail closed rather than be written out.
+ *
+ * WHY A LITERAL MAY BE EMPHASISED AT ALL, when the whole point of it is to
+ * withhold markup. Because the caller is not supplying the markup -- they are
+ * naming a treatment, and Blacksmith emits the tags around text it has already
+ * escaped. Nothing in the value can reach them. That is the same trade every part
+ * makes: the consumer hands over data and a name for how it should read, and the
+ * system decides what that means.
+ *
+ * It exists because the alternative is worse and modules were about to standardise
+ * on it. Emphasising a name WITHOUT a literal means passing it as ordinary prose
+ * with `**` around it, and an asterisk in the name then interleaves the tags --
+ * `Ring of *Power*` renders `<strong>Ring of <em>Power</strong></em>`. Faced with
+ * that, a module either accepts broken markup or drops emphasis from every name it
+ * shows. Squire was one house-style decision away from the second when this landed,
+ * and five modules each deciding separately is the drift this system exists to end.
+ *
+ * The two entries are exactly the two inline marks the prose pipeline supports, so
+ * a literal can say anything prose can and nothing more.
+ */
+const LITERAL_MARKS = new Set(['strong', 'em']);
+
+/**
+ * Wrap already-escaped text in its mark, or return it untouched.
+ *
+ * The tag name comes from LITERAL_MARKS and never from the caller's string, which
+ * is what makes interpolating it into a tag safe.
+ */
+function markLiteral(escaped, mark) {
+    return LITERAL_MARKS.has(mark) ? `<${mark}>${escaped}</${mark}>` : escaped;
 }
 
 /**
@@ -345,10 +383,13 @@ export async function processText(text, options = {}) {
         // reached for the wrong nesting. Honour the intent rather than rendering
         // the value in the clear -- everything about this system fails closed, and
         // silently ignoring a privacy key is the one way that stops being true.
+        // `mark` travels into the nesting too, or veiling a name would quietly
+        // un-emphasise it for the readers still entitled to see it.
         if ('readableBy' in text) {
-            return processText({ ...text, value: { literal: text.literal } }, options);
+            const inner = { literal: text.literal, mark: text.mark };
+            return processText({ ...text, value: inner }, options);
         }
-        return escapeHtml(text.literal);
+        return markLiteral(escapeHtml(text.literal), text.mark);
     }
 
     if (Array.isArray(text)) {
@@ -372,6 +413,11 @@ export async function processText(text, options = {}) {
  * Artificer 2026-08-15 after their migration.
  *
  * Recurses, so a literal nested inside a veiled value resolves too.
+ *
+ * A `mark` is DELIBERATELY IGNORED here. An anchor's text is a text node, so there
+ * is nowhere to put a tag without wrapping the link itself -- and a bolded content
+ * link fights the styling Foundry and the theme already give it. A linked row's
+ * label is prominent because it is a link; that is the emphasis.
  */
 function anchorLabel(value) {
     if (isLiteral(value)) return String(value.literal ?? '');

@@ -429,9 +429,24 @@ from the neighbouring segments does not make it bold; it renders the asterisks:
 That is the guarantee working, and it should not be worked around: emphasis is
 markup, and markup is the thing a literal exists to withhold.
 
-**A value can be emphasised, or it can be inert. Not both.** Emphasis is still
-available - put the marks in the same segment as the name, and pass the name as
-ordinary text rather than as a literal:
+### Emphasising a literal
+
+To bold or italicise a name, give the literal a `mark`:
+
+```javascript
+['You have sent ', { literal: item.name, mark: 'strong' }, ' to Kar-ahn']
+// -> You have sent <strong>Ring of *Power*</strong> to Kar-ahn
+```
+
+`mark` is `'strong'` or `'em'` - the same two marks prose has. Any other value
+renders unmarked, since the value reaches a tag name and an unrecognised one must
+fail closed rather than be written out.
+
+This does not weaken the literal. You are not supplying markup, you are naming a
+treatment: Blacksmith emits the tags around text it has already escaped, so nothing
+in the name can reach them. The name is emphasised **and** inert.
+
+Do not reach for the alternative of `**` around an interpolated name:
 
 ```javascript
 ['You have sent ', `**${item.name}**`, ' to Kar-ahn']
@@ -439,12 +454,13 @@ ordinary text rather than as a literal:
 // hostile name -> You have sent <strong>Ring of <em>Power</strong></em> to Kar-ahn
 ```
 
-The second line is the cost, and it is worse than losing the bold: an asterisk in
-the name does not merely add emphasis, it interleaves the tags. So this is a real
-option with a real price, not a thing the system forbids.
+An asterisk in the name does not merely add emphasis there, it interleaves the
+tags. That construction is why `mark` exists.
 
-Where a name needs to stand out, prefer a part that carries weight of its own - a
-`rows` label, a `subject`, a trailing value - over marks inside a sentence.
+A `mark` is ignored on a `rows` item that carries a `uuid`. That label becomes a
+document link, whose text is a text node with nowhere to put a tag, and a bolded
+content link fights the styling Foundry and the theme already give it. A linked
+label is prominent because it is a link.
 
 Do not strip characters from a name before passing it. That renders a name which is
 not the name, and does nothing about enricher syntax.
