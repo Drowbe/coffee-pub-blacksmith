@@ -22,6 +22,16 @@
        so keep it translucent: at full opacity it reads as a separate window
        stuck to the menubar rather than part of the bar. */
     --blacksmith-combatbar-data-background: rgba(110, 41, 35, 0.4);
+
+    /* THE FILL FOR WHOSE TURN IT IS. It REPLACES the disposition fill on that one
+       card rather than sitting outside it -- see the `.current` rule for why every
+       treatment drawn outside the card was clipped by the strip.
+
+       Warm gold, chosen against the disposition fills rather than for its own sake:
+       those are red, green, blue and purple, so a yellow reads as "not one of them"
+       whichever side the current combatant is on. Opaque, unlike the dispositions,
+       which is a second channel saying the same thing. */
+    --combatbar-turn-fill: rgba(255, 196, 74, 0.95);
 }
 
    .blacksmith-menubar-secondary {
@@ -580,6 +590,16 @@
            defined relative to that size and follows it when it changes. Tune the 0.05. */
         --portrait-pulse-trough: calc(var(--portrait-rest-scale) - 0.05);
 
+        /* HOW BIG THE CURRENT CARD GETS AT THE TOP OF ITS BREATH.
+
+           1, AND IT HAS TO BE. The card's layout box is exactly the height of the
+           strip that clips it, so full size is also the largest size that fits.
+           Anything above this is sliced flat mid-breath; two versions backed OFF
+           this to buy room for a ring drawn outside the card, and both still
+           clipped. The turn is a fill now, which needs no room, so the peak goes
+           back to the size the card actually is. */
+        --portrait-current-scale: 1;
+
         /* ONE TEMPO FOR EVERY PULSE ON A PORTRAIT, declared here so all three inherit it and
            cannot drift apart. The turn's breath and the two dead pulses (the round ring's stroke
            and the square bar's fill) deliberately share a beat -- a dead combatant taking its turn
@@ -743,11 +763,17 @@
     }
 
     /* THE ACTIVE COMBATANT'S PORTRAIT BREATHES, INSIDE ITS BUTTON.
-       Motion is the channel, because colour is spent: the disposition fill reads as a frame
-       around the portrait, and with four saturated hues in play there is no colour left that
-       says "special" instead of "a fifth disposition". Motion has no such problem -- it is the
-       only thing moving on an otherwise still bar, so the eye finds it without being told where
-       to look, and it survives the palette changing again, which it has twice.
+
+       Motion is ONE of two channels; the other is the gold fill on the `.current` rule below.
+       Motion alone was tried on its own and was not enough -- it reads at a glance across the
+       whole strip, but it does not answer "is it THIS one or that one" between two adjacent
+       cards, which is the question people were actually asking.
+
+       This comment used to argue that colour was spent, because four saturated dispositions
+       left no hue that says "special" rather than "a fifth disposition". That was true while
+       the turn had to fit AROUND disposition. It stopped being true when the turn took the
+       fill over instead of adding to it: there is no fifth hue to confuse, because the card
+       shows one colour at a time.
 
        ON THE PORTRAIT, NOT THE BUTTON, so the strip's spacing is untouched -- see the note on
        the container above for what scaling the button cost.
@@ -779,7 +805,7 @@
        --portrait-pulse-trough for why that matters and what it looked like when they did. */
     @keyframes blacksmith-combat-turn-pulse {
         0%   { scale: var(--portrait-pulse-trough); }
-        50%  { scale: 1; }
+        50%  { scale: var(--portrait-current-scale); }
         100% { scale: var(--portrait-pulse-trough); }
     }
 
@@ -799,10 +825,38 @@
        Margins go back to zero: this button draws at full size, so it needs its full footprint,
        and that is what keeps the row's total width constant as the turn moves. */
     .blacksmith-menubar-secondary .combat-portrait-container.current {
-        scale: 1;
-        margin-left: 0;
-        margin-right: 0;
+        scale: var(--portrait-current-scale);
+        margin-left: calc(var(--portrait-container-width) * (var(--portrait-current-scale) - 1) / 2);
+        margin-right: calc(var(--portrait-container-width) * (var(--portrait-current-scale) - 1) / 2);
         animation: blacksmith-combat-turn-pulse var(--combat-pulse-tempo) ease-in-out infinite;
+
+        /* WHOSE TURN IT IS: THE TURN TAKES THE FRAME OVER FROM DISPOSITION.
+
+           The disposition fill reads as a band around the portrait, so this is the
+           same frame in a different colour -- not a second frame around the first.
+           While it is your turn the card is gold; when the turn moves on, the card
+           goes back to its side's colour. Nothing else on the card changes.
+
+           WHY NOT DRAW OUTSIDE THE CARD. Four attempts did, and every one of them
+           was clipped: a caret above, then a ring at three widths and two scales.
+           The card's layout box is exactly the height of the strip that clips it
+           (`.combat-portraits` sets `overflow-y: hidden`), and the strip has no
+           slack to lend, so ANY treatment outside the border box gets cut -- the
+           only lever is shrinking the card to buy the room back, which trades one
+           reading for another and still clipped at the peak of the breath. A change
+           of colour on a surface the card already owns cannot clip, at any scale,
+           because it occupies nothing new.
+
+           THE COST, STATED PLAINLY: the current combatant does not show its
+           disposition. That is the trade -- one card out of the row loses its side
+           for one turn, and every other card still shows it. Whose turn it is
+           changes constantly and matters right now; which side they are on does
+           not change at all and can be read the instant the turn passes.
+
+           Specificity: three classes, same as the `.disposition-*` rules above, and
+           this comes later in the file, so it wins on order. Moving it above them
+           silently gives the fill back to disposition. */
+        background: var(--combatbar-turn-fill);
     }
 
     /* No `.current.combat-token-hidden` rule any more. One existed only to reconcile two
