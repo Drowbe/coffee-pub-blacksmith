@@ -2216,7 +2216,7 @@ export class CombatBarManager {
             priority: 3,
             callback: (module, key) => {
                 if (module !== MODULE.ID || key !== 'menubarCombatHideDead') return;
-                if (game.combat && menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                if (CombatBarManager.getActiveCombat() && menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
                     CombatBarManager.updateCombatBar(menuBar);
                 }
             }
@@ -3191,7 +3191,7 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (combat) {
                         await combat.previousRound();
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: Previous round", "", true, false);
@@ -3207,7 +3207,7 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (combat) {
                         await combat.nextRound();
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: Next round", "", true, false);
@@ -3223,7 +3223,7 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (combat) {
                         await combat.previousTurn();
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: Previous turn", "", true, false);
@@ -3239,7 +3239,7 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (combat) {
                         await combat.nextTurn();
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: Next turn", "", true, false);
@@ -3293,7 +3293,7 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (combat) {
                         await combat.startCombat();
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat started", "", true, false);
@@ -3309,7 +3309,7 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (combat) {
                         await combat.endCombat();
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: Combat ended", "", true, false);
@@ -3325,7 +3325,7 @@ export class CombatBarManager {
                 event.stopPropagation();
                 CombatBarManager.playUiSound(window.COFFEEPUB?.SOUNDPOP02, window.COFFEEPUB?.SOUNDVOLUMENORMAL);
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (combat) {
                         await combat.nextTurn();
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: Turn ended", "", true, false);
@@ -3340,7 +3340,7 @@ export class CombatBarManager {
                 event.preventDefault();
                 event.stopPropagation();
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (!combat) {
                         postConsoleAndNotification(MODULE.NAME, "Combat Bar: No active combat found", "", true, false);
                         return;
@@ -3375,7 +3375,7 @@ export class CombatBarManager {
                 const combatantId = button?.dataset?.combatantId;
                 if (!combatantId) return;
                 try {
-                    const combat = game.combat;
+                    const combat = CombatBarManager.getActiveCombat();
                     if (!combat) return;
                     const combatant = combat.combatants.get(combatantId);
                     if (!combatant) return;
@@ -3834,7 +3834,7 @@ export class CombatBarManager {
     static panToCombatant(_menuBar, combatantId, options = {}) {
         try {
             const { selectToken = false } = options;
-            const combat = game.combat;
+            const combat = CombatBarManager.getActiveCombat();
             if (!combat) return;
             const combatant = combat.combatants.get(combatantId);
             if (!combatant) return;
@@ -4183,7 +4183,7 @@ export class CombatBarManager {
 
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
         const a = CombatBarManager.getBarActions();
-        const combat = game.combat;
+        const combat = CombatBarManager.getActiveCombat();
 
         const gm = [
             { name: a.deployParty.name, icon: a.deployParty.icon, callback: a.deployParty.run }
@@ -4242,7 +4242,7 @@ export class CombatBarManager {
      * "hide dead" setting is on, since otherwise they are still on the bar.
      */
     static getGraveyardCombatants() {
-        const combat = game.combat;
+        const combat = CombatBarManager.getActiveCombat();
         if (!combat) return [];
         if (!getSettingSafely(MODULE.ID, 'menubarCombatHideDead', false)) return [];
         const isGM = game.user.isGM;
@@ -4317,7 +4317,7 @@ export class CombatBarManager {
     }
 
     static getCombatantContext(combatantId) {
-        const combat = game.combat;
+        const combat = CombatBarManager.getActiveCombat();
         if (!combat) return null;
         const combatant = combat.combatants.get(combatantId);
         if (!combatant) return null;
@@ -4455,7 +4455,7 @@ export class CombatBarManager {
      * uses the tinted `gm` zone.
      */
     static showInitiativeMenu(_menuBar, anchorEl) {
-        const combat = game.combat;
+        const combat = CombatBarManager.getActiveCombat();
         if (!combat || !game.user.isGM) return;
 
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
@@ -4540,7 +4540,7 @@ export class CombatBarManager {
         // No early return on a missing combat: Add All Remaining is precisely the
         // row you want when there is not one yet -- it creates the encounter with
         // whatever is standing. Rows needing a combat drop out instead.
-        const combat = game.combat;
+        const combat = CombatBarManager.getActiveCombat();
 
         const { x, y } = CombatBarManager._anchorPointFor(anchorEl);
         const a = CombatBarManager.getBarActions();
@@ -4830,7 +4830,7 @@ export class CombatBarManager {
 
     static async setCurrentCombatant(_menuBar, combatantId) {
         try {
-            const combat = game.combat;
+            const combat = CombatBarManager.getActiveCombat();
             if (!combat || !game.combats.has(combat.id)) return;
             const combatant = combat.combatants.get(combatantId);
             if (!combatant) return;
@@ -4919,7 +4919,7 @@ export class CombatBarManager {
         this._teardownInitiativeDrag();
 
         try {
-            const combat = game.combat;
+            const combat = CombatBarManager.getActiveCombat();
             const combatant = combat?.combatants?.get(drag.combatantId);
             if (combat && combatant && others.length && rightEl !== undefined) {
                 const leftEl = rightEl ? (others[others.indexOf(rightEl) - 1] ?? null) : others[others.length - 1];

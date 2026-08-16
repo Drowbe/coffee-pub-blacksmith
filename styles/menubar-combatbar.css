@@ -470,14 +470,18 @@
     align-items: center;
     overflow-x: auto;
     /* `hidden` and not `visible`: with one axis scrollable, CSS computes `visible`
-       on the other axis to `auto`, which would put a vertical scrollbar on the
-       strip. So the strip clips vertically, and anything drawn above a portrait --
-       the turn caret, the turn's lift -- needs room INSIDE the box to live in.
-       Overflow clips at the padding box, so the padding below is that room. */
+       on the other axis to `auto`, which would put a vertical scrollbar on the strip.
+
+       A CONSEQUENCE WORTH KNOWING BEFORE TRYING TO DRAW ABOVE A CARD: nothing can
+       hang out of this box, and there is no room inside it either -- the cards are
+       `--blacksmith-combatbar-combat-height` minus 4px, so the row is full. Padding
+       here does not open space above the cards; this strip is `align-items: center`,
+       so it offsets the content box and pushes the cards down instead. Growing the
+       row to compensate bottom-aligns them and overflows the current card, which
+       scales past the new bounds. All three were tried on 2026-08-15. Anything
+       marking a card has to be drawn ON it. */
     overflow-y: hidden;
-    /* 10px of headroom: 7px for the caret's part above the portrait, 3px for the
-       lift. Derived from those two, so changing either means changing this. */
-    padding: 10px 0 0 0;
+    padding: 0;
     flex: 0 1 auto;
     max-width: 100%;
     scrollbar-width: none;
@@ -799,61 +803,6 @@
         margin-left: 0;
         margin-right: 0;
         animation: blacksmith-combat-turn-pulse var(--combat-pulse-tempo) ease-in-out infinite;
-        /* Lifted out of the row's line. The reference for "this one" becomes the
-           STRIP'S OWN EDGE rather than the other portraits, which is what makes it
-           still readable when the current combatant is the only one on screen --
-           scrolled to, or the only combatant there is. Every other turn cue needs a
-           neighbour to compare against.
-
-           `position: relative` is already on the base container, which is what the
-           caret anchors to; only the offset belongs here. */
-        top: -3px;
-    }
-
-    /*
-        THE TURN MARKER: the one cue that is not a comparison.
-
-        Size, brightness and motion all say "more than the others". A caret says
-        "this one", full stop -- with one combatant or twenty, scrolled or not,
-        glanced at or studied, and with motion turned off.
-
-        Sits above the portrait rather than on it: the border belongs to disposition
-        and to the hidden stroke, and a coloured border for the turn is exactly what
-        was removed for colliding with both (see the note below).
-    */
-    .blacksmith-menubar-secondary .combat-portrait-turn-marker {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        /* -7px with a 12px glyph puts 7px of the caret above the portrait and lets
-           the rest overlap its top edge, so it reads as pointing AT the portrait
-           rather than floating over the strip. Those 7px are what the strip's
-           padding-top exists to hold. */
-        top: -7px;
-        z-index: 3;
-        font-size: 12px;
-        line-height: 1;
-        /* Light, with a dark rim. The strip's ground varies with the scene behind it
-           and with every disposition fill, so a single flat colour reads on some
-           portraits and vanishes on others; the outline is what makes it hold
-           against any of them. */
-        color: rgba(255, 255, 255, 0.95);
-        text-shadow: 0 0 3px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.8);
-        pointer-events: none;
-    }
-
-    /*
-        With an absolute cue present, the pulse is reinforcement rather than the
-        signal -- so it can now be dropped for readers who ask for less motion.
-        Before the caret existed this guard would have removed the ONLY cue that was
-        not a size comparison, which is why it was not here.
-
-        The lift and the caret stay: neither moves.
-    */
-    @media (prefers-reduced-motion: reduce) {
-        .blacksmith-menubar-secondary .combat-portrait-container.current {
-            animation: none;
-        }
     }
 
     /* No `.current.combat-token-hidden` rule any more. One existed only to reconcile two
