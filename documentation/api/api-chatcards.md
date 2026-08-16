@@ -161,14 +161,30 @@ other's. State that stops a button firing twice has to be on the message.
 | `section` | divider with icon and label | `icon`, `label` |
 | `prose` | structured text blocks | `blocks` (see below) |
 | `pips` | discrete state slots around an optional centre marker | `groups: [{ total, filled, tone }]`, `center` (see below) |
-| `rows` | thumbnail, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, icon, cover, ground, iconColor, overlays, marker, uuid, label, sublabel, count, trailing, trailingSize, trailingIcon, tone, emphasis, animation, action, actionIcon, value, moduleId }]` |
+| `rows` | thumbnail, label, optional sub-line, optional trailing value or button | `plain` (drops the box), `items: [{ img, icon, cover, ground, iconColor, overlays, marker, uuid, label, sublabel, count, trailing, trailingSize, trailingIcon, tooltip, tone, emphasis, animation, action, actionIcon, clickable, value, moduleId }]` |
 | `badges` | inline chips | `items: [{ icon, label }]` |
 | `panel` | boxed sub-block | `icon`, `label`, `intro`, `rows: [{ icon, label, value }]` |
 | `notes` | footer annotations | `items: [{ icon, label }]` |
 | `actions` | instruction line and buttons | `instruction`, `layout`, `buttons: [{ action, label, icon, value, moduleId, variant, disabled }]` |
 | `richtext` | document-sourced HTML | `html` (see below) |
 
-On `rows`, supplying `uuid` turns the label into a real Foundry document link, with `label` as its display text. `count` prefixes the label; `trailing` follows it; `action` puts a button at the end.
+On `rows`, `count` prefixes the label; `trailing` follows it.
+
+### A row that reports, and a row you act on
+
+Three ways to make a row do something, and they are not interchangeable:
+
+| | What it does | Use when |
+|---|---|---|
+| `uuid` | the label becomes a document link | the row is a **readout** and the document is the destination |
+| `action` | a small button at the end of the row | the row reports, and the button does something **to** it |
+| `action` + `clickable` | the **whole row** is the target | the row **is** the affordance |
+
+`uuid` is the richer option for a readout and the wrong default for anything interactive. A Token uuid opens the actor sheet - so a corpse row sends the player to a character sheet when they wanted the loot window, routing straight past the module's own entry point. If the thing a row represents has its own interaction - a corpse, a container, a quest - reach for `action` + `clickable` instead. Raised by Curator, whose loot card is exactly this case.
+
+A `clickable` row stays a div with `role` and `tabindex`, and the dispatcher binds Enter and Space for it, so it is a real control rather than a div that happens to respond to a mouse.
+
+**`uuid` also changes what `label` means, in both directions.** With a `uuid` the label becomes an anchor's text node, so nothing in it can be interpreted and a `{ literal }` there is accepted but unnecessary. **Remove the `uuid` and the same label is ordinary consumer text again**, running the full escape - marks - enrich pipeline, so it needs a literal it did not need a moment ago. Since the link is genuinely optional, this is a live trap: dropping `uuid` from a row whose label is an item or actor name reintroduces exactly the injection a literal exists to prevent, often in a card whose prose above it is already guarded. **Wrap an untrusted label in `{ literal }` whether or not the row currently carries a `uuid`** - it costs nothing in the link case and is the difference in the other.
 
 `rows`, `badges` and `notes` share one item builder, so `label` is the field for all three. `text` is accepted as an alias on any of them and is what `notes` was previously documented as; both work, `label` is canonical.
 
@@ -533,6 +549,11 @@ To veil a literal, nest it: `{ value: { literal: name }, readableBy: 'gm' }`. A
 That label becomes a document link, and the link is built rather than written - the
 name is appended as a text node, which is already the guarantee a literal asks for.
 Wrap it or don't; both render the same. Nothing about a name can affect the link.
+
+**Wrap it anyway.** The `uuid` is optional, and removing it turns the same label
+back into ordinary consumer text on the full pipeline - so a row that was safe
+without a literal stops being safe the moment someone drops the link. Wrapping
+costs nothing while the `uuid` is there and is the whole difference once it is not.
 
 A veiled label on a linked row withholds the whole link rather than its text, since
 a link whose name is hidden still tells the reader the document exists and the
