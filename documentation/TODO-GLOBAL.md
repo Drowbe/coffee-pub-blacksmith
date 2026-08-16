@@ -860,16 +860,20 @@ also disposed of the empty-card-body case by construction rather than by patch, 
 had nowhere to survive. If a transfer flow is the archetype for reader-varying cards, the gap is less
 pressing than it looked. Revisit only if a module has a genuinely single-message case.
 
-**The theme accessors cannot be removed on "everyone has migrated."** Re-checked 2026-08-16, with every
-module now migrated: **Bibliosoph and Scribe still call them, in `settings.js` both times.** Migration
-replaces card *markup*; it does not touch a module's theme-choice *setting*, which is where the class-name
-variants live, so finishing the migrations did not finish this. Crier's remaining call (`crier.js:1359`) is
-reachable but dead -- see its row above. Regent cleared itself by converting its setting to
-`getThemeChoices('card')` and normalising stored class names on read, which is the pattern the other two
-should copy; both of their settings store a CSS class where `post()` wants an id.
+**The theme accessors are one deletion away from being removable.** Scanned across all twelve siblings
+2026-08-16: **exactly one call to a class-name accessor exists in the suite** --
+`crier.js:1359`, inside `resolveThemeClass()`, which is dead code (its only caller assigns a value nothing
+reads). Bibliosoph, Regent and Scribe all use `getThemeChoices('card')`, which returns ids and is correct;
+Bibliosoph and Crier each have a *local* function named `getCardThemeChoices` that calls it, and an earlier
+scan of this matched those names and a comment rather than any call, which is how this list came to claim
+two modules were still on the class-name path when neither was.
 
-`resolveThemeId` now falls back to the world default rather than Tan for an unrecognised id, so those
-worlds degrade gracefully instead of pinning every card to Tan. That removed the urgency, not the work. Migration replaces card *markup*; it does not touch
+**So: when Crier deletes `resolveThemeClass`, the whole "theme accessors pending sibling migration" block in
+`api-chat-cards.js` can go.** Nothing else reaches it.
+
+A caution for the next scan of this kind: match on a *call* (`\.\s*name\s*\(`), not on the bare identifier.
+A bare name matches local wrappers, doc comments and the definition itself, and every one of those reads as
+a live dependency. Migration replaces card *markup*; it does not touch
 a module's theme-choice *setting*, which is where the class-name variants are used. So removal needs its own
 sweep with its own criterion -- no module builds theme choices from class names -- and each of those settings
 stores a CSS class where `post()` wants an id. `resolveThemeId` now falls back to the world default rather
