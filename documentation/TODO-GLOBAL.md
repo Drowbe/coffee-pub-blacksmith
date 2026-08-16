@@ -818,7 +818,7 @@ never to let the module keep a template.
 | Curator | 1 | `templates/card-loot.hbs` | Already conforms to the contract. Smallest possible first migration. |
 | ~~Regent~~ | ~~2~~ | — | **DONE 2026-08-16.** `_onSendToChat` and the GM "Regent Report" whisper. It had **no card CSS at all** -- the "4 rules" in the original survey were wrong, every rule in `styles/` being scoped to `#coffee-pub-regent-wrapper`. That has a consequence worth carrying into every remaining migration: the GM whisper posted `regent-message-header-answer` markup into the chat log **where those rules never applied**, so it had rendered unstyled for its entire life and nobody reported it. **Ask a migrating module to check its card selectors actually reach chat before asking it to port anything.** Its `chatCardTheme` setting was converted to `getThemeChoices('card')` with stored class names normalised on read in `blacksmith-bridge.js`, so Regent no longer calls any class-name accessor. It settled the `richtext` scope question by parsing AI HTML into parts rather than asking for the contract to widen -- see the api doc. |
 | ~~Artificer~~ | ~~7~~ | — | **DONE 2026-08-15.** `rows` covered `gather-result-*` as predicted, and also absorbed the hand-built `@UUID[...]{...}` strings and a local `escapeHtml`, since `rows` takes `uuid` + `label` and does both. `notes` took the craft failure list, `tiles` the rarity breakdown. No new part was needed. |
-| Crier | 4 | inline HTML, 59 CSS rules | Its turn card is the widest composition in the suite - `header + image + meter + nameplate + stats + section + status`. The 59 overrides exist because those parts were unavailable. Good proof case for the catalog. |
+| ~~Crier~~ | ~~4~~ | — | **DONE (verified 2026-08-16, Crier 13.2.1).** No `ChatMessage.create` anywhere; three `chatCards.post` sites plus `getCard`/`update` for the health refresh, so the flag-poke workaround is gone. **`templates/` and `styles/` no longer exist as directories** -- the 59 CSS rules and the inline HTML went with them, and `module.json` declares no styles. One piece of dead code remains: `resolveThemeClass()` (`crier.js:1355`) and its single caller (`:1603`), which assigns `info.theme` -- a value **nothing reads**, since the turn card's `post()` passes `normalizeThemeId(info.turnCardStyle)` instead. Its own docstring says it exists "for the templates that still build their own card markup" and "goes when the turn template does"; the turn template went and the function outlived it. Deleting both lines clears Crier of `getThemeClassName` entirely and drops an `await BlacksmithAPI.get()` per combatant per turn. |
 | ~~Bibliosoph~~ | ~~10~~ | — | **DONE 2026-08-15.** Five migrated directly; the four needing a card to change after posting (injury, critical/fumble, check-up, inspiration) landed once `chatCards.update` shipped and are **confirmed working live**. Its reports drove three fixes: `chatCards.update` itself, `readableBy: 'player'`, and the row-button icon alignment. |
 | ~~Scribe~~ | ~~3~~ | — | **DONE 2026-08-15, Scribe 13.1.0.** Illustration is `header + image + actions`, narration `header + richtext`, handout notice `header + prose + rows`. No new part needed. `cards.css` was rebuilt against and then deleted, which is what keeping it was for. The theme layer turned out to be smaller than it looked: the six `theme-*.css` files were byte-identical apart from the colours of the one button this migration removes, and `theme-earth.css` was an exact copy of `theme-dark.css`. Seven sheets collapsed to one; `changeCSS()` and its stylesheet leak went with them, unfixed and no longer reachable. Its `renderChatMessage` hook is **kept deliberately** to bind the raw illustration buttons on messages already in a world's log -- new cards use the registered action, but dropping the hook would make the old ones dead rather than merely unstyled. |
 
@@ -893,11 +893,16 @@ also disposed of the empty-card-body case by construction rather than by patch, 
 had nowhere to survive. If a transfer flow is the archetype for reader-varying cards, the gap is less
 pressing than it looked. Revisit only if a module has a genuinely single-message case.
 
-**The theme accessors cannot be removed on "everyone has migrated."** Checked 2026-08-15: Bibliosoph
-(`settings.js`), Crier (`settings.js`, `crier.js:1359`) and Scribe (`settings.js`) still call them, and
-**Bibliosoph and Scribe have both migrated.** (Regent cleared itself on 2026-08-16 by converting its
-setting to `getThemeChoices('card')` and normalising stored class names on read -- the pattern the other
-three should copy.) Migration replaces card *markup*; it does not touch
+**The theme accessors cannot be removed on "everyone has migrated."** Re-checked 2026-08-16, with every
+module now migrated: **Bibliosoph and Scribe still call them, in `settings.js` both times.** Migration
+replaces card *markup*; it does not touch a module's theme-choice *setting*, which is where the class-name
+variants live, so finishing the migrations did not finish this. Crier's remaining call (`crier.js:1359`) is
+reachable but dead -- see its row above. Regent cleared itself by converting its setting to
+`getThemeChoices('card')` and normalising stored class names on read, which is the pattern the other two
+should copy; both of their settings store a CSS class where `post()` wants an id.
+
+`resolveThemeId` now falls back to the world default rather than Tan for an unrecognised id, so those
+worlds degrade gracefully instead of pinning every card to Tan. That removed the urgency, not the work. Migration replaces card *markup*; it does not touch
 a module's theme-choice *setting*, which is where the class-name variants are used. So removal needs its own
 sweep with its own criterion -- no module builds theme choices from class names -- and each of those settings
 stores a CSS class where `post()` wants an id. `resolveThemeId` now falls back to the world default rather
