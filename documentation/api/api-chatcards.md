@@ -325,6 +325,16 @@ Use `richtext` only for HTML that already exists in a Foundry document - a journ
 
 It is enriched and scoped to card typography. Building an HTML string in JavaScript and passing it here defeats the system; pass structured prose instead.
 
+**Check whether the content opens with its own title, and lift it into the header.** A journal blockquote or page often begins with a heading that the source styled as a title bar rather than as a heading in the body - full-bleed, uppercase, an icon in `::before`. Passed to `richtext` unchanged it renders as an ordinary heading inside the card body, and the card has no title bar at all:
+
+```javascript
+// The leading heading becomes the card's header; the rest is the body.
+[{ part: 'header', icon: 'fa-solid fa-masks-theater', title: { literal: heading.textContent } },
+ { part: 'richtext', html: remainder.innerHTML }]
+```
+
+Found by Scribe migrating its journal narration, and it applies to any module sending document content to chat.
+
 ## Buttons
 
 Register handlers at startup, on every client - not at post time, and not only on the GM:

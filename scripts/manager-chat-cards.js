@@ -792,17 +792,54 @@ export class ChatCardsManager {
     }
 
     /**
+     * A theme by id, or null. The plain lookup, with no fallback and no logging,
+     * so a caller deciding what to do about a miss can ask without provoking one.
+     */
+    static findTheme(themeId) {
+        return CHAT_CARD_THEMES.find((t) => t.id === themeId) ?? null;
+    }
+
+    /**
      * Resolve a theme id, substituting the world default when none was chosen.
      * Callers store the result, so what lands in the message is always a concrete
      * theme rather than a sentinel to be reinterpreted later.
+     *
+     * AN UNRECOGNISED ID FALLS BACK TO THE WORLD DEFAULT, NOT TO TAN, and the
+     * distinction is the whole of this method's value to a migrating module. A
+     * module arriving from its own theme system has a setting full of ids that were
+     * never Blacksmith's -- Scribe's worlds hold `theme-dark` and `theme-blue`, and
+     * Crier's held `theme-announcement-green` after those themes were withdrawn.
+     * None of them collide with an id here. Falling back to Tan meant every such
+     * world silently pinned every card to Tan, ignoring the GM's configured default,
+     * one console line per post. Each module then had to validate its own stored
+     * value before calling; falling back to the world default means none of them
+     * does. Reported by Scribe 2026-08-15 after hitting exactly this.
+     *
+     * The world default is checked too, rather than trusted, because a stale value
+     * can be sitting in THAT setting for the same reason -- `defaultCardTheme` held
+     * an announcement theme id until those were removed. Tan is the floor under
+     * both, not the answer to either.
+     *
+     * Both misses are logged, because an unrecognised id is still a bug worth
+     * seeing; it just should not also change what the reader gets.
      */
     static resolveThemeId(themeId) {
-        const requested = themeId || getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
-        return this.getThemeById(requested).id;
+        if (themeId) {
+            const requested = this.findTheme(themeId);
+            if (requested) return requested.id;
+            postConsoleAndNotification(MODULE.NAME, 'Chat Cards | Unknown theme id, using the world default', String(themeId), false, false);
+        }
+
+        const configured = getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
+        const fallback = this.findTheme(configured);
+        if (fallback) return fallback.id;
+
+        postConsoleAndNotification(MODULE.NAME, 'Chat Cards | Unknown default card theme setting, falling back to Tan', String(configured), false, false);
+        return CHAT_CARD_THEMES[0].id;
     }
 
     static getThemeById(themeId) {
-        const theme = CHAT_CARD_THEMES.find((t) => t.id === themeId);
+        const theme = this.findTheme(themeId);
         if (theme) return theme;
         postConsoleAndNotification(MODULE.NAME, 'Chat Cards | Unknown theme, falling back to Tan', String(themeId), false, false);
         return CHAT_CARD_THEMES[0];
