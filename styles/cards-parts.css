@@ -868,15 +868,49 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+
+    /* SQUARE BY DEFAULT, WIDER FOR A LABEL -- hence min-width rather than width.
+
+       It takes the THUMBNAIL's size, so a row's two ends are the same square: a
+       picture on the left, a control on the right. That is also the height the
+       button already had before any of this, so binding the two changed the row's
+       vertical rhythm by nothing at all -- the number was found in the rendered
+       button, not chosen.
+
+       Sized rather than left to the content because the content is one glyph, and
+       Font Awesome advance widths differ per icon: a content-sized button was a
+       different width in every row, and a card whose rows carry different action
+       icons got a ragged right edge. A fixed square also means a wide glyph has
+       room instead of being squeezed by the padding. */
+    min-width: var(--blacksmith-card-thumb-size);
+    height: var(--blacksmith-card-thumb-size);
     width: auto;
     margin-left: var(--blacksmith-space-sm);
     padding: var(--blacksmith-space-xs) var(--blacksmith-space-sm);
     line-height: 1;
 }
 
+/*
+    ZEROING THE GLYPH'S MARGIN IS WHAT CENTRES IT.
+
+    An icon in a button is nearly always followed by a label, so both Foundry and
+    dnd5e give `button i` a right margin to separate the two. This button has no
+    label, so that margin is dead space on ONE side -- and centring cannot remove it,
+    because flex centres the glyph's MARGIN BOX, not its ink. The glyph settles half
+    the margin left of centre while the button's own padding is provably symmetric,
+    which is what made this read as a padding bug and survive a first fix that added
+    centring without touching the margin.
+
+    Measured, not guessed: the button rendered 27px wide around a 13px glyph with 4px
+    of padding a side, leaving 6px unaccounted for.
+
+    No width here. An earlier version pinned the glyph to a 1em box to make every
+    button the same width; the button's own min-width does that better, and a fixed
+    em box is narrower than some Font Awesome glyphs, so it constrained exactly the
+    wide icons that most needed the room.
+*/
 .blacksmith-card .blacksmith-part-row-action i {
-    width: 1em;
-    text-align: center;
+    margin: 0;
 }
 
 /*
