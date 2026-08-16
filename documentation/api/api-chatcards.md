@@ -418,19 +418,33 @@ Marks and enricher syntax cannot span a segment boundary. That is the guarantee
 rather than a limitation - a literal must not be able to close a run its neighbour
 opened.
 
-**So a mark must open and close inside ONE segment, and an untrusted value cannot
-be emphasised.** Wrapping a literal in marks from the neighbouring segments does
-not make it bold; it renders the asterisks:
+**So a mark must open and close inside ONE segment.** Wrapping a literal in marks
+from the neighbouring segments does not make it bold; it renders the asterisks:
 
 ```javascript
 // Wrong - renders: Created Ring of Power for **Bob**
 ['Created ', { literal: item.name }, ' for **', { literal: actor.name }, '**']
 ```
 
-There is no way around this, and there should not be: emphasis is markup, and
-markup is the thing a literal exists to withhold. Where a name needs to stand out,
-give it a part that carries weight of its own - a `rows` label, a `subject`, a
-trailing value - rather than marks inside a sentence.
+That is the guarantee working, and it should not be worked around: emphasis is
+markup, and markup is the thing a literal exists to withhold.
+
+**A value can be emphasised, or it can be inert. Not both.** Emphasis is still
+available - put the marks in the same segment as the name, and pass the name as
+ordinary text rather than as a literal:
+
+```javascript
+['You have sent ', `**${item.name}**`, ' to Kar-ahn']
+// safe name    -> You have sent <strong>3 Arrows</strong> to Kar-ahn
+// hostile name -> You have sent <strong>Ring of <em>Power</strong></em> to Kar-ahn
+```
+
+The second line is the cost, and it is worse than losing the bold: an asterisk in
+the name does not merely add emphasis, it interleaves the tags. So this is a real
+option with a real price, not a thing the system forbids.
+
+Where a name needs to stand out, prefer a part that carries weight of its own - a
+`rows` label, a `subject`, a trailing value - over marks inside a sentence.
 
 Do not strip characters from a name before passing it. That renders a name which is
 not the name, and does nothing about enricher syntax.
