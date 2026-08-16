@@ -13,7 +13,7 @@
 
 /* Main Window */
 div#roll-window {
-  min-height: 450px;
+  min-height: 600px;
   min-width: 550px;
 }
 
@@ -615,6 +615,16 @@ div#roll-window .window-content {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+/*
+    THE BODY SHOULD NOT SCROLL AT A NORMAL SIZE. The window's own height was raised
+    to fit the tool row and a wrapping preset list, so this only ever engages when
+    somebody drags the window smaller than its content.
+
+    `overflow-y: auto` is kept rather than removed for exactly that case: without
+    it the content is clipped with no way to reach it, and a control you cannot
+    scroll to is worse than a scrollbar you rarely see. `auto` shows one only when
+    there is something to scroll.
+*/
 .roll-body-scroll {
   flex: 1 1 auto;
   overflow-y: auto;

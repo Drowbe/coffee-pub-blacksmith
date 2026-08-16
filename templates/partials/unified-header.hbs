@@ -62,10 +62,16 @@
                         </div>
                     </div>
                 {{/if}}
-                {{!-- Roll Mode, only when the caller passes one. The roll window
-                      renders its own in a tool row beside the ability override, so
-                      it passes none and this collapses. --}}
-                {{#if rollMode}}
+                {{!-- Roll Mode, only when the caller ASKS for it via `showRollMode`.
+
+                      Not `{{#if rollMode}}`, which was the first attempt and does
+                      not work: a partial still sees the PARENT's context for any
+                      name its parameters do not set, and the roll window's data
+                      carries `rollMode` regardless -- so omitting the parameter
+                      did not hide the control, and the window rendered two roll
+                      mode selects. A dedicated flag cannot be satisfied by accident
+                      the way a data field can. --}}
+                {{#if showRollMode}}
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
                         {{!-- The framework's select. `.cpb-select` was a local rule
