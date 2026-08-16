@@ -182,16 +182,28 @@ div#roll-window .window-content {
 
 /* Formula custom parts styling.
 
-   `.formula-custom-modifier` NO LONGER COLOURS THE TERM. Green marked "this came
-   from you" back when nothing else distinguished a modifier, but the tag says that
-   now -- and colouring the value as well as tagging it meant the dice and numbers
-   in a modifier read as a different kind of thing from the dice and numbers in the
-   base roll, when the whole point of the line is that they add up together. The
-   maths reads as one expression again.
+   THE MATHS IS COLOURED BY DIRECTION; THE DIE IS NOT. `12d4` reads green when it
+   is being added and red when it is being taken away, so the sign is legible
+   without tracing back to the operator -- which matters most on a wrapped line,
+   where a term can sit far from the `+` or `-` that governs it.
+
+   The die ICON stays neutral. It was tinted along with the value, and a green die
+   beside a green number made the whole term one coloured blob: the glyph says
+   which die, the colour says which direction, and one of them was drowning out the
+   other. `.formula-die` sets its own colour below to opt out.
 
    `.formula-custom-situational` and `.formula-spacer` went with the second input
    and the sign-carrying terms respectively: the renderer owns the operator now, so
    there is no such thing as a term that needs a blank where its `+` would go. */
+.roll-formula .formula-custom-modifier.formula-positive {
+  color: rgba(138, 178, 42, 0.95);
+  font-weight: 400;
+}
+
+.roll-formula .formula-custom-modifier.formula-negative {
+  color: rgba(198, 92, 71, 0.95);
+  font-weight: 400;
+}
 .roll-formula .formula-symbols {
   color: rgba(255, 112, 18, 0.9) !important;
   font-weight: 400;
@@ -231,6 +243,10 @@ div#roll-window .window-content {
   margin-right: 0.3em;
   text-align: center;
   opacity: 0.85;
+  /* Neutral, so it does not inherit the term's green or red. The colour is the
+     term's direction; the glyph is which die. They are two facts and only one of
+     them should be carried by colour. */
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* `.roll-summary-item` is a COLUMN, which is right for a label above a value and
@@ -291,6 +307,12 @@ div#roll-window .window-content {
   overflow-y: hidden;
   gap: 0.4em;
   margin-top: 0.6em;
+  /* ROOM FOR THE HOVER TO GROW INTO. A tag lifts 1px and draws a 2px glow ring on
+     hover, and this row clips: `overflow-x: auto` forces the other axis to compute
+     as `auto` whatever it is set to, so `overflow-y: visible` is not available and
+     the ring was being sliced off the top. Padding is the only way to give it the
+     space. 4px covers the 1px lift plus the 2px ring with one to spare. */
+  padding-top: 4px;
   padding-bottom: 0.3em;
   scrollbar-width: thin;
 }

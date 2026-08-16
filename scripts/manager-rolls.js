@@ -1572,7 +1572,9 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             // the value -- see the note on `.formula-label`.
             label,
             icon: /\d*d\d+/i.test(value) ? getDiceIcon(value) : null,
-            cls: 'formula-custom-modifier'
+            // Coloured by DIRECTION: green adds, red takes away. The value carries
+            // it, not the die -- see the note in the stylesheet.
+            cls: `formula-custom-modifier ${op === '-' ? 'formula-negative' : 'formula-positive'}`
         });
 
         const updateFormula = () => {
