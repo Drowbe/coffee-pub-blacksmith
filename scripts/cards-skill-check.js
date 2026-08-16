@@ -204,11 +204,21 @@ export function composeSkillCheckCard(data = {}) {
     const challengers = actors.filter((actor) => actor.group === 1);
     const defenders = actors.filter((actor) => actor.group === 2);
 
-    parts.push({
-        part: 'section',
-        icon: contested ? 'fa-solid fa-swords' : 'fa-solid fa-dice-d20',
-        label: contested ? 'Challengers' : 'Requested Rolls'
-    });
+    // A DIVIDER ONLY WHERE IT DIVIDES SOMETHING. On a contest "Challengers" pairs
+    // with "Defenders" below and is doing real work -- it says which side each row
+    // belongs to, which nothing else on the card says.
+    //
+    // On an ordinary request there is no second group, so the header read
+    // "Requested Rolls" above the only list of rolls on the card, under a title
+    // already naming the roll and carrying the same d20 icon. A card that is a list
+    // of buttons does not need a label announcing that the buttons are below.
+    if (contested) {
+        parts.push({
+            part: 'section',
+            icon: 'fa-solid fa-swords',
+            label: 'Challengers'
+        });
+    }
     if (challengers.length) {
         parts.push({ part: 'rows', items: challengers.map((actor) => actorRow(actor, data, false)) });
     }
