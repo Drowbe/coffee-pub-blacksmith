@@ -297,13 +297,41 @@ function veilMarkup(field) {
 }
 
 /**
+ * A literal value is `{ literal }` wherever a part accepts consumer text: escaped
+ * and shown exactly as given, never read as marks and never enriched.
+ *
+ * It exists for the text a consumer does NOT author -- an item name, an actor
+ * name, anything typed by a user and interpolated into a sentence. Those are
+ * precisely the strings a caller cannot vet, and the full pipeline reads them: an
+ * item called `Ring of *Power*` italicises the rest of the sentence, and a name
+ * containing `@UUID[...]` or `[[/r 1d20]]` reaches the enricher and is obeyed.
+ *
+ * The alternative consumers reach for is stripping the offending characters before
+ * interpolating, which is worse than it looks -- it silently renders a name that is
+ * not the name, and does nothing at all about enricher syntax.
+ */
+function isLiteral(value) {
+    return Boolean(value)
+        && typeof value === 'object'
+        && !Array.isArray(value)
+        && 'literal' in value;
+}
+
+/**
  * The full consumer-text pipeline: escape, then marks, then enrich. The order is
  * load-bearing -- escaping last would strip the tags the marks just produced,
  * and enriching before escaping would let enricher output be escaped.
  *
- * Veiled values are resolved HERE rather than in each part, because every
- * consumer-supplied string in the system already flows through this one function.
- * Handling it per part would mean remembering to, eighteen times.
+ * Veiled and literal values are resolved HERE rather than in each part, because
+ * every consumer-supplied string in the system already flows through this one
+ * function. Handling either per part would mean remembering to, eighteen times.
+ *
+ * An ARRAY is a sentence built from segments, each processed on its own and joined.
+ * That is what lets a caller mark up the words they wrote while passing a name
+ * through untouched -- `['Created ', { literal: item.name }, ' for **you**']` --
+ * which a whole-field literal cannot do, since the field IS the sentence. Marks and
+ * enricher syntax cannot span a segment boundary, and that is the guarantee rather
+ * than a limitation: a literal must not be able to close a run its neighbour opened.
  */
 export async function processText(text, options = {}) {
     if (isVeiled(text)) {
@@ -311,6 +339,23 @@ export async function processText(text, options = {}) {
             ? processText(text.value, options)
             : veilMarkup(text);
     }
+
+    if (isLiteral(text)) {
+        // A literal carrying `readableBy` is a caller who meant to veil it and
+        // reached for the wrong nesting. Honour the intent rather than rendering
+        // the value in the clear -- everything about this system fails closed, and
+        // silently ignoring a privacy key is the one way that stops being true.
+        if ('readableBy' in text) {
+            return processText({ ...text, value: { literal: text.literal } }, options);
+        }
+        return escapeHtml(text.literal);
+    }
+
+    if (Array.isArray(text)) {
+        const segments = await Promise.all(text.map((segment) => processText(segment, options)));
+        return segments.join('');
+    }
+
     if (text === null || text === undefined || text === '') return '';
     return enrich(applyInlineMarks(escapeHtml(text)), options);
 }

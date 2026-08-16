@@ -412,17 +412,10 @@ Neither sibling crashes. Both need a small change to look right again.
 
   Blacksmith cannot help from its side: Crier applies the class to its own template, so there is nothing
   for the card API to resolve.
-- **Artificer** — nothing to repair, and less than it looks. `scripts/manager-gather.js:306` guards with
-  `?.` and a `themeType === 'announcement'` test, so it silently skips. But all three callers
-  (`:352`, `:392`, `:408`) pass `'card'`, so that branch **never executed even before the removal** — the
-  `themeType` parameter and the branch are both dead code and can be deleted outright. No `-dark` theme id
-  is wanted here; nothing about the rendered card changes.
-
-  What Artificer actually needs is the migration proper: `buildChatCardHtml` hand-writes
-  `<div class="blacksmith-card ...">` with a `card-header` and a `section-content`, which is exactly what
-  `chatCards.post({ parts })` exists to replace. Its two `getThemeClassName` calls (`:305`, `:427`) are on
-  the pre-migration accessor list in `api-chat-cards.js`, which is removed once every sibling has migrated —
-  so those calls have a deadline the dead branch does not.
+- **Artificer — DONE (2026-08-15).** Migrated outright rather than patched: all seven posting sites go
+  through `chatCards.post`, both `card-results-*.hbs` templates are deleted, the `gather-result-*` CSS is
+  gone, and no `getThemeClassName` / `getTheme` calls remain. The announcement branch was deleted rather
+  than migrated — all three callers passed `'card'`, so it had never executed even before the removal.
 
 ## Sibling deprecation warnings (spotted 2026-07-24)
 
@@ -824,7 +817,7 @@ never to let the module keep a template.
 |---|---|---|---|
 | Curator | 1 | `templates/card-loot.hbs` | Already conforms to the contract. Smallest possible first migration. |
 | Regent | 2 | inline HTML, 4 CSS rules | Query card. |
-| Artificer | 7 | 2 templates, 4 local classes | **Not a rogue design.** It conforms and invented `gather-result-*` only because no `entities` part existed. Those four classes go when the part lands. |
+| ~~Artificer~~ | ~~7~~ | — | **DONE 2026-08-15.** `rows` covered `gather-result-*` as predicted, and also absorbed the hand-built `@UUID[...]{...}` strings and a local `escapeHtml`, since `rows` takes `uuid` + `label` and does both. `notes` took the craft failure list, `tiles` the rarity breakdown. No new part was needed. |
 | Crier | 4 | inline HTML, 59 CSS rules | Its turn card is the widest composition in the suite - `header + image + meter + nameplate + stats + section + status`. The 59 overrides exist because those parts were unavailable. Good proof case for the catalog. |
 | Bibliosoph | 10 | 2 templates | Encounter, investigation, crit, fumble, injury, check-up, inspiration - one card shape, many variants. Already emits `@UUID[]{}` pills (`manager-encounters.js:678`, `manager-inspiration.js:109`), which the prose pipeline preserves. Its markdown-to-enriched-HTML path (`manager-conversations.js:849`) is why markdown was rejected as the transport; that path can go. |
 | Scribe | 3 | inline HTML, own theme system (7 files) |

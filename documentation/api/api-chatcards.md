@@ -391,6 +391,39 @@ A row tooltip is used as supplied rather than run through the text pipeline, so 
 
 Use `data-tooltip` semantics: a tooltip explains a value already on screen or supplies one the shape is hiding. It is not a place to put something the reader needs to see.
 
+## Literal values
+
+Anywhere a part accepts consumer text, it also accepts `{ literal }`: escaped and
+shown exactly as given, never read as marks and never enriched.
+
+Use it for text you did not author - an item name, an actor name, anything a user
+typed that you interpolate into a sentence. Those are the strings you cannot vet,
+and the ordinary pipeline reads them: an item called `Ring of *Power*` italicises
+the rest of your sentence, and a name containing `@UUID[...]` or `[[/r 1d20]]`
+reaches the enricher and is obeyed.
+
+```javascript
+{ label: { literal: item.name } }
+```
+
+A text field also accepts an ARRAY of segments, each processed on its own and
+joined. That is how you mark up the words you wrote while passing a name through
+untouched:
+
+```javascript
+{ type: 'paragraph', text: ['Created ', { literal: item.name }, ' for **', { literal: actor.name }, '**'] }
+```
+
+Marks and enricher syntax cannot span a segment boundary. That is the guarantee
+rather than a limitation - a literal must not be able to close a run its neighbour
+opened.
+
+Do not strip characters from a name before passing it. That renders a name which is
+not the name, and does nothing about enricher syntax.
+
+To veil a literal, nest it: `{ value: { literal: name }, readableBy: 'gm' }`. A
+`readableBy` alongside `literal` is treated as that nesting rather than ignored.
+
 ## Veiled values
 
 Anywhere a part accepts consumer text, it also accepts a veiled form: a value shown to entitled readers and replaced by a placeholder for everyone else.
