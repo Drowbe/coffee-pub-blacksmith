@@ -4116,6 +4116,34 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
+	// -- Roll modifier presets - HIDDEN SETTING --
+	//
+	// The named bonuses offered under the roll window's modifier field. Stored
+	// rather than hardcoded so a table can carry its own house rules.
+	//
+	// WORLD SCOPE, so the list is the TABLE's and not each player's -- a house rule
+	// that only one person can see is not a house rule. The consequence is that only
+	// a GM can add to it, which is why the roll window shows its Add control to GMs
+	// only; everyone uses the list, and anyone can still type anything into the
+	// field itself, so a player is never blocked by not owning the list.
+	//
+	// `config: false` because it is edited from the roll window, where the context
+	// is, rather than from a settings sheet listing bonuses out of context.
+	game.settings.register(MODULE.ID, 'rollModifierPresets', {
+		name: 'Roll Modifier Presets',
+		hint: 'Named bonuses offered under the roll window modifier field',
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: [
+			{ label: 'Guidance', value: '1d4' },
+			{ label: 'Bless', value: '1d4' },
+			{ label: 'Bardic', value: '1d6' },
+			{ label: 'Cover', value: '+2' },
+			{ label: 'Obscured', value: '-2' }
+		]
+	});
+
 	registerHeader('diceRollToolIntegrations', 'headingH3diceRollToolIntegrations-Label', 'headingH3diceRollToolIntegrations-Hint', 'H3', WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION, 'world');
 
 	// -- Enable Dice So Nice Integration --

@@ -1,5 +1,6 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound } from './api-core.js';
+import { postConsoleAndNotification, playSound, getSettingSafely } from './api-core.js';
+import { DialogAPI, DIALOG_ACTIONS } from './api-dialog.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './utility-theme-request-roll.js';
@@ -1133,9 +1134,110 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         postConsoleAndNotification(MODULE.NAME, `RollWindow constructor: Created with roll data`, rollData, true, false);
     }
 
+    /**
+     * The named bonuses offered under the modifier field.
+     *
+     * Named, because a bonus almost always has a reason and the reason is what the
+     * roll's breakdown should say -- "2 cover" reads as a ruling, "2 bonus" reads as
+     * a number somebody typed. They are also the answer to why nobody found that the
+     * modifier field takes dice: Guidance is the most common cantrip in the game and
+     * needed `1d4` typed from memory every time.
+     *
+     * Deliberately short. A preset list long enough to need scanning is slower than
+     * typing, and these are the cases that recur every session.
+     */
+    static MODIFIER_PRESETS = [
+        { label: 'Guidance', value: '1d4' },
+        { label: 'Bless', value: '1d4' },
+        { label: 'Bardic', value: '1d6' },
+        { label: 'Cover', value: '+2' },
+        { label: 'Obscured', value: '-2' }
+    ];
+
+    /** The dice the builder offers, and the token each one appends. */
+    static BUILDER_DICE = [
+        { token: '1d2', icon: 'fa-solid fa-coin', tooltip: 'd2 — coin flip' },
+        { token: '1d4', icon: 'fa-solid fa-dice-d4', tooltip: 'd4' },
+        { token: '1d6', icon: 'fa-solid fa-dice-d6', tooltip: 'd6' },
+        { token: '1d8', icon: 'fa-solid fa-dice-d8', tooltip: 'd8' },
+        { token: '1d10', icon: 'fa-solid fa-dice-d10', tooltip: 'd10' },
+        { token: '1d12', icon: 'fa-solid fa-dice-d12', tooltip: 'd12' },
+        { token: '1d20', icon: 'fa-solid fa-dice-d20', tooltip: 'd20' },
+        { token: '1d100', icon: 'fa-solid fa-hundred-points', tooltip: 'd100' }
+    ];
+
+    /**
+     * A modifier token carries its label in brackets: `1d4[Bless]`.
+     *
+     * THE LABEL LIVES IN THE FIELD, not in a side table keyed to the chips. The
+     * field is free text a player edits by hand, so any label held elsewhere goes
+     * stale the first time somebody deletes a term without telling us. In the text
+     * it round-trips: type it, edit it, delete it, and the label goes with it.
+     *
+     * STRIPPED BEFORE THE FORMULA IS ROLLED. Foundry has its own bracket flavour
+     * syntax and would probably accept these, but "probably" is not a thing to
+     * build a roll on -- the label is display, so it is removed at the one place
+     * the field is read for rolling and never reaches `Roll`.
+     */
+    static splitModifierToken(token) {
+        const match = /^(.*?)\[([^\]]*)\]$/.exec(String(token ?? '').trim());
+        if (!match) return { value: String(token ?? '').trim(), label: '' };
+        return { value: match[1].trim(), label: match[2].trim() };
+    }
+
+    /**
+     * Split the field into tokens, keeping a bracketed label with its value.
+     *
+     * NOT a split on whitespace, which is the obvious implementation and is wrong:
+     * a label is prose and prose has spaces, so `+2[Higher Ground]` would come apart
+     * into `+2[Higher` and `Ground]` and neither half would parse. The value runs up
+     * to the first space or bracket; the label, if there is one, may contain spaces
+     * because its brackets say where it ends.
+     */
+    static tokenizeModifiers(text) {
+        return String(text ?? '').match(/[^\s\[]+(?:\[[^\]]*\])?/g) ?? [];
+    }
+
+    /** The field's text with every `[label]` removed, ready for `Roll`. */
+    static stripModifierLabels(text) {
+        return RollWindow.tokenizeModifiers(text)
+            .map((token) => RollWindow.splitModifierToken(token).value)
+            .filter(Boolean)
+            .join(' ');
+    }
+
+    /**
+     * The stored preset list, falling back to the built-ins.
+     *
+     * Read rather than cached: a GM adding a house rule should reach every window
+     * opened afterwards without a reload.
+     */
+    static getPresets() {
+        const stored = getSettingSafely(MODULE.ID, 'rollModifierPresets', null);
+        return Array.isArray(stored) && stored.length ? stored : RollWindow.MODIFIER_PRESETS;
+    }
+
     getData() {
         postConsoleAndNotification(MODULE.NAME, `RollWindow getData: Preparing template data`, null, true, false);
-        return this.rollData;
+
+        // The window has one modifier field, but two things can arrive pre-set: a
+        // `situationalBonus` the GM attached per actor when requesting the roll, and
+        // a `customModifier` from the same request. Both seed the same field, so the
+        // player sees what was attached and can edit or remove it -- which they could
+        // not when the two lived in separate inputs and one of them was a number box.
+        const seeded = [];
+        const incoming = Number(this.rollData.situationalBonus) || 0;
+        if (incoming !== 0) seeded.push(incoming > 0 ? `+${incoming}` : String(incoming));
+        if (this.rollData.customModifier) seeded.push(String(this.rollData.customModifier).trim());
+
+        return {
+            ...this.rollData,
+            modifier: seeded.join(' '),
+            presets: RollWindow.getPresets(),
+            dice: RollWindow.BUILDER_DICE,
+            // The list is world-scoped, so only a GM can write it. Everyone uses it.
+            canEditPresets: game.user.isGM
+        };
     }
 
     async _onRender(context, options) {
@@ -1206,18 +1308,23 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             // Get roll options from the form
             const advantage = rollType === 'advantage';
             const disadvantage = rollType === 'disadvantage';
-            const situationalBonusInput = element.querySelector('input[name="situational-bonus"]');
-            const customModifierInput = element.querySelector('input[name="custom-modifier"]');
+            const modifierInput = element.querySelector('input[name="modifier"]');
             const rollModeSelect = element.querySelector('select[name="roll-mode"]');
-            const situationalBonus = parseInt(situationalBonusInput ? situationalBonusInput.value : '0') || 0;
-            const customModifier = customModifierInput ? customModifierInput.value.trim() : '';
+            // Labels are display only -- see splitModifierToken. This is the one
+            // place the field becomes a formula, so it is the one place they go.
+            const modifier = RollWindow.stripModifierLabels(modifierInput ? modifierInput.value : '');
             const rollMode = rollModeSelect ? rollModeSelect.value : 'roll';
-            
+
+            // The window has ONE field now, and it goes to `customModifier` because
+            // that is the option that accepts dice. `situationalBonus` is not sent
+            // from here any more -- it is still a live INBOUND value, since a GM can
+            // attach one per actor when requesting a roll, and it arrives pre-filled
+            // in this field (see _prepareContext). Sending it as well would apply it
+            // twice.
             const rollOptions = {
                 advantage: advantage,
                 disadvantage: disadvantage,
-                situationalBonus: situationalBonus,
-                customModifier: customModifier,
+                customModifier: modifier,
                 fastForward: true,
                 rollMode: rollMode
             };
@@ -1248,77 +1355,179 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         }
     }
     
+    /**
+     * Add a named bonus to the shared preset list.
+     *
+     * The list is world-scoped, so this is GM-only and the button that reaches it is
+     * rendered for GMs alone -- a player who wants a one-off still types it into the
+     * field, which is why nothing here is a gate on rolling.
+     *
+     * Validation is deliberately thin. A value is checked by asking Foundry whether
+     * it can parse it, rather than by a regex of our own: `Roll.validate` already
+     * knows every form a term can take, including the ones we have not thought of,
+     * and a house rule that fails at roll time because our pattern was narrower than
+     * Foundry's is the worst of both.
+     *
+     * @param {Function} [onAdded] - called after the list changes, to re-render.
+     */
+    async _promptForPreset(onAdded) {
+        const result = await DialogAPI.prompt({
+            title: 'Add a Named Bonus',
+            content: `
+                <p>Named bonuses are shared with the whole table.</p>
+                <div class="form-group">
+                    <label for="preset-label">Name</label>
+                    <input type="text" name="label" id="preset-label" placeholder="Inspiration" autofocus>
+                </div>
+                <div class="form-group">
+                    <label for="preset-value">Value</label>
+                    <input type="text" name="value" id="preset-value" placeholder="1d4, +2, -1">
+                </div>`,
+            submitLabel: 'Add',
+            submitIcon: 'fa-solid fa-plus',
+            getValue: (root) => ({
+                label: root.elements.label?.value?.trim() ?? '',
+                value: root.elements.value?.value?.trim() ?? ''
+            }),
+            validate: ({ label, value }) => {
+                if (!label) return 'Give it a name — the name is what the formula will show.';
+                if (!value) return 'Give it a value, such as 1d4 or +2.';
+                if (value.includes('[') || value.includes(']')) return 'Square brackets are reserved for the name.';
+                // Foundry decides what is rollable, not us.
+                if (!Roll.validate(value.replace(/^\+/, ''))) return `"${value}" is not something Foundry can roll.`;
+                return null;
+            },
+            onSubmit: async ({ label, value }) => {
+                const presets = [...RollWindow.getPresets(), { label, value }];
+                await game.settings.set(MODULE.ID, 'rollModifierPresets', presets);
+                return { label, value };
+            }
+        });
+
+        if (result?.action !== DIALOG_ACTIONS.SUBMIT) return;
+
+        // Re-render so the new chip appears beside the others. The field keeps
+        // whatever the player had already built.
+        await this.render(false);
+        if (typeof onAdded === 'function') onAdded();
+    }
+
+    /**
+     * Keep the formula line in step with the modifier field.
+     *
+     * TERMS ARE STRUCTURED, NOT CONCATENATED. Each is `{ op, text, icon, cls }` and
+     * the renderer owns the operator between them, which is the only way to keep a
+     * value's sign and the separator from both appearing. They did: the proficiency
+     * term was built as `${formulaSymbols}+${bonus} prof`, emitting the `+` span AND
+     * a literal `+`, so every proficient roll read `1d20 + +5 PROF`. The ability
+     * term one line above got it right, which is exactly why nobody caught it --
+     * the two lines are only wrong next to each other.
+     *
+     * A DICE TERM CARRIES ITS DIE. `getDiceIcon()` already existed for the window
+     * header; a term that looks like dice gets the matching face, so `1d20` leads
+     * with a d20 and a `1d4` from Guidance shows a d4 rather than reading as text.
+     */
     _setupFormulaUpdates(html) {
         const htmlElement = html;
         if (!htmlElement?.querySelectorAll) return;
 
         const formulaElement = htmlElement.querySelector('.roll-formula');
-        const situationalInput = htmlElement.querySelector('input[name="situational-bonus"]');
-        const customModifierInput = htmlElement.querySelector('input[name="custom-modifier"]');
-        
-        if (!formulaElement || !situationalInput || !customModifierInput) return;
-        
-        // Store original formula for reference
-        const originalFormula = this.rollData.rollFormula;
+        const modifierInput = htmlElement.querySelector('input[name="modifier"]');
+        if (!formulaElement || !modifierInput) return;
+
         const baseRoll = this.rollData.baseRoll || '1d20';
         const abilityMod = this.rollData.abilityMod || 0;
         const abilityKey = this.rollData.abilityKey || 'dex';
         const proficiencyBonus = this.rollData.proficiencyBonus || 0;
-        
-        const updateFormula = () => {
-            const situationalBonus = parseInt(situationalInput.value) || 0;
-            const customModifier = customModifierInput.value.trim();
-            
-            // Build formula parts
-            const formulaParts = [baseRoll];
-            const formulaSymbols = '<span class="formula-symbols">+</span>';
-            const formulaSpacer= '<span class="formula-spacer"></span>';
-            
-            // Add ability modifier
-            if (abilityMod !== 0) {
-                const abilitySign = abilityMod > 0 ? formulaSymbols : formulaSpacer;
-                formulaParts.push(`${abilitySign}${abilityMod} ${abilityKey}`);
-            }
-            
-            // Add proficiency bonus
-            if (proficiencyBonus > 0) {
-                formulaParts.push(`${formulaSymbols}+${proficiencyBonus} prof`);
-            }
-            
-            // Add situational bonus (blue if present)
-            if (situationalBonus !== 0) {
-                const sitSign = situationalBonus > 0 ? formulaSymbols : formulaSpacer;
-                const sitPart = `${sitSign}${situationalBonus} bonus`;
-                formulaParts.push(`<span class="formula-custom-situational">${sitPart}</span>`);
-            }
-            
-            // Add custom modifier (blue if present)
-            if (customModifier) {
-                // Parse custom modifier to handle multiple values and add + if needed
-                const customMods = customModifier.split(/\s+/).filter(mod => mod.trim());
-                const processedMods = customMods.map(mod => {
-                    const trimmed = mod.trim();
-                    // Add + if it's a positive number without a sign
-                    if (/^\d+$/.test(trimmed)) {
-                        return `+${trimmed}`;
-                    }
-                    return trimmed;
-                });
-                formulaParts.push(`${formulaSymbols}<span class="formula-custom-modifier">${processedMods.join(' ')} mod</span>`);
-            }
-            
-            // Update the formula display with HTML
-            const newFormula = formulaParts.join(' ');
-            formulaElement.innerHTML = newFormula;
+
+        // The field's value reaches innerHTML, so it is escaped on the way. It is
+        // the user's own text in the user's own window, but "mostly harmless input"
+        // is how the other holes in this module started.
+        const esc = (s) => String(s ?? '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        /** One token of the modifier field as a renderable term. */
+        const modifierTerm = (token) => {
+            const { value, label } = RollWindow.splitModifierToken(token);
+            const sign = value.startsWith('-') ? '-' : '+';
+            const body = value.replace(/^[+-]/, '');
+            return {
+                op: sign,
+                // The LABEL is what the formula shows beside the value, which is the
+                // whole reason the label travels in the field at all: "1D4 BLESS"
+                // says what the term is for, where the old "1D4 MOD" said only that
+                // somebody typed something.
+                text: label ? `${body} ${label}` : body,
+                icon: /\d*d\d+/i.test(body) ? getDiceIcon(body) : null,
+                cls: 'formula-custom-modifier'
+            };
         };
-        
-        // Set up event listeners
-        situationalInput.addEventListener('input', updateFormula);
-        situationalInput.addEventListener('change', updateFormula);
-        customModifierInput.addEventListener('input', updateFormula);
-        customModifierInput.addEventListener('change', updateFormula);
-        
-        // Initial update
+
+        const updateFormula = () => {
+            const terms = [{ text: baseRoll, icon: getDiceIcon(baseRoll) }];
+
+            if (abilityMod !== 0) {
+                terms.push({ op: abilityMod < 0 ? '-' : '+', text: `${Math.abs(abilityMod)} ${abilityKey}` });
+            }
+            if (proficiencyBonus > 0) {
+                terms.push({ op: '+', text: `${proficiencyBonus} prof` });
+            }
+            for (const token of RollWindow.tokenizeModifiers(modifierInput.value)) {
+                terms.push(modifierTerm(token));
+            }
+
+            formulaElement.innerHTML = terms.map((term, index) => {
+                const op = index === 0 ? '' : `<span class="formula-symbols">${term.op ?? '+'}</span>`;
+                const icon = term.icon ? `<i class="${term.icon} formula-die"></i>` : '';
+                const cls = term.cls ? ` class="${term.cls}"` : '';
+                return `${op}<span${cls}>${icon}${esc(term.text)}</span>`;
+            }).join(' ');
+        };
+
+        modifierInput.addEventListener('input', updateFormula);
+        modifierInput.addEventListener('change', updateFormula);
+
+        /** Append a token to the field, keeping it the single source of truth. */
+        const append = (token) => {
+            const current = modifierInput.value.trim();
+            modifierInput.value = current ? `${current} ${token}` : token;
+            modifierInput.focus();
+            updateFormula();
+        };
+
+        // A preset appends its value WITH ITS LABEL, so several can be stacked and
+        // any of them edited by hand afterwards. Nothing is "selected" -- the field
+        // remains the single source of what will be rolled.
+        for (const preset of htmlElement.querySelectorAll('.roll-preset:not(.roll-preset-add)')) {
+            preset.addEventListener('click', () => {
+                const label = preset.dataset.label;
+                append(label ? `${preset.dataset.value}[${label}]` : preset.dataset.value);
+            });
+        }
+
+        // The builder appends bare tokens. A die with no label is self-describing --
+        // `1d6` says what it is -- so nothing is invented here that the player would
+        // then have to correct.
+        for (const die of htmlElement.querySelectorAll('.roll-builder-die')) {
+            die.addEventListener('click', () => append(die.dataset.token));
+        }
+        for (const op of htmlElement.querySelectorAll('.roll-builder-op')) {
+            op.addEventListener('click', () => append(op.dataset.op === '-' ? '-' : '+'));
+        }
+        const clearButton = htmlElement.querySelector('.roll-builder-clear');
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                modifierInput.value = '';
+                modifierInput.focus();
+                updateFormula();
+            });
+        }
+
+        const addButton = htmlElement.querySelector('.roll-preset-add');
+        if (addButton) {
+            addButton.addEventListener('click', () => this._promptForPreset(updateFormula));
+        }
+
         updateFormula();
     }
     

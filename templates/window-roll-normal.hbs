@@ -25,39 +25,61 @@
   {{/if}}
   
   <div class="roll-body-scroll">
+    {{!-- ONE modifier field, not two.
+
+          There were two -- "Situational Bonus" (a number input, -20..20) and
+          "Custom Modifier" (free text) -- which looked identical and accepted
+          completely different things: only the second took dice, so the only way
+          to add Guidance was to know that. One field, and it takes everything.
+
+          `situational-bonus` has NOT gone away as a concept: a GM can still attach
+          one per actor when requesting a roll, and it arrives pre-filled here. --}}
     <div class="roll-section">
-      <div class="roll-config-grid">
-        <div class="roll-config-item">
-          <label class="label-small">Situational Bonus</label>
-          <input type="number" class="roll-situational-bonus" name="situational-bonus" value="{{situationalBonus}}" min="-20" max="20" placeholder="Use + or - and the modifier value">
-        </div>
-        <div class="roll-config-item">
-          <label class="label-small">Custom Modifier</label>
-          <input type="text" class="roll-custom-modifier" name="custom-modifier" value="{{customModifier}}" placeholder="Use + or - and the modifier value">
-        </div>
+      <div class="roll-config-item">
+        <label class="label-small" for="roll-modifier">Modifiers</label>
+        <input type="text" id="roll-modifier" class="roll-modifier" name="modifier"
+               value="{{modifier}}"
+               placeholder="+2, 1d4, -1 — separate several with spaces"
+               data-tooltip="Anything Foundry can roll: a flat bonus like +2, dice like 1d4 for Guidance, or several separated by spaces.">
+      </div>
+
+      {{!-- Named bonuses. A bonus almost always has a reason, and naming it is
+            what makes the formula read "1D4 BLESS" instead of "1D4 MOD". --}}
+      <div class="roll-presets" data-tooltip="Click to add. The name travels with the value, so the formula says what each term is for.">
+        {{#each presets}}
+        <button type="button" class="roll-preset blacksmith-tag" data-value="{{this.value}}" data-label="{{this.label}}">
+          {{this.label}} <span class="roll-preset-value">{{this.value}}</span>
+        </button>
+        {{/each}}
+        {{#if canEditPresets}}
+        <button type="button" class="roll-preset roll-preset-add blacksmith-tag"
+                data-tooltip="Add a house rule to this list. Shared with the whole table.">
+          <i class="fa-solid fa-plus"></i> Add
+        </button>
+        {{/if}}
       </div>
     </div>
 
-    <div class="roll-section">
-      <div class="roll-section-header"><i class="fas fa-cog"></i> Roll Details</div>
-      
-      <div class="roll-details-grid">
-        <div class="roll-detail-item">
-          <span class="detail-label">Base Roll:</span>
-          <span class="detail-value">{{baseRoll}}</span>
-        </div>
-        <div class="roll-detail-item">
-          <span class="detail-label">Ability Modifier:</span>
-          <span class="detail-value">{{abilityMod}}</span>
-        </div>
-        <div class="roll-detail-item">
-          <span class="detail-label">Proficiency:</span>
-          <span class="detail-value">{{proficiencyBonus}}</span>
-        </div>
-        <div class="roll-detail-item">
-          <span class="detail-label">Other Modifiers:</span>
-          <span class="detail-value">{{otherModifiers}}</span>
-        </div>
+    {{!-- FORMULA BUILDER. The dice tray's vocabulary, minus what this window
+          already says another way.
+
+          Advantage and disadvantage are the three buttons in the footer, so keep
+          highest and keep lowest are not offered here -- the same ruling reached
+          by two controls that can disagree is worse than one control.
+
+          No multiply or divide either: the base roll is fixed and these only ever
+          append a term, so `x` and `/` would introduce operator precedence into an
+          expression a player is reading at a glance. --}}
+    <div class="roll-section roll-builder">
+      <div class="roll-builder-row">
+        {{#each dice}}
+        <i class="{{this.icon}} blacksmith-dice-icon roll-builder-die" data-token="{{this.token}}" data-tooltip="{{this.tooltip}}"></i>
+        {{/each}}
+      </div>
+      <div class="roll-builder-row">
+        <i class="fa-solid fa-plus blacksmith-operator-icon roll-builder-op" data-op="+" data-tooltip="Add the next term"></i>
+        <i class="fa-solid fa-minus blacksmith-operator-icon roll-builder-op" data-op="-" data-tooltip="Subtract the next term"></i>
+        <i class="fa-solid fa-delete-left blacksmith-operator-icon roll-builder-clear" data-tooltip="Clear all modifiers"></i>
       </div>
     </div>
   </div>
