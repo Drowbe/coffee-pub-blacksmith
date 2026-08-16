@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, playSound, getSettingSafely, getPortraitImage } from './api-core.js';
 import { DialogAPI, DIALOG_ACTIONS } from './api-dialog.js';
+import { UIContextMenu } from './ui-context-menu.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
 import { SocketManager } from './manager-sockets.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './utility-theme-request-roll.js';
@@ -1363,7 +1364,13 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             const advantage = rollType === 'advantage';
             const disadvantage = rollType === 'disadvantage';
             const modifierInput = element.querySelector('input[name="modifier"]');
-            const rollModeSelect = element.querySelector('select[name="roll-mode"]');
+            // `rollMode`, not `roll-mode`. The template has always rendered
+            // `name="rollMode"`, so this selector never matched and the fallback
+            // below silently forced every roll from this window to Public --
+            // choosing Private GM Roll or Blind GM Roll did nothing at all. Nothing
+            // errors when a querySelector misses; it just returns null, and the
+            // `?:` after it reads like a sensible default rather than a dead branch.
+            const rollModeSelect = element.querySelector('select[name="rollMode"]');
             // Labels are display only -- see splitModifierToken. This is the one
             // place the field becomes a formula, so it is the one place they go.
             const modifier = RollWindow.stripModifierLabels(modifierInput ? modifierInput.value : '');
@@ -1418,28 +1425,42 @@ class RollWindow extends BlacksmithWindowBaseV2 {
      * one the GM right-clicked. A generated id would be more robust against two GMs
      * editing at once, and is what to reach for if that ever happens.
      */
-    async _presetContextMenu(index) {
-        const presets = RollWindow.getPresets();
-        const preset = presets[index];
+    _presetContextMenu(index, x, y) {
+        const preset = RollWindow.getPresets()[index];
         if (!preset) return;
 
-        const choice = await DialogAPI.choose({
-            title: `${preset.label} (${preset.value})`,
-            choices: [
-                { id: 'edit', label: 'Edit', icon: 'fa-solid fa-pen' },
-                { id: 'delete', label: 'Delete', icon: 'fa-solid fa-trash', destructive: true }
-            ]
+        // `UIContextMenu`, not a dialog. Right-clicking a chip is a context action
+        // and should open a menu at the pointer -- a dialog is a window, and the
+        // Edit branch opens a second one, so the old version stacked two windows on
+        // top of the one you were already in to change two fields.
+        UIContextMenu.show({
+            id: 'blacksmith-roll-preset-menu',
+            x,
+            y,
+            // `callback`, NOT `onClick`. UIContextMenu invokes `item.callback`;
+            // `onClick` is the menubar's own item shape, which it maps across before
+            // calling. Passing `onClick` here bound nothing and failed silently --
+            // the menu opened, looked right, and both entries did nothing.
+            zones: [
+                {
+                    name: 'Edit',
+                    icon: 'fa-solid fa-pen',
+                    description: `${preset.label} (${preset.value})`,
+                    callback: () => this._promptForPreset(index)
+                },
+                {
+                    name: 'Delete',
+                    icon: 'fa-solid fa-trash',
+                    callback: async () => {
+                        // Re-read: the list may have changed while the menu was open.
+                        const next = RollWindow.getPresets().filter((_, i) => i !== index);
+                        await game.settings.set(MODULE.ID, 'rollModifierPresets', next);
+                        await this.render(false);
+                    }
+                }
+            ],
+            zoneClass: 'core'
         });
-
-        if (choice?.value === 'edit') {
-            await this._promptForPreset(index);
-            return;
-        }
-        if (choice?.value !== 'delete') return;
-
-        const next = RollWindow.getPresets().filter((_, i) => i !== index);
-        await game.settings.set(MODULE.ID, 'rollModifierPresets', next);
-        await this.render(false);
     }
 
     /**
@@ -1544,11 +1565,12 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         /** A parsed modifier term as a renderable one. */
         const modifierTerm = ({ op, value, label }) => ({
             op,
-            // The LABEL is what the formula shows beside the value, which is the
-            // whole reason the label travels in the field at all: "1D4 BLESS" says
-            // what the term is for, where the old "1D4 MOD" said only that somebody
-            // typed something.
-            text: label ? `${value} ${label}` : value,
+            text: value,
+            // The LABEL is why the label travels in the field at all: "1D4 BLESS"
+            // says what the term is for, where the old "1D4 MOD" said only that
+            // somebody typed something. It renders as a tag rather than as part of
+            // the value -- see the note on `.formula-label`.
+            label,
             icon: /\d*d\d+/i.test(value) ? getDiceIcon(value) : null,
             cls: 'formula-custom-modifier'
         });
@@ -1556,11 +1578,13 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         const updateFormula = () => {
             const terms = [{ text: baseRoll, icon: getDiceIcon(baseRoll) }];
 
+            // `label` is rendered as a tag rather than as more of the value, so the
+            // number stays the thing you read and the reason sits beside it.
             if (abilityMod !== 0) {
-                terms.push({ op: abilityMod < 0 ? '-' : '+', text: `${Math.abs(abilityMod)} ${abilityKey}` });
+                terms.push({ op: abilityMod < 0 ? '-' : '+', text: String(Math.abs(abilityMod)), label: abilityKey });
             }
             if (proficiencyBonus > 0) {
-                terms.push({ op: '+', text: `${proficiencyBonus} prof` });
+                terms.push({ op: '+', text: String(proficiencyBonus), label: 'prof' });
             }
             for (const parsed of RollWindow.parseModifierTerms(modifierInput.value)) {
                 terms.push(modifierTerm(parsed));
@@ -1570,16 +1594,28 @@ class RollWindow extends BlacksmithWindowBaseV2 {
                 const op = index === 0 ? '' : `<span class="formula-symbols">${term.op ?? '+'}</span>`;
                 const icon = term.icon ? `<i class="${term.icon} formula-die"></i>` : '';
                 const cls = term.cls ? ` class="${term.cls}"` : '';
-                return `${op}<span${cls}>${icon}${esc(term.text)}</span>`;
+                const label = term.label ? `<span class="formula-label">${esc(term.label)}</span>` : '';
+                return `${op}<span${cls}>${icon}${esc(term.text)}${label}</span>`;
             }).join(' ');
         };
 
         modifierInput.addEventListener('input', updateFormula);
         modifierInput.addEventListener('change', updateFormula);
 
-        /** Append a token to the field, keeping it the single source of truth. */
+        /**
+         * Append a token to the field, keeping it the single source of truth.
+         *
+         * A TOKEN THAT CARRIES ITS OWN SIGN CONSUMES A PENDING OPERATOR. Clicking
+         * `-` and then Cover (`+2`) used to leave `- +2` sitting in the field: the
+         * parser resolved it correctly, because a term's own sign wins, but the
+         * text said one thing and the formula said another and only one of them was
+         * in front of the reader. The operator is dropped rather than the sign,
+         * since the sign belongs to the value and the operator was a guess about
+         * what came next.
+         */
         const append = (token) => {
-            const current = modifierInput.value.trim();
+            let current = modifierInput.value.trim();
+            if (/^[+-]/.test(token)) current = current.replace(/\s*[+-]$/, '');
             modifierInput.value = current ? `${current} ${token}` : token;
             modifierInput.focus();
             updateFormula();
@@ -1595,11 +1631,49 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             });
         }
 
-        // The builder appends bare tokens. A die with no label is self-describing --
-        // `1d6` says what it is -- so nothing is invented here that the player would
-        // then have to correct.
+        /**
+         * Clicking a die means "one more of these", so a repeat raises the COUNT
+         * rather than adding a second term: three clicks on d4 give `3d4`, not
+         * `1d4 1d4 1d4`. That is what the button means, and it is also the form a
+         * player would have typed.
+         *
+         * Only the TAIL of the field is touched, by rewriting the trailing `NdX` in
+         * the text rather than reparsing and rebuilding the whole expression. That
+         * keeps whatever else is in there exactly as typed, and it makes the two
+         * cases where stacking would be wrong fall out of the pattern instead of
+         * needing to be tested for:
+         *
+         *   `1d4[Guidance]`  ends in `]`, so it never matches -- a named bonus is
+         *                    somebody's ruling, not a pile of dice to add to.
+         *   `-1d4`           has `-` where the pattern needs a space or the start,
+         *                    so it never matches -- the die buttons add, and
+         *                    silently deepening a subtraction is not that.
+         *
+         * Anything else, including a different die, appends as before.
+         */
+        const stackDie = (token) => {
+            const parsed = /^(\d*)d(\d+)$/i.exec(token);
+            if (!parsed) return false;
+
+            const [, addCount, faces] = parsed;
+            const trailing = new RegExp(`(^|\\s)(\\d*)d${faces}\\s*$`, 'i');
+            const current = modifierInput.value;
+            const match = trailing.exec(current);
+            if (!match) return false;
+
+            const total = (parseInt(match[2] || '1', 10)) + (parseInt(addCount || '1', 10));
+            modifierInput.value = current.replace(trailing, `$1${total}d${faces}`);
+            modifierInput.focus();
+            updateFormula();
+            return true;
+        };
+
+        // A die with no label is self-describing -- `1d6` says what it is -- so
+        // nothing is invented here that the player would then have to correct.
         for (const die of htmlElement.querySelectorAll('.roll-builder-die')) {
-            die.addEventListener('click', () => append(die.dataset.token));
+            die.addEventListener('click', () => {
+                if (!stackDie(die.dataset.token)) append(die.dataset.token);
+            });
         }
         for (const op of htmlElement.querySelectorAll('.roll-builder-op')) {
             op.addEventListener('click', () => append(op.dataset.op === '-' ? '-' : '+'));
@@ -1636,7 +1710,7 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             for (const preset of htmlElement.querySelectorAll('.roll-preset')) {
                 preset.addEventListener('contextmenu', (event) => {
                     event.preventDefault();
-                    this._presetContextMenu(Number(preset.dataset.index));
+                    this._presetContextMenu(Number(preset.dataset.index), event.clientX, event.clientY);
                 });
             }
         }

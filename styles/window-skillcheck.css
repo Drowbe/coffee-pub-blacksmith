@@ -162,6 +162,14 @@ div#skill-check-dialog .window-content {
 
 
 
+/* The framework select is `width: 100%`, which is right in a form column and wrong
+   in a header row where it would eat the space the DC box needs. It sizes to its
+   content here instead. */
+.cpb-dialog-header-sticky .blacksmith-select {
+    width: auto;
+    min-width: 130px;
+}
+
 .cpb-dialog-header-sticky .cpb-dialog-controls {
     display: flex;
     align-items: center;
@@ -312,24 +320,6 @@ div#skill-check-dialog .window-content {
 
 
 
-
-.cpb-select {
-    position: relative;
-    display: inline-block;
-    width: 35px;
-    height: 20px;
-
-    padding: 0px 4px 0px 4px !important;
-    background-color: rgba(128, 118, 96, 0.8) !important;
-    border-radius: 50px;
-    color: rgba(255, 255, 255, 0.8);
-     font-size: .8em !important;
-     font-weight: 400 !important;
- }
-.cpb-select option {
-    background-color: rgba(128, 118, 96, 0.8) !important;
-    color: rgba(0, 0, 0, 0.8);
- }
 
 
 /* ***** CONTENT AREA ***** */

@@ -65,7 +65,11 @@
                 <!-- Roll Mode Selector -->
                 <div class="cpb-form-group">
                     <div class="cpb-form-fields">
-                        <select name="rollMode" class="cpb-select">
+                        {{!-- The framework's select. `.cpb-select` was a local rule
+                              carrying a TOGGLE's dimensions -- 35x20 with a 50px
+                              radius -- which is why the control was the size it was
+                              and why its options fell back to the browser's. --}}
+                        <select name="rollMode" class="blacksmith-select">
                             <option value="roll" {{#if (eq rollMode "roll")}}selected{{/if}}>Public Roll</option>
                             <option value="gmroll" {{#if (eq rollMode "gmroll")}}selected{{/if}}>Private GM Roll</option>
                             <option value="blindroll" {{#if (eq rollMode "blindroll")}}selected{{/if}}>Blind GM Roll</option>

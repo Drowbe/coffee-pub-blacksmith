@@ -174,21 +174,52 @@ div#roll-window .window-content {
   font-weight: 400;
   font-size: 1.1em;
   text-transform: uppercase;
+  /* A long formula wraps, and wrapped rows ran into each other -- the tags and
+     die icons make each line taller than its text, so the default leading left
+     nothing between them. */
+  line-height: 1.9;
 }
 
 /* Formula custom parts styling.
 
+   `.formula-custom-modifier` NO LONGER COLOURS THE TERM. Green marked "this came
+   from you" back when nothing else distinguished a modifier, but the tag says that
+   now -- and colouring the value as well as tagging it meant the dice and numbers
+   in a modifier read as a different kind of thing from the dice and numbers in the
+   base roll, when the whole point of the line is that they add up together. The
+   maths reads as one expression again.
+
    `.formula-custom-situational` and `.formula-spacer` went with the second input
    and the sign-carrying terms respectively: the renderer owns the operator now, so
    there is no such thing as a term that needs a blank where its `+` would go. */
-.roll-formula .formula-custom-modifier {
-  color: rgba(138, 178, 42, 0.9) !important;
-  font-weight: 400;
-}
 .roll-formula .formula-symbols {
   color: rgba(255, 112, 18, 0.9) !important;
   font-weight: 400;
   padding: 0px 8px 0px 8px;
+}
+
+/*
+    A term's LABEL -- "prof", "dex", "Guidance" -- as a tag beside its value.
+
+    The formula line is 1.1em and uppercased, which is right for the numbers and
+    far too loud for the reasons: at the same size "GUIDANCE" outweighs the "1D4"
+    it explains, and a row of them reads as the content rather than as annotation.
+    Smaller, lighter and set back, so the eye reads values first and reasons second.
+
+    Not uppercased again -- the parent already does it -- and `nowrap` so a
+    two-word label cannot break across the operator that follows it.
+*/
+.roll-formula .formula-label {
+  margin-left: 0.4em;
+  padding: 0.1em 0.4em;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(235, 233, 225, 0.6);
+  font-size: 0.7em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  vertical-align: 0.08em;
+  white-space: nowrap;
 }
 
 /* The die that leads a dice term. Sized in `em` so it tracks the formula's own
@@ -268,14 +299,25 @@ div#roll-window .window-content {
   flex: 0 0 auto;
 }
 
+/* `.blacksmith-tag` is written for a span; these are buttons, and Foundry gives
+   every button a height, a line-height and a padding of its own. Those fought the
+   tag's own padding and clipped the value off the right-hand end -- the third time
+   today a button's inherited box has had to be reset after its paint was. */
 .roll-preset {
+  display: inline-flex;
+  align-items: center;
+  height: auto;
+  min-height: 0;
+  line-height: 1.4;
+  padding: 2px 7px;
+  margin: 0;
   cursor: pointer;
   font-size: 0.9em;
 }
 
 .roll-preset .roll-preset-value {
   opacity: 0.7;
-  margin-left: 0.35em;
+  margin-left: 0.4em;
 }
 
 .roll-preset:hover {
