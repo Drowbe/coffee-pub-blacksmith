@@ -4,30 +4,26 @@
 
         <div class="cpb-dialog-header-content">
 
-                {{#if actorName}}
-                    <div class="cpb-actor-info">
-                        {{#if actorPortrait}}
-                            <img src="{{actorPortrait}}" alt="{{actorName}}" class="cpb-actor-portrait">
-                        {{/if}}
-                        <span class="cpb-actor-name">{{actorName}}</span>
-                    </div>
-                {{/if}}
+            {{!-- HEADER ICON, or the actor's portrait when there is one.
 
-
-
-        </div>
-
-        <div class="cpb-dialog-header-content">
-
-            <!-- HEADER ICON -->
+                  The whole point of the circle is "what is rolling", so a portrait
+                  belongs in it and a generic die belongs there only when nobody in
+                  particular is rolling. The roll window has an actor; the skill
+                  check dialog does not and keeps its d20. --}}
             <div class="cpb-dialog-dice-icon">
-                <i class="{{diceIcon}}"></i>
+                {{#if actorPortrait}}
+                    <img src="{{actorPortrait}}" alt="{{actorName}}" class="cpb-actor-portrait">
+                {{else}}
+                    <i class="{{diceIcon}}"></i>
+                {{/if}}
             </div>
-            <!-- HEADER TITLE -->
+            {{!-- HEADER TITLE. The actor leads the subtitle rather than occupying a
+                  banner of its own: it qualifies the roll ("Favia Gita, an
+                  Investigation check"), which is a caption, not a headline. --}}
             <div class="cpb-dialog-title-section">
 
                 <div class="cpb-dialog-main-title">{{mainTitle}}</div>
-                <div class="cpb-dialog-subtitle">{{subtitle}}</div>
+                <div class="cpb-dialog-subtitle">{{#if actorName}}<span class="cpb-subtitle-actor">{{actorName}}</span> &middot; {{/if}}{{subtitle}}</div>
             </div>
             <!-- HEADER CONTROLS -->
             <div class="cpb-dialog-controls">

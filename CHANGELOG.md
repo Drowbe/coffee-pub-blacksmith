@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The unified window header lost its actor banner; the portrait moved into the icon circle and the name into the subtitle** (`templates/partials/unified-header.hbs`, `styles/window-skillcheck.css`, `documentation/design-system/design-components.md`). The header carried two sibling `.cpb-dialog-header-content` blocks, the first of which existed only to show the actor: a full-width bar holding a 48px portrait and the actor's name at **3em**, the largest text anywhere in the module. It said what the header below it already qualified, and it made the name outrank the roll it was a detail of. The circle answers "what is rolling", so a face belongs in it and a generic die belongs there only when nobody in particular is rolling -- it now renders `actorPortrait` when the caller passes one and the `diceIcon` glyph otherwise. The name leads the subtitle ahead of the roll type ("Favia Gita - Investigation"), lifted out of the caption colour because it is the subject of that line. **The skill check dialog is unaffected**: it passes neither `actorName` nor `actorPortrait`, so it never rendered the banner and keeps its d20. Three now-dead rules went with it, and the list-item `.cpb-actor-name` / `.cpb-actor-info` further down that stylesheet are a different component and were left alone.
+
+  Two stale claims in `design-components.md` were corrected while reconciling it: the header is one content block rather than two, and the shared window button has **no** width -- the doc still said "Primary width is 300px", which was removed on 2026-08-08 and now survives only in the comment explaining why.
+
+### Fixed
+
+- **A quiet round showed an empty MVP portrait** (`scripts/cards-stats.js`). `noMvp` is a THEME rather than the absence of one -- `stats-mvp.js:355` gives it `label: 'No MVP'` and its own templates -- so `themeLabel` is truthy on exactly the round the guard was written to exclude, and the comment above that guard had asserted the opposite since the theme was added. The award block therefore rendered in full, including an `identity` part with no image and no name: a blank strip between the header and the text. The two questions are now separate. `hasAward` keeps the ribbon and the line, because a quiet round still has something to SAY; `hasWinner` gates the portrait, because it has nobody to SHOW. The MVP's name is also wrapped in `{ literal }` now, since `identity.name` moved onto the text pipeline and an actor called `Ser *Reginald*` would otherwise italicise.
+
+- **The Roll Configuration footer buttons did not use the shared window button, and two hover colours were wrong** (`styles/window-roll-normal.css`, `templates/window-roll-normal.hbs`). `RollWindow` extends `BlacksmithWindowBaseV2` and so inherits the window shell, but its three buttons restated the whole button shell themselves -- display, padding, radius, uppercase, font -- in different units from `window-template.css`, which is how that footer drifted from the rest of the module's chrome. They now carry `blacksmith-window-btn-secondary` for structure and supply only colour. **Each button names its colour once, as bare RGB channels, and both the fill and the hover derive from it.** That is what fixes the two live defects rather than merely correcting them: the colour had been stated four times per button across two rules, and two of those statements were copy-paste from the advantage rule -- `.roll-btn.roll-normal:hover` put a BLUE border on the green button, and the base `.roll-btn:hover` put a RED one. Deriving hover from the same value makes that class of bug unrepresentable. The colours themselves are carried over unchanged; this is a restructuring, not a retheme. Scoped `.roll-footer .roll-btn` so it outranks the shared class on specificity rather than on `@import` order.
+
+  Noted while checking, not changed: only three of the seventeen `BlacksmithWindowBaseV2` subclasses use the shared button vocabulary at all, and `templates/window-skillcheck.hbs` carries 70 bare `title=` attributes against 28 `data-tooltip`, so its hover treatment differs from the rest of the suite. Both are their own change.
+
 ## [13.18.0]
 
 ### Added

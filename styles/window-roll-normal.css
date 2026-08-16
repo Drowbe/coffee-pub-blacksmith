@@ -313,60 +313,47 @@ div#roll-window .window-content {
   background: #18181c;
 }
 
-.roll-btn {
-  background: #232323;
-  color: #e0e0e0;
-  border: 1px solid #444;
-  border-radius: 4px;
-  padding: 0.3em 1em;
-  font-size: 1em;
+/*
+    THE THREE ROLL BUTTONS TAKE THEIR STRUCTURE FROM THE SHARED WINDOW BUTTON and
+    only their COLOUR from here.
+
+    The markup carries `blacksmith-window-btn-secondary` alongside `roll-btn`, so
+    the shell -- inline-flex, gap, padding, radius, uppercase, the font -- comes
+    from `window-template.css` like every other window button in the suite. This
+    block used to restate all of that, in different units, which is how the footer
+    drifted away from the rest of the module's chrome.
+
+    EACH BUTTON NAMES ITS COLOUR ONCE, as bare RGB channels, and both the fill and
+    the hover derive from it. That is not tidiness: the previous version stated the
+    colour four times per button across two rules, and two of those statements were
+    wrong in the same way. `.roll-normal:hover` set a BLUE border on the green
+    button and the base `.roll-btn:hover` set a RED one -- both copy-paste from the
+    advantage rule, both live, and neither reachable by reading one rule at a time.
+    Deriving hover from the same value makes that class of bug unrepresentable.
+
+    The values are the ones that were already here, carried over unchanged. This is
+    a restructuring, not a retheme.
+
+    Specificity: `.roll-footer .roll-btn` (0,2,0) so it wins over
+    `.blacksmith-window-btn-secondary` (0,1,0) whatever order the stylesheets load
+    in -- a bare `.roll-btn` would tie with it and depend on the @import order.
+*/
+.roll-btn.roll-advantage    { --roll-btn-rgb: 71, 125, 198; }
+.roll-btn.roll-normal       { --roll-btn-rgb: 55, 138, 63; }
+.roll-btn.roll-disadvantage { --roll-btn-rgb: 198, 71, 71; }
+
+.roll-footer .roll-btn {
+  background: rgba(var(--roll-btn-rgb), 0.8);
+  border: 1px solid rgba(var(--roll-btn-rgb), 1.0);
+  color: rgba(235, 233, 225, 1.0);
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border 0.15s;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 0.4em;
-  text-transform: uppercase;
-  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.roll-btn:hover {
-  background: #333;
-  border-color: rgba(255, 47, 47, 1.0);
-}
-
-
-.roll-btn.roll-advantage {
-  background: rgba(71, 125, 198, 0.8);
-  color: rgba(235, 233, 225, 1.0);
-  border: 1px solid rgba(71, 125, 198, 1.0);
-}
-
-.roll-btn.roll-advantage:hover {
-  background: rgba(71, 125, 198, 1.0);
-  border-color: rgba(71, 125, 198, 1.0);
-}
-
-.roll-btn.roll-disadvantage {
-  background: rgba(198, 71, 71, 0.8);
-  color: rgba(235, 233, 225, 1.0);
-  border: 1px solid rgba(198, 71, 71, 1.0);
-}
-
-.roll-btn.roll-disadvantage:hover {
-  background: rgba(198, 71, 71, 1.0);
-}
-
-.roll-btn.roll-normal {
-  background: rgba(55, 138, 63, 0.8);
-  color: rgba(235, 233, 225, 1.0);
-  border: 1px solid rgba(55, 138, 63, 1.0);
-}
-
-.roll-btn.roll-normal:hover {
-  background: rgba(55, 138, 63, 1.0);
-  border-color: rgba(71, 125, 198, 1.0);
+.roll-footer .roll-btn:hover:not(:disabled) {
+  background: rgba(var(--roll-btn-rgb), 1.0);
+  border-color: rgba(var(--roll-btn-rgb), 1.0);
 }
 
 /* Requesting module asked for this mode: marked, but still one of several live buttons

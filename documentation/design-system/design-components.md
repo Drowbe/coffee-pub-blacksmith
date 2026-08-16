@@ -86,27 +86,31 @@ Menubar tokens (`--blacksmith-menubar-*`) are declared locally in `styles/menuba
 ### Header
 
 The unified header is `templates/partials/unified-header.hbs`, styled in `styles/window-skillcheck.css`.
-It contains **two sibling** `.cpb-dialog-header-content` blocks: the first holds `.cpb-actor-info`
-(`:5-18`), the second holds the dice icon, title section, and controls (`:20-33`).
+It contains **one** `.cpb-dialog-header-content` block (`:5`) holding the icon circle, title section, and
+controls. The circle renders the actor's portrait when the caller passes one and the `diceIcon` glyph
+otherwise, so the roll window shows a face and the skill check dialog shows a d20.
 
 | Element | Class | Defined at |
 |---|---|---|
 | Sticky wrapper | `.cpb-dialog-header-sticky` | `window-skillcheck.css:42` |
 | Header | `.cpb-dialog-header` | `window-skillcheck.css:50` |
 | Content block | `.cpb-dialog-header-content` | `window-skillcheck.css:63` |
-| Actor info | `.cpb-actor-info` | `window-skillcheck.css:122` |
-| Actor portrait | `.cpb-actor-portrait` | `window-skillcheck.css:135` |
-| Dice icon | `.cpb-dialog-dice-icon` | `window-skillcheck.css:72` |
+| Icon circle | `.cpb-dialog-dice-icon` | `window-skillcheck.css:72` |
+| Portrait in the circle | `.cpb-dialog-dice-icon .cpb-actor-portrait` | `window-skillcheck.css:141` |
 | Title section | `.cpb-dialog-title-section` | `window-skillcheck.css:95` |
 | Main title | `.cpb-dialog-main-title` | `window-skillcheck.css:110` |
-| Subtitle | `.cpb-dialog-subtitle` | `window-skillcheck.css:155` |
+| Subtitle | `.cpb-dialog-subtitle` | `window-skillcheck.css:148` |
+| Actor name in subtitle | `.cpb-subtitle-actor` | `window-skillcheck.css:156` |
 | Controls | `.cpb-dialog-controls` | `window-skillcheck.css:166` |
 
 Title and subtitle are `<div>` elements, not heading or paragraph tags
-(`templates/partials/unified-header.hbs:29, 30`). `.cpb-actor-name` appears in header markup and is styled by
-`styles/window-skillcheck.css:636` (weight 900, 1.1em), which is unscoped and so reaches the dialog header.
-An earlier note here said it had no rule in the window stylesheet and was styled only by chat-card result
-selectors; that was wrong, and those chat-card selectors have since been deleted with the roll card anyway.
+(`templates/partials/unified-header.hbs:25, 26`). The subtitle carries the actor's name ahead of the roll
+type, in `.cpb-subtitle-actor`.
+
+`.cpb-actor-name` no longer appears in header markup. It is now only the skill check dialog's actor-list
+item (`templates/window-skillcheck.hbs:53`), styled unscoped at `styles/window-skillcheck.css:636`. That
+selector being unscoped used to reach the dialog header as well, which is worth remembering if header
+markup ever reintroduces the class.
 
 ### Buttons
 
@@ -115,8 +119,11 @@ modifiers. The shared rule sets `padding: 8px 12px`, `border-radius: 4px`, upper
 `font-family: inherit`, `font-size: 1.0em`, `display: inline-flex`, `gap: 6px`, and
 `border: 1px solid var(--blacksmith-window-border-color)` (`:216-224`). Secondary and critical each
 override `border-color` (`:236`, `:242`), so the border is not uniform across variants. Disabled state is
-`opacity: 0.6; cursor: not-allowed`. Primary width is 300px. Buttons mount into the `actionBarLeft` and
-`actionBarRight` regions (`templates/window-template.hbs:59, 62`).
+`opacity: 0.6; cursor: not-allowed`. **No width is set.** A shared button class carrying a fixed pixel
+width stretched the primary action across a flex footer and squeezed the secondary one onto two lines; the
+rule was removed on 2026-08-08, by which point four stylesheets were already resetting it to `auto`. A
+window that wants a wide primary button sets the width in its own scope. Buttons mount into the
+`actionBarLeft` and `actionBarRight` regions (`templates/window-template.hbs:59, 62`).
 
 ### Tabs
 
@@ -143,7 +150,7 @@ thumb pseudo-elements (`:153-230`).
 
 A second, older toggle ships alongside the current one: `.cpb-toggle-container`, `.cpb-toggle-label`,
 `.cpb-toggle`, `.cpb-toggle-slider` (`styles/window-skillcheck.css:241, 249, 257, 271`). It is 35x14px,
-uses no tokens, and remains in use at `templates/partials/unified-header.hbs:37-57` and
+uses no tokens, and remains in use at `templates/partials/unified-header.hbs:33-59` and
 `templates/window-skillcheck.hbs:76-80`. Prefer `.blacksmith-toggle` for new work.
 
 Its structure is load-bearing. The CSS selector is `.cpb-toggle input:checked + .cpb-toggle-slider`
@@ -162,7 +169,7 @@ and the wrapper is a `<div>` -- so the click target is the slider's `for` attrib
 ```
 
 Wrapping in a `<label>` or using a `<span>` slider yields a toggle that does not respond to clicks. Live
-markup: `templates/partials/unified-header.hbs:38-41`.
+markup: `templates/partials/unified-header.hbs:35-38`.
 
 ### Lists
 
