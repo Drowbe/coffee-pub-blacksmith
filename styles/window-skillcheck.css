@@ -1059,14 +1059,10 @@ tor-item.selected {
     buttons through `data-button="roll"` and `data-button="cancel"`, which is
     untouched.
 
-    Only the width survives, and only because the shared class deliberately sets
-    none: a fixed width on a shared button stretches the primary action across a
-    flex footer. A window wanting a wide button says so in its own scope, which is
-    what this is.
+    Nothing about the buttons is stated here at all now. The footer carries
+    `blacksmith-actions-fill`, so the two buttons share its width equally -- which
+    is what the local `min-width: 100px` was reaching for, badly: a minimum width
+    is a guess at how wide the row is, and it stops being right the moment the
+    window resizes.
 */
-.skill-check-dialog .cpb-dialog-buttons .blacksmith-window-btn-primary,
-.skill-check-dialog .cpb-dialog-buttons .blacksmith-window-btn-secondary {
-    min-width: 100px;
-    justify-content: center;
-}
 

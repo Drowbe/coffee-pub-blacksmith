@@ -121,9 +121,19 @@ modifiers. The shared rule sets `padding: 8px 12px`, `border-radius: 4px`, upper
 override `border-color` (`:236`, `:242`), so the border is not uniform across variants. Disabled state is
 `opacity: 0.6; cursor: not-allowed`. **No width is set.** A shared button class carrying a fixed pixel
 width stretched the primary action across a flex footer and squeezed the secondary one onto two lines; the
-rule was removed on 2026-08-08, by which point four stylesheets were already resetting it to `auto`. A
-window that wants a wide primary button sets the width in its own scope. Buttons mount into the
-`actionBarLeft` and `actionBarRight` regions (`templates/window-template.hbs:59, 62`).
+rule was removed on 2026-08-08, by which point four stylesheets were already resetting it to `auto`.
+Buttons mount into the `actionBarLeft` and `actionBarRight` regions
+(`templates/window-template.hbs:59, 62`).
+
+To make buttons fill their footer, put **`blacksmith-actions-fill` on the container** — the action bar, or
+a window's own footer div. It works on any flex footer, and the window template's action bar gets an extra
+rule because its buttons sit one level deeper inside the left and right groups.
+
+The modifier is container-level on purpose: filling is a property of a footer's layout, not of a button.
+The per-button version of the same idea is what the deleted `width: 300px` was, and it failed because a
+width belonging to one button squeezes whatever sits beside it. It uses `flex: 1 1 0` rather than `flex: 1`
+so buttons come out equal rather than divided in proportion to their label lengths, with `min-width: 0` so
+a long label ellipsises instead of widening the row.
 
 ### Tabs
 

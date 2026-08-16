@@ -263,6 +263,45 @@
     cursor: not-allowed;
 }
 
+/*
+    BUTTONS THAT FILL THEIR FOOTER. Opt in by putting `blacksmith-actions-fill` on
+    the CONTAINER, not on the buttons.
+
+    Container-level because filling is a property of that footer's layout rather
+    than of any button in it. The per-button version of this idea is what the old
+    `width: 300px` on `.blacksmith-window-btn-primary` was, and it is instructive:
+    a width that belongs to one button stretches it and squeezes whatever sits
+    beside it, which is why four stylesheets ended up resetting it to `auto` and
+    why the rule was deleted on 2026-08-08. A footer either fills or it does not,
+    and every button in it agrees.
+
+    `flex: 1 1 0` with `min-width: 0`, not `flex: 1`. With the default `auto`
+    basis the buttons divide the row in proportion to their LABELS, so "Cancel"
+    and "Request Roll" come out visibly unequal -- which reads as a mistake rather
+    than a layout. A zero basis makes them equal thirds, halves, whatever the count
+    is. `min-width: 0` lets a long label ellipsise instead of forcing the row wider.
+
+    Works on any flex footer, which is the point: the window template's own action
+    bar nests its buttons one level deeper inside left and right groups, so that
+    case gets the extra rule below, and everything else -- a dialog's own footer --
+    needs only the class.
+*/
+.blacksmith-actions-fill {
+    display: flex;
+}
+
+.blacksmith-actions-fill .blacksmith-window-btn-primary,
+.blacksmith-actions-fill .blacksmith-window-btn-secondary,
+.blacksmith-actions-fill .blacksmith-window-btn-critical {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.blacksmith-window-template-action-bar.blacksmith-actions-fill .blacksmith-window-template-action-left,
+.blacksmith-window-template-action-bar.blacksmith-actions-fill .blacksmith-window-template-action-right {
+    flex: 1 1 0;
+}
+
 /* ----- Shared section component (use inside bodyContent) ----- */
 .blacksmith-window-section {
     margin-bottom: 16px;
