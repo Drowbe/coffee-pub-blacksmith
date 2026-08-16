@@ -811,77 +811,44 @@ deprecated in place.
 every one of its cards, the parts library is missing a part - and the fix is to add the part in Blacksmith,
 never to let the module keep a template.
 
-### Order, easiest first
+### Complete — all seven modules, 2026-08-15 and 2026-08-16
 
-| Module | Posting sites | What it owns today | Notes |
-|---|---|---|---|
-| ~~Curator~~ | ~~1~~ | — | **DONE 2026-08-16.** One call site, one template, as surveyed -- the only module whose "what it owns today" the original inventory got right. `curator-loot-card` had no rules anywhere in the repo and `card-loot.hbs` was never registered for preloading, so both deletions left nothing dangling. The card's theme was hardcoded `theme-default` in the markup, so it had been pinned to Tan and ignoring the world default; that is fixed by omitting `theme`. Its report produced three api doc fixes: `clickable` and `tooltip` missing from the `rows` key list, `uuid` framed as the default for interactive rows when it is the wrong one, and the literal asymmetry on removing a `uuid`. |
-| ~~Regent~~ | ~~2~~ | — | **DONE 2026-08-16.** `_onSendToChat` and the GM "Regent Report" whisper. It had **no card CSS at all** -- the "4 rules" in the original survey were wrong, every rule in `styles/` being scoped to `#coffee-pub-regent-wrapper`. That has a consequence worth carrying into every remaining migration: the GM whisper posted `regent-message-header-answer` markup into the chat log **where those rules never applied**, so it had rendered unstyled for its entire life and nobody reported it. **Ask a migrating module to check its card selectors actually reach chat before asking it to port anything.** Its `chatCardTheme` setting was converted to `getThemeChoices('card')` with stored class names normalised on read in `blacksmith-bridge.js`, so Regent no longer calls any class-name accessor. It settled the `richtext` scope question by parsing AI HTML into parts rather than asking for the contract to widen -- see the api doc. |
-| ~~Artificer~~ | ~~7~~ | — | **DONE 2026-08-15.** `rows` covered `gather-result-*` as predicted, and also absorbed the hand-built `@UUID[...]{...}` strings and a local `escapeHtml`, since `rows` takes `uuid` + `label` and does both. `notes` took the craft failure list, `tiles` the rarity breakdown. No new part was needed. |
-| ~~Crier~~ | ~~4~~ | — | **DONE (verified 2026-08-16, Crier 13.2.1).** No `ChatMessage.create` anywhere; three `chatCards.post` sites plus `getCard`/`update` for the health refresh, so the flag-poke workaround is gone. **`templates/` and `styles/` no longer exist as directories** -- the 59 CSS rules and the inline HTML went with them, and `module.json` declares no styles. One piece of dead code remains: `resolveThemeClass()` (`crier.js:1355`) and its single caller (`:1603`), which assigns `info.theme` -- a value **nothing reads**, since the turn card's `post()` passes `normalizeThemeId(info.turnCardStyle)` instead. Its own docstring says it exists "for the templates that still build their own card markup" and "goes when the turn template does"; the turn template went and the function outlived it. Deleting both lines clears Crier of `getThemeClassName` entirely and drops an `await BlacksmithAPI.get()` per combatant per turn. |
-| ~~Bibliosoph~~ | ~~10~~ | — | **DONE 2026-08-15.** Five migrated directly; the four needing a card to change after posting (injury, critical/fumble, check-up, inspiration) landed once `chatCards.update` shipped and are **confirmed working live**. Its reports drove three fixes: `chatCards.update` itself, `readableBy: 'player'`, and the row-button icon alignment. |
-| ~~Scribe~~ | ~~3~~ | — | **DONE 2026-08-15, Scribe 13.1.0.** Illustration is `header + image + actions`, narration `header + richtext`, handout notice `header + prose + rows`. No new part needed. `cards.css` was rebuilt against and then deleted, which is what keeping it was for. The theme layer turned out to be smaller than it looked: the six `theme-*.css` files were byte-identical apart from the colours of the one button this migration removes, and `theme-earth.css` was an exact copy of `theme-dark.css`. Seven sheets collapsed to one; `changeCSS()` and its stylesheet leak went with them, unfixed and no longer reachable. Its `renderChatMessage` hook is **kept deliberately** to bind the raw illustration buttons on messages already in a world's log -- new cards use the registered action, but dropping the hook would make the old ones dead rather than merely unstyled. |
+Artificer, Bibliosoph, Scribe, Squire, Regent, Crier and Curator. **No module in the suite writes card
+HTML.** Cartographer, Herald, Minstrel, Monarch and Vault post no chat cards and were unaffected. Per-module
+detail is in Blacksmith's `CHANGELOG.md` under 13.18.0; what follows is only what outlived the work.
 
-**Cards that change after posting are unblocked — `chatCards.update` shipped (2026-08-15).** Four of
-Bibliosoph's ten (injury, crit/fumble, check-up, inspiration) and Crier's health refresh all needed a posted
-card to change: a spent button retiring to a stamp, a pick counter, a treated row. That state has to be on
-the message rather than in a render pass, because a pass decorates one client's DOM and the whole point is
-that two players in two browsers see the same spent button. `chatCards.update(message, { parts })` plus
-`chatCards.getCard(message)` covers it; see `documentation/api/api-chatcards.md`.
+**Four lessons for the next inventory of this kind.** Every one of them is a case where the survey described
+what a module *declared* rather than what was *reachable*, and the error ran the same direction each time.
 
-Two things to do on the sibling side when each migrates:
+- **A fork rots as well as drifts, and the rot is the cheaper half.** Half of Squire's 505-line
+  `chat-cards.hbs` was unreachable — nothing had set `isPlanningStart`, `isTimer`, `isLootDrop`,
+  `isMovementChange` or `isLeaderChange` in a long time, and it was carried forward on every edit because
+  there was never a reason to check. **Count reachable variants, not lines.**
+- **Ask whether a module's card CSS actually reaches chat before asking it to port anything.** Regent's
+  "4 rules" did not exist; every rule in its `styles/` was scoped to `#coffee-pub-regent-wrapper`, and its
+  GM whisper had therefore been rendering unstyled in the chat log for its entire life with nobody
+  reporting it. Curator's `curator-loot-card` was styled nowhere at all.
+- **For machine-generated content, ask what it actually looks like from real samples — not what the prompt
+  asked for, and not whether the format is "constrained".** Regent answered both of those in good faith and
+  one answer was wrong: its prompt says "HTML only, never Markdown" and real replies come back with
+  headings as tags, emphasis as `*marks*`, and rules and tables as Markdown. The model half-obeys, and the
+  half it ignores is whatever Markdown does more conveniently.
+- **A hub rule its author steps outside of will not hold.** Two of Blacksmith's own cards were built with a
+  capability the API withheld, and Crier had already copied the workaround into production before anyone
+  noticed. Both now go through the public method.
 
-- **Crier deletes its flag-poke.** `crier.js:815` (`refreshTurnCardHealth`) clones
-  `message.flags['coffee-pub-blacksmith'].card`, mutates the parts, and writes the flag back directly. It
-  works only because the re-render path reads that flag on every paint, which is an implementation detail
-  and not a contract. It also carries a real defect: `content` is never rewritten, so the baked snapshot
-  stays frozen at post time and the stored message permanently disagrees with what the table sees — visible
-  in chat search, in exports, and on any client not rendering through Blacksmith. `update` rewrites both
-  together. Crier is not at fault here; the alternative was not shipping the feature.
-- **Nobody writes Blacksmith's flag namespace by hand.** That Crier did is the evidence for the general
-  rule: the workaround spread because the API withheld a capability Blacksmith used twice internally. Both
-  of those internal sites (`manager-vote.js`, `cards-skill-check.js`) now go through the public method.
+**Scope questions this work settled, so they are not reopened:** `richtext` stays narrow (it is enriched,
+not sanitised, and inherits its safety from having a human author — generated content gets parsed into
+parts instead); the part library stayed closed and no module needed a part that did not exist; and
+"everyone except these users" was not built, see below.
 
-**Scribe reaches outside its own cards.** `coffee-pub-scribe/styles/cards.css:8` styles
-`.message-content blockquote` -- every blockquote in every chat message in the world, not just Scribe's.
-Its comment says "Overrides the BlockQuote", so the reach is deliberate, and its `theme-*.css` files supply
-the fill. It ties on specificity with Blacksmith's own `.blacksmith-card blockquote` and wins on load order,
-because `scribe` sorts after `blacksmith`. Blacksmith now scopes through `.section-content` to win on
-specificity instead, which stops the bleeding without fixing the cause.
-
-That is worth holding onto as the concrete example of why Scribe's parallel theme system has to go rather
-than merely be tolerated: a global selector in one module silently restyled another module's component, and
-nothing about the symptom pointed at the source.
-
-**Removed 2026-08-13, chat only.** Two places, not one -- the first fix missed the second and did not work.
-Each of the five themes carried its own `.message-content blockquote` rules supplying the colour, fill and
-border, *separately* from the layout rules in `cards.css`. Dropping only the `cards.css` import left the
-appearance rules live. Both are now gone. `theme-none.css` never had either.
-
-**Found by measuring rather than reading.** Three rounds of grepping the wrong files failed because the
-rules were reachable only through an `@import` chain; a console pass over `document.styleSheets` that
-recursed into imported sheets and tested `el.matches(rule.selectorText)` named the file and rule in one
-step. Worth reaching for immediately the next time a style has no visible source.
-
-**A second Scribe bug surfaced while doing it: two themes load at once.** That measurement showed
-`theme-dark.css` and `theme-earth.css` both live, with earth winning on order. `changeCSS()` in
-`scribe.js:1201` builds a `<link>` whose `id` is a file path and checks `document.getElementById(oldlink)`
-against a *different* path than the one it sets, so the guard never matches and the previous theme is never
-removed. Every theme switch adds another stylesheet. Not fixed here -- it is Scribe's, and its migration
-may retire the whole theme-swapping mechanism -- but it should not be rediscovered.
-
-The `cards.css` import was also dropped from all five themes; that file is the only
-one of its four stylesheets carrying chat rules -- `common.css` and `journals.css` have none, so journals,
-dialogues and common styling are untouched.
-
-**The file is kept on disk deliberately.** Its values are the reference for what Scribe's cards should look
-like once they are compositions, and deleting the source before rebuilding against it is how the detail
-gets lost -- the same mistake that cost the XP card three of its own styles.
-
-**Consequence to expect until Scribe migrates:** its two chat outputs, the journal-narration blockquote and
-the illustration card, now render with Blacksmith's card styling and Foundry's defaults rather than
-Scribe's. That is the intended direction, not a regression, but it is visible before the migration lands. **The real outlier** - uses none of Blacksmith's card classes, posts a raw `<blockquote>`, and carries a competing theme layer (`theme-blue/dark/earth/green/red/none.css` plus `cards.css`). All seven files go. Its journal-snippet-to-chat is the one genuinely new capability found in the sweep, and it needs no new part: `header + image + prose + actions`. Legacy module; adopts the plan. |
-| ~~Squire~~ | ~~26~~ | — | **DONE 2026-08-15.** `templates/chat-cards.hbs` deleted; no `ChatMessage.create` left in any card path. **Half the fork was dead and nobody had noticed**: the entire public half -- planning start/paused/resumed, combat timer, round announcement, loot drop, movement change, leader change -- was unreachable, because nothing had set `isPlanningStart`, `isTimer`, `isLootDrop`, `isMovementChange` or `isLeaderChange` in a long time. It was carried forward untouched on every edit because there was never a reason to check. Fourteen types were live, all whispered. **Lesson for the next inventory: a fork rots as well as drifts, and the rot is the cheaper half to remove** -- count reachable variants, not lines. `{ literal, mark }` landed days before they set a house style around not having it. Their reports produced three more fixes: the silent action-handler failure, the `notes` doc/template mismatch, and the retire-then-work guidance. |
+**When a style has no visible source, measure instead of grepping.** Removing Scribe's global
+`.message-content blockquote` rules -- which restyled every blockquote in every chat message in the world,
+other modules' cards included -- took three rounds of grepping the wrong files, because the rules were
+reachable only through an `@import` chain. A console pass over `document.styleSheets` that recursed into
+imported sheets and tested `el.matches(rule.selectorText)` named the file and the rule in one step. Reach
+for that immediately next time. The same pass incidentally found two Scribe themes loading at once, which
+no amount of reading the theme-swap code had surfaced.
 
 Cartographer, Herald, Minstrel, Monarch, and Vault post no chat cards and are unaffected.
 
