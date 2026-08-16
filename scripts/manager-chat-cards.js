@@ -361,54 +361,55 @@ export async function processText(text, options = {}) {
 }
 
 /**
- * `escapeHtml`, plus the braces that DELIMIT an enricher label.
- *
- * `escapeHtml` covers the characters that matter to an HTML parser -- & < > " ' --
- * and `{` `}` are not among them, because in HTML they are ordinary text. Inside
- * `@UUID[uuid]{label}` they are not ordinary text: they close the expression. A
- * name containing `}` therefore ends the link early and hands the remainder of
- * ITSELF to the enricher, which will build a second link or a live roll out of it.
- *
- * Encoded rather than stripped. Stripping is what the label helper in
- * `ui-notes-gmnotes-section.js` does, and it is the same trade this system rejected
- * when it added `{ literal }`: it renders a name that is not the name. An entity
- * renders as the character and cannot terminate anything.
- *
- * Order matters. `escapeHtml` runs first and turns `&` into `&amp;`; the ampersands
- * introduced here arrive after that pass, so they are not double-escaped.
- */
-function escapeEnricherLabel(text) {
-    return escapeHtml(text)
-        .replace(/\{/g, '&#123;')
-        .replace(/\}/g, '&#125;');
-}
-
-/**
  * A `rows`/`badges`/`notes` item's label: a document link when it carries a uuid,
  * ordinary consumer text when it does not.
  *
- * THIS IS THE ONE CONSUMER-TEXT PATH THAT DOES NOT GO THROUGH `processText`, and
- * that is exactly why it is a named function rather than a conditional inline in
- * `_prepareContext`. It has to build enricher syntax around a caller's string and
- * then ask the enricher to parse it -- the one place in the system where consumer
- * text is deliberately handed to something that interprets it. Everything that
- * makes that safe lives here, where it can be read in one piece.
+ * THE LINK IS BUILT, NOT WRITTEN. `doc.toAnchor({ name })` is the same call
+ * Foundry's own enricher makes once it has resolved a `@UUID[...]` expression
+ * (`_createContentLink`), and it appends the name as a TEXT NODE -- which cannot
+ * be markup and cannot be enricher syntax. The anchor is therefore identical to
+ * the one the enricher would have produced, and a name can no longer influence it.
  *
- * The UUID is checked as well as the label. `@UUID[...]` ends at the first `]`, so
- * a uuid carrying one closes the expression early with the same consequence. No
- * real Foundry uuid contains a bracket or a brace; one that does is malformed or
- * hostile, and either way must not reach the enricher. Such an item renders its
- * name as inert text -- a plain name is a better failure than a link built from a
- * value that could not be vetted.
+ * WHY NOT WRITE THE SYNTAX AND ENRICH IT. That was the previous shape, and both
+ * versions of it were broken. `@UUID[uuid]{label}` ends its label at the first
+ * `}`, so a name containing one closed the link early and handed the remainder of
+ * ITSELF to the enricher, which built a second link or a live roll from it.
+ * Encoding the braces as entities does NOT fix it, however plausible it reads:
+ * `enrichHTML` assigns the string to `innerHTML` and then walks the resulting TEXT
+ * NODES, so `&#125;` is a `}` again before the content-link regex runs. The
+ * decode happens earlier than the match. There is no escaping that survives it,
+ * which is why this builds the anchor instead of describing one.
+ *
+ * As a side effect it also drops an `enrichHTML` pass per linked row.
+ *
+ * The uuid is still checked as a raw string, and that check is still worth having:
+ * nothing decodes between the test and the use. A uuid carrying a bracket or brace
+ * is malformed or hostile, and such an item renders its name as inert text.
+ *
+ * An unresolvable uuid renders the name as inert text too, rather than Foundry's
+ * broken-link chip. A plain name is the more useful failure on a chat card, and it
+ * cannot be built from a value we could not resolve.
+ *
+ * Exported for `tools/check-card-text.mjs`, which asserts what this RETURNS for a
+ * hostile name. The previous guard asserted only that an escaper was called, and
+ * passed against a fix that did not work; building the anchor instead of enriching
+ * a string is what makes an output assertion possible outside Foundry at all.
  */
-async function documentLinkOrText(item, options) {
+export async function documentLinkOrText(item, options) {
     const text = item.label ?? item.text;
     if (!item.uuid) return processText(text, options);
 
     const uuid = String(item.uuid);
-    if (/[[\]{}]/.test(uuid)) return escapeHtml(text ?? uuid);
+    const label = String(item.label ?? uuid);
+    if (/[[\]{}]/.test(uuid)) return escapeHtml(label);
 
-    return enrich(`@UUID[${uuid}]{${escapeEnricherLabel(item.label ?? uuid)}}`, options);
+    try {
+        const doc = await globalThis.fromUuid?.(uuid);
+        if (doc?.toAnchor) return doc.toAnchor({ name: label }).outerHTML;
+    } catch (error) {
+        postConsoleAndNotification(MODULE.NAME, 'Chat Cards | could not resolve a row uuid', error?.message ?? error, false, false);
+    }
+    return escapeHtml(label);
 }
 
 /**

@@ -227,32 +227,41 @@ if (!/renderCard\([^)]*baked:\s*true/s.test(apiSrc)) {
 }
 
 /*
-    3. A CALLER'S STRING NEVER REACHES THE ENRICHER UNGUARDED.
+    3. THE CARD SYSTEM NEVER WRITES ENRICHER SYNTAX AROUND A CALLER'S STRING.
 
-    One path deliberately builds enricher syntax around consumer text: a rows item
-    with a `uuid` becomes `@UUID[uuid]{label}`, which is then parsed. `escapeHtml`
-    is not sufficient there -- it covers what matters to an HTML parser, and `{`
-    `}` are ordinary text to HTML but DELIMITERS to the enricher. A name containing
-    `}` closes the link early and hands the rest of itself to the enricher, which
-    will build a second link or a live roll from it.
+    A rows item with a `uuid` becomes a document link. The obvious way to build one
+    is to write `@UUID[uuid]{label}` and enrich it -- and that way cannot be made
+    safe, so the rule is that it is not done at all rather than done carefully.
 
-    Reported by Artificer 2026-08-15 against exactly this line. It survived the
-    `{ literal }` work because it is the one consumer-text path that does not flow
-    through `processText`.
+    `@UUID[...]{...}` ends its label at the first `}`, so a name containing one
+    closes the link early and hands the remainder of itself to the enricher, which
+    builds a second link or a live roll from it. ESCAPING DOES NOT HELP: enrichHTML
+    assigns the string to `innerHTML` and then walks the resulting text nodes, so an
+    entity like `&#125;` is a `}` again before the content-link regex runs. The
+    decode happens earlier than the match.
+
+    The safe construction is `doc.toAnchor({ name })`, which is what Foundry's own
+    enricher calls once it has resolved the expression; it appends the name as a
+    text node, which cannot be markup and cannot be enricher syntax.
+
+    Reported by Artificer 2026-08-15 -- twice. The first report found the raw hole;
+    the second found that the entity-encoding fix for it did nothing, and cited the
+    Foundry source that explains why. This assertion is deliberately structural
+    rather than a check that some escaper is called: the previous version of it
+    asserted a function was invoked, and passed against a fix that did not work.
 */
 checked++;
 const cardTextSrc = readFileSync(SOURCE, 'utf8');
-if (!/&#123;/.test(cardTextSrc) || !/&#125;/.test(cardTextSrc)) {
-    problems.push('enricher: the label escaper no longer encodes both braces -- a name containing `}` would close a @UUID link early and hand the remainder to the enricher');
+for (const line of cardTextSrc.split('\n')) {
+    // Interpolation only: the file names @UUID[] in prose, which is what it should do.
+    if (/@UUID\[\s*\$\{/.test(line)) {
+        problems.push(`enricher: the card system writes enricher syntax around an interpolated value. No escaping survives enrichHTML's innerHTML decode -- build the link with doc.toAnchor({ name }) instead:\n      ${line.trim()}`);
+    }
 }
 
 checked++;
-for (const line of cardTextSrc.split('\n')) {
-    // Interpolation only: the file also names @UUID[] in prose, which is fine.
-    if (!line.includes('@UUID[') || !line.includes('${')) continue;
-    if (!line.includes('escapeEnricherLabel')) {
-        problems.push(`enricher: a @UUID interpolation does not use escapeEnricherLabel -- escapeHtml alone leaves the braces that terminate the label:\n      ${line.trim()}`);
-    }
+if (!/toAnchor\(\s*\{\s*name/.test(cardTextSrc)) {
+    problems.push('enricher: the row document link no longer builds its anchor with doc.toAnchor({ name }) -- if it went back to writing @UUID syntax, a name containing `}` can inject a second link or a live roll');
 }
 
 if (problems.length) {

@@ -33,12 +33,18 @@
  *    rather than rendered in the clear.
  *
  * WHY THE STUBS. `manager-chat-cards.js` is Foundry code, so this supplies the
- * least Foundry that lets the pipeline run: a `game.user` for `mayRead()`, and a
+ * least Foundry that lets the pipeline run: a `game.user` for `mayRead()`, a
  * `fetch` because `const.js` reads `module.json` at import time and Node's fetch
- * has no `file://` scheme. No TextEditor is provided, so `enrich()` takes its own
- * documented no-op path -- which means THIS FILE CANNOT PROVE THE ENRICHER STAGE.
- * It proves escaping, marks, literals and veiling. Enrichment is verified in a
- * running world; see testing/ if that is still owed.
+ * has no `file://` scheme, an IDENTITY enricher, and a `fromUuid` returning a
+ * document whose `toAnchor` appends its name as a text node, as Foundry's does.
+ *
+ * WHAT THIS CANNOT PROVE. The enricher is an identity function here, not Foundry's.
+ * So this file cannot demonstrate what real enrichment does to a string -- and that
+ * is exactly the gap that let a bad fix through once: braces encoded as entities
+ * looked safe, and `enrichHTML` decodes them via `innerHTML` before its regex runs.
+ * The lesson is in the design rather than the stub: group 4 below asserts that the
+ * link path never calls the enricher at all, because a path that hands a caller's
+ * string to something that parses it cannot be made safe by escaping.
  *
  * Run: node tools/check-card-text.mjs
  * Exits non-zero on a violation.
@@ -57,7 +63,34 @@ globalThis.fetch = async (url) => {
     return { ok: true, status: 200, json: async () => JSON.parse(text) };
 };
 
-const { processText } = await import(
+// An identity enricher, so the pipeline runs and we can count whether it was used.
+// Foundry's real one would rewrite the string; identity keeps every expectation
+// below about escaping and marks, which are what this file is asserting.
+let enrichCalls = 0;
+globalThis.foundry = {
+    applications: { ux: { TextEditor: { implementation: {
+        enrichHTML: async (html) => { enrichCalls++; return html; }
+    } } } }
+};
+
+/**
+ * A stand-in for Foundry's `doc.toAnchor({ name })`, matching the one property
+ * under test: the name is appended as a TEXT NODE, so it is serialised with the
+ * HTML-significant characters escaped and everything else -- braces included --
+ * left exactly as given.
+ */
+const asTextNode = (s) => String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const RESOLVES = 'Item.abc';
+globalThis.fromUuid = async (uuid) => uuid === RESOLVES ? {
+    documentName: 'Item',
+    toAnchor: ({ name }) => ({
+        outerHTML: `<a class="content-link" data-uuid="${uuid}">${asTextNode(name)}</a>`
+    })
+} : null;
+
+const { processText, documentLinkOrText } = await import(
     pathToFileURL(join(REPO, 'scripts/manager-chat-cards.js')).href
 );
 
@@ -133,6 +166,62 @@ globalThis.game.user.isGM = true;
 await expect('literal + readableBy reveals to an entitled reader',
     { literal: 'Secret Ring', readableBy: 'gm' }, 'Secret Ring');
 
+// --- 4. A document link cannot be influenced by the name inside it ----------
+//
+// Artificer's fixture, and asserted on OUTPUT rather than on which helper got
+// called -- the previous version of this guard checked for a function call and
+// passed against a fix that did not work.
+
+const HOSTILE = 'Ring of *Power* @UUID[Actor.evil]{pwn} [[/r 99d6]]';
+
+async function expectLink(label, item, wanted) {
+    checked++;
+    const got = await documentLinkOrText(item, {});
+    if (got !== wanted) {
+        problems.push(`${label}\n      expected: ${wanted}\n      actual:   ${got}`);
+    }
+}
+
+await expectLink('a hostile name survives whole inside one link',
+    { uuid: RESOLVES, label: HOSTILE },
+    `<a class="content-link" data-uuid="${RESOLVES}">${HOSTILE}</a>`);
+
+// The failure this exists to stop is the SECOND link, so assert the count too:
+// the string above would still be "correct" if it appeared beside a roll link.
+checked++;
+{
+    const got = await documentLinkOrText({ uuid: RESOLVES, label: HOSTILE }, {});
+    const anchors = (got.match(/<a\b/g) ?? []).length;
+    if (anchors !== 1) {
+        problems.push(`a hostile name produced ${anchors} anchors, not 1 -- the label escaped its link:\n      ${got}`);
+    }
+    if (/\[\[\/r/.test(got) && !got.includes(HOSTILE)) {
+        problems.push(`a hostile name produced roll syntax outside its own text:\n      ${got}`);
+    }
+}
+
+// No enricher pass means no expression for a name to close. This is the property
+// the whole fix rests on, so it is asserted rather than assumed.
+checked++;
+{
+    const before = enrichCalls;
+    await documentLinkOrText({ uuid: RESOLVES, label: HOSTILE }, {});
+    if (enrichCalls !== before) {
+        problems.push('the document-link path called the enricher -- it must build the anchor, not write syntax for something else to parse');
+    }
+}
+
+await expectLink('an unresolvable uuid falls back to the escaped name',
+    { uuid: 'Item.missing', label: '<b>Ghost</b>' }, '&lt;b&gt;Ghost&lt;/b&gt;');
+
+// The uuid is a raw string checked before use, with no decode in between.
+await expectLink('a uuid carrying a bracket builds no link at all',
+    { uuid: 'Item.abc]{x}', label: 'Ring' }, 'Ring');
+
+// Without a uuid it is ordinary consumer text again, marks and all.
+await expectLink('no uuid falls back to the full text pipeline',
+    { label: '**bold**' }, '<strong>bold</strong>');
+
 // --- Report ----------------------------------------------------------------
 
 if (problems.length) {
@@ -142,4 +231,4 @@ if (problems.length) {
     process.exit(1);
 }
 
-console.log(`check-card-text: ${checked} checks passed (escaping and marks, literals and segments, veil denial). Enrichment is not covered here -- no TextEditor outside Foundry.`);
+console.log(`check-card-text: ${checked} checks passed (escaping and marks, literals and segments, veil denial, document links). The enricher is an identity stub here -- what Foundry's own does to a string is not covered.`);
