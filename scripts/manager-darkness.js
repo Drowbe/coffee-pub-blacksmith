@@ -76,7 +76,7 @@ class DarknessManager {
             callback: () => this.applyToActiveScene()
         });
 
-        WorldClockManager.registerContextMenuProvider(() => this.getContextMenuItems());
+        WorldClockManager.registerOptionProvider(() => this.getContextMenuItems());
 
         postConsoleAndNotification(MODULE.NAME, "Darkness: Driver registered", "", true, false);
     }
@@ -280,7 +280,9 @@ class DarknessManager {
         const locked = !!scene.environment?.darknessLock;
 
         const items = [{
-            name: enabled ? `Darkness follows the clock on ${scene.name}` : `Let the clock control darkness on ${scene.name}`,
+            // Names the scene, because the menu is opened from the menubar rather than
+            // from the scene, and "this scene" is ambiguous when several are open.
+            name: `Darkness Control on ${scene.name}`,
             icon: enabled ? 'fa-solid fa-square-check' : 'fa-regular fa-square',
             // UIContextMenu invokes `callback`. `onClick` is the MENUBAR adapter's
             // shape, and passing it here produces a menu whose entries silently do

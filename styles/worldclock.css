@@ -33,6 +33,12 @@
     border-radius: 4px;
 }
 
+/* A GM's clock opens a menu on click, so it has to look clickable. The sun keeps
+   its own `grab` cursor, since it does something different. */
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) {
+    cursor: pointer;
+}
+
 .worldclock-section .worldclock-time {
     /* Tabular figures so the digits keep their columns as the time changes.
        Without it a proportional "1" is narrower than a "9" and the text jitters

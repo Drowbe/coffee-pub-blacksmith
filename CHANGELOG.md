@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A menu on the world clock: rest, set the time, set the date** (`scripts/manager-worldclock.js`, `scripts/manager-darkness.js`). Opens on a **left** click as well as a right one -- a right-click-only menu on a strip of read-outs is a menu nobody finds. GM only, since every entry either changes the world's time or rests the party; players get no menu rather than an empty one.
+
+  **Long Rest and Short Rest route to the system**, calling `longRest()`/`shortRest()` on `game.actors.party` so dnd5e posts its own request card and applies its own recovery. Rest Recovery and anything else hooking rests keeps working untouched. Blacksmith is not in the rest business -- it moves the clock afterwards and nothing else. With no primary party set the entries render disabled with a line saying why, rather than vanishing.
+
+  **Set Date opens the system's own `SetDateDialog`** (`dnd5e.applications.calendar.SetDateDialog`) rather than a copy of it. It already knows the configured calendar's months, leap years and year offset, and a picker that disagreed with the system about what year it is would be worse than no picker. Only the dialog is borrowed; the system's calendar HUD stays hidden.
+
+  **Set Time is ours, and deliberately separate.** Moving to eight in the evening is a different act from moving to next Tuesday, and one dialog asking for both makes the common case carry the rare one's fields. Bounds come from the calendar, so a twenty-hour day offers twenty hours, and the time is rebuilt from the day's start rather than added as a delta so only the time of day moves.
+
+  **Options is a submenu**, holding the darkness toggle that previously sat at the top level. The top level is for what a GM does *to the world*; Options is for how the clock behaves, and mixing them puts the dangerous entries beside the preferences. `registerContextMenuProvider` became `registerOptionProvider` to say where contributed entries land, and a provider that throws is caught so the menu still builds.
+
+  Two click cases needed handling: clicks beginning on the sun are ignored, since it is the drag handle, and a click immediately following a drag is suppressed -- a pointerup after dragging is followed by a click, which would otherwise open the menu on top of the gesture that just ended.
+
 - **A scheduling API for in-world time, and rests that move the clock** (`scripts/api-worldclock.js`, `scripts/manager-rest.js`, `scripts/settings.js`). Two pieces, both of which exist because core says less than it looks like it does.
 
   **`api.worldClock.schedule()` answers "tell me when the world crosses X".** Core broadcasts `updateWorldTime` on every change, but it only ever says the number moved -- a consumer wanting to know that dawn broke, or a festival arrived, has to diff the time itself, and the edge cases are the entire job. Schedules take either an absolute `at` or a recurring `dailyAt`, with `gmOnly`, and are documented in `documentation/api/api-worldclock.md`.
@@ -17,7 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **Rests now move the clock, controlled by a new Rests Move the Clock setting.** This is deliberately not a rest implementation: dnd5e already has all of it -- `shortRest()`, `longRest()`, group rests, full recovery, and three duration variants in `CONFIG.DND5E.restTypes` (short 60/480/1 minutes, long 480/10080/60 for normal, gritty and epic). It even advances the clock itself at `dnd5e.mjs:34982`, and simply defaults that off, so the only thing missing was a table-level decision instead of a checkbox re-ticked at every rest dialog.
 
-  **The one real problem was group rests.** dnd5e fires `restCompleted` once per party member with no `preGroupRest` hook to intercept the group as a whole, so advancing on each completion would move the clock eight hours per character -- forty hours for a party of five. Completions are collected over a short window and the clock advances once, by the maximum duration rather than the sum. If any completion in that burst had dnd5e's own `advanceTime` enabled, Blacksmith stands down entirely rather than advancing a second time.
+  **The one real problem was party rests, which happen in two shapes that need different handling.** dnd5e gives no `preGroupRest` hook to intercept a party rest as a whole, so both shapes arrive as a series of individual `restCompleted` events -- and advancing on each would move the clock eight hours *per character*, forty hours for a party of five.
+
+  A **requested** rest (`autoRest` false, and what the party sheet's rest button does) posts a request card and rests nobody `dnd5e.mjs:69799`; each character then rests individually as their player accepts, with its own dialog, **minutes apart**. A first implementation coalesced completions on a short timer, which is exactly wrong here -- the gaps are however long a person takes to click, and testing produced eight hours per character.
+
+  Every acceptance of one request carries the same `config.request.id`, and the request message carries the roster as `system.targets` (`dnd5e.mjs:70835`), so the clock **waits for the last character to rest** and ignores anything after. The party is not eight hours later until everyone has actually slept, and advancing on the first acceptance put the party at dawn while half of them had not begun. The objection -- that one player who never clicks freezes the clock -- is answered by the request card itself, which lets the GM resolve any outstanding character; a request genuinely abandoned simply never advances, which is the honest outcome for a rest that never happened. Acceptances are tracked by actor uuid rather than counted, so one character resting twice does not stand in for two, and progress is tracked here rather than read from dnd5e's own per-target results because `restCompleted` fires *inside* the rest, before the result message exists. A single-character request, or one whose roster cannot be read, advances immediately -- an early clock is a smaller failure than one that never moves.
+
+  An **automatic** rest (`autoRest` true, and the shape of the party-rest macros that circulate) rests every member in a tight loop with no request id, so the timer remains the right tool there and coalesces the burst into one advance by the maximum duration rather than the sum. Both mechanisms are needed; neither alone covers both shapes.
+
+  If any completion had dnd5e's own `advanceTime` enabled, Blacksmith stands down entirely rather than advancing a second time.
 
   `scripts/manager-rest.js` is deliberately its own file rather than part of the clock, because food, water and exhaustion automation are intended to live there and are rest concerns rather than time concerns.
 

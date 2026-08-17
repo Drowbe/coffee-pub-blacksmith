@@ -458,20 +458,25 @@ class WorldClockManager {
     }
 
     /**
-     * Add an entry to the clock's right-click menu.
+     * Contribute an entry to the clock menu's **Options** submenu.
      *
      * A seam rather than a hard-coded list, so a feature that hangs off the clock --
      * the darkness driver is the first -- can offer a control without the clock
-     * having to import it. Keeps the arrow pointing one way.
+     * having to import it. Keeps the dependency arrow pointing one way.
+     *
+     * Entries land under Options rather than at the top level because the top level
+     * is for things a GM does *to the world* -- rest, set the time -- and these are
+     * settings for how the clock behaves. Mixing the two makes a menu where the
+     * dangerous items and the preferences sit side by side.
      *
      * @param {Function} provider Returns an array of UIContextMenu items, or nothing.
      */
-    static registerContextMenuProvider(provider) {
-        if (typeof provider === 'function') this._contextMenuProviders.push(provider);
+    static registerOptionProvider(provider) {
+        if (typeof provider === 'function') this._optionProviders.push(provider);
     }
 
     /** @type {Function[]} */
-    static _contextMenuProviders = [];
+    static _optionProviders = [];
 
     /**
      * How far through the day a set of components sits, as 0..1.
@@ -747,30 +752,34 @@ class WorldClockManager {
         const body = section.querySelector('.worldclock-body');
         if (sky && body) body.addEventListener('pointerdown', (event) => this._beginDrag(event, section, sky));
 
-        section.addEventListener('contextmenu', (event) => this._showContextMenu(event));
+        // LEFT click opens the menu, because a right-click-only menu on a strip of
+        // read-outs is a menu nobody finds. Right-click keeps working for anyone who
+        // reaches for it.
+        section.addEventListener('click', (event) => {
+            // The sun is the drag handle, not a menu button. Ignoring clicks that
+            // START on it is not enough on its own: a drag released over the sky
+            // reports the sky as the click target, so the gesture is also flagged.
+            if (event.target.closest?.('.worldclock-body')) return;
+            if (this._suppressClick) return;
+            this._showMenu(event);
+        });
+        section.addEventListener('contextmenu', (event) => this._showMenu(event));
     }
 
     /**
-     * The clock's right-click menu, assembled from whatever has registered an entry.
+     * The clock menu. Opens on a LEFT click as well as a right one, because a
+     * right-click-only menu on a bar of read-outs is a menu nobody finds.
      *
-     * Suppressed entirely when nothing has -- an empty menu is worse than no menu,
-     * and the browser's own context menu is more useful than a blank box.
+     * GM only: every entry either changes the world's time or rests the party.
+     * Players get no menu at all rather than an empty one.
      *
-     * `stopPropagation` matters: the menubar has its own delegated `contextmenu`
-     * handler on the container, and without this both would act on the same click.
+     * `stopPropagation` matters: the menubar has its own delegated handlers on the
+     * container, and without it both would act on the same click.
      */
-    static _showContextMenu(event) {
-        const items = this._contextMenuProviders
-            .flatMap((provider) => {
-                try {
-                    return provider() ?? [];
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, "WorldClock: A context menu provider threw", error, false, false);
-                    return [];
-                }
-            })
-            .filter(Boolean);
+    static _showMenu(event) {
+        if (!game.user?.isGM) return;
 
+        const items = this._buildMenuItems();
         if (!items.length) return;
 
         event.preventDefault();
@@ -783,6 +792,182 @@ class WorldClockManager {
             zones: items,
             zoneClass: 'gm'
         });
+    }
+
+    /**
+     * The menu, top to bottom: what a GM does to the world, then what they set, then
+     * how the clock behaves.
+     */
+    static _buildMenuItems() {
+        const party = game.actors?.party ?? null;
+        const items = [];
+
+        // REST. Routed through the party actor so dnd5e does what it always does --
+        // posts its request card, applies its own recovery rules, and lets Rest
+        // Recovery or anything else hook in. Blacksmith is not in the rest business;
+        // it only moves the clock afterwards.
+        items.push({
+            name: party ? `Long Rest (${party.name})` : 'Long Rest',
+            icon: 'fa-solid fa-campground',
+            disabled: !party,
+            callback: () => this._restParty('longRest')
+        });
+        items.push({
+            name: party ? `Short Rest (${party.name})` : 'Short Rest',
+            icon: 'fa-solid fa-utensils',
+            disabled: !party,
+            callback: () => this._restParty('shortRest')
+        });
+
+        if (!party) {
+            items.push({
+                name: 'No primary party is set, so there is nobody to rest',
+                icon: 'fa-solid fa-circle-info',
+                disabled: true,
+                callback: () => {}
+            });
+        }
+
+        items.push({ separator: true });
+
+        items.push({
+            name: 'Set Time',
+            icon: 'fa-solid fa-clock',
+            callback: () => this._promptSetTime()
+        });
+        items.push({
+            name: 'Set Date',
+            icon: 'fa-solid fa-calendar-days',
+            callback: () => this._openSetDateDialog()
+        });
+
+        const options = this._collectOptionItems();
+        if (options.length) {
+            items.push({ separator: true });
+            items.push({
+                name: 'Options',
+                icon: 'fa-solid fa-sliders',
+                submenu: options
+            });
+        }
+
+        return items;
+    }
+
+    /** Entries contributed through `registerOptionProvider`. */
+    static _collectOptionItems() {
+        return this._optionProviders
+            .flatMap((provider) => {
+                try {
+                    return provider() ?? [];
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "WorldClock: An option provider threw", error, false, false);
+                    return [];
+                }
+            })
+            .filter(Boolean);
+    }
+
+    /**
+     * Rest the party, using the system's own rest rather than anything of ours.
+     * @param {'longRest'|'shortRest'} method
+     */
+    static async _restParty(method) {
+        const party = game.actors?.party;
+        if (!party) return;
+
+        try {
+            await party[method]();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `WorldClock: Failed to start a ${method}`, error, false, false);
+        }
+    }
+
+    /**
+     * The system's own date dialog (`dnd5e.applications.calendar.SetDateDialog`).
+     *
+     * Opened rather than reimplemented: it already knows the configured calendar's
+     * months, its leap years and its year offset, and a date picker that disagreed
+     * with the system's about what year it is would be worse than no picker. This is
+     * the dialog only -- the system's calendar HUD stays hidden.
+     */
+    static _openSetDateDialog() {
+        const DialogClass = game.dnd5e?.applications?.calendar?.SetDateDialog
+            ?? globalThis.dnd5e?.applications?.calendar?.SetDateDialog;
+
+        if (!DialogClass) {
+            ui.notifications?.warn('Setting the date needs the D&D 5e system\'s calendar, which is not available.');
+            return;
+        }
+
+        new DialogClass().render({ force: true });
+    }
+
+    /**
+     * Set the time of day, leaving the date alone.
+     *
+     * Deliberately separate from Set Date. Moving to eight in the evening is a
+     * different act from moving to next Tuesday, and a single dialog asking for both
+     * makes the common one carry the rare one's fields.
+     *
+     * Bounds come from the calendar, so a twenty-hour day offers twenty hours.
+     */
+    static async _promptSetTime() {
+        const calendar = game.time?.calendar;
+        const components = game.time?.components;
+        if (!calendar?.days || !components) return;
+
+        const { hoursPerDay, minutesPerHour, secondsPerMinute } = calendar.days;
+        const secondsPerHour = minutesPerHour * secondsPerMinute;
+        const secondsPerDay = secondsPerHour * hoursPerDay;
+
+        const content = `
+            <div class="form-group">
+                <label>Hour</label>
+                <div class="form-fields">
+                    <input type="number" name="hour" value="${components.hour}" min="0" max="${hoursPerDay - 1}" step="1" autofocus>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Minute</label>
+                <div class="form-fields">
+                    <input type="number" name="minute" value="${components.minute}" min="0" max="${minutesPerHour - 1}" step="1">
+                </div>
+            </div>
+            <p class="notification info">Sets the time of day. The date does not change.</p>
+        `;
+
+        let form;
+        try {
+            form = await foundry.applications.api.DialogV2.prompt({
+                window: { title: 'Set Time', icon: 'fa-solid fa-clock' },
+                content,
+                ok: {
+                    label: 'Set Time',
+                    callback: (_event, button) => new FormDataExtended(button.form).object
+                }
+            });
+        } catch {
+            // Cancelled. DialogV2 rejects rather than resolving, which is not an error.
+            return;
+        }
+
+        if (!form) return;
+
+        const hour = Math.min(Math.max(Math.floor(Number(form.hour) || 0), 0), hoursPerDay - 1);
+        const minute = Math.min(Math.max(Math.floor(Number(form.minute) || 0), 0), minutesPerHour - 1);
+
+        // Rebuilt from the day's start so only the time of day moves. Taking the
+        // current time and adding a delta would drift on any day whose length is not
+        // what the arithmetic assumed.
+        const dayStart = game.time.worldTime
+            - Math.round(this._getDayFraction(calendar, components) * secondsPerDay);
+
+        try {
+            await game.time.set(dayStart + (hour * secondsPerHour) + (minute * secondsPerMinute));
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "WorldClock: Failed to set the time", error, false, false);
+        }
     }
 
     /**
@@ -904,6 +1089,12 @@ class WorldClockManager {
         if (!drag) return;
 
         drag.section.classList.remove('is-dragging');
+
+        // A pointerup after a drag is followed by a click, which would open the menu
+        // on top of the gesture that just finished. Cleared on the next tick, after
+        // that click has been and gone.
+        this._suppressClick = true;
+        setTimeout(() => { this._suppressClick = false; }, 0);
 
         // A click that never moved is not a time change. Without this, tapping the
         // track would write the time it already was, broadcasting to every client to

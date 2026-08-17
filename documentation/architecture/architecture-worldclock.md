@@ -81,6 +81,44 @@ Two consequences that look like style choices and are not:
   of a 24-hour day" and say nothing on a twenty-hour calendar. Anything else falls back to zero-padded
   24-hour, which is well defined for any day length.
 
+## The menu
+
+Opens on a **left** click as well as a right one. A right-click-only menu on a strip of read-outs is a
+menu nobody finds. GM only -- every entry either changes the world's time or rests the party -- so players
+get no menu rather than an empty one.
+
+```
+Long Rest (party)      calls the system's own rest on game.actors.party
+Short Rest (party)
+---
+Set Time               our dialog: time of day only, bounds from the calendar
+Set Date               the system's dnd5e.applications.calendar.SetDateDialog
+---
+Options >              contributed through registerOptionProvider
+    Darkness Control on <scene>
+```
+
+**Rest routes to the system.** `party.longRest()` posts dnd5e's request card and applies its own recovery,
+so Rest Recovery and anything else hooking rests keeps working. Blacksmith is not in the rest business; it
+moves the clock afterwards and nothing more.
+
+**Set Date opens the system's dialog rather than a copy.** It already knows the configured calendar's
+months, leap years and year offset, and a picker that disagreed with the system about what year it is would
+be worse than none. Only the dialog is used -- the system's calendar HUD stays hidden.
+
+**Set Time is separate from Set Date, and ours.** Moving to eight in the evening is a different act from
+moving to next Tuesday, and one dialog asking for both makes the common case carry the rare one's fields.
+It rebuilds the time from the day's start rather than adding a delta, so only the time of day moves.
+
+**Options is a submenu, and the seam feeds it.** The top level is for things a GM does *to the world*;
+Options is for how the clock behaves. Mixing them puts the dangerous items beside the preferences.
+`registerOptionProvider` lets a feature contribute without the clock importing it -- the darkness driver is
+the first and only user. A provider that throws is caught and the menu still builds.
+
+Clicks that begin on the sun are ignored, and a click immediately following a drag is suppressed: a
+pointerup after dragging is followed by a click, which would otherwise open the menu on top of the gesture
+that just ended.
+
 ## The drag handle is the sun, not the panel
 
 Dragging anywhere on the sky was the first version and was wrong twice over.
