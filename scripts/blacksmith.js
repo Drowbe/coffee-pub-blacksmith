@@ -432,13 +432,45 @@ Hooks.once('ready', async () => {
         });
     }
 
+    // Imported HERE, ahead of the first early exit, and not later where it is first
+    // used. Every bail-out below has to be able to mark the API ready, and for as
+    // long as this import sat further down, none of them could -- which is precisely
+    // why they did not. Hoisting it is free: the module has no imports of its own, so
+    // there is no cycle, and its only import-time side effect registers a
+    // `Hooks.once('ready')` that logs, which behaves identically at either position
+    // because both are already inside `ready`.
+    const { BlacksmithAPI } = await import('../api/blacksmith-api.js');
+
+    /**
+     * Abandon `ready` without stranding the modules waiting on us.
+     *
+     * `BlacksmithAPI.waitForReady()` returns a promise that is only ever RESOLVED,
+     * never rejected, so an exit that skips `markReadyForConsumers()` leaves every
+     * consumer awaiting `getHookManager()` hanging forever with nothing logged on
+     * their side. Three of the four exits below used to do exactly that.
+     *
+     * Marking ready after a failure hands consumers a degraded API, which is the
+     * point: a module that gets a half-built API fails loudly and says so, while one
+     * that never wakes up presents as a feature that silently stopped existing. The
+     * asset-merge branch already worked this way; the others now match it.
+     */
+    const bailOutOfReady = (stage, error) => {
+        console.error(`${MODULE.ID}: ${stage} failed (early ready)`, error);
+        LoadingProgressManager.forceHide();
+        try {
+            BlacksmithAPI.markReadyForConsumers();
+            console.warn(`${MODULE.ID}: API marked ready in a DEGRADED state after ${stage} failed — consumers may see missing features.`);
+        } catch (readyError) {
+            console.error(`${MODULE.ID}: markReadyForConsumers threw during bail-out; consumers will hang`, readyError);
+        }
+    };
+
     // Defaults load only from shipped `resources/asset-defaults/*.json` (fetch). No separate sync bundle or Node build.
     let baseBundles;
     try {
         baseBundles = await loadDefaultAssetBundlesFromJson();
     } catch (e) {
-        console.error(`${MODULE.ID}: loadDefaultAssetBundlesFromJson failed (early ready)`, e);
-        LoadingProgressManager.forceHide();
+        bailOutOfReady('loadDefaultAssetBundlesFromJson', e);
         return;
     }
 
@@ -449,8 +481,7 @@ Hooks.once('ready', async () => {
         refreshAssetDerivedChoices();
         if (mod?.api) mod.api.assetLookup = assetLookup;
     } catch (e) {
-        console.error(`${MODULE.ID}: initializeAssetLookupInstance failed (early ready)`, e);
-        LoadingProgressManager.forceHide();
+        bailOutOfReady('initializeAssetLookupInstance', e);
         return;
     }
 
@@ -469,8 +500,7 @@ Hooks.once('ready', async () => {
         await compactCompendiumMappingsOnLoad();
         LoadingProgressManager.reconcileVisibilityFromSetting();
     } catch (e) {
-        console.error(`${MODULE.ID}: registerSettings failed (early ready)`, e);
-        LoadingProgressManager.forceHide();
+        bailOutOfReady('registerSettings', e);
         return;
     }
 
@@ -501,22 +531,18 @@ Hooks.once('ready', async () => {
         MenuBar.initialize();
         await MenuBar.runReadySetup();
     } catch (e) {
-        console.error(`${MODULE.ID}: MenuBar.runReadySetup failed`, e);
-        LoadingProgressManager.forceHide();
+        bailOutOfReady('MenuBar.runReadySetup', e);
         return;
     }
 
     // Optional per-category Asset Mapping overrides (fetch; merge after default JSON baseline is live).
-    const { BlacksmithAPI } = await import('../api/blacksmith-api.js');
     try {
         const mergedBundles = await loadAssetBundlesWithOverrides(baseBundles);
         initializeAssetLookupInstance(mergedBundles);
         refreshAssetDerivedChoices();
         if (mod?.api) mod.api.assetLookup = assetLookup;
     } catch (e) {
-        console.error(`${MODULE.ID}: loadAssetBundlesWithOverrides / merge failed`, e);
-        LoadingProgressManager.forceHide();
-        BlacksmithAPI.markReadyForConsumers();
+        bailOutOfReady('loadAssetBundlesWithOverrides / merge', e);
         return;
     }
 
