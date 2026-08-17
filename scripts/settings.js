@@ -3522,7 +3522,10 @@ export const registerSettings = () => {
 		scope: 'world',
 		config: true,
 		type: Boolean,
-		default: false,
+		// ON. Ours now carries everything the system's did -- recovery, hit dice,
+		// slots, uses, exhaustion -- and a rest that posts two cards saying the same
+		// thing is the problem this feature exists to remove.
+		default: true,
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 

@@ -31,6 +31,7 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { postRestCard, updateRestCard, isForagePending } from './cards-rest.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
+import { SocketManager } from './manager-sockets.js';
 
 class RestManager {
 
@@ -431,20 +432,19 @@ class RestManager {
     // ===== THE FORAGE BUTTON ======================================
     // ==============================================================
 
+    /** Socket handler name for the GM hop. */
+    static FORAGE_GM_PROXY = 'restForageResolved';
+
     static _registerForageAction() {
         ChatCardsAPI.registerAction(MODULE.ID, 'forage', ({ message }) => this._onForageClicked(message));
 
-        // The result comes back here rather than to the clicker: the roll happens in
-        // the roll window and the hook fires on every client, so the GM -- the only
-        // one who may write the card -- picks it up wherever it was rolled. No socket
-        // hop of our own is needed.
-        HookManager.registerHook({
-            name: 'blacksmith.rolls.skillCheckResolved',
-            description: 'Rest: Resolve a foraging check when its roll lands',
-            context: 'rest-time',
-            priority: 4,
-            callback: (outcome) => this._onSkillCheckResolved(outcome)
-        });
+        // The GM must have this registered for a player's roll to reach them --
+        // `executeAsGM` runs the handler on the GM's client, not the caller's.
+        try {
+            SocketManager.getSocket()?.register?.(this.FORAGE_GM_PROXY, (payload) => this._applyForage(payload));
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Rest: Could not register the forage socket handler", error, false, false);
+        }
     }
 
     /**
@@ -479,97 +479,52 @@ class RestManager {
 
         const dc = Number(state.provisions?.dc) || this._forageDC();
 
-        // OUR ROLL TOOL, through the public Request a Roll surface.
+        // OUR ROLL WINDOW, AND NO SECOND CARD. `api.rolls.promptRoll` opens the full
+        // window -- modifiers, named bonuses, advantage -- and hands the result back
+        // rather than writing it anywhere. We already have the card it belongs on.
         //
-        // `orchestrateRoll` was the first attempt and is the wrong level: it REQUIRES
-        // an existing skill-check card and throws without one ("chat card must be
-        // created first by skillcheck dialog", `manager-rolls.js:161`). It updates a
-        // card; it cannot make one. `openRequestRollDialog({ silent: true })` is the
-        // documented way to create the request, and the player then rolls it with the
-        // same window, modifier field and card they already know.
-        //
-        // The actor entry uses `{ actorId, tokenId }` deliberately: an object shaped
-        // `{ id, actorId }` falls through to matching EVERY placeable for that actor,
-        // which silently produces two rows for a character with two tokens on the
-        // scene (documented in api-requestroll.md).
+        // Two earlier attempts are worth not repeating. `orchestrateRoll` REQUIRES an
+        // existing skill-check card and throws without one; it updates a card, it
+        // cannot make one. `openRequestRollDialog({ silent: true })` works, but posts
+        // a whole second card for a single check, which is the thing this feature is
+        // supposed to be removing. The card-free mode was the missing piece, and it
+        // is now public API rather than something bent to fit here.
+        let results = null;
         try {
-            const api = game.modules?.get(MODULE.ID)?.api;
-            if (typeof api?.openRequestRollDialog !== 'function') {
-                ui.notifications?.warn('The roll tool is not available.');
-                return;
-            }
-
-            await api.openRequestRollDialog({
-                silent: true,
-                title: `Foraging — ${actor.name}`,
-                initialType: 'skill',
-                initialValue: 'sur',
+            const { promptRoll } = await import('./manager-rolls.js');
+            results = await promptRoll({
+                actor,
+                type: 'skill',
+                value: 'sur',
                 dc,
-                showDC: true,
-                groupRoll: false,
-                actors: [{ actorId: actor.id, tokenId: actor.token?.id ?? actor.getActiveTokens?.()?.[0]?.id ?? null, name: actor.name }]
+                title: 'Foraging',
+                tokenId: actor.token?.id ?? actor.getActiveTokens?.()?.[0]?.id ?? null
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Rest: Could not open the forage roll for ${actor.name}`, error, false, false);
+            return;
         }
-    }
 
-    /**
-     * A skill check finished somewhere. If it was one of ours, resolve that card.
-     *
-     * Subscribed rather than awaited, because `orchestrateRoll` hands the roll to the
-     * roll window and returns -- the answer arrives whenever the player is done with
-     * it. `blacksmith.rolls.skillCheckResolved` carries the actor and the total
-     * (`api-rolls.js:94`), which is everything needed to find the card this belongs
-     * to and finish it.
-     */
-    static async _onSkillCheckResolved(outcome) {
-        // GM only: this ends in a scene-level write and a message rewrite, and every
-        // client sees the hook. Without this the outcome would be applied once per
-        // connected player.
-        if (!game.user?.isGM) return;
-        if (outcome?.rollType && (outcome.rollType !== 'skill')) return;
-
-        // `Number(null)` is 0, not NaN, so a missing total would otherwise arrive as
-        // a roll of zero and resolve the check as an automatic failure. Absent and
-        // zero are different answers and only one of them is a roll.
-        if (outcome?.total == null) return;
-
-        const total = Number(outcome.total);
+        // Closed without rolling. Nothing is decided and the button stays.
+        const total = Number(results?.roll?.total);
         if (!Number.isFinite(total)) return;
 
-        const card = this._findPendingForageCard(outcome?.actorId);
-        if (!card) return;
+        const payload = { messageId: message.id, actorUuid: state.actorUuid, total, dc };
 
-        const state = card.getFlag(MODULE.ID, 'rest');
-        const dc = Number(state.provisions?.dc) || this._forageDC();
-
-        await this._applyForage({ messageId: card.id, actorUuid: state.actorUuid, total, dc });
-    }
-
-    /**
-     * The most recent rest card still owing a foraging check for this actor.
-     *
-     * Searched newest-first because a character can rest many times in a campaign and
-     * only the current one is owed. The card carries the actor uuid in its own flag,
-     * so this needs nothing held in memory and works after a reload.
-     */
-    static _findPendingForageCard(actorId) {
-        if (!actorId) return null;
-
-        const messages = game.messages?.contents ?? [];
-        for (let i = messages.length - 1; i >= 0; i--) {
-            const message = messages[i];
-            const state = message.getFlag?.(MODULE.ID, 'rest');
-            if (!state || !isForagePending(state)) continue;
-
-            // Compare on the id rather than the uuid: the hook reports an actor id,
-            // and a token actor's uuid is not the same string.
-            const uuid = String(state.actorUuid ?? '');
-            if (uuid.endsWith(actorId)) return message;
+        // Only a GM may rewrite the card or write exhaustion, and the roll may have
+        // been made by a player. Same GM proxy the pins and tags managers use.
+        if (game.user?.isGM) {
+            await this._applyForage(payload);
+            return;
         }
 
-        return null;
+        const socket = SocketManager.getSocket();
+        if (typeof socket?.executeAsGM !== 'function') {
+            ui.notifications?.warn('Your roll could not be applied: no GM is connected. Ask your GM to resolve it.');
+            return;
+        }
+
+        await socket.executeAsGM(this.FORAGE_GM_PROXY, payload);
     }
 
     /**

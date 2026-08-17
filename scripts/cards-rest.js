@@ -350,13 +350,12 @@ export function buildForageParts(state) {
 
     if (pending) {
         parts.push({
-            // Says what pressing it DOES, because it posts a roll request rather than
-            // rolling on the spot -- a button labelled only "Roll" would be a small
-            // lie about where the dice happen.
+            // It opens the roll window and the answer lands on this card. No second
+            // card is posted, so "Roll" is the honest label again.
             part: 'actions',
             instruction: `${state.name ?? 'This character'} has no food or water.`,
             buttons: [{
-                label: 'Request Survival Check',
+                label: 'Roll Survival',
                 icon: 'fa-solid fa-dice-d20',
                 action: 'forage',
                 moduleId: MODULE.ID

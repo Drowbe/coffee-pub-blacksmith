@@ -43,6 +43,30 @@ export class RollsAPI {
         return classify(input, options);
     }
 
+    /**
+     * Open the roll window for one actor and resolve with the result.
+     *
+     * The card-free mode. Every other entry point into the roll pipeline is built
+     * around a skill-check chat card -- `orchestrateRoll` requires an existing
+     * message and throws without one -- so a consumer with its own place to put the
+     * answer had nowhere to stand. This creates no chat message and updates none.
+     *
+     * The player still gets the full window: modifiers, named bonuses, advantage and
+     * roll mode.
+     *
+     * ```js
+     * const result = await api.rolls.promptRoll({ actor, value: 'sur', dc: 12, title: 'Foraging' });
+     * if (result) console.log(result.roll.total);
+     * ```
+     *
+     * @param {object} options See `promptRoll` in `manager-rolls.js`.
+     * @returns {Promise<object|null>} Roll results, or null if closed without rolling.
+     */
+    static async promptRoll(options = {}) {
+        const { promptRoll } = await import('./manager-rolls.js');
+        return promptRoll(options);
+    }
+
     /** @param {Roll|object|null} rollOrResult @returns {number|null} */
     static extractActiveD20(rollOrResult) {
         return extractActiveD20(rollOrResult);

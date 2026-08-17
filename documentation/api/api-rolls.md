@@ -131,6 +131,37 @@ forwards over the socket). Damage is not a roll, so this event does **not** also
 `hp.before/after/max` makes threshold logic one-liners: `amount >= hp.max / 2` (massive hit),
 `hp.before > hp.max / 2 && hp.after <= hp.max / 2` (dropped to bloodied), `hp.after === 0`.
 
+## promptRoll — a roll with no chat card
+
+```javascript
+const result = await api.rolls.promptRoll({ actor, value: 'sur', dc: 12, title: 'Foraging' });
+if (result) console.log(result.roll.total);
+```
+
+Opens the roll window for one actor and resolves with the result. **It creates no chat message and updates
+none.** The player still gets the full window: modifiers, named bonuses, advantage, roll mode.
+
+Use it when your module already has somewhere to put the answer -- a card of your own, a window, a running
+tally -- and a second chat card would be noise.
+
+| Option | Type | Meaning |
+|---|---|---|
+| `actor` | Actor | Required. |
+| `value` | string | Required. Skill, ability or save key -- `'sur'`, `'dex'`. |
+| `type` | string | `'skill'` (default), `'ability'` or `'save'`. |
+| `dc` | number | Shown in the window when given. |
+| `title` | string | Window heading. Defaults to the roll's own name. |
+| `subtitle` | string | |
+| `rollMode` | string | Default `'roll'`. |
+| `tokenId` | string | |
+
+Resolves to the roll results, or **`null` if the window was closed without rolling** -- which is a normal
+outcome, not an error, and means "nothing was decided".
+
+Every other entry point into the roll pipeline is built around a skill-check chat card:
+`orchestrateRoll` requires an existing message and throws without one. This is the mode for consumers that
+are not that card.
+
 ## Pull API (secondary)
 
 When you already hold a roll or message:

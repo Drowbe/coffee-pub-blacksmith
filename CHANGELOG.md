@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`api.rolls.promptRoll()` — a roll with no chat card** (`scripts/manager-rolls.js`, `scripts/api-rolls.js`). Opens the roll window for one actor and resolves with the result, creating no chat message and updating none. The player still gets the full window: modifiers, named bonuses, advantage, roll mode.
+
+  **This was a real gap in the roll pipeline, found by hitting it three times.** Every entry point was built around a skill-check chat card. `orchestrateRoll` *requires* an existing message and throws without one -- it updates a card, it cannot make one. `openRequestRollDialog({ silent: true })` works but posts a whole second card for a single check. A consumer that already has somewhere to put the answer had nowhere to stand, and the only ways through were to fake a card or to accept an extra one.
+
+  The fix is small because the pipeline was already the right shape: `processRoll()` does the roll and `deliverRollResults()` writes it to a card, and the window simply always called both. A caller may now pass `onResolve`, in which case the window hands the outcome back instead. Closing without rolling resolves `null`, which is a normal outcome meaning "nothing was decided" rather than an error.
+
+  Documented in `documentation/api/api-rolls.md`. Every module gets it, not just rest.
+
 - **Players roll their own foraging check, from a button on the rest card** (`scripts/manager-rest.js`, `scripts/cards-rest.js`). A character short of food or water no longer has the check rolled for them invisibly: their card carries a **Forage** button, and pressing it opens the system's own roll dialog so they can take advantage, spend inspiration, or just see their dice. The result rewrites that row and applies any exhaustion. Setting: *Players Roll to Forage*, on by default.
 
   **`rollSkill` returns its rolls to the caller**, which removed the whole problem the plan had been circling. No hook subscription to learn the result, no second request card, and no new roll entry point in `manager-rolls.js` -- the clicking client simply has the total.

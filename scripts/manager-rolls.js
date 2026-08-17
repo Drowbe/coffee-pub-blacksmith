@@ -129,6 +129,85 @@ import { SkillCheckDialog } from './window-skillcheck.js';
 // }
 
 /**
+ * Open the roll window for one actor and RESOLVE WITH THE RESULT.
+ *
+ * The mode the roll pipeline was missing. Everything else here is built around a
+ * skill-check chat card: `orchestrateRoll` requires an existing message and throws
+ * without one, and the window always hands its result to `deliverRollResults`,
+ * which updates that card. A caller with its own place to put the answer -- a rest
+ * card, a window, a running tally -- had nowhere to stand.
+ *
+ * This creates no chat message, updates none, and needs none. The player still gets
+ * the full roll window: modifiers, named bonuses, advantage, roll mode.
+ *
+ * ```js
+ * const result = await api.rolls.promptRoll({ actor, value: 'sur', dc: 12, title: 'Foraging' });
+ * if (result) console.log(result.roll.total);
+ * ```
+ *
+ * @param {object} options
+ * @param {Actor} options.actor          Who is rolling.
+ * @param {string} options.value         Skill, ability or save key -- `'sur'`, `'dex'`.
+ * @param {'skill'|'ability'|'save'} [options.type='skill']
+ * @param {number|null} [options.dc]     Shown in the window when given.
+ * @param {string} [options.title]       Window heading. Defaults to the roll's own name.
+ * @param {string} [options.subtitle]
+ * @param {string} [options.rollMode='roll']
+ * @param {string|null} [options.tokenId]
+ * @returns {Promise<object|null>} The roll results, or null if the window was closed
+ *                                 without rolling.
+ */
+export async function promptRoll({
+    actor, value, type = 'skill', dc = null, title = null, subtitle = null,
+    rollMode = 'roll', tokenId = null
+} = {}) {
+    if (!actor || !value) {
+        postConsoleAndNotification(MODULE.NAME, 'promptRoll: an actor and a roll value are required', '', false, false);
+        return null;
+    }
+
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = (result) => {
+            if (settled) return;
+            settled = true;
+            resolve(result);
+        };
+
+        // GOES THROUGH `showRollWindow`, and must. Constructing `RollWindow` directly
+        // was the first attempt and produced a window with no advantage buttons, no
+        // DC box and no portrait: those are not on the roll data, they are assembled
+        // by `showRollWindow` on top of it. A window you cannot roll from is worse
+        // than no window.
+        //
+        // Deliberately NO messageId. Its absence is what keeps the card-delivery path
+        // out of this, and `onResolve` is what replaces it.
+        const rollData = {
+            actorId: actor.id,
+            actorName: actor.name,
+            rollTypeKey: type,
+            rollValueKey: value,
+            dc,
+            rollMode,
+            tokenId,
+            messageId: null,
+            isGroupRoll: false,
+            hasMultipleGroups: false,
+            onResolve: (results) => finish(results)
+        };
+        if (title) rollData.rollTitle = title;
+        if (subtitle) rollData.rollSubtitle = subtitle;
+
+        // Resolves null when the window closes, which also covers closing after a
+        // roll -- the first answer wins.
+        showRollWindow(rollData).then(() => finish(null)).catch((error) => {
+            postConsoleAndNotification(MODULE.NAME, 'promptRoll: the roll window failed', error, false, false);
+            finish(null);
+        });
+    });
+}
+
+/**
  * 2. orchestrateRoll() - Packages data, selects system, chooses mode
  * @param {object} rollDetails - Complete roll details including actors, roll types, etc.
  * @param {string} existingMessageId - Optional existing message ID to update instead of creating new card
@@ -1024,6 +1103,11 @@ async function showRollWindow(rollData) {
         dialogRollData.rollValueKey = rollData.rollValueKey;
         dialogRollData.actorId = rollData.actorId;
         dialogRollData.rollMode = rollData.rollMode || 'roll';
+
+        // Carried across because `dialogRollData` is built fresh from
+        // `prepareRollData` rather than cloned -- anything not copied here is lost,
+        // and without this a card-free caller's window would roll into nowhere.
+        if (typeof rollData.onResolve === 'function') dialogRollData.onResolve = rollData.onResolve;
         // A DC box with nothing in it is not a DC of nothing, it is a control that
         // should not be there. `|| ' '` filled it with a space, so the label and the
         // empty frame rendered on every roll without one.
@@ -1434,6 +1518,16 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             
             // Execute the roll using the shared processRoll function (includes 3D dice animation)
             const rollResults = await processRoll(this.rollData, rollOptions);
+
+            // CARD-FREE MODE. A caller that opened this window through `promptRoll`
+            // wants the outcome handed back, not written to a chat card -- it already
+            // has somewhere to put it. Everything above this line is the same roll;
+            // only the delivery differs.
+            if (typeof this.rollData.onResolve === 'function') {
+                this.rollData.onResolve(rollResults);
+                this.close();
+                return;
+            }
             postConsoleAndNotification(MODULE.NAME, `RollWindow _executeRoll: Roll completed:`, rollResults, true, false);
             
             // Deliver the results using the shared deliverRollResults function
