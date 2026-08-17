@@ -42,6 +42,89 @@ currently has **zero** references to Scene Config, which is worth keeping true u
 Whatever does this should read the same scene flag the driver uses (`DarknessManager.FLAG`) rather than
 inventing a parallel one, and must survive the sheet re-rendering underneath it.
 
+## World clock: real time when out of combat (opened 2026-08-16)
+
+**Idea, not a commitment.** Outside combat the world clock ticks on its own -- an hour of play is an hour
+in the world, or some multiple of it -- and stops when combat starts, where core's own `CONFIG.time`
+`roundTime`/`turnTime` already advance world time per round instead.
+
+The appeal is obvious: a GM never has to remember to move the clock, and travel and downtime pass on their
+own. Two things make it harder than it sounds, and both should be settled before any of it is written.
+
+**Writing time is a database round trip broadcast to every client.** Advancing once a second is not an
+option; it would be 3600 world-setting writes an hour, each one waking every connected client and firing
+`updateWorldTime` on all of them -- which now also runs the darkness driver. The design has to decouple
+*ticking* from *writing*: advance in coarse commits (a minute of world time, or one commit every N real
+seconds) while any smooth display is computed locally between them.
+
+**Which client owns the tick.** Only a GM can write, so only a GM may tick -- and with two GMs connected,
+two tickers would both advance the same clock and time would run at double speed. Whatever does this needs
+a single-owner rule, and to stop cleanly when that owner disconnects.
+
+Also worth deciding: whether the ratio is configurable (1:1 is rarely what a table wants -- a four-hour
+session is not four in-world hours), whether it pauses when the game is paused as well as in combat, and
+what happens to a rest that is already running.
+
+## World clock: where it could go next (opened 2026-08-16)
+
+**Ideas, not commitments** -- the author's list, with what the research says about each. Nothing here is
+decided, and several items are placement questions rather than build questions.
+
+### The list splits into two piles
+
+**Time itself** belongs to the clock and to this module: finer time control, changing the date, and letting
+a rest move the clock.
+
+**Things that HAPPEN at a time** are features -- rests, calendar events, weather, a morning briefing -- and
+by the direction-of-travel rule they belong in siblings. What makes that possible is an API, and building
+that API is the Blacksmith-shaped part of this whole list.
+
+### The two API pieces everything else needs
+
+The clock currently *displays* and *sets* time. It emits nothing beyond core's `updateWorldTime`, which
+fires on every change and says only "the number moved". Two additions would unblock the entire second pile
+without Blacksmith ever having to know what a festival or a rainstorm is:
+
+1. **"Tell me when the world crosses X."** A scheduled or threshold notification -- a date, a time of day, a
+   recurring hour. Calendar events, weather changes and a morning briefing are all the same request wearing
+   different hats.
+2. **"Advance time gradually, and let it be interrupted."** A rest that takes eight in-world hours, running
+   under GM control, stoppable partway. This is the one genuinely novel thing on the list.
+
+### What the research already settles
+
+- **Do not build resting.** dnd5e ships `actor.shortRest()` and `actor.longRest()`, *and* group rests
+  (`dnd5e.mjs:69793`) with a `dnd5e.groupRestCompleted` hook. "Change time based on rests" is therefore a
+  hook listener that advances the clock -- small -- and "trigger a rest" is a button that calls the
+  system's own method. Neither is a rest implementation.
+- **Do not build a date picker without looking first.** `CalendarData5e.jumpToDate({year, month, day})`
+  exists (`dnd5e.mjs:1532`) and the system ships a calendar HUD that already offers one. "Change the date"
+  may be a button that opens what is already there.
+- **Do not build weather.** FXMaster is installed in this world. Weather is then "drive FXMaster from the
+  season and the clock", which is a different and much smaller job than a weather engine -- and one that
+  clearly belongs in a sibling, not the hub.
+- **There is precedent for the timed rest.** `timer-round.js`, `timer-planning.js` and `timer-combat.js`
+  are all timers with lifecycle and interruption; a rest timer is the same shape over world time rather
+  than wall time.
+
+### The interesting one
+
+**A long rest the clock drives.** The GM starts it, world time advances across the rest's duration, and the
+GM can interrupt partway -- rolling for encounters, having something happen at hour three, resuming or
+abandoning. Nothing in the ecosystem does this, it is the item with no off-the-shelf answer, and it is the
+reason the "advance gradually, interruptibly" API is worth building rather than faking with a single jump.
+
+Note that an interrupted rest is not a rest: the system's own rest recovery must only run if the rest
+*completes*, which is precisely why this cannot be "call `longRest()` and then advance the clock".
+
+### Dependencies
+
+The morning briefing wants weather and events to exist first, so it is last wherever it lives. Everything
+else is independent.
+
+**Placement decisions move to `documentation/TODO-GLOBAL.md` once they are actually made** -- which sibling
+owns weather, rests and briefings is cross-module work, and does not belong in this file.
+
 ## Advantage/disadvantage discards a built formula's keep modifier (opened 2026-08-16)
 
 **Reported from play:** build `4d6kh3` in the dice tray, click Disadvantage, and the `kh3` is gone.

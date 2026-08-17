@@ -125,6 +125,37 @@ if (queried.size === 0) {
     problems.push(`${MANAGER}: found no .worldclock-* selectors at all — has the naming changed?`);
 }
 
+// --- 2b. Nothing may claim ::before on an element that carries a Font Awesome icon
+//
+// Font Awesome draws its glyph AS `::before { content: "..." }`. Any rule of ours
+// setting `content` on the same pseudo-element of the same element replaces the
+// icon with whatever we said -- usually `""`, which erases it. There is no error,
+// no warning, and nothing in the markup to suggest a cause: the icon is simply
+// gone. This happened to the sun and moon on 2026-08-16.
+// An element is icon-bearing if its class attribute either names a Font Awesome
+// class outright OR interpolates one. The body is the second kind -- its markup
+// reads `class="worldclock-body {{worldClock.icon}}"`, so there is no literal `fa-`
+// to find, and a check looking only for one would have missed the exact bug it was
+// written for.
+const iconClasses = new Set(
+    [...partial.matchAll(/class="([^"]*)"/g)]
+        .map((m) => m[1])
+        .filter((value) => /\bfa-/.test(value) || /\{\{[^}]*[Ii]con[^}]*\}\}/.test(value))
+        .flatMap((value) => value.split(/\s+/))
+        .filter((c) => /^worldclock/.test(c))
+);
+
+for (const cls of [...iconClasses].sort()) {
+    // Find any rule whose selector ends in `.<cls>::before` and which sets content.
+    const pattern = new RegExp(`\\.${cls}::before\\s*(,[^{]*)?\\{[^}]*content\\s*:`, 'g');
+    if (pattern.test(styles)) {
+        problems.push(
+            `${STYLES}: sets \`content\` on .${cls}::before, but that element carries a Font Awesome ` +
+            `icon, which IS its ::before content. The glyph will silently disappear. Use ::after.`
+        );
+    }
+}
+
 // --- 3. The partial is registered under the name the menubar invokes ------------
 //
 // Handlebars throws on a missing partial, and the menubar's render guard catches

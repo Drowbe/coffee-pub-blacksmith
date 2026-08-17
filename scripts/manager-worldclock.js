@@ -111,6 +111,13 @@ class WorldClockManager {
     static ARC_PEAK = 58;
     static ARC_FLOOR = 10;
 
+    /**
+     * How far in from each edge the arc starts and ends, as a percentage of the
+     * panel's width. See `_arcXPercent` -- this exists so the body is never clipped,
+     * and therefore never half-ungrabbable, at the horizons.
+     */
+    static ARC_INSET = 6;
+
     /** Minimum movement, in seconds of world time, before a drag is worth committing. */
     static DRAG_EPSILON = 1;
 
@@ -276,32 +283,74 @@ class WorldClockManager {
      * @returns {{isNight: boolean, progress: number, x: number, y: number}}
      */
     static _getArc(dayFraction) {
-        const { sunrise: rise, sunset: set } = this.getHorizons();
-
-        let isNight;
-        let progress;
-
-        if ((dayFraction >= rise) && (dayFraction < set)) {
-            isNight = false;
-            const dayLength = set - rise;
-            progress = dayLength > 0 ? (dayFraction - rise) / dayLength : 0;
-        } else {
-            isNight = true;
-            const nightLength = (1 - set) + rise;
-            // Before sunrise belongs to the night that STARTED yesterday, so it is
-            // measured from last night's sunset rather than from midnight.
-            const elapsed = (dayFraction >= set) ? (dayFraction - set) : (dayFraction + (1 - set));
-            progress = nightLength > 0 ? (elapsed / nightLength) : 0;
-        }
-
-        progress = Math.min(Math.max(progress, 0), 1);
+        const phase = this._getPhase(dayFraction);
+        const progress = Math.min(Math.max(phase.progress, 0), 1);
 
         return {
-            isNight,
+            isNight: phase.isNight,
             progress,
-            x: progress * 100,
+            x: this._arcXPercent(progress),
             y: this.ARC_FLOOR + (Math.sin(Math.PI * progress) * this.ARC_PEAK)
         };
+    }
+
+    /**
+     * Which half of the day we are in, where it began, how long it lasts, and how far
+     * through it we are.
+     *
+     * Factored out of `_getArc` because the DRAG needs exactly the same answer. The
+     * body's position along the panel is progress through the CURRENT PHASE, not
+     * through the day -- so a drag that mapped the pointer to a fraction of the day
+     * would disagree with the thing being dragged. At midnight the moon sits at the
+     * middle of the panel, and a day-fraction reading of that same middle is midday:
+     * grabbing the moon would have thrown it half a day across the sky.
+     *
+     * @returns {{isNight: boolean, start: number, length: number, progress: number}}
+     *          `start` and `length` are day fractions; night wraps past 1.
+     */
+    static _getPhase(dayFraction) {
+        const { sunrise: rise, sunset: set } = this.getHorizons();
+
+        if ((dayFraction >= rise) && (dayFraction < set)) {
+            const length = set - rise;
+            return {
+                isNight: false,
+                start: rise,
+                length,
+                progress: length > 0 ? (dayFraction - rise) / length : 0
+            };
+        }
+
+        const length = (1 - set) + rise;
+        // Before sunrise belongs to the night that STARTED yesterday, so it is
+        // measured from last night's sunset rather than from midnight.
+        const elapsed = (dayFraction >= set) ? (dayFraction - set) : (dayFraction + (1 - set));
+        return {
+            isNight: true,
+            start: set,
+            length,
+            progress: length > 0 ? (elapsed / length) : 0
+        };
+    }
+
+    /**
+     * Where a phase progress sits across the panel, as a percentage.
+     *
+     * Inset from both edges rather than running the full width. The body is centred
+     * on its own position, so at 0% and 100% half the glyph would sit outside the
+     * panel -- and the panel clips, which does not merely look wrong: a clipped
+     * region is not hit-testable, so the sun would be half ungrabbable at sunrise
+     * and the moon at dusk.
+     */
+    static _arcXPercent(progress) {
+        return this.ARC_INSET + (progress * (100 - (this.ARC_INSET * 2)));
+    }
+
+    /** The inverse of `_arcXPercent`, for turning a pointer position back into time. */
+    static _arcProgressFromX(xPercent) {
+        const span = 100 - (this.ARC_INSET * 2);
+        if (!(span > 0)) return 0;
+        return Math.min(Math.max((xPercent - this.ARC_INSET) / span, 0), 1);
     }
 
     /**
@@ -511,7 +560,7 @@ class WorldClockManager {
 
         lines.push(this._formatTime(calendar, components));
 
-        if (isGM) lines.push('Drag the sky, or use the arrows, to change the time.');
+        if (isGM) lines.push('Drag the sun or moon, or use the arrows, to change the time.');
 
         return lines.join('<br>');
     }
@@ -687,8 +736,16 @@ class WorldClockManager {
             });
         });
 
+        // The DRAG HANDLE is the sun or moon, not the whole panel. Dragging anywhere
+        // on the sky was the first version and was unreadable: nothing said the panel
+        // was draggable, and a press on empty sky seeked the time to wherever it
+        // landed. A body you can pick up says what it does by being a thing.
+        //
+        // The sky is still what the drag MEASURES against -- it is the track the body
+        // travels along -- so both elements are handed over.
         const sky = section.querySelector('.worldclock-sky');
-        if (sky) sky.addEventListener('pointerdown', (event) => this._beginDrag(event, section, sky));
+        const body = section.querySelector('.worldclock-body');
+        if (sky && body) body.addEventListener('pointerdown', (event) => this._beginDrag(event, section, sky));
 
         section.addEventListener('contextmenu', (event) => this._showContextMenu(event));
     }
@@ -751,16 +808,33 @@ class WorldClockManager {
         const secondsPerDay = secondsPerMinute * minutesPerHour * hoursPerDay;
         if (!(secondsPerDay > 0)) return;
 
+        const bounds = sky.getBoundingClientRect();
+        if (!bounds.width) return;
+
+        const phase = this._getPhase(this._getDayFraction(calendar, components));
+        if (!(phase.length > 0)) return;
+
+        const progress = Math.min(Math.max(phase.progress, 0), 1);
+        const phaseSeconds = phase.length * secondsPerDay;
+
+        // The absolute time this phase began. Working in absolute seconds rather than
+        // an offset within today is what lets a night drag run past midnight into
+        // tomorrow morning without the date needing a special case: the night simply
+        // continues, and the clock rolls over on its own.
+        const phaseStartTime = game.time.worldTime - (progress * phaseSeconds);
+
+        // Where the pointer sits relative to the body's centre. Carried through the
+        // whole gesture so that grabbing the sun by its edge does not snap it under
+        // the cursor the moment the pointer first moves.
+        const bodyCentre = bounds.left + (bounds.width * (this._arcXPercent(progress) / 100));
+        const grabOffset = event.clientX - bodyCentre;
+
         event.preventDefault();
         event.stopPropagation();
 
-        // Where the current day began. World time does not move during the drag, so
-        // this is computed once -- a drag only ever chooses a position within today.
-        const dayStart = game.time.worldTime
-            - Math.round(this._getDayFraction(calendar, components) * secondsPerDay);
-
         this._drag = {
-            calendar, sky, section, secondsPerDay, secondsPerMinute, dayStart,
+            calendar, sky, section, secondsPerMinute,
+            phaseStartTime, phaseSeconds, grabOffset,
             target: game.time.worldTime
         };
         section.classList.add('is-dragging');
@@ -777,16 +851,28 @@ class WorldClockManager {
         window.addEventListener('pointerup', onUp);
         window.addEventListener('pointercancel', onUp);
 
-        this._updateDrag(event);
+        // Deliberately NOT painting here. Picking something up must not move it --
+        // the previous version seeked to the click position on pointerdown, which is
+        // the behaviour of a scrub bar, not of a thing you grab.
     }
 
     /**
      * Paint the dragged time without writing it anywhere.
      *
-     * Snapped to whole minutes. A track a few dozen pixels wide maps a single pixel to
-     * roughly twenty minutes of world time, so second-level precision is noise the GM
-     * cannot aim at anyway, and an unsnapped value produces times like 6:31:47 that
-     * read as broken rather than precise.
+     * The pointer maps to progress along the CURRENT PHASE's arc, which is the same
+     * mapping `_getArc` uses to place the body -- so the sun stays under the cursor
+     * instead of chasing a different scale.
+     *
+     * Clamped to the phase, so the sun cannot be dragged into the night. That is a
+     * deliberate limit rather than an omission: the sun and the moon are two bodies
+     * on two arcs, and a gesture that silently swapped which one you were holding
+     * would be a strange thing to hand someone. Crossing a horizon is what the step
+     * arrows are for.
+     *
+     * Snapped to whole minutes. The panel maps a single pixel to something like ten
+     * minutes of world time, so finer precision is noise the GM cannot aim at, and
+     * unsnapped values produce times like 6:31:47 that read as broken rather than
+     * precise.
      */
     static _updateDrag(event) {
         const drag = this._drag;
@@ -795,14 +881,11 @@ class WorldClockManager {
         const bounds = drag.sky.getBoundingClientRect();
         if (!bounds.width) return;
 
-        const fraction = Math.min(Math.max((event.clientX - bounds.left) / bounds.width, 0), 1);
+        const xPercent = ((event.clientX - drag.grabOffset - bounds.left) / bounds.width) * 100;
+        const progress = this._arcProgressFromX(xPercent);
 
-        const snapped = Math.round((fraction * drag.secondsPerDay) / drag.secondsPerMinute) * drag.secondsPerMinute;
-        // A drag to the very end of the track lands on the NEXT midnight; clamping
-        // keeps it inside today rather than silently rolling the date forward.
-        const secondsToday = Math.min(snapped, drag.secondsPerDay - drag.secondsPerMinute);
-
-        drag.target = drag.dayStart + secondsToday;
+        const raw = drag.phaseStartTime + (progress * drag.phaseSeconds);
+        drag.target = Math.round(raw / drag.secondsPerMinute) * drag.secondsPerMinute;
 
         const components = drag.calendar.timeToComponents(drag.target);
         const dayFraction = this._getDayFraction(drag.calendar, components);

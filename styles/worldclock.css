@@ -99,9 +99,42 @@
     transform: translate(-50%, 50%);
     font-size: 10px;
     line-height: 1;
-    pointer-events: none;
     color: rgb(255, 236, 168);
     text-shadow: 0 0 4px rgba(255, 214, 122, 0.9);
+    /* The body is the DRAG HANDLE, so unlike the rest of the panel it takes the
+       pointer. Everything else inside the sky stays inert. */
+    pointer-events: auto;
+    transition: filter 0.15s ease;
+}
+
+/* A ten-pixel glyph is a cruel target, and it moves. This invisible box roughly
+   triples it in both directions without changing where the glyph is drawn --
+   padding would have shifted the glyph, since its position IS its meaning.
+
+   IT MUST BE ::after, NEVER ::before. Font Awesome draws the icon itself as
+   `::before { content: "\f185" }`, so a `content` of our own on that pseudo-element
+   replaces the glyph with nothing -- the sun and moon vanish, with no error and no
+   clue as to why. `fa-solid` leaves `::after` unused. Guarded by
+   `tools/check-worldclock.mjs`. */
+.worldclock-section .worldclock-body::after {
+    content: "";
+    position: absolute;
+    inset: -7px -9px;
+    border-radius: 50%;
+}
+
+/* Only a GM can move time, so only a GM gets the grab affordance. `grab` is the
+   whole discoverability story for the drag: nothing else on the panel says it can
+   be picked up, and the cursor is what a person is already looking at. */
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-body {
+    cursor: grab;
+}
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-body:hover {
+    filter: brightness(1.35) drop-shadow(0 0 3px currentColor);
+}
+.blacksmith-menubar-container .worldclock-section.is-dragging .worldclock-body {
+    cursor: grabbing;
+    filter: brightness(1.35) drop-shadow(0 0 3px currentColor);
 }
 .worldclock-section.is-night .worldclock-body {
     color: rgb(238, 244, 255);
@@ -120,10 +153,9 @@
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.42));
 }
 
-/* Only a GM can move time, so only a GM gets the affordance. */
-.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-sky {
-    cursor: ew-resize;
-}
+/* The sky itself is NOT draggable and must not claim to be. It carried `ew-resize`
+   while the whole panel was the drag surface, which was the problem: it invited a
+   press anywhere, and a press anywhere seeked the time. */
 
 /* During a drag the panel is a PREVIEW, not the world's time. The ring says the
    widget is in a provisional state -- without it there is no way to tell a

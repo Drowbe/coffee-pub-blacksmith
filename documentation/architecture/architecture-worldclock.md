@@ -81,6 +81,35 @@ Two consequences that look like style choices and are not:
   of a 24-hour day" and say nothing on a twenty-hour calendar. Anything else falls back to zero-padded
   24-hour, which is well defined for any day length.
 
+## The drag handle is the sun, not the panel
+
+Dragging anywhere on the sky was the first version and was wrong twice over.
+
+**It was unreadable.** Nothing said the panel could be dragged, and a press on empty sky *seeked* the time
+to wherever it landed — the behaviour of a scrub bar, not of something you pick up. The handle is now the
+body itself, with `cursor: grab`, a hover brighten, and an invisible `::before` that roughly triples the
+hit area of a ten-pixel glyph without moving the glyph (padding would have shifted it, and its position is
+its meaning). Nothing is painted on pointerdown: picking a thing up must not move it.
+
+**It was also computing the wrong time.** The body's position along the panel is progress through the
+**current phase**, not through the day — that is what makes the sun sweep the whole panel between sunrise
+and sunset, and the moon do the same across the night. But the drag mapped the pointer to a fraction of the
+whole day. At midnight the moon sits mid-panel while a day-fraction reading of mid-panel is *midday*, so
+grabbing the moon would have thrown it half a day across the sky. `_getPhase()` is now shared by the arc
+and the drag, so the pointer and the thing under it cannot disagree.
+
+Consequences worth knowing:
+
+- **A drag is clamped to its own phase.** The sun cannot be dragged into the night; crossing a horizon is
+  what the step arrows are for. A gesture that silently swapped which body you were holding would be a
+  strange thing to hand someone.
+- **A night drag crosses midnight into the next day**, because the drag works in absolute seconds from the
+  phase's start rather than as an offset within today. Dragging back from 02:00 reaches *yesterday's*
+  sunset. No date special-casing.
+- **The grab offset is preserved**, so grabbing the sun by its edge does not snap it under the cursor.
+- **`ARC_INSET` keeps the body off both edges.** The panel clips, and a clipped region is not hit-testable,
+  so without the inset the sun would be half ungrabbable at sunrise and the moon at dusk.
+
 ## Why the drag defers its write
 
 Setting the time writes the `core.time` world setting: a database round trip broadcast to every client. A
