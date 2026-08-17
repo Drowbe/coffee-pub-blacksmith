@@ -36,6 +36,13 @@ Foundry v13 supplies the entire timekeeping layer. This feature consumes it and 
 | Current time, decomposed | `game.time.components` |
 | Advancing and setting time | `game.time.advance()`, `game.time.set()` (`client/helpers/time.mjs:146`) |
 | Broadcast to every client | the `updateWorldTime` hook (`client/helpers/time.mjs:211`) |
+| Formatting helpers | `calendar.format(time, formatter, options)` (`client/data/calendar.mjs:147`) |
+| The Harptos calendar, and a calendar HUD of its own | the dnd5e system (`templates/apps/calendar-core.hbs`) |
+
+Two consequences worth stating, because both were assumed wrong at the start of this work. **There is no
+calendar provider to integrate with** -- core is the provider, and a system supplies the calendar on top of
+it. And **the clock is not the gap**: core already ships time, a calendar and a HUD, so putting one in the
+menubar is a placement decision. The gap is darkness, below.
 
 What this adds is a menubar presence and GM controls. It does **not** link time to scene darkness --
 nothing in core does either, and that gap is tracked separately.

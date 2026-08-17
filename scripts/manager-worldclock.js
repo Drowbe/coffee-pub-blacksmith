@@ -16,8 +16,11 @@
 // see getRenderData for why that distinction matters more than it looks.
 //
 // Time is the `core.time` world setting, so only a GM may move it; players get a
-// readout with no controls. Linking scene darkness to the time is deliberately NOT
-// here -- see documentation/plans/plan-world-time.md.
+// readout with no controls.
+//
+// Scene darkness lives in `manager-darkness.js`, which reads this file's horizons
+// and day fraction. The arrow runs darkness -> clock and never back: nothing here
+// knows the driver exists, which is what lets either move independently.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely, fetchTemplateText } from './api-core.js';
