@@ -1143,10 +1143,11 @@ class RollWindow extends BlacksmithWindowBaseV2 {
         {
             id: 'roll-window',
             classes: ['roll-window'],
-            // Tall enough that the body does not scroll at the default size. The
-            // window grew a tool row and a wrapping preset list since 500, and a
-            // scrollbar down the middle of a form this short reads as a mistake.
-            position: { width: 600, height: 640 },
+            // Matches the minimum in `styles/window-roll-normal.css` exactly: the
+            // window opens at the size it was designed for and can only be made
+            // larger, so the default layout is never seen squeezed. Change one and
+            // change the other.
+            position: { width: 430, height: 485 },
             window: { title: 'Roll Configuration', resizable: true, minimizable: true }
         }
     );

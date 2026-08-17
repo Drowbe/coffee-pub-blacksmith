@@ -12,9 +12,15 @@
 }
 
 /* Main Window */
+/* Measured, not guessed: dragged to the smallest size at which the tool row, the
+   formula, the dice and the footer all still read, and these are the numbers.
+   The minimum and the opening size are deliberately THE SAME -- the window opens
+   at the size it was designed for and can only be made larger, so nothing about
+   the default layout is ever seen squeezed. The opening size is set alongside
+   this in RollWindow.DEFAULT_OPTIONS; change one and change the other. */
 div#roll-window {
-  min-height: 600px;
-  min-width: 550px;
+  min-height: 485px;
+  min-width: 430px;
 }
 
 /* Window Content */
