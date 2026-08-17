@@ -25,6 +25,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { ChatCardsAPI } from './api-chat-cards.js';
 
 class RestManager {
 
@@ -103,10 +104,6 @@ class RestManager {
         // exhaustion are documents. dnd5e guards its own advance the same way.
         if (!game.user?.isGM) return;
 
-        // Provisioning happens for EVERY character as they rest, not only the last
-        // one -- each of them eats. The summary is what waits for the group.
-        await this._provision(config, actor);
-
         const minutes = Number(config?.duration);
         const request = config?.request ?? null;
         const requestId = request?.id ?? null;
@@ -117,12 +114,28 @@ class RestManager {
         // timer can group them.
         if (requestId) {
             if (this._handledRequests.includes(requestId)) return;
-            if (!this._isLastToRest(request, requestId, actor)) return;
+
+            // RECORDED BEFORE PROVISIONING, and provisioning only happens for a
+            // character who has not already been fed on this rest. A character can
+            // reach `restCompleted` twice for one request -- a double click, or a GM
+            // resolving someone who had already resolved themselves -- and the first
+            // version provisioned on every arrival, so that character ate two
+            // rations and appeared twice on the card. Seen once, fed once.
+            const { isNew, isLast } = this._recordAcceptance(request, requestId, actor);
+            if (!isNew) return;
+
+            await this._provision(config, actor);
+            if (!isLast) return;
 
             this._markRequestHandled(requestId);
             await this._completeRest(minutes, config?.advanceTime === true);
             return;
         }
+
+        // No request. The burst still needs the same protection: the automatic group
+        // loop rests each member once, but nothing guarantees a caller does.
+        if (!this._recordBurstAcceptance(actor)) return;
+        await this._provision(config, actor);
 
         // No request: either a lone character resting, or the automatic group loop.
         // Both are bursts, so the timer is the right tool.
@@ -142,31 +155,51 @@ class RestManager {
      *
      * @returns {boolean}
      */
-    static _isLastToRest(request, requestId, actor) {
+    static _recordAcceptance(request, requestId, actor) {
+        const uuid = actor?.uuid ?? null;
         const targets = request?.system?.targets;
         const expected = Array.isArray(targets) ? targets.length : 0;
-        if (expected <= 1) return true;
 
         const seen = this._requestProgress.get(requestId) ?? new Set();
-        if (actor?.uuid) seen.add(actor.uuid);
+        const isNew = !uuid || !seen.has(uuid);
+        if (uuid) seen.add(uuid);
 
-        // Re-set so a first sighting is stored, and so this request becomes the
-        // most recently touched for the eviction below.
+        // Re-set so a first sighting is stored, and so this request becomes the most
+        // recently touched for the eviction below.
         this._requestProgress.delete(requestId);
         this._requestProgress.set(requestId, seen);
 
         // Maps keep insertion order, so the first key is the least recently touched.
         // Abandoned requests are the only thing that accumulates here, and they are
-        // worth exactly nothing once a newer one is in flight.
+        // worth nothing once a newer one is in flight.
         while (this._requestProgress.size > this.MAX_TRACKED_REQUESTS) {
             this._requestProgress.delete(this._requestProgress.keys().next().value);
         }
 
-        if (seen.size < expected) return false;
+        // A roster of one, or one we cannot read, completes on the first arrival --
+        // an early clock is a smaller failure than one that never moves.
+        const isLast = (expected <= 1) || (seen.size >= expected);
+        if (isLast) this._requestProgress.delete(requestId);
 
-        this._requestProgress.delete(requestId);
+        return { isNew, isLast };
+    }
+
+    /**
+     * The same protection for a burst with no request behind it.
+     * @returns {boolean} Whether this character is new to the burst.
+     */
+    static _recordBurstAcceptance(actor) {
+        const uuid = actor?.uuid;
+        if (!uuid) return true;
+
+        this._burstSeen ??= new Set();
+        if (this._burstSeen.has(uuid)) return false;
+        this._burstSeen.add(uuid);
         return true;
     }
+
+    /** @type {Set<string>|null} */
+    static _burstSeen = null;
 
     // ==============================================================
     // ===== FOOD AND WATER =========================================
@@ -189,7 +222,7 @@ class RestManager {
         const wantWater = getSettingSafely(MODULE.ID, 'restTrackWater', false);
         if (!wantFood && !wantWater) return;
 
-        const outcome = { name: actor.name, food: null, water: null, exhaustion: 0 };
+        const outcome = { name: actor.name, img: actor.img ?? null, food: null, water: null, exhaustion: 0 };
 
         const foodItem = wantFood
             ? this._findProvision(actor, getSettingSafely(MODULE.ID, 'restFoodItems', 'Rations'))
@@ -315,22 +348,38 @@ class RestManager {
         this._report = [];
         if (!report.length) return;
 
-        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const phrase = { ate: 'ate', foraged: 'foraged', hungry: 'went without', unrolled: 'could not forage' };
 
-        const rows = report.map((r) => {
-            const parts = [];
-            if (r.food) parts.push(`food: ${phrase[r.food]}`);
-            if (r.water) parts.push(`water: ${phrase[r.water]}`);
-            const tail = r.exhaustion > 0
-                ? ` &mdash; <strong>+${r.exhaustion} exhaustion</strong>`
-                : '';
-            return `<li>${esc(r.name)} &mdash; ${parts.join(', ')}${tail}</li>`;
+        const items = report.map((entry) => {
+            const detail = [];
+            if (entry.food) detail.push(`Food: ${phrase[entry.food]}`);
+            if (entry.water) detail.push(`Water: ${phrase[entry.water]}`);
+
+            return {
+                thumb: true,
+                img: entry.img || undefined,
+                icon: entry.img ? undefined : 'fa-solid fa-drumstick-bite',
+                label: entry.name,
+                sublabel: detail.join(' · '),
+                // The tone carries what a hand-bolded "+1 exhaustion" was doing, in
+                // the vocabulary every other card already uses.
+                tone: entry.exhaustion > 0 ? 'danger' : undefined,
+                trailing: entry.exhaustion > 0 ? `+${entry.exhaustion} exhaustion` : undefined
+            };
         });
 
         try {
-            await ChatMessage.create({
-                content: `<p><strong>Provisions</strong></p><ul>${rows.join('')}</ul>`
+            // The module's own card API rather than a hand-built ChatMessage. It
+            // brings the theme, the escaping and the parts vocabulary with it -- and
+            // `rows` is the part written for exactly this shape: a portrait, a name,
+            // a sub-line and a trailing value.
+            await ChatCardsAPI.post({
+                moduleId: MODULE.ID,
+                type: 'rest',
+                parts: [
+                    { part: 'header', icon: 'fa-solid fa-drumstick-bite', title: 'Provisions' },
+                    { part: 'rows', items }
+                ]
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Rest: Failed to post the provisions summary", error, false, false);
@@ -385,6 +434,10 @@ class RestManager {
      * returned early on the clock setting swallowed it.
      */
     static async _completeRest(minutes, systemAdvanced) {
+        // The burst roster belongs to the rest that just ended. Leaving it in place
+        // would make the next rest think everyone had already eaten.
+        this._burstSeen = null;
+
         const advances = getSettingSafely(MODULE.ID, 'restAdvancesTime', true)
             && Number.isFinite(minutes) && (minutes > 0);
 
