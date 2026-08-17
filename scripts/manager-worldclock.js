@@ -393,27 +393,64 @@ class WorldClockManager {
      * is probed rather than assumed, with the day-of-year as the fallback.
      */
     static _buildTooltip(calendar, components, isGM) {
-        const esc = (v) => this._escape(v);
         const lines = [];
 
-        const weekday = calendar.days?.values?.[components.dayOfWeek];
-        const month = calendar.months?.values?.[components.month];
-        const season = calendar.seasons?.values?.[components.season];
+        const weekday = this._nameOf(calendar.days?.values?.[components.dayOfWeek]);
+        const month = this._nameOf(calendar.months?.values?.[components.month]);
+        const season = this._nameOf(calendar.seasons?.values?.[components.season]);
 
         const dateParts = [];
-        if (weekday?.name) dateParts.push(esc(weekday.name));
-        dateParts.push(month?.name
-            ? `${components.dayOfMonth + 1} ${esc(month.name)}`
-            : `Day ${components.day + 1}`);
+        if (weekday) dateParts.push(weekday);
+        dateParts.push(month
+            ? `${components.dayOfMonth + 1} ${month} ${this._displayYear(calendar, components)}`
+            : `Day ${components.day + 1}, year ${this._displayYear(calendar, components)}`);
         lines.push(`<strong>${dateParts.join(', ')}</strong>`);
 
-        lines.push(`Year ${components.year}${components.leapYear ? ' (leap year)' : ''}`);
-        if (season?.name) lines.push(esc(season.name));
+        const notes = [];
+        if (season) notes.push(season);
+        if (components.leapYear) notes.push('leap year');
+        if (notes.length) lines.push(notes.join(' &middot; '));
+
         lines.push(this._formatTime(calendar, components));
 
-        if (isGM) lines.push('Drag the sky bar, or use the arrows, to change the time.');
+        if (isGM) lines.push('Drag the sky, or use the arrows, to change the time.');
 
         return lines.join('<br>');
+    }
+
+    /**
+     * A calendar entry's display name.
+     *
+     * `name` on a month, weekday or season is a LOCALIZATION KEY, not a string --
+     * dnd5e ships `DND5E.CALENDAR.Harptos.Month.Ches` and core never resolves it
+     * (`CalendarData._initialize` does no localization; the system's own formatter
+     * calls `game.i18n.localize(month.name)` at `dnd5e.mjs:1577`). Printing `name`
+     * directly puts the raw key on screen.
+     *
+     * `localize` returns its argument unchanged when there is no translation, so a
+     * calendar that supplies literal names rather than keys still works.
+     *
+     * @returns {string} Localized and escaped, or '' when there is nothing to show.
+     */
+    static _nameOf(entry) {
+        if (!entry?.name) return '';
+        return this._escape(game.i18n?.localize(entry.name) ?? entry.name);
+    }
+
+    /**
+     * The year as a reader expects to see it.
+     *
+     * `components.year` counts years since the world's time origin, NOT the year the
+     * setting calls it. The calendar's `years.yearZero` is the offset between them,
+     * and every core consumer adds it before display -- see `dnd5e.mjs:1572` and
+     * `CalendarData.jumpToDate`, whose parameter is documented as "Visible year
+     * (with `yearZero` added in)". Omitting it showed 1496 in a world whose own HUD
+     * read 2997.
+     *
+     * @returns {number}
+     */
+    static _displayYear(calendar, components) {
+        return components.year + (calendar.years?.yearZero ?? 0);
     }
 
     /**
