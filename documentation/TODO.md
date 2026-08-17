@@ -93,10 +93,31 @@ without Blacksmith ever having to know what a festival or a rainstorm is:
 
 ### What the research already settles
 
-- **Do not build resting.** dnd5e ships `actor.shortRest()` and `actor.longRest()`, *and* group rests
-  (`dnd5e.mjs:69793`) with a `dnd5e.groupRestCompleted` hook. "Change time based on rests" is therefore a
-  hook listener that advances the clock -- small -- and "trigger a rest" is a button that calls the
-  system's own method. Neither is a rest implementation.
+- **Do not build resting, and do not build rest-advances-time either.** dnd5e ships `actor.shortRest()`,
+  `actor.longRest()` and group rests (`dnd5e.mjs:69793`), with `dnd5e.preLongRest`, `dnd5e.restCompleted`
+  and `dnd5e.groupRestCompleted` hooks. It already knows how long a rest takes -- `CONFIG.DND5E.restTypes`
+  carries durations per rest variant (short 60/480/1 minutes for normal/gritty/epic, long 480/10080/60) --
+  **and it already advances the world clock**:
+
+  ```js
+  // dnd5e.mjs:34982
+  if ( config.advanceTime && (config.duration > 0) && game.user.isGM ) await game.time.advance(60 * config.duration);
+  ```
+
+  `advanceTime` simply defaults to `false`. So "change time based on rests" is a CONFIGURATION question,
+  not a feature: either the GM ticks it in the rest dialog, or a `dnd5e.preLongRest` listener sets it.
+  Writing our own would be reimplementing a line that already exists.
+
+  Rest Recovery (installed here, v5.2.4) covers the rest of it and then some: fractional recovery of hit
+  points, hit dice, spell slots and item uses; food, water and exhaustion automation; per-class feature
+  handling (Arcane Recovery, Natural Recovery, Song of Rest, Chef, Durable, Periapt); max short rests per
+  long rest; auto-start and prevent-user-rest. It also has `EnablePromptRestTimePassing` and
+  `EnableCalendarIntegration` settings, so **time-on-rest may already be handled twice over** -- worth
+  checking which is authoritative before touching either. Note its calendar integration mentions
+  Calendaria, so whether it recognises core's v13 calendar is unverified.
+
+  **What none of them do is make a rest take time that can be interrupted.** That is the only genuinely
+  missing piece, and it is a time feature rather than a rest feature -- see below.
 - **Do not build a date picker without looking first.** `CalendarData5e.jumpToDate({year, month, day})`
   exists (`dnd5e.mjs:1532`) and the system ships a calendar HUD that already offers one. "Change the date"
   may be a button that opens what is already there.

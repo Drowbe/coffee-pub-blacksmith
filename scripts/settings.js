@@ -3453,6 +3453,21 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Rests move the clock --
+	// dnd5e can do this itself (`advanceTime` in its rest config) but defaults it
+	// off, so it is a decision the GM re-makes at every rest dialog. This makes it a
+	// table decision made once. If the system's own option is enabled as well,
+	// Blacksmith stands down rather than advancing twice.
+	game.settings.register(MODULE.ID, 'restAdvancesTime', {
+		name: MODULE.ID + '.restAdvancesTime-Label',
+		hint: MODULE.ID + '.restAdvancesTime-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	game.settings.register(MODULE.ID, 'worldClockDarknessDay', {
 		name: MODULE.ID + '.worldClockDarknessDay-Label',
 		hint: MODULE.ID + '.worldClockDarknessDay-Hint',

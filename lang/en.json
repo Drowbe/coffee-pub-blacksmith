@@ -583,6 +583,9 @@
 			"worldClockDarknessNight-Label": "Darkness at Night",
 			"worldClockDarknessNight-Hint": "How dark a scene gets at night, where 0 is full daylight and 1 is pitch black. At 1 only light sources are visible, so an outdoor scene with none shows players nothing.",
 
+			"restAdvancesTime-Label": "Rests Move the Clock",
+			"restAdvancesTime-Hint": "A short or long rest advances the in-world time by however long it took, using the length the game system defines for the current rest variant. A group rest advances the clock once, not once per character.",
+
 			"worldClockDarknessDay-Label": "Darkness by Day",
 			"worldClockDarknessDay-Hint": "How dark a scene is at midday. Leave at 0 unless the world is meant to be permanently overcast.",
 

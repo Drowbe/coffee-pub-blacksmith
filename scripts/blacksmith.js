@@ -111,6 +111,8 @@ import { TagManager } from './manager-tags.js';
 import { TagWidget } from './widget-tags.js';
 import { WorldClockManager } from './manager-worldclock.js';
 import { DarknessManager } from './manager-darkness.js';
+import { WorldClockAPI } from './api-worldclock.js';
+import { RestManager } from './manager-rest.js';
 import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
@@ -526,6 +528,11 @@ Hooks.once('ready', async () => {
         // After the clock, which owns the context-menu seam the driver registers into
         // and the day-fraction the driver reads.
         DarknessManager.initialize();
+        // The scheduling surface and the rest bridge both hang off world time and
+        // neither touches the widget, so their order relative to it does not matter.
+        WorldClockAPI.initialize();
+        RestManager.initialize();
+        if (mod?.api) mod.api.worldClock = WorldClockAPI;
     } catch (e) {
         console.error(`${MODULE.ID}: WorldClockManager.initialize failed`, e);
     }

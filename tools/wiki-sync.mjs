@@ -63,6 +63,7 @@ const PUBLISH = [
   'api/api-tokens.md',
   'api/api-toolbar.md',
   'api/api-window.md',
+  'api/api-worldclock.md',
   // Guides
   'guides/guide-dnd5e-conditions.md',
   // Architecture
