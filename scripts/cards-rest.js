@@ -55,14 +55,35 @@ export function buildRecoveryRows(actor, result) {
 
     const clone = result.clone ?? null;
 
+    // EVERY ROW SHOWS FROM -> TO, not only the delta. "+40" says what happened;
+    // "827 -> 867" says where the character now stands, which is what a player reads
+    // a rest card to find out. The delta stays as the trailing value because it is
+    // the thing worth seeing at a glance.
+    const span = (before, after) => {
+        if (!Number.isFinite(before) || !Number.isFinite(after)) return undefined;
+        return `${before} → ${after}`;
+    };
+
     const hitPoints = Number(result.deltas?.hitPoints ?? result.dhp ?? 0);
     if (hitPoints) {
-        rows.push({ label: 'Hit Points', trailing: signed(hitPoints), tone: 'success' });
+        const after = Number(actor?.system?.attributes?.hp?.value);
+        rows.push({
+            label: 'Hit Points',
+            sublabel: span(after - hitPoints, after),
+            trailing: signed(hitPoints),
+            tone: 'success'
+        });
     }
 
     const hitDice = Number(result.deltas?.hitDice ?? result.dhd ?? 0);
     if (hitDice) {
-        rows.push({ label: 'Hit Dice', trailing: signed(hitDice), tone: 'success' });
+        const after = Number(actor?.system?.attributes?.hd?.value);
+        rows.push({
+            label: 'Hit Dice',
+            sublabel: span(after - hitDice, after),
+            trailing: signed(hitDice),
+            tone: 'success'
+        });
     }
 
     // EVERYTHING BELOW DIFFS THE LIVE ACTOR AGAINST THE PRE-REST CLONE, and reads
@@ -90,6 +111,7 @@ export function buildRecoveryRows(actor, result) {
             label: level
                 ? `${ORDINALS[Number(level)] ?? `${level}th`} Level Slots`
                 : `${key.charAt(0).toUpperCase()}${key.slice(1)} Slots`,
+            sublabel: span(before, now),
             trailing: signed(gained),
             tone: 'success'
         });
@@ -100,7 +122,12 @@ export function buildRecoveryRows(actor, result) {
     const exhaustionBefore = Number(read(clone, 'system.attributes.exhaustion') ?? 0);
     const exhaustionNow = Number(actor?.system?.attributes?.exhaustion ?? 0);
     if (exhaustionNow < exhaustionBefore) {
-        rows.push({ label: 'Exhaustion', trailing: signed(exhaustionNow - exhaustionBefore), tone: 'success' });
+        rows.push({
+            label: 'Exhaustion',
+            sublabel: span(exhaustionBefore, exhaustionNow),
+            trailing: signed(exhaustionNow - exhaustionBefore),
+            tone: 'success'
+        });
     }
 
     return rows;
@@ -280,22 +307,80 @@ export function buildPartsFromState(state) {
         parts.push({ part: 'rows', plain: true, items: provisionRows });
     }
 
-    // THE BUTTON IS ONLY HERE WHILE THE CHECK IS OWED, so a resolved card carries no
-    // dead control. Whether the viewer may press it is decided when it is pressed,
-    // not here -- the card is one baked string delivered to everybody, so a button
-    // hidden per-viewer at compose time would be hidden for the wrong people.
-    if (isForagePending(state)) {
+    // THE FORAGING CHECK, presented the way Request a Roll presents one: the DC
+    // stated above, then the check itself, then its result in the same place once it
+    // lands. A bare button saying "Forage" told the player neither what they were
+    // rolling nor what they had to beat.
+    //
+    // The section is only composed while the check is OWED or has just been made, so
+    // a card for a well-fed character carries nothing. Whether a viewer may press the
+    // button is decided when it is pressed, not here -- the card is one baked string
+    // delivered to everybody, so hiding it per-viewer at compose time would hide it
+    // for the wrong people.
+    const forage = buildForageParts(state);
+    parts.push(...forage);
+
+    return parts;
+}
+
+/**
+ * The foraging check as its own block: the DC, then the roll.
+ *
+ * Mirrors how Request a Roll presents a check, because a player reading this has
+ * seen that card and should not have to learn a second convention for the same
+ * thing.
+ *
+ * @returns {Array<object>} Card parts, empty when there is no check to show.
+ */
+export function buildForageParts(state) {
+    const provisions = state?.provisions;
+    if (!provisions) return [];
+
+    const pending = isForagePending(state);
+    const roll = provisions.roll ?? null;
+    const rolled = roll && Number.isFinite(roll.total);
+    if (!pending && !rolled) return [];
+
+    const dc = Number(provisions.dc ?? roll?.dc);
+    const parts = [{ part: 'section', label: 'Foraging' }];
+
+    if (Number.isFinite(dc)) {
+        parts.push({ part: 'subject', title: 'Survival Check', value: `DC ${dc}` });
+    }
+
+    if (pending) {
         parts.push({
+            // Says what pressing it DOES, because it posts a roll request rather than
+            // rolling on the spot -- a button labelled only "Roll" would be a small
+            // lie about where the dice happen.
             part: 'actions',
-            instruction: 'No food or water. Forage for it?',
+            instruction: `${state.name ?? 'This character'} has no food or water.`,
             buttons: [{
-                label: 'Forage',
-                icon: 'fa-solid fa-wheat-awn',
+                label: 'Request Survival Check',
+                icon: 'fa-solid fa-dice-d20',
                 action: 'forage',
                 moduleId: MODULE.ID
             }]
         });
+        return parts;
     }
+
+    // RESOLVED. The result sits where the button was, so the eye lands on the answer
+    // in the place it last saw the question.
+    const success = Number(roll.total) >= dc;
+    parts.push({
+        part: 'rows',
+        plain: true,
+        items: [{
+            thumb: true,
+            img: state.img || undefined,
+            label: state.name ?? 'Survival',
+            sublabel: success ? 'Found food and water' : 'Found nothing',
+            trailing: String(roll.total),
+            trailingIcon: success ? 'fa-solid fa-check' : 'fa-solid fa-xmark',
+            tone: success ? 'success' : 'danger'
+        }]
+    });
 
     return parts;
 }
