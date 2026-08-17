@@ -23,6 +23,24 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
+## World time in the menubar, and darkness following it (opened 2026-08-16)
+
+**Plan: `documentation/plans/plan-world-time.md`** (opened 2026-08-16). Not started.
+
+Foundry v13 and dnd5e 5.2.5 already supply the calendar, the components, `advance`/`set`, the
+`updateWorldTime` broadcast and a HUD, so the clock itself is a placement decision rather than a
+capability. **The only capability genuinely missing from core is the link from time to scene darkness**,
+which is what disappears when SmallTime is disabled -- nothing in core moves
+`scene.environment.darknessLevel` as time passes.
+
+Six phases, each independently shippable, in the plan. **Phase 2, the darkness driver, is the one worth
+pulling forward:** it is the actual regression, it needs no widget, and it is independent of every UI phase.
+
+Two traps recorded in the plan because they are invisible until they bite: the length of a day comes from
+`calendar.days`, never a hardcoded 86400 (the first-pass readout hardcodes it, and Phase 1 exists to remove
+that); and a drag across the time bar must preview locally and commit once on release, or it writes to the
+database on every pointer move.
+
 ## Advantage/disadvantage discards a built formula's keep modifier (opened 2026-08-16)
 
 **Reported from play:** build `4d6kh3` in the dice tray, click Disadvantage, and the `kh3` is gone.

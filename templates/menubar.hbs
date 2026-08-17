@@ -88,6 +88,21 @@
                 {{/each}}
             {{/each}}
         {{/each}}
+        {{!-- WORLD TIME — the in-world clock, immediately left of the session timer.
+
+              The two belong together and answer different questions: the session
+              timer is how long the TABLE has left, the world clock is what time it
+              is THERE. Pairing them is why this sits inside the timer's block
+              rather than among the dynamic tools above, which reorder as modules
+              register and would eventually push the two clocks apart.
+
+              Read-only for everyone, the GM included. Advancing time is a separate
+              capability from reporting it, and a readout that silently did nothing
+              on click would read as broken. --}}
+        <div class="button worldtime-section tool-readonly{{#if worldTime.isNight}} is-night{{/if}}" data-tooltip="In-world time of day." data-tool="worldtime-section">
+            <i class="{{worldTime.icon}}"></i>
+            <span class="world-time">{{worldTime.text}}</span>
+        </div>
         {{!-- SESSION TIMER — always last in the right zone --}}
         <div class="button timer-section default {{#if isGM}}button-active{{else}}tool-readonly{{/if}} {{#if isWarning}}warning{{/if}} {{#if isExpired}}expired{{/if}}" data-tooltip="{{#if isGM}}Set the session time.{{else}}Session time.{{/if}}" style="--progress: {{timerProgress}}%" data-tool="timer-section">
             <i class="fas fa-eclipse"></i>

@@ -217,6 +217,7 @@ class MenuBar {
         // Register setting change hook to refresh menubar when party leader changes
         this._registerLeaderChangeHook();
         this._registerSessionTimerSettingsHook();
+        this._registerWorldTimeHook();
 
         // When the canvas becomes ready (including after scene switch), refresh menubar so tool visibility
         // (e.g. combat bar when combat is active) and party bar data (reputation, health) reflect the new scene.
@@ -3811,6 +3812,7 @@ class MenuBar {
                 leaderText: this.getLeaderDisplayText(),
                 timerText: this.getTimerText(),
                 timerProgress: this.getTimerProgress(),
+                worldTime: this.getWorldTimeData(),
                 currentMovement: currentMovementData,
                 toolsByZone: toolsByZone,
                 // Handlebars can't act on stored callbacks — surface them as booleans for the partial.
@@ -4975,6 +4977,79 @@ class MenuBar {
             clearInterval(this._timerSyncInterval);
             this._timerSyncInterval = null;
         }
+    }
+
+    /**
+     * The in-world time of day, as the menubar reports it.
+     *
+     * Foundry keeps `game.time.worldTime` as SECONDS SINCE THE WORLD BEGAN, not a
+     * date. There is no calendar behind it unless a calendar module supplies one,
+     * so a day number or a month printed here would be an invention. What is
+     * genuinely known is the position within the current day, and that is all this
+     * reports -- which is also why it needs no calendar module to be correct.
+     *
+     * The modulo is applied twice on purpose. `worldTime` is signed, and a GM who
+     * rewinds past the world's start makes it negative, where a single `%` returns
+     * a negative remainder and the bar reads something like "-3:00". Adding a whole
+     * day and taking the modulo again folds that back into 0..86399.
+     *
+     * @returns {{text: string, icon: string, isNight: boolean}}
+     */
+    static getWorldTimeData() {
+        const SECONDS_PER_DAY = 86400;
+        const worldTime = Number(game.time?.worldTime) || 0;
+        const secondsToday = ((worldTime % SECONDS_PER_DAY) + SECONDS_PER_DAY) % SECONDS_PER_DAY;
+
+        const hours24 = Math.floor(secondsToday / 3600);
+        const minutes = Math.floor((secondsToday % 3600) / 60);
+
+        // Night is simply everything outside 06:00-18:00. Real dawn moves with
+        // latitude and season, none of which a world without a calendar knows, so
+        // this is a deliberate fiction picked to be legible rather than accurate.
+        const isNight = hours24 < 6 || hours24 >= 18;
+
+        const suffix = hours24 < 12 ? 'AM' : 'PM';
+        const hours12 = (hours24 % 12) === 0 ? 12 : (hours24 % 12);
+
+        return {
+            text: `${hours12}:${minutes.toString().padStart(2, '0')} ${suffix}`,
+            icon: isNight ? 'fa-solid fa-moon' : 'fa-solid fa-sun',
+            isNight
+        };
+    }
+
+    /**
+     * Repaint the in-world clock in place.
+     *
+     * Deliberately NOT on an interval, unlike the session timer beside it. World
+     * time does not pass on its own -- it moves only when something advances it,
+     * and `updateWorldTime` fires exactly then. A second ticking interval would
+     * spend a repaint per second to redraw an identical string all session.
+     */
+    static updateWorldTimeDisplay() {
+        const section = document.querySelector('.worldtime-section');
+        if (!section) return;
+
+        const span = section.querySelector('.world-time');
+        const icon = section.querySelector('i');
+        if (!span || !icon) return;
+
+        const worldTime = this.getWorldTimeData();
+        span.textContent = worldTime.text;
+        icon.className = worldTime.icon;
+        section.classList.toggle('is-night', worldTime.isNight);
+    }
+
+    static _registerWorldTimeHook() {
+        HookManager.registerHook({
+            name: 'updateWorldTime',
+            description: 'MenuBar: Repaint the in-world clock when world time changes',
+            context: 'menubar-world-time',
+            priority: 4,
+            callback: () => this.updateWorldTimeDisplay()
+        });
+
+        postConsoleAndNotification(MODULE.NAME, "MenuBar: World time hook registered", "", true, false);
     }
 
     static getTimerText() {
