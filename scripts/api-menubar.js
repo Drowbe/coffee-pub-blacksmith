@@ -485,7 +485,11 @@ class MenuBar {
 
         // SESSION TIMER
         this.registerMenubarTool('timer-section', {
-            icon: "fa-solid fa-eclipse",
+            // A chess clock, not a celestial one. This was `fa-eclipse`, which read
+            // fine on its own but sat next to the world clock's sun and moon once
+            // that arrived -- two celestial glyphs side by side, one meaning the
+            // table's remaining time and the other meaning the world's.
+            icon: "fa-solid fa-chess-clock-flip",
             name: "timer-section",
             title: "Session Timer",
             tooltip: null,

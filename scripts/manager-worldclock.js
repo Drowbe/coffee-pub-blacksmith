@@ -223,7 +223,7 @@ class WorldClockManager {
             available: true,
             isGM,
             timeText: this._formatTime(calendar, components),
-            tooltip: this._buildTooltip(calendar, components, isGM),
+            tooltip: this._buildTooltip(calendar, components),
             smallStepLabel: this._describeStep('small'),
             largeStepLabel: this._describeStep('large'),
             ...view,
@@ -544,7 +544,7 @@ class WorldClockManager {
      * -- `months` and `seasons` are explicitly nullable in the core schema -- so each
      * is probed rather than assumed, with the day-of-year as the fallback.
      */
-    static _buildTooltip(calendar, components, isGM) {
+    static _buildTooltip(calendar, components) {
         const lines = [];
 
         const weekday = this._nameOf(calendar.days?.values?.[components.dayOfWeek]);
@@ -565,8 +565,9 @@ class WorldClockManager {
 
         lines.push(this._formatTime(calendar, components));
 
-        if (isGM) lines.push('Drag the sun or moon, or use the arrows, to change the time.');
-
+        // No instructions. A grab cursor on the sun and arrows either side of a clock
+        // are self-evident, and a tooltip that spends a line explaining them is a line
+        // the reader has to skip past every time they wanted the date.
         return lines.join('<br>');
     }
 
@@ -752,18 +753,24 @@ class WorldClockManager {
         const body = section.querySelector('.worldclock-body');
         if (sky && body) body.addEventListener('pointerdown', (event) => this._beginDrag(event, section, sky));
 
-        // LEFT click opens the menu, because a right-click-only menu on a strip of
-        // read-outs is a menu nobody finds. Right-click keeps working for anyone who
-        // reaches for it.
-        section.addEventListener('click', (event) => {
-            // The sun is the drag handle, not a menu button. Ignoring clicks that
-            // START on it is not enough on its own: a drag released over the sky
-            // reports the sky as the click target, so the gesture is also flagged.
-            if (event.target.closest?.('.worldclock-body')) return;
-            if (this._suppressClick) return;
-            this._showMenu(event);
-        });
-        section.addEventListener('contextmenu', (event) => this._showMenu(event));
+        // THE CLOCK FACE IS THE BUTTON, not the whole widget. Every part of this
+        // thing already does something on click -- the arrows step, the sun drags --
+        // and the sky is a picture rather than a control. Only the time itself is
+        // left, and a menu hung off the whole section would fire from presses aimed
+        // at the sky.
+        //
+        // Left click as well as right, because a right-click-only menu on a strip of
+        // read-outs is a menu nobody finds.
+        const label = section.querySelector('.worldclock-time');
+        if (label) {
+            label.addEventListener('click', (event) => {
+                // A drag released over the clock face reports the FACE as the click
+                // target, so a gesture that ended here must not also open the menu.
+                if (this._suppressClick) return;
+                this._showMenu(event);
+            });
+            label.addEventListener('contextmenu', (event) => this._showMenu(event));
+        }
     }
 
     /**

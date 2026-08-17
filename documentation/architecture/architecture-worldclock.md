@@ -115,9 +115,17 @@ Options is for how the clock behaves. Mixing them puts the dangerous items besid
 `registerOptionProvider` lets a feature contribute without the clock importing it -- the darkness driver is
 the first and only user. A provider that throws is caught and the menu still builds.
 
-Clicks that begin on the sun are ignored, and a click immediately following a drag is suppressed: a
-pointerup after dragging is followed by a click, which would otherwise open the menu on top of the gesture
-that just ended.
+**The clock face is the button, not the whole widget.** Every other part already does something on click --
+the arrows step, the sun drags -- and the sky is a picture rather than a control, so a menu hung off the
+section would fire from presses aimed at the sky. Only `.worldclock-time` carries the handler, and only it
+takes the pointer cursor.
+
+A click immediately following a drag is still suppressed, because a drag released over the clock face
+reports the face as the click target and would otherwise open the menu on top of the gesture that just
+ended.
+
+The tooltip carries no instructions. A grab cursor on the sun and arrows either side of a clock are
+self-evident, and a line explaining them is a line the reader skips past every time they wanted the date.
 
 ## The drag handle is the sun, not the panel
 

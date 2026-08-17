@@ -33,10 +33,14 @@
     border-radius: 4px;
 }
 
-/* A GM's clock opens a menu on click, so it has to look clickable. The sun keeps
-   its own `grab` cursor, since it does something different. */
-.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) {
+/* The CLOCK FACE is what opens the menu, so it alone is what looks clickable. The
+   sky is a picture and keeps the default cursor; the sun keeps `grab`, because it
+   does something different. */
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-time {
     cursor: pointer;
+}
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-time:hover {
+    color: rgba(255, 196, 74, 0.95);
 }
 
 .worldclock-section .worldclock-time {
