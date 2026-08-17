@@ -485,44 +485,6 @@
 
 /* ------------------------------------ */
 
-/* WORLD TIME SECTION */
-/* The in-world clock, sitting immediately left of the session timer. It borrows
-   the timer's box metrics on purpose -- same gap, same padding, same radius --
-   so the two clocks read as a matched pair rather than two unrelated controls
-   that happen to be adjacent. It deliberately does NOT take the timer's
-   ::before progress fill: there is nothing counting down here. */
-.worldtime-section {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    /* Narrower than the timer's 90px because the text is shorter ("6:31 AM" vs
-       "3:40:01") -- but fixed, so the bar does not twitch sideways every time
-       the hour rolls from 9:59 to 10:00. */
-    min-width: 78px;
-}
-
-/* Day and night differ by icon colour alone. The readout is a passive label, so
-   it stays quiet; a lit background here would compete with the session timer,
-   which uses its fill to mean something. */
-.worldtime-section i {
-    color: rgba(255, 196, 74, 0.95);
-}
-.worldtime-section.is-night i {
-    color: rgba(158, 186, 224, 0.95);
-}
-
-.worldtime-section .world-time {
-    /* Tabular figures so the digits keep their columns as the time changes --
-       without it, a proportional "1" is narrower than a "9" and the text shifts
-       within its box on every update. */
-    font-variant-numeric: tabular-nums;
-}
-
-/* ------------------------------------ */
-
 /* TIMERS TEMPORARILY IN THE CSS CLIENT */
 /* TIMER SECTION */
 .timer-section {

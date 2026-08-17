@@ -53,6 +53,7 @@
 @import "menubar.css";
 @import "menubar-combatbar.css";
 @import "menubar-widgets.css";
+@import "worldclock.css"; /* own feature; rendered in the menubar's right zone */
 
 /* --- Toasts ---------------------- */
 @import "toast.css";

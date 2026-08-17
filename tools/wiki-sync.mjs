@@ -87,6 +87,7 @@ const PUBLISH = [
   'architecture/architecture-tool-windows.md',
   'architecture/architecture-toolbarmanager.md',
   'architecture/architecture-window.md',
+  'architecture/architecture-worldclock.md',
   'architecture/architecture-xp.md',
   // Design system
   'design-system/design-tokens.md',

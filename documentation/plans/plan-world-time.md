@@ -1,6 +1,17 @@
 # Plan: World Time and Darkness
 
-**Status:** Planned. Nothing below is built except a first-pass readout that Phase 1 replaces.
+**Status:** Implemented except darkness, pending live verification. Phases 1 and 3-6 are built -- the
+calendar-driven readout, the step controls, the sky track, the drag and the detailed tooltip. **Phase 2,
+the darkness driver, is not built** and is the only reason this file still exists.
+
+Everything shipped has moved to its permanent home: the feature to `CHANGELOG.md`, the design to
+`documentation/architecture/architecture-worldclock.md`, and the remaining darkness work to
+`documentation/TODO.md`. The sections below are kept only as the reasoning behind the darkness phase;
+when that lands, this file is deleted rather than archived.
+
+Two things the plan did not anticipate, now recorded in the architecture doc instead: the widget had to
+become its own feature rather than menubar code (four files, a two-call seam), and three of its
+cross-file couplings fail silently enough to need a checker of their own.
 
 **Outcome:** feature.
 
@@ -88,18 +99,14 @@ settings; the graphical editor is a later convenience and is not required for th
 Each phase is independently shippable. They are listed in dependency order, which is **not** the order of
 urgency -- see the note below.
 
-| Phase | Work | How it is verified |
+| Phase | Work | Status |
 |---|---|---|
-| 1 | Readout reads the calendar: real date, calendar-derived day length, formats from `calendar.format` | Console `game.time.advance()` across a day and a month boundary; readout matches the dnd5e HUD exactly |
-| 2 | Darkness driver: four settings, GM-only writes, `darknessLock` respected, re-apply on `canvasReady` | Advance time past sunset in a live world; darkness moves. Lock a scene; it does not. Check a player client sees it |
-| 3 | Step controls, GM only, small/large step settings | Click each of the four; time moves by the configured amount. Player sees no buttons |
-| 4 | The sky bar with sun/moon marker | Advance across dawn and dusk; marker travels, icon swaps |
-| 5 | Drag to scrub, with local preview and a single commit on release | Drag across the bar watching the network tab: exactly one time write on release, none during |
-| 6 | Detailed tooltip: full date, weekday, season | Hover; compare against `game.time.components` |
-
-**Phase 2 is the one worth pulling forward.** It is the actual regression from disabling SmallTime, it is
-independent of every UI phase, and it needs only settings -- no widget at all. If darkness matters more than
-the widget does, build Phase 1 and 2 and stop.
+| 1 | Readout reads the calendar: real date, calendar-derived day length | Built |
+| 2 | Darkness driver: four settings, GM-only writes, `darknessLock` respected, re-apply on `canvasReady` | **Not built** -- see `TODO.md` |
+| 3 | Step controls, GM only, small/large step settings | Built |
+| 4 | The sky bar with sun/moon marker | Built |
+| 5 | Drag to scrub, with local preview and a single commit on release | Built |
+| 6 | Detailed tooltip: full date, weekday, season | Built |
 
 ## Where this code should live
 

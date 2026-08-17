@@ -109,6 +109,7 @@ import { PinsAPI } from './api-pins.js';
 import { TagsAPI } from './api-tags.js';
 import { TagManager } from './manager-tags.js';
 import { TagWidget } from './widget-tags.js';
+import { WorldClockManager } from './manager-worldclock.js';
 import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
@@ -482,6 +483,17 @@ Hooks.once('ready', async () => {
         await SettingsAdoptionManager.run();
     } catch (e) {
         console.error(`${MODULE.ID}: settings adoption failed`, e);
+    }
+
+    // The world clock registers the `blacksmith-worldclock` partial that menubar.hbs
+    // invokes, so it MUST land before any menubar render. Handlebars throws on a
+    // missing partial rather than skipping it, and that throw is caught by the
+    // menubar's own render guard — so getting this order wrong costs the whole
+    // menubar, not just the clock, and shows up only as a logged render error.
+    try {
+        await WorldClockManager.initialize();
+    } catch (e) {
+        console.error(`${MODULE.ID}: WorldClockManager.initialize failed`, e);
     }
 
     // Menubar secondary bars read world settings (e.g. encounterToolbarDeploymentPattern) — must run after registerSettings().

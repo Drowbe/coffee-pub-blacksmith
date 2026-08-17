@@ -3340,7 +3340,48 @@ export const registerSettings = () => {
 
 
 	// --------------------------------------
-	// -- H3: Round Timer Settings	
+	// -- H3: World Clock Settings
+	// --------------------------------------
+	// 'world' scope: everything beneath is GM-only. Players see the clock in the
+	// menubar but cannot move it, so a player has nothing to configure here.
+	registerHeader('WorldClock', 'headingH3WorldClock-Label', 'headingH3WorldClock-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
+
+	// -- Small Step --
+	// Minutes, applied with the CALENDAR's secondsPerMinute rather than 60 — see
+	// WorldClockManager.step().
+	game.settings.register(MODULE.ID, 'worldClockStepSmall', {
+		name: MODULE.ID + '.worldClockStepSmall-Label',
+		hint: MODULE.ID + '.worldClockStepSmall-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 10,
+		range: {
+			min: 1,
+			max: 120,
+			step: 1
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Large Step --
+	game.settings.register(MODULE.ID, 'worldClockStepLarge', {
+		name: MODULE.ID + '.worldClockStepLarge-Label',
+		hint: MODULE.ID + '.worldClockStepLarge-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 60,
+		range: {
+			min: 5,
+			max: 720,
+			step: 5
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
+	// -- H3: Round Timer Settings
 	// --------------------------------------
 	registerHeader('RoundTimer', 'headingH3RoundTimer-Label', 'headingH3RoundTimer-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 	

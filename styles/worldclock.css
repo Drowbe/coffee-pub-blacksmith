@@ -1,0 +1,117 @@
+/* ================================================================== */
+/* ===== WORLD CLOCK ================================================ */
+/* ================================================================== */
+/*
+   The in-world clock in the menubar, beside the session timer.
+
+   Owned with scripts/manager-worldclock.js and
+   templates/partials/worldclock.hbs. Nothing else styles these classes, and this
+   file styles nothing else -- the whole feature moves together.
+
+   Loaded via the @import chain in styles/default.css. A CSS file without that
+   import is silently unstyled.
+*/
+
+/* The clock borrows the session timer's box metrics on purpose -- same padding,
+   same radius -- so the two read as a matched pair rather than two unrelated
+   controls that happen to be adjacent. It deliberately does NOT take the timer's
+   ::before progress fill: nothing here is counting down. */
+.worldclock-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.worldclock-section .worldclock-time {
+    /* Tabular figures so the digits keep their columns as the time changes.
+       Without it a proportional "1" is narrower than a "9" and the text jitters
+       inside its own box on every repaint. */
+    font-variant-numeric: tabular-nums;
+    /* Fixed, so the row does not shuffle sideways when 9:59 becomes 10:00 or the
+       meridiem flips. Wide enough for "12:00 AM". */
+    min-width: 60px;
+    text-align: center;
+}
+
+/* ----- The sky track ---------------------------------------------- */
+
+/* A day, left to right: night, dawn, daylight, dusk, night. These stops are drawn
+   to match SUNRISE = 0.25 and SUNSET = 0.75 in manager-worldclock.js. Change one
+   without the other and the marker crosses a painted dawn at the wrong time. */
+.worldclock-section .worldclock-track {
+    position: relative;
+    width: 64px;
+    height: 14px;
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: default;
+    background: linear-gradient(
+        90deg,
+        rgb(18, 26, 48) 0%,
+        rgb(38, 52, 88) 18%,
+        rgb(214, 128, 84) 25%,
+        rgb(126, 184, 232) 34%,
+        rgb(150, 202, 240) 50%,
+        rgb(126, 184, 232) 66%,
+        rgb(214, 128, 84) 75%,
+        rgb(38, 52, 88) 82%,
+        rgb(18, 26, 48) 100%
+    );
+}
+
+/* The marker rides `--day-percent`, the only thing a repaint or a drag changes.
+   `translateX(-50%)` centres it on its own position so it reaches both ends of the
+   track instead of stopping half a glyph short. */
+.worldclock-section .worldclock-marker {
+    position: absolute;
+    top: 50%;
+    left: var(--day-percent, 50%);
+    transform: translate(-50%, -50%);
+    font-size: 9px;
+    color: rgba(255, 236, 190, 0.98);
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+    /* The track owns the drag, so the glyph must not swallow the pointer. */
+    pointer-events: none;
+}
+.worldclock-section.is-night .worldclock-marker {
+    color: rgba(226, 236, 255, 0.98);
+}
+
+/* Only a GM can move time, so only a GM gets the affordance. */
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-track {
+    cursor: ew-resize;
+}
+
+/* During a drag the readout is a PREVIEW, not the world's time. The ring says the
+   widget is in a provisional state -- without it there is no way to tell a
+   committed time from one the pointer is still holding. */
+.worldclock-section.is-dragging .worldclock-track {
+    box-shadow: 0 0 0 1px rgba(255, 196, 74, 0.9);
+}
+
+/* ----- Step controls ---------------------------------------------- */
+
+.worldclock-section .worldclock-step {
+    font-size: 11px;
+    padding: 2px 1px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.55);
+    transition: color 0.15s ease;
+}
+.worldclock-section .worldclock-step:hover {
+    color: rgba(255, 196, 74, 0.95);
+}
+
+/* ----- Before the calendar exists ---------------------------------- */
+
+/* Dimmed rather than hidden: a control that vanishes and returns is more alarming
+   than one that is visibly waiting. */
+.worldclock-section.is-unavailable {
+    opacity: 0.45;
+}
+.worldclock-section.is-unavailable .worldclock-track {
+    filter: grayscale(1);
+}
