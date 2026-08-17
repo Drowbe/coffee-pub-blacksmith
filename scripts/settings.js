@@ -3573,6 +3573,20 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// Who rolls the foraging check. On: the card carries a Forage button and the
+	// player rolls it themselves, with the system's dialog and their own dice. Off:
+	// it is rolled for them silently, which is faster and gives them no say in a
+	// check that can cost a level of exhaustion.
+	game.settings.register(MODULE.ID, 'restForagePlayerRolls', {
+		name: MODULE.ID + '.restForagePlayerRolls-Label',
+		hint: MODULE.ID + '.restForagePlayerRolls-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	game.settings.register(MODULE.ID, 'restForageDC', {
 		name: MODULE.ID + '.restForageDC-Label',
 		hint: MODULE.ID + '.restForageDC-Hint',

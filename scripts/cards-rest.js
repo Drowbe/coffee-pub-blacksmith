@@ -163,21 +163,44 @@ export function buildProvisionRows(provisions) {
         pending: 'Foraging'
     };
 
-    // THE ROLL IS SHOWN, not just its verdict. A row saying "went without" beside a
-    // level of exhaustion, with no dice anywhere, reads as a broken button rather
-    // than a failed check -- which is how it read the first time it went out.
+    // THE ROLL AND ITS CONSEQUENCE SIT ON THE ROW THEY BELONG TO, rather than the
+    // exhaustion getting a row of its own.
+    //
+    // It had one, and it read as a contradiction: the Recovered section above says
+    // "Exhaustion -1" because the long rest removed a level, and a separate
+    // "Exhaustion +1" underneath looked like the card disagreeing with itself. Both
+    // are true -- the rest gave a level back and the failed forage took one -- but
+    // they are answers to different questions, and only one of them is about
+    // provisions. On the row that caused it, it reads as a consequence instead.
     const roll = provisions.roll ?? null;
-    const rolled = (verdict) => {
-        if (!roll || !Number.isFinite(roll.total)) return undefined;
-        if ((verdict !== 'foraged') && (verdict !== 'hungry')) return undefined;
-        return `Survival ${roll.total} vs DC ${roll.dc}`;
+
+    // ONE CHECK, so ONE mention of the exhaustion it cost. Food is checked first, so
+    // a character who found neither food nor water sees the cost against food and a
+    // bare "went without" against water -- rather than both rows claiming a level and
+    // implying two were lost.
+    let exhaustionUnclaimed = provisions.exhaustion > 0;
+
+    const detail = (verdict) => {
+        const parts = [];
+
+        // A card reporting "went without" with no dice anywhere reads as a broken
+        // button rather than a failed check, which is how it read the first time out.
+        if (roll && Number.isFinite(roll.total) && ((verdict === 'foraged') || (verdict === 'hungry'))) {
+            parts.push(`Survival ${roll.total} vs DC ${roll.dc}`);
+        }
+        if ((verdict === 'hungry') && exhaustionUnclaimed) {
+            parts.push(`+${provisions.exhaustion} exhaustion`);
+            exhaustionUnclaimed = false;
+        }
+
+        return parts.length ? parts.join(' · ') : undefined;
     };
 
     const rows = [];
     if (provisions.food) {
         rows.push({
             label: 'Food',
-            sublabel: rolled(provisions.food),
+            sublabel: detail(provisions.food),
             trailing: provisions.food === 'ate' ? 'Ate a ration' : phrase[provisions.food],
             tone: provisions.food === 'hungry' ? 'danger' : undefined
         });
@@ -185,17 +208,9 @@ export function buildProvisionRows(provisions) {
     if (provisions.water) {
         rows.push({
             label: 'Water',
-            sublabel: rolled(provisions.water),
+            sublabel: detail(provisions.water),
             trailing: provisions.water === 'ate' ? 'Drank' : phrase[provisions.water],
             tone: provisions.water === 'hungry' ? 'danger' : undefined
-        });
-    }
-    if (provisions.exhaustion > 0) {
-        rows.push({
-            label: 'Exhaustion',
-            trailing: `+${provisions.exhaustion}`,
-            tone: 'danger',
-            emphasis: true
         });
     }
 
@@ -203,39 +218,55 @@ export function buildProvisionRows(provisions) {
 }
 
 /**
- * Compose the whole card.
+ * Everything the card needs to draw itself, and to draw itself AGAIN later.
  *
- * @param {object} options
- * @param {Actor} options.actor
- * @param {object} options.result     RestResult from dnd5e.
- * @param {object} options.config     RestConfiguration from dnd5e.
- * @param {object|null} [options.provisions]
- * @returns {Array<object>} Card parts.
+ * THE CARD CARRIES ITS OWN STATE. This object is stored in the message flags, so a
+ * foraging roll made minutes afterwards can re-render the card from the message
+ * alone -- no memory, no lookup of a `RestResult` that no longer exists, and it
+ * works on whichever client happens to be resolving it. The recovery rows are
+ * stored already rendered for exactly that reason: `result` and its clone are gone
+ * by then, and re-deriving them would be impossible.
+ *
+ * @returns {object}
  */
-export function buildRestCardParts({ actor, result, config, provisions = null } = {}) {
+export function buildRestState({ actor, result, config, provisions = null } = {}) {
     const isLong = config?.type === 'long';
     const hours = Math.round((Number(config?.duration) || 0) / 60);
 
-    // The subtitle says what KIND of rest and how long it took, which is the thing
-    // a GM scanning a night's chat is actually looking for.
+    // The subtitle says what KIND of rest and how long it took, which is what a GM
+    // scanning a night's chat is actually looking for.
     const detail = [];
     if (hours > 0) detail.push(`${hours} hour${hours === 1 ? '' : 's'}`);
     if (result?.newDay || config?.newDay) detail.push('new day');
 
-    const recovery = [...buildRecoveryRows(actor, result), ...buildItemRows(actor, result)];
-    const provisionRows = buildProvisionRows(provisions);
+    return {
+        actorUuid: actor?.uuid ?? null,
+        name: actor?.name ?? 'Someone',
+        img: actor?.img ?? null,
+        restType: config?.type ?? null,
+        subtitle: `${isLong ? 'Long' : 'Short'} Rest${detail.length ? ` — ${detail.join(', ')}` : ''}`,
+        recovery: [...buildRecoveryRows(actor, result), ...buildItemRows(actor, result)],
+        provisions
+    };
+}
 
+/**
+ * Compose the card from its state.
+ * @returns {Array<object>} Card parts.
+ */
+export function buildPartsFromState(state) {
     const parts = [
         {
             part: 'identity',
-            img: actor?.img ?? undefined,
-            name: actor?.name ?? 'Someone',
-            subtitle: `${isLong ? 'Long' : 'Short'} Rest${detail.length ? ` — ${detail.join(', ')}` : ''}`
+            img: state?.img ?? undefined,
+            name: state?.name ?? 'Someone',
+            subtitle: state?.subtitle ?? ''
         }
     ];
 
     // A rest that restored nothing still says so. Silence would read as a card that
     // failed to load rather than a character who was already at full strength.
+    const recovery = Array.isArray(state?.recovery) ? state.recovery : [];
     parts.push({ part: 'section', label: 'Recovered' });
     parts.push({
         part: 'rows',
@@ -243,34 +274,76 @@ export function buildRestCardParts({ actor, result, config, provisions = null } 
         items: recovery.length ? recovery : [{ label: 'Nothing to recover', tone: 'muted' }]
     });
 
+    const provisionRows = buildProvisionRows(state?.provisions);
     if (provisionRows.length) {
         parts.push({ part: 'section', label: 'Provisions' });
         parts.push({ part: 'rows', plain: true, items: provisionRows });
     }
 
+    // THE BUTTON IS ONLY HERE WHILE THE CHECK IS OWED, so a resolved card carries no
+    // dead control. Whether the viewer may press it is decided when it is pressed,
+    // not here -- the card is one baked string delivered to everybody, so a button
+    // hidden per-viewer at compose time would be hidden for the wrong people.
+    if (isForagePending(state)) {
+        parts.push({
+            part: 'actions',
+            instruction: 'No food or water. Forage for it?',
+            buttons: [{
+                label: 'Forage',
+                icon: 'fa-solid fa-wheat-awn',
+                action: 'forage',
+                moduleId: MODULE.ID
+            }]
+        });
+    }
+
     return parts;
+}
+
+/** Whether this card is still waiting on a foraging check. */
+export function isForagePending(state) {
+    const provisions = state?.provisions;
+    if (!provisions) return false;
+    return (provisions.food === 'pending') || (provisions.water === 'pending');
+}
+
+/**
+ * Compose a card directly. Kept for callers that have the rest to hand.
+ * @returns {Array<object>} Card parts.
+ */
+export function buildRestCardParts(options = {}) {
+    return buildPartsFromState(buildRestState(options));
 }
 
 /**
  * Post a rest card for one character.
  *
- * The actor's uuid rides along in the card flags so a later result -- a foraging
- * roll the player makes minutes afterwards -- can find this card again without
- * anything being remembered in memory.
- *
  * @returns {Promise<ChatMessage|null>}
  */
 export async function postRestCard({ actor, result, config, provisions = null } = {}) {
+    const state = buildRestState({ actor, result, config, provisions });
+
     return ChatCardsAPI.post({
         moduleId: MODULE.ID,
         type: 'rest',
-        parts: buildRestCardParts({ actor, result, config, provisions }),
+        parts: buildPartsFromState(state),
         speaker: { alias: actor?.name },
-        flags: {
-            rest: {
-                actorUuid: actor?.uuid ?? null,
-                restType: config?.type ?? null
-            }
-        }
+        flags: { rest: state }
+    });
+}
+
+/**
+ * Rewrite a card after its foraging check has been made.
+ *
+ * @param {ChatMessage} message
+ * @param {object} provisions The resolved provisions block.
+ * @returns {Promise<ChatMessage|null>}
+ */
+export async function updateRestCard(message, provisions) {
+    const state = { ...(message?.getFlag?.(MODULE.ID, 'rest') ?? {}), provisions };
+
+    return ChatCardsAPI.update(message, {
+        parts: buildPartsFromState(state),
+        flags: { rest: state }
     });
 }

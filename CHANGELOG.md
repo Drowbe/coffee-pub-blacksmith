@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Players roll their own foraging check, from a button on the rest card** (`scripts/manager-rest.js`, `scripts/cards-rest.js`). A character short of food or water no longer has the check rolled for them invisibly: their card carries a **Forage** button, and pressing it opens the system's own roll dialog so they can take advantage, spend inspiration, or just see their dice. The result rewrites that row and applies any exhaustion. Setting: *Players Roll to Forage*, on by default.
+
+  **`rollSkill` returns its rolls to the caller**, which removed the whole problem the plan had been circling. No hook subscription to learn the result, no second request card, and no new roll entry point in `manager-rolls.js` -- the clicking client simply has the total.
+
+  **The write is the only thing that cannot happen there.** The card was authored by the GM and `ChatCardsAPI.update` refuses a user who cannot modify the message, so a player's outcome is handed to the GM over the established `executeAsGM` proxy -- the same shape `manager-pins.js` and `manager-tags.js` use -- and the GM applies the exhaustion and rewrites the card. A GM clicking applies it directly with no hop.
+
+  **The card carries its own state**, stored as a flag: name, portrait, subtitle, the already-rendered recovery rows, and the provisions block. That is what lets a roll made minutes later re-render the card from the message alone -- the `RestResult` and its clone are long gone by then, and re-deriving the recovery would be impossible. The button is composed only while the check is owed, so a resolved card carries no dead control.
+
+  **"What if nobody rolls" needed no separate mechanism.** The GM may press any character's button, so an outstanding check is resolved by the same control that made it. Nothing auto-punishes, nothing expires, and a pending card is simply a card with a button on it -- which is how Foundry already asks for an attack and then a damage roll. Resolving twice is a no-op, so a double click or a GM and an owner both pressing cannot charge exhaustion twice.
+
+  Pending is a real state: nothing is decided and **no exhaustion is charged for a check nobody has made**. A cancelled roll dialog decides nothing and leaves the button. Rolling for a character that is not yours is refused with a notice.
+
 - **One Blacksmith rest card per character** (`scripts/cards-rest.js`, `scripts/manager-rest.js`, `scripts/settings.js`). Replaces the batched provisions summary posted a few entries below this one, and can replace the game system's recovery card too. Plan: `documentation/plans/plan-rest-card.md`, phases 1-3 of 5.
 
   **Per character rather than one for the whole rest**, keeping the shape the system already used. A card is about one actor, so its state is that actor's state -- which is what will let a foraging roll made minutes later find its own card and update it, with nothing held in memory in between. The batched summary had to wait for the entire party before it could say anything at all, and its accumulate-then-flush machinery is gone with it.

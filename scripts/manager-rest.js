@@ -29,7 +29,9 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { postRestCard } from './cards-rest.js';
+import { postRestCard, updateRestCard, isForagePending } from './cards-rest.js';
+import { ChatCardsAPI } from './api-chat-cards.js';
+import { SocketManager } from './manager-sockets.js';
 
 class RestManager {
 
@@ -108,6 +110,8 @@ class RestManager {
                 callback: (actor, config) => this._onPreRest(config)
             });
         }
+
+        this._registerForageAction();
 
         postConsoleAndNotification(MODULE.NAME, "Rest: Time advancement registered", "", true, false);
     }
@@ -316,16 +320,26 @@ class RestManager {
         // the rules anywhere suggest. It also means at most ONE level of exhaustion
         // per rest, because there is only one check to fail.
         if (needsFood || needsWater) {
-            const { verdict, total, dc } = await this._forage(actor);
-            if (needsFood) outcome.food = verdict;
-            if (needsWater) outcome.water = verdict;
-            if (verdict === 'hungry') outcome.exhaustion = 1;
+            // LET THEM ROLL IT. The check decides whether a character loses a level
+            // of exhaustion, and rolling it for them invisibly gave them no chance to
+            // spend inspiration or apply a bonus -- and produced a card reporting a
+            // failure with no dice anywhere on it, which reads as a broken button.
+            //
+            // Pending is a real state: nothing is decided, no exhaustion is applied,
+            // and the card carries a button until somebody presses it.
+            if (getSettingSafely(MODULE.ID, 'restForagePlayerRolls', true)) {
+                if (needsFood) outcome.food = 'pending';
+                if (needsWater) outcome.water = 'pending';
+                outcome.dc = this._forageDC();
+            } else {
+                const { verdict, total, dc } = await this._forage(actor);
+                if (needsFood) outcome.food = verdict;
+                if (needsWater) outcome.water = verdict;
+                if (verdict === 'hungry') outcome.exhaustion = 1;
 
-            // The roll travels with the outcome so the card can SHOW it. A card
-            // reporting "went without" and a level of exhaustion, with no dice
-            // anywhere, is indistinguishable from a bug -- which is exactly how it
-            // read in play.
-            outcome.roll = { total, dc };
+                // The roll travels with the outcome so the card can SHOW it.
+                outcome.roll = { total, dc };
+            }
         }
 
         if (outcome.exhaustion > 0) await this._addExhaustion(actor, outcome.exhaustion);
@@ -343,8 +357,13 @@ class RestManager {
      * One Survival check for whatever the character is missing.
      * @returns {{verdict: 'foraged'|'hungry'|'unrolled', total: number|null, dc: number}}
      */
+    /** @returns {number} */
+    static _forageDC() {
+        return Number(getSettingSafely(MODULE.ID, 'restForageDC', 12)) || 12;
+    }
+
     static async _forage(actor) {
-        const dc = Number(getSettingSafely(MODULE.ID, 'restForageDC', 12)) || 12;
+        const dc = this._forageDC();
 
         let total = null;
         try {
@@ -407,6 +426,115 @@ class RestManager {
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Rest: Failed to apply exhaustion to ${actor.name}`, error, false, false);
         }
+    }
+
+    // ==============================================================
+    // ===== THE FORAGE BUTTON ======================================
+    // ==============================================================
+
+    /** Socket handler name for the GM hop. */
+    static FORAGE_GM_PROXY = 'restForageResolved';
+
+    static _registerForageAction() {
+        ChatCardsAPI.registerAction(MODULE.ID, 'forage', ({ message }) => this._onForageClicked(message));
+
+        // The GM must have this registered for a player's click to reach them --
+        // `executeAsGM` runs the handler on the GM's client, not the caller's.
+        try {
+            SocketManager.getSocket()?.register?.(this.FORAGE_GM_PROXY, (payload) => this._applyForage(payload));
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Rest: Could not register the forage socket handler", error, false, false);
+        }
+    }
+
+    /**
+     * Somebody pressed Forage.
+     *
+     * THE ROLL HAPPENS ON THE CLICKER'S CLIENT, with the system's own dialog and its
+     * own chat card, so the player sees their dice and can spend inspiration or take
+     * advantage. `rollSkill` returns the rolls to the caller, so no hook subscription
+     * is needed to learn the total -- we already have it.
+     *
+     * WRITING is the part that cannot happen there: the card was authored by the GM
+     * and `ChatCardsAPI.update` refuses a user who cannot modify the message. So the
+     * outcome is handed to the GM, who applies the exhaustion and rewrites the card.
+     */
+    static async _onForageClicked(message) {
+        const state = message?.getFlag?.(MODULE.ID, 'rest');
+        if (!state || !isForagePending(state)) return;
+
+        const actor = await fromUuid(state.actorUuid).catch(() => null);
+        if (!actor) {
+            ui.notifications?.warn('That character no longer exists.');
+            return;
+        }
+
+        // The GM may roll for anyone -- which is also the answer to a player who
+        // never presses it. Everyone else may roll only for their own character.
+        if (!game.user?.isGM && !actor.isOwner) {
+            ui.notifications?.warn(`${actor.name} is not yours to roll for.`);
+            return;
+        }
+
+        const dc = Number(state.provisions?.dc) || this._forageDC();
+
+        let total = null;
+        try {
+            const rolled = await actor.rollSkill({ skill: 'sur' }, {}, {});
+            const roll = Array.isArray(rolled) ? rolled[0] : rolled;
+            total = Number(roll?.total);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Rest: Forage roll failed for ${actor.name}`, error, false, false);
+            return;
+        }
+
+        // Cancelled at the dialog. Nothing is decided and the button stays.
+        if (!Number.isFinite(total)) return;
+
+        const payload = { messageId: message.id, actorUuid: state.actorUuid, total, dc };
+
+        if (game.user?.isGM) {
+            await this._applyForage(payload);
+            return;
+        }
+
+        const socket = SocketManager.getSocket();
+        if (typeof socket?.executeAsGM !== 'function') {
+            ui.notifications?.warn('Your roll could not be applied: no GM connection. Ask your GM to resolve it.');
+            return;
+        }
+
+        await socket.executeAsGM(this.FORAGE_GM_PROXY, payload);
+    }
+
+    /**
+     * Apply a resolved forage. Runs on the GM's client, wherever the click came from.
+     */
+    static async _applyForage({ messageId, actorUuid, total, dc } = {}) {
+        if (!game.user?.isGM) return;
+
+        const message = game.messages?.get(messageId);
+        const state = message?.getFlag?.(MODULE.ID, 'rest');
+        if (!state) return;
+
+        // A second arrival for the same card resolves nothing. Two players cannot
+        // press it, but a GM and an owner can, and a double click always can.
+        if (!isForagePending(state)) return;
+
+        const success = Number(total) >= Number(dc);
+        const verdict = success ? 'foraged' : 'hungry';
+
+        const provisions = { ...state.provisions, roll: { total, dc } };
+        if (provisions.food === 'pending') provisions.food = verdict;
+        if (provisions.water === 'pending') provisions.water = verdict;
+        provisions.exhaustion = success ? 0 : 1;
+
+        if (!success) {
+            const actor = await fromUuid(actorUuid).catch(() => null);
+            if (actor) await this._addExhaustion(actor, 1);
+        }
+
+        await updateRestCard(message, provisions);
     }
 
     /** Remember a request so a late acceptance cannot advance the clock again. */

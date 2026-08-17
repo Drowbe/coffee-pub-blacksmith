@@ -1,7 +1,7 @@
 # Plan: Blacksmith owns the rest card
 
-**Status:** Phases 1-3 implemented, pending live verification. **Phase 4 is blocked on a decision that is
-the author's** -- see "Phase 1, answered" below. Phase 5 follows 4.
+**Status:** Phases 1-5 implemented, pending live verification. **Phases 6 and 7 -- the GM window, our
+request card and the player window -- are not started**, and are windows rather than cards.
 
 **Outcome:** feature.
 
@@ -178,14 +178,20 @@ posts a request card and results arrive on the hook above. Entirely supported, n
 **It posts a second card**, which sits awkwardly against the reason this plan exists: the request card and
 the rest card would both be about the same character's night.
 
-**Route B -- the roll window.** What "let them roll using the roll tool" most naturally means. But
-`showRollWindow` is reached through `orchestrateRoll` and expects the skill-check card's `rollData` --
-message id, token id, group and contested state. There is no "open a roll for this actor, this skill, this
-DC, give me the total" entry point. Building one is a **new public entry point in `manager-rolls.js`**,
-which is a reasonable thing to want for its own sake and is not a rest feature.
+**Route B -- the roll window.** `showRollWindow` is reached through `orchestrateRoll` and expects the
+skill-check card's `rollData` -- message id, token id, group and contested state. There is no "open a roll
+for this actor, this skill, this DC, give me the total" entry point, and building one is new public API in
+`manager-rolls.js`.
 
-**This is the decision.** A: accept a second card, ship quickly. B: add the missing roll entry point first,
-get one card, and gain something the rest of the module can use. B is better and is not a rest task.
+**Neither was needed.** `actor.rollSkill(config, dialog, message)` **returns its rolls to the caller**, so
+the clicking client already has the total -- no hook subscription, no second card, no new entry point. The
+player gets the system's own roll dialog and its own roll message, which is what "let them roll" meant, and
+seeing the dice is the point.
+
+The only thing that cannot happen on the clicking client is the WRITE: the card was authored by the GM and
+`ChatCardsAPI.update` refuses a user who cannot modify the message. So the outcome is handed to the GM over
+the established `executeAsGM` proxy (the same shape `manager-pins.js` and `manager-tags.js` use), and the
+GM applies the exhaustion and rewrites the card.
 
 ## Phases
 
@@ -194,8 +200,8 @@ get one card, and gain something the rest of the module can use. B is better and
 | 1 | How a result comes back | **Answered above** |
 | 2 | The per-character result card (step 5) | **Built** -- `scripts/cards-rest.js` |
 | 3 | Suppress the system's cards and its confirmation dialog | **Built** -- three settings |
-| 4 | Foraging becomes a player roll (step 6) | **Blocked on route A or B** |
-| 5 | GM resolution for an outstanding check | Follows 4 |
+| 4 | Foraging becomes a player roll (step 6) | **Built** -- Forage button, GM proxy, card rewrite |
+| 5 | GM resolution for an outstanding check | **Built** -- falls out of 4: the GM may press any button |
 | 6 | The GM rest window (step 1) | Not started -- a real window |
 | 7 | Our request card (step 2) and the player window (step 3) | Not started; 7 depends on 6 |
 
@@ -203,9 +209,17 @@ get one card, and gain something the rest of the module can use. B is better and
 windows use `window-template.hbs` and the frame is not owned. Two more hand-rolled windows makes that worse.
 Worth doing after the framework, or deliberately as further evidence for it, but not by accident.
 
-Until 4 lands, foraging still rolls automatically. **The card now shows the roll** -- "Survival 7 vs DC 12"
-under the row -- because a card reporting "went without" and a level of exhaustion with no dice anywhere
-reads as a broken button rather than a failed check, which is exactly how it read in play.
+### How phase 5 came for free
+
+"What if nobody rolls" needed no separate mechanism in the end. **The GM may press any character's Forage
+button**, so an outstanding check is resolved by the same control that made it -- there is nothing extra to
+build, and nothing extra for a GM to learn. A pending card is simply a card with a button on it, which is
+how Foundry already asks for an attack and then a damage roll.
+
+The automatic path is kept behind **Players Roll to Forage**, off which the check is rolled silently as
+before. That path now records the roll on the card -- "Survival 7 vs DC 12" -- because a card reporting a
+failure and a level of exhaustion with no dice anywhere reads as a broken button, which is exactly how it
+read in play.
 
 **4 and 5 must ship together** -- a pending button with no way to resolve it is worse than the automatic
 roll it replaced. Foraging is still rolled automatically until they do, which is the behaviour that shipped

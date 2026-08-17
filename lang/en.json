@@ -610,6 +610,9 @@
 			"restWaterItems-Label": "Water Items",
 			"restWaterItems-Hint": "Comma-separated item names that count as a day's water, searched in order so the first is preferred. Case does not matter.",
 
+			"restForagePlayerRolls-Label": "Players Roll to Forage",
+			"restForagePlayerRolls-Hint": "A character short of food or water gets a Forage button on their rest card and rolls the check themselves. Turn this off to have it rolled for them automatically. Either way the GM can roll it on their behalf.",
+
 			"restForageDC-Label": "Foraging DC",
 			"restForageDC-Hint": "The Survival check a character makes on a long rest when they are short of food or water. One check covers both, so a character can lose at most one level of exhaustion per rest. The game system applies what that level does to their rolls and speed.",
 
