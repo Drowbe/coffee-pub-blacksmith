@@ -30,15 +30,52 @@ class WorldClockManager {
      *
      * A calendar declares its own day length and `hoursPerDay` need not be 24, so
      * "06:00" is not portable between calendars but "a quarter of the way through
-     * the day" is. These exist so the sky gradient and the sun/moon marker have
-     * something to key off; the darkness phase of the plan replaces them with real
-     * settings, at which point this pair goes away rather than gaining a third.
-     *
-     * The stops in `styles/worldclock.css` are drawn to match these numbers. Change
-     * one without the other and the marker crosses a painted dawn at the wrong time.
+     * the day" is. The darkness phase of the plan replaces these with real settings,
+     * at which point this pair goes away rather than gaining a third.
      */
     static SUNRISE = 0.25;
     static SUNSET = 0.75;
+
+    /**
+     * The sky, as colours at named moments of the day.
+     *
+     * The panel is a window, not a progress bar: the whole of it is the sky outside,
+     * so its colour has to be the colour of the sky at THIS time rather than a fixed
+     * gradient with a marker sliding over it. That means interpolating, which means
+     * the colours are data here rather than a `linear-gradient` in the stylesheet --
+     * CSS cannot interpolate between two gradients on a variable.
+     *
+     * `top` and `bottom` are the vertical gradient: the sky is lighter towards the
+     * horizon, and at dawn and dusk it is lit from BELOW, which is why those two
+     * stops have a warm bottom under a still-dark top. That asymmetry is the whole
+     * reason sunrise reads as sunrise.
+     *
+     * Stops are fractions of the day and MUST stay sorted. Sunrise sits at SUNRISE
+     * and sunset at SUNSET; if those become settings, these move with them.
+     */
+    static SKY_STOPS = [
+        { at: 0.00, top: [8, 12, 34], bottom: [18, 24, 56] },      // deep night
+        { at: 0.20, top: [18, 26, 62], bottom: [46, 50, 96] },     // first light
+        { at: 0.25, top: [62, 66, 118], bottom: [222, 132, 86] },  // sunrise, lit from below
+        { at: 0.33, top: [98, 156, 218], bottom: [214, 198, 172] },
+        { at: 0.50, top: [70, 148, 228], bottom: [170, 214, 248] },// noon
+        { at: 0.67, top: [98, 156, 218], bottom: [214, 198, 172] },
+        { at: 0.75, top: [62, 66, 118], bottom: [222, 132, 86] },  // sunset
+        { at: 0.80, top: [18, 26, 62], bottom: [46, 50, 96] },
+        { at: 1.00, top: [8, 12, 34], bottom: [18, 24, 56] }       // must equal 0.00
+    ];
+
+    /**
+     * How high the sun and moon climb, as a percentage of the panel's height, and how
+     * far off the floor they sit at rising and setting.
+     *
+     * The arc is a sine, not a path: `Math.sin(PI * progress)` is 0 at both ends and
+     * 1 at the peak, which is exactly the shape wanted and needs no curve fitted to a
+     * particular panel size. A CSS `offset-path` would hardcode the geometry in
+     * pixels and break the moment the panel is resized.
+     */
+    static ARC_PEAK = 58;
+    static ARC_FLOOR = 10;
 
     /** Minimum movement, in seconds of world time, before a drag is worth committing. */
     static DRAG_EPSILON = 1;
@@ -120,40 +157,173 @@ class WorldClockManager {
         // the honest output: a fabricated midnight would be indistinguishable from a
         // world that genuinely is at midnight.
         if (!calendar?.days || !components) {
+            // Still carries a sky, painted at midday and greyed by the stylesheet.
+            // An empty `skyStyle` would leave every custom property unset and the
+            // panel would fall back to its CSS defaults, which is the same picture
+            // by luck rather than by intent -- and would stop being so the moment a
+            // default changed.
+            const view = this._getSkyView(0.5);
             return {
                 available: false,
                 isGM: false,
                 timeText: '--:--',
                 tooltip: 'In-world time is not available yet.',
-                icon: 'fa-solid fa-clock',
-                isNight: false,
-                dayPercent: 0,
                 smallStepLabel: '',
-                largeStepLabel: ''
+                largeStepLabel: '',
+                ...view,
+                skyStyle: this._styleAttribute(view.skyVars)
             };
         }
 
         const dayFraction = this._getDayFraction(calendar, components);
-        const isNight = this._isNight(dayFraction);
+        const view = this._getSkyView(dayFraction);
 
         return {
             available: true,
             isGM,
             timeText: this._formatTime(calendar, components),
             tooltip: this._buildTooltip(calendar, components, isGM),
-            icon: isNight ? 'fa-solid fa-moon' : 'fa-solid fa-sun',
-            isNight,
-            // One decimal place. Whole percents visibly step the marker on a track
-            // only ~64px wide, and on a 24-hour day 1% is a ~15 minute jump.
-            dayPercent: Math.round(dayFraction * 1000) / 10,
             smallStepLabel: this._describeStep('small'),
-            largeStepLabel: this._describeStep('large')
+            largeStepLabel: this._describeStep('large'),
+            ...view,
+            skyStyle: this._styleAttribute(view.skyVars)
         };
+    }
+
+    /**
+     * Everything about how the panel LOOKS at a given point in the day, as one
+     * object. Shared by the render pass and the drag preview so the two cannot
+     * disagree about what 4am looks like, and returned as CSS-ready values so the
+     * paint path is a loop over custom properties rather than a list of special
+     * cases.
+     */
+    static _getSkyView(dayFraction) {
+        const arc = this._getArc(dayFraction);
+        const sky = this._getSky(dayFraction);
+        const round = (n) => Math.round(n * 10) / 10;
+
+        return {
+            isNight: arc.isNight,
+            icon: arc.isNight ? 'fa-solid fa-moon' : 'fa-solid fa-sun',
+            skyVars: {
+                '--sky-top': sky.top,
+                '--sky-bottom': sky.bottom,
+                '--star-opacity': String(Math.round(sky.starOpacity * 100) / 100),
+                '--body-x': `${round(arc.x)}%`,
+                '--body-y': `${round(arc.y)}%`
+            }
+        };
+    }
+
+    /** The `skyVars` object as an inline `style` attribute value. */
+    static _styleAttribute(skyVars) {
+        return Object.entries(skyVars).map(([k, v]) => `${k}: ${v}`).join('; ');
     }
 
     /** @returns {boolean} */
     static _isNight(dayFraction) {
         return (dayFraction < this.SUNRISE) || (dayFraction >= this.SUNSET);
+    }
+
+    /**
+     * Where the sun or moon sits on its arc, and which one it is.
+     *
+     * There is ONE body, on one arc, that changes identity at the horizon: the sun
+     * rises at sunrise, crosses, and sets at sunset, at which point the moon rises
+     * and does the same across the night. So `progress` is progress through the
+     * CURRENT phase, not through the day -- both bodies get a full arc regardless of
+     * how long their phase lasts, which is what makes a short winter day look like a
+     * short day rather than a sun that gives up halfway.
+     *
+     * The night case has to wrap midnight, which is why it is not simply a
+     * subtraction: night runs from SUNSET through 1.0 and on through 0.0 to SUNRISE.
+     *
+     * @returns {{isNight: boolean, progress: number, x: number, y: number}}
+     */
+    static _getArc(dayFraction) {
+        const rise = this.SUNRISE;
+        const set = this.SUNSET;
+
+        let isNight;
+        let progress;
+
+        if ((dayFraction >= rise) && (dayFraction < set)) {
+            isNight = false;
+            const dayLength = set - rise;
+            progress = dayLength > 0 ? (dayFraction - rise) / dayLength : 0;
+        } else {
+            isNight = true;
+            const nightLength = (1 - set) + rise;
+            // Before sunrise belongs to the night that STARTED yesterday, so it is
+            // measured from last night's sunset rather than from midnight.
+            const elapsed = (dayFraction >= set) ? (dayFraction - set) : (dayFraction + (1 - set));
+            progress = nightLength > 0 ? (elapsed / nightLength) : 0;
+        }
+
+        progress = Math.min(Math.max(progress, 0), 1);
+
+        return {
+            isNight,
+            progress,
+            x: progress * 100,
+            y: this.ARC_FLOOR + (Math.sin(Math.PI * progress) * this.ARC_PEAK)
+        };
+    }
+
+    /**
+     * The colour of the sky at this moment, interpolated between `SKY_STOPS`.
+     *
+     * @returns {{top: string, bottom: string, starOpacity: number}}
+     */
+    static _getSky(dayFraction) {
+        const stops = this.SKY_STOPS;
+        const at = Math.min(Math.max(dayFraction, 0), 1);
+
+        let lower = stops[0];
+        let upper = stops[stops.length - 1];
+        for (let i = 0; i < stops.length - 1; i++) {
+            if ((at >= stops[i].at) && (at <= stops[i + 1].at)) {
+                lower = stops[i];
+                upper = stops[i + 1];
+                break;
+            }
+        }
+
+        const span = upper.at - lower.at;
+        const t = span > 0 ? (at - lower.at) / span : 0;
+        const mix = (a, b) => `rgb(${a.map((v, i) => Math.round(v + ((b[i] - v) * t))).join(', ')})`;
+
+        return {
+            top: mix(lower.top, upper.top),
+            bottom: mix(lower.bottom, upper.bottom),
+            starOpacity: this._getStarOpacity(at)
+        };
+    }
+
+    /**
+     * Stars fade rather than switch.
+     *
+     * Snapping them on at sunset would be the one thing on this panel that jumps,
+     * and it would jump at exactly the moment the eye is already watching the sun
+     * touch the horizon. They fade across a band either side of the horizon, which
+     * also means the brief window where a warm sky still has faint stars in it --
+     * which is what dusk actually looks like.
+     */
+    static _getStarOpacity(dayFraction) {
+        const FADE = 0.06;
+        const rise = this.SUNRISE;
+        const set = this.SUNSET;
+
+        // Daylight has no stars at all. Handling this first is what keeps the two
+        // ramps below symmetrical: each one only ever measures how far INTO the
+        // night we are, from whichever horizon we crossed to get here.
+        if ((dayFraction >= rise) && (dayFraction <= set)) return 0;
+
+        const intoNight = (dayFraction > set)
+            ? (dayFraction - set)      // after sunset, this evening
+            : (rise - dayFraction);    // before sunrise, so measured backwards to it
+
+        return Math.min(Math.max(intoNight / FADE, 0), 1);
     }
 
     /**
@@ -289,30 +459,37 @@ class WorldClockManager {
         if (!section) return;
 
         const data = this.getRenderData();
-        this._paint(section, data.timeText, data.dayPercent, data.isNight);
+        this._paint(section, data.timeText, data);
 
         section.classList.toggle('is-unavailable', !data.available);
         section.setAttribute('data-tooltip', data.tooltip);
     }
 
     /**
-     * Write a time into the widget's nodes. Shared by the live repaint and the drag
-     * preview, so a dragged clock and a settled one cannot drift apart in how they
-     * render.
+     * Write a moment into the widget's nodes. Shared by the live repaint and the drag
+     * preview, so a dragged sky and a settled one cannot drift apart.
+     *
+     * Everything visual arrives as CSS custom properties, so this is a loop rather
+     * than a list of cases and adding a variable to `_getSkyView` needs no change
+     * here. The stylesheet decides what each one paints.
      */
-    static _paint(section, timeText, dayPercent, isNight) {
+    static _paint(section, timeText, view) {
         const label = section.querySelector('.worldclock-time');
-        const track = section.querySelector('.worldclock-track');
-        const marker = section.querySelector('.worldclock-marker');
+        const sky = section.querySelector('.worldclock-sky');
+        const body = section.querySelector('.worldclock-body');
 
         if (label) label.textContent = timeText;
-        if (track) track.style.setProperty('--day-percent', `${dayPercent}%`);
-        // The marker carries its Font Awesome glyph in its class list, so the sun and
+
+        if (sky && view.skyVars) {
+            for (const [name, value] of Object.entries(view.skyVars)) sky.style.setProperty(name, value);
+        }
+
+        // The body carries its Font Awesome glyph in its class list, so the sun and
         // moon swap rewrites the whole list rather than toggling one class: `fa-sun`
         // and `fa-moon` are siblings, and leaving both on renders one glyph stacked
         // on the other.
-        if (marker) marker.className = `worldclock-marker ${isNight ? 'fa-solid fa-moon' : 'fa-solid fa-sun'}`;
-        section.classList.toggle('is-night', isNight);
+        if (body) body.className = `worldclock-body ${view.icon}`;
+        section.classList.toggle('is-night', !!view.isNight);
     }
 
     // ==============================================================
@@ -375,8 +552,8 @@ class WorldClockManager {
             });
         });
 
-        const track = section.querySelector('.worldclock-track');
-        if (track) track.addEventListener('pointerdown', (event) => this._beginDrag(event, section, track));
+        const sky = section.querySelector('.worldclock-sky');
+        if (sky) sky.addEventListener('pointerdown', (event) => this._beginDrag(event, section, sky));
     }
 
     /**
@@ -391,7 +568,7 @@ class WorldClockManager {
      * gesture survives the pointer leaving a very small element, and they remove
      * themselves on release so nothing outlives it.
      */
-    static _beginDrag(event, section, track) {
+    static _beginDrag(event, section, sky) {
         if (!game.user?.isGM) return;
 
         const calendar = game.time?.calendar;
@@ -411,7 +588,7 @@ class WorldClockManager {
             - Math.round(this._getDayFraction(calendar, components) * secondsPerDay);
 
         this._drag = {
-            calendar, track, section, secondsPerDay, secondsPerMinute, dayStart,
+            calendar, sky, section, secondsPerDay, secondsPerMinute, dayStart,
             target: game.time.worldTime
         };
         section.classList.add('is-dragging');
@@ -443,7 +620,7 @@ class WorldClockManager {
         const drag = this._drag;
         if (!drag) return;
 
-        const bounds = drag.track.getBoundingClientRect();
+        const bounds = drag.sky.getBoundingClientRect();
         if (!bounds.width) return;
 
         const fraction = Math.min(Math.max((event.clientX - bounds.left) / bounds.width, 0), 1);
@@ -461,8 +638,7 @@ class WorldClockManager {
         this._paint(
             drag.section,
             this._formatTime(drag.calendar, components),
-            Math.round(dayFraction * 1000) / 10,
-            this._isNight(dayFraction)
+            this._getSkyView(dayFraction)
         );
     }
 

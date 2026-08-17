@@ -1,4 +1,4 @@
-{{!-- World Clock — the in-world time readout, with GM controls.
+{{!-- World Clock — the in-world time, shown as the sky outside.
 
       Reads `worldClock` from the PARENT context rather than taking parameters. A
       partial still sees the parent's context for any name its parameters do not
@@ -16,12 +16,17 @@
     <i class="fa-solid fa-angle-left worldclock-step" data-direction="back" data-size="small" data-tooltip="Back {{worldClock.smallStepLabel}}"></i>
     {{/if}}
 
-    {{!-- The sky track. `--day-percent` positions the marker and is the only thing
-          a repaint or a drag changes, so neither rebuilds markup. The gradient is
-          fixed in CSS: it represents the shape of a day, which does not change,
-          while the marker's position does. --}}
-    <div class="worldclock-track" style="--day-percent: {{worldClock.dayPercent}}%">
-        <i class="worldclock-marker {{worldClock.icon}}"></i>
+    {{!-- THE SKY. The whole panel is the view out of a window: its colour is the
+          colour of the sky at this moment, and one body arcs across it, a sun by
+          day and a moon by night.
+
+          Every value that changes with the time arrives as a CSS custom property,
+          so neither a repaint nor a drag rebuilds any markup — they set variables
+          on this one element and the stylesheet does the rest. --}}
+    <div class="worldclock-sky" style="{{worldClock.skyStyle}}">
+        <span class="worldclock-stars"></span>
+        <i class="worldclock-body {{worldClock.icon}}"></i>
+        <span class="worldclock-horizon"></span>
     </div>
 
     <span class="worldclock-time">{{worldClock.timeText}}</span>

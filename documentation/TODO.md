@@ -87,11 +87,16 @@ The world clock needs its own `contextmenu` listener, since it is not a register
 owns its own listeners, so this is consistent; it must `stopPropagation` so the menubar's delegated handler
 does not also act.
 
-### One open decision
+### Settled: the driver always wins, and says so
 
-What happens when a GM manually sets darkness on a scene that has darkness control enabled? Either the
-driver overwrites it at the next time change, or setting it by hand turns the control off. Overwriting is
-what SmallTime does and is the simpler rule; silently discarding a GM's deliberate change is the risk.
+When darkness control is on for a scene, the clock owns that scene's darkness -- a GM who sets it by hand
+gets overwritten at the next time change. **Two things stop that being a silent surprise:** the scene
+config says darkness is currently being driven by the clock, and the driver can set `darknessLock` on the
+scene so the Darkness Level control is visibly locked rather than merely futile.
+
+To pin a scene's darkness against the clock, turn darkness control off for it. Core's own
+`darknessLock` remains the escape hatch for anyone who reaches for it first, since core discards our
+writes to a locked scene anyway (`scene.mjs:417`).
 
 **Where it goes:** its own file, no menubar coupling in either direction -- it reads settings and the world
 clock and writes scene darkness, nothing else. It is a feature with no UI beyond one context-menu entry, so

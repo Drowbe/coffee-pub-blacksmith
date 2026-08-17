@@ -10,12 +10,20 @@
 
    Loaded via the @import chain in styles/default.css. A CSS file without that
    import is silently unstyled.
+
+   THE MANAGER OWNS EVERY VALUE THAT CHANGES WITH THE TIME, and hands them over as
+   custom properties set on `.worldclock-sky`:
+
+     --sky-top, --sky-bottom   the sky's vertical gradient, interpolated in JS
+     --star-opacity            0 by day, 1 at night, faded across the horizons
+     --body-x, --body-y        where the sun or moon sits on its arc
+
+   That split is deliberate. "What colour is the sky at 04:00" is a data question
+   and lives in JS, where it can be interpolated; CSS cannot interpolate between
+   two gradients on a variable. "How is that painted" is a presentation question
+   and lives here. Neither a repaint nor a drag touches any markup.
 */
 
-/* The clock borrows the session timer's box metrics on purpose -- same padding,
-   same radius -- so the two read as a matched pair rather than two unrelated
-   controls that happen to be adjacent. It deliberately does NOT take the timer's
-   ::before progress fill: nothing here is counting down. */
 .worldclock-section {
     display: flex;
     align-items: center;
@@ -36,60 +44,92 @@
     text-align: center;
 }
 
-/* ----- The sky track ---------------------------------------------- */
+/* ----- The sky ---------------------------------------------------- */
 
-/* A day, left to right: night, dawn, daylight, dusk, night. These stops are drawn
-   to match SUNRISE = 0.25 and SUNSET = 0.75 in manager-worldclock.js. Change one
-   without the other and the marker crosses a painted dawn at the wrong time. */
-.worldclock-section .worldclock-track {
+/* The panel is a window, not a progress bar. It is wide enough to read as a view
+   rather than a gauge -- at the old 64px the sun's arc was a twitch, and there
+   was no room for the arc to be an arc. */
+.worldclock-sky {
     position: relative;
-    width: 64px;
-    height: 14px;
+    width: 132px;
+    height: 20px;
     border-radius: 3px;
     overflow: hidden;
     cursor: default;
+    /* The one paint that matters, entirely from values JS computed. The fallbacks
+       are a mid-morning sky: if the manager never runs, the panel still looks like
+       something rather than a transparent hole. */
     background: linear-gradient(
-        90deg,
-        rgb(18, 26, 48) 0%,
-        rgb(38, 52, 88) 18%,
-        rgb(214, 128, 84) 25%,
-        rgb(126, 184, 232) 34%,
-        rgb(150, 202, 240) 50%,
-        rgb(126, 184, 232) 66%,
-        rgb(214, 128, 84) 75%,
-        rgb(38, 52, 88) 82%,
-        rgb(18, 26, 48) 100%
+        180deg,
+        var(--sky-top, rgb(70, 148, 228)) 0%,
+        var(--sky-bottom, rgb(170, 214, 248)) 100%
     );
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45);
 }
 
-/* The marker rides `--day-percent`, the only thing a repaint or a drag changes.
-   `translateX(-50%)` centres it on its own position so it reaches both ends of the
-   track instead of stopping half a glyph short. */
-.worldclock-section .worldclock-marker {
+/* Stars, as a fixed field that fades in rather than switching on. Drawn with
+   radial gradients rather than an image so there is no asset to ship, no request
+   to make, and nothing to go missing -- and so the field is crisp at any DPI.
+   The positions are arbitrary but FIXED: stars that reshuffled on every repaint
+   would shimmer every time the clock ticked. */
+.worldclock-stars {
     position: absolute;
-    top: 50%;
-    left: var(--day-percent, 50%);
-    transform: translate(-50%, -50%);
-    font-size: 9px;
-    color: rgba(255, 236, 190, 0.98);
-    text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
-    /* The track owns the drag, so the glyph must not swallow the pointer. */
+    inset: 0;
+    opacity: var(--star-opacity, 0);
     pointer-events: none;
+    background-image:
+        radial-gradient(0.6px 0.6px at 12% 30%, rgba(255, 255, 255, 0.95), transparent),
+        radial-gradient(0.5px 0.5px at 26% 62%, rgba(255, 255, 255, 0.75), transparent),
+        radial-gradient(0.7px 0.7px at 38% 22%, rgba(255, 255, 255, 0.90), transparent),
+        radial-gradient(0.5px 0.5px at 47% 52%, rgba(255, 255, 255, 0.65), transparent),
+        radial-gradient(0.6px 0.6px at 58% 34%, rgba(255, 255, 255, 0.85), transparent),
+        radial-gradient(0.5px 0.5px at 69% 66%, rgba(255, 255, 255, 0.70), transparent),
+        radial-gradient(0.7px 0.7px at 78% 26%, rgba(255, 255, 255, 0.90), transparent),
+        radial-gradient(0.5px 0.5px at 88% 55%, rgba(255, 255, 255, 0.70), transparent),
+        radial-gradient(0.6px 0.6px at 94% 18%, rgba(255, 255, 255, 0.80), transparent);
 }
-.worldclock-section.is-night .worldclock-marker {
-    color: rgba(226, 236, 255, 0.98);
+
+/* The sun and the moon are ONE element that changes glyph at the horizon, riding
+   an arc the manager computes as a sine. `--body-y` is measured from the bottom,
+   because the horizon is the thing it is relative to. */
+.worldclock-body {
+    position: absolute;
+    left: var(--body-x, 50%);
+    bottom: var(--body-y, 50%);
+    transform: translate(-50%, 50%);
+    font-size: 10px;
+    line-height: 1;
+    pointer-events: none;
+    color: rgb(255, 236, 168);
+    text-shadow: 0 0 4px rgba(255, 214, 122, 0.9);
+}
+.worldclock-section.is-night .worldclock-body {
+    color: rgb(238, 244, 255);
+    text-shadow: 0 0 4px rgba(196, 216, 255, 0.8);
+}
+
+/* A hint of ground along the bottom edge, so the body has something to rise from
+   and set behind rather than appearing to stop in mid-air. */
+.worldclock-horizon {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.42));
 }
 
 /* Only a GM can move time, so only a GM gets the affordance. */
-.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-track {
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-sky {
     cursor: ew-resize;
 }
 
-/* During a drag the readout is a PREVIEW, not the world's time. The ring says the
+/* During a drag the panel is a PREVIEW, not the world's time. The ring says the
    widget is in a provisional state -- without it there is no way to tell a
    committed time from one the pointer is still holding. */
-.worldclock-section.is-dragging .worldclock-track {
-    box-shadow: 0 0 0 1px rgba(255, 196, 74, 0.9);
+.worldclock-section.is-dragging .worldclock-sky {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 196, 74, 0.95);
 }
 
 /* ----- Step controls ---------------------------------------------- */
@@ -112,6 +152,6 @@
 .worldclock-section.is-unavailable {
     opacity: 0.45;
 }
-.worldclock-section.is-unavailable .worldclock-track {
+.worldclock-section.is-unavailable .worldclock-sky {
     filter: grayscale(1);
 }
