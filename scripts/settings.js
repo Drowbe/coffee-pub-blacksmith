@@ -3453,6 +3453,29 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	game.settings.register(MODULE.ID, 'worldClockDarknessDay', {
+		name: MODULE.ID + '.worldClockDarknessDay-Label',
+		hint: MODULE.ID + '.worldClockDarknessDay-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.05
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// --------------------------------------
+	// -- H3: Rest and Recovery
+	// --------------------------------------
+	// 'world': everything here is GM-facing. Blacksmith does NOT implement resting --
+	// the game system does. These are the two things it has no opinion on: how long a
+	// rest takes in world time, and whether the party eats.
+	registerHeader('Rest', 'headingH3Rest-Label', 'headingH3Rest-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
+
 	// -- Rests move the clock --
 	// dnd5e can do this itself (`advanceTime` in its rest config) but defaults it
 	// off, so it is a decision the GM re-makes at every rest dialog. This makes it a
@@ -3468,17 +3491,64 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	game.settings.register(MODULE.ID, 'worldClockDarknessDay', {
-		name: MODULE.ID + '.worldClockDarknessDay-Label',
-		hint: MODULE.ID + '.worldClockDarknessDay-Hint',
+	// -- Food and water --
+	// Off by default: a table that has never tracked rations should not discover it
+	// by having the party go hungry on the first long rest after an update.
+	game.settings.register(MODULE.ID, 'restTrackFood', {
+		name: MODULE.ID + '.restTrackFood-Label',
+		hint: MODULE.ID + '.restTrackFood-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// A comma-separated list rather than one name, because the same thing is called
+	// different things across the PHB, the SRD and homebrew, and a GM should not have
+	// to rename items to match us. Searched IN ORDER, so the first entry is the
+	// preferred one.
+	game.settings.register(MODULE.ID, 'restFoodItems', {
+		name: MODULE.ID + '.restFoodItems-Label',
+		hint: MODULE.ID + '.restFoodItems-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Rations',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'restTrackWater', {
+		name: MODULE.ID + '.restTrackWater-Label',
+		hint: MODULE.ID + '.restTrackWater-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'restWaterItems', {
+		name: MODULE.ID + '.restWaterItems-Label',
+		hint: MODULE.ID + '.restWaterItems-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		default: 'Waterskin, Water (Pint)',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'restForageDC', {
+		name: MODULE.ID + '.restForageDC-Label',
+		hint: MODULE.ID + '.restForageDC-Hint',
 		scope: 'world',
 		config: true,
 		type: Number,
-		default: 0,
+		default: 12,
 		range: {
-			min: 0,
-			max: 1,
-			step: 0.05
+			min: 1,
+			max: 30,
+			step: 1
 		},
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});

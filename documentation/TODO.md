@@ -65,86 +65,57 @@ Also worth deciding: whether the ratio is configurable (1:1 is rarely what a tab
 session is not four in-world hours), whether it pauses when the game is paused as well as in combat, and
 what happens to a rest that is already running.
 
-## World clock: where it could go next (opened 2026-08-16)
+## World clock: what is left (opened 2026-08-16)
 
-**Ideas, not commitments** -- the author's list, with what the research says about each. Nothing here is
-decided, and several items are placement questions rather than build questions.
+Built and in `CHANGELOG.md`: the clock, its controls, the sky panel, drag-to-scrub, the tooltip, the
+darkness driver, the schedule API (`api.worldClock.schedule`), rests moving the clock, and the clock menu
+(rest, Set Time, Set Date, Options). Architecture in
+`documentation/architecture/architecture-worldclock.md`, API in `documentation/api/api-worldclock.md`.
 
-### The list splits into two piles
+**Ideas, not commitments.** Several of these are placement questions rather than build questions.
 
-**Time itself** belongs to the clock and to this module: finer time control, changing the date, and letting
-a rest move the clock.
+### 1. The interruptible rest -- the one genuinely novel thing
 
-**Things that HAPPEN at a time** are features -- rests, calendar events, weather, a morning briefing -- and
-by the direction-of-travel rule they belong in siblings. What makes that possible is an API, and building
-that API is the Blacksmith-shaped part of this whole list.
+A long rest the clock drives. The GM starts it, world time advances across the rest's duration, and the GM
+can interrupt partway: rolling for encounters, having something happen at hour three, resuming or
+abandoning. Nothing in the ecosystem does this.
 
-### The two API pieces everything else needs
+It needs the second half of the API pair -- **"advance time gradually, and let it be interrupted"** -- which
+is the reason it is worth building rather than faking with a single jump. `timer-round.js`,
+`timer-planning.js` and `timer-combat.js` are all timers with lifecycle and interruption; a rest timer is
+the same shape over world time rather than wall time.
 
-The clock currently *displays* and *sets* time. It emits nothing beyond core's `updateWorldTime`, which
-fires on every change and says only "the number moved". Two additions would unblock the entire second pile
-without Blacksmith ever having to know what a festival or a rainstorm is:
+**An interrupted rest is not a rest.** The system's recovery must only run if the rest *completes*, which
+rules out "call `longRest()` and then advance the clock" as the shape. That constraint is the whole design.
 
-1. **"Tell me when the world crosses X."** A scheduled or threshold notification -- a date, a time of day, a
-   recurring hour. Calendar events, weather changes and a morning briefing are all the same request wearing
-   different hats.
-2. **"Advance time gradually, and let it be interrupted."** A rest that takes eight in-world hours, running
-   under GM control, stoppable partway. This is the one genuinely novel thing on the list.
+### 2. Already done, recorded so nobody rebuilds it
 
-### What the research already settles
+**Food, water and exhaustion are finished** -- see `CHANGELOG.md`. Exhaustion needed no code at all:
+dnd5e automates the modern rules itself once `rulesVersion` is set to "modern"
+(`dnd5e.mjs:33818`, and the condition is configured `levels: 6, reduction: { rolls: 2, speed: 5 }`), and a
+long rest already removes a level through `exhaustionDelta`. **Confirm that setting is "modern" in this
+world** -- it is the whole feature.
 
-- **Do not build resting, and do not build rest-advances-time either.** dnd5e ships `actor.shortRest()`,
-  `actor.longRest()` and group rests (`dnd5e.mjs:69793`), with `dnd5e.preLongRest`, `dnd5e.restCompleted`
-  and `dnd5e.groupRestCompleted` hooks. It already knows how long a rest takes -- `CONFIG.DND5E.restTypes`
-  carries durations per rest variant (short 60/480/1 minutes for normal/gritty/epic, long 480/10080/60) --
-  **and it already advances the world clock**:
+### 3. Weather -- a sibling
 
-  ```js
-  // dnd5e.mjs:34982
-  if ( config.advanceTime && (config.duration > 0) && game.user.isGM ) await game.time.advance(60 * config.duration);
-  ```
+**Narrative first**, with FXMaster optional rather than assumed: the text is what a table remembers, and it
+keeps weather from depending on a specific animation module. Unblocked by the schedule API -- a weather
+feature registers a `dailyAt` and never needs to know how the clock works.
 
-  `advanceTime` simply defaults to `false`. So "change time based on rests" is a CONFIGURATION question,
-  not a feature: either the GM ticks it in the rest dialog, or a `dnd5e.preLongRest` listener sets it.
-  Writing our own would be reimplementing a line that already exists.
+### 4. Calendar events -- a sibling
 
-  Rest Recovery (installed here, v5.2.4) covers the rest of it and then some: fractional recovery of hit
-  points, hit dice, spell slots and item uses; food, water and exhaustion automation; per-class feature
-  handling (Arcane Recovery, Natural Recovery, Song of Rest, Chef, Durable, Periapt); max short rests per
-  long rest; auto-start and prevent-user-rest. It also has `EnablePromptRestTimePassing` and
-  `EnableCalendarIntegration` settings, so **time-on-rest may already be handled twice over** -- worth
-  checking which is authoritative before touching either. Note its calendar integration mentions
-  Calendaria, so whether it recognises core's v13 calendar is unverified.
+Festivals, holidays, anything dated. Also unblocked by the schedule API; needs somewhere to store the
+events, which is the only open question.
 
-  **What none of them do is make a rest take time that can be interrupted.** That is the only genuinely
-  missing piece, and it is a time feature rather than a rest feature -- see below.
-- **Do not build a date picker without looking first.** `CalendarData5e.jumpToDate({year, month, day})`
-  exists (`dnd5e.mjs:1532`) and the system ships a calendar HUD that already offers one. "Change the date"
-  may be a button that opens what is already there.
-- **Do not build weather.** FXMaster is installed in this world. Weather is then "drive FXMaster from the
-  season and the clock", which is a different and much smaller job than a weather engine -- and one that
-  clearly belongs in a sibling, not the hub.
-- **There is precedent for the timed rest.** `timer-round.js`, `timer-planning.js` and `timer-combat.js`
-  are all timers with lifecycle and interruption; a rest timer is the same shape over world time rather
-  than wall time.
+### 5. A morning briefing -- last, wherever it lives
 
-### The interesting one
+State of the party plus weather. Wants 4 and 5 to exist first, so it is last regardless of placement.
 
-**A long rest the clock drives.** The GM starts it, world time advances across the rest's duration, and the
-GM can interrupt partway -- rolling for encounters, having something happen at hour three, resuming or
-abandoning. Nothing in the ecosystem does this, it is the item with no off-the-shelf answer, and it is the
-reason the "advance gradually, interruptibly" API is worth building rather than faking with a single jump.
+### Placement
 
-Note that an interrupted rest is not a rest: the system's own rest recovery must only run if the rest
-*completes*, which is precisely why this cannot be "call `longRest()` and then advance the clock".
-
-### Dependencies
-
-The morning briefing wants weather and events to exist first, so it is last wherever it lives. Everything
-else is independent.
-
-**Placement decisions move to `documentation/TODO-GLOBAL.md` once they are actually made** -- which sibling
-owns weather, rests and briefings is cross-module work, and does not belong in this file.
+Which sibling owns weather, events and briefings is cross-module work and moves to
+`documentation/TODO-GLOBAL.md` once decided. The rule that put the darkness driver in its own file applies
+to all three: they are features that consume the clock, not parts of it.
 
 ## Advantage/disadvantage discards a built formula's keep modifier (opened 2026-08-16)
 

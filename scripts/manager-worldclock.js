@@ -838,6 +838,12 @@ class WorldClockManager {
         items.push({ separator: true });
 
         items.push({
+            name: 'Jump to',
+            icon: 'fa-solid fa-forward',
+            submenu: this._buildJumpItems()
+        });
+
+        items.push({
             name: 'Set Time',
             icon: 'fa-solid fa-clock',
             callback: () => this._promptSetTime()
@@ -859,6 +865,67 @@ class WorldClockManager {
         }
 
         return items;
+    }
+
+    /**
+     * The four moments a GM actually skips to.
+     *
+     * Dawn and dusk come from the horizon settings, so they land where the sky panel
+     * and the darkness curve say they should. Noon and midnight are CLOCK positions
+     * -- the middle of the day and its start -- not the midpoint between the horizons.
+     * On a world with a 05:00 sunrise those differ by an hour, and a menu entry
+     * labelled Noon that moved the clock to 13:00 would be wrong in the way that
+     * matters: the label is a time, so it should be that time.
+     */
+    static _buildJumpItems() {
+        const { sunrise, sunset } = this.getHorizons();
+
+        return [
+            { name: 'Dawn', icon: 'fa-solid fa-sun-haze', at: sunrise },
+            { name: 'Noon', icon: 'fa-solid fa-sun', at: 0.5 },
+            { name: 'Dusk', icon: 'fa-solid fa-sunset', at: sunset },
+            { name: 'Midnight', icon: 'fa-solid fa-moon', at: 0 }
+        ].map(({ name, icon, at }) => ({
+            name,
+            icon,
+            callback: () => this._jumpTo(at)
+        }));
+    }
+
+    /**
+     * Move forward to the next time the day reaches `dayFraction`.
+     *
+     * ALWAYS FORWARD, never back. Jumping to dawn at three in the afternoon means
+     * tomorrow morning, not nine hours ago -- a GM skipping ahead is what this is
+     * for, and rewinding would undo whatever the session just did. It would also
+     * ripple: schedules re-arm on a rewind rather than firing, and the darkness
+     * driver would run the day backwards.
+     *
+     * @param {number} dayFraction 0..1
+     */
+    static async _jumpTo(dayFraction) {
+        const calendar = game.time?.calendar;
+        const components = game.time?.components;
+        if (!calendar?.days || !components) return;
+
+        const { secondsPerMinute, minutesPerHour, hoursPerDay } = calendar.days;
+        const secondsPerDay = secondsPerMinute * minutesPerHour * hoursPerDay;
+        if (!(secondsPerDay > 0)) return;
+
+        const dayStart = game.time.worldTime
+            - Math.round(this._getDayFraction(calendar, components) * secondsPerDay);
+
+        // Snapped to the calendar's minute, so a horizon set to a half hour does not
+        // land the clock on a stray count of seconds.
+        const offset = Math.round((dayFraction * secondsPerDay) / secondsPerMinute) * secondsPerMinute;
+        let target = dayStart + offset;
+        if (target <= game.time.worldTime) target += secondsPerDay;
+
+        try {
+            await game.time.set(target);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "WorldClock: Failed to jump the clock", error, false, false);
+        }
     }
 
     /** Entries contributed through `registerOptionProvider`. */

@@ -98,15 +98,16 @@ class RestManager {
      * @param {object} config  The rest configuration dnd5e used.
      * @param {Actor} [actor]  The actor that rested.
      */
-    static _onRestCompleted(config, actor) {
-        // Time is a world setting, so only a GM may move it. dnd5e guards its own
-        // advance the same way.
+    static async _onRestCompleted(config, actor) {
+        // Only a GM writes: the clock is a world setting, and item quantities and
+        // exhaustion are documents. dnd5e guards its own advance the same way.
         if (!game.user?.isGM) return;
-        if (!getSettingSafely(MODULE.ID, 'restAdvancesTime', true)) return;
+
+        // Provisioning happens for EVERY character as they rest, not only the last
+        // one -- each of them eats. The summary is what waits for the group.
+        await this._provision(config, actor);
 
         const minutes = Number(config?.duration);
-        if (!Number.isFinite(minutes) || minutes <= 0) return;
-
         const request = config?.request ?? null;
         const requestId = request?.id ?? null;
 
@@ -119,7 +120,7 @@ class RestManager {
             if (!this._isLastToRest(request, requestId, actor)) return;
 
             this._markRequestHandled(requestId);
-            this._advance(minutes, config?.advanceTime === true);
+            await this._completeRest(minutes, config?.advanceTime === true);
             return;
         }
 
@@ -167,6 +168,175 @@ class RestManager {
         return true;
     }
 
+    // ==============================================================
+    // ===== FOOD AND WATER =========================================
+    // ==============================================================
+
+    /** Outcomes gathered across a rest, reported as one card when it completes. */
+    static _report = [];
+
+    /**
+     * Feed and water a character for the night.
+     *
+     * LONG RESTS ONLY. A short rest is an hour by the tea, not a day's provisions,
+     * and consuming a ration for one would empty a pack over an afternoon.
+     */
+    static async _provision(config, actor) {
+        if (config?.type !== 'long') return;
+        if (!actor?.items) return;
+
+        const wantFood = getSettingSafely(MODULE.ID, 'restTrackFood', false);
+        const wantWater = getSettingSafely(MODULE.ID, 'restTrackWater', false);
+        if (!wantFood && !wantWater) return;
+
+        const outcome = { name: actor.name, food: null, water: null, exhaustion: 0 };
+
+        const foodItem = wantFood
+            ? this._findProvision(actor, getSettingSafely(MODULE.ID, 'restFoodItems', 'Rations'))
+            : null;
+        const waterItem = wantWater
+            ? this._findProvision(actor, getSettingSafely(MODULE.ID, 'restWaterItems', 'Waterskin, Water (Pint)'))
+            : null;
+
+        if (foodItem) {
+            await this._consume(foodItem);
+            outcome.food = 'ate';
+        }
+        if (waterItem) {
+            await this._consume(waterItem);
+            outcome.water = 'ate';
+        }
+
+        const needsFood = wantFood && !foodItem;
+        const needsWater = wantWater && !waterItem;
+
+        // ONE CHECK COVERS BOTH. A character searching a riverbank finds the water
+        // and the berries in the same hour -- two rolls would be charging them twice
+        // for one activity, and would make going without both twice as punishing as
+        // the rules anywhere suggest. It also means at most ONE level of exhaustion
+        // per rest, because there is only one check to fail.
+        if (needsFood || needsWater) {
+            const result = await this._forage(actor);
+            if (needsFood) outcome.food = result;
+            if (needsWater) outcome.water = result;
+            if (result === 'hungry') outcome.exhaustion = 1;
+        }
+
+        if (outcome.exhaustion > 0) await this._addExhaustion(actor, outcome.exhaustion);
+
+        this._report.push(outcome);
+    }
+
+    /** Use one of a stack. */
+    static async _consume(item) {
+        const quantity = Number(item.system?.quantity ?? 0);
+        await item.update({ 'system.quantity': quantity - 1 });
+    }
+
+    /**
+     * One Survival check for whatever the character is missing.
+     * @returns {'foraged'|'hungry'|'unrolled'}
+     */
+    static async _forage(actor) {
+        const dc = Number(getSettingSafely(MODULE.ID, 'restForageDC', 12)) || 12;
+
+        let total = null;
+        try {
+            // The system's own skill roll, so proficiency, bonuses and any module
+            // hooking rolls all apply. Its dialog and its chat card are suppressed:
+            // a five-character rest would otherwise raise five prompts and five cards
+            // before anyone had finished sleeping.
+            const rolled = await actor.rollSkill({ skill: 'sur' }, { configure: false }, { create: false });
+            const roll = Array.isArray(rolled) ? rolled[0] : rolled;
+            total = Number(roll?.total);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Rest: Survival roll failed for ${actor.name}`, error, false, false);
+        }
+
+        // A roll we could not make is not a failure. Charging exhaustion for our own
+        // inability to roll would punish the character for our bug.
+        if (!Number.isFinite(total)) return 'unrolled';
+
+        return total >= dc ? 'foraged' : 'hungry';
+    }
+
+    /**
+     * The first configured provision the character actually has.
+     *
+     * The list is searched IN ORDER rather than the character's inventory, so a GM
+     * who writes "Rations, Trail Mix" gets rations eaten first. Matching is on the
+     * trimmed, lower-cased name -- the same item is called different things across
+     * the PHB, the SRD and homebrew, which is the whole reason this is a list.
+     */
+    static _findProvision(actor, list) {
+        const names = String(list ?? '')
+            .split(',')
+            .map((n) => n.trim().toLowerCase())
+            .filter(Boolean);
+
+        for (const name of names) {
+            const item = actor.items.find((i) =>
+                (i.name?.trim().toLowerCase() === name) && (Number(i.system?.quantity ?? 0) > 0));
+            if (item) return item;
+        }
+        return null;
+    }
+
+    /**
+     * Add levels of exhaustion, clamped to the condition's own maximum.
+     *
+     * Only the NUMBER is written. The system owns what exhaustion does -- with the
+     * modern rules it already applies the penalty to every d20 roll
+     * (`dnd5e.mjs:33818`) and to speed -- so applying effects ourselves would either
+     * duplicate that or fight it.
+     */
+    static async _addExhaustion(actor, levels) {
+        const max = CONFIG.DND5E?.conditionTypes?.exhaustion?.levels ?? 6;
+        const current = Number(actor.system?.attributes?.exhaustion ?? 0);
+        const next = Math.min(current + levels, max);
+        if (next === current) return;
+
+        try {
+            await actor.update({ 'system.attributes.exhaustion': next });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Rest: Failed to apply exhaustion to ${actor.name}`, error, false, false);
+        }
+    }
+
+    /**
+     * One card for the whole rest, posted when it completes.
+     *
+     * Batched rather than one per character, because dnd5e already posts a recovery
+     * card each and doubling that turns a party's long rest into a wall of chat. The
+     * card only appears when there is something to say.
+     */
+    static async _postReport() {
+        const report = this._report;
+        this._report = [];
+        if (!report.length) return;
+
+        const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const phrase = { ate: 'ate', foraged: 'foraged', hungry: 'went without', unrolled: 'could not forage' };
+
+        const rows = report.map((r) => {
+            const parts = [];
+            if (r.food) parts.push(`food: ${phrase[r.food]}`);
+            if (r.water) parts.push(`water: ${phrase[r.water]}`);
+            const tail = r.exhaustion > 0
+                ? ` &mdash; <strong>+${r.exhaustion} exhaustion</strong>`
+                : '';
+            return `<li>${esc(r.name)} &mdash; ${parts.join(', ')}${tail}</li>`;
+        });
+
+        try {
+            await ChatMessage.create({
+                content: `<p><strong>Provisions</strong></p><ul>${rows.join('')}</ul>`
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Rest: Failed to post the provisions summary", error, false, false);
+        }
+    }
+
     /** Remember a request so a late acceptance cannot advance the clock again. */
     static _markRequestHandled(requestId) {
         this._handledRequests.push(requestId);
@@ -187,7 +357,11 @@ class RestManager {
             this._pending = { timer: null, minutes: 0, systemAdvanced: false };
         }
 
-        this._pending.minutes = Math.max(this._pending.minutes, minutes);
+        // Guarded, because a rest with no duration now reaches here rather than being
+        // turned away earlier -- the burst still has to flush so the provisions card
+        // gets posted. An unguarded Math.max would let one NaN poison a real duration
+        // arriving later in the same burst.
+        if (Number.isFinite(minutes)) this._pending.minutes = Math.max(this._pending.minutes, minutes);
         this._pending.systemAdvanced = this._pending.systemAdvanced || systemAdvanced;
 
         clearTimeout(this._pending.timer);
@@ -199,7 +373,23 @@ class RestManager {
         this._pending = null;
         if (!pending) return;
 
-        await this._advance(pending.minutes, pending.systemAdvanced);
+        await this._completeRest(pending.minutes, pending.systemAdvanced);
+    }
+
+    /**
+     * The rest is over. Move the clock if we are the ones moving it, and say what
+     * everyone ate either way.
+     *
+     * The two are separate on purpose: a table that tracks rations but lets the
+     * system handle time still wants the provisions card, and an earlier version that
+     * returned early on the clock setting swallowed it.
+     */
+    static async _completeRest(minutes, systemAdvanced) {
+        const advances = getSettingSafely(MODULE.ID, 'restAdvancesTime', true)
+            && Number.isFinite(minutes) && (minutes > 0);
+
+        if (advances) await this._advance(minutes, systemAdvanced);
+        await this._postReport();
     }
 
     /**

@@ -583,8 +583,26 @@
 			"worldClockDarknessNight-Label": "Darkness at Night",
 			"worldClockDarknessNight-Hint": "How dark a scene gets at night, where 0 is full daylight and 1 is pitch black. At 1 only light sources are visible, so an outdoor scene with none shows players nothing.",
 
+		"headingH3Rest-Label": "Rest and Recovery",
+		"headingH3Rest-Hint": "Resting itself is the game system's, not Blacksmith's. These are the parts it has no opinion on: how much time a rest takes, and whether the party eats.",
+
 			"restAdvancesTime-Label": "Rests Move the Clock",
 			"restAdvancesTime-Hint": "A short or long rest advances the in-world time by however long it took, using the length the game system defines for the current rest variant. A group rest advances the clock once, not once per character.",
+
+			"restTrackFood-Label": "Track Food",
+			"restTrackFood-Hint": "On a long rest, each character consumes one ration. A character with none forages instead: one Survival check covers both food and water, and failing it costs a level of exhaustion.",
+
+			"restFoodItems-Label": "Food Items",
+			"restFoodItems-Hint": "Comma-separated item names that count as a day's food, searched in order so the first is preferred. Case does not matter.",
+
+			"restTrackWater-Label": "Track Water",
+			"restTrackWater-Hint": "As Track Food, but for water.",
+
+			"restWaterItems-Label": "Water Items",
+			"restWaterItems-Hint": "Comma-separated item names that count as a day's water, searched in order so the first is preferred. Case does not matter.",
+
+			"restForageDC-Label": "Foraging DC",
+			"restForageDC-Hint": "The Survival check a character makes on a long rest when they are short of food or water. One check covers both, so a character can lose at most one level of exhaustion per rest. The game system applies what that level does to their rolls and speed.",
 
 			"worldClockDarknessDay-Label": "Darkness by Day",
 			"worldClockDarknessDay-Hint": "How dark a scene is at midday. Leave at 0 unless the world is meant to be permanently overcast.",

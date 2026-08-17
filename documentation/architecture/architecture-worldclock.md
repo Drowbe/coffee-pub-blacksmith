@@ -91,12 +91,22 @@ get no menu rather than an empty one.
 Long Rest (party)      calls the system's own rest on game.actors.party
 Short Rest (party)
 ---
+Jump to >              Dawn, Noon, Dusk, Midnight -- always forward
 Set Time               our dialog: time of day only, bounds from the calendar
 Set Date               the system's dnd5e.applications.calendar.SetDateDialog
 ---
 Options >              contributed through registerOptionProvider
     Darkness Control on <scene>
 ```
+
+**Jump to only ever moves forward.** Jumping to dawn at three in the afternoon means tomorrow morning, not
+nine hours ago. A GM skipping ahead is what it is for, and rewinding would undo whatever the session just
+did -- it would also ripple, since schedules re-arm on a rewind rather than firing and the darkness driver
+would run the day backwards. A jump to the moment it already is goes to tomorrow rather than nowhere.
+
+**Dawn and dusk come from the horizon settings; noon and midnight are clock positions.** On a world with a
+05:00 sunrise those differ by an hour, and an entry labelled Noon that moved the clock to 13:00 would be
+wrong in the way that matters -- the label is a time, so it should be that time.
 
 **Rest routes to the system.** `party.longRest()` posts dnd5e's request card and applies its own recovery,
 so Rest Recovery and anything else hooking rests keeps working. Blacksmith is not in the rest business; it

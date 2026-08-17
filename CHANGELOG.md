@@ -9,11 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Food and water on a long rest** (`scripts/manager-rest.js`, `scripts/settings.js`). Off by default -- a table that has never tracked rations should not discover it by having the party go hungry on the first long rest after an update. Each character consumes one ration and one drink; a character with neither forages, and a failed check costs a level of exhaustion.
+
+  **Items are matched by a comma-separated list, searched in order.** The same thing is called Rations in the PHB and the SRD, and water is a Waterskin or Water (Pint) depending where you look, so a single hardcoded name would have meant renaming items to suit us. The list is the setting, the first entry is preferred, and matching ignores case and surrounding whitespace. A stack at zero quantity is not food, so an empty ration slot sends the character foraging rather than into negative quantities.
+
+  **Foraging is ONE Survival check per character, covering whatever they are missing**, against a configurable DC defaulting to 12. A character searching a riverbank finds the water and the berries in the same hour, so two rolls would charge them twice for one activity. A character who has rations but no water rolls once, for the water. A character with both rolls nothing at all. The check uses the system's own `rollSkill` so proficiency, bonuses and anything else hooking rolls apply, with its dialog and chat card suppressed -- a five-character rest would otherwise raise five prompts and five cards before anyone had finished sleeping. A roll that cannot be made is reported as such and costs nothing, since charging exhaustion for our own inability to roll would punish the character for our bug.
+
+  **A failed check costs one level of exhaustion**, and because there is only ever one check, that is the most a character can take from a single rest. Only the level is written; the system owns what exhaustion *does*, and under the modern rules already applies the penalty to every d20 roll and to speed (`dnd5e.mjs:33818`), so applying effects ourselves would duplicate or fight it. Clamped to the condition's own maximum.
+
+  **One card for the whole rest, not one per character.** dnd5e already posts a recovery card each, and doubling that turns a party's long rest into a wall of chat. Outcomes accumulate as each character rests and the card posts when the rest completes -- the same moment the clock advances, using the same request-id grouping. It appears only when there is something to say, and actor names are escaped.
+
+  Long rests only. A short rest is an hour by the tea, not a day's provisions, and consuming a ration for one would empty a pack over an afternoon. The provisions card is posted independently of whether Blacksmith moves the clock: a table that tracks rations but lets the system handle time still wants it, and an earlier draft that returned early on the clock setting swallowed it.
+
+  Settings moved to their own **Rest and Recovery** heading, since there are now several and the world clock heading was carrying one that was never really about the clock.
+
 - **A menu on the world clock: rest, set the time, set the date** (`scripts/manager-worldclock.js`, `scripts/manager-darkness.js`). Opens on a **left** click as well as a right one -- a right-click-only menu on a strip of read-outs is a menu nobody finds. GM only, since every entry either changes the world's time or rests the party; players get no menu rather than an empty one.
 
   **Long Rest and Short Rest route to the system**, calling `longRest()`/`shortRest()` on `game.actors.party` so dnd5e posts its own request card and applies its own recovery. Rest Recovery and anything else hooking rests keeps working untouched. Blacksmith is not in the rest business -- it moves the clock afterwards and nothing else. With no primary party set the entries render disabled with a line saying why, rather than vanishing.
 
   **Set Date opens the system's own `SetDateDialog`** (`dnd5e.applications.calendar.SetDateDialog`) rather than a copy of it. It already knows the configured calendar's months, leap years and year offset, and a picker that disagreed with the system about what year it is would be worse than no picker. Only the dialog is borrowed; the system's calendar HUD stays hidden.
+
+  **Jump to** is a submenu of the four moments a GM actually skips to: Dawn, Noon, Dusk, Midnight. It **only ever moves forward** -- jumping to dawn at three in the afternoon means tomorrow morning, not nine hours ago. Rewinding would undo whatever the session just did, and it would ripple, since schedules re-arm on a rewind rather than firing and the darkness driver would run the day backwards; a jump to the moment it already is goes to tomorrow rather than nowhere. Dawn and dusk come from the horizon settings so they agree with the sky panel, while noon and midnight are clock positions rather than the midpoint between the horizons -- on a world with a 05:00 sunrise those differ by an hour, and an entry labelled Noon that moved the clock to 13:00 would be wrong in the way that matters.
 
   **Set Time is ours, and deliberately separate.** Moving to eight in the evening is a different act from moving to next Tuesday, and one dialog asking for both makes the common case carry the rare one's fields. Bounds come from the calendar, so a twenty-hour day offers twenty hours, and the time is rebuilt from the day's start rather than added as a delta so only the time of day moves.
 
