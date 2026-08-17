@@ -71,7 +71,7 @@ export function buildRecoveryRows(actor, result) {
             label: 'Hit Points',
             sublabel: span(after - hitPoints, after),
             trailing: signed(hitPoints),
-            tone: 'success'
+            tone: 'positive'
         });
     }
 
@@ -82,7 +82,7 @@ export function buildRecoveryRows(actor, result) {
             label: 'Hit Dice',
             sublabel: span(after - hitDice, after),
             trailing: signed(hitDice),
-            tone: 'success'
+            tone: 'positive'
         });
     }
 
@@ -113,7 +113,7 @@ export function buildRecoveryRows(actor, result) {
                 : `${key.charAt(0).toUpperCase()}${key.slice(1)} Slots`,
             sublabel: span(before, now),
             trailing: signed(gained),
-            tone: 'success'
+            tone: 'positive'
         });
     }
 
@@ -126,7 +126,7 @@ export function buildRecoveryRows(actor, result) {
             label: 'Exhaustion',
             sublabel: span(exhaustionBefore, exhaustionNow),
             trailing: signed(exhaustionNow - exhaustionBefore),
-            tone: 'success'
+            tone: 'positive'
         });
     }
 
@@ -166,7 +166,7 @@ export function buildItemRows(actor, result) {
         const recovered = spentBefore - spentNow;
         if (recovered <= 0) continue;
 
-        rows.push({ label: `${item.name} Uses`, trailing: signed(recovered), tone: 'success' });
+        rows.push({ label: `${item.name} Uses`, trailing: signed(recovered), tone: 'positive' });
     }
 
     return rows;
@@ -229,7 +229,7 @@ export function buildProvisionRows(provisions) {
             label: 'Food',
             sublabel: detail(provisions.food),
             trailing: provisions.food === 'ate' ? 'Ate a ration' : phrase[provisions.food],
-            tone: provisions.food === 'hungry' ? 'danger' : undefined
+            tone: provisions.food === 'hungry' ? 'negative' : undefined
         });
     }
     if (provisions.water) {
@@ -237,7 +237,7 @@ export function buildProvisionRows(provisions) {
             label: 'Water',
             sublabel: detail(provisions.water),
             trailing: provisions.water === 'ate' ? 'Drank' : phrase[provisions.water],
-            tone: provisions.water === 'hungry' ? 'danger' : undefined
+            tone: provisions.water === 'hungry' ? 'negative' : undefined
         });
     }
 
@@ -256,6 +256,49 @@ export function buildProvisionRows(provisions) {
  *
  * @returns {object}
  */
+/**
+ * Why a rest restored nothing.
+ *
+ * "Nothing to recover" is true but unhelpful -- it reads the same whether the
+ * character was at full strength or whether the card failed to work out what
+ * changed. Naming what was already full answers the question the bare line raises.
+ *
+ * Everything is probed rather than assumed: a character with no spellcasting has no
+ * slots to be full of, and saying so would be noise.
+ *
+ * @returns {string} A sentence, or a plain fallback when nothing can be determined.
+ */
+export function describeNothingRecovered(actor) {
+    const full = [];
+
+    const hp = actor?.system?.attributes?.hp;
+    if (Number.isFinite(hp?.value) && Number.isFinite(hp?.max) && (hp.value >= hp.max)) {
+        full.push('hit points');
+    }
+
+    const hd = actor?.system?.attributes?.hd;
+    if (Number.isFinite(hd?.value) && Number.isFinite(hd?.max) && (hd.value >= hd.max)) {
+        full.push('hit dice');
+    }
+
+    // Only counts as "full" if there were slots to begin with -- a fighter has none,
+    // and reporting their spell slots as full is technically true and useless.
+    const spells = actor?.system?.spells ?? {};
+    const pools = Object.values(spells).filter((pool) => Number(pool?.max) > 0);
+    if (pools.length && pools.every((pool) => Number(pool.value) >= Number(pool.max))) {
+        full.push('spell slots');
+    }
+
+    if (!full.length) return 'Nothing needed recovering.';
+
+    // "a, b and c" -- the last pair joined with "and" rather than a comma.
+    const list = full.length === 1
+        ? full[0]
+        : `${full.slice(0, -1).join(', ')} and ${full[full.length - 1]}`;
+
+    return `Already full: ${list}.`;
+}
+
 export function buildRestState({ actor, result, config, provisions = null } = {}) {
     const isLong = config?.type === 'long';
     const hours = Math.round((Number(config?.duration) || 0) / 60);
@@ -272,7 +315,19 @@ export function buildRestState({ actor, result, config, provisions = null } = {}
         img: actor?.img ?? null,
         restType: config?.type ?? null,
         subtitle: `${isLong ? 'Long' : 'Short'} Rest${detail.length ? ` — ${detail.join(', ')}` : ''}`,
+        // The health bar, as numbers rather than a rendered part. Stored so a
+        // re-render hours later still draws the bar the rest ended on, and so the
+        // same state can carry a BEFORE bar when this card grows the ability to
+        // start a rest as well as report one.
+        hp: {
+            value: Number(actor?.system?.attributes?.hp?.value ?? 0),
+            max: Number(actor?.system?.attributes?.hp?.max ?? 0)
+        },
         recovery: [...buildRecoveryRows(actor, result), ...buildItemRows(actor, result)],
+        // Worked out here rather than at render time: the actor's state is only the
+        // rest's state at this moment, and the card may be re-rendered hours later
+        // when a foraging roll lands.
+        nothingRecovered: describeNothingRecovered(actor),
         provisions
     };
 }
@@ -291,15 +346,40 @@ export function buildPartsFromState(state) {
         }
     ];
 
-    // A rest that restored nothing still says so. Silence would read as a card that
-    // failed to load rather than a character who was already at full strength.
+    // THE HEALTH BAR. A proportion says "badly hurt" faster than a pair of numbers
+    // does, and it is the one thing on this card a reader takes in without reading.
+    // The meter part computes its own percent and tone from value and max, so a
+    // character at a quarter health goes red without this file knowing the rule.
+    //
+    // The label carries the figures the bar hides -- the part defaults them to a
+    // tooltip, and a rest card is read at a glance rather than hovered.
+    if (Number(state?.hp?.max) > 0) {
+        parts.push({
+            part: 'meter',
+            value: state.hp.value,
+            max: state.hp.max,
+            label: `${state.hp.value} / ${state.hp.max} HP`
+        });
+    }
+
+    // A rest that restored nothing still says so, and says WHY. Silence would read as
+    // a card that failed to load rather than a character who was already at full
+    // strength.
+    //
+    // Prose rather than a row: a row's label is styled as a heading, and "Already
+    // full: hit points and spell slots" is a sentence about the rest, not a title for
+    // something under it.
     const recovery = Array.isArray(state?.recovery) ? state.recovery : [];
     parts.push({ part: 'section', label: 'Recovered' });
-    parts.push({
-        part: 'rows',
-        plain: true,
-        items: recovery.length ? recovery : [{ label: 'Nothing to recover', tone: 'muted' }]
-    });
+
+    if (recovery.length) {
+        parts.push({ part: 'rows', plain: true, items: recovery });
+    } else {
+        parts.push({
+            part: 'prose',
+            blocks: [{ type: 'paragraph', text: state?.nothingRecovered || 'Nothing needed recovering.' }]
+        });
+    }
 
     const provisionRows = buildProvisionRows(state?.provisions);
     if (provisionRows.length) {
@@ -377,7 +457,7 @@ export function buildForageParts(state) {
             sublabel: success ? 'Found food and water' : 'Found nothing',
             trailing: String(roll.total),
             trailingIcon: success ? 'fa-solid fa-check' : 'fa-solid fa-xmark',
-            tone: success ? 'success' : 'danger'
+            tone: success ? 'positive' : 'negative'
         }]
     });
 
