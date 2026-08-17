@@ -3491,6 +3491,41 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- The rest card --
+	// Two settings rather than one, because they fail in opposite directions. Turning
+	// ours off leaves the system's, which is what a table that dislikes our card
+	// wants. Turning the system's off without ours would leave a rest reporting
+	// nothing at all, so that one is gated on ours being on.
+	game.settings.register(MODULE.ID, 'restPostCard', {
+		name: MODULE.ID + '.restPostCard-Label',
+		hint: MODULE.ID + '.restPostCard-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'restSkipRequestDialog', {
+		name: MODULE.ID + '.restSkipRequestDialog-Label',
+		hint: MODULE.ID + '.restSkipRequestDialog-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'restSuppressSystemCard', {
+		name: MODULE.ID + '.restSuppressSystemCard-Label',
+		hint: MODULE.ID + '.restSuppressSystemCard-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: false,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Food and water --
 	// Off by default: a table that has never tracked rations should not discover it
 	// by having the party go hungry on the first long rest after an update.

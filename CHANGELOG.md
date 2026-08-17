@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **One Blacksmith rest card per character** (`scripts/cards-rest.js`, `scripts/manager-rest.js`, `scripts/settings.js`). Replaces the batched provisions summary posted a few entries below this one, and can replace the game system's recovery card too. Plan: `documentation/plans/plan-rest-card.md`, phases 1-3 of 5.
+
+  **Per character rather than one for the whole rest**, keeping the shape the system already used. A card is about one actor, so its state is that actor's state -- which is what will let a foraging roll made minutes later find its own card and update it, with nothing held in memory in between. The batched summary had to wait for the entire party before it could say anything at all, and its accumulate-then-flush machinery is gone with it.
+
+  **It carries the recovery data**, because replacing the system's card without it would be a net loss of information dressed as a tidy-up. Hit points, hit dice, spell slots by level, pact slots, item uses by item name, and exhaustion removed -- all derived from the `RestResult` that `dnd5e.restCompleted` already hands over, compared against `result.clone`, the pre-rest snapshot the system keeps for exactly this. Deliberately **not** from dnd5e's `ActorDeltasField`, which would match perfectly today and is internal display plumbing that a system update is free to move; this is a chat card, not a rules calculation. A rest that restored nothing says so rather than rendering an empty block, which would read as a card that failed to load.
+
+  One bug worth recording because it was invisible: a Foundry **update object is flat** (`{'system.uses.spent': 0}`) while the document it will be applied to is nested, and the first pass read `updateItems` as though it were nested -- so every item-uses row silently vanished. Both shapes are now handled.
+
+  **Two settings, failing in opposite directions.** *Blacksmith Rest Card* posts ours; *Hide the System's Rest Card* silences dnd5e's by setting `config.chat = false` in `preLongRest`/`preShortRest`. The second is **ignored unless the first is on**, because the two are independent and a GM could otherwise reach a combination where a rest reports nothing at all by ticking one box.
+
+  **A double-provisioning bug came out of live play with it.** A character can reach `dnd5e.restCompleted` twice for one request -- a double click, or a GM resolving someone who had already resolved themselves -- and provisioning ran on every arrival, so that character ate **two** rations and appeared twice on the summary. Acceptances are now recorded before provisioning and a character already fed on this rest is skipped, on both the requested and the burst paths.
+
 - **Food and water on a long rest** (`scripts/manager-rest.js`, `scripts/settings.js`). Off by default -- a table that has never tracked rations should not discover it by having the party go hungry on the first long rest after an update. Each character consumes one ration and one drink; a character with neither forages, and a failed check costs a level of exhaustion.
 
   **Items are matched by a comma-separated list, searched in order.** The same thing is called Rations in the PHB and the SRD, and water is a Waterskin or Water (Pint) depending where you look, so a single hardcoded name would have meant renaming items to suit us. The list is the setting, the first entry is preferred, and matching ignores case and surrounding whitespace. A stack at zero quantity is not food, so an empty ration slot sends the character foraging rather than into negative quantities.
@@ -17,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **A failed check costs one level of exhaustion**, and because there is only ever one check, that is the most a character can take from a single rest. Only the level is written; the system owns what exhaustion *does*, and under the modern rules already applies the penalty to every d20 roll and to speed (`dnd5e.mjs:33818`), so applying effects ourselves would duplicate or fight it. Clamped to the condition's own maximum.
 
-  **One card for the whole rest, not one per character.** dnd5e already posts a recovery card each, and doubling that turns a party's long rest into a wall of chat. Outcomes accumulate as each character rests and the card posts when the rest completes -- the same moment the clock advances, using the same request-id grouping. It appears only when there is something to say, and actor names are escaped.
+  **Provisions appear on the character's own rest card**, described in the rest-card entry above. An earlier draft in this same release batched them into one card for the whole party, posted when the rest completed; that is superseded and its accumulate-then-flush machinery is gone.
 
   Long rests only. A short rest is an hour by the tea, not a day's provisions, and consuming a ration for one would empty a pack over an afternoon. The provisions card is posted independently of whether Blacksmith moves the clock: a table that tracks rations but lets the system handle time still wants it, and an earlier draft that returned early on the clock setting swallowed it.
 

@@ -589,6 +589,15 @@
 			"restAdvancesTime-Label": "Rests Move the Clock",
 			"restAdvancesTime-Hint": "A short or long rest advances the in-world time by however long it took, using the length the game system defines for the current rest variant. A group rest advances the clock once, not once per character.",
 
+			"restPostCard-Label": "Blacksmith Rest Card",
+			"restPostCard-Hint": "Post a Blacksmith card for each character when they rest, showing what they recovered and what they ate.",
+
+			"restSkipRequestDialog-Label": "Skip the Rest Confirmation",
+			"restSkipRequestDialog-Hint": "When a character accepts a rest the GM requested, rest immediately instead of opening a dialog whose options are all locked and whose only action is to press Rest. A character resting on their own still gets the dialog, since those options are theirs to set.",
+
+			"restSuppressSystemCard-Label": "Hide the System's Rest Card",
+			"restSuppressSystemCard-Hint": "Stop the game system posting its own rest message, leaving only Blacksmith's. Ignored unless the Blacksmith Rest Card is on, so a rest can never end up reporting nothing at all.",
+
 			"restTrackFood-Label": "Track Food",
 			"restTrackFood-Hint": "On a long rest, each character consumes one ration. A character with none forages instead: one Survival check covers both food and water, and failing it costs a level of exhaustion.",
 

@@ -1,7 +1,7 @@
 # Plan: Blacksmith owns the rest card
 
-**Status:** Planned. Nothing here is built. The batched provisions card that exists today is transitional
-and this replaces it.
+**Status:** Phases 1-3 implemented, pending live verification. **Phase 4 is blocked on a decision that is
+the author's** -- see "Phase 1, answered" below. Phase 5 follows 4.
 
 **Outcome:** feature.
 
@@ -122,18 +122,94 @@ level of exhaustion rather than something cosmetic.
 Per-character cards make this cheaper than it would otherwise be: an outstanding check is one card sitting
 in chat with a button on it, not a row inside a summary that has to be found.
 
+## The flow this is heading for
+
+Settled with the author 2026-08-17. Blacksmith owns every surface; dnd5e does the rules.
+
+```
+1. GM opens OUR rest window          options + who is resting + the food settings
+2. OUR request card posts            with a Rest button, one row per character
+3. Player clicks -> OUR window       their options, and a Rest button
+4. We call the system                actor.longRest() -- dnd5e applies every rule
+5. OUR result card posts             recovery, provisions, and a Forage button if owed
+6. They roll -> the card updates      the row is rewritten, exhaustion applied
+```
+
+Steps 4 and 5 are built. Steps 1-3 and 6 are not.
+
+**The point of the shape is that the system is never the UI, and always the rules.** Every screen is ours,
+every calculation is theirs. That is what keeps this from becoming a rest implementation.
+
+## Is any of this a hack?
+
+Asked directly, and worth recording, because the answer changes what is safe to build on.
+
+**No monkey-patching, no private API, one genuine gap.**
+
+| What we do | Standing |
+|---|---|
+| `dnd5e.preLongRest` / `preShortRest`, mutating `config` | Documented extension point. dnd5e reads `config.chat` and `config.dialog` after the hook, on purpose |
+| `dnd5e.restCompleted` | Documented public hook |
+| `result.clone`, `result.deltas` | `RestResult` is a documented return type |
+| `actor.rollSkill(config, dialog, message)` with `create: false` | Public, and the message config exists for exactly this |
+| `game.actors.party.longRest()` | Public |
+| Reading `config.request.system.targets` | Public data, but not a documented integration point. The least supported thing here |
+
+**The gap: there is no `preGroupRest`.** A party rest is only ever visible as a series of individual
+completions, so the grouping -- who is in this rest, is this the last of them -- has to be reconstructed
+from the request id and its roster. That is not a hack, but it is compensating for something the system
+does not offer, and it is where the fiddly code lives.
+
+**Owning steps 1-3 removes that gap rather than working around it.** If our window starts the rest, we know
+the roster before anything happens, and none of the reconstruction is needed.
+
+## Phase 1, answered
+
+**A result comes back as `blacksmith.rolls.skillCheckResolved`**, emitted from `api-rolls.js:94`, carrying
+`actorId`, `total`, `success` and `dc` -- everything a forage outcome needs. The subscription surface is
+real and documented in `documentation/api/api-rolls.md`.
+
+**But it only fires for rolls made on Blacksmith's own skill-check card.** `emitSkillCheckRoll` is bound to
+that card's rows. So getting a player-rolled forage check means one of two routes, and they are not
+equivalent:
+
+**Route A -- Request Roll.** `openRequestRollDialog({ silent: true, actors, initialSkill: 'survival', dc })`
+posts a request card and results arrive on the hook above. Entirely supported, nothing new to build.
+**It posts a second card**, which sits awkwardly against the reason this plan exists: the request card and
+the rest card would both be about the same character's night.
+
+**Route B -- the roll window.** What "let them roll using the roll tool" most naturally means. But
+`showRollWindow` is reached through `orchestrateRoll` and expects the skill-check card's `rollData` --
+message id, token id, group and contested state. There is no "open a roll for this actor, this skill, this
+DC, give me the total" entry point. Building one is a **new public entry point in `manager-rolls.js`**,
+which is a reasonable thing to want for its own sake and is not a rest feature.
+
+**This is the decision.** A: accept a second card, ship quickly. B: add the missing roll entry point first,
+get one card, and gain something the rest of the module can use. B is better and is not a rest task.
+
 ## Phases
 
-| Phase | Work |
-|---|---|
-| 1 | Verify how `api.requestroll` reports a result back -- hook, socket, or card flag. The only unknown, and everything after it depends on the answer. |
-| 2 | The per-character card: identity, recovery from `result`, provisions. Replaces the batched summary; system cards still on. |
-| 3 | Suppress the system's cards, behind a setting, now ours carries the same information. |
-| 4 | Foraging becomes a player roll: a Forage button, the result updating the card and applying exhaustion. |
-| 5 | GM resolution for an outstanding check. |
+| Phase | Work | State |
+|---|---|---|
+| 1 | How a result comes back | **Answered above** |
+| 2 | The per-character result card (step 5) | **Built** -- `scripts/cards-rest.js` |
+| 3 | Suppress the system's cards and its confirmation dialog | **Built** -- three settings |
+| 4 | Foraging becomes a player roll (step 6) | **Blocked on route A or B** |
+| 5 | GM resolution for an outstanding check | Follows 4 |
+| 6 | The GM rest window (step 1) | Not started -- a real window |
+| 7 | Our request card (step 2) and the player window (step 3) | Not started; 7 depends on 6 |
 
-Phases 2 and 3 are worth having on their own. **4 and 5 must ship together** -- a pending button with no
-way to resolve it is worse than the automatic roll it replaced.
+**Phases 6 and 7 are windows**, and the window framework is the CRITICAL item on `TODO.md` -- 4 of 15
+windows use `window-template.hbs` and the frame is not owned. Two more hand-rolled windows makes that worse.
+Worth doing after the framework, or deliberately as further evidence for it, but not by accident.
+
+Until 4 lands, foraging still rolls automatically. **The card now shows the roll** -- "Survival 7 vs DC 12"
+under the row -- because a card reporting "went without" and a level of exhaustion with no dice anywhere
+reads as a broken button rather than a failed check, which is exactly how it read in play.
+
+**4 and 5 must ship together** -- a pending button with no way to resolve it is worse than the automatic
+roll it replaced. Foraging is still rolled automatically until they do, which is the behaviour that shipped
+before this plan and is no worse for waiting.
 
 ## Where it goes
 

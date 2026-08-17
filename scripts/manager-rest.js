@@ -15,17 +15,21 @@
 //     if ( config.advanceTime && (config.duration > 0) && game.user.isGM )
 //         await game.time.advance(60 * config.duration);
 //
-// That is off by default, which is the only reason this file exists. What it adds
-// is a setting so the table decides once instead of per rest, and the coalescing
-// that a group rest needs -- see `_queueAdvance`.
+// That is off by default, which is the only reason the clock half of this file
+// exists. What it adds is a setting so the table decides once instead of per rest,
+// and the coalescing that a group rest needs -- see `_queueAdvance`.
 //
-// Food, water and exhaustion automation are intended to live here later. They are
-// rest concerns, not clock concerns, which is why this is its own file.
+// What it also owns is FOOD AND WATER, and the card. One card per character, posted
+// as each of them finishes -- the composition lives in `cards-rest.js`. A card is
+// about one actor, so its state is that actor's state, which is what will let a
+// foraging roll made minutes later find its own card again.
+//
+// See documentation/plans/plan-rest-card.md.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { ChatCardsAPI } from './api-chat-cards.js';
+import { postRestCard } from './cards-rest.js';
 
 class RestManager {
 
@@ -86,20 +90,65 @@ class RestManager {
     static initialize() {
         HookManager.registerHook({
             name: 'dnd5e.restCompleted',
-            description: 'Rest: Advance the world clock by the length of the rest',
+            description: 'Rest: Advance the world clock, provision the character, post their card',
             context: 'rest-time',
             priority: 4,
-            callback: (actor, result, config) => this._onRestCompleted(config, actor)
+            callback: (actor, result, config) => this._onRestCompleted(config, actor, result)
         });
 
+        // Suppressing the system's own card is a change to the rest CONFIG, so it has
+        // to happen before the rest runs rather than after. Both rest types, since a
+        // short rest posts one too.
+        for (const hook of ['dnd5e.preLongRest', 'dnd5e.preShortRest']) {
+            HookManager.registerHook({
+                name: hook,
+                description: 'Rest: Optionally suppress the system\'s own rest card',
+                context: 'rest-time',
+                priority: 4,
+                callback: (actor, config) => this._onPreRest(config)
+            });
+        }
+
         postConsoleAndNotification(MODULE.NAME, "Rest: Time advancement registered", "", true, false);
+    }
+
+    /**
+     * Silence the system's rest card, when ours is replacing it.
+     *
+     * GATED ON OURS BEING ON. Suppressing the system's card without posting one would
+     * leave a rest that reports nothing at all -- no recovery, no hit dice, nothing --
+     * and the two settings are independent, so a GM can reach that combination by
+     * ticking one box.
+     *
+     * Mutating `config` is the supported way to do this: `preLongRest` and
+     * `preShortRest` both receive the configuration by reference and dnd5e reads
+     * `config.chat` afterwards.
+     */
+    static _onPreRest(config) {
+        if (!config) return;
+
+        // ACCEPTING A REQUEST OPENS A DIALOG WITH NOTHING IN IT. The GM already chose
+        // New Day, Remove Temp HP and Recover Max HP when they sent the request, so
+        // every control is locked and the only thing left to do is press REST -- a
+        // second click confirming the first.
+        //
+        // Only for a REQUESTED rest. A character resting on their own opens the same
+        // dialog with those controls live, and that one is a real choice.
+        if (config.request && getSettingSafely(MODULE.ID, 'restSkipRequestDialog', true)) {
+            config.dialog = false;
+        }
+
+        if (!getSettingSafely(MODULE.ID, 'restSuppressSystemCard', false)) return;
+        if (!getSettingSafely(MODULE.ID, 'restPostCard', true)) return;
+
+        config.chat = false;
     }
 
     /**
      * @param {object} config  The rest configuration dnd5e used.
      * @param {Actor} [actor]  The actor that rested.
      */
-    static async _onRestCompleted(config, actor) {
+    static async _onRestCompleted(config, actor, result) {
         // Only a GM writes: the clock is a world setting, and item quantities and
         // exhaustion are documents. dnd5e guards its own advance the same way.
         if (!game.user?.isGM) return;
@@ -124,7 +173,7 @@ class RestManager {
             const { isNew, isLast } = this._recordAcceptance(request, requestId, actor);
             if (!isNew) return;
 
-            await this._provision(config, actor);
+            await this._restedOne(config, actor, result);
             if (!isLast) return;
 
             this._markRequestHandled(requestId);
@@ -135,7 +184,7 @@ class RestManager {
         // No request. The burst still needs the same protection: the automatic group
         // loop rests each member once, but nothing guarantees a caller does.
         if (!this._recordBurstAcceptance(actor)) return;
-        await this._provision(config, actor);
+        await this._restedOne(config, actor, result);
 
         // No request: either a lone character resting, or the automatic group loop.
         // Both are bursts, so the timer is the right tool.
@@ -205,8 +254,26 @@ class RestManager {
     // ===== FOOD AND WATER =========================================
     // ==============================================================
 
-    /** Outcomes gathered across a rest, reported as one card when it completes. */
-    static _report = [];
+    /**
+     * One character has finished resting: feed them, and post their card.
+     *
+     * ONE CARD PER CHARACTER, posted here rather than accumulated and flushed at the
+     * end. A card is about one actor, so its state is that actor's state -- which is
+     * what will let a foraging roll made minutes later find its own card and update
+     * it, with nothing held in memory in between. The batched summary this replaced
+     * had to wait for the whole party before it could say anything at all.
+     */
+    static async _restedOne(config, actor, result) {
+        const provisions = await this._provision(config, actor);
+
+        if (!getSettingSafely(MODULE.ID, 'restPostCard', true)) return;
+
+        try {
+            await postRestCard({ actor, result, config, provisions });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Rest: Failed to post the rest card for ${actor?.name}`, error, false, false);
+        }
+    }
 
     /**
      * Feed and water a character for the night.
@@ -249,15 +316,21 @@ class RestManager {
         // the rules anywhere suggest. It also means at most ONE level of exhaustion
         // per rest, because there is only one check to fail.
         if (needsFood || needsWater) {
-            const result = await this._forage(actor);
-            if (needsFood) outcome.food = result;
-            if (needsWater) outcome.water = result;
-            if (result === 'hungry') outcome.exhaustion = 1;
+            const { verdict, total, dc } = await this._forage(actor);
+            if (needsFood) outcome.food = verdict;
+            if (needsWater) outcome.water = verdict;
+            if (verdict === 'hungry') outcome.exhaustion = 1;
+
+            // The roll travels with the outcome so the card can SHOW it. A card
+            // reporting "went without" and a level of exhaustion, with no dice
+            // anywhere, is indistinguishable from a bug -- which is exactly how it
+            // read in play.
+            outcome.roll = { total, dc };
         }
 
         if (outcome.exhaustion > 0) await this._addExhaustion(actor, outcome.exhaustion);
 
-        this._report.push(outcome);
+        return outcome;
     }
 
     /** Use one of a stack. */
@@ -268,7 +341,7 @@ class RestManager {
 
     /**
      * One Survival check for whatever the character is missing.
-     * @returns {'foraged'|'hungry'|'unrolled'}
+     * @returns {{verdict: 'foraged'|'hungry'|'unrolled', total: number|null, dc: number}}
      */
     static async _forage(actor) {
         const dc = Number(getSettingSafely(MODULE.ID, 'restForageDC', 12)) || 12;
@@ -288,9 +361,9 @@ class RestManager {
 
         // A roll we could not make is not a failure. Charging exhaustion for our own
         // inability to roll would punish the character for our bug.
-        if (!Number.isFinite(total)) return 'unrolled';
+        if (!Number.isFinite(total)) return { verdict: 'unrolled', total: null, dc };
 
-        return total >= dc ? 'foraged' : 'hungry';
+        return { verdict: total >= dc ? 'foraged' : 'hungry', total, dc };
     }
 
     /**
@@ -333,56 +406,6 @@ class RestManager {
             await actor.update({ 'system.attributes.exhaustion': next });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, `Rest: Failed to apply exhaustion to ${actor.name}`, error, false, false);
-        }
-    }
-
-    /**
-     * One card for the whole rest, posted when it completes.
-     *
-     * Batched rather than one per character, because dnd5e already posts a recovery
-     * card each and doubling that turns a party's long rest into a wall of chat. The
-     * card only appears when there is something to say.
-     */
-    static async _postReport() {
-        const report = this._report;
-        this._report = [];
-        if (!report.length) return;
-
-        const phrase = { ate: 'ate', foraged: 'foraged', hungry: 'went without', unrolled: 'could not forage' };
-
-        const items = report.map((entry) => {
-            const detail = [];
-            if (entry.food) detail.push(`Food: ${phrase[entry.food]}`);
-            if (entry.water) detail.push(`Water: ${phrase[entry.water]}`);
-
-            return {
-                thumb: true,
-                img: entry.img || undefined,
-                icon: entry.img ? undefined : 'fa-solid fa-drumstick-bite',
-                label: entry.name,
-                sublabel: detail.join(' · '),
-                // The tone carries what a hand-bolded "+1 exhaustion" was doing, in
-                // the vocabulary every other card already uses.
-                tone: entry.exhaustion > 0 ? 'danger' : undefined,
-                trailing: entry.exhaustion > 0 ? `+${entry.exhaustion} exhaustion` : undefined
-            };
-        });
-
-        try {
-            // The module's own card API rather than a hand-built ChatMessage. It
-            // brings the theme, the escaping and the parts vocabulary with it -- and
-            // `rows` is the part written for exactly this shape: a portrait, a name,
-            // a sub-line and a trailing value.
-            await ChatCardsAPI.post({
-                moduleId: MODULE.ID,
-                type: 'rest',
-                parts: [
-                    { part: 'header', icon: 'fa-solid fa-drumstick-bite', title: 'Provisions' },
-                    { part: 'rows', items }
-                ]
-            });
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Rest: Failed to post the provisions summary", error, false, false);
         }
     }
 
@@ -442,7 +465,6 @@ class RestManager {
             && Number.isFinite(minutes) && (minutes > 0);
 
         if (advances) await this._advance(minutes, systemAdvanced);
-        await this._postReport();
     }
 
     /**
