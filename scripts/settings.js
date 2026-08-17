@@ -3380,6 +3380,94 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Sunrise / Sunset --
+	// In HOURS, converted to a fraction of the day with the calendar's own
+	// hoursPerDay — so hour 5 of a 20-hour day is the same quarter-past-dawn as hour
+	// 6 of a 24-hour one. These drive BOTH the sky panel and the darkness curve; the
+	// painted dawn and the real one must not be able to drift apart.
+	game.settings.register(MODULE.ID, 'worldClockSunrise', {
+		name: MODULE.ID + '.worldClockSunrise-Label',
+		hint: MODULE.ID + '.worldClockSunrise-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 6,
+		range: {
+			min: 0,
+			max: 23.5,
+			step: 0.5
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'worldClockSunset', {
+		name: MODULE.ID + '.worldClockSunset-Label',
+		hint: MODULE.ID + '.worldClockSunset-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 18,
+		range: {
+			min: 0,
+			max: 23.5,
+			step: 0.5
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Twilight length --
+	// How long the ramp between day and night takes, centred on the horizon. At the
+	// 10-minute default step this gives six visible increments; at half an hour it is
+	// three and reads as a jump.
+	game.settings.register(MODULE.ID, 'worldClockTwilightMinutes', {
+		name: MODULE.ID + '.worldClockTwilightMinutes-Label',
+		hint: MODULE.ID + '.worldClockTwilightMinutes-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 60,
+		range: {
+			min: 0,
+			max: 240,
+			step: 10
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Darkness at night / by day --
+	// Foundry's darkness scale: 0 is full daylight, 1 is pitch black. 1 makes torches
+	// the only light source, so an outdoor night scene with none shows the players
+	// nothing — 0.85 keeps moonlight.
+	game.settings.register(MODULE.ID, 'worldClockDarknessNight', {
+		name: MODULE.ID + '.worldClockDarknessNight-Label',
+		hint: MODULE.ID + '.worldClockDarknessNight-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0.85,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.05
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'worldClockDarknessDay', {
+		name: MODULE.ID + '.worldClockDarknessDay-Label',
+		hint: MODULE.ID + '.worldClockDarknessDay-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 0,
+		range: {
+			min: 0,
+			max: 1,
+			step: 0.05
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// --------------------------------------
 	// -- H3: Round Timer Settings
 	// --------------------------------------

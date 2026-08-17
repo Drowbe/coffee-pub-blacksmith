@@ -23,85 +23,24 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
-## Scene darkness does not follow the world clock (opened 2026-08-16)
+## World clock: a Scene Config notice for clock-driven darkness (opened 2026-08-16)
 
-**Plan: `documentation/plans/plan-world-time.md`.** The clock, its controls, the sky track, the drag and
-the tooltip are built and are in `CHANGELOG.md`; the architecture is in
-`documentation/architecture/architecture-worldclock.md`. **Darkness is the one part not built.**
+The darkness driver has shipped (see `CHANGELOG.md` and
+`documentation/architecture/architecture-worldclock.md`). One piece of it was deliberately left out.
 
-Nothing in core moves `scene.environment.darknessLevel` as time passes. `scene.environment.darknessLevel`
-exists (`common/documents/scene.mjs:119`) and the canvas reacts to it, but nothing drives it, so a world
-that disables SmallTime keeps whatever darkness value each scene last had, frozen, forever.
+**A GM who opens Scene Config on a clock-driven scene sees the Darkness Level slider sitting at a value
+they did not set, with nothing saying why.** The right-click menu on the world clock reports the state, but
+that is not where a GM is looking when they are looking at the slider. A short notice in the Lighting tab
+-- "darkness on this scene currently follows the world clock" -- closes that gap.
 
-### The shape: world settings for the curve, a per-scene opt-in
+**Why it was deferred rather than built:** it means injecting into `renderSceneConfig`, and on the day the
+driver was written that exact surface was actively unstable in a sibling module -- Artificer's own Scene
+Config tab was disappearing between reloads from a render race against Foundry's `_replaceHTML`. Adding a
+second injector to a surface already misbehaving would have made both harder to diagnose. Blacksmith
+currently has **zero** references to Scene Config, which is worth keeping true until there is a reason.
 
-The curve is a property of the WORLD -- sunrise, sunset, daytime darkness, night-time darkness are four
-numbers describing how this world's sky behaves. Whether a given scene *follows* that curve is a property
-of the SCENE: a dungeon, a cellar or a windowless tavern should stay dark at noon, and a world-level
-"apply to the active scene" would fight the GM every time they set one deliberately.
-
-So: four world settings, plus a per-scene opt-in stored as a scene flag
-(`scene.setFlag(MODULE.ID, 'darknessControl', true)`, following `manager-pins.js:642`), toggled by
-**right-clicking the world clock in the menubar** -- the toggle sits on the thing that shows the time,
-which is where a GM would look for it.
-
-The graphical drag-the-suns editor is a later convenience and is not needed for the driver to work.
-
-### What the core research settled
-
-- **Core animates darkness across every client for free.** `scene.update({environment: {darknessLevel: x}},
-  {animateDarkness: ms})` -- the second argument is an update *option*, handled at
-  `client/documents/scene.mjs:606`. This is the supported path and the one core's own day/night buttons use
-  (`client/canvas/layers/lighting.mjs:112`). Default duration is
-  `CONFIG.Canvas.darknessToDaylightAnimationMS`, 10000ms. **No custom animation code is needed.** Omit the
-  option and the change snaps instead.
-- **Core enforces `darknessLock` itself.** `client/documents/scene.mjs:417-418` deletes `darknessLevel` from
-  any update to a locked scene. A locked scene is therefore safe by construction; check it anyway to avoid
-  issuing writes that will be silently discarded.
-- **There is an ephemeral path, and it is not the right primary mechanism.**
-  `canvas.effects.animateDarkness()` (`client/canvas/groups/effects.mjs:511`) resolves to
-  `canvas.environment.initialize()`, which is local canvas only -- no document write. It mutates the
-  in-memory scene (`environment.mjs:172`) and is reverted by any scene re-initialisation, so it cannot be
-  the source of truth. It IS exactly right for previewing darkness during a clock drag.
-- **Write frequency is the real design problem, and the epsilon mostly solves it.** A GM stepping through a
-  day at 10 minutes a click would otherwise issue a scene write per click. Only write when the computed
-  darkness differs from the stored value by more than about 0.01. Darkness is flat across the middle of the
-  day and the middle of the night, so most steps compute no change at all and the gate removes them.
-- **Only a GM may write a scene**, so the driver runs on the GM client alone and reaches players through the
-  ordinary document-update broadcast. No sockets. Every client must tolerate receiving the update without
-  trying to make one.
-- **Re-apply on `canvasReady`**, since darkness lives on the scene and the active scene changes.
-- **`globalLight.darkness.max`** is the Global Illumination Threshold: above that darkness, global
-  illumination switches itself off. Worth knowing when a scene goes unexpectedly black; not ours to manage.
-- **`SUNRISE`/`SUNSET` in `manager-worldclock.js` become settings** when this lands, the sky gradient in
-  `worldclock.css` has to be generated from them rather than hand-drawn, and the stop-matching invariant in
-  `tools/check-worldclock.mjs` has to change with them.
-
-### The context menu
-
-`UIContextMenu.show({ id, x, y, zones })`, with items carrying **`callback`**, not `onClick` --
-`onClick` is the menubar adapter's shape (`_mapMenubarContextMenuItem`), and passing it to UIContextMenu
-directly produces a menu whose entries do nothing. That mistake has been made here before.
-
-The world clock needs its own `contextmenu` listener, since it is not a registered menubar tool. It already
-owns its own listeners, so this is consistent; it must `stopPropagation` so the menubar's delegated handler
-does not also act.
-
-### Settled: the driver always wins, and says so
-
-When darkness control is on for a scene, the clock owns that scene's darkness -- a GM who sets it by hand
-gets overwritten at the next time change. **Two things stop that being a silent surprise:** the scene
-config says darkness is currently being driven by the clock, and the driver can set `darknessLock` on the
-scene so the Darkness Level control is visibly locked rather than merely futile.
-
-To pin a scene's darkness against the clock, turn darkness control off for it. Core's own
-`darknessLock` remains the escape hatch for anyone who reaches for it first, since core discards our
-writes to a locked scene anyway (`scene.mjs:417`).
-
-**Where it goes:** its own file, no menubar coupling in either direction -- it reads settings and the world
-clock and writes scene darkness, nothing else. It is a feature with no UI beyond one context-menu entry, so
-by the direction-of-travel rule it is the piece most likely to move to a sibling later; keeping it
-standalone makes that a file move rather than a rewrite.
+Whatever does this should read the same scene flag the driver uses (`DarknessManager.FLAG`) rather than
+inventing a parallel one, and must survive the sheet re-rendering underneath it.
 
 ## Advantage/disadvantage discards a built formula's keep modifier (opened 2026-08-16)
 

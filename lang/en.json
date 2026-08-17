@@ -571,6 +571,21 @@
 			"worldClockStepLarge-Label": "Large Step",
 			"worldClockStepLarge-Hint": "Minutes the double arrows move the in-world time.",
 
+			"worldClockSunrise-Label": "Sunrise",
+			"worldClockSunrise-Hint": "Hour the sun rises. Sets where dawn falls on the menubar sky, and where scene darkness begins to lift.",
+
+			"worldClockSunset-Label": "Sunset",
+			"worldClockSunset-Hint": "Hour the sun sets. Sets where dusk falls on the menubar sky, and where scene darkness begins to gather.",
+
+			"worldClockTwilightMinutes-Label": "Twilight Length",
+			"worldClockTwilightMinutes-Hint": "Minutes the change between day and night takes, centred on sunrise and sunset. Zero makes night fall instantly.",
+
+			"worldClockDarknessNight-Label": "Darkness at Night",
+			"worldClockDarknessNight-Hint": "How dark a scene gets at night, where 0 is full daylight and 1 is pitch black. At 1 only light sources are visible, so an outdoor scene with none shows players nothing.",
+
+			"worldClockDarknessDay-Label": "Darkness by Day",
+			"worldClockDarknessDay-Hint": "How dark a scene is at midday. Leave at 0 unless the world is meant to be permanently overcast.",
+
 		"headingH3RoundTimer-Label": "Round Timer",
 		"headingH3RoundTimer-Hint": "This timer keeps track of the actual real-world round time.",
 

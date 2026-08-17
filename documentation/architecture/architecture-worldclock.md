@@ -126,6 +126,67 @@ side of each horizon, which also produces the brief window where a still-warm sk
 They are drawn as fixed radial gradients -- no asset to ship, crisp at any DPI, and fixed because stars
 that reshuffled on each repaint would shimmer every time the clock ticked.
 
+## Scene darkness
+
+`scripts/manager-darkness.js` makes a scene's darkness follow the clock. It is the one capability core
+lacks: `scene.environment.darknessLevel` exists and the canvas reacts to it, but nothing moves it as time
+passes.
+
+**It drives that one number and nothing else.** The Ambience tab carries a full Base Ambience and Dark
+Ambience pair plus Blend Ambience, and Foundry already merges the two *by darkness level*
+(`client/canvas/groups/environment.mjs:228`). So one number drives the whole look -- colour, luminosity,
+saturation, shadows -- and each scene keeps whatever Dark Ambience its GM chose. A cave tinted green goes
+green at night for free. Driving the dark hue as well would overwrite a deliberate per-scene choice.
+
+**The dependency runs one way.** The driver borrows `WorldClockManager.getCurrentDayFraction()` and
+`getHorizons()` rather than computing its own, because two answers to "what time of day is it" that can
+disagree is the failure this feature exists to avoid. `manager-worldclock.js` never references the driver.
+
+**The curve is flat, flat, and steep in between.** Zero through the day, night darkness through the night,
+a smoothed ramp across each twilight. A straight line from sunrise to sunset was the obvious first shape
+and is wrong: it makes two in the afternoon perceptibly dimmer than noon, which reads as a fault rather
+than as time passing.
+
+**Twilight is centred on the horizon, not started at it.** With a one-hour twilight and a 06:00 sunrise the
+change runs 05:30 to 06:30 and is half done at 06:00 -- the same moment the sun sits on the horizon in the
+menubar panel. A ramp starting at sunrise would leave the world pitch black at the moment the panel shows
+dawn. `_circularDelta` measures distance around a day that wraps, because a twilight can straddle midnight:
+with a 00:20 sunrise, 23:55 is five minutes *before* dawn, not twenty-three hours after it.
+
+**Sunrise and sunset are settings, and both features read them.** They are configured in hours, because
+that is how a person thinks about dawn, and converted with the calendar's own `hoursPerDay`. The sky panel
+does not recompute its nine `SKY_STOPS` when they move -- `_normalizeForSky()` stretches the *lookup*
+instead, so the table stays authored against a 0.25/0.75 day while the real horizons land wherever they are
+set.
+
+**Writes are gated, and that is most of the design.** Only when the computed darkness differs from the
+stored value by more than `EPSILON`. Because the curve is flat across midday and midnight, most clock steps
+compute no change and never touch the database: stepping a full day at ten-minute increments produces about
+a dozen writes across 144 steps.
+
+**Transitions are core's, not ours.** `scene.update(..., {animateDarkness: ms})` animates on every client
+(`client/documents/scene.mjs:606`) with no socket and no animation code here. Core's own default is 10s,
+right for the scene-controls day/night buttons and far too slow for a clock step; `ANIMATE_MS` is 2s.
+
+**Darkness Level Lock is the override, and the driver must never set it.** Core deletes `darknessLevel`
+from any update to a locked scene (`client/documents/scene.mjs:417`), *including ours* -- so locking a
+clock-driven scene would lock the clock out of it. The upside is that a GM ticking Lock genuinely does pin
+that scene against the clock with nothing implemented on our side. The driver checks the lock first only to
+avoid issuing writes that would be discarded.
+
+**Opt-in per scene, never opt-out.** Following the clock is a scene flag toggled by right-clicking the
+world clock. Defaulting it on would black out every dungeon, cellar and windowless tavern the first time
+the clock passed sunset. The context-menu entry reports the current state as well as toggling it, and says
+so when Lock is blocking the driver -- it is currently the only place that explains why a scene's Darkness
+slider moves on its own.
+
+**Only the active scene.** Darkness lives on the scene, and driving every scene in the world on every time
+change would be a write per scene for scenes nobody is looking at. Re-applied on `canvasReady`.
+
+One interaction worth knowing about and not ours to manage: when darkness exceeds a scene's **Global
+Illumination Threshold**, core switches global illumination off. On a scene with GI enabled and a threshold
+of 0.75, the driver crossing 0.75 snaps it from lit-everywhere to lit-by-sources.
+
 ## Permissions
 
 Time is a world setting, so only a GM can move it. Players get the readout and the tooltip with no

@@ -110,6 +110,7 @@ import { TagsAPI } from './api-tags.js';
 import { TagManager } from './manager-tags.js';
 import { TagWidget } from './widget-tags.js';
 import { WorldClockManager } from './manager-worldclock.js';
+import { DarknessManager } from './manager-darkness.js';
 import { GMNotesAPI } from './api-gmnotes.js';
 import { GMNotesSheetUI } from './ui-gmnotes-sheet.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
@@ -522,6 +523,9 @@ Hooks.once('ready', async () => {
     // menubar, not just the clock, and shows up only as a logged render error.
     try {
         await WorldClockManager.initialize();
+        // After the clock, which owns the context-menu seam the driver registers into
+        // and the day-fraction the driver reads.
+        DarknessManager.initialize();
     } catch (e) {
         console.error(`${MODULE.ID}: WorldClockManager.initialize failed`, e);
     }

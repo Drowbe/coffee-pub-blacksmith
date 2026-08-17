@@ -22,19 +22,50 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely, fetchTemplateText } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { UIContextMenu } from './ui-context-menu.js';
 
 class WorldClockManager {
+
+    /** Where the horizons sit when the settings are unreadable. Quarter and three-quarter day. */
+    static DEFAULT_SUNRISE = 0.25;
+    static DEFAULT_SUNSET = 0.75;
 
     /**
      * Sunrise and sunset as FRACTIONS of the day rather than clock hours.
      *
-     * A calendar declares its own day length and `hoursPerDay` need not be 24, so
-     * "06:00" is not portable between calendars but "a quarter of the way through
-     * the day" is. The darkness phase of the plan replaces these with real settings,
-     * at which point this pair goes away rather than gaining a third.
+     * Configured in HOURS, because that is how a person thinks about dawn, but stored
+     * and used as fractions, because a calendar declares its own day length and
+     * `hoursPerDay` need not be 24. Hour 5 of a twenty-hour day is the same
+     * quarter-past-dawn as hour 6 of a twenty-four hour one.
+     *
+     * The DARKNESS DRIVER READS THE SAME TWO SETTINGS. That is the point of them
+     * being settings rather than constants: the dawn painted on the panel and the
+     * dawn the scene actually lightens at are the same moment, and cannot drift.
+     *
+     * @returns {{sunrise: number, sunset: number}} Fractions of the day, 0..1.
      */
-    static SUNRISE = 0.25;
-    static SUNSET = 0.75;
+    static getHorizons() {
+        const hoursPerDay = game.time?.calendar?.days?.hoursPerDay;
+        if (!(hoursPerDay > 0)) {
+            return { sunrise: this.DEFAULT_SUNRISE, sunset: this.DEFAULT_SUNSET };
+        }
+
+        const toFraction = (hours, fallback) => {
+            const value = Number(hours);
+            if (!Number.isFinite(value)) return fallback;
+            return Math.min(Math.max(value / hoursPerDay, 0), 1);
+        };
+
+        const sunrise = toFraction(getSettingSafely(MODULE.ID, 'worldClockSunrise', 6), this.DEFAULT_SUNRISE);
+        const sunset = toFraction(getSettingSafely(MODULE.ID, 'worldClockSunset', 18), this.DEFAULT_SUNSET);
+
+        // A sunset at or before sunrise has no daytime between them and would make
+        // every downstream span zero or negative -- the arc would divide by zero and
+        // the sky remap would fold on itself. Fall back rather than paint nonsense.
+        if (!(sunset > sunrise)) return { sunrise: this.DEFAULT_SUNRISE, sunset: this.DEFAULT_SUNSET };
+
+        return { sunrise, sunset };
+    }
 
     /**
      * The sky, as colours at named moments of the day.
@@ -222,7 +253,8 @@ class WorldClockManager {
 
     /** @returns {boolean} */
     static _isNight(dayFraction) {
-        return (dayFraction < this.SUNRISE) || (dayFraction >= this.SUNSET);
+        const { sunrise, sunset } = this.getHorizons();
+        return (dayFraction < sunrise) || (dayFraction >= sunset);
     }
 
     /**
@@ -241,8 +273,7 @@ class WorldClockManager {
      * @returns {{isNight: boolean, progress: number, x: number, y: number}}
      */
     static _getArc(dayFraction) {
-        const rise = this.SUNRISE;
-        const set = this.SUNSET;
+        const { sunrise: rise, sunset: set } = this.getHorizons();
 
         let isNight;
         let progress;
@@ -271,13 +302,45 @@ class WorldClockManager {
     }
 
     /**
+     * Stretch the real day onto the day `SKY_STOPS` was painted for.
+     *
+     * The stop table is authored against a sunrise at 0.25 and a sunset at 0.75,
+     * because that is a legible way to write a sky. Once those became settings the
+     * table would otherwise paint dawn at the wrong moment -- a world with a 05:00
+     * sunrise would show the sun clearing the horizon a full hour after the panel
+     * had already gone blue.
+     *
+     * Rather than recompute nine colours whenever a setting changes, the LOOKUP is
+     * remapped: a piecewise-linear stretch that puts the real sunrise at 0.25 and the
+     * real sunset at 0.75, leaving the table alone. Night compresses or stretches
+     * around the day, which is what actually happens to a sky.
+     *
+     * @returns {number} A position in the stop table's own coordinates, 0..1.
+     */
+    static _normalizeForSky(dayFraction) {
+        const { sunrise, sunset } = this.getHorizons();
+        const RISE = this.DEFAULT_SUNRISE;
+        const SET = this.DEFAULT_SUNSET;
+
+        // Guarded by getHorizons, which never returns a zero-length night or day --
+        // but a division here would be silent rather than loud, so it is belt and braces.
+        if (dayFraction < sunrise) {
+            return sunrise > 0 ? (dayFraction / sunrise) * RISE : RISE;
+        }
+        if (dayFraction < sunset) {
+            return RISE + ((dayFraction - sunrise) / (sunset - sunrise)) * (SET - RISE);
+        }
+        return sunset < 1 ? SET + ((dayFraction - sunset) / (1 - sunset)) * (1 - SET) : SET;
+    }
+
+    /**
      * The colour of the sky at this moment, interpolated between `SKY_STOPS`.
      *
      * @returns {{top: string, bottom: string, starOpacity: number}}
      */
     static _getSky(dayFraction) {
         const stops = this.SKY_STOPS;
-        const at = Math.min(Math.max(dayFraction, 0), 1);
+        const at = this._normalizeForSky(Math.min(Math.max(dayFraction, 0), 1));
 
         let lower = stops[0];
         let upper = stops[stops.length - 1];
@@ -311,8 +374,7 @@ class WorldClockManager {
      */
     static _getStarOpacity(dayFraction) {
         const FADE = 0.06;
-        const rise = this.SUNRISE;
-        const set = this.SUNSET;
+        const { sunrise: rise, sunset: set } = this.getHorizons();
 
         // Daylight has no stars at all. Handling this first is what keeps the two
         // ramps below symmetrical: each one only ever measures how far INTO the
@@ -325,6 +387,39 @@ class WorldClockManager {
 
         return Math.min(Math.max(intoNight / FADE, 0), 1);
     }
+
+    /**
+     * How far through the day the world is right now, as 0..1.
+     *
+     * Public because the darkness driver needs exactly this and must not compute its
+     * own -- two answers to "what time of day is it" that can disagree is the whole
+     * class of bug this feature is trying not to have. The dependency runs darkness
+     * -> clock and never back.
+     *
+     * @returns {number|null} null when the calendar has not initialised.
+     */
+    static getCurrentDayFraction() {
+        const calendar = game.time?.calendar;
+        const components = game.time?.components;
+        if (!calendar?.days || !components) return null;
+        return this._getDayFraction(calendar, components);
+    }
+
+    /**
+     * Add an entry to the clock's right-click menu.
+     *
+     * A seam rather than a hard-coded list, so a feature that hangs off the clock --
+     * the darkness driver is the first -- can offer a control without the clock
+     * having to import it. Keeps the arrow pointing one way.
+     *
+     * @param {Function} provider Returns an array of UIContextMenu items, or nothing.
+     */
+    static registerContextMenuProvider(provider) {
+        if (typeof provider === 'function') this._contextMenuProviders.push(provider);
+    }
+
+    /** @type {Function[]} */
+    static _contextMenuProviders = [];
 
     /**
      * How far through the day a set of components sits, as 0..1.
@@ -591,6 +686,43 @@ class WorldClockManager {
 
         const sky = section.querySelector('.worldclock-sky');
         if (sky) sky.addEventListener('pointerdown', (event) => this._beginDrag(event, section, sky));
+
+        section.addEventListener('contextmenu', (event) => this._showContextMenu(event));
+    }
+
+    /**
+     * The clock's right-click menu, assembled from whatever has registered an entry.
+     *
+     * Suppressed entirely when nothing has -- an empty menu is worse than no menu,
+     * and the browser's own context menu is more useful than a blank box.
+     *
+     * `stopPropagation` matters: the menubar has its own delegated `contextmenu`
+     * handler on the container, and without this both would act on the same click.
+     */
+    static _showContextMenu(event) {
+        const items = this._contextMenuProviders
+            .flatMap((provider) => {
+                try {
+                    return provider() ?? [];
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, "WorldClock: A context menu provider threw", error, false, false);
+                    return [];
+                }
+            })
+            .filter(Boolean);
+
+        if (!items.length) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        UIContextMenu.show({
+            id: 'blacksmith-worldclock-menu',
+            x: event.clientX,
+            y: event.clientY,
+            zones: items,
+            zoneClass: 'gm'
+        });
     }
 
     /**
