@@ -67,6 +67,32 @@ export class RollsAPI {
         return promptRoll(options);
     }
 
+    /**
+     * Show dice on screen for a roll you already made, posting nothing to chat.
+     *
+     * FOR ROLLS THAT LAND SOMEWHERE OTHER THAN A ROLL CARD. Foundry has no 3D dice of
+     * its own -- Dice So Nice supplies them, and it normally fires off a chat message
+     * being created. So the usual way to show a player their dice is to post a roll
+     * card, and chat fills up with them: a party of five taking a short rest can bury
+     * the card they are reading under twenty roll messages.
+     *
+     * This decouples the two. Roll however you like, animate the dice, and put the
+     * result where it belongs. Honours the world's `Enable Dice So Nice` setting and
+     * does nothing when the module is absent, so a caller never has to check.
+     *
+     * ```js
+     * const rolls = await actor.rollHitDie({ denomination: 'd10' }, {}, { create: false });
+     * await api.rolls.showDice(rolls);
+     * ```
+     *
+     * @param {Roll|Roll[]} rolls One roll, or several to animate together.
+     * @returns {Promise<boolean>} Whether anything was shown.
+     */
+    static async showDice(rolls) {
+        const { showDiceAnimation } = await import('./api-core.js');
+        return showDiceAnimation(rolls);
+    }
+
     /** @param {Roll|object|null} rollOrResult @returns {number|null} */
     static extractActiveD20(rollOrResult) {
         return extractActiveD20(rollOrResult);

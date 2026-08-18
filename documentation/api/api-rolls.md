@@ -162,6 +162,30 @@ Every other entry point into the roll pipeline is built around a skill-check cha
 `orchestrateRoll` requires an existing message and throws without one. This is the mode for consumers that
 are not that card.
 
+## showDice — dice on screen, nothing in chat
+
+```javascript
+const rolls = await actor.rollHitDie({ denomination: 'd10' }, {}, { create: false });
+await api.rolls.showDice(rolls);
+```
+
+Animates a roll you have already made, and posts nothing.
+
+Foundry has no 3D dice of its own. Dice So Nice supplies them, and it triggers off a chat message being
+created -- so the usual way to show a player their dice is to post a roll card, and chat fills with them.
+This separates the two: roll however you like, show the dice, and put the result where it belongs.
+
+Takes one `Roll` or an array of them. Honours the world's *Enable Dice So Nice* setting and does nothing
+when the module is absent, so a caller never needs to check either. Returns whether anything was shown; a
+failed animation is swallowed rather than propagated, because it must never take a roll down with it.
+
+Use it whenever a roll's answer lands somewhere other than a roll card -- your own chat card, a window, a
+tracker. `promptRoll` already does this for you; this is for rolls you make yourself, including the
+system's own.
+
+It is the module's only route to `game.dice3d`, which is enforced by
+`tools/check-rest-clients.mjs`. There were two, and they disagreed about whether to honour the setting.
+
 ## Pull API (secondary)
 
 When you already hold a roll or message:

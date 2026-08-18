@@ -68,6 +68,74 @@ The foraging block states its DC only while the roll is owed. Afterwards the res
 place, labelled by the check rather than the character, and the DC line goes: a standing "DC 12" above a
 row named for the same check is the card saying one thing twice.
 
+It carries no heading. A foraging check exists only when a character is short of food or water, and that
+same state is what puts a Food or Water row above it -- so the block is always already inside Provisions,
+and a "Foraging" label restates its own container. That ordering is guaranteed by the data rather than by
+convention, which is what makes dropping the heading safe.
+
+The pre-rest card carries no headings either, for the neighbouring reason: it has only one thing to say
+about the character, so its rows have nothing to be distinguished from. A heading separates one group from
+another, and a lone group is not a group.
+
+## Hit dice on a short rest
+
+A short rest is mostly its hit dice, and dnd5e's own short rest is mostly the dialog that spends them.
+Blacksmith suppresses that dialog, so it has to offer them itself or a short rest heals nothing.
+
+Hit dice are **per class**: a Fighter 3 / Wizard 2 has three d10 and two d6, in separate pools, and the
+rules let them choose which to spend and keep the big ones back. `system.attributes.hd.bySize` is dnd5e's
+map of denomination to how many remain, and it is what the card composes from.
+
+The card offers **one button per denomination**. A single-class character therefore sees one button and a
+multiclass character sees the choice they actually have; nothing is hidden and the common case stays
+simple. Pressing one calls `actor.rollHitDie({ denomination })`, which rolls, spends the die and applies
+the healing in a single call -- the player owns their own actor, so all of that happens on their client.
+Only the card rewrite needs the GM, over the same proxy the foraging roll uses.
+
+The system's roll message **is** suppressed (`message: { create: false }`, which stops the card without
+touching the mechanics), and the dice are shown through `api.rolls.showDice` instead.
+
+Those are two halves of one decision. Foundry has no 3D dice of its own -- Dice So Nice supplies them, and
+it normally fires off a chat message being created, which is why most modules get dice only by posting a
+roll card. That is also how a party of five buries the card they are reading under twenty roll messages,
+leaving the answer somewhere above the scroll. Calling the animation directly separates the two: the dice
+roll on screen, the result lands on the card that asked for it, and nothing is posted. The health bar
+rising and the die count falling say the rest in the place the player is already looking.
+
+`showDice` is public API rather than a local helper because the same problem belongs to any roll that
+lands somewhere other than a roll card. It honours the world's Dice So Nice setting and does nothing when
+the module is absent, so no caller has to check.
+
+Three rules decide when the offer appears, all chosen rather than derived:
+
+| Rule | Why |
+|---|---|
+| Only when the character is hurt | Spending a die you cannot benefit from burns a resource for nothing |
+| Only on a short rest | A long rest restores hit points outright |
+| Once offered, it stays while dice remain -- including at full health | Spending a last die at full health is a choice a player is allowed to make, and a control that vanished underneath them would be the card overruling them |
+
+The third is why `buildHitDiceParts` reads only `offered` and the pools, and never current hit points. The
+decision is made once, when the rest completes, and stored.
+
+**Auto Spend HD** is the GM's alternative, offered on the rest window for short rests only. With it on,
+dnd5e spends dice automatically until the character is within three hit points of full or runs out --
+which is fast, and will spend a d12 to heal four. With it off, the choice goes to the player, one die at a
+time. Off is the system's default and ours.
+
+## Outcomes are marks; states are not
+
+Food and water resolve to a tick or a cross. The question is a yes-or-no, and a column of marks is read at
+a glance where a column of phrases has to be parsed row by row. What the phrases carried that a mark cannot
+-- the roll, the exhaustion it cost -- moves to the sublabel.
+
+A pending check gets neither mark. It is not an outcome, and a tick or a cross would tell the reader the
+question is settled while the button that settles it is still on the card. The one state that keeps words
+is `unrolled`: a glyph cannot say why a roll could not be made.
+
+This is also what preserves a distinction the words used to make. "Ate a ration" and "Foraged" are both a
+green tick now, and they are told apart by the sublabel -- a forager has their roll on it and someone
+eating from their pack has nothing.
+
 A rest started anywhere else -- the party sheet, a character sheet, a system rest request -- still works,
 and posts a `rested` card with no `before` phase. That path is why the request completion stamp below still
 matters.
@@ -170,6 +238,18 @@ are all questions; pressing the button posts the cards and closes.
 
 The roster is the primary party's characters when a primary party is set, falling back to every
 player-owned character so a world without one still gets a usable window.
+
+**Selected tokens are an instruction.** A GM who has picked tokens out on the canvas has already said who
+this rest is for, so those start ticked and nothing else does; with no selection, everybody is ticked,
+because an untouched canvas is not a request to rest nobody. A selected actor the party list does not know
+about joins the roster -- an NPC ally resting with the group is exactly the case a primary party misses.
+Vehicles are excluded, since dnd5e refuses to rest them.
+
+**New Day is offered on both rest types**, with a different default for each: set for a long rest, unset
+for a short one, both read from `CONFIG.DND5E.restTypes`. A short rest can still begin a new day -- a night
+watch broken by an hour's rest at dawn -- so only the default differs, never the availability. Switching
+rest type resets the box to that type's default, but an unrelated re-render leaves the GM's own choice
+alone.
 
 ## The window must not override what it does not ask about
 

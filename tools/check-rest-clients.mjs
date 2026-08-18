@@ -136,7 +136,8 @@ const CARDS_PREAMBLE = `
 const cards = new Function(`${CARDS_PREAMBLE}\n${strip('scripts/cards-rest.js')}
     return { buildRestState, postRestCardFromState, updateRestCard, updateRestCardState, isForagePending,
              isRestPending, buildRecoveryRows, buildBeforeState, buildPartsFromState, buildStandingRows,
-             buildForageParts, postBeforeCard };`)();
+             buildForageParts, buildProvisionRows, buildHitDiceState, buildHitDiceParts,
+             readHitDicePools, postBeforeCard };`)();
 
 const REST_PREAMBLE = `
     const MODULE = { ID: 'coffee-pub-blacksmith', NAME: 'Blacksmith' };
@@ -413,7 +414,12 @@ check(
     diceRow?.tone !== 'positive',
     `Filing a negative delta under Recovered toned positive says the character gained dice they just spent.`
 );
-check('The span still reads the right way round.', diceRow?.sublabel === '5 → 3', `Got "${diceRow?.sublabel}".`);
+check(
+    'And carries no from-to sublabel.',
+    diceRow?.sublabel === undefined,
+    `Got "${diceRow?.sublabel}". The pre-rest phase already showed where the character stood, so restating ` +
+    `the before number beside the change is the card explaining its own arithmetic.`
+);
 
 const longRows = cards.buildRecoveryRows(
     { system: { spells: {}, attributes: { hd: { value: 5 }, exhaustion: 0 } }, items: { get: () => null } },
@@ -489,6 +495,12 @@ check(
 );
 check('Namespaced to us.', restButton?.moduleId === 'coffee-pub-blacksmith');
 check('It carries a health bar.', beforeParts.some((p) => p.part === 'meter'));
+check(
+    'And no section headings at all.',
+    !beforeParts.some((p) => p.part === 'section'),
+    `A pre-rest card has one thing to say about the character, so its rows have nothing to be ` +
+    `distinguished from -- and a heading exists to separate one group from another.`
+);
 
 const shortButton = cards.buildPartsFromState(cards.buildBeforeState({
     actor: { uuid: 'Actor.Nik', name: 'Nik', system: { attributes: {}, spells: {} } }, restType: 'short'
@@ -531,6 +543,131 @@ check(
 );
 
 // ==================================================================
+// ===== 7a0. HIT DICE ==============================================
+// ==================================================================
+//
+// Three rules, all chosen deliberately and none of them derivable from the code by
+// someone tidying up later:
+//   - ONE BUTTON PER DENOMINATION, because hit dice are per class and a multiclass
+//     character is allowed to keep the big ones back.
+//   - OFFERED ONLY WHEN HURT, and only on a short rest.
+//   - ONCE OFFERED, IT STAYS while dice remain -- including at full health.
+
+const hurtActor = (over = {}) => ({
+    name: 'Nik', uuid: 'Actor.Nik',
+    system: {
+        spells: {},
+        attributes: {
+            hp: { value: over.hp ?? 20, max: 40 },
+            hd: { bySize: over.bySize ?? { d10: 3, d6: 2 } },
+            exhaustion: 0
+        }
+    },
+    items: { get: () => null }
+});
+
+const hdState = (actor, type = 'short') => cards.buildHitDiceState({ actor, config: { type } });
+
+check('A hurt character on a short rest is offered their dice.', hdState(hurtActor())?.offered === true);
+check(
+    'A character at full health is not.',
+    hdState(hurtActor({ hp: 40 })) === null,
+    `Spending a die you cannot benefit from is a resource burnt for nothing.`
+);
+check(
+    'Nor is anyone on a LONG rest.',
+    hdState(hurtActor(), 'long') === null,
+    `A long rest restores hit points outright.`
+);
+check('Nor a character with no dice left.', hdState(hurtActor({ bySize: { d10: 0 } })) === null);
+check(
+    'Empty pools are dropped rather than offered as a zero button.',
+    JSON.stringify(hdState(hurtActor({ bySize: { d10: 2, d6: 0 } }))?.pools) === '{"d10":2}'
+);
+
+const hdParts = (hitDice) => cards.buildHitDiceParts({ hitDice });
+const multi = hdParts({ offered: true, pools: { d10: 3, d6: 2 }, spent: [] });
+const hdButtons = multi.find((p) => p.part === 'actions')?.buttons ?? [];
+
+check('A multiclass character gets one button per size.', hdButtons.length === 2, `Got ${hdButtons.length}.`);
+check('Each naming its die and how many are left.',
+    hdButtons[0]?.label === 'Spend d10 (3)' && hdButtons[1]?.label === 'Spend d6 (2)',
+    hdButtons.map((b) => b.label).join(', '));
+check('The denomination rides on the button, so one handler serves every size.',
+    hdButtons[0]?.value === 'd10' && hdButtons[1]?.value === 'd6');
+check('A single-class character gets exactly one.',
+    hdParts({ offered: true, pools: { d8: 5 }, spent: [] }).find((p) => p.part === 'actions')?.buttons?.length === 1);
+
+const afterSpends = hdParts({
+    offered: true, pools: { d10: 1 },
+    spent: [{ denomination: 'd10', total: 9, healed: 9 }, { denomination: 'd10', total: 4, healed: 4 }]
+});
+const spentRows = afterSpends.find((p) => p.part === 'rows')?.items ?? [];
+check('Every spend is recorded, in order.', spentRows.length === 2, `Got ${spentRows.length}.`);
+check('Each showing what it healed.', spentRows[0]?.trailing === '+9' && spentRows[1]?.trailing === '+4');
+check('And the button remains while a die does.',
+    afterSpends.find((p) => p.part === 'actions')?.buttons?.length === 1);
+
+// The state says FULL HEALTH explicitly, so this fails if composition ever consults
+// hp again. Passing only `hitDice` would leave hp undefined and let a re-derived
+// guard slip through on NaN comparisons -- which is exactly what it did at first.
+check(
+    'THE OFFER SURVIVES REACHING FULL HEALTH.',
+    cards.buildHitDiceParts({
+        hp: { value: 40, max: 40 },
+        hitDice: { offered: true, pools: { d10: 2 }, spent: [{ denomination: 'd10', total: 9, healed: 9 }] }
+    }).some((p) => p.part === 'actions'),
+    `Composition reads only \`offered\` and the pools -- never current HP -- so a player who heals to full ` +
+    `keeps the choice. A control that vanished underneath them would be the card overruling them.`
+);
+check(
+    'It ends when the dice do, not before.',
+    !hdParts({ offered: true, pools: { d10: 0 }, spent: [{ denomination: 'd10', total: 6 }] })
+        .some((p) => p.part === 'actions')
+);
+check('A rest that never offered dice composes nothing.', cards.buildHitDiceParts({}).length === 0);
+
+// ==================================================================
+// ===== 7a1. FOOD AND WATER READ AS MARKS, NOT SENTENCES ===========
+// ==================================================================
+
+const provisionRow = (over) => cards.buildProvisionRows({ exhaustion: 0, dc: 12, ...over })[0];
+
+check('Eating from the pack is a tick.',
+    provisionRow({ food: 'ate' })?.trailingIcon?.includes('check'), JSON.stringify(provisionRow({ food: 'ate' })));
+check('Foraging successfully is a tick.', provisionRow({ food: 'foraged' })?.trailingIcon?.includes('check'));
+check('Going without is a cross.', provisionRow({ food: 'hungry' })?.trailingIcon?.includes('xmark'));
+check('Toned to match.',
+    provisionRow({ food: 'ate' })?.tone === 'positive' && provisionRow({ food: 'hungry' })?.tone === 'negative');
+check(
+    'And the words are gone.',
+    provisionRow({ food: 'ate' })?.trailing === undefined,
+    `A column of marks is read at a glance; a column of phrases has to be parsed row by row.`
+);
+
+const owedRow = provisionRow({ food: 'pending' });
+check(
+    'A check nobody has rolled is NEITHER a tick nor a cross.',
+    !/(check|xmark)/.test(owedRow?.trailingIcon ?? ''),
+    `Got "${owedRow?.trailingIcon}". Either would claim the question is settled while the button is still waiting.`
+);
+check('It reads as waiting.', owedRow?.tone === 'pending', String(owedRow?.tone));
+
+check(
+    'The one state a mark cannot explain keeps its words.',
+    provisionRow({ food: 'unrolled' })?.trailing === 'Could not forage',
+    `"We could not roll" is rare and needs saying; a glyph cannot say why.`
+);
+
+// The distinction the words used to carry has to survive them.
+check(
+    'A forager shows their roll; someone who ate from their pack does not.',
+    !!provisionRow({ food: 'foraged', roll: { total: 17, dc: 12 } })?.sublabel
+        && !provisionRow({ food: 'ate' })?.sublabel,
+    `Otherwise "ate a ration" and "foraged" become the same green tick with nothing to tell them apart.`
+);
+
+// ==================================================================
 // ===== 7a2. THE FORAGING CONTROL ==================================
 // ==================================================================
 //
@@ -543,6 +680,11 @@ const forageState = (over) => ({ name: 'Nik', provisions: { food: 'pending', wat
 const owed = cards.buildForageParts(forageState());
 const forageButton = owed.find((p) => p.part === 'actions')?.buttons?.[0];
 
+check(
+    'There is no "Foraging" heading.',
+    !owed.some((p) => p.part === 'section'),
+    `It only ever sits directly under the Provisions rows, so it restates the section it is already inside.`
+);
 check('While owed, foraging offers a button.', forageButton?.action === 'forage', JSON.stringify(forageButton));
 check('Carrying a d20, because it opens a roll.', forageButton?.icon?.includes('dice-d20'), forageButton?.icon);
 check('One line that says what it does.', forageButton?.label === 'Forage for Food and Water', `Got "${forageButton?.label}".`);
@@ -842,20 +984,128 @@ check('A short rest never provisions, whatever was asked for.',
 const windowSrc = fs.readFileSync(path.join(ROOT, 'scripts/window-rest.js'), 'utf8');
 
 check(
-    'New Day is defaulted from the system\'s own rest configuration.',
-    /const newDay = CONFIG\.DND5E\?\.restTypes\?\.long\?\.newDay === true;/.test(windowSrc),
-    `Hardcoding it -- in either direction -- makes the window disagree with the system it is driving.`
+    'The window reads the system\'s own long-rest configuration.',
+    /CONFIG\.DND5E\?\.restTypes\?\.long/.test(windowSrc),
+    `Hardcoding these -- in either direction -- makes the window disagree with the system it is driving.`
+);
+
+// Asserted per OPTION rather than against one exact line, because the line's shape is
+// nobody's contract: refactoring three reads into a shared `restConfig` local broke
+// the previous spelling-matched assertion while the behaviour was untouched.
+for (const option of ['newDay', 'recoverTemp', 'recoverTempMax']) {
+    check(
+        `\`${option}\` defaults from the system, not a literal.`,
+        new RegExp(`const ${option} = restConfig\\.${option} === true;`).test(windowSrc),
+        `The window sends its config explicitly, so an unticked box is not neutral -- it is \`false\`, sent deliberately.`
+    );
+}
+
+for (const [option, field] of [['newDay', 'rest-new-day'], ['recoverTemp', 'rest-recover-temp'], ['recoverTempMax', 'rest-recover-temp-max']]) {
+    check(
+        `And the ${field} checkbox reflects it.`,
+        new RegExp(`name="${field}"[^>]*\\$\\{${option} \\? 'checked' : ''\\}`).test(windowSrc),
+        `Computing the default and then not rendering it is the same bug with extra steps.`
+    );
+}
+
+check(
+    'The hit point options are long-rest only, and hidden otherwise.',
+    /blacksmith-rest-hitpoints/.test(windowSrc)
+        && /LONG_REST_ONLY[\s\S]*?\][\s\S]{0,200}/.test(windowSrc)
+        && /const LONG_REST_ONLY = \[[^\]]*blacksmith-rest-hitpoints/.test(windowSrc),
+    `\`restTypes.short\` declares neither, so leaving them visible offers a GM a control that does nothing.`
 );
 check(
-    'And the checkbox actually reflects that default.',
-    /name="rest-new-day"[^>]*\$\{newDay \? 'checked' : ''\}/.test(windowSrc),
-    `Computing the default and then not rendering it is the same bug with extra steps.`
+    'Hit dice are the SHORT rest\'s business, and hidden on a long one.',
+    /const SHORT_REST_ONLY = \[[^\]]*blacksmith-rest-shortrest/.test(windowSrc),
+    `A long rest restores hit points outright, so spending dice on one burns a resource for nothing.`
+);
+check(
+    'New Day belongs to BOTH rests.',
+    !/const LONG_REST_ONLY = \[[^\]]*blacksmith-rest-new-day/.test(windowSrc),
+    `A short rest can start a new day -- a night watch broken by an hour's rest at dawn -- so only the ` +
+    `DEFAULT differs, never the availability.`
+);
+check(
+    'And its default follows the chosen rest type.',
+    /CONFIG\.DND5E\?\.restTypes\?\.\[?lastType\]?\?\.newDay === true/.test(windowSrc),
+    `dnd5e sets it for a long rest and not for a short one; switching type must follow that.`
+);
+check(
+    'New Day is submitted as the GM left it, not gated on rest type.',
+    /newDay: root\.querySelector\('\[name="rest-new-day"\]'\)\?\.checked === true/.test(windowSrc),
+    `Gating it on \`isLong\` would silently discard a short rest's new day.`
+);
+
+check(
+    'Selected tokens decide who starts ticked.',
+    /getSelectedActors\(\)/.test(windowSrc) && /selected\.size === 0\) \|\| selected\.has/.test(windowSrc),
+    `A GM who picked tokens out has already said who is resting; no selection means everybody, ` +
+    `because an untouched canvas is not a request to rest nobody.`
+);
+check(
+    'And a selected actor the party list does not know about still joins the roster.',
+    /for \(const actor of this\.getSelectedActors\(\)\)/.test(windowSrc),
+    `An NPC ally resting with the group is exactly the case the primary party misses.`
+);
+check(
+    'Vehicles are left out, because dnd5e refuses to rest them.',
+    /isVehicle/.test(windowSrc)
 );
 check(
     'Every posted card shares one rest id.',
     /const restId = foundry\.utils\.randomID\(\);/.test(windowSrc)
         && /postBeforeCard\(\{[^}]*restId[^}]*\}\)/.test(windowSrc),
     `Without a shared id each acceptance looks like a lone character and the clock jumps per person.`
+);
+
+// --- The hit die roll must not post a card, and must show our dice ---------------
+const restSrc = fs.readFileSync(path.join(ROOT, 'scripts/manager-rest.js'), 'utf8');
+
+check(
+    'Spending a hit die posts NO system roll card.',
+    /rollHitDie\(\{ denomination \}, \{\}, \{ create: false \}\)/.test(restSrc),
+    `A party of five buries the card they are reading under twenty roll messages, leaving the answer ` +
+    `somewhere above the scroll.`
+);
+check(
+    'And the dice are shown through OUR roll API instead.',
+    /RollsAPI\.showDice\(rolls\)/.test(restSrc),
+    `Foundry has no 3D dice of its own; suppressing the card without showing them leaves a button that ` +
+    `makes a number appear.`
+);
+
+// SCANNED ACROSS THE WHOLE MODULE, not one file. Two call sites existed and they
+// DISAGREED: the roll pipeline honoured the world's Dice So Nice setting and
+// `rollCoffeePubDice` did not, so a table that had switched dice off still got them
+// from the toolbar. Checking a single file would not have found that.
+const scriptFiles = fs.readdirSync(path.join(ROOT, 'scripts'))
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => ({ name: `scripts/${f}`, text: fs.readFileSync(path.join(ROOT, 'scripts', f), 'utf8') }));
+
+// Counted as CALLS, not files. Counting files would let a second call slip in beside
+// the first -- which it did, the first time this was written.
+const showForRollSites = scriptFiles
+    .flatMap((f) => (f.text.match(/game\.dice3d\.showForRoll\(/g) ?? []).map(() => f.name));
+
+check(
+    'The module talks to Dice So Nice in exactly one place.',
+    showForRollSites.length === 1 && showForRollSites[0] === 'scripts/api-core.js',
+    `Found ${showForRollSites.length} call(s) in: ${[...new Set(showForRollSites)].join(', ') || 'nowhere'}. ` +
+    `A second call site is a second place to forget the setting, the guard, or the try/catch -- and the ` +
+    `two that existed disagreed about the setting.`
+);
+
+const coreSrc = fs.readFileSync(path.join(ROOT, 'scripts/api-core.js'), 'utf8');
+check(
+    'And that one place honours the table\'s Dice So Nice setting.',
+    /showDiceAnimation[\s\S]*?diceRollToolEnableDiceSoNice/.test(coreSrc),
+    `A table that has turned dice off must not get them anyway.`
+);
+check(
+    'The formula wrapper delegates rather than animating itself.',
+    /rollCoffeePubDice[\s\S]{0,400}?return showDiceAnimation\(roll\);/.test(coreSrc),
+    `It used to call showForRoll directly, and skipped the setting doing it.`
 );
 
 // ==================================================================

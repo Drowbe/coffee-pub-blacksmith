@@ -56,24 +56,20 @@ export function buildRecoveryRows(actor, result) {
 
     const clone = result.clone ?? null;
 
-    // EVERY ROW SHOWS FROM -> TO, not only the delta. "+40" says what happened;
-    // "827 -> 867" says where the character now stands, which is what a player reads
-    // a rest card to find out. The delta stays as the trailing value because it is
-    // the thing worth seeing at a glance.
-    const span = (before, after) => {
-        if (!Number.isFinite(before) || !Number.isFinite(after)) return undefined;
-        return `${before} → ${after}`;
-    };
-
+    // THE DELTA ALONE. Rows used to carry a "12 -> 32" sublabel, on the reasoning that
+    // a player wants to know where they now STAND rather than only what changed.
+    //
+    // The pre-rest phase answers that better. The same card showed where the character
+    // stood a moment ago, so the before number is on screen already and restating it
+    // beside the change is the card explaining its own arithmetic.
+    //
+    // A rest begun outside our window -- from a character sheet, or a system rest
+    // request -- has no before phase, so those cards lose the standing figure for hit
+    // dice and slots. That is parity with the system's own rest card, which reports
+    // what was regained and not what the total became.
     const hitPoints = Number(result.deltas?.hitPoints ?? result.dhp ?? 0);
     if (hitPoints) {
-        const after = Number(actor?.system?.attributes?.hp?.value);
-        rows.push({
-            label: 'Hit Points',
-            sublabel: span(after - hitPoints, after),
-            trailing: signed(hitPoints),
-            tone: 'positive'
-        });
+        rows.push({ label: 'Hit Points', trailing: signed(hitPoints), tone: 'positive' });
     }
 
     // A SHORT REST SPENDS HIT DICE; A LONG REST GIVES THEM BACK, and the delta is a
@@ -86,11 +82,9 @@ export function buildRecoveryRows(actor, result) {
     // label, wrong sign and wrong colour from one missing branch.
     const hitDice = Number(result.deltas?.hitDice ?? result.dhd ?? 0);
     if (hitDice) {
-        const after = Number(actor?.system?.attributes?.hd?.value);
         const spent = hitDice < 0;
         rows.push({
             label: spent ? 'Hit Dice Spent' : 'Hit Dice',
-            sublabel: span(after - hitDice, after),
             trailing: spent ? String(-hitDice) : signed(hitDice),
             // Untoned when spent: burning dice is the PRICE of a short rest, not a
             // misfortune. Toning it negative would put a warning colour on the thing
@@ -124,7 +118,6 @@ export function buildRecoveryRows(actor, result) {
             label: level
                 ? `${ORDINALS[Number(level)] ?? `${level}th`} Level Slots`
                 : `${key.charAt(0).toUpperCase()}${key.slice(1)} Slots`,
-            sublabel: span(before, now),
             trailing: signed(gained),
             tone: 'positive'
         });
@@ -137,7 +130,6 @@ export function buildRecoveryRows(actor, result) {
     if (exhaustionNow < exhaustionBefore) {
         rows.push({
             label: 'Exhaustion',
-            sublabel: span(exhaustionBefore, exhaustionNow),
             trailing: signed(exhaustionNow - exhaustionBefore),
             tone: 'positive'
         });
@@ -194,14 +186,25 @@ export function buildItemRows(actor, result) {
 export function buildProvisionRows(provisions) {
     if (!provisions) return [];
 
-    const phrase = {
-        ate: 'Ate a ration',
-        drank: 'Drank',
-        foraged: 'Foraged',
-        hungry: 'Went without',
-        unrolled: 'Could not forage',
-        pending: 'Foraging'
+    // A TICK OR A CROSS, NOT A SENTENCE. "Did they eat?" is a yes-or-no, and a column
+    // of marks is read at a glance where a column of phrases has to be parsed one row
+    // at a time. What the phrases used to carry that a mark cannot -- the roll, the
+    // exhaustion it cost -- is on the sublabel, which is where detail belongs.
+    //
+    // "Ate a ration" versus "Foraged" is not lost with the words: a character who
+    // foraged has the roll on their sublabel and one who ate from their pack has
+    // nothing, so the two still read differently.
+    const MARK = {
+        ate:     { trailingIcon: 'fa-solid fa-check', tone: 'positive' },
+        foraged: { trailingIcon: 'fa-solid fa-check', tone: 'positive' },
+        hungry:  { trailingIcon: 'fa-solid fa-xmark', tone: 'negative' },
+        // NOT AN OUTCOME, so not a tick or a cross -- either would claim the question
+        // is settled while the button below is still waiting to be pressed.
+        pending: { trailingIcon: 'fa-solid fa-hourglass-half', tone: 'pending' }
     };
+
+    // The one state that still needs words: rare, and a mark cannot say why.
+    const mark = (verdict) => MARK[verdict] ?? { trailing: 'Could not forage' };
 
     // THE ROLL AND ITS CONSEQUENCE SIT ON THE ROW THEY BELONG TO, rather than the
     // exhaustion getting a row of its own.
@@ -238,20 +241,10 @@ export function buildProvisionRows(provisions) {
 
     const rows = [];
     if (provisions.food) {
-        rows.push({
-            label: 'Food',
-            sublabel: detail(provisions.food),
-            trailing: provisions.food === 'ate' ? 'Ate a ration' : phrase[provisions.food],
-            tone: provisions.food === 'hungry' ? 'negative' : undefined
-        });
+        rows.push({ label: 'Food', sublabel: detail(provisions.food), ...mark(provisions.food) });
     }
     if (provisions.water) {
-        rows.push({
-            label: 'Water',
-            sublabel: detail(provisions.water),
-            trailing: provisions.water === 'ate' ? 'Drank' : phrase[provisions.water],
-            tone: provisions.water === 'hungry' ? 'negative' : undefined
-        });
+        rows.push({ label: 'Water', sublabel: detail(provisions.water), ...mark(provisions.water) });
     }
 
     return rows;
@@ -395,12 +388,68 @@ export function buildBeforeState({ actor, restType = 'long', restOptions = {}, r
         standing: buildStandingRows(actor),
         restOptions: {
             newDay: restOptions.newDay === true,
+            // Kept as booleans rather than passed through, so a card carries a settled
+            // answer: the rest config these become is sent explicitly, and `undefined`
+            // there would silently mean "the system's default" on one path and "off"
+            // on another.
+            recoverTemp: restOptions.recoverTemp === true,
+            recoverTempMax: restOptions.recoverTempMax === true,
+            autoHD: restOptions.autoHD === true,
             trackFood: restOptions.trackFood,
             trackWater: restOptions.trackWater
         },
         recovery: [],
         provisions: null
     };
+}
+
+/**
+ * A character's remaining hit dice, by die size.
+ *
+ * `bySize` is dnd5e's own map of denomination to how many are left -- `{ d10: 3, d6: 2 }`
+ * for a Fighter 3 / Wizard 2. It is a MAP rather than a number because hit dice are
+ * per class: a multiclass character chooses which size to spend, and the rules let
+ * them keep the big ones back.
+ *
+ * @returns {Object<string, number>} Denomination to count, empty when there are none.
+ */
+export function readHitDicePools(actor) {
+    const bySize = actor?.system?.attributes?.hd?.bySize ?? {};
+    const pools = {};
+
+    for (const [denomination, count] of Object.entries(bySize)) {
+        if (Number(count) > 0) pools[denomination] = Number(count);
+    }
+
+    return pools;
+}
+
+/**
+ * Whether this rest should offer hit dice, and what it has to offer.
+ *
+ * OFFERED ONLY TO A HURT CHARACTER, and only on a short rest -- a long rest restores
+ * hit points outright, so spending dice on one would be burning a resource for
+ * nothing.
+ *
+ * The decision is made ONCE, here, and stored. It is deliberately not re-derived at
+ * render time: once the offer is on the card it stays until the dice run out, even
+ * after the character reaches full health. A player who wants to spend their last
+ * die at full HP is making a choice, not a mistake, and a button that vanished
+ * underneath them mid-rest would be the card overruling them.
+ *
+ * @returns {{offered: boolean, pools: object, spent: Array}|null}
+ */
+export function buildHitDiceState({ actor, config } = {}) {
+    if (config?.type !== 'short') return null;
+
+    const pools = readHitDicePools(actor);
+    if (!Object.keys(pools).length) return null;
+
+    const hp = actor?.system?.attributes?.hp ?? {};
+    const hurt = Number(hp.value ?? 0) < Number(hp.max ?? 0);
+    if (!hurt) return null;
+
+    return { offered: true, pools, spent: [] };
 }
 
 export function buildRestState({ actor, result, config, provisions = null } = {}) {
@@ -428,6 +477,7 @@ export function buildRestState({ actor, result, config, provisions = null } = {}
             value: Number(actor?.system?.attributes?.hp?.value ?? 0),
             max: Number(actor?.system?.attributes?.hp?.max ?? 0)
         },
+        hitDice: buildHitDiceState({ actor, config }),
         recovery: [...buildRecoveryRows(actor, result), ...buildItemRows(actor, result)],
         // Worked out here rather than at render time: the actor's state is only the
         // rest's state at this moment, and the card may be re-rendered hours later
@@ -471,9 +521,12 @@ export function buildPartsFromState(state) {
     // because the two phases share only the identity and the health bar -- everything
     // below is about a rest that has happened.
     if (state?.phase === 'before') {
+        // NO "CURRENTLY" HEADING. A card that has not been rested yet has only one
+        // thing to say about the character, so the rows have nothing to be
+        // distinguished FROM -- and a heading exists to separate one group from
+        // another. Same reasoning as the missing "Foraging" heading below.
         const standing = Array.isArray(state?.standing) ? state.standing : [];
         if (standing.length) {
-            parts.push({ part: 'section', label: 'Currently' });
             parts.push({ part: 'rows', plain: true, items: standing });
         }
 
@@ -501,6 +554,11 @@ export function buildPartsFromState(state) {
 
         return parts;
     }
+
+    // HIT DICE SIT DIRECTLY UNDER THE HEALTH BAR, because that is the bar they move.
+    // A player spending one watches the meter above the button, which is the whole
+    // reason this is a loop rather than a single "heal me" action.
+    parts.push(...buildHitDiceParts(state));
 
     // A rest that restored nothing still says so, and says WHY. Silence would read as
     // a card that failed to load rather than a character who was already at full
@@ -544,6 +602,61 @@ export function buildPartsFromState(state) {
 }
 
 /**
+ * Hit dice: what has been spent so far, and a button per size still available.
+ *
+ * ONE BUTTON PER DENOMINATION, because hit dice are per class and a multiclass
+ * character chooses which to spend -- a Fighter 3 / Wizard 2 sees "Spend d10 (3)"
+ * and "Spend d6 (2)" and may keep the big ones back. A single-class character has
+ * one pool and therefore one button, so the common case stays as simple as a single
+ * control while the choice is never hidden from the characters that have it.
+ *
+ * The buttons stay while ANY dice remain, including at full health. Spending a last
+ * die when full is a choice a player is allowed to make, and a control that vanished
+ * underneath them would be the card overruling them.
+ *
+ * @returns {Array<object>} Card parts, empty when this rest offers no dice.
+ */
+export function buildHitDiceParts(state) {
+    const hitDice = state?.hitDice;
+    if (!hitDice?.offered) return [];
+
+    const parts = [];
+
+    // Each spend, in the order they were made. The health bar shows where the
+    // character ended up; these show what it cost to get there, which is the part a
+    // player remembers and the reason for rolling one at a time.
+    const spent = Array.isArray(hitDice.spent) ? hitDice.spent : [];
+    if (spent.length) {
+        parts.push({
+            part: 'rows',
+            plain: true,
+            items: spent.map((entry) => ({
+                label: `Hit Die ${entry.denomination}`,
+                trailing: `+${Number(entry.healed ?? entry.total ?? 0)}`,
+                tone: 'positive'
+            }))
+        });
+    }
+
+    const pools = Object.entries(hitDice.pools ?? {}).filter(([, count]) => Number(count) > 0);
+    if (!pools.length) return parts;
+
+    parts.push({
+        part: 'actions',
+        buttons: pools.map(([denomination, count]) => ({
+            moduleId: MODULE.ID,
+            action: 'spendHitDie',
+            // The denomination rides on the button, so one handler serves every size.
+            value: denomination,
+            label: `Spend ${denomination} (${count})`,
+            icon: 'fa-solid fa-heart-pulse'
+        }))
+    });
+
+    return parts;
+}
+
+/**
  * The foraging check as its own block: what to beat, then the button, then the
  * answer in its place.
  *
@@ -559,7 +672,12 @@ export function buildForageParts(state) {
     if (!pending && !rolled) return [];
 
     const dc = Number(provisions.dc ?? roll?.dc);
-    const parts = [{ part: 'section', label: 'Foraging' }];
+
+    // NO "FORAGING" HEADING. It only ever appears directly under the Provisions rows,
+    // which is guaranteed rather than incidental: a foraging check exists only when a
+    // character is short of food or water, and that same state is what puts a Food or
+    // Water row above it. So the heading restates the section it is already inside.
+    const parts = [];
 
     // THE DC IS ONLY NEWS WHILE THE ROLL IS OWED. Before, it is what the player needs
     // to know to decide how to roll; after, the row below carries the total and the

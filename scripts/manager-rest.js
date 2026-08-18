@@ -31,9 +31,10 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import {
     buildRestState, postRestCardFromState, updateRestCard, updateRestCardState,
-    isForagePending, isRestPending
+    isForagePending, isRestPending, readHitDicePools
 } from './cards-rest.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
+import { RollsAPI } from './api-rolls.js';
 import { SocketManager } from './manager-sockets.js';
 
 class RestManager {
@@ -163,6 +164,7 @@ class RestManager {
     static _registerActions() {
         ChatCardsAPI.registerAction(MODULE.ID, 'rest', ({ message }) => this._onRestClicked(message));
         ChatCardsAPI.registerAction(MODULE.ID, 'forage', ({ message }) => this._onForageClicked(message));
+        ChatCardsAPI.registerAction(MODULE.ID, 'spendHitDie', ({ message, value }) => this._onSpendHitDie(message, value));
 
         if (SocketManager.isSocketReady) this._registerSocketHandlers();
         else Hooks.once('blacksmith.socketReady', () => this._registerSocketHandlers());
@@ -178,6 +180,7 @@ class RestManager {
 
             socket.register(this.REST_GM_PROXY, (payload) => this._applyRest(payload));
             socket.register(this.FORAGE_GM_PROXY, (payload) => this._applyForage(payload));
+            socket.register(this.HIT_DIE_GM_PROXY, (payload) => this._applyHitDie(payload));
 
             postConsoleAndNotification(MODULE.NAME, "Rest: GM proxies registered", "", true, false);
         } catch (error) {
@@ -309,6 +312,15 @@ class RestManager {
                 dialog: false,
                 chat: false,
                 newDay: state.restOptions?.newDay === true,
+                // The hit point options, only meaningful on a long rest -- the window
+                // sends them as false for a short one, which is what dnd5e's own
+                // short-rest configuration does anyway.
+                recoverTemp: state.restOptions?.recoverTemp === true,
+                recoverTempMax: state.restOptions?.recoverTempMax === true,
+                // AND ITS OPPOSITE. Off is what hands the dice to the player: dnd5e
+                // spends them automatically when this is on, and the card offers them
+                // one at a time when it is not.
+                autoHD: state.restOptions?.autoHD === true,
                 // OURS TO MOVE. Leaving this false keeps the clock in one place -- the
                 // grouping in `_applyRest`, which knows how many characters are still
                 // to rest. dnd5e's own advance would fire once per character.
@@ -766,6 +778,144 @@ class RestManager {
 
     /** Socket handler name for the forage GM hop. Registered in `_registerSocketHandlers`. */
     static FORAGE_GM_PROXY = 'restForageResolved';
+
+    /** Socket handler name for the hit-die GM hop. */
+    static HIT_DIE_GM_PROXY = 'restHitDieSpent';
+
+    /** Cards with a hit die in flight, for the same reason `_restsInFlight` exists. */
+    static _hitDiceInFlight = new Set();
+
+    /**
+     * Somebody pressed one of the hit dice buttons.
+     *
+     * THE SYSTEM SPENDS THE DIE AND DOES THE HEALING. `actor.rollHitDie()` rolls
+     * `max(1, 1dN + CON)`, increments that class's `hd.spent` and applies the hit
+     * points, all in one call -- and the player owns their own actor, so it happens on
+     * their client with no permission problem and no hop.
+     *
+     * ITS CHAT MESSAGE IS SUPPRESSED, AND WE SHOW THE DICE OURSELVES. Those are two
+     * halves of one decision. `create: false` stops the roll card without touching the
+     * mechanics -- dnd5e applies its updates either way -- and `api.rolls.showDice`
+     * animates the dice directly through Dice So Nice.
+     *
+     * The alternative was letting the system post its card, which is the only way most
+     * modules ever get 3D dice. It is also how a party of five buries the card they
+     * are reading under twenty roll messages, leaving the answer somewhere above the
+     * scroll. The health bar rising and the die count falling say the same thing in the
+     * place the player is already looking.
+     *
+     * What cannot happen on their client is the card rewrite -- the card was authored
+     * by the GM -- so the outcome goes over the same proxy the forage roll uses.
+     */
+    static async _onSpendHitDie(message, denomination) {
+        const state = message?.getFlag?.(MODULE.ID, 'rest');
+        if (!state?.hitDice?.offered) return;
+        if (!denomination) return;
+
+        // Claimed before the first await, as the Rest button is: the card does not
+        // change until the GM's rewrite lands, so two quick clicks would otherwise
+        // spend two dice when the player asked for one.
+        if (this._hitDiceInFlight.has(message.id)) return;
+        this._hitDiceInFlight.add(message.id);
+
+        try {
+            const actor = await fromUuid(state.actorUuid).catch(() => null);
+            if (!actor) {
+                ui.notifications?.warn('That character no longer exists.');
+                return;
+            }
+
+            if (!game.user?.isGM && !actor.isOwner) {
+                ui.notifications?.warn(`${actor.name} is not yours to roll for.`);
+                return;
+            }
+
+            const before = Number(actor.system?.attributes?.hp?.value ?? 0);
+
+            // `rollHitDie` returns the rolls and returns null when there is no die of
+            // this size left -- which is the honest answer to a stale button, so it is
+            // treated as "nothing happened" rather than an error. `create: false`
+            // suppresses only the chat card; the spend and the healing still happen.
+            const rolls = await actor.rollHitDie({ denomination }, {}, { create: false });
+            if (!rolls || (Array.isArray(rolls) && !rolls.length)) return;
+
+            // OUR dice, through our own roll API, so the table's Dice So Nice setting
+            // is honoured in one place and a missing module is nobody's problem here.
+            await RollsAPI.showDice(rolls);
+
+            const total = (Array.isArray(rolls) ? rolls : [rolls]).reduce((sum, roll) => sum + Number(roll?.total ?? 0), 0);
+
+            // THE SNAPSHOT IS TAKEN HERE, after the system has applied everything, and
+            // sent with the outcome. The GM could read the actor instead, but the
+            // update was made on THIS client and the GM's copy may not have caught up
+            // -- the card would then report the state before the spend.
+            await this._deliverHitDie({
+                messageId: message.id,
+                actorUuid: state.actorUuid,
+                denomination,
+                total,
+                healed: Math.max(0, Number(actor.system?.attributes?.hp?.value ?? 0) - before),
+                hp: {
+                    value: Number(actor.system?.attributes?.hp?.value ?? 0),
+                    max: Number(actor.system?.attributes?.hp?.max ?? 0)
+                },
+                pools: readHitDicePools(actor)
+            });
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Rest: ${state.name} could not spend a hit die`, error, false, false);
+        } finally {
+            this._hitDiceInFlight.delete(message.id);
+        }
+    }
+
+    /** Hand a spent hit die to whoever may rewrite the card. */
+    static async _deliverHitDie(payload) {
+        if (game.user?.isGM) {
+            await this._applyHitDie(payload);
+            return;
+        }
+
+        const socket = SocketManager.getSocket();
+        if (typeof socket?.executeAsGM !== 'function') {
+            ui.notifications?.warn('Your hit die was rolled, but the card could not be updated: no GM is connected.');
+            return;
+        }
+
+        try {
+            await socket.executeAsGM(this.HIT_DIE_GM_PROXY, payload);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Rest: Could not send the hit die result to the GM", error, false, false);
+            ui.notifications?.warn('Your hit die was rolled, but the card could not be updated.');
+        }
+    }
+
+    /**
+     * Record a spent hit die on the card. Runs on the GM's client.
+     *
+     * THE DIE IS ALREADY SPENT AND THE HEALING ALREADY APPLIED by the time this runs
+     * -- `rollHitDie` did both on the clicking client. This only writes down what
+     * happened, so a failure here costs the record and never the mechanics.
+     */
+    static async _applyHitDie({ messageId, denomination, total, healed, hp, pools } = {}) {
+        if (!game.user?.isGM) return;
+
+        const message = game.messages?.get(messageId);
+        const state = message?.getFlag?.(MODULE.ID, 'rest');
+        if (!state?.hitDice?.offered) return;
+
+        const next = {
+            ...state,
+            // The bar moves with the dice, which is why the block sits under it.
+            hp: hp ?? state.hp,
+            hitDice: {
+                ...state.hitDice,
+                pools: pools ?? state.hitDice.pools,
+                spent: [...(state.hitDice.spent ?? []), { denomination, total, healed }]
+            }
+        };
+
+        await updateRestCardState(message, next);
+    }
 
     /**
      * Somebody pressed Forage.

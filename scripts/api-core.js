@@ -1093,56 +1093,76 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
 // // ** UTILITY Roll Dice 
 // // ************************************
 /**
- * Show the 3D Dice animation for the Roll made by the User.
+ * Roll some dice on screen from a formula, and show them.
  *
- * @param {Roll} roll an instance of Roll class to show 3D dice animation.
- * @param {User} user the user who made the roll (game.user by default).
- * @param {Boolean} synchronize if the animation needs to be shown to other players. Default: false
- * @param {Array} whisper list of users or userId who can see the roll, set it to null if everyone can see. Default: null
- * @param {Boolean} blind if the roll is blind for the current user. Default: false 
- * @param {String} A chatMessage ID to reveal when the roll ends. Default: null
- * @param {Object} An object using the same data schema than ChatSpeakerData. 
- *        Needed to hide NPCs roll when the GM enables this setting.
- * @param options Object with 2 booleans: ghost (default: false) and secret (default: false)
- * @returns {Promise<boolean>} when resolved true if the animation was displayed, false if not.
- *game.dice3d.showForRoll(roll, user, synchronize, whisper, blind, chatMessageID, speaker, {ghost:false, secret:false})
- * @param {Roll|string|null} roll - Optional. Either a Roll object or a string defining the dice roll (like "2d20"). 
- * If not provided it will default roll "2d20".
- * EXAMPLES:
- * rollCoffeePubDice(); // here roll is undefined, so inside the function it'll default to null.
- * rollCoffeePubDice("3d20"); // roll parameter will be "3d20" inside the function.
- * rollCoffeePubDice(new Roll("1d8")); // roll parameter will be a Roll object inside the function.
+ * A convenience wrapper over `showDiceAnimation` for callers that have a formula
+ * rather than a Roll -- the toolbar's dice button is the reason it exists.
+ *
+ * ```js
+ * rollCoffeePubDice();               // defaults to 2d20
+ * rollCoffeePubDice('3d20');         // a formula
+ * rollCoffeePubDice(new Roll('1d8')) // an evaluated roll
+ * ```
+ *
+ * @param {Roll|string|null} [roll] A Roll, a formula, or nothing for `2d20`.
+ * @returns {Promise<boolean>} Whether anything was shown.
  */
  export async function rollCoffeePubDice(roll = null) {
-    // Only do this if they have Dice So Nice
-    if(game.dice3d) {
-        // Check if roll is passed in, if not generate a roll
-        if (!roll) {
-            roll = await new Roll("2d20").evaluate();
-        } 
-        // If a string is passed, parse it into a roll
-        else if (typeof roll === 'string') {
-            roll = await new Roll(roll).evaluate();
-        }
+    // Callers pass a Roll, a formula string, or nothing at all. Only the resolving is
+    // this function's own business now -- the showing belongs to showDiceAnimation,
+    // which is where the setting and the guards live.
+    if (!roll) roll = await new Roll('2d20').evaluate();
+    else if (typeof roll === 'string') roll = await new Roll(roll).evaluate();
 
-        var user = game.user;
-        var synchronize = true;
-        var whisper = null;
-        var blind = false;
-        var chatMessageID = null;
-        var speaker = null;
+    return showDiceAnimation(roll);
+}
 
-        // Show dice roll
+/**
+ * Roll dice on screen, without posting anything to chat.
+ *
+ * FOUNDRY HAS NO 3D DICE OF ITS OWN. Dice So Nice supplies them, and it normally
+ * triggers off a chat message being created -- which is why the obvious way to show a
+ * player their dice is to post a roll card, and why chat fills with them. A party of
+ * five taking a short rest can bury the card they are actually looking at under twenty
+ * roll messages, and then the answer is somewhere above the scroll.
+ *
+ * Calling the animation DIRECTLY separates the two: the dice roll on screen, and the
+ * result lands on the card that asked for it. Nothing is posted.
+ *
+ * THE ONLY PLACE THIS MODULE TALKS TO `game.dice3d`. There were two, and they
+ * disagreed: the roll pipeline honoured the world's Dice So Nice setting and
+ * `rollCoffeePubDice` did not, so a table that had switched dice off still got them
+ * from the toolbar. A second call site is a second place to forget the setting, the
+ * guard, or the try/catch -- and a failed animation must never take the roll with it.
+ *
+ * Lives here rather than in the roll manager because it depends on nothing in the roll
+ * pipeline, and `api-core` is what everything already imports -- the other direction
+ * would have made a cycle.
+ *
+ * @param {Roll|Roll[]} rolls  One roll, or several to animate together.
+ * @returns {Promise<boolean>} Whether anything was actually shown.
+ */
+export async function showDiceAnimation(rolls) {
+    const list = (Array.isArray(rolls) ? rolls : [rolls]).filter(Boolean);
+    if (!list.length) return false;
+
+    // The table's own choice, obeyed by every caller because there is only one.
+    const enabled = getSettingSafely(MODULE.ID, 'diceRollToolEnableDiceSoNice', true);
+    if (!game.dice3d || !enabled) return false;
+
+    let shown = false;
+    for (const roll of list) {
         try {
-            let displayed = await game.dice3d.showForRoll(roll, user, synchronize, whisper, blind, chatMessageID, speaker, {ghost:false, secret:false});
-            if(!displayed) {
-                postConsoleAndNotification(MODULE.NAME, `Dice So Nice roll was not displayed for dice type ${roll}`, undefined, true, false);
-            }
-        } catch(err) {
-            // Use my custom error function
-            postConsoleAndNotification(MODULE.NAME, `Error occurred in Dice So Nice`, err.message, true, false);
-        };
+            // `synchronize: true` so every client sees the dice, which is the point of
+            // rolling them in front of the table rather than in private.
+            shown = await game.dice3d.showForRoll(roll, game.user, true, null, false, null, null,
+                { ghost: false, secret: false }) || shown;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Dice So Nice: the animation failed', error?.message ?? error, true, false);
+        }
     }
+
+    return shown;
 }
 
 

@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely, getPortraitImage } from './api-core.js';
+import { postConsoleAndNotification, playSound, getSettingSafely, getPortraitImage, showDiceAnimation } from './api-core.js';
 import { DialogAPI, DIALOG_ACTIONS } from './api-dialog.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
@@ -361,29 +361,8 @@ export async function processRoll(rollData, rollOptions) {
             throw new Error('Roll execution failed');
         }
         
-        // Show 3D dice animation if Dice So Nice is available
-        postConsoleAndNotification(MODULE.NAME, `processRoll: About to check dice animation`, { 
-            hasDice3d: !!game.dice3d, 
-            rollFormula: roll.formula, 
-            rollTotal: roll.total,
-            diceArray: roll.dice,
-            diceLength: roll.dice?.length 
-        }, true, false);
-        
-        // Check if Dice So Nice is enabled and available
-        const diceSoNiceEnabled = game.settings.get('coffee-pub-blacksmith', 'diceRollToolEnableDiceSoNice');
-        if (game.dice3d && diceSoNiceEnabled) {
-            try {
-                postConsoleAndNotification(MODULE.NAME, `processRoll: Showing dice animation for roll`, { formula: roll.formula, total: roll.total }, true, false);
-                const animationShown = await game.dice3d.showForRoll(roll, game.user, true, null, false, null, null, {ghost: false, secret: false});
-                postConsoleAndNotification(MODULE.NAME, `processRoll: Dice animation result`, { animationShown }, true, false);
-            } catch (error) {
-                postConsoleAndNotification(MODULE.NAME, `Dice animation error:`, error, true, false);
-            }
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `processRoll: Dice So Nice not available or disabled`, { dice3d: !!game.dice3d, enabled: diceSoNiceEnabled }, true, false);
-        }
-        
+        await showDiceAnimation(roll);
+
         postConsoleAndNotification(MODULE.NAME, `processRoll: Roll completed`, { total: roll.total, formula: roll.formula }, true, false);
         
         // Package results
