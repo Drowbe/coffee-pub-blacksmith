@@ -167,12 +167,19 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
 
         // Defaults come from the world settings, so the window opens saying what the
         // table has already decided and the GM only touches what is different tonight.
-        const trackFood = getSettingSafely(MODULE.ID, 'restTrackFood', false);
-        const trackWater = getSettingSafely(MODULE.ID, 'restTrackWater', false);
+        // WHAT THIS GM LAST CHOSE WINS OVER THE TABLE'S DEFAULT. The world settings are
+        // where a table states its rules; this window is where a GM departs from them
+        // for a night, and having to make the same departure every time is the thing
+        // worth removing. A GM who has never touched it still gets the table's answer.
+        const remembered = getSettingSafely(MODULE.ID, 'restWindowOptions', {}) ?? {};
+        const recall = (key, fallback) => (typeof remembered[key] === 'boolean' ? remembered[key] : fallback);
+
+        const trackFood = recall('trackFood', getSettingSafely(MODULE.ID, 'restTrackFood', false));
+        const trackWater = recall('trackWater', getSettingSafely(MODULE.ID, 'restTrackWater', false));
         // Both default ON, because the interesting thing to turn off is a rule the
         // table normally plays with.
-        const forage = getSettingSafely(MODULE.ID, 'restForageEnabled', true);
-        const exhaustion = getSettingSafely(MODULE.ID, 'restExhaustionEnabled', true);
+        const forage = recall('forage', getSettingSafely(MODULE.ID, 'restForageEnabled', true));
+        const exhaustion = recall('exhaustion', getSettingSafely(MODULE.ID, 'restExhaustionEnabled', true));
 
         // NEW DAY DEFAULTS TO WHAT THE SYSTEM DOES, read from its own configuration
         // rather than assumed. `restTypes.long.newDay` is true (`dnd5e.mjs:46457`) and
@@ -190,10 +197,12 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
         // rather than sending values dnd5e would ignore.
         const restConfig = CONFIG.DND5E?.restTypes?.long ?? {};
         // New Day follows whichever rest is currently chosen, since both offer it and
-        // the two default differently.
+        // the two default differently. NOT remembered: it is reset by switching rest
+        // type anyway, so a remembered value would be overwritten the moment the GM
+        // touched the toggle and would only ever confuse.
         const newDay = CONFIG.DND5E?.restTypes?.[this._restType]?.newDay === true;
-        const recoverTemp = restConfig.recoverTemp === true;
-        const recoverTempMax = restConfig.recoverTempMax === true;
+        const recoverTemp = recall('recoverTemp', restConfig.recoverTemp === true);
+        const recoverTempMax = recall('recoverTempMax', restConfig.recoverTempMax === true);
 
         // AUTO SPEND IS THE SHORT REST'S OPTION, and the system leaves it off
         // (`restTypes.short` declares no `autoHD`, so `initiateRest` defaults it to
@@ -347,7 +356,12 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
             appId: APP_ID,
             bodyContent,
             toolFooterLeft: '<button type="button" data-action="rest-cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>',
-            toolFooterRight: '<button type="button" data-action="rest-begin"><i class="fa-solid fa-campground"></i> Begin Rest</button>'
+            // `blacksmith-window-btn-primary` is the module's SHARED button vocabulary,
+            // not the standard window's frame -- dialogs use it too, and it is defined
+            // globally with its token on `:root`, so it carries into a tool window
+            // intact. window-tool.css leaves buttons alone by design, precisely so a
+            // consumer can say which of theirs is the one to press.
+            toolFooterRight: '<button type="button" class="blacksmith-window-btn-primary" data-action="rest-begin"><i class="fa-solid fa-campground"></i> Begin Rest</button>'
         };
     }
 
@@ -398,6 +412,20 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
             const active = button.dataset.restType === this._restType;
             button.classList.toggle('is-active', active);
             button.setAttribute('aria-pressed', String(active));
+        }
+    }
+
+    /**
+     * Remember what this GM chose, so the window opens where they left it.
+     *
+     * Best-effort: a preference that failed to save is worth a line in the console and
+     * nothing more. The rest it belongs to is already posting.
+     */
+    async _remember(options) {
+        try {
+            await game.settings.set(MODULE.ID, 'restWindowOptions', options);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Rest: Could not remember the window's options", error, true, false);
         }
     }
 
@@ -453,7 +481,21 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
         const restType = this._restType === 'short' ? 'short' : 'long';
         const isLong = restType === 'long';
 
-        const ticked = (name) => isLong && root.querySelector(`[name="${name}"]`)?.checked === true;
+        const raw = (name) => root.querySelector(`[name="${name}"]`)?.checked === true;
+        const ticked = (name) => isLong && raw(name);
+
+        // SAVED FROM THE RAW BOXES, not from `ticked`. The long-rest-only controls are
+        // hidden on a short rest rather than removed, so their state is intact -- but
+        // `ticked` reports them false, and remembering that would let one short rest
+        // silently clear the GM's provisions and hit point preferences.
+        await this._remember({
+            trackFood: raw('rest-track-food'),
+            trackWater: raw('rest-track-water'),
+            forage: raw('rest-forage'),
+            exhaustion: raw('rest-exhaustion'),
+            recoverTemp: raw('rest-recover-temp'),
+            recoverTempMax: raw('rest-recover-temp-max')
+        });
 
         const restOptions = {
             // NOT gated on the rest type: a short rest may start a new day too, so this

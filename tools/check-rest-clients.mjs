@@ -1205,11 +1205,37 @@ check(
 // the previous spelling-matched assertion while the behaviour was untouched.
 for (const option of ['recoverTemp', 'recoverTempMax']) {
     check(
-        `\`${option}\` defaults from the system, not a literal.`,
-        new RegExp(`const ${option} = restConfig\\.${option} === true;`).test(windowSrc),
-        `The window sends its config explicitly, so an unticked box is not neutral -- it is \`false\`, sent deliberately.`
+        `\`${option}\` falls back to the system, not a literal.`,
+        new RegExp(`const ${option} = recall\\('${option}', restConfig\\.${option} === true\\);`).test(windowSrc),
+        `The window sends its config explicitly, so an unticked box is not neutral -- it is \`false\`, sent ` +
+        `deliberately. What the GM last chose may sit in front of it, but the SYSTEM value is what a GM who ` +
+        `has never touched the window gets.`
     );
 }
+
+check(
+    'Provisions and hit point choices are remembered, per user.',
+    /restWindowOptions/.test(windowSrc) && /const recall = \(key, fallback\)/.test(windowSrc),
+    `A GM who departs from the table's defaults for a night should not have to make the same departure ` +
+    `every time.`
+);
+check(
+    'Remembered from the RAW boxes, not the long-rest-gated read.',
+    /trackFood: raw\('rest-track-food'\)/.test(windowSrc),
+    `The long-rest-only controls are hidden on a short rest rather than removed, so \`ticked\` reports them ` +
+    `false -- remembering that would let one short rest silently clear the GM's preferences.`
+);
+check(
+    'New Day is NOT remembered.',
+    !/recall\('newDay'/.test(windowSrc),
+    `Switching rest type resets it, so a remembered value would be overwritten the moment the GM touched ` +
+    `the toggle.`
+);
+check(
+    'Begin Rest is the primary button.',
+    /class="blacksmith-window-btn-primary"[^>]*data-action="rest-begin"/.test(windowSrc),
+    `The shared button vocabulary, which dialogs use too -- not the standard window's frame.`
+);
 
 // `newDay` is asserted apart from the other two because it belongs to BOTH rests and
 // therefore reads from whichever is chosen, rather than from the long-rest config.

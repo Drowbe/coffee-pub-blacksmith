@@ -325,6 +325,17 @@ require changing what the world does every other night.
 
 Provisions are recorded as off for a short rest whatever was chosen, because a short rest consumes none.
 
+**The window remembers the provisions and hit point choices**, in `restWindowOptions` -- `user` scope, so a
+preference about how someone runs their table follows them to another machine rather than living in one
+browser's storage. The world settings remain the default; what is remembered is a *departure* from them,
+so a GM who has never opened the window still gets the table's own answer.
+
+They are saved from the raw checkboxes rather than the long-rest-gated read. The long-rest-only controls
+are hidden on a short rest rather than removed, so their state is intact -- but the gated read reports them
+false, and saving that would let one short rest silently clear the preferences. New Day is deliberately not
+remembered: switching rest type resets it, so a stored value would be overwritten the moment the toggle was
+touched.
+
 ## Provisions come in two shapes
 
 Rations are a stack: quantity is the count, and the item goes when it reaches zero. A waterskin is one item

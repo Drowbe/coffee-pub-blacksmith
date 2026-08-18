@@ -3576,6 +3576,21 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// What the GM last chose in the rest window, so it opens where they left it.
+	//
+	// PER USER rather than per device: this is a preference about how someone runs
+	// their table, and following them to another machine is the point. `client` scope
+	// would put it in one browser's storage.
+	//
+	// The world settings above stay the DEFAULT -- what this remembers is a departure
+	// from them, and a GM who has never opened the window gets the table's own answer.
+	game.settings.register(MODULE.ID, 'restWindowOptions', {
+		scope: 'user',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// WHETHER FORAGING HAPPENS AT ALL, which is a different question from who rolls
 	// it. Off means there is no check, no DC and no button: a character short of food
 	// simply goes without. It is not "forage and always fail" -- a table that has
