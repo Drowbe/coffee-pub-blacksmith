@@ -127,8 +127,9 @@ the first and only user. A provider that throws is caught and the menu still bui
 
 **The row is three units, not six siblings.** The markup groups into `.worldclock-steps` (each chevron
 pair), `.worldclock-face` (sky + time), `.worldclock-steps`. The section gap sits between those units;
-each cluster and the face have their own tighter gap. That grouping is visual. Click handling is
-unchanged.
+each cluster and the face have their own tighter gap. The time sizes to its string -- the readout has no
+seconds -- and the step chevrons carry a light fill so they read as buttons. That grouping is visual.
+Click handling is unchanged.
 
 **The time label is the button, not the whole widget.** Every other part already does something on click --
 the arrows step, the sun drags -- and the sky is a picture rather than a control, so a menu hung off the

@@ -44,7 +44,7 @@
 .worldclock-steps {
     display: flex;
     align-items: center;
-    gap: 1px;
+    gap: 2px;
 }
 
 .worldclock-face {
@@ -65,15 +65,11 @@
 }
 
 .worldclock-section .worldclock-time {
-    /* Tabular figures so the digits keep their columns as the time changes.
-       Without it a proportional "1" is narrower than a "9" and the text jitters
-       inside its own box on every repaint. */
+    /* Tabular figures so the digits keep their columns as the time ticks.
+       The box sizes to the string: the readout has no seconds, and a 60px
+       floor left a hole after anything shorter than "12:00 AM". 9:59 to
+       10:00 can still add a character; that is rare and not worth a gutter. */
     font-variant-numeric: tabular-nums;
-    /* Fixed, so the row does not shuffle sideways when 9:59 becomes 10:00 or the
-       meridiem flips. Wide enough for "12:00 AM". Left-aligned so the digits hug
-       the sky; leftover width falls toward the right chevrons. */
-    min-width: 60px;
-    text-align: left;
 }
 
 /* ----- The sky ---------------------------------------------------- */
@@ -200,11 +196,13 @@
 
 .worldclock-section .worldclock-step {
     font-size: 11px;
-    padding: 2px 1px;
+    padding: 2px 5px;
     margin: 0;
     cursor: pointer;
     color: rgba(255, 255, 255, 0.55);
-    transition: color 0.15s ease;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    transition: color 0.15s ease, background 0.15s ease;
 }
 
 /* Right-zone tools put 4px on every `i`. That stacked with the cluster gap. */
@@ -213,6 +211,7 @@
 }
 .worldclock-section .worldclock-step:hover {
     color: rgba(255, 196, 74, 0.95);
+    background: rgba(255, 196, 74, 0.18);
 }
 
 /* ----- Before the calendar exists ---------------------------------- */
