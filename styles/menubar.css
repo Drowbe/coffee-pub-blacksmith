@@ -37,11 +37,11 @@
     --blacksmith-menubar-backgroundcolor-endzones: rgba(16, 8, 8, 0.9);
     --blacksmith-menubar-border-endzones: 1px solid rgba(0, 0, 0, 0.9);
     --blacksmith-menubar-backgroundcolor-divider: rgba(255, 255, 255, 0.3);
-    /* Left and right are tuned independently: they hold different furniture (client
-       tools on the left, session state on the right) and their padding already
-       differs, so one shared number could only ever suit one of them. */
+    /* Left and right stay independent variables even at the same value: they
+       hold different furniture and have needed different numbers before. Gap is
+       the space BETWEEN items; zone padding is the inset from the zone edge. */
     --blacksmith-menubar-gap-left: 8px;
-    --blacksmith-menubar-gap-right: 12px;
+    --blacksmith-menubar-gap-right: 8px;
 
 
     --blacksmith-menubar-gap-middle: 4px;
@@ -196,7 +196,7 @@
 .blacksmith-menubar-right {
   justify-content: flex-end;
   gap: var(--blacksmith-menubar-gap-right);
-  padding: 0 12px;
+  padding: 0 8px;
   border-left: var(--blacksmith-menubar-border-endzones);
 }
 
@@ -207,7 +207,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-start; /* keep contents left */
-    gap: var(--blacksmith-menubar-gap-middle, 8px);
+    gap: var(--blacksmith-menubar-gap-middle);
     padding: 0px 8px 0px 8px;
     flex: 1 1 auto; /* << fill remaining width */
     min-width: 0; /* << allow children to shrink */
@@ -218,7 +218,7 @@
 .blacksmith-menubar-middle-tools {
     display: flex;
     align-items: center;
-    gap: var(--blacksmith-menubar-gap-middle, 8px);
+    gap: var(--blacksmith-menubar-gap-middle);
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -227,8 +227,10 @@
 /* Dividers */
 .menu-divider {
     border-left: 1px solid rgba(255, 255, 255, 0.3);
-    height: var(--blacksmith-menubar-divider-height);  
-    margin: 0px 4px 0px 4px;
+    height: var(--blacksmith-menubar-divider-height);
+    /* Gap on the parent flex is the space around the line. Horizontal margin
+       here used to stack on that gap and double the group break. */
+    margin: 0;
     box-shadow: 0 0 2px 0px var(--color-shadow-dark);
 }
 .menu-divider.line {
