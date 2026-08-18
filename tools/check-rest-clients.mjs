@@ -1173,6 +1173,24 @@ check(
     `Gating it on \`isLong\` would silently discard a short rest's new day.`
 );
 
+// The section order is a stated decision, not an accident of how the markup grew.
+// What kind of rest and who is taking it come first, because everything below is
+// conditional on the one and applies to the other. Hit Points and Hit Dice sit last
+// as a pair: they are mutually exclusive, so they occupy one slot and read as a
+// single changing section rather than two that appear and vanish.
+// `( [^"]*)?` rather than `([^"]*)` so the class must END or be followed by a space:
+// the greedy version also matched `blacksmith-rest-group-title`, which is a child of
+// every section and put a phantom entry after each one.
+const sectionOrder = [...windowSrc.matchAll(/<div class="blacksmith-rest-group( [^"]*)?"/g)]
+    .map((m) => (m[1] ?? '').trim().replace('blacksmith-rest-', '') || 'rest');
+
+check(
+    'The sections are stacked in the order the author chose.',
+    JSON.stringify(sectionOrder) === JSON.stringify(['rest', 'rest', 'new-day', 'provisions', 'hitpoints', 'shortrest']),
+    `Got ${JSON.stringify(sectionOrder)}. Expected the rest toggle, the roster, New Day, Provisions, then ` +
+    `the Hit Points / Hit Dice pair. (The first two are both unmodified groups.)`
+);
+
 check(
     'Selected tokens decide who starts ticked.',
     /getSelectedActors\(\)/.test(windowSrc) && /selected\.size === 0\) \|\| selected\.has/.test(windowSrc),

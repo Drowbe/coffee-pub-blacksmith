@@ -196,6 +196,14 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
             }).join('')
             : '<div class="blacksmith-rest-empty">No player characters were found to rest.</div>';
 
+        // ORDER: what kind of rest, who is taking it, then the options that modify it.
+        // The two decisions come first because everything below them is conditional on
+        // the first and applies to the second.
+        //
+        // Hit Points and Hit Dice sit last as a PAIR. They are mutually exclusive --
+        // one is long-rest only, the other short-rest only -- so they occupy the same
+        // slot and the reader never sees both. Keeping them adjacent is what makes that
+        // read as one changing section rather than two appearing and disappearing.
         const bodyContent = `
             <div class="blacksmith-rest-form">
                 <div class="blacksmith-rest-group">
@@ -213,25 +221,47 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                             <i class="fa-solid fa-utensils"></i> Short Rest
                         </button>
                     </div>
-                    <label class="blacksmith-rest-option blacksmith-rest-new-day">
+                </div>
+
+                <div class="blacksmith-rest-group">
+                    <div class="blacksmith-rest-group-title">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Who is resting</span>
+                        <span class="blacksmith-rest-roster-tools">
+                            <button type="button" class="blacksmith-rest-roster-tool" data-action="rest-select-all"
+                                data-tooltip="Select everyone">All</button>
+                            <button type="button" class="blacksmith-rest-roster-tool" data-action="rest-select-none"
+                                data-tooltip="Select nobody">None</button>
+                        </span>
+                    </div>
+                    ${roster}
+                </div>
+
+                <div class="blacksmith-rest-group blacksmith-rest-new-day">
+                    <label class="blacksmith-rest-option">
                         <input type="checkbox" name="rest-new-day" ${newDay ? 'checked' : ''}>
                         <i class="fa-solid fa-sun"></i>
                         <span>Begin a new day</span>
                     </label>
                 </div>
 
-                <div class="blacksmith-rest-group blacksmith-rest-shortrest">
+                <div class="blacksmith-rest-group blacksmith-rest-provisions">
                     <div class="blacksmith-rest-group-title">
-                        <i class="fa-solid fa-heart-pulse"></i>
-                        <span>Hit Dice</span>
+                        <i class="fa-solid fa-drumstick-bite"></i>
+                        <span>Provisions</span>
                     </div>
                     <label class="blacksmith-rest-option">
-                        <input type="checkbox" name="rest-auto-hd" ${autoHD ? 'checked' : ''}>
-                        <i class="fa-solid fa-dice-d6"></i>
-                        <span>Auto Spend HD</span>
+                        <input type="checkbox" name="rest-track-food" ${trackFood ? 'checked' : ''}>
+                        <i class="fa-solid fa-drumstick-bite"></i>
+                        <span>Track food</span>
                     </label>
-                    <div class="blacksmith-rest-note">Automatically spend hit dice until they run out or health is
-                        full. Leave it off and each character chooses their own dice, one at a time, from their card.</div>
+                    <label class="blacksmith-rest-option">
+                        <input type="checkbox" name="rest-track-water" ${trackWater ? 'checked' : ''}>
+                        <i class="fa-solid fa-droplet"></i>
+                        <span>Track water</span>
+                    </label>
+                    <div class="blacksmith-rest-note">Applies to this rest only. A character with nothing to eat or
+                        drink rolls Survival to forage, from their own card.</div>
                 </div>
 
                 <div class="blacksmith-rest-group blacksmith-rest-hitpoints">
@@ -252,37 +282,18 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                     <div class="blacksmith-rest-note">Remove any adjustments to a character's maximum Hit Points.</div>
                 </div>
 
-                <div class="blacksmith-rest-group">
+                <div class="blacksmith-rest-group blacksmith-rest-shortrest">
                     <div class="blacksmith-rest-group-title">
-                        <i class="fa-solid fa-users"></i>
-                        <span>Who is resting</span>
-                        <span class="blacksmith-rest-roster-tools">
-                            <button type="button" class="blacksmith-rest-roster-tool" data-action="rest-select-all"
-                                data-tooltip="Select everyone">All</button>
-                            <button type="button" class="blacksmith-rest-roster-tool" data-action="rest-select-none"
-                                data-tooltip="Select nobody">None</button>
-                        </span>
-                    </div>
-                    ${roster}
-                </div>
-
-                <div class="blacksmith-rest-group blacksmith-rest-provisions">
-                    <div class="blacksmith-rest-group-title">
-                        <i class="fa-solid fa-drumstick-bite"></i>
-                        <span>Provisions</span>
+                        <i class="fa-solid fa-heart-pulse"></i>
+                        <span>Hit Dice</span>
                     </div>
                     <label class="blacksmith-rest-option">
-                        <input type="checkbox" name="rest-track-food" ${trackFood ? 'checked' : ''}>
-                        <i class="fa-solid fa-drumstick-bite"></i>
-                        <span>Track food</span>
+                        <input type="checkbox" name="rest-auto-hd" ${autoHD ? 'checked' : ''}>
+                        <i class="fa-solid fa-dice-d6"></i>
+                        <span>Auto Spend HD</span>
                     </label>
-                    <label class="blacksmith-rest-option">
-                        <input type="checkbox" name="rest-track-water" ${trackWater ? 'checked' : ''}>
-                        <i class="fa-solid fa-droplet"></i>
-                        <span>Track water</span>
-                    </label>
-                    <div class="blacksmith-rest-note">Applies to this rest only. A character with nothing to eat or
-                        drink rolls Survival to forage, from their own card.</div>
+                    <div class="blacksmith-rest-note">Automatically spend hit dice until they run out or health is
+                        full. Leave it off and each character chooses their own dice, one at a time, from their card.</div>
                 </div>
             </div>`;
 
