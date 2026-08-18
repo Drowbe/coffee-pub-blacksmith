@@ -50,7 +50,16 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
             // A little wider than the 360 default: the roster rows carry a portrait, a
             // name and a hit point reading, and the readings should not wrap.
             position: { width: 380, height: 'auto' },
-            window: { title: 'Rest', icon: 'fa-solid fa-campground' }
+            // RESIZABLE, against the tool base's default. Most tool windows are fixed
+            // palettes, but this one's height is set by the party: a six-character
+            // roster and a twenty-character roster are different windows, and the
+            // sections below the roster get pushed out of sight on a large one.
+            window: { title: 'Rest', icon: 'fa-solid fa-campground', resizable: true },
+            // Merged over the base's own constraints rather than replacing them, so
+            // its width and viewport caps still apply. Only a floor is added: a
+            // resizable window can otherwise be dragged down to a sliver with the
+            // Begin Rest button off the bottom, and there is no way back but reopening.
+            windowSizeConstraints: { minHeight: 260 }
         }
     );
 
@@ -238,6 +247,10 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                 </div>
 
                 <div class="blacksmith-rest-group blacksmith-rest-new-day">
+                    <div class="blacksmith-rest-group-title">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>Time Automation</span>
+                    </div>
                     <label class="blacksmith-rest-option">
                         <input type="checkbox" name="rest-new-day" ${newDay ? 'checked' : ''}>
                         <i class="fa-solid fa-sun"></i>

@@ -1078,15 +1078,33 @@ check(
 check(
     'Interactive state uses the brand orange, not the per-theme tool accent.',
     /is-active[\s\S]{0,200}?--blacksmith-color-brand-accent/.test(restCss)
-        && /:checked[\s\S]{0,200}?--blacksmith-color-brand-accent/.test(restCss),
+        && /--checkbox-checked-color:\s*var\(--blacksmith-color-brand-accent\)/.test(restCss),
     `\`--blacksmith-tool-accent\` resolves per theme -- dark brown under Light, cream under Glass -- so it ` +
     `cannot carry "on". window-tool.css states this rule where it makes the same choice for its header controls.`
 );
 check(
-    'Checkboxes are styled, since nothing shared styles them.',
-    /input\[type="checkbox"\]/.test(restCss),
-    `Foundry's native checkbox renders its two states at different weights; there is no shared bare-checkbox ` +
-    `style to inherit, and \`blacksmith-toggle\` is a switch with colours hardcoded for the dark window.`
+    'The checkbox override outranks Foundry\'s own theme rule.',
+    /\.application\.blacksmith-rest-tool-window input\[type="checkbox"\]/.test(restCss),
+    `Foundry sets these variables from \`body.theme-light input[type=checkbox]\` -- specificity (0,2,2). ` +
+    `Scoping ours to the class alone is (0,2,1) and LOSES: the declarations parse, apply to nothing, and the ` +
+    `control paints exactly as before. Including \`.application\` makes (0,3,1), which is how window-tool.css ` +
+    `scopes its own field overrides.`
+);
+check(
+    'The window can be resized.',
+    /resizable: true/.test(windowSrc) && /minHeight/.test(windowSrc),
+    `Its height is set by the party -- a six-character roster and a twenty-character one are different ` +
+    `windows -- and a floor keeps Begin Rest from being dragged off the bottom.`
+);
+check(
+    'Checkboxes are RECOLOURED through Foundry\'s own variables, not rebuilt.',
+    // Matched as a DECLARATION -- start of line, not anywhere in the file. The comment
+    // above the rule explains why `appearance: none` is wrong here, and a substring
+    // test flagged the explanation as the offence. Second time that has happened.
+    /--checkbox-background-color/.test(restCss) && !/^\s*(-webkit-)?appearance:\s*none/m.test(restCss),
+    `Foundry v13 draws a checkbox as a Font Awesome glyph in ::before (foundry2.css:3521). \`appearance: none\` ` +
+    `plus a box of our own does not replace it -- it draws a second box under one that is still painting, ` +
+    `which is why our square showed from under the grey.`
 );
 check(
     'It gives the tool body its own padding.',

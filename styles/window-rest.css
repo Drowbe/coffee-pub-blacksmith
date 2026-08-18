@@ -63,60 +63,48 @@
 }
 
 /* --- Checkboxes ---------------------------------------------------
-   Foundry's native checkbox is what shipped here, and its two states do
-   not read as one control: the unchecked box is a large grey fill and
-   the checked one a smaller accent square.
+   RECOLOURED, NOT REBUILT.
 
-   There is no shared bare-checkbox style to inherit -- `blacksmith-toggle`
-   is a SWITCH, which asks a different question, and its colours are
-   hardcoded for the dark standard window, so on light parchment it would
-   be a white-on-cream ghost. Every consumer that wanted a checkbox styled
-   its own; this is that, done against the tool tokens so all three themes
-   stay right.
+   Foundry v13 draws a checkbox as a FONT AWESOME GLYPH in `::before`,
+   sized and coloured entirely from custom properties (foundry2.css:398
+   and :3521). It is the same trap the world clock's sun and moon hit:
+   the glyph IS the ::before content.
 
-   One box, one size, in both states. Only the fill changes. */
+   So `appearance: none` plus a box of our own does not replace it -- it
+   draws a second box UNDERNEATH one that is still painting, which is the
+   half-overridden state that showed our square peeking out from under the
+   grey. The grey was never a background; it was the unchecked glyph.
 
-.blacksmith-rest-tool-window input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    flex: 0 0 auto;
-    width: 14px;
-    height: 14px;
-    margin: 0;
-    padding: 0;
-    position: relative;
-    border: 1px solid var(--blacksmith-tool-field-border);
-    border-radius: 3px;
-    background: var(--blacksmith-tool-field-background);
+   Setting the variables is the whole job, and it keeps the native control:
+   correct sizing, correct focus ring, and identical geometry checked or
+   not, because it is one glyph either way. */
+
+/* SCOPED THROUGH `.application`, AND THAT IS THE WHOLE FIX.
+
+   Foundry sets these variables from `body.theme-light input[type=checkbox]`
+   (foundry2.css:2317), which is specificity (0,2,2). A selector of
+   `.blacksmith-rest-tool-window input[type="checkbox"]` is (0,2,1) and
+   LOSES -- the declarations parse, apply to nothing, and the control keeps
+   painting exactly as before. That is why the first attempt changed
+   nothing on screen.
+
+   `.application` is on the same frame element as our own class, so adding
+   it makes (0,3,1) and wins. window-tool.css already scopes its field
+   overrides this way for the same reason. */
+.application.blacksmith-rest-tool-window input[type="checkbox"] {
+    /* Theme-aware, so the unchecked box is a muted mark on parchment and
+       still legible on the dark and glass frames. */
+    --checkbox-background-color: var(--blacksmith-tool-field-border);
+    /* Brand orange for "on", for the reason window-tool.css gives where it
+       makes the same choice: the per-theme tool accent is dark brown under
+       Light and cream under Glass, so it cannot carry state. */
+    --checkbox-checked-color: var(--blacksmith-color-brand-accent);
+    --checkbox-checkmark-color: #fff;
+    /* The focus ring is Foundry's, drawn on ::before. Left in place -- it is
+       how a keyboard user finds the control -- but themed, so it reads as
+       part of the window instead of a stray blue rectangle. */
+    --input-focus-outline-color: var(--blacksmith-color-brand-accent);
     cursor: pointer;
-}
-
-/* Brand orange for the same reason the active rest button uses it: the
-   per-theme tool accent is dark brown under Light and cream under Glass,
-   so it cannot carry "on". */
-.blacksmith-rest-tool-window input[type="checkbox"]:checked {
-    background: var(--blacksmith-color-brand-accent);
-    border-color: var(--blacksmith-color-brand-accent);
-}
-
-/* The tick is DRAWN, not a glyph: two borders rotated. It needs no icon
-   font, so nothing can erase it the way a Font Awesome ::before can, and
-   it stays legible on the orange in every theme. */
-.blacksmith-rest-tool-window input[type="checkbox"]:checked::after {
-    content: '';
-    position: absolute;
-    left: 4px;
-    top: 1px;
-    width: 3px;
-    height: 7px;
-    border: solid #fff;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.blacksmith-rest-tool-window input[type="checkbox"]:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--blacksmith-tool-field-focus-ring);
 }
 
 /* --- Which rest ---------------------------------------------------
