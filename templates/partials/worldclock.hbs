@@ -5,34 +5,47 @@
       set, so passing the same object as a parameter buys nothing and invites the
       shadowing confusion that put two Roll Mode selects in the roll window.
 
-      Owned by scripts/manager-worldclock.js and styles/worldclock.css. --}}
+      Owned by scripts/manager-worldclock.js and styles/worldclock.css.
+
+      The row is three units: step cluster, face (sky + time), step cluster.
+      That grouping is visual. Click handling is unchanged -- only
+      `.worldclock-time` opens the menu. --}}
 <div class="button worldclock-section{{#unless worldClock.isGM}} tool-readonly{{/unless}}{{#if worldClock.isNight}} is-night{{/if}}{{#unless worldClock.available}} is-unavailable{{/unless}}" data-tooltip="{{{worldClock.tooltip}}}" data-tool="worldclock-section">
 
     {{!-- Step controls render for the GM only. Time is the `core.time` WORLD
           setting, so a player pressing these would throw rather than quietly fail,
-          and a control that errors is worse than one that is absent. --}}
+          and a control that errors is worse than one that is absent. Each pair is
+          one cluster so «‹ reads as a single control, not two icons. --}}
     {{#if worldClock.isGM}}
-    <i class="fa-solid fa-angles-left worldclock-step" data-direction="back" data-size="large" data-tooltip="Back {{worldClock.largeStepLabel}}"></i>
-    <i class="fa-solid fa-angle-left worldclock-step" data-direction="back" data-size="small" data-tooltip="Back {{worldClock.smallStepLabel}}"></i>
+    <div class="worldclock-steps">
+        <i class="fa-solid fa-angles-left worldclock-step" data-direction="back" data-size="large" data-tooltip="Back {{worldClock.largeStepLabel}}"></i>
+        <i class="fa-solid fa-angle-left worldclock-step" data-direction="back" data-size="small" data-tooltip="Back {{worldClock.smallStepLabel}}"></i>
+    </div>
     {{/if}}
 
-    {{!-- THE SKY. The whole panel is the view out of a window: its colour is the
-          colour of the sky at this moment, and one body arcs across it, a sun by
-          day and a moon by night.
+    {{!-- THE FACE. Sky and time are one instrument; the uniform 4px gap on the
+          section used to treat them as siblings of the chevrons. --}}
+    <div class="worldclock-face">
+        {{!-- THE SKY. The whole panel is the view out of a window: its colour is the
+              colour of the sky at this moment, and one body arcs across it, a sun by
+              day and a moon by night.
 
-          Every value that changes with the time arrives as a CSS custom property,
-          so neither a repaint nor a drag rebuilds any markup — they set variables
-          on this one element and the stylesheet does the rest. --}}
-    <div class="worldclock-sky" style="{{worldClock.skyStyle}}">
-        <span class="worldclock-stars"></span>
-        <i class="worldclock-body {{worldClock.icon}}"></i>
-        <span class="worldclock-horizon"></span>
+              Every value that changes with the time arrives as a CSS custom property,
+              so neither a repaint nor a drag rebuilds any markup — they set variables
+              on this one element and the stylesheet does the rest. --}}
+        <div class="worldclock-sky" style="{{worldClock.skyStyle}}">
+            <span class="worldclock-stars"></span>
+            <i class="worldclock-body {{worldClock.icon}}"></i>
+            <span class="worldclock-horizon"></span>
+        </div>
+
+        <span class="worldclock-time">{{worldClock.timeText}}</span>
     </div>
 
-    <span class="worldclock-time">{{worldClock.timeText}}</span>
-
     {{#if worldClock.isGM}}
-    <i class="fa-solid fa-angle-right worldclock-step" data-direction="forward" data-size="small" data-tooltip="Forward {{worldClock.smallStepLabel}}"></i>
-    <i class="fa-solid fa-angles-right worldclock-step" data-direction="forward" data-size="large" data-tooltip="Forward {{worldClock.largeStepLabel}}"></i>
+    <div class="worldclock-steps">
+        <i class="fa-solid fa-angle-right worldclock-step" data-direction="forward" data-size="small" data-tooltip="Forward {{worldClock.smallStepLabel}}"></i>
+        <i class="fa-solid fa-angles-right worldclock-step" data-direction="forward" data-size="large" data-tooltip="Forward {{worldClock.largeStepLabel}}"></i>
+    </div>
     {{/if}}
 </div>

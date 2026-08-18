@@ -24,18 +24,39 @@
    and lives here. Neither a repaint nor a drag touches any markup.
 */
 
+/* Three units: step cluster, face, step cluster. Gap here is the space BETWEEN
+   those units, not between every icon and the sky. */
 .worldclock-section {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 2px 6px;
+    gap: 8px;
     border-radius: 4px;
 }
 
-/* The CLOCK FACE is what opens the menu, so it alone is what looks clickable. The
+/* Beats `.blacksmith-menubar-right .button-active` / `.tool-readonly` (same
+   specificity, this file loads after menubar.css). Players get `.tool-readonly`;
+   the GM section is neither, so without this the two clients pad differently. */
+.blacksmith-menubar-right .worldclock-section {
+    padding: 2px 6px;
+}
+
+.worldclock-steps {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.worldclock-face {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-radius: 4px;
+}
+
+/* The TIME LABEL is what opens the menu, so it alone is what looks clickable. The
    sky is a picture and keeps the default cursor; the sun keeps `grab`, because it
-   does something different. */
+   does something different. `.worldclock-face` is a visual group, not a hit target. */
 .blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-time {
     cursor: pointer;
 }
@@ -49,9 +70,10 @@
        inside its own box on every repaint. */
     font-variant-numeric: tabular-nums;
     /* Fixed, so the row does not shuffle sideways when 9:59 becomes 10:00 or the
-       meridiem flips. Wide enough for "12:00 AM". */
+       meridiem flips. Wide enough for "12:00 AM". Left-aligned so the digits hug
+       the sky; leftover width falls toward the right chevrons. */
     min-width: 60px;
-    text-align: center;
+    text-align: left;
 }
 
 /* ----- The sky ---------------------------------------------------- */
@@ -179,9 +201,15 @@
 .worldclock-section .worldclock-step {
     font-size: 11px;
     padding: 2px 1px;
+    margin: 0;
     cursor: pointer;
     color: rgba(255, 255, 255, 0.55);
     transition: color 0.15s ease;
+}
+
+/* Right-zone tools put 4px on every `i`. That stacked with the cluster gap. */
+.blacksmith-menubar-right .worldclock-section .worldclock-step {
+    margin: 0;
 }
 .worldclock-section .worldclock-step:hover {
     color: rgba(255, 196, 74, 0.95);
