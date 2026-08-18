@@ -88,10 +88,22 @@ behavior:
 | `node tools/check-design-tokens.mjs` | `styles/vars.css` and `design-system/design-tokens.md` agree, both ways |
 | `node tools/check-settings-headings.mjs` | no settings heading hides itself from players who can see settings under it |
 | `node tools/check-card-contracts.mjs` | a consumer cannot inject presentation into a chat card: prose is escaped, and caller-supplied colour stays confined to data-visualisation parts |
+| `node tools/check-card-text.mjs` | card copy conventions |
 | `node tools/check-harness-paths.mjs` | the test harness will load: paths resolve, every suite on disk is registered, imports resolve, and `expect()` calls pass their label first |
+| `node tools/check-styles-loaded.mjs` | every stylesheet is reachable from the load path, and every `@import` resolves — a CSS file nothing imports is silently dead |
+| `node tools/check-worldclock.mjs` | the clock's cross-file couplings: sky variables, the stop table, class names, the partial name, and the two coordinate spaces |
+| `node tools/check-rest-clients.mjs` | the rest flow across **two clients**: a player's rest reaches the GM, one card carries both phases, grouped rests move the clock once |
+| `node tools/check-dnd5e-citations.mjs` | our `dnd5e.mjs:NNNN` pointers still refer to the dnd5e version they were verified against |
 
 Run the relevant one after touching what it guards. CI (`.github/workflows/release.yml`) only zips and
 releases on `v*` tags; **it runs no checks**, so nothing runs these but you.
+
+**Citing dnd5e: give the version, and expect the line to rot.** A `dnd5e.mjs:NNNN` pointer is only true of
+one release. dnd5e 5.2.5 to 5.3.3 moved roughly four thousand lines and silently invalidated all 76 pointers
+in this repo — nothing threw and no doc was edited. `check-dnd5e-citations.mjs` now catches the version
+change, but it cannot tell you whether a relocated pointer is *right*. When it fires, re-verify the **claim**
+and not just the location: a correctly-relocated pointer to changed behaviour is worse than a broken one,
+because it looks right.
 
 ## Documentation — there are only six kinds
 

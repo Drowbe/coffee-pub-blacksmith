@@ -639,11 +639,11 @@ still correct, just not yet actionable.
 stops installing on its own; that is what makes deferring the report safe rather than trading a temporary
 system bug for a permanent local patch.
 
-`Actor5e#updateEncumbrance` (`dnd5e.mjs:36217`) reads
+`Actor5e#updateEncumbrance` (`dnd5e.mjs:39545`) reads
 `this.effects.get(ActiveEffect5e.ID.ENCUMBERED)` and, when absent, creates an effect with that same fixed
-`_id` and `keepId: true` (`:36235-36238`). Check-then-create, no lock, and no tolerance for losing the race.
-It runs on every item create, update and delete on an Actor (`:36073`, `:36082`, `:36094`) and on the Actor's
-own update (`:36009`), and Foundry does not await it from the write that triggered it — so any two writes
+`_id` and `keepId: true` (`:39563-39566`). Check-then-create, no lock, and no tolerance for losing the race.
+It runs on every item create, update and delete on an Actor (`:39357`, `:39371`, `:39385`) and on the Actor's
+own update (`:39330`), and Foundry does not await it from the write that triggered it — so any two writes
 close together on one Actor produce two recomputes that both try to create `dnd5eencumbered0`. The server
 rejects the second.
 

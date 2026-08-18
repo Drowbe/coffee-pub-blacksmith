@@ -5,7 +5,7 @@
 // against a SYSTEM bug, not a Blacksmith feature, and it is written to
 // remove itself: version-gated, feature-detected, and switchable off.
 //
-// THE BUG. `Actor5e#updateEncumbrance` (dnd5e.mjs:36217 in 5.2.5) reads
+// THE BUG. `Actor5e#updateEncumbrance` (dnd5e.mjs:39545 in 5.3.3) reads
 // `this.effects.get(ActiveEffect5e.ID.ENCUMBERED)` and, when absent,
 // creates an effect with that same fixed `_id` and `keepId: true`
 // (:36235-36238). Check-then-create, no lock, nothing between the read

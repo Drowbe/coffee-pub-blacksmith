@@ -101,7 +101,7 @@ and `documentation/architecture/architecture-rest.md`.
 
 **Food, water and exhaustion are finished** -- see `CHANGELOG.md`. Exhaustion needed no code at all:
 dnd5e automates the modern rules itself once `rulesVersion` is set to "modern"
-(`dnd5e.mjs:33818`, and the condition is configured `levels: 6, reduction: { rolls: 2, speed: 5 }`), and a
+(`dnd5e.mjs:37158`, and the condition is configured `levels: 6, reduction: { rolls: 2, speed: 5 }`), and a
 long rest already removes a level through `exhaustionDelta`. **Confirm that setting is "modern" in this
 world** -- it is the whole feature.
 
@@ -337,10 +337,10 @@ What has changed is the price of not having it, reported by Curator after shippi
   again for a nested bag.
 
 If it is built, **reuse dnd5e's own prompt rather than inventing a second answer to the same question.**
-Curator's GM-side removal of a packed container calls `Item5e#deleteDialog()` (`dnd5e.mjs:22133`), which lets
+Curator's GM-side removal of a packed container calls `Item5e#deleteDialog()` (`dnd5e.mjs:24044`), which lets
 the system own the "delete contents too?" question and the recursion behind it. A `transferContainer()` that
 asked differently would give a table two dialogs with two semantics for one decision. `Item5e.createWithContents`
-(`dnd5e.mjs:22216`) is the matching primitive on the create side, and its docstring requires `keepId: true` at
+(`dnd5e.mjs:24153`) is the matching primitive on the create side, and its docstring requires `keepId: true` at
 the `createDocuments` call or the container links break.
 
 Not blocking anything. Two consumers now know the workaround, and it is documented.

@@ -220,7 +220,7 @@ export default {
                     const target = await tempActor('character', 'grant-target');
                     made.push(target);
                     // An EQUIPPABLE type, not loot: `equipped` and `attuned` live on
-                    // EquippableItemTemplate (dnd5e.mjs:18384-18386), so asserting the reset set
+                    // EquippableItemTemplate (dnd5e.mjs:13803-13805), so asserting the reset set
                     // against a `loot` item would pass trivially - the fields are not in its
                     // schema either way, which is a false pass rather than a check.
                     const world = await Item.create({
@@ -1240,7 +1240,7 @@ export default {
                 const made = [];
                 try {
                     // Strength is set AT CREATION, not by a follow-up update. dnd5e recomputes
-                    // encumbrance on the Actor's own _onUpdate as well (dnd5e.mjs:36009), not only
+                    // encumbrance on the Actor's own _onUpdate as well (dnd5e.mjs:39330), not only
                     // on descendant item writes - so an update-then-grant sequence manufactures the
                     // very collision this check exists to detect, and the first version of this
                     // check did exactly that.
@@ -1347,7 +1347,7 @@ export default {
                 const made = [];
                 try {
                     // Strength set at creation: an actor update is itself a write that triggers a
-                    // recompute (dnd5e.mjs:36009), so update-then-grant would add one of our own.
+                    // recompute (dnd5e.mjs:39330), so update-then-grant would add one of our own.
                     const target = await Actor.create({
                         name: `${TEMP_PREFIX} guard ${foundry.utils.randomID(4)}`,
                         type: 'character',

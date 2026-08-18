@@ -26,11 +26,11 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 
 // Item types that may be moved. A raw create of anything else bypasses dnd5e's singleton
-// check and the advancement manager (dnd5e.mjs:55298-55318), so a loot window handing a
+// check and the advancement manager (dnd5e.mjs:57530-57574), so a loot window handing a
 // player a `class` item is unrecoverable.
 const PHYSICAL_TYPES = Object.freeze(['weapon', 'equipment', 'consumable', 'tool', 'loot', 'container']);
 
-// Cleared on arrival, mirroring dnd5e's own _onDropResetData (dnd5e.mjs:55332). Without this
+// Cleared on arrival, mirroring dnd5e's own _onDropResetData (dnd5e.mjs:57594). Without this
 // a handed-over weapon arrives equipped and a magic item arrives attuned without consuming a
 // slot. Also excluded from the merge comparison, since we deliberately change them.
 const RESET_PATHS = Object.freeze(['equipped', 'attuned', 'prepared', 'crew.value']);
@@ -195,7 +195,7 @@ function _isTransferable(item) {
  * An empty container transfers normally; a packed one is refused, because moving it would create
  * the container on the target under a new id and leave its contents behind pointing at an id
  * that no longer exists (dnd5e keeps containment on the CHILD as `system.container`,
- * dnd5e.mjs:19028).
+ * dnd5e.mjs:14055).
  *
  * Uses dnd5e's own `system.contents` getter rather than scanning an actor's items, because a
  * container resolved from a compendium or the Items directory has no actor to scan - and that is
@@ -285,7 +285,7 @@ function _deletePathAndEmptyParents(object, path) {
  * `quantity` is the thing being added, and the reset set is deliberately cleared on arrival.
  *
  * Reads `_source`, never the prepared model. `item.system` after data preparation holds derived
- * values (`uses.value` is computed at dnd5e.mjs:4357), and those differ between two otherwise
+ * values (`uses.value` is computed at dnd5e.mjs:11539), and those differ between two otherwise
  * identical items for reasons that have nothing to do with identity - comparing them would
  * merge almost nothing.
  *
@@ -322,7 +322,7 @@ function _identityFlags(flags, ignoreFlags) {
  * Whether an incoming item payload may merge into an existing item on the target.
  *
  * Gated on item STATE, not item type. dnd5e stacks consumables only
- * (dnd5e.mjs:55349-55357), which is a proxy for "types unlikely to carry per-item state" and
+ * (dnd5e.mjs:57609-57617), which is a proxy for "types unlikely to carry per-item state" and
  * is why two identical daggers do not stack on a sheet. Checking the state directly is
  * strictly better and lets them.
  *
@@ -379,8 +379,8 @@ function _canMerge(existing, incoming, ignoreFlags) {
  *
  * `flags` is folded in here rather than left to the caller. A caller setting a flag as a
  * follow-up write reintroduces a live dnd5e bug: encumbrance is recomputed on every item
- * create/update/delete (dnd5e.mjs:36073) as a check-then-create against one fixed effect id
- * with no lock (dnd5e.mjs:36226-36238), and Foundry does not await that hook from the promise
+ * create/update/delete (dnd5e.mjs:39357) as a check-then-create against one fixed effect id
+ * with no lock (dnd5e.mjs:39554-39566), and Foundry does not await that hook from the promise
  * `createEmbeddedDocuments` returns — so two sequential, individually awaited writes to one
  * Actor both try to create `dnd5eencumbered0` and the server rejects the second. Awaiting
  * correctly cannot avoid it and neither can our mutex, because the recompute completes outside

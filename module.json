@@ -87,6 +87,15 @@
   "packs": [],
   
   "relationships": {
+    "systems": [
+      {
+        "id": "dnd5e",
+        "type": "system",
+        "compatibility": {
+          "verified": "5.3.3"
+        }
+      }
+    ],
     "recommends": [
       {
         "id": "coffee-pub-squire",

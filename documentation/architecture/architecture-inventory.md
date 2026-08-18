@@ -83,9 +83,9 @@ in the document to say how much of the stack arrived in this operation.
 ### 3. Arrival flags are folded into the item write
 
 dnd5e recomputes encumbrance on every item create, update, and delete on an Actor
-(`_onCreateDescendantDocuments` at `dnd5e.mjs:36073`, with update and delete equivalents at `:36082` and
-`:36094`, all gated on `userId === game.userId`). The recompute reads
-`this.effects.get(ActiveEffect5e.ID.ENCUMBERED)` at `:36226` and, if absent, creates
+(`_onCreateDescendantDocuments` at `dnd5e.mjs:39357`, with update and delete equivalents at `:39371` and
+`:39385`, all gated on `userId === game.userId`). The recompute reads
+`this.effects.get(ActiveEffect5e.ID.ENCUMBERED)` at `:39554` and, if absent, creates
 `{ _id: ActiveEffect5e.ID.ENCUMBERED, ... }` with `keepId: true` at `:36235-36238`. Check-then-create against
 one fixed id, no lock, nothing between the read and the write.
 
@@ -100,7 +100,7 @@ is a parameter rather than a caller's follow-up `setFlag`, why `grantItems` exis
 second reason the reset set is applied here rather than left to consumers: every fixup folded into the
 original write is a follow-up write nobody makes.
 
-The recompute is also called from the Actor's own `_onUpdate` (`dnd5e.mjs:36009`), not only from the
+The recompute is also called from the Actor's own `_onUpdate` (`dnd5e.mjs:39330`), not only from the
 descendant-document hooks, so an `actor.update()` followed by an item write collides identically. The
 original diagnosis of this bug described it as a pair of item writes, which is narrower than the real
 surface.
@@ -124,7 +124,7 @@ thing that sits in a log for months.
 ### 4. An unverifiable container is treated as packed
 
 dnd5e stores containment on the **child** as `system.container`, pointing at the parent's id
-(`dnd5e.mjs:19028`). Moving a container with `toObject()` creates it on the target under a new id and leaves
+(`dnd5e.mjs:14055`). Moving a container with `toObject()` creates it on the target under a new id and leaves
 its contents behind pointing at an id that no longer exists.
 
 `_containedCount` uses dnd5e's own `system.contents` getter rather than scanning an actor's items, because a
@@ -133,7 +133,7 @@ case an actor scan reports as empty when it is not. When the count cannot be det
 caller refuses. A refused bag is a visible annoyance; an orphaned one is silent corruption.
 
 Full container transfer is deliberately out of scope rather than half-implemented. `Item5e.createWithContents`
-(`dnd5e.mjs:22216`) does the recursion, so effort is not the reason - a container move is one-to-many creates
+(`dnd5e.mjs:24153`) does the recursion, so effort is not the reason - a container move is one-to-many creates
 and many source deletes, which breaks the singular return shape, makes quantity splitting meaningless, and
 turns rollback into N deletes plus N restores plus reporting which of those also failed. That belongs in its
 own method.
@@ -197,13 +197,13 @@ wrong shape. Any enumerated list is a list someone must remember to extend, and 
 whatever dnd5e adds next, with no maintenance.
 
 Two mechanics follow from it. Comparison is on **`_source` data, never the prepared model**: `item.system`
-after preparation holds derived values such as `uses.value` (computed at `dnd5e.mjs:4357`), which differ
+after preparation holds derived values such as `uses.value` (computed at `dnd5e.mjs:11539`), which differ
 between two otherwise identical items for reasons unrelated to identity, so comparing them would merge almost
 nothing. And any unresolvable difference resolves to `merged: false` rather than an error - strictness costs a
 player an extra inventory row, looseness costs data.
 
 Enchantments need a separate check because they are ActiveEffects on the item and therefore outside `system`
-(`item.appliedEnchantments`, `dnd5e.mjs:19346`). This is the case that justifies dnd5e's own caution: a +1
+(`item.appliedEnchantments`, `dnd5e.mjs:29360`). This is the case that justifies dnd5e's own caution: a +1
 dagger and a plain dagger can share both name and `compendiumSource`.
 
 ### compendiumSource is a negative signal only
