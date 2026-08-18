@@ -100,23 +100,32 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
      * @returns {Array<Actor>}
      */
     static getCandidates() {
-        const members = game.actors?.party?.system?.members;
-        const fromParty = Array.isArray(members)
-            ? members.map((m) => m?.actor).filter((a) => a?.type === 'character')
-            : [];
+        // `system.creatures` IS THE PARTY'S OWN ANSWER (`dnd5e.mjs:72635`): every member
+        // that is a creature, which is precisely who dnd5e offers on its own party rest
+        // (`dnd5e.mjs:2232`).
+        //
+        // Filtering on `type === 'character'` instead -- which is what this did -- drops
+        // the NPC members. A familiar, a companion or a hired hand travelling with the
+        // party rests with the party, and they were silently missing from the roster
+        // while appearing in the system's own dialog.
+        //
+        // It also answers the other half: a GROUP is not a creature, so the party actor
+        // never lists itself. dnd5e refuses to rest one, and offering it would be a row
+        // that does nothing.
+        const fromParty = game.actors?.party?.system?.creatures ?? [];
 
         const roster = fromParty.length
-            ? fromParty
-            : (game.actors?.contents ?? []).filter((a) => a?.type === 'character' && a.hasPlayerOwner);
+            ? [...fromParty]
+            : (game.actors?.contents ?? []).filter((a) => a?.system?.isCreature && a.hasPlayerOwner);
 
         // A SELECTED TOKEN IS AN INSTRUCTION. A GM who has picked tokens out on the
         // canvas has already said who this rest is for, so anything they selected joins
         // the roster even when the party list does not know about it -- an NPC ally
         // resting with the group is exactly the case the primary party misses.
         //
-        // Vehicles are excluded because dnd5e refuses to rest them outright
-        // (`initiateRest` returns immediately for one), so offering it would be a
-        // control that does nothing.
+        // Only creatures, the same test the party applies: a vehicle is refused by
+        // `initiateRest` outright and a group cannot rest at all, so offering either
+        // would be a control that does nothing.
         const seen = new Set(roster.map((a) => a.uuid));
         for (const actor of this.getSelectedActors()) {
             if (seen.has(actor.uuid)) continue;
@@ -129,6 +138,12 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
 
     /**
      * The actors behind the currently selected tokens, minus the ones that cannot rest.
+     *
+     * `system.isCreature` is the same test the party uses, and it is the one that
+     * covers every case at once: vehicles are refused by `initiateRest`, and a group
+     * cannot rest at all. Testing `!isVehicle` -- which is what this did -- let a
+     * selected party token into the roster as a row that would do nothing.
+     *
      * @returns {Array<Actor>}
      */
     static getSelectedActors() {
@@ -137,7 +152,7 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
 
         for (const token of canvas?.tokens?.controlled ?? []) {
             const actor = token?.actor;
-            if (!actor || actor.system?.isVehicle || seen.has(actor.uuid)) continue;
+            if (!actor?.system?.isCreature || seen.has(actor.uuid)) continue;
             seen.add(actor.uuid);
             actors.push(actor);
         }

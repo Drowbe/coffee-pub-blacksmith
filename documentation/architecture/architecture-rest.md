@@ -264,14 +264,20 @@ and a caption do the same job without stacking a second frame inside the first.
 It starts a rest and runs no rules. The kind of rest, the roster, and whether food and water are tracked
 are all questions; pressing the button posts the cards and closes.
 
-The roster is the primary party's characters when a primary party is set, falling back to every
-player-owned character so a world without one still gets a usable window.
+The roster is `party.system.creatures` (`dnd5e.mjs:72635`) -- the party's own list of members that are
+creatures, and precisely who dnd5e offers on its own party rest (`dnd5e.mjs:2232`). It falls back to every
+player-owned creature so a world with no primary party still gets a usable window.
+
+**Creatures, not characters.** Filtering members on `type === 'character'` drops the NPC members: a
+familiar, a companion or a hired hand travelling with the party rests with the party and appears in the
+system's own dialog. The same test excludes what cannot rest -- a vehicle, which `initiateRest` refuses
+outright, and the party group itself, which is not a creature and has no rest of its own.
 
 **Selected tokens are an instruction.** A GM who has picked tokens out on the canvas has already said who
 this rest is for, so those start ticked and nothing else does; with no selection, everybody is ticked,
-because an untouched canvas is not a request to rest nobody. A selected actor the party list does not know
-about joins the roster -- an NPC ally resting with the group is exactly the case a primary party misses.
-Vehicles are excluded, since dnd5e refuses to rest them.
+because an untouched canvas is not a request to rest nobody. A selected creature the party list does not
+know about joins the roster -- an NPC ally resting with the group is exactly the case a primary party
+misses. Selection applies the same creature test, so a selected party or vehicle token adds nothing.
 
 **New Day is offered on both rest types**, with a different default for each: set for a long rest, unset
 for a short one, both read from `CONFIG.DND5E.restTypes`. A short rest can still begin a new day -- a night

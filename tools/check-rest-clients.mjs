@@ -1220,9 +1220,20 @@ check(
     /for \(const actor of this\.getSelectedActors\(\)\)/.test(windowSrc),
     `An NPC ally resting with the group is exactly the case the primary party misses.`
 );
+// Asserted as CODE, not as a mention: the comments explain the filters this replaced,
+// and a substring test for `isVehicle` passed on the explanation alone.
 check(
-    'Vehicles are left out, because dnd5e refuses to rest them.',
-    /isVehicle/.test(windowSrc)
+    'The roster is the party\'s own list of creatures.',
+    /game\.actors\?\.party\?\.system\?\.creatures/.test(windowSrc),
+    `\`system.creatures\` (dnd5e.mjs:72635) is who dnd5e itself offers on a party rest. Filtering members ` +
+    `on \`type === 'character'\` drops NPC members -- a familiar or companion travelling with the party -- ` +
+    `who appear in the system's own dialog.`
+);
+check(
+    'And only creatures can be added by selecting a token.',
+    /if \(!actor\?\.system\?\.isCreature \|\| seen\.has\(actor\.uuid\)\) continue;/.test(windowSrc),
+    `A group is not a creature and cannot rest at all; a vehicle is refused by \`initiateRest\`. Testing ` +
+    `\`!isVehicle\` let a selected party token in as a row that would do nothing.`
 );
 check(
     'Every posted card shares one rest id.',

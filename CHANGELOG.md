@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **The rest window** asks the three questions a context menu could not: which kind of rest, who is taking it, and whether food and water are tracked *tonight*. It replaces the two `Long Rest` / `Short Rest` entries on the clock menu with a single `Rest...`. It runs no rules -- pressing the button posts the cards and closes.
 
+  Its roster is `party.system.creatures`, the party's own list and precisely who dnd5e offers on its own party rest. **Creatures rather than characters**, so an NPC member -- a familiar, a companion, a hired hand -- rests with the party as it does in the system's dialog; and the same test excludes what cannot rest at all, namely a vehicle and the party group itself.
+
   **One card, two phases.** The card a character gets before they rest and the card reporting their rest are the **same message**, rewritten in place. The pre-rest phase shows the health bar, their hit dice, their remaining slots and any exhaustion they are carrying, then a single **Begin Long Rest** button -- with no section headings, because a card that has one thing to say about a character has nothing to distinguish those rows from. Pressing it calls `actor.longRest()` and dnd5e applies every recovery rule, exactly as it does from a character sheet.
 
   **A short rest offers its hit dice on the card, one at a time.** This was a real hole rather than a refinement: Blacksmith suppresses dnd5e's short rest dialog, and that dialog *is* how hit dice get spent -- so until now a short rest through our window healed nothing at all unless the GM had ticked Auto Spend.
