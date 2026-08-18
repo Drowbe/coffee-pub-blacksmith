@@ -77,6 +77,23 @@ The pre-rest card carries no headings either, for the neighbouring reason: it ha
 about the character, so its rows have nothing to be distinguished from. A heading separates one group from
 another, and a lone group is not a group.
 
+## A pre-rest card shows only what that rest can give back
+
+Spell slots appear only when the rest being taken can restore them. A short rest restores pact slots and
+nothing else, so a wizard sees no slot line before one -- reporting "8 / 17" ahead of a rest that will not
+move it is true and useless, while a warlock still sees their pact slots.
+
+The rule is dnd5e's own, read from its configuration rather than restated:
+`restTypes[type].recoverSpellSlotTypes` tested against each pool's `type` is exactly what
+`_getRestSpellRecovery` applies (`dnd5e.mjs:38516-38520`). A multiclass warlock/wizard therefore shows the
+pact half on a short rest and everything on a long one, without this file knowing what a warlock is. When
+the configuration cannot be read the pools are shown: a missing set is our ignorance, not a claim that
+nothing recovers.
+
+**Hit dice are the exception, and deliberately so.** A short rest does not restore them -- it is where they
+get spent -- so they are the most relevant number on the card rather than the least. The rule above is
+about resources a rest gives back; hit dice are the resource it takes.
+
 ## Hit dice on a short rest
 
 A short rest is mostly its hit dice, and dnd5e's own short rest is mostly the dialog that spends them.

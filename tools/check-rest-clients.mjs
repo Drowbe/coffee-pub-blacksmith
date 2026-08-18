@@ -87,7 +87,19 @@ const reset = () => {
     world.sent.length = 0;
 };
 
-globalThis.CONFIG = { DND5E: { conditionTypes: { exhaustion: { levels: 6 } } } };
+// Mirrors the real `CONFIG.DND5E` closely enough for the rules under test. The
+// `recoverSpellSlotTypes` sets are dnd5e's own (`dnd5e.mjs:46445` and `:46462`) --
+// a short rest gives back pact slots and nothing else.
+globalThis.CONFIG = {
+    DND5E: {
+        conditionTypes: { exhaustion: { levels: 6 } },
+        restTypes: {
+            short: { recoverSpellSlotTypes: new Set(['pact']) },
+            long: { newDay: true, recoverTemp: true, recoverTempMax: true, recoverHitDice: true,
+                    recoverSpellSlotTypes: new Set(['spell', 'pact']) }
+        }
+    }
+};
 globalThis.ui = { notifications: { warn: (m) => world.warnings.push(m) } };
 globalThis.fromUuid = async (uuid) => world.actors.get(uuid) ?? null;
 globalThis.Hooks = { once: (name, fn) => (globalThis.__socketReadyCallbacks ??= []).push({ name, fn }) };
@@ -442,7 +454,9 @@ const before = cards.buildBeforeState({
         uuid: 'Actor.Nik', name: 'Nik', img: 'nik.webp',
         system: {
             attributes: { hp: { value: 22, max: 40 }, hd: { value: 2, max: 5 }, exhaustion: 1 },
-            spells: { spell1: { value: 1, max: 4 }, spell2: { value: 0, max: 2 } }
+            // `type` is carried on every real pool -- dnd5e's own recovery keys off it
+            // (`dnd5e.mjs:38519`), so a pool without one recovers from nothing.
+            spells: { spell1: { value: 1, max: 4, type: 'spell' }, spell2: { value: 0, max: 2, type: 'spell' } }
         }
     },
     restType: 'long',
@@ -463,6 +477,36 @@ check('Spell slots are summed, not listed per level.',
     standing.find((r) => r.label === 'Spell Slots')?.trailing === '1 / 6',
     `Nine rows of mostly zeroes answers "how much have I got left" worse than one.`);
 check('Exhaustion is shown when carried.', standing.find((r) => r.label === 'Exhaustion')?.trailing === 'Level 1');
+
+// --- Slots only appear when THIS rest can give them back ------------------------
+//
+// A short rest restores pact slots and nothing else, so telling a wizard they are on
+// 8 of 17 before one reports a number the rest will not move.
+
+const caster = (spells) => ({ system: { attributes: { hd: { value: 9, max: 14 }, exhaustion: 0 }, spells } });
+const WIZARD = { spell1: { value: 3, max: 4, type: 'spell' }, spell2: { value: 5, max: 13, type: 'spell' } };
+const WARLOCK = { pact: { value: 1, max: 2, type: 'pact' } };
+const slotsRow = (spells, type) => cards.buildStandingRows(caster(spells), type).find((r) => r.label === 'Spell Slots');
+
+check(
+    'A wizard is not shown spell slots before a SHORT rest.',
+    !slotsRow(WIZARD, 'short'),
+    `A short rest cannot restore them, so the number is true and useless.`
+);
+check('But is before a long one.', slotsRow(WIZARD, 'long')?.trailing === '8 / 17');
+check(
+    'A warlock IS shown them before a short rest, because pact slots come back.',
+    slotsRow(WARLOCK, 'short')?.trailing === '1 / 2',
+    `The rule is read from \`recoverSpellSlotTypes\`, so this works without the card knowing what a warlock is.`
+);
+check('A multiclass warlock/wizard shows only the pact half on a short rest.',
+    slotsRow({ ...WIZARD, ...WARLOCK }, 'short')?.trailing === '1 / 2');
+check('And everything on a long one.',
+    slotsRow({ ...WIZARD, ...WARLOCK }, 'long')?.trailing === '9 / 19');
+check(
+    'Hit dice show on a short rest regardless -- they are what it SPENDS.',
+    cards.buildStandingRows(caster(WIZARD), 'short').find((r) => r.label === 'Hit Dice')?.trailing === '9 / 14'
+);
 
 const fighter = cards.buildStandingRows({ system: { attributes: { hd: { value: 3, max: 3 }, exhaustion: 0 }, spells: {} } });
 check('A character with no spellcasting is not told about slots.',

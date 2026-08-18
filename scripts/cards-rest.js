@@ -315,10 +315,14 @@ export function describeNothingRecovered(actor) {
  *
  * @returns {Array<object>} `rows` items.
  */
-export function buildStandingRows(actor) {
+export function buildStandingRows(actor, restType = 'long') {
     const rows = [];
     const attributes = actor?.system?.attributes ?? {};
 
+    // HIT DICE ALWAYS SHOW, even though a short rest does not restore them -- a short
+    // rest is where they get SPENT, so they are the most relevant number on the card.
+    // The rule below is about resources this rest can give back; these are the
+    // resource it takes.
     const hd = attributes.hd;
     if (Number(hd?.max) > 0) {
         rows.push({
@@ -328,10 +332,25 @@ export function buildStandingRows(actor) {
         });
     }
 
-    // Slots are summed across levels rather than listed one per level. Before the
-    // rest the useful question is "how much have I got left", and nine rows of
-    // mostly-zeroes answers it worse than one.
-    const pools = Object.values(actor?.system?.spells ?? {}).filter((pool) => Number(pool?.max) > 0);
+    // ONLY THE SLOTS THIS REST CAN ACTUALLY GIVE BACK. A short rest restores pact
+    // slots and nothing else, so telling a wizard they are on 8 of 17 before one is
+    // reporting a number the rest will not move -- true, and noise.
+    //
+    // The rule is the system's own, read from its configuration rather than restated:
+    // `restTypes[type].recoverSpellSlotTypes` against each pool's `type` is exactly
+    // the test `_getRestSpellRecovery` applies (`dnd5e.mjs:38516-38520`). Warlocks
+    // therefore keep their slots on a short rest card without this file knowing what
+    // a warlock is.
+    const recoverable = CONFIG.DND5E?.restTypes?.[restType]?.recoverSpellSlotTypes;
+
+    const pools = Object.values(actor?.system?.spells ?? {}).filter((pool) => {
+        if (!(Number(pool?.max) > 0)) return false;
+        // No configuration to consult means show it: a missing set is our ignorance,
+        // not a statement that nothing recovers.
+        if (!recoverable?.size) return true;
+        return recoverable.has(pool.type);
+    });
+
     if (pools.length) {
         const remaining = pools.reduce((sum, pool) => sum + Number(pool.value ?? 0), 0);
         const total = pools.reduce((sum, pool) => sum + Number(pool.max ?? 0), 0);
@@ -385,7 +404,7 @@ export function buildBeforeState({ actor, restType = 'long', restOptions = {}, r
             value: Number(actor?.system?.attributes?.hp?.value ?? 0),
             max: Number(actor?.system?.attributes?.hp?.max ?? 0)
         },
-        standing: buildStandingRows(actor),
+        standing: buildStandingRows(actor, restType),
         restOptions: {
             newDay: restOptions.newDay === true,
             // Kept as booleans rather than passed through, so a card carries a settled
