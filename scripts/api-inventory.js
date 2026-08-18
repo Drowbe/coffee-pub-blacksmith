@@ -35,6 +35,22 @@ const PHYSICAL_TYPES = Object.freeze(['weapon', 'equipment', 'consumable', 'tool
 // slot. Also excluded from the merge comparison, since we deliberately change them.
 const RESET_PATHS = Object.freeze(['equipped', 'attuned', 'prepared', 'crew.value']);
 
+// `system.container` is NOT in RESET_PATHS, because it is WRITTEN on arrival rather than
+// deleted. dnd5e's reset set does not mention containment either, and that is not an omission
+// to copy: every core creation path sets the field explicitly instead. Item5e.createWithContents
+// does `mergeObject(newItemData, {"system.container": containerId})` on every create
+// (dnd5e.mjs:24171), and moving an item out of a container nulls it (dnd5e.mjs:57414).
+// Containment is an argument of the arrival, never inherited from the source.
+//
+// Inheriting it was a real defect, not a theoretical one. dnd5e keeps containment on the CHILD,
+// so an item taken out of a bag carried the SOURCE actor's bag id onto the recipient, where no
+// such row exists — and because container participates in merge identity, it also matched
+// nothing and landed as a separate dangling row. The visible symptom was arrows looted from a
+// corpse's pack refusing to stack with the arrows the looter already carried.
+//
+// Deleting the key would not do: dnd5e writes null, and an absent key is not the same value.
+const MAX_CONTAINER_DEPTH = 5; // dnd5e.mjs:14087 (PhysicalItemTemplate.MAX_DEPTH)
+
 // dnd5e currency denominations. Order is presentation-irrelevant; this is the key set.
 const DENOMINATIONS = Object.freeze(['pp', 'gp', 'ep', 'sp', 'cp']);
 
@@ -50,6 +66,8 @@ const CODES = Object.freeze({
     INSUFFICIENT_CURRENCY: 'INSUFFICIENT_CURRENCY',
     ITEM_NOT_TRANSFERABLE: 'ITEM_NOT_TRANSFERABLE',
     CONTAINER_HAS_CONTENTS: 'CONTAINER_HAS_CONTENTS',
+    CONTAINER_NOT_FOUND: 'CONTAINER_NOT_FOUND',
+    CONTAINER_MAX_DEPTH: 'CONTAINER_MAX_DEPTH',
     TARGET_CREATE_FAILED: 'TARGET_CREATE_FAILED',
     SOURCE_UPDATE_FAILED: 'SOURCE_UPDATE_FAILED',
     ROLLBACK_FAILED: 'ROLLBACK_FAILED',
@@ -224,6 +242,63 @@ async function _containedCount(item) {
 }
 
 /**
+ * Validate a requested arrival container against the Actor that will hold it.
+ *
+ * Must run INSIDE the target Actor's lock and against the live document: an id validated before
+ * the lock can be deleted before the write, which recreates the dangling pointer this exists to
+ * prevent.
+ *
+ * Refusing an unresolvable id rather than silently dropping to root is deliberate. A caller that
+ * names a container has a reason, and quietly ignoring it puts bought stock loose on an NPC or
+ * loot in the wrong bag, with nothing in the result saying so.
+ *
+ * @param {Actor} targetActor
+ * @param {string|null|undefined} containerId - Null or undefined means the root inventory.
+ * @returns {Promise<object|null>} A failure result, or null when the container is usable.
+ */
+async function _validateContainer(targetActor, containerId) {
+    if (containerId === undefined || containerId === null) return null;
+    if (typeof containerId !== 'string') return fail(CODES.CONTAINER_NOT_FOUND, { containerId });
+
+    const container = targetActor.items.get(containerId);
+    if (!container) return fail(CODES.CONTAINER_NOT_FOUND, { containerId });
+    if (container.type !== 'container') {
+        return fail(CODES.CONTAINER_NOT_FOUND, { containerId, type: container.type });
+    }
+
+    // dnd5e refuses a drop that would nest past MAX_DEPTH (dnd5e.mjs:24156-24160), and it counts
+    // the arrival as `1 + ancestors`. Feature-detected rather than assumed: if the getter has
+    // moved, skip the check instead of refusing every container grant.
+    try {
+        const ancestors = await container.system?.allContainers?.();
+        if (Array.isArray(ancestors)) {
+            const depth = 1 + ancestors.length;
+            if (depth > MAX_CONTAINER_DEPTH) {
+                return fail(CODES.CONTAINER_MAX_DEPTH, { containerId, depth, max: MAX_CONTAINER_DEPTH });
+            }
+        }
+    } catch { /* depth unverifiable: existence and type already rule out the dangling case */ }
+
+    return null;
+}
+
+/**
+ * Validate every distinct container named by a batch, once each.
+ * @param {Actor} targetActor
+ * @param {Array<string|null|undefined>} containerIds - Index-aligned with the batch entries.
+ * @returns {Promise<Map<string, object>>} Container id -> failure result, for ids that failed.
+ */
+async function _validateContainers(targetActor, containerIds) {
+    const failures = new Map();
+    for (const containerId of new Set(containerIds)) {
+        if (containerId === undefined || containerId === null) continue;
+        const error = await _validateContainer(targetActor, containerId);
+        if (error) failures.set(containerId, error);
+    }
+    return failures;
+}
+
+/**
  * Validate a requested quantity against what the item actually has.
  * Stackability is derived from the document and never accepted from a caller: that flag decides
  * delete-the-whole-item versus decrement, so a wrong value destroys a stack.
@@ -296,6 +371,11 @@ function _identitySystem(systemSource) {
     const copy = foundry.utils.deepClone(systemSource ?? {});
     delete copy.quantity;
     for (const path of RESET_PATHS) _deletePathAndEmptyParents(copy, path);
+    // Containment STAYS in identity — two otherwise identical stacks in different bags are in
+    // different places and must not merge. Normalised because absent and null mean the same
+    // thing here and would otherwise compare unequal: our payloads always write the field, while
+    // a row created by another module or an older dnd5e may simply not carry it.
+    copy.container = copy.container ?? null;
     return copy;
 }
 
@@ -390,14 +470,18 @@ function _canMerge(existing, incoming, ignoreFlags) {
  * @param {number} quantity
  * @param {boolean} stackable
  * @param {object} flags
+ * @param {string|null} [container=null] - Arrival container id on the TARGET Actor, or null for root.
  * @returns {object}
  */
-function _buildPayload(item, quantity, stackable, flags) {
+function _buildPayload(item, quantity, stackable, flags, container = null) {
     const data = item.toObject();
     delete data._id;
     data.system = data.system ?? {};
     if (stackable) data.system.quantity = quantity;
     for (const path of RESET_PATHS) foundry.utils.deleteProperty(data.system, path);
+    // Always written, never inherited — see the note beside RESET_PATHS. The source's value
+    // names a row on the SOURCE Actor and is meaningless on the target.
+    data.system.container = container ?? null;
     if (flags && Object.keys(flags).length) {
         data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags, { inplace: false });
     }
@@ -523,18 +607,21 @@ function _normalizeCurrency(currency) {
  * @param {string} [options.stack='merge']
  * @param {string[]} [options.ignoreFlags=[]]
  * @param {object} [options.flags={}] - Written in the same operation as the item.
+ * @param {string} [options.container=null] - Container id on the target Actor. Null lands at root.
  * @returns {Promise<object>}
  */
-async function grantItem({ targetActorUuid, itemUuid, itemData, quantity, stack = 'merge', ignoreFlags = [], flags = {} } = {}) {
+async function grantItem({ targetActorUuid, itemUuid, itemData, quantity, stack = 'merge', ignoreFlags = [], flags = {}, container = null } = {}) {
     const targetActor = await _resolveActor(targetActorUuid);
     if (!targetActor) return fail(CODES.TARGET_ACTOR_NOT_FOUND, { targetActorUuid });
 
-    const prepared = await _prepareGrant({ itemUuid, itemData, quantity, flags });
+    const prepared = await _prepareGrant({ itemUuid, itemData, quantity, flags, container });
     if (!prepared.ok) return prepared;
 
     const { release, contended } = await _acquire([targetActor.uuid]);
     if (contended) return fail(CODES.LOCK_TIMEOUT, { actorUuid: contended, waitedMs: LOCK_TIMEOUT_MS });
     try {
+        const containerError = await _validateContainer(targetActor, container);
+        if (containerError) return containerError;
         return await _grantItemCore(targetActor, prepared.payload, prepared.quantity, stack, ignoreFlags, flags);
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, 'Inventory: grantItem failed', error, false, false);
@@ -698,29 +785,49 @@ async function _rollbackBatch(targetActor, undo) {
  *
  * @param {object} options
  * @param {string} options.targetActorUuid
- * @param {object[]} options.items - [{ itemUuid | itemData, quantity, flags }]
+ * @param {object[]} options.items - [{ itemUuid | itemData, quantity, flags, container }]
  * @param {string} [options.stack='merge']
  * @param {string[]} [options.ignoreFlags=[]]
+ * @param {string} [options.container=null] - Default arrival container for every entry.
  * @returns {Promise<object>} { ok, results: [] }
  */
-async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignoreFlags = [] } = {}) {
+async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignoreFlags = [], container = null } = {}) {
     const targetActor = await _resolveActor(targetActorUuid);
     if (!targetActor) return fail(CODES.TARGET_ACTOR_NOT_FOUND, { targetActorUuid });
     if (!Array.isArray(items) || !items.length) return fail(CODES.ITEM_NOT_FOUND, { reason: 'items must be a non-empty array' });
 
     const prepared = [];
+    const containers = [];
     for (const entry of items) {
+        // `undefined` means "not stated, use the batch default"; an explicit null means root, so
+        // an entry can opt out of a batch-wide container. ?? would conflate the two.
+        const entryContainer = entry?.container === undefined ? container : entry.container;
+        containers.push(entryContainer);
         prepared.push(await _prepareGrant({
             itemUuid: entry?.itemUuid,
             itemData: entry?.itemData,
             quantity: entry?.quantity,
-            flags: entry?.flags ?? {}
+            flags: entry?.flags ?? {},
+            container: entryContainer
         }));
     }
 
     const { release, contended } = await _acquire([targetActor.uuid]);
     if (contended) return fail(CODES.LOCK_TIMEOUT, { actorUuid: contended, waitedMs: LOCK_TIMEOUT_MS });
     try {
+        // Per entry, like every other validation here: one bad container id must not stop the
+        // rest of the batch. Failed entries become failure results the batch core passes through.
+        const containerFailures = await _validateContainers(targetActor, containers);
+        if (containerFailures.size) {
+            for (let index = 0; index < prepared.length; index++) {
+                // An entry that already failed keeps its own code: it was refused before the
+                // container was ever relevant, and overwriting would mislabel why.
+                if (!prepared[index]?.ok) continue;
+                const error = containerFailures.get(containers[index]);
+                if (error) prepared[index] = { ...error };
+            }
+        }
+
         const { results } = await _grantBatchCore(targetActor, prepared, stack, ignoreFlags);
         return { ok: results.every(result => result.ok), results };
     } catch (error) {
@@ -737,7 +844,7 @@ async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignore
  * @param {object} options
  * @returns {Promise<object>} { ok: true, payload, quantity, arrivalFlags } or a failure result.
  */
-async function _prepareGrant({ itemUuid, itemData, quantity, flags }) {
+async function _prepareGrant({ itemUuid, itemData, quantity, flags, container = null }) {
     let item = null;
     if (itemUuid) {
         try {
@@ -755,12 +862,12 @@ async function _prepareGrant({ itemUuid, itemData, quantity, flags }) {
         const resolved = _resolveQuantity(item, quantity);
         if (resolved.error) return resolved.error;
 
-        const payload = _buildPayload(item, resolved.quantity, resolved.stackable, flags);
+        const payload = _buildPayload(item, resolved.quantity, resolved.stackable, flags, container);
         // A compendium document keeps its provenance, which the hand-rolled paths lose. This
         // cannot split a stack: the merge predicate only blocks when BOTH sides know their
         // origin and the origins disagree.
         if (item.pack) foundry.utils.setProperty(payload, '_stats.compendiumSource', item.uuid);
-        return { ok: true, payload, quantity: resolved.quantity, arrivalFlags: flags ?? {} };
+        return { ok: true, payload, quantity: resolved.quantity, arrivalFlags: flags ?? {}, container: container ?? null };
     }
 
     if (!itemData || typeof itemData !== 'object') return fail(CODES.ITEM_NOT_FOUND, { reason: 'itemUuid or itemData required' });
@@ -775,10 +882,13 @@ async function _prepareGrant({ itemUuid, itemData, quantity, flags }) {
     if (!Number.isInteger(requested) || requested < 1) return fail(CODES.INVALID_QUANTITY, { requested: quantity });
     if (stackable) data.system.quantity = requested;
     for (const path of RESET_PATHS) foundry.utils.deleteProperty(data.system, path);
+    // Same rule as the resolved-document branch: containment is written, never carried over.
+    // Constructed data is the likelier place for a stale id, not the safer one.
+    data.system.container = container ?? null;
     if (flags && Object.keys(flags).length) {
         data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags, { inplace: false });
     }
-    return { ok: true, payload: data, quantity: requested, arrivalFlags: flags ?? {} };
+    return { ok: true, payload: data, quantity: requested, arrivalFlags: flags ?? {}, container: container ?? null };
 }
 
 /**
@@ -795,9 +905,10 @@ async function _prepareGrant({ itemUuid, itemData, quantity, flags }) {
  * @param {string} [options.stack='merge']
  * @param {string[]} [options.ignoreFlags=[]]
  * @param {object} [options.flags={}]
+ * @param {string} [options.container=null] - Container id on the target Actor. Null lands at root.
  * @returns {Promise<object>}
  */
-async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity, stack = 'merge', ignoreFlags = [], flags = {} } = {}) {
+async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity, stack = 'merge', ignoreFlags = [], flags = {}, container = null } = {}) {
     const sourceActor = await _resolveActor(sourceActorUuid);
     if (!sourceActor) return fail(CODES.SOURCE_ACTOR_NOT_FOUND, { sourceActorUuid });
     const targetActor = await _resolveActor(targetActorUuid);
@@ -818,7 +929,10 @@ async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity
         const resolved = _resolveQuantity(sourceItem, quantity);
         if (resolved.error) return resolved.error;
 
-        const payload = _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags);
+        const containerError = await _validateContainer(targetActor, container);
+        if (containerError) return containerError;
+
+        const payload = _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags, container);
 
         let grant;
         try {
@@ -872,12 +986,13 @@ async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity
  * @param {object} options
  * @param {string} options.sourceActorUuid - Accepts a synthetic token-actor UUID.
  * @param {string} options.targetActorUuid
- * @param {object[]} options.items - [{ itemId, quantity?, flags? }]. Omit quantity to take the whole stack.
+ * @param {object[]} options.items - [{ itemId, quantity?, flags?, container? }]. Omit quantity to take the whole stack.
  * @param {string} [options.stack='merge']
  * @param {string[]} [options.ignoreFlags=[]]
+ * @param {string} [options.container=null] - Default arrival container on the target Actor.
  * @returns {Promise<object>} { ok, results: [] }
  */
-async function transferItems({ sourceActorUuid, targetActorUuid, items = [], stack = 'merge', ignoreFlags = [] } = {}) {
+async function transferItems({ sourceActorUuid, targetActorUuid, items = [], stack = 'merge', ignoreFlags = [], container = null } = {}) {
     const sourceActor = await _resolveActor(sourceActorUuid);
     if (!sourceActor) return fail(CODES.SOURCE_ACTOR_NOT_FOUND, { sourceActorUuid });
     const targetActor = await _resolveActor(targetActorUuid);
@@ -892,6 +1007,11 @@ async function transferItems({ sourceActorUuid, targetActorUuid, items = [], sta
         const prepared = new Array(items.length);
         const reductions = [];   // { index, item, quantity, stackable, available }
         const seen = new Set();
+
+        // Every distinct arrival container checked once, against the live target, inside the
+        // lock. `undefined` means "use the batch default"; an explicit null means root.
+        const containers = items.map(request => (request?.container === undefined ? container : request.container));
+        const containerFailures = await _validateContainers(targetActor, containers);
 
         for (let index = 0; index < items.length; index++) {
             const request = items[index];
@@ -922,10 +1042,13 @@ async function transferItems({ sourceActorUuid, targetActorUuid, items = [], sta
             const resolved = _resolveQuantity(sourceItem, request?.quantity);
             if (resolved.error) { results[index] = { ...resolved.error, itemId }; continue; }
 
+            const containerError = containerFailures.get(containers[index]);
+            if (containerError) { results[index] = { ...containerError, itemId }; continue; }
+
             const flags = request?.flags ?? {};
             prepared[index] = {
                 ok: true,
-                payload: _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags),
+                payload: _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags, containers[index]),
                 quantity: resolved.quantity,
                 arrivalFlags: flags
             };

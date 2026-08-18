@@ -138,6 +138,41 @@ and many source deletes, which breaks the singular return shape, makes quantity 
 turns rollback into N deletes plus N restores plus reporting which of those also failed. That belongs in its
 own method.
 
+## Containment is written on arrival, never inherited
+
+`_buildPayload` sets `system.container` on every payload it produces - to the caller's `container` option,
+or to `null`. It is deliberately not in `RESET_PATHS`, because that set is deleted and dnd5e writes the
+field rather than dropping it. An absent key and an explicit `null` are not the same value.
+
+dnd5e's own reset set does not mention containment either (`_onDropResetData`, `dnd5e.mjs:57594`), and
+copying that omission is what produced the defect. The system does not need containment in its reset set
+because every creation path assigns it explicitly: `Item5e.createWithContents` applies
+`mergeObject(newItemData, {"system.container": containerId})` to each create (`dnd5e.mjs:24171`), and
+moving an item out of a container nulls it (`dnd5e.mjs:57414`). Containment is an argument of the arrival
+in every core path.
+
+Inheriting it instead meant an item taken out of a bag arrived carrying the *source* Actor's bag id, which
+names no row on the recipient. Two symptoms followed, and neither pointed at this file. The row was
+orphaned into a container that does not exist; and because containment sits inside `system`, it also
+participates in merge identity, so the arrival compared against a foreign id and matched nothing - arrows
+looted from a corpse's pack refused to stack with the arrows the looter already carried.
+
+`_identitySystem` normalises `container` to `null` rather than excluding it. Excluding it would merge two
+stacks that are in different places, which is wrong; normalising covers rows written by another module or
+an older dnd5e that carry no key at all, which would otherwise compare unequal to our explicit `null`.
+
+`_validateContainer` runs **inside the target Actor's lock**, for the same reason quantities are re-read
+there: an id checked before the lock can be deleted before the write, which recreates the dangling pointer
+the check exists to prevent. It refuses rather than falling back to root, because a silent fallback puts
+the item somewhere the result does not report. The depth rule mirrors dnd5e's own refusal
+(`dnd5e.mjs:24156-24160`) and is feature-detected on `system.allContainers` - if that getter moves, the
+check is skipped rather than refusing every container grant, since existence and type already rule out the
+orphaning case.
+
+Full container transfer remains out of scope; see invariant 4. Granting a container *with* its contents as
+a unit is a different operation again - `Item5e.createWithContents` (`dnd5e.mjs:24153`) is the recursion,
+and it is one-to-many creates rather than the one-to-one shape these primitives return.
+
 ## The encumbrance guard
 
 `scripts/manager-encumbrance-guard.js` mitigates the dnd5e race described in invariant 3. It is a guard

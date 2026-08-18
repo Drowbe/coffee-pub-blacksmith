@@ -47,6 +47,7 @@ const result = await blacksmith.inventory.grantItem({
 | `stack` | no | `'merge'` (default) or `'separate'`. |
 | `ignoreFlags` | no | Flag paths the merge check treats as non-identity. |
 | `flags` | no | Flags written in the same operation as the item. See below - this is not a convenience. |
+| `container` | no | Id of a container on the target Actor. Omitted or `null` lands the item at the root of the inventory. |
 
 When `itemUuid` resolves a compendium document, the created item carries `_stats.compendiumSource`, so
 granted items keep provenance that a hand-rolled `toObject()` create loses. This never splits a stack; see
@@ -197,6 +198,27 @@ primitive decide something that belongs to a table.
 `transferCurrency` validates every denomination before writing anything, because a partially completed
 currency move is not something a rollback expresses cleanly.
 
+## Where an item lands
+
+Every one of these writes `system.container` on arrival. Without a `container` option the item lands at
+the root of the target's inventory; with one it lands inside that container. The source item's own
+containment is never carried over - it names a row on the source Actor, which does not exist on the
+target.
+
+`grantItems` and `transferItems` take `container` at the top level as a default for the batch, and each
+entry may carry its own. An entry stating `container: null` lands at root even when the batch names one;
+an entry that omits the key takes the batch default.
+
+An id that does not resolve to a container on the target Actor is refused with `CONTAINER_NOT_FOUND`
+rather than quietly falling back to root, because a caller that names a container has a reason and a
+silent fallback puts the item somewhere the result does not mention. Nesting deeper than dnd5e permits is
+refused with `CONTAINER_MAX_DEPTH`. In the batch forms both are per entry, so one bad id does not stop the
+other rows.
+
+Containment participates in merge identity. Two otherwise identical stacks in different containers are in
+different places and stay separate rows; a grant naming a container merges only with a matching row
+already in that container.
+
 ## Stackability is derived, never declared
 
 There is no `hasQuantity` parameter and there will not be one. Whether an item stacks decides
@@ -310,6 +332,8 @@ Every failure is `{ ok: false, code, ...context }`.
 | `INSUFFICIENT_CURRENCY` | Carries `shortfalls` keyed by denomination, each with `requested` and `available`. |
 | `ITEM_NOT_TRANSFERABLE` | Carries `type` and `allowed`. |
 | `CONTAINER_HAS_CONTENTS` | Carries `contentCount`, or `null` when it could not be determined. |
+| `CONTAINER_NOT_FOUND` | The `container` id did not resolve to a container on the target Actor. Carries `containerId`, and `type` when the id resolved to something that is not a container. |
+| `CONTAINER_MAX_DEPTH` | Placing the item there would nest deeper than dnd5e allows. Carries `containerId`, `depth`, and `max`. |
 | `TARGET_CREATE_FAILED` | The write to the target failed. Nothing was taken from the source. |
 | `SOURCE_UPDATE_FAILED` | The target received the item but the source could not be reduced. The grant was rolled back. |
 | `ROLLBACK_FAILED` | As above, and the rollback also failed. Requires manual repair. |

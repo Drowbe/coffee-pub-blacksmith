@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 
+### Added
+
+- **`api.inventory` can name the container an item lands in** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`). `grantItem`, `grantItems`, `transferItem` and `transferItems` all take a `container` option holding the id of a container on the target Actor; omitted or `null` lands the item at the root of the inventory, as before. The batch forms take it at the top level as a default and allow each entry to override it, where an explicit `null` on an entry means root even when the batch names a container and an omitted key means "use the batch default".
+
+  This is one write rather than two. A consumer placing stock on a shelf previously had to grant and then update `system.container`, and a second write to the same Actor is exactly the shape that collides with dnd5e's encumbrance recompute -- the reason `flags` is a parameter rather than a caller's follow-up `setFlag`.
+
+  An id that does not resolve to a container on the target is refused with the new `CONTAINER_NOT_FOUND`, carrying `containerId` and, when the id resolved to something else, its `type`. Nesting past what dnd5e permits is refused with `CONTAINER_MAX_DEPTH`, mirroring the system's own check (`dnd5e.mjs:24156-24160`). Refusing rather than quietly falling back to root is deliberate: a caller that names a container has a reason, and a silent fallback leaves the item somewhere the result does not mention. Both are per entry in the batch forms, so one bad id does not stop the other rows. Validation runs inside the target Actor's lock, because an id checked before the lock can be deleted before the write.
+
+### Fixed
+
+- **An item taken out of a container arrived on the recipient pointing at a container the recipient does not have** (`scripts/api-inventory.js`). `_buildPayload` built its payload from `toObject()` and left `system.container` untouched, so the value it carried named a row on the *source* Actor. dnd5e keeps containment on the child, so the arrival was orphaned into a container that does not exist there.
+
+  Because containment sits inside `system`, it also participates in merge identity, which produced the more visible half of the symptom: the arrival compared against a foreign container id, matched nothing, and landed as a separate row. Arrows looted out of a corpse's pack refused to stack with the arrows the looter was already carrying.
+
+  Every payload now writes `system.container` explicitly -- the requested container, or `null`. This follows dnd5e rather than departing from it: the system's reset set does not mention containment (`dnd5e.mjs:57594`) because every core creation path assigns the field instead (`Item5e.createWithContents` at `dnd5e.mjs:24171`, and the move-out path nulling it at `dnd5e.mjs:57414`). Adding it to `RESET_PATHS` would have been wrong for the same reason -- that set deletes keys, and an absent key is not the `null` dnd5e writes.
+
+  `_identitySystem` now normalises `container` to `null` rather than excluding it from identity. Excluding it would merge two stacks sitting in different containers, which is a different bug; normalising covers rows written by another module or an older dnd5e that carry no key at all.
+
+  Reported by Curator, which hit it as the ordinary case rather than the unusual one -- every acquisition takes stock off a shelf, so the source item is nearly always in a container. Curator's loot window hits the same path, since it takes a packed bag's contents first and every item it moves therefore carries a container id.
+
+  Verify live: with a character already carrying a stack of arrows, put an identical stack inside a bag on an NPC, and take it. The arrows must merge into the stack the character already has, leaving one row at the root of the inventory rather than two. The harness covers this as `container-not-inherited`, with `container-placement` and `container-placement-rejections` for the new option (`testing/suites/suite-inventory.js`).
+
 
 ## [13.18.1]
 

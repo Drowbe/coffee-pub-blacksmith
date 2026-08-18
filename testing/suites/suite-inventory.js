@@ -200,6 +200,7 @@ export default {
                 }
                 expect.ok('CODES is exposed', typeof inv.CODES === 'object');
                 expect.ok('LOCK_TIMEOUT code exists', inv.CODES?.LOCK_TIMEOUT === 'LOCK_TIMEOUT');
+                expect.ok('CONTAINER_NOT_FOUND code exists', inv.CODES?.CONTAINER_NOT_FOUND === 'CONTAINER_NOT_FOUND');
                 expect.ok('PHYSICAL_TYPES excludes class', !inv.PHYSICAL_TYPES?.includes('class'));
                 expect.ok('DENOMINATIONS covers all five',
                     ['pp', 'gp', 'ep', 'sp', 'cp'].every(d => inv.DENOMINATIONS?.includes(d)));
@@ -762,6 +763,142 @@ export default {
                     expect('packed container refused', packed.code, inv.CODES.CONTAINER_HAS_CONTENTS);
                     expect('reports how many to unpack', packed.contentCount, 2);
                     expect.ok('bag still on the source', Boolean(source.items.get(bag.id)));
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'container-not-inherited',
+            tier: 'headless',
+            group: 'Transfer',
+            label: 'An item taken out of a bag arrives at root and stacks',
+            note: 'Regression. Containment used to be carried over from the source, so looted contents '
+                + 'arrived pointing at a bag that is not on the recipient, and matched nothing on merge.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const corpse = await tempActor('npc', 'inherit-src');
+                    const looter = await tempActor('character', 'inherit-tgt');
+                    made.push(corpse, looter);
+
+                    // The looter is already carrying the same arrows, loose. This is the case the
+                    // defect broke: the arrival could not merge with them.
+                    await looter.createEmbeddedDocuments('Item', [
+                        lootData('Harness Inherit Arrows', { system: { quantity: 20 } })
+                    ]);
+
+                    const [bag] = await corpse.createEmbeddedDocuments('Item', [{ name: 'Harness Inherit Bag', type: 'container' }]);
+                    const [bagged] = await corpse.createEmbeddedDocuments('Item', [
+                        lootData('Harness Inherit Arrows', { system: { quantity: 5, container: bag.id } })
+                    ]);
+                    expect('fixture really is inside the bag', bagged._source.system.container, bag.id);
+
+                    const result = await inv.transferItem({
+                        sourceActorUuid: corpse.uuid, targetActorUuid: looter.uuid, itemId: bagged.id
+                    });
+                    expect('transfer succeeded', result.ok, true);
+                    expect('it merged with the arrows already carried', result.merged, true);
+
+                    const arrived = looter.items.get(result.targetItemId);
+                    expect('one row on the looter, not two', looter.items.size, 1);
+                    expect('quantities summed', quantityOf(arrived), 25);
+                    expect('containment was not inherited', arrived?._source?.system?.container ?? null, null);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'container-placement',
+            tier: 'headless',
+            group: 'Grant',
+            label: 'A grant can name the container it lands in',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const shopkeeper = await tempActor('npc', 'shelf-owner');
+                    made.push(shopkeeper);
+                    const [shelf] = await shopkeeper.createEmbeddedDocuments('Item', [{ name: 'Harness Shelf', type: 'container' }]);
+
+                    const placed = await inv.grantItem({
+                        targetActorUuid: shopkeeper.uuid,
+                        itemData: lootData('Harness Shelved Rope', { system: { quantity: 2 } }),
+                        container: shelf.id
+                    });
+                    expect('grant into a container succeeded', placed.ok, true);
+                    expect('it landed in the shelf',
+                        shopkeeper.items.get(placed.targetItemId)?._source?.system?.container, shelf.id);
+
+                    // The same item at root is in a different place, so it is a different row.
+                    const loose = await inv.grantItem({
+                        targetActorUuid: shopkeeper.uuid,
+                        itemData: lootData('Harness Shelved Rope', { system: { quantity: 2 } })
+                    });
+                    expect('the root grant succeeded', loose.ok, true);
+                    expect('it did not merge across containers', loose.merged, false);
+                    expect('and it is at root', shopkeeper.items.get(loose.targetItemId)?._source?.system?.container ?? null, null);
+
+                    const again = await inv.grantItem({
+                        targetActorUuid: shopkeeper.uuid,
+                        itemData: lootData('Harness Shelved Rope', { system: { quantity: 3 } }),
+                        container: shelf.id
+                    });
+                    expect('a second shelf grant merged', again.merged, true);
+                    expect('into the row already on that shelf', again.targetItemId, placed.targetItemId);
+                    expect('quantity summed on the shelf', quantityOf(shopkeeper.items.get(placed.targetItemId)), 5);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'container-placement-rejections',
+            tier: 'headless',
+            group: 'Grant',
+            label: 'An unusable container id is refused, not dropped to root',
+            note: 'Silently ignoring it would leave stock loose on an NPC with nothing in the result saying so.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const target = await tempActor('character', 'badshelf');
+                    made.push(target);
+                    const [notABag] = await target.createEmbeddedDocuments('Item', [lootData('Harness Not A Bag')]);
+
+                    const unknown = await inv.grantItem({
+                        targetActorUuid: target.uuid,
+                        itemData: lootData('Harness Ghost Shelf Item'),
+                        container: 'nosuchid00000000'
+                    });
+                    expect('an unknown container id is refused', unknown.code, inv.CODES.CONTAINER_NOT_FOUND);
+
+                    const wrongType = await inv.grantItem({
+                        targetActorUuid: target.uuid,
+                        itemData: lootData('Harness Wrong Type Item'),
+                        container: notABag.id
+                    });
+                    expect('an id that is not a container is refused', wrongType.code, inv.CODES.CONTAINER_NOT_FOUND);
+                    expect('and the refusal says what it found', wrongType.type, 'loot');
+
+                    // One bad container must not take the rest of the batch down with it.
+                    const batch = await inv.grantItems({
+                        targetActorUuid: target.uuid,
+                        items: [
+                            { itemData: lootData('Harness Batch Good') },
+                            { itemData: lootData('Harness Batch Bad'), container: 'nosuchid00000000' }
+                        ]
+                    });
+                    expect('top-level ok is false', batch.ok, false);
+                    expect('the good entry still landed', batch.results[0].ok, true);
+                    expect('only the bad entry was refused', batch.results[1].code, inv.CODES.CONTAINER_NOT_FOUND);
+
+                    expect('nothing was created by the refusals', target.items.size, 2);
                 } finally {
                     await cleanup(made);
                 }
