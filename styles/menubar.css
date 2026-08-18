@@ -490,17 +490,29 @@
 /* TIMERS TEMPORARILY IN THE CSS CLIENT */
 /* TIMER SECTION */
 .timer-section {
-    --pad-x: 8px;
-    --pad-y: 2px;
     position: relative;
-    display: flex; /* align icon + text in a row */
-    align-items: center; /* vertical centering */
-    justify-content: center; /* horizontal centering as a group */
-    gap: 4px; /* space between icon and text */
-    min-width:90px;
-    padding: var(--pad-y) var(--pad-x);
+    display: flex;
+    align-items: center;
+    gap: 4px;
     border-radius: 4px;
-  }
+}
+
+/* Beats `.blacksmith-menubar-right .button-active` (same specificity, later
+   in the file): that rule zeros horizontal padding and puts 4px on the icon,
+   which stacked with gap. */
+.blacksmith-menubar-right .timer-section {
+    padding: 2px 6px;
+}
+.blacksmith-menubar-right .timer-section i {
+    margin: 0;
+}
+
+.session-timer {
+    /* Tabular figures so the digits keep their columns as the time changes.
+       This is why there is no min-width: a proportional "1" vs "9" used to
+       jitter, and a 90px floor was papering over it. */
+    font-variant-numeric: tabular-nums;
+}
   
 .timer-section::before {
     content: "";
