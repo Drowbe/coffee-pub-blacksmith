@@ -2,8 +2,8 @@
 // ===== WORLD CLOCK ================================================
 // ==================================================================
 //
-// The in-world clock: a readout of `game.time` with GM controls, rendered in the
-// menubar beside the session timer.
+// The in-world clock: a readout of `game.time` with GM controls, rendered first
+// in the menubar's right zone.
 //
 // SELF-CONTAINED BY DESIGN. Everything this feature owns lives in files named for
 // it -- this manager, `templates/partials/worldclock.hbs`, `styles/worldclock.css`
@@ -571,10 +571,9 @@ class WorldClockManager {
     /**
      * The detail the compact readout leaves out: weekday, date, year, season.
      *
-     * The bar shows the time alone because the right zone already carries the leader,
-     * the movement mode and the session timer, and a full date there would push the
-     * row into overflow at ordinary window widths. The date is not dropped; it is one
-     * hover away.
+     * The bar shows the time alone. A full date in the right zone would push the
+     * row into overflow at ordinary window widths. The date is not dropped; it is
+     * one hover away.
      *
      * Every part is optional. A calendar need not define months, weekdays or seasons
      * -- `months` and `seasons` are explicitly nullable in the core schema -- so each
@@ -670,7 +669,7 @@ class WorldClockManager {
     /**
      * Repaint the clock in place.
      *
-     * Deliberately NOT on an interval, unlike the session timer beside it. World time
+     * Deliberately NOT on an interval, unlike the session timer. World time
      * does not pass on its own -- it moves only when something advances it, and
      * `updateWorldTime` fires exactly then. A ticking interval would spend a repaint
      * per second redrawing an identical string for the whole session.

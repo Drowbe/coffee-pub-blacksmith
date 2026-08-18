@@ -7,8 +7,9 @@ How the in-world clock in the menubar is built and why. The public surface is de
 
 ## What it is
 
-A readout of the world's in-game time, rendered in the menubar's right zone beside the session timer,
-with GM-only controls for moving that time: two step sizes in each direction, and a draggable sky track.
+A readout of the world's in-game time, rendered first in the menubar's right zone so that zone reads
+world time, then tools, then the session timer, with GM-only controls for moving that time: two step
+sizes in each direction, and a draggable sky track.
 
 It reads Foundry's own timekeeping and adds no calendar of its own.
 
@@ -61,7 +62,8 @@ callback is passed in rather than imported because `playMenubarButtonSound` is a
 
 The widget is **not** registered with `registerMenubarTool`. That registry dispatches one `onClick` per
 tool id, and this is several controls plus a drag surface inside one element. The menubar's delegated
-click handler still sees these clicks, finds no registered tool, and returns.
+click handler still sees these clicks, finds no registered tool, and returns. It is hardcoded as the
+first child of the right zone, so leader, movement, and other right-zone tools cannot reorder in front of it.
 
 ## Why it reads components rather than doing arithmetic
 
@@ -299,7 +301,7 @@ and no second code path.
 
 ## No interval
 
-Unlike the session timer beside it, the clock is not on a timer. World time does not pass on its own --
+Unlike the session timer, the clock is not on a timer. World time does not pass on its own --
 it moves only when something advances it, and `updateWorldTime` fires exactly then. A ticking interval
 would spend a repaint per second redrawing an identical string for the whole session.
 

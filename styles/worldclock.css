@@ -2,7 +2,7 @@
 /* ===== WORLD CLOCK ================================================ */
 /* ================================================================== */
 /*
-   The in-world clock in the menubar, beside the session timer.
+   The in-world clock in the menubar, first in the right zone.
 
    Owned with scripts/manager-worldclock.js and
    templates/partials/worldclock.hbs. Nothing else styles these classes, and this
@@ -34,10 +34,10 @@
     border-radius: 4px;
 }
 
-/* Beats `.blacksmith-menubar-right .button-active` / `.tool-readonly` (same
-   specificity, this file loads after menubar.css). Players get `.tool-readonly`;
-   the GM section is neither, so without this the two clients pad differently. */
-.blacksmith-menubar-right .worldclock-section {
+/* Beats the zone tool rules (same specificity, this file loads after
+   menubar.css). Players get `.tool-readonly`; the GM section is neither, so
+   without this the two clients pad differently. */
+.blacksmith-menubar-container .worldclock-section {
     padding: 2px 6px;
 }
 
@@ -209,7 +209,7 @@
 }
 
 /* Right-zone tools put 4px on every `i`. That stacked with the cluster gap. */
-.blacksmith-menubar-right .worldclock-section .worldclock-step {
+.blacksmith-menubar-container .worldclock-section .worldclock-step {
     margin: 0;
 }
 .worldclock-section .worldclock-step:hover {

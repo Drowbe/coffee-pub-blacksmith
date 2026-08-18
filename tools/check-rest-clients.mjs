@@ -1075,6 +1075,13 @@ check(
     !/^\.(?!blacksmith-rest-tool-window)[a-z-]+\s*[,{]/m.test(restCss),
     `An unscoped rule from a tool window leaks onto every other consumer of the shared shell.`
 );
+check(
+    'It gives the tool body its own padding.',
+    /blacksmith-window-tool-body\s*\{[^}]*padding/.test(restCss),
+    `\`.blacksmith-window-tool-body\` ships NO padding -- only flex, overflow and the min-* guards -- so a ` +
+    `consumer that supplies none sits flush against the frame. Every other tool window sets it, either on ` +
+    `the body or on the content inside it.`
+);
 
 check(
     'The window reads the system\'s own long-rest configuration.',
@@ -1085,13 +1092,21 @@ check(
 // Asserted per OPTION rather than against one exact line, because the line's shape is
 // nobody's contract: refactoring three reads into a shared `restConfig` local broke
 // the previous spelling-matched assertion while the behaviour was untouched.
-for (const option of ['newDay', 'recoverTemp', 'recoverTempMax']) {
+for (const option of ['recoverTemp', 'recoverTempMax']) {
     check(
         `\`${option}\` defaults from the system, not a literal.`,
         new RegExp(`const ${option} = restConfig\\.${option} === true;`).test(windowSrc),
         `The window sends its config explicitly, so an unticked box is not neutral -- it is \`false\`, sent deliberately.`
     );
 }
+
+// `newDay` is asserted apart from the other two because it belongs to BOTH rests and
+// therefore reads from whichever is chosen, rather than from the long-rest config.
+check(
+    '`newDay` defaults from the system, for whichever rest is chosen.',
+    /restTypes\?\.\[this\._restType\]\?\.newDay === true/.test(windowSrc),
+    `The window sends its config explicitly, so an unticked box is not neutral -- it is \`false\`, sent deliberately.`
+);
 
 for (const [option, field] of [['newDay', 'rest-new-day'], ['recoverTemp', 'rest-recover-temp'], ['recoverTempMax', 'rest-recover-temp-max']]) {
     check(
@@ -1120,9 +1135,24 @@ check(
     `DEFAULT differs, never the availability.`
 );
 check(
-    'And its default follows the chosen rest type.',
-    /CONFIG\.DND5E\?\.restTypes\?\.\[?lastType\]?\?\.newDay === true/.test(windowSrc),
+    'And switching rest type resets it to that type\'s default.',
+    /_setRestType[\s\S]*?restTypes\?\.\[next\]\?\.newDay === true/.test(windowSrc),
     `dnd5e sets it for a long rest and not for a short one; switching type must follow that.`
+);
+check(
+    'Switching rest type does NOT re-render.',
+    /_setRestType\([\s\S]*?\n    \}/.test(windowSrc) && !/_setRestType[\s\S]{0,600}?this\.render\(/.test(windowSrc),
+    `Rebuilding the body would rebuild the roster, silently undoing the GM's ticks -- both the token ` +
+    `preselection and any hand edits since.`
+);
+check(
+    'The kind of rest is two exclusive buttons, not a dropdown.',
+    /data-action="rest-type"/.test(windowSrc) && !/<select/.test(windowSrc),
+    `There are exactly two answers and both are worth reading at a glance; a select hides one behind a click.`
+);
+check(
+    'And the instance is the record of the choice, not the markup.',
+    /_restType = 'long'/.test(windowSrc) && /this\._restType !== 'short'/.test(windowSrc)
 );
 check(
     'New Day is submitted as the GM left it, not gated on rest type.',

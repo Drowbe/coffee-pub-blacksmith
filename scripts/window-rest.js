@@ -61,11 +61,21 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
     /** The single instance, so reopening does not stack windows. */
     static _ref = null;
 
+    /**
+     * Which rest the GM has chosen.
+     *
+     * Held on the instance rather than read from the DOM, so `getData` can render the
+     * right button active on a re-render without the markup being the only record of
+     * it. Changing it does NOT re-render -- see `_setRestType`.
+     */
+    _restType = 'long';
+
     // Handlers receive the instance as their third argument, so they never resolve a
     // shared static reference. See window-base.js.
     static ACTION_HANDLERS = {
         'rest-begin': (_event, _target, win) => win?._begin(),
         'rest-cancel': (_event, _target, win) => win?.close(),
+        'rest-type': (_event, target, win) => win?._setRestType(target?.dataset?.restType),
         'rest-select-all': (_event, _target, win) => win?._setAllSelected(true),
         'rest-select-none': (_event, _target, win) => win?._setAllSelected(false)
     };
@@ -129,6 +139,7 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
     async getData() {
         const esc = foundry.utils.escapeHTML;
         const candidates = RestWindow.getCandidates();
+        const isLong = this._restType !== 'short';
 
         // Defaults come from the world settings, so the window opens saying what the
         // table has already decided and the GM only touches what is different tonight.
@@ -150,7 +161,9 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
         // (`dnd5e.mjs:46434`) -- which is why `_onRender` hides them for a short rest
         // rather than sending values dnd5e would ignore.
         const restConfig = CONFIG.DND5E?.restTypes?.long ?? {};
-        const newDay = restConfig.newDay === true;
+        // New Day follows whichever rest is currently chosen, since both offer it and
+        // the two default differently.
+        const newDay = CONFIG.DND5E?.restTypes?.[this._restType]?.newDay === true;
         const recoverTemp = restConfig.recoverTemp === true;
         const recoverTempMax = restConfig.recoverTempMax === true;
 
@@ -190,11 +203,15 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                         <i class="fa-solid fa-campground"></i>
                         <span>Rest</span>
                     </div>
-                    <div class="blacksmith-field">
-                        <select class="blacksmith-input" name="rest-type">
-                            <option value="long" selected>Long Rest</option>
-                            <option value="short">Short Rest</option>
-                        </select>
+                    <div class="blacksmith-rest-types" role="group" aria-label="Kind of rest">
+                        <button type="button" class="blacksmith-rest-type${isLong ? ' is-active' : ''}"
+                            data-action="rest-type" data-rest-type="long" aria-pressed="${isLong}">
+                            <i class="fa-solid fa-campground"></i> Long Rest
+                        </button>
+                        <button type="button" class="blacksmith-rest-type${isLong ? '' : ' is-active'}"
+                            data-action="rest-type" data-rest-type="short" aria-pressed="${!isLong}">
+                            <i class="fa-solid fa-utensils"></i> Short Rest
+                        </button>
                     </div>
                     <label class="blacksmith-rest-option blacksmith-rest-new-day">
                         <input type="checkbox" name="rest-new-day" ${newDay ? 'checked' : ''}>
@@ -292,47 +309,67 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
         // of them. Leaving them visible-but-ignored is the kind of small lie that
         // makes a GM distrust the rest of the form: they tick a box, watch nothing
         // happen, and are right to wonder what else does nothing.
-        const type = root.querySelector('[name="rest-type"]');
+        this._syncRestType();
+    }
+
+    /**
+     * Show the sections that belong to the chosen rest, and mark the active toggle.
+     *
+     * Reads `this._restType` rather than the DOM, so the instance stays the single
+     * record of the choice and the markup is only its presentation.
+     */
+    _syncRestType() {
+        const root = this._getRoot();
+        if (!root) return;
+
+        const isLong = this._restType !== 'short';
+
+        // A SHORT REST HAS NO NEW DAY DEFAULT, NO HIT POINT OPTIONS AND NO RATIONS, so
+        // those controls must not sit there looking live -- `restTypes.short` declares
+        // none of them. Leaving them visible-but-ignored is the kind of small lie that
+        // makes a GM distrust the rest of the form: they tick a box, watch nothing
+        // happen, and are right to wonder what else does nothing.
         const LONG_REST_ONLY = ['.blacksmith-rest-provisions', '.blacksmith-rest-hitpoints'];
         // And the reverse: hit dice are the SHORT rest's business. A long rest restores
         // hit points outright, so spending dice on one burns a resource for nothing.
         const SHORT_REST_ONLY = ['.blacksmith-rest-shortrest'];
 
-        // NEW DAY BELONGS TO BOTH RESTS, with a different default for each: dnd5e sets
-        // it for a long rest and not for a short one (`restTypes.long.newDay`, and no
-        // such key on `short`). A short rest can still start a new day -- an all-night
-        // watch broken by an hour's rest at dawn -- so the control stays; only its
-        // default changes.
-        //
-        // Reset on a type CHANGE rather than on every sync, so the GM's own tick
-        // survives an unrelated re-render.
-        const newDayBox = root.querySelector('[name="rest-new-day"]');
-        let lastType = type?.value ?? 'long';
+        for (const selector of LONG_REST_ONLY) {
+            root.querySelector(selector)?.classList.toggle('is-hidden', !isLong);
+        }
+        for (const selector of SHORT_REST_ONLY) {
+            root.querySelector(selector)?.classList.toggle('is-hidden', isLong);
+        }
 
-        const sync = () => {
-            const isLong = type?.value !== 'short';
-            for (const selector of LONG_REST_ONLY) {
-                root.querySelector(selector)?.classList.toggle('is-hidden', !isLong);
-            }
-            for (const selector of SHORT_REST_ONLY) {
-                root.querySelector(selector)?.classList.toggle('is-hidden', isLong);
-            }
-        };
+        for (const button of root.querySelectorAll('[data-action="rest-type"]')) {
+            const active = button.dataset.restType === this._restType;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', String(active));
+        }
+    }
 
-        const onTypeChange = () => {
-            if (type?.value !== lastType) {
-                lastType = type?.value;
-                if (newDayBox) {
-                    newDayBox.checked = CONFIG.DND5E?.restTypes?.[lastType]?.newDay === true;
-                }
-            }
-            sync();
-        };
+    /**
+     * Choose a kind of rest.
+     *
+     * DELIBERATELY NOT A RE-RENDER. Rebuilding the body would rebuild the roster, and
+     * the roster's ticks are the GM's own work -- both the token preselection and any
+     * hand edits since. Switching Long to Short to compare would silently undo them.
+     * Only what actually depends on the rest type is touched.
+     *
+     * New Day follows the new type's default, because dnd5e sets it for a long rest
+     * and not for a short one and the box should say what the system would do. A GM
+     * who then ticks it keeps that tick until they switch type again.
+     */
+    _setRestType(restType) {
+        const next = restType === 'short' ? 'short' : 'long';
+        if (next === this._restType) return;
 
-        // Rebound on every render, and the element is new each time, so listeners
-        // cannot stack on the old one.
-        type?.addEventListener('change', onTypeChange);
-        sync();
+        this._restType = next;
+
+        const newDayBox = this._getRoot()?.querySelector('[name="rest-new-day"]');
+        if (newDayBox) newDayBox.checked = CONFIG.DND5E?.restTypes?.[next]?.newDay === true;
+
+        this._syncRestType();
     }
 
     _setAllSelected(selected) {
@@ -360,7 +397,7 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
             return;
         }
 
-        const restType = root.querySelector('[name="rest-type"]')?.value === 'short' ? 'short' : 'long';
+        const restType = this._restType === 'short' ? 'short' : 'long';
         const isLong = restType === 'long';
 
         const ticked = (name) => isLong && root.querySelector(`[name="${name}"]`)?.checked === true;

@@ -18,6 +18,19 @@
    Reached through the @import chain in default.css.
    ================================================================== */
 
+/* THE BODY ZONE SHIPS NO PADDING. `.blacksmith-window-tool-body` sets only
+   flex, overflow and the min-* guards, so every consumer supplies its own
+   inset -- notes pads the body 8px, health and the dice tray zero it and pad
+   their inner content instead. Without one, the form sits flush against the
+   frame.
+
+   8px horizontally to line the content up with the shell's own footer, which
+   pads `4px 8px`. */
+.blacksmith-rest-tool-window .blacksmith-window-tool-body {
+    padding: 8px;
+    color: var(--blacksmith-tool-text);
+}
+
 .blacksmith-rest-tool-window .blacksmith-rest-form {
     display: flex;
     flex-direction: column;
@@ -47,6 +60,44 @@
 
 .blacksmith-rest-tool-window .blacksmith-rest-group-title i {
     font-size: 0.9em;
+}
+
+/* --- Which rest ---------------------------------------------------
+   Two exclusive buttons rather than a dropdown: there are exactly two
+   answers, both worth reading at a glance, and a select hides one of
+   them behind a click. No segmented control exists in the shared
+   vocabulary -- `blacksmith-toggle` is a switch, which is a different
+   question -- so this is built from the shell's own tokens and stays
+   correct across all three tool themes. */
+
+.blacksmith-rest-tool-window .blacksmith-rest-types {
+    display: flex;
+    gap: 6px;
+}
+
+.blacksmith-rest-tool-window .blacksmith-rest-type {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 4px 8px;
+    line-height: 1.6;
+    border: 1px solid var(--blacksmith-tool-border);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--blacksmith-tool-text-muted);
+}
+
+.blacksmith-rest-tool-window .blacksmith-rest-type:hover {
+    background: var(--blacksmith-tool-surface-hover);
+    color: var(--blacksmith-tool-text);
+}
+
+/* The chosen one carries the accent, so which rest is about to happen is
+   readable without comparing the two. */
+.blacksmith-rest-tool-window .blacksmith-rest-type.is-active {
+    background: var(--blacksmith-tool-surface-selected);
+    border-color: var(--blacksmith-tool-accent);
+    color: var(--blacksmith-tool-text);
+    font-weight: 700;
 }
 
 /* --- The roster -------------------------------------------------- */

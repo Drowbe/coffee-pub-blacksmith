@@ -3817,7 +3817,7 @@ class MenuBar {
                 timerText: this.getTimerText(),
                 timerProgress: this.getTimerProgress(),
                 // The world clock is its own feature (scripts/manager-worldclock.js).
-                // The menubar supplies it a slot and a render pass, nothing more.
+                // The menubar supplies it the first slot in the right zone and a render pass.
                 worldClock: WorldClockManager.getRenderData(),
                 currentMovement: currentMovementData,
                 toolsByZone: toolsByZone,
