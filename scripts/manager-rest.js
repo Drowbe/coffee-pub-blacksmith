@@ -330,7 +330,9 @@ class RestManager {
                 [this.GROUP_KEY]: state.restId ?? null,
                 [this.OPTIONS_KEY]: {
                     trackFood: state.restOptions?.trackFood,
-                    trackWater: state.restOptions?.trackWater
+                    trackWater: state.restOptions?.trackWater,
+                    forage: state.restOptions?.forage,
+                    exhaustion: state.restOptions?.exhaustion
                 }
             };
 
@@ -596,15 +598,36 @@ class RestManager {
         // that rest without changing what the world does every other night. Undefined
         // means the rest expressed no opinion -- a rest started anywhere but our own
         // window -- so the setting decides, exactly as before.
-        const choose = (chosen, key) => (typeof chosen === 'boolean'
+        const choose = (chosen, key, fallback = false) => (typeof chosen === 'boolean'
             ? chosen
-            : getSettingSafely(MODULE.ID, key, false));
+            : getSettingSafely(MODULE.ID, key, fallback));
 
         const wantFood = choose(options?.trackFood, 'restTrackFood');
         const wantWater = choose(options?.trackWater, 'restTrackWater');
         if (!wantFood && !wantWater) return;
 
-        const outcome = { name: actor.name, img: actor.img ?? null, food: null, water: null, exhaustion: 0 };
+        // TWO INDEPENDENT QUESTIONS, and they compose into four tables rather than one:
+        //
+        //   forage on,  exhaustion on   a check, and failing it costs a level
+        //   forage on,  exhaustion off  a check, and failing it just means going without
+        //   forage off, exhaustion on   no check; going without costs a level
+        //   forage off, exhaustion off  no check; the card shows a cross and the GM
+        //                               decides what it means
+        //
+        // Foraging off is not "forage and always fail" -- there is no roll, no DC and
+        // no button, because the table has said searching for food is not a thing that
+        // happens here. Exhaustion off does not hide the shortage either; the cross
+        // still shows, because what a character ate is a fact and the penalty is a rule.
+        const canForage = choose(options?.forage, 'restForageEnabled', true);
+        const applyExhaustion = choose(options?.exhaustion, 'restExhaustionEnabled', true);
+
+        const outcome = {
+            name: actor.name, img: actor.img ?? null, food: null, water: null, exhaustion: 0,
+            // Carried on the outcome, and therefore onto the card, because a foraging
+            // roll resolves MINUTES LATER from that card -- by which time this rest's
+            // config is long gone and only the message remains.
+            applyExhaustion
+        };
 
         const foodItem = wantFood
             ? this._findProvision(actor, getSettingSafely(MODULE.ID, 'restFoodItems', 'Rations'))
@@ -631,14 +654,22 @@ class RestManager {
         // the rules anywhere suggest. It also means at most ONE level of exhaustion
         // per rest, because there is only one check to fail.
         if (needsFood || needsWater) {
-            // LET THEM ROLL IT. The check decides whether a character loses a level
-            // of exhaustion, and rolling it for them invisibly gave them no chance to
-            // spend inspiration or apply a bonus -- and produced a card reporting a
-            // failure with no dice anywhere on it, which reads as a broken button.
-            //
-            // Pending is a real state: nothing is decided, no exhaustion is applied,
-            // and the card carries a button until somebody presses it.
-            if (getSettingSafely(MODULE.ID, 'restForagePlayerRolls', true)) {
+            if (!canForage) {
+                // NO CHECK AT ALL. Not a failed forage -- an absent one. The card gets
+                // a cross against whatever they could not consume and nothing else:
+                // no DC, no button, no dice. What that costs is the table's business,
+                // and with exhaustion off it is entirely the GM's.
+                if (needsFood) outcome.food = 'hungry';
+                if (needsWater) outcome.water = 'hungry';
+                if (applyExhaustion) outcome.exhaustion = 1;
+            } else if (getSettingSafely(MODULE.ID, 'restForagePlayerRolls', true)) {
+                // LET THEM ROLL IT. The check decides whether a character loses a level
+                // of exhaustion, and rolling it for them invisibly gave them no chance
+                // to spend inspiration or apply a bonus -- and produced a card reporting
+                // a failure with no dice anywhere on it, which reads as a broken button.
+                //
+                // Pending is a real state: nothing is decided, no exhaustion is applied,
+                // and the card carries a button until somebody presses it.
                 if (needsFood) outcome.food = 'pending';
                 if (needsWater) outcome.water = 'pending';
                 outcome.dc = this._forageDC();
@@ -646,7 +677,7 @@ class RestManager {
                 const { verdict, total, dc } = await this._forage(actor);
                 if (needsFood) outcome.food = verdict;
                 if (needsWater) outcome.water = verdict;
-                if (verdict === 'hungry') outcome.exhaustion = 1;
+                if ((verdict === 'hungry') && applyExhaustion) outcome.exhaustion = 1;
 
                 // The roll travels with the outcome so the card can SHOW it.
                 outcome.roll = { total, dc };
@@ -1022,12 +1053,22 @@ class RestManager {
         const success = Number(total) >= Number(dc);
         const verdict = success ? 'foraged' : 'hungry';
 
+        // READ FROM THE CARD, not from the settings. This resolves minutes after the
+        // rest -- the config that started it is gone, and the world setting may since
+        // have been changed. The rest recorded its own answer for exactly this moment;
+        // anything else would apply tonight's rule to last night's roll.
+        //
+        // Absent means yes, so cards written before this option existed keep behaving
+        // as they did.
+        const applyExhaustion = state.provisions?.applyExhaustion !== false;
+        const costsALevel = !success && applyExhaustion;
+
         const provisions = { ...state.provisions, roll: { total, dc } };
         if (provisions.food === 'pending') provisions.food = verdict;
         if (provisions.water === 'pending') provisions.water = verdict;
-        provisions.exhaustion = success ? 0 : 1;
+        provisions.exhaustion = costsALevel ? 1 : 0;
 
-        if (!success) {
+        if (costsALevel) {
             const actor = await fromUuid(actorUuid).catch(() => null);
             if (actor) await this._addExhaustion(actor, 1);
         }

@@ -1009,6 +1009,86 @@ check(
     optedIn !== undefined && optedIn.food !== null,
     JSON.stringify(optedIn)
 );
+// ==================================================================
+// ===== 8b. FORAGING AND EXHAUSTION ARE INDEPENDENT ================
+// ==================================================================
+//
+// Two options, four tables. Foraging off is NOT "forage and always fail" -- there is
+// no check, no DC and no button. Exhaustion off does not hide the shortage: the cross
+// still shows, because what a character ate is a fact and the penalty is a rule.
+
+const hungryActor = () => {
+    const actor = {
+        name: 'Starveling', uuid: 'Actor.Starveling',
+        system: { spells: {}, attributes: { exhaustion: 0 } },
+        // No rations, no waterskin.
+        items: Object.assign([], { get: () => null, find: () => null }),
+        levels: []
+    };
+    actor.update = async (data) => { actor.levels.push(data['system.attributes.exhaustion']); };
+    return actor;
+};
+
+world.settings.restTrackFood = true;
+world.settings.restTrackWater = true;
+world.settings.restForagePlayerRolls = true;
+
+const provisionWith = async (over) => {
+    const actor = hungryActor();
+    const outcome = await gm._provision('long', actor, { trackFood: true, trackWater: true, ...over });
+    return { outcome, levels: actor.levels };
+};
+
+const bothOn = await provisionWith({ forage: true, exhaustion: true });
+check('Forage on: the check is offered and nothing is decided yet.',
+    bothOn.outcome.food === 'pending' && bothOn.outcome.dc === 12, JSON.stringify(bothOn.outcome));
+check('No exhaustion until the roll lands.', bothOn.levels.length === 0);
+
+const forageOffExhaustOn = await provisionWith({ forage: false, exhaustion: true });
+check(
+    'Forage OFF: no check, no DC, no button -- they simply went without.',
+    forageOffExhaustOn.outcome.food === 'hungry' && forageOffExhaustOn.outcome.dc === undefined
+        && forageOffExhaustOn.outcome.roll === undefined,
+    JSON.stringify(forageOffExhaustOn.outcome)
+);
+check('And with exhaustion on, that costs a level immediately.',
+    forageOffExhaustOn.levels[0] === 1, JSON.stringify(forageOffExhaustOn.levels));
+
+const bothOff = await provisionWith({ forage: false, exhaustion: false });
+check(
+    'Both off: the shortage still SHOWS.',
+    bothOff.outcome.food === 'hungry' && bothOff.outcome.water === 'hungry',
+    `What a character ate is a fact; the penalty is a rule. Hiding the cross would hide the fact too.`
+);
+check('But costs nothing -- the GM decides what it means.',
+    bothOff.outcome.exhaustion === 0 && bothOff.levels.length === 0);
+
+// Auto-rolled foraging, so the verdict lands inside _provision rather than later.
+world.settings.restForagePlayerRolls = false;
+globalThis.Roll = undefined;
+const autoNoExhaust = await provisionWith({ forage: true, exhaustion: false });
+check(
+    'Forage on with exhaustion off: a failed check costs nothing.',
+    autoNoExhaust.outcome.exhaustion === 0 && autoNoExhaust.levels.length === 0,
+    JSON.stringify(autoNoExhaust.outcome)
+);
+world.settings.restForagePlayerRolls = true;
+
+// The card carries the answer, because the roll resolves minutes later.
+check(
+    'The rest records its exhaustion rule ON THE CARD.',
+    bothOn.outcome.applyExhaustion === true && bothOff.outcome.applyExhaustion === false,
+    `A forage roll resolves long after the rest, when the config is gone and the world setting may have ` +
+    `changed. Reading it live would apply tonight's rule to last night's roll.`
+);
+
+const restSrcForage = fs.readFileSync(path.join(ROOT, 'scripts/manager-rest.js'), 'utf8');
+check(
+    'And the resolution reads that, not the setting.',
+    /state\.provisions\?\.applyExhaustion !== false/.test(restSrcForage),
+    `Absent means yes, so cards written before the option existed keep behaving as they did.`
+);
+
 check('A short rest never provisions, whatever was asked for.',
     (await gm._provision('short', pantry(), { trackFood: true, trackWater: true })) === undefined,
     `A short rest is an hour by the tea, not a day's rations.`);

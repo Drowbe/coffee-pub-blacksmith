@@ -610,6 +610,12 @@
 			"restWaterItems-Label": "Water Items",
 			"restWaterItems-Hint": "Comma-separated item names that count as a day's water, searched in order so the first is preferred. Case does not matter.",
 
+			"restForageEnabled-Label": "Allow Foraging",
+			"restForageEnabled-Hint": "A character short of food or water may search for it with a Survival check. Turn this off and there is no check at all: they simply go without, and the rest card shows what they could not consume.",
+
+			"restExhaustionEnabled-Label": "Going Without Causes Exhaustion",
+			"restExhaustionEnabled-Hint": "A character who ends a long rest short of food or water gains a level of exhaustion. Turn this off and the rest card still shows what they missed but applies no penalty, leaving what it costs to the GM.",
+
 			"restForagePlayerRolls-Label": "Players Roll to Forage",
 			"restForagePlayerRolls-Hint": "A character short of food or water gets a Forage button on their rest card and rolls the check themselves. Turn this off to have it rolled for them automatically. Either way the GM can roll it on their behalf.",
 

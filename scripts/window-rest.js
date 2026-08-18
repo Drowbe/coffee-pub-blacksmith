@@ -169,6 +169,10 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
         // table has already decided and the GM only touches what is different tonight.
         const trackFood = getSettingSafely(MODULE.ID, 'restTrackFood', false);
         const trackWater = getSettingSafely(MODULE.ID, 'restTrackWater', false);
+        // Both default ON, because the interesting thing to turn off is a rule the
+        // table normally plays with.
+        const forage = getSettingSafely(MODULE.ID, 'restForageEnabled', true);
+        const exhaustion = getSettingSafely(MODULE.ID, 'restExhaustionEnabled', true);
 
         // NEW DAY DEFAULTS TO WHAT THE SYSTEM DOES, read from its own configuration
         // rather than assumed. `restTypes.long.newDay` is true (`dnd5e.mjs:46457`) and
@@ -288,8 +292,18 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                         <i class="fa-solid fa-droplet"></i>
                         <span>Track water</span>
                     </label>
-                    <div class="blacksmith-rest-note">Applies to this rest only. A character with nothing to eat or
-                        drink rolls Survival to forage, from their own card.</div>
+                    <label class="blacksmith-rest-option">
+                        <input type="checkbox" name="rest-forage" ${forage ? 'checked' : ''}>
+                        <i class="fa-solid fa-wheat-awn"></i>
+                        <span>Allow foraging</span>
+                    </label>
+                    <label class="blacksmith-rest-option">
+                        <input type="checkbox" name="rest-exhaustion" ${exhaustion ? 'checked' : ''}>
+                        <i class="fa-solid fa-face-tired"></i>
+                        <span>Going without causes exhaustion</span>
+                    </label>
+                    <div class="blacksmith-rest-note">Applies to this rest only. Without foraging there is no check
+                        at all -- the card just shows what each character could not consume.</div>
                 </div>
 
                 <div class="blacksmith-rest-group blacksmith-rest-hitpoints">
@@ -449,6 +463,8 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
             recoverTempMax: ticked('rest-recover-temp-max'),
             trackFood: ticked('rest-track-food'),
             trackWater: ticked('rest-track-water'),
+            forage: ticked('rest-forage'),
+            exhaustion: ticked('rest-exhaustion'),
             // The one option that belongs to the OTHER kind of rest, so it is read
             // under the opposite condition.
             autoHD: !isLong && root.querySelector('[name="rest-auto-hd"]')?.checked === true

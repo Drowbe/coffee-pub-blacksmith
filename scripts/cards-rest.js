@@ -415,7 +415,9 @@ export function buildBeforeState({ actor, restType = 'long', restOptions = {}, r
             recoverTempMax: restOptions.recoverTempMax === true,
             autoHD: restOptions.autoHD === true,
             trackFood: restOptions.trackFood,
-            trackWater: restOptions.trackWater
+            trackWater: restOptions.trackWater,
+            forage: restOptions.forage,
+            exhaustion: restOptions.exhaustion
         },
         recovery: [],
         provisions: null

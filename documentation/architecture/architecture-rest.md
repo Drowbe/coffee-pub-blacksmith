@@ -338,6 +338,33 @@ One Survival check covers both food and water. A character searching a riverbank
 stream in the same hour, and two rolls would charge them twice for one activity -- so at most one level of
 exhaustion is at stake per rest.
 
+## Foraging and exhaustion are two questions, not one
+
+They compose into four tables, all reachable:
+
+| Foraging | Exhaustion | What happens when a character is short |
+|---|---|---|
+| on | on | A Survival check; failing it costs a level |
+| on | off | A Survival check; failing it just means going without |
+| off | on | No check. Going without costs a level |
+| off | off | No check, no penalty. The card shows a cross and the GM decides what it means |
+
+**Foraging off is not "forage and always fail".** There is no check, no DC and no button -- a table that
+has turned it off has said searching for food is not something that happens here, and a card offering a
+roll would contradict that.
+
+**Exhaustion off does not hide the shortage.** The cross still shows against whatever could not be
+consumed, because what a character ate is a fact and the penalty is a rule. Hiding one to suppress the
+other would lose both.
+
+The card composes all four without a branch of its own: no roll means `buildForageParts` finds nothing to
+show, and `exhaustion: 0` means `buildProvisionRows` mentions none.
+
+**The rest's exhaustion rule is recorded on the card** as `provisions.applyExhaustion`. A player-rolled
+forage resolves minutes later, by which time the rest config is gone and the world setting may have been
+changed -- reading it live would apply tonight's rule to last night's roll. Absent means yes, so cards
+written before the option existed keep behaving as they did.
+
 ## Hit dice have a sign
 
 The hit dice delta is a plain before-to-after difference (`dnd5e.mjs:38196`). A long rest recovers dice, so

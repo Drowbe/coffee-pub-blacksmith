@@ -3576,6 +3576,37 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// WHETHER FORAGING HAPPENS AT ALL, which is a different question from who rolls
+	// it. Off means there is no check, no DC and no button: a character short of food
+	// simply goes without. It is not "forage and always fail" -- a table that has
+	// turned this off has said searching for food is not something that happens here.
+	game.settings.register(MODULE.ID, 'restForageEnabled', {
+		name: MODULE.ID + '.restForageEnabled-Label',
+		hint: MODULE.ID + '.restForageEnabled-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// WHETHER GOING WITHOUT COSTS A LEVEL. Independent of foraging, so the four
+	// combinations are all reachable: a check that costs a level, a check that is only
+	// about whether they ate, no check with a penalty, and no check with none.
+	//
+	// Off does NOT hide the shortage. The card still shows a cross against what the
+	// character could not consume, because what they ate is a fact and the penalty is
+	// a rule -- with this off, the GM decides what the cross means.
+	game.settings.register(MODULE.ID, 'restExhaustionEnabled', {
+		name: MODULE.ID + '.restExhaustionEnabled-Label',
+		hint: MODULE.ID + '.restExhaustionEnabled-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// Who rolls the foraging check. On: the card carries a Forage button and the
 	// player rolls it themselves, with the system's dialog and their own dice. Off:
 	// it is rolled for them silently, which is faster and gives them no say in a
