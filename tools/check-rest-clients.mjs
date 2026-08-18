@@ -136,7 +136,7 @@ const CARDS_PREAMBLE = `
 const cards = new Function(`${CARDS_PREAMBLE}\n${strip('scripts/cards-rest.js')}
     return { buildRestState, postRestCardFromState, updateRestCard, updateRestCardState, isForagePending,
              isRestPending, buildRecoveryRows, buildBeforeState, buildPartsFromState, buildStandingRows,
-             postBeforeCard };`)();
+             buildForageParts, postBeforeCard };`)();
 
 const REST_PREAMBLE = `
     const MODULE = { ID: 'coffee-pub-blacksmith', NAME: 'Blacksmith' };
@@ -464,12 +464,36 @@ check('A character with no spellcasting is not told about slots.',
 check('Nor about exhaustion they do not have.', !fighter.some((r) => r.label === 'Exhaustion'));
 
 const beforeParts = cards.buildPartsFromState(before);
-const restRow = beforeParts.filter((p) => p.part === 'rows').at(-1)?.items?.[0];
-check('The pre-rest card offers a Rest control.', restRow?.action === 'rest', JSON.stringify(restRow));
-check('The whole row is the target, as the foraging check does.', restRow?.clickable === true);
-check('Namespaced to us.', restRow?.moduleId === 'coffee-pub-blacksmith');
-check('It says a new day is coming when one is.', /new day/i.test(restRow?.sublabel ?? ''), restRow?.sublabel);
+const restButton = beforeParts.find((p) => p.part === 'actions')?.buttons?.[0];
+
+check('The pre-rest card offers a Rest control.', restButton?.action === 'rest', JSON.stringify(restButton));
+check(
+    'It is a BUTTON, not a row.',
+    !!beforeParts.find((p) => p.part === 'actions'),
+    `A clickable row carrying a name and an explanation read as another data row rather than the thing to press.`
+);
+check(
+    'Weighted primary, because pressing it is the point of the card.',
+    restButton?.variant === 'primary',
+    `Got "${restButton?.variant}". Contrast the foraging control, which opens a roll and commits nothing.`
+);
+check(
+    'The label says what pressing it does, and names the rest.',
+    restButton?.label === 'Begin Long Rest',
+    `Got "${restButton?.label}".`
+);
+check(
+    'It does not repeat the character name.',
+    !/Nik/.test(restButton?.label ?? ''),
+    `The name is already the card's identity; repeating it is a third statement of the same fact.`
+);
+check('Namespaced to us.', restButton?.moduleId === 'coffee-pub-blacksmith');
 check('It carries a health bar.', beforeParts.some((p) => p.part === 'meter'));
+
+const shortButton = cards.buildPartsFromState(cards.buildBeforeState({
+    actor: { uuid: 'Actor.Nik', name: 'Nik', system: { attributes: {}, spells: {} } }, restType: 'short'
+})).find((p) => p.part === 'actions')?.buttons?.[0];
+check('A short rest says so on its button.', shortButton?.label === 'Begin Short Rest', `Got "${shortButton?.label}".`);
 check('And no recovery section, because nothing has happened yet.',
     !beforeParts.some((p) => p.label === 'Recovered'),
     `A card reporting "nothing recovered" before the rest reads as a rest that failed.`);
@@ -505,6 +529,53 @@ check(
     'A card deleted mid-rest falls back to posting rather than losing the rest.',
     world.posted.length === 1 && !world.posted[0].isUpdate
 );
+
+// ==================================================================
+// ===== 7a2. THE FORAGING CONTROL ==================================
+// ==================================================================
+//
+// A BUTTON WHILE OWED, A ROW ONCE ANSWERED. Those are two different things -- a
+// control and an outcome -- and were being made to share one clickable row that
+// repeated the character's name and explained itself in a sublabel.
+
+const forageState = (over) => ({ name: 'Nik', provisions: { food: 'pending', water: 'pending', dc: 12, ...over } });
+
+const owed = cards.buildForageParts(forageState());
+const forageButton = owed.find((p) => p.part === 'actions')?.buttons?.[0];
+
+check('While owed, foraging offers a button.', forageButton?.action === 'forage', JSON.stringify(forageButton));
+check('Carrying a d20, because it opens a roll.', forageButton?.icon?.includes('dice-d20'), forageButton?.icon);
+check('One line that says what it does.', forageButton?.label === 'Forage for Food and Water', `Got "${forageButton?.label}".`);
+check(
+    'NOT primary — it decides nothing until dice land.',
+    forageButton?.variant === undefined,
+    `Got "${forageButton?.variant}". Matching the rest button's weight would claim they carry the same consequence.`
+);
+check(
+    'The DC is stated while there is still a roll to make.',
+    owed.find((p) => p.part === 'subject')?.value === 'DC 12'
+);
+check('And no result row yet.', !owed.some((p) => p.part === 'rows'));
+
+const answered = cards.buildForageParts(forageState({ food: 'foraged', water: 'foraged', roll: { total: 17, dc: 12 } }));
+const resultRow = answered.find((p) => p.part === 'rows')?.items?.[0];
+
+check('Once answered, the button is gone.', !answered.some((p) => p.part === 'actions'));
+check('Replaced by the outcome.', resultRow?.trailing === '17', JSON.stringify(resultRow));
+check('Labelled by the check, not the character.', resultRow?.label === 'Survival Check', resultRow?.label);
+check('Toned and marked as a success.', resultRow?.tone === 'positive' && resultRow?.trailingIcon?.includes('check'));
+check(
+    'And the DC line is gone, since the row now carries the answer.',
+    !answered.some((p) => p.part === 'subject'),
+    `A standing "DC 12" above a row labelled the same check says one thing twice.`
+);
+
+const failed = cards.buildForageParts(forageState({ food: 'hungry', water: 'hungry', roll: { total: 4, dc: 12 } }));
+const failedRow = failed.find((p) => p.part === 'rows')?.items?.[0];
+check('A failure reads as one.', failedRow?.tone === 'negative' && failedRow?.sublabel === 'Found nothing');
+
+check('A well-fed character gets no foraging block at all.',
+    cards.buildForageParts(forageState({ food: 'ate', water: 'ate' })).length === 0);
 
 // ==================================================================
 // ===== 7b. PRESSING REST ==========================================

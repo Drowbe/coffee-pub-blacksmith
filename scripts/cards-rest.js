@@ -477,19 +477,25 @@ export function buildPartsFromState(state) {
             parts.push({ part: 'rows', plain: true, items: standing });
         }
 
-        // The same shape the foraging check uses: the character's own row IS the
-        // control. A reader who has seen one rest card has already learnt it, and a
-        // button floating beside a name was the thing that read wrong the first time.
-        parts.push({ part: 'section', label: state.restType === 'long' ? 'Long Rest' : 'Short Rest' });
+        // A BUTTON, BECAUSE IT IS A BUTTON. This was a clickable row carrying the
+        // character's name and a line of explanation, which read as another data row
+        // rather than the one thing on the card you are meant to press.
+        //
+        // The name is already the card's identity and the kind of rest is already its
+        // subtitle, so repeating either here is a third statement of the same fact.
+        // The label says what pressing it does and nothing else.
+        //
+        // `primary` because pressing it is the whole point of this card. Contrast the
+        // foraging control below, which opens a roll rather than committing anything.
+        const isLongRest = state.restType === 'long';
         parts.push({
-            part: 'rows',
-            items: [{
-                label: state.name ?? 'Rest',
-                sublabel: state.restOptions?.newDay ? 'Rest, and begin a new day' : 'Take the rest',
+            part: 'actions',
+            buttons: [{
                 moduleId: MODULE.ID,
                 action: 'rest',
-                clickable: true,
-                marker: state.restType === 'long' ? 'fa-solid fa-campground' : 'fa-solid fa-utensils'
+                label: `Begin ${isLongRest ? 'Long' : 'Short'} Rest`,
+                icon: isLongRest ? 'fa-solid fa-campground' : 'fa-solid fa-utensils',
+                variant: 'primary'
             }]
         });
 
@@ -538,11 +544,8 @@ export function buildPartsFromState(state) {
 }
 
 /**
- * The foraging check as its own block: the DC, then the roll.
- *
- * Mirrors how Request a Roll presents a check, because a player reading this has
- * seen that card and should not have to learn a second convention for the same
- * thing.
+ * The foraging check as its own block: what to beat, then the button, then the
+ * answer in its place.
  *
  * @returns {Array<object>} Card parts, empty when there is no check to show.
  */
@@ -558,38 +561,53 @@ export function buildForageParts(state) {
     const dc = Number(provisions.dc ?? roll?.dc);
     const parts = [{ part: 'section', label: 'Foraging' }];
 
-    if (Number.isFinite(dc)) {
+    // THE DC IS ONLY NEWS WHILE THE ROLL IS OWED. Before, it is what the player needs
+    // to know to decide how to roll; after, the row below carries the total and the
+    // verdict, and a standing "DC 12" above a row labelled the same check is the card
+    // saying one thing twice.
+    if (pending && Number.isFinite(dc)) {
         parts.push({ part: 'subject', title: 'Survival Check', value: `DC ${dc}` });
     }
 
-    // ONE ROW, BEFORE AND AFTER. The character's row IS the control while the check
-    // is owed and becomes its own result once made -- the same element throughout,
-    // which is how Request a Roll behaves and what a reader has already learnt.
+    // A BUTTON WHILE OWED, A ROW ONCE ANSWERED -- because those are two different
+    // things and were being made to share one shape.
     //
-    // The first version swapped an `actions` button for a portrait row, so the answer
-    // arrived somewhere the question had not been and in a shape nothing else on the
-    // card used. `part-rows` was written for precisely this: its own comment names
-    // "an actor waiting to roll" as the case, and `action` with `clickable` makes the
-    // whole row the target.
-    const row = {
-        label: state.name ?? 'Survival',
-        moduleId: MODULE.ID
-    };
-
+    // Pending, this is a control: a d20 and one line saying what pressing it does.
+    // The character's name is the card's identity and the check is already named
+    // above, so a row repeating both and explaining itself in a sublabel was three
+    // restatements around one action.
+    //
+    // NOT `primary`. The rest button is the card committing to something; this one
+    // opens a roll window and decides nothing until dice land. Giving both the same
+    // weight would say they carry the same consequence.
     if (pending) {
-        row.action = 'forage';
-        row.clickable = true;
-        row.marker = 'fa-solid fa-dice-d20';
-        row.sublabel = 'Roll to find food and water';
-    } else {
-        const success = Number(roll.total) >= dc;
-        row.sublabel = success ? 'Found food and water' : 'Found nothing';
-        row.trailing = String(roll.total);
-        row.trailingIcon = success ? 'fa-solid fa-check' : 'fa-solid fa-xmark';
-        row.tone = success ? 'positive' : 'negative';
+        parts.push({
+            part: 'actions',
+            buttons: [{
+                moduleId: MODULE.ID,
+                action: 'forage',
+                label: 'Forage for Food and Water',
+                icon: 'fa-solid fa-dice-d20'
+            }]
+        });
+
+        return parts;
     }
 
-    parts.push({ part: 'rows', items: [row] });
+    // Answered: the outcome, where the question was. Labelled by the CHECK rather
+    // than the character, for the same reason the button is -- the card already says
+    // whose night this is.
+    const success = Number(roll.total) >= dc;
+    parts.push({
+        part: 'rows',
+        items: [{
+            label: 'Survival Check',
+            sublabel: success ? 'Found food and water' : 'Found nothing',
+            trailing: String(roll.total),
+            trailingIcon: success ? 'fa-solid fa-check' : 'fa-solid fa-xmark',
+            tone: success ? 'positive' : 'negative'
+        }]
+    });
 
     return parts;
 }

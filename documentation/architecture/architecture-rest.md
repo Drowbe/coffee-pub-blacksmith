@@ -51,7 +51,22 @@ with a player window between them; both turned out to be the same object at a di
 collapsing them removed two surfaces rather than building them.
 
 The card's phase is `before` or `rested`, and `buildPartsFromState` composes from that. A `before` card
-shows the health bar, where the character stands, and the Rest row; a `rested` card shows what changed.
+shows the health bar, where the character stands, and the Begin Rest button; a `rested` card shows what
+changed.
+
+## The two controls carry different weight
+
+Begin Rest is a `primary` button: pressing it is the point of the card, and it commits the character to
+the night. Foraging is an ordinary button with a d20, because it opens a roll window and decides nothing
+until dice land. Giving both the same weight would tell the reader they carry the same consequence.
+
+Neither restates what the card already says. The character's name is the identity part and the kind of
+rest is the subtitle, so a control repeating either -- or explaining itself in a second line -- states one
+fact three times. Both were rows before, and read as more data rather than as the thing to press.
+
+The foraging block states its DC only while the roll is owed. Afterwards the result occupies the same
+place, labelled by the check rather than the character, and the DC line goes: a standing "DC 12" above a
+row named for the same check is the card saying one thing twice.
 
 A rest started anywhere else -- the party sheet, a character sheet, a system rest request -- still works,
 and posts a `rested` card with no `before` phase. That path is why the request completion stamp below still
