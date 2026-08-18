@@ -20,6 +20,7 @@
 // See documentation/plans/plan-rest-card.md.
 
 import { MODULE } from './const.js';
+import { postConsoleAndNotification } from './api-core.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 
 /** Ordinal labels for spell levels, so a row reads "3rd Level Slots". */
@@ -75,14 +76,26 @@ export function buildRecoveryRows(actor, result) {
         });
     }
 
+    // A SHORT REST SPENDS HIT DICE; A LONG REST GIVES THEM BACK, and the delta is a
+    // plain before-to-after difference (`dnd5e.mjs:34844`), so its SIGN already says
+    // which happened. dnd5e flips it for display (`dnd5e.mjs:35016`) precisely because
+    // its own card reports dice spent as a positive count.
+    //
+    // Filing a short rest's negative delta under "Recovered" and toning it positive
+    // told the reader the character had gained dice they had just burnt -- wrong
+    // label, wrong sign and wrong colour from one missing branch.
     const hitDice = Number(result.deltas?.hitDice ?? result.dhd ?? 0);
     if (hitDice) {
         const after = Number(actor?.system?.attributes?.hd?.value);
+        const spent = hitDice < 0;
         rows.push({
-            label: 'Hit Dice',
+            label: spent ? 'Hit Dice Spent' : 'Hit Dice',
             sublabel: span(after - hitDice, after),
-            trailing: signed(hitDice),
-            tone: 'positive'
+            trailing: spent ? String(-hitDice) : signed(hitDice),
+            // Untoned when spent: burning dice is the PRICE of a short rest, not a
+            // misfortune. Toning it negative would put a warning colour on the thing
+            // the player chose to do.
+            tone: spent ? undefined : 'positive'
         });
     }
 
@@ -428,38 +441,34 @@ export function buildForageParts(state) {
         parts.push({ part: 'subject', title: 'Survival Check', value: `DC ${dc}` });
     }
 
+    // ONE ROW, BEFORE AND AFTER. The character's row IS the control while the check
+    // is owed and becomes its own result once made -- the same element throughout,
+    // which is how Request a Roll behaves and what a reader has already learnt.
+    //
+    // The first version swapped an `actions` button for a portrait row, so the answer
+    // arrived somewhere the question had not been and in a shape nothing else on the
+    // card used. `part-rows` was written for precisely this: its own comment names
+    // "an actor waiting to roll" as the case, and `action` with `clickable` makes the
+    // whole row the target.
+    const row = {
+        label: state.name ?? 'Survival',
+        moduleId: MODULE.ID
+    };
+
     if (pending) {
-        parts.push({
-            // It opens the roll window and the answer lands on this card. No second
-            // card is posted, so "Roll" is the honest label again.
-            part: 'actions',
-            instruction: `${state.name ?? 'This character'} has no food or water.`,
-            buttons: [{
-                label: 'Roll Survival',
-                icon: 'fa-solid fa-dice-d20',
-                action: 'forage',
-                moduleId: MODULE.ID
-            }]
-        });
-        return parts;
+        row.action = 'forage';
+        row.clickable = true;
+        row.marker = 'fa-solid fa-dice-d20';
+        row.sublabel = 'Roll to find food and water';
+    } else {
+        const success = Number(roll.total) >= dc;
+        row.sublabel = success ? 'Found food and water' : 'Found nothing';
+        row.trailing = String(roll.total);
+        row.trailingIcon = success ? 'fa-solid fa-check' : 'fa-solid fa-xmark';
+        row.tone = success ? 'positive' : 'negative';
     }
 
-    // RESOLVED. The result sits where the button was, so the eye lands on the answer
-    // in the place it last saw the question.
-    const success = Number(roll.total) >= dc;
-    parts.push({
-        part: 'rows',
-        plain: true,
-        items: [{
-            thumb: true,
-            img: state.img || undefined,
-            label: state.name ?? 'Survival',
-            sublabel: success ? 'Found food and water' : 'Found nothing',
-            trailing: String(roll.total),
-            trailingIcon: success ? 'fa-solid fa-check' : 'fa-solid fa-xmark',
-            tone: success ? 'positive' : 'negative'
-        }]
-    });
+    parts.push({ part: 'rows', items: [row] });
 
     return parts;
 }
@@ -472,28 +481,67 @@ export function isForagePending(state) {
 }
 
 /**
- * Compose a card directly. Kept for callers that have the rest to hand.
- * @returns {Array<object>} Card parts.
+ * Mark a rest request fulfilled by OUR card.
+ *
+ * THIS IS WHAT TICKS A CHARACTER OFF A REST REQUEST, and nothing else does.
+ * `flags.dnd5e.requestResult` is the entire mechanism: dnd5e stamps it on its own
+ * rest card (`dnd5e.mjs:35051`), and `RequestMessageData.onCreateMessage` /
+ * `onUpdateResultMessage` -- both wired at `dnd5e.mjs:79669-79670` -- watch every
+ * message for it and write the message id onto the matching target
+ * (`#updateRequestTargets`, `dnd5e.mjs:70900`). A target with a result is complete;
+ * a target without one keeps offering its Rest button.
+ *
+ * So suppressing the system card suppressed the COMPLETION with it. The request
+ * stayed live and the same character could rest again, and again, all night.
+ * Our card stands in for that one, so it carries the same stamp.
+ *
+ * Set after creation rather than passed to `post`, because `ChatCardsAPI.post`
+ * merges caller flags under the CALLER'S module id only -- by design, and not worth
+ * reopening for one foreign flag. dnd5e reaches for the same escape hatch itself
+ * (`dnd5e.mjs:70861`), and the update path is handled just as the create path is.
+ *
+ * Best-effort: a card that posted but failed to stamp is a live request, which the
+ * GM can resolve by hand. Throwing here would lose the card as well.
  */
-export function buildRestCardParts(options = {}) {
-    return buildPartsFromState(buildRestState(options));
+async function stampRequestResult(message, actorUuid, requestId) {
+    if (!message || !actorUuid || !requestId) return;
+
+    try {
+        await message.setFlag('dnd5e', 'requestResult', { actorUuid, requestId });
+    } catch (error) {
+        postConsoleAndNotification(
+            MODULE.NAME,
+            'Rest: Could not mark the rest request complete; the GM may need to resolve it by hand',
+            error, false, false
+        );
+    }
 }
 
 /**
- * Post a rest card for one character.
+ * Post a rest card from a state that has already been built.
  *
+ * SEPARATE FROM BUILDING IT, because the two now happen on different clients. The
+ * state is derived on whichever client ran the rest -- that is the only place
+ * `result.clone`, the pre-rest snapshot every recovery row is diffed against, ever
+ * exists -- while posting and provisioning are the GM's. See `manager-rest.js`.
+ *
+ * @param {object} state Built by `buildRestState`, plus provisions.
+ * @param {object} [options]
+ * @param {string|null} [options.requestId] The rest request this fulfils, if any.
  * @returns {Promise<ChatMessage|null>}
  */
-export async function postRestCard({ actor, result, config, provisions = null } = {}) {
-    const state = buildRestState({ actor, result, config, provisions });
-
-    return ChatCardsAPI.post({
+export async function postRestCardFromState(state, { requestId = null } = {}) {
+    const message = await ChatCardsAPI.post({
         moduleId: MODULE.ID,
         type: 'rest',
         parts: buildPartsFromState(state),
-        speaker: { alias: actor?.name },
+        speaker: { alias: state?.name },
         flags: { rest: state }
     });
+
+    if (requestId) await stampRequestResult(message, state?.actorUuid, requestId);
+
+    return message;
 }
 
 /**

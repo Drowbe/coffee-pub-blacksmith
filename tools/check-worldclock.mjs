@@ -103,6 +103,38 @@ if (stops.length < 2) {
     }
 }
 
+// --- 1b. The star fade must be measured in the REAL day, not the stretched one ---
+//
+// There are two coordinate spaces here and they look identical -- both are numbers
+// from 0 to 1 called a day fraction. `_normalizeForSky` returns a position in the
+// STOP TABLE's day, where sunrise is always DEFAULT_SUNRISE; everything else is the
+// REAL day, where sunrise is whatever the setting says.
+//
+// `_getStarOpacity` measures against `getHorizons()` -- real space. Hand it the
+// remapped value and the two are compared against each other, so in any world whose
+// sunrise is not the table's the stars fade at the wrong hour. Nothing throws, and
+// on a default calendar the two coincide, so it looks correct exactly where it is
+// most likely to be tested.
+const skyBody = manager.match(/static _getSky\(dayFraction\)\s*\{([\s\S]*?)\n    \}/)?.[1] ?? '';
+
+if (!skyBody) {
+    problems.push(`${MANAGER}: could not find _getSky to check its coordinate spaces.`);
+} else {
+    const remapped = skyBody.match(/const\s+(\w+)\s*=\s*this\._normalizeForSky\(/)?.[1] ?? null;
+    const starArg = skyBody.match(/_getStarOpacity\(\s*([^)]*?)\s*\)/)?.[1] ?? null;
+
+    if (!remapped || !starArg) {
+        problems.push(`${MANAGER}: _getSky no longer has both a _normalizeForSky result and a _getStarOpacity call.`);
+    } else if (starArg === remapped) {
+        problems.push(
+            `${MANAGER}: _getSky passes "${remapped}" — the _normalizeForSky result, in stop-table ` +
+            `coordinates — to _getStarOpacity, which compares its argument against the REAL sunrise ` +
+            `and sunset from getHorizons(). Pass the unremapped day fraction instead. The two agree ` +
+            `only when the world's horizons happen to match the stop table's.`
+        );
+    }
+}
+
 // --- 2. Every class the manager reaches for must exist in the markup ------------
 //
 // The manager finds its nodes by class. A rename in the partial leaves

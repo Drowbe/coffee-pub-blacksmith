@@ -29,11 +29,40 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { postRestCard, updateRestCard, isForagePending } from './cards-rest.js';
+import { buildRestState, postRestCardFromState, updateRestCard, isForagePending } from './cards-rest.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { SocketManager } from './manager-sockets.js';
 
 class RestManager {
+
+    /**
+     * WHICH CLIENT DOES WHAT, and why this file is split across two of them.
+     *
+     * `dnd5e.restCompleted` is `Hooks.callAll` (`dnd5e.mjs:34995`). Foundry hooks are
+     * LOCAL -- it fires on whichever client ran the rest and on no other. When a
+     * player accepts a rest request, that client is theirs, and the GM's client never
+     * hears about it at all.
+     *
+     * So the work is divided by what each client alone can do:
+     *
+     *   ACTING CLIENT  builds the card state, because `result.clone` -- the pre-rest
+     *                  snapshot every recovery row is diffed against -- exists only
+     *                  in this call stack. It is not a document and cannot be fetched
+     *                  from anywhere else.
+     *
+     *   GM CLIENT      does everything that WRITES: rations, exhaustion, the card, the
+     *                  completion stamp and the clock. A player has permission for
+     *                  none of them.
+     *
+     * The state crosses between them as plain data over the GM proxy socket.
+     *
+     * The earlier version guarded the hook with `if (!game.user.isGM) return`, which
+     * reads as "let the GM handle it" and in fact meant "throw it away" -- there was
+     * no GM on the other side to handle anything. Every rest a player accepted
+     * produced no card, no provisions and no clock movement. It passed testing
+     * because a GM pressing Rest is the single path where the acting client IS the
+     * GM, and that is the path a GM tests.
+     */
 
     /**
      * A PARTY REST HAPPENS IN ONE OF TWO SHAPES, and they need different handling.
@@ -111,9 +140,45 @@ class RestManager {
             });
         }
 
-        this._registerForageAction();
+        this._registerActions();
 
         postConsoleAndNotification(MODULE.NAME, "Rest: Time advancement registered", "", true, false);
+    }
+
+    /**
+     * Card actions, and the two GM proxies.
+     *
+     * REGISTRATION ORDER IS LOAD-BEARING. `RestManager.initialize()` runs at
+     * `blacksmith.js:534`; `SocketManager.initialize()` at 1538. So the socket does
+     * not exist yet when this runs, and the original `getSocket()?.register?.(...)`
+     * registered NOTHING -- optional chaining turned a missing socket into a silent
+     * no-op rather than an error. `executeAsGM` runs a handler on the GM's client, so
+     * a handler the GM never registered means every hop from a player vanished.
+     *
+     * Same shape as `manager-pins.js:2738`, which had already solved this.
+     */
+    static _registerActions() {
+        ChatCardsAPI.registerAction(MODULE.ID, 'forage', ({ message }) => this._onForageClicked(message));
+
+        if (SocketManager.isSocketReady) this._registerSocketHandlers();
+        else Hooks.once('blacksmith.socketReady', () => this._registerSocketHandlers());
+    }
+
+    static _registerSocketHandlers() {
+        try {
+            const socket = SocketManager.getSocket();
+            if (typeof socket?.register !== 'function') {
+                postConsoleAndNotification(MODULE.NAME, "Rest: No socket to register the GM proxies on", "", false, false);
+                return;
+            }
+
+            socket.register(this.REST_GM_PROXY, (payload) => this._applyRest(payload));
+            socket.register(this.FORAGE_GM_PROXY, (payload) => this._applyForage(payload));
+
+            postConsoleAndNotification(MODULE.NAME, "Rest: GM proxies registered", "", true, false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Rest: Could not register the GM proxies", error, false, false);
+        }
     }
 
     /**
@@ -146,20 +211,77 @@ class RestManager {
         if (!getSettingSafely(MODULE.ID, 'restPostCard', true)) return;
 
         config.chat = false;
+
+        // SILENCING THE SYSTEM CARD TAKES ON ITS JOB. That card is not only a summary:
+        // for a requested rest it is what marks the character done, by carrying
+        // `flags.dnd5e.requestResult` (see `stampRequestResult` in cards-rest.js).
+        // Suppress it and say nothing, and the request keeps offering Rest -- the same
+        // character could rest over and over, all night.
+        //
+        // Recorded on the config rather than re-read from the setting later, because
+        // this is the only place that knows we ACTUALLY suppressed it: the two guards
+        // above can decline. dnd5e passes one config object by reference from
+        // `preShortRest` (`dnd5e.mjs:34817`) through to `restCompleted` (34995) -- the
+        // dialog mutates that same object at 34826 -- so a marker set here survives.
+        config[this.SUPPRESSED_KEY] = true;
+    }
+
+    /** Marker set on the rest config when we silenced the system's own card. */
+    static SUPPRESSED_KEY = 'blacksmithSuppressedCard';
+
+    /** Socket handler name for the rest GM hop. */
+    static REST_GM_PROXY = 'restCompletedOnClient';
+
+    /**
+     * A rest finished ON THIS CLIENT. Capture what only this client can see, then hand
+     * the whole thing to the GM. See the note at the top of the class.
+     *
+     * @param {object} config  The rest configuration dnd5e used.
+     * @param {Actor} [actor]  The actor that rested.
+     * @param {object} result  The RestResult, including the pre-rest clone.
+     */
+    static async _onRestCompleted(config, actor, result) {
+        // BUILT HERE, WHATEVER CLIENT THIS IS. `result.clone` dies with this call
+        // stack, so deferring the diff to the GM would mean diffing the actor against
+        // itself and reporting that a rest recovered nothing.
+        const payload = {
+            actorUuid: actor?.uuid ?? null,
+            requestId: config?.request?.id ?? null,
+            restType: config?.type ?? null,
+            minutes: Number(config?.duration),
+            systemAdvanced: config?.advanceTime === true,
+            suppressedSystemCard: config?.[this.SUPPRESSED_KEY] === true,
+            state: buildRestState({ actor, result, config })
+        };
+
+        if (game.user?.isGM) {
+            await this._applyRest(payload);
+            return;
+        }
+
+        // Everything left is a write, and a player may make none of them: the clock is
+        // a world setting, rations and exhaustion are documents they do not own, and
+        // the card is authored by the GM. Same GM proxy the pins and tags managers use.
+        const socket = SocketManager.getSocket();
+        if (typeof socket?.executeAsGM !== 'function') {
+            ui.notifications?.warn('Your rest was not recorded: no GM is connected.');
+            return;
+        }
+
+        try {
+            await socket.executeAsGM(this.REST_GM_PROXY, payload);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Rest: Could not hand ${actor?.name}'s rest to the GM`, error, false, false);
+        }
     }
 
     /**
-     * @param {object} config  The rest configuration dnd5e used.
-     * @param {Actor} [actor]  The actor that rested.
+     * Apply a finished rest. Runs on the GM's client, wherever the rest was clicked.
      */
-    static async _onRestCompleted(config, actor, result) {
-        // Only a GM writes: the clock is a world setting, and item quantities and
-        // exhaustion are documents. dnd5e guards its own advance the same way.
+    static async _applyRest(payload = {}) {
         if (!game.user?.isGM) return;
 
-        const minutes = Number(config?.duration);
-        const request = config?.request ?? null;
-        const requestId = request?.id ?? null;
+        const { requestId, minutes, systemAdvanced } = payload;
 
         // A REQUESTED REST: every character's acceptance carries the same id, so the
         // id identifies the rest rather than the moment it arrived. That matters
@@ -170,29 +292,29 @@ class RestManager {
 
             // RECORDED BEFORE PROVISIONING, and provisioning only happens for a
             // character who has not already been fed on this rest. A character can
-            // reach `restCompleted` twice for one request -- a double click, or a GM
-            // resolving someone who had already resolved themselves -- and the first
-            // version provisioned on every arrival, so that character ate two
-            // rations and appeared twice on the card. Seen once, fed once.
-            const { isNew, isLast } = this._recordAcceptance(request, requestId, actor);
+            // reach here twice for one request -- a double click, or a GM resolving
+            // someone who had already resolved themselves -- and the first version
+            // provisioned on every arrival, so that character ate two rations and
+            // appeared twice on the card. Seen once, fed once.
+            const { isNew, isLast } = this._recordAcceptance(requestId, payload.actorUuid);
             if (!isNew) return;
 
-            await this._restedOne(config, actor, result);
+            await this._restedOne(payload);
             if (!isLast) return;
 
             this._markRequestHandled(requestId);
-            await this._completeRest(minutes, config?.advanceTime === true);
+            await this._completeRest(minutes, systemAdvanced);
             return;
         }
 
         // No request. The burst still needs the same protection: the automatic group
         // loop rests each member once, but nothing guarantees a caller does.
-        if (!this._recordBurstAcceptance(actor)) return;
-        await this._restedOne(config, actor, result);
+        if (!this._recordBurstAcceptance(payload.actorUuid)) return;
+        await this._restedOne(payload);
 
         // No request: either a lone character resting, or the automatic group loop.
         // Both are bursts, so the timer is the right tool.
-        this._queueAdvance(minutes, config?.advanceTime === true);
+        this._queueAdvance(minutes, systemAdvanced);
     }
 
     /**
@@ -208,9 +330,11 @@ class RestManager {
      *
      * @returns {boolean}
      */
-    static _recordAcceptance(request, requestId, actor) {
-        const uuid = actor?.uuid ?? null;
-        const targets = request?.system?.targets;
+    static _recordAcceptance(requestId, uuid = null) {
+        // THE ROSTER IS READ FROM THE REQUEST MESSAGE HERE rather than carried across
+        // the socket. The GM has every message like any other document, so sending a
+        // copy would only risk it being stale.
+        const targets = game.messages?.get(requestId)?.system?.targets;
         const expected = Array.isArray(targets) ? targets.length : 0;
 
         const seen = this._requestProgress.get(requestId) ?? new Set();
@@ -241,8 +365,7 @@ class RestManager {
      * The same protection for a burst with no request behind it.
      * @returns {boolean} Whether this character is new to the burst.
      */
-    static _recordBurstAcceptance(actor) {
-        const uuid = actor?.uuid;
+    static _recordBurstAcceptance(uuid) {
         if (!uuid) return true;
 
         this._burstSeen ??= new Set();
@@ -267,15 +390,25 @@ class RestManager {
      * it, with nothing held in memory in between. The batched summary this replaced
      * had to wait for the whole party before it could say anything at all.
      */
-    static async _restedOne(config, actor, result) {
-        const provisions = await this._provision(config, actor);
+    static async _restedOne(payload) {
+        const actor = payload?.actorUuid
+            ? await fromUuid(payload.actorUuid).catch(() => null)
+            : null;
+
+        const provisions = await this._provision(payload?.restType, actor);
 
         if (!getSettingSafely(MODULE.ID, 'restPostCard', true)) return;
 
         try {
-            await postRestCard({ actor, result, config, provisions });
+            await postRestCardFromState(
+                { ...payload.state, provisions: provisions ?? null },
+                // OURS TO STAMP ONLY IF WE SILENCED THEIRS. When the system posted its
+                // own card it has already marked the request complete, and stamping
+                // ours as well would point the request's target at the wrong message.
+                { requestId: payload.suppressedSystemCard ? payload.requestId : null }
+            );
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Rest: Failed to post the rest card for ${actor?.name}`, error, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Rest: Failed to post the rest card for ${payload?.state?.name}`, error, false, false);
         }
     }
 
@@ -285,8 +418,8 @@ class RestManager {
      * LONG RESTS ONLY. A short rest is an hour by the tea, not a day's provisions,
      * and consuming a ration for one would empty a pack over an afternoon.
      */
-    static async _provision(config, actor) {
-        if (config?.type !== 'long') return;
+    static async _provision(restType, actor) {
+        if (restType !== 'long') return;
         if (!actor?.items) return;
 
         const wantFood = getSettingSafely(MODULE.ID, 'restTrackFood', false);
@@ -347,10 +480,40 @@ class RestManager {
         return outcome;
     }
 
-    /** Use one of a stack. */
+    /**
+     * A PROVISION COMES IN TWO SHAPES, and the difference is the whole reason these
+     * two helpers exist.
+     *
+     * Rations are a STACK: five of them in the pack, and eating one leaves four --
+     * quantity is the count, and the item goes when it hits zero.
+     *
+     * A waterskin is ONE ITEM WITH A POOL. It holds four pints; drinking one spends a
+     * use and you keep the skin, because the skin is the container. Treating that as a
+     * stack meant a single night's water DELETED the waterskin, and the character woke
+     * with nothing to carry water in -- so the second night they could not drink at
+     * all, and the third they were foraging for it.
+     *
+     * dnd5e stores a pool as how much is SPENT and derives `value` as `max - spent`
+     * (`dnd5e.mjs:4357`), so a pool only counts as one when it has a max.
+     *
+     * @returns {number} How many uses or units are left.
+     */
+    static _remaining(item) {
+        const uses = item?.system?.uses;
+        if (Number(uses?.max) > 0) return Number(uses.value ?? 0);
+        return Number(item?.system?.quantity ?? 0);
+    }
+
+    /** Use one: a pint from the skin, or one ration off the stack. */
     static async _consume(item) {
-        const quantity = Number(item.system?.quantity ?? 0);
-        await item.update({ 'system.quantity': quantity - 1 });
+        const uses = item?.system?.uses;
+
+        if (Number(uses?.max) > 0) {
+            await item.update({ 'system.uses.spent': Number(uses.spent ?? 0) + 1 });
+            return;
+        }
+
+        await item.update({ 'system.quantity': Number(item.system?.quantity ?? 0) - 1 });
     }
 
     /**
@@ -400,8 +563,11 @@ class RestManager {
             .filter(Boolean);
 
         for (const name of names) {
+            // Availability asks the SAME question consuming answers -- an empty
+            // waterskin has a quantity of one and nothing left in it, and the old
+            // quantity-only test called that water.
             const item = actor.items.find((i) =>
-                (i.name?.trim().toLowerCase() === name) && (Number(i.system?.quantity ?? 0) > 0));
+                (i.name?.trim().toLowerCase() === name) && (this._remaining(i) > 0));
             if (item) return item;
         }
         return null;
@@ -432,20 +598,8 @@ class RestManager {
     // ===== THE FORAGE BUTTON ======================================
     // ==============================================================
 
-    /** Socket handler name for the GM hop. */
+    /** Socket handler name for the forage GM hop. Registered in `_registerSocketHandlers`. */
     static FORAGE_GM_PROXY = 'restForageResolved';
-
-    static _registerForageAction() {
-        ChatCardsAPI.registerAction(MODULE.ID, 'forage', ({ message }) => this._onForageClicked(message));
-
-        // The GM must have this registered for a player's roll to reach them --
-        // `executeAsGM` runs the handler on the GM's client, not the caller's.
-        try {
-            SocketManager.getSocket()?.register?.(this.FORAGE_GM_PROXY, (payload) => this._applyForage(payload));
-        } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, "Rest: Could not register the forage socket handler", error, false, false);
-        }
-    }
 
     /**
      * Somebody pressed Forage.

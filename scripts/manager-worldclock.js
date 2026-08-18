@@ -392,7 +392,15 @@ class WorldClockManager {
      */
     static _getSky(dayFraction) {
         const stops = this.SKY_STOPS;
-        const at = this._normalizeForSky(Math.min(Math.max(dayFraction, 0), 1));
+        const now = Math.min(Math.max(dayFraction, 0), 1);
+
+        // TWO COORDINATE SPACES, and only the colour lookup belongs in the stretched
+        // one. `at` is a position in the stop table's own day, where sunrise is always
+        // DEFAULT_SUNRISE; `now` is the real day, where sunrise is whatever the setting
+        // says. Feeding `at` to the star fade -- which measures against the REAL
+        // horizons -- compared the two against each other, so in any world whose
+        // sunrise was not the table's the stars faded at the wrong hour.
+        const at = this._normalizeForSky(now);
 
         let lower = stops[0];
         let upper = stops[stops.length - 1];
@@ -411,7 +419,10 @@ class WorldClockManager {
         return {
             top: mix(lower.top, upper.top),
             bottom: mix(lower.bottom, upper.bottom),
-            starOpacity: this._getStarOpacity(at)
+            // The REAL fraction, not the remapped one. FADE is a duration -- roughly
+            // an hour and a half of a 24-hour day -- and a duration must not stretch
+            // with the colour table's remap.
+            starOpacity: this._getStarOpacity(now)
         };
     }
 

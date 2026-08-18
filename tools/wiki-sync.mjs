@@ -77,6 +77,7 @@ const PUBLISH = [
   'architecture/architecture-menubar.md',
   'architecture/architecture-notes.md',
   'architecture/architecture-pins.md',
+  'architecture/architecture-rest.md',
   'architecture/architecture-rolls.md',
   'architecture/architecture-stats.md',
   'architecture/architecture-socketmanager.md',
