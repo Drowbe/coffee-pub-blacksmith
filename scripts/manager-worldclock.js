@@ -208,6 +208,9 @@ class WorldClockManager {
                 available: false,
                 isGM: false,
                 timeText: '--:--',
+                timeTens: '-',
+                timeRest: '-:--',
+                timeTensIsPad: false,
                 tooltip: 'In-world time is not available yet.',
                 smallStepLabel: '',
                 largeStepLabel: '',
@@ -218,11 +221,13 @@ class WorldClockManager {
 
         const dayFraction = this._getDayFraction(calendar, components);
         const view = this._getSkyView(dayFraction);
+        const timeParts = this._formatTimeParts(calendar, components);
 
         return {
             available: true,
             isGM,
-            timeText: this._formatTime(calendar, components),
+            timeText: `${timeParts.timeTens}${timeParts.timeRest}`,
+            ...timeParts,
             tooltip: this._buildTooltip(calendar, components),
             smallStepLabel: this._describeStep('small'),
             largeStepLabel: this._describeStep('large'),
@@ -513,17 +518,37 @@ class WorldClockManager {
      * twenty hours in a day, where halving the count produces a clock nobody can
      * read. Everything else falls back to zero-padded 24-hour, which is well defined
      * for any day length.
+     *
+     * The hour is always two digits. A leading zero that is a pad (9 o'clock, not
+     * 10) is marked so the stylesheet can dim it like a physical clock; a real
+     * tens digit is not. The two-digit hour is why dragging the sun does not make
+     * the face jump sideways at 9:59.
      */
-    static _formatTime(calendar, components) {
+    static _formatTimeParts(calendar, components) {
         const minute = String(components.minute).padStart(2, '0');
 
         if (calendar.days.hoursPerDay !== 24) {
-            return `${String(components.hour).padStart(2, '0')}:${minute}`;
+            const hour = String(components.hour).padStart(2, '0');
+            return {
+                timeTens: hour[0],
+                timeRest: `${hour.slice(1)}:${minute}`,
+                timeTensIsPad: hour[0] === '0'
+            };
         }
 
         const suffix = components.hour < 12 ? 'AM' : 'PM';
         const hour12 = (components.hour % 12) === 0 ? 12 : (components.hour % 12);
-        return `${hour12}:${minute} ${suffix}`;
+        const hour = String(hour12).padStart(2, '0');
+        return {
+            timeTens: hour[0],
+            timeRest: `${hour.slice(1)}:${minute} ${suffix}`,
+            timeTensIsPad: hour[0] === '0'
+        };
+    }
+
+    static _formatTime(calendar, components) {
+        const { timeTens, timeRest } = this._formatTimeParts(calendar, components);
+        return `${timeTens}${timeRest}`;
     }
 
     /**
@@ -660,7 +685,7 @@ class WorldClockManager {
         if (!section) return;
 
         const data = this.getRenderData();
-        this._paint(section, data.timeText, data);
+        this._paint(section, data);
 
         section.classList.toggle('is-unavailable', !data.available);
         section.setAttribute('data-tooltip', data.tooltip);
@@ -670,16 +695,21 @@ class WorldClockManager {
      * Write a moment into the widget's nodes. Shared by the live repaint and the drag
      * preview, so a dragged sky and a settled one cannot drift apart.
      *
-     * Everything visual arrives as CSS custom properties, so this is a loop rather
-     * than a list of cases and adding a variable to `_getSkyView` needs no change
-     * here. The stylesheet decides what each one paints.
+     * The sky arrives as CSS custom properties, so that half is a loop rather than a
+     * list of cases. The label is two nodes -- a tens digit that may be a dim pad,
+     * and the rest of the string -- so a drag through 9:59 does not resize the face.
      */
-    static _paint(section, timeText, view) {
-        const label = section.querySelector('.worldclock-time');
+    static _paint(section, view) {
+        const tens = section.querySelector('.worldclock-tens');
+        const rest = section.querySelector('.worldclock-rest');
         const sky = section.querySelector('.worldclock-sky');
         const body = section.querySelector('.worldclock-body');
 
-        if (label) label.textContent = timeText;
+        if (tens && view.timeTens != null) {
+            tens.textContent = view.timeTens;
+            tens.classList.toggle('is-pad', !!view.timeTensIsPad);
+        }
+        if (rest && view.timeRest != null) rest.textContent = view.timeRest;
 
         if (sky && view.skyVars) {
             for (const [name, value] of Object.entries(view.skyVars)) sky.style.setProperty(name, value);
@@ -1151,11 +1181,10 @@ class WorldClockManager {
         const components = drag.calendar.timeToComponents(drag.target);
         const dayFraction = this._getDayFraction(drag.calendar, components);
 
-        this._paint(
-            drag.section,
-            this._formatTime(drag.calendar, components),
-            this._getSkyView(dayFraction)
-        );
+        this._paint(drag.section, {
+            ...this._getSkyView(dayFraction),
+            ...this._formatTimeParts(drag.calendar, components)
+        });
     }
 
     /** Commit the dragged time -- the single write of the whole gesture. */

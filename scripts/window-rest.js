@@ -16,42 +16,47 @@
 // concern. Ours is the one place a GM sets up a night, so it is also the only place
 // those choices can be made per rest rather than per world.
 //
-// It renders `window-template.hbs` -- the shared frame -- deliberately. The window
-// framework not owning the frame is the CRITICAL item on TODO.md, and of 15 windows
-// only 4 use the shared template. A new window that hand-rolled its own would be a
-// fifth copy to migrate later; this one is not.
+// A TOOL WINDOW, NOT AN EDITOR. `BlacksmithToolWindowBaseV2` is the compact
+// presentation -- Foundry's native title bar, no five-zone header, and the complete
+// shared shell supplied by the base: parchment, border, footer, field theming, across
+// three themes. This is a palette a GM opens, answers and closes; the standard base is
+// for editors and forms that earn a header of their own.
+//
+// SO THE BODY IS ALL THIS FILE OWNS. It returns `bodyContent` and the two footer
+// zones and nothing else -- no header, no title, no frame. Anything here that painted
+// its own surface would be a second frame inside the first, and `styles/window-rest.css`
+// exists only for the roster row and a light grouping, written against the shell's own
+// custom properties so all three themes stay right.
+//
+// In particular it does NOT use `.blacksmith-window-section`: that belongs to the
+// five-zone window and paints a dark panel, which is a black box on the light
+// parchment theme.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
-import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
 import { postBeforeCard } from './cards-rest.js';
 
 const APP_ID = 'blacksmith-rest-window';
 
-export class RestWindow extends BlacksmithWindowBaseV2 {
+export class RestWindow extends BlacksmithToolWindowBaseV2 {
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
         {
             id: APP_ID,
-            classes: ['blacksmith-rest-window'],
-            position: { width: 460, height: 'auto' },
-            window: { title: 'Rest', resizable: true, minimizable: true, icon: 'fa-solid fa-campground' },
-            // Width is fixed because the roster rows are a list, not a table -- there
-            // is nothing to gain by widening. Height is the axis worth dragging when a
-            // large party pushes the roster past the fold.
-            windowSizeConstraints: { minWidth: 460, maxWidth: 460, minHeight: 380 }
+            classes: ['blacksmith-window-tool', 'blacksmith-rest-tool-window'],
+            // A little wider than the 360 default: the roster rows carry a portrait, a
+            // name and a hit point reading, and the readings should not wrap.
+            position: { width: 380, height: 'auto' },
+            window: { title: 'Rest', icon: 'fa-solid fa-campground' }
         }
     );
 
-    static PARTS = {
-        body: { template: `modules/${MODULE.ID}/templates/window-template.hbs` }
-    };
-
-    // Stated rather than inherited, as every other window rendering the shared frame
-    // does — it is what `_getRoot()` falls back to.
-    static ROOT_CLASS = 'blacksmith-window-template-root';
+    // PARTS and ROOT_CLASS are inherited. The tool base already points at
+    // `window-tool-template.hbs` and owns the frame, so restating either here would be
+    // this window disagreeing with its own shell.
 
     /** The single instance, so reopening does not stack windows. */
     static _ref = null;
@@ -180,8 +185,8 @@ export class RestWindow extends BlacksmithWindowBaseV2 {
 
         const bodyContent = `
             <div class="blacksmith-rest-form">
-                <div class="blacksmith-window-section">
-                    <div class="blacksmith-window-section-header">
+                <div class="blacksmith-rest-group">
+                    <div class="blacksmith-rest-group-title">
                         <i class="fa-solid fa-campground"></i>
                         <span>Rest</span>
                     </div>
@@ -198,8 +203,8 @@ export class RestWindow extends BlacksmithWindowBaseV2 {
                     </label>
                 </div>
 
-                <div class="blacksmith-window-section blacksmith-rest-shortrest">
-                    <div class="blacksmith-window-section-header">
+                <div class="blacksmith-rest-group blacksmith-rest-shortrest">
+                    <div class="blacksmith-rest-group-title">
                         <i class="fa-solid fa-heart-pulse"></i>
                         <span>Hit Dice</span>
                     </div>
@@ -212,8 +217,8 @@ export class RestWindow extends BlacksmithWindowBaseV2 {
                         full. Leave it off and each character chooses their own dice, one at a time, from their card.</div>
                 </div>
 
-                <div class="blacksmith-window-section blacksmith-rest-hitpoints">
-                    <div class="blacksmith-window-section-header">
+                <div class="blacksmith-rest-group blacksmith-rest-hitpoints">
+                    <div class="blacksmith-rest-group-title">
                         <i class="fa-solid fa-heart"></i>
                         <span>Hit Points</span>
                     </div>
@@ -230,22 +235,22 @@ export class RestWindow extends BlacksmithWindowBaseV2 {
                     <div class="blacksmith-rest-note">Remove any adjustments to a character's maximum Hit Points.</div>
                 </div>
 
-                <div class="blacksmith-window-section">
-                    <div class="blacksmith-window-section-header">
+                <div class="blacksmith-rest-group">
+                    <div class="blacksmith-rest-group-title">
                         <i class="fa-solid fa-users"></i>
                         <span>Who is resting</span>
                         <span class="blacksmith-rest-roster-tools">
-                            <button type="button" class="blacksmith-window-btn-secondary" data-action="rest-select-all"
+                            <button type="button" class="blacksmith-rest-roster-tool" data-action="rest-select-all"
                                 data-tooltip="Select everyone">All</button>
-                            <button type="button" class="blacksmith-window-btn-secondary" data-action="rest-select-none"
+                            <button type="button" class="blacksmith-rest-roster-tool" data-action="rest-select-none"
                                 data-tooltip="Select nobody">None</button>
                         </span>
                     </div>
                     ${roster}
                 </div>
 
-                <div class="blacksmith-window-section blacksmith-rest-provisions">
-                    <div class="blacksmith-window-section-header">
+                <div class="blacksmith-rest-group blacksmith-rest-provisions">
+                    <div class="blacksmith-rest-group-title">
                         <i class="fa-solid fa-drumstick-bite"></i>
                         <span>Provisions</span>
                     </div>
@@ -264,18 +269,15 @@ export class RestWindow extends BlacksmithWindowBaseV2 {
                 </div>
             </div>`;
 
+        // THREE ZONES, NOT FIVE. The tool shell renders Foundry's native title bar, so
+        // there is no header zone to fill and no window title to restate -- that is
+        // `window.title` in the options. `showToolFooter` is computed by the base from
+        // the footer content being present, so it is not passed either.
         return {
             appId: APP_ID,
-            showOptionBar: false,
-            showHeader: true,
-            headerIcon: 'fa-solid fa-campground',
-            windowTitle: 'Rest',
-            subtitle: 'Post a rest card to everyone who is resting',
-            showTools: false,
-            showActionBar: true,
             bodyContent,
-            actionBarLeft: '<button type="button" class="blacksmith-window-btn-secondary" data-action="rest-cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>',
-            actionBarRight: '<button type="button" class="blacksmith-window-btn-primary" data-action="rest-begin"><i class="fa-solid fa-campground"></i> Begin Rest</button>'
+            toolFooterLeft: '<button type="button" data-action="rest-cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>',
+            toolFooterRight: '<button type="button" data-action="rest-begin"><i class="fa-solid fa-campground"></i> Begin Rest</button>'
         };
     }
 

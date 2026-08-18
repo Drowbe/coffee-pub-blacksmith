@@ -245,10 +245,21 @@ should not be coupled to it.
 
 ## The rest window
 
-It renders `templates/window-template.hbs` -- the shared frame -- and adds only a roster row of its own.
-That is deliberate: the window framework not owning the frame is the CRITICAL item on `TODO.md`, and of the
-15 `BlacksmithWindowBaseV2` subclasses only 4 use the shared template. A window that hand-rolled its own
-would be a fifth copy of the frame to migrate later.
+It is a **tool window** (`BlacksmithToolWindowBaseV2`), not a standard one. The rest window is a palette a
+GM opens, answers and closes; the five-zone base is for editors and forms that earn a header of their own.
+
+The tool base supplies the entire visual shell -- Foundry's native title bar, the parchment surface, the
+border, the footer, field theming -- across three themes, so this window owns only `bodyContent` and its
+two footer zones. `PARTS` and `ROOT_CLASS` are inherited rather than restated: the base already points at
+`window-tool-template.hbs`, and repeating either would be the window disagreeing with its own shell.
+
+`styles/window-rest.css` therefore covers only the roster row and a light grouping, written against the
+shell's published custom properties (`--blacksmith-tool-divider`, `--blacksmith-tool-surface-hover`,
+`--blacksmith-tool-text-muted`). A hardcoded colour would be correct in at most one of the three themes.
+
+It deliberately does **not** use `.blacksmith-window-section`, the standard window's grouping component:
+that paints `rgba(0, 0, 0, 0.35)`, which is a black panel on the tool frame's light parchment theme. A rule
+and a caption do the same job without stacking a second frame inside the first.
 
 It starts a rest and runs no rules. The kind of rest, the roster, and whether food and water are tracked
 are all questions; pressing the button posts the cards and closes.

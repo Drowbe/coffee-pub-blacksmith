@@ -1027,6 +1027,55 @@ check('A short rest never provisions, whatever was asked for.',
 
 const windowSrc = fs.readFileSync(path.join(ROOT, 'scripts/window-rest.js'), 'utf8');
 
+// --- It is a TOOL window, and must not drift back to the full one ---------------
+//
+// The rest window is a lightweight palette, not a dedicated editor. The tool base
+// supplies the entire visual shell -- frame, native title bar, footer, field theming
+// -- across three themes, and a consumer's job is body content and nothing else.
+
+check(
+    'The rest window extends the TOOL base.',
+    /class RestWindow extends BlacksmithToolWindowBaseV2/.test(windowSrc),
+    `The five-zone base is for editors and forms; this is a palette.`
+);
+check(
+    'It does not restate PARTS or ROOT_CLASS.',
+    !/static PARTS/.test(windowSrc) && !/static ROOT_CLASS/.test(windowSrc),
+    `The tool base already points at window-tool-template.hbs and owns the root class. Restating either ` +
+    `is the window disagreeing with its own shell.`
+);
+check(
+    'It renders no standard-window template.',
+    !/window-template\.hbs/.test(windowSrc)
+);
+check(
+    'It returns the tool zones, not the five-zone keys.',
+    /toolFooterLeft/.test(windowSrc) && /toolFooterRight/.test(windowSrc)
+        && !/actionBarLeft|showHeader|windowTitle|showOptionBar/.test(windowSrc),
+    `The tool shell renders Foundry's native title bar, so there is no header zone to fill.`
+);
+// Matched inside a `class="..."` rather than anywhere in the file: the header comment
+// explains WHY the component is not used, and a bare substring test flagged the
+// explanation as the offence.
+check(
+    'And it does NOT borrow `.blacksmith-window-section`.',
+    !/class="[^"]*blacksmith-window-section/.test(windowSrc),
+    `That component belongs to the five-zone window and paints rgba(0,0,0,0.35) -- a black panel on the ` +
+    `tool frame's light parchment theme.`
+);
+
+const restCss = fs.readFileSync(path.join(ROOT, 'styles/window-rest.css'), 'utf8');
+check(
+    'Its stylesheet themes with the shell rather than against it.',
+    /--blacksmith-tool-/.test(restCss),
+    `The tool frame has light, dark and glass themes; a hardcoded colour is right in at most one.`
+);
+check(
+    'And every rule is scoped to this window.',
+    !/^\.(?!blacksmith-rest-tool-window)[a-z-]+\s*[,{]/m.test(restCss),
+    `An unscoped rule from a tool window leaks onto every other consumer of the shared shell.`
+);
+
 check(
     'The window reads the system\'s own long-rest configuration.',
     /CONFIG\.DND5E\?\.restTypes\?\.long/.test(windowSrc),

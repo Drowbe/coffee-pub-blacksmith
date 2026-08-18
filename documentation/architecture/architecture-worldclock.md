@@ -79,7 +79,10 @@ Two consequences that look like style choices and are not:
   offsets, not ordinals (`client/data/calendar.mjs:261`), hence the `+ 1` wherever a day is displayed.
 - **Twelve-hour time is used only when `hoursPerDay` is 24.** AM and PM mean "before and after the midpoint
   of a 24-hour day" and say nothing on a twenty-hour calendar. Anything else falls back to zero-padded
-  24-hour, which is well defined for any day length.
+  24-hour, which is well defined for any day length. **The hour is always two digits on the face.** A
+  leading zero that is a pad (9 o'clock) is a separate `.worldclock-tens.is-pad` node, dimmed like a
+  physical clock; a real tens digit is not. That is why dragging the sun through 9:59 does not jump the
+  face sideways. The tooltip string is the same value concatenated, so it stays `09:44 AM`.
 
 ## The menu
 
@@ -127,9 +130,9 @@ the first and only user. A provider that throws is caught and the menu still bui
 
 **The row is three units, not six siblings.** The markup groups into `.worldclock-steps` (each chevron
 pair), `.worldclock-face` (sky + time), `.worldclock-steps`. The section gap sits between those units;
-each cluster and the face have their own tighter gap. The time sizes to its string -- the readout has no
-seconds -- and the step chevrons carry a light fill so they read as buttons. That grouping is visual.
-Click handling is unchanged.
+the face gap between sky and time is 6px. The hour is always two digits, with a dim pad zero when it is
+not a real tens, so a drag does not resize the face. The step chevrons carry a light fill so they read
+as buttons. That grouping is visual. Click handling is unchanged.
 
 **The time label is the button, not the whole widget.** Every other part already does something on click --
 the arrows step, the sun drags -- and the sky is a picture rather than a control, so a menu hung off the

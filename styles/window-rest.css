@@ -1,49 +1,85 @@
 /* ==================================================================
-   WINDOW-REST - the GM's rest window
+   REST WINDOW
    ==================================================================
 
-   Only what the shared window vocabulary does not already provide. The frame,
-   the sections, the fields and the buttons all come from window-template.css
-   and the shared control styles; what is left is the roster row, which is a
-   portrait beside a name beside a reading and has no equivalent elsewhere.
+   A TOOL window, so the shell owns the frame: parchment surface, gold
+   border, title bar, footer and field theming all come from
+   window-tool.css and none of it is repeated here.
+
+   What is left is the roster row and a light grouping, and both are
+   written against the shell's own custom properties rather than fixed
+   colours -- the tool frame has three themes (light, dark, glass) and
+   anything hardcoded here would be right in at most one of them.
+
+   Notably NOT used: `.blacksmith-window-section`. That belongs to the
+   standard five-zone window and paints `rgba(0,0,0,0.35)`, which is a
+   black panel on the light parchment theme.
 
    Reached through the @import chain in default.css.
    ================================================================== */
 
-.blacksmith-rest-form {
+.blacksmith-rest-tool-window .blacksmith-rest-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+}
+
+/* --- Grouping ---------------------------------------------------- */
+
+/* A rule and a caption, rather than a panel. The tool body is already a
+   surface; boxing inside it stacks two frames for one form. */
+.blacksmith-rest-tool-window .blacksmith-rest-group + .blacksmith-rest-group {
+    border-top: 1px solid var(--blacksmith-tool-divider);
+    padding-top: 10px;
+}
+
+.blacksmith-rest-tool-window .blacksmith-rest-group-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 0.8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--blacksmith-tool-accent);
+}
+
+.blacksmith-rest-tool-window .blacksmith-rest-group-title i {
+    font-size: 0.9em;
 }
 
 /* --- The roster -------------------------------------------------- */
 
-/* One tick-able character. Laid out as portrait / name / reading, with the
-   name taking the slack so the readings line up down the right-hand edge --
-   a column of hit points is scannable, a ragged one is not. */
-.blacksmith-rest-member {
+/* Portrait / name / reading, with the name taking the slack so the
+   readings line up down the right-hand edge -- a column of hit points is
+   scannable, a ragged one is not. */
+.blacksmith-rest-tool-window .blacksmith-rest-member,
+.blacksmith-rest-tool-window .blacksmith-rest-option {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 6px;
+    padding: 3px 4px;
     border-radius: 3px;
     cursor: pointer;
+    color: var(--blacksmith-tool-text);
 }
 
-.blacksmith-rest-member:hover {
-    background: var(--blacksmith-fill-hint);
+.blacksmith-rest-tool-window .blacksmith-rest-member:hover,
+.blacksmith-rest-tool-window .blacksmith-rest-option:hover {
+    background: var(--blacksmith-tool-surface-hover);
 }
 
-.blacksmith-rest-member img {
-    width: 28px;
-    height: 28px;
+.blacksmith-rest-tool-window .blacksmith-rest-member img {
+    width: 26px;
+    height: 26px;
     border: none;
     border-radius: 3px;
     object-fit: cover;
     flex: 0 0 auto;
 }
 
-.blacksmith-rest-member-name {
+.blacksmith-rest-tool-window .blacksmith-rest-member-name {
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -51,68 +87,57 @@
     white-space: nowrap;
 }
 
-.blacksmith-rest-member-hp {
+.blacksmith-rest-tool-window .blacksmith-rest-member-hp {
     flex: 0 0 auto;
     font-variant-numeric: tabular-nums;
-    opacity: 0.7;
+    color: var(--blacksmith-tool-text-muted);
 }
 
 /* A wounded character is the reason a GM is looking at this list at all.
-   `status-damage` rather than `status-danger`: this is lost hit points, which is
-   the distinction the token set already draws. */
-.blacksmith-rest-member-hp.is-hurt {
+   `status-damage` rather than `status-danger`: this is lost hit points,
+   which is the distinction the token set already draws. */
+.blacksmith-rest-tool-window .blacksmith-rest-member-hp.is-hurt {
     color: var(--blacksmith-status-damage);
-    opacity: 1;
 }
 
-/* --- Options and notes ------------------------------------------- */
-
-.blacksmith-rest-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 6px;
-    border-radius: 3px;
-    cursor: pointer;
-}
-
-.blacksmith-rest-option:hover {
-    background: var(--blacksmith-fill-hint);
-}
-
-.blacksmith-rest-option i {
-    width: 16px;
+.blacksmith-rest-tool-window .blacksmith-rest-option i {
+    width: 14px;
     text-align: center;
-    opacity: 0.7;
+    color: var(--blacksmith-tool-text-muted);
 }
 
-.blacksmith-rest-note {
-    padding: 4px 6px;
+/* --- Notes and empty states -------------------------------------- */
+
+.blacksmith-rest-tool-window .blacksmith-rest-note,
+.blacksmith-rest-tool-window .blacksmith-rest-empty {
+    padding: 2px 4px;
     font-size: 0.85em;
-    opacity: 0.7;
+    color: var(--blacksmith-tool-text-muted);
 }
 
-/* A short rest has no new day and no rations, so those controls go rather than sit
-   there ignored. Hidden rather than disabled: there is nothing to reconsider. */
-.blacksmith-rest-form .is-hidden {
-    display: none;
-}
-
-.blacksmith-rest-empty {
-    padding: 8px 6px;
+.blacksmith-rest-tool-window .blacksmith-rest-empty {
     font-style: italic;
-    opacity: 0.7;
 }
 
-/* All / None sit in the section header, pushed to its trailing edge. */
-.blacksmith-rest-roster-tools {
+/* All / None sit in the group caption, pushed to its trailing edge.
+   Deliberately unstyled beyond size and colour: window-tool.css leaves
+   buttons alone on purpose, and repainting them here would be the same
+   mistake at one remove. */
+.blacksmith-rest-tool-window .blacksmith-rest-roster-tools {
     margin-left: auto;
     display: flex;
     gap: 4px;
 }
 
-.blacksmith-rest-roster-tools button {
-    padding: 1px 8px;
-    font-size: 0.8em;
-    line-height: 1.6;
+.blacksmith-rest-tool-window .blacksmith-rest-roster-tool {
+    padding: 0 6px;
+    font-size: 0.9em;
+    line-height: 1.5;
+    width: auto;
+}
+
+/* A short rest has no new day and no rations; a long one has no hit dice
+   to spend. Hidden rather than disabled: there is nothing to reconsider. */
+.blacksmith-rest-tool-window .is-hidden {
+    display: none;
 }

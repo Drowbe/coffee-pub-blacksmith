@@ -50,7 +50,7 @@
 .worldclock-face {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 6px;
     border-radius: 4px;
 }
 
@@ -66,10 +66,13 @@
 
 .worldclock-section .worldclock-time {
     /* Tabular figures so the digits keep their columns as the time ticks.
-       The box sizes to the string: the readout has no seconds, and a 60px
-       floor left a hole after anything shorter than "12:00 AM". 9:59 to
-       10:00 can still add a character; that is rare and not worth a gutter. */
+       The hour is always two characters (a dim pad 0, or a real tens digit),
+       so dragging through 9:59 does not jump the face sideways. */
     font-variant-numeric: tabular-nums;
+}
+
+.worldclock-tens.is-pad {
+    opacity: 0.35;
 }
 
 /* ----- The sky ---------------------------------------------------- */

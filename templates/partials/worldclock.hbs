@@ -39,7 +39,7 @@
             <span class="worldclock-horizon"></span>
         </div>
 
-        <span class="worldclock-time">{{worldClock.timeText}}</span>
+        <span class="worldclock-time"><span class="worldclock-tens{{#if worldClock.timeTensIsPad}} is-pad{{/if}}">{{worldClock.timeTens}}</span><span class="worldclock-rest">{{worldClock.timeRest}}</span></span>
     </div>
 
     {{#if worldClock.isGM}}
