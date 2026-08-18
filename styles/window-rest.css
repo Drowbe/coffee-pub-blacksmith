@@ -62,6 +62,63 @@
     font-size: 0.9em;
 }
 
+/* --- Checkboxes ---------------------------------------------------
+   Foundry's native checkbox is what shipped here, and its two states do
+   not read as one control: the unchecked box is a large grey fill and
+   the checked one a smaller accent square.
+
+   There is no shared bare-checkbox style to inherit -- `blacksmith-toggle`
+   is a SWITCH, which asks a different question, and its colours are
+   hardcoded for the dark standard window, so on light parchment it would
+   be a white-on-cream ghost. Every consumer that wanted a checkbox styled
+   its own; this is that, done against the tool tokens so all three themes
+   stay right.
+
+   One box, one size, in both states. Only the fill changes. */
+
+.blacksmith-rest-tool-window input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    border: 1px solid var(--blacksmith-tool-field-border);
+    border-radius: 3px;
+    background: var(--blacksmith-tool-field-background);
+    cursor: pointer;
+}
+
+/* Brand orange for the same reason the active rest button uses it: the
+   per-theme tool accent is dark brown under Light and cream under Glass,
+   so it cannot carry "on". */
+.blacksmith-rest-tool-window input[type="checkbox"]:checked {
+    background: var(--blacksmith-color-brand-accent);
+    border-color: var(--blacksmith-color-brand-accent);
+}
+
+/* The tick is DRAWN, not a glyph: two borders rotated. It needs no icon
+   font, so nothing can erase it the way a Font Awesome ::before can, and
+   it stays legible on the orange in every theme. */
+.blacksmith-rest-tool-window input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 3px;
+    height: 7px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.blacksmith-rest-tool-window input[type="checkbox"]:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--blacksmith-tool-field-focus-ring);
+}
+
 /* --- Which rest ---------------------------------------------------
    Two exclusive buttons rather than a dropdown: there are exactly two
    answers, both worth reading at a glance, and a select hides one of
@@ -92,10 +149,16 @@
 }
 
 /* The chosen one carries the accent, so which rest is about to happen is
-   readable without comparing the two. */
+   readable without comparing the two.
+
+   THE BRAND ORANGE, NOT `--blacksmith-tool-accent`. window-tool.css states
+   the rule where it makes the same choice: the tool accent resolves to a
+   different colour per theme -- dark brown under Light, cream under Glass --
+   so it cannot mean "interactive". Orange reads on all three without a
+   per-theme value, which is why the menubar uses it for the same job. */
 .blacksmith-rest-tool-window .blacksmith-rest-type.is-active {
     background: var(--blacksmith-tool-surface-selected);
-    border-color: var(--blacksmith-tool-accent);
+    border-color: var(--blacksmith-color-brand-accent);
     color: var(--blacksmith-tool-text);
     font-weight: 700;
 }

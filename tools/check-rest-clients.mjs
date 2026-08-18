@@ -1076,6 +1076,19 @@ check(
     `An unscoped rule from a tool window leaks onto every other consumer of the shared shell.`
 );
 check(
+    'Interactive state uses the brand orange, not the per-theme tool accent.',
+    /is-active[\s\S]{0,200}?--blacksmith-color-brand-accent/.test(restCss)
+        && /:checked[\s\S]{0,200}?--blacksmith-color-brand-accent/.test(restCss),
+    `\`--blacksmith-tool-accent\` resolves per theme -- dark brown under Light, cream under Glass -- so it ` +
+    `cannot carry "on". window-tool.css states this rule where it makes the same choice for its header controls.`
+);
+check(
+    'Checkboxes are styled, since nothing shared styles them.',
+    /input\[type="checkbox"\]/.test(restCss),
+    `Foundry's native checkbox renders its two states at different weights; there is no shared bare-checkbox ` +
+    `style to inherit, and \`blacksmith-toggle\` is a switch with colours hardcoded for the dark window.`
+);
+check(
     'It gives the tool body its own padding.',
     /blacksmith-window-tool-body\s*\{[^}]*padding/.test(restCss),
     `\`.blacksmith-window-tool-body\` ships NO padding -- only flex, overflow and the min-* guards -- so a ` +

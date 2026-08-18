@@ -4995,16 +4995,25 @@ class MenuBar {
     static getTimerText() {
         if (this.isLoading) return "Not Set";
         if (!this.sessionEndTime) return "Set Time";
-        
+
         const now = Date.now();
         if (now >= this.sessionEndTime) return "Time's Up!";
-        
+
         const remaining = this.sessionEndTime - now;
         const hours = Math.floor(remaining / (1000 * 60 * 60));
         const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        const paddedMinutes = minutes.toString().padStart(2, '0');
+
+        // Seconds belong to the warning window, not the whole session. A four-hour
+        // table does not need a stopwatch; the chip already going warning is when
+        // the leftover seconds start to mean something. The chip grows to fit --
+        // reserving :SS for hours would spend the width on a counter that is off.
+        const warningMinutes = getSettingSafely(MODULE.ID, 'sessionTimerWarningThreshold', 15);
+        const showSeconds = remaining <= warningMinutes * 60 * 1000;
+        if (!showSeconds) return `${hours}:${paddedMinutes}`;
+
         const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-        
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        return `${hours}:${paddedMinutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
     static getTimerProgress() {
@@ -5024,7 +5033,7 @@ class MenuBar {
         if (!timerSpan || !timerSection) return;
 
         const timerText = this.getTimerText();
-        timerSpan.textContent = timerText;
+        if (timerSpan.textContent !== timerText) timerSpan.textContent = timerText;
 
         // Calculate progress and remaining time
         const progress = this.getTimerProgress();

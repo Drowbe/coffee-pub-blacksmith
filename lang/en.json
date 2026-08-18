@@ -641,7 +641,7 @@
 			"sessionTimerSpecificTime-Hint": "End time when Default Time is set to Specific Time. Uses half-hour increments.",
 
 			"sessionTimerWarningThreshold-Label": " Warning Threshold",
-			"sessionTimerWarningThreshold-Hint": "",
+			"sessionTimerWarningThreshold-Hint": "When remaining time reaches this many minutes, the timer chip warns and the readout starts counting seconds.",
 
 			"sessionTimerWarningSound-Label": "Warning Sound",
 			"sessionTimerWarningSound-Hint": "",
