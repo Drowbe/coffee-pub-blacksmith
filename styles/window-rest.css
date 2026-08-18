@@ -1,0 +1,118 @@
+/* ==================================================================
+   WINDOW-REST - the GM's rest window
+   ==================================================================
+
+   Only what the shared window vocabulary does not already provide. The frame,
+   the sections, the fields and the buttons all come from window-template.css
+   and the shared control styles; what is left is the roster row, which is a
+   portrait beside a name beside a reading and has no equivalent elsewhere.
+
+   Reached through the @import chain in default.css.
+   ================================================================== */
+
+.blacksmith-rest-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* --- The roster -------------------------------------------------- */
+
+/* One tick-able character. Laid out as portrait / name / reading, with the
+   name taking the slack so the readings line up down the right-hand edge --
+   a column of hit points is scannable, a ragged one is not. */
+.blacksmith-rest-member {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.blacksmith-rest-member:hover {
+    background: var(--blacksmith-fill-hint);
+}
+
+.blacksmith-rest-member img {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 3px;
+    object-fit: cover;
+    flex: 0 0 auto;
+}
+
+.blacksmith-rest-member-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-rest-member-hp {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+}
+
+/* A wounded character is the reason a GM is looking at this list at all.
+   `status-damage` rather than `status-danger`: this is lost hit points, which is
+   the distinction the token set already draws. */
+.blacksmith-rest-member-hp.is-hurt {
+    color: var(--blacksmith-status-damage);
+    opacity: 1;
+}
+
+/* --- Options and notes ------------------------------------------- */
+
+.blacksmith-rest-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.blacksmith-rest-option:hover {
+    background: var(--blacksmith-fill-hint);
+}
+
+.blacksmith-rest-option i {
+    width: 16px;
+    text-align: center;
+    opacity: 0.7;
+}
+
+.blacksmith-rest-note {
+    padding: 4px 6px;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+/* A short rest has no new day and no rations, so those controls go rather than sit
+   there ignored. Hidden rather than disabled: there is nothing to reconsider. */
+.blacksmith-rest-form .is-hidden {
+    display: none;
+}
+
+.blacksmith-rest-empty {
+    padding: 8px 6px;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* All / None sit in the section header, pushed to its trailing edge. */
+.blacksmith-rest-roster-tools {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+}
+
+.blacksmith-rest-roster-tools button {
+    padding: 1px 8px;
+    font-size: 0.8em;
+    line-height: 1.6;
+}

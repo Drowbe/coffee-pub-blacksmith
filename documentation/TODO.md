@@ -69,33 +69,12 @@ what happens to a rest that is already running.
 
 Built and in `CHANGELOG.md`: the clock, its controls, the sky panel, drag-to-scrub, the tooltip, the
 darkness driver, the schedule API (`api.worldClock.schedule`), rests moving the clock, and the clock menu
-(rest, Set Time, Set Date, Options). Architecture in
+(Rest, Set Time, Set Date, Options). Architecture in
 `documentation/architecture/architecture-worldclock.md`, API in `documentation/api/api-worldclock.md`.
 
 **Ideas, not commitments.** Several of these are placement questions rather than build questions.
 
-### 1. Blacksmith owns the rest card
-
-**Plan: `documentation/plans/plan-rest-card.md`.** One Blacksmith card **per character**, replacing both
-the system's recovery card and today's separate provisions summary: it shows what that character recovered
-and what they ate, and updates itself when a foraging check the player rolls themselves comes back.
-
-Keeping the system's one-card-per-character shape is what makes the rest simple -- a card is about one
-actor, so its state is that actor's state, and an outstanding roll is visibly a card in chat rather than a
-row inside a summary. Today's batched provisions card and its accumulate-then-flush machinery go away.
-
-The shape change is that provisioning stops being synchronous. The clock still advances when the last
-character rests; foraging resolves afterwards and lands late. The card's own flag is the state, so it
-survives a reload and works on every client.
-
-**Recovery data is not optional.** Suppressing the system's cards without showing hit points, hit dice,
-slots and uses would be a net loss of information dressed as a tidy-up -- which is the one way this could
-make things worse.
-
-Its hardest piece -- a chat card that updates as things resolve -- is the same piece the interruptible
-rest below needs, which is the main argument for doing it first.
-
-### 2. The interruptible rest -- the one genuinely novel thing
+### 1. The interruptible rest -- the one genuinely novel thing
 
 A long rest the clock drives. The GM starts it, world time advances across the rest's duration, and the GM
 can interrupt partway: rolling for encounters, having something happen at hour three, resuming or
@@ -109,7 +88,16 @@ the same shape over world time rather than wall time.
 **An interrupted rest is not a rest.** The system's recovery must only run if the rest *completes*, which
 rules out "call `longRest()` and then advance the clock" as the shape. That constraint is the whole design.
 
-### 3. Already done, recorded so nobody rebuilds it
+**Its hardest piece already exists.** The rest card updates in place and holds its own state across two
+phases, which is exactly what a rest in progress needs -- a card that can show hour three and offer an
+interrupt. See `documentation/architecture/architecture-rest.md`. What is missing is the gradual,
+interruptible advance, not the surface.
+
+### 2. Already done, recorded so nobody rebuilds it
+
+**The rest is finished, end to end** -- the rest window, one card per character carrying both the
+pre-rest state and the result, player-rolled foraging, and provisions decided per rest. See `CHANGELOG.md`
+and `documentation/architecture/architecture-rest.md`.
 
 **Food, water and exhaustion are finished** -- see `CHANGELOG.md`. Exhaustion needed no code at all:
 dnd5e automates the modern rules itself once `rulesVersion` is set to "modern"
@@ -117,20 +105,20 @@ dnd5e automates the modern rules itself once `rulesVersion` is set to "modern"
 long rest already removes a level through `exhaustionDelta`. **Confirm that setting is "modern" in this
 world** -- it is the whole feature.
 
-### 4. Weather -- a sibling
+### 3. Weather -- a sibling
 
 **Narrative first**, with FXMaster optional rather than assumed: the text is what a table remembers, and it
 keeps weather from depending on a specific animation module. Unblocked by the schedule API -- a weather
 feature registers a `dailyAt` and never needs to know how the clock works.
 
-### 5. Calendar events -- a sibling
+### 4. Calendar events -- a sibling
 
 Festivals, holidays, anything dated. Also unblocked by the schedule API; needs somewhere to store the
 events, which is the only open question.
 
-### 6. A morning briefing -- last, wherever it lives
+### 5. A morning briefing -- last, wherever it lives
 
-State of the party plus weather. Wants 4 and 5 to exist first, so it is last regardless of placement.
+State of the party plus weather. Wants 3 and 4 to exist first, so it is last regardless of placement.
 
 ### Placement
 

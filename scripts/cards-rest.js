@@ -17,7 +17,7 @@
 // break on a system update, and this is a chat card rather than a rules
 // calculation.
 //
-// See documentation/plans/plan-rest-card.md.
+// See documentation/architecture/architecture-rest.md.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
@@ -312,6 +312,91 @@ export function describeNothingRecovered(actor) {
     return `Already full: ${list}.`;
 }
 
+/**
+ * Where a character STANDS, before they rest.
+ *
+ * The same three pools the recovery rows report afterwards, so the card reads as one
+ * thing changing rather than two different cards about one night. Each is shown as
+ * `value / max` and omitted when the character has no such pool -- a fighter has no
+ * spell slots, and a row saying so is noise.
+ *
+ * @returns {Array<object>} `rows` items.
+ */
+export function buildStandingRows(actor) {
+    const rows = [];
+    const attributes = actor?.system?.attributes ?? {};
+
+    const hd = attributes.hd;
+    if (Number(hd?.max) > 0) {
+        rows.push({
+            label: 'Hit Dice',
+            trailing: `${Number(hd.value ?? 0)} / ${Number(hd.max)}`,
+            tone: Number(hd.value ?? 0) === 0 ? 'warn' : undefined
+        });
+    }
+
+    // Slots are summed across levels rather than listed one per level. Before the
+    // rest the useful question is "how much have I got left", and nine rows of
+    // mostly-zeroes answers it worse than one.
+    const pools = Object.values(actor?.system?.spells ?? {}).filter((pool) => Number(pool?.max) > 0);
+    if (pools.length) {
+        const remaining = pools.reduce((sum, pool) => sum + Number(pool.value ?? 0), 0);
+        const total = pools.reduce((sum, pool) => sum + Number(pool.max ?? 0), 0);
+        rows.push({
+            label: 'Spell Slots',
+            trailing: `${remaining} / ${total}`,
+            tone: remaining === 0 ? 'warn' : undefined
+        });
+    }
+
+    const exhaustion = Number(attributes.exhaustion ?? 0);
+    if (exhaustion > 0) {
+        rows.push({ label: 'Exhaustion', trailing: `Level ${exhaustion}`, tone: 'negative' });
+    }
+
+    return rows;
+}
+
+/**
+ * The card as it looks BEFORE the rest: where the character stands, and a button.
+ *
+ * ONE CARD, TWO PHASES. This is the same card that will report the rest -- same
+ * message, same flag, rewritten in place when the button is pressed. The plan called
+ * for a separate request card and a player window in front of it; both turned out to
+ * be the same object at a different moment, and a player pressing Rest on the card
+ * already in front of them is the shortest path that exists.
+ *
+ * `restOptions` is what the GM chose in the rest window, carried on the card so the
+ * rest the player starts is the rest the GM asked for -- including whether food and
+ * water are tracked for this one, which is otherwise only a world setting.
+ *
+ * @returns {object} A card state with `phase: 'before'`.
+ */
+export function buildBeforeState({ actor, restType = 'long', restOptions = {} } = {}) {
+    const isLong = restType === 'long';
+
+    return {
+        phase: 'before',
+        actorUuid: actor?.uuid ?? null,
+        name: actor?.name ?? 'Someone',
+        img: actor?.img ?? null,
+        restType,
+        subtitle: `${isLong ? 'Long' : 'Short'} Rest — ready to rest`,
+        hp: {
+            value: Number(actor?.system?.attributes?.hp?.value ?? 0),
+            max: Number(actor?.system?.attributes?.hp?.max ?? 0)
+        },
+        standing: buildStandingRows(actor),
+        restOptions: {
+            newDay: restOptions.newDay === true,
+            trackFood: restOptions.trackFood,
+            trackWater: restOptions.trackWater
+        },
+        recovery: [],
+        provisions: null
+    };
+}
+
 export function buildRestState({ actor, result, config, provisions = null } = {}) {
     const isLong = config?.type === 'long';
     const hours = Math.round((Number(config?.duration) || 0) / 60);
@@ -323,6 +408,7 @@ export function buildRestState({ actor, result, config, provisions = null } = {}
     if (result?.newDay || config?.newDay) detail.push('new day');
 
     return {
+        phase: 'rested',
         actorUuid: actor?.uuid ?? null,
         name: actor?.name ?? 'Someone',
         img: actor?.img ?? null,
@@ -373,6 +459,35 @@ export function buildPartsFromState(state) {
             max: state.hp.max,
             label: `${state.hp.value} / ${state.hp.max} HP`
         });
+    }
+
+    // BEFORE THE REST: where they stand, and the button. Composed and returned here
+    // because the two phases share only the identity and the health bar -- everything
+    // below is about a rest that has happened.
+    if (state?.phase === 'before') {
+        const standing = Array.isArray(state?.standing) ? state.standing : [];
+        if (standing.length) {
+            parts.push({ part: 'section', label: 'Currently' });
+            parts.push({ part: 'rows', plain: true, items: standing });
+        }
+
+        // The same shape the foraging check uses: the character's own row IS the
+        // control. A reader who has seen one rest card has already learnt it, and a
+        // button floating beside a name was the thing that read wrong the first time.
+        parts.push({ part: 'section', label: state.restType === 'long' ? 'Long Rest' : 'Short Rest' });
+        parts.push({
+            part: 'rows',
+            items: [{
+                label: state.name ?? 'Rest',
+                sublabel: state.restOptions?.newDay ? 'Rest, and begin a new day' : 'Take the rest',
+                moduleId: MODULE.ID,
+                action: 'rest',
+                clickable: true,
+                marker: state.restType === 'long' ? 'fa-solid fa-campground' : 'fa-solid fa-utensils'
+            }]
+        });
+
+        return parts;
     }
 
     // A rest that restored nothing still says so, and says WHY. Silence would read as
@@ -545,6 +660,24 @@ export async function postRestCardFromState(state, { requestId = null } = {}) {
 }
 
 /**
+ * Rewrite a card from a new state.
+ *
+ * THE ONE WRITE PATH, so a card can only ever change by being recomposed from the
+ * state that will also be stored. `ChatCardsAPI.update` rewrites the baked HTML and
+ * the flag together, which is what keeps a re-render from putting the old card back.
+ *
+ * @param {ChatMessage} message
+ * @param {object} state The complete new card state.
+ * @returns {Promise<ChatMessage|null>}
+ */
+export async function updateRestCardState(message, state) {
+    return ChatCardsAPI.update(message, {
+        parts: buildPartsFromState(state),
+        flags: { rest: state }
+    });
+}
+
+/**
  * Rewrite a card after its foraging check has been made.
  *
  * @param {ChatMessage} message
@@ -552,10 +685,26 @@ export async function postRestCardFromState(state, { requestId = null } = {}) {
  * @returns {Promise<ChatMessage|null>}
  */
 export async function updateRestCard(message, provisions) {
-    const state = { ...(message?.getFlag?.(MODULE.ID, 'rest') ?? {}), provisions };
+    return updateRestCardState(message, { ...(message?.getFlag?.(MODULE.ID, 'rest') ?? {}), provisions });
+}
 
-    return ChatCardsAPI.update(message, {
+/**
+ * Post the pre-rest card for one character.
+ * @returns {Promise<ChatMessage|null>}
+ */
+export async function postBeforeCard({ actor, restType = 'long', restOptions = {} } = {}) {
+    const state = buildBeforeState({ actor, restType, restOptions });
+
+    return ChatCardsAPI.post({
+        moduleId: MODULE.ID,
+        type: 'rest',
         parts: buildPartsFromState(state),
+        speaker: { alias: state.name },
         flags: { rest: state }
     });
+}
+
+/** Whether this card is still waiting for its character to rest. */
+export function isRestPending(state) {
+    return state?.phase === 'before';
 }

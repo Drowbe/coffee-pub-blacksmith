@@ -24,12 +24,15 @@
 // about one actor, so its state is that actor's state, which is what will let a
 // foraging roll made minutes later find its own card again.
 //
-// See documentation/plans/plan-rest-card.md.
+// See documentation/architecture/architecture-rest.md.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
-import { buildRestState, postRestCardFromState, updateRestCard, isForagePending } from './cards-rest.js';
+import {
+    buildRestState, postRestCardFromState, updateRestCard, updateRestCardState,
+    isForagePending, isRestPending
+} from './cards-rest.js';
 import { ChatCardsAPI } from './api-chat-cards.js';
 import { SocketManager } from './manager-sockets.js';
 
@@ -158,6 +161,7 @@ class RestManager {
      * Same shape as `manager-pins.js:2738`, which had already solved this.
      */
     static _registerActions() {
+        ChatCardsAPI.registerAction(MODULE.ID, 'rest', ({ message }) => this._onRestClicked(message));
         ChatCardsAPI.registerAction(MODULE.ID, 'forage', ({ message }) => this._onForageClicked(message));
 
         if (SocketManager.isSocketReady) this._registerSocketHandlers();
@@ -229,6 +233,77 @@ class RestManager {
     /** Marker set on the rest config when we silenced the system's own card. */
     static SUPPRESSED_KEY = 'blacksmithSuppressedCard';
 
+    /**
+     * Markers riding the rest config from the button that started the rest through to
+     * `restCompleted`.
+     *
+     * `CARD_KEY` is the message id of the card that was pressed, which is what turns a
+     * rest into an UPDATE of that card rather than a second one about the same night.
+     * `OPTIONS_KEY` carries the food and water choices the GM made in the rest window,
+     * so a rest can track provisions differently from the world default without
+     * anybody changing a setting.
+     *
+     * Both survive the journey because dnd5e passes one config object by reference
+     * from `preShortRest` (`dnd5e.mjs:34817`) to `restCompleted` (34995).
+     */
+    static CARD_KEY = 'blacksmithCardId';
+    static OPTIONS_KEY = 'blacksmithProvisionOptions';
+
+    /**
+     * Somebody pressed Rest on a pre-rest card.
+     *
+     * THE SYSTEM DOES THE RULES; THE CARD IS THE WHOLE INTERFACE. This calls
+     * `actor.longRest()` or `actor.shortRest()` with the dialog and the system card
+     * both off, because the card that was just pressed already asked the question and
+     * is about to hold the answer. Everything dnd5e does to the actor is untouched.
+     *
+     * It runs on the CLICKING client, which is the player's -- so the rest completes
+     * there, and `_onRestCompleted` hands it to the GM exactly as it does for a rest
+     * accepted on a system request.
+     */
+    static async _onRestClicked(message) {
+        const state = message?.getFlag?.(MODULE.ID, 'rest');
+        if (!state || !isRestPending(state)) return;
+
+        const actor = await fromUuid(state.actorUuid).catch(() => null);
+        if (!actor) {
+            ui.notifications?.warn('That character no longer exists.');
+            return;
+        }
+
+        // The GM may rest anyone -- which is also how a character whose player is away
+        // gets their rest. Everyone else rests only their own.
+        if (!game.user?.isGM && !actor.isOwner) {
+            ui.notifications?.warn(`${actor.name} is not yours to rest.`);
+            return;
+        }
+
+        const isLong = state.restType === 'long';
+        const config = {
+            type: isLong ? 'long' : 'short',
+            dialog: false,
+            chat: false,
+            newDay: state.restOptions?.newDay === true,
+            // OURS TO MOVE. Leaving this false keeps the clock in one place -- the
+            // grouping in `_applyRest`, which knows how many characters are still to
+            // rest. dnd5e's own advance would fire once per character.
+            advanceTime: false,
+            [this.SUPPRESSED_KEY]: true,
+            [this.CARD_KEY]: message.id,
+            [this.OPTIONS_KEY]: {
+                trackFood: state.restOptions?.trackFood,
+                trackWater: state.restOptions?.trackWater
+            }
+        };
+
+        try {
+            await actor[isLong ? 'longRest' : 'shortRest'](config);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Rest: ${actor.name} could not rest`, error, false, false);
+            ui.notifications?.warn(`${actor.name} could not rest. See the console for details.`);
+        }
+    }
+
     /** Socket handler name for the rest GM hop. */
     static REST_GM_PROXY = 'restCompletedOnClient';
 
@@ -251,6 +326,8 @@ class RestManager {
             minutes: Number(config?.duration),
             systemAdvanced: config?.advanceTime === true,
             suppressedSystemCard: config?.[this.SUPPRESSED_KEY] === true,
+            cardId: config?.[this.CARD_KEY] ?? null,
+            provisionOptions: config?.[this.OPTIONS_KEY] ?? null,
             state: buildRestState({ actor, result, config })
         };
 
@@ -395,20 +472,39 @@ class RestManager {
             ? await fromUuid(payload.actorUuid).catch(() => null)
             : null;
 
-        const provisions = await this._provision(payload?.restType, actor);
+        const provisions = await this._provision(payload?.restType, actor, payload?.provisionOptions);
+        const state = { ...payload.state, provisions: provisions ?? null };
+
+        // THE CARD THAT STARTED THE REST IS THE CARD THAT REPORTS IT. A rest begun
+        // from our own card rewrites that message in place -- one card for the night,
+        // which is the entire point of the pre-rest phase. Posting a second would put
+        // the question and its answer in two places.
+        if (payload.cardId) {
+            const message = game.messages?.get(payload.cardId);
+            if (message) {
+                try {
+                    await updateRestCardState(message, state);
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, `Rest: Failed to update the rest card for ${state.name}`, error, false, false);
+                }
+                return;
+            }
+            // The card was deleted while its player was resting. Falling through posts
+            // a fresh one, which is better than losing the rest entirely.
+        }
 
         if (!getSettingSafely(MODULE.ID, 'restPostCard', true)) return;
 
         try {
             await postRestCardFromState(
-                { ...payload.state, provisions: provisions ?? null },
+                state,
                 // OURS TO STAMP ONLY IF WE SILENCED THEIRS. When the system posted its
                 // own card it has already marked the request complete, and stamping
                 // ours as well would point the request's target at the wrong message.
                 { requestId: payload.suppressedSystemCard ? payload.requestId : null }
             );
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Rest: Failed to post the rest card for ${payload?.state?.name}`, error, false, false);
+            postConsoleAndNotification(MODULE.NAME, `Rest: Failed to post the rest card for ${state.name}`, error, false, false);
         }
     }
 
@@ -418,12 +514,21 @@ class RestManager {
      * LONG RESTS ONLY. A short rest is an hour by the tea, not a day's provisions,
      * and consuming a ration for one would empty a pack over an afternoon.
      */
-    static async _provision(restType, actor) {
+    static async _provision(restType, actor, options = null) {
         if (restType !== 'long') return;
         if (!actor?.items) return;
 
-        const wantFood = getSettingSafely(MODULE.ID, 'restTrackFood', false);
-        const wantWater = getSettingSafely(MODULE.ID, 'restTrackWater', false);
+        // THE REST'S OWN CHOICE WINS, and the setting is only the default it started
+        // from. A GM running a night in a city with an inn turns provisions off for
+        // that rest without changing what the world does every other night. Undefined
+        // means the rest expressed no opinion -- a rest started anywhere but our own
+        // window -- so the setting decides, exactly as before.
+        const choose = (chosen, key) => (typeof chosen === 'boolean'
+            ? chosen
+            : getSettingSafely(MODULE.ID, key, false));
+
+        const wantFood = choose(options?.trackFood, 'restTrackFood');
+        const wantWater = choose(options?.trackWater, 'restTrackWater');
         if (!wantFood && !wantWater) return;
 
         const outcome = { name: actor.name, img: actor.img ?? null, food: null, water: null, exhaustion: 0 };

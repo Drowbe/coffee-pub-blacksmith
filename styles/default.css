@@ -33,6 +33,7 @@
 @import "window-panels.css";
 @import "window-toast-send.css";
 @import "window-compendium-search.css";
+@import "window-rest.css";
 
 /* --- Tabs ---------------------- */
 @import "tabs-scenes.css";

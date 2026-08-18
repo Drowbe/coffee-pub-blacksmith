@@ -42,8 +42,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
  * caller's preamble instead. Everything else is the real source.
  */
 const strip = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
+    // Imports are matched as STATEMENTS rather than lines, because a named import list
+    // long enough to wrap is still one import -- and a line-by-line filter leaves the
+    // continuation lines behind as a syntax error in whatever it builds next.
+    .replace(/^import\s[\s\S]*?from\s*['"][^'"]*['"];?/gm, '')
+    .replace(/^import\s+['"][^'"]*['"];?/gm, '')
     .split('\n')
-    .filter((l) => !/^import\s/.test(l))
     .map((l) => l.replace(/^export\s+(async\s+)?(function|const|let|class)\s/, '$1$2 '))
     .filter((l) => !/^export\s/.test(l))
     .join('\n');
@@ -130,7 +134,9 @@ const CARDS_PREAMBLE = `
 `;
 
 const cards = new Function(`${CARDS_PREAMBLE}\n${strip('scripts/cards-rest.js')}
-    return { buildRestState, postRestCardFromState, updateRestCard, isForagePending, buildRecoveryRows };`)();
+    return { buildRestState, postRestCardFromState, updateRestCard, updateRestCardState, isForagePending,
+             isRestPending, buildRecoveryRows, buildBeforeState, buildPartsFromState, buildStandingRows,
+             postBeforeCard };`)();
 
 const REST_PREAMBLE = `
     const MODULE = { ID: 'coffee-pub-blacksmith', NAME: 'Blacksmith' };
@@ -138,7 +144,10 @@ const REST_PREAMBLE = `
     const getSettingSafely = (m, k, d) => (k in globalThis.__world.settings ? globalThis.__world.settings[k] : d);
     const HookManager = { registerHook: () => {} };
     const ChatCardsAPI = globalThis.__ChatCardsAPI;
-    const { buildRestState, postRestCardFromState, updateRestCard, isForagePending } = globalThis.__cards;
+    const {
+        buildRestState, postRestCardFromState, updateRestCard, updateRestCardState,
+        isForagePending, isRestPending
+    } = globalThis.__cards;
 
     // Delegated rather than captured, so a test can swap the socket AFTER a client is
     // built -- which is the whole of the startup-order case below.
@@ -415,6 +424,204 @@ check('A long rest still recovers them.', longDice?.label === 'Hit Dice' && long
 check('Toned as a gain.', longDice?.tone === 'positive');
 
 // ==================================================================
+// ===== 7. ONE CARD, TWO PHASES ====================================
+// ==================================================================
+//
+// The GM window posts a card showing where a character stands, with a Rest button.
+// Pressing it rests them and REWRITES THAT CARD. The question and the answer must
+// end up in the same message, or the whole point of the pre-rest phase is lost.
+
+const before = cards.buildBeforeState({
+    actor: {
+        uuid: 'Actor.Nik', name: 'Nik', img: 'nik.webp',
+        system: {
+            attributes: { hp: { value: 22, max: 40 }, hd: { value: 2, max: 5 }, exhaustion: 1 },
+            spells: { spell1: { value: 1, max: 4 }, spell2: { value: 0, max: 2 } }
+        }
+    },
+    restType: 'long',
+    restOptions: { newDay: true, trackFood: true, trackWater: false }
+});
+
+check('The pre-rest card knows which phase it is in.', before.phase === 'before');
+check('It carries the GM choices so the rest matches what was asked for.',
+    before.restOptions.newDay === true && before.restOptions.trackFood === true && before.restOptions.trackWater === false,
+    JSON.stringify(before.restOptions));
+check('It is pending until somebody rests.', cards.isRestPending(before) === true);
+check('A rested card is not.', cards.isRestPending({ phase: 'rested' }) === false);
+
+const standing = before.standing;
+check('It shows hit dice as a proportion.', standing.find((r) => r.label === 'Hit Dice')?.trailing === '2 / 5',
+    JSON.stringify(standing));
+check('Spell slots are summed, not listed per level.',
+    standing.find((r) => r.label === 'Spell Slots')?.trailing === '1 / 6',
+    `Nine rows of mostly zeroes answers "how much have I got left" worse than one.`);
+check('Exhaustion is shown when carried.', standing.find((r) => r.label === 'Exhaustion')?.trailing === 'Level 1');
+
+const fighter = cards.buildStandingRows({ system: { attributes: { hd: { value: 3, max: 3 }, exhaustion: 0 }, spells: {} } });
+check('A character with no spellcasting is not told about slots.',
+    !fighter.some((r) => r.label === 'Spell Slots'), JSON.stringify(fighter));
+check('Nor about exhaustion they do not have.', !fighter.some((r) => r.label === 'Exhaustion'));
+
+const beforeParts = cards.buildPartsFromState(before);
+const restRow = beforeParts.filter((p) => p.part === 'rows').at(-1)?.items?.[0];
+check('The pre-rest card offers a Rest control.', restRow?.action === 'rest', JSON.stringify(restRow));
+check('The whole row is the target, as the foraging check does.', restRow?.clickable === true);
+check('Namespaced to us.', restRow?.moduleId === 'coffee-pub-blacksmith');
+check('It says a new day is coming when one is.', /new day/i.test(restRow?.sublabel ?? ''), restRow?.sublabel);
+check('It carries a health bar.', beforeParts.some((p) => p.part === 'meter'));
+check('And no recovery section, because nothing has happened yet.',
+    !beforeParts.some((p) => p.label === 'Recovered'),
+    `A card reporting "nothing recovered" before the rest reads as a rest that failed.`);
+
+// Now rest from that card.
+reset();
+const cardMessage = makeMessage('card-before', {});
+world.messages.set('card-before', cardMessage);
+
+await gm._applyRest({
+    actorUuid: 'Actor.Nik', requestId: null, restType: 'long', minutes: 480,
+    systemAdvanced: false, suppressedSystemCard: true,
+    cardId: 'card-before',
+    provisionOptions: { trackFood: false, trackWater: false },
+    state: cards.buildRestState({ actor: world.actors.get('Actor.Nik'), result: restResult(), config: { type: 'long', duration: 480 } })
+});
+
+check(
+    'Resting from a card rewrites THAT card.',
+    world.posted.length === 1 && world.posted[0].isUpdate === true && world.posted[0].message.id === 'card-before',
+    `Posted ${world.posted.length}; isUpdate=${world.posted[0]?.isUpdate}. A second card would put the question and its answer in two places.`
+);
+
+// A DIFFERENT character, because Nik is already accounted for in this burst and the
+// dedup would -- correctly -- turn a second arrival away before it reached the card.
+reset();
+await gm._applyRest({
+    actorUuid: 'Actor.Favia', requestId: null, restType: 'long', minutes: 480,
+    cardId: 'card-vanished', suppressedSystemCard: true,
+    state: cards.buildRestState({ actor: world.actors.get('Actor.Favia'), result: restResult(), config: { type: 'long', duration: 480 } })
+});
+check(
+    'A card deleted mid-rest falls back to posting rather than losing the rest.',
+    world.posted.length === 1 && !world.posted[0].isUpdate
+);
+
+// ==================================================================
+// ===== 7b. PRESSING REST ==========================================
+// ==================================================================
+//
+// The entry point of the whole flow, and the one place Blacksmith calls into the
+// system. What it must NOT do is compute anything: it hands dnd5e a configuration
+// and dnd5e applies every rule.
+
+const rested = [];
+const restingActor = (owner = true) => ({
+    name: 'Nik', uuid: 'Actor.Nik', isOwner: owner,
+    system: { spells: {}, attributes: { exhaustion: 0 } },
+    items: Object.assign([], { get: () => null, find: () => null }),
+    async longRest(config) { rested.push({ method: 'longRest', config }); },
+    async shortRest(config) { rested.push({ method: 'shortRest', config }); },
+    async update() {}
+});
+
+const beforeCard = makeMessage('press-1', {
+    'coffee-pub-blacksmith': { rest: cards.buildBeforeState({
+        actor: { uuid: 'Actor.Nik', name: 'Nik', system: { attributes: {}, spells: {} } },
+        restType: 'long',
+        restOptions: { newDay: true, trackFood: true, trackWater: false }
+    }) }
+});
+
+globalThis.fromUuid = async () => restingActor();
+asUser(false);
+await player._onRestClicked(beforeCard);
+
+check('Pressing Rest rests the character.', rested.length === 1, `Called ${rested.length} times.`);
+check('Through the system, on the right method.', rested[0]?.method === 'longRest', rested[0]?.method);
+check('The system dialog is off — the card already asked.', rested[0]?.config?.dialog === false);
+check('And so is the system card, because ours is the card.', rested[0]?.config?.chat === false);
+check('The GM\'s new-day choice is honoured.', rested[0]?.config?.newDay === true);
+check(
+    'dnd5e is told NOT to move the clock.',
+    rested[0]?.config?.advanceTime === false,
+    `Its own advance fires once per character; the grouping in _applyRest knows who is still to rest.`
+);
+check(
+    'The card that was pressed is named, so the result returns to it.',
+    rested[0]?.config?.[player.CARD_KEY] === 'press-1',
+    `Without it the rest posts a second card and the pre-rest phase was pointless.`
+);
+check(
+    'The rest carries its provision choices.',
+    rested[0]?.config?.[player.OPTIONS_KEY]?.trackFood === true
+        && rested[0]?.config?.[player.OPTIONS_KEY]?.trackWater === false,
+    JSON.stringify(rested[0]?.config?.[player.OPTIONS_KEY])
+);
+
+rested.length = 0;
+world.warnings.length = 0;
+globalThis.fromUuid = async () => restingActor(false);
+await player._onRestClicked(beforeCard);
+check('Resting a character that is not yours is refused.', rested.length === 0);
+check('And says why.', world.warnings.some((m) => /not yours/i.test(m)), JSON.stringify(world.warnings));
+
+rested.length = 0;
+globalThis.fromUuid = async () => restingActor();
+await player._onRestClicked(makeMessage('done-1', {
+    'coffee-pub-blacksmith': { rest: { phase: 'rested', actorUuid: 'Actor.Nik' } }
+}));
+check(
+    'A card that has already reported its rest cannot rest again.',
+    rested.length === 0,
+    `Otherwise a second click re-rests the character and overwrites the night.`
+);
+
+asUser(true);
+
+// ==================================================================
+// ===== 8. THE REST'S OWN PROVISION CHOICE BEATS THE SETTING =======
+// ==================================================================
+
+const pantry = () => ({
+    name: 'Rich', uuid: 'Actor.Rich',
+    system: { spells: {}, attributes: { exhaustion: 0 } },
+    items: Object.assign([], {
+        get: () => null,
+        find(fn) { return [...this].find(fn); }
+    }),
+    async update() {}
+});
+
+world.settings.restTrackFood = true;
+world.settings.restTrackWater = true;
+
+const noneWanted = await gm._provision('long', pantry(), { trackFood: false, trackWater: false });
+check(
+    'A rest that opted out tracks nothing, even with the setting on.',
+    noneWanted === undefined,
+    `The GM running a night at an inn must not have to change a world setting.`
+);
+
+const fromSetting = await gm._provision('long', pantry(), null);
+check(
+    'A rest that expressed no opinion falls back to the setting.',
+    fromSetting !== undefined,
+    `A rest started anywhere but our window has no choice of its own.`
+);
+
+world.settings.restTrackFood = false;
+world.settings.restTrackWater = false;
+const optedIn = await gm._provision('long', pantry(), { trackFood: true, trackWater: false });
+check(
+    'And a rest that opted IN tracks food with the setting off.',
+    optedIn !== undefined && optedIn.food !== null,
+    JSON.stringify(optedIn)
+);
+check('A short rest never provisions, whatever was asked for.',
+    (await gm._provision('short', pantry(), { trackFood: true, trackWater: true })) === undefined,
+    `A short rest is an hour by the tea, not a day's rations.`);
+
+// ==================================================================
 // ===== REPORT =====================================================
 // ==================================================================
 
@@ -425,5 +632,5 @@ if (problems.length > 0) {
 }
 
 console.log(`Rest client-split check passed (${checks} assertions): player-accepted rests reach the GM, ` +
-    `our card completes the request, socket handlers survive startup order, provisions respect uses, ` +
-    `and spent hit dice are not reported as recovered.`);
+    `one card carries both phases, our card completes a system request, socket handlers survive startup ` +
+    `order, a rest's own provision choice beats the setting, and spent hit dice are not reported as recovered.`);

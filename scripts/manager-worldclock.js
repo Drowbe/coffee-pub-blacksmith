@@ -817,34 +817,20 @@ class WorldClockManager {
      * how the clock behaves.
      */
     static _buildMenuItems() {
-        const party = game.actors?.party ?? null;
         const items = [];
 
-        // REST. Routed through the party actor so dnd5e does what it always does --
-        // posts its request card, applies its own recovery rules, and lets Rest
-        // Recovery or anything else hook in. Blacksmith is not in the rest business;
-        // it only moves the clock afterwards.
+        // REST. One entry rather than two, because the kind of rest is the first
+        // question the window asks -- and it is not the only one, which is why this
+        // stopped being a pair of menu items. The GM also chooses who is resting and
+        // whether food and water are tracked tonight, and a context menu is the wrong
+        // shape for a form.
+        //
+        // dnd5e still does every rule. What changed is where the question is asked.
         items.push({
-            name: party ? `Long Rest (${party.name})` : 'Long Rest',
+            name: 'Rest...',
             icon: 'fa-solid fa-campground',
-            disabled: !party,
-            callback: () => this._restParty('longRest')
+            callback: () => this._openRestWindow()
         });
-        items.push({
-            name: party ? `Short Rest (${party.name})` : 'Short Rest',
-            icon: 'fa-solid fa-utensils',
-            disabled: !party,
-            callback: () => this._restParty('shortRest')
-        });
-
-        if (!party) {
-            items.push({
-                name: 'No primary party is set, so there is nobody to rest',
-                icon: 'fa-solid fa-circle-info',
-                disabled: true,
-                callback: () => {}
-            });
-        }
 
         items.push({ separator: true });
 
@@ -957,14 +943,19 @@ class WorldClockManager {
      * Rest the party, using the system's own rest rather than anything of ours.
      * @param {'longRest'|'shortRest'} method
      */
-    static async _restParty(method) {
-        const party = game.actors?.party;
-        if (!party) return;
-
+    /**
+     * Open the rest window.
+     *
+     * Imported on demand rather than at the top of the file: the clock is menubar
+     * furniture that loads early, and a window it only opens on a click has no
+     * business being in its import graph.
+     */
+    static async _openRestWindow() {
         try {
-            await party[method]();
+            const { RestWindow } = await import('./window-rest.js');
+            RestWindow.open();
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `WorldClock: Failed to start a ${method}`, error, false, false);
+            postConsoleAndNotification(MODULE.NAME, "WorldClock: Could not open the rest window", error, false, false);
         }
     }
 

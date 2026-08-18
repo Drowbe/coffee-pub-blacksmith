@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Blacksmith owns the rest, end to end: a rest window, and one card per character that carries the whole night** (`scripts/window-rest.js`, `scripts/cards-rest.js`, `scripts/manager-rest.js`, `styles/window-rest.css`). The flow is now two surfaces and both are ours:
+
+  ```
+  GM opens the rest window  ->  one card per character  ->  they press Rest  ->  the same card reports it
+  ```
+
+  **The rest window** asks the three questions a context menu could not: which kind of rest, who is taking it, and whether food and water are tracked *tonight*. It replaces the two `Long Rest` / `Short Rest` entries on the clock menu with a single `Rest...`. It runs no rules -- pressing the button posts the cards and closes.
+
+  **One card, two phases.** The card a character gets before they rest and the card reporting their rest are the **same message**, rewritten in place. The pre-rest phase shows the health bar, their hit dice, their remaining slots and any exhaustion they are carrying, and offers Rest as a clickable row -- the same shape the foraging check already used, so there is no second convention to learn. Pressing it calls `actor.longRest()` and dnd5e applies every recovery rule, exactly as it does from a character sheet.
+
+  **This removed two surfaces rather than building them.** The plan called for our own request card *and* a player window in front of the result card. Both turned out to be the same object at a different moment: a player pressing Rest on the card already in front of them is the shortest path that exists, and the pre-rest state is just the card before anything happened. The plan's phases 6 and 7 are closed by deleting them.
+
+  **A rest's own choices beat the world's.** Food and water tracking travels on the card and then on the rest config, so a GM running a night at an inn turns provisions off for that rest without changing what the world does every other night. A rest started anywhere else -- a character sheet, the party sheet, a system rest request -- expresses no opinion and falls back to the settings, so nothing about the old paths changed.
+
+  **It renders the shared window frame** (`templates/window-template.hbs`) and adds only a roster row of its own. The window framework not owning the frame is the CRITICAL item on `TODO.md`, and of 15 `BlacksmithWindowBaseV2` subclasses only 4 use the shared template -- a window that hand-rolled its own would have been a fifth copy of the frame to migrate later.
+
+  Architecture in `documentation/architecture/architecture-rest.md`. `documentation/plans/plan-rest-card.md` is deleted, its content distributed.
+
 - **`api.rolls.promptRoll()` — a roll with no chat card** (`scripts/manager-rolls.js`, `scripts/api-rolls.js`). Opens the roll window for one actor and resolves with the result, creating no chat message and updating none. The player still gets the full window: modifiers, named bonuses, advantage, roll mode.
 
   **This was a real gap in the roll pipeline, found by hitting it three times.** Every entry point was built around a skill-check chat card. `orchestrateRoll` *requires* an existing message and throws without one -- it updates a card, it cannot make one. `openRequestRollDialog({ silent: true })` works but posts a whole second card for a single check. A consumer that already has somewhere to put the answer had nowhere to stand, and the only ways through were to fake a card or to accept an extra one.
@@ -29,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Pending is a real state: nothing is decided and **no exhaustion is charged for a check nobody has made**. A cancelled roll dialog decides nothing and leaves the button. Rolling for a character that is not yours is refused with a notice.
 
-- **One Blacksmith rest card per character** (`scripts/cards-rest.js`, `scripts/manager-rest.js`, `scripts/settings.js`). Replaces the batched provisions summary posted a few entries below this one, and can replace the game system's recovery card too. Plan: `documentation/plans/plan-rest-card.md`, phases 1-3 of 5.
+- **One Blacksmith rest card per character** (`scripts/cards-rest.js`, `scripts/manager-rest.js`, `scripts/settings.js`). Replaces the batched provisions summary posted a few entries below this one, and can replace the game system's recovery card too. Architecture: `documentation/architecture/architecture-rest.md`.
 
   **Per character rather than one for the whole rest**, keeping the shape the system already used. A card is about one actor, so its state is that actor's state -- which is what will let a foraging roll made minutes later find its own card and update it, with nothing held in memory in between. The batched summary had to wait for the entire party before it could say anything at all, and its accumulate-then-flush machinery is gone with it.
 

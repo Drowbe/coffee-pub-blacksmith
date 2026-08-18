@@ -24,11 +24,38 @@ Blacksmith adds three things and reimplements none of the above:
 | File | Holds |
 |---|---|
 | `scripts/manager-rest.js` | Hook handling, the client split, provisions, the clock |
-| `scripts/cards-rest.js` | Card state and composition, and the request completion stamp |
+| `scripts/cards-rest.js` | Card state and composition, both phases, the request completion stamp |
+| `scripts/window-rest.js` | The GM's rest window, rendering the shared `window-template.hbs` frame |
+| `styles/window-rest.css` | The roster row; everything else comes from the shared window vocabulary |
 | `tools/check-rest-clients.mjs` | The invariants below, checkable from the command line |
 
 Settings live in `scripts/settings.js` with every other setting. All are `world` scope, so every client
 reads the same values -- which is what lets the two clients below agree without negotiating.
+
+## The flow
+
+Blacksmith owns every surface; dnd5e does every rule.
+
+```
+1. GM opens the rest window        kind of rest, who is resting, food and water for tonight
+2. One card posts per character    where they stand, and a Rest button
+3. Player presses Rest             on their own card, on their own client
+4. We call actor.longRest()        dnd5e applies every recovery rule
+5. THE SAME CARD is rewritten      recovery, provisions, and a Forage button if one is owed
+6. They roll                       the row becomes its own result
+```
+
+**One card per character, for the whole night.** Steps 2 and 5 are the same message: the card that asked
+the question holds the answer. An earlier design had a separate request card in front of the result card,
+with a player window between them; both turned out to be the same object at a different moment, and
+collapsing them removed two surfaces rather than building them.
+
+The card's phase is `before` or `rested`, and `buildPartsFromState` composes from that. A `before` card
+shows the health bar, where the character stands, and the Rest row; a `rested` card shows what changed.
+
+A rest started anywhere else -- the party sheet, a character sheet, a system rest request -- still works,
+and posts a `rested` card with no `before` phase. That path is why the request completion stamp below still
+matters.
 
 ## The client split
 
@@ -97,6 +124,31 @@ actor states cannot drift the way a spent update object can.
 `ActorDeltasField` is deliberately not used: it is the system's internal display plumbing, and a chat card
 should not be coupled to it.
 
+## The rest window
+
+It renders `templates/window-template.hbs` -- the shared frame -- and adds only a roster row of its own.
+That is deliberate: the window framework not owning the frame is the CRITICAL item on `TODO.md`, and of the
+15 `BlacksmithWindowBaseV2` subclasses only 4 use the shared template. A window that hand-rolled its own
+would be a fifth copy of the frame to migrate later.
+
+It starts a rest and runs no rules. The kind of rest, the roster, and whether food and water are tracked
+are all questions; pressing the button posts the cards and closes.
+
+The roster is the primary party's characters when a primary party is set, falling back to every
+player-owned character so a world without one still gets a usable window.
+
+## A rest's own choices beat the world's
+
+Whether food and water are tracked is a world setting, and the window opens showing what the table has
+already decided. What the GM changes there applies to that rest only, travelling on the card and then on
+the rest config to `_provision`.
+
+A rest that expressed no opinion -- one started from a character sheet, or from the party sheet -- falls
+back to the setting. So the setting is the default rather than the rule, and a night at an inn does not
+require changing what the world does every other night.
+
+Provisions are recorded as off for a short rest whatever was chosen, because a short rest consumes none.
+
 ## Provisions come in two shapes
 
 Rations are a stack: quantity is the count, and the item goes when it reaches zero. A waterskin is one item
@@ -123,6 +175,11 @@ happened, so nothing needs to consult the rest type.
 
 - A player accepting a rest hands it to the GM rather than dropping it, carrying the state built on their
   own client.
+- A rest begun from a card rewrites that card rather than posting a second one, and falls back to posting
+  if the card has since been deleted.
+- A pre-rest card carries the GM's choices, shows only pools the character actually has, and offers the
+  Rest control as a clickable row.
+- A rest's own provision choices win over the settings, in both directions.
 - The GM's card completes the request when, and only when, the system's card was suppressed.
 - The clock waits for the last sleeper, moves once, and ignores late arrivals.
 - Socket handlers survive startup order. `RestManager.initialize()` runs at `blacksmith.js:534` and
