@@ -588,7 +588,7 @@ class WorldClockManager {
      * `name` on a month, weekday or season is a LOCALIZATION KEY, not a string --
      * dnd5e ships `DND5E.CALENDAR.Harptos.Month.Ches` and core never resolves it
      * (`CalendarData._initialize` does no localization; the system's own formatter
-     * calls `game.i18n.localize(month.name)` at `dnd5e.mjs:1577`). Printing `name`
+     * calls `game.i18n.localize(month.name)` at `dnd5e.mjs:2584`). Printing `name`
      * directly puts the raw key on screen.
      *
      * `localize` returns its argument unchanged when there is no translation, so a
@@ -606,7 +606,7 @@ class WorldClockManager {
      *
      * `components.year` counts years since the world's time origin, NOT the year the
      * setting calls it. The calendar's `years.yearZero` is the offset between them,
-     * and every core consumer adds it before display -- see `dnd5e.mjs:1572` and
+     * and every core consumer adds it before display -- see `dnd5e.mjs:2579` and
      * `CalendarData.jumpToDate`, whose parameter is documented as "Visible year
      * (with `yearZero` added in)". Omitting it showed 1496 in a world whose own HUD
      * read 2997.

@@ -95,6 +95,14 @@ export class RestWindow extends BlacksmithWindowBaseV2 {
         const trackFood = getSettingSafely(MODULE.ID, 'restTrackFood', false);
         const trackWater = getSettingSafely(MODULE.ID, 'restTrackWater', false);
 
+        // NEW DAY DEFAULTS TO WHAT THE SYSTEM DOES, read from its own configuration
+        // rather than assumed. `restTypes.long.newDay` is true (`dnd5e.mjs:46457`) and
+        // `initiateRest` defaults to it (`dnd5e.mjs:38152`), so an unticked box here
+        // was not a neutral default -- it sent `newDay: false` and OVERRODE the
+        // system, silently skipping every daily, dawn and dusk item use
+        // (`dnd5e.mjs:38542`) on an ordinary night.
+        const newDay = CONFIG.DND5E?.restTypes?.long?.newDay === true;
+
         const roster = candidates.length
             ? candidates.map((actor) => {
                 const hp = actor.system?.attributes?.hp ?? {};
@@ -126,7 +134,7 @@ export class RestWindow extends BlacksmithWindowBaseV2 {
                         </select>
                     </div>
                     <label class="blacksmith-rest-option blacksmith-rest-new-day">
-                        <input type="checkbox" name="rest-new-day">
+                        <input type="checkbox" name="rest-new-day" ${newDay ? 'checked' : ''}>
                         <i class="fa-solid fa-sun"></i>
                         <span>Begin a new day</span>
                     </label>
@@ -238,13 +246,19 @@ export class RestWindow extends BlacksmithWindowBaseV2 {
             trackWater: isLong && root.querySelector('[name="rest-track-water"]')?.checked === true
         };
 
+        // ONE ID FOR THE WHOLE REST, stamped on every card. It is what lets the clock
+        // wait for the last sleeper: without it each acceptance looks like a lone
+        // character resting, and a five-character night moves the clock five times.
+        // See the grouping note in `manager-rest.js`.
+        const restId = foundry.utils.randomID();
+
         let posted = 0;
         for (const uuid of uuids) {
             const actor = await fromUuid(uuid).catch(() => null);
             if (!actor) continue;
 
             try {
-                if (await postBeforeCard({ actor, restType, restOptions })) posted++;
+                if (await postBeforeCard({ actor, restType, restOptions, restId })) posted++;
             } catch (error) {
                 postConsoleAndNotification(MODULE.NAME, `Rest: Could not post a rest card for ${actor.name}`, error, false, false);
             }

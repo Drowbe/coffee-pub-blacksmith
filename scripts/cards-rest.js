@@ -77,8 +77,8 @@ export function buildRecoveryRows(actor, result) {
     }
 
     // A SHORT REST SPENDS HIT DICE; A LONG REST GIVES THEM BACK, and the delta is a
-    // plain before-to-after difference (`dnd5e.mjs:34844`), so its SIGN already says
-    // which happened. dnd5e flips it for display (`dnd5e.mjs:35016`) precisely because
+    // plain before-to-after difference (`dnd5e.mjs:38196`), so its SIGN already says
+    // which happened. dnd5e flips it for display (`dnd5e.mjs:38338`) precisely because
     // its own card reports dice spent as a positive count.
     //
     // Filing a short rest's negative delta under "Recovered" and toning it positive
@@ -102,8 +102,8 @@ export function buildRecoveryRows(actor, result) {
     // EVERYTHING BELOW DIFFS THE LIVE ACTOR AGAINST THE PRE-REST CLONE, and reads
     // `result.updateData` not at all.
     //
-    // dnd5e applies the update at `dnd5e.mjs:34977` and fires `restCompleted` at
-    // 34995 -- so by the time we are called the actor ALREADY holds the new values,
+    // dnd5e applies the update at `dnd5e.mjs:38299` and fires `restCompleted` at
+    // 38317 -- so by the time we are called the actor ALREADY holds the new values,
     // and `updateData` has been through `Document#update`, which normalises and
     // consumes it. The first version read it directly and reported nothing at all
     // for slots or exhaustion, while the system's own card showed both.
@@ -163,7 +163,7 @@ export function buildItemRows(actor, result) {
     // `updateItems` is used ONLY for the list of ids -- an id survives any
     // normalisation the update object goes through. The values come from diffing the
     // live item against the clone's, for the same reason the actor rows do: dnd5e
-    // has already applied these (`dnd5e.mjs:34979`) by the time we are called.
+    // has already applied these (`dnd5e.mjs:38301`) by the time we are called.
     for (const update of updates) {
         const id = update?._id;
         if (!id) continue;
@@ -372,11 +372,17 @@ export function buildStandingRows(actor) {
  *
  * @returns {object} A card state with `phase: 'before'`.
  */
-export function buildBeforeState({ actor, restType = 'long', restOptions = {} } = {}) {
+export function buildBeforeState({ actor, restType = 'long', restOptions = {}, restId = null } = {}) {
     const isLong = restType === 'long';
 
     return {
         phase: 'before',
+        // WHICH REST THIS CARD BELONGS TO. Every card the rest window posts in one go
+        // shares an id, and that is what lets the clock wait for the last sleeper --
+        // the same job `config.request.id` does for a rest the system requested. A
+        // window rest creates no system request, so without this every acceptance
+        // looks like a lone character resting and the clock jumps once per person.
+        restId,
         actorUuid: actor?.uuid ?? null,
         name: actor?.name ?? 'Someone',
         img: actor?.img ?? null,
@@ -600,10 +606,10 @@ export function isForagePending(state) {
  *
  * THIS IS WHAT TICKS A CHARACTER OFF A REST REQUEST, and nothing else does.
  * `flags.dnd5e.requestResult` is the entire mechanism: dnd5e stamps it on its own
- * rest card (`dnd5e.mjs:35051`), and `RequestMessageData.onCreateMessage` /
- * `onUpdateResultMessage` -- both wired at `dnd5e.mjs:79669-79670` -- watch every
+ * rest card (`dnd5e.mjs:38376`), and `RequestMessageData.onCreateMessage` /
+ * `onUpdateResultMessage` -- both wired at `dnd5e.mjs:82950-82951` -- watch every
  * message for it and write the message id onto the matching target
- * (`#updateRequestTargets`, `dnd5e.mjs:70900`). A target with a result is complete;
+ * (`#updateRequestTargets`, `dnd5e.mjs:74391`). A target with a result is complete;
  * a target without one keeps offering its Rest button.
  *
  * So suppressing the system card suppressed the COMPLETION with it. The request
@@ -613,7 +619,7 @@ export function isForagePending(state) {
  * Set after creation rather than passed to `post`, because `ChatCardsAPI.post`
  * merges caller flags under the CALLER'S module id only -- by design, and not worth
  * reopening for one foreign flag. dnd5e reaches for the same escape hatch itself
- * (`dnd5e.mjs:70861`), and the update path is handled just as the create path is.
+ * (`dnd5e.mjs:74353`), and the update path is handled just as the create path is.
  *
  * Best-effort: a card that posted but failed to stamp is a live request, which the
  * GM can resolve by hand. Throwing here would lose the card as well.
@@ -692,8 +698,8 @@ export async function updateRestCard(message, provisions) {
  * Post the pre-rest card for one character.
  * @returns {Promise<ChatMessage|null>}
  */
-export async function postBeforeCard({ actor, restType = 'long', restOptions = {} } = {}) {
-    const state = buildBeforeState({ actor, restType, restOptions });
+export async function postBeforeCard({ actor, restType = 'long', restOptions = {}, restId = null } = {}) {
+    const state = buildBeforeState({ actor, restType, restOptions, restId });
 
     return ChatCardsAPI.post({
         moduleId: MODULE.ID,

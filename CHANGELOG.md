@@ -205,6 +205,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The rest window moved the clock once per character, not once per rest** (`scripts/window-rest.js`, `scripts/manager-rest.js`, `scripts/cards-rest.js`). A five-character night jumped the world forty hours.
+
+  **This is the same bug twice, on two paths.** Grouping keyed on `config.request.id` -- the id dnd5e puts on a rest request -- and the new rest window creates no request. So its acceptances looked like a series of unrelated lone characters, fell through to the 400ms burst timer, and each one flushed on its own and advanced a full rest. The window had replaced `party.longRest()`, and with it the request card that had been supplying the id.
+
+  Every card the window posts now carries a shared `restId`, and grouping takes a plain id from either source -- a request or one of ours -- through the same code. **The window's roster is the cards that exist** rather than a count baked in at post time, so it corrects itself: a card that failed to post never counts, and a card the GM deletes removes that character from the rest instead of stalling it forever.
+
+  The 70-assertion check passed over this because it only exercised last-sleeper grouping against a two-target *system request*; the window path was not in the file at all. It is now, and reintroducing the defect fails it.
+
+- **A second click on a rest card rested the character twice** (`scripts/manager-rest.js`). The card stays `phase: 'before'` until the GM's rewrite lands, which is a socket round trip away -- so the pending check still said "not yet rested" for the whole of it. Recovery applied twice, another ration could go, and the clock could jump again. The clicking client now claims the card **before its first `await`**, because claiming it later leaves a gap two rapid clicks both fit through, and releases it in a `finally` so a failed rest leaves a working button rather than a dead one.
+
+- **The rest window skipped every daily, dawn and dusk item use** (`scripts/window-rest.js`). "Begin a new day" started unticked, and because the window sends its configuration explicitly an unticked box is not a neutral default -- it sent `newDay: false` and overrode dnd5e's own `restTypes.long.newDay: true`. Daily uses recover only when `recoverDailyUses || config.newDay` (`dnd5e.mjs:38542`), so an ordinary long rest silently recharged none of them unless the GM noticed the box. The default is now read from the system's own configuration rather than hardcoded in either direction.
+
+- **A failed forage hop told the player nothing** (`scripts/manager-rest.js`). `executeAsGM` was awaited without a `try`, so a rejected hop surfaced as an unhandled rejection and the card sat pending with no explanation. It now warns, the way the rest hop beside it already did.
+
+- **Every `dnd5e.mjs` line citation in the rest code and its architecture doc** (`scripts/manager-rest.js`, `scripts/cards-rest.js`, `documentation/architecture/architecture-rest.md`, `tools/check-rest-clients.mjs`). The system moved to **5.3.3** mid-development, `longRest` now delegates to a shared `initiateRest`, and roughly 4000 lines shifted -- so every pointer was off by thousands and would have sent the next reader to unrelated code. Each mechanism was re-verified in the new source before its citation was rewritten; all of them survive the version change intact. This is the failure mode the repo's own doc rules warn about, arriving without anyone editing a doc.
+
 - **A rest a player accepted themselves did nothing at all** (`scripts/manager-rest.js`, `scripts/cards-rest.js`). No card, no rations, no exhaustion and no clock movement -- for the normal case, which is a GM sending a rest request and each player pressing Rest on their own screen.
 
   **`dnd5e.restCompleted` is a local hook.** It is `Hooks.callAll` (`dnd5e.mjs:34995`), so it fires on the client that ran the rest and on no other. Guarding it with `if (!game.user.isGM) return` reads like deferring to the GM and in fact discarded the rest, because there was no GM on the other side to defer to. The guard was right about *who may write* -- the clock is a world setting, rations and exhaustion are documents a player does not own, the card is authored by the GM -- and wrong about *where the work was happening*.

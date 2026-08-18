@@ -9,7 +9,7 @@ the system's, and the client boundary that shape forces.
 
 dnd5e owns resting entirely: `actor.shortRest()` and `actor.longRest()`, recovery of hit points, hit dice,
 spell slots and item uses, exhaustion, party rests, and three duration variants in `CONFIG.DND5E.restTypes`.
-It also advances the world clock itself (`dnd5e.mjs:34982`), though that is off by default.
+It also advances the world clock itself (`dnd5e.mjs:38304`), though that is off by default.
 
 Blacksmith adds three things and reimplements none of the above:
 
@@ -62,7 +62,7 @@ matters.
 This is the load-bearing fact about the feature, and the one that is invisible in the code of any single
 function.
 
-`dnd5e.restCompleted` is `Hooks.callAll` (`dnd5e.mjs:34995`). Foundry hooks are local: it fires on the
+`dnd5e.restCompleted` is `Hooks.callAll` (`dnd5e.mjs:38317`). Foundry hooks are local: it fires on the
 client that ran the rest, and nowhere else. When a player accepts a rest request, that client is theirs and
 the GM's client never hears about it.
 
@@ -79,10 +79,29 @@ The state crosses as plain data over the `executeAsGM` proxy, the same mechanism
 Guarding the hook with a GM check does not defer the work to the GM. It discards it, because there is no
 GM on the other side to defer to.
 
-## Two shapes of party rest
+## Three shapes of grouped rest, and why the clock needs all of them
 
-They need different handling, and treating them alike made a five-character rest advance the clock forty
-hours.
+Treating any of these as ungrouped makes a five-character rest advance the clock forty hours. It has
+happened twice, on two different paths, for the same reason.
+
+**A rest is grouped when it has an id**, and `_applyRest` does not care where the id came from:
+
+| Shape | Id | Roster read from |
+|---|---|---|
+| Our rest window | `restId`, stamped on every card it posts | the cards carrying that id |
+| A dnd5e request | `config.request.id` | `system.targets` on the request message (`dnd5e.mjs:74326`) |
+| `autoRest`, or a lone character | none | not grouped -- a burst, handled by a short timer |
+
+**The window's rests must group even though no system request exists.** The window replaced
+`party.longRest()`, and with it the request card that had been supplying the id -- so its acceptances
+looked like a series of lone characters and each one moved the clock a full rest. The `restId` restores
+the grouping the request used to provide.
+
+**The window's roster is the cards that exist**, counted when an acceptance arrives, rather than a number
+baked in at post time. It corrects itself: a card that failed to post never counts, and a card the GM
+deletes removes that character from the rest instead of stalling it forever.
+
+Below that, the two system shapes still differ:
 
 **Requested** (the default, and what the party sheet's rest button does): dnd5e posts a request card and
 rests nobody. Each character then rests individually as their player accepts, minutes apart, each carrying
@@ -102,12 +121,12 @@ that did not happen -- and the GM can resolve any outstanding character from the
 
 The system's rest card is not only a summary. For a requested rest it is also what marks a character done:
 it carries `flags.dnd5e.requestResult`, and `RequestMessageData.onCreateMessage` and
-`onUpdateResultMessage` (`dnd5e.mjs:79669-79670`) watch every message for that flag and write the message
+`onUpdateResultMessage` (`dnd5e.mjs:82950-82951`) watch every message for that flag and write the message
 id onto the matching target. A target with a result is complete; a target without one keeps offering its
 Rest button.
 
 So when the system card is suppressed, Blacksmith's card carries the same stamp, set after creation as
-dnd5e does itself (`dnd5e.mjs:70861`). Only when the system card was actually suppressed: if dnd5e posted
+dnd5e does itself (`dnd5e.mjs:74353`). Only when the system card was actually suppressed: if dnd5e posted
 its own it has already stamped the request, and a second stamp repoints the target at the wrong message.
 
 ## The card carries its own state
@@ -117,7 +136,7 @@ flags. That is what lets a foraging roll made minutes later re-render the card f
 the `RestResult` and its clone are long gone by then, and re-deriving the recovery would be impossible.
 
 Recovery rows are derived by diffing the live actor against `result.clone`, not by reading
-`result.updateData`. dnd5e applies the update at `dnd5e.mjs:34977` and fires the hook at 34995, so the
+`result.updateData`. dnd5e applies the update at `dnd5e.mjs:38299` and fires the hook at 38317, so the
 actor already holds the new values and `updateData` has been consumed by `Document#update`. Two actual
 actor states cannot drift the way a spent update object can.
 
@@ -137,6 +156,34 @@ are all questions; pressing the button posts the cards and closes.
 The roster is the primary party's characters when a primary party is set, falling back to every
 player-owned character so a world without one still gets a usable window.
 
+## The window must not override what it does not ask about
+
+The window sends its rest configuration explicitly, so every field it names overrides the system's default
+for that rest -- including the ones the GM never thought about. An unticked box is not a neutral default;
+it is `false`, sent deliberately.
+
+`newDay` is the case that bit. dnd5e defaults a long rest to `newDay: true`
+(`CONFIG.DND5E.restTypes.long.newDay`, applied at `dnd5e.mjs:38152`), and daily, dawn and dusk item uses
+recover only when `recoverDailyUses || config.newDay` (`dnd5e.mjs:38542`). An unticked box therefore
+skipped every one of them on an ordinary night, silently.
+
+So a control that overrides a system default takes its own default **from that system value**, read at
+render time rather than hardcoded. Anything the window does not mean to decide, it must not send.
+
+## One click, one rest
+
+A card stays `phase: 'before'` until the GM's rewrite lands, and that is a socket round trip away. Nothing
+in between retires the row, so a second click passes the same pending check and starts a second rest.
+
+The clicking client keeps a set of cards whose rest is in flight, claimed **before the first `await`** --
+claiming it later leaves a gap two rapid clicks both fit through. It is released in a `finally`, so a rest
+that fails leaves a button that still works rather than a dead one.
+
+This closes the double click. It does not close a GM and an owner pressing the same card simultaneously
+from two browsers: the GM's own dedup stops the second rest reaching provisions, the card or the clock, but
+both `longRest` calls have already run against the actor. dnd5e has the same exposure on its own request
+cards.
+
 ## A rest's own choices beat the world's
 
 Whether food and water are tracked is a world setting, and the window opens showing what the table has
@@ -153,7 +200,7 @@ Provisions are recorded as off for a short rest whatever was chosen, because a s
 
 Rations are a stack: quantity is the count, and the item goes when it reaches zero. A waterskin is one item
 holding a pool of uses -- pints in a container you keep -- so drinking one spends a use and the item stays.
-dnd5e stores a pool as how much is `spent` and derives `value` as `max - spent` (`dnd5e.mjs:4357`), so an
+dnd5e stores a pool as how much is `spent` and derives `value` as `max - spent` (`dnd5e.mjs:11539`), so an
 item has a pool only when it has a max.
 
 Availability and consumption ask the same question, so an empty waterskin does not count as water.
@@ -164,9 +211,9 @@ exhaustion is at stake per rest.
 
 ## Hit dice have a sign
 
-The hit dice delta is a plain before-to-after difference (`dnd5e.mjs:34844`). A long rest recovers dice, so
+The hit dice delta is a plain before-to-after difference (`dnd5e.mjs:38196`). A long rest recovers dice, so
 it is positive; a short rest spends them, so it is negative. dnd5e flips it for display
-(`dnd5e.mjs:35016`) because its card reports dice spent as a positive count. The sign alone says which
+(`dnd5e.mjs:38338`) because its card reports dice spent as a positive count. The sign alone says which
 happened, so nothing needs to consult the rest type.
 
 ## Invariants
@@ -175,6 +222,10 @@ happened, so nothing needs to consult the rest type.
 
 - A player accepting a rest hands it to the GM rather than dropping it, carrying the state built on their
   own client.
+- A grouped rest moves the clock once, when the last character rests -- for a window rest as well as a
+  system request, and the two go through the same code.
+- A second click while a rest is in flight starts no second rest, and the guard clears afterwards.
+- The window defaults New Day from the system's own configuration rather than hardcoding it.
 - A rest begun from a card rewrites that card rather than posting a second one, and falls back to posting
   if the card has since been deleted.
 - A pre-rest card carries the GM's choices, shows only pools the character actually has, and offers the

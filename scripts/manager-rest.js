@@ -11,7 +11,7 @@
 // variants (`CONFIG.DND5E.restTypes`: short 60/480/1 minutes and long 480/10080/60
 // for normal, gritty and epic). It even advances the clock itself:
 //
-//     // dnd5e.mjs:34982
+//     // dnd5e.mjs:38304
 //     if ( config.advanceTime && (config.duration > 0) && game.user.isGM )
 //         await game.time.advance(60 * config.duration);
 //
@@ -41,7 +41,7 @@ class RestManager {
     /**
      * WHICH CLIENT DOES WHAT, and why this file is split across two of them.
      *
-     * `dnd5e.restCompleted` is `Hooks.callAll` (`dnd5e.mjs:34995`). Foundry hooks are
+     * `dnd5e.restCompleted` is `Hooks.callAll` (`dnd5e.mjs:38317`). Foundry hooks are
      * LOCAL -- it fires on whichever client ran the rest and on no other. When a
      * player accepts a rest request, that client is theirs, and the GM's client never
      * hears about it at all.
@@ -74,13 +74,13 @@ class RestManager {
      *
      * 1. REQUESTED (`autoRest` false, the default, and what the party sheet's rest
      *    button does). dnd5e posts a request card and rests nobody
-     *    (`dnd5e.mjs:69799-69820`). Each character then rests individually as their
+     *    (`dnd5e.mjs:72901`). Each character then rests individually as their
      *    player accepts -- minutes apart, each with its own dialog, and each carrying
      *    the same `config.request.id`. No timer can group these, because the gaps
      *    between them are however long a person takes to click.
      *
      * 2. AUTOMATIC (`autoRest` true). dnd5e rests every member in a tight loop
-     *    (`dnd5e.mjs:69824`), each forced to `advanceTime: false`, then advances the
+     *    (`dnd5e.mjs:72929`), each forced to `advanceTime: false`, then advances the
      *    clock once itself. These arrive as a burst with no request id.
      *
      * So: the request id is the primary key, and the timer is the fallback for the
@@ -225,8 +225,8 @@ class RestManager {
         // Recorded on the config rather than re-read from the setting later, because
         // this is the only place that knows we ACTUALLY suppressed it: the two guards
         // above can decline. dnd5e passes one config object by reference from
-        // `preShortRest` (`dnd5e.mjs:34817`) through to `restCompleted` (34995) -- the
-        // dialog mutates that same object at 34826 -- so a marker set here survives.
+        // `preShortRest` (`dnd5e.mjs:38169`) through to `restCompleted` (38317) -- the
+        // dialog mutates that same object at 38178 -- so a marker set here survives.
         config[this.SUPPRESSED_KEY] = true;
     }
 
@@ -244,10 +244,28 @@ class RestManager {
      * anybody changing a setting.
      *
      * Both survive the journey because dnd5e passes one config object by reference
-     * from `preShortRest` (`dnd5e.mjs:34817`) to `restCompleted` (34995).
+     * from `preShortRest` (`dnd5e.mjs:38169`) to `restCompleted` (38317).
      */
     static CARD_KEY = 'blacksmithCardId';
     static OPTIONS_KEY = 'blacksmithProvisionOptions';
+    static GROUP_KEY = 'blacksmithRestId';
+
+    /**
+     * Cards whose Rest button has been pressed and whose rest has not yet come back.
+     *
+     * CLIENT-LOCAL AND DELIBERATELY SO. The card stays `phase: 'before'` until the GM
+     * rewrites it, and that is a socket round trip away -- so `isRestPending` still
+     * says "not yet rested" for the whole of it, and a second click starts a SECOND
+     * `longRest`. That applies recovery twice, can eat another ration, and can move
+     * the clock again.
+     *
+     * This closes the double click, which is the case that actually happens. It does
+     * not close a GM and an owner pressing the same card in the same second from two
+     * browsers: the GM's dedup catches the second rest before it reaches provisions,
+     * the card or the clock, but both `longRest` calls have already run against the
+     * actor. dnd5e has the same exposure on its own request cards.
+     */
+    static _restsInFlight = new Set();
 
     /**
      * Somebody pressed Rest on a pre-rest card.
@@ -265,42 +283,51 @@ class RestManager {
         const state = message?.getFlag?.(MODULE.ID, 'rest');
         if (!state || !isRestPending(state)) return;
 
-        const actor = await fromUuid(state.actorUuid).catch(() => null);
-        if (!actor) {
-            ui.notifications?.warn('That character no longer exists.');
-            return;
-        }
-
-        // The GM may rest anyone -- which is also how a character whose player is away
-        // gets their rest. Everyone else rests only their own.
-        if (!game.user?.isGM && !actor.isOwner) {
-            ui.notifications?.warn(`${actor.name} is not yours to rest.`);
-            return;
-        }
-
-        const isLong = state.restType === 'long';
-        const config = {
-            type: isLong ? 'long' : 'short',
-            dialog: false,
-            chat: false,
-            newDay: state.restOptions?.newDay === true,
-            // OURS TO MOVE. Leaving this false keeps the clock in one place -- the
-            // grouping in `_applyRest`, which knows how many characters are still to
-            // rest. dnd5e's own advance would fire once per character.
-            advanceTime: false,
-            [this.SUPPRESSED_KEY]: true,
-            [this.CARD_KEY]: message.id,
-            [this.OPTIONS_KEY]: {
-                trackFood: state.restOptions?.trackFood,
-                trackWater: state.restOptions?.trackWater
-            }
-        };
+        // CLAIMED BEFORE THE FIRST AWAIT, or the guard is not a guard: two clicks a
+        // few milliseconds apart would both read `phase: 'before'`, both pass, and
+        // both rest. Nothing between here and the GM's rewrite retires the row.
+        if (this._restsInFlight.has(message.id)) return;
+        this._restsInFlight.add(message.id);
 
         try {
+            const actor = await fromUuid(state.actorUuid).catch(() => null);
+            if (!actor) {
+                ui.notifications?.warn('That character no longer exists.');
+                return;
+            }
+
+            // The GM may rest anyone -- which is also how a character whose player is
+            // away gets their rest. Everyone else rests only their own.
+            if (!game.user?.isGM && !actor.isOwner) {
+                ui.notifications?.warn(`${actor.name} is not yours to rest.`);
+                return;
+            }
+
+            const isLong = state.restType === 'long';
+            const config = {
+                type: isLong ? 'long' : 'short',
+                dialog: false,
+                chat: false,
+                newDay: state.restOptions?.newDay === true,
+                // OURS TO MOVE. Leaving this false keeps the clock in one place -- the
+                // grouping in `_applyRest`, which knows how many characters are still
+                // to rest. dnd5e's own advance would fire once per character.
+                advanceTime: false,
+                [this.SUPPRESSED_KEY]: true,
+                [this.CARD_KEY]: message.id,
+                [this.GROUP_KEY]: state.restId ?? null,
+                [this.OPTIONS_KEY]: {
+                    trackFood: state.restOptions?.trackFood,
+                    trackWater: state.restOptions?.trackWater
+                }
+            };
+
             await actor[isLong ? 'longRest' : 'shortRest'](config);
         } catch (error) {
-            postConsoleAndNotification(MODULE.NAME, `Rest: ${actor.name} could not rest`, error, false, false);
-            ui.notifications?.warn(`${actor.name} could not rest. See the console for details.`);
+            postConsoleAndNotification(MODULE.NAME, `Rest: ${state.name} could not rest`, error, false, false);
+            ui.notifications?.warn(`${state.name} could not rest. See the console for details.`);
+        } finally {
+            this._restsInFlight.delete(message.id);
         }
     }
 
@@ -327,6 +354,7 @@ class RestManager {
             systemAdvanced: config?.advanceTime === true,
             suppressedSystemCard: config?.[this.SUPPRESSED_KEY] === true,
             cardId: config?.[this.CARD_KEY] ?? null,
+            groupId: config?.[this.GROUP_KEY] ?? null,
             provisionOptions: config?.[this.OPTIONS_KEY] ?? null,
             state: buildRestState({ actor, result, config })
         };
@@ -360,12 +388,20 @@ class RestManager {
 
         const { requestId, minutes, systemAdvanced } = payload;
 
-        // A REQUESTED REST: every character's acceptance carries the same id, so the
-        // id identifies the rest rather than the moment it arrived. That matters
-        // because acceptances are minutes apart -- one dialog per player -- and no
-        // timer can group them.
-        if (requestId) {
-            if (this._handledRequests.includes(requestId)) return;
+        // A GROUPED REST comes in two flavours and they need the same treatment: a
+        // dnd5e request, identified by `config.request.id`, and one our rest window
+        // started, identified by the `restId` stamped on every card it posted.
+        //
+        // BOTH MUST GROUP, and only the first one did. The window creates no system
+        // request, so its acceptances fell through to the burst timer -- and a burst
+        // is a 400ms window, while players accept minutes apart. Each one flushed on
+        // its own and moved the clock a full rest. That is the forty-hour bug this
+        // file was written to prevent, reappearing on the flow that replaced the one
+        // it was written for.
+        const groupId = requestId ?? payload.groupId ?? null;
+
+        if (groupId) {
+            if (this._handledRequests.includes(groupId)) return;
 
             // RECORDED BEFORE PROVISIONING, and provisioning only happens for a
             // character who has not already been fed on this rest. A character can
@@ -373,13 +409,13 @@ class RestManager {
             // someone who had already resolved themselves -- and the first version
             // provisioned on every arrival, so that character ate two rations and
             // appeared twice on the card. Seen once, fed once.
-            const { isNew, isLast } = this._recordAcceptance(requestId, payload.actorUuid);
+            const { isNew, isLast } = this._recordAcceptance(groupId, payload.actorUuid, this._expectedFor(payload));
             if (!isNew) return;
 
             await this._restedOne(payload);
             if (!isLast) return;
 
-            this._markRequestHandled(requestId);
+            this._markRequestHandled(groupId);
             await this._completeRest(minutes, systemAdvanced);
             return;
         }
@@ -395,36 +431,61 @@ class RestManager {
     }
 
     /**
-     * Has everyone the request asked for now rested?
+     * How many characters this rest is waiting for.
      *
-     * The roster lives on the request message as `system.targets`, one entry per
-     * character (`dnd5e.mjs:70835`). Counting acceptances against it is what makes the
-     * clock wait for the last sleeper rather than the first.
+     * READ FROM DOCUMENTS ON THE GM, never carried across the socket, because the GM
+     * holds every message anyway and a copy could only be staler.
      *
-     * A request naming one character, or one whose roster cannot be read, advances
-     * immediately -- guessing wrong in that direction costs a slightly early clock,
-     * while guessing wrong the other way means a rest that never advances at all.
+     * A system request states its roster on the request message
+     * (`dnd5e.mjs:74326`). A window rest has no request, so its roster is simply THE
+     * CARDS THAT EXIST -- which is better than a count baked in at post time, because
+     * it corrects itself: a card that failed to post never counts, and a card the GM
+     * deletes removes that character from the rest rather than stalling it forever.
      *
-     * @returns {boolean}
+     * @returns {number} 0 when the roster cannot be read, which completes on the first
+     *                   arrival -- an early clock beats one that never moves.
      */
-    static _recordAcceptance(requestId, uuid = null) {
-        // THE ROSTER IS READ FROM THE REQUEST MESSAGE HERE rather than carried across
-        // the socket. The GM has every message like any other document, so sending a
-        // copy would only risk it being stale.
-        const targets = game.messages?.get(requestId)?.system?.targets;
-        const expected = Array.isArray(targets) ? targets.length : 0;
+    static _expectedFor(payload) {
+        if (payload?.requestId) {
+            const targets = game.messages?.get(payload.requestId)?.system?.targets;
+            return Array.isArray(targets) ? targets.length : 0;
+        }
 
-        const seen = this._requestProgress.get(requestId) ?? new Set();
+        const restId = payload?.groupId;
+        if (!restId) return 0;
+
+        let count = 0;
+        for (const message of game.messages?.contents ?? []) {
+            if (message?.flags?.[MODULE.ID]?.rest?.restId === restId) count++;
+        }
+        return count;
+    }
+
+    /**
+     * Record one character's acceptance against a grouped rest.
+     *
+     * THE CLOCK MOVES WHEN THE LAST CHARACTER RESTS, so this counts acceptances
+     * against the roster and reports when the group is complete. Whether the group is
+     * a dnd5e request or one of our own rests makes no difference here -- that is the
+     * point of it taking a plain id.
+     *
+     * @param {string} groupId  The request id, or our own rest id.
+     * @param {string|null} uuid  Who just rested.
+     * @param {number} expected  How many the group is waiting for.
+     * @returns {{isNew: boolean, isLast: boolean}}
+     */
+    static _recordAcceptance(groupId, uuid = null, expected = 0) {
+        const seen = this._requestProgress.get(groupId) ?? new Set();
         const isNew = !uuid || !seen.has(uuid);
         if (uuid) seen.add(uuid);
 
-        // Re-set so a first sighting is stored, and so this request becomes the most
+        // Re-set so a first sighting is stored, and so this group becomes the most
         // recently touched for the eviction below.
-        this._requestProgress.delete(requestId);
-        this._requestProgress.set(requestId, seen);
+        this._requestProgress.delete(groupId);
+        this._requestProgress.set(groupId, seen);
 
         // Maps keep insertion order, so the first key is the least recently touched.
-        // Abandoned requests are the only thing that accumulates here, and they are
+        // Abandoned rests are the only thing that accumulates here, and they are
         // worth nothing once a newer one is in flight.
         while (this._requestProgress.size > this.MAX_TRACKED_REQUESTS) {
             this._requestProgress.delete(this._requestProgress.keys().next().value);
@@ -433,7 +494,7 @@ class RestManager {
         // A roster of one, or one we cannot read, completes on the first arrival --
         // an early clock is a smaller failure than one that never moves.
         const isLast = (expected <= 1) || (seen.size >= expected);
-        if (isLast) this._requestProgress.delete(requestId);
+        if (isLast) this._requestProgress.delete(groupId);
 
         return { isNew, isLast };
     }
@@ -599,7 +660,7 @@ class RestManager {
      * all, and the third they were foraging for it.
      *
      * dnd5e stores a pool as how much is SPENT and derives `value` as `max - spent`
-     * (`dnd5e.mjs:4357`), so a pool only counts as one when it has a max.
+     * (`dnd5e.mjs:11539`), so a pool only counts as one when it has a max.
      *
      * @returns {number} How many uses or units are left.
      */
@@ -683,7 +744,7 @@ class RestManager {
      *
      * Only the NUMBER is written. The system owns what exhaustion does -- with the
      * modern rules it already applies the penalty to every d20 roll
-     * (`dnd5e.mjs:33818`) and to speed -- so applying effects ourselves would either
+     * (`dnd5e.mjs:37154`) and to speed -- so applying effects ourselves would either
      * duplicate that or fight it.
      */
     static async _addExhaustion(actor, levels) {
@@ -783,7 +844,15 @@ class RestManager {
             return;
         }
 
-        await socket.executeAsGM(this.FORAGE_GM_PROXY, payload);
+        // Told, not swallowed. A rejected hop leaves the card pending, which is
+        // recoverable -- the GM can press the button themselves -- but only if the
+        // player knows their roll went nowhere.
+        try {
+            await socket.executeAsGM(this.FORAGE_GM_PROXY, payload);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, `Rest: Could not send ${actor.name}'s forage roll to the GM`, error, false, false);
+            ui.notifications?.warn('Your roll could not be applied. Ask your GM to resolve it.');
+        }
     }
 
     /**

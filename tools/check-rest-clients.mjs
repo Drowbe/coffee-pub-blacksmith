@@ -247,7 +247,7 @@ check(
     'The card is stamped so the request marks this character done.',
     world.posted[0]?.message?.flags?.dnd5e?.requestResult?.requestId === 'req-1',
     `\`flags.dnd5e.requestResult\` is the ONLY mechanism that ticks a target off a rest request ` +
-    `(dnd5e.mjs:79669). Suppress the system card without it and the character can rest all night.`
+    `(dnd5e.mjs:82950). Suppress the system card without it and the character can rest all night.`
 );
 check(
     'The stamp names the actor it completes.',
@@ -405,7 +405,7 @@ check('A short rest still reports its hit dice.', !!diceRow);
 check(
     'Labelled as spent.',
     diceRow?.label === 'Hit Dice Spent',
-    `Got "${diceRow?.label}". dnd5e flips the sign for display (dnd5e.mjs:35016) because the dice were burnt.`
+    `Got "${diceRow?.label}". dnd5e flips the sign for display (dnd5e.mjs:38338) because the dice were burnt.`
 );
 check('Counted as a positive number of dice.', diceRow?.trailing === '2', `Got "${diceRow?.trailing}".`);
 check(
@@ -579,6 +579,141 @@ check(
 asUser(true);
 
 // ==================================================================
+// ===== 7c. A WINDOW REST GROUPS LIKE A SYSTEM REQUEST =============
+// ==================================================================
+//
+// THE HOLE THIS FILE PREVIOUSLY HAD. Last-sleeper grouping was only exercised
+// against a two-target dnd5e request, so 60 assertions passed while the flow a
+// table actually uses -- the clock menu's Rest window -- had no grouping at all.
+// Its rests create no system request, fell through to the 400ms burst timer, and
+// moved the clock a full rest per character.
+//
+// The roster here is the CARDS THAT EXIST, so the world has to hold them.
+
+const windowGm = makeClient();
+const REST_ID = 'restgroup01';
+
+world.messages.set('wcard-a', makeMessage('wcard-a', {
+    'coffee-pub-blacksmith': { rest: { phase: 'before', restId: REST_ID, actorUuid: 'Actor.Nik' } }
+}));
+world.messages.set('wcard-b', makeMessage('wcard-b', {
+    'coffee-pub-blacksmith': { rest: { phase: 'before', restId: REST_ID, actorUuid: 'Actor.Favia' } }
+}));
+// A card from a DIFFERENT rest must not inflate this one's roster.
+world.messages.set('wcard-other', makeMessage('wcard-other', {
+    'coffee-pub-blacksmith': { rest: { phase: 'before', restId: 'someothernight', actorUuid: 'Actor.Nik' } }
+}));
+globalThis.game.messages.contents = [...world.messages.values()];
+
+const windowRest = (actorUuid, cardId) => ({
+    actorUuid, requestId: null, groupId: REST_ID, restType: 'long', minutes: 480,
+    systemAdvanced: false, suppressedSystemCard: true, cardId,
+    state: cards.buildRestState({
+        actor: world.actors.get(actorUuid), result: restResult(), config: { type: 'long', duration: 480 }
+    })
+});
+
+check(
+    'The roster is counted from the cards of THIS rest only.',
+    windowGm._expectedFor({ groupId: REST_ID }) === 2,
+    `Counted ${windowGm._expectedFor({ groupId: REST_ID })}; a card from another night must not inflate it.`
+);
+
+reset();
+await windowGm._applyRest(windowRest('Actor.Nik', 'wcard-a'));
+check('The first character rests and gets their card.', world.posted.length === 1);
+check(
+    'THE CLOCK WAITS.',
+    world.advanced.length === 0,
+    `This is the forty-hour bug: without grouping, each acceptance flushes its own burst and moves the clock a full rest.`
+);
+
+reset();
+await windowGm._applyRest(windowRest('Actor.Favia', 'wcard-b'));
+check('The last character rests.', world.posted.length === 1);
+check(
+    'And NOW the clock moves, once.',
+    world.advanced.length === 1 && world.advanced[0] === 480 * 60,
+    `Advanced ${JSON.stringify(world.advanced)}; expected exactly one jump of ${480 * 60} seconds.`
+);
+
+reset();
+await windowGm._applyRest(windowRest('Actor.Nik', 'wcard-a'));
+check('A late arrival for a finished window rest changes nothing.',
+    world.posted.length === 0 && world.advanced.length === 0);
+
+// A deleted card leaves the rest with a smaller roster rather than stalling it.
+const soloGm2 = makeClient();
+world.messages.delete('wcard-b');
+globalThis.game.messages.contents = [...world.messages.values()];
+reset();
+await soloGm2._applyRest(windowRest('Actor.Nik', 'wcard-a'));
+check(
+    'Deleting a card removes that character from the rest rather than stalling it forever.',
+    world.advanced.length === 1,
+    `The roster is the cards that exist, so it corrects itself. A count baked in at post time could not.`
+);
+
+// ==================================================================
+// ===== 7d. ONE CLICK, ONE REST ====================================
+// ==================================================================
+//
+// The card stays `before` until the GM's rewrite lands, which is a socket round
+// trip away -- so `isRestPending` still says "not yet" for the whole of it and a
+// second click starts a SECOND longRest.
+
+const doubleClickCard = makeMessage('press-2', {
+    'coffee-pub-blacksmith': { rest: cards.buildBeforeState({
+        actor: { uuid: 'Actor.Nik', name: 'Nik', system: { attributes: {}, spells: {} } },
+        restType: 'long', restOptions: {}, restId: REST_ID
+    }) }
+});
+
+rested.length = 0;
+
+// The deferred is built UP FRONT. Creating it inside longRest would leave nothing to
+// release until longRest had already been called -- and the whole point is to hold
+// the rest open across the gap before it is, which is where the second click lands.
+let releaseRest;
+const restHeld = new Promise((resolve) => { releaseRest = resolve; });
+
+globalThis.fromUuid = async () => ({
+    ...restingActor(),
+    longRest(config) { rested.push({ method: 'longRest', config }); return restHeld; }
+});
+
+asUser(false);
+const firstClick = player._onRestClicked(doubleClickCard);
+const secondClick = player._onRestClicked(doubleClickCard);
+
+// A macrotask, so every pending microtask -- the `fromUuid` await both clicks are
+// sitting behind -- has drained and both have reached the guard.
+await new Promise((resolve) => setTimeout(resolve, 0));
+releaseRest();
+await Promise.all([firstClick, secondClick]);
+
+check(
+    'A second click while the first rest is in flight does nothing.',
+    rested.length === 1,
+    `Rested ${rested.length} times. Recovery would apply twice, another ration could go, and the clock could jump again.`
+);
+
+check(
+    'And the card is released afterwards, so a genuine retry is still possible.',
+    !player._restsInFlight.has('press-2'),
+    `A guard that never clears turns a failed rest into a permanently dead button.`
+);
+
+check(
+    'The window rest carries its group id to the GM.',
+    rested[0]?.config?.[player.GROUP_KEY] === REST_ID,
+    `Without it the GM cannot group, and the clock jumps per character.`
+);
+
+asUser(true);
+globalThis.fromUuid = async (uuid) => world.actors.get(uuid) ?? null;
+
+// ==================================================================
 // ===== 8. THE REST'S OWN PROVISION CHOICE BEATS THE SETTING =======
 // ==================================================================
 
@@ -620,6 +755,37 @@ check(
 check('A short rest never provisions, whatever was asked for.',
     (await gm._provision('short', pantry(), { trackFood: true, trackWater: true })) === undefined,
     `A short rest is an hour by the tea, not a day's rations.`);
+
+// ==================================================================
+// ===== 9. THE WINDOW MUST NOT OVERRIDE THE SYSTEM'S DEFAULTS ======
+// ==================================================================
+//
+// Source-level, because this is markup assembly and needs a DOM to run. The bug it
+// guards is silent in the worst way: an unticked box is not a neutral default. The
+// window sends `newDay` explicitly on every rest, so an unticked box sends
+// `newDay: false` and OVERRIDES dnd5e's own `restTypes.long.newDay: true`
+// (`dnd5e.mjs:46457`, defaulted at `dnd5e.mjs:38152`). Daily, dawn and dusk item
+// uses only recover when `recoverDailyUses || config.newDay` (`dnd5e.mjs:38542`),
+// so an ordinary night quietly skipped every one of them.
+
+const windowSrc = fs.readFileSync(path.join(ROOT, 'scripts/window-rest.js'), 'utf8');
+
+check(
+    'New Day is defaulted from the system\'s own rest configuration.',
+    /const newDay = CONFIG\.DND5E\?\.restTypes\?\.long\?\.newDay === true;/.test(windowSrc),
+    `Hardcoding it -- in either direction -- makes the window disagree with the system it is driving.`
+);
+check(
+    'And the checkbox actually reflects that default.',
+    /name="rest-new-day"[^>]*\$\{newDay \? 'checked' : ''\}/.test(windowSrc),
+    `Computing the default and then not rendering it is the same bug with extra steps.`
+);
+check(
+    'Every posted card shares one rest id.',
+    /const restId = foundry\.utils\.randomID\(\);/.test(windowSrc)
+        && /postBeforeCard\(\{[^}]*restId[^}]*\}\)/.test(windowSrc),
+    `Without a shared id each acceptance looks like a lone character and the clock jumps per person.`
+);
 
 // ==================================================================
 // ===== REPORT =====================================================
