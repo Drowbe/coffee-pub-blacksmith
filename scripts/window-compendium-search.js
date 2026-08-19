@@ -154,11 +154,32 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         const canonical = normalizeType(this._type);
         if (getDocumentSubtype(canonical)) return [];
         const documentClass = getDocumentClass(canonical);
-        const subtypes = (game.documentTypes?.[documentClass] ?? []).filter(t => t && t !== 'base');
         const labels = CONFIG?.[documentClass]?.typeLabels ?? {};
-        return subtypes
-            .map(value => ({ value, label: game.i18n.localize(labels[value] ?? value) }))
-            .sort((a, b) => a.label.localeCompare(b.label));
+
+        const subtypes = [];
+        for (const value of game.documentTypes?.[documentClass] ?? []) {
+            if (!value || value === 'base') continue;
+
+            // A registered type the system never translated is one the system never
+            // shows. dnd5e keeps `backpack` registered purely so old documents rewrite
+            // themselves to `container` on load (dnd5e.mjs:22973), and leaves it out of
+            // its lang file for that reason -- its own compendium browser
+            // (dnd5e.mjs:22942) and create dialog (dnd5e.mjs:24479) drop it by name.
+            // No live document carries the type, so offering it is a filter that can
+            // only ever return nothing, under a label that is a raw i18n key.
+            const key = labels[value];
+            if (key && !game.i18n.has(key)) continue;
+
+            // Only for a type whose system gave no label key at all -- a raw token is
+            // still better than dropping a type somebody deliberately registered.
+            subtypes.push({
+                value,
+                label: key ? game.i18n.localize(key)
+                    : String(value).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase())
+            });
+        }
+
+        return subtypes.sort((a, b) => a.label.localeCompare(b.label));
     }
 
     async getData() {

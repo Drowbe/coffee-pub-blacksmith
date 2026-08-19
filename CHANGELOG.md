@@ -48,7 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   `prompt` re-attaches on every attempt, because a rejected value reopens the dialog as fresh markup that the previous binding does not reach; `attach` releases its old listener first, so this is correct rather than cumulative. Controls are deliberately not destroyed on close, since a button callback still reads values out of them afterwards. `onRender(element, dialog)` is now documented for anything `controls` does not cover -- it already existed and was not written down anywhere.
 
+### Changed
+
+- **Compendium priority slots now go to 30 per type, up from 20** (`scripts/settings.js`). `MAX_COMPENDIUM_SLOTS` is the ceiling on the Priority Slots range for every mapped type, and it bounds both the slider and the clamp in `getCompendiumSelectorCount`. The number remains a flat ceiling rather than a count of installed compendiums, for the reason it always was: the slot count should say how many sources a GM wants searched, not how many exist. No saved mapping changes -- a world already at 20 stays at 20 until the GM raises it, and the setting still requires a reload to add dropdowns.
+
 ### Fixed
+
+- **Compendium Search offered a subtype filter that could never match, labelled with a raw localization key** (`scripts/window-compendium-search.js`). The Items subtype dropdown listed `TYPES.Item.backpack` between "Tool" and "Weapon". Both halves of that were the same cause: `backpack` is registered as an Item subtype in dnd5e's `system.json`, so it appears in `game.documentTypes.Item`, but the system keeps it registered only so old documents rewrite themselves to `container` on load (`dnd5e.mjs:22973`) and never translates it -- its compendium browser (`dnd5e.mjs:22942`) and create dialog (`dnd5e.mjs:24479`) both drop it by name. No live document carries the type, so selecting it returned nothing, and `game.i18n.localize()` returned the key unchanged because there was nothing to translate.
+
+  The subtype list now skips any type whose system declared a label key it never translated, which is the system's own signal that the type is not user-facing. A type with no label key at all is kept and its token humanized, so a subtype somebody deliberately registered is never silently dropped. Verify live by opening Compendium Search, choosing Items, and confirming the subtype dropdown runs Tool then Weapon with no `TYPES.` entry between them.
 
 - **A control embedded in a dialog was silently unbound, and our own documentation said it would work** (`scripts/api-dialog.js`, `documentation/api/api-dialog.md`). Both the source comment on `resolveContent` and the Content section of the API doc stated that passing an `HTMLElement` preserved its identity and any listeners attached to it. Neither is true. DialogV2 reads `options.content.innerHTML` and keeps only that string (`foundry.mjs:57177`), then builds the dialog by assigning `innerHTML` on a fresh form (`foundry.mjs:57196`) -- the node handed over is never inserted into the document.
 

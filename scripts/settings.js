@@ -263,11 +263,11 @@ function getCompendiumChoices() {
 const _reorderingInProgress = new Set();
 
 /**
- * Priority slots per type. 20 is a deliberate flat ceiling rather than "however many
+ * Priority slots per type. 30 is a deliberate flat ceiling rather than "however many
  * compendiums exist": the number of slots should reflect how many sources a GM wants
  * to search, which is small, not how many are installed, which is not.
  */
-const MAX_COMPENDIUM_SLOTS = 20;
+const MAX_COMPENDIUM_SLOTS = 30;
 const DEFAULT_COMPENDIUM_SLOTS = 3;
 
 /**
