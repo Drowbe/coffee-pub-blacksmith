@@ -72,7 +72,8 @@ const CODES = Object.freeze({
     SOURCE_UPDATE_FAILED: 'SOURCE_UPDATE_FAILED',
     ROLLBACK_FAILED: 'ROLLBACK_FAILED',
     LOCK_TIMEOUT: 'LOCK_TIMEOUT',
-    DUPLICATE_ITEM: 'DUPLICATE_ITEM'
+    DUPLICATE_ITEM: 'DUPLICATE_ITEM',
+    EXCHANGE_EMPTY: 'EXCHANGE_EMPTY'
 });
 
 // How long a public method waits for an Actor lock before giving up. A bounded wait exists so
@@ -1128,6 +1129,322 @@ async function transferItems({ sourceActorUuid, targetActorUuid, items = [], sta
 }
 
 /**
+ * Settle several directed transfers as ONE operation: everything commits, or nothing does.
+ *
+ * This is the primitive a purchase needs. A shop transaction is not reliably two-sided - the
+ * shopper always pays, so buying for someone else routes goods to a recipient, coin from a payer,
+ * and change back to that payer. Three parties, and a two-sided shape cannot express it: "what A
+ * gives" only means "what B receives" while there is exactly one other party. A directed transfer
+ * carries the routing explicitly, and the two-party case is simply two transfers.
+ *
+ * ALL-OR-NOTHING, unlike `transferItems`. That method reports per item because one packed bag on a
+ * corpse must not stop the other twelve rows; here a partially applied settlement is the failure
+ * being prevented, so any refusal fails the whole call and writes nothing. Every failure result
+ * carries `index` (and `entryIndex` where an item is at fault) so a caller can say which leg.
+ *
+ * @param {object} options
+ * @param {object[]} options.transfers - Directed movements:
+ *   `{ from, to, items?, currency?, container?, copy?, preserveEmptySource? }`.
+ *   `items` entries are `{ itemId, quantity?, flags? }`; `container` is an arrival container on
+ *   `to`; `copy` grants without touching the source; `preserveEmptySource` leaves an emptied
+ *   stackable row at quantity 0 rather than deleting it.
+ * @param {string} [options.stack='merge']
+ * @param {string[]} [options.ignoreFlags=[]]
+ * @returns {Promise<object>} `{ ok: true, results: [] }`, or a single failure describing the leg.
+ */
+async function exchange({ transfers = [], stack = 'merge', ignoreFlags = [] } = {}) {
+    if (!Array.isArray(transfers) || !transfers.length) {
+        return fail(CODES.EXCHANGE_EMPTY, { reason: 'transfers must be a non-empty array' });
+    }
+
+    // Resolved before the lock; every live re-read happens inside it. Keyed on the resolved
+    // Actor uuid rather than the caller's string, because a token uuid and its actor uuid are
+    // different strings naming one Actor and must share a lock, a purse, and a write.
+    const actorsByUuid = new Map();
+    const resolved = [];
+    const resolveCache = new Map(); // caller's string -> Actor|null; one Actor names two strings
+    const resolveOnce = async (uuid) => {
+        if (!resolveCache.has(uuid)) resolveCache.set(uuid, await _resolveActor(uuid));
+        return resolveCache.get(uuid);
+    };
+    for (const transfer of transfers) {
+        const fromActor = await resolveOnce(transfer?.from);
+        const toActor = await resolveOnce(transfer?.to);
+        if (fromActor) actorsByUuid.set(fromActor.uuid, fromActor);
+        if (toActor) actorsByUuid.set(toActor.uuid, toActor);
+        resolved.push({ fromActor, toActor });
+    }
+
+    for (let index = 0; index < transfers.length; index++) {
+        const { fromActor, toActor } = resolved[index];
+        if (!fromActor) return fail(CODES.SOURCE_ACTOR_NOT_FOUND, { index, sourceActorUuid: transfers[index]?.from ?? null });
+        if (!toActor) return fail(CODES.TARGET_ACTOR_NOT_FOUND, { index, targetActorUuid: transfers[index]?.to ?? null });
+        // Per LEG, never per call: the merchant sends goods and receives coin in the same
+        // settlement, so an Actor appearing in several transfers is the ordinary case.
+        if (fromActor.uuid === toActor.uuid) return fail(CODES.SAME_ACTOR, { index, actorUuid: fromActor.uuid });
+    }
+
+    // One acquisition for every Actor named anywhere. _acquire sorts and dedupes, so the ordering
+    // that makes a simultaneous A-to-B and B-to-A safe generalises to N parties unchanged.
+    // Acquiring per transfer instead would reopen the window this method exists to close.
+    const { release, contended } = await _acquire(Array.from(actorsByUuid.keys()));
+    if (contended) return fail(CODES.LOCK_TIMEOUT, { actorUuid: contended, waitedMs: LOCK_TIMEOUT_MS });
+
+    try {
+        const arrivals = new Map();      // target uuid -> [{ prepared, index, entryIndex, itemId, copied }]
+        const departures = new Map();    // source uuid -> [{ item, quantity, stackable, available, index, entryIndex, preserveEmpty }]
+        const currencyOut = new Map();   // actor uuid -> { denomination: total }
+        const currencyIn = new Map();
+        const perTransferCurrency = new Array(transfers.length);
+        const drawn = new Set();         // `${actorUuid}:${itemId}` for legs that actually take
+        const containerChecks = new Map();
+
+        // ---------- plan: everything validated against the state at the START of the call ----------
+        for (let index = 0; index < transfers.length; index++) {
+            const transfer = transfers[index];
+            const { fromActor, toActor } = resolved[index];
+            const copy = transfer?.copy === true;
+            const preserveEmpty = transfer?.preserveEmptySource === true;
+            const container = transfer?.container ?? null;
+
+            if (container !== null && container !== undefined) {
+                const key = `${toActor.uuid}:${container}`;
+                if (!containerChecks.has(key)) containerChecks.set(key, await _validateContainer(toActor, container));
+                const containerError = containerChecks.get(key);
+                if (containerError) return { ...containerError, index };
+            }
+
+            const items = Array.isArray(transfer?.items) ? transfer.items : [];
+            for (let entryIndex = 0; entryIndex < items.length; entryIndex++) {
+                const request = items[entryIndex];
+                const itemId = request?.itemId;
+                const sourceItem = itemId ? fromActor.items.get(itemId) : null;
+                if (!sourceItem) return fail(CODES.SOURCE_ITEM_NOT_FOUND, { index, entryIndex, itemId: itemId ?? null });
+                if (!_isTransferable(sourceItem)) {
+                    return fail(CODES.ITEM_NOT_TRANSFERABLE, { index, entryIndex, itemId, type: sourceItem.type, allowed: PHYSICAL_TYPES });
+                }
+                const contentCount = await _containedCount(sourceItem);
+                if (contentCount !== 0) {
+                    return fail(CODES.CONTAINER_HAS_CONTENTS, { index, entryIndex, itemId, contentCount: contentCount < 0 ? null : contentCount });
+                }
+
+                let quantity;
+                let stackable;
+                let available;
+                if (copy) {
+                    // A copied source is a template with no count, so its stack is NOT a ceiling -
+                    // a shop with infinite stock sells three from a row that reads one. Shape is
+                    // still checked; availability deliberately is not.
+                    const source = sourceItem._source?.system ?? {};
+                    stackable = typeof source.quantity === 'number';
+                    available = stackable ? source.quantity : 1;
+                    const requested = request?.quantity === undefined || request?.quantity === null
+                        ? available
+                        : Number(request.quantity);
+                    if (!Number.isInteger(requested) || requested < 1) {
+                        return fail(CODES.INVALID_QUANTITY, { index, entryIndex, itemId, requested: request?.quantity ?? null });
+                    }
+                    if (!stackable && requested > 1) {
+                        return fail(CODES.INVALID_QUANTITY, { index, entryIndex, itemId, requested, available: 1 });
+                    }
+                    quantity = requested;
+                } else {
+                    // Same reasoning as transferItems: two draws on one item make each per-entry
+                    // quantity check meaningless, and together they could over-draw the stack.
+                    const key = `${fromActor.uuid}:${itemId}`;
+                    if (drawn.has(key)) return fail(CODES.DUPLICATE_ITEM, { index, entryIndex, itemId });
+                    drawn.add(key);
+
+                    const check = _resolveQuantity(sourceItem, request?.quantity);
+                    if (check.error) return { ...check.error, index, entryIndex, itemId };
+                    quantity = check.quantity;
+                    stackable = check.stackable;
+                    available = check.available;
+                }
+
+                const flags = request?.flags ?? {};
+                if (!arrivals.has(toActor.uuid)) arrivals.set(toActor.uuid, []);
+                arrivals.get(toActor.uuid).push({
+                    prepared: {
+                        ok: true,
+                        payload: _buildPayload(sourceItem, quantity, stackable, flags, container),
+                        quantity,
+                        arrivalFlags: flags,
+                        container
+                    },
+                    index, entryIndex, itemId, copied: copy
+                });
+
+                if (!copy) {
+                    if (!departures.has(fromActor.uuid)) departures.set(fromActor.uuid, []);
+                    departures.get(fromActor.uuid).push({
+                        item: sourceItem, quantity, stackable, available, index, entryIndex, preserveEmpty
+                    });
+                }
+            }
+
+            const currency = transfer?.currency;
+            if (currency && typeof currency === 'object' && Object.keys(currency).length) {
+                const { deltas, error } = _normalizeCurrency(currency);
+                if (error) return { ...error, index };
+                perTransferCurrency[index] = deltas;
+                const out = currencyOut.get(fromActor.uuid) ?? {};
+                const into = currencyIn.get(toActor.uuid) ?? {};
+                for (const [denomination, amount] of Object.entries(deltas)) {
+                    out[denomination] = (out[denomination] ?? 0) + amount;
+                    into[denomination] = (into[denomination] ?? 0) + amount;
+                }
+                currencyOut.set(fromActor.uuid, out);
+                currencyIn.set(toActor.uuid, into);
+            }
+        }
+
+        // Affordability is checked on the TOTAL each Actor pays out, against its balance at the
+        // start of the call. Change arriving in the same settlement cannot fund the payment - the
+        // payer must actually hold what they hand over, which is what happens at a counter.
+        for (const [uuid, out] of currencyOut) {
+            const actor = actorsByUuid.get(uuid);
+            const shortfalls = {};
+            for (const [denomination, amount] of Object.entries(out)) {
+                const availableCoin = Number(actor._source?.system?.currency?.[denomination] ?? 0);
+                if (availableCoin < amount) shortfalls[denomination] = { requested: amount, available: availableCoin };
+            }
+            if (Object.keys(shortfalls).length) return fail(CODES.INSUFFICIENT_CURRENCY, { actorUuid: uuid, shortfalls });
+        }
+
+        // ---------- apply: currency, then arrivals, then departures ----------
+        //
+        // That order is the multi-party form of "grant before you reduce". Every step can be
+        // reversed by the step that follows it failing: currency is a numeric delta, arrivals have
+        // a quantity-aware undo, and departures - the only irreversible half, since a deleted row
+        // cannot be restored with its id - happen last, when nothing after them can fail.
+        const currencyUndo = [];
+        const arrivalUndo = [];
+
+        const netByActor = new Map();
+        const addNet = (uuid, denomination, delta) => {
+            const net = netByActor.get(uuid) ?? {};
+            net[denomination] = (net[denomination] ?? 0) + delta;
+            netByActor.set(uuid, net);
+        };
+        for (const [uuid, out] of currencyOut) for (const [d, amount] of Object.entries(out)) addNet(uuid, d, -amount);
+        for (const [uuid, into] of currencyIn) for (const [d, amount] of Object.entries(into)) addNet(uuid, d, amount);
+
+        const undoEverything = async () => {
+            let clean = true;
+            // Copied, not reversed in place: the arrays are still read for the failure result.
+            for (const entry of [...arrivalUndo].reverse()) {
+                if (!await _rollbackBatch(entry.actor, entry.undo)) clean = false;
+            }
+            for (const entry of [...currencyUndo].reverse()) {
+                try { await entry.actor.update(entry.restore); } catch { clean = false; }
+            }
+            return clean;
+        };
+
+        try {
+            for (const [uuid, net] of netByActor) {
+                const actor = actorsByUuid.get(uuid);
+                const update = {};
+                const restore = {};
+                for (const [denomination, delta] of Object.entries(net)) {
+                    // A leg paying 30 and a leg receiving 30 net to nothing. Skipping the write is
+                    // not netting the VALIDATION - that already happened against the full amount.
+                    if (!delta) continue;
+                    const current = Number(actor._source?.system?.currency?.[denomination] ?? 0);
+                    update[`system.currency.${denomination}`] = current + delta;
+                    restore[`system.currency.${denomination}`] = current;
+                }
+                if (!Object.keys(update).length) continue;
+                await actor.update(update);
+                currencyUndo.push({ actor, restore });
+            }
+
+            for (const [uuid, list] of arrivals) {
+                const actor = actorsByUuid.get(uuid);
+                const batch = await _grantBatchCore(actor, list.map(entry => entry.prepared), stack, ignoreFlags);
+                arrivalUndo.push({ actor, undo: batch.undo });
+                for (let slot = 0; slot < list.length; slot++) list[slot].result = batch.results[slot];
+                const failed = batch.results.findIndex(result => !result?.ok);
+                if (failed >= 0) {
+                    const rolledBack = await undoEverything();
+                    return fail(rolledBack ? CODES.TARGET_CREATE_FAILED : CODES.ROLLBACK_FAILED, {
+                        index: list[failed].index,
+                        entryIndex: list[failed].entryIndex,
+                        itemId: list[failed].itemId,
+                        targetActorUuid: uuid
+                    });
+                }
+            }
+
+            for (const [uuid, list] of departures) {
+                const actor = actorsByUuid.get(uuid);
+                const updates = [];
+                const deletes = [];
+                for (const entry of list) {
+                    const emptied = !entry.stackable || entry.quantity >= entry.available;
+                    // preserveEmptySource keeps a shelf row visible at zero so a GM can see what
+                    // the shop normally carries and a restock has something to restock. It cannot
+                    // apply to an unstackable item, which has no quantity to leave at zero.
+                    if (emptied && entry.preserveEmpty && entry.stackable) {
+                        updates.push({ _id: entry.item.id, 'system.quantity': 0 });
+                    } else if (emptied) {
+                        deletes.push(entry.item.id);
+                    } else {
+                        updates.push({ _id: entry.item.id, 'system.quantity': entry.available - entry.quantity });
+                    }
+                    entry.deleted = emptied && !(entry.preserveEmpty && entry.stackable);
+                    entry.remaining = entry.deleted ? 0 : Math.max(0, entry.available - entry.quantity);
+                }
+                if (updates.length) await actor.updateEmbeddedDocuments('Item', updates);
+                if (deletes.length) await actor.deleteEmbeddedDocuments('Item', deletes);
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Inventory: exchange failed, rolling back', error, false, false);
+            const rolledBack = await undoEverything();
+            return fail(rolledBack ? CODES.SOURCE_UPDATE_FAILED : CODES.ROLLBACK_FAILED, { message: error?.message });
+        }
+
+        // ---------- results ----------
+        const results = transfers.map((transfer, index) => ({
+            ok: true,
+            from: resolved[index].fromActor.uuid,
+            to: resolved[index].toActor.uuid,
+            items: [],
+            currency: perTransferCurrency[index] ?? {}
+        }));
+
+        for (const list of arrivals.values()) {
+            for (const entry of list) {
+                results[entry.index].items[entry.entryIndex] = {
+                    itemId: entry.itemId,
+                    targetItemId: entry.result?.targetItemId ?? null,
+                    quantity: entry.prepared.quantity,
+                    merged: entry.result?.merged ?? false,
+                    coalesced: entry.result?.coalesced,
+                    copied: entry.copied,
+                    // A copied source is untouched by definition, so it reports no remainder
+                    // rather than a stale one. The departures pass fills these in otherwise.
+                    ...(entry.copied ? { sourceRemaining: null, sourceDeleted: false } : {})
+                };
+            }
+        }
+        for (const list of departures.values()) {
+            for (const entry of list) {
+                const row = results[entry.index].items[entry.entryIndex];
+                if (!row) continue;
+                row.sourceRemaining = entry.remaining;
+                row.sourceDeleted = entry.deleted;
+            }
+        }
+
+        return { ok: true, results };
+    } finally {
+        release();
+    }
+}
+
+/**
  * Add coins to an Actor. Deltas, never absolute totals — absolute writes race the way a
  * read-modify-write on system.currency always does.
  * @param {object} options
@@ -1261,9 +1578,10 @@ const InventoryAPI = {
     transferItem,
     transferItems,
     transferCurrency,
+    exchange,
     CODES,
     PHYSICAL_TYPES,
     DENOMINATIONS
 };
 
-export { InventoryAPI, registerTransientFlag, getTransientFlags, grantItem, grantItems, grantCurrency, transferItem, transferItems, transferCurrency };
+export { InventoryAPI, registerTransientFlag, getTransientFlags, grantItem, grantItems, grantCurrency, transferItem, transferItems, transferCurrency, exchange };

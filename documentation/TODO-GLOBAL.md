@@ -1113,6 +1113,74 @@ point.) Keep the rule in mind for the next consumer: `api-window.md` is explicit
 stable contract, and the base classes are on `module.api` before `init`, so a path fallback buys nothing and
 breaks silently if a file moves.
 
+## Open: do arrival payloads need a flag reset set? (raised by Merchant 2026-08-18)
+
+A copied or split item carries the source's flags, so a purchased sword arrives on the buyer holding
+`flags.coffee-pub-merchant.par`. Merchant flagged it as the same class as the container defect -
+source-scoped state riding along to a target where it means nothing - and called it harmless and
+non-blocking.
+
+**It is the same class, and the answer is probably different, which is why this is a decision and not a
+task.** Containment had one correct value that the system itself always writes, so the API could just write
+it. Flags have no such answer: the merge predicate treats an undeclared flag as identity, and
+`architecture-inventory.md` already argues that a crafting quirk or skill level IS identity and must not be
+stripped. Blacksmith cannot know which of a sibling's flags describe the item and which describe the shelf
+it sat on - and Ground Rule 2 forbids hard-coding a sibling's keys to find out.
+
+Three shapes, none chosen:
+
+1. **An `omitFlags` option** on the grant and transfer primitives, naming paths to drop from the arrival
+   payload. Symmetrical with `flags` and `ignoreFlags`, puts the decision with the caller who knows, small.
+   Cost: a third flag-shaped option on a surface that already has two, and consumers must remember it.
+2. **Extend `registerTransientFlag`** to mean "and strip on arrival". Cheap for consumers, but wrong as
+   stated: transient currently means "ignore for merge identity", and Squire's `isNew` is deliberately
+   written ON arrival. Conflating the two breaks that.
+3. **Leave it with the writer.** A module stamping shelf state on an item it does not own is arguably the
+   defect; it could scope that state to the shelf Actor instead of the item.
+
+Decide before `exchange` gets a second consumer, since `copy` makes the leak routine rather than rare.
+
+## Merchant/Curator duplication handback (received 2026-08-18)
+
+Merchant's phase-1b comparison found four things with two real consumers each, agreeing close to
+line-for-line, and offered them to the hub rather than keeping them. Two consumers is the revisit bar the
+2026-07-29 decision set, so these qualify on evidence rather than on taste. **None is started, and each
+needs a decision before it does** - the shapes below are the asks as received, not accepted designs.
+
+- [ ] **A quantity dialog** - now 38 lines and **87%** identical, remeasured after `controls` landed.
+      Note the direction: it shrank and got MORE identical, because what came out was the part that
+      differed between the two copies. What remains is the shared shape - build the control, put it in a
+      dialog with cancel-left/confirm-right, read the value, clamp, destroy. Decide whether that is a fifth
+      `api.dialog` helper or a documented `prompt` + `quantitySplit` recipe.
+- [ ] **An actor picker** - now 35 lines and 83% identical; it grew slightly because Merchant had already
+      parameterised the confirm button. Same question: a helper, or a documented `choose` +
+      `entityList.fromActors` recipe.
+
+      Merchant's own read is that both are two-line wrappers over `prompt`/`choose` now rather than the 49
+      and 30 they were, which may put them below the bar - and they said that is a reasonable place to land.
+      Deciding "documented recipe, not helper" is a real answer here, not a deferral.
+- [ ] **`BlacksmithToolWindowBaseV2` construction boilerplate** - 80% over ~36 lines, differing only in the
+      class name and an id prefix. Merchant's reading is that a base needing thirty identical lines per
+      subclass is under-specified, and that is hard to argue with. This one is ours whatever the answer,
+      because it is our base class.
+- [ ] **Party resolution** - small, but it is a policy, and the check we asked for came back saying it is
+      **two** policies rather than one. Blacksmith's rest window uses `party.system.creatures`; Merchant
+      uses `party.system.playerCharacters` with a fallback to every player-owned character when there is no
+      primary party. That difference is real and not naming: a party's creatures include familiars and
+      mounts, which should rest and should not be able to buy things.
+
+      So the answer is not to pick one. Name both - something like "who rests" and "who acts" - and expose
+      them separately, including the no-primary-party fallback, which is the part every consumer will
+      otherwise reinvent slightly differently.
+
+**Already answered, no work needed:** Merchant also flagged that their `registerInteraction` call sites
+carry 19 identical lines including two warning comments - that `matches` must be synchronous and stable,
+and that `bypassPermission` is required because Foundry's predicate runs before dispatch. Both are already
+in `api/api-tokens.md`, under "What it is for", "matches", and "bypassPermission", and that doc is in the
+publish set so it is on the wiki. The call-site comments are duplicating documentation that exists; they
+can be deleted in favour of a pointer. Worth noting as a discoverability result rather than a documentation
+gap - the doc was right and two consumers still wrote the comments out by hand.
+
 ## Open questions for Drowbe
 
 1. **Mirror scope** — all 48 docs, or only the consumer-facing API surface + README-as-Home?

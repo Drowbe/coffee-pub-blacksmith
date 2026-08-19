@@ -138,6 +138,56 @@ and many source deletes, which breaks the singular return shape, makes quantity 
 turns rollback into N deletes plus N restores plus reporting which of those also failed. That belongs in its
 own method.
 
+## exchange: the order of application is the rollback design
+
+`exchange` settles N directed transfers across N Actors atomically. It reuses the cores rather than
+reimplementing transfer semantics: `_grantBatchCore` for arrivals, `_rollbackBatch` for their undo, the
+same batched update-and-delete for departures.
+
+Two things about it are not obvious and both are load-bearing.
+
+**Locks generalise for free; acquiring per transfer does not.** `_acquire` already dedupes and sorts an
+array, so one acquisition covering every Actor named anywhere inherits the ordering that makes simultaneous
+opposite-direction transfers safe. Acquiring inside the per-transfer loop would reopen the exact window the
+method exists to close, and it would do so while looking like tidier code.
+
+**Currency, then arrivals, then departures.** This is the multi-party form of "grant before you reduce",
+and the ordering IS the rollback strategy rather than a preference:
+
+- Currency is a numeric delta, reversible by writing back the value read under the lock.
+- Arrivals have a quantity-aware undo already (`_rollbackBatch`).
+- Departures are the only irreversible half - a deleted row cannot be restored with its id, which is what
+  container membership and favourites lists point at - so they run **last**, when nothing after them can
+  fail and require them to be undone.
+
+Reordering these so departures happen earlier produces code that looks equivalent and cannot roll back.
+
+**All-or-nothing, which is the opposite of `transferItems`.** Per-item results are right for a Take All,
+where one packed bag must not stop twelve other rows. They are wrong here: a partly applied settlement is
+precisely the state the primitive exists to prevent, so any refusal aborts and writes nothing. A failure is
+a single result naming the leg, not an array.
+
+**Affordability is summed per Actor, never netted per pair.** A payer handing over 30 and receiving 5 must
+hold 30. Only the resulting write is combined. Netting the validation would let someone spend money they do
+not have because change is coming back, and it has no meaning across denominations in an API that never
+converts.
+
+### copy and preserveEmptySource are different primitives, not variants
+
+They exist because a consumer's stock is either a count or a template, and the two want opposite things.
+
+`copy` grants without touching the source. The important consequence is that **the source stack stops being
+a ceiling**: a template with no count can sell three from a row reading one, so the availability check is
+deliberately skipped and `INSUFFICIENT_QUANTITY` cannot arise on a copied leg. Shape is still validated.
+
+`preserveEmptySource` keeps a stackable row at 0 rather than deleting it when the take empties it. That is
+a display and restock concern rather than a data one - a shop should read "out of stock" instead of
+vanishing from its own shelf - and it cannot apply to an item with no quantity.
+
+The first version of this design assumed `copy` alone covered both. It does not: with only `copy`, finite
+stock has to decrement itself outside the settlement, which puts the very bookkeeping the primitive exists
+to make atomic back in the consumer.
+
 ## Containment is written on arrival, never inherited
 
 `_buildPayload` sets `system.container` on every payload it produces - to the caller's `container` option,

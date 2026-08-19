@@ -11,13 +11,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`blacksmith.inventory.exchange()` -- several transfers settled as one operation** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`, `documentation/architecture/architecture-inventory.md`). Everything commits or nothing does, across any number of Actors:
+
+  ```javascript
+  await blacksmith.inventory.exchange({
+      transfers: [
+          { from: merchant, to: recipient, items: [{ itemId, quantity: 1 }], container: shelfId },
+          { from: payer,    to: merchant,  currency: { gp: 25 } },
+          { from: merchant, to: payer,     currency: { gp: 5 } }
+      ]
+  });
+  ```
+
+  **Transfers are directed rather than two-sided**, and that is the whole design rather than a style choice. A shop transaction is routinely three-party -- the shopper always pays, so buying a gift sends goods to the recipient, coin from the payer, and change back to the payer. `{ actorA, actorB }` cannot express it, because two-sidedness was silently carrying the routing: "what A gives" only means "what B receives" while there is exactly one other party. Selling is the same call with the sides swapped, and two-party is simply the two-transfer case.
+
+  **All-or-nothing, which is the opposite of `transferItems`.** Per-item results are right for a Take All, where one packed bag must not stop twelve other rows; they are wrong here, because a partly applied settlement is the state this exists to prevent. Any refusal aborts and writes nothing, returning a single result naming the leg at fault by `index`, and `entryIndex` when a specific item is the cause.
+
+  Two options answer two different stock models, and they are not interchangeable. `copy` is for stock with no count: the source is a template, is not written at all, and stops being a ceiling -- a shop can sell three from a row reading one, so `INSUFFICIENT_QUANTITY` cannot arise on a copied leg. `preserveEmptySource` is for stock that is a count in `system.quantity`: the source genuinely loses what moves, but emptying the stack leaves the row at 0 instead of deleting it, so a shop goes out of stock rather than off its own shelf.
+
+  Three rules are invisible from outside and each is in the architecture doc with its reasoning. Locks are acquired once for every Actor named anywhere, because `_acquire` already sorts and dedupes and acquiring per transfer would reopen the window this closes. Application order is currency, then arrivals, then departures -- the multi-party form of "grant before you reduce", where the order *is* the rollback design, since departures are the only irreversible half and therefore run last. And affordability is summed per Actor against the balance at the start of the call, never netted per pair: a payer handing over 30 and receiving 5 must hold 30, which is what happens at a counter.
+
+  Making change remains permanently the consumer's, as does authorization, approval, and every socket. Verify live with the Inventory suite's four `exchange-*` checks (`testing/suites/suite-inventory.js`), which cover the three-party purchase, atomicity on refusal, both stock policies, and the per-leg guards.
+
 - **`api.inventory` can name the container an item lands in** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`). `grantItem`, `grantItems`, `transferItem` and `transferItems` all take a `container` option holding the id of a container on the target Actor; omitted or `null` lands the item at the root of the inventory, as before. The batch forms take it at the top level as a default and allow each entry to override it, where an explicit `null` on an entry means root even when the batch names a container and an omitted key means "use the batch default".
 
   This is one write rather than two. A consumer placing stock on a shelf previously had to grant and then update `system.container`, and a second write to the same Actor is exactly the shape that collides with dnd5e's encumbrance recompute -- the reason `flags` is a parameter rather than a caller's follow-up `setFlag`.
 
   An id that does not resolve to a container on the target is refused with the new `CONTAINER_NOT_FOUND`, carrying `containerId` and, when the id resolved to something else, its `type`. Nesting past what dnd5e permits is refused with `CONTAINER_MAX_DEPTH`, mirroring the system's own check (`dnd5e.mjs:24156-24160`). Refusing rather than quietly falling back to root is deliberate: a caller that names a container has a reason, and a silent fallback leaves the item somewhere the result does not mention. Both are per entry in the batch forms, so one bad id does not stop the other rows. Validation runs inside the target Actor's lock, because an id checked before the lock can be deleted before the write.
 
+- **`api.dialog` binds the controls it is handed** (`scripts/api-dialog.js`, `documentation/api/api-dialog.md`). `choose`, `prompt` and `wait` take `controls`: one controller or an array, bound to the dialog root after every render. Anything exposing `attach(root)` qualifies, which covers `api.entityList` and `api.quantitySplit`.
+
+  ```javascript
+  const quantity = blacksmith.quantitySplit.create({ max: stack });
+  await blacksmith.dialog.prompt({ content: quantity.html, controls: quantity, getValue: () => quantity.getValue() });
+  ```
+
+  `prompt` re-attaches on every attempt, because a rejected value reopens the dialog as fresh markup that the previous binding does not reach; `attach` releases its old listener first, so this is correct rather than cumulative. Controls are deliberately not destroyed on close, since a button callback still reads values out of them afterwards. `onRender(element, dialog)` is now documented for anything `controls` does not cover -- it already existed and was not written down anywhere.
+
 ### Fixed
+
+- **A control embedded in a dialog was silently unbound, and our own documentation said it would work** (`scripts/api-dialog.js`, `documentation/api/api-dialog.md`). Both the source comment on `resolveContent` and the Content section of the API doc stated that passing an `HTMLElement` preserved its identity and any listeners attached to it. Neither is true. DialogV2 reads `options.content.innerHTML` and keeps only that string (`foundry.mjs:57177`), then builds the dialog by assigning `innerHTML` on a fresh form (`foundry.mjs:57196`) -- the node handed over is never inserted into the document.
+
+  So a control attached before the dialog opened was bound to an element the user never sees. The failure is silent in the worst way: the markup renders, the inputs respond, and the control still reports a value, so a slider looks alive while its captions never move and an entity list hands back its initial selection rather than the user's.
+
+  Two consuming modules independently wrote the same workaround -- poll animation frames until the input appears in the document, then attach -- which is the signal that the API was wrong rather than its callers. Both can now delete it. The false claims are corrected in both places, and the mechanism is stated with the line references so the next reader does not have to rediscover it.
+
+  Verify live: run the Dialog suite's `controls-attach` check (`testing/suites/suite-dialog.js`), move the slider and change the selection, then submit. The reported values must be the ones you set rather than the initial 1 and first entry.
 
 - **An item taken out of a container arrived on the recipient pointing at a container the recipient does not have** (`scripts/api-inventory.js`). `_buildPayload` built its payload from `toObject()` and left `system.container` untouched, so the value it carried named a row on the *source* Actor. dnd5e keeps containment on the child, so the arrival was orphaned into a container that does not exist there.
 

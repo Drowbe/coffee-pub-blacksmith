@@ -195,7 +195,7 @@ export default {
             run: async ({ expect }) => {
                 const api = requireApi('inventory');
                 const inv = api.inventory;
-                for (const method of ['grantItem', 'grantItems', 'grantCurrency', 'transferItem', 'transferCurrency']) {
+                for (const method of ['grantItem', 'grantItems', 'grantCurrency', 'transferItem', 'transferCurrency', 'exchange']) {
                     expect.ok(`inventory.${method} is a function`, typeof inv[method] === 'function');
                 }
                 expect.ok('CODES is exposed', typeof inv.CODES === 'object');
@@ -899,6 +899,202 @@ export default {
                     expect('only the bad entry was refused', batch.results[1].code, inv.CODES.CONTAINER_NOT_FOUND);
 
                     expect('nothing was created by the refusals', target.items.size, 2);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+
+        // ---------- exchange ----------
+        {
+            id: 'exchange-three-party',
+            tier: 'headless',
+            group: 'Exchange',
+            label: 'Goods to a recipient, coin from a payer, change back',
+            note: 'The case a two-sided shape cannot express: buying a gift. Three parties, one settlement.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const merchant = await tempActor('npc', 'x3-merchant');
+                    const payer = await tempActor('character', 'x3-payer');
+                    const recipient = await tempActor('character', 'x3-recipient');
+                    made.push(merchant, payer, recipient);
+
+                    const [potion] = await merchant.createEmbeddedDocuments('Item', [
+                        lootData('Harness X3 Potion', { system: { quantity: 4 } })
+                    ]);
+                    await payer.update({ 'system.currency.gp': 30 });
+                    await merchant.update({ 'system.currency.gp': 50 });
+
+                    const result = await inv.exchange({
+                        transfers: [
+                            { from: merchant.uuid, to: recipient.uuid, items: [{ itemId: potion.id, quantity: 1 }] },
+                            { from: payer.uuid, to: merchant.uuid, currency: { gp: 25 } },
+                            { from: merchant.uuid, to: payer.uuid, currency: { gp: 5 } }
+                        ]
+                    });
+
+                    expect('the settlement succeeded', result.ok, true);
+                    expect('one result per transfer', result.results.length, 3);
+                    expect('the potion reached the recipient, not the payer', recipient.items.size, 1);
+                    expect('the payer received no goods', payer.items.size, 0);
+                    expect('merchant stock reduced', quantityOf(merchant.items.get(potion.id)), 3);
+                    expect('payer paid 25 and got 5 back', currencyOf(payer, 'gp'), 10);
+                    expect('merchant took 25 and paid 5', currencyOf(merchant, 'gp'), 70);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'exchange-atomic',
+            tier: 'headless',
+            group: 'Exchange',
+            label: 'A refusal anywhere writes nothing at all',
+            note: 'THE reason this primitive exists. Composing it from two calls leaves the coin moved and '
+                + 'the goods not, which is the half-committed state the whole design refuses.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const merchant = await tempActor('npc', 'xa-merchant');
+                    const buyer = await tempActor('character', 'xa-buyer');
+                    made.push(merchant, buyer);
+
+                    const [sword] = await merchant.createEmbeddedDocuments('Item', [
+                        lootData('Harness XA Sword', { system: { quantity: 1 } })
+                    ]);
+                    await buyer.update({ 'system.currency.gp': 100 });
+
+                    // The goods leg is fine; the coin leg asks for silver the buyer does not have.
+                    const broke = await inv.exchange({
+                        transfers: [
+                            { from: merchant.uuid, to: buyer.uuid, items: [{ itemId: sword.id }] },
+                            { from: buyer.uuid, to: merchant.uuid, currency: { sp: 5 } }
+                        ]
+                    });
+                    expect('refused for the coin the buyer lacks', broke.code, inv.CODES.INSUFFICIENT_CURRENCY);
+                    expect('the sword did not move', merchant.items.size, 1);
+                    expect('the buyer received nothing', buyer.items.size, 0);
+                    expect('no gold moved either', currencyOf(buyer, 'gp'), 100);
+
+                    // Denominations are never converted, so 100 gp cannot pay 5 sp. That is the
+                    // documented contract, and making change stays with the consumer.
+                    expect('the refusal names the denomination', Object.keys(broke.shortfalls ?? {})[0], 'sp');
+
+                    const badItem = await inv.exchange({
+                        transfers: [
+                            { from: buyer.uuid, to: merchant.uuid, currency: { gp: 10 } },
+                            { from: merchant.uuid, to: buyer.uuid, items: [{ itemId: 'nosuchitem00000' }] }
+                        ]
+                    });
+                    expect('refused for the missing item', badItem.code, inv.CODES.SOURCE_ITEM_NOT_FOUND);
+                    expect('and it names the leg', badItem.index, 1);
+                    expect('the coin from the earlier leg did not move', currencyOf(buyer, 'gp'), 100);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'exchange-copy-and-preserve',
+            tier: 'headless',
+            group: 'Exchange',
+            label: 'copy leaves the template alone; preserveEmptySource keeps the row',
+            note: 'The two stock policies. Infinite stock must not sell its template; finite stock must go '
+                + 'out of stock rather than off the shelf.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const shop = await tempActor('npc', 'xc-shop');
+                    const buyer = await tempActor('character', 'xc-buyer');
+                    made.push(shop, buyer);
+
+                    const [template] = await shop.createEmbeddedDocuments('Item', [
+                        lootData('Harness XC Rope', { system: { quantity: 1 } })
+                    ]);
+                    const [finite] = await shop.createEmbeddedDocuments('Item', [
+                        lootData('Harness XC Torch', { system: { quantity: 2 } })
+                    ]);
+
+                    const copied = await inv.exchange({
+                        transfers: [{
+                            from: shop.uuid, to: buyer.uuid, copy: true,
+                            items: [{ itemId: template.id, quantity: 3 }]
+                        }]
+                    });
+                    expect('the copy succeeded', copied.ok, true);
+                    expect('three arrived even though the row reads one',
+                        quantityOf(buyer.items.find(item => item.name === 'Harness XC Rope')), 3);
+                    expect('the template is untouched', quantityOf(shop.items.get(template.id)), 1);
+                    expect('and it reports no source remainder', copied.results[0].items[0].sourceRemaining, null);
+                    expect('and reports itself as a copy', copied.results[0].items[0].copied, true);
+
+                    const sold = await inv.exchange({
+                        transfers: [{
+                            from: shop.uuid, to: buyer.uuid, preserveEmptySource: true,
+                            items: [{ itemId: finite.id, quantity: 2 }]
+                        }]
+                    });
+                    expect('the sale succeeded', sold.ok, true);
+                    expect.ok('the shelf row survived being emptied', Boolean(shop.items.get(finite.id)));
+                    expect('and it reads zero', quantityOf(shop.items.get(finite.id)), 0);
+                    expect('reported as not deleted', sold.results[0].items[0].sourceDeleted, false);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'exchange-guards',
+            tier: 'headless',
+            group: 'Exchange',
+            label: 'Per-leg same-actor, repeat draws, and an empty call',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const shop = await tempActor('npc', 'xg-shop');
+                    const buyer = await tempActor('character', 'xg-buyer');
+                    made.push(shop, buyer);
+                    const [stock] = await shop.createEmbeddedDocuments('Item', [
+                        lootData('Harness XG Arrows', { system: { quantity: 10 } })
+                    ]);
+
+                    expect('an empty call is refused',
+                        (await inv.exchange({ transfers: [] })).code, inv.CODES.EXCHANGE_EMPTY);
+
+                    expect('a leg from an actor to itself is refused',
+                        (await inv.exchange({ transfers: [{ from: shop.uuid, to: shop.uuid, currency: { gp: 1 } }] })).code,
+                        inv.CODES.SAME_ACTOR);
+
+                    // Two draws on one row: each would validate against the full stack.
+                    const twice = await inv.exchange({
+                        transfers: [
+                            { from: shop.uuid, to: buyer.uuid, items: [{ itemId: stock.id, quantity: 6 }] },
+                            { from: shop.uuid, to: buyer.uuid, items: [{ itemId: stock.id, quantity: 6 }] }
+                        ]
+                    });
+                    expect('a repeated draw is refused', twice.code, inv.CODES.DUPLICATE_ITEM);
+                    expect('the stack is untouched', quantityOf(shop.items.get(stock.id)), 10);
+
+                    // An Actor on both sides of one settlement is the ORDINARY case and must work.
+                    await buyer.update({ 'system.currency.gp': 5 });
+                    const ordinary = await inv.exchange({
+                        transfers: [
+                            { from: shop.uuid, to: buyer.uuid, items: [{ itemId: stock.id, quantity: 2 }] },
+                            { from: buyer.uuid, to: shop.uuid, currency: { gp: 5 } }
+                        ]
+                    });
+                    expect('the merchant sending and receiving in one call is fine', ordinary.ok, true);
+                    expect('stock reduced', quantityOf(shop.items.get(stock.id)), 8);
+                    expect('coin moved', currencyOf(shop, 'gp'), 5);
                 } finally {
                     await cleanup(made);
                 }

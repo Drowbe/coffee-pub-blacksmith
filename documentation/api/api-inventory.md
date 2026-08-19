@@ -198,6 +198,74 @@ primitive decide something that belongs to a table.
 `transferCurrency` validates every denomination before writing anything, because a partially completed
 currency move is not something a rollback expresses cleanly.
 
+## exchange
+
+Several directed transfers settled as one operation. Everything commits, or nothing does.
+
+```js
+const result = await blacksmith.inventory.exchange({
+    transfers: [
+        { from: merchantUuid, to: recipientUuid, items: [{ itemId, quantity: 1 }], container: shelfId },
+        { from: payerUuid,    to: merchantUuid,  currency: { gp: 25 } },
+        { from: merchantUuid, to: payerUuid,     currency: { gp: 5 } }
+    ]
+});
+// { ok: true, results: [ { ok, from, to, items: [...], currency: {...} }, ... ] }
+```
+
+A transfer is directed: `from` and `to` are Actor UUIDs, and it carries `items`, `currency`, or both.
+Selling is the same call with the sides swapped. Two-party is simply the two-transfer case.
+
+Transfers are directed rather than sided because a shop transaction is routinely three-party - the shopper
+pays, so buying for someone else sends goods to a recipient, coin from a payer, and change back to the
+payer. A two-sided shape cannot say where anything goes once there are three parties.
+
+| Option on a transfer | Meaning |
+|---|---|
+| `items` | `[{ itemId, quantity?, flags? }]`, drawn from `from`. |
+| `currency` | Deltas moved from `from` to `to`. |
+| `container` | Arrival container on `to`, as for `grantItem`. |
+| `copy` | The target receives the items and the source is not touched. |
+| `preserveEmptySource` | An emptied stackable row stays at quantity 0 instead of being deleted. |
+
+`stack` and `ignoreFlags` are call-level and apply to every arrival.
+
+**This is all-or-nothing, unlike `transferItems`.** That method reports per item because one packed bag on
+a corpse must not stop the other rows; here a partly applied settlement is the thing being prevented. Any
+refusal fails the whole call and writes nothing. A failure result is a single `{ ok: false, code, index, ... }`
+naming the leg at fault, with `entryIndex` when a specific item is the cause - not a per-transfer array.
+
+### copy and preserveEmptySource
+
+These answer two different stock models and are not interchangeable.
+
+`copy` is for stock that has no count: the source row is a template and a sale hands over a duplicate.
+Because there is no count, the source stack is **not** a ceiling - a shop can sell three from a row that
+reads one, and `INSUFFICIENT_QUANTITY` cannot arise. The source is not written at all, so the result
+reports `sourceRemaining: null` and `sourceDeleted: false`.
+
+`preserveEmptySource` is for stock that is a count in `system.quantity`. The source genuinely loses what
+moves; the only change is that emptying the stack leaves the row at 0 rather than deleting it, so a shop
+goes out of stock rather than off the shelf. It has no effect on an item without a quantity, which has no
+zero to sit at.
+
+### What it validates, and when
+
+Everything is checked against the state at the **start of the call**, the same rule `transferItems` states.
+Change arriving in the same settlement cannot fund the payment - the payer must actually hold what they
+hand over.
+
+Payment and change between the same pair are never netted. Affordability is judged on the total each Actor
+pays out; only the resulting write is combined, which is arithmetic rather than a relaxation.
+
+`from === to` is refused per transfer with `SAME_ACTOR`. An Actor appearing in several transfers is normal
+and expected - the merchant sends goods and receives coin in one settlement.
+
+The same `itemId` drawn twice fails with `DUPLICATE_ITEM`, for the reason `transferItems` gives. Two `copy`
+legs may name the same source freely, since neither draws it down.
+
+An empty `transfers` array fails with `EXCHANGE_EMPTY`.
+
 ## Where an item lands
 
 Every one of these writes `system.container` on arrival. Without a `container` option the item lands at
@@ -338,7 +406,8 @@ Every failure is `{ ok: false, code, ...context }`.
 | `SOURCE_UPDATE_FAILED` | The target received the item but the source could not be reduced. The grant was rolled back. |
 | `ROLLBACK_FAILED` | As above, and the rollback also failed. Requires manual repair. |
 | `LOCK_TIMEOUT` | Another operation held the Actor too long. Carries `actorUuid` and `waitedMs`. |
-| `DUPLICATE_ITEM` | `transferItems` only: the same `itemId` appeared twice in one call. |
+| `DUPLICATE_ITEM` | The same `itemId` was drawn twice in one call (`transferItems`, or `exchange` across legs). |
+| `EXCHANGE_EMPTY` | `exchange` was called with no transfers. |
 
 `SOURCE_UPDATE_FAILED` and `ROLLBACK_FAILED` also carry `targetItemId`, `merged`, `quantity`,
 `observedTargetQuantity`, and `observedSourceQuantity`. Surface these rather than swallowing them: whether

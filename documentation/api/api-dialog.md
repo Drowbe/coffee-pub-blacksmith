@@ -26,13 +26,38 @@ This contract is the reason to use these helpers instead of `DialogV2` directly:
 
 Every helper takes `content` as `string | HTMLElement | Promise<string | HTMLElement>`.
 
-A string is passed to DialogV2, which sanitizes it with `foundry.utils.cleanHTML`. An `HTMLElement` is passed as a node, so its identity and any listeners attached to it survive and nothing is sanitized away — use this when content must stay literal rather than be parsed as markup, as `utility-common.js:808` does for a copyable snippet.
+A string is passed to DialogV2, which sanitizes it with `foundry.utils.cleanHTML`. An `HTMLElement` is not sanitized: DialogV2 reads its `innerHTML` and keeps that markup as it stands (`foundry.mjs:57177`). Pass a node when the content must survive literally rather than be cleaned, as `utility-common.js:808` does for a copyable snippet.
 
-Any node you pass is moved into a fresh wrapper `div`. DialogV2 rejects a content element that carries **any** attributes, so a `<div class="my-thing">` handed over directly would throw; wrapping means you can put whatever attributes you like on your own element. Appending moves the node rather than copying it, so listeners bound to it still fire.
+Any node you pass is moved into a fresh wrapper `div`. DialogV2 rejects a content element that carries **any** attributes, so a `<div class="my-thing">` handed over directly would throw. Wrapping means you can put whatever attributes you like on your own element, because they end up as markup inside the wrapper rather than attributes on it.
+
+Passing a node does not preserve the node. DialogV2 serializes it and builds the dialog from that markup, so the element you handed over is never inserted, and anything bound to it beforehand is bound to something the user never sees. The failure is silent - the markup renders and inputs still report values, so a control bound early looks alive while reporting only its initial state. Bind after the dialog renders instead: `controls` for anything with an `attach` method, `onRender` for everything else.
 
 Render your own Handlebars first and pass the result. These helpers do not load templates.
 
 Do not wrap content in a `<form>`. DialogV2 already renders one around it, and `getValue` receives that form.
+
+## Controls
+
+`choose`, `prompt`, and `wait` take `controls`: one controller, or an array of them, bound to the dialog root after every render. Anything exposing `attach(root)` qualifies, which includes `api.entityList` and `api.quantitySplit`.
+
+```javascript
+const quantity = blacksmith.quantitySplit.create({ max: stack });
+
+const { action, value } = await blacksmith.dialog.prompt({
+    title: 'How many?',
+    content: quantity.html,
+    controls: quantity,
+    getValue: () => quantity.getValue()
+});
+```
+
+This is the only way such a control works inside a dialog, for the reason under Content.
+
+`prompt` re-attaches on every attempt, since a rejected value reopens the dialog as fresh markup. Attaching twice is safe: `attach` releases its previous binding first.
+
+Controls are not destroyed when the dialog closes, so a button callback can still read a value out of one after the fact.
+
+`onRender(element, dialog)` runs after every render and covers anything `controls` does not - it receives the dialog's root element.
 
 ## `confirm(options)`
 

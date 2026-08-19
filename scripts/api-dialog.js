@@ -55,12 +55,23 @@ const CANCEL_ACTION = 'cancel';
  * Normalize content for DialogV2, which accepts `string | HTMLDivElement`.
  *
  * A string is passed through and Foundry sanitizes it with cleanHTML. A DOM
- * node is always moved into a freshly created, attribute-free wrapper div:
- * DialogV2 rejects a content element carrying any attributes at all
- * ("config.content element must have no attributes"), so handing a consumer's
- * `<div class="...">` straight through would throw. Appending moves the node
- * rather than copying it, so its identity and any attached listeners survive,
- * which is the whole point of accepting DOM.
+ * node is moved into a freshly created, attribute-free wrapper div: DialogV2
+ * rejects a content element carrying any attributes at all ("config.content
+ * element must have no attributes"), so handing a consumer's `<div class="...">`
+ * straight through would throw. Wrapping keeps the consumer's own attributes,
+ * because they are markup inside the wrapper rather than attributes on it.
+ *
+ * WHAT PASSING A NODE DOES NOT BUY YOU: identity, or listeners. DialogV2 reads
+ * `options.content.innerHTML` and keeps the STRING (foundry.mjs:57177), then
+ * builds the dialog by assigning `innerHTML` on a new form (foundry.mjs:57196).
+ * The node handed in is never inserted. Anything bound to it before the dialog
+ * opened is bound to an element the user never sees, and the failure is silent —
+ * the markup renders and inputs still report values, so an unbound control looks
+ * alive while reporting only its initial state.
+ *
+ * Bind after render, not before: pass controllers as `controls`, or use
+ * `onRender`. This comment previously claimed the opposite and two consuming
+ * modules independently wrote polling workarounds against it.
  *
  * @param {string|HTMLElement|Promise<string|HTMLElement>} content
  * @returns {Promise<string|HTMLDivElement>}
@@ -161,6 +172,48 @@ function decorateButtons(dialog, descriptors) {
 }
 
 /**
+ * Attach embedded Blacksmith controls once the dialog's markup is in the document.
+ *
+ * This exists because a control CANNOT be attached before the dialog opens: DialogV2
+ * serializes element content to a string and rebuilds it (see `resolveContent`), so
+ * anything bound beforehand is bound to a discarded node. Every control exposing the
+ * `{ html, attach, destroy }` contract — `api.entityList`, `api.quantitySplit` — is
+ * attached to the dialog root, which is a valid ancestor for their delegated listeners.
+ *
+ * Runs on EVERY render, which matters for `prompt`: an invalid value reopens the dialog,
+ * and the reopened one is new markup. `attach` releases its previous listener first, so
+ * re-attaching is correct rather than cumulative.
+ *
+ * Controls are deliberately NOT destroyed when the dialog closes. A button callback reads
+ * its value after close, and tearing the controller down first would empty what the caller
+ * asked for.
+ *
+ * @param {Object} dialog
+ * @param {Array<Object>} controls
+ */
+function attachControls(dialog, controls) {
+    const root = dialog?.element;
+    if (!root || !controls.length) return;
+    for (const control of controls) {
+        if (typeof control?.attach !== 'function') {
+            postConsoleAndNotification(MODULE.NAME, 'Dialog: a controls entry has no attach() and was skipped', control, false, false);
+            continue;
+        }
+        try {
+            control.attach(root);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Dialog: control attach failed', error, false, false);
+        }
+    }
+}
+
+/** Accept one controller or a list, and drop the empties. */
+function normalizeControls(controls) {
+    if (!controls) return [];
+    return (Array.isArray(controls) ? controls : [controls]).filter(Boolean);
+}
+
+/**
  * One call into DialogV2.wait(). Returns the raw resolution: null when
  * dismissed, an action string, or a submit button's wrapper object.
  *
@@ -197,7 +250,8 @@ async function openDialog({
     position = null,
     destructive = false,
     focusSelector = null,
-    onRender = null
+    onRender = null,
+    controls = []
 } = {}) {
     return foundry.applications.api.DialogV2.wait(compact({
         window: { title },
@@ -216,6 +270,10 @@ async function openDialog({
         render: (_event, dialog) => {
             decorateButtons(dialog, buttons);
             bindEnterToDefault(dialog, buttons);
+            // Before onRender and before focusing: a consumer's onRender may reasonably
+            // expect its controls to be live, and focusing an input the control owns
+            // should happen after that control is bound to it.
+            attachControls(dialog, controls);
             if (focusSelector) {
                 dialog.element?.querySelector?.(focusSelector)?.focus?.();
             }
@@ -306,6 +364,8 @@ async function confirm(options = {}) {
  *   callback?: Function}>} options.choices
  *   `description` renders as the button's tooltip. `callback` receives the id.
  * @param {boolean} [options.showCancel=true]
+ * @param {Object|Array<Object>} [options.controls] - Controls to bind once the dialog has
+ *   rendered; anything exposing `attach(root)`. See `resolveContent`.
  * @returns {Promise<{action: string, value: *, result: *}>}
  */
 async function choose(options = {}) {
@@ -321,7 +381,8 @@ async function choose(options = {}) {
         modal = false,
         classes = [],
         position = null,
-        onRender = null
+        onRender = null,
+        controls = []
     } = options;
 
     const list = (Array.isArray(choices) ? choices : []).filter(choice => choice && choice.id != null);
@@ -352,6 +413,7 @@ async function choose(options = {}) {
         classes,
         position,
         onRender,
+        controls: normalizeControls(controls),
         destructive: list.some(choice => choice.destructive),
         buttons
     });
@@ -390,6 +452,9 @@ async function choose(options = {}) {
  *   dialog with the error message. Its return value becomes `result`.
  * @param {number} [options.maxAttempts=10] - Reopen ceiling, so a validator that
  *   can never pass cannot loop forever.
+ * @param {Object|Array<Object>} [options.controls] - Controls to bind after each render;
+ *   anything exposing `attach(root)`, such as `api.entityList` or `api.quantitySplit`.
+ *   They cannot be bound before the call — see `resolveContent`.
  * @returns {Promise<{action: string, value: *, result: *}>}
  */
 async function prompt(options = {}) {
@@ -412,9 +477,11 @@ async function prompt(options = {}) {
         position = null,
         focusSelector = null,
         onRender = null,
+        controls = [],
         maxAttempts = 10
     } = options;
 
+    const controlList = normalizeControls(controls);
     let previous = null;
     let message = null;
 
@@ -454,6 +521,9 @@ async function prompt(options = {}) {
             destructive,
             focusSelector,
             onRender,
+            // Re-attached on every attempt: a rejected value reopens the dialog, and the
+            // reopened one is fresh markup that the previous binding does not reach.
+            controls: controlList,
             buttons
         });
 
@@ -515,6 +585,10 @@ async function prompt(options = {}) {
  *   `callback` receives the dialog's form element and its return value becomes
  *   `result`. It runs after the dialog has closed, so read any DOM state you
  *   need from that form rather than expecting a live dialog.
+ * @param {Object|Array<Object>} [options.controls] - Controls to bind once the dialog has
+ *   rendered; anything exposing `attach(root)`, such as `api.entityList` or
+ *   `api.quantitySplit`. They cannot be bound before the call — see `resolveContent`.
+ * @param {Function} [options.onRender] - (element, dialog), after every render.
  * @returns {Promise<{action: string, value: *, result: *}>}
  */
 async function wait(options = {}) {
@@ -523,6 +597,7 @@ async function wait(options = {}) {
         content = '',
         buttons = [],
         onRender = null,
+        controls = [],
         focusSelector = null,
         closeValue = null,
         cancelValue = null,
@@ -541,6 +616,7 @@ async function wait(options = {}) {
         classes,
         position,
         onRender,
+        controls: normalizeControls(controls),
         focusSelector,
         destructive: list.some(button => button.destructive),
         buttons: list.map(button => ({

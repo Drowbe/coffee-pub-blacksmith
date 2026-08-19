@@ -229,6 +229,41 @@ export default {
                 log(`resolved: ${JSON.stringify(result)}`);
                 log('expected: {action:"submit", value:"allow", result:"approved"} | {action:"cancel"} | {action:"close"}');
             }
+        },
+        {
+            id: 'controls-attach',
+            tier: 'interactive',
+            label: 'Embedded controls are bound, not merely rendered',
+            note: 'Move the slider AND pick a different entry, then Submit. The reported values must be what '
+                + 'you set. This is interactive because the failure is invisible otherwise: an unbound control '
+                + 'renders identically and still reports a value - just the initial one.',
+            run: async ({ api, log }) => {
+                const quantity = api.quantitySplit.create({ max: 10, value: 1 });
+                const list = api.entityList.create({
+                    mode: 'single',
+                    selected: 'a',
+                    entities: [
+                        { id: 'a', name: 'First Entry' },
+                        { id: 'b', name: 'Second Entry' },
+                        { id: 'c', name: 'Third Entry' }
+                    ]
+                });
+
+                const result = await api.dialog.wait({
+                    title: 'Controls Attach',
+                    content: `${quantity.html}${list.html}`,
+                    controls: [quantity, list],
+                    buttons: [
+                        { action: 'cancel', label: 'Cancel', icon: 'fa-solid fa-xmark' },
+                        { action: 'submit', label: 'Submit', icon: 'fa-solid fa-check', default: true }
+                    ]
+                });
+
+                log(`action: ${result.action}`);
+                log(`quantity reports: ${quantity.getValue()} (it started at 1)`);
+                log(`selection reports: ${JSON.stringify(list.getSelectedIds())} (it started at ["a"])`);
+                log('CHECK: do both match what you set before submitting?');
+            }
         }
     ]
 };
