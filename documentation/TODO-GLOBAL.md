@@ -1147,19 +1147,30 @@ interesting; a consumer that is gone is decisive, and it is much the cheaper thi
       remeasure, then decide: a `dialog.pickActor` helper, or a documented `choose` + `entityList.fromActors`
       recipe. "Documented recipe, not helper" is a real answer here, not a deferral - Merchant's own read is
       that it is a two-line wrapper now rather than the 30 lines it was, which may put it below the bar.
-- [ ] **`BlacksmithToolWindowBaseV2` construction boilerplate** - 80% over ~36 lines, differing only in the
-      class name and an id prefix. Merchant's reading is that a base needing thirty identical lines per
-      subclass is under-specified, and that is hard to argue with. This one is ours whatever the answer,
-      because it is our base class.
-- [ ] **Party resolution** - small, but it is a policy, and the check we asked for came back saying it is
-      **two** policies rather than one. Blacksmith's rest window uses `party.system.creatures`; Merchant
-      uses `party.system.playerCharacters` with a fallback to every player-owned character when there is no
-      primary party. That difference is real and not naming: a party's creatures include familiars and
-      mounts, which should rest and should not be able to buy things.
+- [ ] **Adopt `openFor` in Curator and Merchant.** Shipped on `BlacksmithToolWindowBaseV2`: the per-target
+      registry, `isOpenFor` / `openWindowFor` / `openWindows` / `closeFor`, and a `keyFor` hook. Both
+      modules can delete their `_windows` map and their `static open`. Registries are per subclass, so a
+      Loot window and a Shop window on one token no longer contend. Surface is in `api/api-window.md`.
+- [ ] **Adopt `blacksmith.party` in Merchant and Curator.** Shipped as two rosters rather than one, because
+      the check came back saying it is two policies: `resting()` is the party's creatures and includes NPC
+      members, `acting()` is its player characters and does not. Both carry the no-primary-party fallback.
+      Merchant's `playerCharacters` + fallback becomes `party.acting()`. Surface is in `api/api-party.md`.
 
-      So the answer is not to pick one. Name both - something like "who rests" and "who acts" - and expose
-      them separately, including the no-primary-party fallback, which is the part every consumer will
-      otherwise reinvent slightly differently.
+## Toast presets, so a consumer does not have to invent a palette (raised by Merchant 2026-08-19)
+
+`api.toast` takes a caller-supplied hex `color` that drives border, icon and title together, and there are
+no presets. So a module wanting an error to look like an error has to pick colours that read against a
+surface it does not own - Merchant reused its own parchment window tones on a toast painted
+`rgba(20, 20, 20, 0.9)`, and it took a user saying "hard to read" to catch it.
+
+The ask is `type: 'info' | 'success' | 'warn' | 'error'` selecting accents already known to sit on the toast
+background, with `color` kept for anything deliberate. Nothing is blocked; Merchant's are fixed.
+
+**This is the fifth instance of the section 9C pattern and the first that is purely presentational**:
+nothing failed, no code was wrong, it just quietly looked wrong, and only a consumer was positioned to
+notice. Worth deciding whether the rule generalises from values to appearance - a hex that renders is the
+visual form of a plausible default, and "the caller must reason about contrast against a surface it does not
+own" is the same shape as "the caller must reason about a value it cannot verify".
 
 **Already answered, no work needed:** Merchant also flagged that their `registerInteraction` call sites
 carry 19 identical lines including two warning comments - that `matches` must be synchronous and stable,

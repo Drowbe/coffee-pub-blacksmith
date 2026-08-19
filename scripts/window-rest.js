@@ -37,6 +37,7 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
 import { postBeforeCard } from './cards-rest.js';
+import { PartyAPI } from './api-party.js';
 
 const APP_ID = 'blacksmith-rest-window';
 
@@ -112,11 +113,11 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
         // It also answers the other half: a GROUP is not a creature, so the party actor
         // never lists itself. dnd5e refuses to rest one, and offering it would be a row
         // that does nothing.
-        const fromParty = game.actors?.party?.system?.creatures ?? [];
-
-        const roster = fromParty.length
-            ? [...fromParty]
-            : (game.actors?.contents ?? []).filter((a) => a?.system?.isCreature && a.hasPlayerOwner);
+        // `api.party.resting()` owns both halves of that: the party's creatures, and the
+        // player-owned fallback for a world with no primary party. It is shared because the
+        // OTHER answer -- who can act on their own behalf -- differs, and two modules deriving
+        // that difference separately is how they end up disagreeing about familiars.
+        const roster = PartyAPI.resting();
 
         // A SELECTED TOKEN IS AN INSTRUCTION. A GM who has picked tokens out on the
         // canvas has already said who this rest is for, so anything they selected joins

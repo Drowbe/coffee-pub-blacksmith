@@ -427,6 +427,25 @@ this cannot be left to consumer discipline. The API has to refuse.
   `getValue()` over reading the DOM, and Curator's workaround comment quotes that sentence back verbatim.
   The doc did not fail to prevent the bug; it caused it.
 
+### Corollary: the migration is invisible from the side doing the fixing
+
+Raised by a consuming module, and it pairs with the rule rather than qualifying it. Both defects in this
+class that needed a migration had one that could not be seen from here.
+
+A call option fixes what arrives from now on. Nothing fixes what already arrived. `omitFlags` stops a
+source-scoped flag riding along, and says nothing about the rows already carrying it in somebody's world -
+where they will go on blocking merges, because the arrival no longer matches them. Containment was the same:
+the fix corrected new arrivals and left the orphaned rows orphaned.
+
+The reason it is invisible from here is that our own registries describe *our* writes. A consumer's
+transient-flag declaration covers what that consumer stamps from now on; neither side's bookkeeping knows
+what is sitting in a world that has been running for a year.
+
+So a fix in this class needs two mechanisms and will feel like it needs one. Ask what the already-affected
+rows do after the fix ships, and expect the answer to be "nothing, silently" unless something is built for
+them. In practice that has meant pairing the call option with an `ignoreFlags` entry, or leaving a
+consumer-side guard in place after the primitive lands - see `api/api-inventory.md`.
+
 ### Corollary: an API Blacksmith does not use itself has no test
 
 Stated in 9A about `registerModule`, and these four are the same finding from the other side. All of them

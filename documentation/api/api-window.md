@@ -280,6 +280,35 @@ The public `setToolTitlebarMode(mode, options?)` method switches modes programma
 
 ---
 
+## One window per target (tool base)
+
+A tool that opens against something - a token, an actor, a scene - usually wants exactly one window per
+target, and a repeated click to bring the existing one forward rather than build a second.
+`BlacksmithToolWindowBaseV2` owns that registry, so a subclass does not carry it.
+
+```javascript
+class LootWindow extends ToolBase {
+    constructor(tokenDocument, options = {}) { ... }
+}
+
+await LootWindow.openFor(tokenDocument);        // opens, or focuses the one already open
+LootWindow.isOpenFor(tokenDocument);
+LootWindow.openWindowFor(tokenDocument);        // the instance, or null
+LootWindow.openWindows();                       // every one this subclass has open
+await LootWindow.closeFor(tokenDocument);
+```
+
+`openFor(target, options)` constructs your subclass with `(target, options)`. Windows deregister themselves
+on close, so reopening builds a fresh one.
+
+Targets are keyed by `uuid` by default, via a `static keyFor(target)` that also accepts a plain string.
+Override it to key on something else; returning null means "not addressable", and `openFor` declines rather
+than registering under a key nothing can look up again.
+
+**Registries are per subclass.** A Loot window and a Shop window opened against the same token do not evict
+each other. `this.registryKey` reports the key an instance is registered under, or null for one built
+directly with `new`.
+
 ## Template data contract (core template)
 
 When you use Blacksmith's core template (`templates/window-template.hbs`) and extend `BlacksmithWindowBaseV2`, your `getData()` return value can include the following. All are optional unless noted. HTML slots are rendered as HTML (use triple-brace in Handlebars if you author your own template).

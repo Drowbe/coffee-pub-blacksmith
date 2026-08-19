@@ -1106,6 +1106,8 @@ check('A short rest never provisions, whatever was asked for.',
 // so an ordinary night quietly skipped every one of them.
 
 const windowSrc = fs.readFileSync(path.join(ROOT, 'scripts/window-rest.js'), 'utf8');
+// The roster is shared with the other modules that need it, so the invariant spans two files.
+const partySrc = fs.readFileSync(path.join(ROOT, 'scripts/api-party.js'), 'utf8');
 
 // --- It is a TOOL window, and must not drift back to the full one ---------------
 //
@@ -1328,12 +1330,29 @@ check(
 );
 // Asserted as CODE, not as a mention: the comments explain the filters this replaced,
 // and a substring test for `isVehicle` passed on the explanation alone.
+// The roster moved into `api.party` when a second module needed the same answer, so this now
+// checks BOTH halves: that the window asks for the resting roster, and that the shared roster is
+// still the party's creatures. Checking only the window would pass on an api.party that had
+// quietly changed its filter underneath it.
 check(
-    'The roster is the party\'s own list of creatures.',
-    /game\.actors\?\.party\?\.system\?\.creatures/.test(windowSrc),
+    'The rest window takes its roster from the shared party API.',
+    /PartyAPI\.resting\(\)/.test(windowSrc),
+    `A second module needs the same roster and a different one for who can act, so the two answers ` +
+    `live in \`api-party.js\`. A private copy here drifts from the one Merchant and Curator use.`
+);
+check(
+    'And that shared roster is the party\'s own list of creatures.',
+    /system\?\.creatures/.test(partySrc),
     `\`system.creatures\` (dnd5e.mjs:72635) is who dnd5e itself offers on a party rest. Filtering members ` +
     `on \`type === 'character'\` drops NPC members -- a familiar or companion travelling with the party -- ` +
     `who appear in the system's own dialog.`
+);
+check(
+    'And the acting roster is deliberately NOT the same list.',
+    /system\?\.playerCharacters/.test(partySrc),
+    `\`acting()\` must stay on \`playerCharacters\` (dnd5e.mjs:72655). Pointing both rosters at ` +
+    `\`creatures\` would let a familiar buy a sword; pointing both at \`playerCharacters\` would stop it ` +
+    `resting with the party.`
 );
 check(
     'And only creatures can be added by selecting a token.',

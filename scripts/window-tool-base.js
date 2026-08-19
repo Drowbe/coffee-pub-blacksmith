@@ -7,6 +7,8 @@
 
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { UIContextMenu } from './ui-context-menu.js';
+import { MODULE } from './const.js';
+import { postConsoleAndNotification } from './api-core.js';
 
 export const BLACKSMITH_WINDOW_STYLES = Object.freeze({
     STANDARD: 'standard',
@@ -58,6 +60,119 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         }
     };
 
+    // ==============================================================
+    // ===== ONE WINDOW PER TARGET ==================================
+    // ==============================================================
+    //
+    // Two consuming modules wrote the same thirty lines around this base: a static Map keyed by a
+    // target uuid, an open() that returns the existing window rather than building a second, and
+    // the close/refresh/lookup helpers that go with it. They differed only in the class name.
+    // A base class that needs thirty identical lines in every subclass is under-specified, so the
+    // registry lives here.
+    //
+    // Keyed PER SUBCLASS, not globally: `#registries` is on the base but indexed by the concrete
+    // class, so a Loot window and a Shop window opened on the same token do not evict each other.
+    // A single shared Map keyed on uuid alone would look correct until two tools met on one token.
+
+    /** @type {Map<Function, Map<string, BlacksmithToolWindowBaseV2>>} */
+    static #registries = new Map();
+
+    /** This subclass's own open-window registry, created on first use. */
+    static get _openWindows() {
+        if (!BlacksmithToolWindowBaseV2.#registries.has(this)) {
+            BlacksmithToolWindowBaseV2.#registries.set(this, new Map());
+        }
+        return BlacksmithToolWindowBaseV2.#registries.get(this);
+    }
+
+    /**
+     * Resolve the key a target is registered under. Accepts a Document, anything carrying a `uuid`,
+     * or a plain string.
+     *
+     * Override it when a subclass keys on something else, but keep it total: returning null means
+     * "not addressable", and `openFor` then declines rather than registering under a key nothing
+     * can look up again.
+     *
+     * @param {*} target
+     * @returns {string|null}
+     */
+    static keyFor(target) {
+        if (typeof target === 'string') return target || null;
+        return target?.uuid ?? null;
+    }
+
+    /**
+     * Open the window for a target, or focus the one already open for it.
+     *
+     * The subclass constructor receives `(target, options)`. Override `keyFor` to key on something
+     * other than a uuid.
+     *
+     * @param {*} target
+     * @param {object} [options] - Passed through to the constructor.
+     * @returns {Promise<BlacksmithToolWindowBaseV2|null>} Null when the target has no key.
+     */
+    static async openFor(target, options = {}) {
+        const key = this.keyFor(target);
+        if (!key) {
+            postConsoleAndNotification(MODULE.NAME,
+                `${this.name}.openFor: target has no key; nothing opened`, target, false, false);
+            return null;
+        }
+
+        const existing = this._openWindows.get(key);
+        if (existing) {
+            // Render rather than construct: a second window on one target is the bug this prevents,
+            // and bringing the existing one forward is what a user expects from a repeated click.
+            await existing.render(true);
+            return existing;
+        }
+
+        const created = new this(target, options);
+        this._openWindows.set(key, created);
+        // Registered BEFORE the await: rendering yields, and a second call arriving in that window
+        // would otherwise miss the entry and build a duplicate.
+        try {
+            await created.render(true);
+        } catch (error) {
+            this._openWindows.delete(key);
+            throw error;
+        }
+        return created;
+    }
+
+    /** The open window for a target, or null. */
+    static openWindowFor(target) {
+        const key = this.keyFor(target);
+        return key ? (this._openWindows.get(key) ?? null) : null;
+    }
+
+    /** Whether a window is open for a target on this client. */
+    static isOpenFor(target) {
+        return Boolean(this.openWindowFor(target));
+    }
+
+    /** Every window this subclass currently has open on this client. */
+    static openWindows() {
+        return [...this._openWindows.values()];
+    }
+
+    /** Close the window for a target, if there is one. */
+    static async closeFor(target) {
+        const existing = this.openWindowFor(target);
+        if (existing) await existing.close();
+    }
+
+    /**
+     * The key this instance is registered under, or null for a window opened directly with `new`
+     * rather than through `openFor`.
+     */
+    get registryKey() {
+        for (const [key, win] of this.constructor._openWindows) {
+            if (win === this) return key;
+        }
+        return null;
+    }
+
     constructor(options = {}) {
         super(options);
         this._toolTitlebarMode = this.options?.toolTitlebar === BLACKSMITH_TOOL_TITLEBARS.MICRO
@@ -68,6 +183,19 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
             : BLACKSMITH_TOOL_THEMES.LIGHT;
         this._loadToolTitlebarPreference();
         this._loadToolThemePreference();
+    }
+
+    /**
+     * Deregister on close, so a reopened target builds a fresh window rather than rendering a
+     * closed one. Identity-checked before deleting: a subclass that closes and reopens on the same
+     * key can otherwise have the closing instance evict the new one.
+     */
+    _onClose(options) {
+        const registry = this.constructor._openWindows;
+        for (const [key, win] of registry) {
+            if (win === this) { registry.delete(key); break; }
+        }
+        return super._onClose?.(options);
     }
 
     async _prepareContext(options = {}) {
