@@ -83,6 +83,31 @@ function create(config = {}) {
 
     const keepFor = (give) => Math.max(0, resolvedMax - give);
 
+    /**
+     * Say so when a controller-state getter is read after a FAILED bind.
+     *
+     * Gated on `attached === false` rather than on `!input`, which is the distinction that keeps
+     * this from crying wolf: null means attach was never attempted, and reading the initial value
+     * before render is legitimate. False means it was attempted, found nothing, and the caller is
+     * now acting on a number the user never chose.
+     *
+     * Once per controller. A submit handler can read several times and the second warning teaches
+     * nobody anything.
+     */
+    let warnedUnbound = false;
+    const warnIfUnbound = (method) => {
+        if (attached !== false || warnedUnbound) return;
+        warnedUnbound = true;
+        postConsoleAndNotification(
+            MODULE.NAME,
+            `Quantity split: ${method}() read after attach() found no input named "${inputName}". ` +
+            'This reports the value the control was created with, not the user\'s. Use readFrom(root).',
+            '',
+            false,
+            false
+        );
+    };
+
     /** Push `current` into the DOM. Never fires onChange — that is for user input. */
     const sync = () => {
         if (!input) return;
@@ -182,6 +207,7 @@ function create(config = {}) {
          * When you are reading to act on the answer and can name the root, prefer `readFrom`.
          */
         getValue() {
+            warnIfUnbound('getValue');
             return current;
         },
 
@@ -204,9 +230,24 @@ function create(config = {}) {
             return clamp(Number(live.value) || resolvedMin, resolvedMin, resolvedMax);
         },
 
-        /** The Keep amount — always max - value. */
+        /**
+         * The Keep amount — always max - value. Carries the same dependency on `attach` as
+         * `getValue`, because it is derived from the same state.
+         */
         getKeep() {
+            warnIfUnbound('getKeep');
             return keepFor(current);
+        },
+
+        /**
+         * The Keep amount derived from the DOM. The counterpart to `readFrom`, and correct on the
+         * same terms. Exists so a caller reading Keep does not have to do `max - readFrom(root)`
+         * by hand and get the clamp subtly wrong.
+         * @param {HTMLElement} container
+         * @returns {number}
+         */
+        readKeepFrom(container) {
+            return keepFor(controller.readFrom(container));
         },
 
         /** Set the Give amount. Clamped into range. Does not fire onChange. */

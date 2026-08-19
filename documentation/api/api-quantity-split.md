@@ -51,6 +51,7 @@ const giving = qty.getValue();
 | `attach(root)` | Wire the input. `root` is any ancestor of the markup. Releases a previous binding first, so it is safe to call on every render, and it re-syncs the DOM to the controller's value. Returns the controller; read `attached` for whether it worked. |
 | `attached` | `true` once `attach` has found its input, `false` once it has failed to, `null` before either. |
 | `readFrom(root)` | The Give amount read out of the DOM. Correct whether or not binding succeeded. |
+| `readKeepFrom(root)` | The Keep amount from the DOM. The counterpart to `readFrom`. |
 | `getValue()` | The Give amount as the controller understands it. Depends on `attach` having bound the input. |
 | `getKeep()` | The Keep amount. Same dependency as `getValue()`. |
 | `setValue(n)` | Set Give, clamped into range. Does not fire `onChange`. |
@@ -70,6 +71,12 @@ const giving = qty.readFrom(root);
 ```
 
 Use `readFrom` at submit time. `getValue()` remains correct and convenient inside an `onChange` handler or anywhere you already know the control is bound, and `attached` lets you check rather than assume.
+
+`getKeep()` carries the same dependency, being derived from the same state, and `readKeepFrom(root)` is its DOM counterpart. Prefer it to `max - readFrom(root)` by hand, which is where the clamp goes wrong.
+
+An unbound control always reports the value it was created with, so unlike the entity list there is no version of this that merely goes quiet - it is always a plausible wrong number. When `attach` has been tried and failed, these getters log once.
+
+The damage scales with how sensible your `value` is, which is the wrong way round. `value: max` is a reasonable default for a Take dialog, and it is also the worst thing to return unasked: an unbound read reports the whole stack, so "take 1 of 20" takes all twenty with nothing to show for it. `value: min` fails harmlessly by comparison. Do not respond by picking a worse default - use `readFrom(root)` and keep the sensible one.
 
 The rendered input is a plain `<input type="range">` carrying `inputName`, so a host already collecting a whole form at once can also read it directly, which is what `readFrom` does internally:
 

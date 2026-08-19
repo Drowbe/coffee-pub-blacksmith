@@ -375,6 +375,66 @@ signal to take a comparison snapshot. A real validation pass is a 90–180 minut
 
 ---
 
+## 9C. A refusal beats a plausible default
+
+A design rule for anything on `module.api`, written down because four separate defects across
+`api.inventory`, `api.entityList`, `api.quantitySplit` and `api.dialog` turned out to be the same defect,
+and because three of the four were found by a consuming module rather than by us.
+
+**When a value cannot be determined, refuse. Do not substitute one that looks reasonable.** A wrong answer
+that looks wrong gets fixed the day it ships. A wrong answer that looks plausible is indistinguishable from
+a right one at every call site, so nothing throws, no log line appears, and the only way it surfaces is a
+person eventually noticing that the numbers are off.
+
+The four, compressed to the shape they share rather than what each one was:
+
+| Where | The plausible substitute | What it looked like |
+|---|---|---|
+| `_buildPayload` | the source item's `system.container` | items arriving into a container the recipient does not have |
+| `_resolveQuantity` | the source document's own quantity as a ceiling | a grant refusing 18 of 20 restock rolls |
+| `resolveContent` | a doc claiming a passed node keeps its listeners | controls that render, respond, and report nothing the user did |
+| `readSelection` / `getValue` | the caller's own seed, returned as the user's answer | a picker handing back the character it was opened on |
+
+None of these threw. Each produced a value of the right type, in the right range, that a caller could act on.
+
+### The seed a careful consumer picks is the one that does most damage
+
+The sharpest form of this, and the one worth guarding against specifically. When a control cannot report
+what the user chose, it reports what it was created with — so the severity of the failure is set by the
+caller's default rather than by anything at the failure site.
+
+A careful consumer picks a *sensible* default, and sensible almost always means the maximum or the current
+value. Those are exactly the values that do most damage when returned unasked. Curator's loot window created
+a quantity control with `value: max`, so an unbound read returned the whole stack: "take 1 of 20" took all
+twenty, silently, in a looting window. The seed was the right choice. It is the reason the failure was
+severe rather than harmless.
+
+So the consumer who thought hardest about defaults gets the worst outcome, which is backwards, and it is why
+this cannot be left to consumer discipline. The API has to refuse.
+
+### What this means in practice
+
+- **A getter that depends on state something else established must be able to say it has none.** Both
+  controls expose `attached` and a `readFrom(root)` that goes to the DOM, because reading and binding are
+  separate concerns and only binding can fail.
+- **Where a fallback genuinely is correct, make it detectable.** The unbound reads still return the initial
+  value — a host may legitimately want it before render — but they log once when read *after a bind that was
+  attempted and failed*, which is the case that cannot be legitimate.
+- **Prefer a refusal code to a silent clamp or a substituted value.** `api.inventory` returns
+  `{ ok: false, code }` rather than moving what it can; `CONTAINER_NOT_FOUND` exists because falling back to
+  the root inventory would have put stock somewhere the result did not mention.
+- **A doc that recommends the broken path is worse than one that omits it.** `api-quantity-split.md` advised
+  `getValue()` over reading the DOM, and Curator's workaround comment quotes that sentence back verbatim.
+  The doc did not fail to prevent the bug; it caused it.
+
+### Corollary: an API Blacksmith does not use itself has no test
+
+Stated in 9A about `registerModule`, and these four are the same finding from the other side. All of them
+sat in code paths only consumers exercised. When a surface is built for siblings rather than for us, the
+absence of a plausible default is the only thing standing between a defect and a year of silence.
+
+---
+
 ## 10. References to Detailed Architecture Docs
 
 | Topic | Document |

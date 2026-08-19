@@ -100,6 +100,17 @@ Use `readFrom` at submit time. `getSelection()` remains correct and convenient i
 
 Reading and binding are separate concerns and only binding can fail. `attach` exists for live behavior; reading the DOM does not need it.
 
+`getSelectedIds()` carries exactly the same dependency as `getSelection()` - it is that read with a map over it. Reaching for ids rather than descriptors opts out of nothing.
+
+### What a failed bind costs depends on what you passed as `selected`
+
+The same defect produces two different failures, and which one you get is decided by your own config rather than by anything visible at the call site:
+
+- **A list created with a selection lies.** `getSelection()` hands that selection back, and it is indistinguishable from the user having chosen it. A picker seeded with the current character returns the current character - so a user switches to someone else and is handed back the one they started on.
+- **A list created empty goes quiet.** It returns nothing selected, so the operation simply does not happen.
+
+Only the first is dangerous, and it is the one that seeding a picker with a sensible default produces. Reading through `readFrom(root)` removes both. When `attach` has been tried and failed, these getters log once naming which of the two applies.
+
 ## Providers
 
 Convenience adapters that only shape data. None of them filter by permission; that is the host's job.

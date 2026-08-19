@@ -179,6 +179,35 @@ function create(config = {}) {
         .map(input => byId.get(input.value)?.data)
         .filter(Boolean);
 
+    /**
+     * Say so when a controller-state getter is read after a FAILED bind.
+     *
+     * Gated on `attached === false`, not on `!root`: null means attach was never attempted, and
+     * reading the normalised initial selection before render is legitimate. False means it was
+     * attempted, found nothing, and the caller is about to act on an answer the user never gave.
+     *
+     * The message names whether this list LIES or merely goes quiet, because the two failures need
+     * different fixes and the difference is invisible from the API. A list created with a selection
+     * hands that selection back as though it were chosen; a list created empty returns nothing and
+     * the operation simply does not happen.
+     */
+    let warnedUnbound = false;
+    const warnIfUnbound = (method) => {
+        if (attached !== false || warnedUnbound) return;
+        warnedUnbound = true;
+        postConsoleAndNotification(
+            MODULE.NAME,
+            `Entity list: ${method}() read after attach() found no rows named "${inputName}". ` +
+            (initial.size
+                ? 'This returns the selection the list was CREATED with, which is indistinguishable from a user choice.'
+                : 'This returns nothing selected, so the operation will silently do nothing.') +
+            ' Use readFrom(root).',
+            '',
+            false,
+            false
+        );
+    };
+
     const readSelection = () => {
         // No root means nothing was ever bound, so there is no rendered answer to read and the
         // initial selection is the only thing left to report. It is also indistinguishable from a
@@ -297,11 +326,17 @@ function create(config = {}) {
          * name the root, prefer `readFrom`.
          */
         getSelection() {
+            warnIfUnbound('getSelection');
             return readSelection();
         },
 
-        /** Selected ids only. Carries the same dependency on `attach` as `getSelection`. */
+        /**
+         * Selected ids only. Carries the same dependency on `attach` as `getSelection`, because it
+         * is the same read with a map over it — a consumer reaching for ids has not opted out of
+         * anything, and this is the one most reached for first.
+         */
         getSelectedIds() {
+            warnIfUnbound('getSelectedIds');
             return readSelection().map(entity => String(entity.id));
         },
 

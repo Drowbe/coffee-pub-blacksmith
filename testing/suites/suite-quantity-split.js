@@ -201,8 +201,12 @@ export default {
                     expect('getValue is stale once nothing is listening', control.getValue(), 3);
                     expect('readFrom reads the DOM and is right anyway', control.readFrom(dom.container), 7);
 
+                    expect('readKeepFrom is the counterpart and agrees', control.readKeepFrom(dom.container), 1);
+                    expect('while getKeep is stale in the same way getValue is', control.getKeep(), 5);
+
                     dom.input.value = '999';
                     expect('readFrom clamps to the control range', control.readFrom(dom.container), 8);
+                    expect('and readKeepFrom clamps with it', control.readKeepFrom(dom.container), 0);
                 } finally {
                     dom.cleanup();
                 }

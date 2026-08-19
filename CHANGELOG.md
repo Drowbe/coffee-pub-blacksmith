@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Blacksmith's own consumers were not affected: `window-toast-send.js` and the note editor attach from `_onRender` into real window DOM, and neither reads back through the getters. That was luck rather than design.
 
+  **Four getters were affected, not two.** `entityList.getSelectedIds()` and `quantitySplit.getKeep()` route through the same state as their siblings, and ids are what a consumer reaches for first. All four now log once when read after a bind that was *attempted and failed* -- gated on that rather than on "unbound", so reading a control's initial value before render, which is legitimate, stays quiet. `quantitySplit` gained `readKeepFrom(root)` so a caller reading Keep does not hand-roll `max - readFrom(root)` and get the clamp wrong.
+
+  **What a failed bind costs depends on the caller's own config**, which is the part invisible from the API and now documented in both docs. A list created with a `selected` seed hands that seed back as though the user chose it -- a picker seeded with the current character returns the current character, so switching to someone else silently does nothing. A list created empty returns nothing selected and the operation merely does not happen. Same defect; only the first lies, and it is the one that seeding a sensible default produces.
+
   Verify live: the `unbound-reporting` checks in the Entity List and Quantity Split suites.
 
 - **A grant refused any quantity above the source document's own** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`). `_resolveQuantity` applied one availability ceiling to every caller, and on the grant paths it was checking a number that means nothing. `grantItems({ items: [{ itemUuid: <SRD crowbar>, quantity: 5 }] })` came back `INSUFFICIENT_QUANTITY, available: 1`. In a real Merchant restock 18 of 20 rolled results were refused this way; the two that succeeded were the two that happened to want a single unit.

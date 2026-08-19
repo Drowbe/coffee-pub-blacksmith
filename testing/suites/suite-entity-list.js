@@ -126,6 +126,13 @@ export default {
                 expect('while readFrom on nothing reports nothing selected',
                     fresh.readIdsFrom(null), []);
 
+                // The severity split: identical defect, and only the seeded list lies. This is
+                // decided by the caller's own config, not by anything visible at the call site.
+                const seeded = entityList.create({ entities: fixtures(), mode: 'multi', selected: ['a'] });
+                const unseeded = entityList.create({ entities: fixtures(), mode: 'multi' });
+                expect('a seeded list returns a choice nobody made', seeded.getSelectedIds(), ['a']);
+                expect('an unseeded list merely returns nothing', unseeded.getSelectedIds(), []);
+
                 // A root with no rows in it: a dialog whose content never arrived.
                 const empty = document.createElement('div');
                 document.body.appendChild(empty);

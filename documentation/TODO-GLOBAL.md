@@ -1131,23 +1131,22 @@ all five item-moving primitives, strips before the caller's `flags` merge, and s
 
 ## Merchant/Curator duplication handback (received 2026-08-18)
 
-Merchant's phase-1b comparison found four things with two real consumers each, agreeing close to
-line-for-line, and offered them to the hub rather than keeping them. Two consumers is the revisit bar the
-2026-07-29 decision set, so these qualify on evidence rather than on taste. **None is started, and each
-needs a decision before it does** - the shapes below are the asks as received, not accepted designs.
+Merchant's phase-1b comparison offered the hub four things with two real consumers each, agreeing close to
+line-for-line. Two consumers is the revisit bar the 2026-07-29 decision set, so these qualified on evidence
+rather than on taste. **None is started, and each needs a decision before it does** - the shapes below are
+the asks as received, not accepted designs.
 
-- [ ] **A quantity dialog** - now 38 lines and **87%** identical, remeasured after `controls` landed.
-      Note the direction: it shrank and got MORE identical, because what came out was the part that
-      differed between the two copies. What remains is the shared shape - build the control, put it in a
-      dialog with cancel-left/confirm-right, read the value, clamp, destroy. Decide whether that is a fifth
-      `api.dialog` helper or a documented `prompt` + `quantitySplit` recipe.
-- [ ] **An actor picker** - now 35 lines and 83% identical; it grew slightly because Merchant had already
-      parameterised the confirm button. Same question: a helper, or a documented `choose` +
-      `entityList.fromActors` recipe.
+**Check the consumers still exist before re-measuring how alike they are.** A fifth entry, a shared quantity
+dialog, was tracked here and re-measured three times across one thread before Merchant found that one of its
+two consumers had been deleted months earlier and the survey's line reference had been stale ever since. One
+consumer fails the bar outright, so no similarity figure was ever going to settle it. A number that moves is
+interesting; a consumer that is gone is decisive, and it is much the cheaper thing to check first.
 
-      Merchant's own read is that both are two-line wrappers over `prompt`/`choose` now rather than the 49
-      and 30 they were, which may put them below the bar - and they said that is a reasonable place to land.
-      Deciding "documented recipe, not helper" is a real answer here, not a deferral.
+- [ ] **An actor picker** - 35 lines and 83% identical at last count, which predates the `readFrom` work and
+      is therefore stale in the same way the quantity dialog's was. Confirm both consumers still exist, then
+      remeasure, then decide: a `dialog.pickActor` helper, or a documented `choose` + `entityList.fromActors`
+      recipe. "Documented recipe, not helper" is a real answer here, not a deferral - Merchant's own read is
+      that it is a two-line wrapper now rather than the 30 lines it was, which may put it below the bar.
 - [ ] **`BlacksmithToolWindowBaseV2` construction boilerplate** - 80% over ~36 lines, differing only in the
       class name and an id prefix. Merchant's reading is that a base needing thirty identical lines per
       subclass is under-specified, and that is hard to argue with. This one is ours whatever the answer,
