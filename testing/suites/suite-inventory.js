@@ -254,6 +254,52 @@ export default {
             }
         },
         {
+            id: 'grant-quantity-not-capped',
+            tier: 'headless',
+            group: 'Grant',
+            label: 'A grant is not limited by the source document own quantity',
+            note: 'A grant takes nothing, so the source stack is not stock. A compendium crowbar reads 1 '
+                + 'because that is what one crowbar is. INSUFFICIENT_QUANTITY must be unreachable here.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const target = await tempActor('character', 'cap-target');
+                    made.push(target);
+                    const world = await Item.create(lootData('Harness Cap Crowbar', { system: { quantity: 1 } }));
+                    made.push(world);
+
+                    const single = await inv.grantItem({
+                        targetActorUuid: target.uuid, itemUuid: world.uuid, quantity: 5
+                    });
+                    expect('granting five from a row of one succeeded', single.ok, true);
+                    expect('and five arrived', quantityOf(target.items.get(single.targetItemId)), 5);
+                    expect('the source row is untouched', quantityOf(world), 1);
+
+                    const batch = await inv.grantItems({
+                        targetActorUuid: target.uuid,
+                        items: [{ itemUuid: world.uuid, quantity: 7 }]
+                    });
+                    expect('the batch path agrees', batch.ok, true);
+                    expect('and merged to twelve', quantityOf(target.items.get(single.targetItemId)), 12);
+
+                    // The check that DOES protect a caller is unchanged: an item with no quantity
+                    // in its schema cannot arrive as a stack of three.
+                    const unstackable = await inv.grantItem({
+                        targetActorUuid: target.uuid,
+                        itemData: { name: 'Harness Cap Singleton', type: 'loot', system: { weight: { value: 1, units: 'lb' } } },
+                        quantity: 3
+                    });
+                    expect('an unstackable item still refuses a quantity above one',
+                        unstackable.code, inv.CODES.INVALID_QUANTITY);
+                    expect('and nothing extra was created', target.items.size, 1);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
             id: 'grant-rejections',
             tier: 'headless',
             group: 'Grant',

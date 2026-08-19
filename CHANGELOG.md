@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [Unreleased]
+
+### Fixed
+
+- **A grant refused any quantity above the source document's own** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`). `_resolveQuantity` applied one availability ceiling to every caller, and on the grant paths it was checking a number that means nothing. `grantItems({ items: [{ itemUuid: <SRD crowbar>, quantity: 5 }] })` came back `INSUFFICIENT_QUANTITY, available: 1`. In a real Merchant restock 18 of 20 rolled results were refused this way; the two that succeeded were the two that happened to want a single unit.
+
+  A grant has no source Actor. Nothing is drawn down and nothing is written back, so the resolved document's `system.quantity` describes that document rather than counting stock -- an SRD crowbar reads 1 because that is what one crowbar is. Treating it as a ceiling let the SRD's authoring decisions cap what any consumer could create.
+
+  The API already reasoned correctly about this for `exchange` copy legs and simply never applied it to itself: "because there is no count, the source stack is not a ceiling". `_resolveQuantity` now takes `drawsDown` -- false from the grant path and from the copy leg, true everywhere else. Transfers are untouched, because there the stack is a live count the operation reduces, so `INSUFFICIENT_QUANTITY` stays exactly right and still fires.
+
+  `INVALID_QUANTITY` is unchanged, and it is the check that actually protects a caller: a positive integer, and no more than 1 for an item whose schema carries no quantity at all.
+
+  Two smaller things went with it. The `itemData` branch of `_prepareGrant` had drifted from the resolved-document branch and was **missing** the unstackable guard, so asking for five of a quantity-less item created one row while reporting five -- a silent wrong answer, now a refusal. And `exchange`'s copy leg had restated the no-ceiling logic inline; it now calls the shared helper, so the rule exists in one place.
+
+  Reported by Merchant, who had worked around it by sending N entries of quantity 1 and letting batch coalescing sum them -- correct, and still one call, but an entry per unit where a shelf rolling ten tables deep produces hundreds.
+
+  Verify live: the Inventory suite's `grant-quantity-not-capped` check (`testing/suites/suite-inventory.js`). By hand, grant 5 of any single-quantity compendium item to a character and confirm 5 arrive.
+
+
 ## [13.18.2]
 
 ### Added

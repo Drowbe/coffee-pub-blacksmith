@@ -43,7 +43,7 @@ const result = await blacksmith.inventory.grantItem({
 | `targetActorUuid` | yes | Accepts a synthetic token-actor UUID (`Scene.x.Token.y.Actor.z`). |
 | `itemUuid` | one of | Anything `fromUuid` resolves: compendium, world, or actor-embedded item. |
 | `itemData` | one of | A raw item object, for something assembled in memory. Used only when `itemUuid` is absent. |
-| `quantity` | no | Defaults to the source item's own quantity. Must be a positive integer. |
+| `quantity` | no | Defaults to the source item's own quantity. Must be a positive integer, and is **not** capped by it. |
 | `stack` | no | `'merge'` (default) or `'separate'`. |
 | `ignoreFlags` | no | Flag paths the merge check treats as non-identity. |
 | `flags` | no | Flags written in the same operation as the item. See below - this is not a convenience. |
@@ -287,6 +287,20 @@ Containment participates in merge identity. Two otherwise identical stacks in di
 different places and stay separate rows; a grant naming a container merges only with a matching row
 already in that container.
 
+## A grant is not limited by the source document
+
+`quantity` on `grantItem` and `grantItems` may exceed the resolved document's own `system.quantity`.
+Nothing is drawn down, so that number is a property of the document rather than a count of stock - an SRD
+crowbar reads 1 because that is what one crowbar is. `INSUFFICIENT_QUANTITY` is unreachable from a grant,
+exactly as it is from an `exchange` copy leg.
+
+`INVALID_QUANTITY` still applies: a quantity must be a positive integer, and cannot exceed 1 for an item
+whose schema carries no quantity at all. That describes what the document is rather than how much of it
+exists, which is the distinction the two codes divide on.
+
+Transfers are unchanged. There the source stack is a live count that the operation reduces, so asking for
+more than it holds is a real error and still returns `INSUFFICIENT_QUANTITY`.
+
 ## Stackability is derived, never declared
 
 There is no `hasQuantity` parameter and there will not be one. Whether an item stacks decides
@@ -395,7 +409,7 @@ Every failure is `{ ok: false, code, ...context }`.
 | `ITEM_NOT_FOUND` | `itemUuid` did not resolve, or neither `itemUuid` nor `itemData` was supplied. |
 | `SAME_ACTOR` | Source and target are the same Actor. |
 | `INVALID_QUANTITY` | Not a positive integer, or above 1 for a non-stacking item. |
-| `INSUFFICIENT_QUANTITY` | Carries `requested` and `available`. |
+| `INSUFFICIENT_QUANTITY` | Carries `requested` and `available`. Transfers only; unreachable from a grant or an `exchange` copy leg. |
 | `INVALID_CURRENCY` | Unknown denomination, negative or non-integer amount, or nothing positive to move. |
 | `INSUFFICIENT_CURRENCY` | Carries `shortfalls` keyed by denomination, each with `requested` and `available`. |
 | `ITEM_NOT_TRANSFERABLE` | Carries `type` and `allowed`. |

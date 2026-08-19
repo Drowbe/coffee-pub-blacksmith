@@ -303,11 +303,26 @@ async function _validateContainers(targetActor, containerIds) {
  * Validate a requested quantity against what the item actually has.
  * Stackability is derived from the document and never accepted from a caller: that flag decides
  * delete-the-whole-item versus decrement, so a wrong value destroys a stack.
+ *
+ * `drawsDown` says whether the source stack is a CEILING, and it is the whole difference between
+ * a transfer and a grant. A transfer takes from a live stack, so asking for more than it holds is
+ * an error the caller must see. A grant has no source Actor and writes nothing back - the "source"
+ * is a compendium entry, a loot-table result, or another Actor's row read for its shape. Its
+ * `system.quantity` is a property of the document, not a count of stock: an SRD crowbar reads 1
+ * because that is what one crowbar is, and treating it as a limit lets the SRD's authoring
+ * decisions cap what any consumer may create.
+ *
+ * This is the same rule an `exchange` copy leg already states, applied to the paths that share the
+ * reasoning. `INVALID_QUANTITY` still applies either way: it describes the document's nature rather
+ * than its stock, and it is the check that actually protects a caller.
+ *
  * @param {Item} item
  * @param {number|undefined} requested
+ * @param {object} [options]
+ * @param {boolean} [options.drawsDown=true] - False when nothing is taken from the source.
  * @returns {{stackable: boolean, quantity: number, available: number, error: object|null}}
  */
-function _resolveQuantity(item, requested) {
+function _resolveQuantity(item, requested, { drawsDown = true } = {}) {
     const source = item?._source?.system ?? item?.system ?? {};
     const stackable = typeof source.quantity === 'number';
     const available = stackable ? source.quantity : 1;
@@ -322,7 +337,7 @@ function _resolveQuantity(item, requested) {
     if (!stackable && quantity > 1) {
         return { stackable, quantity: 0, available, error: fail(CODES.INVALID_QUANTITY, { requested, available: 1 }) };
     }
-    if (quantity > available) {
+    if (drawsDown && quantity > available) {
         return { stackable, quantity: 0, available, error: fail(CODES.INSUFFICIENT_QUANTITY, { requested: quantity, available }) };
     }
     return { stackable, quantity, available, error: null };
@@ -860,7 +875,9 @@ async function _prepareGrant({ itemUuid, itemData, quantity, flags, container = 
         const contentCount = await _containedCount(item);
         if (contentCount !== 0) return fail(CODES.CONTAINER_HAS_CONTENTS, { contentCount: contentCount < 0 ? null : contentCount });
 
-        const resolved = _resolveQuantity(item, quantity);
+        // A grant takes nothing, so the resolved document's own quantity is not a ceiling.
+        // INSUFFICIENT_QUANTITY is unreachable from here by design.
+        const resolved = _resolveQuantity(item, quantity, { drawsDown: false });
         if (resolved.error) return resolved.error;
 
         const payload = _buildPayload(item, resolved.quantity, resolved.stackable, flags, container);
@@ -881,6 +898,11 @@ async function _prepareGrant({ itemUuid, itemData, quantity, flags, container = 
     const available = stackable ? data.system.quantity : 1;
     const requested = quantity === undefined || quantity === null ? available : Number(quantity);
     if (!Number.isInteger(requested) || requested < 1) return fail(CODES.INVALID_QUANTITY, { requested: quantity });
+    // Matches the resolved-document branch, which this had drifted from. Without it a caller asking
+    // for five of an unstackable item got ONE row created and a result reporting five - a silent
+    // wrong answer rather than a refusal. There is no availability check here for the same reason
+    // there is none there: constructed data has no stock either.
+    if (!stackable && requested > 1) return fail(CODES.INVALID_QUANTITY, { requested, available: 1 });
     if (stackable) data.system.quantity = requested;
     for (const path of RESET_PATHS) foundry.utils.deleteProperty(data.system, path);
     // Same rule as the resolved-document branch: containment is written, never carried over.
@@ -1233,21 +1255,13 @@ async function exchange({ transfers = [], stack = 'merge', ignoreFlags = [] } = 
                 let available;
                 if (copy) {
                     // A copied source is a template with no count, so its stack is NOT a ceiling -
-                    // a shop with infinite stock sells three from a row that reads one. Shape is
-                    // still checked; availability deliberately is not.
-                    const source = sourceItem._source?.system ?? {};
-                    stackable = typeof source.quantity === 'number';
-                    available = stackable ? source.quantity : 1;
-                    const requested = request?.quantity === undefined || request?.quantity === null
-                        ? available
-                        : Number(request.quantity);
-                    if (!Number.isInteger(requested) || requested < 1) {
-                        return fail(CODES.INVALID_QUANTITY, { index, entryIndex, itemId, requested: request?.quantity ?? null });
-                    }
-                    if (!stackable && requested > 1) {
-                        return fail(CODES.INVALID_QUANTITY, { index, entryIndex, itemId, requested, available: 1 });
-                    }
-                    quantity = requested;
+                    // a shop with infinite stock sells three from a row that reads one. Same rule
+                    // the grant paths use, and it shares their code rather than restating it.
+                    const check = _resolveQuantity(sourceItem, request?.quantity, { drawsDown: false });
+                    if (check.error) return { ...check.error, index, entryIndex, itemId };
+                    quantity = check.quantity;
+                    stackable = check.stackable;
+                    available = check.available;
                 } else {
                     // Same reasoning as transferItems: two draws on one item make each per-entry
                     // quantity check meaningless, and together they could over-draw the stack.
