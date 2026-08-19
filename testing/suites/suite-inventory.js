@@ -195,7 +195,7 @@ export default {
             run: async ({ expect }) => {
                 const api = requireApi('inventory');
                 const inv = api.inventory;
-                for (const method of ['grantItem', 'grantItems', 'grantCurrency', 'transferItem', 'transferCurrency', 'exchange']) {
+                for (const method of ['grantItem', 'grantItems', 'grantCurrency', 'setCurrency', 'transferItem', 'transferCurrency', 'exchange']) {
                     expect.ok(`inventory.${method} is a function`, typeof inv[method] === 'function');
                 }
                 expect.ok('CODES is exposed', typeof inv.CODES === 'object');
@@ -248,6 +248,104 @@ export default {
                     expect.ok('equipped did not survive the write', !arrived?._source?.system?.equipped);
                     expect.ok('attuned did not survive the write', !arrived?._source?.system?.attuned);
                     expect('source world item untouched', quantityOf(world), 4);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'set-currency',
+            tier: 'headless',
+            group: 'Currency',
+            label: 'setCurrency writes absolute values and leaves the rest alone',
+            note: 'The only non-delta currency method. It exists so a GM purse edit takes the lock instead '
+                + 'of racing a settlement that read the balance a moment earlier.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const shop = await tempActor('npc', 'till');
+                    made.push(shop);
+                    await shop.update({ 'system.currency.gp': 250, 'system.currency.sp': 40 });
+
+                    const result = await inv.setCurrency({ targetActorUuid: shop.uuid, currency: { gp: 40 } });
+                    expect('the write succeeded', result.ok, true);
+                    expect('gold is now the absolute value', currencyOf(shop, 'gp'), 40);
+                    expect('silver was not named, so it is untouched', currencyOf(shop, 'sp'), 40);
+                    expect('and it reports what gold was', result.previous?.gp, 250);
+
+                    // Zero is a real instruction here, unlike in a delta.
+                    const emptied = await inv.setCurrency({ targetActorUuid: shop.uuid, currency: { gp: 0 } });
+                    expect('an empty till is expressible', emptied.ok, true);
+                    expect('and gold really is zero', currencyOf(shop, 'gp'), 0);
+
+                    expect('a bad denomination is refused',
+                        (await inv.setCurrency({ targetActorUuid: shop.uuid, currency: { zz: 1 } })).code,
+                        inv.CODES.INVALID_CURRENCY);
+                    expect('a negative amount is refused',
+                        (await inv.setCurrency({ targetActorUuid: shop.uuid, currency: { gp: -5 } })).code,
+                        inv.CODES.INVALID_CURRENCY);
+                    expect('silver survived every refusal', currencyOf(shop, 'sp'), 40);
+                } finally {
+                    await cleanup(made);
+                }
+            }
+        },
+        {
+            id: 'omit-flags',
+            tier: 'headless',
+            group: 'Grant',
+            label: 'omitFlags drops source-scoped flags before the item arrives',
+            note: 'Shelf state riding along to a buyer is the same class as the container leak: source-scoped '
+                + 'data landing where it means nothing.',
+            run: async ({ expect }) => {
+                const api = requireApi('inventory');
+                const inv = api.inventory;
+                const made = [];
+                try {
+                    const shop = await tempActor('npc', 'omit-shop');
+                    const buyer = await tempActor('character', 'omit-buyer');
+                    made.push(shop, buyer);
+
+                    const [stocked] = await shop.createEmbeddedDocuments('Item', [
+                        lootData('Harness Omit Sword', {
+                            system: { quantity: 3 },
+                            flags: { 'coffee-pub-blacksmith': { harnessPar: 7, harnessKeep: 'yes' } }
+                        })
+                    ]);
+                    expect('the fixture really carries the flag',
+                        stocked._source.flags?.['coffee-pub-blacksmith']?.harnessPar, 7);
+
+                    const moved = await inv.transferItem({
+                        sourceActorUuid: shop.uuid,
+                        targetActorUuid: buyer.uuid,
+                        itemId: stocked.id,
+                        quantity: 1,
+                        omitFlags: ['coffee-pub-blacksmith.harnessPar']
+                    });
+                    expect('the transfer succeeded', moved.ok, true);
+                    const arrived = buyer.items.get(moved.targetItemId);
+                    expect('the omitted flag did not arrive',
+                        arrived?._source?.flags?.['coffee-pub-blacksmith']?.harnessPar, undefined);
+                    expect('the flag we did not name survived',
+                        arrived?._source?.flags?.['coffee-pub-blacksmith']?.harnessKeep, 'yes');
+                    expect('the source still has its own copy',
+                        shop.items.get(stocked.id)?._source?.flags?.['coffee-pub-blacksmith']?.harnessPar, 7);
+
+                    // Omitting and adding the same path is coherent: the omission clears what rode
+                    // along, the addition writes what was meant to arrive.
+                    const second = await inv.grantItem({
+                        targetActorUuid: buyer.uuid,
+                        itemUuid: shop.items.get(stocked.id).uuid,
+                        quantity: 1,
+                        omitFlags: ['coffee-pub-blacksmith.harnessPar'],
+                        flags: { 'coffee-pub-blacksmith': { harnessPar: 'mine' } }
+                    });
+                    expect('the grant succeeded', second.ok, true);
+                    expect('the caller value won over the source value',
+                        buyer.items.get(second.targetItemId)?._source?.flags?.['coffee-pub-blacksmith']?.harnessPar,
+                        'mine');
                 } finally {
                     await cleanup(made);
                 }

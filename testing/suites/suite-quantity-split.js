@@ -165,6 +165,50 @@ export default {
             }
         },
         {
+            id: 'unbound-reporting',
+            tier: 'headless',
+            label: 'An unbound control says so, and readFrom is still right',
+            note: 'The failure this covers is silent by construction: an unbound control renders the same '
+                + 'and getValue() answers with a plausible number. Two modules wrote the same fallback for it.',
+            run: async ({ expect }) => {
+                const { quantitySplit } = requireApi('quantitySplit');
+
+                const fresh = quantitySplit.create({ max: 8, value: 3, inputName: 'harness-unbound' });
+                expect('a control reports null before attach is tried', fresh.attached, null);
+
+                // A container that does not hold the markup: the shape of a dialog whose content
+                // never made it in, which is exactly how this failed in the wild.
+                const empty = document.createElement('div');
+                document.body.appendChild(empty);
+                try {
+                    fresh.attach(empty);
+                    expect('a failed attach reports false', fresh.attached, false);
+                    expect('and getValue still answers, with the initial value', fresh.getValue(), 3);
+                    expect('readFrom on an empty root falls back rather than inventing', fresh.readFrom(empty), 3);
+                } finally {
+                    empty.remove();
+                }
+
+                const control = quantitySplit.create({ max: 8, value: 3, inputName: 'harness-readfrom' });
+                const dom = mount(control);
+                try {
+                    expect('a successful attach reports true', control.attached, true);
+
+                    // The value changes in the DOM WITHOUT the listener running, which is what an
+                    // unbound control looks like from the outside.
+                    control.destroy();
+                    dom.input.value = '7';
+                    expect('getValue is stale once nothing is listening', control.getValue(), 3);
+                    expect('readFrom reads the DOM and is right anyway', control.readFrom(dom.container), 7);
+
+                    dom.input.value = '999';
+                    expect('readFrom clamps to the control range', control.readFrom(dom.container), 8);
+                } finally {
+                    dom.cleanup();
+                }
+            }
+        },
+        {
             id: 'two-in-one-form',
             tier: 'headless',
             label: 'Two controls in one container stay independent',

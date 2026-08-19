@@ -57,6 +57,8 @@ This is the only way such a control works inside a dialog, for the reason under 
 
 Controls are not destroyed when the dialog closes, so a button callback can still read a value out of one after the fact.
 
+Read them with `readFrom(element)` rather than `getValue()` / `getSelection()`. Those depend on binding having succeeded and report the control's initial value when it has not, which is a plausible answer rather than an obviously wrong one. A control that binds nothing now logs a warning naming its `inputName`, so the case is at least visible; reading from the DOM makes it harmless.
+
 `onRender(element, dialog)` runs after every render and covers anything `controls` does not - it receives the dialog's root element.
 
 ## `confirm(options)`

@@ -9,7 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`blacksmith.inventory.setCurrency()` -- absolute purse values, no counterparty** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`). For a GM editing an Actor's own purse rather than running a transaction: stocking a shop's till, correcting a mistake. Only the denominations named are written, so omitting silver leaves silver alone rather than zeroing it, and zero is meaningful here in a way it is not in a delta. Returns `previous` alongside the new values, because a hand-set till is exactly the operation someone wants to undo.
+
+  It exists because the alternative is a raw `actor.update()`, which takes no lock. Since `exchange` shipped an NPC purse can be read under a lock and written a moment later, so an unlocked edit landing in between is silently discarded -- the settlement writes `stale + delta` over the top, and a GM adjusting a till mid-session is exactly when that happens. Absolute values are consistent with the delta rule rather than an exception to it: deltas exist because a total computed from a stale read *outside* a lock races, and a value the GM typed has no read to go stale.
+
+  No permission check, like every primitive here. The consumer gates it.
+
+- **`omitFlags` on every item-moving primitive** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`). Flag paths dropped from an arriving item before it is written, on `grantItem`, `grantItems`, `transferItem`, `transferItems` and `exchange`. For state describing where an item came from rather than what it is -- a shop stamping shelf data on its stock otherwise leaks it to every buyer, which is the same shape as a container id naming a row the recipient does not have.
+
+  Paths are removed before the caller's `flags` are merged, so naming a path in both is coherent: the omission clears what rode along, the addition writes what was meant to arrive. Empty parent scopes are removed too, or an item that never carried the scope and one that had it stripped would compare unequal and stop merging.
+
+  `omitFlags` and `ignoreFlags` stay separate -- one changes the payload, the other the merge comparison -- and callers will usually want both while rows created before they started omitting still exist. Extending `registerTransientFlag` to mean "and strip on arrival" was considered and rejected: transient means "ignore for merge identity", and Squire's `isNew` is deliberately written *on* arrival, so conflating the two would break it.
+
+  Both raised by Merchant. Neither changes Curator's loot behaviour: its flags live on the TokenDocument and the Actor rather than on items, and `_addRandomCoins` already routes through `grantCurrency`.
+
+  Verify live: the Inventory suite's `set-currency` and `omit-flags` checks (`testing/suites/suite-inventory.js`).
+
 ### Fixed
+
+- **The embedded controls answered with the caller's own input when they had failed to bind** (`scripts/api-entity-list.js`, `scripts/api-quantity-split.js`, `scripts/api-dialog.js`). `attach()` on both controls returned the controller whether or not it found anything, so a host could not distinguish a wired control from an inert one. The readers then made that invisible rather than loud: `entityList.getSelection()` falls back to the selection the list was *created* with, and `quantitySplit.getValue()` returns listener-maintained state that nothing has updated. Both hand back a plausible answer, so the symptom is a user's input being silently ignored at submit time.
+
+  Two consuming modules independently wrote the same polling fallback against this, which is what surfaced it. The framing that settled it was theirs: this is not duplicated code with a correctness footnote, it is a getter that returns a quiet wrong answer, so any consumer calling it without a fallback has a latent bug rather than a verbose one.
+
+  Three changes. Both controls gained `readFrom(root)` -- and `readIdsFrom(root)` on the list -- which read the DOM and are correct whether or not binding succeeded, because reading and binding are separate concerns and only binding can fail. Both gained an `attached` property (`true` / `false` / `null` before either), so a host can check rather than assume; on the list it reports whether any matching input was actually found rather than merely whether a container was supplied, since a root that exists while the markup never arrived is the failure that actually happens. And `api.dialog` now warns, naming the control's `inputName`, when one reports a failed bind -- previously it only caught throws, and this path does not throw.
+
+  `attach()` still returns the controller, so chaining is unaffected. `getSelection()` and `getValue()` keep their existing behaviour and remain right inside a change handler or anywhere binding is known to have worked; the docs now say which to reach for and why, and `api-quantity-split.md` no longer recommends `getValue()` over reading the DOM.
+
+  Blacksmith's own consumers were not affected: `window-toast-send.js` and the note editor attach from `_onRender` into real window DOM, and neither reads back through the getters. That was luck rather than design.
+
+  Verify live: the `unbound-reporting` checks in the Entity List and Quantity Split suites.
 
 - **A grant refused any quantity above the source document's own** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`). `_resolveQuantity` applied one availability ceiling to every caller, and on the grant paths it was checking a number that means nothing. `grantItems({ items: [{ itemUuid: <SRD crowbar>, quantity: 5 }] })` came back `INSUFFICIENT_QUANTITY, available: 1`. In a real Merchant restock 18 of 20 rolled results were refused this way; the two that succeeded were the two that happened to want a single unit.
 

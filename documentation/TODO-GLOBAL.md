@@ -1113,32 +1113,21 @@ point.) Keep the rule in mind for the next consumer: `api-window.md` is explicit
 stable contract, and the base classes are on `module.api` before `init`, so a path fallback buys nothing and
 breaks silently if a file moves.
 
-## Open: do arrival payloads need a flag reset set? (raised by Merchant 2026-08-18)
+## `attach()` failed silently on the embedded controls - ANSWERED, shipped (raised by Merchant 2026-08-19)
 
-A copied or split item carries the source's flags, so a purchased sword arrives on the buyer holding
-`flags.coffee-pub-merchant.par`. Merchant flagged it as the same class as the container defect -
-source-scoped state riding along to a target where it means nothing - and called it harmless and
-non-blocking.
+Shipped as `readFrom` / `readIdsFrom`, an `attached` property on both controls, and a warning from
+`api.dialog` when one reports a failed bind. Merchant and Curator can delete their fallbacks. Kept only
+until the release note lands; reasoning is in `api/api-entity-list.md` and `api/api-quantity-split.md`.
 
-**It is the same class, and the answer is probably different, which is why this is a decision and not a
-task.** Containment had one correct value that the system itself always writes, so the API could just write
-it. Flags have no such answer: the merge predicate treats an undeclared flag as identity, and
-`architecture-inventory.md` already argues that a crafting quirk or skill level IS identity and must not be
-stripped. Blacksmith cannot know which of a sibling's flags describe the item and which describe the shelf
-it sat on - and Ground Rule 2 forbids hard-coding a sibling's keys to find out.
+One consequence for the `_askQuantity` extraction below: the fallback was the part Merchant called the
+subtle bit, and it is now unnecessary. Their line count and similarity figures need remeasuring once they
+have deleted it, before that extraction is decided either way.
 
-Three shapes, none chosen:
+## `omitFlags` - ANSWERED, shipped (raised by Merchant 2026-08-18)
 
-1. **An `omitFlags` option** on the grant and transfer primitives, naming paths to drop from the arrival
-   payload. Symmetrical with `flags` and `ignoreFlags`, puts the decision with the caller who knows, small.
-   Cost: a third flag-shaped option on a surface that already has two, and consumers must remember it.
-2. **Extend `registerTransientFlag`** to mean "and strip on arrival". Cheap for consumers, but wrong as
-   stated: transient currently means "ignore for merge identity", and Squire's `isNew` is deliberately
-   written ON arrival. Conflating the two breaks that.
-3. **Leave it with the writer.** A module stamping shelf state on an item it does not own is arguably the
-   defect; it could scope that state to the shelf Actor instead of the item.
-
-Decide before `exchange` gets a second consumer, since `copy` makes the leak routine rather than rare.
+Resolved as `omitFlags`, shipped. Kept only until the next release note lands: the option is call-level on
+all five item-moving primitives, strips before the caller's `flags` merge, and stays separate from
+`ignoreFlags`. Original reasoning is in `api/api-inventory.md`; delete this heading once that is on the wiki.
 
 ## Merchant/Curator duplication handback (received 2026-08-18)
 

@@ -79,6 +79,7 @@ function create(config = {}) {
     let giveOutput = null;
     let keepOutput = null;
     let detach = null;
+    let attached = null;
 
     const keepFor = (give) => Math.max(0, resolvedMax - give);
 
@@ -116,14 +117,31 @@ function create(config = {}) {
         inputName,
 
         /**
+         * True once `attach` has found its input, false once it has failed to.
+         * Null before either has happened.
+         *
+         * Binding failure used to be invisible: `attach` returned the controller either way, so a
+         * host could not tell a wired control from an inert one, and every consumer wrote the same
+         * defensive read-the-form fallback. Check this, or use `readFrom`.
+         */
+        get attached() {
+            return attached;
+        },
+
+        /**
          * Wire the control. Safe to call again after a host rerender — the
          * previous listener is released first.
          * @param {HTMLElement} container - Any ancestor of the rendered markup.
+         * @returns {Object} The controller, for chaining. Read `attached` for success.
          */
         attach(container) {
             controller.destroy();
             input = container?.querySelector?.(`input[name="${CSS.escape(inputName)}"]`) ?? null;
-            if (!input) return controller;
+            if (!input) {
+                attached = false;
+                return controller;
+            }
+            attached = true;
             const element = input.closest('[data-quantity-split]');
             giveOutput = element?.querySelector('[data-quantity-give]') ?? null;
             keepOutput = element?.querySelector('[data-quantity-keep]') ?? null;
@@ -155,9 +173,35 @@ function create(config = {}) {
             return controller;
         },
 
-        /** The Give amount. */
+        /**
+         * The Give amount as the controller understands it.
+         *
+         * This is listener-maintained state, so it is only the user's answer if `attach` bound the
+         * input. An unbound control reports the value it was created with — a plausible number
+         * rather than a wrong-looking one, which is why the failure went unnoticed in two modules.
+         * When you are reading to act on the answer and can name the root, prefer `readFrom`.
+         */
         getValue() {
             return current;
+        },
+
+        /**
+         * The Give amount read out of the DOM, correct whether or not binding succeeded.
+         *
+         * Reading and binding are separate concerns and only binding can fail. `attach` exists for
+         * live behaviour — moving captions, `onChange` — while this exists to answer "what does the
+         * control say right now", which the DOM can always answer. Use it at submit time.
+         *
+         * Falls back to `getValue()` only when the input genuinely is not in `container`, which is
+         * the case where there is no answer to read.
+         *
+         * @param {HTMLElement} container - Any ancestor of the rendered markup.
+         * @returns {number} Clamped into the control's range.
+         */
+        readFrom(container) {
+            const live = container?.querySelector?.(`input[name="${CSS.escape(inputName)}"]`) ?? null;
+            if (!live) return current;
+            return clamp(Number(live.value) || resolvedMin, resolvedMin, resolvedMax);
         },
 
         /** The Keep amount — always max - value. */

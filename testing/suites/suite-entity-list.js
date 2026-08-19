@@ -110,6 +110,54 @@ export default {
             }
         },
         {
+            id: 'unbound-reporting',
+            tier: 'headless',
+            label: 'An unbound list says so, and readFrom does not invent an answer',
+            note: 'getSelection() on an unbound list returns the selection the CALLER supplied, which is '
+                + 'indistinguishable from the user having chosen it. That is the trap, and it is why two '
+                + 'modules wrote the same fallback.',
+            run: async ({ expect }) => {
+                const { entityList } = requireApi('entityList');
+
+                const fresh = entityList.create({ entities: fixtures(), mode: 'multi', selected: ['a'] });
+                expect('reports null before attach is tried', fresh.attached, null);
+                expect('and getSelection hands back the initial selection',
+                    fresh.getSelectedIds(), ['a']);
+                expect('while readFrom on nothing reports nothing selected',
+                    fresh.readIdsFrom(null), []);
+
+                // A root with no rows in it: a dialog whose content never arrived.
+                const empty = document.createElement('div');
+                document.body.appendChild(empty);
+                try {
+                    fresh.attach(empty);
+                    expect('attaching to an empty root reports false', fresh.attached, false);
+                } finally {
+                    empty.remove();
+                }
+
+                const container = document.createElement('div');
+                const list = entityList.create({ entities: fixtures(), mode: 'multi', selected: ['a'] });
+                container.innerHTML = list.html;
+                document.body.appendChild(container);
+                try {
+                    list.attach(container);
+                    expect('attaching to real rows reports true', list.attached, true);
+
+                    // Tick a box directly, then drop the binding: the DOM is the truth and the
+                    // controller's own state is not.
+                    container.querySelector('input[value="b"]').checked = true;
+                    list.destroy();
+                    expect('readFrom sees what is actually ticked',
+                        list.readIdsFrom(container).sort(), ['a', 'b']);
+                    expect('readFrom returns caller descriptors, not bare ids',
+                        list.readFrom(container).find(entity => entity.id === 'b')?.name, 'Bob');
+                } finally {
+                    container.remove();
+                }
+            }
+        },
+        {
             id: 'lifecycle',
             tier: 'headless',
             label: 'attach/destroy are safe to repeat',

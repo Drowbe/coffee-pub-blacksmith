@@ -166,12 +166,25 @@ function create(config = {}) {
 
     let root = null;
     let detach = null;
+    let attached = null;
 
-    const inputs = () => (root
-        ? [...root.querySelectorAll(`input[name="${CSS.escape(inputName)}"]`)]
+    const inputsIn = (container) => (container
+        ? [...container.querySelectorAll(`input[name="${CSS.escape(inputName)}"]`)]
         : []);
 
+    const inputs = () => inputsIn(root);
+
+    const readSelectionFrom = (container) => inputsIn(container)
+        .filter(input => input.checked)
+        .map(input => byId.get(input.value)?.data)
+        .filter(Boolean);
+
     const readSelection = () => {
+        // No root means nothing was ever bound, so there is no rendered answer to read and the
+        // initial selection is the only thing left to report. It is also indistinguishable from a
+        // real answer, which is the whole trap: a host that never attached, or whose attach
+        // silently failed, gets back what it passed in and cannot tell. `readFrom` takes the root
+        // explicitly and never lands here.
         if (!root) {
             return [...initial].map(id => byId.get(id)?.data).filter(Boolean);
         }
@@ -225,14 +238,37 @@ function create(config = {}) {
         inputName,
 
         /**
+         * True once `attach` has found rows to read, false once it has not.
+         * Null before either has happened.
+         *
+         * Binding failure used to be invisible: `attach` returned the controller either way, so a
+         * host could not tell a wired control from an inert one, and every consumer wrote the same
+         * defensive read-the-form fallback. Check this, or use `readFrom`.
+         *
+         * It reports whether any matching input was present when `attach` ran, not merely whether a
+         * container was supplied, because an empty container is the failure that actually happens —
+         * a root that exists while the markup never made it in. The listener is delegated on the
+         * root and is bound regardless, so rows that arrive later still work; a false here means
+         * "nothing to read yet", which is worth surfacing rather than worth throwing.
+         */
+        get attached() {
+            return attached;
+        },
+
+        /**
          * Wire change events. Safe to call again after a host rerender — the
          * previous listener is released first.
          * @param {HTMLElement} container - Any ancestor of the rendered markup.
+         * @returns {Object} The controller, for chaining. Read `attached` for success.
          */
         attach(container) {
             controller.destroy();
             root = container ?? null;
-            if (!root) return controller;
+            if (!root) {
+                attached = false;
+                return controller;
+            }
+            attached = inputs().length > 0;
             const handler = (event) => {
                 const target = event.target;
                 if (!target?.name || target.name !== inputName) return;
@@ -252,14 +288,48 @@ function create(config = {}) {
             return controller;
         },
 
-        /** Currently selected entities, in the caller's original descriptor form. */
+        /**
+         * Currently selected entities, in the caller's original descriptor form.
+         *
+         * Depends on `attach` having bound a root. Unbound, it reports the selection the list was
+         * created with — a plausible answer rather than a wrong-looking one, which is why the
+         * failure went unnoticed in two modules. When you are reading to act on the answer and can
+         * name the root, prefer `readFrom`.
+         */
         getSelection() {
             return readSelection();
         },
 
-        /** Selected ids only. */
+        /** Selected ids only. Carries the same dependency on `attach` as `getSelection`. */
         getSelectedIds() {
             return readSelection().map(entity => String(entity.id));
+        },
+
+        /**
+         * The selection read out of the DOM, correct whether or not binding succeeded.
+         *
+         * Reading and binding are separate concerns and only binding can fail. `attach` exists for
+         * live behaviour — `onSelectionChange` — while this exists to answer "what is ticked right
+         * now", which the DOM can always answer. Use it at submit time.
+         *
+         * Unlike `getSelection` it never falls back to the initial selection: a container with no
+         * rows returns nothing selected, which is the truth, rather than an answer the caller
+         * supplied and could mistake for the user's.
+         *
+         * @param {HTMLElement} container - Any ancestor of the rendered markup.
+         * @returns {Array<Object>} Selected entities in the caller's descriptor form.
+         */
+        readFrom(container) {
+            return readSelectionFrom(container);
+        },
+
+        /**
+         * Selected ids read out of the DOM. See `readFrom`.
+         * @param {HTMLElement} container
+         * @returns {Array<string>}
+         */
+        readIdsFrom(container) {
+            return readSelectionFrom(container).map(entity => String(entity.id));
         },
 
         /**

@@ -201,6 +201,21 @@ function attachControls(dialog, controls) {
         }
         try {
             control.attach(root);
+            // A control that binds nothing does not throw — it returns and reports its own state.
+            // Saying so here is the point: an unbound control renders identically and still answers
+            // getValue()/getSelection() with the value it was created with, so without this the
+            // only symptom is a user's input being quietly ignored at submit time.
+            if (control.attached === false) {
+                postConsoleAndNotification(
+                    MODULE.NAME,
+                    `Dialog: a control found nothing to bind to (input name "${control.inputName ?? 'unknown'}"). ` +
+                    'Its markup is probably missing from `content`. Read it with readFrom(element) rather than ' +
+                    'getValue()/getSelection(), which report the initial value when unbound.',
+                    '',
+                    false,
+                    false
+                );
+            }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Dialog: control attach failed', error, false, false);
         }

@@ -191,6 +191,34 @@ await blacksmith.inventory.transferCurrency({
 Amounts are **deltas to move, never absolute totals**. Denominations are `pp`, `gp`, `ep`, `sp`, `cp`, and
 each amount must be a non-negative integer.
 
+## setCurrency
+
+The one currency method that takes absolute values. No counterparty, no affordability check.
+
+```js
+await blacksmith.inventory.setCurrency({
+    targetActorUuid: shopUuid,
+    currency: { gp: 250 }
+});
+// { ok: true, currency: { gp: 250 }, previous: { gp: 40 } }
+```
+
+For a GM editing an Actor's own purse - stocking a shop's till, correcting a mistake - rather than for
+anything with two parties. `previous` reports what each named denomination held before the write, which is
+what a GM needs to undo it.
+
+**Only the denominations you name are written.** Omitting silver leaves silver alone; it is not zeroed.
+Zero is a meaningful value here, unlike in a delta, so `{ gp: 0 }` empties the gold.
+
+Use this rather than writing `system.currency` directly. A raw `actor.update()` takes no lock, so it can
+land between another operation's read and its write and be silently discarded - the settlement writes
+`stale + delta` over the top. Absolute values are safe here for the reason deltas exist elsewhere: the
+danger is a total computed from a stale read outside a lock, and a value the GM typed has no read to go
+stale.
+
+Like every primitive here it performs no permission check. Call it from a GM-authoritative handler after
+your own authorization has passed.
+
 **Denominations are never converted.** Moving 2 gp from a purse holding only 20 sp returns
 `INSUFFICIENT_CURRENCY`. Automatic exchange is a house rule, not a mechanic, and imposing one would make a
 primitive decide something that belongs to a table.
@@ -333,6 +361,33 @@ flag set is not applied to the row that already existed.
 
 `flags` and `ignoreFlags` compose rather than compete. Declaring the same key in both is correct: transient UI
 state is identity-irrelevant and arrival-relevant at the same time.
+
+## omitFlags
+
+Flag paths dropped from an arriving item before it is written. Available on `grantItem`, `grantItems`,
+`transferItem`, `transferItems`, and `exchange`, all at call level.
+
+```js
+await blacksmith.inventory.exchange({
+    transfers: [...],
+    omitFlags: ['coffee-pub-merchant.par']
+});
+```
+
+For state that describes where an item came from rather than what it is. A shop stamping shelf data on its
+stock leaks that data to every buyer, where it means nothing - the same shape as a container id naming a row
+the recipient does not have.
+
+Paths are removed before your `flags` are merged in, so naming the same path in both is coherent: the
+omission clears what rode along from the source and the addition writes what you meant to arrive.
+
+`omitFlags` and `ignoreFlags` are separate and often want to travel together. `omitFlags` changes the
+payload; `ignoreFlags` changes the merge comparison. An arrival stripped of a path still will not merge with
+a row on the target that carries it - which is exactly what rows created before you started omitting look
+like - so pass the path in both while those rows still exist.
+
+Only omit what you wrote. A flag another module owns may be identity-bearing to it, and stripping it makes
+that module's merges depend on which of you moved the item.
 
 ## registerTransientFlag
 

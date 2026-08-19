@@ -48,24 +48,34 @@ const giving = qty.getValue();
 | Member | Behavior |
 |---|---|
 | `html` | Markup to inject. A getter — reflects the current value each time it is read. |
-| `attach(root)` | Wire the input. `root` is any ancestor of the markup. Releases a previous binding first, so it is safe to call on every render, and it re-syncs the DOM to the controller's value. |
-| `getValue()` | The Give amount. |
-| `getKeep()` | The Keep amount. |
+| `attach(root)` | Wire the input. `root` is any ancestor of the markup. Releases a previous binding first, so it is safe to call on every render, and it re-syncs the DOM to the controller's value. Returns the controller; read `attached` for whether it worked. |
+| `attached` | `true` once `attach` has found its input, `false` once it has failed to, `null` before either. |
+| `readFrom(root)` | The Give amount read out of the DOM. Correct whether or not binding succeeded. |
+| `getValue()` | The Give amount as the controller understands it. Depends on `attach` having bound the input. |
+| `getKeep()` | The Keep amount. Same dependency as `getValue()`. |
 | `setValue(n)` | Set Give, clamped into range. Does not fire `onChange`. |
 | `destroy()` | Release the input listener. Idempotent. Call it from your window's `_onClose`. |
 | `min`, `max`, `inputName` | As resolved. |
 
-The value is always an integer within `[min, max]`, whatever a host passes or a user does — reading `getValue()` needs no defensive clamping.
+Both read paths return an integer within `[min, max]`, whatever a host passes or a user does, so neither needs defensive clamping.
 
-## Reading it without the controller
+## Reading the value: prefer readFrom
 
-The rendered input is a plain `<input type="range">` carrying `inputName`, so a host that prefers form APIs can read it directly:
+`getValue()` returns listener-maintained state, so it is only the user's answer if `attach` bound the input. An unbound control reports the value it was created with — a plausible number rather than an obviously wrong one, which is why this failure went unnoticed in two consuming modules until one of them measured it.
+
+`readFrom(root)` reads the input out of the DOM, so it is right either way. Reading and binding are separate concerns and only binding can fail: `attach` exists for live behavior — moving captions, `onChange` — while `readFrom` answers "what does the control say right now", which the DOM can always answer.
+
+```javascript
+const giving = qty.readFrom(root);
+```
+
+Use `readFrom` at submit time. `getValue()` remains correct and convenient inside an `onChange` handler or anywhere you already know the control is bound, and `attached` lets you check rather than assume.
+
+The rendered input is a plain `<input type="range">` carrying `inputName`, so a host already collecting a whole form at once can also read it directly, which is what `readFrom` does internally:
 
 ```javascript
 Number(root.elements['transfer-quantity'].value)
 ```
-
-`getValue()` is preferable — it is integer-clamped and does not depend on the DOM still being present — but the form path exists for hosts already collecting a whole form at once.
 
 ## Accessibility
 

@@ -487,9 +487,10 @@ function _canMerge(existing, incoming, ignoreFlags) {
  * @param {boolean} stackable
  * @param {object} flags
  * @param {string|null} [container=null] - Arrival container id on the TARGET Actor, or null for root.
+ * @param {string[]} [omitFlags=[]] - Flag paths dropped from the arrival, before `flags` is merged.
  * @returns {object}
  */
-function _buildPayload(item, quantity, stackable, flags, container = null) {
+function _buildPayload(item, quantity, stackable, flags, container = null, omitFlags = []) {
     const data = item.toObject();
     delete data._id;
     data.system = data.system ?? {};
@@ -498,6 +499,13 @@ function _buildPayload(item, quantity, stackable, flags, container = null) {
     // Always written, never inherited — see the note beside RESET_PATHS. The source's value
     // names a row on the SOURCE Actor and is meaningless on the target.
     data.system.container = container ?? null;
+    // Dropped BEFORE the caller's arrival flags are merged, so declaring a path in both is
+    // coherent: the omission clears what rode along from the source, the addition writes what was
+    // meant to arrive. Empty parents go too, or an item that never carried the scope and one that
+    // had it stripped would compare unequal and stop merging.
+    if (omitFlags?.length && data.flags) {
+        for (const path of omitFlags) _deletePathAndEmptyParents(data.flags, path);
+    }
     if (flags && Object.keys(flags).length) {
         data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags, { inplace: false });
     }
@@ -582,12 +590,20 @@ async function _rollbackGrant(targetActor, grant) {
 }
 
 /**
- * Normalise a currency delta object, rejecting anything that is not a positive integer amount
- * of a real denomination.
+ * Normalise a currency object, rejecting anything that is not a non-negative integer amount of a
+ * real denomination.
+ *
+ * `allowZero` separates the two readings of the same shape. For a DELTA, zero says nothing and a
+ * call carrying only zeroes has asked for no work, so it is refused rather than silently doing
+ * nothing. For an ABSOLUTE value, zero is a real instruction - an empty till - and dropping it
+ * would silently ignore the one write a GM most obviously means.
+ *
  * @param {object} currency
+ * @param {object} [options]
+ * @param {boolean} [options.allowZero=false] - Keep zeroes, and permit an all-zero object.
  * @returns {{deltas: object, error: object|null}}
  */
-function _normalizeCurrency(currency) {
+function _normalizeCurrency(currency, { allowZero = false } = {}) {
     if (!currency || typeof currency !== 'object') {
         return { deltas: {}, error: fail(CODES.INVALID_CURRENCY, { currency }) };
     }
@@ -600,10 +616,13 @@ function _normalizeCurrency(currency) {
         if (!Number.isInteger(amount) || amount < 0) {
             return { deltas: {}, error: fail(CODES.INVALID_CURRENCY, { denomination, amount: rawAmount }) };
         }
-        if (amount > 0) deltas[denomination] = amount;
+        if (amount > 0 || allowZero) deltas[denomination] = amount;
     }
     if (!Object.keys(deltas).length) {
-        return { deltas: {}, error: fail(CODES.INVALID_CURRENCY, { reason: 'no positive amounts' }) };
+        return {
+            deltas: {},
+            error: fail(CODES.INVALID_CURRENCY, { reason: allowZero ? 'no denominations given' : 'no positive amounts' })
+        };
     }
     return { deltas, error: null };
 }
@@ -626,11 +645,11 @@ function _normalizeCurrency(currency) {
  * @param {string} [options.container=null] - Container id on the target Actor. Null lands at root.
  * @returns {Promise<object>}
  */
-async function grantItem({ targetActorUuid, itemUuid, itemData, quantity, stack = 'merge', ignoreFlags = [], flags = {}, container = null } = {}) {
+async function grantItem({ targetActorUuid, itemUuid, itemData, quantity, stack = 'merge', ignoreFlags = [], flags = {}, container = null, omitFlags = [] } = {}) {
     const targetActor = await _resolveActor(targetActorUuid);
     if (!targetActor) return fail(CODES.TARGET_ACTOR_NOT_FOUND, { targetActorUuid });
 
-    const prepared = await _prepareGrant({ itemUuid, itemData, quantity, flags, container });
+    const prepared = await _prepareGrant({ itemUuid, itemData, quantity, flags, container, omitFlags });
     if (!prepared.ok) return prepared;
 
     const { release, contended } = await _acquire([targetActor.uuid]);
@@ -807,7 +826,7 @@ async function _rollbackBatch(targetActor, undo) {
  * @param {string} [options.container=null] - Default arrival container for every entry.
  * @returns {Promise<object>} { ok, results: [] }
  */
-async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignoreFlags = [], container = null } = {}) {
+async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignoreFlags = [], container = null, omitFlags = [] } = {}) {
     const targetActor = await _resolveActor(targetActorUuid);
     if (!targetActor) return fail(CODES.TARGET_ACTOR_NOT_FOUND, { targetActorUuid });
     if (!Array.isArray(items) || !items.length) return fail(CODES.ITEM_NOT_FOUND, { reason: 'items must be a non-empty array' });
@@ -824,7 +843,8 @@ async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignore
             itemData: entry?.itemData,
             quantity: entry?.quantity,
             flags: entry?.flags ?? {},
-            container: entryContainer
+            container: entryContainer,
+            omitFlags
         }));
     }
 
@@ -860,7 +880,7 @@ async function grantItems({ targetActorUuid, items = [], stack = 'merge', ignore
  * @param {object} options
  * @returns {Promise<object>} { ok: true, payload, quantity, arrivalFlags } or a failure result.
  */
-async function _prepareGrant({ itemUuid, itemData, quantity, flags, container = null }) {
+async function _prepareGrant({ itemUuid, itemData, quantity, flags, container = null, omitFlags = [] }) {
     let item = null;
     if (itemUuid) {
         try {
@@ -880,7 +900,7 @@ async function _prepareGrant({ itemUuid, itemData, quantity, flags, container = 
         const resolved = _resolveQuantity(item, quantity, { drawsDown: false });
         if (resolved.error) return resolved.error;
 
-        const payload = _buildPayload(item, resolved.quantity, resolved.stackable, flags, container);
+        const payload = _buildPayload(item, resolved.quantity, resolved.stackable, flags, container, omitFlags);
         // A compendium document keeps its provenance, which the hand-rolled paths lose. This
         // cannot split a stack: the merge predicate only blocks when BOTH sides know their
         // origin and the origins disagree.
@@ -908,6 +928,9 @@ async function _prepareGrant({ itemUuid, itemData, quantity, flags, container = 
     // Same rule as the resolved-document branch: containment is written, never carried over.
     // Constructed data is the likelier place for a stale id, not the safer one.
     data.system.container = container ?? null;
+    if (omitFlags?.length && data.flags) {
+        for (const path of omitFlags) _deletePathAndEmptyParents(data.flags, path);
+    }
     if (flags && Object.keys(flags).length) {
         data.flags = foundry.utils.mergeObject(data.flags ?? {}, flags, { inplace: false });
     }
@@ -931,7 +954,7 @@ async function _prepareGrant({ itemUuid, itemData, quantity, flags, container = 
  * @param {string} [options.container=null] - Container id on the target Actor. Null lands at root.
  * @returns {Promise<object>}
  */
-async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity, stack = 'merge', ignoreFlags = [], flags = {}, container = null } = {}) {
+async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity, stack = 'merge', ignoreFlags = [], flags = {}, container = null, omitFlags = [] } = {}) {
     const sourceActor = await _resolveActor(sourceActorUuid);
     if (!sourceActor) return fail(CODES.SOURCE_ACTOR_NOT_FOUND, { sourceActorUuid });
     const targetActor = await _resolveActor(targetActorUuid);
@@ -955,7 +978,7 @@ async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity
         const containerError = await _validateContainer(targetActor, container);
         if (containerError) return containerError;
 
-        const payload = _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags, container);
+        const payload = _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags, container, omitFlags);
 
         let grant;
         try {
@@ -1015,7 +1038,7 @@ async function transferItem({ sourceActorUuid, targetActorUuid, itemId, quantity
  * @param {string} [options.container=null] - Default arrival container on the target Actor.
  * @returns {Promise<object>} { ok, results: [] }
  */
-async function transferItems({ sourceActorUuid, targetActorUuid, items = [], stack = 'merge', ignoreFlags = [], container = null } = {}) {
+async function transferItems({ sourceActorUuid, targetActorUuid, items = [], stack = 'merge', ignoreFlags = [], container = null, omitFlags = [] } = {}) {
     const sourceActor = await _resolveActor(sourceActorUuid);
     if (!sourceActor) return fail(CODES.SOURCE_ACTOR_NOT_FOUND, { sourceActorUuid });
     const targetActor = await _resolveActor(targetActorUuid);
@@ -1071,7 +1094,7 @@ async function transferItems({ sourceActorUuid, targetActorUuid, items = [], sta
             const flags = request?.flags ?? {};
             prepared[index] = {
                 ok: true,
-                payload: _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags, containers[index]),
+                payload: _buildPayload(sourceItem, resolved.quantity, resolved.stackable, flags, containers[index], omitFlags),
                 quantity: resolved.quantity,
                 arrivalFlags: flags
             };
@@ -1174,7 +1197,7 @@ async function transferItems({ sourceActorUuid, targetActorUuid, items = [], sta
  * @param {string[]} [options.ignoreFlags=[]]
  * @returns {Promise<object>} `{ ok: true, results: [] }`, or a single failure describing the leg.
  */
-async function exchange({ transfers = [], stack = 'merge', ignoreFlags = [] } = {}) {
+async function exchange({ transfers = [], stack = 'merge', ignoreFlags = [], omitFlags = [] } = {}) {
     if (!Array.isArray(transfers) || !transfers.length) {
         return fail(CODES.EXCHANGE_EMPTY, { reason: 'transfers must be a non-empty array' });
     }
@@ -1281,7 +1304,7 @@ async function exchange({ transfers = [], stack = 'merge', ignoreFlags = [] } = 
                 arrivals.get(toActor.uuid).push({
                     prepared: {
                         ok: true,
-                        payload: _buildPayload(sourceItem, quantity, stackable, flags, container),
+                        payload: _buildPayload(sourceItem, quantity, stackable, flags, container, omitFlags),
                         quantity,
                         arrivalFlags: flags,
                         container
@@ -1493,6 +1516,58 @@ async function grantCurrency({ targetActorUuid, currency } = {}) {
 }
 
 /**
+ * Write an Actor's purse to absolute values. No counterparty, no affordability check.
+ *
+ * This is the one currency method that is not a delta, and the distinction is narrower than it
+ * looks. Deltas exist because a total computed from a stale read OUTSIDE a lock races: two clients
+ * both read 100, both write 100 plus their own change, and one change is lost. A GM typing 250
+ * means 250 - there is no read to go stale - so taking the lock and writing it is consistent with
+ * that rule rather than an exception to it.
+ *
+ * It exists because the alternative is a raw `actor.update()`, which takes no lock at all. Since
+ * `exchange` shipped, an NPC purse can be read under a lock and written a moment later, so an
+ * unlocked edit landing in between is silently discarded: the settlement writes `stale + delta`
+ * over it. A GM adjusting a till mid-session is exactly when that happens, and nothing reports it.
+ *
+ * ONLY the denominations named are written. Omitted ones are left alone rather than zeroed, because
+ * the destructive reading of a partial object would be both surprising and unrecoverable.
+ *
+ * No permission check, like every primitive here - call it from a GM-authoritative handler after
+ * your own authorization has passed.
+ *
+ * @param {object} options
+ * @param {string} options.targetActorUuid
+ * @param {object} options.currency - Absolute values, e.g. `{ gp: 250 }`. Zero is meaningful.
+ * @returns {Promise<object>} `{ ok: true, currency, previous }` - `previous` holds what each named
+ *   denomination read before the write, which is what a GM needs to undo it.
+ */
+async function setCurrency({ targetActorUuid, currency } = {}) {
+    const targetActor = await _resolveActor(targetActorUuid);
+    if (!targetActor) return fail(CODES.TARGET_ACTOR_NOT_FOUND, { targetActorUuid });
+
+    const { deltas: values, error } = _normalizeCurrency(currency, { allowZero: true });
+    if (error) return error;
+
+    const { release, contended } = await _acquire([targetActor.uuid]);
+    if (contended) return fail(CODES.LOCK_TIMEOUT, { actorUuid: contended, waitedMs: LOCK_TIMEOUT_MS });
+    try {
+        const update = {};
+        const previous = {};
+        for (const [denomination, amount] of Object.entries(values)) {
+            previous[denomination] = Number(targetActor._source?.system?.currency?.[denomination] ?? 0);
+            update[`system.currency.${denomination}`] = amount;
+        }
+        await targetActor.update(update);
+        return { ok: true, currency: values, previous };
+    } catch (err) {
+        postConsoleAndNotification(MODULE.NAME, 'Inventory: setCurrency failed', err, false, false);
+        return fail(CODES.TARGET_CREATE_FAILED, { message: err?.message });
+    } finally {
+        release();
+    }
+}
+
+/**
  * Move coins between two Actors.
  *
  * Denominations are never converted. Paying 2 gp from a purse holding only 20 sp fails rather
@@ -1589,6 +1664,7 @@ const InventoryAPI = {
     grantItem,
     grantItems,
     grantCurrency,
+    setCurrency,
     transferItem,
     transferItems,
     transferCurrency,
@@ -1598,4 +1674,4 @@ const InventoryAPI = {
     DENOMINATIONS
 };
 
-export { InventoryAPI, registerTransientFlag, getTransientFlags, grantItem, grantItems, grantCurrency, transferItem, transferItems, transferCurrency, exchange };
+export { InventoryAPI, registerTransientFlag, getTransientFlags, grantItem, grantItems, grantCurrency, setCurrency, transferItem, transferItems, transferCurrency, exchange };

@@ -73,15 +73,32 @@ Unrecognized keys are preserved: `getSelection()` returns your original objects,
 | Member | Behavior |
 |---|---|
 | `html` | Markup to inject. A getter — reflects the current selection each time it is read. |
-| `attach(root)` | Wire change events. `root` is any ancestor of the markup. Releases a previous binding first, so it is safe to call on every render. |
-| `getSelection()` | Selected entities, as the descriptors you passed in. |
-| `getSelectedIds()` | Selected ids only. |
+| `attach(root)` | Wire change events. `root` is any ancestor of the markup. Releases a previous binding first, so it is safe to call on every render. Returns the controller; read `attached` for whether it worked. |
+| `attached` | `true` once `attach` has found rows to read, `false` once it has not, `null` before either. |
+| `readFrom(root)` | Selected entities read out of the DOM. Correct whether or not binding succeeded. |
+| `readIdsFrom(root)` | The same, ids only. |
+| `getSelection()` | Selected entities, as the descriptors you passed in. Depends on `attach` having bound a root. |
+| `getSelectedIds()` | Selected ids only. Same dependency as `getSelection()`. |
 | `setSelection(ids)` | Set the selection. Disabled entities are ignored; single mode keeps the first. |
 | `destroy()` | Release the change listener. Idempotent. Call it from your window's `_onClose`. |
 | `entities` | The entities actually rendered, after `filter`. |
 | `mode`, `inputName` | As resolved. |
 
 A disabled entity can never be selected, including through `selected` or `setSelection` — otherwise a host could read back a selection the user cannot clear.
+
+## Reading the selection: prefer readFrom
+
+`getSelection()` reads the rendered inputs once `attach` has bound a root. Without one it returns the selection the list was **created** with, which is indistinguishable from the user having chosen it. That is the trap: a host that never attached, or whose attach silently found nothing, gets back what it passed in and cannot tell.
+
+`readFrom(root)` takes the root explicitly and reads the DOM, so it is right either way, and it never substitutes the initial selection - a container with no rows reports nothing selected, which is the truth.
+
+```javascript
+const [chosen] = list.readFrom(root);
+```
+
+Use `readFrom` at submit time. `getSelection()` remains correct and convenient inside an `onSelectionChange` handler or anywhere the list is known to be bound, and `attached` lets you check rather than assume.
+
+Reading and binding are separate concerns and only binding can fail. `attach` exists for live behavior; reading the DOM does not need it.
 
 ## Providers
 
