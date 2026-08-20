@@ -124,6 +124,33 @@ The `test*` members on the API (`testMenubarAPI`, `testNotificationSystem`, and 
 | `clearPartyFromCanvas` | `() => Promise<number>` | Removes party tokens from the current scene and returns how many went. GM only, same shape as above. |
 | `isCurrentUserPartyLeader` | `() => boolean` | True when the stored party leader is this user, or this user owns the leader's character. This is the predicate behind `leaderOnly: true` in the menubar registration API; use it to gate a control the same way the menubar does, rather than reading the `partyLeader` setting. |
 
+## Party reputation
+
+Reputation is a number from -100 to +100, stored **per scene** in the world setting `blacksmithPartyData`
+under `scenes[sceneId].reputation`. `resources/reputation.json` divides that range into eleven named bands
+with a label and a description.
+
+Blacksmith owns the score and the bands. It does not own what the score *means* for a consumer's mechanics --
+prices, attitude checks, what information an NPC will part with. A consumer reads the value and applies its
+own policy.
+
+| Member | Signature | Notes |
+|---|---|---|
+| `getPartyReputation` | `(scene?) => number` | The value for a scene. Returns 0 when there is no scene or nothing stored. |
+| `setPartyReputation` | `(value, scene?) => Promise<boolean>` | Clamped to -100..+100. GM only; returns `false` for a non-GM or no scene. |
+| `getReputationScaleEntry` | `(value) => Promise<{key, label, min, max, description, effects?}\|null>` | The band containing a value. |
+| `postCurrentReputationCard` | `() => Promise<void>` | Posts a Current Reputation chat card: scene, value, band label and description. |
+| `postNewReputationCard` | `(change, previousValue, newValue) => Promise<void>` | Posts a New Reputation card. Call after changing the value. |
+
+Two properties worth knowing before building on these:
+
+- **`getPartyReputation` defaults to the reading client's canvas scene.** A window opened against a token must
+  pass that token's scene explicitly, or a GM standing on another map reads a different value than the players
+  standing in the scene the window is about.
+- **`getReputationScaleEntry` is asynchronous** because the first call fetches the JSON; the parsed file is
+  cached for the session after that. Resolve the band once per render rather than once per row when pricing or
+  labelling a list.
+
 `blacksmith.partyReputationChanged` fires on **every** client whenever party reputation changes,
 carrying `{ sceneId, reputation }`. It is emitted from Foundry's `updateSetting`, not from
 `setPartyReputation`, so it arrives however the value was changed and on every client rather than only

@@ -220,12 +220,11 @@ class MenuBar {
         this._registerSessionTimerSettingsHook();
 
         // When the canvas becomes ready (including after scene switch), refresh menubar so tool visibility
-        // (e.g. combat bar when combat is active) and party bar data (reputation, health) reflect the new scene.
-        // If the combat bar is open but the new scene has no active combat, close the combat bar.
+        // (e.g. combat bar when combat is active) reflects the new scene.
         HookManager.registerHook({
             name: 'canvasReady',
-            description: 'MenuBar: Refresh menubar when scene changes so combat bar and party bar update',
-            context: 'menubar-party-bar-scene-change',
+            description: 'MenuBar: Refresh menubar when scene changes so the combat bar updates',
+            context: 'menubar-scene-change',
             priority: 3,
             callback: () => {
                 if (this.secondaryBar?.isOpen && this.secondaryBar?.type === 'combat') {

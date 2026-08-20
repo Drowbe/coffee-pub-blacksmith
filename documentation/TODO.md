@@ -787,7 +787,7 @@ Ordered by value against risk:
 Worth doing now rather than later: real-time stats are going into the combat bar's middle zone, so the
 readout vocabulary is about to get considerably more use and the cost of it being second-class compounds
 from here. Update `documentation/api/api-menubar.md` with whatever surface (2) and (3) add. Verify: the
-party bar and the combat bar both render readouts correctly with no bar-local appearance overrides left.
+combat bar renders readouts correctly with no bar-local appearance overrides left.
 
 ## Contributed actions by subject (menubar routing)
 
@@ -1317,7 +1317,7 @@ These were section 15 ("Known Inconsistencies") of `design-system.md`. That sect
 The Health Indicators system (Blood Damage pools, Blood Hit bursts with damage/attack triggers and sound, cleanup timer, visibility gating, Remove/Restore All Blood toolbar buttons) shipped in `CHANGELOG.md` [13.11.0]; each entry there carries its own live-verification steps. Open:
 - **Finish the live-verification pass**: core flows (pools per tier, bursts on both triggers, attack-mode fix, player-client rendering) were exercised during development on 2026-07-22; still unverified: GM Only visibility on a player client, the Blood Cleanup slider, Remove/Restore All Blood across two clients, the hit sound, unlinked NPCs at every tier, and the perf-monitor idle check. Steps are in the [13.11.0] entries. When this passes, dismantle `documentation/plans/plan-token-blood.md` per the plans rule.
 - **Optional authored splatter art**: replace or augment the procedural texture with bundled webp splatter assets — a drop-in swap at the texture-build step in `manager-token-indicators.js`; tiers, seeding, placement, and visibility all stay as-is.
-- **Rewire the combat bar and party bar onto `utility-health.js`** so the HP-percent math has one home (both currently compute it independently; the helper's 'hurt' tier maps to their "healthy" bucket — see the helper's JSDoc).
+- **Rewire the combat bar onto `utility-health.js`** so the HP-percent math has one home (it currently computes its own; the helper's 'hurt' tier maps to its "healthy" bucket — see the helper's JSDoc).
 
 Next round (author, 2026-07-22). Note the shared design question for the first and last items: today all blood is *derived* from HP and redrawn from scratch — nothing is stored. Hand-drawn blood and trails left behind by movement are real data that must live somewhere (scene flags, most likely) with their own cleanup story, which is a genuine design shift, not another tier row:
 - **Draw blood on the canvas**: a GM paint tool to stamp splatter directly on the ground (click or click-drag), independent of any token's HP. Decide persistence (scene-flag storage vs session-only), whether Remove All Blood clears it, and whether it reuses the procedural drawer at a chosen size.
@@ -1327,7 +1327,7 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
 - **Blood trails on movement**: optionally leave some blood behind when a wounded token moves — droplets along the drag path, heavier at worse tiers. Interacts with the persistence question above and with Blood Cleanup (trails likely want their own, shorter lifetime).
 - **Investigation (2026-07-22) — most of the plumbing already exists; LOE ~1 focused day for v1 plus art**:
   - `scripts/manager-token-indicators.js` already runs per-token PIXI overlays on `canvas.interface` (turn indicator, targeted rings, portrait stacks via `PIXI.Sprite.from`) with movement tracking, delete cleanup, `canvasReady` refresh, and HookManager wiring. Blood is one more indicator type in that framework, not a new system.
-  - HP % and the exact severity steps are already computed in `manager-combatbar.js:536-566` (healthy >=75 / injured >=50 / bloodied >=25 / critical), with a cross-system HP path watch list at `:652-663`; the party bar computes health independently again. First step: extract a shared `getHealthPercent(actor)` + severity helper so blood is the third consumer, not the third copy.
+  - HP % and the exact severity steps are already computed in `manager-combatbar.js:536-566` (healthy >=75 / injured >=50 / bloodied >=25 / critical), with a cross-system HP path watch list at `:652-663`. First step: extract a shared `getHealthPercent(actor)` + severity helper so blood is the second consumer rather than another copy.
   - Quick View's hatch (`utility-quickview.js:542-568`) proves the token-conforming overlay pattern (scaled to `token.w/h`, rotation-aware, non-interactive); `images/overlays/overlay-pattern-*.webp` establishes the bundled overlay-texture pattern.
   - Genuinely new: 3-4 alpha webp splatter textures (or one greyscale splatter tinted/scaled per tier); an `updateActor` hook alongside the existing `updateToken` one (linked actors vs unlinked-token actor deltas both need live testing); an enable setting plus a visibility-scope setting (everyone / GM-only / own-tokens-plus-GM — blood on canvas broadcasts enemy HP state to players, the one real design decision). Phase 2: damage-taken flash reusing the manager's existing PIXI animation pattern. No sockets — each client derives the overlay from actor data it already has; no per-frame work, so §9B-clean by construction.
 - **Ownership (resolved by the investigation): Blacksmith.** This is canvas indicator UX driven by HP data, both of which live here; it does not need the rolls-classification event surface (it reacts to HP deltas, not crits). Injury *mechanics* stay in the sibling module.
@@ -1399,12 +1399,11 @@ Next round (author, 2026-07-22). Note the shared design question for the first a
   4. Migrate `pinTagRegistry` world setting → `flagRegistry` (shim already seeds on first run)
 - **Priority**: Medium – Core system working; remaining work is pins storage migration
 
-#### Menubar API: Move party tool code out of api-menubar.js
-- **Issue**: Party bar registration, party tools (Deployment Pattern, Deploy Party, Vote, Statistics, Experience, Clear Party), party health progressbar, and party-bar refresh logic live in `api-menubar.js`, making that file a mix of API and experience code.
-- **Status**: PENDING
-- **Location**: `scripts/api-menubar.js` (party tool registration, `_registerPartyTools`, `_refreshPartyBarInfo`, canvasReady hook for party bar), move to a dedicated module (e.g. `scripts/manager-party-bar.js` or similar).
-- **Need**: Move all party-specific registration and refresh logic into a manager that uses the public menubar API (`registerMenubarTool`, `registerSecondaryBarItem`, `updateSecondaryBarItemInfo`, etc.). Keep `api-menubar.js` pure API only (registration surface, render, click/context handlers, no built-in party/encounter/combat content). Invoke the party-bar manager from `blacksmith.js` or a central init path after MenuBar is ready.
-- **Priority**: Medium – Keeps api-menubar.js pure and aligns with reputation/combat bar pattern (managers own experience, API owns surface).
+#### Menubar API: Move built-in tool registration out of api-menubar.js
+- **Issue**: `api-menubar.js` is both the registration surface and a registrar of Blacksmith's own tools, so the file mixes API with content.
+- **Status**: PENDING — **much smaller than it was.** The party bar is gone (`api-menubar.js:410` records where its contents went), and with it the six party tools, the party health progressbar, and the refresh logic this item was originally about. What is left is three registrations: `leader-section` (`:431`), `movement` (`:460`), and `timer-section` (`:487`).
+- **Need**: Move those three into a manager that calls the public API (`registerMenubarTool`), leaving `api-menubar.js` as registration surface, render, and click/context handling only.
+- **Priority**: Low – three registrations, and the file is no longer the mix it was.
 
 #### Toolbar Phase 4: Testing & Validation (architecture-toolbarmanager)
 - **Issue**: Toolbar Phases 1–3 are done; Phase 4 (testing and validation) remains.

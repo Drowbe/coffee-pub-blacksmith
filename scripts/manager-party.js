@@ -1,8 +1,9 @@
 // ==================================================================
-// ===== MANAGER-PARTY – party health, party bar data, shared party logic
+// ===== MANAGER-PARTY – party health and shared party logic
 // ==================================================================
-// Used by party secondary bar (menubar) and any feature that needs
-// party-level aggregates (e.g. total HP for a progressbar).
+// Party-level aggregates for any feature that needs them. Exposed on
+// module.api as getPartyHealthSummary / getPartyActorHp, which is how
+// consuming modules read them now that the party bar is gone.
 // ==================================================================
 
 import { MODULE } from './const.js';

@@ -25,7 +25,7 @@ painted over the token art.
 - **Tiers** (match the combat bar's classification in `manager-combatbar.js`): >=75% none; 50–74%
   light; 25–49% medium; 1–24% heavy; 0 HP dead (heaviest pool, darker). HP % comes from a new shared
   helper `scripts/utility-health.js` (`getHealthPercent`, `getHealthSeverity`) so blood is a consumer of
-  the same math the combat bar uses, not a fourth copy. Rewiring the combat/party bars onto the helper is
+  the same math the combat bar uses, not another copy. Rewiring the combat bar onto the helper is
   a follow-up, not part of v1.
 - **Settings** (world scope, registered with the other token-indicator settings): `tokenBloodEnabled`
   (default on) and `tokenBloodVisibility` (`everyone` | `gmOnly`, default `everyone`). Both are also
