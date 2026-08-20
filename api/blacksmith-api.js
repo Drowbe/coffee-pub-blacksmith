@@ -34,6 +34,11 @@
 // copy with its own statics.
 //
 // `module.api` remains correct for everything resolved after `init`.
+//
+// Importing this pulls in `scripts/const.js`, which does a top-level `await
+// fetch(module.json)`. Foundry awaits module script evaluation before `init`
+// fires, and Blacksmith's own graph already pays that cost once, so a consumer
+// inherits no new delay -- but the import is not free of a round trip.
 
 export { BlacksmithWindowBaseV2 } from '../scripts/window-base.js';
 export {

@@ -21,17 +21,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`showInSwitcher` on a JSON import kind** (`scripts/registry-json-import.js`). Set `false` to keep a kind out of the import window's importer dropdown. Every registered kind previously appeared there unconditionally, so a consuming module's importer would surface in the list a GM sees from the Item directory whether or not that was wanted. Defaults to true, so the four built-in kinds are unaffected.
 
+- **Window base classes re-exported from `api/blacksmith-api.js`** (`api/blacksmith-api.js`). `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, and the three style-constant objects are now importable from the public bridge, so `class MyWindow extends BlacksmithWindowBaseV2` works in a consuming module.
+
+  `module.api` could never serve this and the documentation said it could. A class body is evaluated when the module script is, and `game` does not exist then -- a top-level `game.modules.get('coffee-pub-blacksmith')` throws `Cannot read properties of undefined (reading 'get')`, and ES modules cache a failed evaluation, so the throw takes the consuming module down for the entire session rather than being retried. Merchant followed the advice and broke a live world.
+
+  All three consumers had already worked around it privately and differently -- Squire dynamically imports the window module at the point of use (`panel-control.js:499`, with a comment describing this exact failure), Curator imports three `scripts/` paths directly. The bridge is a real ES module, resolves at evaluation time, and resolves to the same URL Blacksmith's own imports use, so a subclass extends the same class object rather than a second copy with its own statics.
+
 ### Changed
 
 - **Tag taxonomy: the codex, quest, and objective contexts move to Librarian** (`resources/tag-taxonomy.json`). Those three domains left Squire in Librarian 13.0.0, so `coffee-pub-squire.codex`, `.quest`, and `.objective` are now `coffee-pub-librarian.*`. Pins already writes assignments under those exact keys -- `_mirrorTagsForPin` (`manager-pins.js:593`) stores under `${pin.moduleId}.${pin.type}` and Librarian's pin types are `quest`, `objective`, and `codex` -- so the taxonomy now supplies vocabulary for keys that were already live, and a pin and an entry in the same domain share one suggestion list.
 
   Nothing needed migrating: no module in the suite calls `api.tags` at all, so the old keys held no assignments.
 
+- **`merchantModifier` removed from the reputation scale** (`resources/reputation.json`). The field was `null` in ten of eleven bands and `0` in the eleventh, and nothing read it. Blacksmith owns the reputation *score*; what a shop charges because of it is the shop's judgment, so a consumer reads `getPartyReputation()` and `getReputationScaleEntry()` and sets its own markups.
+
+  It was removed rather than filled because an unfilled field is worse than an absent one: it implies Blacksmith intends to own the decision, and its unit could not be inferred -- read as a multiplier, the neutral band's `0` prices every item at nothing. The ownership rule this is a worked example of is in `documentation/architecture/architecture-ownership.md`. `npcAttitude` and `infoAccess` are equally unread and remain in place.
+
 - **`coffee-pub-squire.note` removed** (`resources/tag-taxonomy.json`). Notes moved into Blacksmith, and `manager-notes.js:90` sets the context to `coffee-pub-blacksmith.note`, which the taxonomy has declared separately all along. The Squire entry was the pre-move vocabulary (`party`, `personal`, `location`, `backstory`, `sticky`) and nothing read it.
 
 ### Fixed
 
 - **`documentation/api/api-importer.md` described a namespace that did not exist**. It opened with an `api.importer` access example calling `await blacksmith.waitForReady()` -- there is no `waitForReady` on the API root, only on `api.sockets` -- and then specified eight methods, none of them implemented. The shipped registry surface is now documented first, and the proposed contract is fenced off under a heading that says it is not implemented.
+
+- **`api-window.md` and `design-extending.md` told consumers to resolve a base class from `module.api` at module top level**, which cannot work and cost two modules real debugging time. Both now show the import from `api/blacksmith-api.js`, and the timing section says plainly that anything needed at evaluation time must come from an importable module. The trap is recorded in `architecture-blacksmith.md` §9A.
+
+- **`api-window.md` did not document what `openFor` does when a render throws** (`documentation/api/api-window.md`). It deletes the registry entry and rethrows. Merchant's hand-rolled equivalent cleared its map only in `_onClose`, so a window whose first render threw stayed registered and every later open focused an instance that had never opened -- unopenable until the page reloaded, and unreproducible because a static map dies with the page. Documented as behavior so the next consumer to write their own can compare.
+
+- **`design-patterns.md` claimed `styles/widget-tags.css` was inert** (`documentation/design-system/design-patterns.md`). It was fixed on 2026-08-16 -- `default.css:120` imports it -- and the sentence outlived the fix. It now points at `tools/check-styles-loaded.mjs`, which verifies the claim rather than asserting it.
 
 - **Stale comment in `tools/check-styles-loaded.mjs`**. Its header said `tag-widget.hbs` "rendered live" when `widget-tags.css` was found unreachable. The partial is registered (`widget-tags.js:165`) but no template in the repo embeds it, so nothing rendered; the comment implied a consumer that has never existed.
 

@@ -7,7 +7,6 @@
         "max": -81,
         "description": "The party is considered enemies. Most people refuse service, guards may arrest or attack, and information is hidden or deliberately falsified.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "hostile",
           "infoAccess": "blocked"
         }
@@ -19,7 +18,6 @@
         "max": -61,
         "description": "The party is openly condemned. Many refuse to interact, rumors spread quickly, and authorities monitor their actions closely.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "very_negative",
           "infoAccess": "minimal"
         }
@@ -31,7 +29,6 @@
         "max": -41,
         "description": "Most people distrust the party. Information is withheld, merchants raise prices significantly, and NPCs assume bad intent.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "negative",
           "infoAccess": "limited"
         }
@@ -43,7 +40,6 @@
         "max": -21,
         "description": "NPCs are cautious around the party. Deals are worse than normal, secrets are not shared, and interactions begin with suspicion.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "wary",
           "infoAccess": "restricted"
         }
@@ -55,7 +51,6 @@
         "max": -1,
         "description": "People are wary and guarded. Conversations are hesitant, merchants may charge slightly more, and cooperation is limited.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "uneasy",
           "infoAccess": "normal"
         }
@@ -67,7 +62,6 @@
         "max": 0,
         "description": "The party is unknown or unremarkable. Interactions are normal and prices are standard.",
         "effects": {
-          "merchantModifier": 0,
           "npcAttitude": "neutral",
           "infoAccess": "normal"
         }
@@ -79,7 +73,6 @@
         "max": 20,
         "description": "The party has a small reputation. Some NPCs recognize them and conversations start more warmly.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "friendly",
           "infoAccess": "normal"
         }
@@ -91,7 +84,6 @@
         "max": 40,
         "description": "People trust the party's intentions. Merchants may offer modest discounts and NPCs share information more freely.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "respectful",
           "infoAccess": "improved"
         }
@@ -103,7 +95,6 @@
         "max": 60,
         "description": "The party has proven themselves. NPCs cooperate readily and valuable rumors or opportunities become available.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "supportive",
           "infoAccess": "high"
         }
@@ -115,7 +106,6 @@
         "max": 80,
         "description": "The party is widely admired. Many offer assistance, share secrets, or provide support without payment.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "devoted",
           "infoAccess": "very_high"
         }
@@ -127,7 +117,6 @@
         "max": 100,
         "description": "The party's deeds are widely known. Leaders grant audiences, powerful allies emerge, and aid may be offered freely.",
         "effects": {
-          "merchantModifier": null,
           "npcAttitude": "heroic",
           "infoAccess": "maximum"
         }

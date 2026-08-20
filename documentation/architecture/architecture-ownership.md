@@ -111,6 +111,10 @@ Register a callback when a consumer needs to *ask a question* (what type is this
 
 **Ad-hoc timed marker** ("dropped weapon, 3 rounds") — a named ActiveEffect with `duration: {rounds: N}`. No content, no opinion, pure plumbing over a core Foundry primitive. → **Blacksmith**, next to the conditions grid.
 
+**Reputation, and what a merchant charges because of it** — the score is a number per scene with a band and a label, and everyone agrees what it means. → **Blacksmith.** What that score does to a price is a judgment about a shop's economy, and it belongs to whoever runs the shop → **out of Blacksmith.** The split is the whole point: a consumer reads `getPartyReputation()` and `getReputationScaleEntry()` and sets its own markups. `reputation.json` therefore carries labels, descriptions, and bands, and no pricing.
+
+This one had a half-answer in the file for a while — a `merchantModifier` field, null in ten of eleven bands and `0` in the eleventh — which was worse than having nothing. A consumer cannot tell a delta from a multiplier by looking at it (read as a multiplier, `0` means every item is free), and a field Blacksmith publishes but does not fill implies Blacksmith intends to own it. **Publish nothing, or publish something you fill and use.** An unfilled field is a claim on someone else's decision.
+
 ---
 
 ## Anti-patterns
