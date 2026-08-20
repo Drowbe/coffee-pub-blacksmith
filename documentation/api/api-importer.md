@@ -2,13 +2,57 @@
 
 **Audience:** Module authors and tools that want Blacksmith to describe, validate, or import supported content.
 
-**Status:** Proposed contract. This namespace is not yet guaranteed on `game.modules.get('coffee-pub-blacksmith').api`. It documents the target surface so UI and implementation work converge on one integration model.
+**Scope:** `api.importer` exposes the JSON import registry: a consuming module registers a kind, supplies validate and import callbacks, and gets Blacksmith's import window. Everything from "Goals" onward is a proposed contract that is not implemented.
 
 **Architecture:** See `../architecture/architecture-importer.md`.
 
-## Goals
+## The registry surface
 
-The Importer API lets another tool:
+This is the part that ships. Reach it through `module.api`:
+
+```javascript
+const importer = game.modules.get('coffee-pub-blacksmith')?.api?.importer;
+if (!importer?.registerKind) return;   // older Blacksmith
+```
+
+Register during your module's `ready`. There is no `waitForReady()` on the API root -- only on
+`api.sockets` -- so feature-detect the method you need instead of awaiting readiness.
+
+| Method | Behavior |
+|---|---|
+| `registerKind(kind)` | Registers a kind descriptor. Throws if `kind.id` is missing or blank. |
+| `getKind(kindId)` | Returns the registered descriptor, or `undefined`. |
+| `openWindow(kindId)` | Opens the import window for a registered kind. Throws on an unknown id. |
+| `parsePayload(jsonDataRaw)` | Parses a JSON string, object, or array into an array of entries. Throws with a fence hint on malformed input. |
+| `attachButton(html, kindId)` | Inserts an Import button into a directory sidebar or compatible header. Respects `gmOnly`. |
+
+The kind descriptor is typed as `JsonImportKind` in `scripts/registry-json-import.js:12`. The two callbacks
+that matter to a consumer:
+
+- `onValidateEntry(entry)` — check one entry and return the converted data, or throw. No documents are created.
+- `onImportEntry(entry)` — create the document for one entry and return it.
+
+Blacksmith calls both per entry and builds the result envelope; the caller owns document construction, so a
+consuming module's schema never enters Blacksmith.
+
+Two descriptor fields govern how a kind presents itself:
+
+- `onProfileName(entry)` — which field on an entry names its profile. Defaults to `entry.type`.
+- `showInSwitcher` — set `false` to keep the kind out of the import window's importer dropdown. Defaults to true,
+  so a registered kind appears alongside Journal, Actor, Item, and Roll Table.
+
+Prompt authoring fields (`templateOptions`, `promptCheckboxes`, `promptFields`, `onBuildPrompt`,
+`onBuildJsonTemplate`, `onBuildAuthoringGuide`) are all optional. A kind that omits them gets the paste-and-import
+window without the prompt-builder tab.
+
+## Proposed contract
+
+Nothing from here to the end of the document is implemented. It describes a target surface so that UI and
+implementation work converge on one integration model.
+
+### Goals
+
+The Importer API would let another tool:
 
 - Discover supported kinds, profiles, and options.
 - Request a clean JSON template.
@@ -19,24 +63,10 @@ The Importer API lets another tool:
 
 Blacksmith owns schema compatibility and Foundry document construction. Callers own how they collect intent and how JSON is authored.
 
-## Access
+### Access
 
-Target namespace:
-
-```javascript
-const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
-await blacksmith.waitForReady();
-const importer = blacksmith.importer;
-```
-
-Callers must feature-detect the namespace and method they need:
-
-```javascript
-if (!importer?.getCapabilities) {
-  ui.notifications.warn('This Blacksmith version does not expose the Importer API.');
-  return;
-}
-```
+The proposed methods would live on the same `api.importer` namespace as the registry surface above. Callers
+feature-detect the method they need.
 
 ## Core concepts
 

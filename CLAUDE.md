@@ -17,8 +17,12 @@ the work rather than after.
 ## Suite context
 
 Sibling modules live next to this one in `Data/modules/` and are wired in as readable directories:
-artificer, bibliosoph, cartographer, crier, curator, herald, minstrel, monarch, regent, scribe, squire, vault.
-All are public repos under `github.com/Drowbe`.
+artificer, bibliosoph, cartographer, crier, curator, herald, librarian, minstrel, monarch, regent, scribe,
+squire, vault. All are public repos under `github.com/Drowbe`.
+
+- `coffee-pub-librarian` owns **codex, quests, and objectives** — they moved out of Squire in Librarian 13.0.0,
+  and Librarian declares the `JournalEntryPage` subtype, so those entries are `coffee-pub-librarian.codex`.
+  Squire keeps the character-facing panels. Notes are **Blacksmith's**, not either module's.
 
 - `coffee-pub-lib` and `coffee-pub-bubo` exist on GitHub but are **retired** — ignore them.
 - `coffee-pub-campaigns` is a **backup**, not live code. Never edit it.

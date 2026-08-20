@@ -60,31 +60,7 @@
         "session"
       ]
     },
-    "coffee-pub-squire.note": {
-      "label": "Note",
-      "flags": [
-        {
-          "key": "party",
-          "protected": true
-        },
-        {
-          "key": "personal",
-          "protected": true
-        },
-        {
-          "key": "location",
-          "protected": true
-        },
-        {
-          "key": "backstory",
-          "protected": true
-        },
-        {
-          "key": "sticky"
-        }
-      ]
-    },
-    "coffee-pub-squire.codex": {
+    "coffee-pub-librarian.codex": {
       "label": "Codex",
       "flags": [
         {
@@ -113,7 +89,7 @@
         }
       ]
     },
-    "coffee-pub-squire.quest": {
+    "coffee-pub-librarian.quest": {
       "label": "Quest",
       "flags": [
         {
@@ -137,7 +113,7 @@
         }
       ]
     },
-    "coffee-pub-squire.objective": {
+    "coffee-pub-librarian.objective": {
       "label": "Objective",
       "flags": [
         {

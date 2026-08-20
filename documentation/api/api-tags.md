@@ -5,7 +5,7 @@
 
 **Feature summary:**
 - **Central storage**: All tag assignments (record → tags) are stored in a Blacksmith world setting. Consuming modules do not store tags in their own record data.
-- **Context keys**: Every tag operation is scoped to a `{moduleId}.{dataType}` context key (e.g. `"coffee-pub-squire.quest"`). This allows the same tag name to exist independently in different data types.
+- **Context keys**: Every tag operation is scoped to a `{moduleId}.{dataType}` context key (e.g. `"coffee-pub-librarian.quest"`). This allows the same tag name to exist independently in different data types.
 - **Taxonomy**: `resources/tag-taxonomy.json` defines the suggested tag set for each context. Modules contribute by adding their context entries to this file. Protected tags (those that drive module code) are marked `protected: true` and cannot be renamed or deleted.
 - **Global tags**: Tags like `"todo"` and `"revisit"` are offered as suggestions in every context.
 - **Visibility**: Per-tag-globally by default, with an optional per-context override. Visibility is client-scope and affects filtering only — it does not remove tags from data.
@@ -18,7 +18,7 @@
 
 The Tags API provides a shared labeling infrastructure for all coffee-pub modules. Use it to attach classification labels to your records, offer a consistent UI for choosing and filtering tags, and let the GM manage the world's tag vocabulary in one place.
 
-A **tag** is a normalized string: lowercase, hyphen-separated, no spaces (e.g. `"main-quest"`, `"tavern"`, `"todo"`). A **context key** scopes a tag taxonomy and its record assignments to one module + data type (e.g. `"coffee-pub-squire.quest"`).
+A **tag** is a normalized string: lowercase, hyphen-separated, no spaces (e.g. `"main-quest"`, `"tavern"`, `"todo"`). A **context key** scopes a tag taxonomy and its record assignments to one module + data type (e.g. `"coffee-pub-librarian.quest"`).
 
 ### When to use the Tags API
 
@@ -68,7 +68,7 @@ Add your context key entry to `resources/tag-taxonomy.json` before shipping:
   "version": 1,
   "globalTags": ["todo", "revisit", "avoid", "complete"],
   "contexts": {
-    "coffee-pub-squire.quest": {
+    "coffee-pub-librarian.quest": {
       "label": "Quests",
       "tags": [
         { "key": "main", "protected": true },
@@ -91,14 +91,14 @@ Hooks.on('blacksmithReady', async () => {
   if (!tags?.isAvailable()) return;
 
   // Set tags on a record (replaces any existing tags for this record)
-  await tags.setTags('coffee-pub-squire.quest', quest.id, ['main', 'faction']);
+  await tags.setTags('coffee-pub-librarian.quest', quest.id, ['main', 'faction']);
 });
 ```
 
 ### Clean up on record delete
 
 ```javascript
-await tags.deleteRecordTags('coffee-pub-squire.quest', quest.id);
+await tags.deleteRecordTags('coffee-pub-librarian.quest', quest.id);
 ```
 
 ### Embed the tag widget in a window
@@ -149,7 +149,7 @@ Use `tags` as the array key. `flags` is also accepted — the shipped `tag-taxon
 ```javascript
 Hooks.on('blacksmithReady', () => {
   const tags = game.modules.get('coffee-pub-blacksmith')?.api?.tags;
-  tags?.register('coffee-pub-squire.quest', {
+  tags?.register('coffee-pub-librarian.quest', {
     label: 'Quests',
     tags: [
       { key: 'main', protected: true },
@@ -178,7 +178,7 @@ Tags are returned in taxonomy order, with global tags appended. Protected tags a
 **Returns:** `Array<{ key: string, label: string, protected: boolean, tier: 'taxonomy' \| 'global' }>`
 
 ```javascript
-const choices = tags.getChoices('coffee-pub-squire.quest');
+const choices = tags.getChoices('coffee-pub-librarian.quest');
 // [
 //   { key: 'main',      label: 'Main',      protected: true,  tier: 'taxonomy' },
 //   { key: 'side',      label: 'Side',      protected: true,  tier: 'taxonomy' },
@@ -209,7 +209,7 @@ Replace the tag set for a record. Normalizes the input array before storing. Add
 
 ```javascript
 // On quest save
-await tags.setTags('coffee-pub-squire.quest', quest.id, ['main', 'faction', 'todo']);
+await tags.setTags('coffee-pub-librarian.quest', quest.id, ['main', 'faction', 'todo']);
 ```
 
 ---
@@ -228,7 +228,7 @@ Get the current tags for a record. Returns an empty array if the record has no t
 **Returns:** `string[]`
 
 ```javascript
-const questFlags = tags.getTags('coffee-pub-squire.quest', quest.id);
+const questFlags = tags.getTags('coffee-pub-librarian.quest', quest.id);
 // ['main', 'faction', 'todo']
 ```
 
@@ -250,7 +250,7 @@ Add tags to a record without replacing its existing tags. Duplicates are dedupli
 
 ```javascript
 // Mark a quest complete without touching its other tags
-await tags.addTags('coffee-pub-squire.quest', quest.id, ['complete']);
+await tags.addTags('coffee-pub-librarian.quest', quest.id, ['complete']);
 ```
 
 ---
@@ -271,7 +271,7 @@ Remove specific tags from a record. Tags not present on the record are silently 
 
 ```javascript
 // Un-complete a quest
-await tags.removeTags('coffee-pub-squire.quest', quest.id, ['complete']);
+await tags.removeTags('coffee-pub-librarian.quest', quest.id, ['complete']);
 ```
 
 ---
@@ -291,7 +291,7 @@ Remove all tag data for a record. Call this when the record itself is deleted to
 
 ```javascript
 // In your module's record delete handler
-await tags.deleteRecordTags('coffee-pub-squire.quest', deletedQuest.id);
+await tags.deleteRecordTags('coffee-pub-librarian.quest', deletedQuest.id);
 ```
 
 ---
@@ -311,7 +311,7 @@ Get all record IDs in a context that currently have a specific tag. Useful for b
 
 ```javascript
 // Find all quests tagged 'faction'
-const factionQuestIds = tags.getRecordsByTag('coffee-pub-squire.quest', 'faction');
+const factionQuestIds = tags.getRecordsByTag('coffee-pub-librarian.quest', 'faction');
 ```
 
 ---
@@ -413,8 +413,8 @@ If the registry already contains a tag it is not duplicated.
 
 ```javascript
 // On first load: seed registry from all existing quests
-const allQuestFlags = myQuests.map(q => tags.getTags('coffee-pub-squire.quest', q.id));
-await tags.seedRegistry('coffee-pub-squire.quest', allQuestFlags);
+const allQuestFlags = myQuests.map(q => tags.getTags('coffee-pub-librarian.quest', q.id));
+await tags.seedRegistry('coffee-pub-librarian.quest', allQuestFlags);
 ```
 
 ---
@@ -444,10 +444,10 @@ Set the visibility of a tag. If `contextKey` is provided, this sets a context-sp
 tags.setVisibility('todo', false);
 
 // Hide 'backstory' only in the quests context
-tags.setVisibility('backstory', false, 'coffee-pub-squire.quest');
+tags.setVisibility('backstory', false, 'coffee-pub-librarian.quest');
 
 // Restore 'backstory' visibility in quests (removes the context override)
-tags.setVisibility('backstory', true, 'coffee-pub-squire.quest');
+tags.setVisibility('backstory', true, 'coffee-pub-librarian.quest');
 ```
 
 ---
@@ -467,7 +467,7 @@ Get the effective visibility of a tag for the current user. Applies context over
 
 ```javascript
 // Is 'todo' visible in the quests context?
-const visible = tags.getVisibility('todo', 'coffee-pub-squire.quest');
+const visible = tags.getVisibility('todo', 'coffee-pub-librarian.quest');
 ```
 
 ---
@@ -495,10 +495,10 @@ TagWidget is a Blacksmith UI component for selecting and managing tags. Embed it
 async prepareContext(options) {
   const context = await super.prepareContext(options);
   const tags = game.modules.get('coffee-pub-blacksmith')?.api?.tags;
-  const currentTags = tags.getTags('coffee-pub-squire.quest', this.questId);
+  const currentTags = tags.getTags('coffee-pub-librarian.quest', this.questId);
 
   context.TagWidget = TagWidget.prepareData({
-    contextKey: 'coffee-pub-squire.quest',
+    contextKey: 'coffee-pub-librarian.quest',
     currentTags,
     mode: 'full'
   });
@@ -524,7 +524,7 @@ async prepareContext(options) {
 ```javascript
 _onRender(context, options) {
   super._onRender(context, options);
-  TagWidget.activate(this.element, 'coffee-pub-squire.quest');
+  TagWidget.activate(this.element, 'coffee-pub-librarian.quest');
 }
 ```
 
@@ -536,8 +536,8 @@ Enter-to-add, chip removal, live search. Rendering the partial alone gives you a
 ```javascript
 async _onSubmit(event, form, formData) {
   const tags = game.modules.get('coffee-pub-blacksmith')?.api?.tags;
-  const newTags = TagWidget.readValue(this.element, 'coffee-pub-squire.quest');
-  await tags.setTags('coffee-pub-squire.quest', this.questId, newTags);
+  const newTags = TagWidget.readValue(this.element, 'coffee-pub-librarian.quest');
+  await tags.setTags('coffee-pub-librarian.quest', this.questId, newTags);
   // ... rest of save
 }
 ```

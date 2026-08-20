@@ -8,7 +8,8 @@
  * UI was never finished" rather than as a wiring mistake, so it can sit for a long
  * time. `styles/default.css` says so at the top, and it happened anyway:
  * `widget-tags.css` was unreachable while `templates/partials/tag-widget.hbs`
- * rendered live through the `blacksmith-tag-widget` partial. Found 2026-08-16 by
+ * was registered as the `blacksmith-tag-widget` partial and ready to render.
+ * Found 2026-08-16 by
  * listing the directory and diffing it against the import list, which is exactly
  * what this now does on demand.
  *

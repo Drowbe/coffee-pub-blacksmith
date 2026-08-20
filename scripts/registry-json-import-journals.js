@@ -1320,6 +1320,7 @@ const journalJsonImportKind = {
     onBuildPrompt: buildJournalPrompt,
     onBuildJsonTemplate: buildJournalJsonTemplate,
     onBuildAuthoringGuide: buildJournalAuthoringGuide,
+    onProfileName: (entry) => entry?.journaltype || '',
     onValidateEntry: async (entry) => validateJournalEntry(entry),
     onImportEntry: async (entry) => importJournalEntry(entry)
 };

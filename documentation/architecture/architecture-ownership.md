@@ -64,6 +64,7 @@ When a satellite needs Blacksmith to understand something Blacksmith must not le
 | GM notes providers | `gmNotes.registerProvider` |
 | Pins | `pins.registerPinType`, `registerPinTaxonomy`, `registerContextMenuItem` |
 | Tags | `tags.register` |
+| JSON import kinds | `importer.registerKind` |
 | Toast channels | `toast.registerChannel` |
 
 Toast channels are the model to copy. Bibliosoph declares `crit`, `fumble`, `injury`, and `social`. Blacksmith stores the strings and renders the labels in a settings checklist. **Blacksmith still has no idea what a critical hit is.** That is the shape every extension point should have.

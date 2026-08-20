@@ -256,6 +256,14 @@ Things that cost someone an hour of grep to discover. Written down so nobody pay
   the dynamic `api-menubar` import), then **re-bound again** after `CombatBarManager.initialize()` replaces
   MenuBar statics. Change one site and they silently diverge.
 - **`HookManager` remaps `renderChatMessage` → `renderChatMessageHTML`** (warns once per session).
+- **`module.api` cannot supply a class a consumer `extends`.** `extends` is evaluated when the consuming
+  module's script is evaluated, and `game` does not exist then — a top-level `game.modules.get(...)` throws,
+  and ESM caches the failed evaluation, so the throw disables that module for the whole session rather than
+  being retried. Base classes are therefore re-exported from `api/blacksmith-api.js`, which is a real ES
+  module and resolves at evaluation time. Three consumers each worked around this privately before it was
+  fixed (Squire dynamically imports at point of use; Curator imports `scripts/` paths directly; Merchant
+  followed the doc and broke a live world). **Anything a consumer needs at evaluation time must come from a
+  module they can import, not from `module.api`.**
 - **`scripts/const.js` does a top-level `await fetch(module.json)`.** The entire module graph waits on it.
 - **`canvasReady` layer/pin setup is nested inside `if (blnCustomClicks)`**, i.e. gated on the
   `enableSceneClickBehaviors` setting. `BlacksmithAPI.getCanvasLayer()` carries a raw-canvas fallback,

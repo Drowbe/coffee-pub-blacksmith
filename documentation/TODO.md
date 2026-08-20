@@ -164,16 +164,22 @@ and read the resulting formula in the chat card. Normal should keep `4d6kh3`; to
 
 ## Import/export and module-owned document subtypes (opened 2026-08-09, before the phase starts)
 
-**Settle this before writing importer code, not after.** Raised by Squire while closing the tool adoption.
+**Settle this before writing importer code, not after.** Raised by Squire while closing the tool adoption;
+the codex/quest domains have since moved to Librarian, which is where the subtype lives now.
 
-Squire declares a document subtype in its `module.json` -- `documentTypes: { JournalEntryPage: { codex: {} } }`
--- so every codex entry is stored as `type: "coffee-pub-squire.codex"`. Blacksmith declares no subtypes, and
+**The import half is settled.** `module.api.importer` exposes the kind registry, and a kind supplies its own
+`onImportEntry`, so the owning module constructs its own documents and Blacksmith never sees the subtype. What
+remains below is the export half, plus the refuse-legibly behaviour of Blacksmith's *own* journal importer when
+it meets a subtype it does not own.
+
+Librarian declares a document subtype in its `module.json` -- `documentTypes: { JournalEntryPage: { codex: {} } }`
+-- so every codex entry is stored as `type: "coffee-pub-librarian.codex"`. Blacksmith declares no subtypes, and
 today's journal importer writes `type: "text"` (`scripts/utility-common.js:410,485,600`), so nothing is broken
 now. Extending import/export to codex pages is what makes it a question.
 
 **One option is off the table on mechanics rather than principle.** Foundry namespaces a module-declared
 subtype as `${module.id}.${subtype}` (`client/applications/settings/dependency-resolution.mjs:246`). Blacksmith
-*cannot* declare `coffee-pub-squire.codex`; putting `codex` in its manifest would produce
+*cannot* declare `coffee-pub-librarian.codex`; putting `codex` in its manifest would produce
 `coffee-pub-blacksmith.codex`, a different type with no data model or sheet registered against it. So the
 importer stays agnostic. That is forced, not chosen.
 
@@ -189,9 +195,23 @@ What agnostic has to mean, concretely:
 
 **It also changes how this phase gets verified.** "Load with the satellite disabled" has been the backbone of
 both tool phases, and it worked because none of those four tools read journal pages. It cannot be the pass
-condition here -- with Squire off, the codex pages under test do not exist. It becomes a *test case* instead:
+condition here -- with Librarian off, the codex pages under test do not exist. It becomes a *test case* instead:
 disabled proves the importer refuses legibly and the exporter does not quietly omit, while the round-trip pass
-condition needs Squire enabled.
+condition needs Librarian enabled.
+
+## `api-importer.md` is public API now but held off the wiki (opened 2026-08-20)
+
+`module.api.importer` ships, so a consuming module needs the doc, and `api-importer.md` is still held out of
+the `PUBLISH` list in `tools/wiki-sync.mjs:105` behind a "JSON import verified" gate.
+
+Publishing it as-is would put roughly 400 lines of unimplemented proposed contract on the wiki, which the
+formatting standard does not allow. So the order is: move the proposed section into `documentation/plans/`
+under the plan rules, leaving `api-importer.md` describing only the shipped registry surface, then add it to
+`PUBLISH`. The alternative -- drop the proposal outright -- is a call about whether the wider importer API is
+still wanted.
+
+**Verify:** `node tools/wiki-sync.mjs` builds without unresolved-link warnings for the new page, and the
+Sync Wiki action succeeds on the next push to master.
 
 ## Asset sources - let a module supply the image library, and let users remap it (opened 2026-08-09)
 

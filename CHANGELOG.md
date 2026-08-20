@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [Unreleased]
+
+### Added
+
+- **`blacksmith.importer` -- the JSON import registry, exposed** (`scripts/api-importer.js`, `scripts/blacksmith.js`). `registerKind`, `getKind`, `openWindow`, `parsePayload`, and `attachButton` now sit on `module.api`. The registry itself is unchanged and has been in use internally for four kinds (journal, actor, item, roll table); it was simply never assigned to the API object, so no consuming module could reach it.
+
+  It is the right shape to publish because the kind descriptor takes `onValidateEntry` and `onImportEntry` callbacks, so the caller keeps document construction and Blacksmith never has to know a consuming module's data model. That matters for anything owning a document subtype: the schema stays where the subtype is declared.
+
+  This is deliberately *not* the surface proposed in `documentation/api/api-importer.md` -- no `getCapabilities`, no `getJsonTemplate`, no `importJson`. That contract remains unimplemented, and the doc now says so plainly instead of describing a namespace that did not exist.
+
+- **`onProfileName` on a JSON import kind** (`scripts/registry-json-import.js`). A kind now names its own profile field. `profileName()` had hardcoded `kind.id === 'item' | 'journal' | 'rolltable'` and fell through to `entry.type` for anything else, which was invisible while every kind was Blacksmith's own and wrong the moment one was not. The three built-in kinds carry their former branches as descriptor fields (`registry-json-import-items.js`, `-journals.js`, `-rolltables.js`); the actor kind always used the `entry.type` default and is unchanged.
+
+- **`showInSwitcher` on a JSON import kind** (`scripts/registry-json-import.js`). Set `false` to keep a kind out of the import window's importer dropdown. Every registered kind previously appeared there unconditionally, so a consuming module's importer would surface in the list a GM sees from the Item directory whether or not that was wanted. Defaults to true, so the four built-in kinds are unaffected.
+
+### Changed
+
+- **Tag taxonomy: the codex, quest, and objective contexts move to Librarian** (`resources/tag-taxonomy.json`). Those three domains left Squire in Librarian 13.0.0, so `coffee-pub-squire.codex`, `.quest`, and `.objective` are now `coffee-pub-librarian.*`. Pins already writes assignments under those exact keys -- `_mirrorTagsForPin` (`manager-pins.js:593`) stores under `${pin.moduleId}.${pin.type}` and Librarian's pin types are `quest`, `objective`, and `codex` -- so the taxonomy now supplies vocabulary for keys that were already live, and a pin and an entry in the same domain share one suggestion list.
+
+  Nothing needed migrating: no module in the suite calls `api.tags` at all, so the old keys held no assignments.
+
+- **`coffee-pub-squire.note` removed** (`resources/tag-taxonomy.json`). Notes moved into Blacksmith, and `manager-notes.js:90` sets the context to `coffee-pub-blacksmith.note`, which the taxonomy has declared separately all along. The Squire entry was the pre-move vocabulary (`party`, `personal`, `location`, `backstory`, `sticky`) and nothing read it.
+
+### Fixed
+
+- **`documentation/api/api-importer.md` described a namespace that did not exist**. It opened with an `api.importer` access example calling `await blacksmith.waitForReady()` -- there is no `waitForReady` on the API root, only on `api.sockets` -- and then specified eight methods, none of them implemented. The shipped registry surface is now documented first, and the proposed contract is fenced off under a heading that says it is not implemented.
+
+- **Stale comment in `tools/check-styles-loaded.mjs`**. Its header said `tag-widget.hbs` "rendered live" when `widget-tags.css` was found unreachable. The partial is registered (`widget-tags.js:165`) but no template in the repo embeds it, so nothing rendered; the comment implied a consumer that has never existed.
+
 ## [13.19.0]
 
 ### Added

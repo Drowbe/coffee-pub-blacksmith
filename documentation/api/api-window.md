@@ -36,11 +36,30 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 | **Tool base** (`BlacksmithToolWindowBaseV2`, or `getToolWindowBaseV2()`) | **Subclass** the compact Application V2 presentation for lightweight, persistent canvas tools and palettes. | Yes — same mechanism, inherited from the standard base |
 
 - Use the **registry** when something else (Blacksmith toolbar, another module, a macro) should call `openWindow('your-id')`.
-- Use **`api.BlacksmithWindowBaseV2`** for standard windows and **`api.BlacksmithToolWindowBaseV2`** for compact tools. **Do not** deep-link Blacksmith script files from another module's manifest — use **`module.api`**; file paths are not the stable contract.
+- Use **`api.BlacksmithWindowBaseV2`** for standard windows and **`api.BlacksmithToolWindowBaseV2`** for compact tools.
+
+### A class you `extends` comes in by import, not from `module.api`
+
+`extends` is evaluated when your module script is evaluated, and `module.api` cannot be read then: `game` does not exist yet, so a top-level `game.modules.get('coffee-pub-blacksmith')` throws `Cannot read properties of undefined (reading 'get')`. ES modules cache a failed evaluation, so that throw disables your module for the rest of the session rather than being retried on the next access.
+
+Import the base class from the API bridge, which is a real ES module and therefore resolves at evaluation time:
+
+```javascript
+import {
+    BlacksmithWindowBaseV2,
+    BlacksmithToolWindowBaseV2
+} from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+
+export class MyWindow extends BlacksmithWindowBaseV2 { }
+```
+
+`BLACKSMITH_WINDOW_STYLES`, `BLACKSMITH_TOOL_TITLEBARS`, and `BLACKSMITH_TOOL_THEMES` are exported from the same path, and are the same objects as `api.windowStyles`, `api.toolTitlebars`, and `api.toolThemes`.
+
+The bridge is the supported path for this one purpose. Do not deep-link anything under `scripts/` — those paths are not the stable contract.
 
 **Availability timing**
 
-- **Both base classes, getters, and style constants** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, `windowStyles`, `toolTitlebars`, and `toolThemes` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). Use this when you resolve a base class at **module top level**.
+- **Both base classes, getters, and style constants** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, `windowStyles`, `toolTitlebars`, and `toolThemes` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). This is for code that runs after `game` exists — a class body evaluated at module top level cannot use it; import the class instead, as above.
 - **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith's **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
 - **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith's `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith's **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture/architecture-blacksmith.md** §3.2–3.3.
 
@@ -287,7 +306,7 @@ target, and a repeated click to bring the existing one forward rather than build
 `BlacksmithToolWindowBaseV2` owns that registry, so a subclass does not carry it.
 
 ```javascript
-class LootWindow extends ToolBase {
+class LootWindow extends BlacksmithToolWindowBaseV2 {
     constructor(tokenDocument, options = {}) { ... }
 }
 
@@ -300,6 +319,11 @@ await LootWindow.closeFor(tokenDocument);
 
 `openFor(target, options)` constructs your subclass with `(target, options)`. Windows deregister themselves
 on close, so reopening builds a fresh one.
+
+The entry is written before the render is awaited, so a second call arriving while the first is still
+rendering finds it instead of building a duplicate. If that render throws, the entry is removed and the
+error propagates -- a window that failed to open is not left registered, which would otherwise make every
+later `openFor` on that target focus an instance that never opened.
 
 Targets are keyed by `uuid` by default, via a `static keyFor(target)` that also accepts a plain string.
 Override it to key on something else; returning null means "not addressable", and `openFor` declines rather
@@ -381,7 +405,7 @@ if (blacksmith?.registerWindow) {
         // Registry attaches during Blacksmith ready
     });
 }
-// `blacksmith?.BlacksmithWindowBaseV2` may already exist at module load (see "Availability timing" above).
+// A base class you `extends` is imported from api/blacksmith-api.js, not read from here -- see above.
 ```
 
 ### 3. Register Your Window

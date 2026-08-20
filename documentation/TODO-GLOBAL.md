@@ -282,7 +282,7 @@ get that thing in that place" — and it is about things Foundry already owns.
 **Owning a document subtype means owning a domain. A surface over core documents does not.**
 
 Codex declares `documentTypes: { JournalEntryPage: { codex: {} } }`, so its entries are
-`coffee-pub-squire.codex` with their own data model and sheet. It is a *kind of thing*. Notes writes plain
+`coffee-pub-librarian.codex` with their own data model and sheet. It is a *kind of thing*. Notes writes plain
 `type: 'text'` pages — it is a *view*. Pins, Tags, and GM Notes are all views over core documents and all
 already live in Blacksmith; none declares a subtype.
 
@@ -1147,10 +1147,17 @@ interesting; a consumer that is gone is decisive, and it is much the cheaper thi
       remeasure, then decide: a `dialog.pickActor` helper, or a documented `choose` + `entityList.fromActors`
       recipe. "Documented recipe, not helper" is a real answer here, not a deferral - Merchant's own read is
       that it is a two-line wrapper now rather than the 30 lines it was, which may put it below the bar.
-- [ ] **Adopt `openFor` in Curator and Merchant.** Shipped on `BlacksmithToolWindowBaseV2`: the per-target
-      registry, `isOpenFor` / `openWindowFor` / `openWindows` / `closeFor`, and a `keyFor` hook. Both
-      modules can delete their `_windows` map and their `static open`. Registries are per subclass, so a
-      Loot window and a Shop window on one token no longer contend. Surface is in `api/api-window.md`.
+- [ ] **Adopt `openFor` in Curator.** Shipped on `BlacksmithToolWindowBaseV2`: the per-target registry,
+      `isOpenFor` / `openWindowFor` / `openWindows` / `closeFor`, and a `keyFor` hook. Curator can delete its
+      `_windows` map and its `static open`. Registries are per subclass, so a Loot window and a Shop window on
+      one token no longer contend. Surface is in `api/api-window.md`.
+
+      **Merchant adopted it 2026-08-19, and it closed a live bug** — worth repeating to Curator, whose
+      hand-rolled registry has the same shape. Their map was written before the first render and cleared only
+      in `_onClose`, so a window whose first render threw stayed registered, and every later open took the
+      "already open, focus it" branch on an instance that had never opened. The window was unopenable for that
+      actor until the page reloaded, which is why it read as unreproducible: a static map dies with the page.
+      `openFor` deletes the entry when a render throws (`window-tool-base.js:136`).
 - [ ] **Adopt `blacksmith.party` in Merchant and Curator.** Shipped as two rosters rather than one, because
       the check came back saying it is two policies: `resting()` is the party's creatures and includes NPC
       members, `acting()` is its player characters and does not. Both carry the no-primary-party fallback.

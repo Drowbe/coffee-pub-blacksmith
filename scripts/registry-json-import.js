@@ -14,6 +14,8 @@ const kinds = new Map();
  * @property {boolean} [gmOnly=true]
  * @property {string} [buttonHtml]
  * @property {string} [headerSelector]
+ * @property {boolean} [showInSwitcher=true] - Whether this kind appears in the import window's importer dropdown.
+ * @property {string} [switcherLabel]
  * @property {string} idSuffix
  * @property {string} windowTitle
  * @property {string} headerTitle
@@ -28,6 +30,7 @@ const kinds = new Map();
  * @property {(entries: object[]) => Promise<unknown>} [onImport] - Legacy batch fallback for kinds not yet using onImportEntry.
  * @property {(entry: object) => Promise<unknown>} [onValidateEntry]
  * @property {(entry: object) => Promise<unknown>} [onImportEntry]
+ * @property {(entry: object) => string} [onProfileName] - Which field on an entry names its profile. Defaults to `entry.type`.
  */
 
 /**
@@ -100,9 +103,11 @@ function inputName(entry, index) {
 }
 
 function profileName(kind, entry) {
-    if (kind.id === 'item') return String(entry?.itemType || entry?.type || '').toLowerCase();
-    if (kind.id === 'journal') return String(entry?.journaltype || '').toLowerCase();
-    if (kind.id === 'rolltable') return String(entry?.results?.[0]?.resultType || '').toLowerCase();
+    // Each kind names its own profile field; a kind that does not supply
+    // onProfileName falls back to the conventional `type`.
+    if (typeof kind.onProfileName === 'function') {
+        return String(kind.onProfileName(entry) || '').toLowerCase();
+    }
     return String(entry?.type || '').toLowerCase();
 }
 
@@ -225,7 +230,10 @@ export function openJsonImportWindow(kindId) {
     }
 
     const importerOrder = ['journal', 'actor', 'item', 'rolltable'];
-    const importerKinds = [...kinds.values()].sort((left, right) => {
+    // A kind may opt out of the switcher dropdown while still opening its own
+    // window -- a consuming module's importer does not always belong in the
+    // list a GM sees from the Item directory.
+    const importerKinds = [...kinds.values()].filter(entry => entry.showInSwitcher !== false).sort((left, right) => {
         const leftIndex = importerOrder.indexOf(left.id);
         const rightIndex = importerOrder.indexOf(right.id);
         return (leftIndex < 0 ? Number.MAX_SAFE_INTEGER : leftIndex)

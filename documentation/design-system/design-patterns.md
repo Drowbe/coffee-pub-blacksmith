@@ -14,8 +14,8 @@ defined before any component stylesheet consumes them.
 
 `notes-gm.css` is the exception -- Foundry loads it directly, not through the import chain.
 
-One stylesheet is reached by neither mechanism and is therefore inert: `styles/widget-tags.css`. It styles
-the tag widget, whose template and script are complete but which no template currently renders.
+Every stylesheet on disk is reached by one of the two mechanisms. `node tools/check-styles-loaded.mjs`
+verifies that, and the reverse -- that every `@import` names a file that exists.
 
 ## Stylesheet organization
 

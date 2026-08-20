@@ -69,6 +69,7 @@ import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { CSSEditor } from './window-gmtools.js';
 import { SkillCheckDialog } from './window-skillcheck.js';
 import { attachJsonImportButton, registerJsonImportKind } from './registry-json-import.js';
+import { ImporterAPI } from './api-importer.js';
 import { ITEM_JSON_IMPORT_KIND_ID } from './registry-json-import-items.js';
 import { ROLLTABLE_JSON_IMPORT_KIND_ID } from './registry-json-import-rolltables.js';
 import './registry-json-import-journals.js';
@@ -1164,6 +1165,7 @@ Hooks.once('init', async function() {
         getCanvasLayer: null,
         pins: PinsAPI,
         tags: TagsAPI,
+        importer: ImporterAPI,
         gmNotes: GMNotesAPI,
         notes: NotesAPI,
         chatCards: ChatCardsAPI,

@@ -15,9 +15,37 @@
  * 3. Register your module manually (see documentation for pattern)
  */
 
-// ================================================================== 
+// ==================================================================
+// ===== WINDOW BASE CLASSES ========================================
+// ==================================================================
+//
+// Re-exported so `class MyWindow extends BlacksmithWindowBaseV2` works.
+//
+// A base class is needed at module *evaluation* time, and `module.api` cannot
+// serve that: `game` does not exist while module scripts evaluate, so a
+// top-level `game.modules.get(...)` throws -- and ESM caches a failed
+// evaluation, so the throw takes the consuming module down for the whole
+// session instead of being retried. Three consumers each worked around this
+// independently before it was fixed here.
+//
+// This file is a real ES module, so an `import` of it resolves at evaluation
+// time. The classes come in by the same resolved URL Blacksmith's own imports
+// use, so a consumer's subclass extends the same class object -- not a second
+// copy with its own statics.
+//
+// `module.api` remains correct for everything resolved after `init`.
+
+export { BlacksmithWindowBaseV2 } from '../scripts/window-base.js';
+export {
+    BlacksmithToolWindowBaseV2,
+    BLACKSMITH_WINDOW_STYLES,
+    BLACKSMITH_TOOL_TITLEBARS,
+    BLACKSMITH_TOOL_THEMES
+} from '../scripts/window-tool-base.js';
+
+// ==================================================================
 // ===== CORE API CLASS =============================================
-// ================================================================== 
+// ==================================================================
 
 export class BlacksmithAPI {
     static instance = null;

@@ -250,6 +250,7 @@ registerJsonImportKind({
     onBuildPrompt: buildRollTableImportPrompt,
     onBuildJsonTemplate: buildRollTableJsonTemplate,
     onBuildAuthoringGuide: buildRollTableAuthoringGuide,
+    onProfileName: (entry) => entry?.results?.[0]?.resultType || '',
     onValidateEntry: async (entry) => {
         if (!String(entry?.tableName || '').trim()) throw new Error('tableName is required.');
         if (!Array.isArray(entry?.results) || !entry.results.length) throw new Error('results must contain at least one table result.');

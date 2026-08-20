@@ -13,7 +13,7 @@ Target: FoundryVTT v13+.
 | Concept | Description |
 |---|---|
 | **Tag** | A normalized string label: lowercase, hyphen-separated, no spaces (e.g. `"main-quest"`). |
-| **Context key** | Scopes a taxonomy and its assignments to one module plus data type: `{moduleId}.{dataType}` (e.g. `"coffee-pub-squire.quest"`). |
+| **Context key** | Scopes a taxonomy and its assignments to one module plus data type: `{moduleId}.{dataType}` (e.g. `"coffee-pub-librarian.quest"`). |
 | **Taxonomy** | The declared set of suggested tags for a context key. |
 | **Global tags** | Tags offered as suggestions in every context (e.g. `"todo"`, `"revisit"`), from the taxonomy's `globalTags`. |
 | **Protected tag** | A taxonomy tag marked `protected: true` because module code checks it by value. GMs cannot rename or delete it. |
@@ -100,3 +100,5 @@ Note the payload key on `changed` is `tags`, not `flags`.
 ## Relationship to Pins
 
 Pins predates this system and carried its own tag vocabulary in the `pinTagRegistry` world setting. The canonical store is now `tagRegistry` via this system, with a legacy fallback to `pinTagRegistry` retained during migration, and `_loadPinTaxonomyCompat()` folds `pin-taxonomy.json` entries into the builtin registry under `{moduleId}.{type}` context keys. Pins is therefore a consumer of the Tags system rather than a parallel implementation, but the fallback path is still present — do not assume `pinTagRegistry` is dead when touching either side.
+
+Pins also writes tag *assignments* into the central store: `_mirrorTagsForPin` (`manager-pins.js:593`) calls `setTags` under `${pin.moduleId}.${pin.type || 'default'}`, and `_clearTagsForPin` removes them on delete. A module whose pin types match its data types therefore shares one context key between its pins and its own records — a codex pin and a codex entry land in `coffee-pub-librarian.codex` together, and see the same suggestion vocabulary. A pin type has assignments in the store whether or not `tag-taxonomy.json` declares a matching context.

@@ -129,20 +129,26 @@ Two positional arguments -- a tool id and a data object. The three required fiel
 
 ## Building a window
 
-Take the base class from the API rather than deep-linking the file, so your module does not break when
-Blacksmith moves it:
+Import the base class from the API bridge rather than deep-linking a file under `scripts/`, so your module
+does not break when Blacksmith moves it:
 
 ```js
-const api = await BlacksmithAPI.get();
-const Base = api.BlacksmithWindowBaseV2;      // also api.getWindowBaseV2()
-const ToolBase = api.BlacksmithToolWindowBaseV2; // also api.getToolWindowBaseV2()
+import {
+    BlacksmithWindowBaseV2,
+    BlacksmithToolWindowBaseV2
+} from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 ```
+
+Import it, do not read it from `module.api`. A class body is evaluated when your module script is, and `game`
+does not exist yet at that point -- `game.modules.get(...)` at top level throws, and ESM caches the failed
+evaluation, so the module stays dead for the session. `api.BlacksmithWindowBaseV2` is the same class and is
+fine once `game` exists; it just cannot be the source for an `extends`.
 
 Subclasses use the ApplicationV2 shape -- `static DEFAULT_OPTIONS` and `static PARTS`. All 14 window
 classes in the module follow this; `scripts/window-gmtools.js:9-24` is the reference implementation.
 
 ```js
-class MyWindow extends Base {
+class MyWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'my-module-window';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(super.DEFAULT_OPTIONS, {

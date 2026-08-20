@@ -401,6 +401,7 @@ const itemJsonImportKind = {
         includeArtificer: !!promptOptions.artificerItem,
         includePassiveEffects: promptOptions.includePassiveEffects !== false
     }),
+    onProfileName: (entry) => entry?.itemType || entry?.type || '',
     onValidateEntry: async (entry) => {
         if (!String(entry?.itemName || entry?.name || '').trim()) throw new Error('Item name is required.');
         return parseFlatItemToFoundry({ ...entry, itemImagePath: entry.itemImagePath || entry.img || 'icons/svg/item-bag.svg' });
