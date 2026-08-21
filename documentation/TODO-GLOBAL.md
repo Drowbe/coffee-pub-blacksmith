@@ -324,13 +324,13 @@ extra steps and should be abandoned rather than shipped.
 pre-emptively: if Notes converges on the annotation model it may not survive the move at all, and Librarian
 can simply take it.
 
-## Squire tool adoption — Squire's half (Blacksmith side shipped 2026-08-09, unverified)
+## Squire tool adoption — Squire's half (Blacksmith side shipped and verified 2026-08-09)
 
-Dice Tray, Macros, and Health now live in Blacksmith. Blacksmith's side is written but **has not been run in
-a world** — see `testing/squire-tool-adoption.md`. **Squire must not delete anything
-until the relevant section of that document passes**, or there is a release with no dice tray at all.
+Dice Tray, Macros, and Health now live in Blacksmith. **The functional pass passed on 2026-08-09** — all
+four tools verified in a live world with Squire disabled, per `testing/squire-tool-adoption.md`, which also
+records what is still owed on the presentational side. **Squire is cleared to delete its copies.**
 
-Once it passes, Squire:
+Squire:
 
 1. Deletes `panel-dicetray.js`, `window-dicetray.js`, `panel-macros.js`, `window-macros.js`,
    `panel-health.js`, `window-health.js`, their three templates, and their five stylesheets.
@@ -1089,31 +1089,50 @@ surfaces run on `api.dialog` as an **interim** state; the end state is still one
 | Selectable-entity component | **Implemented, unverified.** `api.entityList`, both modes, with the Tool-window Light/Dark/Glass check in the harness still to run. That check is the one Squire specifically named. |
 | Per-instance action delegation | **Done and verified 2026-07-30.** 7 headless assertions in the harness's Window Delegation suite plus a two-window interactive check: two instances each handle their own clicks, the older survives the newer's close, and a reopened instance rebinds. Squire had already removed static `_ref` routing on their side. |
 | Quantity/split control | **Delivered and implemented, unverified.** Squire contributed it 2026-07-30; landed as `api.quantitySplit`. Once verified, tell Squire to delete their local copy — the round-trip is not finished while both exist. |
-| Public importer API | **Gated, not started.** See below. |
+| Public importer API | **Shipped 2026-08-20.** See below. |
 | Compendium search for a quick-add picker | **Delivered and verified 2026-08-02.** `api.compendiums.search(query, type, options)` — many candidates for one query, grouped by source, with `img` now on the cached index entries. 57/57 headless assertions in the harness's Compendium Search suite, grouping proven across 10 configured sources, ~5ms per warm query. Squire can build the quick-add tray on it; they must not build a second index cache over `getSelected()`, which is the whole reason it lives here. Blacksmith's own `window-compendium-search.js` palette is the reference consumer, including the drag-to-sheet payload. Squire shipped their tray on it and fed back two gaps, both closed 2026-08-02: `documentClass` on each result (they were deriving the drag payload's class from the type token, having merged three searches into one list), and `searchDetailed()` reporting `truncated` / `scannedSources` / `skippedSources` (they were inferring truncation from `results.length === limit`, which over-reports). Tell them both are available. |
 
-### Importer API — the gate is real and already tracked
+### Importer API — shipped 2026-08-20, and smaller than the thing that was gated
 
-Squire is correct that `documentation/api/api-importer.md` still reads "Proposed contract", and that
-`api.importer` does not exist on `module.api` — there are zero references in `blacksmith.js`. This is
-deliberate, not an oversight: `tools/wiki-sync.mjs:83` holds both `api-importer.md` and
-`architecture-importer.md` out of the publish set with an explicit gate, **"JSON import verified"**, which is
-the "Live-verify the shipped 13.10.0 batch" item at the top of `TODO.md`.
+`module.api.importer` exposes the existing kind registry: `registerKind`, `getKind`, `openWindow`,
+`parsePayload`, `attachButton` (`scripts/api-importer.js`). `api-importer.md` documents it and is now in
+the `PUBLISH` list.
 
-So the sequence is: verify the 13.10.0 import batch in a live world -> publish the two importer docs ->
-expose `api.importer`. Squire now being a waiting consumer raises that item's priority, and adds three
-requirements to scope when it is designed: **validation reporting**, **progress/error reporting**, and
-**scene-pin handling extension points** for Quest import. Until then Squire keeps its own import behavior
-rather than deep-importing Blacksmith internals, which is the right call.
+**What shipped is not what was gated, and that is the point.** The gate was on the large drafted contract
+— capability discovery, template and prompt outputs, `validateJson` / `importJson` — which still does not
+exist and is now parked in `documentation/plans/plan-importer-api.md` pending a decision on whether it is
+wanted at all. The registry needed no gate because it inverts the dependency: a kind supplies its own
+`onValidateEntry` and `onImportEntry`, so the caller constructs its own documents and Blacksmith never
+learns the consumer's data model. Librarian asked for exactly this in preference to the larger surface,
+and it deletes ~600 lines of duplicated import dialog on their side.
+
+The three requirements recorded for the larger design still stand if it is ever built: **validation
+reporting**, **progress/error reporting**, and **scene-pin handling extension points** for Quest import.
+Note that codex and quests are Librarian's now, not Squire's.
+
+Two descriptor fields a consumer will want: `onProfileName(entry)` names the profile field (defaults to
+`entry.type`), and `showInSwitcher: false` keeps a kind out of the import window's dropdown so a
+consumer's importer does not appear in the list a GM sees from the Item directory.
 
 ### Squire deep-imports Blacksmith script paths — RESOLVED 2026-07-30
 
 Four Squire files resolved the window base with a `/modules/coffee-pub-blacksmith/scripts/window-base.js`
 path fallback. Flagged, and Squire removed all four the same day. (`squire.js:38` importing
 `/modules/coffee-pub-blacksmith/api/blacksmith-api.js` was never a problem — that is a real published entry
-point.) Keep the rule in mind for the next consumer: `api-window.md` is explicit that file paths are not the
-stable contract, and the base classes are on `module.api` before `init`, so a path fallback buys nothing and
-breaks silently if a file moves.
+point.)
+
+**The advice attached to this entry was wrong, and it cost Merchant a live world on 2026-08-19.** It said
+the base classes are on `module.api` before `init`, so a path fallback buys nothing. They are — but
+`module.api` cannot be read at module *evaluation* time, which is when `extends` runs: `game` does not
+exist yet, a top-level `game.modules.get(...)` throws, and ESM caches the failed evaluation, so the throw
+disables the consuming module for the whole session. Squire's dynamic-import-at-point-of-use was not
+belt-and-braces; it was the only thing that worked, and `panel-control.js:499` says so in a comment.
+
+Fixed 2026-08-20: the base classes and the three style-constant objects are re-exported from
+`api/blacksmith-api.js`, which is a real ES module and resolves at evaluation time. **Tell every consumer:
+`import { BlacksmithWindowBaseV2 } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js'`.** The rule
+about `scripts/` paths not being the contract still holds; the bridge is the supported path for this one
+purpose.
 
 ## `attach()` failed silently on the embedded controls - ANSWERED, shipped (raised by Merchant 2026-08-19)
 

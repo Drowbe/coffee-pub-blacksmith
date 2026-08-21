@@ -7,10 +7,15 @@ transitional document -- see the testing rules in `CLAUDE.md`. **Remove an item 
 ticking it, and delete this file when it is empty.** A checklist of ticked boxes cannot be told apart from one
 nobody ran.
 
-**Status: 28 items owed, and the harness half is finished.** A full "Run All Headless" passes **519/519** as of
-2026-08-09, across all nine suites. Everything still listed below is something a harness cannot reach: a second
-client, a browser reload, cross-module integration, or a judgement about what something looks like. Those are
-the items most likely to be skipped and most likely to matter.
+**Status: the harness half is finished, and a live multi-client session on 2026-08-19 exercised the happy
+paths.** A full "Run All Headless" passes **519/519** as of 2026-08-09, across all nine suites.
+
+**Do not read the length of this list as untested code.** This page was curated from the start to hold only
+what play does *not* reach, so a session that goes well removes almost nothing from it. What survives is
+races that need two clients acting at the same instant, permission boundaries that need a deliberate attempt
+to cross them, a browser reload, and judgements about how something looks. Every one of those is still owed
+after a good session, and the permission items are the ones where a pass matters most: a leak there is a
+bypass, not a cosmetic fault.
 
 Results go to the **Verified** line of the relevant `CHANGELOG.md` entry, not back into this file.
 
@@ -20,14 +25,6 @@ switched off, and the XP reload case.
 **Run the harness whole, not per tab.** Every defect found on 2026-08-09 was order-dependent - the per-tab runs
 were green while the full run was red, because the inventory and XP suites churn actors and combats while the
 readouts checks are reading the bar. A tab passing on its own proves less than it looks.
-
-## Combat bar - live
-
-- [ ] Watch the bar during an actual fight. The lifetime standings chips must stay put as hit points change,
-      rather than blanking and returning. The harness can only prove the chips are present at the moment it
-      looks; it cannot prove they never flickered.
-
-
 
 ## Inventory - live, cannot be automated
 

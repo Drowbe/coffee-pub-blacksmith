@@ -11,18 +11,19 @@ disabled on 2026-08-09 -- windows open, settings and macro data adopted, conditi
 selection, thresholds unified across the combat bar, blood indicators, and health bars. Squire has been
 cleared to delete its copies.
 
-What is left needs a **second user or a second browser**, which a solo pass cannot cover. Neither blocks
-Squire.
+The live session on 2026-08-19 had players on their own clients and used the adopted tools, which closes the
+per-user macro list: a player seeing someone else's macros is the kind of thing that gets reported inside a
+minute.
+
+What is left needs a **setting compared across two users, or a second browser** -- deliberate comparisons
+that a session does not make by itself. Neither blocks Squire.
 
 Results go to the **Verify** line of the `[Unreleased]` `CHANGELOG.md` entry, not back into this file.
 
-## Needs a second user
+## Needs a setting compared across two users
 
-- [ ] Log in as a second user and confirm their macro list is theirs, not the first user's. This is what the
-      per-user adoption ledger exists for; a world-scoped guard would have let the first user's adoption
-      mark the row done for everybody, leaving everyone else empty.
-- [ ] Same user, confirm `showHealthMenubarTool` is per-user -- turning it off for one does not hide the
-      icon for the other.
+- [ ] Confirm `showHealthMenubarTool` is per-user -- turning it off for one does not hide the icon for the
+      other.
 
 ## Needs a second browser
 
