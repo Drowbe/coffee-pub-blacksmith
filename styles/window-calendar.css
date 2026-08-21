@@ -1,0 +1,159 @@
+/* ==================================================================
+   CALENDAR WINDOW
+   ==================================================================
+   First draft. Owned by scripts/window-calendar.js and
+   templates/window-calendar.hbs.
+
+   The grid's column count is a CUSTOM PROPERTY set by the template from
+   the calendar's own week length, not a class per width. A world with a
+   nine-day week gets a nine-column grid without this file knowing that
+   nine is a number weeks can be.
+   ================================================================== */
+
+.blacksmith-calendar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-md);
+    padding: var(--blacksmith-space-md);
+}
+
+/* ----- Header: month, year, paging ------------------------------- */
+
+.blacksmith-calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--blacksmith-space-sm);
+}
+
+.blacksmith-calendar-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.blacksmith-calendar-month {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: var(--blacksmith-text-light);
+}
+
+.blacksmith-calendar-year {
+    font-size: 0.85em;
+    color: var(--blacksmith-text-muted);
+}
+
+.blacksmith-calendar-leap {
+    font-size: 0.7em;
+    opacity: 0.7;
+}
+
+.blacksmith-calendar-nav {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    line-height: 1;
+    background: var(--blacksmith-interactive-default);
+    color: var(--blacksmith-text-light);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.blacksmith-calendar-nav:hover {
+    background: var(--blacksmith-interactive-hover);
+    color: var(--blacksmith-text-inverse);
+}
+
+/* ----- The grid --------------------------------------------------- */
+
+.blacksmith-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--bc-columns, 7), 1fr);
+    gap: var(--blacksmith-space-xs);
+}
+
+.blacksmith-calendar-weekday {
+    text-align: center;
+    font-size: 0.72em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blacksmith-text-muted);
+    padding-bottom: var(--blacksmith-space-xs);
+}
+
+/* Every cell is the same box whether it is a button, a plain day or a
+   blank, so the grid does not shift when a player sees it without the
+   buttons a GM gets. */
+.blacksmith-calendar-day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1;
+    min-height: 30px;
+    margin: 0;
+    padding: 0;
+    font-size: 0.9em;
+    line-height: 1;
+    color: var(--blacksmith-text-light);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid transparent;
+    border-radius: 3px;
+}
+
+button.blacksmith-calendar-day {
+    cursor: pointer;
+}
+
+button.blacksmith-calendar-day:hover {
+    background: var(--blacksmith-interactive-hover);
+    color: var(--blacksmith-text-inverse);
+}
+
+.blacksmith-calendar-day.is-blank {
+    background: none;
+    border-color: transparent;
+}
+
+/* Today is marked with a border rather than a fill, so it stays legible
+   under the hover fill instead of fighting it. */
+.blacksmith-calendar-day.is-today {
+    border-color: var(--blacksmith-color-brand-accent);
+    font-weight: bold;
+}
+
+/* ----- Footer ----------------------------------------------------- */
+
+.blacksmith-calendar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--blacksmith-space-sm);
+    font-size: 0.8em;
+    color: var(--blacksmith-text-muted);
+}
+
+.blacksmith-calendar-jump {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 2px var(--blacksmith-space-md);
+    font-size: 1em;
+    line-height: 1.6;
+    background: var(--blacksmith-interactive-default);
+    color: var(--blacksmith-text-light);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.blacksmith-calendar-jump:hover {
+    background: var(--blacksmith-interactive-hover);
+    color: var(--blacksmith-text-inverse);
+}
+
+.blacksmith-calendar.is-unavailable {
+    color: var(--blacksmith-text-muted);
+    font-style: italic;
+}

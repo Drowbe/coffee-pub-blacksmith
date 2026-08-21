@@ -693,15 +693,27 @@ exactly one writes a document - `ui-combat-tracker.js:705` sets `turn: 0` after 
 re-checks `game.combats.has(combat.id)` after the delay. `xp-manager.js:151` waits a second and then reads a
 Combat that is *already* deleted by design, which is the record's whole purpose, and writes nothing to it.
 
-- [ ] **Curator - the image replacement path still has instances, observed 2026-08-20.** A full Blacksmith
-      harness run produced two errors from Curator while the harness was creating and deleting throwaway
-      tokens: `Token Image Utilities: Error applying dead token: Cannot read properties of undefined
-      (reading 'id')` and `Portrait Image Replacement: Could not store original portrait: undefined id
-      [nnpqrJHLZnAUVtRS] does not exist in the EmbeddedCollection collection.` Both are the exact signature
-      described above -- an id that no longer exists in an embedded collection, surfacing from a library
-      frame rather than from the module that scheduled the write. Curator's own matching code already logs
-      "Skipping - token was removed while matching" in other places, so the guard exists and these two paths
-      are outside it. Worth sending them the two messages verbatim; they will recognise the shape.
+**A guard cannot cover the await it is inside, and that is a second rule.** Curator made this correction on
+2026-08-21 after a Blacksmith harness run reported two of their errors under one signature, and it is the
+more useful half of the finding:
+
+```
+Token Image Utilities: Error applying dead token: Cannot read properties of undefined (reading 'id')
+Portrait Image Replacement: Could not store original portrait: undefined id [...] does not exist in
+the EmbeddedCollection collection.
+```
+
+Identical shape, **two different findings.** The first was a missing guard — the rule above covers it. The
+second was already guarded, correctly, and the guard could not help: it proves the Actor was alive when it
+ran, and the deletion lands *during* the `setFlag` itself. There is no guard position that fixes that.
+
+So "re-check after every await" is necessary and not sufficient. **The last write also needs a `catch` that
+distinguishes gone-from-broken**, because the only place that race can be observed is after the fact. Without
+that, a consumer following the rule properly still logs errors under a harness that churns documents, and
+goes looking for a bug that does not exist.
+
+That also means a harness error of this shape is not by itself evidence of a defect — it says a write raced a
+deletion, which is either a missing guard or an unreported race, and the two look the same from outside.
 - [ ] **Squire** - sweep. Curator expects instances, particularly anywhere a visual effect is applied on a delay.
 - [ ] **Cartographer** - sweep, same reason.
 - [ ] Other satellites - sweep opportunistically; the check costs a minute per module.
@@ -731,7 +743,13 @@ before our stats layer saw it. **Any past reading of hook stats that concluded C
 was wrong.** This is the class of defect that never generates a bug report, because a hook reporting the wrong
 context in someone else's diagnostic tool is invisible from both sides.
 
-On cancellation, Curator's fork restricted `pre*` cancellation to `preUpdateToken` only. They filed that as a
+**The fork is gone** — deleted months ago, and `manager-hooks.js` has been a thin forwarder since. Curator
+confirmed 2026-08-21, correcting a note of ours that still had the deletion in the future tense. **The
+`canCancel` flag is a no-op for them**: they register no `pre*` hook at all, and the only `preUpdateToken`
+left is inside a comment describing the old fork. They have recorded the flag against whoever adds the first
+one.
+
+Historical, then: Curator's fork restricted `pre*` cancellation to `preUpdateToken` only. They filed that as a
 missing upstream fix, and it is a divergence - but a hard-coded whitelist was accidentally safer than our
 "any `pre*` can veto for everyone", and it is the same instinct as the `canCancel` opt-in that has now
 shipped upstream. **When they delete the fork, that whitelist goes with it**: their `preUpdateToken`

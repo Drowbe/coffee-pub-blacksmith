@@ -87,6 +87,7 @@ import { SidebarStyle } from './ui-sidebar-style.js';
 import { LoadingProgressManager } from './manager-loading-progress.js';
 import { SettingsAdoptionManager } from './manager-settings-adoption.js';
 import { registerDiceTray } from './window-dicetray.js';
+import { registerCalendarWindow } from './window-calendar.js';
 import { registerMacros } from './window-macros.js';
 import { registerHealth } from './window-health.js';
 import { registerStatsWindows, StatsWindow } from './window-stats-party.js';
@@ -112,6 +113,7 @@ import { TagsAPI } from './api-tags.js';
 import { TagManager } from './manager-tags.js';
 import { TagWidget } from './widget-tags.js';
 import { WorldClockManager } from './manager-worldclock.js';
+import { TimeModes } from './manager-time-modes.js';
 import { DarknessManager } from './manager-darkness.js';
 import { WorldClockAPI } from './api-worldclock.js';
 import { RestManager } from './manager-rest.js';
@@ -536,6 +538,11 @@ Hooks.once('ready', async () => {
         // neither touches the widget, so their order relative to it does not matter.
         WorldClockAPI.initialize();
         RestManager.initialize();
+        // After the clock, because applying the mode repaints it, and after settings
+        // (this whole block runs in `ready`) because the mode IS a setting. Starting
+        // the driver here rather than in `init` also means the ownership election has
+        // a populated `game.users` to elect from.
+        TimeModes.initialize();
         if (mod?.api) mod.api.worldClock = WorldClockAPI;
     } catch (e) {
         console.error(`${MODULE.ID}: WorldClockManager.initialize failed`, e);
@@ -659,6 +666,7 @@ Hooks.once('ready', async () => {
         LoadingProgressManager.logActivity("Registering tool windows...");
         try {
             registerDiceTray();
+            registerCalendarWindow();
             registerMacros();
             registerHealth();
             registerStatsWindows();

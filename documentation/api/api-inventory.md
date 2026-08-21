@@ -441,6 +441,13 @@ Comparison is on source data, not the prepared model, so derived values like `us
 prevent a merge. Anything undeclared in `ignoreFlags` counts as identity, which is why a module writing UI
 state to item flags must declare those keys.
 
+**Comparison changed; stored rows did not.** The predicate decides what merges from here on, and it cannot
+reach items already sitting in a world. A flag written into rows before your module adopted `omitFlags` is
+still on those rows, so an arrival without it still compares as different and still stacks separately. That
+tail is what `ignoreFlags` is for, and an `ignoreFlags` entry naming your own flag is as likely to be a
+migration as a workaround. **Do not remove one on the strength of a predicate fix** -- how long it stays is
+a judgement about how much old data is left, not about this code.
+
 Both sides are completed through the item type's data model before comparison, so a payload you supply as
 plain `itemData` is compared as the row it will become rather than as the object you passed. Omitting
 `rarity` or `description` from `itemData` therefore does not prevent a merge with a row that carries the

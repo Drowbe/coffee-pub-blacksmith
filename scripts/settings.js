@@ -3346,6 +3346,104 @@ export const registerSettings = () => {
 	// menubar but cannot move it, so a player has nothing to configure here.
 	registerHeader('WorldClock', 'headingH3WorldClock-Label', 'headingH3WorldClock-Hint', 'H3', WORKFLOW_GROUPS.RUN_THE_GAME, 'world');
 
+	// -- Time Mode --
+	// Which speed the clock runs at. World scope, because every client must agree
+	// about what time it is; only the active GM actually ticks. The mode is normally
+	// changed from the clock's context menu rather than here — this registration is
+	// what makes it persist and what broadcasts the change.
+	game.settings.register(MODULE.ID, 'worldClockTimeMode', {
+		name: MODULE.ID + '.worldClockTimeMode-Label',
+		hint: MODULE.ID + '.worldClockTimeMode-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			combat: 'Combat — core advances time by the round',
+			real: 'Real-time — one second per second',
+			slow: 'Slow — decelerated',
+			fast: 'Fast — accelerated',
+			paused: 'Paused — nothing moves the clock'
+		},
+		default: 'paused',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Slow / Fast speeds --
+	// World seconds per real second. A DROPDOWN rather than a slider, and every
+	// option says what it does at the table rather than only what it multiplies.
+	// A slider could not: it shows a bare number with no unit, and "60" does not
+	// tell a GM whether that is an hour a minute or a minute an hour. That question
+	// was asked out loud, which is the evidence this needed changing.
+	//
+	// Stored as String so the option keys survive round-tripping; every reader goes
+	// through Number(), which is why `TimeModes.rateFor` already coerces.
+	game.settings.register(MODULE.ID, 'worldClockSlowMultiplier', {
+		name: MODULE.ID + '.worldClockSlowMultiplier-Label',
+		hint: MODULE.ID + '.worldClockSlowMultiplier-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		// One framing for the whole ladder -- an hour of play -- because a list that
+		// switched units partway ("ten minutes of play is one minute" next to "an hour
+		// of play is fifteen") makes the reader do the conversion the labels exist to
+		// spare them.
+		choices: {
+			'0.05': '0.05x - an hour of play is three in-world minutes',
+			'0.1': '0.1x - an hour of play is six in-world minutes',
+			'0.2': '0.2x - an hour of play is twelve in-world minutes',
+			'0.25': '0.25x - an hour of play is fifteen in-world minutes',
+			'0.4': '0.4x - an hour of play is twenty-four in-world minutes',
+			'0.5': '0.5x - an hour of play is thirty in-world minutes',
+			'0.75': '0.75x - an hour of play is forty-five in-world minutes',
+			'0.9': '0.9x - an hour of play is fifty-four in-world minutes'
+		},
+		default: '0.25',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'worldClockFastMultiplier', {
+		name: MODULE.ID + '.worldClockFastMultiplier-Label',
+		hint: MODULE.ID + '.worldClockFastMultiplier-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			'2': '2x - a minute of play is two in-world minutes',
+			'5': '5x - a minute of play is five in-world minutes',
+			'10': '10x - a minute of play is ten in-world minutes',
+			'15': '15x - a minute of play is fifteen in-world minutes',
+			'30': '30x - a minute of play is thirty in-world minutes',
+			'60': '60x - a minute of play is one in-world hour',
+			'120': '120x - a minute of play is two in-world hours',
+			'240': '240x - a minute of play is four in-world hours',
+			'360': '360x - a minute of play is six in-world hours',
+			'720': '720x - a minute of play is twelve in-world hours'
+		},
+		default: '60',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	// -- Minimum update interval --
+	// The driver writes one world MINUTE per update, so the clock ticks over minute
+	// by minute rather than leaping. This is the floor that stops that costing too
+	// much: `game.time.advance` writes a world setting and wakes every connected
+	// client, and at 60x a world minute arrives every real second. Only Fast reaches
+	// this floor; Real-time writes once a minute and Slow once every four.
+	game.settings.register(MODULE.ID, 'worldClockMinUpdateSeconds', {
+		name: MODULE.ID + '.worldClockMinUpdateSeconds-Label',
+		hint: MODULE.ID + '.worldClockMinUpdateSeconds-Hint',
+		scope: 'world',
+		config: true,
+		type: Number,
+		default: 3,
+		range: {
+			min: 1,
+			max: 30,
+			step: 1
+		},
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Small Step --
 	// Minutes, applied with the CALENDAR's secondsPerMinute rather than 60 — see
 	// WorldClockManager.step().

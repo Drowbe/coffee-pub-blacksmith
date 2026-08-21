@@ -1,0 +1,71 @@
+{{!-- Calendar — a month of the world calendar.
+
+      FIRST DRAFT. Owned by scripts/window-calendar.js and styles/window-calendar.css.
+
+      Every label here is read from `game.time.calendar`: the month name, the weekday
+      abbreviations, the number of columns. Nothing is hardcoded to a Gregorian week,
+      because a world is free to declare a nine-day one.
+
+      The grid is a CSS grid whose column count comes from the calendar, set as a
+      custom property rather than a class so any week length works without a
+      stylesheet that enumerates them. --}}
+
+{{#if available}}
+<div class="blacksmith-calendar">
+
+    <div class="blacksmith-calendar-header">
+        <button type="button" class="blacksmith-calendar-nav" data-action="calendarPrev"
+                data-tooltip="Previous month">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+
+        <div class="blacksmith-calendar-title">
+            <span class="blacksmith-calendar-month">{{monthName}}</span>
+            <span class="blacksmith-calendar-year">{{yearLabel}}{{#if isLeapYear}} <i class="fa-solid fa-asterisk blacksmith-calendar-leap" data-tooltip="A leap year in this calendar"></i>{{/if}}</span>
+        </div>
+
+        <button type="button" class="blacksmith-calendar-nav" data-action="calendarNext"
+                data-tooltip="Next month">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <div class="blacksmith-calendar-grid" style="--bc-columns: {{columns}};">
+        {{#each weekdays}}
+        <div class="blacksmith-calendar-weekday" data-tooltip="{{this.name}}">{{this.abbreviation}}</div>
+        {{/each}}
+
+        {{#each cells}}
+            {{#if this.blank}}
+            <div class="blacksmith-calendar-day is-blank"></div>
+            {{else}}
+                {{!-- A day is a button only for a GM. For a player it is the same cell
+                      without the affordance, because setting world time would throw. --}}
+                {{#if ../isGM}}
+                <button type="button"
+                        class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}"
+                        data-action="calendarPickDay"
+                        data-day="{{this.dayIndex}}"
+                        data-tooltip="Go to this day, keeping the time of day">{{this.label}}</button>
+                {{else}}
+                <div class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}">{{this.label}}</div>
+                {{/if}}
+            {{/if}}
+        {{/each}}
+    </div>
+
+    <div class="blacksmith-calendar-footer">
+        <span class="blacksmith-calendar-today-label">Today: {{todayLabel}}</span>
+        {{#unless viewingNow}}
+        <button type="button" class="blacksmith-calendar-jump" data-action="calendarToday">
+            <i class="fa-solid fa-location-crosshairs"></i> Back to today
+        </button>
+        {{/unless}}
+    </div>
+
+</div>
+{{else}}
+<div class="blacksmith-calendar is-unavailable">
+    <p>The world calendar is not available yet.</p>
+</div>
+{{/if}}

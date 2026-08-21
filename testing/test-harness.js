@@ -52,6 +52,7 @@ const SUITES = [
     `${BASE}/suite-quantity-split.js`,
     `${BASE}/suite-readouts.js`,
     `${BASE}/suite-stats.js`,
+    `${BASE}/suite-time-modes.js`,
     `${BASE}/suite-window-delegation.js`,
     `${BASE}/suite-xp-record.js`
 ];

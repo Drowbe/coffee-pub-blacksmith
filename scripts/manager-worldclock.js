@@ -26,6 +26,10 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely, fetchTemplateText } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { UIContextMenu } from './ui-context-menu.js';
+// The mode policy. The dependency runs clock -> modes and never back: the modes
+// notify through `TimeModes.onChange` rather than importing this file, which is
+// what keeps the pair from being circular.
+import { TimeModes } from './manager-time-modes.js';
 
 class WorldClockManager {
 
@@ -134,6 +138,10 @@ class WorldClockManager {
     static async initialize() {
         await this.registerPartial();
         this._registerHook();
+        // Repaint when the mode changes, so the indicator is never stale. The clock
+        // already repaints on `updateWorldTime`, but a switch to Paused moves no time
+        // and so would otherwise leave the previous mode's icon on screen.
+        TimeModes.onChange(() => this.updateDisplay());
     }
 
     /**
@@ -222,10 +230,19 @@ class WorldClockManager {
         const dayFraction = this._getDayFraction(calendar, components);
         const view = this._getSkyView(dayFraction);
         const timeParts = this._formatTimeParts(calendar, components);
+        const mode = TimeModes.current();
 
         return {
             available: true,
             isGM,
+            // The mode indicator is shown to everyone, not just the GM. A player
+            // watching the clock crawl during table-talk should be able to see WHY,
+            // and it is a readout rather than a control, so it carries no risk.
+            modeIcon: mode.icon,
+            modeLabel: mode.label,
+            modeTooltip: isGM
+                ? `Time: ${mode.label} (${TimeModes.speedLabel(mode)}) — click to change`
+                : `Time: ${mode.label} — ${mode.description}`,
             timeText: `${timeParts.timeTens}${timeParts.timeRest}`,
             ...timeParts,
             tooltip: this._buildTooltip(calendar, components),
@@ -720,6 +737,28 @@ class WorldClockManager {
         // on the other.
         if (body) body.className = `worldclock-body ${view.icon}`;
         section.classList.toggle('is-night', !!view.isNight);
+
+        // THE MODE INDICATOR IS PAINTED HERE, not left to the template.
+        //
+        // Everything the template draws has to be reachable from the repaint path or
+        // it goes stale on screen while the state behind it is correct -- the exact
+        // failure the menubar fingerprint has shipped twice (see architecture 9B.3).
+        // It happened here too: switching mode left the previous icon and tooltip in
+        // place, while the context menu underneath reported the new mode correctly,
+        // which is what a state-is-right-paint-is-stale bug looks like from outside.
+        //
+        // Its glyph rides in the class list like the body's, so the whole list is
+        // rewritten rather than one class toggled -- `fa-clock` and `fa-pause` are
+        // siblings and leaving both renders one stacked on the other.
+        //
+        // Guarded on the value being present because the DRAG PREVIEW paints a partial
+        // view of sky and time only; an unguarded write would blank the icon for the
+        // length of every gesture.
+        const modeNode = section.querySelector('.worldclock-mode');
+        if (modeNode && view.modeIcon) {
+            modeNode.className = `worldclock-mode ${view.modeIcon}`;
+            if (view.modeTooltip) modeNode.setAttribute('data-tooltip', view.modeTooltip);
+        }
     }
 
     // ==============================================================
@@ -768,7 +807,37 @@ class WorldClockManager {
      */
     static attachHandlers(playButtonSound = () => {}) {
         const section = document.querySelector('.worldclock-section');
-        if (!section || !game.user?.isGM) return;
+        if (!section) return;
+
+        // THE TIME OPENS THE CALENDAR, for players as well as the GM. This is what
+        // freeing the face was for: the menu moved to the mode indicator so the digits
+        // could carry the thing a GM means when they click a clock, which is "show me
+        // the date". A player gets the same window without the day buttons, because a
+        // calendar is a readout before it is a control.
+        //
+        // Bound BEFORE the GM gate below, which is why that gate stopped being the
+        // first line of this method.
+        //
+        // Imported on demand for the same reason the rest window is: the clock is
+        // menubar furniture that loads early, and a window it only opens on a click
+        // has no business in its import graph.
+        const face = section.querySelector('.worldclock-time');
+        if (face) {
+            face.addEventListener('click', async (event) => {
+                if (this._suppressClick) return;
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    const { openCalendarWindow } = await import('./window-calendar.js');
+                    openCalendarWindow();
+                } catch (error) {
+                    postConsoleAndNotification(MODULE.NAME, 'WorldClock: Could not open the calendar', error, false, false);
+                }
+            });
+        }
+
+        // Everything below moves world time, which is the `core.time` WORLD setting.
+        if (!game.user?.isGM) return;
 
         section.querySelectorAll('.worldclock-step').forEach((button) => {
             button.addEventListener('click', (event) => {
@@ -793,23 +862,24 @@ class WorldClockManager {
         const body = section.querySelector('.worldclock-body');
         if (sky && body) body.addEventListener('pointerdown', (event) => this._beginDrag(event, section, sky));
 
-        // THE CLOCK FACE IS THE BUTTON, not the whole widget. Every part of this
-        // thing already does something on click -- the arrows step, the sun drags --
-        // and the sky is a picture rather than a control. Only the time itself is
-        // left, and a menu hung off the whole section would fire from presses aimed
-        // at the sky.
+        // THE MODE INDICATOR IS THE BUTTON. It used to be the clock face, and moved
+        // here 2026-08-21 to leave the face free: the time itself is going to open a
+        // calendar, and a face that opened a settings menu instead would have to be
+        // taken back off it later. An indicator that already reports how time is
+        // passing is the honest place to change how time passes.
         //
         // Left click as well as right, because a right-click-only menu on a strip of
         // read-outs is a menu nobody finds.
-        const label = section.querySelector('.worldclock-time');
-        if (label) {
-            label.addEventListener('click', (event) => {
-                // A drag released over the clock face reports the FACE as the click
-                // target, so a gesture that ended here must not also open the menu.
+        const indicator = section.querySelector('.worldclock-mode');
+        if (indicator) {
+            indicator.addEventListener('click', (event) => {
+                // A drag released over the widget reports whatever is under the
+                // pointer as the click target, so a gesture that ended here must not
+                // also open the menu.
                 if (this._suppressClick) return;
                 this._showMenu(event);
             });
-            label.addEventListener('contextmenu', (event) => this._showMenu(event));
+            indicator.addEventListener('contextmenu', (event) => this._showMenu(event));
         }
     }
 
@@ -869,26 +939,39 @@ class WorldClockManager {
             submenu: this._buildJumpItems()
         });
 
+        // TIME MODE. Below the jumps because a jump is a thing you do to the world
+        // and a mode is how the world behaves afterwards -- the same ordering the
+        // rest of this menu already follows.
+        const mode = TimeModes.current();
         items.push({
-            name: 'Set Time',
-            icon: 'fa-solid fa-clock',
-            callback: () => this._promptSetTime()
-        });
-        items.push({
-            name: 'Set Date',
-            icon: 'fa-solid fa-calendar-days',
-            callback: () => this._openSetDateDialog()
+            name: `Time Mode: ${mode.label}`,
+            icon: mode.icon,
+            submenu: TimeModes.menuItems()
         });
 
-        const options = this._collectOptionItems();
-        if (options.length) {
-            items.push({ separator: true });
-            items.push({
-                name: 'Options',
-                icon: 'fa-solid fa-sliders',
-                submenu: options
-            });
-        }
+        // SET TIME and SET DATE moved into Options on 2026-08-21. They are the two
+        // entries a GM uses least often and they were sitting above the ones used
+        // most; Options is where "things you do to the configuration" already lives.
+        const options = [
+            {
+                name: 'Set Time',
+                icon: 'fa-solid fa-clock',
+                callback: () => this._promptSetTime()
+            },
+            {
+                name: 'Set Date',
+                icon: 'fa-solid fa-calendar-days',
+                callback: () => this._openSetDateDialog()
+            },
+            ...this._collectOptionItems()
+        ];
+
+        items.push({ separator: true });
+        items.push({
+            name: 'Options',
+            icon: 'fa-solid fa-sliders',
+            submenu: options
+        });
 
         return items;
     }

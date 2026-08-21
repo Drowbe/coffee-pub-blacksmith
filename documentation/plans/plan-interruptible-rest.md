@@ -42,6 +42,15 @@ interrupted.**
 
 ## The primitive
 
+**Half of this shipped on 2026-08-21 with the time modes.** `TimeDriver` (`scripts/manager-time-modes.js`)
+already advances world time in commits paced by real time, on a single GM elected through
+`game.users.activeGM`, re-checking ownership every commit and carrying fractional seconds. Points 1 and 2
+below are answered in code; read them as a record of why it is shaped that way.
+
+**What is missing is the target and the interrupt.** The driver runs open-endedly at a rate. A rest needs
+it to run *to* a total and stop, to report progress as it goes, and to be stoppable with a reason that the
+caller can tell apart from completion.
+
 A GM-owned driver that advances world time in commits until a target is reached, and can be stopped.
 
 ```

@@ -565,11 +565,23 @@
 		"headingH3WorldClock-Label": "World Clock",
 		"headingH3WorldClock-Hint": "The in-world time of day shown in the menubar. The calendar itself comes from the game system, not from Blacksmith.",
 
-			"worldClockStepSmall-Label": "Small Step",
-			"worldClockStepSmall-Hint": "Minutes the single arrows move the in-world time.",
+			"worldClockTimeMode-Label": "Time Mode",
+			"worldClockTimeMode-Hint": "How in-world time passes. Combat leaves it to the game system, which advances the clock by the round. Real-time, Slow and Fast run the clock on their own. Paused stops it. Easier to change from the clock's right-click menu than from here.",
 
-			"worldClockStepLarge-Label": "Large Step",
-			"worldClockStepLarge-Hint": "Minutes the double arrows move the in-world time.",
+			"worldClockSlowMultiplier-Label": "Slow Speed",
+			"worldClockSlowMultiplier-Hint": "How fast in-world time runs in Slow mode, compared to real time.",
+
+			"worldClockFastMultiplier-Label": "Fast Speed",
+			"worldClockFastMultiplier-Hint": "How fast in-world time runs in Fast mode, compared to real time.",
+
+			"worldClockMinUpdateSeconds-Label": "Minimum Update Interval",
+			"worldClockMinUpdateSeconds-Hint": "The shortest time, in real seconds, between clock updates. The clock normally advances one in-world minute at a time, but every update is sent to all connected clients, so it will not update more often than this. Only Fast mode usually reaches the limit: above about 60x the clock has to move in larger steps, and the faster the speed the larger they get. This does not change how fast in-world time passes, only how smoothly it is shown.",
+
+			"worldClockStepSmall-Label": "Single Arrow Step",
+			"worldClockStepSmall-Hint": "How far the single arrows either side of the clock move time, in minutes. Meant for small corrections.",
+
+			"worldClockStepLarge-Label": "Double Arrow Step",
+			"worldClockStepLarge-Hint": "How far the double arrows move time, in minutes. Meant for skipping ahead, so set it larger than the single-arrow step or the two controls do the same job.",
 
 			"worldClockSunrise-Label": "Sunrise",
 			"worldClockSunrise-Hint": "Hour the sun rises. Sets where dawn falls on the menubar sky, and where scene darkness begins to lift.",

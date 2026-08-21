@@ -60,47 +60,16 @@ currently has **zero** references to Scene Config, which is worth keeping true u
 Whatever does this should read the same scene flag the driver uses (`DarknessManager.FLAG`) rather than
 inventing a parallel one, and must survive the sheet re-rendering underneath it.
 
-## World clock: time modes (opened 2026-08-16, designed by the author 2026-08-21)
+## World clock: time modes -- SHIPPED 2026-08-21, awaiting live verification
 
-**Supersedes the narrower "real time when out of combat" idea this section used to hold.** The clock runs
-in one of five modes, and the GM switches between them:
+Built: five modes, the driver, the menu, the indicator, the settings, and a harness suite. See
+`CHANGELOG.md` for what it does and `architecture/architecture-worldclock.md` for how. **Delete this entry
+once the live checks in that CHANGELOG entry pass** -- particularly the two-GM one, which no harness can
+reach.
 
-| Mode | Time passes |
-|---|---|
-| **Combat** | 6 seconds per round. Core already does this through `CONFIG.time.roundTime`. |
-| **Real-time** | With the wall clock, like an ordinary clock. |
-| **Slow** | More slowly than real time. For table-talk. |
-| **Fast** | More quickly. For long travel. |
-| **Paused** | Not at all. Waiting for players at the top of a session. |
-
-**The surface is a small icon indicator with a context menu to switch modes**, with the slow and fast
-multipliers set in settings. The world clock already owns a right-click menu (`architecture-worldclock.md`,
-"The menu"), so the vocabulary exists.
-
-**The mode is world state, not client state.** Every client must agree on what time it is, so the mode
-lives in a world setting and only a GM changes it.
-
-The appeal is obvious: a GM never has to remember to move the clock, and travel and downtime pass on their
-own. Two things make it harder than it sounds, and both should be settled before any of it is written.
-
-**Writing time is a database round trip broadcast to every client.** Advancing once a second is not an
-option; it would be 3600 world-setting writes an hour, each one waking every connected client and firing
-`updateWorldTime` on all of them -- which now also runs the darkness driver. The design has to decouple
-*ticking* from *writing*: advance in coarse commits (a minute of world time, or one commit every N real
-seconds) while any smooth display is computed locally between them.
-
-**Which client owns the tick.** Only a GM can write, so only a GM may tick -- and with two GMs connected,
-two tickers would both advance the same clock and time would run at double speed. Whatever does this needs
-a single-owner rule, and to stop cleanly when that owner disconnects.
-
-Also worth deciding: whether Foundry's own pause forces Paused mode, and what happens to a rest that is
-already running when the mode changes.
-
-**This wants the same engine as the interruptible rest**, and that is the strongest argument for building
-either. Both need one GM-owned driver that advances world time in coarse commits and can be stopped; a
-mode is that driver running open-endedly at a multiplier, and a rest is the same driver running to a
-target. Phase 1 of `documentation/plans/plan-interruptible-rest.md` is that primitive. Build it once, and
-the second consumer is what proves the shape is right.
+What was deliberately NOT built, and should stay unbuilt unless someone asks: Paused does not suppress
+core's per-round combat advance. Stopping that would mean vetoing `preUpdateCombat`, and a combat running
+while the GM believes time is paused is a rarer problem than a hub that cancels core operations.
 
 ## World clock: what is left (opened 2026-08-16)
 
@@ -119,8 +88,12 @@ the missing primitive, the open questions, and four phases. Read that rather tha
 
 The short version, so this list still reads: what is missing is not the surface but the primitive --
 advance world time gradually and let it be interrupted -- and the rule that decides the design is that an
-interrupted rest is not a rest, so recovery runs only on completion. Phase 1 of that plan is also the
-engine the time modes above need, so it is worth building once for both.
+interrupted rest is not a rest, so recovery runs only on completion.
+
+**Phase 1 is now half-built.** `TimeDriver` (`manager-time-modes.js`) already advances world time in
+real-time commits, on one elected GM, carrying fractional seconds. What the rest adds is a *target* and an
+interrupt: the driver runs open-endedly today. That is a smaller phase 1 than the plan assumed, and the
+plan should be read with that in mind.
 
 ### 2. Already done, recorded so nobody rebuilds it
 
@@ -150,13 +123,15 @@ time in seconds and fires once (`api-worldclock.md`). Turning a date into that n
 already available -- `game.time.calendar.componentsToTime({ year, month, day, hour, ... })`; the clock
 already uses its inverse `timeToComponents` for drag-to-scrub (`manager-worldclock.js:1180`).
 
-**Two things are genuinely missing, and neither is the trigger:**
+**Two things were missing, and one is now half done:**
 
-1. **Persistence.** Schedules are in-memory and are explicitly *not a queue* -- nothing fires
-   retroactively, and a one-shot whose moment passed while the world was closed is missed. A reminder set
-   three days out must survive a reload, so it needs a store and re-registration on `ready`. That is the
-   "somewhere to store the events" question, and it is the whole of the work.
-2. **Authoring.** A GM thinks in dates, not seconds. That is the calendar view.
+1. **Persistence -- still open, and it is the whole of the work.** Schedules are in-memory and explicitly
+   *not a queue*: nothing fires retroactively, and a one-shot whose moment passed while the world was closed
+   is missed. A reminder set three days out must survive a reload, so it needs a store and re-registration
+   on `ready`. Where events live is the open decision -- see the plan below.
+2. **Authoring -- a first draft shipped 2026-08-21.** `scripts/window-calendar.js` renders the month grid,
+   pages, marks today, and lets a GM jump the world to a day. It has no events in it yet, which is exactly
+   the half that waits on (1). See `documentation/plans/plan-calendar-window.md`.
 
 So this is a store plus a view over a firing mechanism that is already built and documented. Worth knowing
 before anyone scopes it as a clock feature -- it is not one.

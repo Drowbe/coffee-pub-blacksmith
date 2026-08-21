@@ -21,6 +21,7 @@ styles these classes or imports this manager.
 | File | Holds |
 |---|---|
 | `scripts/manager-worldclock.js` | All behaviour: render data, formatting, stepping, dragging |
+| `scripts/manager-time-modes.js` | `TimeDriver` (advances world time by itself) and `TimeModes` (which speed is selected) |
 | `templates/partials/worldclock.hbs` | The markup, registered as the `blacksmith-worldclock` partial |
 | `styles/worldclock.css` | All styling, reached through the `@import` chain in `default.css` |
 | `tools/check-worldclock.mjs` | The invariants below, checkable from the command line |
@@ -299,11 +300,94 @@ controls rendered at all -- a control that errors is worse than one that is abse
 Players receive time changes through the ordinary `updateWorldTime` broadcast; there is no socket traffic
 and no second code path.
 
-## No interval
+## No interval in the readout
 
-Unlike the session timer, the clock is not on a timer. World time does not pass on its own --
-it moves only when something advances it, and `updateWorldTime` fires exactly then. A ticking interval
-would spend a repaint per second redrawing an identical string for the whole session.
+Unlike the session timer, the clock's *display* is not on a timer. It repaints when something advances
+world time and `updateWorldTime` fires, and at no other moment. A ticking interval would spend a repaint
+per second redrawing an identical string for the whole session.
+
+Time modes do not change that. The driver below has an interval, but it is a WRITER, not a repainter --
+the display still redraws only in response to time actually moving.
+
+## Time modes
+
+`manager-time-modes.js` lets the clock run at a chosen speed. Five modes: **Combat**, **Real-time**,
+**Slow**, **Fast**, **Paused**. The mode is the world setting `worldClockTimeMode`, so every client agrees
+about how time is passing; the speeds are `worldClockSlowMultiplier` and `worldClockFastMultiplier`, in
+world seconds per real second.
+
+**The mode indicator is the menu button.** A muted icon sits *before* the time -- ahead of it, so the digits
+stay the rightmost thing in the face and keep their tabular alignment against the step arrows. It reports how
+time is passing, and for a GM it is also what opens the clock's context menu, on left click or right. Players
+see it too, as a readout: someone watching the clock crawl should be able to see why.
+
+**The indicator is painted in `_paint`, not left to the template.** Anything the template draws must be
+reachable from the repaint path or it goes stale on screen while the state behind it is correct -- the same
+failure the menubar fingerprint has shipped twice (9B.3 in `architecture-blacksmith.md`). It happened here
+on the first cut: switching mode left the previous icon and tooltip in place while the context menu
+underneath reported the new mode correctly. The glyph rides in the class list, so the whole list is
+rewritten rather than one class toggled, and the write is guarded because the drag preview paints a partial
+view of sky and time only.
+
+**The speeds are a dropdown, not a slider**, and each option states its effect at the table
+(`60x - a minute of play is one in-world hour`). A slider shows a bare number with no unit, and a GM reading
+"60" cannot tell whether it means an hour a minute or a minute an hour. Values are stored as strings and
+coerced by `rateFor`.
+
+The menu used to hang off the clock face. It moved on 2026-08-21 to leave the face free for a calendar, and
+because an indicator that already reports how time passes is the honest place to change how time passes.
+**Set Time and Set Date moved into Options** in the same pass: they are the entries a GM reaches for least
+and they were sitting above the ones reached for most.
+
+**Combat and Paused both mean the driver stands down, and they are two modes because the reason differs.**
+In Combat, core is already advancing world time: `Combat#getTimeDelta` computes a delta from
+`CONFIG.time.roundTime` and `turnTime` and the round change applies it
+(`client/documents/combat.mjs:186`). Driving as well would double-count every round. In Paused, nothing is
+advancing it at all. Note that Paused does not stop core's combat advance -- a combat running in Paused
+mode still moves the clock by the round, because that is core's contract and intercepting it would mean
+vetoing `preUpdateCombat`.
+
+### Three things make the driver harder than a `setInterval`
+
+**The clock advances a MINUTE at a time, and writing time is expensive.** Those pull against each other and
+the balance is the whole design. `game.time.advance` writes a world setting and wakes every connected
+client, firing `updateWorldTime` on all of them -- which also runs the darkness driver. So the driver writes
+one world minute per update, which is what makes the readout tick over minute by minute rather than leaping,
+and refuses to do it more often than `worldClockMinUpdateSeconds` (default 3s real). Real-time writes once a
+minute; Slow once every four; only Fast reaches the floor, where a world minute arrives every real second
+and the floor holds it to a write every three carrying three minutes each.
+
+`TimeDriver.plan(rate, floor)` is that arithmetic, pure and separately testable: it returns the cadence and
+the step, and the invariant it must always satisfy is `step === cadence * rate` -- the clock is coarse, never
+fast or slow.
+
+**The rejected alternative was display interpolation** -- commit on a slow real cadence and animate the
+readout between writes. It shows minutes passing that have not passed, so anything scheduled on a minute
+fires after the readout has already gone by it. A clock that is a few seconds coarse is honest; one that
+displays a time the world is not at is not.
+
+**Only one client may tick.** Only a GM can write the setting, and two GMs ticking would run the world at
+double speed. Ownership is `game.users.activeGM` -- core's own election, the same one `api-gm-request.js`
+uses, so every module agrees with core rather than with its own sort. It is re-checked on every commit as
+well as at start, because the active GM can change while the interval is running, and it is re-evaluated on
+`userConnected` so a GM dropping hands the tick on rather than stopping the world.
+
+**A minute is what the calendar says it is.** `secondsPerMinute`, not 60. Hardcoding 86400 for a day is the
+mistake already recorded against `getRenderData`; this is the same one a unit down, and it would surface
+only in a world with a custom calendar.
+
+The interval is client state and the mode is world state, so a client that reloads restarts from the mode
+and loses at most one commit of world time. Nothing durable holds a partial second.
+
+### The seam the rest will use
+
+`TimeDriver` knows nothing about modes: it advances at a rate until stopped. The interruptible rest needs
+the same engine running to a *target* rather than open-endedly, which is why the two are separate classes
+in one file rather than one class. See `documentation/plans/plan-interruptible-rest.md`.
+
+The dependency runs clock -> modes and never back. `TimeModes.onChange(callback)` is how the clock hears
+about a switch, which keeps the pair from being circular -- the same shape as the option providers the
+clock already exposes.
 
 ## Invariants that fail silently
 
