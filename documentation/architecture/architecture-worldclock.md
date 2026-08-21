@@ -309,6 +309,19 @@ per second redrawing an identical string for the whole session.
 Time modes do not change that. The driver below has an interval, but it is a WRITER, not a repainter --
 the display still redraws only in response to time actually moving.
 
+## Calendar names are localization keys
+
+`calendar.months.values[].name` and `days.values[].name` / `.abbreviation` hold **i18n keys**, not display
+text. dnd5e's Harptos calendar stores `DND5E.CALENDAR.Harptos.Month.Hammer`, which resolves to "Hammer";
+its weekdays resolve to "one-day" through "ten-day".
+
+Anything rendering them must call `game.i18n.localize` first. Two symptoms if it does not, both seen on the
+calendar window's first run: the raw key on screen, and -- because an abbreviation was derived by slicing the
+name to two characters -- every day of the tenday reading "DN". **Localize before slicing.**
+
+`localize` returns its argument unchanged when there is no translation, so a calendar storing plain names
+needs no branch.
+
 ## Time modes
 
 `manager-time-modes.js` lets the clock run at a chosen speed. Five modes: **Combat**, **Real-time**,

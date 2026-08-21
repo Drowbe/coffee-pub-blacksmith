@@ -77,6 +77,22 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         return game.time?.calendar ?? null;
     }
 
+    /**
+     * A calendar label, localized.
+     *
+     * Month and weekday names are LOCALIZATION KEYS, not display text -- dnd5e's
+     * Harptos calendar stores `DND5E.CALENDAR.Harptos.Month.Hammer` and expects the
+     * reader to resolve it. Rendering them raw put the key on screen, and slicing one
+     * for an abbreviation produced "DN" for every day of the tenday.
+     *
+     * `localize` returns its argument unchanged when there is no translation, so a
+     * calendar that stores plain names is unaffected and needs no branch.
+     */
+    static label(value) {
+        if (!value) return '';
+        return game.i18n?.localize(value) ?? value;
+    }
+
     /** Components of the current world time, or null. */
     static nowComponents() {
         const calendar = this.calendar();
@@ -176,20 +192,23 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         return {
             available: true,
             isGM: !!game.user?.isGM,
-            monthName: month.name,
+            monthName: CalendarWindow.label(month.name),
             monthOrdinal: month.ordinal,
             monthCount: months.length,
             year: this.viewYear,
             yearLabel: this.viewYear,
             isLeapYear: typeof calendar.isLeapYear === 'function' ? !!calendar.isLeapYear(this.viewYear) : false,
-            weekdays: weekdays.map(weekday => ({
-                name: weekday.name,
-                abbreviation: weekday.abbreviation || weekday.name.slice(0, 2)
-            })),
+            weekdays: weekdays.map((weekday) => {
+                const name = CalendarWindow.label(weekday.name);
+                // Localize BEFORE slicing. Slicing the key gave every day of the
+                // tenday the same two letters.
+                const abbreviation = CalendarWindow.label(weekday.abbreviation) || name.slice(0, 2);
+                return { name, abbreviation };
+            }),
             cells,
             columns: weekdays.length,
             viewingNow: isCurrentMonth,
-            todayLabel: `${months[now.month]?.name ?? ''} ${now.dayOfMonth + 1}`
+            todayLabel: `${CalendarWindow.label(months[now.month]?.name)} ${now.dayOfMonth + 1}`
         };
     }
 
