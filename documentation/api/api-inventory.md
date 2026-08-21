@@ -437,6 +437,11 @@ Comparison is on source data, not the prepared model, so derived values like `us
 prevent a merge. Anything undeclared in `ignoreFlags` counts as identity, which is why a module writing UI
 state to item flags must declare those keys.
 
+`system.properties` participates, but only across values dnd5e recognises for that item type
+(`CONFIG.DND5E.validProperties`). `mgc` is compared, so a magical item does not merge into a mundane one; an
+unrecognised entry is ignored on both sides, because it is not a property the system acknowledges and it does
+not survive item creation -- so comparing it would compare a shape that never reaches storage.
+
 `stack: 'separate'` always creates a new row.
 
 ## What is refused

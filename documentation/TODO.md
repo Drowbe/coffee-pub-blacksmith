@@ -23,6 +23,64 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
+## Inventory: `system.properties` diverges by parent actor type, and it blocks every merge (opened 2026-08-20)
+
+**Found by the harness on 2026-08-20.** Twelve of the eighteen failures in a full run are this one cause,
+across `transfer-basic`, `merge-across-creation-paths`, `transient-flag-registry`, `rollback-after-merge`,
+`container-not-inherited` and `container-placement`.
+
+**The evidence.** `merge-across-creation-paths` creates two rows by raw `createEmbeddedDocuments` from the
+*same* payload, with no `properties` key in either. The row on the **npc** reads
+`_source.system.properties = ["gear"]`; the row on the **character** reads `[]`. Every other failing check
+has the same shape -- existing row on a character, incoming payload from an npc.
+
+`_canMerge` then correctly refuses: `properties` is not in `RESET_PATHS` and must not be, because it carries
+`mgc`. A magical dagger merging into a mundane one is the failure that rule exists to prevent, so
+"exclude properties from identity" is not the fix.
+
+**This is not a harness artifact.** If it reproduces outside the harness it means looting from an NPC corpse
+into a character never merges for any item whose `properties` was absent at creation -- arrows landing as a
+second row, which is the exact symptom the container comment in `api-inventory.js:45-49` records as already
+fixed once. No sibling writes `system.properties` on create (checked across all twelve), so the value is
+coming from dnd5e or core.
+
+**Diagnosed 2026-08-20 by probe.** An identical bare loot payload created on an npc stores
+`properties: ["gear"]`; on a character it stores `[]`. And decisively: a payload carrying `["gear"]`,
+taken straight from `toObject()`, creates a row whose stored value is `[]`.
+
+**So `_canMerge` compares a payload that has not been through the create pipeline against a document that
+has.** The row that will actually exist is the cleaned one, which means the comparison is made against a
+shape that never reaches disk. That is the defect, and it does not depend on knowing who writes `"gear"`.
+
+`"gear"` is not a valid loot property -- `CONFIG.DND5E.validProperties.loot` is `Set(["mgc"])`
+(`dnd5e.mjs:45532`, dnd5e 5.3.3). So the value is invalid wherever it appears, which points at the fix.
+
+**Preferred fix: compare only properties the system recognises for that item type.** Intersect both sides
+with `CONFIG.DND5E.validProperties[type]` inside `_identitySystem`. An unrecognised property is not part of
+an item's identity, because the system does not treat it as one. `mgc` stays in identity, so a magical
+dagger still refuses to merge into a mundane one -- which is the case that justifies the whole predicate.
+This file is already dnd5e-specific by construction (see its header), so reading a dnd5e config here is in
+keeping.
+
+**Alternative considered: clean both sides through the item's DataModel before comparing.** More general,
+but weaker in practice -- it reproduces only what the *schema* does, and if a module's `preCreateItem` hook
+is what rewrites the value then schema cleaning will not match what a real create produces either.
+
+**Separately, and not ours to fix: something writes an invalid `properties` value onto loot items created on
+NPCs.** Not any coffee-pub sibling, and not the three other installed `preCreateItem` hooks
+(chris-premades, DAE, automated-conditions-5e), all of which are clean on this. An invalid property
+persisting in stored data is worth finding, but it is not what blocks the merge.
+
+**Verify:** the six named checks pass in a full "Run All Headless", plus one live loot of a stackable item
+from an NPC corpse onto a character who already carries some, landing as one row.
+
+## Readouts: two harness checks fail and nobody has looked (opened 2026-08-20)
+
+`readouts/patch-path` and `readouts/flash-class` both fail on `stat-total-damage is rendered` (7/11 in the
+2026-08-20 run). Plausibly they need the combat bar open and are reporting the environment rather than a
+defect, but that is a guess and has not been checked. Either fix the checks so they state their
+precondition, or fix what they found.
+
 ## World clock: a Scene Config notice for clock-driven darkness (opened 2026-08-16)
 
 The darkness driver has shipped (see `CHANGELOG.md` and
@@ -231,6 +289,48 @@ before and after side by side, and the movement warnings are as player-facing as
 **Verify:** set movement to Locked, drag a player-owned token as a player -- the refusal appears as a
 Blacksmith toast with our icon, and nothing is logged twice. Then confirm a GM-facing failure still
 raises the notification it did before.
+
+## Player frame rate - investigate before optimising anything (opened 2026-08-20)
+
+**Not started, deliberately.** Recorded so the next person starts from what is known rather than from a
+guess. Nothing here is a confirmed defect in this module.
+
+**The observation.** In the 2026-08-19 session the GM ran at 30-45 fps with a max framerate cap set, and
+two players reported slow graphics -- one at roughly 10 fps, on a MacBook Pro several years old.
+
+**What Blacksmith actually runs per frame.** `manager-token-indicators.js` is the only file that adds
+callbacks to `canvas.app.ticker`: the turn-indicator pulse (`:591`), target rings (`:968`), and two bounded
+fade animations. Everything else in the module is event-driven or on a one-second interval -- the menubar
+timers (`api-menubar.js:4962`) and the journal watchdog. The combat bar's `requestAnimationFrame`
+(`manager-combatbar.js:412`) is a scroll easing that terminates itself. So the per-frame surface is small,
+but it is real, it is GPU-side, and it scales with token count.
+
+**Three world settings gate all of it**, which makes a clean A/B for one session: `generalIndicatorsEnabled`,
+`targetedIndicatorEnabled`, and `tokenBloodEnabled`. Blood is the heaviest -- a pool per wounded token.
+
+**The ratio argues against this module being the primary cause, and that is the trap.** 45 to 10 fps is a
+4.5x gap between two machines. JavaScript work rarely produces that spread; GPU fill rate does, and a
+Retina display renders about 4x the pixels unless Foundry's pixel ratio is capped -- which matches the
+observed ratio almost exactly. **Rule out the client and the scene before profiling module code**, or the
+first plausible module finding will get the blame and the real cause will survive.
+
+Order to check, cheapest first:
+
+1. The slow player's browser: Chrome rather than Safari, and hardware acceleration actually on
+   (`chrome://gpu`). Acceleration silently off means software rendering, and 10 fps is its signature.
+2. Foundry's own Performance Mode and max framerate **on that client** -- this is where the Retina pixel
+   cost is controlled.
+3. Scene cost: fog exploration on a large scene, wall count driving dynamic vision, animated tiles or token
+   textures. These hit players harder than the GM, whose vision and fog are often effectively bypassed.
+4. Only then bisect modules -- all off but core and dnd5e, note the number, enable in halves.
+
+**One gap we own.** The blood system's idle performance check has never been run; it is still listed under
+the token blood entry above as "no per-frame cost when idle (check with the perf monitor)". Of the three
+settings named here, that is the one where we genuinely do not know the cost.
+
+**Verify:** a number before and a number after, on the same client and the same scene. `9B.4` in
+`architecture/architecture-blacksmith.md` has the profiling method; the answer to this item is a
+measurement, not a change.
 
 ## Asset sources - let a module supply the image library, and let users remap it (opened 2026-08-09)
 

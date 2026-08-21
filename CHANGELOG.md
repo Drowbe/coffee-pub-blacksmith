@@ -43,6 +43,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Inventory merges failed whenever an item carried a property dnd5e does not recognise** (`scripts/api-inventory.js`, `documentation/api/api-inventory.md`). `system.properties` now participates in merge identity only across values valid for that item type (`CONFIG.DND5E.validProperties`).
+
+  The symptom was stacks refusing to merge for no visible reason -- most often arrows looted from an NPC corpse landing as a second row on the looter, which is the same visible defect the container-inheritance fix addressed and a different cause. Six harness checks failed on it at once.
+
+  **The predicate was comparing a shape that never reaches storage.** `_canMerge` compares the prepared payload against the existing row's stored `_source`, and the payload has not been through item creation. Proven by probe: an item whose payload held `properties: ["gear"]`, taken straight from `toObject()`, created a row whose stored value was `[]` -- because `"gear"` is not a loot property (`CONFIG.DND5E.validProperties.loot` is `Set(["mgc"])`, `dnd5e.mjs:45532`, dnd5e 5.3.3). So the incoming side carried a value the outgoing side could never have.
+
+  Filtering to the recognised set fixes it without loosening what matters: `mgc` is valid and still compared, so a magical dagger does not merge into a mundane one -- the case the whole predicate exists for. The alternative, cleaning both sides through the item's DataModel, was rejected as weaker: it reproduces only what the schema does, and cannot match a create that a third-party `preCreateItem` hook rewrites.
+
+  Something in this world writes that invalid property onto loot items created on NPCs. It is no Coffee Pub sibling and none of the other installed `preCreateItem` hooks, and it remains unidentified -- but it is a data-integrity question rather than the cause of this defect, which would occur for any unrecognised property from any source.
+
+  **Verify:** the inventory suite's six merge checks pass in a full "Run All Headless", plus one live loot of a stackable item from an NPC corpse onto a character already carrying some, landing as one row.
+
+- **Two harness checks were asserting the wrong thing, and one had been dead for a while** (`testing/suites/suite-gm-request.js`, `testing/suites/suite-chat-cards.js`).
+
+  `openFor is one window per target, per subclass` threw `Cannot set property rendered of #<ApplicationV2> which has only a getter` before its first assertion: ApplicationV2 makes `rendered` a getter, and the stub window assigned it. So the `openFor` registry has not actually been under test — including when Merchant adopted it and found the failed-render bug by hand. The stub now uses its own property.
+
+  `A named theme is stored as asked` asserted that an unknown theme falls back to Tan. `resolveThemeId` (`manager-chat-cards.js:845-855`) deliberately falls back to the **configured world default**, with Tan only as the floor under a world default that is itself unrecognised — the docstring says so in as many words. The assertion passed only in a world whose default happened to be Tan, so it reported the world's configuration rather than the module's behaviour. It now reads `defaultCardTheme` and asserts against that.
+
+- **The inventory suite could not say why a merge was refused** (`testing/suites/suite-inventory.js`). `transfer-basic` reported only the consequences — a quantity of 3 where 6 was expected, two rows where one was expected — while the suite's own `explainNoMerge` helper existed and was called from the other merge checks. It now snapshots both sides before the second transfer and prints the differing field, and asserts `merged` directly so the failure names itself. That is what identified the `system.properties` divergence now recorded in `TODO.md`.
+
 - **`HookManager` turned any falsy-returning callback on a `pre*` hook into a world-wide veto** (`scripts/manager-hooks.js`, `scripts/token-movement.js`). Cancellation is now opt-in: a callback's `false` is honoured only when its registration declared `canCancel: true`.
 
   One Foundry handler serves every callback registered against a hook name, so whatever the wrapper returned spoke for all of them. The dangerous case was never a deliberate veto -- it was an ordinary callback whose natural return value happened to be a boolean. `callback: (doc) => this.tracked.has(doc.id)` is a normal thing to write, and on `preCreateItem` it silently blocked item creation across the world, for every module, with nothing logged and nothing in the API to hint at it. Found 2026-08-08 by Squire, who declined to route `preCreateItem` through the manager for exactly this reason and used a native hook instead -- which was the right call, and meant the hub was the wrong tool for the one hook family where cancellation matters.

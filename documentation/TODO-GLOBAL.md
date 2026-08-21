@@ -693,6 +693,15 @@ exactly one writes a document - `ui-combat-tracker.js:705` sets `turn: 0` after 
 re-checks `game.combats.has(combat.id)` after the delay. `xp-manager.js:151` waits a second and then reads a
 Combat that is *already* deleted by design, which is the record's whole purpose, and writes nothing to it.
 
+- [ ] **Curator - the image replacement path still has instances, observed 2026-08-20.** A full Blacksmith
+      harness run produced two errors from Curator while the harness was creating and deleting throwaway
+      tokens: `Token Image Utilities: Error applying dead token: Cannot read properties of undefined
+      (reading 'id')` and `Portrait Image Replacement: Could not store original portrait: undefined id
+      [nnpqrJHLZnAUVtRS] does not exist in the EmbeddedCollection collection.` Both are the exact signature
+      described above -- an id that no longer exists in an embedded collection, surfacing from a library
+      frame rather than from the module that scheduled the write. Curator's own matching code already logs
+      "Skipping - token was removed while matching" in other places, so the guard exists and these two paths
+      are outside it. Worth sending them the two messages verbatim; they will recognise the shape.
 - [ ] **Squire** - sweep. Curator expects instances, particularly anywhere a visual effect is applied on a delay.
 - [ ] **Cartographer** - sweep, same reason.
 - [ ] Other satellites - sweep opportunistically; the check costs a minute per module.

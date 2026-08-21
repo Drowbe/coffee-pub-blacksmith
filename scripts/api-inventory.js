@@ -381,12 +381,31 @@ function _deletePathAndEmptyParents(object, path) {
  * merge almost nothing.
  *
  * @param {object} systemSource
+ * @param {string} [type] - Item type, used to resolve which properties the system recognises.
  * @returns {object}
  */
-function _identitySystem(systemSource) {
+function _identitySystem(systemSource, type = null) {
     const copy = foundry.utils.deepClone(systemSource ?? {});
     delete copy.quantity;
     for (const path of RESET_PATHS) _deletePathAndEmptyParents(copy, path);
+    // `properties` is compared only across values dnd5e RECOGNISES for this item type.
+    //
+    // An unrecognised entry is not identity, and comparing it breaks merging outright. A
+    // payload carrying one does not survive creation: an item whose payload held
+    // `properties: ["gear"]` stored `[]`, because "gear" is not a loot property
+    // (CONFIG.DND5E.validProperties.loot is Set(["mgc"]) — dnd5e.mjs:45532, dnd5e 5.3.3).
+    // Comparing the raw payload against a stored row therefore compared a shape that never
+    // reaches disk, and every stack arriving from an actor carrying such a value refused to
+    // merge — arrows looted from a corpse landing as a second row. Found 2026-08-20 by the
+    // inventory harness, in six checks at once.
+    //
+    // `mgc` is valid, so it still participates: a magical dagger must not merge into a
+    // mundane one, which is the case the whole predicate exists for.
+    if (copy.properties !== undefined) {
+        const list = Array.from(copy.properties ?? []);
+        const valid = CONFIG?.DND5E?.validProperties?.[type];
+        copy.properties = (valid ? list.filter(property => valid.has(property)) : list).sort();
+    }
     // Containment STAYS in identity — two otherwise identical stacks in different bags are in
     // different places and must not merge. Normalised because absent and null mean the same
     // thing here and would otherwise compare unequal: our payloads always write the field, while
@@ -460,7 +479,7 @@ function _canMerge(existing, incoming, ignoreFlags) {
     }
     if ((incoming.effects ?? []).length) return false;
 
-    if (!foundry.utils.objectsEqual(_identitySystem(existingSource), _identitySystem(incomingSystem))) return false;
+    if (!foundry.utils.objectsEqual(_identitySystem(existingSource, existing.type), _identitySystem(incomingSystem, incoming.type))) return false;
     if (!foundry.utils.objectsEqual(_identityFlags(existing._source?.flags, ignoreFlags), _identityFlags(incoming.flags, ignoreFlags))) return false;
 
     return true;

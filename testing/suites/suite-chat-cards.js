@@ -22,7 +22,7 @@
 // they can be compared side by side against a reference card.
 // ==================================================================
 
-import { requireApi, settingRow, stylesheetContains } from '../harness-lib.js';
+import { requireApi, setting, settingRow, stylesheetContains } from '../harness-lib.js';
 import { composeSkillCheckCard } from '/modules/coffee-pub-blacksmith/scripts/cards-skill-check.js';
 import { composeStatsCard } from '/modules/coffee-pub-blacksmith/scripts/cards-stats.js';
 
@@ -475,17 +475,27 @@ export default {
             id: 'theme-pinning',
             tier: 'headless',
             group: 'Themes',
-            label: 'A named theme is stored as asked; an unknown one falls back to Tan',
+            label: 'A named theme is stored as asked; an unknown one falls back to the world default',
             note: 'theme-default used to be a sentinel that a render hook rewrote. '
-                + 'Logs "Unknown theme, falling back to Tan" on purpose -- that is the check working.',
-            run: async ({ expect }) => {
+                + 'Logs "Unknown theme id, using the world default" on purpose -- that is the check working.',
+            run: async ({ expect, log }) => {
                 await postAndInspect([{ part: 'header', title: 'x' }], (message) => {
                     expect.ok('blue stored as blue', message.flags['coffee-pub-blacksmith'].card.theme === 'blue');
                     expect.ok('markup carries theme-blue', message.content.includes('theme-blue'));
                 }, { theme: 'blue' });
 
+                // The fallback is the CONFIGURED world default, not Tan. Tan is only the floor
+                // under a world default that is itself unrecognised -- see resolveThemeId in
+                // manager-chat-cards.js. Asserting Tan passes only in a world whose default is
+                // Tan, which makes the check report the world's configuration rather than the
+                // module's behaviour.
+                const configured = setting('defaultCardTheme', 'default');
+                log(`world default theme: ${configured}`);
                 await postAndInspect([{ part: 'header', title: 'x' }], (message) => {
-                    expect.ok('an unknown theme fell back to Tan', message.content.includes('theme-default'));
+                    expect.ok(
+                        `an unknown theme fell back to the world default (theme-${configured})`,
+                        message.content.includes(`theme-${configured}`)
+                    );
                 }, { theme: 'not-a-real-theme' });
             }
         },

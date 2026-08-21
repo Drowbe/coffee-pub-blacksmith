@@ -765,7 +765,7 @@ export default {
             tier: 'headless',
             group: 'Transfer',
             label: 'Partial then full transfer, with derived stackability',
-            run: async ({ expect }) => {
+            run: async ({ expect, log }) => {
                 const api = requireApi('inventory');
                 const made = [];
                 try {
@@ -783,12 +783,24 @@ export default {
                     expect('source quantity actually reduced', quantityOf(source.items.get(item.id)), 3);
                     expect('target received 3', quantityOf(target.items.get(partial.targetItemId)), 3);
 
+                    // Snapshot BEFORE the second transfer. The row on the target is the one the
+                    // FIRST transfer created, so this compares the API's own output against a
+                    // fresh payload from the same source -- if those two do not merge, nothing
+                    // built by this API can ever merge into its own earlier arrival. Reading
+                    // afterwards is misleading for the reason explainNoMerge documents.
+                    const beforeSecond = {
+                        existing: snapshot(target.items.get(partial.targetItemId)),
+                        incoming: snapshot(source.items.get(item.id))
+                    };
+
                     const rest = await api.inventory.transferItem({
                         sourceActorUuid: source.uuid, targetActorUuid: target.uuid, itemId: item.id
                     });
                     expect('omitting quantity takes the whole stack', rest.quantity, 3);
                     expect('source deleted', rest.sourceDeleted, true);
                     expect('source has no items', source.items.size, 0);
+                    if (!rest.merged) explainNoMerge(log, beforeSecond.existing, beforeSecond.incoming);
+                    expect('the second arrival merged into the first', rest.merged, true);
                     expect('target merged to 6', quantityOf(target.items.get(rest.targetItemId)), 6);
                     expect('target has one row', target.items.size, 1);
                 } finally {

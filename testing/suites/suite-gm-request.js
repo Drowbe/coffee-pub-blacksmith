@@ -195,10 +195,12 @@ export default {
                 const api = requireApi('BlacksmithToolWindowBaseV2');
                 const ToolBase = api.BlacksmithToolWindowBaseV2;
 
+                // `rendered` is a getter-only accessor on ApplicationV2, so a stub must not assign
+                // it -- doing so throws and the whole check dies before its first assertion.
                 class HarnessWindowA extends ToolBase {
                     constructor(target, options = {}) { super(options); this.target = target; }
-                    async render() { this.rendered = true; return this; }
-                    async close() { this._onClose({}); this.rendered = false; return this; }
+                    async render() { this._harnessRendered = true; return this; }
+                    async close() { this._onClose({}); this._harnessRendered = false; return this; }
                 }
                 class HarnessWindowB extends HarnessWindowA {}
 
