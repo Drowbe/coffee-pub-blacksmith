@@ -36,12 +36,14 @@ The `context` field on the record is load-bearing: it is also tracked in the `co
 
 ## 3. Dispatch — `hookRunner`
 
-The wrapper at `:63-92`:
+The wrapper at `:78-123`:
 
 1. **Snapshot** — `entry.callbacks.slice()`. Iterate a copy, because `once` removal mutates the array mid-dispatch.
 2. **Per-callback `try/catch`** — one throwing callback logs and does not abort the others.
-3. **`once` is deferred** — matching ids are collected during the loop and removed after it (`:88-91`), never during.
-4. **`pre*` cancellation** — for any hook whose name starts with `pre`, a callback returning `false` makes the runner return `false` immediately, cancelling the action and skipping remaining callbacks. This is Foundry's convention (`:79-82`).
+3. **`once` is deferred** — matching ids are collected during the loop and removed in a `finally` after it, never during. The `finally` matters: cancellation returns from the loop, and an early return that skipped this cleanup would leak a `once` registration that then fires forever.
+4. **Opt-in cancellation** — a callback's `false` is honoured only when its registration declared `canCancel: true` (`:105`). It then stops the chain and the runner returns `false`. An undeclared `false` is inert.
+
+**Why cancellation is opt-in.** One Foundry handler serves every callback registered against a hook name, so whatever the wrapper returns speaks for all of them. Honouring any `false` meant a callback whose natural return value was a boolean — `(doc) => this.tracked.has(doc.id)` — cancelled the operation world-wide for every module, silently, on a hook nobody thought of as cancellable. The name-prefix test that gated it was a guess at intent; the declaration replaces the guess, which is also why the prefix test is gone. Whether `false` means anything at all remains Foundry's decision: `Hooks.call` honours it, `Hooks.callAll` ignores it.
 
 ---
 

@@ -722,10 +722,12 @@ before our stats layer saw it. **Any past reading of hook stats that concluded C
 was wrong.** This is the class of defect that never generates a bug report, because a hook reporting the wrong
 context in someone else's diagnostic tool is invisible from both sides.
 
-Also worth noting for the `canCancel` work in `TODO.md`: Curator's fork restricted `pre*` cancellation to
-`preUpdateToken` only. They filed that as a missing upstream fix, and it is a divergence - but a whitelist is
-closer to the opt-in design that work is heading toward than our current "any `pre*` can veto for everyone".
-The fork was accidentally safer on that one axis.
+On cancellation, Curator's fork restricted `pre*` cancellation to `preUpdateToken` only. They filed that as a
+missing upstream fix, and it is a divergence - but a hard-coded whitelist was accidentally safer than our
+"any `pre*` can veto for everyone", and it is the same instinct as the `canCancel` opt-in that has now
+shipped upstream. **When they delete the fork, that whitelist goes with it**: their `preUpdateToken`
+registration must declare `canCancel: true` or the restriction becomes inert. That is the one behavioural
+difference to hand them along with the ask.
 
 ### Regent: window base fork - still open
 
@@ -1172,6 +1174,11 @@ surface it does not own - Merchant reused its own parchment window tones on a to
 
 The ask is `type: 'info' | 'success' | 'warn' | 'error'` selecting accents already known to sit on the toast
 background, with `color` kept for anything deliberate. Nothing is blocked; Merchant's are fixed.
+
+**Blacksmith now wants this too, and at volume.** Moving our own player-facing messages off
+`ui.notifications` is filed in `TODO.md`, and it is 194 call sites. Without presets that sweep means
+choosing a colour 194 times, so this entry stops being purely a consumer nicety and becomes the thing
+that work waits on. Presets first.
 
 **This is the fifth instance of the section 9C pattern and the first that is purely presentational**:
 nothing failed, no code was wrong, it just quietly looked wrong, and only a consumer was positioned to

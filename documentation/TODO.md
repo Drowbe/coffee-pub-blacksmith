@@ -199,19 +199,38 @@ condition here -- with Librarian off, the codex pages under test do not exist. I
 disabled proves the importer refuses legibly and the exporter does not quietly omit, while the round-trip pass
 condition needs Librarian enabled.
 
-## `api-importer.md` is public API now but held off the wiki (opened 2026-08-20)
+## Player-facing messages should be toasts, not Foundry notifications (opened 2026-08-20)
 
-`module.api.importer` ships, so a consuming module needs the doc, and `api-importer.md` is still held out of
-the `PUBLISH` list in `tools/wiki-sync.mjs:105` behind a "JSON import verified" gate.
+Raised while verifying the movement restrictions: blocking a player's move warns through
+`ui.notifications.warn`, which is Foundry's chrome in Foundry's voice, while the movement-mode *change*
+two hundred lines earlier announces itself through `ToastAPI.show` with our icon and styling. One file,
+two vocabularies, and the one the player sees more often is the borrowed one.
 
-Publishing it as-is would put roughly 400 lines of unimplemented proposed contract on the wiki, which the
-formatting standard does not allow. So the order is: move the proposed section into `documentation/plans/`
-under the plan rules, leaving `api-importer.md` describing only the shipped registry surface, then add it to
-`PUBLISH`. The alternative -- drop the proposal outright -- is a call about whether the wider importer API is
-still wanted.
+**Scope, measured 2026-08-20:** 194 `ui.notifications.*` calls across 31 files in `scripts/` -- 94 `warn`,
+61 `error`, 39 `info`. Heaviest are `window-skillcheck.js` (19), `ui-journal-pins.js` (18),
+`window-stats-party.js` (18), `token-movement.js` (16). There is a second producer: the `blnNotification`
+flag on `postConsoleAndNotification` routes to `ui.notifications` at `api-core.js:1519-1548`, so any
+sweep has to decide about that path too or the two will drift.
 
-**Verify:** `node tools/wiki-sync.mjs` builds without unresolved-link warnings for the new page, and the
-Sync Wiki action succeeds on the next push to master.
+**This is not a find-and-replace, and the sorting is the work.** Three categories, and only the first
+should move:
+
+- **Player-facing feedback on an action they just took** -- "only the leader can move tokens", "you can
+  only move during your turn". This is our feature speaking, and it should look like it. Toast.
+- **Errors a GM must acknowledge**, especially ones that persist or report a failure they need to act on.
+  A toast auto-dismisses; that is the wrong shape for something the user must not miss. Probably stays.
+- **Developer and debug output** riding `blnNotification`. Not user-facing messaging at all. Stays.
+
+**Order it after toast presets** -- see the entry in `TODO-GLOBAL.md` raised by Merchant. Without a
+warning/error/info preset vocabulary, converting call sites means choosing a colour at each one, which is
+how 194 sites become 194 slightly different palettes. Presets first, then this becomes mechanical.
+
+`token-movement.js` is the natural first file: it already contains both idioms, so the diff shows the
+before and after side by side, and the movement warnings are as player-facing as the module gets.
+
+**Verify:** set movement to Locked, drag a player-owned token as a player -- the refusal appears as a
+Blacksmith toast with our icon, and nothing is logged twice. Then confirm a GM-facing failure still
+raises the notification it did before.
 
 ## Asset sources - let a module supply the image library, and let users remap it (opened 2026-08-09)
 
@@ -364,49 +383,6 @@ asked differently would give a table two dialogs with two semantics for one deci
 the `createDocuments` call or the container links break.
 
 Not blocking anything. Two consumers now know the workaround, and it is documented.
-
-## CRITICAL - HookManager turns any falsy-returning `pre*` callback into a world-wide veto
-
-**Found 2026-08-08 by Squire, verified in our source.** `manager-hooks.js:79-81`:
-
-```js
-if (name.startsWith('pre') && result === false) {
-    return false;
-}
-```
-
-Two separate defects in three lines.
-
-**1. One registrant's `false` cancels the operation for everyone.** The intent was to honour Foundry's
-`pre*`-cancels convention, but the wrapper is shared by every callback on that hook name, so a single
-callback's return value speaks for all of them. The dangerous case is not a deliberate veto - it is a
-callback whose natural return value happens to be a boolean. `callback: (doc) => this.tracked.has(doc.id)`
-is an entirely ordinary thing to write, and on `preCreateItem` it would silently block item creation
-world-wide for every module. Nothing in the API hints at that.
-
-**2. The early return skips the `once` cleanup.** The `toRemove` loop sits below the veto path, so a
-callback registered `once` that returns `false` is never unregistered. It leaks and keeps firing.
-
-**Why this surfaced:** Squire needed `preCreateItem` to stamp a flag during the original write, declined to
-route it through `HookManager` for exactly this reason, and used a native hook with their own teardown
-tracking instead. That was the correct call, and it means the hub is currently the wrong tool for the one
-hook family where cancellation matters.
-
-**Proposed fix - make cancellation opt-in.** Honour `false` only when the registration declared it:
-`registerHook({ name: 'preCreateItem', canCancel: true, ... })`. An undeclared callback returning a boolean
-becomes inert, which is the safe default and matches what every existing caller actually intends. Move the
-`once` cleanup above the veto path, or run it in a `finally`, so a veto cannot leak a registration. Then
-`api-hookmanager.md` gains a short section on cancellation.
-
-**Squire will keep using native hooks for `pre`* even after this lands, by choice** (stated 2026-08-08): a
-hook that can cancel an operation world-wide is the one place where fewer layers between the module and
-Foundry is worth more than consistency with the manager. That is a reasonable position and it is recorded
-here so nobody files "migrate Squire's native hooks onto HookManager" as cleanup later. Everything else of
-theirs stays on the manager.
-
-**Verification:** register two callbacks on a `pre`* hook where the first returns `false` for its own
-reasons; the second must still run and the document must still be created. Register a `once` callback that
-returns `false`; it must not fire twice.
 
 ## CRITICAL - protect the live campaign statistics before changing them further
 

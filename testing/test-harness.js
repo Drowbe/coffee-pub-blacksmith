@@ -46,6 +46,7 @@ const SUITES = [
     `${BASE}/suite-dialog.js`,
     `${BASE}/suite-entity-list.js`,
     `${BASE}/suite-gm-request.js`,
+    `${BASE}/suite-hookmanager.js`,
     `${BASE}/suite-inventory.js`,
     `${BASE}/suite-notes.js`,
     `${BASE}/suite-quantity-split.js`,

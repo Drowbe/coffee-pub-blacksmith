@@ -28,9 +28,14 @@ export class HookManager {
      * @param {Object} options.options - Additional options (e.g., { once: true, throttleMs: 50 })
      * @param {string} options.key - Optional dedupe key to prevent duplicate registrations
      * @param {string} options.context - Optional context for batch cleanup
+     * @param {boolean} [options.canCancel=false] - Declare that returning `false` from this callback
+     *        cancels the operation, Foundry-style. Without it a `false` return is inert, because the
+     *        wrapper is shared by every callback on the hook name and one registrant must not be able
+     *        to speak for the others by accident. A cancelling callback also stops later callbacks on
+     *        that hook, so use it only where cancellation is the point.
      * @returns {string} callbackId for cleanup
      */
-    static registerHook({ name: requestedHookName, description = '', priority = 3, callback, options = {}, key, context }) {
+    static registerHook({ name: requestedHookName, description = '', priority = 3, callback, options = {}, key, context, canCancel = false }) {
         let name = requestedHookName;
         if (!name || typeof name !== 'string') {
             throw new Error(`HookManager: name must be a string for ${name}`);
@@ -51,7 +56,17 @@ export class HookManager {
         if (typeof callback !== 'function') {
             throw new Error(`HookManager: callback must be a function for ${name}`);
         }
-        
+
+        // `canCancel` is a top-level field. Accepting it silently inside `options` would be a
+        // registration that looks like it can veto and cannot -- the worst shape of failure for
+        // a flag whose whole job is to be explicit.
+        if (options?.canCancel !== undefined) {
+            console.warn(
+                `[${MODULE.ID}] HookManager: "${name}" passed canCancel inside options; it belongs at the ` +
+                'top level of registerHook({ ... }). This registration cannot cancel.'
+            );
+        }
+
         // Check for dedupe if key provided
         if (key && this.hooks.has(name)) {
             const existing = this.hooks.get(name).callbacks.find(cb => cb.key === key);
@@ -70,25 +85,41 @@ export class HookManager {
                 // Collect callbacks to remove (don't mutate during iteration)
                 const toRemove = [];
                 
-                for (const cb of list) {
-                    try {
-                        const result = cb.callback(...args);
-                        if (cb.options?.once) {
-                            toRemove.push(cb.callbackId);
+                let cancelled = false;
+
+                try {
+                    for (const cb of list) {
+                        try {
+                            const result = cb.callback(...args);
+                            if (cb.options?.once) {
+                                toRemove.push(cb.callbackId);
+                            }
+                            // CANCELLATION IS OPT-IN. Every callback on a hook name shares this
+                            // one wrapper, so an undeclared `false` would speak for all of them.
+                            // The dangerous case is not a deliberate veto but an ordinary
+                            // callback whose natural return value is a boolean --
+                            // `(doc) => this.tracked.has(doc.id)` on `preCreateItem` would
+                            // otherwise block item creation world-wide, for every module,
+                            // silently. Declaring `canCancel: true` is how a registration says
+                            // it means it.
+                            if (cb.canCancel && result === false) {
+                                cancelled = true;
+                                // Stop the chain, as Foundry does when a handler vetoes.
+                                break;
+                            }
+                        } catch (error) {
+                            console.error(`Hook callback error in ${name}:`, error);
                         }
-                        // For any pre* hook, returning false cancels the action (Foundry convention)
-                        if (name.startsWith('pre') && result === false) {
-                            return false;
-                        }
-                    } catch (error) {
-                        console.error(`Hook callback error in ${name}:`, error);
+                    }
+                } finally {
+                    // In a `finally` so a veto cannot leak a `once` registration: the old
+                    // early return skipped this loop, and the callback kept firing forever.
+                    for (const id of toRemove) {
+                        this.removeCallback(id);
                     }
                 }
-                
-                // Cleanup "once" hooks after iteration
-                for (const id of toRemove) {
-                    this.removeCallback(id);
-                }
+
+                if (cancelled) return false;
             };
             
             const hookId = Hooks.on(name, hookRunner);
@@ -128,6 +159,7 @@ export class HookManager {
             priority,
             registeredAt: Date.now(),
             options,
+            canCancel: canCancel === true,
             key,
             context, // Also tracked in this.contexts for batch cleanup, but the stats readers
                      // (BlacksmithAPIHookStats / HookDetails) read it off the callback record.

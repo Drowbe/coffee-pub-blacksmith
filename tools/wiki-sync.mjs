@@ -51,6 +51,7 @@ const PUBLISH = [
   'api/api-gmnotes.md',
   'api/api-health.md',
   'api/api-hookmanager.md',
+  'api/api-importer.md',
   'api/api-inventory.md',
   'api/api-menubar.md',
   'api/api-notes.md',
@@ -102,8 +103,7 @@ const PUBLISH = [
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
-//   API:          api-importer.md (gate: JSON import verified — see TODO.md)
-//   Architecture: architecture-importer.md (same gate)
+//   Architecture: architecture-importer.md (gate: JSON import verified — see TODO.md)
 //   Also held:    applicationv2-window/guidance-applicationv2.md (needs audit — see TODO.md)
 //   Internal:     TODO.md, TODO-GLOBAL.md, plans/* (not consumer docs)
 //   Out of tree:  testing docs moved to /testing alongside the harness. This script only

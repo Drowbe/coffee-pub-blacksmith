@@ -654,6 +654,7 @@ const preUpdateTokenHookId = HookManager.registerHook({
     description: 'Token Movement: Enforce movement restrictions and rules',
     context: 'token-movement-restrictions',
     priority: 2, // High priority - movement validation
+    canCancel: true, // The eturn false paths below block the move; without this they are inert.
     callback: (tokenDocument, changes, options, userId) => {
         //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
     // Skip if no spatial change we care about (x/y/elevation/rotation/size)

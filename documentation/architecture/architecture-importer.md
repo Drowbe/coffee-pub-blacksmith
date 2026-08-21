@@ -2,7 +2,7 @@
 
 **Audience:** Contributors to Blacksmith and maintainers of tools that generate content for Blacksmith.
 
-**Status:** Active incremental implementation. Shared authoring, validation, per-entry import orchestration, and result reporting are implemented for Item, Actor, Journal, and Roll Table importers. The kind registry is public as `module.api.importer` (`scripts/api-importer.js`), so a consuming module registers its own kind and supplies its own validate/import callbacks; the capability, template, and `importJson` surfaces described in `../api/api-importer.md` remain proposed.
+**Status:** Active incremental implementation. Shared authoring, validation, per-entry import orchestration, and result reporting are implemented for Item, Actor, Journal, and Roll Table importers. The kind registry is public as `module.api.importer` (`scripts/api-importer.js`), so a consuming module registers its own kind and supplies its own validate/import callbacks. A wider contract -- capability discovery, template and prompt outputs, `validateJson` / `importJson` -- was drafted and not built; it is planned work, not current behavior.
 
 Actor Import treats sidekicks as static dnd5e NPC snapshots. The Sidekick authoring profile records role, current level, narrative base creature, exact mechanical base-stat-block Actor name, and optional spellcasting ability in Blacksmith flags, while the supplied NPC system data and embedded items remain authoritative. Final HP, AC, proficiency, and features are accepted rather than inferred from CR. Validation warns when sidekick level and proficiency disagree, creature size and the HP formula's Hit Die disagree, the exact base Actor cannot be resolved, or supplied CR differs from the unscaled base Actor CR; it never silently recalculates the snapshot. Imported sidekicks are marked as important NPCs so dnd5e exposes death saves, and Blacksmith excludes their cosmetic CR/XP values from its monster encounter and XP calculations. Sidekick progression and automatic leveling are explicitly outside the current importer contract.
 
@@ -24,7 +24,7 @@ Raw native Character exports are a distinct future ingestion profile because the
 
 **Related documentation:**
 
-- `../api/api-importer.md` — the public `api.importer` registry surface, plus the proposed wider contract
+- `../api/api-importer.md` — the public `api.importer` registry surface
 - `../api/api-window.md` — shared Application V2 window contract
 - `../../prompts/` — current prompt parts and profile contracts
 

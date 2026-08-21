@@ -37,11 +37,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   It was removed rather than filled because an unfilled field is worse than an absent one: it implies Blacksmith intends to own the decision, and its unit could not be inferred -- read as a multiplier, the neutral band's `0` prices every item at nothing. The ownership rule this is a worked example of is in `documentation/architecture/architecture-ownership.md`. `npcAttitude` and `infoAccess` are equally unread and remain in place.
 
+- **`api-importer.md` now publishes to the wiki**, holding only the shipped registry surface. The unimplemented contract moved to `documentation/plans/plan-importer-api.md`, and the page was added to the `PUBLISH` list in `tools/wiki-sync.mjs`. A consuming module can now read the API it is being told to call.
+
 - **`coffee-pub-squire.note` removed** (`resources/tag-taxonomy.json`). Notes moved into Blacksmith, and `manager-notes.js:90` sets the context to `coffee-pub-blacksmith.note`, which the taxonomy has declared separately all along. The Squire entry was the pre-move vocabulary (`party`, `personal`, `location`, `backstory`, `sticky`) and nothing read it.
 
 ### Fixed
 
-- **`documentation/api/api-importer.md` described a namespace that did not exist**. It opened with an `api.importer` access example calling `await blacksmith.waitForReady()` -- there is no `waitForReady` on the API root, only on `api.sockets` -- and then specified eight methods, none of them implemented. The shipped registry surface is now documented first, and the proposed contract is fenced off under a heading that says it is not implemented.
+- **`HookManager` turned any falsy-returning callback on a `pre*` hook into a world-wide veto** (`scripts/manager-hooks.js`, `scripts/token-movement.js`). Cancellation is now opt-in: a callback's `false` is honoured only when its registration declared `canCancel: true`.
+
+  One Foundry handler serves every callback registered against a hook name, so whatever the wrapper returned spoke for all of them. The dangerous case was never a deliberate veto -- it was an ordinary callback whose natural return value happened to be a boolean. `callback: (doc) => this.tracked.has(doc.id)` is a normal thing to write, and on `preCreateItem` it silently blocked item creation across the world, for every module, with nothing logged and nothing in the API to hint at it. Found 2026-08-08 by Squire, who declined to route `preCreateItem` through the manager for exactly this reason and used a native hook instead -- which was the right call, and meant the hub was the wrong tool for the one hook family where cancellation matters.
+
+  Two further defects went with it. The veto returned early, past the `once` cleanup loop, so a callback registered `once` that cancelled was never unregistered and kept firing; the cleanup now runs in a `finally`. And the early return skipped every callback after the vetoing one, so other registrants silently stopped receiving the hook -- still true for a declared canceller, which is Foundry's own behavior, but now it is something a registration asks for rather than something it can trip over.
+
+  The `name.startsWith('pre')` test is gone with it: it was a guess at intent, and the declaration replaces the guess. `canCancel` therefore works on any hook name, with whether `false` means anything left to Foundry (`Hooks.call` honours it, `Hooks.callAll` does not). Passing `canCancel` inside `options` logs a warning rather than failing silently.
+
+  **Nothing needed migrating but one registration.** A scan of every `registerHook` body in Blacksmith found exactly one that returns `false` deliberately -- the token movement restrictions at `token-movement.js:652`, which now declares `canCancel: true`. The same scan across all twelve sibling modules found no live registration that returns `false` at all.
+
+  **Verify:** `testing/suites/suite-hookmanager.js` is new and covers all of it headlessly -- an undeclared `false` stays inert and does not stop the chain, a declared one cancels and does stop it, `canCancel` inside `options` is refused, and a cancelling `once` callback is still unregistered. Run the harness (`testing/test-harness.js`) and use Run All Headless. In a world, also confirm token movement restrictions still block a player: set movement to No Movement and try to drag a player-owned token.
+
+- **`documentation/api/api-importer.md` described a namespace that did not exist**. It opened with an `api.importer` access example calling `await blacksmith.waitForReady()` -- there is no `waitForReady` on the API root, only on `api.sockets` -- and then specified eight methods, none of them implemented. The shipped registry surface is now the whole document; the proposed contract moved to `documentation/plans/`.
 
 - **`api-window.md` and `design-extending.md` told consumers to resolve a base class from `module.api` at module top level**, which cannot work and cost two modules real debugging time. Both now show the import from `api/blacksmith-api.js`, and the timing section says plainly that anything needed at evaluation time must come from an importable module. The trap is recorded in `architecture-blacksmith.md` §9A.
 

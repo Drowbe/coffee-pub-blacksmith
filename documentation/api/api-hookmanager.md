@@ -60,18 +60,57 @@ For readability and consistency, use this order:
 3. `context` (optional)
 4. `priority` (optional)
 5. `key` (optional)
-6. `options` (optional)
-7. `callback` (required) - **ALWAYS LAST for readability**
+6. `canCancel` (optional)
+7. `options` (optional)
+8. `callback` (required) - **ALWAYS LAST for readability**
 
 ## **What We Support**
 
 - **Required**: `name`, `callback`
-- **Optional**: `description`, `priority`, `options`, `key`, `context`
+- **Optional**: `description`, `priority`, `options`, `key`, `context`, `canCancel`
 - **Options**: `once`, `throttleMs`, `debounceMs`
 - **Performance**: Throttling and debouncing work as documented
 - **Cleanup**: `once: true` auto-removes hooks after first execution
 - **Dedupe**: `key` prevents duplicate registrations
 - **Batch cleanup**: `context` enables group removal
+- **Cancellation**: opt-in via `canCancel` -- see below
+
+## **Cancellation (`canCancel`)**
+
+**A callback's return value is ignored unless the registration declared `canCancel: true`.** Returning
+`false` from an ordinary callback does nothing.
+
+```javascript
+BlacksmithHookManager.registerHook({
+    name: 'preCreateItem',
+    description: 'Block items the vault refuses',
+    context: 'my-module',
+    canCancel: true,                       // top level, not inside `options`
+    callback: (item) => {
+        if (isForbidden(item)) return false;   // cancels the creation
+    }
+});
+```
+
+This is opt-in because every callback registered against one hook name shares a single Foundry handler.
+An undeclared `false` would speak for all of them, and the dangerous case is not a deliberate veto -- it
+is an ordinary callback whose natural return value happens to be a boolean.
+`callback: (doc) => this.tracked.has(doc.id)` is a normal thing to write, and on a `pre*` hook it would
+block the operation world-wide, for every module, with nothing logged.
+
+Three things to know before using it:
+
+- **A cancelling callback stops the chain.** Callbacks that would have run after it do not, which is what
+  Foundry does when a handler vetoes. Do not use `canCancel` on a hook where other registrants must
+  always see the event.
+- **It works on any hook name**, not only `pre*`. Whether `false` means anything is Foundry's decision --
+  hooks fired with `Hooks.call` honour it, hooks fired with `Hooks.callAll` do not.
+- **`canCancel` inside `options` is not honoured**, and logs a console warning saying so, because a
+  registration that looks like it can veto and cannot is the worst failure available to this flag.
+
+If you need cancellation on a hook where you would rather not depend on any of the above, registering a
+native `Hooks.on` and tracking your own teardown is a legitimate choice. Squire does this deliberately for
+the `pre*` family.
 
 ## **Other Methods**
 
