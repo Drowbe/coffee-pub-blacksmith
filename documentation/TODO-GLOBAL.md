@@ -1032,29 +1032,32 @@ present. The analogy is sound as far as it goes, with one asymmetry worth weighi
 outcomes, so adapting to it means reading an event source. Times Up *mutates the document and owns
 expiry*, so adapting to it fully means owning a clock.
 
-**Their three asks separate cleanly, and are worth deciding separately rather than as one thing.**
+**ALL THREE ASKS ARE ALREADY IMPLEMENTED. This section spent weeks weighing a decision that had been
+made in code.** Bibliosoph went looking to scope the work, found it done, and sent the citations back
+2026-08-21; every one was verified in `api-effects.js` the same day:
 
-1. **Normalized `remaining` on the DTO.** Squarely this layer's job — it exists to stop consumers
-   branching on substrate. Cheap. Should expose a value *and its unit* rather than forcing everything to
-   seconds: a rounds duration does not track wall-clock time, and reporting it in seconds would state a
-   remainder that is not true. **In scope; take it.**
-2. **A GM-authoritative `effects.expired` event.** The expensive one, and the only one that changes
-   Blacksmith's posture: it means owning a clock, deduping across clients, and interleaving with Times
-   Up's own expiry, which deletes effects. It directly contradicts the layer's standing non-goal. The
-   argument for it is good — Bibliosoph reimplements `hasExpired()` and every other module would too —
-   but it is a new subsystem, not an increment. **Decide on its own merits.**
-3. **An `enableTimesUpIntegration` runtime check.** Cheap, mirrors an existing pattern. Only meaningful
-   alongside 1 or 2.
+| Ask | Where it lives |
+|---|---|
+| Normalized `remaining`, carrying value **and** unit | `getEffectRemaining()` (`:144`), on the `getDisplayEffects` DTO and on the expired payload |
+| `enableTimesUpIntegration` runtime check | `isTimesUpIntegrationEnabled()` (`:100`), defaulting to true when Times Up is active but the setting is not registered yet |
+| GM-authoritative `effects.expired` | `sweepExpired()`, GM-gated at call time, deduped by uuid through `ANNOUNCED_EXPIRED`, arbitrated against Times Up via `deletedBy: 'times-up' \| 'blacksmith'`, driven by both `updateWorldTime` and `updateCombat`; `onExpired()` is the subscription |
 
-**The principle is now settled and written down** in `architecture/architecture-ownership.md`: Blacksmith
-absorbs third-party variance, satellites never branch on it, and a non-goal is a decision rather than a
-default. So B is no longer a question of whether the hub may read `flags.times-up.*` -- it may, that is what
-an adapter is for, and Bibliosoph is right that a *satellite* must not. What remains is scope.
+So the expensive one is not pending on its merits: the clock, the dedupe and the Times Up interleaving are
+written. Bibliosoph already consumes it -- `manager-injury-ticks.js` subscribes behind a feature check and
+honours "consumers must not delete on expiry", with a comment reading "EXPIRY IS BLACKSMITH'S... we used to
+do this ourselves and raced them."
 
-**The scope question: the display inconsistency and the expiry engine are separable, and the note bundles
-them.** Asks 1 and 3 close the symptom actually reported -- when Times Up is present the hub reads the
-stashed original and reports a consistent duration -- with nobody owning a clock. Ask 2 is the posture
-change. Doing 1 and 3 first also makes 2 cheaper if it is taken later, and costs nothing if it is not.
+**The lesson is about these notes, not about the effects layer.** Bibliosoph flagged this as the second
+time in one week that the API turned out to be ahead of its own notes — the other being
+`getAllPacks`/`getAllChoices`, which they had adopted before our "tell them it exists" note reached them.
+A cross-module list that records asks but not deliveries manufactures work. **Check the code before
+restating an ask as open**, the same way the doc-accuracy rule already says to check code before trusting
+a doc.
+
+**The principle behind it stands and is written down** in `architecture/architecture-ownership.md`:
+Blacksmith absorbs third-party variance, satellites never branch on it, and a non-goal is a decision rather
+than a default. The hub may read `flags.times-up.*` — that is what an adapter is for — and a satellite may
+not.
 
 ### C. Two wiki-sync backports — one yes, one conflicts with our own rules
 
@@ -1067,12 +1070,20 @@ change. Doing 1 and 3 first also makes 2 cheaper if it is taken later, and costs
   relinked, because a corrected cross-module link is still coupling. If we want it, the rule changes
   first; it is not a tooling decision.
 
-### D. Classifier cannot set `durationLabel` — probably needs no change
+### D. Classifier cannot set `durationLabel` — no change needed, and the fix is per-kind
 
-The boundary is intended and documented. Their stated need is already met without widening the contract:
-write `{rounds: N}` instead of `{seconds: N}` and the duration says rounds, because the branch keys off
-the document. Worth telling them — though note Times Up may convert it anyway, which is really an
-argument for B rather than for a classifier hook.
+The boundary is intended and documented. The need is met without widening the contract: write
+`{rounds: N}` instead of `{seconds: N}` and the duration says rounds, because the branch keys off the
+document.
+
+**Bibliosoph accepted this 2026-08-21, with a correction worth keeping: it is a per-kind split, not a
+global swap.** Measured across their authored content — 54 crit/fumble durations, 6 to 600 seconds with 46
+at a minute or under, combat-scoped and wanting `{rounds}`; and 125 injuries, 60 to 7200 seconds with 36
+over ten minutes, wall-clock and wanting `{seconds}`. Writing rounds unconditionally would reintroduce a
+bug they had already fixed once: "100 rounds remain" on a ten-minute wound while the party shops.
+`getEffectRemaining` supports the split — a natively-authored rounds duration carries no
+`timesUpOriginalSeconds` flag, so `api-effects.js:154` does not un-convert it and it reports
+`{ value, unit: 'rounds' }` as intended.
 
 **Standing requests** (public cross-client toast delivery, stats query API, MIDI attacker attribution on
 `damageResolved`, advantage/disadvantage on requested rolls) are tracked in Bibliosoph's own TODO.

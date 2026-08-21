@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   `module.api` could never serve this and the documentation said it could. A class body is evaluated when the module script is, and `game` does not exist then -- a top-level `game.modules.get('coffee-pub-blacksmith')` throws `Cannot read properties of undefined (reading 'get')`, and ES modules cache a failed evaluation, so the throw takes the consuming module down for the entire session rather than being retried. Merchant followed the advice and broke a live world.
 
-  All three consumers had already worked around it privately and differently -- Squire dynamically imports the window module at the point of use (`panel-control.js:499`, with a comment describing this exact failure), Curator imports three `scripts/` paths directly. The bridge is a real ES module, resolves at evaluation time, and resolves to the same URL Blacksmith's own imports use, so a subclass extends the same class object rather than a second copy with its own statics.
+  The other two consumers had already worked around it privately and differently -- Squire dynamically imports the window module at the point of use (`panel-control.js:499`, with a comment describing this exact failure), and Curator imports three `scripts/` paths directly. Three modules, three different accommodations of one wrong sentence. The bridge is a real ES module, resolves at evaluation time, and resolves to the same URL Blacksmith's own imports use, so a subclass extends the same class object rather than a second copy with its own statics.
 
 ### Changed
 
@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Something in this world writes that invalid property onto loot items created on NPCs. It is no Coffee Pub sibling and none of the other installed `preCreateItem` hooks, and it remains unidentified -- but it is a data-integrity question rather than the cause of this defect, which would occur for any unrecognised property from any source.
 
-  **Verify:** the inventory suite's six merge checks pass in a full "Run All Headless", plus one live loot of a stackable item from an NPC corpse onto a character already carrying some, landing as one row.
+  **Verified 2026-08-21:** a full "Run All Headless" passes 854/854, and a live loot of a stackable item from an NPC corpse onto a character already carrying some lands as one row.
 
 - **Five readouts checks reported a closed combat bar as a failure** (`testing/suites/suite-readouts.js`). Each gated itself with `expect.ok('the combat bar is open', ...)`, so a full headless run went red for a missing precondition that says nothing about the code -- four failures in the 2026-08-21 run were this. They now log what to do and record no assertions, which is the pattern the stats suite already uses for "no combat is being tracked".
 

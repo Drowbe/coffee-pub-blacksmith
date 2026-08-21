@@ -23,67 +23,23 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
-## Inventory: `system.properties` diverges by parent actor type, and it blocks every merge (opened 2026-08-20)
+## Something writes an invalid `properties` value onto items created on NPCs (opened 2026-08-21)
 
-**Status: fixed 2026-08-21, awaiting one confirming harness run.** Both halves are in
-(`_identitySystem` filters to the valid set and normalises an absent key); delete this entry when a full
-"Run All Headless" shows the inventory suite green, keeping only the last paragraph below.
+Noticed while fixing the inventory merge predicate, and left open because that fix does not depend on it.
 
-**Found by the harness on 2026-08-20.** Twelve of the eighteen failures in a full run are this one cause,
-across `transfer-basic`, `merge-across-creation-paths`, `transient-flag-registry`, `rollback-after-merge`,
-`container-not-inherited` and `container-placement`.
+An item created on an NPC with no `properties` in its payload stores `properties: ["gear"]`; the identical
+payload on a character stores `[]`. `"gear"` is not a valid property for either -- `validProperties.loot` is
+`Set(["mgc"])` (`dnd5e.mjs:45532`, dnd5e 5.3.3) -- and it lands on `container` items too, so whatever does
+this is not type-specific.
 
-**The evidence.** `merge-across-creation-paths` creates two rows by raw `createEmbeddedDocuments` from the
-*same* payload, with no `properties` key in either. The row on the **npc** reads
-`_source.system.properties = ["gear"]`; the row on the **character** reads `[]`. Every other failing check
-has the same shape -- existing row on a character, incoming payload from an npc.
+**Not us, and not the obvious suspects.** No Coffee Pub sibling writes `system.properties`. Nor do the other
+installed `preCreateItem` hooks: chris-premades, DAE, and automated-conditions-5e are all clean on it, and
+`midi-qol.js` contains no `gear` string at all.
 
-`_canMerge` then correctly refuses: `properties` is not in `RESET_PATHS` and must not be, because it carries
-`mgc`. A magical dagger merging into a mundane one is the failure that rule exists to prevent, so
-"exclude properties from identity" is not the fix.
-
-**This is not a harness artifact.** If it reproduces outside the harness it means looting from an NPC corpse
-into a character never merges for any item whose `properties` was absent at creation -- arrows landing as a
-second row, which is the exact symptom the container comment in `api-inventory.js:45-49` records as already
-fixed once. No sibling writes `system.properties` on create (checked across all twelve), so the value is
-coming from dnd5e or core.
-
-**Diagnosed 2026-08-20 by probe.** An identical bare loot payload created on an npc stores
-`properties: ["gear"]`; on a character it stores `[]`. And decisively: a payload carrying `["gear"]`,
-taken straight from `toObject()`, creates a row whose stored value is `[]`.
-
-**So `_canMerge` compares a payload that has not been through the create pipeline against a document that
-has.** The row that will actually exist is the cleaned one, which means the comparison is made against a
-shape that never reaches disk. That is the defect, and it does not depend on knowing who writes `"gear"`.
-
-`"gear"` is not a valid loot property -- `CONFIG.DND5E.validProperties.loot` is `Set(["mgc"])`
-(`dnd5e.mjs:45532`, dnd5e 5.3.3). So the value is invalid wherever it appears, which points at the fix.
-
-**Preferred fix: compare only properties the system recognises for that item type.** Intersect both sides
-with `CONFIG.DND5E.validProperties[type]` inside `_identitySystem`. An unrecognised property is not part of
-an item's identity, because the system does not treat it as one. `mgc` stays in identity, so a magical
-dagger still refuses to merge into a mundane one -- which is the case that justifies the whole predicate.
-This file is already dnd5e-specific by construction (see its header), so reading a dnd5e config here is in
-keeping.
-
-**Alternative considered: clean both sides through the item's DataModel before comparing.** More general,
-but weaker in practice -- it reproduces only what the *schema* does, and if a module's `preCreateItem` hook
-is what rewrites the value then schema cleaning will not match what a real create produces either.
-
-**Separately, and not ours to fix: something writes an invalid `properties` value onto loot items created on
-NPCs.** Not any coffee-pub sibling, and not the three other installed `preCreateItem` hooks
-(chris-premades, DAE, automated-conditions-5e), all of which are clean on this. An invalid property
-persisting in stored data is worth finding, but it is not what blocks the merge.
-
-**Verify:** the six named checks pass in a full "Run All Headless", plus one live loot of a stackable item
-from an NPC corpse onto a character who already carries some, landing as one row.
-
-## Readouts: two harness checks fail and nobody has looked (opened 2026-08-20)
-
-**Status: answered and fixed 2026-08-21; delete this entry once a run confirms.** They were reporting a
-closed combat bar. All five gates in that suite asserted the precondition, so a full headless run went red
-for the environment rather than for the code. They now log what to do and record no assertions, matching
-the stats suite's "no combat is being tracked" pattern.
+This is invalid data sitting in a live world rather than a broken feature, which is why it is filed rather
+than chased. **The way in, when someone does chase it:** register a temporary `preCreateItem` hook that logs
+`item._source.system.properties` on entry. That separates "already present when the hook chain started" from
+"written by something in it", which is the fork the whole search turns on.
 
 ## World clock: a Scene Config notice for clock-driven darkness (opened 2026-08-16)
 
@@ -104,11 +60,25 @@ currently has **zero** references to Scene Config, which is worth keeping true u
 Whatever does this should read the same scene flag the driver uses (`DarknessManager.FLAG`) rather than
 inventing a parallel one, and must survive the sheet re-rendering underneath it.
 
-## World clock: real time when out of combat (opened 2026-08-16)
+## World clock: time modes (opened 2026-08-16, designed by the author 2026-08-21)
 
-**Idea, not a commitment.** Outside combat the world clock ticks on its own -- an hour of play is an hour
-in the world, or some multiple of it -- and stops when combat starts, where core's own `CONFIG.time`
-`roundTime`/`turnTime` already advance world time per round instead.
+**Supersedes the narrower "real time when out of combat" idea this section used to hold.** The clock runs
+in one of five modes, and the GM switches between them:
+
+| Mode | Time passes |
+|---|---|
+| **Combat** | 6 seconds per round. Core already does this through `CONFIG.time.roundTime`. |
+| **Real-time** | With the wall clock, like an ordinary clock. |
+| **Slow** | More slowly than real time. For table-talk. |
+| **Fast** | More quickly. For long travel. |
+| **Paused** | Not at all. Waiting for players at the top of a session. |
+
+**The surface is a small icon indicator with a context menu to switch modes**, with the slow and fast
+multipliers set in settings. The world clock already owns a right-click menu (`architecture-worldclock.md`,
+"The menu"), so the vocabulary exists.
+
+**The mode is world state, not client state.** Every client must agree on what time it is, so the mode
+lives in a world setting and only a GM changes it.
 
 The appeal is obvious: a GM never has to remember to move the clock, and travel and downtime pass on their
 own. Two things make it harder than it sounds, and both should be settled before any of it is written.
@@ -123,9 +93,14 @@ seconds) while any smooth display is computed locally between them.
 two tickers would both advance the same clock and time would run at double speed. Whatever does this needs
 a single-owner rule, and to stop cleanly when that owner disconnects.
 
-Also worth deciding: whether the ratio is configurable (1:1 is rarely what a table wants -- a four-hour
-session is not four in-world hours), whether it pauses when the game is paused as well as in combat, and
-what happens to a rest that is already running.
+Also worth deciding: whether Foundry's own pause forces Paused mode, and what happens to a rest that is
+already running when the mode changes.
+
+**This wants the same engine as the interruptible rest**, and that is the strongest argument for building
+either. Both need one GM-owned driver that advances world time in coarse commits and can be stopped; a
+mode is that driver running open-endedly at a multiplier, and a rest is the same driver running to a
+target. Phase 1 of `documentation/plans/plan-interruptible-rest.md` is that primitive. Build it once, and
+the second consumer is what proves the shape is right.
 
 ## World clock: what is left (opened 2026-08-16)
 
@@ -138,22 +113,14 @@ darkness driver, the schedule API (`api.worldClock.schedule`), rests moving the 
 
 ### 1. The interruptible rest -- the one genuinely novel thing
 
-A long rest the clock drives. The GM starts it, world time advances across the rest's duration, and the GM
-can interrupt partway: rolling for encounters, having something happen at hour three, resuming or
-abandoning. Nothing in the ecosystem does this.
+A long rest the clock drives, interruptible partway. **Planned in
+`documentation/plans/plan-interruptible-rest.md` (written 2026-08-21)** -- the constraint that shapes it,
+the missing primitive, the open questions, and four phases. Read that rather than restating it here.
 
-It needs the second half of the API pair -- **"advance time gradually, and let it be interrupted"** -- which
-is the reason it is worth building rather than faking with a single jump. `timer-round.js`,
-`timer-planning.js` and `timer-combat.js` are all timers with lifecycle and interruption; a rest timer is
-the same shape over world time rather than wall time.
-
-**An interrupted rest is not a rest.** The system's recovery must only run if the rest *completes*, which
-rules out "call `longRest()` and then advance the clock" as the shape. That constraint is the whole design.
-
-**Its hardest piece already exists.** The rest card updates in place and holds its own state across two
-phases, which is exactly what a rest in progress needs -- a card that can show hour three and offer an
-interrupt. See `documentation/architecture/architecture-rest.md`. What is missing is the gradual,
-interruptible advance, not the surface.
+The short version, so this list still reads: what is missing is not the surface but the primitive --
+advance world time gradually and let it be interrupted -- and the rule that decides the design is that an
+interrupted rest is not a rest, so recovery runs only on completion. Phase 1 of that plan is also the
+engine the time modes above need, so it is worth building once for both.
 
 ### 2. Already done, recorded so nobody rebuilds it
 
@@ -173,10 +140,26 @@ world** -- it is the whole feature.
 keeps weather from depending on a specific animation module. Unblocked by the schedule API -- a weather
 feature registers a `dailyAt` and never needs to know how the clock works.
 
-### 4. Calendar events -- a sibling
+### 4. Calendar events and dated reminders -- a sibling
 
-Festivals, holidays, anything dated. Also unblocked by the schedule API; needs somewhere to store the
-events, which is the only open question.
+Festivals, holidays, anything dated, and the GM reminder that motivates it: "the wizard's scroll is ready"
+set three in-world days out and surfacing on its own.
+
+**The trigger already exists and needs nothing.** `worldClock.schedule({ at })` takes an absolute world
+time in seconds and fires once (`api-worldclock.md`). Turning a date into that number is core's job and is
+already available -- `game.time.calendar.componentsToTime({ year, month, day, hour, ... })`; the clock
+already uses its inverse `timeToComponents` for drag-to-scrub (`manager-worldclock.js:1180`).
+
+**Two things are genuinely missing, and neither is the trigger:**
+
+1. **Persistence.** Schedules are in-memory and are explicitly *not a queue* -- nothing fires
+   retroactively, and a one-shot whose moment passed while the world was closed is missed. A reminder set
+   three days out must survive a reload, so it needs a store and re-registration on `ready`. That is the
+   "somewhere to store the events" question, and it is the whole of the work.
+2. **Authoring.** A GM thinks in dates, not seconds. That is the calendar view.
+
+So this is a store plus a view over a firing mechanism that is already built and documented. Worth knowing
+before anyone scopes it as a clock feature -- it is not one.
 
 ### 5. A morning briefing -- last, wherever it lives
 
