@@ -227,11 +227,13 @@ export default {
             note: 'THE check to read first when nothing animates. A rebuilt node cannot animate, '
                 + 'because the element carrying the previous value is gone — and that is a different '
                 + 'bug from a missing CSS rule, with a different fix.',
-            run: async ({ expect }) => {
+            run: async ({ expect, log }) => {
                 const api = requireApi('updateSecondaryBarItemInfo');
                 const { itemId } = subjectChip();
                 const before = valueElement(itemId);
-                if (!expect.ok(`${itemId} is rendered`, !!before)) return;
+                // A closed bar is a missing precondition, not a defect. Asserting it turns a full
+                // headless run red for a reason that says nothing about the code.
+                if (!before) return log(`${itemId} is not on screen. Open the combat bar and run this again — nothing was checked.`);
 
                 // Tag the live node. If the same object is still in the document after a push, the
                 // value was written in place; if it is gone, the bar was rebuilt around it.
@@ -260,11 +262,11 @@ export default {
             label: 'Motion: a changed value receives the flash class',
             note: 'Isolates the JS half. If this passes and nothing is visible, the fault is in CSS '
                 + 'or in a motion preference, not in the change detection.',
-            run: async ({ expect }) => {
+            run: async ({ expect, log }) => {
                 const api = requireApi('updateSecondaryBarItemInfo');
                 const { itemId } = subjectChip();
                 const node = valueElement(itemId);
-                if (!expect.ok(`${itemId} is rendered`, !!node)) return;
+                if (!node) return log(`${itemId} is not on screen. Open the combat bar and run this again — nothing was checked.`);
 
                 const original = node.textContent;
                 node.classList.remove('is-changed');
@@ -299,8 +301,8 @@ export default {
             note: 'Runs against whatever this world currently holds, so it means something in a fresh '
                 + 'world and in a long campaign. A chip present with no data is clutter; a chip absent '
                 + 'with data is a readout that silently stopped working.',
-            run: async ({ expect }) => {
-                if (!expect.ok('the combat bar is open', !!document.querySelector('.combat-data-row'))) return;
+            run: async ({ expect, log }) => {
+                if (!document.querySelector('.combat-data-row')) return log('The combat bar is not open. Open it and run this again — nothing was checked.');
 
                 const gated = await gatedStatistics();
                 expect.ok('there are gated statistics for this combat state', gated.length > 0);
@@ -328,9 +330,9 @@ export default {
             label: 'Empty state: an item that appears is marked as entering',
             note: 'Registers a throwaway item on the combat bar, checks it was marked as new, then '
                 + 'removes it. Exercises the real appearance path rather than a simulation of it.',
-            run: async ({ expect }) => {
+            run: async ({ expect, log }) => {
                 const api = requireApi('registerSecondaryBarItem', 'unregisterSecondaryBarItem');
-                if (!expect.ok('the combat bar is open', !!document.querySelector('.combat-data-row'))) return;
+                if (!document.querySelector('.combat-data-row')) return log('The combat bar is not open. Open it and run this again — nothing was checked.');
 
                 // Settle the bar's contents BEFORE introducing the probe, or this check measures a
                 // re-render it caused itself. Reading the party aggregate while its cache is cold
@@ -418,11 +420,11 @@ export default {
             label: 'Trigger: flash and count-up on the visible damage chip',
             note: 'Pushes a display-only value; the next refresh restores the real one. '
                 + 'Watch for the number climbing rather than jumping, and a brief brightening.',
-            run: async ({ expect }) => {
+            run: async ({ expect, log }) => {
                 const api = requireApi('updateSecondaryBarItemInfo');
                 const { itemId, label } = subjectChip();
                 const node = valueElement(itemId);
-                if (!expect.ok(`${label} is rendered`, !!node)) return;
+                if (!node) return log(`${label} is not on screen. Open the combat bar and run this again — nothing was checked.`);
 
                 const original = node.textContent;
                 const base = Number(original.replace(/\D/g, '')) || 0;

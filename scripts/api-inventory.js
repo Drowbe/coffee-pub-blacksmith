@@ -401,11 +401,15 @@ function _identitySystem(systemSource, type = null) {
     //
     // `mgc` is valid, so it still participates: a magical dagger must not merge into a
     // mundane one, which is the case the whole predicate exists for.
-    if (copy.properties !== undefined) {
-        const list = Array.from(copy.properties ?? []);
-        const valid = CONFIG?.DND5E?.validProperties?.[type];
-        copy.properties = (valid ? list.filter(property => valid.has(property)) : list).sort();
-    }
+    //
+    // Normalised unconditionally, for the same reason `container` below is: absent and empty
+    // mean the same thing and would otherwise compare unequal. A payload built from
+    // `toObject()` always carries the key, while raw `itemData` from a caller usually does
+    // not — so a grant of plain item data could never merge with a row created from it.
+    // Sorted because a stored array and one rebuilt from a Set need not agree on order.
+    const properties = Array.from(copy.properties ?? []);
+    const valid = CONFIG?.DND5E?.validProperties?.[type];
+    copy.properties = (valid ? properties.filter(property => valid.has(property)) : properties).sort();
     // Containment STAYS in identity — two otherwise identical stacks in different bags are in
     // different places and must not merge. Normalised because absent and null mean the same
     // thing here and would otherwise compare unequal: our payloads always write the field, while

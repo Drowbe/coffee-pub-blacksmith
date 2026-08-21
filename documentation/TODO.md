@@ -25,6 +25,10 @@ not last: a frame validated only on simple windows will fail on them after every
 
 ## Inventory: `system.properties` diverges by parent actor type, and it blocks every merge (opened 2026-08-20)
 
+**Status: fixed 2026-08-21, awaiting one confirming harness run.** Both halves are in
+(`_identitySystem` filters to the valid set and normalises an absent key); delete this entry when a full
+"Run All Headless" shows the inventory suite green, keeping only the last paragraph below.
+
 **Found by the harness on 2026-08-20.** Twelve of the eighteen failures in a full run are this one cause,
 across `transfer-basic`, `merge-across-creation-paths`, `transient-flag-registry`, `rollback-after-merge`,
 `container-not-inherited` and `container-placement`.
@@ -76,10 +80,10 @@ from an NPC corpse onto a character who already carries some, landing as one row
 
 ## Readouts: two harness checks fail and nobody has looked (opened 2026-08-20)
 
-`readouts/patch-path` and `readouts/flash-class` both fail on `stat-total-damage is rendered` (7/11 in the
-2026-08-20 run). Plausibly they need the combat bar open and are reporting the environment rather than a
-defect, but that is a guess and has not been checked. Either fix the checks so they state their
-precondition, or fix what they found.
+**Status: answered and fixed 2026-08-21; delete this entry once a run confirms.** They were reporting a
+closed combat bar. All five gates in that suite asserted the precondition, so a full headless run went red
+for the environment rather than for the code. They now log what to do and record no assertions, matching
+the stats suite's "no combat is being tracked" pattern.
 
 ## World clock: a Scene Config notice for clock-driven darkness (opened 2026-08-16)
 

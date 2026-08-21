@@ -49,11 +49,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **The predicate was comparing a shape that never reaches storage.** `_canMerge` compares the prepared payload against the existing row's stored `_source`, and the payload has not been through item creation. Proven by probe: an item whose payload held `properties: ["gear"]`, taken straight from `toObject()`, created a row whose stored value was `[]` -- because `"gear"` is not a loot property (`CONFIG.DND5E.validProperties.loot` is `Set(["mgc"])`, `dnd5e.mjs:45532`, dnd5e 5.3.3). So the incoming side carried a value the outgoing side could never have.
 
+  The value is also normalised whether or not the key is present, for the same reason `container` is: absent and empty mean the same thing, and a payload built from `toObject()` always carries the key while raw `itemData` from a caller usually does not. Without that, a grant of plain item data could never merge into a row created from it -- which is what `container-placement` was still failing on after the first half of this fix.
+
   Filtering to the recognised set fixes it without loosening what matters: `mgc` is valid and still compared, so a magical dagger does not merge into a mundane one -- the case the whole predicate exists for. The alternative, cleaning both sides through the item's DataModel, was rejected as weaker: it reproduces only what the schema does, and cannot match a create that a third-party `preCreateItem` hook rewrites.
 
   Something in this world writes that invalid property onto loot items created on NPCs. It is no Coffee Pub sibling and none of the other installed `preCreateItem` hooks, and it remains unidentified -- but it is a data-integrity question rather than the cause of this defect, which would occur for any unrecognised property from any source.
 
   **Verify:** the inventory suite's six merge checks pass in a full "Run All Headless", plus one live loot of a stackable item from an NPC corpse onto a character already carrying some, landing as one row.
+
+- **Five readouts checks reported a closed combat bar as a failure** (`testing/suites/suite-readouts.js`). Each gated itself with `expect.ok('the combat bar is open', ...)`, so a full headless run went red for a missing precondition that says nothing about the code -- four failures in the 2026-08-21 run were this. They now log what to do and record no assertions, which is the pattern the stats suite already uses for "no combat is being tracked".
 
 - **Two harness checks were asserting the wrong thing, and one had been dead for a while** (`testing/suites/suite-gm-request.js`, `testing/suites/suite-chat-cards.js`).
 
