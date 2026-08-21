@@ -31,34 +31,53 @@ that scar: its first version hardcoded 86400 for a day.
 rather than computed here. Doing the modulo locally would be a second implementation of `timeToComponents`,
 and the two would drift the first time a calendar did something unusual with leap days.
 
-## What it deliberately does not do yet
+It also shows **calendar events** -- marked days, the month's list, and add/delete for a GM. Those shipped
+the same day; see the next section.
 
-- **No events, reminders or markers.** That is the point of the window and it is the next phase, but it
-  needs the store below before a day can show a dot.
-- **No season or festival colouring.** `calendar.seasons` is available and would read well behind the grid;
-  it is cosmetic and was left out of a first draft.
-- **No year view or year jump.** Paging twelve months to reach next winter is tedious; a year picker is the
-  obvious next ergonomic fix.
-- **No time-of-day control.** Clicking a day keeps the current time deliberately, and setting the hour stays
-  with Set Time on the clock menu.
+**No time-of-day control**, deliberately: clicking a day keeps the current time, and setting the hour stays
+with Set Time on the clock menu.
 
-## The next phase, and the question it turns on
+## The next phase: time-bound notes
 
-Events need somewhere to live, and that is the only genuinely open decision:
+**Calendar events shipped 2026-08-21** and answered the storage question this section used to hold: they
+are world data, so they live in the `calendarEvents` world setting. See
+`../architecture/architecture-worldclock.md`.
 
-- **A world setting** is simplest and matches how the module already stores structured data. It is also one
-  blob that every client re-reads on any change.
-- **A journal or a folder of them** makes events editable content a GM can write prose into, and gets
-  permissions and ownership for free -- but it puts a document subtype question in front of us, and the
-  ownership rules say declaring one means owning a domain.
-- **Scene or actor flags** are wrong here: an event belongs to the world's calendar, not to a place or a
-  person.
+What is left is the other half, and it is a different thing with a different owner:
 
-Whatever holds them, three things follow from the schedule API's own contract and should be designed in
-rather than discovered: **schedules are not persisted**, so every stored event must be re-registered on
-`ready`; **nothing fires retroactively**, so an event whose moment passed while the world was closed needs an
-explicit "missed" path rather than silence; and **`crossings` can exceed one**, so a party resting a week
-past a weekly event has to decide whether that is one notification or seven.
+| | Calendar event -- done | Time-bound note -- next |
+|---|---|---|
+| Belongs to | the world | one person |
+| Recurs | yes | never |
+| Stored in | the world setting | the note's own flags |
+| Fires via | `schedule({ at })`, re-armed | a persisted index, scanned on crossing |
+
+**The moment goes on the note as its own flag, not into `annotations`.** That will be tempting, because the
+anchor union is already there, and it is wrong three ways: an annotation requires a `targetUuid` and a moment
+has none; the index is exact-match `targetUuid -> notes` while time queries are ranged; and "what is attached
+to this" has no ordering while "what is due" is nothing but ordering. Same document, second relationship,
+second derived index -- sorted `[worldTime, pageUuid]`, built at `ready`, maintained by the same page hooks,
+never consulted as truth.
+
+**Why notes do NOT use `schedule()`, when events do.** Schedules are in-memory and nothing fires
+retroactively, so a reminder due while the world was closed is silently gone. A persisted index can answer
+"what came due while we were away"; `schedule()` structurally cannot. A missed festival is still visible on
+the calendar, which is why events can afford the simpler mechanism and personal reminders cannot.
+
+The payoff for keeping the moment on the note is composition: an annotation plus a due time gives
+"remind me about this NPC on the 14th" with no new concept.
+
+**Hold the line on scope.** No status, no assignment, no priority, no completion. When the moment arrives,
+stamp `firedAt` and leave the note -- that gives "recently fired" without inventing "done". The list of
+time-bound things is the index rendered; markers are a range query. Both fall out.
+
+## Still missing from the window
+
+- **No season or festival colouring.** `calendar.seasons` is available and would read well behind the grid.
+- **No year view or year jump.** Paging twelve months to reach next winter is tedious.
+- **No per-day add.** The footer's Add button anchors to today, or to the first of the month being viewed.
+  Adding on an arbitrary day wants a right-click menu on the cell.
+- **No editing an event**, only add and delete.
 
 ## Verification
 
@@ -70,3 +89,7 @@ The draft's own checks, none of which a harness can do:
 - In a leap year, confirm the month that gains a day shows it.
 - Click a day at 14:30 and confirm the world lands on that day still at 14:30.
 - Open it as a player: the grid renders, the day cells are not buttons, and nothing throws.
+- Add a once event on today, advance past it: one toast, GM only, no repeat.
+- Add a monthly event on the 31st in a 30-day-month calendar: it skips those months rather than firing on
+  the 30th.
+- Delete an event: the marker and the list entry go with it.

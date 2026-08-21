@@ -309,6 +309,48 @@ per second redrawing an identical string for the whole session.
 Time modes do not change that. The driver below has an interval, but it is a WRITER, not a repainter --
 the display still redraws only in response to time actually moving.
 
+## Calendar events, and why they are not notes
+
+`manager-calendar-events.js` holds dated things belonging to the **world**: a festival, a market day, a
+shared deadline. They exist whether or not anyone wrote a note about them, and that is the whole of the
+distinction:
+
+| | Calendar event | Time-bound note |
+|---|---|---|
+| Belongs to | the world | one person |
+| Recurs | usually | never |
+| Authored | deliberately, by the GM | in play, by anyone |
+| Stored in | the `calendarEvents` world setting | the note's own flags |
+
+Storing a festival on somebody's note would be backwards -- delete the note and the festival stops existing.
+
+**The store is a world setting rather than journal entries.** An event is a date and a name; if it wants
+prose it wanted a note. Journals would bring permissions for free but drag in the document-subtype question,
+and owning a subtype means owning a domain.
+
+### Recurrence is computed here, not expressed to the schedule API
+
+`schedule()` takes `at` (an absolute moment) or `dailyAt` (an hour of the day). **Neither can say "the 20th
+of Marpenoth, every year."** Widening a public surface for one consumer would be the wrong trade, so an
+event computes its own next occurrence, registers that as an `at`, and re-arms when it fires. One firing
+mechanism, used as intended.
+
+Two consequences worth knowing before touching `nextOccurrence`:
+
+- **A recurring day the month does not have is SKIPPED, not clamped.** The 31st monthly in a 30-day month is
+  not the 30th. Clamping would silently move a market day, and skipping is the honest reading of a date that
+  is not there.
+- **Re-arming searches from one second past now**, or it finds the moment that just fired, re-arms on it, and
+  fires again on the next tick forever.
+
+Schedules are `gmOnly`, because firing announces to the table and a callback registered on five clients
+without it announces five times. They are re-armed on every client when the setting changes, so a GM
+promoted mid-session is already armed.
+
+**What an event MEANS is a consumer's business.** Firing calls `blacksmith.calendarEventFired` and shows a
+toast, and stops there. A festival with weather, prices and rumours is content, and content belongs in a
+sibling -- the hook is how it gets there.
+
 ## Calendar names are localization keys
 
 `calendar.months.values[].name` and `days.values[].name` / `.abbreviation` hold **i18n keys**, not display

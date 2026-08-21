@@ -1091,6 +1091,18 @@ export const registerSettings = () => {
 	});
 
 	// -- Party data (reputation and future per-scene/campaign data) - HIDDEN SETTING --
+	// Calendar events: dated things belonging to the WORLD rather than to a person.
+	// Not `config`, because they are authored from the calendar window -- a settings
+	// row cannot express a recurring date.
+	game.settings.register(MODULE.ID, 'calendarEvents', {
+		name: 'Blacksmith Calendar Events',
+		hint: 'Internal storage for world calendar events',
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: []
+	});
+
 	game.settings.register(MODULE.ID, 'blacksmithPartyData', {
 		name: 'Blacksmith Party Data',
 		hint: 'Internal storage for party reputation and other party data per scene',

@@ -24,6 +24,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
+import { CalendarEvents, EVENT_RECURRENCE } from './manager-calendar-events.js';
 
 export const CALENDAR_WINDOW_ID = 'blacksmith-calendar';
 
@@ -57,7 +58,9 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         calendarPrev: (_event, _target, win) => win?._shiftMonth(-1),
         calendarNext: (_event, _target, win) => win?._shiftMonth(1),
         calendarToday: (_event, _target, win) => win?._goToToday(),
-        calendarPickDay: (_event, target, win) => win?._pickDay(target)
+        calendarPickDay: (_event, target, win) => win?._pickDay(target),
+        calendarAddEvent: (_event, target, win) => win?._addEvent(target),
+        calendarDeleteEvent: (_event, target, win) => win?._deleteEvent(target)
     };
 
     constructor(options = {}) {
@@ -176,13 +179,19 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         for (let blank = 0; blank < firstWeekday; blank++) cells.push({ blank: true });
 
         const isCurrentMonth = now.year === this.viewYear && now.month === monthIndex;
+        const eventsByDay = CalendarEvents.occurrencesInMonth(this.viewYear, monthIndex);
         for (let day = 0; day < dayCount; day++) {
+            const dayEvents = eventsByDay.get(day) ?? [];
             cells.push({
                 blank: false,
                 // Displayed ordinals are one-based; every index in `components` is not.
                 label: day + 1,
                 dayIndex: day,
-                isToday: isCurrentMonth && now.dayOfMonth === day
+                isToday: isCurrentMonth && now.dayOfMonth === day,
+                hasEvents: dayEvents.length > 0,
+                // The names ride in the tooltip so a marker is not a dead dot: hovering
+                // a marked day says what is on it without opening anything.
+                eventTooltip: dayEvents.map(event => event.name).join(', ')
             });
         }
 
@@ -207,7 +216,26 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             }),
             cells,
             columns: weekdays.length,
+            // The month's events as a list, sorted by day, so the window answers
+            // "what is coming" as well as "where is today".
+            events: [...eventsByDay.entries()]
+                .sort(([a], [b]) => a - b)
+                .flatMap(([day, dayEvents]) => dayEvents.map(event => ({
+                    id: event.id,
+                    name: event.name,
+                    description: event.description,
+                    dayLabel: day + 1,
+                    recurrenceLabel: event.recurrence === EVENT_RECURRENCE.ANNUAL ? 'every year'
+                        : event.recurrence === EVENT_RECURRENCE.MONTHLY ? 'every month'
+                            : 'once'
+                }))),
             viewingNow: isCurrentMonth,
+            // Which day the footer's Add button targets. Today when today is on
+            // screen, otherwise the first of the month being viewed -- a button in a
+            // footer has no day of its own, and adding to a day the reader cannot see
+            // would be worse than adding to the one they are looking at.
+            addDayIndex: isCurrentMonth ? now.dayOfMonth : 0,
+            addDayLabel: isCurrentMonth ? 'today' : `${CalendarWindow.label(month.name)} 1`,
             todayLabel: `${CalendarWindow.label(months[now.month]?.name)} ${now.dayOfMonth + 1}`
         };
     }
@@ -283,6 +311,92 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             await this.render(false);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Calendar: could not set the date', error, false, true);
+        }
+    }
+
+    /**
+     * Add an event on a day, asked for through the shared dialog.
+     *
+     * `api.dialog` rather than a hand-rolled form: the module has one dialog surface
+     * and a second one here would be the fourth thing to restyle when the chrome
+     * changes.
+     */
+    async _addEvent(target) {
+        if (!game.user?.isGM) return;
+
+        const dayIndex = Number(target?.dataset?.day);
+        if (!Number.isInteger(dayIndex)) return;
+
+        const calendar = CalendarWindow.calendar();
+        const monthName = CalendarWindow.label(calendar?.months?.values?.[this.viewMonth]?.name);
+
+        try {
+            const { DialogAPI } = await import('./api-dialog.js');
+
+            // `prompt` collects ONE value from consumer-rendered content, so the form
+            // is ours and `getValue` reads it off the submit button's owning form.
+            // There is no `form()` helper on this API -- three fields is still one
+            // value once they are read together.
+            const { action, value } = await DialogAPI.prompt({
+                title: `New event: ${monthName} ${dayIndex + 1}`,
+                content: `
+                    <div class="blacksmith-calendar-event-form">
+                        <label>Name<input type="text" name="eventName" autofocus></label>
+                        <label>Description<input type="text" name="eventDescription"></label>
+                        <label>Repeats
+                            <select name="eventRecurrence">
+                                <option value="${EVENT_RECURRENCE.ONCE}">Once, this year only</option>
+                                <option value="${EVENT_RECURRENCE.ANNUAL}">Every year on this date</option>
+                                <option value="${EVENT_RECURRENCE.MONTHLY}">Every month on this day</option>
+                            </select>
+                        </label>
+                    </div>`,
+                getValue: (root) => ({
+                    name: root.elements.eventName?.value?.trim() ?? '',
+                    description: root.elements.eventDescription?.value?.trim() ?? '',
+                    recurrence: root.elements.eventRecurrence?.value ?? EVENT_RECURRENCE.ONCE
+                }),
+                validate: (entered) => entered?.name ? null : 'An event needs a name.'
+            });
+
+            if (action !== DialogAPI.ACTIONS.SUBMIT || !value?.name) return;
+
+            await CalendarEvents.create({
+                name: value.name,
+                description: value.description,
+                recurrence: value.recurrence,
+                year: this.viewYear,
+                month: this.viewMonth,
+                day: dayIndex
+            });
+            await this.render(false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Calendar: could not add the event', error, false, true);
+        }
+    }
+
+    /** Remove an event, confirming first because there is no undo. */
+    async _deleteEvent(target) {
+        if (!game.user?.isGM) return;
+
+        const id = target?.dataset?.eventId;
+        if (!id) return;
+        const event = CalendarEvents.get(id);
+        if (!event) return;
+
+        try {
+            const { DialogAPI } = await import('./api-dialog.js');
+            const confirmed = await DialogAPI.confirm({
+                title: 'Delete event',
+                content: `<p>Delete <strong>${foundry.utils.escapeHTML(event.name)}</strong> from the calendar?</p>`,
+                destructive: true
+            });
+            if (!confirmed) return;
+
+            await CalendarEvents.delete(id);
+            await this.render(false);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'Calendar: could not delete the event', error, false, true);
         }
     }
 

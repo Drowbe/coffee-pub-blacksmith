@@ -124,6 +124,102 @@ button.blacksmith-calendar-day:hover {
     font-weight: bold;
 }
 
+/* A day carrying events gets a dot under the number rather than a fill, so
+   it can be today AND have events without the two treatments fighting. */
+.blacksmith-calendar-day.has-events {
+    position: relative;
+}
+
+.blacksmith-calendar-day.has-events::after {
+    content: "";
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--blacksmith-color-brand-accent);
+}
+
+/* ----- This month's events ---------------------------------------- */
+
+.blacksmith-calendar-events {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding-top: var(--blacksmith-space-sm);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.blacksmith-calendar-events-title {
+    font-size: 0.72em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blacksmith-text-muted);
+    padding-bottom: var(--blacksmith-space-xs);
+}
+
+.blacksmith-calendar-event {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-space-sm);
+    font-size: 0.85em;
+    color: var(--blacksmith-text-light);
+    padding: 1px 0;
+}
+
+.blacksmith-calendar-event-day {
+    flex: 0 0 1.6em;
+    text-align: right;
+    color: var(--blacksmith-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.blacksmith-calendar-event-name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-calendar-event-recurrence {
+    flex: 0 0 auto;
+    font-size: 0.85em;
+    color: var(--blacksmith-text-muted);
+}
+
+.blacksmith-calendar-event-delete {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    line-height: 1;
+    font-size: 0.85em;
+    background: none;
+    border: none;
+    color: var(--blacksmith-text-muted);
+    cursor: pointer;
+}
+
+.blacksmith-calendar-event-delete:hover {
+    color: var(--blacksmith-status-danger);
+}
+
+/* The add-event form inside the shared dialog. */
+.blacksmith-calendar-event-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-sm);
+}
+
+.blacksmith-calendar-event-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.9em;
+}
+
 /* ----- Footer ----------------------------------------------------- */
 
 .blacksmith-calendar-footer {
@@ -133,6 +229,12 @@ button.blacksmith-calendar-day:hover {
     gap: var(--blacksmith-space-sm);
     font-size: 0.8em;
     color: var(--blacksmith-text-muted);
+}
+
+.blacksmith-calendar-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-space-sm);
 }
 
 .blacksmith-calendar-jump {

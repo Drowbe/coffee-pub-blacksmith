@@ -43,24 +43,61 @@
                       without the affordance, because setting world time would throw. --}}
                 {{#if ../isGM}}
                 <button type="button"
-                        class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}"
+                        class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
                         data-action="calendarPickDay"
                         data-day="{{this.dayIndex}}"
-                        data-tooltip="Go to this day, keeping the time of day">{{this.label}}</button>
+                        data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}} — click to go here{{else}}Go to this day, keeping the time of day{{/if}}">{{this.label}}</button>
                 {{else}}
-                <div class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}">{{this.label}}</div>
+                <div class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
+                     {{#if this.hasEvents}}data-tooltip="{{this.eventTooltip}}"{{/if}}>{{this.label}}</div>
                 {{/if}}
             {{/if}}
         {{/each}}
     </div>
 
+    {{!-- EVENTS FOR THIS MONTH. The grid says where they are; this says what they
+          are, which is the question a marker cannot answer on its own. --}}
+    {{#if events.length}}
+    <div class="blacksmith-calendar-events">
+        <div class="blacksmith-calendar-events-title">This month</div>
+        {{#each events}}
+        <div class="blacksmith-calendar-event">
+            <span class="blacksmith-calendar-event-day">{{this.dayLabel}}</span>
+            <span class="blacksmith-calendar-event-name" data-tooltip="{{this.description}}">{{this.name}}</span>
+            <span class="blacksmith-calendar-event-recurrence">{{this.recurrenceLabel}}</span>
+            {{#if ../isGM}}
+            <button type="button" class="blacksmith-calendar-event-delete"
+                    data-action="calendarDeleteEvent" data-event-id="{{this.id}}"
+                    data-tooltip="Delete this event">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            {{/if}}
+        </div>
+        {{/each}}
+    </div>
+    {{/if}}
+
     <div class="blacksmith-calendar-footer">
         <span class="blacksmith-calendar-today-label">Today: {{todayLabel}}</span>
-        {{#unless viewingNow}}
-        <button type="button" class="blacksmith-calendar-jump" data-action="calendarToday">
-            <i class="fa-solid fa-location-crosshairs"></i> Back to today
-        </button>
-        {{/unless}}
+        <span class="blacksmith-calendar-footer-actions">
+            {{#unless viewingNow}}
+            <button type="button" class="blacksmith-calendar-jump" data-action="calendarToday">
+                <i class="fa-solid fa-location-crosshairs"></i> Back to today
+            </button>
+            {{/unless}}
+            {{#if isGM}}
+            {{!-- Adding is anchored to a day the reader can see: today when today is
+                  on screen, otherwise the first of the month being viewed. A button in
+                  a footer has no day of its own, and adding to an off-screen day would
+                  be worse than adding to the one in front of you. Per-day adding wants
+                  a right-click menu on the cell, which this draft does not have. --}}
+            <button type="button" class="blacksmith-calendar-jump"
+                    data-action="calendarAddEvent" data-day="{{addDayIndex}}"
+                    data-tooltip="Add an event on {{addDayLabel}}">
+                <i class="fa-solid fa-plus"></i> Add event
+            </button>
+            {{/if}}
+        </span>
     </div>
 
 </div>

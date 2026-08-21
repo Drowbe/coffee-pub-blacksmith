@@ -88,6 +88,7 @@ import { LoadingProgressManager } from './manager-loading-progress.js';
 import { SettingsAdoptionManager } from './manager-settings-adoption.js';
 import { registerDiceTray } from './window-dicetray.js';
 import { registerCalendarWindow } from './window-calendar.js';
+import { CalendarEvents } from './manager-calendar-events.js';
 import { registerMacros } from './window-macros.js';
 import { registerHealth } from './window-health.js';
 import { registerStatsWindows, StatsWindow } from './window-stats-party.js';
@@ -543,6 +544,8 @@ Hooks.once('ready', async () => {
         // the driver here rather than in `init` also means the ownership election has
         // a populated `game.users` to elect from.
         TimeModes.initialize();
+        // After WorldClockAPI, whose schedule surface the events arm themselves through.
+        CalendarEvents.initialize();
         if (mod?.api) mod.api.worldClock = WorldClockAPI;
     } catch (e) {
         console.error(`${MODULE.ID}: WorldClockManager.initialize failed`, e);
