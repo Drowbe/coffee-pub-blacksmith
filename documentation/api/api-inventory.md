@@ -426,6 +426,10 @@ An incoming item merges only when all of the following hold. If any fails, it la
 - Neither side has applied enchantments.
 - `_stats.compendiumSource` does not contradict: a missing source on either side is treated as unknown, and
   only two present-but-different sources block a merge.
+- `system.identifier` does not contradict, under the same one-sided rule. dnd5e writes it from the item's name
+  during creation, so a stored row carries a slug and a payload supplied as plain `itemData` carries nothing;
+  an absent identifier is treated as unknown. Names must already match, so only two present-but-different
+  identifiers block a merge.
 
 A merge bumps quantity and writes any arrival flags. It does **not** adopt the incoming item's
 `compendiumSource`, so a row keeps whatever provenance it was created with. One consequence follows from that
@@ -436,6 +440,11 @@ identical in every respect the predicate checks.
 Comparison is on source data, not the prepared model, so derived values like `uses.value` do not spuriously
 prevent a merge. Anything undeclared in `ignoreFlags` counts as identity, which is why a module writing UI
 state to item flags must declare those keys.
+
+Both sides are completed through the item type's data model before comparison, so a payload you supply as
+plain `itemData` is compared as the row it will become rather than as the object you passed. Omitting
+`rarity` or `description` from `itemData` therefore does not prevent a merge with a row that carries the
+schema defaults for them, because the row your payload creates would carry those same defaults.
 
 `system.properties` participates, but only across values dnd5e recognises for that item type
 (`CONFIG.DND5E.validProperties`). `mgc` is compared, so a magical item does not merge into a mundane one; an

@@ -385,8 +385,28 @@ function _deletePathAndEmptyParents(object, path) {
  * @returns {object}
  */
 function _identitySystem(systemSource, type = null) {
-    const copy = foundry.utils.deepClone(systemSource ?? {});
+    let copy = foundry.utils.deepClone(systemSource ?? {});
+    // COMPLETE THE DATA THE WAY CREATION WILL, before comparing anything.
+    //
+    // One side of the comparison is a stored document carrying the full system schema; the
+    // other can be a payload a caller handed us as plain `itemData`, holding only the few
+    // fields they cared about. A partial object never deep-equals a complete one, so a grant
+    // of constructed data could not merge into a row created from that same data — the row
+    // had `description`, `identifier`, `rarity`, `source` and the rest filled in by the
+    // schema, and the payload had none of them.
+    //
+    // Cleaning through the type's own DataModel fills exactly the defaults `createEmbeddedDocuments`
+    // would, so the predicate compares what WILL BE STORED rather than what is about to be
+    // submitted. Both sides go through it, so the stored side cannot drift from the rule either.
+    const model = CONFIG?.Item?.dataModels?.[type];
+    if (typeof model?.cleanData === 'function') {
+        try { copy = model.cleanData(copy); } catch { /* unknown shape: compare it as given */ }
+    }
     delete copy.quantity;
+    // `identifier` is compared one-sidedly in _canMerge, not here — dnd5e writes it from the
+    // item's NAME during creation rather than from the schema, so cleaning cannot reproduce it
+    // and a payload always compares as empty against a stored row. See the note there.
+    delete copy.identifier;
     for (const path of RESET_PATHS) _deletePathAndEmptyParents(copy, path);
     // `properties` is compared only across values dnd5e RECOGNISES for this item type.
     //
@@ -471,6 +491,17 @@ function _canMerge(existing, incoming, ignoreFlags) {
     const existingSourceId = existing._source?._stats?.compendiumSource ?? existing._source?.flags?.dnd5e?.sourceId ?? null;
     const incomingSourceId = incoming._stats?.compendiumSource ?? incoming.flags?.dnd5e?.sourceId ?? null;
     if (existingSourceId && incomingSourceId && existingSourceId !== incomingSourceId) return false;
+
+    // `system.identifier` follows the same one-sided rule, and for the same kind of reason.
+    // dnd5e writes it during creation from the item's NAME when the payload does not supply one
+    // (`Item5e._preCreate`, dnd5e.mjs:23999), so it is a fact about the creation path rather than
+    // about the item: a stored row carries the slug, and a payload a caller handed us as plain
+    // `itemData` carries nothing. Comparing them directly meant a grant of constructed data could
+    // never merge into a row built from that same data. Names are already required to match above,
+    // so an absent identifier adds no information — only two present-and-different ones do.
+    const existingIdentifier = existing._source?.system?.identifier || null;
+    const incomingIdentifier = incoming.system?.identifier || null;
+    if (existingIdentifier && incomingIdentifier && existingIdentifier !== incomingIdentifier) return false;
 
     // Enchantments are ActiveEffects on the item, so they sit outside `system` and need their own
     // check. This is the case that justifies dnd5e's caution: a +1 dagger and a plain dagger can
