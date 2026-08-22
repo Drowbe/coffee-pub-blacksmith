@@ -904,7 +904,11 @@ class WorldClockManager {
         // THE DATE HEADS THE MENU, in its own group. It used to be a tooltip on the
         // readout, which meant the one thing a GM opens a clock to find out was
         // behind a hover -- and a hover competing with the click that opens this
-        // menu. Disabled, because it is a statement rather than an action.
+        // menu.
+        //
+        // An `information` block, not a disabled item: disabled was the closest thing
+        // available and it read as a command that had been taken away, complete with
+        // a not-allowed cursor. The block type was added to the menu API for this.
         const calendar = game.time?.calendar;
         const components = game.time?.components;
         if (calendar?.days && components) {
@@ -914,13 +918,11 @@ class WorldClockManager {
             if (components.leapYear) notes.push('leap year');
 
             items.push({
-                name: this._dateLine(calendar, components),
+                information: true,
                 icon: 'fa-solid fa-calendar-day',
-                disabled: true
+                name: this._dateLine(calendar, components),
+                description: notes.join(' · ')
             });
-            if (notes.length) {
-                items.push({ name: notes.join(' · '), disabled: true });
-            }
             items.push({ separator: true });
         }
 

@@ -148,6 +148,60 @@ export class UIContextMenu {
             return;
         }
 
+        // AN INFORMATION BLOCK IS NOT A DISABLED ITEM. `disabled` was the closest
+        // thing available and it read wrong: a row that highlights on hover, dims
+        // itself and shows a not-allowed cursor tells the reader something has been
+        // taken away from them. A date at the top of a clock menu was never an
+        // action, so it should not look like a broken one.
+        //
+        // It takes `name`, optional `description`, optional `icon`, and optional
+        // `image` (a src, rendered above the text). `html` is accepted for callers
+        // that need markup and is inserted as-is -- the caller owns that string, the
+        // same contract `icon` already has when passed as markup.
+        if (item.information) {
+            const info = doc.createElement('div');
+            info.className = 'context-menu-information';
+
+            if (item.image) {
+                const img = doc.createElement('img');
+                img.className = 'context-menu-information-image';
+                img.src = item.image;
+                img.alt = '';
+                info.appendChild(img);
+            }
+
+            if (item.html) {
+                const body = doc.createElement('div');
+                body.className = 'context-menu-information-body';
+                body.innerHTML = item.html;
+                info.appendChild(body);
+            } else {
+                if (item.icon) {
+                    const iconWrap = doc.createElement('span');
+                    iconWrap.className = 'context-menu-information-icon';
+                    iconWrap.innerHTML = typeof item.icon === 'string' && item.icon.trim().startsWith('<')
+                        ? item.icon
+                        : `<i class="${item.icon}"></i>`;
+                    info.appendChild(iconWrap);
+                }
+                if (item.name) {
+                    const title = doc.createElement('div');
+                    title.className = 'context-menu-information-title';
+                    title.textContent = item.name;
+                    info.appendChild(title);
+                }
+                if (item.description) {
+                    const note = doc.createElement('div');
+                    note.className = 'context-menu-information-note';
+                    note.textContent = item.description;
+                    info.appendChild(note);
+                }
+            }
+
+            zoneEl.appendChild(info);
+            return;
+        }
+
         const menuItemEl = doc.createElement('div');
         menuItemEl.className = 'context-menu-item';
         if (item.disabled) {

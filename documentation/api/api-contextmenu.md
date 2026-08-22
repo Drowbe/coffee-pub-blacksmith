@@ -41,8 +41,9 @@ blacksmith.uiContextMenu.show({
 | `icon` | Font Awesome classes, or raw HTML. See Icons and images. |
 | `description` | Optional second line under the label, in a smaller muted style. Also rendered as text. |
 | `callback` | Invoked on click, awaited, and the menu closes afterwards. A throw is caught and logged rather than left unhandled. |
-| `disabled` | Adds a disabled style and removes the click handler. A disabled item with a submenu still opens the submenu. |
+| `disabled` | Adds a disabled style and removes the click handler. A disabled item with a submenu still opens the submenu. **Use `information` for a heading**: a disabled row dims itself, highlights on hover and shows a not-allowed cursor, which tells the reader an action was taken away from them rather than that they are looking at a statement. |
 | `separator` | When true the entry renders as a divider and every other field is ignored. |
+| `information` | When true the entry is a block of text rather than a row: no hover, no pointer, no click. Takes `name` (bold first line), `description` (a quieter second line), `icon`, and `image` (a src rendered above the text). Pass `html` instead to supply markup, which is inserted as-is. |
 | `submenu` | Array of items. Turns the row into a flyout - see Flyouts. |
 
 ## Icons and images
