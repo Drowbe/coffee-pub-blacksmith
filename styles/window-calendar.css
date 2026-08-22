@@ -259,6 +259,52 @@ button.blacksmith-calendar-day:hover {
     flex: 0 0 auto;
 }
 
+/* ----- Date groups ------------------------------------------------
+   One heading per date rather than a day number on every row. The heading
+   is also the scroll anchor: selecting a day on the grid brings its group
+   into view. */
+.blacksmith-calendar-daygroup {
+    padding: 2px 0 4px;
+    border-top: 1px solid var(--blacksmith-tool-divider);
+}
+
+.blacksmith-calendar-daygroup:first-child {
+    border-top: none;
+}
+
+/* The group of the selected day is marked, so "I clicked the 16th" and
+   "these are the 16th's events" are visibly the same fact. */
+.blacksmith-calendar-daygroup.is-selected {
+    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.16));
+    border-radius: 3px;
+}
+
+.blacksmith-calendar-daygroup-title {
+    font-size: 0.74em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--blacksmith-tool-text-muted);
+    padding: 2px var(--blacksmith-space-sm);
+}
+
+.blacksmith-calendar-daygroup-title.is-today {
+    color: var(--blacksmith-color-brand-accent);
+    font-weight: bold;
+}
+
+/* A row is clickable but not a button: it selects its day, and opens on a
+   double click. */
+.blacksmith-calendar-side .blacksmith-calendar-event {
+    cursor: pointer;
+    border-radius: 3px;
+    padding-left: var(--blacksmith-space-sm);
+    padding-right: var(--blacksmith-space-xs);
+}
+
+.blacksmith-calendar-side .blacksmith-calendar-event:hover {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
 /* In the side column an event is two lines, not one: the horizontal room
    that let day, name and recurrence share a row is gone. */
 .blacksmith-calendar-side .blacksmith-calendar-event {
@@ -268,7 +314,6 @@ button.blacksmith-calendar-day:hover {
 
 .blacksmith-calendar-side .blacksmith-calendar-event-recurrence {
     flex-basis: 100%;
-    padding-left: 2.2em;
 }
 
 .blacksmith-calendar-empty {
@@ -294,12 +339,6 @@ button.blacksmith-calendar-day:hover {
     padding: 1px 0;
 }
 
-.blacksmith-calendar-event-day {
-    flex: 0 0 1.6em;
-    text-align: right;
-    color: var(--blacksmith-tool-text-muted);
-    font-variant-numeric: tabular-nums;
-}
 
 .blacksmith-calendar-event-name {
     flex: 1 1 auto;

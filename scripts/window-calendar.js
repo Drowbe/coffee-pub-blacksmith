@@ -41,7 +41,7 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             classes: ['blacksmith-calendar-tool-window'],
             position: { width: 700, height: 'auto' },
             window: { title: 'World Calendar', resizable: true, minimizable: true },
-            windowSizeConstraints: { minWidth: 520 },
+            windowSizeConstraints: { minWidth: 520, minHeight: 260 },
             toolTitlebar: 'full',
             rememberPosition: true,
             windowPositionKey: 'blacksmith-calendar-position'
@@ -77,6 +77,8 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         // Today is a fact; selection is a focus, and they need different marks or a
         // GM cannot tell "where we are" from "what I am looking at".
         this.selectedDay = null;
+        /** Pending single click on an event row, held while we watch for a double. */
+        this._rowClickTimer = null;
     }
 
     // ==============================================================
@@ -267,25 +269,30 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             }),
             cells,
             columns: weekdays.length,
-            // The month's events as a list, sorted by day, so the window answers
-            // "what is coming" as well as "where is today".
-            events: [...eventsByDay.entries()]
+            // Grouped by day rather than flattened, so the pane can head each date
+            // once. A flat list repeated the day number on every row and still left
+            // the reader working out where one date ended and the next began.
+            eventDays: [...eventsByDay.entries()]
                 .sort(([a], [b]) => a - b)
-                .flatMap(([day, dayEvents]) => dayEvents.map(event => ({
-                    id: event.id,
-                    name: event.name,
-                    description: event.description,
-                    dayLabel: day + 1,
-                    // Hiding a control the store would refuse anyway. The rule itself
-                    // lives GM-side in CalendarEvents.canEdit; this is only the UI
-                    // agreeing with it.
-                    canEdit: CalendarEvents.canEdit(event),
-                    authorName: game.users?.get(event.author)?.name ?? '',
-                    timeLabel: CalendarWindow.formatTime(event.hour, event.minute),
-                    recurrenceLabel: event.recurrence === EVENT_RECURRENCE.ANNUAL ? 'every year'
-                        : event.recurrence === EVENT_RECURRENCE.MONTHLY ? 'every month'
-                            : 'once'
-                }))),
+                .map(([day, dayEvents]) => ({
+                    dayIndex: day,
+                    dayLabel: `${CalendarWindow.label(month.name)} ${day + 1}`,
+                    isToday: isCurrentMonth && now.dayOfMonth === day,
+                    isSelected: this.selectedDay === day,
+                    events: dayEvents.map(event => ({
+                        id: event.id,
+                        name: event.name,
+                        description: event.description,
+                        dayIndex: day,
+                        canEdit: CalendarEvents.canEdit(event),
+                        authorName: game.users?.get(event.author)?.name ?? '',
+                        timeLabel: CalendarWindow.formatTime(event.hour, event.minute),
+                        recurrenceLabel: event.recurrence === EVENT_RECURRENCE.ANNUAL ? 'every year'
+                            : event.recurrence === EVENT_RECURRENCE.MONTHLY ? 'every month'
+                                : 'once'
+                    }))
+                })),
+            hasEvents: eventsByDay.size > 0,
             viewingNow: isCurrentMonth,
             seasonName: CalendarWindow.seasonFor(calendar, this.viewYear, monthIndex),
             canEdit: !!game.user?.isGM,
@@ -498,6 +505,19 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         }
     }
 
+    /**
+     * Scroll the events pane to a day's group.
+     *
+     * `scrollIntoView` on the pane's own scroller rather than the page: the list is
+     * the scrolling element, and letting the browser scroll an ancestor would move
+     * the whole window instead.
+     */
+    _scrollToDay(dayIndex) {
+        const group = this.element?.querySelector(`[data-day-group="${dayIndex}"]`);
+        if (!group) return;
+        group.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
     /** Reopen the add dialog with an event's values in it. */
     async _editEvent(target) {
         const id = target?.dataset?.eventId;
@@ -540,6 +560,45 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
     async _onRender(context, options) {
         await super._onRender?.(context, options);
         CalendarWindow.activeWindow = this;
+
+        // AN EVENT ROW SELECTS ITS DAY on the grid, and opens for editing on a
+        // double click. Bound here rather than through ACTION_HANDLERS: the row is
+        // not a button (it contains buttons), and `data-action` dispatches on click
+        // only, so there is nowhere to hang the double.
+        //
+        // The single-click handler defers for the same reason the clock's does -- a
+        // double click fires two clicks first, and without the delay the row would
+        // select the day and then open the dialog behind that repaint.
+        this.element?.querySelectorAll('[data-event-row]').forEach((row) => {
+            row.addEventListener('click', (event) => {
+                // The edit and delete buttons live inside the row and speak for
+                // themselves; a click on one is not a click on the row.
+                if (event.target.closest('button')) return;
+                if (this._rowClickTimer) return;
+                const dayIndex = Number(row.dataset.day);
+                this._rowClickTimer = setTimeout(() => {
+                    this._rowClickTimer = null;
+                    if (!Number.isInteger(dayIndex)) return;
+                    this.selectedDay = dayIndex;
+                    void this.render(false);
+                }, 220);
+            });
+
+            row.addEventListener('dblclick', (event) => {
+                if (event.target.closest('button')) return;
+                clearTimeout(this._rowClickTimer);
+                this._rowClickTimer = null;
+                const id = row.dataset.eventRow;
+                const stored = id ? CalendarEvents.get(id) : null;
+                if (stored && CalendarEvents.canEdit(stored)) void this._addEvent(null, stored);
+            });
+        });
+
+        // Bring the selected day's events into view. Deferred a frame because the
+        // list has only just been written into the DOM and has no scroll height yet.
+        if (Number.isInteger(this.selectedDay)) {
+            requestAnimationFrame(() => this._scrollToDay(this.selectedDay));
+        }
 
         // RIGHT-CLICK A DAY TO ADD AN EVENT ON IT. Bound here rather than through
         // ACTION_HANDLERS because `data-action` dispatches on click only, and left

@@ -78,25 +78,32 @@
               are, which is the question a marker cannot answer on its own. --}}
         <div class="blacksmith-calendar-side">
             <div class="blacksmith-calendar-events-title">This month</div>
-            {{#if events.length}}
+            {{#if hasEvents}}
             <div class="blacksmith-calendar-events">
-                {{#each events}}
-                <div class="blacksmith-calendar-event">
-                    <span class="blacksmith-calendar-event-day">{{this.dayLabel}}</span>
-                    <span class="blacksmith-calendar-event-name" data-tooltip="{{this.description}}">{{this.name}}</span>
-                    {{#if this.canEdit}}
-                    <button type="button" class="blacksmith-calendar-event-edit"
-                            data-action="calendarEditEvent" data-event-id="{{this.id}}"
-                            data-tooltip="Edit this event">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button type="button" class="blacksmith-calendar-event-delete"
-                            data-action="calendarDeleteEvent" data-event-id="{{this.id}}"
-                            data-tooltip="Delete this event">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                    {{/if}}
-                    <span class="blacksmith-calendar-event-recurrence">{{this.timeLabel}} &middot; {{this.recurrenceLabel}}{{#if this.authorName}} &middot; {{this.authorName}}{{/if}}</span>
+                {{#each eventDays}}
+                {{!-- One heading per date, and the anchor the grid scrolls to. --}}
+                <div class="blacksmith-calendar-daygroup{{#if this.isSelected}} is-selected{{/if}}"
+                     data-day-group="{{this.dayIndex}}">
+                    <div class="blacksmith-calendar-daygroup-title{{#if this.isToday}} is-today{{/if}}">{{this.dayLabel}}</div>
+                    {{#each this.events}}
+                    {{!-- Click selects the day on the grid; double-click edits. --}}
+                    <div class="blacksmith-calendar-event" data-event-row="{{this.id}}" data-day="{{this.dayIndex}}">
+                        <span class="blacksmith-calendar-event-name" data-tooltip="{{this.description}}">{{this.name}}</span>
+                        {{#if this.canEdit}}
+                        <button type="button" class="blacksmith-calendar-event-edit"
+                                data-action="calendarEditEvent" data-event-id="{{this.id}}"
+                                data-tooltip="Edit this event">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button type="button" class="blacksmith-calendar-event-delete"
+                                data-action="calendarDeleteEvent" data-event-id="{{this.id}}"
+                                data-tooltip="Delete this event">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        {{/if}}
+                        <span class="blacksmith-calendar-event-recurrence">{{this.timeLabel}} &middot; {{this.recurrenceLabel}}{{#if this.authorName}} &middot; {{this.authorName}}{{/if}}</span>
+                    </div>
+                    {{/each}}
                 </div>
                 {{/each}}
             </div>
