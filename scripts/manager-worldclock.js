@@ -956,7 +956,7 @@ class WorldClockManager {
         });
 
         items.push({
-            name: 'Calendar and Events',
+            name: 'World Calendar and Events',
             icon: 'fa-solid fa-calendar-days',
             callback: () => this._openCalendarWindow()
         });

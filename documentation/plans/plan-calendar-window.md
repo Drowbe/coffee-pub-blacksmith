@@ -71,6 +71,37 @@ The payoff for keeping the moment on the note is composition: an annotation plus
 stamp `firedAt` and leave the note -- that gives "recently fired" without inventing "done". The list of
 time-bound things is the index rendered; markers are a range query. Both fall out.
 
+## The second calendar: real-world time
+
+**Named 2026-08-22, not built.** The window is titled *World Calendar* because it is one of two: the
+in-world calendar it shows today, and a real-world one the party plans around -- when the next session is,
+a reminder that fires at session start, who has said they are coming.
+
+They are the same window with a different clock behind it, and almost nothing else transfers:
+
+| | World calendar -- built | Real-world calendar -- planned |
+|---|---|---|
+| Clock | `game.time` and `game.time.calendar` | the actual date, `Date` |
+| Months, weeks | whatever the calendar declares | Gregorian, always |
+| An event fires when | world time crosses it | wall-clock time reaches it, or the session starts |
+| Audience | the characters | the players |
+
+**Three things it needs that the world calendar does not:**
+
+1. **A toggle**, and a clear one. The two calendars must never be mistakable for each other -- a reminder
+   set on Marpenoth 20th and one set for next Tuesday are not the same kind of thing, and a window that
+   looked identical in both modes would invite exactly that error.
+2. **Somewhere for the campaign to hear about it.** The stated destination is the campaign's event page,
+   which means this feature writes to campaign data rather than to a world setting of its own.
+3. **Optional publication to Google Calendar.** External, authenticated, and offline half the time -- so it
+   is a one-way export that may fail without the local event being wrong, never a sync. Anything two-way
+   raises "which side wins", and that question has no good answer for a table's calendar.
+
+**The trap to avoid:** making the existing store carry both by adding a `realWorld: true` flag. Every read
+would then have to filter, `nextOccurrence` would need two implementations behind one name, and a recurring
+in-world festival and a weekly session would share a code path that means different things in each. Two
+stores, one window.
+
 ## Still missing from the window
 
 Shipped 2026-08-22: season name in the header, year paging, editing an event, per-day add by right-click,

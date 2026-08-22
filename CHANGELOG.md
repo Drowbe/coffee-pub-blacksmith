@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`showInSwitcher` on a JSON import kind** (`scripts/registry-json-import.js`). Set `false` to keep a kind out of the import window's importer dropdown. Every registered kind previously appeared there unconditionally, so a consuming module's importer would surface in the list a GM sees from the Item directory whether or not that was wanted. Defaults to true, so the four built-in kinds are unaffected.
 
+- **The calendar window is now titled *World Calendar***, and the clock menu entry with it. The qualifier is doing work: a real-world calendar is planned as a second mode of the same window -- session dates, reminders that fire at session start, optionally published to Google Calendar -- and the two must never be mistakable for each other. Design notes in `documentation/plans/plan-calendar-window.md`, including why they want two stores rather than a flag on one.
+
 - **The calendar opens up to players, and grows the gaps it shipped without** (`scripts/window-calendar.js`, `scripts/manager-calendar-events.js`, `templates/window-calendar.hbs`, `styles/window-calendar.css`). Players now view the calendar and add events; year paging, editing an event, the season name, and per-day add by right-click all landed with it.
 
   **Player writes are proxied, not refused.** Events are a world setting, so a player cannot write one -- `create`, `update` and `delete` hand off to the GM through `api.gmRequest` when the caller is not one. The handler receives the VERIFIED caller, so the stored `author` is a fact from the server rather than a field in a payload a player controls. Validation runs GM-side for the same reason.

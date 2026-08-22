@@ -40,7 +40,7 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             id: CALENDAR_WINDOW_ID,
             classes: ['blacksmith-calendar-tool-window'],
             position: { width: 700, height: 'auto' },
-            window: { title: 'Calendar', resizable: true, minimizable: true },
+            window: { title: 'World Calendar', resizable: true, minimizable: true },
             windowSizeConstraints: { minWidth: 520 },
             toolTitlebar: 'full',
             rememberPosition: true,
@@ -586,7 +586,7 @@ export function openCalendarWindow() {
 export function registerCalendarWindow() {
     registerWindow(CALENDAR_WINDOW_ID, {
         moduleId: MODULE.ID,
-        title: 'Calendar',
+        title: 'World Calendar',
         open: async () => openCalendarWindow()
     });
 }
