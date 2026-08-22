@@ -177,11 +177,10 @@ export default {
                             const glyph = other.icon.split(' ').find(part => part.startsWith('fa-') && part !== 'fa-solid');
                             return !glyph || !node.classList.contains(glyph) || mode.icon.includes(glyph);
                         }));
-                // The tooltip lives on the readout wrapper, not the icon: the two are
-                // one control and the wrapper is the hit target.
-                const readout = document.querySelector('.worldclock-readout');
-                expect.ok('the tooltip names the mode',
-                    (readout?.getAttribute('data-tooltip') ?? '').includes(mode.label));
+                // No tooltip to check any more: the date and the mode head the menu
+                // instead. The icon is what the readout still has to get right.
+                expect.ok('the readout carries the mode icon and nothing stale',
+                    !!document.querySelector('.worldclock-readout .worldclock-mode'));
             }
         },
         {

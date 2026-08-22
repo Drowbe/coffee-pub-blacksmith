@@ -600,12 +600,15 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             requestAnimationFrame(() => this._scrollToDay(this.selectedDay));
         }
 
-        // RIGHT-CLICK A DAY TO ADD AN EVENT ON IT. Bound here rather than through
-        // ACTION_HANDLERS because `data-action` dispatches on click only, and left
-        // click already means "select this day". Players get this too: the write is
-        // proxied to the GM rather than refused.
+        // DOUBLE-CLICK A DAY TO ADD AN EVENT ON IT. Single click selects, which is
+        // the common act; adding is the rarer one and gets the deliberate gesture.
+        // Right-click is left alone so Foundry's own context menu still works.
+        //
+        // `data-action` dispatches on click only, so the double is bound here. The
+        // select handler on the same cell already runs first -- that is fine and
+        // wanted: adding to a day should select it too.
         this.element?.querySelectorAll('[data-action="calendarPickDay"]').forEach((cell) => {
-            cell.addEventListener('contextmenu', (event) => {
+            cell.addEventListener('dblclick', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 void this._addEvent(cell);

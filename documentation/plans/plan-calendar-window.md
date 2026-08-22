@@ -104,7 +104,7 @@ stores, one window.
 
 ## Still missing from the window
 
-Shipped 2026-08-22: season name in the header, year paging, editing an event, per-day add by right-click,
+Shipped 2026-08-22: season name in the header, year paging, editing an event, per-day add by double-click,
 selection marked separately from today, and player access -- players view the calendar and add events, with
 the write proxied to the GM through `api.gmRequest` so the author is the verified caller.
 

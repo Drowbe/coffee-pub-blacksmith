@@ -10,7 +10,7 @@
       The row is three units: step cluster, face (sky + time), step cluster.
       That grouping is visual. Click handling is unchanged -- only
       `.worldclock-time` opens the menu. --}}
-<div class="button worldclock-section{{#unless worldClock.isGM}} tool-readonly{{/unless}}{{#if worldClock.isNight}} is-night{{/if}}{{#unless worldClock.available}} is-unavailable{{/unless}}" data-tooltip="{{{worldClock.tooltip}}}" data-tool="worldclock-section">
+<div class="button worldclock-section{{#unless worldClock.isGM}} tool-readonly{{/unless}}{{#if worldClock.isNight}} is-night{{/if}}{{#unless worldClock.available}} is-unavailable{{/unless}}" data-tool="worldclock-section">
 
     {{!-- Step controls render for the GM only. Time is the `core.time` WORLD
           setting, so a player pressing these would throw rather than quietly fail,
@@ -50,9 +50,11 @@
               The icon sits BEFORE the time so the digits stay the rightmost thing in
               the face and keep their tabular alignment against the step arrows.
 
-              One tooltip on the wrapper, not two: the section's own tooltip is the
-              date, which is the wrong answer to "why is the clock crawling". --}}
-        <span class="worldclock-readout" data-tooltip="{{worldClock.modeTooltip}}">
+              NO TOOLTIP. The date and the mode both head the menu now, which is one
+              click away and does not compete with the click that opens it. A hover
+              that had to be dismissed before the reader could act was the wrong
+              carrier for the thing they opened the clock to read. --}}
+        <span class="worldclock-readout">
             {{#if worldClock.modeIcon}}
             <i class="worldclock-mode {{worldClock.modeIcon}}"></i>
             {{/if}}

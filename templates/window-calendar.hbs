@@ -61,14 +61,14 @@
                     <div class="blacksmith-calendar-day is-blank"></div>
                     {{else}}
                     {{!-- Everyone gets a button: clicking SELECTS a day, which is
-                          reading rather than writing. Right-click adds an event, which
+                          reading rather than writing. Double-click adds an event, which
                           players may also do -- the write is proxied to the GM.
                           TODAY and SELECTED are different marks on purpose. --}}
                     <button type="button"
                             class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.isSelected}} is-selected{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
                             data-action="calendarPickDay"
                             data-day="{{this.dayIndex}}"
-                            data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}}<br>{{/if}}Click to select &middot; right-click to add an event">{{this.label}}</button>
+                            data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}}<br>{{/if}}Click to select &middot; double-click to add an event">{{this.label}}</button>
                     {{/if}}
                 {{/each}}
             </div>

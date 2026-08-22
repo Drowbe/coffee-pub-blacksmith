@@ -222,7 +222,6 @@ class WorldClockManager {
                 timeTens: '-',
                 timeRest: '-:--',
                 timeTensIsPad: false,
-                tooltip: 'In-world time is not available yet.',
                 smallStepLabel: '',
                 largeStepLabel: '',
                 ...view,
@@ -243,12 +242,8 @@ class WorldClockManager {
             // and it is a readout rather than a control, so it carries no risk.
             modeIcon: mode.icon,
             modeLabel: mode.label,
-            modeTooltip: isGM
-                ? `Time: ${mode.label} (${TimeModes.speedLabel(mode)})<br>Click for the menu &middot; double-click to pause`
-                : `Time: ${mode.label} — ${mode.description}`,
             timeText: `${timeParts.timeTens}${timeParts.timeRest}`,
             ...timeParts,
-            tooltip: this._buildTooltip(calendar, components),
             smallStepLabel: this._describeStep('small'),
             largeStepLabel: this._describeStep('large'),
             ...view,
@@ -571,22 +566,6 @@ class WorldClockManager {
         return `${timeTens}${timeRest}`;
     }
 
-    /**
-     * Escape text bound for the tooltip attribute.
-     *
-     * The tooltip is rendered as HTML -- it carries `<br>` separators and is emitted
-     * unescaped by the template -- so the pieces interpolated into it must not be.
-     * Month, weekday and season names come from whichever calendar is configured: a
-     * system, a module, or a hand-rolled world calendar. Third-party strings, not
-     * ours to trust.
-     */
-    static _escape(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
 
     /**
      * The detail the compact readout leaves out: weekday, date, year, season.
@@ -599,31 +578,23 @@ class WorldClockManager {
      * -- `months` and `seasons` are explicitly nullable in the core schema -- so each
      * is probed rather than assumed, with the day-of-year as the fallback.
      */
-    static _buildTooltip(calendar, components) {
-        const lines = [];
 
+    /**
+     * The date as one plain line, for the menu's heading.
+     *
+     * Plain text, not HTML: the menu writes it as `textContent`. That is also why
+     * `_nameOf` no longer escapes -- escaping here would print a literal `&amp;` in
+     * a month name that contained an ampersand.
+     */
+    static _dateLine(calendar, components) {
         const weekday = this._nameOf(calendar.days?.values?.[components.dayOfWeek]);
         const month = this._nameOf(calendar.months?.values?.[components.month]);
-        const season = this._nameOf(calendar.seasons?.values?.[components.season]);
 
-        const dateParts = [];
-        if (weekday) dateParts.push(weekday);
-        dateParts.push(month
+        const date = month
             ? `${components.dayOfMonth + 1} ${month} ${this._displayYear(calendar, components)}`
-            : `Day ${components.day + 1}, year ${this._displayYear(calendar, components)}`);
-        lines.push(`<strong>${dateParts.join(', ')}</strong>`);
+            : `Day ${components.day + 1}, year ${this._displayYear(calendar, components)}`;
 
-        const notes = [];
-        if (season) notes.push(season);
-        if (components.leapYear) notes.push('leap year');
-        if (notes.length) lines.push(notes.join(' &middot; '));
-
-        lines.push(this._formatTime(calendar, components));
-
-        // No instructions. A grab cursor on the sun and arrows either side of a clock
-        // are self-evident, and a tooltip that spends a line explaining them is a line
-        // the reader has to skip past every time they wanted the date.
-        return lines.join('<br>');
+        return weekday ? `${weekday}, ${date}` : date;
     }
 
     /**
@@ -642,7 +613,9 @@ class WorldClockManager {
      */
     static _nameOf(entry) {
         if (!entry?.name) return '';
-        return this._escape(game.i18n?.localize(entry.name) ?? entry.name);
+        // NOT escaped: the only consumer is the context menu, which writes it as
+        // textContent. Escaping here would print a literal &amp; in a month name.
+        return game.i18n?.localize(entry.name) ?? entry.name;
     }
 
     /**
@@ -707,7 +680,6 @@ class WorldClockManager {
         this._paint(section, data);
 
         section.classList.toggle('is-unavailable', !data.available);
-        section.setAttribute('data-tooltip', data.tooltip);
     }
 
     /**
@@ -759,11 +731,7 @@ class WorldClockManager {
         // length of every gesture.
         const modeNode = section.querySelector('.worldclock-mode');
         if (modeNode && view.modeIcon) modeNode.className = `worldclock-mode ${view.modeIcon}`;
-        // The tooltip moved to the readout wrapper with the markup, so the repaint
-        // has to follow it there. Left on the icon it would have gone stale on one
-        // half of a control that is meant to behave as one.
-        const readoutNode = section.querySelector('.worldclock-readout');
-        if (readoutNode && view.modeTooltip) readoutNode.setAttribute('data-tooltip', view.modeTooltip);
+        // No tooltip to repaint: the date and mode live in the menu now.
     }
 
     // ==============================================================
@@ -932,6 +900,29 @@ class WorldClockManager {
      */
     static _buildMenuItems() {
         const items = [];
+
+        // THE DATE HEADS THE MENU, in its own group. It used to be a tooltip on the
+        // readout, which meant the one thing a GM opens a clock to find out was
+        // behind a hover -- and a hover competing with the click that opens this
+        // menu. Disabled, because it is a statement rather than an action.
+        const calendar = game.time?.calendar;
+        const components = game.time?.components;
+        if (calendar?.days && components) {
+            const season = this._nameOf(calendar.seasons?.values?.[components.season]);
+            const notes = [];
+            if (season) notes.push(season);
+            if (components.leapYear) notes.push('leap year');
+
+            items.push({
+                name: this._dateLine(calendar, components),
+                icon: 'fa-solid fa-calendar-day',
+                disabled: true
+            });
+            if (notes.length) {
+                items.push({ name: notes.join(' · '), disabled: true });
+            }
+            items.push({ separator: true });
+        }
 
         // ORDER IS BY HOW OFTEN A GM REACHES FOR IT, not by category. Pause is the
         // thing wanted mid-sentence when somebody walks in, so it is first and it is

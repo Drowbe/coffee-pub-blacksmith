@@ -94,6 +94,9 @@ right-click-only menu on a strip of read-outs is a menu nobody finds. GM only --
 the world's time, rests the party, or opens a window -- so players get no menu rather than an empty one.
 
 ```
+Tuesday, 5 Hammer 1496    the date, disabled -- a statement, not an action
+winter . leap year        season and leap year, when the calendar says so
+---
 Pause Time             the same toggle double-clicking performs
 Rest and Recovery      the rest window; the kind of rest is the first question it asks
 Calendar and Events    the calendar window
@@ -407,6 +410,11 @@ survives a reload). The useful pause is "stop while people arrive" and the usefu
 exactly as before"; defaulting to Real-time would silently change a speed the table had chosen.
 
 Players see the indicator as a readout only: someone watching the clock crawl should be able to see why.
+
+**Neither the readout nor the section carries a tooltip any more.** The date headed a hover for a while, which
+put the one thing a GM opens a clock to find out behind a gesture that competed with the click that opens the
+menu. It heads the menu instead, disabled, in its own group. `_buildTooltip` and the HTML escaping it needed
+went with it -- `_nameOf` no longer escapes, because its only consumer now writes `textContent`.
 
 **The indicator is painted in `_paint`, not left to the template.** Anything the template draws must be
 reachable from the repaint path or it goes stale on screen while the state behind it is correct -- the same
