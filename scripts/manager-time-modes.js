@@ -102,7 +102,7 @@ export class TimeDriver {
      * @param {number} rate - World seconds per real second. Zero or less stops it.
      * @param {number} [minCommitSeconds] - Never write more often than this, in real seconds.
      */
-    static start(rate, minCommitSeconds = 3) {
+    static start(rate, minCommitSeconds = 0.5) {
         const plan = this.plan(rate, minCommitSeconds);
         if (this.isRunning() && this._rate === rate && this._cadenceMs === plan.cadenceMs) return;
 
@@ -129,8 +129,8 @@ export class TimeDriver {
      * @param {number} minCommitSeconds - Real-time floor between writes.
      * @returns {{cadenceMs: number, stepSeconds: number}}
      */
-    static plan(rate, minCommitSeconds = 3) {
-        const floor = Math.max(0.5, Number(minCommitSeconds) || 3);
+    static plan(rate, minCommitSeconds = 0.5) {
+        const floor = Math.max(0.25, Number(minCommitSeconds) || 0.5);
         const minute = this._minuteSeconds();
         if (!(rate > 0)) return { cadenceMs: 0, stepSeconds: 0 };
 
@@ -295,7 +295,7 @@ export class TimeModes {
     static apply() {
         const mode = this.current();
         const rate = this.rateFor(mode);
-        const floor = Number(getSettingSafely(MODULE.ID, 'worldClockMinUpdateSeconds', 3)) || 3;
+        const floor = Number(getSettingSafely(MODULE.ID, 'worldClockMinUpdateSeconds', 0.5)) || 0.5;
 
         if (rate > 0) TimeDriver.start(rate, floor);
         else TimeDriver.stop();
@@ -312,6 +312,35 @@ export class TimeModes {
         if (!TIME_MODES[modeId]) return false;
         await game.settings.set(MODULE.ID, this.SETTING, modeId);
         return true;
+    }
+
+    /**
+     * Pause, or come back from it.
+     *
+     * The mode to return to is REMEMBERED rather than assumed, because the useful
+     * pause is "stop for a minute while people arrive" and the useful un-pause is
+     * "carry on exactly as before". Guessing Real-time would silently change the
+     * speed a table had chosen.
+     *
+     * Stored in a world setting rather than a static so a reload does not lose it,
+     * and un-pausing after one lands where the GM left rather than at a default.
+     */
+    static async togglePause() {
+        if (!game.user?.isGM) return false;
+
+        const current = this.current().id;
+        if (current === TIME_MODES.paused.id) {
+            const previous = getSettingSafely(MODULE.ID, 'worldClockPreviousTimeMode', TIME_MODES.real.id);
+            return this.set(TIME_MODES[previous] ? previous : TIME_MODES.real.id);
+        }
+
+        await game.settings.set(MODULE.ID, 'worldClockPreviousTimeMode', current);
+        return this.set(TIME_MODES.paused.id);
+    }
+
+    /** Whether the clock is currently paused, for a label that has to say which way the toggle goes. */
+    static isPaused() {
+        return this.current().id === TIME_MODES.paused.id;
     }
 
     /**

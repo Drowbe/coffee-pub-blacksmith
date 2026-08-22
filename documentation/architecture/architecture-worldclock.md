@@ -89,21 +89,29 @@ Two consequences that look like style choices and are not:
 
 ## The menu
 
-Opens on a **left** click as well as a right one. A right-click-only menu on a strip of read-outs is a
-menu nobody finds. GM only -- every entry either changes the world's time or rests the party -- so players
-get no menu rather than an empty one.
+Opens on a **single left click** on either the mode indicator or the time, and on a right click too. A
+right-click-only menu on a strip of read-outs is a menu nobody finds. GM only -- every entry either changes
+the world's time, rests the party, or opens a window -- so players get no menu rather than an empty one.
 
 ```
-Long Rest (party)      calls the system's own rest on game.actors.party
-Short Rest (party)
+Show Calendar          the calendar window
+Rest...                the rest window; the kind of rest is the first question it asks
 ---
 Jump to >              Dawn, Noon, Dusk, Midnight -- always forward
-Set Time               our dialog: time of day only, bounds from the calendar
-Set Date               the system's dnd5e.applications.calendar.SetDateDialog
+Time Mode >            Combat, Real-time, Slow (0.25x), Fast (60x), Paused
+Pause Time             the same toggle double-clicking performs
 ---
-Options >              contributed through registerOptionProvider
-    Darkness Control on <scene>
+Options >              Set Time, Set Date, then anything contributed
+    Set Time               our dialog: time of day only, bounds from the calendar
+    Set Date               the system's dnd5e.applications.calendar.SetDateDialog
+    Darkness Control on <scene>     contributed through registerOptionProvider
 ```
+
+**Set Time and Set Date live under Options**, not at the top level. They are the two entries a GM reaches
+for least, and they were sitting above the ones reached for most.
+
+**Pause is in the menu as well as on the double click.** A gesture nobody is told about is a gesture nobody
+uses, and the menu is where they would look. Its label says which way the toggle goes.
 
 **Jump to only ever moves forward.** Jumping to dawn at three in the afternoon means tomorrow morning, not
 nine hours ago. A GM skipping ahead is what it is for, and rewinding would undo whatever the session just
@@ -371,10 +379,28 @@ needs no branch.
 about how time is passing; the speeds are `worldClockSlowMultiplier` and `worldClockFastMultiplier`, in
 world seconds per real second.
 
-**The mode indicator is the menu button.** A muted icon sits *before* the time -- ahead of it, so the digits
-stay the rightmost thing in the face and keep their tabular alignment against the step arrows. It reports how
-time is passing, and for a GM it is also what opens the clock's context menu, on left click or right. Players
-see it too, as a readout: someone watching the clock crawl should be able to see why.
+**The indicator and the time are ONE control, with two gestures.** A muted mode icon sits *before* the time --
+ahead of it, so the digits stay the rightmost thing in the face and keep their tabular alignment against the
+step arrows -- and both halves answer the same two clicks:
+
+| Gesture | Does |
+|---|---|
+| single click | opens the menu, which carries Show Calendar, Rest, Jump to, Time Mode, Pause and Options |
+| double click | pauses, or returns to the mode before the pause |
+
+They were briefly split -- menu on the icon, calendar on the digits -- and it was not intuitive: an icon that
+only reports state is not where a person looks for a control, and splitting two actions across two halves of
+one widget meant knowing which half did which.
+
+**The single-click handler defers by 220ms**, because a double click also fires two `click` events. Without
+the delay a double click opens the menu and then toggles behind it. The pointer coordinates are read
+immediately rather than off the event inside the timeout, so the menu still opens where the pointer was.
+
+**The mode to return to is remembered, not assumed** (`worldClockPreviousTimeMode`, a world setting so it
+survives a reload). The useful pause is "stop while people arrive" and the useful un-pause is "carry on
+exactly as before"; defaulting to Real-time would silently change a speed the table had chosen.
+
+Players see the indicator as a readout only: someone watching the clock crawl should be able to see why.
 
 **The indicator is painted in `_paint`, not left to the template.** Anything the template draws must be
 reachable from the repaint path or it goes stale on screen while the state behind it is correct -- the same

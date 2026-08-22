@@ -3380,6 +3380,19 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// What double-clicking the clock returns to when it un-pauses. Not `config`: it
+	// is a memory of the GM's last mode, not a preference anyone sets. A world
+	// setting rather than a static so it survives the reload that would otherwise
+	// make un-pausing land somewhere the GM did not leave from.
+	game.settings.register(MODULE.ID, 'worldClockPreviousTimeMode', {
+		name: 'Blacksmith Previous Time Mode',
+		hint: 'Internal: the mode to restore when the clock is un-paused',
+		scope: 'world',
+		config: false,
+		type: String,
+		default: 'real'
+	});
+
 	// -- Slow / Fast speeds --
 	// World seconds per real second. A DROPDOWN rather than a slider, and every
 	// option says what it does at the table rather than only what it multiplies.
@@ -3447,11 +3460,11 @@ export const registerSettings = () => {
 		scope: 'world',
 		config: true,
 		type: Number,
-		default: 3,
+		default: 0.5,
 		range: {
-			min: 1,
-			max: 30,
-			step: 1
+			min: 0.25,
+			max: 10,
+			step: 0.25
 		},
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});

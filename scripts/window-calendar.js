@@ -39,9 +39,9 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         {
             id: CALENDAR_WINDOW_ID,
             classes: ['blacksmith-calendar-tool-window'],
-            position: { width: 420, height: 'auto' },
+            position: { width: 640, height: 'auto' },
             window: { title: 'Calendar', resizable: false, minimizable: true },
-            windowSizeConstraints: { minWidth: 360, maxWidth: 640 },
+            windowSizeConstraints: { minWidth: 520, maxWidth: 860 },
             toolTitlebar: 'full',
             rememberPosition: true,
             windowPositionKey: 'blacksmith-calendar-position'
@@ -94,6 +94,19 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
     static label(value) {
         if (!value) return '';
         return game.i18n?.localize(value) ?? value;
+    }
+
+    /**
+     * An hour and minute as a clock string, padded to the calendar's own widths.
+     *
+     * Padded from `minutesPerHour` rather than to two digits: a calendar declaring
+     * 100-minute hours needs three, and hardcoding two would print 05:7 for seven
+     * minutes past.
+     */
+    static formatTime(hour = 0, minute = 0) {
+        const minutesPerHour = Number(game.time?.calendar?.days?.minutesPerHour) || 60;
+        const width = String(minutesPerHour - 1).length;
+        return `${String(hour ?? 0)}:${String(minute ?? 0).padStart(width, '0')}`;
     }
 
     /** Components of the current world time, or null. */
@@ -225,6 +238,7 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
                     name: event.name,
                     description: event.description,
                     dayLabel: day + 1,
+                    timeLabel: CalendarWindow.formatTime(event.hour, event.minute),
                     recurrenceLabel: event.recurrence === EVENT_RECURRENCE.ANNUAL ? 'every year'
                         : event.recurrence === EVENT_RECURRENCE.MONTHLY ? 'every month'
                             : 'once'
@@ -337,24 +351,44 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             // is ours and `getValue` reads it off the submit button's owning form.
             // There is no `form()` helper on this API -- three fields is still one
             // value once they are read together.
+            // Hours per day comes from the calendar, so the hour field's ceiling is
+            // right on a world that does not use twenty-four.
+            const hoursPerDay = Number(calendar?.days?.hoursPerDay) || 24;
+            const minutesPerHour = Number(calendar?.days?.minutesPerHour) || 60;
+            const now = CalendarWindow.nowComponents();
+
             const { action, value } = await DialogAPI.prompt({
                 title: `New event: ${monthName} ${dayIndex + 1}`,
+                submitLabel: 'Add Event',
+                submitIcon: 'fa-solid fa-calendar-plus',
+                position: { width: 420 },
                 content: `
                     <div class="blacksmith-calendar-event-form">
                         <label>Name<input type="text" name="eventName" autofocus></label>
-                        <label>Description<input type="text" name="eventDescription"></label>
-                        <label>Repeats
-                            <select name="eventRecurrence">
-                                <option value="${EVENT_RECURRENCE.ONCE}">Once, this year only</option>
-                                <option value="${EVENT_RECURRENCE.ANNUAL}">Every year on this date</option>
-                                <option value="${EVENT_RECURRENCE.MONTHLY}">Every month on this day</option>
-                            </select>
-                        </label>
+                        <label>Description<textarea name="eventDescription" rows="3"></textarea></label>
+                        <div class="blacksmith-calendar-event-form-row">
+                            <label>Repeats
+                                <select name="eventRecurrence">
+                                    <option value="${EVENT_RECURRENCE.ONCE}">Once, this year only</option>
+                                    <option value="${EVENT_RECURRENCE.ANNUAL}">Every year on this date</option>
+                                    <option value="${EVENT_RECURRENCE.MONTHLY}">Every month on this day</option>
+                                </select>
+                            </label>
+                            <label>Time
+                                <span class="blacksmith-calendar-event-form-time">
+                                    <input type="number" name="eventHour" min="0" max="${hoursPerDay - 1}" value="${now?.hour ?? 0}">
+                                    <span>:</span>
+                                    <input type="number" name="eventMinute" min="0" max="${minutesPerHour - 1}" value="0">
+                                </span>
+                            </label>
+                        </div>
                     </div>`,
                 getValue: (root) => ({
                     name: root.elements.eventName?.value?.trim() ?? '',
                     description: root.elements.eventDescription?.value?.trim() ?? '',
-                    recurrence: root.elements.eventRecurrence?.value ?? EVENT_RECURRENCE.ONCE
+                    recurrence: root.elements.eventRecurrence?.value ?? EVENT_RECURRENCE.ONCE,
+                    hour: Number(root.elements.eventHour?.value) || 0,
+                    minute: Number(root.elements.eventMinute?.value) || 0
                 }),
                 validate: (entered) => entered?.name ? null : 'An event needs a name.'
             });
@@ -365,6 +399,8 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
                 name: value.name,
                 description: value.description,
                 recurrence: value.recurrence,
+                hour: value.hour,
+                minute: value.minute,
                 year: this.viewYear,
                 month: this.viewMonth,
                 day: dayIndex
@@ -407,6 +443,19 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
     async _onRender(context, options) {
         await super._onRender?.(context, options);
         CalendarWindow.activeWindow = this;
+
+        // RIGHT-CLICK A DAY TO ADD AN EVENT ON IT. Bound here rather than through
+        // ACTION_HANDLERS because `data-action` dispatches on click only, and left
+        // click already means "go to this day". Without this the only day that could
+        // take an event was the one the footer button pointed at.
+        if (!game.user?.isGM) return;
+        this.element?.querySelectorAll('[data-action="calendarPickDay"]').forEach((cell) => {
+            cell.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void this._addEvent(cell);
+            });
+        });
     }
 
     async close(options = {}) {

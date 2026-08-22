@@ -575,7 +575,7 @@
 			"worldClockFastMultiplier-Hint": "How fast in-world time runs in Fast mode, compared to real time.",
 
 			"worldClockMinUpdateSeconds-Label": "Minimum Update Interval",
-			"worldClockMinUpdateSeconds-Hint": "The shortest time, in real seconds, between clock updates. The clock normally advances one in-world minute at a time, but every update is sent to all connected clients, so it will not update more often than this. Only Fast mode usually reaches the limit: above about 60x the clock has to move in larger steps, and the faster the speed the larger they get. This does not change how fast in-world time passes, only how smoothly it is shown.",
+			"worldClockMinUpdateSeconds-Hint": "The shortest time, in real seconds, between clock updates. The clock advances one in-world minute at a time, and at the default every speed up to 120x does exactly that. Faster than that, a minute arrives sooner than this limit allows and the clock steps by several minutes instead. Lower it for smoother fast-forward at the cost of more updates sent to players; raise it to send fewer.",
 
 			"worldClockStepSmall-Label": "Single Arrow Step",
 			"worldClockStepSmall-Hint": "How far the single arrows either side of the clock move time, in minutes. Meant for small corrections.",

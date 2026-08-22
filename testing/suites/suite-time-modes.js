@@ -30,7 +30,7 @@ export default {
             { label: 'Rate', value: `${TimeModes.rateFor(mode)} world seconds per real second` },
             { label: 'Slow multiplier', value: String(setting('worldClockSlowMultiplier', 0.25)) },
             { label: 'Fast multiplier', value: String(setting('worldClockFastMultiplier', 60)) },
-            { label: 'Minimum update', value: `${setting('worldClockMinUpdateSeconds', 3)}s (real)` },
+            { label: 'Minimum update', value: `${setting('worldClockMinUpdateSeconds', 0.5)}s (real)` },
             { label: 'This client ticks', value: TimeDriver.isOwner() ? 'yes' : 'no', note: 'only the active GM does' },
             { label: 'Driver running', value: TimeDriver.isRunning() ? 'yes' : 'no' }
         ];
@@ -80,30 +80,39 @@ export default {
 
                 // Real time: a world minute takes a real minute, which is far above any
                 // sane floor, so each write carries exactly one minute.
-                const real = TimeDriver.plan(1, 3);
+                const real = TimeDriver.plan(1, 0.5);
                 expect('real time writes one minute per update', real.stepSeconds, minute);
                 expect('and does so once a minute', real.cadenceMs, minute * 1000);
 
                 // Slow: still one minute per write, just further apart.
-                const slow = TimeDriver.plan(0.25, 3);
+                const slow = TimeDriver.plan(0.25, 0.5);
                 expect('slow still writes one minute', slow.stepSeconds, minute);
                 expect.ok('but waits four times as long', slow.cadenceMs === minute * 4 * 1000);
 
-                // Fast: a world minute arrives faster than the floor allows, so the
-                // floor sets the pace and each write carries proportionally more.
-                const fast = TimeDriver.plan(60, 3);
-                expect('fast is held to the floor', fast.cadenceMs, 3000);
-                expect('and carries three minutes per write', fast.stepSeconds, minute * 3);
+                // THE SPEEDS THAT MUST NOT SKIP. At the default floor every offered
+                // speed up to 120x still advances exactly one minute per update -- that
+                // is what the floor was lowered to 0.5s for.
+                for (const rate of [15, 30, 60, 120]) {
+                    const plan = TimeDriver.plan(rate, 0.5);
+                    expect(`${rate}x advances exactly one minute`, plan.stepSeconds, minute);
+                }
+
+                // Past that a world minute arrives faster than the floor allows, so the
+                // floor sets the pace and each write carries proportionally more. There
+                // is no way around it: at 360x a minute arrives every sixth of a second.
+                const veryFast = TimeDriver.plan(360, 0.5);
+                expect('360x is held to the floor', veryFast.cadenceMs, 500);
+                expect('and carries three minutes per write', veryFast.stepSeconds, minute * 3);
 
                 // The invariant that matters, whatever the numbers: a write is always
                 // rate x elapsed, so the clock never runs fast or slow.
-                for (const [rate, floorSeconds] of [[1, 3], [0.25, 3], [60, 3], [12, 5]]) {
+                for (const [rate, floorSeconds] of [[1, 0.5], [0.25, 0.5], [360, 0.5], [12, 5]]) {
                     const plan = TimeDriver.plan(rate, floorSeconds);
                     expect(`${rate}x advances exactly what elapsed`,
                         plan.stepSeconds, Math.round((plan.cadenceMs / 1000) * rate));
                 }
 
-                expect('a stopped rate plans nothing', TimeDriver.plan(0, 3).stepSeconds, 0);
+                expect('a stopped rate plans nothing', TimeDriver.plan(0, 0.5).stepSeconds, 0);
             }
         },
         {
@@ -119,7 +128,7 @@ export default {
                     TimeDriver.stop();
                     expect('stopped is stopped', TimeDriver.isRunning(), false);
 
-                    TimeDriver.start(0, 3);
+                    TimeDriver.start(0, 0.5);
                     expect('a zero rate does not run', TimeDriver.isRunning(), false);
 
                     if (!TimeDriver.isOwner()) {
@@ -127,10 +136,10 @@ export default {
                         return;
                     }
 
-                    TimeDriver.start(1, 3);
+                    TimeDriver.start(1, 0.5);
                     expect('a real rate runs', TimeDriver.isRunning(), true);
 
-                    TimeDriver.start(1, 3);
+                    TimeDriver.start(1, 0.5);
                     expect('starting again at the same rate still runs', TimeDriver.isRunning(), true);
 
                     TimeDriver.stop();

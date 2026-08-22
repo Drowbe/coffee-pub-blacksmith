@@ -17,6 +17,28 @@
     padding: var(--blacksmith-space-md);
 }
 
+/* Grid on the left, this month's events on the right. Two columns rather
+   than a list stacked underneath, so paging months does not move the
+   footer up and down as the event count changes. */
+.blacksmith-calendar-body {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--blacksmith-space-lg);
+}
+
+.blacksmith-calendar-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blacksmith-calendar-side {
+    flex: 0 0 190px;
+    min-width: 0;
+    align-self: stretch;
+    padding-left: var(--blacksmith-space-lg);
+    border-left: 1px solid var(--blacksmith-tool-divider);
+}
+
 /* ----- Header: month, year, paging ------------------------------- */
 
 .blacksmith-calendar-header {
@@ -36,12 +58,12 @@
 .blacksmith-calendar-month {
     font-size: 1.1em;
     font-weight: bold;
-    color: var(--blacksmith-text-light);
+    color: var(--blacksmith-tool-text);
 }
 
 .blacksmith-calendar-year {
     font-size: 0.85em;
-    color: var(--blacksmith-text-muted);
+    color: var(--blacksmith-tool-text-muted);
 }
 
 .blacksmith-calendar-leap {
@@ -55,16 +77,16 @@
     height: 28px;
     padding: 0;
     line-height: 1;
-    background: var(--blacksmith-interactive-default);
-    color: var(--blacksmith-text-light);
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
     border: none;
     border-radius: 3px;
     cursor: pointer;
 }
 
 .blacksmith-calendar-nav:hover {
-    background: var(--blacksmith-interactive-hover);
-    color: var(--blacksmith-text-inverse);
+    background: var(--blacksmith-tool-surface-hover);
+    color: var(--blacksmith-tool-text);
 }
 
 /* ----- The grid --------------------------------------------------- */
@@ -80,7 +102,7 @@
     font-size: 0.72em;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--blacksmith-text-muted);
+    color: var(--blacksmith-tool-text-muted);
     padding-bottom: var(--blacksmith-space-xs);
 }
 
@@ -97,8 +119,8 @@
     padding: 0;
     font-size: 0.9em;
     line-height: 1;
-    color: var(--blacksmith-text-light);
-    background: rgba(255, 255, 255, 0.04);
+    color: var(--blacksmith-tool-text);
+    background: var(--blacksmith-tool-surface-sunken);
     border: 1px solid transparent;
     border-radius: 3px;
 }
@@ -108,8 +130,8 @@ button.blacksmith-calendar-day {
 }
 
 button.blacksmith-calendar-day:hover {
-    background: var(--blacksmith-interactive-hover);
-    color: var(--blacksmith-text-inverse);
+    background: var(--blacksmith-tool-surface-hover);
+    color: var(--blacksmith-tool-text);
 }
 
 .blacksmith-calendar-day.is-blank {
@@ -148,15 +170,31 @@ button.blacksmith-calendar-day:hover {
     display: flex;
     flex-direction: column;
     gap: 1px;
-    padding-top: var(--blacksmith-space-sm);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* In the side column an event is two lines, not one: the horizontal room
+   that let day, name and recurrence share a row is gone. */
+.blacksmith-calendar-side .blacksmith-calendar-event {
+    flex-wrap: wrap;
+    padding: 2px 0;
+}
+
+.blacksmith-calendar-side .blacksmith-calendar-event-recurrence {
+    flex-basis: 100%;
+    padding-left: 2.2em;
+}
+
+.blacksmith-calendar-empty {
+    font-size: 0.82em;
+    font-style: italic;
+    color: var(--blacksmith-tool-text-muted);
 }
 
 .blacksmith-calendar-events-title {
     font-size: 0.72em;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--blacksmith-text-muted);
+    color: var(--blacksmith-tool-text-muted);
     padding-bottom: var(--blacksmith-space-xs);
 }
 
@@ -165,14 +203,14 @@ button.blacksmith-calendar-day:hover {
     align-items: center;
     gap: var(--blacksmith-space-sm);
     font-size: 0.85em;
-    color: var(--blacksmith-text-light);
+    color: var(--blacksmith-tool-text);
     padding: 1px 0;
 }
 
 .blacksmith-calendar-event-day {
     flex: 0 0 1.6em;
     text-align: right;
-    color: var(--blacksmith-text-muted);
+    color: var(--blacksmith-tool-text-muted);
     font-variant-numeric: tabular-nums;
 }
 
@@ -186,7 +224,7 @@ button.blacksmith-calendar-day:hover {
 .blacksmith-calendar-event-recurrence {
     flex: 0 0 auto;
     font-size: 0.85em;
-    color: var(--blacksmith-text-muted);
+    color: var(--blacksmith-tool-text-muted);
 }
 
 .blacksmith-calendar-event-delete {
@@ -198,7 +236,7 @@ button.blacksmith-calendar-day:hover {
     font-size: 0.85em;
     background: none;
     border: none;
-    color: var(--blacksmith-text-muted);
+    color: var(--blacksmith-tool-text-muted);
     cursor: pointer;
 }
 
@@ -220,6 +258,34 @@ button.blacksmith-calendar-day:hover {
     font-size: 0.9em;
 }
 
+.blacksmith-calendar-event-form textarea {
+    resize: vertical;
+    min-height: 3.4em;
+}
+
+/* Repeats and Time share a row: neither needs the full width, and stacking
+   them pushed the buttons below the fold on a short dialog. */
+.blacksmith-calendar-event-form-row {
+    display: flex;
+    gap: var(--blacksmith-space-md);
+}
+
+.blacksmith-calendar-event-form-row > label:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blacksmith-calendar-event-form-time {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.blacksmith-calendar-event-form-time input {
+    width: 3.2em;
+    text-align: center;
+}
+
 /* ----- Footer ----------------------------------------------------- */
 
 .blacksmith-calendar-footer {
@@ -228,7 +294,7 @@ button.blacksmith-calendar-day:hover {
     justify-content: space-between;
     gap: var(--blacksmith-space-sm);
     font-size: 0.8em;
-    color: var(--blacksmith-text-muted);
+    color: var(--blacksmith-tool-text-muted);
 }
 
 .blacksmith-calendar-footer-actions {
@@ -243,19 +309,19 @@ button.blacksmith-calendar-day:hover {
     padding: 2px var(--blacksmith-space-md);
     font-size: 1em;
     line-height: 1.6;
-    background: var(--blacksmith-interactive-default);
-    color: var(--blacksmith-text-light);
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
     border: none;
     border-radius: 3px;
     cursor: pointer;
 }
 
 .blacksmith-calendar-jump:hover {
-    background: var(--blacksmith-interactive-hover);
-    color: var(--blacksmith-text-inverse);
+    background: var(--blacksmith-tool-surface-hover);
+    color: var(--blacksmith-tool-text);
 }
 
 .blacksmith-calendar.is-unavailable {
-    color: var(--blacksmith-text-muted);
+    color: var(--blacksmith-tool-text-muted);
     font-style: italic;
 }

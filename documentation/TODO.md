@@ -23,6 +23,48 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
+## Time-bound notes -- a note with a moment (opened 2026-08-21)
+
+The other half of the calendar work. **Calendar events shipped; this did not.** The two are different things
+with different owners, and the split is the design:
+
+| | Calendar event -- done | Time-bound note -- this |
+|---|---|---|
+| Belongs to | the world | one person |
+| Recurs | yes | never |
+| Stored in | the `calendarEvents` world setting | the note's own flags |
+| Fires via | `schedule({ at })`, re-armed | a persisted index, scanned on crossing |
+
+**The moment goes on the note as its own flag, NOT into `annotations`.** That will be tempting because the
+anchor union is already there, and it is wrong three ways: an annotation requires a `targetUuid` and a moment
+has none; the index is exact-match `targetUuid -> notes` while time queries are ranged; and "what is attached
+to this" has no ordering while "what is due" is nothing but ordering. Same document, second relationship,
+second derived index -- sorted `[worldTime, pageUuid]`, built at `ready`, maintained by the same page hooks,
+never consulted as truth, exactly as `_indexByTarget` is.
+
+**Notes must not use `schedule()`, even though events do.** Schedules are in-memory and nothing fires
+retroactively, so a reminder due while the world was closed is silently gone. A persisted index can answer
+"what came due while we were away" and `schedule()` structurally cannot. A missed festival is still visible
+on the calendar; a missed personal reminder is invisible. That asymmetry is the whole reason for two
+mechanisms.
+
+**Where the control goes:** the note editor's footer, beside the author -- `Cliff Williams · 14 Hammer,
+14:30`, reading as a faint `+ Remind me...` when unset. Not the Access row: access is *who*, tags are *what*,
+a date is *when*, and that row already grows with the player count. Give the empty state enough contrast to
+be discoverable, which is the one thing the footer position costs.
+
+**Hold the line on scope.** No status, no assignment, no priority, no completion. When the moment arrives,
+stamp `firedAt` and leave the note -- that gives "recently fired" without inventing "done", and the note
+stays a note. The list of time-bound things is the index rendered; markers on the calendar are a range query
+per day cell. Both fall out rather than being built.
+
+The payoff for keeping the moment on the note is composition: an annotation plus a due time gives
+"remind me about this NPC on the 14th" with no new concept.
+
+**Verify:** set a reminder three in-world days out, advance past it, and confirm it fires once. Set one,
+reload the world before it is due, and confirm it still fires -- that is the case the index exists for. Set
+one, close the world, advance past it, reopen, and confirm it reports as missed rather than vanishing.
+
 ## Something writes an invalid `properties` value onto items created on NPCs (opened 2026-08-21)
 
 Noticed while fixing the inventory merge predicate, and left open because that fix does not depend on it.

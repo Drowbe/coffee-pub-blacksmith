@@ -128,6 +128,9 @@ class WorldClockManager {
     /** Live drag state, or null. Also the flag that suppresses the live repaint. */
     static _drag = null;
 
+    /** Pending single-click, held while we wait to see whether a double follows. */
+    static _clickTimer = null;
+
     // ==============================================================
     // ===== LIFECYCLE ==============================================
     // ==============================================================
@@ -241,7 +244,7 @@ class WorldClockManager {
             modeIcon: mode.icon,
             modeLabel: mode.label,
             modeTooltip: isGM
-                ? `Time: ${mode.label} (${TimeModes.speedLabel(mode)}) — click to change`
+                ? `Time: ${mode.label} (${TimeModes.speedLabel(mode)})<br>Click for the menu &middot; double-click to pause`
                 : `Time: ${mode.label} — ${mode.description}`,
             timeText: `${timeParts.timeTens}${timeParts.timeRest}`,
             ...timeParts,
@@ -809,35 +812,54 @@ class WorldClockManager {
         const section = document.querySelector('.worldclock-section');
         if (!section) return;
 
-        // THE TIME OPENS THE CALENDAR, for players as well as the GM. This is what
-        // freeing the face was for: the menu moved to the mode indicator so the digits
-        // could carry the thing a GM means when they click a clock, which is "show me
-        // the date". A player gets the same window without the day buttons, because a
-        // calendar is a readout before it is a control.
-        //
-        // Bound BEFORE the GM gate below, which is why that gate stopped being the
-        // first line of this method.
-        //
-        // Imported on demand for the same reason the rest window is: the clock is
-        // menubar furniture that loads early, and a window it only opens on a click
-        // has no business in its import graph.
-        const face = section.querySelector('.worldclock-time');
-        if (face) {
-            face.addEventListener('click', async (event) => {
-                if (this._suppressClick) return;
-                event.preventDefault();
-                event.stopPropagation();
-                try {
-                    const { openCalendarWindow } = await import('./window-calendar.js');
-                    openCalendarWindow();
-                } catch (error) {
-                    postConsoleAndNotification(MODULE.NAME, 'WorldClock: Could not open the calendar', error, false, false);
-                }
-            });
-        }
-
         // Everything below moves world time, which is the `core.time` WORLD setting.
         if (!game.user?.isGM) return;
+
+        // THE INDICATOR AND THE TIME ARE ONE CONTROL, with two gestures:
+        //
+        //   single click -> the menu, which now carries Show Calendar
+        //   double click -> pause, or back to the mode before the pause
+        //
+        // They were separate for a day and it was not intuitive: an icon that only
+        // reports state is not somewhere a person looks for a control, and splitting
+        // "open the menu" from "open the calendar" across two halves of one widget
+        // meant knowing which half did which.
+        //
+        // The single-click handler DEFERS, because a double click also fires two
+        // click events; without the delay a double click would open the menu and then
+        // toggle behind it. The coordinates are read immediately rather than off the
+        // event inside the timeout, so the menu opens where the pointer was.
+        const openMenuLater = (event) => {
+            if (this._suppressClick) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const { clientX, clientY } = event;
+            if (this._clickTimer) return;
+            this._clickTimer = setTimeout(() => {
+                this._clickTimer = null;
+                this._showMenu({ clientX, clientY, preventDefault() {}, stopPropagation() {} });
+            }, 220);
+        };
+
+        const togglePause = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            clearTimeout(this._clickTimer);
+            this._clickTimer = null;
+            void TimeModes.togglePause();
+        };
+
+        for (const selector of ['.worldclock-time', '.worldclock-mode']) {
+            const node = section.querySelector(selector);
+            if (!node) continue;
+            node.addEventListener('click', openMenuLater);
+            node.addEventListener('dblclick', togglePause);
+            node.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                this._showMenu(event);
+            });
+        }
 
         section.querySelectorAll('.worldclock-step').forEach((button) => {
             button.addEventListener('click', (event) => {
@@ -870,17 +892,6 @@ class WorldClockManager {
         //
         // Left click as well as right, because a right-click-only menu on a strip of
         // read-outs is a menu nobody finds.
-        const indicator = section.querySelector('.worldclock-mode');
-        if (indicator) {
-            indicator.addEventListener('click', (event) => {
-                // A drag released over the widget reports whatever is under the
-                // pointer as the click target, so a gesture that ended here must not
-                // also open the menu.
-                if (this._suppressClick) return;
-                this._showMenu(event);
-            });
-            indicator.addEventListener('contextmenu', (event) => this._showMenu(event));
-        }
     }
 
     /**
@@ -925,6 +936,14 @@ class WorldClockManager {
         // shape for a form.
         //
         // dnd5e still does every rule. What changed is where the question is asked.
+        // CALENDAR first: it is the thing a person means when they click a clock, and
+        // it is the only entry here that a GM opens just to look at something.
+        items.push({
+            name: 'Show Calendar',
+            icon: 'fa-solid fa-calendar-days',
+            callback: () => this._openCalendarWindow()
+        });
+
         items.push({
             name: 'Rest...',
             icon: 'fa-solid fa-campground',
@@ -947,6 +966,14 @@ class WorldClockManager {
             name: `Time Mode: ${mode.label}`,
             icon: mode.icon,
             submenu: TimeModes.menuItems()
+        });
+
+        // The same toggle double-clicking performs, spelled out. A gesture nobody is
+        // told about is a gesture nobody uses, and this is where they would look.
+        items.push({
+            name: TimeModes.isPaused() ? 'Resume Time' : 'Pause Time',
+            icon: TimeModes.isPaused() ? 'fa-solid fa-play' : 'fa-solid fa-pause',
+            callback: () => void TimeModes.togglePause()
         });
 
         // SET TIME and SET DATE moved into Options on 2026-08-21. They are the two
@@ -1062,6 +1089,22 @@ class WorldClockManager {
      * furniture that loads early, and a window it only opens on a click has no
      * business being in its import graph.
      */
+    /**
+     * Open the calendar.
+     *
+     * Imported on demand, like the rest window and for the same reason: the clock is
+     * menubar furniture that loads early, and a window it only opens on a click has
+     * no business in its import graph.
+     */
+    static async _openCalendarWindow() {
+        try {
+            const { openCalendarWindow } = await import('./window-calendar.js');
+            openCalendarWindow();
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'WorldClock: Could not open the calendar', error, false, false);
+        }
+    }
+
     static async _openRestWindow() {
         try {
             const { RestWindow } = await import('./window-rest.js');

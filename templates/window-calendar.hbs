@@ -1,10 +1,10 @@
-{{!-- Calendar — a month of the world calendar.
+{{!-- Calendar — a month of the world calendar, with the month's events beside it.
 
-      FIRST DRAFT. Owned by scripts/window-calendar.js and styles/window-calendar.css.
+      Owned by scripts/window-calendar.js and styles/window-calendar.css.
 
-      Every label here is read from `game.time.calendar`: the month name, the weekday
-      abbreviations, the number of columns. Nothing is hardcoded to a Gregorian week,
-      because a world is free to declare a nine-day one.
+      Every label here is read from `game.time.calendar` and localized: the month
+      name, the weekday abbreviations, the number of columns. Nothing is hardcoded
+      to a Gregorian week, because a world is free to declare a tenday.
 
       The grid is a CSS grid whose column count comes from the calendar, set as a
       custom property rather than a class so any week length works without a
@@ -30,52 +30,64 @@
         </button>
     </div>
 
-    <div class="blacksmith-calendar-grid" style="--bc-columns: {{columns}};">
-        {{#each weekdays}}
-        <div class="blacksmith-calendar-weekday" data-tooltip="{{this.name}}">{{this.abbreviation}}</div>
-        {{/each}}
+    <div class="blacksmith-calendar-body">
 
-        {{#each cells}}
-            {{#if this.blank}}
-            <div class="blacksmith-calendar-day is-blank"></div>
+        <div class="blacksmith-calendar-main">
+            <div class="blacksmith-calendar-grid" style="--bc-columns: {{columns}};">
+                {{#each weekdays}}
+                <div class="blacksmith-calendar-weekday" data-tooltip="{{this.name}}">{{this.abbreviation}}</div>
+                {{/each}}
+
+                {{#each cells}}
+                    {{#if this.blank}}
+                    <div class="blacksmith-calendar-day is-blank"></div>
+                    {{else}}
+                        {{!-- A day is a button only for a GM. For a player it is the same cell
+                              without the affordance, because setting world time would throw.
+                              LEFT click goes to the day; RIGHT click adds an event on it, which
+                              is how any day other than today gets one. --}}
+                        {{#if ../isGM}}
+                        <button type="button"
+                                class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
+                                data-action="calendarPickDay"
+                                data-day="{{this.dayIndex}}"
+                                data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}}<br>{{/if}}Click to go here &middot; right-click to add an event">{{this.label}}</button>
+                        {{else}}
+                        <div class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
+                             {{#if this.hasEvents}}data-tooltip="{{this.eventTooltip}}"{{/if}}>{{this.label}}</div>
+                        {{/if}}
+                    {{/if}}
+                {{/each}}
+            </div>
+        </div>
+
+        {{!-- THIS MONTH'S EVENTS. The grid says where they are; this says what they
+              are, which is the question a marker cannot answer on its own. --}}
+        <div class="blacksmith-calendar-side">
+            <div class="blacksmith-calendar-events-title">This month</div>
+            {{#if events.length}}
+            <div class="blacksmith-calendar-events">
+                {{#each events}}
+                <div class="blacksmith-calendar-event">
+                    <span class="blacksmith-calendar-event-day">{{this.dayLabel}}</span>
+                    <span class="blacksmith-calendar-event-name" data-tooltip="{{this.description}}">{{this.name}}</span>
+                    {{#if ../isGM}}
+                    <button type="button" class="blacksmith-calendar-event-delete"
+                            data-action="calendarDeleteEvent" data-event-id="{{this.id}}"
+                            data-tooltip="Delete this event">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    {{/if}}
+                    <span class="blacksmith-calendar-event-recurrence">{{this.timeLabel}} &middot; {{this.recurrenceLabel}}</span>
+                </div>
+                {{/each}}
+            </div>
             {{else}}
-                {{!-- A day is a button only for a GM. For a player it is the same cell
-                      without the affordance, because setting world time would throw. --}}
-                {{#if ../isGM}}
-                <button type="button"
-                        class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
-                        data-action="calendarPickDay"
-                        data-day="{{this.dayIndex}}"
-                        data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}} — click to go here{{else}}Go to this day, keeping the time of day{{/if}}">{{this.label}}</button>
-                {{else}}
-                <div class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
-                     {{#if this.hasEvents}}data-tooltip="{{this.eventTooltip}}"{{/if}}>{{this.label}}</div>
-                {{/if}}
-            {{/if}}
-        {{/each}}
-    </div>
-
-    {{!-- EVENTS FOR THIS MONTH. The grid says where they are; this says what they
-          are, which is the question a marker cannot answer on its own. --}}
-    {{#if events.length}}
-    <div class="blacksmith-calendar-events">
-        <div class="blacksmith-calendar-events-title">This month</div>
-        {{#each events}}
-        <div class="blacksmith-calendar-event">
-            <span class="blacksmith-calendar-event-day">{{this.dayLabel}}</span>
-            <span class="blacksmith-calendar-event-name" data-tooltip="{{this.description}}">{{this.name}}</span>
-            <span class="blacksmith-calendar-event-recurrence">{{this.recurrenceLabel}}</span>
-            {{#if ../isGM}}
-            <button type="button" class="blacksmith-calendar-event-delete"
-                    data-action="calendarDeleteEvent" data-event-id="{{this.id}}"
-                    data-tooltip="Delete this event">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+            <div class="blacksmith-calendar-empty">Nothing this month.</div>
             {{/if}}
         </div>
-        {{/each}}
+
     </div>
-    {{/if}}
 
     <div class="blacksmith-calendar-footer">
         <span class="blacksmith-calendar-today-label">Today: {{todayLabel}}</span>
@@ -86,14 +98,9 @@
             </button>
             {{/unless}}
             {{#if isGM}}
-            {{!-- Adding is anchored to a day the reader can see: today when today is
-                  on screen, otherwise the first of the month being viewed. A button in
-                  a footer has no day of its own, and adding to an off-screen day would
-                  be worse than adding to the one in front of you. Per-day adding wants
-                  a right-click menu on the cell, which this draft does not have. --}}
             <button type="button" class="blacksmith-calendar-jump"
                     data-action="calendarAddEvent" data-day="{{addDayIndex}}"
-                    data-tooltip="Add an event on {{addDayLabel}}">
+                    data-tooltip="Add an event on {{addDayLabel}}. Right-click any day to add one there.">
                 <i class="fa-solid fa-plus"></i> Add event
             </button>
             {{/if}}
