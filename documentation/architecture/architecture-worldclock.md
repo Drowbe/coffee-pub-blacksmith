@@ -94,19 +94,22 @@ right-click-only menu on a strip of read-outs is a menu nobody finds. GM only --
 the world's time, rests the party, or opens a window -- so players get no menu rather than an empty one.
 
 ```
-Show Calendar          the calendar window
-Rest...                the rest window; the kind of rest is the first question it asks
----
+Pause Time             the same toggle double-clicking performs
+Rest and Recovery      the rest window; the kind of rest is the first question it asks
+Calendar and Events    the calendar window
 Jump to >              Dawn, Noon, Dusk, Midnight -- always forward
 Time Mode >            Combat, Real-time, Slow (0.25x), Fast (60x), Paused
                        swords / play / turtle / forward / pause
-Pause Time             the same toggle double-clicking performs
----
 Options >              Set Time, Set Date, then anything contributed
     Set Time               our dialog: time of day only, bounds from the calendar
     Set Date               the system's dnd5e.applications.calendar.SetDateDialog
     Darkness Control on <scene>     contributed through registerOptionProvider
 ```
+
+**Ordered by how often a GM reaches for it, not by category.** Pause is first because it is wanted
+mid-sentence when somebody walks in, and it is the only entry that acts immediately rather than opening
+something. No separators: six entries do not need grouping, and a rule between them implied a distinction
+that is not there.
 
 **Set Time and Set Date live under Options**, not at the top level. They are the two entries a GM reaches
 for least, and they were sitting above the ones reached for most.

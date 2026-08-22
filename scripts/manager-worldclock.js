@@ -933,6 +933,15 @@ class WorldClockManager {
     static _buildMenuItems() {
         const items = [];
 
+        // ORDER IS BY HOW OFTEN A GM REACHES FOR IT, not by category. Pause is the
+        // thing wanted mid-sentence when somebody walks in, so it is first and it is
+        // the only entry that acts immediately rather than opening something.
+        items.push({
+            name: TimeModes.isPaused() ? 'Resume Time' : 'Pause Time',
+            icon: TimeModes.isPaused() ? 'fa-solid fa-play' : 'fa-solid fa-pause',
+            callback: () => void TimeModes.togglePause()
+        });
+
         // REST. One entry rather than two, because the kind of rest is the first
         // question the window asks -- and it is not the only one, which is why this
         // stopped being a pair of menu items. The GM also chooses who is resting and
@@ -940,21 +949,17 @@ class WorldClockManager {
         // shape for a form.
         //
         // dnd5e still does every rule. What changed is where the question is asked.
-        // CALENDAR first: it is the thing a person means when they click a clock, and
-        // it is the only entry here that a GM opens just to look at something.
         items.push({
-            name: 'Show Calendar',
-            icon: 'fa-solid fa-calendar-days',
-            callback: () => this._openCalendarWindow()
-        });
-
-        items.push({
-            name: 'Rest...',
+            name: 'Rest and Recovery',
             icon: 'fa-solid fa-campground',
             callback: () => this._openRestWindow()
         });
 
-        items.push({ separator: true });
+        items.push({
+            name: 'Calendar and Events',
+            icon: 'fa-solid fa-calendar-days',
+            callback: () => this._openCalendarWindow()
+        });
 
         items.push({
             name: 'Jump to',
@@ -962,9 +967,6 @@ class WorldClockManager {
             submenu: this._buildJumpItems()
         });
 
-        // TIME MODE. Below the jumps because a jump is a thing you do to the world
-        // and a mode is how the world behaves afterwards -- the same ordering the
-        // rest of this menu already follows.
         const mode = TimeModes.current();
         items.push({
             name: `Time Mode: ${mode.label}`,
@@ -972,36 +974,25 @@ class WorldClockManager {
             submenu: TimeModes.menuItems()
         });
 
-        // The same toggle double-clicking performs, spelled out. A gesture nobody is
-        // told about is a gesture nobody uses, and this is where they would look.
-        items.push({
-            name: TimeModes.isPaused() ? 'Resume Time' : 'Pause Time',
-            icon: TimeModes.isPaused() ? 'fa-solid fa-play' : 'fa-solid fa-pause',
-            callback: () => void TimeModes.togglePause()
-        });
-
-        // SET TIME and SET DATE moved into Options on 2026-08-21. They are the two
-        // entries a GM uses least often and they were sitting above the ones used
-        // most; Options is where "things you do to the configuration" already lives.
-        const options = [
-            {
-                name: 'Set Time',
-                icon: 'fa-solid fa-clock',
-                callback: () => this._promptSetTime()
-            },
-            {
-                name: 'Set Date',
-                icon: 'fa-solid fa-calendar-days',
-                callback: () => this._openSetDateDialog()
-            },
-            ...this._collectOptionItems()
-        ];
-
-        items.push({ separator: true });
+        // SET TIME and SET DATE live here rather than at the top level: they are the
+        // two entries a GM uses least often, and Options is where "things you do to
+        // the configuration" already lives.
         items.push({
             name: 'Options',
             icon: 'fa-solid fa-sliders',
-            submenu: options
+            submenu: [
+                {
+                    name: 'Set Time',
+                    icon: 'fa-solid fa-clock',
+                    callback: () => this._promptSetTime()
+                },
+                {
+                    name: 'Set Date',
+                    icon: 'fa-solid fa-calendar-days',
+                    callback: () => this._openSetDateDialog()
+                },
+                ...this._collectOptionItems()
+            ]
         });
 
         return items;
