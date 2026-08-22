@@ -72,6 +72,7 @@ const PUBLISH = [
   // Architecture
   'architecture/architecture-ownership.md',
   'architecture/architecture-blacksmith.md',
+  'architecture/architecture-calendar.md',
   'architecture/architecture-chatcards.md',
   'architecture/architecture-encounter.md',
   'architecture/architecture-gm-request.md',

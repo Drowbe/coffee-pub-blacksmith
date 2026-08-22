@@ -335,47 +335,13 @@ per second redrawing an identical string for the whole session.
 Time modes do not change that. The driver below has an interval, but it is a WRITER, not a repainter --
 the display still redraws only in response to time actually moving.
 
-## Calendar events, and why they are not notes
+## Calendar events
 
-`manager-calendar-events.js` holds dated things belonging to the **world**: a festival, a market day, a
-shared deadline. They exist whether or not anyone wrote a note about them, and that is the whole of the
-distinction:
+Dated things belonging to the world -- festivals, market days -- and the window that authors them live in
+`manager-calendar-events.js` and `window-calendar.js`. See **`architecture-calendar.md`**, which covers why
+they are not notes and why recurrence is computed there rather than expressed to the schedule API.
 
-| | Calendar event | Time-bound note |
-|---|---|---|
-| Belongs to | the world | one person |
-| Recurs | usually | never |
-| Authored | deliberately, by the GM | in play, by anyone |
-| Stored in | the `calendarEvents` world setting | the note's own flags |
-
-Storing a festival on somebody's note would be backwards -- delete the note and the festival stops existing.
-
-**The store is a world setting rather than journal entries.** An event is a date and a name; if it wants
-prose it wanted a note. Journals would bring permissions for free but drag in the document-subtype question,
-and owning a subtype means owning a domain.
-
-### Recurrence is computed here, not expressed to the schedule API
-
-`schedule()` takes `at` (an absolute moment) or `dailyAt` (an hour of the day). **Neither can say "the 20th
-of Marpenoth, every year."** Widening a public surface for one consumer would be the wrong trade, so an
-event computes its own next occurrence, registers that as an `at`, and re-arms when it fires. One firing
-mechanism, used as intended.
-
-Two consequences worth knowing before touching `nextOccurrence`:
-
-- **A recurring day the month does not have is SKIPPED, not clamped.** The 31st monthly in a 30-day month is
-  not the 30th. Clamping would silently move a market day, and skipping is the honest reading of a date that
-  is not there.
-- **Re-arming searches from one second past now**, or it finds the moment that just fired, re-arms on it, and
-  fires again on the next tick forever.
-
-Schedules are `gmOnly`, because firing announces to the table and a callback registered on five clients
-without it announces five times. They are re-armed on every client when the setting changes, so a GM
-promoted mid-session is already armed.
-
-**What an event MEANS is a consumer's business.** Firing calls `blacksmith.calendarEventFired` and shows a
-toast, and stops there. A festival with weather, prices and rumours is content, and content belongs in a
-sibling -- the hook is how it gets there.
+The clock's only involvement is that events arm themselves through `worldClock.schedule`.
 
 ## Calendar names are localization keys
 
@@ -514,9 +480,11 @@ enforces all three and exits non-zero on a violation.
 For the same reason, `WorldClockManager.initialize()` must run **before** the first menubar render. It is
 called early in `ready` in `scripts/blacksmith.js`, ahead of `MenuBar.initialize()`.
 
-## Tooltip content is escaped
+## The readout carries no tooltip
 
-The tooltip is emitted unescaped by the template because it carries `<br>` separators, so the parts
-interpolated into it are escaped in `_buildTooltip`. Month, weekday and season names come from whichever
-calendar is configured -- a system, a module, or a hand-rolled world calendar -- which makes them
-third-party strings.
+It used to, and the escaping that required is gone with it. The date now heads the context menu as an
+`information` block, which takes plain text and writes it as `textContent` -- so `_nameOf` deliberately does
+NOT escape. Month, weekday and season names are third-party strings from whichever calendar is configured,
+and escaping them for a text node would print a literal `&amp;` in any name containing an ampersand.
+
+If a tooltip ever comes back here, it has to escape those names again.

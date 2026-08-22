@@ -1,75 +1,12 @@
 # Plan: the calendar window
 
-**Status: In progress (first draft shipped 2026-08-21).** The window exists and works; what it is *for* is
-only half built. Distribute and delete this file when the rest lands -- surface to the API docs if any of it
-becomes public, mechanism to `../architecture/architecture-worldclock.md`, history to `CHANGELOG.md`.
+**Status: In progress.** The window and calendar events shipped; the real-world calendar mode and
+time-bound notes have not.
 
-## Why it exists
-
-`TODO.md` records that dated reminders and calendar events are a store plus a view over a firing mechanism
-that already works: `worldClock.schedule({ at })` fires once at an absolute world time, and core's
-`calendar.componentsToTime()` turns a date into that number. **This window is the view half.** It is not a
-clock feature; it is the authoring surface the events work will need, built first because it is useful on
-its own.
-
-## What the draft does
-
-- Renders one month of the world calendar as a grid.
-- Pages month by month, rolling the year at either end, and jumps back to today.
-- Marks today.
-- A GM clicks a day to move the world to it, keeping the current time of day.
-- Opens from the world clock's time readout, for players as well as the GM. Players get the same grid
-  without the day buttons: a calendar is a readout before it is a control.
-- Registered as `blacksmith-calendar`, so `openWindow()` reaches it from a macro or another module.
-
-**Everything is derived from `game.time.calendar`** -- month lengths, leap days, week length, weekday names.
-Nothing assumes a Gregorian year, because a world is free to declare a nine-day week or a five-day festival
-month, and a grid that assumed otherwise would render a plausible lie. The clock next door already carries
-that scar: its first version hardcoded 86400 for a day.
-
-**Which weekday a date falls on is asked of core**, by converting the first of the month to a time and back,
-rather than computed here. Doing the modulo locally would be a second implementation of `timeToComponents`,
-and the two would drift the first time a calendar did something unusual with leap days.
-
-It also shows **calendar events** -- marked days, the month's list, and add/delete for a GM. Those shipped
-the same day; see the next section.
-
-**No time-of-day control**, deliberately: clicking a day keeps the current time, and setting the hour stays
-with Set Time on the clock menu.
-
-## The next phase: time-bound notes
-
-**Calendar events shipped 2026-08-21** and answered the storage question this section used to hold: they
-are world data, so they live in the `calendarEvents` world setting. See
-`../architecture/architecture-worldclock.md`.
-
-What is left is the other half, and it is a different thing with a different owner:
-
-| | Calendar event -- done | Time-bound note -- next |
-|---|---|---|
-| Belongs to | the world | one person |
-| Recurs | yes | never |
-| Stored in | the world setting | the note's own flags |
-| Fires via | `schedule({ at })`, re-armed | a persisted index, scanned on crossing |
-
-**The moment goes on the note as its own flag, not into `annotations`.** That will be tempting, because the
-anchor union is already there, and it is wrong three ways: an annotation requires a `targetUuid` and a moment
-has none; the index is exact-match `targetUuid -> notes` while time queries are ranged; and "what is attached
-to this" has no ordering while "what is due" is nothing but ordering. Same document, second relationship,
-second derived index -- sorted `[worldTime, pageUuid]`, built at `ready`, maintained by the same page hooks,
-never consulted as truth.
-
-**Why notes do NOT use `schedule()`, when events do.** Schedules are in-memory and nothing fires
-retroactively, so a reminder due while the world was closed is silently gone. A persisted index can answer
-"what came due while we were away"; `schedule()` structurally cannot. A missed festival is still visible on
-the calendar, which is why events can afford the simpler mechanism and personal reminders cannot.
-
-The payoff for keeping the moment on the note is composition: an annotation plus a due time gives
-"remind me about this NPC on the 14th" with no new concept.
-
-**Hold the line on scope.** No status, no assignment, no priority, no completion. When the moment arrives,
-stamp `firedAt` and leave the note -- that gives "recently fired" without inventing "done". The list of
-time-bound things is the index rendered; markers are a range query. Both fall out.
+**The shipped mechanism has moved out of this file** to `../architecture/architecture-calendar.md`, per the
+rule that a plan is never a source of truth. What remains here is design that is not built. Delete this file
+when it is, distributing surface to the API docs, mechanism to that architecture doc, history to
+`CHANGELOG.md`.
 
 ## The second calendar: real-world time
 
@@ -117,9 +54,9 @@ GM-side in `CalendarEvents.canEdit`, not merely in the UI -- the op is reachable
 hidden button is a suggestion. `author` and `id` are stripped from any update, or the check would be
 self-defeating. An event with no author predates this and is GM-only, which is the safe reading.
 
-## Verification
+## Verification owed on what shipped
 
-The draft's own checks, none of which a harness can do:
+None of these can be a harness check. What has passed is noted; the rest is owed.
 
 - Open it on a world using a non-Gregorian calendar -- the column count, the month lengths and the weekday
   names all have to come from that calendar. Harptos is the case to hand.
