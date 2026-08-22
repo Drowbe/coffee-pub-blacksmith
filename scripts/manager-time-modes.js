@@ -206,14 +206,14 @@ export const TIME_MODES = Object.freeze({
     real: {
         id: 'real',
         label: 'Real-time',
-        icon: 'fa-solid fa-clock',
+        icon: 'fa-solid fa-play',
         rate: 1,
         description: 'One second in the world for every second at the table.'
     },
     slow: {
         id: 'slow',
         label: 'Slow',
-        icon: 'fa-solid fa-hourglass-half',
+        icon: 'fa-solid fa-turtle',
         rate: null,          // read from the setting
         configurable: true,
         description: 'Time passes more slowly than real time.'
@@ -221,7 +221,7 @@ export const TIME_MODES = Object.freeze({
     fast: {
         id: 'fast',
         label: 'Fast',
-        icon: 'fa-solid fa-forward-fast',
+        icon: 'fa-solid fa-forward',
         rate: null,          // read from the setting
         configurable: true,
         description: 'Time passes more quickly than real time.'

@@ -758,10 +758,12 @@ class WorldClockManager {
         // view of sky and time only; an unguarded write would blank the icon for the
         // length of every gesture.
         const modeNode = section.querySelector('.worldclock-mode');
-        if (modeNode && view.modeIcon) {
-            modeNode.className = `worldclock-mode ${view.modeIcon}`;
-            if (view.modeTooltip) modeNode.setAttribute('data-tooltip', view.modeTooltip);
-        }
+        if (modeNode && view.modeIcon) modeNode.className = `worldclock-mode ${view.modeIcon}`;
+        // The tooltip moved to the readout wrapper with the markup, so the repaint
+        // has to follow it there. Left on the icon it would have gone stale on one
+        // half of a control that is meant to behave as one.
+        const readoutNode = section.querySelector('.worldclock-readout');
+        if (readoutNode && view.modeTooltip) readoutNode.setAttribute('data-tooltip', view.modeTooltip);
     }
 
     // ==============================================================
@@ -849,12 +851,14 @@ class WorldClockManager {
             void TimeModes.togglePause();
         };
 
-        for (const selector of ['.worldclock-time', '.worldclock-mode']) {
-            const node = section.querySelector(selector);
-            if (!node) continue;
-            node.addEventListener('click', openMenuLater);
-            node.addEventListener('dblclick', togglePause);
-            node.addEventListener('contextmenu', (event) => {
+        // ONE element, not two. The readout wraps the icon and the digits precisely so
+        // this is a single hit target -- binding the halves separately left a dead
+        // gap between them and made "one control" a claim the markup did not support.
+        const readout = section.querySelector('.worldclock-readout');
+        if (readout) {
+            readout.addEventListener('click', openMenuLater);
+            readout.addEventListener('dblclick', togglePause);
+            readout.addEventListener('contextmenu', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 this._showMenu(event);

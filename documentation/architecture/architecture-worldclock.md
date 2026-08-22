@@ -99,6 +99,7 @@ Rest...                the rest window; the kind of rest is the first question i
 ---
 Jump to >              Dawn, Noon, Dusk, Midnight -- always forward
 Time Mode >            Combat, Real-time, Slow (0.25x), Fast (60x), Paused
+                       swords / play / turtle / forward / pause
 Pause Time             the same toggle double-clicking performs
 ---
 Options >              Set Time, Set Date, then anything contributed
@@ -379,9 +380,11 @@ needs no branch.
 about how time is passing; the speeds are `worldClockSlowMultiplier` and `worldClockFastMultiplier`, in
 world seconds per real second.
 
-**The indicator and the time are ONE control, with two gestures.** A muted mode icon sits *before* the time --
-ahead of it, so the digits stay the rightmost thing in the face and keep their tabular alignment against the
-step arrows -- and both halves answer the same two clicks:
+**The indicator and the time are ONE control, with two gestures.** They share a wrapper, `.worldclock-readout`
+-- one element, one hit target, one hover that lights both halves. Bound separately they left a dead gap
+between them and the icon read as something floating between the sky and the digits, which is a claim the
+markup did not support. The mode icon sits *before* the time, so the digits stay the rightmost thing in the
+face and keep their tabular alignment against the step arrows. Both halves answer the same two clicks:
 
 | Gesture | Does |
 |---|---|

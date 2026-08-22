@@ -39,20 +39,25 @@
             <span class="worldclock-horizon"></span>
         </div>
 
-        {{!-- MODE INDICATOR, and the clock's menu button.
-              A readout for players and the way a GM opens the menu. It reports how
-              time is passing, so it is the honest place to change how time passes --
-              and it leaves the time itself free to open a calendar later.
-              Its own tooltip, because the section tooltip is the date and would be
-              the wrong answer to "why is the clock crawling".
+        {{!-- THE READOUT: mode indicator and time, in ONE element.
 
-              BEFORE the time, so the digits stay the rightmost thing in the face and
-              keep their tabular alignment against the step arrows. --}}
-        {{#if worldClock.modeIcon}}
-        <i class="worldclock-mode {{worldClock.modeIcon}}" data-tooltip="{{worldClock.modeTooltip}}"></i>
-        {{/if}}
+              They are one control -- single click opens the menu, double click
+              pauses -- so they have to look like one. Loose beside each other the
+              icon read as something floating between the sky and the digits. The
+              wrapper gives them a shared hit area and a shared hover, which is what
+              says "these are the same button" without a label saying so.
 
-        <span class="worldclock-time"><span class="worldclock-tens{{#if worldClock.timeTensIsPad}} is-pad{{/if}}">{{worldClock.timeTens}}</span><span class="worldclock-rest">{{worldClock.timeRest}}</span></span>
+              The icon sits BEFORE the time so the digits stay the rightmost thing in
+              the face and keep their tabular alignment against the step arrows.
+
+              One tooltip on the wrapper, not two: the section's own tooltip is the
+              date, which is the wrong answer to "why is the clock crawling". --}}
+        <span class="worldclock-readout" data-tooltip="{{worldClock.modeTooltip}}">
+            {{#if worldClock.modeIcon}}
+            <i class="worldclock-mode {{worldClock.modeIcon}}"></i>
+            {{/if}}
+            <span class="worldclock-time"><span class="worldclock-tens{{#if worldClock.timeTensIsPad}} is-pad{{/if}}">{{worldClock.timeTens}}</span><span class="worldclock-rest">{{worldClock.timeRest}}</span></span>
+        </span>
     </div>
 
     {{#if worldClock.isGM}}

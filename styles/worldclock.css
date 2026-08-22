@@ -54,17 +54,39 @@
     border-radius: 4px;
 }
 
-/* The TIME LABEL is what opens the menu, so it alone is what looks clickable. The
-   sky is a picture and keeps the default cursor; the sun keeps `grab`, because it
-   does something different. `.worldclock-face` is a visual group, not a hit target. */
-/* The TIME opens the calendar -- for players too, since a calendar is a readout
-   before it is a control. The clock's MENU moved to the mode indicator to make
-   room for it. */
-.blacksmith-menubar-container .worldclock-time {
+/* The sky is a picture and keeps the default cursor; the sun keeps `grab`, because
+   it does something different. `.worldclock-face` is a visual group, not a hit
+   target -- the readout below is.
+
+   THE READOUT is one control: mode icon and time together. Single click opens
+   the menu, double click pauses. The shared box and the shared hover are what
+   make that legible -- loose beside each other the icon read as something
+   floating between the sky and the digits.
+
+   Only a GM gets the affordance. For a player it is a readout, and a pointer
+   cursor would promise a menu that never opens. */
+.worldclock-readout {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    transition: background-color 120ms ease;
+}
+
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-readout {
     cursor: pointer;
 }
-.blacksmith-menubar-container .worldclock-time:hover {
+
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-readout:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Both halves light together, which is the whole point of the wrapper. */
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-readout:hover .worldclock-time,
+.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-readout:hover .worldclock-mode {
     color: rgba(255, 196, 74, 0.95);
+    opacity: 1;
 }
 
 .worldclock-section .worldclock-time {
@@ -79,27 +101,13 @@
 }
 
 /* ----- The mode indicator ------------------------------------------
-   A readout for players and THE menu button for the GM, which is why it is
-   quiet but not tiny: it must not compete with the time, and it must still
-   be worth aiming at. Muted until hovered, the same treatment the micro
-   title bar gives its glyphs. */
+   Quiet but not tiny: it must not compete with the time, and it is half of
+   the click target. Its hover lives on the readout wrapper, so hovering
+   either half lights both. */
 .worldclock-section .worldclock-mode {
-    margin-right: 5px;
     font-size: 0.85em;
-    opacity: 0.5;
+    opacity: 0.55;
     transition: opacity 120ms ease, color 120ms ease;
-}
-
-.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-mode {
-    cursor: pointer;
-}
-
-.worldclock-section .worldclock-mode:hover {
-    opacity: 1;
-}
-
-.blacksmith-menubar-container .worldclock-section:not(.tool-readonly) .worldclock-mode:hover {
-    color: rgba(255, 196, 74, 0.95);
 }
 
 /* ----- The sky ---------------------------------------------------- */

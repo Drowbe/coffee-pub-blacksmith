@@ -177,8 +177,11 @@ export default {
                             const glyph = other.icon.split(' ').find(part => part.startsWith('fa-') && part !== 'fa-solid');
                             return !glyph || !node.classList.contains(glyph) || mode.icon.includes(glyph);
                         }));
+                // The tooltip lives on the readout wrapper, not the icon: the two are
+                // one control and the wrapper is the hit target.
+                const readout = document.querySelector('.worldclock-readout');
                 expect.ok('the tooltip names the mode',
-                    (node.getAttribute('data-tooltip') ?? '').includes(mode.label));
+                    (readout?.getAttribute('data-tooltip') ?? '').includes(mode.label));
             }
         },
         {
