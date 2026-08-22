@@ -102,17 +102,6 @@ currently has **zero** references to Scene Config, which is worth keeping true u
 Whatever does this should read the same scene flag the driver uses (`DarknessManager.FLAG`) rather than
 inventing a parallel one, and must survive the sheet re-rendering underneath it.
 
-## World clock: time modes -- SHIPPED 2026-08-21, awaiting live verification
-
-Built: five modes, the driver, the menu, the indicator, the settings, and a harness suite. See
-`CHANGELOG.md` for what it does and `architecture/architecture-worldclock.md` for how. **Delete this entry
-once the live checks in that CHANGELOG entry pass** -- particularly the two-GM one, which no harness can
-reach.
-
-What was deliberately NOT built, and should stay unbuilt unless someone asks: Paused does not suppress
-core's per-round combat advance. Stopping that would mean vetoing `preUpdateCombat`, and a combat running
-while the GM believes time is paused is a rarer problem than a hub that cancels core operations.
-
 ## World clock: what is left (opened 2026-08-16)
 
 Built and in `CHANGELOG.md`: the clock, its controls, the sky panel, drag-to-scrub, the tooltip, the
@@ -127,6 +116,20 @@ darkness driver, the schedule API (`api.worldClock.schedule`), rests moving the 
 A long rest the clock drives, interruptible partway. **Planned in
 `documentation/plans/plan-interruptible-rest.md` (written 2026-08-21)** -- the constraint that shapes it,
 the missing primitive, the open questions, and four phases. Read that rather than restating it here.
+
+**What interrupts it, decided by the author 2026-08-22:** every N in-world hours the rest triggers a GM
+roll for an encounter -- goblins spot the camp in the night. On a hit the rest **ends early and the party
+gets partial credit**, which is the whole reason the recovery cannot run up front.
+
+Two consequences for the design:
+
+- **Partial credit is a third outcome**, alongside completed and abandoned. The plan currently says an
+  interrupted rest gives nothing; that was the simple reading and it is now wrong. What "partial" means in
+  dnd5e terms -- some hit dice, no slots? a fraction of the duration? -- is the open question, and it is a
+  rules decision rather than a code one.
+- **The encounter roll is pluggable, not ours.** A setting picks the plain roll or, when installed,
+  Bibliosoph's encounter tool. Blacksmith fires the moment and asks; what an encounter *is* stays content,
+  and content belongs in a sibling. Feature-detect rather than depend.
 
 The short version, so this list still reads: what is missing is not the surface but the primitive --
 advance world time gradually and let it be interrupted -- and the rule that decides the design is that an

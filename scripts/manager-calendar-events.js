@@ -27,8 +27,21 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { WorldClockAPI } from './api-worldclock.js';
+import { GMRequestAPI } from './api-gm-request.js';
 
 export const CALENDAR_EVENTS_SETTING = 'calendarEvents';
+
+/**
+ * Ops players use to reach the store.
+ *
+ * Events are a WORLD setting, so a player cannot write one directly. Rather than
+ * making the calendar GM-only, the write is proxied: `api.gmRequest` hands the
+ * handler the VERIFIED caller, so "who added this" is a fact from the server
+ * rather than a claim in the payload.
+ */
+const OP_CREATE = `${MODULE.ID}.calendarEventCreate`;
+const OP_UPDATE = `${MODULE.ID}.calendarEventUpdate`;
+const OP_DELETE = `${MODULE.ID}.calendarEventDelete`;
 
 /** How an event repeats. `once` carries a year; the others do not. */
 export const EVENT_RECURRENCE = Object.freeze({
@@ -84,8 +97,13 @@ export class CalendarEvents {
      * @param {string} [data.recurrence] - One of EVENT_RECURRENCE.
      * @returns {Promise<object|null>} The stored event, or null if it was refused.
      */
-    static async create({ name, month, day, year = null, hour = 0, minute = 0, recurrence = EVENT_RECURRENCE.ONCE, description = '' } = {}) {
-        if (!game.user?.isGM) return null;
+    static async create({ name, month, day, year = null, hour = 0, minute = 0, recurrence = EVENT_RECURRENCE.ONCE, description = '', author = null } = {}) {
+        // A player cannot write a world setting, so the whole call goes to the GM and
+        // comes back with the stored event. Validation still runs GM-side, because a
+        // payload from a player is untrusted by definition.
+        if (!game.user?.isGM) {
+            return GMRequestAPI.request(OP_CREATE, { name, month, day, year, hour, minute, recurrence, description });
+        }
 
         const label = String(name ?? '').trim();
         if (!label) {
@@ -100,6 +118,9 @@ export class CalendarEvents {
 
         const event = {
             id: foundry.utils.randomID(16),
+            // Set GM-side from the VERIFIED caller when a player asked; otherwise it is
+            // the GM's own id. Never read from a player-supplied payload field.
+            author: author ?? game.user?.id ?? null,
             name: label,
             description: String(description ?? ''),
             recurrence,
@@ -118,19 +139,55 @@ export class CalendarEvents {
         return event;
     }
 
-    static async update(id, changes = {}) {
-        if (!game.user?.isGM) return false;
+    static async update(id, changes = {}, actor = null) {
+        if (!game.user?.isGM) return GMRequestAPI.request(OP_UPDATE, { id, changes });
+
         const events = this.list();
         const index = events.findIndex(event => event.id === id);
         if (index < 0) return false;
-        events[index] = foundry.utils.mergeObject(events[index], changes, { inplace: false });
+
+        // `actor` is the verified caller when this arrived from a player, and null
+        // when a GM called it directly -- in which case the current user IS the GM.
+        if (!this.canEdit(events[index], actor ?? game.user)) return false;
+
+        // `author` and `id` are not the caller's to change: allowing either would make
+        // the ownership check above meaningless.
+        const safe = foundry.utils.deepClone(changes ?? {});
+        delete safe.author;
+        delete safe.id;
+
+        events[index] = foundry.utils.mergeObject(events[index], safe, { inplace: false });
         return this._write(events);
     }
 
-    static async delete(id) {
-        if (!game.user?.isGM) return false;
-        const events = this.list().filter(event => event.id !== id);
-        return this._write(events);
+    static async delete(id, actor = null) {
+        if (!game.user?.isGM) return GMRequestAPI.request(OP_DELETE, { id });
+
+        const event = this.get(id);
+        if (!event) return false;
+        if (!this.canEdit(event, actor ?? game.user)) return false;
+
+        return this._write(this.list().filter(candidate => candidate.id !== id));
+    }
+
+    /**
+     * Whether a user may change an event.
+     *
+     * A GM may change anything; anyone else may change only what they authored.
+     * Enforced GM-SIDE in the proxied handlers, not just in the UI -- a check that
+     * only hides a button is a suggestion, and the op is reachable from a console.
+     *
+     * An event with no `author` predates this and belongs to nobody, so only a GM
+     * can touch it. That is the safe reading: the alternative lets the first player
+     * to notice claim the GM's festivals.
+     *
+     * @param {object|null} event
+     * @param {User|null} [user] - Defaults to the current user.
+     */
+    static canEdit(event, user = game.user) {
+        if (!event || !user) return false;
+        if (user.isGM) return true;
+        return !!event.author && event.author === user.id;
     }
 
     // ==============================================================
@@ -263,6 +320,25 @@ export class CalendarEvents {
             key: CALENDAR_EVENTS_SETTING,
             priority: 3,
             callback: () => this.rearmAll()
+        });
+
+        // Registered on every client; only a GM's handler ever runs, which is what
+        // `gmRequest` arranges. `author` is the VERIFIED caller, so a player cannot
+        // claim to be someone else by editing the payload.
+        GMRequestAPI.registerOp({
+            op: OP_CREATE,
+            module: MODULE.ID,
+            handler: (payload, user) => this.create({ ...payload, author: user?.id })
+        });
+        GMRequestAPI.registerOp({
+            op: OP_UPDATE,
+            module: MODULE.ID,
+            handler: (payload, user) => this.update(payload?.id, payload?.changes ?? {}, user)
+        });
+        GMRequestAPI.registerOp({
+            op: OP_DELETE,
+            module: MODULE.ID,
+            handler: (payload, user) => this.delete(payload?.id, user)
         });
 
         this.rearmAll();

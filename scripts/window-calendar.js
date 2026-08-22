@@ -39,9 +39,9 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         {
             id: CALENDAR_WINDOW_ID,
             classes: ['blacksmith-calendar-tool-window'],
-            position: { width: 640, height: 'auto' },
-            window: { title: 'Calendar', resizable: false, minimizable: true },
-            windowSizeConstraints: { minWidth: 520, maxWidth: 860 },
+            position: { width: 700, height: 'auto' },
+            window: { title: 'Calendar', resizable: true, minimizable: true },
+            windowSizeConstraints: { minWidth: 520 },
             toolTitlebar: 'full',
             rememberPosition: true,
             windowPositionKey: 'blacksmith-calendar-position'
@@ -59,7 +59,11 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         calendarNext: (_event, _target, win) => win?._shiftMonth(1),
         calendarToday: (_event, _target, win) => win?._goToToday(),
         calendarPickDay: (_event, target, win) => win?._pickDay(target),
+        calendarPrevYear: (_event, _target, win) => win?._shiftYear(-1),
+        calendarNextYear: (_event, _target, win) => win?._shiftYear(1),
+        calendarGoToSelected: (_event, _target, win) => win?._goToSelected(),
         calendarAddEvent: (_event, target, win) => win?._addEvent(target),
+        calendarEditEvent: (_event, target, win) => win?._editEvent(target),
         calendarDeleteEvent: (_event, target, win) => win?._deleteEvent(target)
     };
 
@@ -69,6 +73,10 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         // ahead to find a date must not move the world by looking at it.
         this.viewYear = null;
         this.viewMonth = null;
+        // The day the reader has CLICKED, which is not the day the world is on.
+        // Today is a fact; selection is a focus, and they need different marks or a
+        // GM cannot tell "where we are" from "what I am looking at".
+        this.selectedDay = null;
     }
 
     // ==============================================================
@@ -107,6 +115,35 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         const minutesPerHour = Number(game.time?.calendar?.days?.minutesPerHour) || 60;
         const width = String(minutesPerHour - 1).length;
         return `${String(hour ?? 0)}:${String(minute ?? 0).padStart(width, '0')}`;
+    }
+
+    /**
+     * The season a month falls in, localized, or ''.
+     *
+     * `seasons.values` is optional and its entries may bound themselves by month
+     * ordinals OR by day-of-year -- core checks days first (`calendar.mjs:236`). Only
+     * the month form is used here, because a month grid has no single day to test and
+     * naming a season per cell would be noise.
+     */
+    static seasonFor(calendar, year, monthIndex) {
+        const seasons = calendar?.seasons?.values;
+        const month = calendar?.months?.values?.[monthIndex];
+        if (!Array.isArray(seasons) || !seasons.length || !month) return '';
+
+        const ordinal = month.ordinal;
+        const count = calendar.months.values.length;
+        for (const season of seasons) {
+            let { monthStart, monthEnd } = season;
+            if (typeof monthStart !== 'number' || typeof monthEnd !== 'number') continue;
+            // A season that wraps the year end -- winter running 12 to 2 -- is expressed
+            // with an end lower than its start, the same way core reads it.
+            if (monthEnd < monthStart) {
+                if (ordinal <= monthEnd) monthStart -= count;
+                else if (ordinal >= monthStart) monthEnd += count;
+            }
+            if (ordinal >= monthStart && ordinal <= monthEnd) return this.label(season.name);
+        }
+        return '';
     }
 
     /** Components of the current world time, or null. */
@@ -201,6 +238,7 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
                 label: day + 1,
                 dayIndex: day,
                 isToday: isCurrentMonth && now.dayOfMonth === day,
+                isSelected: this.selectedDay === day,
                 hasEvents: dayEvents.length > 0,
                 // The names ride in the tooltip so a marker is not a dead dot: hovering
                 // a marked day says what is on it without opening anything.
@@ -238,18 +276,28 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
                     name: event.name,
                     description: event.description,
                     dayLabel: day + 1,
+                    // Hiding a control the store would refuse anyway. The rule itself
+                    // lives GM-side in CalendarEvents.canEdit; this is only the UI
+                    // agreeing with it.
+                    canEdit: CalendarEvents.canEdit(event),
+                    authorName: game.users?.get(event.author)?.name ?? '',
                     timeLabel: CalendarWindow.formatTime(event.hour, event.minute),
                     recurrenceLabel: event.recurrence === EVENT_RECURRENCE.ANNUAL ? 'every year'
                         : event.recurrence === EVENT_RECURRENCE.MONTHLY ? 'every month'
                             : 'once'
                 }))),
             viewingNow: isCurrentMonth,
+            seasonName: CalendarWindow.seasonFor(calendar, this.viewYear, monthIndex),
+            canEdit: !!game.user?.isGM,
             // Which day the footer's Add button targets. Today when today is on
             // screen, otherwise the first of the month being viewed -- a button in a
             // footer has no day of its own, and adding to a day the reader cannot see
             // would be worse than adding to the one they are looking at.
-            addDayIndex: isCurrentMonth ? now.dayOfMonth : 0,
-            addDayLabel: isCurrentMonth ? 'today' : `${CalendarWindow.label(month.name)} 1`,
+            hasSelection: Number.isInteger(this.selectedDay) && this.selectedDay < dayCount,
+            selectedDayIndex: this.selectedDay,
+            selectedLabel: Number.isInteger(this.selectedDay)
+                ? `${CalendarWindow.label(month.name)} ${this.selectedDay + 1}`
+                : '',
             todayLabel: `${CalendarWindow.label(months[now.month]?.name)} ${now.dayOfMonth + 1}`
         };
     }
@@ -280,31 +328,54 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         await this.render(false);
     }
 
+    /** Page a whole year, keeping the month. */
+    async _shiftYear(delta) {
+        if (!Number.isInteger(this.viewYear)) return;
+        this.viewYear += delta;
+        await this.render(false);
+    }
+
     /** Back to the month the world is actually in. */
     async _goToToday() {
         const now = CalendarWindow.nowComponents();
         if (!now) return;
         this.viewYear = now.year;
         this.viewMonth = now.month;
+        this.selectedDay = now.dayOfMonth;
         await this.render(false);
     }
 
     /**
-     * Move the world to the clicked day, keeping the time of day.
+     * Clicking a day SELECTS it. It does not move the world.
+     *
+     * Selection and "today" are different facts and now look different: today is
+     * where the world is, selection is where the reader is looking. Conflating them
+     * meant a GM could not page forward, point at a date and talk about it without
+     * also travelling there. Moving the world is the footer's job, on the selected
+     * day, which also gives that action a visible subject.
+     *
+     * Available to players: selecting is reading.
+     */
+    async _pickDay(target) {
+        const dayIndex = Number(target?.dataset?.day);
+        if (!Number.isInteger(dayIndex)) return;
+        this.selectedDay = this.selectedDay === dayIndex ? null : dayIndex;
+        await this.render(false);
+    }
+
+    /**
+     * Move the world to the selected day, keeping the time of day.
      *
      * KEEPING THE TIME is the whole of the decision. Jumping to midnight would make
      * "skip to the 14th" also mean "and it is now the middle of the night", which is
-     * not what the click said. The hour and minute come from the current components
-     * and go straight back in.
+     * not what the click said.
      *
      * GM only, because world time is the `core.time` world setting -- a player
      * clicking would throw rather than quietly fail.
      */
-    async _pickDay(target) {
+    async _goToSelected() {
         if (!game.user?.isGM) return;
-
-        const dayIndex = Number(target?.dataset?.day);
-        if (!Number.isInteger(dayIndex)) return;
+        if (!Number.isInteger(this.selectedDay)) return;
 
         const calendar = CalendarWindow.calendar();
         const now = CalendarWindow.nowComponents();
@@ -314,7 +385,7 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             const time = calendar.componentsToTime({
                 year: this.viewYear,
                 month: this.viewMonth,
-                dayOfMonth: dayIndex,
+                dayOfMonth: this.selectedDay,
                 hour: now.hour,
                 minute: now.minute,
                 second: now.second
@@ -335,10 +406,12 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
      * and a second one here would be the fourth thing to restyle when the chrome
      * changes.
      */
-    async _addEvent(target) {
-        if (!game.user?.isGM) return;
-
-        const dayIndex = Number(target?.dataset?.day);
+    async _addEvent(target, existing = null) {
+        // Players may add events. The write is proxied to the GM by CalendarEvents,
+        // which stamps the verified caller as the author.
+        const dayIndex = existing
+            ? existing.day
+            : Number(target?.dataset?.day ?? this.selectedDay);
         if (!Number.isInteger(dayIndex)) return;
 
         const calendar = CalendarWindow.calendar();
@@ -358,27 +431,29 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             const now = CalendarWindow.nowComponents();
 
             const { action, value } = await DialogAPI.prompt({
-                title: `New event: ${monthName} ${dayIndex + 1}`,
-                submitLabel: 'Add Event',
-                submitIcon: 'fa-solid fa-calendar-plus',
+                title: existing
+                    ? `Edit event: ${monthName} ${dayIndex + 1}`
+                    : `New event: ${monthName} ${dayIndex + 1}`,
+                submitLabel: existing ? 'Save Event' : 'Add Event',
+                submitIcon: existing ? 'fa-solid fa-floppy-disk' : 'fa-solid fa-calendar-plus',
                 position: { width: 420 },
                 content: `
                     <div class="blacksmith-calendar-event-form">
-                        <label>Name<input type="text" name="eventName" autofocus></label>
-                        <label>Description<textarea name="eventDescription" rows="3"></textarea></label>
+                        <label>Name<input type="text" name="eventName" autofocus value="${foundry.utils.escapeHTML(existing?.name ?? '')}"></label>
+                        <label>Description<textarea name="eventDescription" rows="3">${foundry.utils.escapeHTML(existing?.description ?? '')}</textarea></label>
                         <div class="blacksmith-calendar-event-form-row">
                             <label>Repeats
                                 <select name="eventRecurrence">
-                                    <option value="${EVENT_RECURRENCE.ONCE}">Once, this year only</option>
-                                    <option value="${EVENT_RECURRENCE.ANNUAL}">Every year on this date</option>
-                                    <option value="${EVENT_RECURRENCE.MONTHLY}">Every month on this day</option>
+                                    <option value="${EVENT_RECURRENCE.ONCE}"${existing?.recurrence === EVENT_RECURRENCE.ONCE ? ' selected' : ''}>Once, this year only</option>
+                                    <option value="${EVENT_RECURRENCE.ANNUAL}"${existing?.recurrence === EVENT_RECURRENCE.ANNUAL ? ' selected' : ''}>Every year on this date</option>
+                                    <option value="${EVENT_RECURRENCE.MONTHLY}"${existing?.recurrence === EVENT_RECURRENCE.MONTHLY ? ' selected' : ''}>Every month on this day</option>
                                 </select>
                             </label>
                             <label>Time
                                 <span class="blacksmith-calendar-event-form-time">
-                                    <input type="number" name="eventHour" min="0" max="${hoursPerDay - 1}" value="${now?.hour ?? 0}">
+                                    <input type="number" name="eventHour" min="0" max="${hoursPerDay - 1}" value="${existing?.hour ?? now?.hour ?? 0}">
                                     <span>:</span>
-                                    <input type="number" name="eventMinute" min="0" max="${minutesPerHour - 1}" value="0">
+                                    <input type="number" name="eventMinute" min="0" max="${minutesPerHour - 1}" value="${existing?.minute ?? 0}">
                                 </span>
                             </label>
                         </div>
@@ -394,6 +469,18 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             });
 
             if (action !== DialogAPI.ACTIONS.SUBMIT || !value?.name) return;
+
+            if (existing) {
+                await CalendarEvents.update(existing.id, {
+                    name: value.name,
+                    description: value.description,
+                    recurrence: value.recurrence,
+                    hour: value.hour,
+                    minute: value.minute
+                });
+                await this.render(false);
+                return;
+            }
 
             await CalendarEvents.create({
                 name: value.name,
@@ -411,14 +498,24 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         }
     }
 
+    /** Reopen the add dialog with an event's values in it. */
+    async _editEvent(target) {
+        const id = target?.dataset?.eventId;
+        const event = id ? CalendarEvents.get(id) : null;
+        if (!event) return;
+        // Re-checked at click time, not only at render: the list may have been
+        // repainted since, and the store would refuse anyway.
+        if (!CalendarEvents.canEdit(event)) return;
+        await this._addEvent(null, event);
+    }
+
     /** Remove an event, confirming first because there is no undo. */
     async _deleteEvent(target) {
-        if (!game.user?.isGM) return;
-
         const id = target?.dataset?.eventId;
         if (!id) return;
         const event = CalendarEvents.get(id);
         if (!event) return;
+        if (!CalendarEvents.canEdit(event)) return;
 
         try {
             const { DialogAPI } = await import('./api-dialog.js');
@@ -446,9 +543,8 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
 
         // RIGHT-CLICK A DAY TO ADD AN EVENT ON IT. Bound here rather than through
         // ACTION_HANDLERS because `data-action` dispatches on click only, and left
-        // click already means "go to this day". Without this the only day that could
-        // take an event was the one the footer button pointed at.
-        if (!game.user?.isGM) return;
+        // click already means "select this day". Players get this too: the write is
+        // proxied to the GM rather than refused.
         this.element?.querySelectorAll('[data-action="calendarPickDay"]').forEach((cell) => {
             cell.addEventListener('contextmenu', (event) => {
                 event.preventDefault();

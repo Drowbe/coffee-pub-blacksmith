@@ -14,48 +14,61 @@
 <div class="blacksmith-calendar">
 
     <div class="blacksmith-calendar-header">
-        <button type="button" class="blacksmith-calendar-nav" data-action="calendarPrev"
-                data-tooltip="Previous month">
-            <i class="fa-solid fa-chevron-left"></i>
-        </button>
+        <span class="blacksmith-calendar-navgroup">
+            <button type="button" class="blacksmith-calendar-nav" data-action="calendarPrevYear"
+                    data-tooltip="Previous year">
+                <i class="fa-solid fa-angles-left"></i>
+            </button>
+            <button type="button" class="blacksmith-calendar-nav" data-action="calendarPrev"
+                    data-tooltip="Previous month">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+        </span>
 
         <div class="blacksmith-calendar-title">
             <span class="blacksmith-calendar-month">{{monthName}}</span>
             <span class="blacksmith-calendar-year">{{yearLabel}}{{#if isLeapYear}} <i class="fa-solid fa-asterisk blacksmith-calendar-leap" data-tooltip="A leap year in this calendar"></i>{{/if}}</span>
+            {{#if seasonName}}<span class="blacksmith-calendar-season">{{seasonName}}</span>{{/if}}
         </div>
 
-        <button type="button" class="blacksmith-calendar-nav" data-action="calendarNext"
-                data-tooltip="Next month">
-            <i class="fa-solid fa-chevron-right"></i>
-        </button>
+        <span class="blacksmith-calendar-navgroup">
+            <button type="button" class="blacksmith-calendar-nav" data-action="calendarNext"
+                    data-tooltip="Next month">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button type="button" class="blacksmith-calendar-nav" data-action="calendarNextYear"
+                    data-tooltip="Next year">
+                <i class="fa-solid fa-angles-right"></i>
+            </button>
+        </span>
     </div>
 
     <div class="blacksmith-calendar-body">
 
         <div class="blacksmith-calendar-main">
-            <div class="blacksmith-calendar-grid" style="--bc-columns: {{columns}};">
+            {{!-- Weekday header and day grid are SEPARATE grids sharing a column
+                  template. One grid would make `grid-auto-rows: 1fr` stretch the
+                  header row along with the days when the window is tall. --}}
+            <div class="blacksmith-calendar-weekdays" style="--bc-columns: {{columns}};">
                 {{#each weekdays}}
                 <div class="blacksmith-calendar-weekday" data-tooltip="{{this.name}}">{{this.abbreviation}}</div>
                 {{/each}}
+            </div>
 
+            <div class="blacksmith-calendar-grid" style="--bc-columns: {{columns}};">
                 {{#each cells}}
                     {{#if this.blank}}
                     <div class="blacksmith-calendar-day is-blank"></div>
                     {{else}}
-                        {{!-- A day is a button only for a GM. For a player it is the same cell
-                              without the affordance, because setting world time would throw.
-                              LEFT click goes to the day; RIGHT click adds an event on it, which
-                              is how any day other than today gets one. --}}
-                        {{#if ../isGM}}
-                        <button type="button"
-                                class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
-                                data-action="calendarPickDay"
-                                data-day="{{this.dayIndex}}"
-                                data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}}<br>{{/if}}Click to go here &middot; right-click to add an event">{{this.label}}</button>
-                        {{else}}
-                        <div class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
-                             {{#if this.hasEvents}}data-tooltip="{{this.eventTooltip}}"{{/if}}>{{this.label}}</div>
-                        {{/if}}
+                    {{!-- Everyone gets a button: clicking SELECTS a day, which is
+                          reading rather than writing. Right-click adds an event, which
+                          players may also do -- the write is proxied to the GM.
+                          TODAY and SELECTED are different marks on purpose. --}}
+                    <button type="button"
+                            class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.isSelected}} is-selected{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
+                            data-action="calendarPickDay"
+                            data-day="{{this.dayIndex}}"
+                            data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}}<br>{{/if}}Click to select &middot; right-click to add an event">{{this.label}}</button>
                     {{/if}}
                 {{/each}}
             </div>
@@ -71,14 +84,19 @@
                 <div class="blacksmith-calendar-event">
                     <span class="blacksmith-calendar-event-day">{{this.dayLabel}}</span>
                     <span class="blacksmith-calendar-event-name" data-tooltip="{{this.description}}">{{this.name}}</span>
-                    {{#if ../isGM}}
+                    {{#if this.canEdit}}
+                    <button type="button" class="blacksmith-calendar-event-edit"
+                            data-action="calendarEditEvent" data-event-id="{{this.id}}"
+                            data-tooltip="Edit this event">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
                     <button type="button" class="blacksmith-calendar-event-delete"
                             data-action="calendarDeleteEvent" data-event-id="{{this.id}}"
                             data-tooltip="Delete this event">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                     {{/if}}
-                    <span class="blacksmith-calendar-event-recurrence">{{this.timeLabel}} &middot; {{this.recurrenceLabel}}</span>
+                    <span class="blacksmith-calendar-event-recurrence">{{this.timeLabel}} &middot; {{this.recurrenceLabel}}{{#if this.authorName}} &middot; {{this.authorName}}{{/if}}</span>
                 </div>
                 {{/each}}
             </div>
@@ -97,12 +115,22 @@
                 <i class="fa-solid fa-location-crosshairs"></i> Back to today
             </button>
             {{/unless}}
-            {{#if isGM}}
+            {{!-- Both act on the SELECTED day, which is why selection is marked
+                  separately from today: the button has a visible subject. --}}
+            {{#if hasSelection}}
+                {{#if isGM}}
+                <button type="button" class="blacksmith-calendar-jump" data-action="calendarGoToSelected"
+                        data-tooltip="Move the world to {{selectedLabel}}, keeping the time of day">
+                    <i class="fa-solid fa-forward"></i> Go to {{selectedLabel}}
+                </button>
+                {{/if}}
             <button type="button" class="blacksmith-calendar-jump"
-                    data-action="calendarAddEvent" data-day="{{addDayIndex}}"
-                    data-tooltip="Add an event on {{addDayLabel}}. Right-click any day to add one there.">
+                    data-action="calendarAddEvent" data-day="{{selectedDayIndex}}"
+                    data-tooltip="Add an event on {{selectedLabel}}">
                 <i class="fa-solid fa-plus"></i> Add event
             </button>
+            {{else}}
+            <span class="blacksmith-calendar-hint">Select a day</span>
             {{/if}}
         </span>
     </div>

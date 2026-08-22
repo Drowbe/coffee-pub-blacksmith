@@ -10,11 +10,16 @@
    nine is a number weeks can be.
    ================================================================== */
 
+/* THE CALENDAR FILLS THE WINDOW; the events pane does not. Resizing gives the
+   space to the grid, which is the thing worth making bigger -- an event list
+   twice as wide is not twice as useful. */
 .blacksmith-calendar {
     display: flex;
     flex-direction: column;
     gap: var(--blacksmith-space-md);
     padding: var(--blacksmith-space-md);
+    height: 100%;
+    min-height: 0;
 }
 
 /* Grid on the left, this month's events on the right. Two columns rather
@@ -22,17 +27,33 @@
    footer up and down as the event count changes. */
 .blacksmith-calendar-body {
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     gap: var(--blacksmith-space-lg);
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .blacksmith-calendar-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-xs);
     flex: 1 1 auto;
+    min-height: 0;
+    /* min-width:0 on BOTH the column and the grid inside it. A flex item defaults
+       to min-width:auto, which refuses to shrink below its content -- with ten
+       columns that pushed the grid out under the events list instead of shrinking
+       the cells. */
     min-width: 0;
+    overflow: hidden;
 }
 
 .blacksmith-calendar-side {
-    flex: 0 0 190px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* FIXED. Extra width belongs to the grid, and a list that grew with the window
+       would just have longer whitespace after each name. */
+    flex: 0 0 200px;
     min-width: 0;
     align-self: stretch;
     padding-left: var(--blacksmith-space-lg);
@@ -53,6 +74,25 @@
     flex-direction: column;
     align-items: center;
     line-height: 1.2;
+}
+
+.blacksmith-calendar-navgroup {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* The season names the month, so it sits under the year rather than beside it. */
+.blacksmith-calendar-season {
+    font-size: 0.72em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blacksmith-tool-text-muted);
+}
+
+.blacksmith-calendar-hint {
+    font-style: italic;
+    opacity: 0.7;
 }
 
 .blacksmith-calendar-month {
@@ -91,10 +131,23 @@
 
 /* ----- The grid --------------------------------------------------- */
 
+/* Both grids share the column template so the header sits over its days. */
+.blacksmith-calendar-weekdays,
 .blacksmith-calendar-grid {
     display: grid;
-    grid-template-columns: repeat(var(--bc-columns, 7), 1fr);
+    /* minmax(0, 1fr), not 1fr: a bare 1fr is min-content-floored, so a ten-column
+       grid could not shrink and overflowed its column instead. */
+    grid-template-columns: repeat(var(--bc-columns, 7), minmax(0, 1fr));
     gap: var(--blacksmith-space-xs);
+    min-width: 0;
+}
+
+/* The days take the leftover height, split evenly between however many rows the
+   month happens to need. */
+.blacksmith-calendar-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-auto-rows: minmax(28px, 1fr);
 }
 
 .blacksmith-calendar-weekday {
@@ -113,8 +166,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    aspect-ratio: 1 / 1;
-    min-height: 30px;
+    /* No aspect-ratio and no min-width: the cell takes whatever the grid gives it
+       in both directions, which is what lets the month fill a resized window
+       instead of sitting square in the corner of it.
+
+       height:100% is not redundant. A grid item stretches by default, but Foundry
+       gives every `button` an explicit height, and an explicit height beats the
+       default stretch -- so the ROWS grew with the window while the cells inside
+       them stayed short and floated at the top of each track. */
+    min-width: 0;
+    height: 100%;
+    align-self: stretch;
     margin: 0;
     padding: 0;
     font-size: 0.9em;
@@ -139,11 +201,18 @@ button.blacksmith-calendar-day:hover {
     border-color: transparent;
 }
 
-/* Today is marked with a border rather than a fill, so it stays legible
-   under the hover fill instead of fighting it. */
+/* TODAY and SELECTED are different facts and get different marks. Today is
+   where the world is -- an accent border, always true. Selected is where the
+   reader is looking -- a filled cell, which changes as they click. A day can
+   be both, and then it reads as a filled cell with an accent edge. */
 .blacksmith-calendar-day.is-today {
     border-color: var(--blacksmith-color-brand-accent);
     font-weight: bold;
+}
+
+.blacksmith-calendar-day.is-selected {
+    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
+    box-shadow: inset 0 0 0 1px var(--blacksmith-tool-accent);
 }
 
 /* A day carrying events gets a dot under the number rather than a fill, so
@@ -170,6 +239,24 @@ button.blacksmith-calendar-day:hover {
     display: flex;
     flex-direction: column;
     gap: 1px;
+}
+
+/* THE LIST SCROLLS, the pane does not. `overflow-y: auto` alone did nothing here:
+   an auto-height flex child grows to fit its content, so there was never an
+   overflow to scroll. Bounding it to the leftover height of the side column --
+   `flex: 1 1 auto` plus `min-height: 0`, since a flex item will not shrink below
+   its content without it -- is what gives the scrollbar something to act on. */
+.blacksmith-calendar-side .blacksmith-calendar-events {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* Room for the scrollbar so it does not sit on top of the delete buttons. */
+    padding-right: 2px;
+}
+
+/* The heading stays put while the list moves under it. */
+.blacksmith-calendar-side .blacksmith-calendar-events-title {
+    flex: 0 0 auto;
 }
 
 /* In the side column an event is two lines, not one: the horizontal room
@@ -227,6 +314,7 @@ button.blacksmith-calendar-day:hover {
     color: var(--blacksmith-tool-text-muted);
 }
 
+.blacksmith-calendar-event-edit,
 .blacksmith-calendar-event-delete {
     flex: 0 0 auto;
     width: 18px;
@@ -238,6 +326,10 @@ button.blacksmith-calendar-day:hover {
     border: none;
     color: var(--blacksmith-tool-text-muted);
     cursor: pointer;
+}
+
+.blacksmith-calendar-event-edit:hover {
+    color: var(--blacksmith-color-brand-accent);
 }
 
 .blacksmith-calendar-event-delete:hover {

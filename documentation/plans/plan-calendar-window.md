@@ -73,11 +73,18 @@ time-bound things is the index rendered; markers are a range query. Both fall ou
 
 ## Still missing from the window
 
-- **No season or festival colouring.** `calendar.seasons` is available and would read well behind the grid.
-- **No year view or year jump.** Paging twelve months to reach next winter is tedious.
-- **No per-day add.** The footer's Add button anchors to today, or to the first of the month being viewed.
-  Adding on an arbitrary day wants a right-click menu on the cell.
-- **No editing an event**, only add and delete.
+Shipped 2026-08-22: season name in the header, year paging, editing an event, per-day add by right-click,
+selection marked separately from today, and player access -- players view the calendar and add events, with
+the write proxied to the GM through `api.gmRequest` so the author is the verified caller.
+
+What is left:
+
+- **No season colouring**, only the name. Tinting the grid behind the days would read well and is cosmetic.
+- **No year view.** Paging a year at a time is now possible; seeing twelve months at once is not.
+Ownership shipped 2026-08-22: a GM may change any event, anyone else only what they authored. Enforced
+GM-side in `CalendarEvents.canEdit`, not merely in the UI -- the op is reachable from a console, so a
+hidden button is a suggestion. `author` and `id` are stripped from any update, or the check would be
+self-defeating. An event with no author predates this and is GM-only, which is the safe reading.
 
 ## Verification
 

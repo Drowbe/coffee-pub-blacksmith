@@ -122,7 +122,44 @@ class RestManager {
     /** @type {{timer: any, minutes: number, systemAdvanced: boolean}|null} */
     static _pending = null;
 
+    /**
+     * Warn once when exhaustion is on but the system is running 2014 rules.
+     *
+     * OUR EXHAUSTION FEATURE IS NOT A RULES ENGINE -- dnd5e automates the modern
+     * six-level track itself, and a long rest removes a level through
+     * `exhaustionDelta`, which is why this needed no code. On `legacy` the system
+     * uses the 2014 table instead, where the levels mean different things and a long
+     * rest still clears only one. Foraging will still apply exhaustion and dnd5e will
+     * still handle it, but the effects a GM expects from the modern rules are not
+     * what they will get.
+     *
+     * A warning rather than a refusal: the table's rules version is the table's
+     * decision, and silently doing nothing would be worse than saying so once.
+     */
+    static _warnIfLegacyRules() {
+        if (!game.user?.isGM) return;
+        if (this._warnedLegacyRules) return;
+
+        const version = game.settings.get('dnd5e', 'rulesVersion');
+        if (version === 'modern') return;
+
+        const forage = getSettingSafely(MODULE.ID, 'restForageEnabled', false);
+        const exhaustion = getSettingSafely(MODULE.ID, 'restExhaustionEnabled', false);
+        if (!forage && !exhaustion) return;
+
+        this._warnedLegacyRules = true;
+        postConsoleAndNotification(MODULE.NAME,
+            'Rest: exhaustion assumes the 2024 rules. This world is set to 2014 (legacy), '
+            + 'so dnd5e applies the older exhaustion table and the effects will differ.',
+            `dnd5e rulesVersion: ${version}`, false, true);
+    }
+
+    /** @type {boolean} One warning per session, not one per rest. */
+    static _warnedLegacyRules = false;
+
     static initialize() {
+        this._warnIfLegacyRules();
+
         HookManager.registerHook({
             name: 'dnd5e.restCompleted',
             description: 'Rest: Advance the world clock, provision the character, post their card',
