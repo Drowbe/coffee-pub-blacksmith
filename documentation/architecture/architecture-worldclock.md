@@ -193,6 +193,17 @@ Consequences worth knowing:
 - **`ARC_INSET` keeps the body off both edges.** The panel clips, and a clipped region is not hit-testable,
   so without the inset the sun would be half ungrabbable at sunrise and the moon at dusk.
 
+## The drag crosses phase boundaries
+
+`_arcProgressFromX` clamps to `[0, 1]` for painting, and the DRAG asks it not to. Bounded, a gesture could
+never leave the phase it started in: pushing past the right edge pinned progress at exactly 1, which is the
+next phase's start, so the body reappeared at the left as the other body and went no further -- and pulling
+left pinned at 0, which is why 1am could not be dragged back to 10pm the evening before.
+
+Unclamped, `phaseStartTime + progress * phaseSeconds` walks into the neighbouring phase on its own. The
+gesture is continuous over TIME rather than over one phase, and the repaint puts the right body at the right
+edge because it derives both from the resulting time rather than from the pointer.
+
 ## Why the drag defers its write
 
 Setting the time writes the `core.time` world setting: a database round trip broadcast to every client. A

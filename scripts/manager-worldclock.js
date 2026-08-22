@@ -367,10 +367,12 @@ class WorldClockManager {
     }
 
     /** The inverse of `_arcXPercent`, for turning a pointer position back into time. */
-    static _arcProgressFromX(xPercent) {
+    static _arcProgressFromX(xPercent, { clamp = true } = {}) {
         const span = 100 - (this.ARC_INSET * 2);
         if (!(span > 0)) return 0;
-        return Math.min(Math.max((xPercent - this.ARC_INSET) / span, 0), 1);
+        const progress = (xPercent - this.ARC_INSET) / span;
+        if (!clamp) return progress;
+        return Math.min(Math.max(progress, 0), 1);
     }
 
     /**
@@ -1286,7 +1288,19 @@ class WorldClockManager {
         if (!bounds.width) return;
 
         const xPercent = ((event.clientX - drag.grabOffset - bounds.left) / bounds.width) * 100;
-        const progress = this._arcProgressFromX(xPercent);
+
+        // UNCLAMPED, and that is the whole of the fix. Bounded to [0, 1] the drag
+        // could never leave the phase it started in: pushing past the right edge
+        // pinned progress at exactly 1, which IS the next phase's start, so the body
+        // reappeared at the left as the other body and went no further. Pulling left
+        // pinned it at 0 for the same reason, which is why there was no way to drag
+        // 1am back to 10pm the evening before.
+        //
+        // Letting it run negative and past 1 makes the gesture continuous over TIME
+        // rather than over one phase. `phaseStartTime + progress * phaseSeconds` then
+        // walks into the neighbouring phase on its own, and the repaint puts the
+        // right body at the right edge because it derives both from the new time.
+        const progress = this._arcProgressFromX(xPercent, { clamp: false });
 
         const raw = drag.phaseStartTime + (progress * drag.phaseSeconds);
         drag.target = Math.round(raw / drag.secondsPerMinute) * drag.secondsPerMinute;
