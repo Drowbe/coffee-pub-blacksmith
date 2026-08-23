@@ -339,7 +339,7 @@ export class NoteReminders {
                     note: entry.note,
                     dueAt: entry.dueAt,
                     firedAt: now,
-                    late: now > entry.dueAt,
+                    late: this._isLate(entry.dueAt, now, startup),
                     startup
                 });
             } catch (error) {
@@ -347,8 +347,31 @@ export class NoteReminders {
             }
         }
 
-        void this._announce(owed, now);
+        void this._announce(owed, now, startup);
         return owed.length;
+    }
+
+    /**
+     * Whether this reminder is arriving LATE rather than arriving now.
+     *
+     * `firedAt > dueAt` is not the test, though it is the obvious one. The clock
+     * moves in steps -- a running time mode advances it several minutes at a
+     * time -- so a reminder due at 14:30 is found at 14:35 and is past its moment
+     * by construction. Calling that late made every ordinary reminder announce
+     * itself in the past tense, as though it had been missed.
+     *
+     * Late means one of two things actually worth saying:
+     *
+     *   - it was found by the startup scan, which is exactly the "you were away
+     *     when this came due" case the persisted index exists for, or
+     *   - the world has moved more than an hour past it, which only happens when
+     *     somebody jumped the clock rather than let it run.
+     */
+    static _isLate(dueAt, firedAt, startup) {
+        if (startup) return true;
+        const calendar = game.time?.calendar;
+        const hour = (Number(calendar?.days?.secondsPerMinute) || 60) * (Number(calendar?.days?.minutesPerHour) || 60);
+        return (firedAt - dueAt) > hour;
     }
 
     /**
@@ -358,15 +381,22 @@ export class NoteReminders {
      * an in-world month should not bury the screen in a stack of them, and the
      * count is the useful fact at that point anyway.
      */
-    static async _announce(owed, now) {
+    static async _announce(owed, now, startup) {
         try {
             const { ToastAPI } = await import('./api-toast.js');
 
             if (owed.length === 1) {
                 const [{ note, dueAt }] = owed;
+                const late = this._isLate(dueAt, now, startup);
                 ToastAPI.show({
                     title: note.name || 'Untitled Note',
-                    subtitle: now > dueAt ? `Was due ${this.formatMoment(dueAt)}` : 'Reminder',
+                    // Present tense unless it really was missed. The clock moves in
+                    // steps, so a reminder is always found a little past its moment
+                    // -- wording that off `firedAt > dueAt` made every ordinary
+                    // reminder read as something that had already been missed.
+                    subtitle: late
+                        ? `Was due ${this.formatMoment(dueAt)}`
+                        : `Reminder for ${this.formatMoment(dueAt)}`,
                     icon: 'fa-solid fa-bell',
                     duration: 8,
                     moduleId: MODULE.ID,
@@ -379,7 +409,9 @@ export class NoteReminders {
             }
 
             ToastAPI.show({
-                title: `${owed.length} reminders came due`,
+                title: startup
+                    ? `${owed.length} reminders were due while you were away`
+                    : `${owed.length} reminders`,
                 subtitle: owed.map(({ note }) => note.name || 'Untitled Note').join(', '),
                 icon: 'fa-solid fa-bell',
                 duration: 10,

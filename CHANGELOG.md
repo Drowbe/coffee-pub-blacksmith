@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   `utility-calendar.js` now owns the conversion, doing the walk over month lengths that dnd5e's own `jumpToDate` does before it calls core. Both callers of the duplicated `daysInMonth` now delegate to it rather than keeping a third copy.
 
+- **A reminder arriving on time announced itself in the past tense** (`scripts/manager-note-reminders.js`). The toast said "Was due Hammer 14, 14:30" for something that had just triggered, which reads as a reminder that was missed rather than one that fired. The cause was wording it off `firedAt > dueAt`: the clock advances in steps, so every reminder is found slightly past its moment and that comparison calls all of them late. Late now means the startup scan found it -- the genuine "you were away" case -- or the world moved more than an in-world hour past it, which only happens when somebody jumped the clock. The `late` field on `blacksmith.noteReminderFired` follows the same rule, so a consumer's wording agrees with ours.
+
 - **The reminder dialog's Year field showed a year nobody recognises.** `components.year` is not the displayed year -- that is `components.year + calendar.years.yearZero` -- so a world reading 2997 on the clock offered 1496 in the field, and typing the year off the clock would have shifted the date by yearZero. `toDisplayYear` / `toInternalYear` convert in both directions.
 
 ### Added

@@ -206,7 +206,12 @@ see the Calendar API.
 
 `blacksmith.noteReminderFired` carries `{ note, dueAt, firedAt, late, startup }`. It fires only on the
 client that owes the reminder. `startup` is true when it was found by the scan at load rather than by the
-world time moving, which is the missed case.
+world time moving.
+
+**`late` is not `firedAt > dueAt`.** The clock moves in steps, so every reminder is found slightly past its
+moment and that comparison would call all of them late. `late` means the reminder was found by the startup
+scan, or the world moved more than an in-world hour past it -- which only happens when somebody jumped the
+clock rather than let it run. Use `late` for wording, not the timestamps.
 
 `blacksmith.noteRemindersChanged` takes no payload and fires when the set of reminders changes -- one was
 set, moved, cleared, or fired. Listen to it rather than to the journal page hooks if you draw reminders:

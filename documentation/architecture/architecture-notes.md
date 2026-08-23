@@ -85,8 +85,14 @@ the full comparison.
 `_isMine` gates firing on the note's `authorId`, so a note shared with the party resurfaces once. A note
 whose author no longer has a user falls to the GM rather than to nobody.
 
-Idempotence is `firedAt`, stamped before anything is announced. It is also what distinguishes late from
-on-time without a third field: `firedAt > dueAt` means it came back after its moment.
+Idempotence is `firedAt`, stamped before anything is announced.
+
+**`firedAt > dueAt` does NOT mean the reminder was late**, though it is the obvious reading and the first
+version used it. The clock advances in steps -- a running time mode moves it several minutes at a time --
+so a reminder due at 14:30 is found at 14:35 and is past its moment by construction. Wording the toast off
+that comparison made every ordinary reminder announce itself in the past tense, as though it had been
+missed. `_isLate` instead treats a reminder as late when the startup scan found it, or when the world has
+moved more than an in-world hour past it -- the second only happens when somebody jumped the clock.
 
 **Setting a reminder clears `firedAt`.** Moving one forward is asking to be reminded again, and leaving
 the stamp would mean it never was.
