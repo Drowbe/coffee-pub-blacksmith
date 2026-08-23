@@ -160,6 +160,35 @@ const outcome = await blacksmith.dialog.prompt({
 | `focusSelector` | Focused on each render. |
 | `maxAttempts` | Reopen ceiling, default `10`, so a validator that can never pass cannot loop forever. On exhaustion the result is `action: 'close'` and the last message goes to `ui.notifications`. |
 
+## `pickActor(options)`
+
+```js
+const uuid = await blacksmith.dialog.pickActor({
+  title: 'Who is buying?',
+  actors: game.actors.filter(a => a.hasPlayerOwner)
+});
+if (uuid) { /* ... */ }
+```
+
+| Option | Meaning |
+|---|---|
+| `title` | Dialog title. Defaults to `Choose an Actor`. |
+| `actors` | Actors, or `{ uuid, name, img }` descriptors. Entries without a `uuid` are dropped. |
+| `confirmLabel` / `confirmIcon` | The submit button. Default `Select` and a check. |
+| `emptyMessage` | Shown instead of a list when `actors` is empty; resolves `null`. |
+| `autoPickSingle` | Resolve immediately when there is exactly one actor, with no dialog. Default `false`. |
+| `modal`, `classes` | As elsewhere. |
+
+**Returns a UUID string, or `null`** on cancel, close, or an empty list. A UUID rather than an Actor so the
+result is serialisable and cannot go stale across the await -- resolve it with `fromUuid` when you need the
+document.
+
+Built on `api.entityList` in single mode, so rows carry portraits. `choose` cannot: it renders each option as
+a DialogV2 button and passes `icon` through as a CSS class, so a portrait is not expressible there.
+
+`autoPickSingle` is off by default deliberately. Only the caller knows whether the pick is a formality or a
+decision, and skipping a confirmation the caller asked for is a surprise.
+
 ## `wait(options)`
 
 Custom buttons with the same dismissal contract. Use it when the other three do not fit.

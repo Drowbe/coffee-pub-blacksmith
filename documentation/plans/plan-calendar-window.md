@@ -49,6 +49,7 @@ What is left:
 
 - **No season colouring**, only the name. Tinting the grid behind the days would read well and is cosmetic.
 - **No year view.** Paging a year at a time is now possible; seeing twelve months at once is not.
+
 Ownership shipped 2026-08-22: a GM may change any event, anyone else only what they authored. Enforced
 GM-side in `CalendarEvents.canEdit`, not merely in the UI -- the op is reachable from a console, so a
 hidden button is a suggestion. `author` and `id` are stripped from any update, or the check would be

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [Unreleased]
+
+### Added
+
+- **`blacksmith.dialog.pickActor` -- pick one actor from a list** (`scripts/api-dialog.js`, `styles/dialog.css`). Returns the chosen actor's UUID, or `null` if the dialog is dismissed. Asked for by Merchant, which was building its own actor picker; the same dialog is wanted by anything that has to ask "who?" before acting.
+
+  It is a thin composition rather than a new widget: `EntityListAPI.create({ mode: 'single' })` rendered inside the existing `prompt`, so the search field, the avatars and the keyboard behaviour are the ones every other entity list already has, and a fix to that list reaches this dialog for free.
+
+### Documented
+
+- **Which UUIDs `blacksmith.inventory` accepts, and what its locks key on** (`documentation/api/api-inventory.md`, `documentation/architecture/architecture-inventory.md`). Synthetic token-actor UUIDs (`Scene.x.Token.y.Actor.z`) are stated as a supported target rather than left to be inferred from one option's table row. Merchant asked because the answer changes what it may pass, and an undocumented behaviour that happens to work is not a contract.
+
+  The behaviour was already correct and is unchanged: `_acquire` locks on the resolved actor's UUID, never on the caller's string, so two ways of naming one actor collapse to a single lock while two unlinked tokens sharing a base Actor take separate ones -- they are separate documents, each with its own ActorDelta. The architecture doc now says why that is load-bearing, since keying on the argument would silently admit two writers to one actor.
+
 ## [13.19.1]
 
 ### Added

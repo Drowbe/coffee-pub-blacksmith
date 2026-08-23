@@ -90,3 +90,12 @@
     flex: 0 0 auto;
     margin: 0;
 }
+
+/* ----- Actor picker ------------------------------------------------
+   `dialog.pickActor` renders an entity list inside a prompt. The list
+   brings its own row styling; this only bounds the height, so a party of
+   twenty does not produce a dialog taller than the screen. */
+.blacksmith-pick-actor .blacksmith-entity-list {
+    max-height: 46vh;
+    overflow-y: auto;
+}

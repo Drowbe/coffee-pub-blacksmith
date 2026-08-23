@@ -1201,11 +1201,19 @@ two consumers had been deleted months earlier and the survey's line reference ha
 consumer fails the bar outright, so no similarity figure was ever going to settle it. A number that moves is
 interesting; a consumer that is gone is decisive, and it is much the cheaper thing to check first.
 
-- [ ] **An actor picker** - 35 lines and 83% identical at last count, which predates the `readFrom` work and
-      is therefore stale in the same way the quantity dialog's was. Confirm both consumers still exist, then
-      remeasure, then decide: a `dialog.pickActor` helper, or a documented `choose` + `entityList.fromActors`
-      recipe. "Documented recipe, not helper" is a real answer here, not a deferral - Merchant's own read is
-      that it is a two-line wrapper now rather than the 30 lines it was, which may put it below the bar.
+**An actor picker -- SHIPPED 2026-08-22 as `dialog.pickActor`.** Merchant restated the ask with the
+measurement: `merchant/window-shop.js:366` and `curator/window-loot.js:349`, 99% identical over ~1,150
+characters, the whole difference being two strings.
+
+It landed as a helper rather than a documented recipe, which is the opposite of the call made for the
+quantity dialog, and the reason is what got copied: the *list rendering* -- portraits, empty state, the
+one-entry case -- not a wrapper around a call. Built on `api.entityList` in single mode, because `choose`
+renders options as DialogV2 buttons and passes `icon` through as a CSS class, so a portrait is not
+expressible there at all.
+
+Returns a UUID or null. Surface in `api/api-dialog.md`. **Merchant's extraction plan deletes when they
+adopt it.**
+
 - [ ] **Adopt `openFor` in Curator.** Shipped on `BlacksmithToolWindowBaseV2`: the per-target registry,
       `isOpenFor` / `openWindowFor` / `openWindows` / `closeFor`, and a `keyFor` hook. Curator can delete its
       `_windows` map and its `static open`. Registries are per subclass, so a Loot window and a Shop window on

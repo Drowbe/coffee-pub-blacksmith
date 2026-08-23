@@ -301,6 +301,97 @@ async function openDialog({
     }));
 }
 
+
+/**
+ * Pick one actor from a list. Resolves the chosen actor's UUID, or null.
+ *
+ * WHY A HELPER RATHER THAN A DOCUMENTED RECIPE. Merchant and Curator each carried
+ * the same ~1,150-character picker, 99% identical, differing only in two strings.
+ * The rule in this file is that a two-line wrapper is a recipe and belongs in the
+ * docs -- this is not that, because what got copied was the list rendering.
+ *
+ * Built on `api.entityList` in single mode rather than on `choose`. `choose` renders
+ * each option as a DialogV2 button and passes `icon` through as a CSS class, so an
+ * actor portrait cannot be shown that way at all -- and portraits are most of why the
+ * picker was worth copying.
+ *
+ * Returns a UUID rather than an Actor so the result is serialisable and cannot go
+ * stale across the await. Both call sites resolve it against the world immediately.
+ *
+ * @param {Object} options
+ * @param {string} [options.title]
+ * @param {Array<Actor|{uuid: string, name?: string, img?: string}>} options.actors
+ * @param {string} [options.confirmLabel='Select']
+ * @param {string} [options.confirmIcon='fa-solid fa-check']
+ * @param {string} [options.emptyMessage] - Shown when `actors` is empty; resolves null.
+ * @param {boolean} [options.autoPickSingle=false] - Resolve immediately when there is
+ *   exactly one actor. Off by default: only the caller knows whether the pick is a
+ *   formality or a decision, and skipping a confirmation they asked for is a surprise.
+ * @returns {Promise<string|null>} The chosen actor's UUID, or null on cancel/close/empty.
+ */
+async function pickActor({
+    title = 'Choose an Actor',
+    actors = [],
+    confirmLabel = 'Select',
+    confirmIcon = 'fa-solid fa-check',
+    emptyMessage = 'No actors available.',
+    autoPickSingle = false,
+    modal = false,
+    classes = []
+} = {}) {
+    const entries = (Array.isArray(actors) ? actors : [])
+        .filter(Boolean)
+        .map((actor) => ({
+            id: actor.uuid ?? null,
+            name: actor.name ?? 'Unnamed',
+            img: actor.img || actor.texture?.src || 'icons/svg/mystery-man.svg'
+        }))
+        .filter(entry => !!entry.id);
+
+    if (!entries.length) {
+        // openDialog rather than confirm(): there is nothing to confirm, and confirm
+        // always renders two buttons, so Cancel and OK would mean the same thing.
+        await openDialog({
+            title,
+            content: `<p>${foundry.utils.escapeHTML(emptyMessage)}</p>`,
+            buttons: [{ action: 'ok', label: 'OK', icon: 'fa-solid fa-check', default: true, primary: true }]
+        });
+        return null;
+    }
+
+    if (autoPickSingle && entries.length === 1) return entries[0].id;
+
+    const { EntityListAPI } = await import('./api-entity-list.js');
+    const list = EntityListAPI.create({
+        entities: entries,
+        mode: 'single',
+        inputName: 'blacksmith-pick-actor',
+        selected: entries[0].id
+    });
+
+    const { action, value } = await prompt({
+        title,
+        modal,
+        classes: ['blacksmith-pick-actor', ...classes],
+        content: list.html,
+        // `controls` is how an embedded control gets bound: DialogV2 serialises content
+        // to a string and rebuilds it, so anything attached beforehand is attached to a
+        // discarded node.
+        controls: list,
+        // `readFrom(root)` rather than the controller's own getter, for the reason its
+        // own docs give: after a rebuild the controller may be reading a detached list.
+        getValue: (root) => {
+            const selected = list.readFrom(root);
+            return Array.isArray(selected) ? (selected[0] ?? null) : (selected ?? null);
+        },
+        validate: (chosen) => chosen ? null : 'Choose an actor.',
+        submitLabel: confirmLabel,
+        submitIcon: confirmIcon
+    });
+
+    return action === DIALOG_ACTIONS.SUBMIT ? (value ?? null) : null;
+}
+
 // ===== PUBLIC API =====
 
 /**
@@ -672,6 +763,7 @@ const DialogAPI = {
     confirm,
     choose,
     prompt,
+    pickActor,
     wait,
     ACTIONS: DIALOG_ACTIONS
 };

@@ -6,6 +6,17 @@ Scope: how `blacksmith.inventory` mutates items and currency safely, and which p
 
 The public surface is specified in `api/api-inventory.md`. Implementation is `scripts/api-inventory.js`.
 
+
+## Locks key on the resolved actor
+
+`_acquire` is called with `actor.uuid` from `_resolveActor`, never with the caller's string. That is
+load-bearing rather than incidental: a caller may name an actor as `Actor.a`, as `Scene.s.Token.t`, or as
+`Scene.s.Token.t.Actor.a`, and two of those can be the same document. Keying on the argument would take two
+locks on one actor and let two writers in at once -- the exact thing the lock exists to stop.
+
+It also means two unlinked tokens sharing a base Actor take two different locks, which is right: each has
+its own ActorDelta, so they are genuinely separate documents and a write to one is not a write to the other.
+
 ## Why the hub owns this
 
 Curator requires only `coffee-pub-blacksmith`. Squire requires Blacksmith and `socketlib`. Neither requires

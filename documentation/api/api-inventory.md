@@ -294,6 +294,29 @@ legs may name the same source freely, since neither draws it down.
 
 An empty `transfers` array fails with `EXCHANGE_EMPTY`.
 
+## Which UUIDs an actor argument accepts
+
+**Every `actorUuid` accepts a world Actor, a Token, or a synthetic token actor.** All three are supported,
+not merely tolerated:
+
+| Form | Example | Resolves to |
+|---|---|---|
+| World actor | `Actor.abc` | that Actor |
+| Token | `Scene.s.Token.t` | the token's actor |
+| Synthetic token actor | `Scene.s.Token.t.Actor.a` | that unlinked token's own actor |
+
+The synthetic form is the ordinary case, not the edge one -- a corpse on the canvas is always an unlinked
+token, and so is a merchant dragged onto a map.
+
+**Two unlinked tokens sharing a base Actor are two independent targets, and that is correct.** Each has its
+own ActorDelta and therefore its own actor UUID, so granting to one does not touch the other. Two copies of
+the same travelling salesman are two shops, and two players can trade with them simultaneously.
+
+**Locks key on the RESOLVED actor, never on the string you passed.** That is what makes the aliases safe:
+handing in `Scene.s.Token.t` and `Actor.a` for the same linked token takes one lock, not two, because both
+resolve to the same document. The same resolution is what lets `SAME_ACTOR` refuse a transfer expressed as
+two different UUIDs for one actor.
+
 ## Where an item lands
 
 Every one of these writes `system.container` on arrival. Without a `container` option the item lands at
