@@ -233,6 +233,26 @@ button.blacksmith-calendar-day:hover {
     background: var(--blacksmith-color-brand-accent);
 }
 
+/* A day carrying a note reminder gets a bell in the corner. Deliberately a
+   different mark in a different place from the events dot: an event belongs to
+   the world and a reminder belongs to one person, and a day can easily have
+   both. The cell is already `position: relative` when it has events, so the
+   bell sets it too rather than relying on that. */
+.blacksmith-calendar-day:has(.blacksmith-calendar-day-bell) {
+    position: relative;
+}
+
+.blacksmith-calendar-day-bell {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    font-size: 0.6em;
+    /* Muted rather than accented: it marks the day without competing with the
+       number, which is what the reader is actually scanning for. */
+    opacity: 0.75;
+    pointer-events: none;
+}
+
 /* ----- This month's events ---------------------------------------- */
 
 .blacksmith-calendar-events {

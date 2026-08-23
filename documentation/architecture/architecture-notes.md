@@ -91,6 +91,21 @@ on-time without a third field: `firedAt > dueAt` means it came back after its mo
 **Setting a reminder clears `firedAt`.** Moving one forward is asking to be reminded again, and leaving
 the stamp would mean it never was.
 
+### Where a reminder shows
+
+Three surfaces, all reading the same two flags: a bell in the corner of the day on the World Calendar, a
+bell on the note's row in the Notes list, and the date on the note's own footer.
+
+The calendar makes **one** range query for the whole month and buckets the results by day, rather than
+one query per cell. That is what `list()`'s bounds are for.
+
+Fired reminders are kept on both bells. A marker that disappeared the moment the world moved past would
+read as the reminder having been wrong rather than having happened.
+
+`rebuildIndex` fingerprints the index and fires `blacksmith.noteRemindersChanged` only when it actually
+differs. The page hooks themselves are unusable as a repaint signal: they fire on every edit to every
+journal page, so a surface hung off them repaints while somebody types in an unrelated note.
+
 ## Anchors
 
 A discriminated shape, not loose fields:

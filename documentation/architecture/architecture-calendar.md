@@ -101,6 +101,22 @@ mechanism.
 prose it wanted a note. Journals would bring permissions for free but drag in the document-subtype question,
 and owning a subtype means owning a domain.
 
+### Never call `componentsToTime` with a month
+
+`componentsToTime` reads `components.day` as the day of the **year**, and **silently ignores `month` and
+`dayOfMonth`** (`client/data/calendar.mjs`). Passing a month and a day of the month is not an error: the two
+fields are dropped, nothing throws, and the returned number looks entirely reasonable. Every date built that
+way lands on day zero of the year -- Hammer 1 in a Harptos world, whatever date was asked for. dnd5e's own
+`jumpToDate` converts before calling core, which is the tell that the base method expects a converted value.
+
+`utility-calendar.js` exists for this. Use `timeFromDate(calendar, {year, month, dayOfMonth, ...})`, which
+does the walk over month lengths, honouring leap years.
+
+The same file holds the second trap: **`components.year` is not the year anyone sees.** The displayed year
+is `components.year + calendar.years.yearZero`, so a field labelled "Year" showing the raw component shows a
+number the reader does not recognise, and reading it back shifts the date by yearZero. `toDisplayYear` and
+`toInternalYear` convert.
+
 ### Recurrence is computed here, not expressed to the schedule API
 
 `schedule()` takes `at` (an absolute moment) or `dailyAt` (an hour of the day). **Neither can say "the 20th

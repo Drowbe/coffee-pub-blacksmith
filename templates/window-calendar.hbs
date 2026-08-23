@@ -68,7 +68,7 @@
                             class="blacksmith-calendar-day{{#if this.isToday}} is-today{{/if}}{{#if this.isSelected}} is-selected{{/if}}{{#if this.hasEvents}} has-events{{/if}}"
                             data-action="calendarPickDay"
                             data-day="{{this.dayIndex}}"
-                            data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}}<br>{{/if}}Click to select &middot; double-click to add an event">{{this.label}}</button>
+                            data-tooltip="{{#if this.hasEvents}}{{this.eventTooltip}}<br>{{/if}}{{#if this.hasReminders}}{{{this.reminderTooltip}}}<br>{{/if}}Click to select &middot; double-click to add an event">{{this.label}}{{#if this.hasReminders}}<i class="fa-solid fa-bell blacksmith-calendar-day-bell"></i>{{/if}}</button>
                     {{/if}}
                 {{/each}}
             </div>

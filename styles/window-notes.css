@@ -242,6 +242,20 @@
     color: var(--blacksmith-tool-accent);
 }
 
+/* A pending reminder. Accented like the favourite heart, because both are
+   facts about the note rather than controls. */
+.blacksmith-note-row-bell {
+    color: var(--blacksmith-tool-accent);
+    cursor: help;
+}
+
+/* Already resurfaced: kept, because "it came back on the 14th" is still worth
+   seeing, but no longer competing with the pending ones. */
+.blacksmith-note-row-bell.fired {
+    color: var(--blacksmith-tool-text);
+    opacity: 0.45;
+}
+
 .blacksmith-notes-sort,
 .blacksmith-notes-new {
     flex: 0 0 auto;

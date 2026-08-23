@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Every date the module built landed on day one of the year** (`scripts/utility-calendar.js`, `scripts/manager-calendar-events.js`, `scripts/window-calendar.js`, `scripts/window-note-editor.js`). `componentsToTime` reads `components.day` as the day of the **year** and silently ignores `month` and `dayOfMonth` (`client/data/calendar.mjs`). Passing a month and a day of the month is not an error -- the fields are dropped, nothing throws, and the returned number looks entirely reasonable, which is why this survived a green pass on the calendar. In a Harptos world every computed date was Hammer 1.
+
+  It reached three places: a calendar event's next occurrence, so a festival on Marpenoth 20th armed for Hammer 1; the grid's weekday offset, which decides where the first of the month sits; and travelling to a selected day. Note reminders were built on the same call and inherited it, which is how it was noticed -- the reminder dialog seeded and stored Hammer 1 whatever date was chosen.
+
+  `utility-calendar.js` now owns the conversion, doing the walk over month lengths that dnd5e's own `jumpToDate` does before it calls core. Both callers of the duplicated `daysInMonth` now delegate to it rather than keeping a third copy.
+
+- **The reminder dialog's Year field showed a year nobody recognises.** `components.year` is not the displayed year -- that is `components.year + calendar.years.yearZero` -- so a world reading 2997 on the clock offered 1496 in the field, and typing the year off the clock would have shifted the date by yearZero. `toDisplayYear` / `toInternalYear` convert in both directions.
+
 ### Added
 
 - **Time-bound notes -- a note can now carry a moment** (`scripts/manager-note-reminders.js`, `scripts/window-note-editor.js`, `scripts/api-notes.js`, `styles/window-notes.css`). Give a note a world time and it comes back at it: a toast that opens the note, and a date on the note's own footer in the meantime. The control sits beside the author, reading as a faint "Remind me..." until it is set.
@@ -24,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The moment is its own flag rather than an annotation, though the anchor union would have taken one: an annotation requires a target and a moment has none, the annotation index is exact-match while time queries are ranged, and "what is attached to this" has no ordering while "what is due" is nothing but ordering. Same document, second relationship, second derived index -- `NoteReminders._due`, a sorted array because every question asked of it is a range.
 
   Public surface on `blacksmith.notes`: `setReminder`, `clearReminder`, `getReminder`, `getReminderFired`, `canSetReminder`, `listReminders`, `formatMoment`, plus a `blacksmith.noteReminderFired` hook. `listReminders` takes inclusive bounds either of which may be omitted, so one call answers both "due on this day" and "everything pending", and it filters by note permission rather than by flag.
+
+  **A reminder is visible in three places, not just when it fires.** A bell in the top corner of its day on the World Calendar, tooltipped with the note names and times on that day; a bell on the note's row in the Notes list, tooltipped with the due date; and the date on the note's own footer. Both bells are the range query and the flag read that the design said would fall out, and the calendar's is one query for the whole month rather than one per day cell -- which is why `listReminders` takes bounds.
+
+  A fired reminder keeps its marks rather than losing them. "It came back on the 14th" is still the useful fact, and a marker that vanished the moment the world moved past would read as the reminder having been wrong instead of having happened.
+
+  **`blacksmith.noteRemindersChanged` announces a real change to the index**, so the calendar repaints when a reminder is set from the note editor while it is open. Fingerprinted rather than fired from the page hooks directly: those fire on every edit to every journal page, so a surface hung off them would repaint while you type.
 
   Verify live: `testing/note-reminders.md`.
 

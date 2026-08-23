@@ -28,6 +28,7 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { WorldClockAPI } from './api-worldclock.js';
 import { GMRequestAPI } from './api-gm-request.js';
+import { timeFromDate, daysInMonth as calendarDaysInMonth } from './utility-calendar.js';
 
 export const CALENDAR_EVENTS_SETTING = 'calendarEvents';
 
@@ -206,10 +207,7 @@ export class CalendarEvents {
 
     /** Days in a month, honouring leap years. */
     static daysInMonth(calendar, year, monthIndex) {
-        const month = calendar?.months?.values?.[monthIndex];
-        if (!month) return 0;
-        const isLeap = typeof calendar.isLeapYear === 'function' ? calendar.isLeapYear(year) : false;
-        return isLeap ? (month.leapDays ?? month.days) : month.days;
+        return calendarDaysInMonth(calendar, year, monthIndex);
     }
 
     /**
@@ -233,14 +231,16 @@ export class CalendarEvents {
         const monthCount = calendar.months?.values?.length ?? 0;
         if (!monthCount) return null;
 
-        const at = (year, monthIndex, day) => {
-            try {
-                return calendar.componentsToTime({
-                    year, month: monthIndex, dayOfMonth: day,
-                    hour: event.hour ?? 0, minute: event.minute ?? 0, second: 0
-                });
-            } catch { return null; }
-        };
+        // `timeFromDate` rather than `componentsToTime` directly. Core reads `day` as
+        // the day of the YEAR and silently DROPS `month` and `dayOfMonth`, so every
+        // occurrence built the obvious way lands on day zero of the year -- Hammer 1
+        // in a Harptos world, whatever date the event actually carries. Nothing
+        // throws and the return value looks entirely reasonable. See
+        // utility-calendar.js, which exists for this.
+        const at = (year, monthIndex, day) => timeFromDate(calendar, {
+            year, month: monthIndex, dayOfMonth: day,
+            hour: event.hour ?? 0, minute: event.minute ?? 0, second: 0
+        });
 
         if (event.recurrence === EVENT_RECURRENCE.ONCE) {
             const time = at(event.year, event.month, event.day);

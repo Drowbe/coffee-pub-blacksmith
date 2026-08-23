@@ -126,13 +126,28 @@ export class NoteReminders {
                 if (!NotesManager.isNote(page)) continue;
                 const dueAt = this.getDue(page);
                 if (dueAt === null) continue;
-                due.push({ dueAt, pageUuid: page.uuid });
+                // firedAt rides along only for the fingerprint below -- reads go
+                // back to the page, so nothing here is consulted as truth.
+                due.push({ dueAt, pageUuid: page.uuid, firedAt: this.getFired(page) });
             }
         }
         due.sort((a, b) => a.dueAt - b.dueAt);
+
+        // Announce only a real change, not every page update. The page hooks fire
+        // on any edit to any journal page -- typing in a note is one of them -- and
+        // a surface that repainted on each would be repainting while you type.
+        const fingerprint = due.map((entry) => `${entry.pageUuid}@${entry.dueAt}/${entry.firedAt ?? ''}`).join('|');
+        const changed = this._indexed && fingerprint !== this._fingerprint;
+
         this._due = due;
+        this._fingerprint = fingerprint;
         this._indexed = true;
+
+        if (changed) Hooks.callAll('blacksmith.noteRemindersChanged');
     }
+
+    /** What the index looked like last time, so a repaint is only announced on a real change. */
+    static _fingerprint = '';
 
     static _ensureIndexed() {
         if (!this._indexed) this.rebuildIndex();

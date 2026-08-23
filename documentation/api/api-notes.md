@@ -208,6 +208,10 @@ see the Calendar API.
 client that owes the reminder. `startup` is true when it was found by the scan at load rather than by the
 world time moving, which is the missed case.
 
+`blacksmith.noteRemindersChanged` takes no payload and fires when the set of reminders changes -- one was
+set, moved, cleared, or fired. Listen to it rather than to the journal page hooks if you draw reminders:
+those fire on every edit to every page, so a surface hung off them repaints while somebody types.
+
 ### Windows
 
 | Id | What |

@@ -49,6 +49,7 @@ import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
 import { NotesManager, NOTE_VISIBILITY, NOTE_TAG_CONTEXT, noteIconHtml, noteAccessUsers, noteAccessBadge } from './manager-notes.js';
 import { NoteReminders } from './manager-note-reminders.js';
+import { timeFromDate, toDisplayYear, toInternalYear } from './utility-calendar.js';
 import { HookManager } from './manager-hooks.js';
 import { PinsAPI } from './api-pins.js';
 import { ToastAPI } from './api-toast.js';
@@ -660,7 +661,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                     <div class="blacksmith-note-remind-row">
                         <label>Month<select name="remindMonth">${monthOptions}</select></label>
                         <label>Day<input type="number" name="remindDay" min="1" value="${seed.dayOfMonth + 1}"></label>
-                        <label>Year<input type="number" name="remindYear" value="${seed.year}"></label>
+                        <label>Year<input type="number" name="remindYear" value="${toDisplayYear(calendar, seed.year)}"></label>
                         <label>Time
                             <span class="blacksmith-note-remind-time">
                                 <input type="number" name="remindHour" min="0" max="${hoursPerDay - 1}" value="${seed.hour}">
@@ -687,15 +688,19 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                             };
                             set('remindMonth', parts.month);
                             set('remindDay', parts.dayOfMonth + 1);
-                            set('remindYear', parts.year);
+                            set('remindYear', toDisplayYear(calendar, parts.year));
                             set('remindHour', parts.hour);
                             set('remindMinute', parts.minute);
                         });
                     }
                 }
             },
-            getValue: (root) => calendar.componentsToTime({
-                year: Number(root.elements.remindYear?.value) || seed.year,
+            // `timeFromDate` rather than `componentsToTime` directly: core reads
+            // `day` as the day of the YEAR and silently drops a month and a day of
+            // the month, so every date built the obvious way lands on day zero.
+            // See utility-calendar.js.
+            getValue: (root) => timeFromDate(calendar, {
+                year: toInternalYear(calendar, Number(root.elements.remindYear?.value)),
                 // Zero-based on the way in, one-based on screen. Foundry's calendar
                 // counts months and days from zero; nobody writing a date does.
                 month: Number(root.elements.remindMonth?.value) || 0,

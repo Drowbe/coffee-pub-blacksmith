@@ -19,6 +19,17 @@ an editor pass.
 - [ ] The footer chip shows the date after setting, and the bell goes hollow-to-solid.
 - [ ] Clear the reminder: the chip returns to "Remind me..." and the note is otherwise untouched.
 
+## Where it shows
+
+- [ ] The World Calendar draws a bell in the corner of the day a reminder falls on.
+- [ ] Hovering that day names the reminder and its time, alongside any events on the same day.
+- [ ] A day with both an event and a reminder shows the dot AND the bell without them fighting.
+- [ ] Setting a reminder while the calendar is open repaints it without reopening.
+- [ ] Typing in an unrelated note does NOT repaint the calendar.
+- [ ] The Notes list shows a bell on the row, tooltipped with the due date.
+- [ ] After it fires, both bells go hollow and read "passed" / "resurfaced" rather than disappearing.
+- [ ] Page the calendar to a month with no reminders: no bells, no errors.
+
 ## The case the persisted flag exists for
 
 - [ ] Set a reminder, reload the browser before it is due, advance past it: it still fires.
@@ -31,6 +42,15 @@ an editor pass.
 - [ ] A note shared with the party fires on the author's client only -- check a second client sees nothing.
 - [ ] A player sets a reminder on their own note and it fires for them with no GM involvement.
 - [ ] A note whose author's user has been deleted fires for the GM rather than for nobody.
+
+## Dates land where they were asked to (regression: everything landed on Hammer 1)
+
+- [ ] Open the picker with no reminder set: it seeds TODAY'S date and time, matching the clock readout exactly, year included.
+- [ ] Set a reminder for a date late in the year. The footer chip shows that date, not the first of the year.
+- [ ] The World Calendar's bell appears on the day asked for.
+- [ ] Calendar events: add one on a late-year date and confirm it arms for that date, not Hammer 1.
+- [ ] The calendar grid's first-of-month sits under the right weekday -- check two different months.
+- [ ] Select a day and travel to it: the clock lands on that day, not the first of the year.
 
 ## The picker
 

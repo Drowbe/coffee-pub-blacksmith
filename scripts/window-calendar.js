@@ -24,7 +24,10 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
+import { HookManager } from './manager-hooks.js';
 import { CalendarEvents, EVENT_RECURRENCE } from './manager-calendar-events.js';
+import { NoteReminders } from './manager-note-reminders.js';
+import { timeFromDate, daysInMonth as calendarDaysInMonth } from './utility-calendar.js';
 
 export const CALENDAR_WINDOW_ID = 'blacksmith-calendar';
 
@@ -155,17 +158,9 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         try { return calendar.timeToComponents(game.time.worldTime); } catch { return null; }
     }
 
-    /**
-     * How many days a month has, honouring leap years.
-     *
-     * `leapDays` is optional per month -- a calendar may declare it on one month and
-     * leave the rest, so the fallback is the ordinary length rather than zero.
-     */
+    /** How many days a month has, honouring leap years. Kept as a static because the template path uses it. */
     static daysInMonth(calendar, year, monthIndex) {
-        const month = calendar.months.values[monthIndex];
-        if (!month) return 0;
-        const isLeap = typeof calendar.isLeapYear === 'function' ? calendar.isLeapYear(year) : false;
-        return isLeap ? (month.leapDays ?? month.days) : month.days;
+        return calendarDaysInMonth(calendar, year, monthIndex);
     }
 
     /**
@@ -178,7 +173,8 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
      */
     static weekdayOf(calendar, year, monthIndex, dayIndex) {
         try {
-            const time = calendar.componentsToTime({ year, month: monthIndex, dayOfMonth: dayIndex, hour: 0, minute: 0, second: 0 });
+            const time = timeFromDate(calendar, { year, month: monthIndex, dayOfMonth: dayIndex });
+            if (time === null) return 0;
             return calendar.timeToComponents(time).dayOfWeek ?? 0;
         } catch {
             return 0;
@@ -195,6 +191,61 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
             this.getCalendarData()
         );
         return { appId: this.id, bodyContent: content };
+    }
+
+    /**
+     * This month's note reminders, bucketed by day.
+     *
+     * ONE range query for the whole month rather than one per day cell: the API
+     * takes inclusive bounds precisely so a grid does not have to ask thirty
+     * times, and `list` resolves every page it returns.
+     *
+     * Fired reminders are kept. A day that had one still had it, and dropping
+     * them would make the marker disappear the moment the world moved past --
+     * which reads as the reminder having been wrong rather than having happened.
+     *
+     * @returns {Map<number, string[]>} day index -> tooltip lines
+     */
+    _remindersInMonth(calendar, monthIndex, dayCount) {
+        const byDay = new Map();
+        if (!dayCount) return byDay;
+
+        try {
+            const hoursPerDay = Number(calendar.days?.hoursPerDay) || 24;
+            const minutesPerHour = Number(calendar.days?.minutesPerHour) || 60;
+            const secondsPerMinute = Number(calendar.days?.secondsPerMinute) || 60;
+
+            const from = timeFromDate(calendar, {
+                year: this.viewYear, month: monthIndex, dayOfMonth: 0
+            });
+            const to = timeFromDate(calendar, {
+                year: this.viewYear,
+                month: monthIndex,
+                dayOfMonth: dayCount - 1,
+                hour: hoursPerDay - 1,
+                minute: minutesPerHour - 1,
+                second: secondsPerMinute - 1
+            });
+            if (from === null || to === null) return byDay;
+
+            for (const entry of NoteReminders.list({ from, to, includeFired: true })) {
+                const parts = calendar.timeToComponents(entry.dueAt);
+                const day = parts?.dayOfMonth;
+                if (!Number.isInteger(day)) continue;
+
+                const time = CalendarWindow.formatTime(parts.hour, parts.minute);
+                const name = foundry.utils.escapeHTML(entry.note.name || 'Untitled Note');
+                const line = entry.firedAt !== null ? `${time} ${name} (passed)` : `${time} ${name}`;
+
+                if (!byDay.has(day)) byDay.set(day, []);
+                byDay.get(day).push(line);
+            }
+        } catch (_) {
+            // A calendar that cannot express this month's bounds gets no markers,
+            // which is better than a grid that fails to render.
+        }
+
+        return byDay;
     }
 
     /**
@@ -232,8 +283,10 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
 
         const isCurrentMonth = now.year === this.viewYear && now.month === monthIndex;
         const eventsByDay = CalendarEvents.occurrencesInMonth(this.viewYear, monthIndex);
+        const remindersByDay = this._remindersInMonth(calendar, monthIndex, dayCount);
         for (let day = 0; day < dayCount; day++) {
             const dayEvents = eventsByDay.get(day) ?? [];
+            const dayReminders = remindersByDay.get(day) ?? [];
             cells.push({
                 blank: false,
                 // Displayed ordinals are one-based; every index in `components` is not.
@@ -244,7 +297,9 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
                 hasEvents: dayEvents.length > 0,
                 // The names ride in the tooltip so a marker is not a dead dot: hovering
                 // a marked day says what is on it without opening anything.
-                eventTooltip: dayEvents.map(event => event.name).join(', ')
+                eventTooltip: dayEvents.map(event => event.name).join(', '),
+                hasReminders: dayReminders.length > 0,
+                reminderTooltip: dayReminders.join('<br>')
             });
         }
 
@@ -389,7 +444,7 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
         if (!calendar || !now) return;
 
         try {
-            const time = calendar.componentsToTime({
+            const time = timeFromDate(calendar, {
                 year: this.viewYear,
                 month: this.viewMonth,
                 dayOfMonth: this.selectedDay,
@@ -397,6 +452,7 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
                 minute: now.minute,
                 second: now.second
             });
+            if (time === null) return;
             // `set` rather than `advance`: this is a destination, not a duration, and
             // computing the delta ourselves would be arithmetic core already owns.
             await game.time.set(time);
@@ -650,5 +706,20 @@ export function registerCalendarWindow() {
         moduleId: MODULE.ID,
         title: 'World Calendar',
         open: async () => openCalendarWindow()
+    });
+
+    // The grid draws reminders, and nothing else here would notice one being set
+    // from the note editor while the calendar is open. Announced only on a real
+    // change to the index, so this is not a repaint per keystroke.
+    HookManager.registerHook({
+        name: 'blacksmith.noteRemindersChanged',
+        description: 'Calendar: repaint when a note reminder changes',
+        priority: 4,
+        context: 'calendar-window',
+        callback: () => {
+            // --- BEGIN - HOOKMANAGER CALLBACK ---
+            void CalendarWindow.activeWindow?.render(false);
+            // --- END - HOOKMANAGER CALLBACK ---
+        }
     });
 }

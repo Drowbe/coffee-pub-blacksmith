@@ -28,6 +28,7 @@ import { HookManager } from './manager-hooks.js';
 import { registerWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
 import { NotesManager, noteIconHtml, noteAccessMode } from './manager-notes.js';
+import { NoteReminders } from './manager-note-reminders.js';
 import { NotePlacementManager } from './manager-note-placement.js';
 import { PinsAPI } from './api-pins.js';
 import { PinManager } from './manager-pins.js';
@@ -233,12 +234,24 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
 
             const fav = NotesManager.isFavorite(note);
 
+            // A time-bound note says so in the row. Without this a reminder was
+            // invisible until it fired unless you reopened that exact note.
+            const dueAt = NoteReminders.getDue(note);
+            const firedAt = dueAt === null ? null : NoteReminders.getFired(note);
+            const bell = dueAt === null ? '' : (
+                `<i class="fa-solid ${firedAt === null ? 'fa-bell' : 'fa-bell-slash'} blacksmith-note-row-bell${firedAt === null ? '' : ' fired'}"` +
+                ` data-tooltip="${foundry.utils.escapeHTML(firedAt === null
+                    ? `Due ${NoteReminders.formatMoment(dueAt)}`
+                    : `Was due ${NoteReminders.formatMoment(dueAt)} · resurfaced ${NoteReminders.formatMoment(firedAt)}`)}"></i>`
+            );
+
             return `
                 <li class="blacksmith-note-row" data-uuid="${note.uuid}" data-tooltip="${foundry.utils.escapeHTML(preview)}">
                     <span class="blacksmith-note-row-icon">${noteIconHtml(pin?.image)}</span>
                     <div class="blacksmith-note-row-top">
                         <span class="blacksmith-note-row-name">${foundry.utils.escapeHTML(note.name)}</span>
                         <span class="blacksmith-note-row-flags">
+                            ${bell}
                             ${fav ? '<i class="fa-solid fa-heart blacksmith-note-row-fav" title="Favourite"></i>' : ''}
                             ${privacy}
                         </span>
