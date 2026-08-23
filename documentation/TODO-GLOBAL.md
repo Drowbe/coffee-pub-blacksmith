@@ -1282,6 +1282,79 @@ publish set so it is on the wiki. The call-site comments are duplicating documen
 can be deleted in favour of a pointer. Worth noting as a discoverability result rather than a documentation
 gap - the doc was right and two consumers still wrote the comments out by hand.
 
+## Decision: Blacksmith owns the filtered compendium query — `compendiums.query()` (raised by Merchant 2026-08-23)
+
+**Answer: yes, it is ours.** Merchant stocks shops from roll tables, which store references and therefore
+rot — rename a pack, update a content module, uninstall one, and a row points at nothing. They have just
+had to add reporting for it, because a dead row resolved to `null` and was dropped silently: a GM asked
+for twenty draws, got fourteen, and was told nothing. A query resolves against what exists when it runs,
+so it cannot dangle and it picks up new content instead of freezing at what someone typed last year.
+
+Their stated reason is right — `CompendiumsAPI` already owns which packs are searched and in what order,
+so a consumer filtering packs itself must either reimplement `getChoices()`/world-first/world-last or
+search packs the GM deliberately excluded. Two reasons they did not have, both stronger:
+
+**The index-field cache punishes uncoordinated consumers harder than they think.** Foundry's
+`getIndex({fields})` (`client/documents/collections/compendium-collection.mjs:332`) unions the requested
+fields with the already-indexed set and returns the cache *only* when the request is a subset. Otherwise it
+re-fetches the entire index from the server and merges. So two consumers asking for different field sets do
+not conflict — they each trigger one more full re-index of every pack, monotonically, for the session. N
+distinct field sets is N full fetches. Owned by the hub it is one union, once.
+
+**Our own cache is a lossy projection, so a consumer cannot share it even if it wanted to.**
+`_getPackIndex` (`manager-compendiums.js:661`) maps each index entry down to `{name, type, img, uuid}` and
+discards the rest. A consumer calling `pack.getIndex({fields})` itself would get its fields and our cached
+rows still would not have them — two caches over the same pack, diverging. Adding fields therefore means
+widening that projection and recording per pack which fields it holds, so a widened request invalidates the
+projection instead of returning stale rows. That is hub surgery, not consumer work.
+
+**Index fields, not document loads — confirmed, with one condition.** The field set must be *declared* and
+fixed, not free-form per call, precisely because each new superset costs a full re-fetch of every pack. The
+set is `system.rarity`, `system.price.value`, `system.price.denomination`. dnd5e already pushes
+`system.container` and `system.identifier` into `CONFIG.Item.compendiumIndexFields` (`dnd5e.mjs:82397`,
+verified against 5.3.3), so those come free and should be carried through rather than re-requested.
+
+### Three things about the proposed signature we would change
+
+**`limit` must cap the output, not stop the scan.** `search()`'s `limit` stops the scan — `break outer` in
+`searchDetailed`, `manager-compendiums.js` — which truncates the tail of the GM's priority order. That is
+right for a type-ahead picker, where the head of the order is the best answer. It is wrong for a shop:
+`limit: 200` would stock every shop out of the first configured pack and never open the sixth. A filter
+query over cached indexes is cheap enough to scan every source fully and cap afterwards, and it should.
+Mirror `searchDetailed()` with a `queryDetailed()` so a caller can still tell an empty pack from an
+unopened one.
+
+**`rarity: ['common']` will not match a mundane longsword.** dnd5e's rarity is
+`StringField({required: true, blank: true})` (`dnd5e.mjs:14077`, 5.3.3) and non-magical gear carries `""`,
+not `"common"`. A shop stocking basic equipment and asking for common plus uncommon therefore gets *only
+magic items* — silently, with a plausible-looking result set. The API takes an explicit token for it and
+documents it. This is a section 9C case: a value that looks right, cannot be verified by the caller, and
+would cost every consumer the same bug once each. Also normalise the vocabulary, since `veryRare` is
+camelCase and a caller will type `very rare`.
+
+**`price` needs a named unit and a floor that is not zero.** dnd5e stores `{value, denomination}` with gp
+as the pivot (`DND5E.currencies`: gp 1, cp 100, sp 10, ep 2, pp 0.1), so 50 sp is 5 gp and a raw compare
+against `system.price.value` is wrong for anything not priced in gp. The hub does that conversion and the
+parameter is `priceGp`, not "base units". Separately, `price.value` has `initial: 0`, so unpriced and free
+are the same stored value — `{min: 0}` sweeps in every unpriced entry in the pack, which is how you get a
+shop full of nothing. Default to no floor and make excluding unpriced entries explicit.
+
+One more constraint to document rather than fix: rarity and price exist only on the physical item types.
+A query combining a price range with a non-physical type returns nothing, and should say so rather than
+falling back to unfiltered.
+
+### Shape
+
+`query(filter)` beside `search()`, sharing the source resolution and the index cache, returning the same
+row shape `search()` returns plus `rarity` and `priceGp`, so a consumer can move between the two without
+remapping. Surface in `api/api-compendiums.md`.
+
+**Blacksmith is consumer zero.** `window-compendium-search.js` takes the rarity and price facets first;
+that is what proves the widened projection before Merchant depends on it.
+
+Not urgent and nothing is blocked — roll tables and manual stocking both work. Order it after the toast
+presets, which 194 call sites are waiting on.
+
 ## Open questions for Drowbe
 
 1. **Mirror scope** — all 48 docs, or only the consumer-facing API surface + README-as-Home?

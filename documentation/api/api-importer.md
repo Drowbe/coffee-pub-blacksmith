@@ -4,8 +4,6 @@
 
 **Scope:** `api.importer` exposes the JSON import registry: a consuming module registers a kind, supplies validate and import callbacks, and gets Blacksmith's import window. That is the whole public surface.
 
-**Architecture:** See `../architecture/architecture-importer.md`.
-
 ## The registry surface
 
 This is the part that ships. Reach it through `module.api`:
