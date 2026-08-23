@@ -64,8 +64,13 @@ central store:
 | `world` | `dueAt` | `firedAt` | world time, seconds |
 | `real` | `dueAtReal` | `firedAtReal` | wall clock, epoch milliseconds |
 
-A note may carry both, and they answer different questions: "when the party reaches Marpenoth" is not
-"twenty minutes from now". Separate flags and separate indexes rather than one store with a clock field,
+**At most one reminder per clock, and that is a scope line rather than a limitation waiting to be lifted.**
+A list of reminders on one note needs ordering, a delete affordance per row, and an answer to what a second
+one due earlier means -- all to express something two notes already say. Repeat a reminder by setting it
+again; do not add a series.
+
+A note may carry both clocks, and they answer different questions: "when the party reaches Marpenoth" is
+not "twenty minutes from now". Separate flags and separate indexes rather than one store with a clock field,
 which is the same call the calendar plan makes -- every read would otherwise have to filter, and two things
 that mean different things would share a code path.
 
@@ -133,15 +138,31 @@ the stamp would mean it never was.
 
 ### Where a reminder shows
 
-A bell in the corner of the day on the World Calendar, a mark on the note's row in the Notes list, and a
-chip on the note's own footer. The list and the footer carry one per clock -- a bell for in-world, a clock
-face for real time -- because a note may have both. **The calendar draws in-world reminders only**, and
-filters `blacksmith.noteRemindersChanged` on its `clock` field to avoid repainting for the other kind: a
-wall-clock time has no place on a grid of in-world dates.
+A bell in the corner of the day on the World Calendar, a mark on the note's row in the Notes list, and an
+icon in the note editor's header. Each surface carries one per clock -- a bell for in-world, a clock face
+for real time. **The calendar draws in-world reminders only**, and filters `blacksmith.noteRemindersChanged`
+on its `clock` field to avoid repainting for the other kind: a wall-clock time has no place on a grid of
+in-world dates.
 
-The footer shows one invitation, not two. Two "Remind me" buttons would ask the reader to understand the
-world/real split before they have any reason to care about it; the dialog's switch asks once they are
-already there.
+**The date is a tooltip, not text on screen.** The editor's footer was the first home and was wrong twice
+over: spelled-out dates crowded it, and a date is note-level state like the favourite heart rather than an
+action, so it belongs with the other state toggles in the header.
+
+One invitation, not two. Two "Remind me" buttons would ask the reader to understand the world/real split
+before they have any reason to care about it; the dialog's switch asks once they are already there. The
+invitation disappears once both clocks are taken, since a control that can only edit what already exists
+misdescribes itself.
+
+**Removing lives inside the dialog**, not as an x beside each icon: the header is state at a glance, and a
+delete control per clock doubles what sits there. The remove button fills a hidden field and submits the
+form, so it is one click rather than tick-then-save.
+
+### The toast does not time out
+
+`duration: 0`. A reminder that auto-dismisses is a reminder you can miss, which is the one thing it exists
+not to be -- and it arrives exactly when attention is elsewhere. It goes when it is clicked or dismissed;
+persistent toasts are also exempt from the stack cap, so a burst cannot evict one. `check-note-reminders.mjs`
+asserts this, because a changed duration reads as an ordinary tuning value rather than as losing reminders.
 
 The calendar makes **one** range query for the whole month and buckets the results by day, rather than
 one query per cell. That is what `list()`'s bounds are for.

@@ -73,8 +73,20 @@
     background: var(--blacksmith-tool-surface-hover);
 }
 
-.blacksmith-note-fav {
+/* The header's plain icon buttons: read/edit, favourite, and the reminders.
+   Sized explicitly because a bare <button> inherits the framework's button
+   width, which left a wide gap between two single glyphs. */
+.blacksmith-note-fav,
+.blacksmith-note-mode-toggle,
+.blacksmith-note-remind {
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    min-width: 0;
+    height: 26px;
+    padding: 0;
     border: none;
     background: none;
     color: var(--blacksmith-tool-text);
@@ -82,8 +94,12 @@
     cursor: pointer;
 }
 
-.blacksmith-note-fav:hover {
+.blacksmith-note-fav:hover,
+.blacksmith-note-mode-toggle:hover,
+.blacksmith-note-remind:hover {
     opacity: 1;
+    background: none;
+    text-shadow: none;
 }
 
 .blacksmith-note-fav .fa-solid.fa-heart {
@@ -297,62 +313,45 @@
     opacity: 0.7;
 }
 
-/* ---- the reminder chip, in the footer beside the author ------- */
-
-/* Separated from the author by a dot rather than a gap: they are two facts
-   about the same note, and a gap would read as two unrelated controls. */
-.blacksmith-note-meta + .blacksmith-note-remind::before {
-    content: "\00b7";
-    margin: 0 6px 0 0;
-    opacity: 0.5;
-}
-
-.blacksmith-note-remind {
-    background: none;
-    border: none;
-    width: auto;
-    padding: 0;
-    font-size: 0.85em;
-    line-height: 1.7;
-    color: var(--blacksmith-tool-text);
-    cursor: pointer;
-    /* The unset state is the discoverable one and carries the cost of living in
-       the footer, so it is faint but not invisible. */
-    opacity: 0.6;
-}
-
-.blacksmith-note-remind:hover {
-    opacity: 1;
-    text-shadow: none;
-}
+/* ---- the reminder icons, in the header ------------------------ */
 
 /* Set: a real fact about the note rather than an invitation, so it stops
-   whispering. */
+   whispering. Same treatment the favourite heart gets, because they are the
+   same kind of thing -- note state, shown at a glance, explained on hover. */
 .blacksmith-note-remind.set {
-    opacity: 0.9;
-    color: var(--blacksmith-tool-accent);
+    opacity: 1;
+    color: var(--blacksmith-color-brand-accent);
 }
 
 /* Already resurfaced. Still shown -- "it came back on the 14th" is the useful
-   fact afterwards -- but no longer pending, so it drops back to plain text. */
+   fact afterwards -- but no longer pending, so it stops being accented. */
 .blacksmith-note-remind.set.fired {
     color: var(--blacksmith-tool-text);
-    opacity: 0.55;
+    opacity: 0.45;
 }
 
-.blacksmith-note-remind-clear {
+/* Removing, inside the dialog. Set apart from the fields above it rather than
+   sitting in the button row, so it cannot be hit on the way to Save. */
+.blacksmith-note-remind-remove {
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--blacksmith-tool-divider);
+    padding-top: 8px;
+}
+
+.blacksmith-note-remind-remove button {
+    width: auto;
+    flex: 0 0 auto;
     background: none;
     border: none;
-    width: auto;
-    padding: 0 0 0 4px;
-    font-size: 0.8em;
-    line-height: 1.7;
+    padding: 2px 4px;
+    font-size: 0.9em;
     color: var(--blacksmith-tool-text);
+    opacity: 0.6;
     cursor: pointer;
-    opacity: 0.4;
 }
 
-.blacksmith-note-remind-clear:hover {
+.blacksmith-note-remind-remove button:hover {
     opacity: 1;
     text-shadow: none;
 }
@@ -765,19 +764,6 @@ body.blacksmith-note-placing canvas {
 .blacksmith-note-read a.content-link,
 .blacksmith-note-read a.inline-roll {
     cursor: pointer;
-}
-
-.blacksmith-note-mode-toggle {
-    flex: 0 0 auto;
-    border: none;
-    background: none;
-    color: var(--blacksmith-tool-text);
-    opacity: 0.55;
-    cursor: pointer;
-}
-
-.blacksmith-note-mode-toggle:hover {
-    opacity: 1;
 }
 
 .blacksmith-note-mode-toggle.on {

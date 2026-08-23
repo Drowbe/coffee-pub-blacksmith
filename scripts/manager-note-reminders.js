@@ -585,7 +585,13 @@ export class NoteReminders {
                         ? `Was due ${config.format(dueAt)}`
                         : `Reminder for ${config.format(dueAt)}`,
                     icon,
-                    duration: 8,
+                    // PERSISTENT. A reminder that times out is a reminder you can
+                    // miss, which is the one thing it exists not to be -- and the
+                    // likeliest moment for it to arrive is the moment you are
+                    // looking at something else. It goes when it is acted on or
+                    // dismissed, and nothing else evicts it: persistent toasts are
+                    // exempt from the stack cap.
+                    duration: 0,
                     moduleId: MODULE.ID,
                     // Keyed by clock as well as note, or a note carrying both
                     // reminders would have the second replace the first.
@@ -603,7 +609,10 @@ export class NoteReminders {
                     : `${owed.length} reminders`,
                 subtitle: owed.map(({ note }) => note.name || 'Untitled Note').join(', '),
                 icon,
-                duration: 10,
+                // Persistent for the same reason as the single case. This is the
+                // one that matters most: it is the "you were away" summary, so it
+                // is announcing things already missed once.
+                duration: 0,
                 moduleId: MODULE.ID,
                 stackKey: `blacksmith-note-reminder-batch-${clock}`
             });

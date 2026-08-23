@@ -23,43 +23,6 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
-## One time surface, exposed to the suite (opened 2026-08-23)
-
-**Plan: `documentation/plans/plan-time-api.md`.** Not started.
-
-Five table-facing wall-clock timers in Blacksmith -- planning, combat, round, session, real-time note
-reminders -- each with its own tick, persistence, sync and pause semantics. `timer-notifications.js`
-already shares the *output*; the mechanics are not shared, and "fire the warning once" is implemented twice
-independently (`timer-planning.js` and `api-menubar.js`).
-
-**The reason is the siblings, not tidiness.** Other modules need time-bound events and will each grow their
-own otherwise. This is a public surface from the first commit; Blacksmith's own timers are the first
-consumers and the proof it is right, not the reason for it.
-
-Three surfaces, deliberately not one: `countdown` (a deadline with tick, pause, persistence, fire-once),
-`schedule` (a wall-clock callback, sibling in shape to the existing `worldClock.schedule`), and `session`
-(exposing `sessionStartTime` / `sessionEndTime`, which already exist and are already synced).
-
-**World time and wall time stay separate.** World time is server-authoritative, jumps, and runs backwards
-when a GM rewinds. Merging them behind one call would be the third place that mistake was made -- see the
-two-clock tables in `architecture-notes.md` and `architecture-calendar.md`.
-
-Work, in order. Each step is finished when the OLD interval is deleted, not left beside the new one:
-
-- Build `countdown` and `session`, used by nothing. Verify: a scratch countdown ticks, pauses, survives a
-  reload, and fires its warning and expiry exactly once each.
-- Move real-time note reminders onto it. Days old, no consumers, and its 15s poll is what the shared tick
-  replaces. Verify: `testing/note-reminders.md`, real-time sections, all still pass.
-- Move the round timer. Simplest and least load-bearing of the four. Verify: round and total durations
-  survive a mid-combat reload.
-- Publish the API docs and tell the siblings. **Consumers before further migration** -- the surface is
-  proven by an outside caller, not by our own code shaped to fit it.
-- Session timer, then planning, then combat. One at a time, each verified live on two clients.
-
-Also folds into this: the real-world calendar mode in `plan-calendar-window.md` should be `session`'s
-planning view rather than a second store of its own, and "a reminder that fires at session start" is a hook
-on `session`, not a scheduled time.
-
 ## Something writes an invalid `properties` value onto items created on NPCs (opened 2026-08-21)
 
 Noticed while fixing the inventory merge predicate, and left open because that fix does not depend on it.
@@ -1231,6 +1194,43 @@ so the fix reaches our pages and no one else's.
 ## ENHANCEMENTS
 
 ### High Priority
+
+#### One time surface, exposed to the suite (opened 2026-08-23)
+
+**Plan: `documentation/plans/plan-time-api.md`.** Not started.
+
+Five table-facing wall-clock timers in Blacksmith -- planning, combat, round, session, real-time note
+reminders -- each with its own tick, persistence, sync and pause semantics. `timer-notifications.js`
+already shares the *output*; the mechanics are not shared, and "fire the warning once" is implemented twice
+independently (`timer-planning.js` and `api-menubar.js`).
+
+**The reason is the siblings, not tidiness.** Other modules need time-bound events and will each grow their
+own otherwise. This is a public surface from the first commit; Blacksmith's own timers are the first
+consumers and the proof it is right, not the reason for it.
+
+Three surfaces, deliberately not one: `countdown` (a deadline with tick, pause, persistence, fire-once),
+`schedule` (a wall-clock callback, sibling in shape to the existing `worldClock.schedule`), and `session`
+(exposing `sessionStartTime` / `sessionEndTime`, which already exist and are already synced).
+
+**World time and wall time stay separate.** World time is server-authoritative, jumps, and runs backwards
+when a GM rewinds. Merging them behind one call would be the third place that mistake was made -- see the
+two-clock tables in `architecture-notes.md` and `architecture-calendar.md`.
+
+Work, in order. Each step is finished when the OLD interval is deleted, not left beside the new one:
+
+- Build `countdown` and `session`, used by nothing. Verify: a scratch countdown ticks, pauses, survives a
+  reload, and fires its warning and expiry exactly once each.
+- Move real-time note reminders onto it. Days old, no consumers, and its 15s poll is what the shared tick
+  replaces. Verify: `testing/note-reminders.md`, real-time sections, all still pass.
+- Move the round timer. Simplest and least load-bearing of the four. Verify: round and total durations
+  survive a mid-combat reload.
+- Publish the API docs and tell the siblings. **Consumers before further migration** -- the surface is
+  proven by an outside caller, not by our own code shaped to fit it.
+- Session timer, then planning, then combat. One at a time, each verified live on two clients.
+
+Also folds into this: the real-world calendar mode in `plan-calendar-window.md` should be `session`'s
+planning view rather than a second store of its own, and "a reminder that fires at session start" is a hook
+on `session`, not a scheduled time.
 
 #### Request-side roll modes and explainer (Bibliosoph request #5, 2026-07-30)
 

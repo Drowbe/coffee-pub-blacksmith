@@ -310,9 +310,10 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                     <i class="fa-solid ${this._readMode ? 'fa-pen-to-square' : 'fa-book-open'}"></i>
                 </button>` : ''}
                 <button type="button" class="blacksmith-note-fav" data-note-action="favorite"
-                        title="${fav ? 'Remove from favourites' : 'Add to favourites'}">
+                        data-tooltip="${fav ? 'Remove from favourites' : 'Add to favourites'}">
                     <i class="${fav ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
                 </button>
+                ${this._reminderControl()}
             </div>
 
             <div class="blacksmith-note-editor-host"></div>
@@ -354,9 +355,9 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             appId: this.id,
             bodyContent: body,
             showToolFooter: true,
-            toolFooterLeft: (author
+            toolFooterLeft: author
                 ? `<span class="blacksmith-note-meta">${foundry.utils.escapeHTML(author.name)}</span>`
-                : '') + this._reminderControl(),
+                : '',
             toolFooterRight:
                 pinButton +
                 '<button type="button" class="blacksmith-window-btn-primary" data-note-action="cancel">' +
@@ -365,75 +366,69 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     }
 
     /**
-     * The reminder chip, in the footer beside the author.
+     * The reminder icons, in the header beside Read and Favourite.
      *
-     * The footer rather than the Access strip because that row answers a different
-     * question: access is WHO, tags are WHAT, and a date is WHEN. It also already
-     * grows with the player count, so a fourth thing in it would be the one that
-     * pushes the window taller.
+     * Icons carrying the date in a tooltip, not the date as text. The footer was
+     * the first home and was wrong twice over: spelled-out dates crowded it out,
+     * and a date is note-level state like the favourite heart rather than an
+     * action, so it belongs with the other state toggles at the top.
      *
-     * The cost of the footer is discoverability, which is why the unset state is a
-     * visible invitation rather than an icon: nobody hunts for a feature they have
-     * not been told about.
+     * AT MOST ONE PER CLOCK, and that is a scope line rather than a limitation
+     * waiting to be lifted. A list of reminders on one note needs ordering, its
+     * own delete affordance, and an answer to what a second one due first means
+     * -- all to express something two notes already say.
      */
     _reminderControl() {
         if (!this.note || !NoteReminders.canSet(this.note)) return '';
 
-        const world = this._reminderChip(REMINDER_CLOCKS.WORLD, {
+        const world = this._reminderIcon(REMINDER_CLOCKS.WORLD, {
             icon: 'fa-bell',
             firedIcon: 'fa-bell-slash',
             dueAt: NoteReminders.getDue(this.note),
             firedAt: NoteReminders.getFired(this.note),
             format: (at) => NoteReminders.formatMoment(at),
-            change: 'Change when this note comes back in the world'
+            noun: 'In the world'
         });
-        const real = this._reminderChip(REMINDER_CLOCKS.REAL, {
+        const real = this._reminderIcon(REMINDER_CLOCKS.REAL, {
             icon: 'fa-clock',
             firedIcon: 'fa-clock',
             dueAt: NoteReminders.getRealDue(this.note),
             firedAt: NoteReminders.getRealFired(this.note),
             format: (at) => NoteReminders.formatRealMoment(at),
-            change: 'Change when this note comes back in real time'
+            noun: 'Real time'
         });
 
-        // ONE invitation, not two. Two "Remind me" buttons in a footer would ask
-        // the reader to understand the world/real split before they have any
-        // reason to care about it; the dialog asks once they are already there.
-        // Chips are per clock, because once set they are two different facts.
-        const invite = (world || real)
-            ? '<button type="button" class="blacksmith-note-remind" data-note-action="remind"'
-                + ' data-tooltip="Add another reminder"><i class="fa-solid fa-plus"></i></button>'
+        // The invitation disappears once both clocks are spoken for, because
+        // there is nothing left to add. A plus that opens a dialog which can only
+        // edit what already exists is a lie about what the feature does.
+        const invite = (world && real)
+            ? ''
             : '<button type="button" class="blacksmith-note-remind" data-note-action="remind"'
-                + ' data-tooltip="Bring this note back at a moment in the world, or at a real time">'
-                + '<i class="fa-regular fa-bell"></i> Remind me...</button>';
+                + ' data-tooltip="Remind me about this note - at a moment in the world, or at a real time">'
+                + '<i class="fa-regular fa-bell"></i></button>';
 
         return world + real + invite;
     }
 
     /**
-     * One clock's chip, or nothing when that clock has no reminder.
+     * One clock's icon, or nothing when that clock has no reminder.
      *
      * Fired is shown, not cleared. "It came back on the 14th" is the useful fact
      * afterwards, and clearing it would leave a note that looks like it never had
      * a moment at all.
      */
-    _reminderChip(clock, { icon, firedIcon, dueAt, firedAt, format, change }) {
+    _reminderIcon(clock, { icon, firedIcon, dueAt, firedAt, format, noun }) {
         if (dueAt === null) return '';
 
         const fired = firedAt !== null;
-        const label = foundry.utils.escapeHTML(format(dueAt));
         const tooltip = fired
-            ? `Resurfaced ${foundry.utils.escapeHTML(format(firedAt))}`
-            : change;
+            ? `${noun}: was due ${format(dueAt)}, resurfaced ${format(firedAt)}`
+            : `${noun}: due ${format(dueAt)}`;
 
         return `<button type="button" class="blacksmith-note-remind set${fired ? ' fired' : ''}"
-                        data-note-action="remind" data-remind-clock="${clock}" data-tooltip="${tooltip}">
-                    <i class="fa-solid ${fired ? firedIcon : icon}"></i> ${label}
-                </button>
-                <button type="button" class="blacksmith-note-remind-clear" data-note-action="remind-clear"
-                        data-remind-clock="${clock}"
-                        data-tooltip="Remove this reminder. The note stays.">
-                    <i class="fa-solid fa-xmark"></i>
+                        data-note-action="remind" data-remind-clock="${clock}"
+                        data-tooltip="${foundry.utils.escapeHTML(tooltip)}">
+                    <i class="fa-solid ${fired ? firedIcon : icon}"></i>
                 </button>`;
     }
 
@@ -626,18 +621,12 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         on('place', () => void this._place());
         on('unpin', () => void this._unpin());
         on('pan', () => void PinsAPI.panTo?.(this.note?.getFlag(MODULE.ID, 'pinId')));
-        // querySelectorAll, not `on`: the footer now carries one control per clock
-        // plus the add button, and `on` binds only the first match. Binding only
-        // the first is the kind of failure that looks like "the second chip does
+        // querySelectorAll, not `on`: the header carries one icon per clock plus
+        // the add button, and `on` binds only the first match. Binding only the
+        // first is the kind of failure that looks like "the second icon does
         // nothing" rather than like an error.
         for (const button of root.querySelectorAll('[data-note-action="remind"]')) {
             button.addEventListener('click', () => void this._setReminder(button.dataset.remindClock ?? null));
-        }
-        for (const button of root.querySelectorAll('[data-note-action="remind-clear"]')) {
-            button.addEventListener('click', async () => {
-                await NoteReminders.clearFor(button.dataset.remindClock ?? REMINDER_CLOCKS.WORLD, this.note);
-                this.render(false);
-            });
         }
     }
 
@@ -692,6 +681,18 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         const { DialogAPI } = await import('./api-dialog.js');
         const localize = (value) => game.i18n?.localize(value ?? '') ?? '';
 
+        // Removing lives INSIDE the dialog rather than as an x beside the header
+        // icon. The header is the note's state at a glance and a delete control
+        // per clock doubles what is up there; the dialog is already the place you
+        // go to change a reminder, so it is the place to take one away. It submits
+        // the form for you, so removing is one click rather than tick-then-save.
+        const removeRow = `
+            <div class="blacksmith-note-remind-remove">
+                <button type="button" data-remind-remove>
+                    <i class="fa-solid fa-trash"></i> Remove this reminder
+                </button>
+            </div>`;
+
         // ---- the in-world half ----
 
         let worldPane = '';
@@ -739,6 +740,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                             </span>
                         </label>
                     </div>
+                    ${NoteReminders.getDue(this.note) === null ? '' : removeRow}
                 </div>`;
         }
 
@@ -768,6 +770,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                     </label>
                 </div>
                 <p class="blacksmith-note-remind-note">Your own clock. This only reaches you while Foundry is open.</p>
+                ${NoteReminders.getRealDue(this.note) === null ? '' : removeRow}
             </div>`;
 
         // ---- one dialog, two panes ----
@@ -795,6 +798,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                     </div>
                     ${worldPane}
                     ${realPane}
+                    <input type="hidden" name="remindRemove" value="">
                 </div>`,
             // The shortcuts write into the fields rather than resolving to a time of
             // their own, so what is submitted is always what is on screen.
@@ -835,10 +839,31 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                             set('remindReal', NoteEditorWindow._toLocalInput(Date.now() + Number(button.dataset.realOffset)));
                         });
                     }
+
+                    // Remove marks the hidden field and then submits, so it is one
+                    // click. Driving the dialog's own submit button rather than
+                    // calling `form.submit()` keeps DialogV2's button callback in
+                    // the path -- that callback is what runs `getValue`, and
+                    // bypassing it would resolve the dialog with no value at all.
+                    for (const button of root.querySelectorAll('[data-remind-remove]')) {
+                        button.addEventListener('click', () => {
+                            set('remindRemove', '1');
+                            const submit = root.querySelector('[data-action="submit"]')
+                                ?? root.querySelector('button[type="submit"]');
+                            submit?.click();
+                        });
+                    }
                 }
             },
             getValue: (root) => {
                 const clockValue = root.elements.remindClock?.value ?? REMINDER_CLOCKS.WORLD;
+
+                // Removing short-circuits the date entirely. Reading the fields
+                // first would let a half-filled form refuse a removal, which is
+                // the one action that does not care what they say.
+                if (root.elements.remindRemove?.value === '1') {
+                    return { clock: clockValue, remove: true };
+                }
 
                 if (clockValue === REMINDER_CLOCKS.REAL) {
                     // `datetime-local` has no timezone, and `new Date` reads it as
@@ -870,6 +895,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                 };
             },
             validate: (entered) => {
+                if (entered?.remove) return null;
                 if (!Number.isFinite(entered?.at)) {
                     return entered?.clock === REMINDER_CLOCKS.REAL
                         ? 'Choose a date and time.'
@@ -885,9 +911,15 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             }
         });
 
-        if (action !== DialogAPI.ACTIONS.SUBMIT || !Number.isFinite(value?.at)) return;
+        if (action !== DialogAPI.ACTIONS.SUBMIT) return;
 
-        await NoteReminders.setFor(value.clock, this.note, value.at);
+        if (value?.remove) {
+            await NoteReminders.clearFor(value.clock, this.note);
+        } else if (Number.isFinite(value?.at)) {
+            await NoteReminders.setFor(value.clock, this.note, value.at);
+        } else {
+            return;
+        }
         this.render(false);
     }
 

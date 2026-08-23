@@ -197,6 +197,9 @@ await blacksmith.notes.setRealReminder(note, Date.now() + 20 * 60 * 1000);
 the other. Which to use is not a preference: `world` is "when the party reaches Marpenoth", `real` is "in
 twenty minutes".
 
+**A note carries at most one reminder per clock.** Setting a second on the same clock replaces the first;
+there is no list and no ordering. Two moments worth tracking separately are two notes.
+
 Setting a reminder clears that clock's fired stamp, because moving one forward is asking to be reminded
 again.
 

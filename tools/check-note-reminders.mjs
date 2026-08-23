@@ -159,7 +159,28 @@ if (!manager.includes('clearInterval')) {
     );
 }
 
-// --- 7. Every pane the dialog renders must have a rule that shows it ------------
+// --- 7. Reminder toasts must be persistent --------------------------------------
+//
+// A reminder that times out is a reminder you can miss, which is the one thing it
+// exists not to be -- and it arrives exactly when you are looking at something
+// else. `duration: 0` is what makes a toast wait to be acted on; any other value
+// is a countdown to losing it, and nothing about the code would look wrong.
+const announce = manager.match(/static async _announce\([\s\S]*?\n    \}/)?.[0] ?? '';
+const durations = [...announce.matchAll(/duration:\s*(\d+)/g)].map((m) => Number(m[1]));
+
+if (!durations.length) {
+    problems.push(`${MANAGER}: _announce sets no duration, so its toasts take the default and time out.`);
+}
+for (const duration of durations) {
+    if (duration !== 0) {
+        problems.push(
+            `${MANAGER}: a reminder toast uses duration ${duration}. Reminders must be persistent ` +
+            `(duration: 0) -- one that auto-dismisses can be missed, which defeats the feature.`
+        );
+    }
+}
+
+// --- 8. Every pane the dialog renders must have a rule that shows it ------------
 //
 // Both panes are in the DOM and CSS decides which is visible. A pane with no
 // matching rule stays `display: none` forever: the switch moves, the fields do
@@ -176,7 +197,7 @@ for (const pane of panes) {
     }
 }
 
-// --- 8. The note row must mark both clocks --------------------------------------
+// --- 9. The note row must mark both clocks --------------------------------------
 //
 // The row mark is the only place a pending reminder is visible without opening the
 // note. Marking one clock and not the other makes reminders on the unmarked clock

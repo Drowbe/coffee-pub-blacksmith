@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [Unreleased]
+## [13.19.2]
 
 ### Fixed
 
@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It reached three places: a calendar event's next occurrence, so a festival on Marpenoth 20th armed for Hammer 1; the grid's weekday offset, which decides where the first of the month sits; and travelling to a selected day. Note reminders were built on the same call and inherited it, which is how it was noticed -- the reminder dialog seeded and stored Hammer 1 whatever date was chosen.
 
   `utility-calendar.js` now owns the conversion, doing the walk over month lengths that dnd5e's own `jumpToDate` does before it calls core. Both callers of the duplicated `daysInMonth` now delegate to it rather than keeping a third copy.
+
+  **Calendar events created under 13.19.1 will appear to move.** They were stored correctly and only ever fired wrongly, so nothing needs re-entering -- but a GM who set a festival for Marpenoth 20th last week has been watching it fire on Hammer 1, and after this it fires on the 20th. That is the fix, not a regression, and it is the only user-visible change to existing data.
 
 - **A reminder arriving on time announced itself in the past tense** (`scripts/manager-note-reminders.js`). The toast said "Was due Hammer 14, 14:30" for something that had just triggered, which reads as a reminder that was missed rather than one that fired. The cause was wording it off `firedAt > dueAt`: the clock advances in steps, so every reminder is found slightly past its moment and that comparison calls all of them late. Late now means the startup scan found it -- the genuine "you were away" case -- or the world moved more than an in-world hour past it, which only happens when somebody jumped the clock. The `late` field on `blacksmith.noteReminderFired` follows the same rule, so a consumer's wording agrees with ours.
 
@@ -37,7 +39,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   The wall clock is polled every 15 seconds, since it has no `updateWorldTime` to ride. That interval is the worst case by which a real reminder is late, and the scan is a walk of a sorted array that is almost always empty at the head.
 
+  **The reminder shows as an icon in the note's header, with the date in a tooltip.** The editor's footer was the first home and was wrong twice over: spelled-out dates crowded it, and a date is note-level state like the favourite heart rather than an action, so it sits with the other state toggles at the top. Removing moved into the dialog with it -- a delete control per clock doubled what was in the header, and the dialog is already where you go to change a reminder.
+
+  **A note carries at most one reminder per clock, deliberately.** Repeat one by setting it again; there is no series. A list on one note would need ordering, a delete affordance per row, and an answer to what a second one due earlier means -- all to express something two notes already say.
+
+  **The toast does not time out.** A reminder that auto-dismisses is one you can miss, which is the thing it exists not to be, and it arrives exactly when attention is elsewhere. It waits to be clicked or dismissed, and being persistent also exempts it from the stack cap so a burst cannot evict it. `check-note-reminders.mjs` asserts the duration, because changing it reads as ordinary tuning rather than as losing reminders.
+
   Verify live: `testing/note-reminders.md`.
+
+- **The note editor's Read and Favourite icons sat a wide gap apart** (`styles/window-notes.css`). Neither declared a width, so both inherited the framework's button width and two single glyphs were spaced like full buttons. Both, and the new reminder icons, are now explicitly sized.
 
 - **Time-bound notes -- a note can now carry a moment** (`scripts/manager-note-reminders.js`, `scripts/window-note-editor.js`, `scripts/api-notes.js`, `styles/window-notes.css`). Give a note a world time and it comes back at it: a toast that opens the note, and a date on the note's own footer in the meantime. The control sits beside the author, reading as a faint "Remind me..." until it is set.
 
