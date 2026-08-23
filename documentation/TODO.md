@@ -4,214 +4,287 @@
 
 **Scope:** Blacksmith-only work. Cross-module cleanup that spans the Coffee Pub suite (doc/pack/table ownership, module extraction) lives in **`documentation/TODO-GLOBAL.md`**.
 
-## CRITICAL - the importer engine, before anyone builds on it (opened 2026-08-23)
+## CRITICAL - the importer is declaration-driven, and Blacksmith is consumer zero (opened 2026-08-23)
 
-Librarian has asked to adopt `api.importer` and would be its first external consumer, replacing ~600 lines
-of duplicated import dialog across its codex and quest panels. **Two of the defects below change the
-callback contract a consumer plugs into, so they land before the integration, not after.** The composability
-work in the next section depends on this one.
+**This is a re-founding, not an increment.** It breaks every consumer on purpose and the value only exists
+when they have all moved. Decided 2026-08-23 after reviewing the shipped registry against
+`plans/plan-importer-api.md` and the live item path.
 
-Reviewed 2026-08-23 against the code; every item is confirmed in the source, not inferred from the docs.
+**The original goal, restated:** a module registers its shape; Blacksmith builds the prompt; the user
+authors JSON outside the system; Blacksmith reads it, constructs whatever it is, and the module has access
+to the new content. The four reasons it existed: every module was coding its own way to build an item or a
+journal, and that code already existed in Blacksmith; every module did it differently; users were handed
+prompts of completely different shapes; and the core shapes of items and journals turned out to be the
+same, with the exceptions normalizable.
 
-- **Every entry is converted twice, and the second conversion is handed different input.** `runJsonImport`
-  calls `validateEntry` and then `onImportEntry` (`registry-json-import.js:188-215`), and both call the same
-  parser. Item is the bad case rather than merely the wasteful one: validate parses
-  `{...entry, itemImagePath: entry.itemImagePath || entry.img || 'icons/svg/item-bag.svg'}` while import
-  parses the bare `entry` (`registry-json-import-items.js:404-410`), so validate and import are not checking
-  the same object and a payload can pass one and fail the other. Fix by converting once --
-  `onValidateEntry` returns the converted data and `onImportEntry` receives it. That is what the pipeline in
-  `architecture-importer.md` already specifies (`parse -> normalize -> validate -> convert -> create`).
-  **How to verify:** import `testing/data/import-json/item-import-weapon.json` with `itemImagePath` and
-  `img` both absent; the created Item carries the bag icon, and a console breakpoint in the item parser is
-  hit once per entry rather than twice.
+**What went wrong is now legible.** A kind registers *behavior* -- `onValidateEntry`, `onImportEntry`,
+`onBuildPrompt`, `onBuildJsonTemplate`, `onBuildAuthoringGuide`. Five callbacks is five places for every
+module to be different, so the API guarantees the divergence it was built to end. Measured against the four
+reasons, callbacks answer none of them.
 
-- **`onValidateEntry`'s return value is discarded, and the published API doc says otherwise.** The registry
-  reads only `outcome?.validationWarnings` (`registry-json-import.js:171`), while `api-importer.md` tells
-  consumers to "return the converted data, or throw" -- which the item and roll table kinds dutifully do,
-  into nothing. Fixed by the item above; the doc then describes what happens.
-  **How to verify:** by reading -- the doc's contract sentence and the registry's use of the return value
-  agree.
+**A kind must register a declaration -- its shape, as data.** Blacksmith derives the JSON template, the
+authoring guide, the prompt, validation, normalization, the document, the result envelope and the export
+from that one declaration. Then: nobody builds, so nothing is built differently; two modules' prompts are
+structurally identical by construction rather than by convention; and adding a field yields a new prompt
+line, template entry, validation rule and export field without anyone writing code.
+
+A declaration holds:
+
+1. **Identity** -- kind, profile, label, host kind it extends, schema version.
+2. **Fields** -- friendly name, type, required, allowed values, default, target path on the document, and one
+   sentence of guidance. That sentence becomes both the guide line and the prompt line, so the two cannot
+   drift.
+3. **Shared parts by reference** -- `tags`, `xp`, `links`, `location`, `duration`, `gmNotes` named rather than
+   redescribed. See the fragments section below.
+4. **Document target** -- `documentName`, `type` (including a subtype string declared by another module), and
+   destination rules.
+5. **Options** -- schema / creative / import, the three scopes `plan-importer-api.md` already defines.
+
+**Two things cannot be declared, and pretending otherwise is how this gets half-built again:** computed
+content (Artificer's recipe body is generated HTML; our injury journal is assembled) and cross-entry work
+(pins referencing quests, actor foundations linked after embedding). So one narrowly-scoped transform hook
+over already-declared data *before* construction, and one post-create hook for cross-entry work.
+**A module may shape its own data and may never call `create`.** The moment a module creates, gmNotes
+preservation, destination, permissions, rollback and type preservation all stop being enforceable -- which
+is the state we are in now.
+
+### Blacksmith is the first consumer of its own API
+
+**The recurring failure this rule exists to stop:** a module jumps through hoops to work with us while
+Blacksmith takes a shortcut and duplicates the code. It is live inside the importer today --
+`_failedPayloadEntries` (`window-json-import.js:505-516`) keeps its own copy of the array-or-object rule
+instead of calling `parseJsonImportPayload`, and the item kind's validate and import paths pass *different
+objects* to the same parser (`registry-json-import-items.js:404-410`). Both are shortcuts that produced real
+divergence.
+
+Concretely, and non-negotiably:
+
+- Blacksmith's own four kinds register through the **same public `registerKind` path** an external module
+  uses. No internal back door, no direct `kinds.set`, no privileged descriptor fields.
+- A Blacksmith kind may not use a capability that is not exposed on `module.api.importer`.
+- A Blacksmith declaration may not reference an internal import an external module cannot reach. Today
+  `registry-json-import-items.js` imports our parsers directly; nothing external can.
+- **The inverse failure is also live and also ends.** `prompts/prompt-item-partial-artificer.txt` and
+  `prompts/prompt-item-profile-artificer.txt` are Artificer's shape hosted in Blacksmith's repo, and
+  Artificer's flag skeleton is a hardcoded literal at `registry-json-import-items.js:255-265`. Under the
+  declaration model Artificer declares that itself and we host none of it -- which also closes a module
+  boundary violation.
+- **Make it checkable.** `tools/check-importer-parity.mjs` fails if a Blacksmith kind touches anything not on
+  the public surface. A principle nobody can run stops being true within two releases.
+
+### What the item path already proves
+
+The item importer is the half that stayed true to the goal and is the working reference. Blacksmith builds
+the prompt (including Artificer's part), reads the JSON, merges any namespace from `flat.flags` generically
+(`parse-item.js:900-905`), and creates the Item itself (`registry-json-import-items.js:409`). Artificer
+contributes nothing at import time and reads its flags afterwards. `createArtificerItem`
+(`coffee-pub-artificer/scripts/utility-artificer-item.js:143`) is their manual create-item form, not an
+importer.
+
+Two mechanisms there generalize and both are needed by journals, which have neither:
+
+- **Namespaced flag passthrough** -- any `flags.<namespace>` merged verbatim, uninterpreted.
+- **Native `type` + `system` passthrough** -- `isNativeFoundryItemData` / `prepareNativeItemForCreation`
+  (`parse-item.js:725-747`) strips identity and placement fields and preserves everything else.
+
+The second is the answer for a foreign subtype. Blacksmith can create a `coffee-pub-librarian.codex` page:
+Foundry namespaces subtype *declaration*, not creation, and the registered TypeDataModel validates whoever
+calls create. **Blacksmith never needs to know the model; it needs to not mangle it.** Today's journal
+importer hardcodes `type: "text"` (`utility-common.js:410,485,600`). *Verify the creation claim in a live
+world before building on it:* with Librarian enabled, from a Blacksmith macro, create a page with
+`type: 'coffee-pub-librarian.codex'` and an empty `system`. If Foundry refuses, this section changes.
+
+### Migration scope
+
+Blacksmith's four kinds (item, actor, journal, rolltable), Librarian's two (codex, quest), and Artificer's
+recipes and items. Squire's adoption is tracked in `plans/plan-squire-tool-adoption.md`.
+
+**A half-migrated importer is worse than either end state**, and that is exactly what the repo is now: items
+migrated, journals never started, and the contract unreadable from the code. Note that this contract has been
+specified three times -- the architecture doc, `plan-importer-api.md`, and the shipped registry -- and each
+specified something different. What is different this time is that Librarian is moving and every module has
+to change regardless.
+
+**`plan-importer-api.md` is the closest thing to a spec and it contradicts itself.** Its Goals section says
+"Blacksmith owns schema compatibility and Foundry document construction", which is right; twelve lines
+earlier it argues the callback registry already suffices because Blacksmith never learns a consuming
+module's data model, which is what produced the drift. Resolve it in favour of Goals rather than deleting the
+file -- and fold in what it already got right: the stable `code`/`stage`/`path`/`details` error shape, the
+`destination`/`duplicatePolicy`/`batchPolicy` import options, `preserveOnReimport` for gmNotes, and
+`getCapabilities`, whose worked example already anticipates module-declared options.
+
+**How to verify:** all four Blacksmith kinds are declarations registered through the public path, and
+`node tools/check-importer-parity.mjs` passes. Every fixture in `testing/data/import-json/` still imports.
+A field added to a declaration appears in the template, the guide, the prompt and the export with no other
+edit. Artificer's prompt files are gone from `prompts/` and Artificer supplies them.
+
+## CRITICAL - importer defects that survive the re-founding (opened 2026-08-23)
+
+Confirmed in the source 2026-08-23. The double-conversion defect is absent here because it disappears with
+`onImportEntry`; these do not.
 
 - **The structured error envelope is always empty.** `issueFromError` reads `error.code`, `error.path` and
-  `error.details` (`registry-json-import.js:114`), and every kind throws a plain `Error`. So `code` is
-  permanently `VALIDATE_FAILED` or `CREATE_FAILED` and `path`/`details` are always blank, while the
-  architecture doc promises precise stage-specific errors. Wants a small typed-issue helper that kinds throw
-  with, exported alongside the registry so an external consumer can use the same one.
-  **How to verify:** import a roll table fixture with `results` deleted; the result row shows a specific code
-  and the offending path, not `VALIDATE_FAILED` with an empty path.
+  `error.details` (`registry-json-import.js:114`) and every kind throws a plain `Error`, so `code` is
+  permanently `VALIDATE_FAILED` or `CREATE_FAILED` and `path`/`details` are always blank. The shape is
+  already specified in `plan-importer-api.md`. Under declarations most errors become derived (a field that
+  fails its declared type knows its own path), so build the typed issue helper as part of the engine rather
+  than asking kinds to throw richly.
+  **How to verify:** import a roll table fixture with `results` deleted; the row names a specific code and
+  the offending path.
 
 - **Validation is parallel and import is sequential.** `Promise.all` at `registry-json-import.js:181` against
-  the `for` loop at `:191`. Any kind whose validator touches shared resolver state -- the actor and compendium
-  resolvers are the candidates -- can behave differently under Validate than under Import. Make validation
-  sequential unless there is a measured reason not to.
-  **How to verify:** validate then import `actor-import-character.json` as a three-entry array; the warnings
-  reported by Validate match those reported by Import exactly.
+  the `for` loop at `:191`, so a validator touching shared resolver state can behave differently under
+  Validate than under Import. Make validation sequential unless there is a measured reason not to.
+  **How to verify:** validate then import `actor-import-character.json` as a three-entry array; warnings match
+  exactly.
 
-- **Actor is the only kind registered inside the god module.** ~75 lines of parse, create and
-  foundation-linking logic sit at `blacksmith.js:3095-3160`, its kind id is a local `const` rather than the
-  exported constant the other three use, and it is the only kind whose `onImportEntry` rolls back
-  (`await created.delete()`) when post-processing throws. Move it to `registry-json-import-actors.js` beside
-  the others, export `ACTOR_JSON_IMPORT_KIND_ID`, and decide whether rollback is the contract for every kind
-  or actor's alone.
-  **How to verify:** the Actor directory Import button opens the Actor importer, all four importers appear in
-  the switcher, and `actor-import-npc.json` still imports.
+- **Retry duplicates parse logic and breaks on envelopes.** `_failedPayloadEntries`
+  (`window-json-import.js:505-516`) re-parses raw text with its own array-or-object rule instead of calling
+  the registry parser, then maps result indices into it. Given an envelope payload, `entries` is `[envelope]`,
+  so index 0 resolves to the whole envelope and 1..N resolve to `undefined` and are filtered away: **Retry
+  Failed and Edit and Retry silently retry one wrong object and drop the rest**, with no error and a
+  plausible result screen. Retry must go through the same unwrap, and payload context must be held on the
+  window rather than round-tripped through the textarea.
 
-- **A published doc links to a held one.** `api/api-importer.md` is in the `PUBLISH` list
-  (`tools/wiki-sync.mjs:54`) and links `../architecture/architecture-importer.md`, which is deliberately held
-  (`tools/wiki-sync.mjs:107`). That is a live broken link on the wiki. Either publish the architecture doc
-  once its gate clears or drop the link until then.
-  **How to verify:** run `tools/wiki-sync.mjs` locally and grep the build output for the dangling target.
+- **Actor is the only kind registered inside the god module.** ~75 lines at `blacksmith.js:3095-3160`, its
+  kind id a local `const` rather than an exported constant, and the only kind whose import rolls back
+  (`await created.delete()`). Under declarations the rollback question is settled centrally -- Blacksmith
+  creates, so Blacksmith rolls back, for every kind.
 
-- **The architecture doc is largely unbuilt, in present tense.** Import options (destination folder/pack,
-  duplicate policy, dry run), capability gating, schema versioning, the catalog query layer, the Utility tab
-  and `validateJson`/`importJson` are all described as contract in `architecture-importer.md` and none exist.
-  The doc flags some of this and not all of it. Reconcile it to shipped behavior as the engine work lands --
-  that is also the publish gate.
+- **A published doc links to a held one.** `api/api-importer.md` is in `PUBLISH` (`tools/wiki-sync.mjs:54`)
+  and links `../architecture/architecture-importer.md`, deliberately held (`:107`). Live broken wiki link.
 
-- **No automated coverage at all.** No importer suite, no `check-importer-*.mjs`, no testing doc, against 12
-  fixtures already sitting in `testing/data/import-json/`. At minimum a harness suite that runs each fixture
-  through validate-only and asserts the result envelope shape, plus a check that every registered kind
-  supplies the callbacks the registry actually calls -- `runJsonImport` throws a bare TypeError today if a
-  kind supplies neither `onImportEntry` nor `onImport`.
+- **The architecture doc is largely unbuilt, in present tense**, and will need reconciling to the declaration
+  model wholesale. That is also its publish gate.
 
-The export half is not listed here; it has its own section below (**Import/export and module-owned document
-subtypes**), and its constraints -- preserve `type` verbatim, refuse legibly by naming the owning module,
-and never report success on an export that silently omits an unregistered subtype's pages -- are unchanged.
+- **No automated coverage at all** -- no suite, no check, no testing doc, against 12 fixtures already in
+  `testing/data/import-json/`. At minimum: a harness suite running each fixture through validate-only and
+  asserting the envelope shape, plus `check-importer-parity.mjs` above.
 
-## CRITICAL - a module must be able to contribute a profile to an existing kind (opened 2026-08-23)
+The export half has its own section below (**Import/export and module-owned document subtypes**). Its
+constraints are unchanged and the declaration model is what finally makes them enforceable: export inverts
+the same declaration, so `type` preservation and round-trip equivalence become assertions rather than hopes.
 
-**Raised by Librarian, and the blocker on their adoption.** `registerJsonImportKind` is a flat
-`kinds.set(id, kind)` (`registry-json-import.js:40`), so a kind cannot attach to another kind. Librarian
-wants "Codex Entry" to sit in the Journal importer's template dropdown beside Area and Location, because a
-GM importing codex entries is importing journal content and should find it where journal content lives.
-Today the only available moves are registering `id: 'journal'` -- which silently replaces our journal
-importer and takes Area, Location, Encounter and Injury with it -- or a separate top-level entry in the
-switcher, which is the wrong information architecture.
+## Importer: the shared parts are ours, and they are declared by reference (opened 2026-08-23)
 
-Design settled with Librarian over 2026-08-23. Contributions are the missing concept:
+**The overlap between modules is not coincidence.** Comparing Librarian's codex and quest payloads against
+our four kinds, the fields that recur across modules are, with few exceptions, the fields Blacksmith already
+owns a subsystem for:
 
-- **A contribution declares its host**, `extendsKind: 'journal'`, and its owning module id. Registration is
-  namespaced by module id, which the architecture doc's security section already requires of external
-  registrations. Librarian registers **two** -- codex and quest -- against the same host.
+| Recurring part | Owned by |
+|---|---|
+| `tags` | `api.tags` -- its context key is already `{moduleId}.{dataType}` |
+| `reward.xp` | `architecture-xp.md` |
+| scene pin coordinates | `api.pins` |
+| `links` / `related` -- names resolved to documents | `api.compendiums` canonical resolver |
+| `timeframe.duration` | world clock / calendar |
+| `visible`, ownership | `architecture-ownership.md` |
+| `flags.coffee-pub-blacksmith.gmNotes` | `api.gmNotes` -- already a mandatory preservation path |
+| `name`, `img`, `category`, `description` | nobody; genuinely generic identity |
 
-- **Authoring merges; import dispatches.** Contributed `templateOptions`, `promptFields` and
-  `promptCheckboxes` merge into the host's before the window opens, and the selected template option routes
-  `onBuildPrompt` / `onBuildJsonTemplate` / `onBuildAuthoringGuide` to whoever contributed it. That path is
-  explicit -- the user picked the option -- and is the easy half.
+So a **fragment is the authoring shape of a Blacksmith subsystem**, declared by name rather than
+redescribed. We own it because we already own the API behind it, and every module that names it gets
+identical parsing, validation, prompt wording and application -- which is why a tag means the same thing in a
+codex entry, a quest and an item.
 
-- **Import dispatch needs a real matcher, not `onProfileName`.** Librarian proposed reusing it, and it will
-  not carry the weight: `onProfileName` returns a display label, and dispatch has to be able to answer "not
-  mine". Reusing it also forces every contributor to agree on one field, which is the coupling the
-  contribution model exists to avoid -- concretely, our journal kind reads `entry.journaltype`
-  (`registry-json-import-journals.js:1273-1281`) and a codex payload has no such field. A contribution
-  supplies its own predicate over the raw entry; the registry tries contributions first and falls through to
-  the host. **Two contributions matching the same entry is an error the registry reports, not a first-wins
-  race** -- the Handlebars partial race recorded in the window framework section below is the same
-  class of problem.
+**The tags case is live, not hypothetical.** `api-tags.md` states assignments live in a Blacksmith world
+setting and consuming modules do not store tags in their own record data -- its worked example context key
+is `coffee-pub-librarian.quest`. Librarian's export nonetheless emits `tags` inline per entry. On import that
+array must be applied through `TagsAPI.setTags(contextKey, recordId, tags)` (`api-tags.js:35`) after
+creation, not written into the page.
 
-  **Build that check defensively; Librarian cannot exercise it.** Their two predicates are disjoint by
-  construction (codex requires `!Array.isArray(entry.tasks)`, quest keys on `tasks`/`status`/`reward`), so no
-  payload matches both. A payload matching neither is an *orphan*, not a collision, and takes the
-  fall-through path instead. Testing ambiguity needs a throwaway third contributor.
+A fragment supplies four things:
 
-- **Fall-through to the host is where "refuse legibly" gets built.** An entry no contribution claims reaches
-  the host's closed allowlist and dies with `Unsupported journaltype`. Where the payload names a module the
-  message should name it and say whether it is installed and enabled. That is the same requirement already
-  recorded in the import/export section below, so it lands here rather than twice.
+1. **Schema** -- field names and types.
+2. **Normalizer** -- friendly to canonical, once, for everyone (`TagsAPI.normalize` exists).
+3. **Authoring text** -- the template block and the prompt paragraph, so every module describes the part in
+   the same words instead of each inventing wording a model then reads differently.
+4. **Applier** -- writes through the owning Blacksmith API after construction.
 
-- **Envelopes: a payload is not always a list of entries.** `parseJsonImportPayload` turns a non-array object
-  into `[parsed]` (`registry-json-import.js:62-93`), so Librarian's quest export -- `{ kind, exportVersion,
-  quests: [...], scenePins: {...} }` -- arrives as one entry rather than N quests, and its sibling data has
-  nowhere to go. **This is invisible from inside our own four kinds; all four are top-level arrays.**
+**Build exactly one fragment end to end first -- `tags`.** It is already a subsystem with an API and an
+architecture doc, it appears in both Librarian kinds, its applier is one call, and a wrong tag does not
+corrupt a document. Extend to XP and pins only if the seam holds. Fragments are opt-in and never exclusive:
+a module meaning something else by a word simply does not name the fragment. **A shared fragment is API
+surface** -- version it from the start, because changing one breaks every module that named it.
 
-  Before per-entry dispatch, each contribution and the host is asked to claim the whole parsed payload,
-  returning `null` for "not mine" or `{ entries, context }`. Nobody claims means today's behavior exactly, so
-  hand-authored payloads are unaffected; two claims is reported, same rule as per-entry. **Envelope claim and
-  entry dispatch stay separate** -- a claimed envelope's entries still go through the per-entry predicate, so
-  a stray object inside an envelope fails legibly rather than being force-fed to its claimant.
+**How to verify:** a Librarian quest imported with `tags` in the payload has no tags in its page data and the
+correct tags under context key `coffee-pub-librarian.quest`; the same tag on one of our items resolves to the
+same normalized string; a GM rename propagates to both.
 
-- **`context` is per-payload sibling data and must reach the end of the run.** It is passed to
-  `onImportEntry` and to `onImportComplete`. Batch post-processing lives in the latter: content keyed to
-  something other than one entry, referencing entries that must all exist first.
+## Importer: consumer migration and the fixtures we have (opened 2026-08-23)
 
-  **Do not justify `context` on Librarian's `scenePins`.** They reported 2026-08-23 that their pin export
+**Librarian is the forcing function.** They are replacing ~600 lines of duplicated import dialog across
+codex and quest, have already extracted their codex import into callback-shaped functions
+(`coffee-pub-librarian/scripts/import-codex.js`), and asked to build against a branch. **They must not be
+given the callback contract** -- `onImportEntry` has never been used by an external module, so Librarian
+would be the first, and the pattern this effort exists to kill would be re-institutionalized through the API
+built to end it. Send them the declaration contract instead.
+
+Settled with them 2026-08-23 and still true under declarations:
+
+- **Two profiles, not one** -- codex and quest are separate journals, separate settings, separate page
+  models. Both extend the `journal` kind.
+- **Discrimination is declared, and `description` is not a discriminator** -- it is the quest body field *and*
+  the legacy codex name for `summary`, so anything keying on it gets the two backwards. Quest-only:
+  `tasks`, `reward`, `timeframe`, `status`, `visible`. Codex-only: `summary`, `related`, `expandedDetails`,
+  `links`.
+- **Their two profiles are disjoint by construction**, so a payload matching neither is an *orphan* that
+  falls through, not a collision. Ambiguity detection still gets built defensively; testing it needs a
+  throwaway third profile.
+- **Envelopes: a payload is not always a list of entries.** Their quest export is
+  `{ kind, exportVersion, quests: [...], scenePins: {...} }`, and `parseJsonImportPayload` turns a non-array
+  object into `[parsed]` (`registry-json-import.js:62-93`), so it arrives as one entry rather than N.
+  **Invisible from inside our four kinds -- all four are top-level arrays.** The declaration must be able to
+  describe an envelope: which key holds the entries, and what sibling data travels alongside.
+- **Sibling data must survive to the end of the run**, reaching construction and post-create. Post-create work
+  that cannot complete must warn into the result envelope, not the console -- their case is a pin whose quest
+  failed to import, and separately a pin referencing a quest absent from the payload entirely.
+- **Do not justify envelope context on their `scenePins`.** They reported 2026-08-23 that their pin export
   reads a legacy scene flag nothing writes any more -- live pins moved to our Pins API -- so in a real world
-  it emits `{}`. It is a Librarian bug they are filing separately, and their envelope fixture is
-  reconstructed rather than captured. The load-bearing argument for `context` is the general one (sibling
-  data that is not per-entry) plus the batch cache below, not that instance. If their export is fixed the
-  shape changes -- `questUuid`, `x`, `y` and `objectiveIndex` are the stable core; everything else moves.
+  it emits `{}`. Their envelope fixture is reconstructed, not captured. The justification is the general case
+  plus a batch-level resolution cache; their live world holds 342 codex entries resolving compendium links
+  per entry. If their export is fixed the shape changes: `questUuid`, `x`, `y`, `objectiveIndex` are the
+  stable core.
+- **An envelope-level `kind` is diagnostic only, never dispatch.** They will emit
+  `"kind": "coffee-pub-librarian.quest"` so a disabled-module message can name the owner, while declared
+  discrimination stays the only route in.
+- **Progress reporting throttled on elapsed time (100-150ms), not every Nth entry** -- per-entry cost is not
+  uniform and entries hitting compendium resolution are dramatically slower, so a count-based throttle looks
+  stalled through a slow stretch. `_buildSelectedPrompt` already threads `onProgress` into the prompt builders
+  (`window-json-import.js:423`); the import loop has nothing.
+- **Import options become a real category with a first consumer** -- `plan-importer-api.md` defines them
+  (Import JSON tab only, unlike prompt-side `promptCheckboxes`) and none are built. Librarian's is a single
+  "place canvas pins" boolean.
 
-- **`onImportComplete` must be able to add warnings to the result envelope.** Post-processing that cannot
-  complete -- Librarian's case is a pin whose quest failed to import, and separately a pin referencing a
-  quest absent from the payload entirely -- has to surface in the report, not the console. Decide whether
-  those two shapes warn identically.
+**Artificer migrates too, in both directions.** Its recipe import is a wholly parallel pipeline -- own window
+(`window-artificer-recipe-import.js`), own parse, own normalizers, own `resolveItemByName` with its own
+compendium priority setting and cache, own result reporting, pages created as `type: 'text'` -- in a module
+that already requires Blacksmith and registers its Import Recipes button on our menubar
+(`artificer.js:314`). It uses Blacksmith to render the button that opens its own importer. Its *item* path is
+already correct and becomes the reference; what moves is that Artificer declares its own shape instead of us
+hosting it.
 
-- **Retry is broken by envelopes, and duplicates parse logic today.** `_failedPayloadEntries`
-  (`window-json-import.js:505-516`) re-parses the raw text with its own copy of the array-or-object rule
-  instead of calling the registry parser, then maps result indices into it. Under an envelope `entries` is
-  `[envelope]`, so index 0 resolves to the whole envelope and 1..N resolve to `undefined` and are filtered
-  away: **Retry Failed and Edit and Retry silently retry one wrong object and drop the rest, with no error
-  and a plausible result screen.** Retry must go through the same unwrap, and `context` must be held on the
-  window rather than round-tripped through the textarea. The duplicated parse rule is worth removing whether
-  or not envelopes land.
+**Fixtures Librarian supplied**, in their repo at `coffee-pub-librarian/testing/`:
 
-- **An envelope-level `kind` is diagnostic only, never dispatch.** Librarian will emit
-  `"kind": "coffee-pub-librarian.quest"` so the disabled-module message can name the owner. The predicate
-  stays the only route in, so a hand-authored payload without `kind` is never second-class. Their codex
-  export deliberately does not emit a `type` field -- the JSON is an authoring shape a model may write, and
-  the importer sets the subtype -- which is why the envelope field is needed for the diagnostic at all.
+- `fixture-import-orphan.json` -- three entries matching neither profile, exercising fall-through. The third
+  isolates the `description` trap. Entry 2 is annotated "every field here is one BOTH kinds use", which makes
+  it a written inventory of the cross-module shared surface and a direct input to the fragment list above.
+- `fixture-import-quest-envelope.json` -- envelope with `kind`, three quests (one failing on an empty `name`),
+  two scenes and four pins, two orphaned in different ways. Reconstructed rather than captured.
 
-- **Import options become a real category, with a first consumer.** `architecture-importer.md` already
-  defines them (validation, destination, conflict handling, creation; Import JSON tab only, unlike
-  prompt-side `promptCheckboxes`) and none are built. Librarian's is a single "place canvas pins" boolean
-  that gates import behavior. Build the category rather than bending `promptCheckboxes` to reach the import
-  side.
+Two unresolved discrepancies to settle with them: `exportVersion` is `2` (number) in their message and
+`"1.1"` (string) in the fixture; and the fixture pins carry `questIndex` and `questCategory`, which are not
+in the stable core they named.
 
-- **Generalize the two journal-shaped slots on their own merits, not for Librarian.** `journalAreaUi` and
-  `journalLocationUi` are named, kind-specific fields threaded through an otherwise generic window
-  (`window-json-import.js:98-102`, `:277-278`, `:643-644`, `:834-835`, `:932`, `:976`), with two bespoke
-  formatters, where `promptFields` is fully generic and needs no per-kind code. Librarian withdrew the
-  panel requirement -- their journal targets come from world settings, not a picker -- so this is our
-  cleanup, and their boolean is an import option rather than a panel.
-
-- **Import lifecycle callbacks.** There is no `Hooks.call` and no start/complete signal anywhere in the
-  registry or window. Librarian suppresses panel re-renders during bulk import behind an `isImporting` flag;
-  with Blacksmith owning the loop there is no edge to set or clear it, so a full re-import re-renders their
-  codex panel once per entry. `onImportStart` / `onImportComplete` on the descriptor covers the owning
-  module. A hook covers modules that care about an import they did not register -- add it only when a second
-  consumer actually needs it.
-
-  **`onImportStart` may return a value merged into `context`.** That is where a batch-level resolution cache
-  lives, and it is the independent justification for `context`: Librarian's live world holds 342 codex
-  entries and resolves compendium links per entry.
-
-- **Progress reporting during import.** `runJsonImport` loops with no callback, so a long import shows
-  nothing. The pattern already exists one function away: `_buildSelectedPrompt` threads `onProgress(msg)`
-  into the prompt builders (`window-json-import.js:423`). Thread the same through the import loop and into
-  the window's busy text. **Throttle on elapsed time (100-150ms), not every Nth entry** -- per-entry cost is
-  not uniform, and entries that hit compendium resolution are dramatically slower, so a count-based throttle
-  looks stalled through a slow stretch. Note that third argument is also missing from the `JsonImportKind`
-  typedef despite the actor kind using it, as are `journalAreaUi` and `journalLocationUi`.
-
-**Fixtures.** Librarian supplied two, in their repo at `coffee-pub-librarian/testing/`:
-
-- `fixture-import-orphan.json` -- three entries matching neither predicate, exercising the fall-through
-  diagnostic. The third isolates the `description` trap: `description` is the quest body field *and* the
-  legacy codex name for `summary`, so any predicate keying on it gets the two kinds backwards.
-- `fixture-import-quest-envelope.json` -- envelope shape with `kind`, three quests (one failing on an empty
-  `name`), two scenes and four pins, two of them orphaned by design in different ways. Reconstructed rather
-  than captured; see the `scenePins` note above.
-
-**How to verify:** Librarian registers codex and quest contributions against the Journal kind. Codex Entry
-appears in the Journal importer's template dropdown; selecting it produces Librarian's template and prompt;
-pasting codex JSON creates pages of type `coffee-pub-librarian.codex` that Blacksmith never constructs;
-pasting area JSON in the same batch still routes to us. `fixture-import-orphan.json` fails all three entries
-with a fall-through message, and the description-trap entry is not claimed by quests.
-`fixture-import-quest-envelope.json` unwraps to three entries rather than one, imports two, and reports both
-orphaned pins as warnings in the result envelope. Retry Failed on that result retries exactly the failed
-quest and preserves the envelope context. Then disable Librarian and repeat: the payloads refuse legibly,
-naming Librarian from the envelope `kind`, rather than throwing raw validation errors. A full 342-entry codex
-import re-renders the codex panel once and reports progress on a time-based throttle throughout.
+**How to verify:** Librarian declares codex and quest profiles against the `journal` kind and writes no
+construction code. Codex Entry appears in the Journal importer's template dropdown; pasting codex JSON
+creates pages of type `coffee-pub-librarian.codex` built by Blacksmith; pasting area JSON in the same batch
+still routes to our profile. `fixture-import-orphan.json` fails all three entries with a fall-through message
+and the description-trap entry is not claimed by quests. `fixture-import-quest-envelope.json` unwraps to
+three entries, imports two, and reports both orphaned pins as warnings in the envelope. Retry Failed retries
+exactly the failed quest and preserves sibling data. With Librarian disabled the payloads refuse legibly,
+naming Librarian from the envelope `kind`. A 342-entry codex import re-renders their panel once and reports
+progress on a time-based throttle.
 
 ## CRITICAL - the window framework does not own the frame, and we are building on it
 

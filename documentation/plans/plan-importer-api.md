@@ -1,23 +1,28 @@
-# Plan: the wider Importer API
+# Plan: the Importer API
 
 **Status: Planned.** Nothing in this document is implemented.
 
-The JSON import *registry* shipped and is public as module.api.importer -- egisterKind, getKind,
-openWindow, parsePayload, ttachButton. That surface is documented in ../api/api-importer.md and is
-not part of this plan.
+**Scope changed 2026-08-23.** This was written as a *wider* contract layered on top of the shipped
+callback registry. It is now the contract for a **re-founding of the importer**: a kind registers a
+declaration of its shape, and Blacksmith derives the template, guide, prompt, validation, document
+construction, result envelope and export from it. The callback registry -- `registerKind` with
+`onValidateEntry` / `onImportEntry` / `onBuildPrompt` / `onBuildJsonTemplate` / `onBuildAuthoringGuide`,
+documented in `../api/api-importer.md` -- is what this replaces, not what it extends. The work items and
+migration order live in `../TODO.md`; this file holds the contract shapes.
 
-What follows is the larger contract that was drafted alongside it and never built: capability discovery,
-template and prompt authoring outputs, and alidateJson / importJson with a structured result envelope.
-It lived in the API document for a while, describing a namespace that did not exist. It is here instead so
-that the API document describes only what ships.
+**The Goals section below is the spec.** An earlier version of this header argued the opposite -- that the
+callback registry already sufficed because Blacksmith never learns a consuming module's data model, and
+that this file could be deleted if that property was worth keeping. That contradicted Goals twelve lines
+later, and the shipped registry resolved the contradiction toward module-side construction without anyone
+deciding to. Blacksmith owns document construction. A module never calls `create`.
 
-**Before building any of it, decide whether it is still wanted.** The registry with caller-supplied
-onValidateEntry / onImportEntry callbacks already covers the case that drove the first consumer request,
-and it does so without Blacksmith knowing a consuming module's data model -- which is the property this
-larger surface would have to preserve anyway. If it is not wanted, delete this file.
+Two things a declaration cannot express, and which therefore keep narrowly-scoped hooks: content that must
+be computed (generated HTML bodies) and cross-entry work (pins referencing entries, embedded documents
+linked after creation). Both run over already-declared data; neither substitutes for construction.
 
-Per the plans rule: when it is built, distribute it -- surface to ../api/api-importer.md, design to
-../architecture/architecture-importer.md, history to CHANGELOG.md -- and delete this file.
+Per the plans rule: when it is built, distribute it -- surface to `../api/api-importer.md`, design to
+`../architecture/architecture-importer.md`, history to `CHANGELOG.md` -- and delete this file.
+
 
 ---
 ## Goals
