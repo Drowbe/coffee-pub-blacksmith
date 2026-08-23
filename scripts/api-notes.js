@@ -11,6 +11,7 @@
 // ==================================================================
 
 import { NotesManager, ANCHOR_KINDS, NOTE_VISIBILITY, NOTE_TAG_CONTEXT } from './manager-notes.js';
+import { NoteReminders } from './manager-note-reminders.js';
 
 export const NotesAPI = {
 
@@ -112,6 +113,44 @@ export const NotesAPI = {
      * not editing the thing noted. Ask before offering the control.
      */
     canAnnotate: (note) => NotesManager.canAnnotate(note),
+
+    // ---- reminders: a note with a moment ----
+
+    /**
+     * Bind a note to a world time. Clears any previous firing, because moving a
+     * reminder forward is asking to be reminded again.
+     * @param {JournalEntryPage|string} note
+     * @param {number} dueAt world time in seconds
+     * @returns {Promise<boolean>}
+     */
+    setReminder: (note, dueAt) => NoteReminders.set(note, dueAt),
+
+    /** Unbind a note from its moment. It stays a note. @returns {Promise<boolean>} */
+    clearReminder: (note) => NoteReminders.clear(note),
+
+    /** When a note is due, or null if it is not time-bound. @returns {number|null} */
+    getReminder: (note) => NoteReminders.getDue(note),
+
+    /** When a note actually resurfaced, or null if it has not yet. @returns {number|null} */
+    getReminderFired: (note) => NoteReminders.getFired(note),
+
+    /**
+     * Reminders in a window of world time, in due order.
+     *
+     * Both bounds inclusive, either omittable -- so this answers "due today" for a
+     * calendar day cell and "everything pending" for a list with no second method.
+     * Filtered by note permission, so it never reports a note you cannot read.
+     *
+     * @param {object} [options] `{ from, to, includeFired }`
+     * @returns {Array<{note: JournalEntryPage, dueAt: number, firedAt: number|null}>}
+     */
+    listReminders: (options) => NoteReminders.list(options),
+
+    /** Whether the current user may set a reminder on this note. Ask before offering the control. */
+    canSetReminder: (note) => NoteReminders.canSet(note),
+
+    /** A world time as a date and clock in the world's own calendar. */
+    formatMoment: (time) => NoteReminders.formatMoment(time),
 
     /** Rebuild the target index. Only needed after bulk document changes the hooks did not see. */
     rebuildIndex: () => NotesManager.rebuildIndex()

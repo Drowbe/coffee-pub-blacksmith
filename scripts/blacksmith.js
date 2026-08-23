@@ -101,6 +101,7 @@ import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { registerRestWindow } from './window-rest.js';
 import { registerStatusEffectsWindow } from './window-status-effects.js';
 import { NotesManager } from './manager-notes.js';
+import { NoteReminders } from './manager-note-reminders.js';
 import { NotesAPI } from './api-notes.js';
 import { registerRelatedNotesSection } from './ui-notes-gmnotes-section.js';
 import { registerNoteEditorWindow } from './window-note-editor.js';
@@ -657,6 +658,10 @@ Hooks.once('ready', async () => {
             registerNoteEditorWindow();
             registerNotesWindow();
             NotePlacementManager.initialize();
+            // After the notes index: its own index reads the same pages, and its
+            // startup scan announces anything that came due while this client was
+            // away -- which needs the notes journal already resolvable.
+            NoteReminders.initialize();
         } catch (e) {
             // Non-fatal: a missing index costs "what is attached to this" until the
             // next rebuild, which is not worth stalling the load for.

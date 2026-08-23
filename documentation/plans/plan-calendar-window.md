@@ -1,7 +1,7 @@
 # Plan: the calendar window
 
-**Status: In progress.** The window and calendar events shipped; the real-world calendar mode and
-time-bound notes have not.
+**Status: In progress.** The window, calendar events and time-bound notes shipped and are verified. Only
+the real-world calendar mode remains.
 
 **The shipped mechanism has moved out of this file** to `../architecture/architecture-calendar.md`, per the
 rule that a plan is never a source of truth. What remains here is design that is not built. Delete this file
@@ -55,17 +55,3 @@ GM-side in `CalendarEvents.canEdit`, not merely in the UI -- the op is reachable
 hidden button is a suggestion. `author` and `id` are stripped from any update, or the check would be
 self-defeating. An event with no author predates this and is GM-only, which is the safe reading.
 
-## Verification owed on what shipped
-
-None of these can be a harness check. What has passed is noted; the rest is owed.
-
-- Open it on a world using a non-Gregorian calendar -- the column count, the month lengths and the weekday
-  names all have to come from that calendar. Harptos is the case to hand.
-- Page across a year boundary in both directions and confirm the year label moves with it.
-- In a leap year, confirm the month that gains a day shows it.
-- Click a day at 14:30 and confirm the world lands on that day still at 14:30.
-- Open it as a player: the grid renders, the day cells are not buttons, and nothing throws.
-- Add a once event on today, advance past it: one toast, GM only, no repeat.
-- Add a monthly event on the 31st in a 30-day-month calendar: it skips those months rather than firing on
-  the 30th.
-- Delete an event: the marker and the list entry go with it.

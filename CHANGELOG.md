@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Time-bound notes -- a note can now carry a moment** (`scripts/manager-note-reminders.js`, `scripts/window-note-editor.js`, `scripts/api-notes.js`, `styles/window-notes.css`). Give a note a world time and it comes back at it: a toast that opens the note, and a date on the note's own footer in the meantime. The control sits beside the author, reading as a faint "Remind me..." until it is set.
+
+  **This is the other half of the calendar work, and deliberately not the same mechanism as a calendar event.** An event belongs to the world, recurs, and lives in a world setting; a reminder belongs to one person, never recurs, and lives on their own note as two flags -- `dueAt` and `firedAt`.
+
+  **Reminders do not use `schedule()`, though events do.** Schedules are in-memory and nothing fires retroactively, so a reminder that came due while the world was closed would be silently gone. A missed festival is still visible on the calendar; a missed personal reminder is invisible, and that asymmetry is the entire reason for two mechanisms. Instead the index is persisted and scanned on crossing, plus once at startup -- so reopening a world after an in-world month reports what came due rather than losing it.
+
+  **`firedAt` rather than a completion flag is the scope line.** It gives "recently fired" without inventing a status, an assignee, or a done state, and it makes "missed" fall out of the data instead of being a third field: `firedAt` later than `dueAt` means it came back late. The list of time-bound things is the index rendered and markers on a calendar day are a range query, so both fall out rather than being built.
+
+  **A reminder fires on one screen.** Gated on the note's author, so a note shared with the party resurfaces once rather than five times. A note whose author no longer has a user falls to the GM, which is the difference between late and lost.
+
+  The moment is its own flag rather than an annotation, though the anchor union would have taken one: an annotation requires a target and a moment has none, the annotation index is exact-match while time queries are ranged, and "what is attached to this" has no ordering while "what is due" is nothing but ordering. Same document, second relationship, second derived index -- `NoteReminders._due`, a sorted array because every question asked of it is a range.
+
+  Public surface on `blacksmith.notes`: `setReminder`, `clearReminder`, `getReminder`, `getReminderFired`, `canSetReminder`, `listReminders`, `formatMoment`, plus a `blacksmith.noteReminderFired` hook. `listReminders` takes inclusive bounds either of which may be omitted, so one call answers both "due on this day" and "everything pending", and it filters by note permission rather than by flag.
+
+  Verify live: `testing/note-reminders.md`.
+
 - **`blacksmith.dialog.pickActor` -- pick one actor from a list** (`scripts/api-dialog.js`, `styles/dialog.css`). Returns the chosen actor's UUID, or `null` if the dialog is dismissed. Asked for by Merchant, which was building its own actor picker; the same dialog is wanted by anything that has to ask "who?" before acting.
 
   It is a thin composition rather than a new widget: `EntityListAPI.create({ mode: 'single' })` rendered inside the existing `prompt`, so the search field, the avatars and the keyboard behaviour are the ones every other entity list already has, and a fix to that list reaches this dialog for free.

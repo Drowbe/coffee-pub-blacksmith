@@ -283,6 +283,116 @@
     opacity: 0.7;
 }
 
+/* ---- the reminder chip, in the footer beside the author ------- */
+
+/* Separated from the author by a dot rather than a gap: they are two facts
+   about the same note, and a gap would read as two unrelated controls. */
+.blacksmith-note-meta + .blacksmith-note-remind::before {
+    content: "\00b7";
+    margin: 0 6px 0 0;
+    opacity: 0.5;
+}
+
+.blacksmith-note-remind {
+    background: none;
+    border: none;
+    width: auto;
+    padding: 0;
+    font-size: 0.85em;
+    line-height: 1.7;
+    color: var(--blacksmith-tool-text);
+    cursor: pointer;
+    /* The unset state is the discoverable one and carries the cost of living in
+       the footer, so it is faint but not invisible. */
+    opacity: 0.6;
+}
+
+.blacksmith-note-remind:hover {
+    opacity: 1;
+    text-shadow: none;
+}
+
+/* Set: a real fact about the note rather than an invitation, so it stops
+   whispering. */
+.blacksmith-note-remind.set {
+    opacity: 0.9;
+    color: var(--blacksmith-tool-accent);
+}
+
+/* Already resurfaced. Still shown -- "it came back on the 14th" is the useful
+   fact afterwards -- but no longer pending, so it drops back to plain text. */
+.blacksmith-note-remind.set.fired {
+    color: var(--blacksmith-tool-text);
+    opacity: 0.55;
+}
+
+.blacksmith-note-remind-clear {
+    background: none;
+    border: none;
+    width: auto;
+    padding: 0 0 0 4px;
+    font-size: 0.8em;
+    line-height: 1.7;
+    color: var(--blacksmith-tool-text);
+    cursor: pointer;
+    opacity: 0.4;
+}
+
+.blacksmith-note-remind-clear:hover {
+    opacity: 1;
+    text-shadow: none;
+}
+
+/* ---- the reminder dialog ------------------------------------- */
+
+.blacksmith-note-remind-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.blacksmith-note-remind-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.blacksmith-note-remind-shortcuts button {
+    width: auto;
+    flex: 0 0 auto;
+    padding: 2px 8px;
+    font-size: 0.9em;
+    line-height: 1.6;
+}
+
+/* Four fields on one row, and the row wraps rather than squeezing them: a
+   two-character year field is worse than a second line. */
+.blacksmith-note-remind-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.blacksmith-note-remind-row > label {
+    flex: 1 1 90px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.9em;
+}
+
+.blacksmith-note-remind-time {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.blacksmith-note-remind-time input {
+    min-width: 0;
+    text-align: center;
+}
+
 /* ---- list ---------------------------------------------------- */
 
 .blacksmith-notes-search {

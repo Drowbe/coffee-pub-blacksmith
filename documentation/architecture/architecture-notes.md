@@ -54,6 +54,43 @@ truth on the document rather than in a derived store that would then be load-bea
 have detached a target, and the new state alone cannot say which one. The map is small and a diff nobody
 trusts is worse than a loop.
 
+## Reminders: a note with a moment
+
+`manager-note-reminders.js` binds a note to a world time. Two flags on the page and no central store:
+`dueAt` is when it wants to resurface, `firedAt` is when it did. `firedAt` is absent until it fires.
+
+This is a second relationship on the same document, with its own derived index -- `NoteReminders._due`,
+a sorted `[{dueAt, pageUuid}]`, built at `ready` and maintained by the same three page hooks. An array
+rather than the annotation index's Map because every question asked of it is a range, and a range over a
+sorted array is a slice where a Map would be a scan and a sort per call. Like `_indexByTarget` it is
+derived, and `list()` re-reads each page rather than trusting it.
+
+**The moment is its own flag rather than an annotation**, though the anchor union is already there and
+would take one. An annotation requires a `targetUuid` and a moment has none; the annotation index is
+exact-match while time queries are ranged; and "what is attached to this" has no ordering while "what is
+due" is nothing but ordering.
+
+### Reminders do not use `schedule()`, though calendar events do
+
+Schedules are in-memory and nothing fires retroactively, so a reminder due while the world was closed
+would be silently gone. `NoteReminders.fireDue` scans the persisted index instead -- on `updateWorldTime`,
+and once at startup for whatever came due while this client was away.
+
+The asymmetry with events is the reason for two mechanisms rather than one: a missed festival is still
+visible on the calendar, and a missed personal reminder is invisible. `architecture-calendar.md` carries
+the full comparison.
+
+### One person's reminder fires on one screen
+
+`_isMine` gates firing on the note's `authorId`, so a note shared with the party resurfaces once. A note
+whose author no longer has a user falls to the GM rather than to nobody.
+
+Idempotence is `firedAt`, stamped before anything is announced. It is also what distinguishes late from
+on-time without a third field: `firedAt > dueAt` means it came back after its moment.
+
+**Setting a reminder clears `firedAt`.** Moving one forward is asking to be reminded again, and leaving
+the stamp would mean it never was.
+
 ## Anchors
 
 A discriminated shape, not loose fields:

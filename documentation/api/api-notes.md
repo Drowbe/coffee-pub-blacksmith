@@ -168,9 +168,45 @@ used by a note and a tag used by a pin are the same tag rather than two spelling
 Deleting a note clears its assignments. They are keyed by page id, so a missed cleanup would orphan them
 with no way to find them again.
 
+### Reminders
+
+A note can carry a world time it wants to come back at.
+
+```js
+await blacksmith.notes.setReminder(note, game.time.worldTime + 259200);
+blacksmith.notes.getReminder(note);          // world time, or null
+blacksmith.notes.getReminderFired(note);     // world time it resurfaced, or null
+await blacksmith.notes.clearReminder(note);
+```
+
+| Call | Returns |
+|---|---|
+| `setReminder(note, dueAt)` | `Promise<boolean>`. Clears any previous firing in the same write. |
+| `clearReminder(note)` | `Promise<boolean>`. The note stays; only the moment goes. |
+| `getReminder(note)` | world time in seconds, or `null` when the note is not time-bound |
+| `getReminderFired(note)` | world time it resurfaced, or `null` when it has not |
+| `canSetReminder(note)` | whether the current user may. Ask before offering a control. |
+| `listReminders({from, to, includeFired})` | `[{note, dueAt, firedAt}]` in due order |
+| `formatMoment(time)` | a world time as a date and clock in the world's own calendar |
+
+`listReminders` takes inclusive bounds and either may be omitted, so one call answers both "due on this
+day" for a calendar cell and "everything still pending" for a list. It filters by note permission, so it
+never reports a note the caller cannot read. Fired reminders are excluded unless asked for.
+
+A reminder belongs to one person and fires on that person's client -- the note's author. A note shared
+with the whole party still resurfaces once. `firedAt` greater than `dueAt` means it came back late, which
+is how a reminder due while the world was closed reports itself rather than vanishing.
+
+Reminders never recur. A dated thing belonging to the world rather than to a person is a calendar event;
+see the Calendar API.
+
 ### Hooks
 
 `blacksmith.notes.created`, `blacksmith.notes.updated`, `blacksmith.notes.deleted`, each with `{ noteUuid }`.
+
+`blacksmith.noteReminderFired` carries `{ note, dueAt, firedAt, late, startup }`. It fires only on the
+client that owes the reminder. `startup` is true when it was found by the scan at load rather than by the
+world time moving, which is the missed case.
 
 ### Windows
 

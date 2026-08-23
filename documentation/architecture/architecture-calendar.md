@@ -86,8 +86,16 @@ distinction:
 | Recurs | usually | never |
 | Authored | deliberately, by the GM | in play, by anyone |
 | Stored in | the `calendarEvents` world setting | the note's own flags |
+| Fires via | `schedule({at})`, re-armed | a persisted index, scanned on crossing |
+| Announces to | the table | the author's client only |
 
 Storing a festival on somebody's note would be backwards -- delete the note and the festival stops existing.
+
+**The two firing mechanisms are the one difference that is not cosmetic.** Schedules are in-memory and
+nothing fires retroactively, which is fine for an event -- a missed festival is still visible on the
+calendar -- and wrong for a reminder, which is invisible if it is missed. `manager-note-reminders.js`
+therefore scans a persisted index rather than arming a schedule, and `architecture-notes.md` carries the
+mechanism.
 
 **The store is a world setting rather than journal entries.** An event is a date and a name; if it wants
 prose it wanted a note. Journals would bring permissions for free but drag in the document-subtype question,
