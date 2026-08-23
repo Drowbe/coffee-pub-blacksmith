@@ -30,6 +30,12 @@ They are the same window with a different clock behind it, and almost nothing el
    looked identical in both modes would invite exactly that error.
 2. **Somewhere for the campaign to hear about it.** The stated destination is the campaign's event page,
    which means this feature writes to campaign data rather than to a world setting of its own.
+
+   **Reconsidered 2026-08-23:** the module already has a real-world clock in the session timer, whose
+   `sessionStartTime` and `sessionEndTime` are synced world settings. This mode should be that surface's
+   planning view rather than a store of its own -- "next session is Tuesday at 7" is `sessionEndTime`'s
+   scheduled counterpart, and "a reminder that fires at session start" is a hook on it rather than a
+   scheduled time at all. See `plan-time-api.md`, which supersedes this item.
 3. **Optional publication to Google Calendar.** External, authenticated, and offline half the time -- so it
    is a one-way export that may fail without the local event being wrong, never a sync. Anything two-way
    raises "which side wins", and that question has no good answer for a table's calendar.

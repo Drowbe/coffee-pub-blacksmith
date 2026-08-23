@@ -48,7 +48,7 @@ import { postConsoleAndNotification } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
 import { NotesManager, NOTE_VISIBILITY, NOTE_TAG_CONTEXT, noteIconHtml, noteAccessUsers, noteAccessBadge } from './manager-notes.js';
-import { NoteReminders } from './manager-note-reminders.js';
+import { NoteReminders, REMINDER_CLOCKS } from './manager-note-reminders.js';
 import { timeFromDate, toDisplayYear, toInternalYear } from './utility-calendar.js';
 import { HookManager } from './manager-hooks.js';
 import { PinsAPI } from './api-pins.js';
@@ -379,30 +379,60 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     _reminderControl() {
         if (!this.note || !NoteReminders.canSet(this.note)) return '';
 
-        const dueAt = NoteReminders.getDue(this.note);
-        const firedAt = NoteReminders.getFired(this.note);
+        const world = this._reminderChip(REMINDER_CLOCKS.WORLD, {
+            icon: 'fa-bell',
+            firedIcon: 'fa-bell-slash',
+            dueAt: NoteReminders.getDue(this.note),
+            firedAt: NoteReminders.getFired(this.note),
+            format: (at) => NoteReminders.formatMoment(at),
+            change: 'Change when this note comes back in the world'
+        });
+        const real = this._reminderChip(REMINDER_CLOCKS.REAL, {
+            icon: 'fa-clock',
+            firedIcon: 'fa-clock',
+            dueAt: NoteReminders.getRealDue(this.note),
+            firedAt: NoteReminders.getRealFired(this.note),
+            format: (at) => NoteReminders.formatRealMoment(at),
+            change: 'Change when this note comes back in real time'
+        });
 
-        if (dueAt === null) {
-            return '<button type="button" class="blacksmith-note-remind" data-note-action="remind"'
-                + ' data-tooltip="Bring this note back at a moment in the world">'
+        // ONE invitation, not two. Two "Remind me" buttons in a footer would ask
+        // the reader to understand the world/real split before they have any
+        // reason to care about it; the dialog asks once they are already there.
+        // Chips are per clock, because once set they are two different facts.
+        const invite = (world || real)
+            ? '<button type="button" class="blacksmith-note-remind" data-note-action="remind"'
+                + ' data-tooltip="Add another reminder"><i class="fa-solid fa-plus"></i></button>'
+            : '<button type="button" class="blacksmith-note-remind" data-note-action="remind"'
+                + ' data-tooltip="Bring this note back at a moment in the world, or at a real time">'
                 + '<i class="fa-regular fa-bell"></i> Remind me...</button>';
-        }
 
-        // Fired is shown, not cleared. "It came back on the 14th" is the useful
-        // fact afterwards, and clearing it would leave a note that looks like it
-        // never had a moment at all.
+        return world + real + invite;
+    }
+
+    /**
+     * One clock's chip, or nothing when that clock has no reminder.
+     *
+     * Fired is shown, not cleared. "It came back on the 14th" is the useful fact
+     * afterwards, and clearing it would leave a note that looks like it never had
+     * a moment at all.
+     */
+    _reminderChip(clock, { icon, firedIcon, dueAt, firedAt, format, change }) {
+        if (dueAt === null) return '';
+
         const fired = firedAt !== null;
-        const label = foundry.utils.escapeHTML(NoteReminders.formatMoment(dueAt));
+        const label = foundry.utils.escapeHTML(format(dueAt));
         const tooltip = fired
-            ? `Resurfaced ${foundry.utils.escapeHTML(NoteReminders.formatMoment(firedAt))}`
-            : 'Change when this note comes back';
+            ? `Resurfaced ${foundry.utils.escapeHTML(format(firedAt))}`
+            : change;
 
         return `<button type="button" class="blacksmith-note-remind set${fired ? ' fired' : ''}"
-                        data-note-action="remind" data-tooltip="${tooltip}">
-                    <i class="fa-solid ${fired ? 'fa-bell-slash' : 'fa-bell'}"></i> ${label}
+                        data-note-action="remind" data-remind-clock="${clock}" data-tooltip="${tooltip}">
+                    <i class="fa-solid ${fired ? firedIcon : icon}"></i> ${label}
                 </button>
                 <button type="button" class="blacksmith-note-remind-clear" data-note-action="remind-clear"
-                        data-tooltip="Remove the reminder. The note stays.">
+                        data-remind-clock="${clock}"
+                        data-tooltip="Remove this reminder. The note stays.">
                     <i class="fa-solid fa-xmark"></i>
                 </button>`;
     }
@@ -596,11 +626,19 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         on('place', () => void this._place());
         on('unpin', () => void this._unpin());
         on('pan', () => void PinsAPI.panTo?.(this.note?.getFlag(MODULE.ID, 'pinId')));
-        on('remind', () => void this._setReminder());
-        on('remind-clear', async () => {
-            await NoteReminders.clear(this.note);
-            this.render(false);
-        });
+        // querySelectorAll, not `on`: the footer now carries one control per clock
+        // plus the add button, and `on` binds only the first match. Binding only
+        // the first is the kind of failure that looks like "the second chip does
+        // nothing" rather than like an error.
+        for (const button of root.querySelectorAll('[data-note-action="remind"]')) {
+            button.addEventListener('click', () => void this._setReminder(button.dataset.remindClock ?? null));
+        }
+        for (const button of root.querySelectorAll('[data-note-action="remind-clear"]')) {
+            button.addEventListener('click', async () => {
+                await NoteReminders.clearFor(button.dataset.remindClock ?? REMINDER_CLOCKS.WORLD, this.note);
+                this.render(false);
+            });
+        }
     }
 
     /**
@@ -612,51 +650,82 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
      * which one won. The shortcuts cover the common intent without becoming a
      * second source of truth -- they write into the same fields you can then edit.
      */
-    async _setReminder() {
+    /**
+     * An instant as a `datetime-local` field value.
+     *
+     * Built from the LOCAL parts rather than `toISOString`, which converts to UTC
+     * and would show a time hours away from the one the reader means. The format
+     * is fixed by the input, not by locale: `YYYY-MM-DDTHH:MM`.
+     */
+    static _toLocalInput(ms) {
+        const date = new Date(ms);
+        const pad = (value) => String(value).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+            + `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    async _setReminder(clock = null) {
         if (!this.note || !NoteReminders.canSet(this.note)) return;
 
         const calendar = game.time?.calendar;
+
+        // Which clock the dialog opens on. Clicking a chip edits THAT reminder;
+        // the add button opens on whichever clock is still free, so the second
+        // reminder does not land on top of the first.
+        //
+        // Resolved AFTER the calendar check, not before: with no calendar the
+        // in-world pane is never rendered, and opening on it would show the
+        // switch above an empty dialog rather than anything to fill in.
+        let startClock = clock
+            ?? (NoteReminders.getDue(this.note) !== null && NoteReminders.getRealDue(this.note) === null
+                ? REMINDER_CLOCKS.REAL
+                : REMINDER_CLOCKS.WORLD);
+
         if (!calendar) {
-            ui.notifications.warn('This world has no calendar, so a note cannot be given a moment.');
-            return;
+            if (clock === REMINDER_CLOCKS.WORLD) {
+                ui.notifications.warn('This world has no calendar, so a note cannot be given an in-world moment.');
+                return;
+            }
+            startClock = REMINDER_CLOCKS.REAL;
         }
 
         const { DialogAPI } = await import('./api-dialog.js');
         const localize = (value) => game.i18n?.localize(value ?? '') ?? '';
 
-        const hoursPerDay = Number(calendar.days?.hoursPerDay) || 24;
-        const minutesPerHour = Number(calendar.days?.minutesPerHour) || 60;
-        const secondsPerMinute = Number(calendar.days?.secondsPerMinute) || 60;
-        const months = calendar.months?.values ?? [];
+        // ---- the in-world half ----
 
-        // Seed from the existing reminder when there is one, so editing a date is
-        // an edit rather than a re-entry.
-        const seedTime = NoteReminders.getDue(this.note) ?? (game.time?.worldTime ?? 0);
-        const seed = calendar.timeToComponents(seedTime);
+        let worldPane = '';
+        let seed = null;
+        let worldShortcuts = [];
 
-        const monthOptions = months
-            .map((month, index) => `<option value="${index}"${index === seed.month ? ' selected' : ''}>${foundry.utils.escapeHTML(localize(month?.name))}</option>`)
-            .join('');
+        if (calendar) {
+            const hoursPerDay = Number(calendar.days?.hoursPerDay) || 24;
+            const minutesPerHour = Number(calendar.days?.minutesPerHour) || 60;
+            const secondsPerMinute = Number(calendar.days?.secondsPerMinute) || 60;
+            const months = calendar.months?.values ?? [];
 
-        // Offsets in SECONDS, computed from the calendar's own units -- a day is
-        // not 86400 seconds on a world that does not use twenty-four hours.
-        const daySeconds = hoursPerDay * minutesPerHour * secondsPerMinute;
-        const shortcuts = [
-            { label: 'In an hour', seconds: minutesPerHour * secondsPerMinute },
-            { label: 'Tomorrow', seconds: daySeconds },
-            { label: 'In 3 days', seconds: daySeconds * 3 },
-            { label: 'In a month', seconds: daySeconds * (Number(months[seed.month]?.days) || 30) }
-        ];
+            // Seed from the existing reminder when there is one, so editing a date
+            // is an edit rather than a re-entry.
+            seed = calendar.timeToComponents(NoteReminders.getDue(this.note) ?? (game.time?.worldTime ?? 0));
 
-        const { action, value } = await DialogAPI.prompt({
-            title: 'Remind me about this note',
-            submitLabel: 'Set Reminder',
-            submitIcon: 'fa-solid fa-bell',
-            position: { width: 440 },
-            content: `
-                <div class="blacksmith-note-remind-form">
+            const monthOptions = months
+                .map((month, index) => `<option value="${index}"${index === seed.month ? ' selected' : ''}>${foundry.utils.escapeHTML(localize(month?.name))}</option>`)
+                .join('');
+
+            // Offsets in SECONDS, computed from the calendar's own units -- a day
+            // is not 86400 seconds on a world that does not use twenty-four hours.
+            const daySeconds = hoursPerDay * minutesPerHour * secondsPerMinute;
+            worldShortcuts = [
+                { label: 'In an hour', seconds: minutesPerHour * secondsPerMinute },
+                { label: 'Tomorrow', seconds: daySeconds },
+                { label: 'In 3 days', seconds: daySeconds * 3 },
+                { label: 'In a month', seconds: daySeconds * (Number(months[seed.month]?.days) || 30) }
+            ];
+
+            worldPane = `
+                <div class="blacksmith-note-remind-pane" data-pane="${REMINDER_CLOCKS.WORLD}">
                     <div class="blacksmith-note-remind-shortcuts">
-                        ${shortcuts.map((s) => `<button type="button" data-offset="${s.seconds}">${s.label}</button>`).join('')}
+                        ${worldShortcuts.map((s) => `<button type="button" data-world-offset="${s.seconds}">${s.label}</button>`).join('')}
                     </div>
                     <div class="blacksmith-note-remind-row">
                         <label>Month<select name="remindMonth">${monthOptions}</select></label>
@@ -670,6 +739,62 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                             </span>
                         </label>
                     </div>
+                </div>`;
+        }
+
+        // ---- the real-time half ----
+
+        // A single `datetime-local` rather than the world side's four fields. It
+        // reads and writes LOCAL time, which is exactly what a person means by
+        // "half past seven", and the browser already owns the picker. Nothing
+        // here needs the calendar, which is why this half still works on a world
+        // that has none.
+        const realSeed = NoteReminders.getRealDue(this.note) ?? (Date.now() + (15 * 60 * 1000));
+        const realShortcuts = [
+            { label: 'In 15 minutes', ms: 15 * 60 * 1000 },
+            { label: 'In an hour', ms: 60 * 60 * 1000 },
+            { label: 'In 3 hours', ms: 3 * 60 * 60 * 1000 },
+            { label: 'Tomorrow', ms: 24 * 60 * 60 * 1000 }
+        ];
+
+        const realPane = `
+            <div class="blacksmith-note-remind-pane" data-pane="${REMINDER_CLOCKS.REAL}">
+                <div class="blacksmith-note-remind-shortcuts">
+                    ${realShortcuts.map((s) => `<button type="button" data-real-offset="${s.ms}">${s.label}</button>`).join('')}
+                </div>
+                <div class="blacksmith-note-remind-row">
+                    <label>Date and time
+                        <input type="datetime-local" name="remindReal" value="${NoteEditorWindow._toLocalInput(realSeed)}">
+                    </label>
+                </div>
+                <p class="blacksmith-note-remind-note">Your own clock. This only reaches you while Foundry is open.</p>
+            </div>`;
+
+        // ---- one dialog, two panes ----
+
+        // A segmented switch rather than two separate buttons in the footer or two
+        // dialogs. The plan's rule is that the two calendars must never be
+        // mistakable for each other, and a switch that names both is the clearest
+        // way to say "these are different kinds of thing" at the moment of choosing.
+        const tab = (value, icon, label) =>
+            `<label class="blacksmith-note-remind-tab">
+                <input type="radio" name="remindClock" value="${value}"${startClock === value ? ' checked' : ''}>
+                <span><i class="fa-solid ${icon}"></i> ${label}</span>
+            </label>`;
+
+        const { action, value } = await DialogAPI.prompt({
+            title: 'Remind me about this note',
+            submitLabel: 'Set Reminder',
+            submitIcon: 'fa-solid fa-bell',
+            position: { width: 460 },
+            content: `
+                <div class="blacksmith-note-remind-form" data-active="${startClock}">
+                    <div class="blacksmith-note-remind-tabs">
+                        ${calendar ? tab(REMINDER_CLOCKS.WORLD, 'fa-bell', 'In the world') : ''}
+                        ${tab(REMINDER_CLOCKS.REAL, 'fa-clock', 'Real time')}
+                    </div>
+                    ${worldPane}
+                    ${realPane}
                 </div>`,
             // The shortcuts write into the fields rather than resolving to a time of
             // their own, so what is submitted is always what is on screen.
@@ -677,15 +802,26 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             // is a form-only collection, so the fields are found by name attribute.
             controls: {
                 attach: (root) => {
+                    const form = root.querySelector('.blacksmith-note-remind-form');
                     const field = (name) => root.querySelector(`[name="${name}"]`);
-                    for (const button of root.querySelectorAll('.blacksmith-note-remind-shortcuts button')) {
+                    const set = (name, value) => {
+                        const input = field(name);
+                        if (input) input.value = String(value);
+                    };
+
+                    // Which pane is showing is a data attribute rather than inline
+                    // display, so the rule lives in CSS with the rest of the layout.
+                    for (const radio of root.querySelectorAll('[name="remindClock"]')) {
+                        radio.addEventListener('change', () => {
+                            if (radio.checked && form) form.dataset.active = radio.value;
+                        });
+                    }
+
+                    for (const button of root.querySelectorAll('[data-world-offset]')) {
                         button.addEventListener('click', () => {
-                            const at = (game.time?.worldTime ?? 0) + Number(button.dataset.offset);
+                            if (!calendar) return;
+                            const at = (game.time?.worldTime ?? 0) + Number(button.dataset.worldOffset);
                             const parts = calendar.timeToComponents(at);
-                            const set = (name, value) => {
-                                const input = field(name);
-                                if (input) input.value = String(value);
-                            };
                             set('remindMonth', parts.month);
                             set('remindDay', parts.dayOfMonth + 1);
                             set('remindYear', toDisplayYear(calendar, parts.year));
@@ -693,28 +829,65 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
                             set('remindMinute', parts.minute);
                         });
                     }
+
+                    for (const button of root.querySelectorAll('[data-real-offset]')) {
+                        button.addEventListener('click', () => {
+                            set('remindReal', NoteEditorWindow._toLocalInput(Date.now() + Number(button.dataset.realOffset)));
+                        });
+                    }
                 }
             },
-            // `timeFromDate` rather than `componentsToTime` directly: core reads
-            // `day` as the day of the YEAR and silently drops a month and a day of
-            // the month, so every date built the obvious way lands on day zero.
-            // See utility-calendar.js.
-            getValue: (root) => timeFromDate(calendar, {
-                year: toInternalYear(calendar, Number(root.elements.remindYear?.value)),
-                // Zero-based on the way in, one-based on screen. Foundry's calendar
-                // counts months and days from zero; nobody writing a date does.
-                month: Number(root.elements.remindMonth?.value) || 0,
-                dayOfMonth: Math.max(0, (Number(root.elements.remindDay?.value) || 1) - 1),
-                hour: Number(root.elements.remindHour?.value) || 0,
-                minute: Number(root.elements.remindMinute?.value) || 0,
-                second: 0
-            }),
-            validate: (at) => (Number.isFinite(at) ? null : 'That is not a date this calendar has.')
+            getValue: (root) => {
+                const clockValue = root.elements.remindClock?.value ?? REMINDER_CLOCKS.WORLD;
+
+                if (clockValue === REMINDER_CLOCKS.REAL) {
+                    // `datetime-local` has no timezone, and `new Date` reads it as
+                    // LOCAL time -- which is what the person typing it meant. The
+                    // stored value is the resulting absolute instant, so it stays
+                    // correct for a player in another country.
+                    const raw = root.elements.remindReal?.value ?? '';
+                    const at = raw ? new Date(raw).getTime() : NaN;
+                    return { clock: REMINDER_CLOCKS.REAL, at };
+                }
+
+                // `timeFromDate` rather than `componentsToTime` directly: core reads
+                // `day` as the day of the YEAR and silently drops a month and a day
+                // of the month, so every date built the obvious way lands on day
+                // zero. See utility-calendar.js.
+                return {
+                    clock: REMINDER_CLOCKS.WORLD,
+                    at: timeFromDate(calendar, {
+                        year: toInternalYear(calendar, Number(root.elements.remindYear?.value)),
+                        // Zero-based on the way in, one-based on screen. Foundry's
+                        // calendar counts months and days from zero; nobody writing
+                        // a date does.
+                        month: Number(root.elements.remindMonth?.value) || 0,
+                        dayOfMonth: Math.max(0, (Number(root.elements.remindDay?.value) || 1) - 1),
+                        hour: Number(root.elements.remindHour?.value) || 0,
+                        minute: Number(root.elements.remindMinute?.value) || 0,
+                        second: 0
+                    })
+                };
+            },
+            validate: (entered) => {
+                if (!Number.isFinite(entered?.at)) {
+                    return entered?.clock === REMINDER_CLOCKS.REAL
+                        ? 'Choose a date and time.'
+                        : 'That is not a date this calendar has.';
+                }
+                // Only the real clock can be checked against now. World time runs
+                // backwards routinely -- a GM rewinding is ordinary -- so a past
+                // in-world date is a legitimate thing to ask for.
+                if (entered.clock === REMINDER_CLOCKS.REAL && entered.at <= Date.now()) {
+                    return 'That time has already passed.';
+                }
+                return null;
+            }
         });
 
-        if (action !== DialogAPI.ACTIONS.SUBMIT || !Number.isFinite(value)) return;
+        if (action !== DialogAPI.ACTIONS.SUBMIT || !Number.isFinite(value?.at)) return;
 
-        await NoteReminders.set(this.note, value);
+        await NoteReminders.setFor(value.clock, this.note, value.at);
         this.render(false);
     }
 

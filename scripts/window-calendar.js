@@ -26,7 +26,7 @@ import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { registerWindow } from './api-windows.js';
 import { HookManager } from './manager-hooks.js';
 import { CalendarEvents, EVENT_RECURRENCE } from './manager-calendar-events.js';
-import { NoteReminders } from './manager-note-reminders.js';
+import { NoteReminders, REMINDER_CLOCKS } from './manager-note-reminders.js';
 import { timeFromDate, daysInMonth as calendarDaysInMonth } from './utility-calendar.js';
 
 export const CALENDAR_WINDOW_ID = 'blacksmith-calendar';
@@ -716,8 +716,11 @@ export function registerCalendarWindow() {
         description: 'Calendar: repaint when a note reminder changes',
         priority: 4,
         context: 'calendar-window',
-        callback: () => {
+        callback: (payload) => {
             // --- BEGIN - HOOKMANAGER CALLBACK ---
+            // The grid draws in-world dates only. A real-time reminder has no
+            // place on it, so a change to one is not a reason to repaint.
+            if (payload?.clock && payload.clock !== REMINDER_CLOCKS.WORLD) return;
             void CalendarWindow.activeWindow?.render(false);
             // --- END - HOOKMANAGER CALLBACK ---
         }

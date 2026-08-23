@@ -170,32 +170,48 @@ with no way to find them again.
 
 ### Reminders
 
-A note can carry a world time it wants to come back at.
+A note can carry a moment it wants to come back at, on either of two clocks. `blacksmith.notes.REMINDER_CLOCKS`
+names them: `world` and `real`.
 
 ```js
+// In-world: three days from now, in world seconds.
 await blacksmith.notes.setReminder(note, game.time.worldTime + 259200);
-blacksmith.notes.getReminder(note);          // world time, or null
-blacksmith.notes.getReminderFired(note);     // world time it resurfaced, or null
-await blacksmith.notes.clearReminder(note);
+
+// Real time: twenty minutes from now, in epoch milliseconds.
+await blacksmith.notes.setRealReminder(note, Date.now() + 20 * 60 * 1000);
 ```
 
-| Call | Returns |
-|---|---|
-| `setReminder(note, dueAt)` | `Promise<boolean>`. Clears any previous firing in the same write. |
-| `clearReminder(note)` | `Promise<boolean>`. The note stays; only the moment goes. |
-| `getReminder(note)` | world time in seconds, or `null` when the note is not time-bound |
-| `getReminderFired(note)` | world time it resurfaced, or `null` when it has not |
-| `canSetReminder(note)` | whether the current user may. Ask before offering a control. |
-| `listReminders({from, to, includeFired})` | `[{note, dueAt, firedAt}]` in due order |
-| `formatMoment(time)` | a world time as a date and clock in the world's own calendar |
+| Call | Clock | Returns |
+|---|---|---|
+| `setReminder(note, dueAt)` | world | `Promise<boolean>`. `dueAt` in world seconds. |
+| `setRealReminder(note, dueAt)` | real | `Promise<boolean>`. `dueAt` in epoch milliseconds. |
+| `clearReminder(note)` / `clearRealReminder(note)` | either | `Promise<boolean>`. The note stays. |
+| `getReminder(note)` / `getRealReminder(note)` | either | the moment, or `null` when not bound |
+| `getReminderFired(note)` / `getRealReminderFired(note)` | either | when it resurfaced, or `null` |
+| `listReminders(opts)` / `listRealReminders(opts)` | either | `[{note, dueAt, firedAt}]` in due order |
+| `formatMoment(t)` | world | a date and clock in the world's own calendar |
+| `formatRealMoment(t)` | real | the reader's own local date and time |
+| `canSetReminder(note)` | both | whether the current user may. Ask before offering a control. |
 
-`listReminders` takes inclusive bounds and either may be omitted, so one call answers both "due on this
-day" for a calendar cell and "everything still pending" for a list. It filters by note permission, so it
-never reports a note the caller cannot read. Fired reminders are excluded unless asked for.
+**The two clocks are independent.** A note may carry one, the other, or both, and setting one never touches
+the other. Which to use is not a preference: `world` is "when the party reaches Marpenoth", `real` is "in
+twenty minutes".
 
-A reminder belongs to one person and fires on that person's client -- the note's author. A note shared
-with the whole party still resurfaces once. `firedAt` greater than `dueAt` means it came back late, which
-is how a reminder due while the world was closed reports itself rather than vanishing.
+Setting a reminder clears that clock's fired stamp, because moving one forward is asking to be reminded
+again.
+
+The list calls take inclusive bounds and either may be omitted, so one call answers both "due on this day"
+for a calendar cell and "everything still pending" for a list. They filter by note permission, so they never
+report a note the caller cannot read. Fired reminders are excluded unless asked for.
+
+A reminder belongs to one person and fires on that person's client -- the note's author. A note shared with
+the whole party still resurfaces once.
+
+**A real-time reminder needs no timezone handling and accepts none.** The stored value is an absolute
+instant and it fires on the author's own machine, so it is correct for a table spread across countries;
+`formatRealMoment` renders it in each reader's local time. It also **only reaches someone while Foundry is
+open** -- that is structural, not a gap. A world reminder cannot be meaningfully missed, because world time
+only moves when somebody is playing.
 
 Reminders never recur. A dated thing belonging to the world rather than to a person is a calendar event;
 see the Calendar API.
@@ -204,18 +220,20 @@ see the Calendar API.
 
 `blacksmith.notes.created`, `blacksmith.notes.updated`, `blacksmith.notes.deleted`, each with `{ noteUuid }`.
 
-`blacksmith.noteReminderFired` carries `{ note, dueAt, firedAt, late, startup }`. It fires only on the
-client that owes the reminder. `startup` is true when it was found by the scan at load rather than by the
-world time moving.
+`blacksmith.noteReminderFired` carries `{ note, clock, dueAt, firedAt, late, startup }`. It fires only on
+the client that owes the reminder. `clock` is `world` or `real` and decides how to word anything you show:
+`dueAt` is world seconds for one and epoch milliseconds for the other. `startup` is true when the scan at
+load found it rather than a clock moving.
 
 **`late` is not `firedAt > dueAt`.** The clock moves in steps, so every reminder is found slightly past its
 moment and that comparison would call all of them late. `late` means the reminder was found by the startup
 scan, or the world moved more than an in-world hour past it -- which only happens when somebody jumped the
 clock rather than let it run. Use `late` for wording, not the timestamps.
 
-`blacksmith.noteRemindersChanged` takes no payload and fires when the set of reminders changes -- one was
-set, moved, cleared, or fired. Listen to it rather than to the journal page hooks if you draw reminders:
-those fire on every edit to every page, so a surface hung off them repaints while somebody types.
+`blacksmith.noteRemindersChanged` carries `{ clock }` and fires when that clock's set of reminders changes
+-- one was set, moved, cleared, or fired. Filter on `clock` if your surface only draws one kind. Listen to
+this rather than to the journal page hooks if you draw reminders: those fire on every edit to every page,
+so a surface hung off them repaints while somebody types.
 
 ### Windows
 

@@ -11,7 +11,7 @@
 // ==================================================================
 
 import { NotesManager, ANCHOR_KINDS, NOTE_VISIBILITY, NOTE_TAG_CONTEXT } from './manager-notes.js';
-import { NoteReminders } from './manager-note-reminders.js';
+import { NoteReminders, REMINDER_CLOCKS } from './manager-note-reminders.js';
 
 export const NotesAPI = {
 
@@ -116,23 +116,45 @@ export const NotesAPI = {
 
     // ---- reminders: a note with a moment ----
 
+    /** The two clocks a reminder can be bound to: `world` and `real`. */
+    REMINDER_CLOCKS,
+
     /**
      * Bind a note to a world time. Clears any previous firing, because moving a
-     * reminder forward is asking to be reminded again.
+     * reminder forward is asking to be reminded again. The real-time reminder, if
+     * there is one, is untouched.
      * @param {JournalEntryPage|string} note
      * @param {number} dueAt world time in seconds
      * @returns {Promise<boolean>}
      */
     setReminder: (note, dueAt) => NoteReminders.set(note, dueAt),
 
-    /** Unbind a note from its moment. It stays a note. @returns {Promise<boolean>} */
+    /** Unbind a note from its world moment. It stays a note. @returns {Promise<boolean>} */
     clearReminder: (note) => NoteReminders.clear(note),
 
-    /** When a note is due, or null if it is not time-bound. @returns {number|null} */
+    /** When a note is due in world time, or null. @returns {number|null} */
     getReminder: (note) => NoteReminders.getDue(note),
 
-    /** When a note actually resurfaced, or null if it has not yet. @returns {number|null} */
+    /** When a note resurfaced in world time, or null if it has not yet. @returns {number|null} */
     getReminderFired: (note) => NoteReminders.getFired(note),
+
+    /**
+     * Bind a note to a real moment. Epoch milliseconds, so it is an absolute
+     * instant and needs no timezone handling -- it fires on the author's own
+     * machine, at their own wall clock.
+     * @param {number} dueAt epoch milliseconds
+     * @returns {Promise<boolean>}
+     */
+    setRealReminder: (note, dueAt) => NoteReminders.setReal(note, dueAt),
+
+    /** Unbind a note from its real moment. @returns {Promise<boolean>} */
+    clearRealReminder: (note) => NoteReminders.clearReal(note),
+
+    /** When a note is due in real time, or null. @returns {number|null} epoch milliseconds */
+    getRealReminder: (note) => NoteReminders.getRealDue(note),
+
+    /** When a real-time reminder resurfaced, or null. @returns {number|null} */
+    getRealReminderFired: (note) => NoteReminders.getRealFired(note),
 
     /**
      * Reminders in a window of world time, in due order.
@@ -146,11 +168,17 @@ export const NotesAPI = {
      */
     listReminders: (options) => NoteReminders.list(options),
 
-    /** Whether the current user may set a reminder on this note. Ask before offering the control. */
+    /** The same, for real-time reminders. Bounds in epoch milliseconds. */
+    listRealReminders: (options) => NoteReminders.listReal(options),
+
+    /** Whether the current user may set a reminder on this note. Same answer for both clocks. */
     canSetReminder: (note) => NoteReminders.canSet(note),
 
     /** A world time as a date and clock in the world's own calendar. */
     formatMoment: (time) => NoteReminders.formatMoment(time),
+
+    /** A real instant as the reader's own local date and time. */
+    formatRealMoment: (time) => NoteReminders.formatRealMoment(time),
 
     /** Rebuild the target index. Only needed after bulk document changes the hooks did not see. */
     rebuildIndex: () => NotesManager.rebuildIndex()

@@ -141,6 +141,23 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
         }
     }
 
+    /**
+     * One clock's mark for a note row, or nothing when that clock has no reminder.
+     *
+     * `data-tooltip` rather than `title`, per the module convention -- the row
+     * itself already carries a tooltip, and a nested one takes over on hover,
+     * which is what makes the mark worth having.
+     */
+    _reminderMark(dueAt, firedAt, format, icon, firedIcon) {
+        if (dueAt === null) return '';
+        const fired = firedAt !== null;
+        const tooltip = fired
+            ? `Was due ${format(dueAt)} · resurfaced ${format(firedAt)}`
+            : `Due ${format(dueAt)}`;
+        return `<i class="fa-solid ${fired ? firedIcon : icon} blacksmith-note-row-bell${fired ? ' fired' : ''}"`
+            + ` data-tooltip="${foundry.utils.escapeHTML(tooltip)}"></i>`;
+    }
+
     getToolHeaderActions() {
         return [
             ...(super.getToolHeaderActions?.() ?? []),
@@ -235,14 +252,15 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
             const fav = NotesManager.isFavorite(note);
 
             // A time-bound note says so in the row. Without this a reminder was
-            // invisible until it fired unless you reopened that exact note.
-            const dueAt = NoteReminders.getDue(note);
-            const firedAt = dueAt === null ? null : NoteReminders.getFired(note);
-            const bell = dueAt === null ? '' : (
-                `<i class="fa-solid ${firedAt === null ? 'fa-bell' : 'fa-bell-slash'} blacksmith-note-row-bell${firedAt === null ? '' : ' fired'}"` +
-                ` data-tooltip="${foundry.utils.escapeHTML(firedAt === null
-                    ? `Due ${NoteReminders.formatMoment(dueAt)}`
-                    : `Was due ${NoteReminders.formatMoment(dueAt)} · resurfaced ${NoteReminders.formatMoment(firedAt)}`)}"></i>`
+            // invisible until it fired unless you reopened that exact note. One
+            // mark per clock, because a note may carry both and they mean
+            // different things.
+            const bell = this._reminderMark(
+                NoteReminders.getDue(note), NoteReminders.getFired(note),
+                (at) => NoteReminders.formatMoment(at), 'fa-bell', 'fa-bell-slash'
+            ) + this._reminderMark(
+                NoteReminders.getRealDue(note), NoteReminders.getRealFired(note),
+                (at) => NoteReminders.formatRealMoment(at), 'fa-clock', 'fa-clock'
             );
 
             return `

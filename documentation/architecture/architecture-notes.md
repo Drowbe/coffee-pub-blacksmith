@@ -56,8 +56,24 @@ trusts is worse than a loop.
 
 ## Reminders: a note with a moment
 
-`manager-note-reminders.js` binds a note to a world time. Two flags on the page and no central store:
-`dueAt` is when it wants to resurface, `firedAt` is when it did. `firedAt` is absent until it fires.
+`manager-note-reminders.js` binds a note to a moment on either of two clocks. Four flags on the page and no
+central store:
+
+| Clock | Due flag | Fired flag | Unit |
+|---|---|---|---|
+| `world` | `dueAt` | `firedAt` | world time, seconds |
+| `real` | `dueAtReal` | `firedAtReal` | wall clock, epoch milliseconds |
+
+A note may carry both, and they answer different questions: "when the party reaches Marpenoth" is not
+"twenty minutes from now". Separate flags and separate indexes rather than one store with a clock field,
+which is the same call the calendar plan makes -- every read would otherwise have to filter, and two things
+that mean different things would share a code path.
+
+What they share is the machinery. Index, scan, stamp and announce are identical in shape and differ only in
+which flag they read and what "now" means, so that lives once, parameterised by the `CLOCKS` table. Two
+copies would drift the first time one was fixed. `tools/check-note-reminders.mjs` guards the table: a clock
+declared but not fully wired fails silently in every direction, since a missing field reads as `undefined`
+and that clock's reminders simply never fire.
 
 This is a second relationship on the same document, with its own derived index -- `NoteReminders._due`,
 a sorted `[{dueAt, pageUuid}]`, built at `ready` and maintained by the same three page hooks. An array
@@ -75,6 +91,24 @@ due" is nothing but ordering.
 Schedules are in-memory and nothing fires retroactively, so a reminder due while the world was closed
 would be silently gone. `NoteReminders.fireDue` scans the persisted index instead -- on `updateWorldTime`,
 and once at startup for whatever came due while this client was away.
+
+### The real clock is polled, because it has no event
+
+`updateWorldTime` says exactly when to look at world time. Wall time has no equivalent, so the real clock
+is a 15-second `setInterval` and that interval is the worst case by which a real reminder is late. The scan
+is a walk of a sorted array that is almost always empty at the head, so the cost is nothing; the poll is
+started once and guarded, because a second interval would double every announcement with no way to reach
+the orphan.
+
+**A real-time reminder only reaches someone while Foundry is open**, and that is structural rather than a
+gap to close. World time only moves when somebody is playing, so a world reminder cannot be missed in a way
+that matters. A real one is wanted precisely when nobody has the client open. The dialog says so rather
+than leaving it to be discovered.
+
+**No timezone handling, deliberately.** The stored value is an absolute instant and it fires on the
+author's own machine, so "half past seven" is half past seven where the person who asked for it is sitting.
+Display goes through `toLocaleString`, so two people at one table in two countries each read their own wall
+clock. Anything else would need a zone stored alongside the instant and a rule for whose zone wins.
 
 The asymmetry with events is the reason for two mechanisms rather than one: a missed festival is still
 visible on the calendar, and a missed personal reminder is invisible. `architecture-calendar.md` carries
@@ -99,8 +133,15 @@ the stamp would mean it never was.
 
 ### Where a reminder shows
 
-Three surfaces, all reading the same two flags: a bell in the corner of the day on the World Calendar, a
-bell on the note's row in the Notes list, and the date on the note's own footer.
+A bell in the corner of the day on the World Calendar, a mark on the note's row in the Notes list, and a
+chip on the note's own footer. The list and the footer carry one per clock -- a bell for in-world, a clock
+face for real time -- because a note may have both. **The calendar draws in-world reminders only**, and
+filters `blacksmith.noteRemindersChanged` on its `clock` field to avoid repainting for the other kind: a
+wall-clock time has no place on a grid of in-world dates.
+
+The footer shows one invitation, not two. Two "Remind me" buttons would ask the reader to understand the
+world/real split before they have any reason to care about it; the dialog's switch asks once they are
+already there.
 
 The calendar makes **one** range query for the whole month and buckets the results by day, rather than
 one query per cell. That is what `list()`'s bounds are for.

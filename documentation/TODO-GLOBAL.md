@@ -417,6 +417,29 @@ Neither sibling crashes. Both need a small change to look right again.
   gone, and no `getThemeClassName` / `getTheme` calls remain. The announcement branch was deleted rather
   than migrated — all three callers passed `'card'`, so it had never executed even before the removal.
 
+## Time-bound events across the suite (raised 2026-08-23)
+
+**Blacksmith side planned, not started: `documentation/plans/plan-time-api.md`.** Nothing to adopt yet;
+this entry exists so the siblings are asked *before* the surface is fixed rather than after.
+
+Blacksmith is growing a public time surface -- `countdown` (a deadline with tick, pause, persistence and
+fire-once), `schedule` (a wall-clock callback), and `session` (session start and end, already synced) --
+alongside the existing `worldClock.schedule` for in-world time. The reason is the suite: every module that
+wants a timer currently writes its own, and Blacksmith alone has five.
+
+**What we need from the siblings, when the primitive is ready to review:**
+
+- Which of you already run a recurring timer, and for what. A count is enough to start.
+- Whether you want to draw your own countdown or want Blacksmith to. The plan currently assumes Blacksmith
+  emits ticks and you draw, so it does not become a widget library -- say if that is wrong for you.
+- Whether anything wants to schedule against **world** time rather than wall time. `worldClock.schedule`
+  exists and is in-memory, which means nothing fires retroactively; if a consumer needs a moment that
+  survives the world being closed, say so, because that is a different mechanism.
+
+**The one thing that will not change:** world time and wall time stay separate calls. World time is
+server-authoritative, moves in jumps, and runs backwards when a GM rewinds. Blacksmith has now made the
+two-clock split twice internally (note reminders, calendar events) and will not collapse it in the API.
+
 ## Sibling deprecation warnings (spotted 2026-07-24)
 
 - **Bibliosoph registers the deprecated `renderChatMessage` hook** (`coffee-pub-bibliosoph/scripts/bibliosoph.js`, raw `Hooks.on`): Foundry v13 logs "The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead" on every chat message render; support is removed in v15. Not a rename-only fix — `renderChatMessageHTML` passes an `HTMLElement` where the old hook passed jQuery, so the callback body must drop jQuery calls (or wrap the element itself). Fix belongs in the Bibliosoph repo with its own verification. (Blacksmith is clean: its `HookManager` remaps legacy `renderChatMessage` registrations to `renderChatMessageHTML` automatically, and the module's own `CHAT_MESSAGE_TYPES` uses were removed 2026-07-24 — see Blacksmith `CHANGELOG.md`.)

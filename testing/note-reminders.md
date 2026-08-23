@@ -2,11 +2,16 @@
 
 **Audience:** us.
 
-Scope: verification owed for note reminders, shipped 2026-08-23. Transitional -- see the testing rules in
-`CLAUDE.md`. **Remove an item when it passes rather than ticking it, and delete this file when it is empty.**
+Scope: verification owed for note reminders on both clocks -- in-world and real time -- shipped 2026-08-23.
+Transitional -- see the testing rules in `CLAUDE.md`. **Remove an item when it passes rather than ticking
+it, and delete this file when it is empty.**
 
-**Status: nothing here is proven.** None of it can be a harness check: every item needs a world clock that
-actually moves, a second client, or a browser reload.
+**Status: nothing here is proven.** None of it can be a harness check: every item needs a clock that
+actually moves, real elapsed time, a second client, or a browser reload. What *can* be asserted statically
+is in `tools/check-note-reminders.mjs`, which passes.
+
+Start with the "Dates land where they were asked to" section: it is a regression list for a bug that made
+every computed date land on day one of the year, and it is the one most likely to still be wrong.
 
 Keep items to one line each. Wrapped continuations in these files keep being reformatted into code fences by
 an editor pass.
@@ -60,8 +65,36 @@ an editor pass.
 - [ ] The hour field's ceiling comes from the calendar on a world that does not use twenty-four hours.
 - [ ] Editing an existing reminder opens with its own date seeded, not today's.
 
+## Real-time reminders
+
+- [ ] Set one for two minutes out and leave Foundry alone: it fires within about fifteen seconds of the time, with a clock icon rather than a bell.
+- [ ] It fires with world time completely paused -- the wall clock is the only thing driving it.
+- [ ] The toast reads "Reminder for 7:42 PM" (present tense), not "Was due".
+- [ ] Clicking it opens the note.
+- [ ] Advance nothing and wait: it does not fire a second time.
+- [ ] Set one, reload the browser before it is due, wait: it still fires.
+- [ ] Set one for a minute out, close Foundry, reopen ten minutes later: it reports as "Was due", not silently gone.
+
+## Both clocks on one note
+
+- [ ] Set an in-world reminder AND a real-time one on the same note. Two chips in the footer, two marks on the list row.
+- [ ] Firing one does not clear or fire the other.
+- [ ] Clearing one leaves the other alone.
+- [ ] The World Calendar shows the in-world one only -- no bell appears for the real-time one.
+- [ ] Setting a real-time reminder while the calendar is open does NOT repaint it.
+- [ ] Clicking a chip opens the dialog on that chip's clock; the + button opens on whichever clock is still free.
+
+## The switch
+
+- [ ] The dialog opens with the right half showing, and moving the switch swaps the fields.
+- [ ] Submitting after moving the switch stores the clock that is showing, not the one it opened on.
+- [ ] A past real time is refused with "That time has already passed."
+- [ ] A past IN-WORLD date is accepted -- a GM rewinding the clock is ordinary.
+- [ ] Keyboard: the switch is reachable by Tab and operable by arrow keys.
+
 ## Boundaries
 
 - [ ] A note you do not own shows no reminder chip at all.
 - [ ] `blacksmith.notes.listReminders()` never returns a note the caller cannot read -- check as a player.
-- [ ] A world with no calendar warns rather than throwing.
+- [ ] A world with no calendar still offers real-time reminders -- the in-world half is simply absent, and nothing throws.
+- [ ] Two clients open as the same user is not a supported case, but check a real reminder does not double-announce if it happens.

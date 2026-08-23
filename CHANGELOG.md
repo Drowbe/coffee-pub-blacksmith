@@ -23,6 +23,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Real-time reminders -- a note can also be bound to the wall clock** (`scripts/manager-note-reminders.js`, `scripts/window-note-editor.js`, `scripts/api-notes.js`, `styles/window-notes.css`, `tools/check-note-reminders.mjs`). "Remind me in twenty minutes" alongside "remind me on the 20th of Marpenoth". A note may carry both; they are separate flags, separate indexes, and never touch each other.
+
+  **The two are not variants of one thing and are not presented as one.** In-world and real time answer different questions, so the dialog names the choice with a switch rather than leaving the reader to infer it from which fields are showing -- the same rule the calendar plan sets for its two modes.
+
+  The real side is a single `datetime-local` rather than the world side's four fields. It reads and writes local time, which is what a person means by "half past seven", and the browser already owns the picker. It also needs no calendar at all, so it still works on a world that has none.
+
+  **No timezone handling, and none needed.** The stored value is an absolute instant that fires on the author's own machine, so a table spread across countries each sees their own wall clock with no arithmetic and no "whose 7pm" question. That question has no good answer, which is why the design avoids being asked it.
+
+  **A real-time reminder only reaches you while Foundry is open.** That is structural -- world time only moves when somebody is playing, so a world reminder cannot be meaningfully missed, while a real one is wanted precisely when the client is closed. The dialog says so rather than leaving it to be found out.
+
+  **One mechanism, not two.** Index, scan, stamp and announce were identical in shape and differed only in which flag they read and what "now" means, so they are now parameterised by a clock table rather than copied. `tools/check-note-reminders.mjs` guards it, because every way that table can be wrong is silent: a clock missing a field reads as `undefined` and its reminders never fire, a flag name reused between clocks makes one overwrite the other on the same note, and a dialog pane with no CSS rule to reveal it leaves half the dialog looking broken.
+
+  The wall clock is polled every 15 seconds, since it has no `updateWorldTime` to ride. That interval is the worst case by which a real reminder is late, and the scan is a walk of a sorted array that is almost always empty at the head.
+
+  Verify live: `testing/note-reminders.md`.
+
 - **Time-bound notes -- a note can now carry a moment** (`scripts/manager-note-reminders.js`, `scripts/window-note-editor.js`, `scripts/api-notes.js`, `styles/window-notes.css`). Give a note a world time and it comes back at it: a toast that opens the note, and a date on the note's own footer in the meantime. The control sits beside the author, reading as a faint "Remind me..." until it is set.
 
   **This is the other half of the calendar work, and deliberately not the same mechanism as a calendar event.** An event belongs to the world, recurs, and lives in a world setting; a reminder belongs to one person, never recurs, and lives on their own note as two flags -- `dueAt` and `firedAt`.

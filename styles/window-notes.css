@@ -379,6 +379,74 @@
     line-height: 1.6;
 }
 
+/* The world/real switch. Two clocks that must never be mistaken for each other,
+   so the choice is named rather than implied by which fields are showing. */
+.blacksmith-note-remind-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--blacksmith-tool-divider);
+    padding-bottom: 6px;
+}
+
+.blacksmith-note-remind-tab {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* The radio drives the state and is the accessible control; only its label is
+   drawn. Clipped rather than `display: none`, which would take it out of the
+   tab order and off screen readers. */
+.blacksmith-note-remind-tab input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.blacksmith-note-remind-tab span {
+    display: block;
+    text-align: center;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 0.95em;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.blacksmith-note-remind-tab input:checked + span {
+    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
+    box-shadow: inset 0 0 0 1px var(--blacksmith-tool-accent);
+    opacity: 1;
+}
+
+.blacksmith-note-remind-tab input:focus-visible + span {
+    outline: 2px solid var(--blacksmith-tool-field-focus-ring);
+    outline-offset: 1px;
+}
+
+/* Both panes are rendered; the form says which one counts. Keeping both in the
+   DOM is what lets `getValue` read the active one off the same form without the
+   dialog having to be rebuilt when the switch moves. */
+.blacksmith-note-remind-pane {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.blacksmith-note-remind-form[data-active="world"] .blacksmith-note-remind-pane[data-pane="world"],
+.blacksmith-note-remind-form[data-active="real"] .blacksmith-note-remind-pane[data-pane="real"] {
+    display: flex;
+}
+
+/* The one thing a real-time reminder cannot do, said once, where it is relevant. */
+.blacksmith-note-remind-note {
+    margin: 0;
+    font-size: 0.85em;
+    opacity: 0.6;
+}
+
 /* Four fields on one row, and the row wraps rather than squeezing them: a
    two-character year field is worse than a second line. */
 .blacksmith-note-remind-row {
