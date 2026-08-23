@@ -1287,8 +1287,8 @@ gap - the doc was right and two consumers still wrote the comments out by hand.
 **Yes, it was ours, and it is built.** Merchant stocks shops from roll tables, which store references and
 therefore rot -- a dead row resolved to `null` and was dropped silently, so a GM asked for twenty draws, got
 fourteen, and was told nothing. `api.compendiums.query()` resolves against what exists when it runs, so it
-cannot dangle. Surface in `api/api-compendiums.md`, design in `architecture/architecture-compendiums.md`,
-live verification owed in `../testing/compendium-query.md`.
+cannot dangle. Surface in `api/api-compendiums.md`, design in `architecture/architecture-compendiums.md`.
+Verified 2026-08-23: 931/931 headless, and the palette facets exercised in a running world.
 
 Their reasoning was right and there were two further reasons they did not have. Foundry's `getIndex({fields})`
 re-fetches a pack's entire index for every distinct field set, so uncoordinated consumers do not conflict --
