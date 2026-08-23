@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`api.compendiums.query()` -- candidates by shape rather than by text** (`scripts/manager-compendiums.js`, `scripts/api-compendiums.js`). Everything in the GM's configured sources whose subtype, rarity and price match, resolved against what exists at the moment it runs. Raised by Merchant, who stocks shops from roll tables: a table stores references, and references rot. Rename a pack, update a content module, uninstall one, and a row points at nothing -- a GM asked for twenty draws, got fourteen, and was told nothing. A query cannot dangle, and it picks up newly installed content instead of freezing at whatever someone typed last year.
+
+  It belongs in the hub rather than in each consumer because `CompendiumsAPI` already owns which packs are searched and in what order -- but the stronger reason is the index. `getIndex({fields})` unions the requested fields with what a pack has already indexed and re-fetches the **entire** index whenever the request is wider (`client/documents/collections/compendium-collection.mjs:332`), so N consumers asking for N different field sets pay that cost N times. The extra fields are therefore a fixed constant here, and `_getPackIndex` gained a two-state cache with a one-way rule: a base caller is served from extended rows, an extended request against a base entry re-fetches, and an extended entry is never downgraded. The cost is one extra index fetch per configured pack, once per session, on the first call that needs economics.
+
+  `search()` and `query()` are now **one scan**, not two. `searchDetailed()`'s traversal moved into `_scan()`, which takes the two ways the callers genuinely differ as explicit flags rather than inferring them: whether there is a needle, and whether `limit` stops the scan or caps the output after a complete one. That second one is the load-bearing difference. `search()` stops early because for a typed query the head of the priority order is the best answer; a query that did the same would draw every result from the first configured pack and never open the sixth, so a shop stocked from it would silently contain only that pack's contents and look identical to a correct result. `queryDetailed()` reports `scannedSources` covering the whole order, where `searchDetailed()` can leave a tail unopened -- that field is what separates "no matches there" from "never looked".
+
+  Three dnd5e facts are handled here so that no sibling rediscovers them, each a silent wrong answer rather than an error. **Mundane gear has a blank rarity**, not `common` (`dnd5e.mjs:14077`, 5.3.3) -- a shop asking for common and uncommon gets magic items only, with a result set that looks entirely plausible, so `mundane` is an explicit token. **Price carries a denomination** with gold as the pivot, so 50 sp is 5 gp and comparing the raw stored number is wrong for anything not priced in gold; ranges are `priceGp` and the conversion is ours. **Unpriced and free are the same stored value** (`price.value` has `initial: 0`) and cannot be told apart, so they are excluded from a range by default. An entry whose type has no such field at all fails the filter rather than passing unfiltered -- the alternative can only over-return, silently.
+
+  Rows are the `search()` shape plus `rarity`, `price` and `priceGp`, present on every row from either method and null when the call did not involve economics, so no key appears or disappears depending on which call produced it. `normalizeRarity()` and `toGp()` are exposed beside them. Surface in `documentation/api/api-compendiums.md`; design in the new `documentation/architecture/architecture-compendiums.md`, which did not exist -- the manager holds a resolver, a search engine, an index cache and now a query engine, and everything a reader needed about it had to be recovered from source.
+
+  **Verify:** run the harness's **Compendium Search & Query** suite whole -- the Query group asserts the cap-vs-scan difference by running both and comparing `scannedSources`, that `mundane` and `common` are disjoint sets, the gp conversion in all four denominations, the unpriced default, and that a plain search issued after a query is unchanged in count, order and fields. The existing 57 search assertions were **not** edited: the scan extraction had to be behaviour-neutral, and them passing untouched is what says it was. Live steps are in `testing/compendium-query.md`.
+
+
+### Fixed
+
+- **Every imported item without an explicit source was stamped "Artificer"** (`scripts/parsers/parse-item.js:271`). `_sharedItemSystem` defaulted `system.source.custom` to the literal string `Artificer`, and because it is the shared builder the default reached all eight Item profiles -- weapons, equipment, consumables, loot, tools, containers, features and spells -- not only Artificer content. A sibling module's name was being written into every world that imported an item without filling the field in.
+
+  It is a leftover rather than a decision: the JSON template emits `itemSource: "[ADD-CAMPAIGN-NAME-HERE]"` (`scripts/registry-json-import-items.js:198`), so the field's intended meaning is the campaign name. The default is now an empty string. Blacksmith does not invent a source it does not know, and an item authored without one is silently unattributed instead of misattributed.
+
+  Existing items are unchanged; this only affects items imported from now on. **Verify:** import `testing/data/import-json/item-import-weapon.json` with `itemSource` removed from the payload, then open the item's Details tab -- the Source field is blank rather than reading "Artificer".
+
+- **A published wiki page carried a broken link** (`documentation/api/api-importer.md`). The page is in the publish set (`tools/wiki-sync.mjs:54`) and pointed at `architecture-importer.md`, which is deliberately held back from publication, so the link resolved to nothing on the live wiki. The line is removed until the architecture document clears its gate.
+
+- **`documentation/plans/plan-importer-api.md` contained literal control characters.** Three inline code spans in its opening had been written through PowerShell, which consumed the backticks as escape sequences: `` `attachButton` `` became BEL + `ttachButton`, `` `validateJson` `` became VT + `alidateJson`, and `` `registerKind` `` became CR + `egisterKind`. Repaired, and it was the only text file in the repository affected.
+
+### Changed
+
+- **The importer's direction is now declaration-driven** (`documentation/TODO.md`, `documentation/plans/plan-importer-api.md`). A kind will register a declaration of its shape as data, and Blacksmith will derive the JSON template, authoring guide, prompt, validation, document construction, result envelope and export from it -- replacing the shipped callback registry rather than extending it. No code has moved yet; the work items and the contract shapes are recorded in those two documents.
+
+- **The compendium palette can browse, not only search** (`scripts/window-compendium-search.js`, `styles/window-compendium-search.css`). Blacksmith is consumer zero for `query()`, and adopting it changed what the window does. Below its three-character minimum the palette previously refused; with a rarity or price facet set, an empty box is now a valid request and the window runs `queryDetailed()` instead -- every source opened, the cap on the output. The facets follow the rule the subtype selector already established: offered only for Item-backed types and hidden in All mode, which also keeps a rarity control off the Spell view, where the document class is Item but neither field exists. Rows gained rarity and price badges, rendered only when the call actually asked about economics, and a blank rarity renders as "Mundane" rather than as nothing so a row says which it is. The stored preference set gained both facets.
+
 
 
 ## [13.19.2]

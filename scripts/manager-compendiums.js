@@ -48,15 +48,35 @@ import { isNativeFoundryItemData, parseFlatItemToFoundry } from './parsers/parse
 const MATCH_TIERS = ['exact', 'startsWith', 'includes'];
 
 /**
+ * Index fields beyond Foundry's defaults, for callers that filter on item economics.
+ *
+ * DECLARED AND FIXED, never assembled per call. `getIndex({fields})` unions the request
+ * with what the pack has already indexed and returns the cache only when the request is a
+ * SUBSET (`client/documents/collections/compendium-collection.mjs:332`); anything wider
+ * re-fetches the entire index from the server and merges. So every distinct field set in
+ * play costs one more full re-fetch of every pack, for the session. One set means one
+ * widening, once -- which is the whole reason this lives in the hub rather than in each
+ * consumer that wants a rarity.
+ *
+ * Not listed here because dnd5e already indexes them (`dnd5e.mjs:82397`, verified against
+ * 5.3.3): `system.container`, `system.identifier`. They ride along free and are carried
+ * through by the projection.
+ */
+const EXTENDED_INDEX_FIELDS = ['system.rarity', 'system.price.value', 'system.price.denomination'];
+
+/**
  * Compendium Manager Class
  * Handles all compendium lookups and provides a unified interface.
  */
 export class CompendiumManager {
     constructor() {
         /**
-         * packId -> Promise<{ entries: Array, byName: Map<string, Array> }>
-         * Only pack indexes are cached; world collections are already in memory
-         * and are read live so they never go stale.
+         * packId -> { promise: Promise<Array|null>, extended: boolean }
+         *
+         * Only pack indexes are cached; world collections are already in memory and are
+         * read live so they never go stale. `extended` records WHICH projection the
+         * cached rows hold, because the two are not interchangeable in both directions --
+         * see _getPackIndex for the one-way rule.
          * @private
          */
         this._indexCache = new Map();
@@ -460,13 +480,237 @@ export class CompendiumManager {
             fuzzy = true
         } = options;
 
+        const needle = String(query ?? '').trim().toLowerCase();
+        if (needle.length < minLength) {
+            return { results: [], truncated: false, searchOrder: [], scannedSources: [], skippedSources: [] };
+        }
+
+        const { rarity = null, priceGp = null, includeUnpriced = false } = options;
+
+        return this._scan({
+            type,
+            sources,
+            subtypes: itemType ? [itemType] : null,
+            needle,
+            fuzzy,
+            limit,
+            // Search semantics: the cap STOPS the scan. Right for a picker, where the
+            // head of the priority order is the best answer; see _scan.
+            stopAtLimit: true,
+            rarity,
+            priceGp,
+            includeUnpriced,
+            // Only when the caller is actually asking about economics. Extending the index
+            // costs one full re-fetch per pack, and a type-ahead picker that never reads a
+            // rarity should not pay it -- which is also why the economics fields come back
+            // null here rather than half-populated.
+            extended: !!(rarity || priceGp),
+            logVerb: `Searched`,
+            logSubject: `"${needle}"`
+        });
+    }
+
+    /**
+     * Shape in, candidates out: everything in the GM's configured sources matching a set
+     * of filters, with no text to match against.
+     *
+     * This exists because a reference stored somewhere -- a roll table row, a saved list --
+     * ROTS. Rename a pack, update a content module, uninstall one, and the reference points
+     * at nothing. A query resolves against what exists at the moment it runs, so it cannot
+     * dangle, and it picks up newly installed content instead of freezing at whatever was
+     * written down last year.
+     *
+     * THREE THINGS DIFFER FROM search(), all deliberate:
+     *
+     *  - **`limit` caps the output, it does not stop the scan.** Every configured source is
+     *    opened. search() stops early because the head of the priority order is the best
+     *    answer to a typed query; that reasoning does not transfer, and a stop-scan limit
+     *    here would draw every result from the first configured pack and never open the
+     *    sixth. `scannedSources` covering the whole order is the observable difference.
+     *  - **Ordering is source, then name.** There is no match tier to sort by, and
+     *    `matchType` on every row is null rather than an invented value.
+     *  - **The economics fields are always populated**, because a query is the call that
+     *    asks about them.
+     *
+     * @param {object} [filter]
+     * @param {string|string[]} [filter.type='Item'] - Type token(s), same as search()
+     * @param {string[]} [filter.subtypes=null] - Document subtypes to keep, e.g. ['weapon']
+     * @param {string[]} [filter.rarity=null] - Rarity tokens; 'mundane' for unmarked gear
+     * @param {{min?: number, max?: number}} [filter.priceGp=null] - Price window in gold
+     * @param {boolean} [filter.includeUnpriced=false] - Keep entries stored at price 0
+     * @param {string[]} [filter.sources=null] - Restrict to configured source ids
+     * @param {number} [filter.limit=200] - Cap the output; the scan is always complete
+     * @returns {Promise<Array<object>>} search() rows plus `rarity`, `price`, `priceGp`
+     */
+    async query(filter = {}) {
+        return (await this.queryDetailed(filter)).results;
+    }
+
+    /**
+     * query(), plus a report of what the scan covered.
+     *
+     * `scannedSources` lists EVERY configured source here, where search() can leave a tail
+     * unopened -- that is the difference the two reports exist to make visible. `truncated`
+     * therefore means only "there were more candidates than you asked for", never "some
+     * content went unread", and `skippedSources` is empty unless a source failed to open.
+     *
+     * @param {object} [filter] - Same as query()
+     * @returns {Promise<{results: Array<object>, truncated: boolean, searchOrder: string[],
+     *                    scannedSources: string[], skippedSources: string[]}>}
+     */
+    async queryDetailed(filter = {}) {
+        const {
+            type = 'Item',
+            subtypes = null,
+            rarity = null,
+            priceGp = null,
+            includeUnpriced = false,
+            sources = null,
+            limit = 200
+        } = filter;
+
+        const described = [
+            subtypes?.length ? subtypes.join('/') : null,
+            rarity?.length ? rarity.join('/') : null,
+            priceGp ? `${priceGp.min ?? ''}-${priceGp.max ?? ''}gp` : null
+        ].filter(Boolean).join(' ');
+
+        return this._scan({
+            type,
+            sources,
+            subtypes,
+            // No needle at all, which is what puts the scan in single-bucket mode.
+            needle: null,
+            limit,
+            stopAtLimit: false,
+            extended: true,
+            rarity,
+            priceGp,
+            includeUnpriced,
+            logVerb: 'Queried',
+            logSubject: described ? `[${described}]` : ''
+        });
+    }
+
+    // ==============================================================
+    // ===== INTERNAL: MATCHING =====================================
+    // ==============================================================
+
+    /**
+     * A predicate over index entries for the rarity and price options, or null when
+     * neither was asked for.
+     *
+     * ABSENT IS NOT BLANK, and the whole filter turns on it. The projection keeps `""`
+     * (a physical item nobody marked magical) distinct from `null` (a document type with
+     * no such field at all -- a spell, a class, a journal entry). An entry missing the
+     * field FAILS the filter rather than passing unfiltered, so asking for a price range
+     * returns priced things and nothing else. The alternative reading -- ignore the filter
+     * where it does not apply -- can only ever over-return, and over-returning silently is
+     * how a shop ends up stocked with spells.
+     *
+     * @private
+     * @param {object} spec
+     * @param {string[]|null} spec.rarity
+     * @param {{min?: number, max?: number}|null} spec.priceGp
+     * @param {boolean} spec.includeUnpriced
+     * @returns {((entry: object) => boolean)|null}
+     */
+    _buildEconomicsFilter({ rarity = null, priceGp = null, includeUnpriced = false } = {}) {
+        const wantedRarity = Array.isArray(rarity) && rarity.length
+            ? new Set(rarity.map(normalizeRarity).filter(Boolean))
+            : null;
+
+        const hasMin = Number.isFinite(Number(priceGp?.min));
+        const hasMax = Number.isFinite(Number(priceGp?.max));
+        const min = hasMin ? Number(priceGp.min) : -Infinity;
+        const max = hasMax ? Number(priceGp.max) : Infinity;
+        const wantsPrice = !!priceGp && (hasMin || hasMax);
+
+        if (!wantedRarity && !wantsPrice) return null;
+
+        return (entry) => {
+            if (wantedRarity) {
+                // normalizeRarity returns null for an absent field, and null is never in
+                // the wanted set -- so "has no rarity" fails without a second check.
+                const value = normalizeRarity(entry.rarity);
+                if (!value || !wantedRarity.has(value)) return false;
+            }
+
+            if (wantsPrice) {
+                if (!entry.price) return false;
+                const gp = toGp(entry.price);
+                if (gp === null) return false;
+                // dnd5e stores an unpriced item and a free one identically (`price.value`
+                // has `initial: 0`), so this cannot distinguish them and does not pretend
+                // to. Excluding them is the default because a pack's unpriced entries
+                // otherwise flood any range with a zero floor.
+                if (gp === 0 && !includeUnpriced) return false;
+                if (gp < min || gp > max) return false;
+            }
+
+            return true;
+        };
+    }
+
+    /**
+     * The multi-result scan, shared by searchDetailed() and queryDetailed().
+     *
+     * ONE ENGINE, TWO MODES. Search and query differ in exactly two ways that matter to
+     * the scan, and both are explicit flags rather than something inferred from whether a
+     * needle was supplied -- a reader has to be able to see which semantics a call gets:
+     *
+     *  - `needle` present or absent. Present, entries are classified into match tiers and
+     *    emitted tier-by-tier within each source. Absent, there is one bucket per source
+     *    and it sorts by name. Everything else -- the per-type plans, the source-order
+     *    union, the uuid dedup, the world-vs-pack split, the source labelling -- is the
+     *    same work, which is why this is one function and not two.
+     *  - `stopAtLimit`. True, the cap ends the scan, so a low limit truncates the TAIL of
+     *    the GM's priority order. That is right for a type-ahead picker and wrong for
+     *    anything stocking from the result: a shop built on a stop-scan limit draws
+     *    everything from the first configured pack and never opens the sixth. False, every
+     *    source is scanned and the cap applies to the output afterwards.
+     *
+     * `truncated` means the same thing in both modes -- there were more candidates than the
+     * caller asked for -- but only the stop-scan mode can leave sources unopened, which is
+     * why `scannedSources` is the field that actually separates them.
+     *
+     * @private
+     * @param {object} spec
+     * @param {string|string[]} spec.type - Type token(s), same as search()
+     * @param {string[]|null} [spec.sources] - Restrict to these configured source ids
+     * @param {string[]|null} [spec.subtypes] - Restrict to these document subtypes
+     * @param {string|null} [spec.needle] - Lowercased search text, or null for no text match
+     * @param {boolean} [spec.fuzzy=true] - Include the loose "includes" tier (needle mode only)
+     * @param {number} [spec.limit=50] - Cap; Infinity or <=0 for uncapped
+     * @param {boolean} [spec.stopAtLimit=false] - Cap ends the scan rather than the output
+     * @param {boolean} [spec.extended=false] - Index and populate the economics fields
+     * @param {string[]|null} [spec.rarity] - Rarity tokens to keep; normalised here
+     * @param {{min?: number, max?: number}|null} [spec.priceGp] - Price window in gold pieces
+     * @param {boolean} [spec.includeUnpriced=false] - Keep entries stored at a price of 0
+     * @param {string} [spec.logVerb] - Verb for the debug line
+     * @param {string} [spec.logSubject] - Subject for the debug line
+     * @returns {Promise<{results: Array<object>, truncated: boolean, searchOrder: string[],
+     *                    scannedSources: string[], skippedSources: string[]}>}
+     */
+    async _scan({
+        type,
+        sources = null,
+        subtypes = null,
+        needle = null,
+        fuzzy = true,
+        limit = 50,
+        stopAtLimit = false,
+        extended = false,
+        rarity = null,
+        priceGp = null,
+        includeUnpriced = false,
+        logVerb = 'Scanned',
+        logSubject = ''
+    }) {
         const empty = (searchOrder = []) => ({
             results: [], truncated: false, searchOrder,
             scannedSources: [], skippedSources: [...searchOrder]
         });
-
-        const needle = String(query ?? '').trim().toLowerCase();
-        if (needle.length < minLength) return empty();
 
         const canonicalTypes = [...new Set(
             (Array.isArray(type) ? type : [type]).map(t => normalizeType(t)).filter(Boolean)
@@ -474,6 +718,13 @@ export class CompendiumManager {
         if (!canonicalTypes.length) return empty();
 
         const requestedSources = Array.isArray(sources) ? [...new Set(sources.filter(Boolean))] : null;
+        const subtypeFilter = Array.isArray(subtypes) && subtypes.length ? new Set(subtypes) : null;
+        const economicsFilter = this._buildEconomicsFilter({ rarity, priceGp, includeUnpriced });
+        // A filter reads fields the base projection nulls out, so asking to filter IS asking
+        // to extend. Deriving it here rather than trusting the caller means a future entry
+        // point cannot pass a filter with `extended: false` and get an empty result set with
+        // nothing to explain it.
+        const useExtended = extended || !!economicsFilter;
 
         // One plan per type, then a single source order that is their union in the
         // order the types were given. First appearance wins, so a source mapped to
@@ -495,7 +746,13 @@ export class CompendiumManager {
         }
 
         const cap = Number.isFinite(limit) && limit > 0 ? limit : Infinity;
-        const tiers = fuzzy ? MATCH_TIERS : ['exact', 'startsWith'];
+        // Needle mode emits tier by tier; no-needle mode has a single bucket, so the
+        // rest of the loop does not have to know which mode it is in.
+        // NULL, not falsy. An empty-string needle is still text mode -- a caller passing
+        // {minLength: 0} with an empty query is asking "everything, tiered", and treating
+        // that as no-needle mode would silently retier every row.
+        const hasNeedle = needle !== null && needle !== undefined;
+        const tiers = hasNeedle ? (fuzzy ? MATCH_TIERS : ['exact', 'startsWith']) : ['all'];
         const results = [];
         const scannedSources = [];
         const seenUuids = new Set();
@@ -507,13 +764,13 @@ export class CompendiumManager {
         for (const source of searchOrder) {
             // Reaching here with the cap already full means this source, and every
             // source after it, is never opened -- which is exactly the truncation
-            // the caller cannot otherwise see.
-            if (results.length >= cap) {
+            // the caller cannot otherwise see. Only stop-scan mode can get here.
+            if (stopAtLimit && results.length >= cap) {
                 truncated = true;
                 break;
             }
 
-            const buckets = { exact: [], startsWith: [], includes: [] };
+            const buckets = { exact: [], startsWith: [], includes: [], all: [] };
             let opened = false;
 
             for (const plan of plans) {
@@ -523,21 +780,22 @@ export class CompendiumManager {
                 try {
                     entries = source === 'world'
                         ? this._getWorldEntries(plan.type)
-                        : await this._getPackEntries(source, plan.type);
+                        : await this._getPackEntries(source, plan.type, { extended: useExtended });
                 } catch (error) {
                     postConsoleAndNotification(MODULE.NAME, `Compendium Manager | Error searching ${source}`, error, false, false);
                     continue;
                 }
                 opened = true;
                 if (!entries?.length) continue;
-                if (itemType) entries = entries.filter(e => e.type === itemType);
+                if (subtypeFilter) entries = entries.filter(e => subtypeFilter.has(e.type));
+                if (economicsFilter) entries = entries.filter(economicsFilter);
 
                 for (const entry of entries) {
                     // Dedup at bucketing time, not at emit time: an entry reachable
                     // through two types must not occupy a slot twice, and the earlier
                     // type's documentClass is the one that stands.
                     if (seenUuids.has(entry.uuid)) continue;
-                    const tier = classifyMatch(entry.name, needle);
+                    const tier = hasNeedle ? classifyMatch(entry.name, needle) : 'all';
                     if (!tier) continue;
                     seenUuids.add(entry.uuid);
                     buckets[tier].push({ entry, documentClass: plan.documentClass });
@@ -562,7 +820,7 @@ export class CompendiumManager {
                     // The check sits before the push, so reaching it means there WAS
                     // another candidate to emit -- which is what makes this truncation
                     // rather than a scan that happened to fill the cap exactly.
-                    if (results.length >= cap) {
+                    if (stopAtLimit && results.length >= cap) {
                         truncated = true;
                         break outer;
                     }
@@ -581,24 +839,37 @@ export class CompendiumManager {
                         source,
                         sourceLabel,
                         sourcePackage,
-                        matchType: tier
+                        // Present on EVERY row from either entry point, null when the call
+                        // did not involve economics. A key that appears and disappears
+                        // depending on which method produced the row is a trap, and so is
+                        // one populated for world rows (where the fields are free) and null
+                        // for pack rows in the same result set.
+                        rarity: useExtended ? (entry.rarity ?? null) : null,
+                        price: useExtended && entry.price ? { ...entry.price } : null,
+                        priceGp: useExtended ? toGp(entry.price) : null,
+                        // No tier was consulted when there was nothing to match against,
+                        // and saying so is more honest than inventing one.
+                        matchType: hasNeedle ? tier : null
                     });
                 }
             }
         }
 
+        // Full-scan mode caps here instead. Every source was opened, so `truncated` says
+        // only "there were more than you asked for" -- never "some content went unread".
+        if (!stopAtLimit && results.length > cap) {
+            truncated = true;
+            results.length = cap;
+        }
+
         const skippedSources = searchOrder.filter(source => !scannedSources.includes(source));
 
         postConsoleAndNotification(MODULE.NAME,
-            `Compendium Manager | Searched ${canonicalTypes.join('+')} "${needle}"`,
+            `Compendium Manager | ${logVerb} ${canonicalTypes.join('+')} ${logSubject}`.trim(),
             `${results.length} result(s)${truncated ? `, truncated (${skippedSources.length} source(s) not scanned)` : ''}`,
             true, false);
         return { results, truncated, searchOrder, scannedSources, skippedSources };
     }
-
-    // ==============================================================
-    // ===== INTERNAL: MATCHING =====================================
-    // ==============================================================
 
     /**
      * Try to match a query within one source at one tier.
@@ -630,20 +901,32 @@ export class CompendiumManager {
     /**
      * World-side candidates. Read live -- game.actors / game.items are already
      * in memory, so caching them would only risk staleness.
+     *
+     * There is no `extended` flag here and there should not be: a live document already
+     * carries every field, so the economics come free and the two-state cache the pack
+     * side needs has nothing to model. World rows therefore always populate them, which
+     * also means a world entry never has to be re-read to answer a filter.
      * @private
      */
     _getWorldEntries(type) {
         const docs = getWorldCollection(type);
         if (!docs) return [];
-        return docs.map(d => ({ name: d.name, uuid: d.uuid, type: d.type, img: d.img ?? null }));
+        return docs.map(d => ({
+            name: d.name,
+            uuid: d.uuid,
+            type: d.type,
+            img: d.img ?? null,
+            rarity: d.system?.rarity ?? null,
+            price: d.system?.price ? { ...d.system.price } : null
+        }));
     }
 
     /**
      * Pack-side candidates, filtered to the type's subtype if it has one.
      * @private
      */
-    async _getPackEntries(packId, type) {
-        const index = await this._getPackIndex(packId);
+    async _getPackEntries(packId, type, { extended = false } = {}) {
+        const index = await this._getPackIndex(packId, { extended });
         if (!index) return [];
 
         const subtype = getDocumentSubtype(type);
@@ -656,12 +939,35 @@ export class CompendiumManager {
      * @private
      * `img` comes free -- it is already in Foundry's default index fields for the
      * document types that have one -- and spares picker consumers a per-row document load.
-     * @returns {Promise<Array<{name: string, uuid: string, type: string, img: string|null}>|null>}
+     *
+     * THE PROJECTION ONLY EVER WIDENS. A pack's cache is in one of two states, and the
+     * transition runs one way:
+     *  - A base request is satisfied by EITHER state, because the extended rows are a
+     *    superset. So asking for economics once does not make every later caller pay.
+     *  - An extended request against a base entry discards it and re-fetches. That is the
+     *    one extra round trip per pack, once per session, and it is why the field set is
+     *    a constant rather than a parameter -- see EXTENDED_INDEX_FIELDS.
+     *  - An extended entry is never downgraded. Nothing gains from narrowing it, and a
+     *    cache that flips back and forth would re-fetch on alternating callers.
+     *
+     * `extended` is a FLAG, not a field list, precisely so a caller cannot invent a third
+     * state. The fields it adds are raw here -- `rarity` and `price` land as stored, with
+     * no denomination conversion and no vocabulary normalisation. Interpreting them is the
+     * filter's job, not the cache's.
+     *
+     * @param {string} packId
+     * @param {object} [options]
+     * @param {boolean} [options.extended=false] - Also index EXTENDED_INDEX_FIELDS
+     * @returns {Promise<Array<{name: string, uuid: string, type: string, img: string|null,
+     *                          rarity: string|null, price: {value: number, denomination: string}|null}>|null>}
      */
-    _getPackIndex(packId) {
+    _getPackIndex(packId, { extended = false } = {}) {
         this._ensureCacheHooks();
 
-        if (this._indexCache.has(packId)) return this._indexCache.get(packId);
+        const cached = this._indexCache.get(packId);
+        // A base caller takes whatever is there; an extended caller takes only an
+        // extended entry. Anything else falls through and re-fetches.
+        if (cached && (!extended || cached.extended)) return cached.promise;
 
         const promise = (async () => {
             const pack = game.packs.get(packId);
@@ -671,19 +977,34 @@ export class CompendiumManager {
             }
 
             const docClass = pack.metadata.type;
-            const index = await pack.getIndex();
+            // Foundry unions these with whatever it has already indexed, so passing them
+            // to a pack that has them costs nothing and returns the cached index.
+            const index = extended
+                ? await pack.getIndex({ fields: EXTENDED_INDEX_FIELDS })
+                : await pack.getIndex();
+
             return Array.from(index).map(e => ({
                 name: e.name,
                 type: e.type,
                 img: e.img ?? null,
-                uuid: e.uuid ?? `Compendium.${packId}.${docClass}.${e._id}`
+                uuid: e.uuid ?? `Compendium.${packId}.${docClass}.${e._id}`,
+                // Dot-path index fields come back NESTED, not flattened, so these read
+                // through `system` rather than off `e['system.rarity']`. Null when the
+                // pack was indexed without them, and null again for a document type that
+                // simply has no such field -- the filter cannot tell those apart and
+                // treats both as "does not match", which is the only reading that cannot
+                // silently over-return.
+                rarity: extended ? (e.system?.rarity ?? null) : null,
+                price: extended && e.system?.price ? { ...e.system.price } : null
             }));
         })();
 
         // Don't cache failures -- a transient error shouldn't poison the pack forever.
-        promise.catch(() => this._indexCache.delete(packId));
+        promise.catch(() => {
+            if (this._indexCache.get(packId)?.promise === promise) this._indexCache.delete(packId);
+        });
 
-        this._indexCache.set(packId, promise);
+        this._indexCache.set(packId, { promise, extended });
         return promise;
     }
 
@@ -1150,6 +1471,83 @@ export function parseQuantity(text) {
 export function formatLink(uuid, label, count = null) {
     const link = `@UUID[${uuid}]{${label}}`;
     return count ? `${link} x ${count}` : link;
+}
+
+// ==============================================================
+// ===== ITEM ECONOMICS =========================================
+// ==============================================================
+// Three dnd5e facts a consumer cannot verify from the outside and would each get
+// wrong exactly once. They live here, and are exposed on the API, because Merchant
+// is not the last module that will want to filter items by what they cost.
+
+/** The token this system does not have a key for: gear with no rarity at all. */
+export const RARITY_MUNDANE = 'mundane';
+
+/**
+ * A rarity token in whatever shape a caller typed it, as the key dnd5e stores.
+ *
+ * TWO TRAPS, and the first is the expensive one.
+ *
+ * **Mundane gear is blank, not "common".** `system.rarity` is
+ * `StringField({required: true, blank: true})` (`dnd5e.mjs:14077`, verified against
+ * 5.3.3), and non-magical equipment carries `""`. A shop stocking basic gear and
+ * asking for common plus uncommon therefore gets ONLY MAGIC ITEMS -- silently, with a
+ * result set that looks entirely plausible. `mundane` is the explicit token for it and
+ * maps to `""` in both directions; it is not a dnd5e key and is not meant to be.
+ *
+ * **The keys are camelCase and the labels are not.** A caller reads "Very Rare" in the
+ * item sheet and types `very rare`, so spacing and case are normalised away rather than
+ * silently matching nothing.
+ *
+ * BLANK IS NOT ABSENT. `""` normalises to RARITY_MUNDANE, because a physical item with no
+ * rarity set is mundane. `null`/`undefined` normalise to `null`, because a document type
+ * that has no rarity field at all -- a spell, a class -- is not mundane, it is outside the
+ * question. Filters lean on that difference: it is what stops a rarity filter from quietly
+ * matching every spell in the world.
+ *
+ * @param {string|null|undefined} token
+ * @returns {string|null} A `CONFIG.DND5E.itemRarity` key, RARITY_MUNDANE, or null if the
+ *                        token names no rarity this system defines.
+ */
+export function normalizeRarity(token) {
+    if (token === null || token === undefined) return null;
+
+    const flat = String(token).toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!flat || flat === RARITY_MUNDANE || flat === 'none') return RARITY_MUNDANE;
+
+    const keys = Object.keys(CONFIG?.DND5E?.itemRarity ?? {});
+    return keys.find(key => key.toLowerCase() === flat) ?? null;
+}
+
+/**
+ * A stored price as a number of gold pieces.
+ *
+ * dnd5e stores `{value, denomination}` and gp is the pivot -- `DND5E.currencies` gives
+ * cp 100, sp 10, ep 2, gp 1, pp 0.1 -- so 50 sp is 5 gp and comparing raw
+ * `system.price.value` across items is wrong for anything not priced in gp. Dividing by
+ * the conversion is the whole of it, and it is here so that three modules do not each
+ * discover the direction by trial.
+ *
+ * An UNKNOWN denomination returns null rather than being treated as gp. A module adding
+ * its own currency would otherwise have every price silently misread by a factor nobody
+ * can see, which is worse than a missing number.
+ *
+ * Note that this cannot tell FREE from UNPRICED: `price.value` has `initial: 0`, so both
+ * are stored as 0 and both come back as 0. Callers filtering on price handle that with an
+ * explicit option rather than by guessing here.
+ *
+ * @param {{value: number, denomination: string}|null|undefined} price
+ * @returns {number|null}
+ */
+export function toGp(price) {
+    const value = Number(price?.value);
+    if (!Number.isFinite(value)) return null;
+
+    const denomination = price?.denomination || CONFIG?.DND5E?.defaultCurrency || 'gp';
+    const conversion = Number(CONFIG?.DND5E?.currencies?.[denomination]?.conversion);
+    if (!Number.isFinite(conversion) || conversion <= 0) return null;
+
+    return value / conversion;
 }
 
 // Create a singleton instance

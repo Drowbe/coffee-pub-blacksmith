@@ -28,10 +28,21 @@
 .blacksmith-compendium-search-window .bcs-filters {
     display: flex;
     gap: 5px;
+    /* Up to four controls once the economics facets are showing, and the palette is
+       narrow by design. Wrapping keeps every control usable instead of squeezing the
+       selects down to a few characters of their own labels. */
+    flex-wrap: wrap;
 }
 
 .blacksmith-compendium-search-window .bcs-filters > select {
     flex: 1 1 0;
+    min-width: 0;
+}
+
+/* The price fields hold at most a few digits, so they do not get an equal share of
+   the row -- they shrink and let the selects keep their labels readable. */
+.blacksmith-compendium-search-window .bcs-filters > input[type="number"] {
+    flex: 0 1 84px;
     min-width: 0;
 }
 
@@ -158,6 +169,38 @@
     font-size: 0.72rem;
     text-transform: lowercase;
     pointer-events: none;
+}
+
+/* Economics badges. Only rendered when the call actually asked about rarity or price,
+   so their absence is information rather than a gap -- see _paint(). */
+.blacksmith-compendium-search-window .bcs-rarity-badge,
+.blacksmith-compendium-search-window .bcs-price-badge {
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.blacksmith-compendium-search-window .bcs-rarity-badge {
+    color: var(--blacksmith-tool-text-muted);
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--blacksmith-tool-surface-sunken);
+}
+
+/* Gear with no rarity set is the common case, so it recedes rather than competing with
+   the item name. It is still labelled: a row with no badge would be indistinguishable
+   from one whose rarity was never loaded. */
+.blacksmith-compendium-search-window .bcs-rarity-badge[data-rarity="mundane"] {
+    background: none;
+    opacity: 0.6;
+}
+
+.blacksmith-compendium-search-window .bcs-price-badge {
+    color: var(--blacksmith-tool-text-muted);
+    /* Tabular figures so a column of prices lines up on the decimal instead of
+       jittering with each glyph width. */
+    font-variant-numeric: tabular-nums;
 }
 
 /* ===== EMPTY AND STATUS ========================================= */

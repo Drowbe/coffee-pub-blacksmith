@@ -1,5 +1,5 @@
 // ==================================================================
-// ===== SUITE: api.compendiums.search ==============================
+// ===== SUITE: api.compendiums.search + query ======================
 // ==================================================================
 //
 // DO NOT PASTE THIS INTO A FOUNDRY MACRO — it is an ES module and a macro
@@ -7,7 +7,7 @@
 // loads this suite itself.
 //
 // Contract: documentation/api/api-compendiums.md
-// Implementation: scripts/manager-compendiums.js (search), scripts/api-compendiums.js
+// Implementation: scripts/manager-compendiums.js (_scan), scripts/api-compendiums.js
 //
 // Every check DERIVES ITS FIXTURE FROM THE LIVE WORLD rather than naming
 // "Longsword" and hoping. The suite has to pass in any world with an Item
@@ -23,12 +23,28 @@
 // The last one is asserted against a subtype that CANNOT exist, which
 // separates the two semantics with no dependence on world content:
 // filtering returns nothing, preferring falls back to everything.
+//
+// The Query group asserts the same kind of thing for query() vs search(),
+// and for the same reason -- these are the differences a future reader
+// would otherwise "simplify" back into one behaviour:
+//   - limit caps the OUTPUT here, and stops the SCAN there, which is
+//     asserted by running both and comparing scannedSources
+//   - a blank rarity is mundane and is NOT common, which is the silent
+//     wrong answer this whole surface exists to prevent
+//   - the index projection only ever widens, so a plain search issued
+//     after a query must be unaffected in both directions
 // ==================================================================
 
 import { requireApi, settingRow } from '../harness-lib.js';
 
 const TIER_RANK = { exact: 0, startsWith: 1, includes: 2 };
-const RESULT_KEYS = ['uuid', 'name', 'type', 'documentClass', 'img', 'source', 'sourceLabel', 'sourcePackage', 'matchType'];
+const RESULT_KEYS = [
+    'uuid', 'name', 'type', 'documentClass', 'img', 'source', 'sourceLabel', 'sourcePackage', 'matchType',
+    // Present on EVERY row from search() and query() alike, null when the call did not
+    // involve economics. Asserted as always-present precisely because a key that comes and
+    // goes with the call that made it is the trap this shape exists to avoid.
+    'rarity', 'price', 'priceGp'
+];
 
 /** A subtype no system defines, used to tell "filter" from "prefer". */
 const IMPOSSIBLE_SUBTYPE = 'blacksmith-harness-no-such-subtype';
@@ -77,7 +93,7 @@ function isOrderedSubsequence(subset, sequence) {
 
 export default {
     id: 'compendiums',
-    label: 'Compendium Search',
+    label: 'Compendium Search & Query',
     icon: 'fa-solid fa-magnifying-glass',
 
     settings: () => {
@@ -91,6 +107,7 @@ export default {
         }
         return [
             settingRow('api.compendiums.search', typeof compendiums.search === 'function' ? 'available' : 'MISSING'),
+            settingRow('api.compendiums.query', typeof compendiums.query === 'function' ? 'available' : 'MISSING'),
             settingRow('Item search order', order.length ? order.join(' -> ') : 'NONE — map an Item compendium first',
                 'sources in configured priority order'),
             settingRow('World Items', String(game.items?.size ?? 0),
@@ -117,7 +134,7 @@ export default {
             id: 'shape',
             tier: 'headless',
             group: 'Contract',
-            label: 'Result shape: exactly the seven documented fields, populated',
+            label: 'Result shape: exactly the documented fields, populated',
             run: async ({ expect }) => {
                 const fixture = await itemFixture();
                 if (!fixture) return expect.ok('fixture available', false);
@@ -620,6 +637,211 @@ export default {
 
                 const document = await compendiums.resolveDocument(entry.name, 'Item');
                 expect.ok('resolveDocument() still loads a document', !!document);
+            }
+        },
+        {
+            id: 'economics-helpers',
+            tier: 'headless',
+            group: 'Query',
+            label: 'normalizeRarity() and toGp() handle the shapes a caller actually types',
+            note: 'Both exist so three modules do not each rediscover that mundane gear is blank and that 50 sp is 5 gp.',
+            run: async ({ expect }) => {
+                const { compendiums } = requireApi('compendiums', 'compendiums.query');
+
+                expect('a key passes through', compendiums.normalizeRarity('veryRare'), 'veryRare');
+                expect('the sheet label normalizes to the key', compendiums.normalizeRarity('Very Rare'), 'veryRare');
+                expect('spacing and case are irrelevant', compendiums.normalizeRarity('very rare'), 'veryRare');
+                // The expensive one. A blank rarity is what a plain longsword stores, and a
+                // caller filtering for 'common' must not receive it.
+                expect('blank is mundane, not common', compendiums.normalizeRarity(''), 'mundane');
+                expect('the mundane token round-trips', compendiums.normalizeRarity('mundane'), 'mundane');
+                // Absent is NOT blank. A spell has no rarity field at all, and conflating the
+                // two is what would make a rarity filter match every spell in the world.
+                expect('absent is null, not mundane', compendiums.normalizeRarity(null), null);
+                expect('an unknown token is null', compendiums.normalizeRarity('ultra-legendary'), null);
+
+                expect('gold is the pivot', compendiums.toGp({ value: 10, denomination: 'gp' }), 10);
+                expect('silver converts down', compendiums.toGp({ value: 50, denomination: 'sp' }), 5);
+                expect('copper converts down', compendiums.toGp({ value: 100, denomination: 'cp' }), 1);
+                expect('platinum converts up', compendiums.toGp({ value: 1, denomination: 'pp' }), 10);
+                expect('an unknown denomination is null, never assumed gold',
+                    compendiums.toGp({ value: 5, denomination: 'quatloos' }), null);
+                expect('no price at all is null', compendiums.toGp(null), null);
+            }
+        },
+        {
+            id: 'query-shape',
+            tier: 'headless',
+            group: 'Query',
+            label: 'query() returns search() rows, with the economics populated and no invented tier',
+            run: async ({ expect, log }) => {
+                const fixture = await itemFixture();
+                if (!fixture) return expect.ok('fixture available', false);
+                const { compendiums, packId } = fixture;
+
+                const rows = await compendiums.query({ type: 'Item', sources: [packId], limit: 25 });
+                expect.ok('returns an array', Array.isArray(rows));
+                expect.ok('a mapped Item pack yields rows with no filter at all', rows.length > 0);
+                if (!rows.length) return;
+
+                expect('exactly the documented keys', Object.keys(rows[0]).sort(), [...RESULT_KEYS].sort());
+                expect.ok('every row carries the same shape', rows.every(r => RESULT_KEYS.every(k => k in r)));
+                // Nothing was matched against, so there is no tier. Inventing one would be a
+                // lie a consumer might sort by.
+                expect.ok('matchType is null on every row', rows.every(r => r.matchType === null));
+                expect.ok('uuids are unique', new Set(rows.map(r => r.uuid)).size === rows.length);
+
+                // The index was extended for this call, so at least one physical item should
+                // carry a rarity string -- blank counts, and is the common case.
+                const withRarity = rows.filter(r => typeof r.rarity === 'string');
+                log(`${withRarity.length} of ${rows.length} rows carry a rarity field`);
+                expect.ok('the extended index actually populated rarity', withRarity.length > 0);
+
+                const priced = rows.filter(r => r.price && typeof r.priceGp === 'number');
+                log(`${priced.length} of ${rows.length} rows carry a converted price`);
+                expect.ok('priceGp is a number wherever price is an object',
+                    rows.every(r => (r.price ? typeof r.priceGp === 'number' : r.priceGp === null)));
+            }
+        },
+        {
+            id: 'query-scans-everything',
+            tier: 'headless',
+            group: 'Query',
+            label: 'limit caps the OUTPUT — every configured source is still opened',
+            note: 'The difference from search(), where the cap stops the scan. A shop built on stop-scan semantics would silently draw everything from the first pack.',
+            run: async ({ expect, log }) => {
+                const { compendiums } = requireApi('compendiums', 'compendiums.query');
+                const order = compendiums.getSearchOrder('Item');
+                if (order.length < 2) {
+                    return expect.ok('at least two Item sources are mapped — skipped otherwise', true);
+                }
+
+                const report = await compendiums.queryDetailed({ type: 'Item', limit: 1 });
+                log(`order: ${order.join(' -> ')}`);
+                log(`scanned: ${report.scannedSources.join(' -> ') || 'none'}`);
+
+                expect('the cap held', report.results.length, 1);
+                expect.ok('there was more to return, so it says truncated', report.truncated);
+                // The whole point. A source missing here means content went unread, and a
+                // consumer stocking from this would never see it.
+                expect('every source in the order was opened', report.scannedSources.length, order.length);
+                expect('nothing was skipped', report.skippedSources.length, 0);
+
+                // Contrast, so the two semantics are asserted against each other rather than
+                // separately: the same cap on search() leaves the tail unopened.
+                const searched = await compendiums.searchDetailed('a', 'Item', { minLength: 1, limit: 1 });
+                expect.ok('search() with the same cap leaves sources unscanned',
+                    searched.scannedSources.length < order.length);
+            }
+        },
+        {
+            id: 'query-rarity-strict',
+            tier: 'headless',
+            group: 'Query',
+            label: 'rarity filters strictly, and mundane gear is not common',
+            note: 'The silent-wrong-answer case: a shop asking for common + uncommon and receiving magic items only.',
+            run: async ({ expect, log }) => {
+                const { compendiums } = requireApi('compendiums', 'compendiums.query');
+                if (!compendiums.getSelected('Item').length) {
+                    return expect.ok('an Item compendium is mapped — skipped otherwise', true);
+                }
+
+                const mundane = await compendiums.query({ type: 'Item', rarity: ['mundane'], limit: 200 });
+                const common = await compendiums.query({ type: 'Item', rarity: ['common'], limit: 200 });
+                log(`mundane: ${mundane.length}, common: ${common.length}`);
+
+                expect.ok('every mundane row has a blank rarity', mundane.every(r => r.rarity === ''));
+                expect.ok('every common row is actually keyed common', common.every(r => r.rarity === 'common'));
+                // The two sets must be disjoint. If a blank-rarity item ever appears under
+                // 'common', the normalisation has collapsed the distinction and every shop
+                // stocking basic gear silently gets magic items instead.
+                const commonUuids = new Set(common.map(r => r.uuid));
+                expect.ok('no mundane item is returned as common',
+                    !mundane.some(r => commonUuids.has(r.uuid)));
+
+                // Several tokens in one call, which is how a shop actually asks -- the union,
+                // never the intersection, and never silently only the first token.
+                const both = await compendiums.query({ type: 'Item', rarity: ['mundane', 'common'], limit: 400 });
+                expect.ok('every row is one of the two rarities asked for',
+                    both.every(r => r.rarity === '' || r.rarity === 'common'));
+
+                // Counted rather than asserted directly, because a cap would make the sum
+                // meaningless -- so the count only stands when nothing was truncated.
+                const [m, c, b2] = await Promise.all([
+                    compendiums.queryDetailed({ type: 'Item', rarity: ['mundane'], limit: Infinity }),
+                    compendiums.queryDetailed({ type: 'Item', rarity: ['common'], limit: Infinity }),
+                    compendiums.queryDetailed({ type: 'Item', rarity: ['mundane', 'common'], limit: Infinity })
+                ]);
+                if (!m.truncated && !c.truncated && !b2.truncated) {
+                    expect('two tokens return the union of the two sets',
+                        b2.results.length, m.results.length + c.results.length);
+                }
+
+                // A type with no rarity field at all must fail the filter rather than pass it.
+                if (compendiums.getSelected('Spell').length) {
+                    const spells = await compendiums.query({ type: 'Spell', rarity: ['mundane'], limit: 50 });
+                    expect('a spell has no rarity, so it fails a rarity filter', spells.length, 0);
+                }
+            }
+        },
+        {
+            id: 'query-price',
+            tier: 'headless',
+            group: 'Query',
+            label: 'priceGp filters in gold, and excludes unpriced entries by default',
+            note: 'dnd5e stores unpriced and free identically at 0, so a zero floor otherwise floods the range.',
+            run: async ({ expect, log }) => {
+                const { compendiums } = requireApi('compendiums', 'compendiums.query');
+                if (!compendiums.getSelected('Item').length) {
+                    return expect.ok('an Item compendium is mapped — skipped otherwise', true);
+                }
+
+                const ranged = await compendiums.query({ type: 'Item', priceGp: { min: 1, max: 100 }, limit: 200 });
+                log(`${ranged.length} items between 1 and 100 gp`);
+                expect.ok('every row falls inside the window',
+                    ranged.every(r => r.priceGp >= 1 && r.priceGp <= 100));
+
+                const floored = await compendiums.query({ type: 'Item', priceGp: { min: 0 }, limit: 400 });
+                expect.ok('a zero floor still excludes unpriced entries',
+                    floored.every(r => r.priceGp > 0));
+
+                const withUnpriced = await compendiums.query({
+                    type: 'Item', priceGp: { min: 0 }, includeUnpriced: true, limit: 400
+                });
+                log(`priced: ${floored.length}, including unpriced: ${withUnpriced.length}`);
+                expect.ok('opting in returns at least as many', withUnpriced.length >= floored.length);
+            }
+        },
+        {
+            id: 'query-projection-widens',
+            tier: 'headless',
+            group: 'Query',
+            label: 'Extending the index for a query does not break a plain search afterwards',
+            note: 'The projection only ever widens. A base caller must be served from extended rows, not re-fetch or lose fields.',
+            run: async ({ expect }) => {
+                const fixture = await itemFixture();
+                if (!fixture) return expect.ok('fixture available', false);
+                const { compendiums, packId, entry } = fixture;
+
+                // Base first, then extend, then base again. The third call is the one that
+                // matters: it must be served from the widened rows with nothing missing.
+                const before = await compendiums.search('a', 'Item', { minLength: 1, limit: 20, sources: [packId] });
+                await compendiums.query({ type: 'Item', sources: [packId], limit: 5 });
+                const after = await compendiums.search('a', 'Item', { minLength: 1, limit: 20, sources: [packId] });
+
+                expect('the same search returns the same count', after.length, before.length);
+                expect.ok('and the same uuids in the same order',
+                    after.every((r, i) => r.uuid === before[i]?.uuid));
+                expect.ok('rows still carry name, img and type',
+                    after.every(r => typeof r.name === 'string' && 'img' in r && 'type' in r));
+                // Economics stay null on a search that did not ask for them, INCLUDING after
+                // the index was widened. Otherwise the fields would blink into existence
+                // depending on what some other call did earlier in the session.
+                expect.ok('economics remain null on a plain search',
+                    after.every(r => r.rarity === null && r.price === null && r.priceGp === null));
+
+                const resolved = await compendiums.resolve(entry.name, 'Item');
+                expect('resolve() still finds the fixture through the widened cache', resolved.found, true);
             }
         },
         {

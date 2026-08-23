@@ -4,10 +4,12 @@
  * Exposed as `game.modules.get('coffee-pub-blacksmith').api.compendiums`
  * and `BlacksmithAPI.getCompendiums()`.
  *
- * Three things live here:
+ * Four things live here:
  *  1. READ the GM's compendium mapping (which packs, in what priority, for what type).
  *  2. RESOLVE plain text to a well-formed UUID using that mapping.
  *  3. SEARCH that mapping for many candidates at once, for browsable pickers.
+ *  4. QUERY it by shape rather than by text -- subtype, rarity, price -- for anything that
+ *     would otherwise store a list of references and watch them rot.
  *
  * Consuming modules should never read `monsterCompendium1` / `numCompendiumsActor`
  * or hand-build `@UUID[...]` strings -- the key names carry backward-compat quirks
@@ -17,7 +19,7 @@
  * See documentation/api/api-compendiums.md
  */
 
-import { compendiumManager, parseQuantity, formatLink } from './manager-compendiums.js';
+import { compendiumManager, parseQuantity, formatLink, normalizeRarity, toGp } from './manager-compendiums.js';
 import { normalizeType, getTypeLabel, getChoicesArrayKey } from './utility-compendium-types.js';
 import { BLACKSMITH } from './const.js';
 
@@ -260,7 +262,114 @@ export const CompendiumsAPI = {
      */
     searchDetailed: (query, type, options) => compendiumManager.searchDetailed(query, type, options),
 
+    // ===== FILTERING =====
+
+    /**
+     * Shape in, candidates out. Everything in the GM's configured sources whose subtype,
+     * rarity and price match, with no text to match against.
+     *
+     * Use this instead of storing references. A roll table row, a saved uuid list, anything
+     * written down ROTS: rename a pack, update a content module, uninstall one, and the
+     * reference points at nothing. A query resolves against what exists at the moment it
+     * runs, so it cannot dangle, and it picks up newly installed content instead of
+     * freezing at whatever someone typed last year.
+     *
+     * Three deliberate differences from search(), all of which bite if you assume otherwise:
+     *
+     *  - **`limit` caps the OUTPUT. The scan is always complete.** search() lets the cap
+     *    stop the scan, because for a typed query the head of the GM's priority order is
+     *    the best answer. That does not transfer: a stop-scan limit here would draw every
+     *    result from the first configured pack and never open the sixth, so a shop stocked
+     *    from it would silently only ever contain SRD basics.
+     *  - **`matchType` is null on every row.** No tier was consulted, and inventing one
+     *    would be a lie a consumer might sort by.
+     *  - **`rarity`, `price` and `priceGp` are populated**, where search() leaves them null
+     *    unless you passed a rarity or price filter to it too.
+     *
+     * Three dnd5e facts this handles so you do not have to, each of which is a silent wrong
+     * answer rather than an error if you get it wrong yourself:
+     *
+     *  - **Mundane gear has a BLANK rarity, not 'common'.** A plain longsword stores `""`.
+     *    Asking for `['common', 'uncommon']` gets you magic items only. Use the `mundane`
+     *    token for unmarked gear.
+     *  - **Price has a denomination.** 50 sp is 5 gp, so a raw compare on the stored number
+     *    is wrong for anything not priced in gold. Ranges here are in GOLD PIECES, converted
+     *    for you.
+     *  - **Unpriced and free are the same stored value.** Both are 0 and cannot be told
+     *    apart. They are excluded from a price range by default; `includeUnpriced: true`
+     *    keeps them.
+     *
+     * An entry whose document type has no rarity or price field at all -- a spell, a class,
+     * a journal entry -- FAILS a filter on that field rather than passing unfiltered. So
+     * combining a price range with a non-physical type returns nothing, on purpose.
+     *
+     * @param {object} [filter]
+     * @param {string|string[]} [filter.type='Item'] - Type token(s), same as search()
+     * @param {string[]} [filter.subtypes=null]      - Subtypes to keep, e.g. ['weapon', 'tool']
+     * @param {string[]} [filter.rarity=null]        - Rarity tokens; 'mundane' for unmarked gear
+     * @param {{min?: number, max?: number}} [filter.priceGp=null] - Price window in gold pieces
+     * @param {boolean} [filter.includeUnpriced=false] - Keep entries stored at price 0
+     * @param {string[]} [filter.sources=null]       - Restrict to configured source ids
+     * @param {number}  [filter.limit=200]           - Cap the output
+     * @returns {Promise<Array<{uuid: string, name: string, type: string|null, documentClass: string,
+     *                          img: string|null, source: string, sourceLabel: string,
+     *                          sourcePackage: string, matchType: null,
+     *                          rarity: string|null, price: object|null, priceGp: number|null}>>}
+     *
+     * @example
+     * // Stock a shop from what is installed right now, rather than from a table that rots.
+     * const stock = await api.compendiums.query({
+     *     type: 'Item',
+     *     subtypes: ['weapon', 'equipment', 'consumable', 'tool', 'loot', 'container'],
+     *     rarity: ['mundane', 'common', 'uncommon'],   // 'mundane' or you get magic only
+     *     priceGp: { min: 1, max: 500 },
+     *     limit: 200
+     * });
+     */
+    query: (filter) => compendiumManager.query(filter),
+
+    /**
+     * query(), plus a report of what the scan covered.
+     *
+     * `scannedSources` lists every configured source, where searchDetailed() can leave a
+     * tail unopened -- that is the difference the two reports exist to show. `truncated`
+     * here means only "there were more candidates than you asked for", never "some content
+     * went unread", so a consumer can say "showing 200 of many" without hedging about
+     * whether the rest was even looked at.
+     *
+     * @param {object} [filter] - Same as query()
+     * @returns {Promise<{results: Array<object>, truncated: boolean, searchOrder: string[],
+     *                    scannedSources: string[], skippedSources: string[]}>}
+     */
+    queryDetailed: (filter) => compendiumManager.queryDetailed(filter),
+
     // ===== UTILITIES =====
+
+    /**
+     * A rarity token in whatever shape a user typed it, as the key dnd5e stores.
+     *
+     * Accepts 'Very Rare', 'very rare' and 'veryrare' for `veryRare`, since the sheet shows
+     * a label and the data holds a camelCase key. Returns `'mundane'` for `''` -- unmarked
+     * gear -- and `null` for `null`/`undefined`, which is a document type with no rarity
+     * field at all rather than an item that has none. Those two are not the same and a
+     * filter that conflates them matches every spell in the world.
+     *
+     * @param {string|null|undefined} token
+     * @returns {string|null}
+     */
+    normalizeRarity: (token) => normalizeRarity(token),
+
+    /**
+     * A stored dnd5e price as a number of gold pieces.
+     *
+     * `{value: 50, denomination: 'sp'}` is 5 gp. Comparing the raw `value` across items is
+     * wrong for anything not priced in gold, which is the bug this exists to prevent.
+     * Returns null for an unknown denomination rather than assuming gold.
+     *
+     * @param {{value: number, denomination: string}|null|undefined} price
+     * @returns {number|null}
+     */
+    toGp: (price) => toGp(price),
 
     /**
      * Normalize a type token to Blacksmith's canonical form.

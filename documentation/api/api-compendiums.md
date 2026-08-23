@@ -243,6 +243,83 @@ Ordering is inverted because picking a single winner and rendering a browsable l
 
 `matchType` is reported for each result but tiers are mutually exclusive, so a candidate appears once.
 
+## Filtering: shape in, candidates out
+
+`search()` needs text. `query()` does not — it returns everything in the GM's configured sources whose subtype, rarity and price match, resolved against what exists at the moment it runs.
+
+Use it instead of storing references. A roll table row, a saved UUID list, anything written down rots: rename a pack, update a content module, uninstall one, and the reference points at nothing. A query cannot dangle, and it picks up newly installed content instead of freezing at whatever was typed last year.
+
+```js
+const stock = await compendiums.query({
+  type: 'Item',
+  subtypes: ['weapon', 'equipment', 'consumable', 'tool', 'loot', 'container'],
+  rarity: ['mundane', 'common', 'uncommon'],
+  priceGp: { min: 1, max: 500 },
+  limit: 200
+});
+// [
+//   {
+//     uuid: 'Compendium.dnd5e.items.Item.abc123',
+//     name: 'Longsword',
+//     type: 'weapon',
+//     documentClass: 'Item',
+//     img: 'icons/weapons/swords/longsword.webp',
+//     source: 'dnd5e.items',
+//     sourceLabel: 'Items (SRD)',
+//     sourcePackage: 'DnD5e System',
+//     matchType: null,                       // nothing was matched against
+//     rarity: '',                            // blank is MUNDANE, not 'common'
+//     price: { value: 15, denomination: 'gp' },
+//     priceGp: 15                            // converted; 50 sp would read 5
+//   },
+//   ...
+// ]
+```
+
+Rows are the `search()` shape plus `rarity`, `price` and `priceGp`. Those three are present on every row from either method and are `null` when the call did not involve economics, so a consumer can move between `search()` and `query()` without remapping and no key appears or disappears depending on which call produced the row.
+
+### Three dnd5e facts this handles for you
+
+Each is a silent wrong answer rather than an error if you filter packs yourself.
+
+**Mundane gear has a blank rarity, not `'common'`.** A plain longsword stores `""`. Asking for `['common', 'uncommon']` returns magic items only — a plausible-looking result set that is missing every piece of basic equipment. Use the `mundane` token for unmarked gear.
+
+**Price carries a denomination.** dnd5e stores `{value, denomination}` with gold as the pivot, so 50 sp is 5 gp and comparing the raw stored number is wrong for anything not priced in gold. `priceGp` ranges are in gold pieces, converted for you.
+
+**Unpriced and free are the same stored value.** Both are `0` and cannot be told apart. They are excluded from a price range by default; pass `includeUnpriced: true` to keep them. Without that default, a range with a zero floor returns every unpriced entry in the pack.
+
+An entry whose document type has no rarity or price field at all — a spell, a class, a journal entry — fails a filter on that field rather than passing unfiltered. Combining a price range with a non-physical type therefore returns nothing, on purpose: the alternative can only over-return.
+
+### How query() differs from search()
+
+| | `search()` | `query()` |
+|---|---|---|
+| Input | text, subject to `minLength` | filters only |
+| `limit` | stops the scan | caps the output; the scan is always complete |
+| Ordering | source, then match tier, then name | source, then name |
+| `matchType` | the tier that hit | `null` |
+| `rarity` / `price` / `priceGp` | `null` unless you pass a rarity or price filter | populated |
+
+The `limit` difference is the one that matters. `search()` stops early because for a typed query the head of the GM's priority order is the best answer. That reasoning does not transfer: a stop-scan limit on a query would draw every result from the first configured pack and never open the sixth, so anything stocked from it would silently contain only that pack's contents. `queryDetailed()` reports `scannedSources` covering the whole order, where `searchDetailed()` can leave a tail unopened — that field is what distinguishes the two reports.
+
+`truncated` from a query therefore means only "there were more candidates than you asked for", never "some content went unread".
+
+### Options
+
+```js
+await compendiums.query({
+  type: 'Item',                   // one token or an array, same as search()
+  subtypes: ['weapon'],           // document subtypes; omit for any
+  rarity: ['mundane', 'rare'],    // union of the tokens; omit for any
+  priceGp: { min: 1, max: 500 },  // gold pieces; either end omittable
+  includeUnpriced: false,         // keep entries stored at price 0
+  sources: null,                  // default: the GM's configured search set
+  limit: 200                      // caps the output
+});
+```
+
+`search()` accepts `rarity`, `priceGp` and `includeUnpriced` too, so a picker can offer a facet alongside a text box. Passing either one is what makes `search()` populate the economics fields.
+
 ## Type tokens
 
 Every method accepts any of these, case-insensitively. They normalize to a canonical type:
@@ -364,6 +441,13 @@ Three things to know:
 | `search(query, type, options?)` | `Promise<Result[]>` | Many candidates for one query; grouped by source. `type` may be an array |
 | `searchDetailed(query, type, options?)` | `Promise<{results, truncated, searchOrder, scannedSources, skippedSources}>` | The same, plus what the scan covered |
 
+### Filtering
+
+| Method | Returns | Notes |
+|---|---|---|
+| `query(filter?)` | `Promise<Result[]>` | Candidates by shape rather than text. `limit` caps the output; every source is scanned |
+| `queryDetailed(filter?)` | `Promise<{results, truncated, searchOrder, scannedSources, skippedSources}>` | The same, plus what the scan covered |
+
 ### Utilities
 
 | Method | Returns | Notes |
@@ -372,15 +456,19 @@ Three things to know:
 | `getTypeLabel(type)` | `string` | `'JournalEntry'` -> `'Journal Entries'` |
 | `parseQuantity(text)` | `{name, count}` | `'Goblin (3)'` -> `{name:'Goblin', count:3}` |
 | `formatLink(uuid, label, count?)` | `string` | Build an enricher from a UUID you already have |
+| `normalizeRarity(token)` | `string\|null` | `'Very Rare'` -> `'veryRare'`; `''` -> `'mundane'`; absent -> `null` |
+| `toGp(price)` | `number\|null` | `{value: 50, denomination: 'sp'}` -> `5`; unknown denomination -> `null` |
 | `clearCache()` | `void` | Drop cached pack indexes |
 
 ## Performance
 
 Pack indexes are cached after first read and invalidated automatically on `updateCompendium`. World collections are read live (they are already in memory), so they never go stale. Cached index entries carry `name`, `type`, `uuid`, and `img` — `img` is part of Foundry's default index fields, so a picker gets thumbnails without loading a single document.
 
+Rarity and price are not in Foundry's default index. The first call in a session that needs them widens the index, which costs one extra full index fetch per configured pack — a pause a GM may notice once. Everything after it is served from the widened cache, including plain `search()` and `resolve()` calls, and the widening never happens twice. This is why the extra fields are a fixed set owned here rather than something a caller nominates: `getIndex({fields})` re-fetches the whole index for every distinct field set, so N consumers asking for N different sets would pay that cost N times over.
+
 Prefer `resolveMany` for lists — it warms every pack index concurrently once, rather than per name. Call `clearCache()` only if you bulk-edit compendium contents in a way that doesn't fire `updateCompendium`.
 
-Use `search()` rather than reading pack indexes yourself. A consumer that calls `getSelected()` and indexes the packs directly builds a second cache over the same data with its own invalidation, which drifts from this one after any compendium edit.
+Use `search()` or `query()` rather than reading pack indexes yourself. A consumer that calls `getSelected()` and indexes the packs directly builds a second cache over the same data with its own invalidation, which drifts from this one after any compendium edit — and, for anything reading rarity or price, widens the underlying Foundry index a second time.
 
 ## Console testing
 
@@ -401,12 +489,18 @@ c.getAllChoices('JournalEntry');          // the same, dropdown-ready
 await c.search('long', 'Item', { itemType: 'weapon', limit: 40 });
 await c.search('l', 'Item');                        // [] -- below minLength
 await c.search('l', 'Item', { minLength: 1 });      // scans
+
+await c.query({ type: 'Item', rarity: ['mundane'], limit: 20 });
+await c.query({ type: 'Item', priceGp: { min: 1, max: 50 } });
+await c.queryDetailed({ type: 'Item', limit: 1 });  // scannedSources covers every source
+c.normalizeRarity('very rare');                     // 'veryRare'
+c.toGp({ value: 50, denomination: 'sp' });          // 5
 ```
 
 ## Notes
 
 - The API is read-only with respect to settings. It never writes the GM's mapping.
-- `resolve()` never throws for a missing name, an unconfigured type, or a missing pack — it returns a structured not-found result. Check `.found`. `search()` behaves the same way, returning an empty array.
+- `resolve()` never throws for a missing name, an unconfigured type, or a missing pack — it returns a structured not-found result. Check `.found`. `search()` and `query()` behave the same way, returning an empty array.
 - Returned UUIDs are always bare (`Compendium.pack.Actor.id` or `Actor.id`) and always accepted by Foundry's `fromUuid()`. The legacy `@Compendium[...]` enricher format is no longer produced.
 - Modules should prefer this API over direct `game.settings.get('coffee-pub-blacksmith', ...)` reads for anything compendium-related.
 

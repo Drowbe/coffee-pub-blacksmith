@@ -74,6 +74,7 @@ const PUBLISH = [
   'architecture/architecture-blacksmith.md',
   'architecture/architecture-calendar.md',
   'architecture/architecture-chatcards.md',
+  'architecture/architecture-compendiums.md',
   'architecture/architecture-encounter.md',
   'architecture/architecture-gm-request.md',
   'architecture/architecture-gmnotes.md',

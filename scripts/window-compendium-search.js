@@ -19,6 +19,15 @@
 // handler reads it through TextEditor.getDragEventData, so an item lands
 // on a dnd5e character sheet, and an Actor lands on the canvas as a
 // token, with no cooperation needed from either side.
+//
+// TWO MODES, and the second is why the economics facets are here rather
+// than only in the API. With text, this runs api.compendiums.search():
+// the cap stops the scan, because the head of the GM's priority order is
+// the best answer to something somebody typed. With NO text but a rarity
+// or price facet set, it runs api.compendiums.query() instead and the
+// window becomes a browser -- every configured source opened, the cap
+// applied to the output. Before the facets there was no way to browse at
+// all: below MIN_QUERY_LENGTH the palette simply refused.
 // ==================================================================
 
 import { MODULE } from './const.js';
@@ -47,6 +56,17 @@ const RESULT_LIMIT = 100;
 const MIN_QUERY_LENGTH = 3;
 
 const ANY_SUBTYPE = '';
+
+/** Rarity-selector sentinel: do not filter on rarity at all. */
+const ANY_RARITY = '';
+
+/**
+ * The token for gear nobody marked magical. Not a dnd5e key -- dnd5e stores `""` --
+ * which is exactly why it needs a name: an option labelled "Common" that quietly
+ * excluded every plain longsword would be the same silent wrong answer the API
+ * exists to prevent.
+ */
+const RARITY_MUNDANE = 'mundane';
 
 /** Type-selector sentinel: search every mapped type at once. */
 const ALL_TYPES = '__all__';
@@ -115,6 +135,9 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             ? prefs.type
             : ALL_TYPES;
         this._subtype = typeof prefs.subtype === 'string' ? prefs.subtype : ANY_SUBTYPE;
+        this._rarity = typeof prefs.rarity === 'string' ? prefs.rarity : ANY_RARITY;
+        this._priceMin = Number.isFinite(prefs.priceMin) ? prefs.priceMin : null;
+        this._priceMax = Number.isFinite(prefs.priceMax) ? prefs.priceMax : null;
         this._query = '';
         this._timer = null;
         // Monotonic token so a slow query that resolves after a newer one cannot
@@ -182,6 +205,47 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         return subtypes.sort((a, b) => a.label.localeCompare(b.label));
     }
 
+    /**
+     * Whether rarity and price mean anything for the current type.
+     *
+     * Same rule `_availableSubtypes` uses, and for the same reason: hidden in All mode,
+     * where the facet would be pooled across document classes that mostly have no such
+     * field, and hidden for a SYNTHETIC type, whose subtype is already fixed by the
+     * mapping. That second half is what keeps a rarity selector off the Spell view --
+     * a spell's document class is Item, but a spell carries neither field, so the facet
+     * could only ever return nothing under a control that looks like it should work.
+     */
+    _economicsApply() {
+        if (this._type === ALL_TYPES) return false;
+        const canonical = normalizeType(this._type);
+        if (!canonical || getDocumentSubtype(canonical)) return false;
+        return getDocumentClass(canonical) === 'Item';
+    }
+
+    /** Rarity options for the selector: the system's keys, plus the mundane token. */
+    _availableRarities() {
+        const rarities = [{ value: RARITY_MUNDANE, label: 'Mundane (no rarity)' }];
+        for (const [key, label] of Object.entries(CONFIG?.DND5E?.itemRarity ?? {})) {
+            rarities.push({ value: key, label: game.i18n.localize(label) });
+        }
+        return rarities;
+    }
+
+    /** Whether any facet is narrowing the result set. */
+    _hasFacets() {
+        return this._economicsApply()
+            && (this._rarity !== ANY_RARITY || this._priceMin !== null || this._priceMax !== null);
+    }
+
+    /** The price window as the API wants it, or null when neither end is set. */
+    _priceFilter() {
+        if (this._priceMin === null && this._priceMax === null) return null;
+        const window = {};
+        if (this._priceMin !== null) window.min = this._priceMin;
+        if (this._priceMax !== null) window.max = this._priceMax;
+        return window;
+    }
+
     async getData() {
         const esc = foundry.utils.escapeHTML;
         const types = this._availableTypes();
@@ -198,14 +262,39 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                 ${subtypes.map(s => `<option value="${esc(s.value)}"${s.value === this._subtype ? ' selected' : ''}>${esc(s.label)}</option>`).join('')}
             </select>` : '';
 
+        const economics = this._economicsApply();
+        const rarityOptions = economics ? [
+            `<option value="${ANY_RARITY}"${this._rarity === ANY_RARITY ? ' selected' : ''}>Any rarity</option>`,
+            ...this._availableRarities().map(r =>
+                `<option value="${esc(r.value)}"${r.value === this._rarity ? ' selected' : ''}>${esc(r.label)}</option>`)
+        ].join('') : '';
+
+        const economicsFilters = economics ? `
+            <select class="blacksmith-input bcs-rarity" name="bcs-rarity"
+                    data-tooltip="Restrict to one rarity. Mundane is gear with no rarity set, which is most equipment.">${rarityOptions}</select>
+            <input type="number" class="blacksmith-input bcs-price-min" name="bcs-price-min" min="0" step="1"
+                   placeholder="min gp" data-tooltip="Lowest price in gold pieces. Unpriced items are excluded whenever either end is set."
+                   value="${this._priceMin ?? ''}">
+            <input type="number" class="blacksmith-input bcs-price-max" name="bcs-price-max" min="0" step="1"
+                   placeholder="max gp" data-tooltip="Highest price in gold pieces"
+                   value="${this._priceMax ?? ''}">` : '';
+
+        // The placeholder tells the truth about which mode is reachable. With a facet set
+        // the window browses on an empty box, and promising "3+ characters" would hide
+        // that the user can simply stop typing.
+        const placeholder = this._hasFacets()
+            ? 'Search, or leave empty to browse the filter...'
+            : `Search (${MIN_QUERY_LENGTH}+ characters)...`;
+
         const controls = types.length ? `
             <div class="bcs-controls">
                 <input type="search" class="blacksmith-input bcs-query" name="bcs-query"
-                       placeholder="Search (${MIN_QUERY_LENGTH}+ characters)..." autocomplete="off" spellcheck="false"
+                       placeholder="${esc(placeholder)}" autocomplete="off" spellcheck="false"
                        value="${esc(this._query)}">
                 <div class="bcs-filters">
                     <select class="blacksmith-input bcs-type" name="bcs-type" data-tooltip="What to search for">${typeOptions}</select>
                     ${subtypeSelect}
+                    ${economicsFilters}
                 </div>
             </div>` : '';
 
@@ -285,6 +374,40 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             void this._search({ immediate: true });
         });
 
+        const rarity = root.querySelector('.bcs-rarity');
+        const priceMin = root.querySelector('.bcs-price-min');
+        const priceMax = root.querySelector('.bcs-price-max');
+
+        // A facet change can flip the window between search and browse mode, and the
+        // placeholder says which mode is live -- so unlike the subtype control these
+        // re-render rather than repainting rows in place. Focus goes back to the box for
+        // the same reason it does after a type change.
+        const onFacetChange = async () => {
+            void this._savePreferences();
+            await this.render(false);
+            this._getRoot()?.querySelector('.bcs-query')?.focus();
+        };
+
+        rarity?.addEventListener('change', () => {
+            this._rarity = rarity.value;
+            void onFacetChange();
+        });
+
+        // `change`, not `input`: a number field fires per digit, so typing "150" would run
+        // a browse at 1 and again at 15 before the number the user meant.
+        const readPrice = (field) => {
+            const value = Number(field.value);
+            return field.value.trim() === '' || !Number.isFinite(value) || value < 0 ? null : value;
+        };
+        priceMin?.addEventListener('change', () => {
+            this._priceMin = readPrice(priceMin);
+            void onFacetChange();
+        });
+        priceMax?.addEventListener('change', () => {
+            this._priceMax = readPrice(priceMax);
+            void onFacetChange();
+        });
+
         // Delegated, so rows repainted by _paint() need no rebinding.
         results.addEventListener('dragstart', (event) => this._onDragStart(event));
         results.addEventListener('click', (event) => void this._onRowClick(event));
@@ -317,13 +440,33 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         const mine = ++this._token;
         const started = performance.now();
 
+        const hasText = this._query.trim().length >= MIN_QUERY_LENGTH;
+        const rarity = this._rarity !== ANY_RARITY && this._economicsApply() ? [this._rarity] : null;
+        const priceGp = this._economicsApply() ? this._priceFilter() : null;
+
         let report = { results: [], truncated: false, skippedSources: [] };
         try {
-            report = await compendiumManager.searchDetailed(this._query, this._searchTypes(), {
-                itemType: this._subtype || null,
-                limit: RESULT_LIMIT,
-                minLength: MIN_QUERY_LENGTH
-            });
+            if (hasText) {
+                report = await compendiumManager.searchDetailed(this._query, this._searchTypes(), {
+                    itemType: this._subtype || null,
+                    limit: RESULT_LIMIT,
+                    minLength: MIN_QUERY_LENGTH,
+                    rarity,
+                    priceGp
+                });
+            } else if (this._hasFacets()) {
+                // Browse mode. No text to match, so the scan is complete and the cap
+                // applies to the output -- which is the behaviour that makes browsing
+                // honest, since a stop-scan cap would show only the first pack's contents
+                // and look exactly the same.
+                report = await compendiumManager.queryDetailed({
+                    type: this._searchTypes(),
+                    subtypes: this._subtype ? [this._subtype] : null,
+                    rarity,
+                    priceGp,
+                    limit: RESULT_LIMIT
+                });
+            }
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Search: search failed', error, false, false);
         }
@@ -354,8 +497,11 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         if (!results.length) {
             const empty = document.createElement('div');
             empty.className = 'bcs-empty';
-            empty.textContent = this._query.trim().length < MIN_QUERY_LENGTH
-                ? `Type at least ${MIN_QUERY_LENGTH} characters.`
+            // "Type at least N characters" is only true when there is no facet to browse
+            // by. With one set, an empty box is a valid request that simply matched
+            // nothing, and telling the user to type would send them the wrong way.
+            empty.textContent = (this._query.trim().length < MIN_QUERY_LENGTH && !this._hasFacets())
+                ? `Type at least ${MIN_QUERY_LENGTH} characters, or set a filter to browse.`
                 : 'Nothing matches.';
             list.appendChild(empty);
             if (status) status.textContent = '';
@@ -389,7 +535,9 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             }
 
             const row = document.createElement('div');
-            row.className = `bcs-row bcs-tier-${result.matchType}`;
+            // No tier in browse mode -- nothing was matched against -- so no tier class
+            // rather than a `bcs-tier-null` nothing styles.
+            row.className = result.matchType ? `bcs-row bcs-tier-${result.matchType}` : 'bcs-row';
             row.draggable = true;
             row.dataset.uuid = result.uuid;
             // Straight off the result. Deriving it from the type token searched is a
@@ -415,6 +563,29 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             badge.textContent = result.type ?? result.documentClass ?? '';
 
             row.append(thumb, name, badge);
+
+            // Only when the call actually asked about economics -- these are null on a
+            // plain search, and a badge reading "0 gp" on every row would be worse than
+            // no badge. A blank rarity is rendered as the mundane label rather than as
+            // nothing, so the row says which it is instead of leaving the user to guess.
+            if (typeof result.rarity === 'string') {
+                const rarityBadge = document.createElement('span');
+                rarityBadge.className = 'bcs-rarity-badge';
+                rarityBadge.dataset.rarity = result.rarity || RARITY_MUNDANE;
+                rarityBadge.textContent = result.rarity
+                    ? (game.i18n.localize(CONFIG?.DND5E?.itemRarity?.[result.rarity] ?? result.rarity))
+                    : 'Mundane';
+                row.appendChild(rarityBadge);
+            }
+            if (typeof result.priceGp === 'number' && result.priceGp > 0) {
+                const priceBadge = document.createElement('span');
+                priceBadge.className = 'bcs-price-badge';
+                // Converted to gold by the API, so a 50 sp item reads 5 gp here rather
+                // than sorting as though it cost fifty.
+                priceBadge.textContent = `${Number(result.priceGp.toFixed(2))} gp`;
+                row.appendChild(priceBadge);
+            }
+
             list.appendChild(row);
         }
 
@@ -475,12 +646,15 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
     // ===== PREFERENCES ============================================
     // ==============================================================
 
-    /** Type and subtype persist; the query deliberately does not — a stale search on open is noise. */
+    /** Type, subtype and the facets persist; the query deliberately does not — a stale search on open is noise. */
     async _savePreferences() {
         try {
             await game.settings.set(MODULE.ID, PREFS_SETTING, {
                 type: this._type,
-                subtype: this._subtype
+                subtype: this._subtype,
+                rarity: this._rarity,
+                priceMin: this._priceMin,
+                priceMax: this._priceMax
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Search: could not save preferences', error, false, false);
