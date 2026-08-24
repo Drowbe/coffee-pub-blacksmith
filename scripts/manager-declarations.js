@@ -13,6 +13,7 @@
 
 import { getDeclaration, matchesType } from './registry-declarations.js';
 import { issue } from './utility-import-issues.js';
+import { evaluateRules } from './manager-declaration-rules.js';
 
 /**
  * Whether a field appears in authoring output at all.
@@ -242,6 +243,13 @@ export function validateEntry(kindId, profileId, entry) {
         }
     }
 
+    // Cross-field rules run only once every field is individually sound: a rule
+    // about two fields cannot say anything useful while one of them is the wrong
+    // type, and reporting both would bury the cause under the consequence.
+    if (!errors.length) {
+        errors.push(...evaluateRules(declaration, entry));
+    }
+
     // Anything the profile does not declare is reported rather than dropped in
     // silence. The current importer ignores unknown keys entirely, so an author
     // who misspells a field gets a successful import that did nothing.
@@ -333,7 +341,9 @@ export async function buildDocumentData(kindId, profileId, entry) {
     if (declaration.document?.type) data.type = declaration.document.type;
 
     for (const field of declaration.fields) {
-        if (field.role === 'selector') continue;
+        // A selector picks the profile; an input is read by another field's transform.
+        // Neither lands, and both are still authored, validated and templated.
+        if (field.role === 'selector' || field.role === 'input') continue;
 
         const { key } = sourceKey(field, entry);
         const supplied = key === null ? undefined : entry[key];

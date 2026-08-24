@@ -22,8 +22,9 @@
  * @property {string} name - The friendly authoring key.
  * @property {string} [path] - Target on the created document. Required on a mapped profile
  *                             unless `role` says the field does not land.
- * @property {'selector'|'envelope'} [role] - `selector` picks the profile and does not land;
- *                             `envelope` is consumed into the document by a transform (passthrough form).
+ * @property {'selector'|'envelope'|'input'} [role] - `selector` picks the profile; `input` is read by
+ *                             another field's transform; `envelope` is consumed into the document
+ *                             (passthrough form). None of the three lands on a path of its own.
  * @property {string} [type] - 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object'.
  * @property {boolean} [required=false]
  * @property {boolean} [authorable=true] - False means declared but never in the template, guide or
@@ -62,6 +63,8 @@
  *                             a profile whose content is revealed deliberately must say so.
  */
 
+import { RULE_KINDS, hasNamedRule } from './manager-declaration-rules.js';
+
 /**
  * Whether a value matches a declared type. Lives here rather than beside the
  * validator because registration uses it too: a `default` or `example` that does
@@ -85,7 +88,7 @@ export function matchesType(type, value) {
 }
 
 const FORMS = new Set(['mapped', 'rendered', 'passthrough']);
-const ROLES = new Set(['selector', 'envelope']);
+const ROLES = new Set(['selector', 'envelope', 'input']);
 const ABSENT_MEANS = new Set(['default', 'preserve']);
 
 /** @type {Map<string, Declaration>} */
@@ -197,6 +200,55 @@ function validateFields(fields, form, where) {
 }
 
 /**
+ * Validate a profile's cross-field rules. A rule selects either a vocabulary kind
+ * or a named rule, never both, and never supplies a predicate.
+ * @param {object} declaration
+ * @param {string} where
+ */
+function validateRules(declaration, where) {
+    if (declaration.rules === undefined) return;
+    if (!Array.isArray(declaration.rules)) {
+        throw new Error(`${where}: rules must be an array`);
+    }
+    const names = new Set(declaration.fields.map(field => String(field.name)));
+    const known = (reference) => names.has(String(reference).split(':')[0]);
+
+    for (const rule of declaration.rules) {
+        if (!rule || typeof rule !== 'object') {
+            throw new Error(`${where}: each rule must be an object`);
+        }
+        if (rule.named !== undefined) {
+            if (rule.kind !== undefined) {
+                throw new Error(`${where}: a rule selects either a kind or a named rule, not both`);
+            }
+            if (!hasNamedRule(rule.named)) {
+                throw new Error(`${where}: no named rule "${rule.named}" is registered`);
+            }
+            continue;
+        }
+        if (!RULE_KINDS.has(rule.kind)) {
+            throw new Error(`${where}: rule kind must be one of ${[...RULE_KINDS].join(', ')}`);
+        }
+        // A rule naming a field the profile does not declare is silently inert,
+        // which is worse than an error: the constraint reads as enforced and is not.
+        const references = [
+            ...(Array.isArray(rule.fields) ? rule.fields : []),
+            ...(Array.isArray(rule.then) ? rule.then : []),
+            ...(rule.when !== undefined ? [rule.when] : []),
+            ...(rule.field !== undefined ? [rule.field] : [])
+        ];
+        if (!references.length) {
+            throw new Error(`${where}: rule "${rule.kind}" references no fields`);
+        }
+        for (const reference of references) {
+            if (!known(reference)) {
+                throw new Error(`${where}: rule "${rule.kind}" references undeclared field "${reference}"`);
+            }
+        }
+    }
+}
+
+/**
  * Register a profile declaration.
  * @param {Declaration} declaration
  * @returns {string} The registry key.
@@ -224,6 +276,7 @@ export function registerDeclaration(declaration) {
         throw new Error(`${where}: document.documentName is required`);
     }
     validateFields(declaration.fields, declaration.form, where);
+    validateRules(declaration, where);
 
     const key = keyFor(kind, id);
     if (declarations.has(key)) {
