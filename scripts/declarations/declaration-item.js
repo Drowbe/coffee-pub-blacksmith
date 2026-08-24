@@ -154,10 +154,12 @@ export const ITEM_LOOT_DECLARATION = {
         },
         {
             name: 'itemSource',
-            // Stored twice by the current parser: once where dnd5e reads it and once
-            // in a `coffee-pub` flag. Declared rather than hidden, so the duplication
-            // is visible and can be retired deliberately.
-            path: ['system.source.custom', 'flags.coffee-pub.source'],
+            // The current parser also writes this to a `coffee-pub` flag. That flag is
+            // read by nothing -- not here, not in any of the thirteen sibling modules --
+            // and the parser is inconsistent about it, defaulting the system field to ''
+            // while leaving the flag undefined. Not carried forward; the migration is
+            // when write-only duplicates get retired rather than reproduced.
+            path: 'system.source.custom',
             type: 'string',
             default: '',
             example: '[ADD-CAMPAIGN-NAME-HERE]',
@@ -165,7 +167,7 @@ export const ITEM_LOOT_DECLARATION = {
         },
         {
             name: 'itemLicense',
-            path: ['system.source.license', 'flags.coffee-pub.license'],
+            path: 'system.source.license',
             type: 'string',
             default: '',
             example: 'CC BY 4.0',

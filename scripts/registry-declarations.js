@@ -20,9 +20,8 @@
 /**
  * @typedef {object} DeclarationField
  * @property {string} name - The friendly authoring key.
- * @property {string|string[]} [path] - Target on the created document, or several when one
- *                             authored field genuinely lands in more than one place. Required on a
- *                             mapped profile unless `role` says the field does not land.
+ * @property {string} [path] - Target on the created document. Required on a mapped profile
+ *                             unless `role` says the field does not land.
  * @property {'selector'|'envelope'} [role] - `selector` picks the profile and does not land;
  *                             `envelope` is consumed into the document by a transform (passthrough form).
  * @property {string} [type] - 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object'.
@@ -147,10 +146,8 @@ function validateField(field, form, where) {
             }
         }
     }
-    if (field.path !== undefined
-        && typeof field.path !== 'string'
-        && !(Array.isArray(field.path) && field.path.every(one => typeof one === 'string'))) {
-        throw new Error(`${at}: path must be a string or an array of strings`);
+    if (field.path !== undefined && typeof field.path !== 'string') {
+        throw new Error(`${at}: path must be a string`);
     }
     if (field.acceptsKeys !== undefined) {
         if (!Array.isArray(field.acceptsKeys)) {

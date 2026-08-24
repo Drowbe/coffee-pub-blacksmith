@@ -354,9 +354,7 @@ export async function buildDocumentData(kindId, profileId, entry) {
             mergeNamespaces(data, value);
             continue;
         }
-        for (const path of Array.isArray(field.path) ? field.path : [field.path]) {
-            if (path) writePath(data, path, value);
-        }
+        if (field.path) writePath(data, field.path, value);
     }
     return data;
 }

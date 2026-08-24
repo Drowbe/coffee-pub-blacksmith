@@ -381,9 +381,33 @@ export default {
                     }
                 ];
 
+                // ONE deliberate difference, asserted rather than waved through: the parser
+                // also writes source and license into a `coffee-pub` flag namespace that
+                // nothing reads -- not Blacksmith, not any sibling -- and is inconsistent
+                // about it, defaulting the system field to '' while leaving the flag
+                // undefined. The declaration drops it. Both halves are checked below, so
+                // the drop stays deliberate and cannot quietly become an accident.
+                const dropLegacyFlag = (data) => {
+                    const clone = foundry.utils.deepClone(data);
+                    delete clone?.flags?.['coffee-pub'];
+                    if (clone.flags && !Object.keys(clone.flags).length) delete clone.flags;
+                    return clone;
+                };
+
+                const probe = await parser.parseFlatItemToFoundry({
+                    itemType: 'loot', itemName: 'Legacy Flag Probe',
+                    itemImagePath: 'icons/svg/item-bag.svg', itemSource: 'Somewhere'
+                });
+                expect.ok('the parser still writes the legacy coffee-pub flag',
+                    probe?.flags?.['coffee-pub'] !== undefined);
+                expect('the declaration does not', (await manager.buildDocumentData('item', 'loot', {
+                    itemType: 'loot', itemName: 'Legacy Flag Probe',
+                    itemImagePath: 'icons/svg/item-bag.svg', itemSource: 'Somewhere'
+                }))?.flags?.['coffee-pub'], undefined);
+
                 for (const testCase of CASES) {
-                    const derived = settle(await manager.buildDocumentData('item', 'loot', testCase.entry));
-                    const current = settle(await parser.parseFlatItemToFoundry(testCase.entry));
+                    const derived = dropLegacyFlag(settle(await manager.buildDocumentData('item', 'loot', testCase.entry)));
+                    const current = dropLegacyFlag(settle(await parser.parseFlatItemToFoundry(testCase.entry)));
                     // Stable key order before stringifying: object key order is an artefact
                     // of insertion, and reporting it as a difference cries wolf. The
                     // assertion below uses deepEqual and never cared.
