@@ -159,6 +159,13 @@ export default {
                         values: ['common'], aliases: { ordinary: 'uncommon' }
                     }]
                 });
+                await reject('a default in the wrong shape is rejected', {
+                    id: 'p5',
+                    fields: [{
+                        name: 'price', path: 'system.price', type: 'string',
+                        transform: 'price', default: { value: 0, denomination: 'gp' }
+                    }]
+                });
                 await reject('a duplicate field name is rejected', {
                     id: 'p4',
                     fields: [
@@ -377,9 +384,16 @@ export default {
                 for (const testCase of CASES) {
                     const derived = settle(await manager.buildDocumentData('item', 'loot', testCase.entry));
                     const current = settle(await parser.parseFlatItemToFoundry(testCase.entry));
+                    // Stable key order before stringifying: object key order is an artefact
+                    // of insertion, and reporting it as a difference cries wolf. The
+                    // assertion below uses deepEqual and never cared.
+                    const stable = (value) => JSON.stringify(value, (_, inner) =>
+                        (inner && typeof inner === 'object' && !Array.isArray(inner))
+                            ? Object.fromEntries(Object.entries(inner).sort(([a], [b]) => a.localeCompare(b)))
+                            : inner);
                     const keys = [...new Set([...Object.keys(derived), ...Object.keys(current)])].sort();
                     for (const key of keys) {
-                        const same = JSON.stringify(derived[key]) === JSON.stringify(current[key]);
+                        const same = stable(derived[key]) === stable(current[key]);
                         if (!same) {
                             log(`${testCase.id} differs at ${key}:`);
                             log(`   derived ${JSON.stringify(derived[key])}`);

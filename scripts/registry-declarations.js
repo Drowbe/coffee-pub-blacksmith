@@ -63,6 +63,28 @@
  *                             a profile whose content is revealed deliberately must say so.
  */
 
+/**
+ * Whether a value matches a declared type. Lives here rather than beside the
+ * validator because registration uses it too: a `default` or `example` that does
+ * not match its own field's type is a declaration bug, and catching it at
+ * registration is the difference between a clear error and "[object Object]"
+ * surfacing from a transform three steps later.
+ * @param {string} type
+ * @param {*} value
+ * @returns {boolean}
+ */
+export function matchesType(type, value) {
+    switch (type) {
+        case 'string': return typeof value === 'string';
+        case 'boolean': return typeof value === 'boolean';
+        case 'number': return typeof value === 'number' && Number.isFinite(value);
+        case 'integer': return Number.isInteger(value);
+        case 'array': return Array.isArray(value);
+        case 'object': return typeof value === 'object' && value !== null && !Array.isArray(value);
+        default: return true;
+    }
+}
+
 const FORMS = new Set(['mapped', 'rendered', 'passthrough']);
 const ROLES = new Set(['selector', 'envelope']);
 const ABSENT_MEANS = new Set(['default', 'preserve']);
@@ -136,6 +158,17 @@ function validateField(field, form, where) {
         }
         if (field.acceptsKeys.includes(name)) {
             throw new Error(`${at}: acceptsKeys must not repeat the field's own name`);
+        }
+    }
+    // `default` and `example` are BOTH in authored shape -- what a person types --
+    // never in the shape a transform produces. Transforms always run, including over
+    // a default, so a default already in converted shape gets converted twice.
+    if (field.type) {
+        for (const slot of ['default', 'example']) {
+            if (field[slot] !== undefined && !matchesType(field.type, field[slot])) {
+                throw new Error(`${at}: ${slot} must match the declared type ${field.type};`
+                    + ` both are in authored shape, before any transform runs`);
+            }
         }
     }
     if (field.authorable === false && field.example !== undefined) {

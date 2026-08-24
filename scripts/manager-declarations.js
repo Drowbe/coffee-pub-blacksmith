@@ -11,7 +11,7 @@
 // declaration reaches every output with no edit here.
 // ==================================================================
 
-import { getDeclaration } from './registry-declarations.js';
+import { getDeclaration, matchesType } from './registry-declarations.js';
 import { issue } from './utility-import-issues.js';
 
 /**
@@ -168,23 +168,6 @@ export function normalizeValue(field, value) {
         if (alias.toLowerCase() === token) return target;
     }
     return value;
-}
-
-/**
- * @param {string} type
- * @param {*} value
- * @returns {boolean}
- */
-function matchesType(type, value) {
-    switch (type) {
-        case 'string': return typeof value === 'string';
-        case 'boolean': return typeof value === 'boolean';
-        case 'number': return typeof value === 'number' && Number.isFinite(value);
-        case 'integer': return Number.isInteger(value);
-        case 'array': return Array.isArray(value);
-        case 'object': return typeof value === 'object' && value !== null && !Array.isArray(value);
-        default: return true;
-    }
 }
 
 /**

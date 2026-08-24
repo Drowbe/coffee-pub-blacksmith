@@ -124,7 +124,8 @@ export const ITEM_LOOT_DECLARATION = {
             path: 'system.price',
             type: 'string',
             transform: 'price',
-            default: { value: 0, denomination: 'gp' },
+            // Authored shape, not the {value, denomination} the transform produces.
+            default: '0 gp',
             example: '0 GP',
             guidance: 'Price as an amount and a coin abbreviation, such as "50 GP".'
         },
