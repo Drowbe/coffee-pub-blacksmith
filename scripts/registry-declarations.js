@@ -35,7 +35,9 @@
  * @property {'default'|'preserve'} [absentMeans='default'] - `preserve` leaves whatever is on the
  *                             document untouched, so present-but-empty can still clear it.
  * @property {string[]} [values] - Allowed canonical values.
- * @property {Record<string,string>} [aliases] - Accepted spellings mapping onto a canonical value.
+ * @property {Record<string,string>} [aliases] - Accepted spellings mapping onto a canonical VALUE.
+ * @property {string[]} [acceptsKeys] - Other payload KEYS this field may arrive under. Distinct
+ *                             from `aliases`: one renames the value, the other renames the field.
  * @property {string} [transform] - Named, Blacksmith-owned conversion. Never module code.
  * @property {string} [merge] - Array merge policy on re-import, e.g. 'unionBy:name'.
  * @property {DeclarationField[]} [fields] - Nested declaration for object / array-of-object fields.
@@ -120,6 +122,14 @@ function validateField(field, form, where) {
             if (!allowed.has(target)) {
                 throw new Error(`${at}: alias "${alias}" maps to "${target}", which is not in values`);
             }
+        }
+    }
+    if (field.acceptsKeys !== undefined) {
+        if (!Array.isArray(field.acceptsKeys)) {
+            throw new Error(`${at}: acceptsKeys must be an array`);
+        }
+        if (field.acceptsKeys.includes(name)) {
+            throw new Error(`${at}: acceptsKeys must not repeat the field's own name`);
         }
     }
     if (field.authorable === false && field.example !== undefined) {

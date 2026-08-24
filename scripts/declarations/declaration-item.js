@@ -43,6 +43,10 @@ export const ITEM_LOOT_DECLARATION = {
             path: 'name',
             type: 'string',
             required: true,
+            // The current parser reads `entry.itemName || entry.name`, so payloads
+            // in the wild carry either. A key alias keeps them working; it is a
+            // different thing from the value aliases on itemRarity below.
+            acceptsKeys: ['name'],
             example: '',
             guidance: 'The item name as it appears in the sidebar and on a character sheet.'
         },
@@ -72,6 +76,7 @@ export const ITEM_LOOT_DECLARATION = {
             path: 'flags.coffee-pub-blacksmith.gmNotes',
             type: 'string',
             default: '',
+            acceptsKeys: ['gmNotes'],
             transform: 'gmNotes',
             guidance: 'Private notes for the GM, never shown to players.'
         },

@@ -227,6 +227,102 @@ export default {
         },
 
         {
+            id: 'validation-shape',
+            label: 'Derived validation reports a code and a path, not a bare message',
+            tier: 'headless',
+            group: 'Step 2 - validation derivation',
+            note: 'The structured envelope every kind promises and none currently populates.',
+            run: async ({ expect }) => {
+                const { manager } = await loadDeclarations();
+                const run = (entry) => manager.validateEntry('item', 'loot', entry);
+
+                const missing = run({ itemRarity: 'common' });
+                expect('a missing required field is an error', missing.status, 'error');
+                expect('it carries a stable code', missing.errors[0]?.code, 'REQUIRED_FIELD_MISSING');
+                expect('it names the field', missing.errors[0]?.path, 'itemName');
+                expect('it names the stage', missing.errors[0]?.stage, 'validate');
+
+                const badValue = run({ itemName: 'X', itemRarity: 'mythic' });
+                expect('a value outside the allowed set is an error', badValue.errors[0]?.code,
+                    'VALUE_NOT_ALLOWED');
+                expect('the allowed set travels with the issue',
+                    Array.isArray(badValue.errors[0]?.details?.allowed), true);
+
+                const badTypes = run({ itemName: 'X', itemQuantity: 'two', itemIdentified: 'yes' });
+                expect('every type mismatch is reported, not just the first',
+                    badTypes.errors.map(error => error.path), ['itemQuantity', 'itemIdentified']);
+
+                const unknown = run({ itemName: 'X', itemDescriptionn: 'typo' });
+                expect('an undeclared key warns rather than failing', unknown.status, 'warning');
+                expect('the typo is named', unknown.warnings[0]?.path, 'itemDescriptionn');
+
+                const legacyKey = run({ name: 'Legacy' });
+                expect('a legacy key is accepted', legacyKey.status, 'warning');
+                expect('and reported as deprecated', legacyKey.warnings[0]?.code, 'DEPRECATED_KEY');
+                expect('naming the current field',
+                    legacyKey.warnings[0]?.details?.canonical, 'itemName');
+
+                expect('a valid entry is clean',
+                    run({ itemName: 'Plain', itemRarity: 'common' }).status, 'success');
+            }
+        },
+
+        {
+            id: 'validation-shadow',
+            label: 'Shadow the current validator and account for every divergence',
+            tier: 'headless',
+            group: 'Step 2 - validation derivation',
+            note: 'Runs both validators over the same payloads. Fails only on an UNACCOUNTED difference.',
+            run: async ({ expect, log }) => {
+                const { manager } = await loadDeclarations();
+                const api = requireApi('importer');
+                const current = api.importer.getKind('item');
+                expect.ok('the current item kind is reachable through the public surface',
+                    typeof current?.onValidateEntry === 'function');
+                if (typeof current?.onValidateEntry !== 'function') return;
+
+                // Every divergence is listed with WHY. An unlisted one fails the check.
+                //   stricter — the declaration rejects what the current parser waves through
+                //   looser   — shape-only validation cannot see a failure that belongs to a
+                //              transform, and transforms run at construction in step 3
+                const CASES = [
+                    { id: 'fixture', entry: {
+                        itemType: 'loot', itemSubType: 'trinket', itemName: 'Blacksmith Test Trinket',
+                        itemDescription: 'A harmless test trinket.', itemPrice: '5 gp', itemWeight: 1,
+                        itemQuantity: 1, itemRarity: 'common', itemIsMagical: false,
+                        itemIdentified: true, itemSource: 'Coffee Pub Test Data', itemLicense: 'Internal Test'
+                    }, diverges: null },
+                    { id: 'missing name', entry: { itemRarity: 'common' }, diverges: null },
+                    { id: 'legacy name key', entry: { name: 'Legacy Loot' }, diverges: null },
+                    { id: 'invalid rarity', entry: { itemName: 'X', itemRarity: 'mythic' },
+                      diverges: 'stricter: rarity is unchecked today, so an invalid value reaches the document' },
+                    { id: 'quantity as a word', entry: { itemName: 'X', itemQuantity: 'two' },
+                      diverges: 'stricter: the string is written to system.quantity unchecked today' },
+                    { id: 'unparseable price', entry: { itemName: 'X', itemPrice: 'a fortune' },
+                      diverges: 'looser: parseItemPrice throws at convert, which step 2 does not run' }
+                ];
+
+                const unaccounted = [];
+                for (const testCase of CASES) {
+                    const derivedFails = manager.validateEntry('item', 'loot', testCase.entry).status === 'error';
+                    let currentFails = false;
+                    try {
+                        await current.onValidateEntry(testCase.entry);
+                    } catch (_) {
+                        currentFails = true;
+                    }
+                    const same = derivedFails === currentFails;
+                    log(`${testCase.id}: derived ${derivedFails ? 'reject' : 'accept'}`
+                        + `, current ${currentFails ? 'reject' : 'accept'}`
+                        + (same ? '' : ` — ${testCase.diverges ?? 'UNACCOUNTED'}`));
+                    if (!same && !testCase.diverges) unaccounted.push(testCase.id);
+                    if (same && testCase.diverges) unaccounted.push(`${testCase.id} (listed but agreed)`);
+                }
+                expect('every divergence from the current validator is accounted for', unaccounted, []);
+            }
+        },
+
+        {
             id: 'template-diff',
             label: 'Diff the derived loot template against the current hand-built one',
             tier: 'headless',
