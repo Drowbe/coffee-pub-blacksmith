@@ -3,7 +3,13 @@
 // ==================================================================
 
 import { registerJsonImportKind } from './registry-json-import.js';
-import { parseFlatItemToFoundry } from './parsers/parse-item.js';
+import { parseFlatItemToFoundry, isNativeFoundryItemData } from './parsers/parse-item.js';
+import { getDeclaration } from './registry-declarations.js';
+import { validateEntryDeep, buildDocumentData } from './manager-declarations.js';
+// Side-effect import: registers the declared Item profiles. This is what puts
+// the declaration in the load path -- step 3 of the build sequence in
+// documentation/TODO.md. Removing it silently returns every profile to the parser.
+import './declarations/declaration-item.js';
 import {
     fetchPromptText,
     composePrompt,
@@ -357,6 +363,40 @@ function _friendlyActivityTemplate(activityType) {
     };
 }
 
+/**
+ * The declared profile handling this entry, or null to fall back to the parser.
+ *
+ * Profiles move across one at a time (build sequence step 4), so this routes by
+ * what is DECLARED rather than by a list that would have to be kept in step. An
+ * undeclared profile keeps the parser, and so does a native Foundry payload --
+ * that is the passthrough form, and the declared profiles here are all mapped.
+ * @param {object} entry
+ * @returns {object|null}
+ */
+function declaredProfileFor(entry) {
+    if (isNativeFoundryItemData(entry)) return null;
+    const profile = String(entry?.itemType || 'loot').trim().toLowerCase();
+    return getDeclaration('item', profile) ?? null;
+}
+
+/**
+ * Carry a structured issue on a thrown Error.
+ *
+ * `issueFromError` in registry-json-import.js already reads `code`, `path` and
+ * `details` off a thrown error -- it has always been able to report them and no
+ * kind has ever supplied them. A declared profile does, so its failures reach the
+ * result screen with a real code instead of a blanket VALIDATE_FAILED.
+ * @param {object} issue
+ * @returns {Error}
+ */
+function errorFromIssue(issue) {
+    const error = new Error(issue.message);
+    error.code = issue.code;
+    error.path = issue.path;
+    error.details = issue.details;
+    return error;
+}
+
 export const ITEM_JSON_IMPORT_KIND_ID = 'item';
 
 const itemJsonImportKind = {
@@ -403,11 +443,21 @@ const itemJsonImportKind = {
     }),
     onProfileName: (entry) => entry?.itemType || entry?.type || '',
     onValidateEntry: async (entry) => {
+        const declaration = declaredProfileFor(entry);
+        if (declaration) {
+            const outcome = await validateEntryDeep('item', declaration.id, entry);
+            if (outcome.errors.length) throw errorFromIssue(outcome.errors[0]);
+            return { validationWarnings: outcome.warnings };
+        }
         if (!String(entry?.itemName || entry?.name || '').trim()) throw new Error('Item name is required.');
         return parseFlatItemToFoundry({ ...entry, itemImagePath: entry.itemImagePath || entry.img || 'icons/svg/item-bag.svg' });
     },
     onImportEntry: async (entry) => {
-        const [created] = await Item.createDocuments([await parseFlatItemToFoundry(entry)], { keepId: false });
+        const declaration = declaredProfileFor(entry);
+        const data = declaration
+            ? await buildDocumentData('item', declaration.id, entry)
+            : await parseFlatItemToFoundry(entry);
+        const [created] = await Item.createDocuments([data], { keepId: false });
         return created;
     }
 };

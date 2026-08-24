@@ -118,28 +118,13 @@ with no world state, so most of it is assertable in `testing/suites/` -- which i
 the importer has been. Add `suite-importer-declarations.js` in step 1 and grow it with each step; the
 long-standing "no automated coverage" defect is fixed by the re-founding rather than alongside it.
 
-0. **The public registration path first.** Blacksmith's kinds register through the same public surface an
-   external module uses, so that surface exists before anything consumes it. Building the engine internally
-   and retrofitting a public wrapper is precisely the shortcut the consumer-zero rule forbids, and it is how
-   the current registry ended up with capabilities no external caller can reach.
-
-1. **Declaration reader plus template derivation, on one profile.** Item `loot`, the simplest mapped profile.
-   Derive the JSON template from the declaration and diff it against today's hand-built one. Nothing else
-   changes and nothing switches over.
-   **Verify:** a harness check asserts the derived template parses and carries every declared authorable
-   field with its default; the diff against the current template is empty or every difference is
-   deliberate and listed.
-
-2. **Validation derivation for the same profile, in shadow.** Run the derived validator alongside the
-   existing one and report divergence without acting on it. Any disagreement is a bug in the declaration,
-   found while nothing depends on it.
-   **Verify:** every fixture in `testing/data/import-json/` that is a loot payload produces identical
-   verdicts from both validators; a deliberately malformed payload produces a `code` and `path` from the
-   derived one where the current one produces a bare message.
-
-3. **Construction derivation, and switch `loot` over.** First profile live on the declared path.
-   **Verify:** `item-import-loot.json` imports and the created Item is field-for-field identical to one
-   imported before the switch, including flags and `source`.
+**Steps 0 to 3 are done and verified live (2026-08-23); they are recorded in `CHANGELOG.md` and removed
+from this list.** What exists now: the public registration path, a declaration registry that rejects a
+malformed declaration at registration, derivation of the JSON template, shape validation and a dry
+conversion check, the named transform library, document construction, and the Item `loot` profile live on
+all of it. The Item importer routes an entry to the derived path when a declaration exists for its profile
+and to the parser when one does not, so each remaining profile moves simply by being declared.
+`testing/suites/suite-importer-declarations.js` grows with each step and stands at 55 assertions.
 
 4. **The remaining seven Item profiles.** Weapon last, because it exercises every rule in the cross-field
    vocabulary; equipment brings nested `passiveEffects`, `const`, `generated` and the ancestor default chain;

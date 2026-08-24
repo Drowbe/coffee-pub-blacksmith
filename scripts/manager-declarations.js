@@ -358,3 +358,32 @@ export async function buildDocumentData(kindId, profileId, entry) {
     }
     return data;
 }
+
+/**
+ * Shape validation plus a dry conversion, without creating anything.
+ *
+ * `validateEntry` above is deliberately pure and synchronous, which is what keeps
+ * it assertable outside Foundry. It cannot see a failure that belongs to a
+ * transform -- an unparseable price is well-shaped as a string and only fails
+ * when converted. Leaving it there would mean Validate passes and Import fails,
+ * so the author learns at the worst moment; `plan-importer-api.md` specifies that
+ * validation performs conversion checks, and this is where they run.
+ *
+ * Nothing is created. The converted data is discarded; only its failure matters.
+ * @param {string} kindId
+ * @param {string} profileId
+ * @param {object} entry
+ * @returns {Promise<{status: string, errors: object[], warnings: object[]}>}
+ */
+export async function validateEntryDeep(kindId, profileId, entry) {
+    const shape = validateEntry(kindId, profileId, entry);
+    if (shape.status === 'error') return shape;
+    try {
+        await buildDocumentData(kindId, profileId, entry);
+    } catch (error) {
+        const raised = error?.issue
+            ?? issue('CONVERT_FAILED', '', String(error?.message || error), {}, 'convert');
+        return { status: 'error', errors: [raised], warnings: shape.warnings };
+    }
+    return shape;
+}

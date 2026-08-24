@@ -279,14 +279,15 @@ export default {
             label: 'Shadow the current validator and account for every divergence',
             tier: 'headless',
             group: 'Step 2 - validation derivation',
-            note: 'Runs both validators over the same payloads. Fails only on an UNACCOUNTED difference.',
+            note: 'Derived validation vs the parser it replaces. Fails only on an UNACCOUNTED difference.',
             run: async ({ expect, log }) => {
                 const { manager } = await loadDeclarations();
-                const api = requireApi('importer');
-                const current = api.importer.getKind('item');
-                expect.ok('the current item kind is reachable through the public surface',
-                    typeof current?.onValidateEntry === 'function');
-                if (typeof current?.onValidateEntry !== 'function') return;
+                // Compare against the PARSER, not against the kind's callback. Once a
+                // profile switches over, the callback routes to the derived path and the
+                // check would be shadowing itself -- which it was, and which it caught.
+                // The parser is what is actually being replaced, so it stays the baseline
+                // for as long as any profile still uses it.
+                const parser = await import(`${MODULE_PATH}/parsers/parse-item.js`);
 
                 // Every divergence is listed with WHY. An unlisted one fails the check.
                 //   stricter — the declaration rejects what the current parser waves through
@@ -299,22 +300,30 @@ export default {
                         itemQuantity: 1, itemRarity: 'common', itemIsMagical: false,
                         itemIdentified: true, itemSource: 'Coffee Pub Test Data', itemLicense: 'Internal Test'
                     }, diverges: null },
-                    { id: 'missing name', entry: { itemRarity: 'common' }, diverges: null },
+                    // The parser alone does not require a name -- its tail rebuilds an
+                    // unnamed entry as "Imported Item". The requirement lived in the kind's
+                    // callback rather than in the parser, so shipped behaviour and the
+                    // declaration agree; only the parser taken on its own differs.
+                    { id: 'missing name', entry: { itemRarity: 'common' },
+                      diverges: 'stricter than the parser alone: it silently names an unnamed entry "Imported Item"' },
                     { id: 'legacy name key', entry: { name: 'Legacy Loot' }, diverges: null },
                     { id: 'invalid rarity', entry: { itemName: 'X', itemRarity: 'mythic' },
-                      diverges: 'stricter: rarity is unchecked today, so an invalid value reaches the document' },
+                      diverges: 'stricter: rarity is unchecked by the parser, so an invalid value reaches the document' },
                     { id: 'quantity as a word', entry: { itemName: 'X', itemQuantity: 'two' },
-                      diverges: 'stricter: the string is written to system.quantity unchecked today' },
+                      diverges: 'stricter: the parser writes the string to system.quantity unchecked' },
+                    // Agreed since step 3: deep validation runs the conversion, so a price
+                    // that cannot parse fails at Validate rather than surviving to Import.
                     { id: 'unparseable price', entry: { itemName: 'X', itemPrice: 'a fortune' },
-                      diverges: 'looser: parseItemPrice throws at convert, which step 2 does not run' }
+                      diverges: null }
                 ];
 
                 const unaccounted = [];
                 for (const testCase of CASES) {
-                    const derivedFails = manager.validateEntry('item', 'loot', testCase.entry).status === 'error';
+                    const outcome = await manager.validateEntryDeep('item', 'loot', testCase.entry);
+                    const derivedFails = outcome.status === 'error';
                     let currentFails = false;
                     try {
-                        await current.onValidateEntry(testCase.entry);
+                        await parser.parseFlatItemToFoundry(testCase.entry);
                     } catch (_) {
                         currentFails = true;
                     }
