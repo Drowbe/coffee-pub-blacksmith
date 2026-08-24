@@ -268,7 +268,7 @@ function _sharedItemSystem(flat) {
         rarity: flat.itemRarity || 'common',
         weight: flat.itemWeight,
         price: parseItemPrice(flat.itemPrice),
-        source: { custom: flat.itemSource || 'Artificer', license: flat.itemLicense || '' },
+        source: { custom: flat.itemSource || '', license: flat.itemLicense || '' },
         quantity: flat.itemQuantity ?? 1,
         identified: flat.itemIdentified !== false
     };

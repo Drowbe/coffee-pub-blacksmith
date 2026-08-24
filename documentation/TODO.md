@@ -105,13 +105,75 @@ specified three times -- the architecture doc, `plan-importer-api.md`, and the s
 specified something different. What is different this time is that Librarian is moving and every module has
 to change regardless.
 
-**`plan-importer-api.md` is the closest thing to a spec and it contradicts itself.** Its Goals section says
-"Blacksmith owns schema compatibility and Foundry document construction", which is right; twelve lines
-earlier it argues the callback registry already suffices because Blacksmith never learns a consuming
-module's data model, which is what produced the drift. Resolve it in favour of Goals rather than deleting the
-file -- and fold in what it already got right: the stable `code`/`stage`/`path`/`details` error shape, the
-`destination`/`duplicatePolicy`/`batchPolicy` import options, `preserveOnReimport` for gmNotes, and
-`getCapabilities`, whose worked example already anticipates module-declared options.
+**The contract is written.** `plans/plan-importer-api.md` holds it, derived bottom-up by expressing all four
+of Blacksmith's own kinds -- nineteen profiles -- against the model rather than by specifying it in advance.
+That survey is what the three previous attempts skipped. Three profile forms came out of it (mapped,
+rendered, passthrough) and nothing in nineteen profiles needed a construct outside the model.
+
+### Build sequence
+
+**Vertical slices, never a horizontal layer.** Each step leaves the module working, is verifiable on its
+own, and the old path keeps running until the step that replaces it. The engine is a data transformation
+with no world state, so most of it is assertable in `testing/suites/` -- which is the first time any part of
+the importer has been. Add `suite-importer-declarations.js` in step 1 and grow it with each step; the
+long-standing "no automated coverage" defect is fixed by the re-founding rather than alongside it.
+
+0. **The public registration path first.** Blacksmith's kinds register through the same public surface an
+   external module uses, so that surface exists before anything consumes it. Building the engine internally
+   and retrofitting a public wrapper is precisely the shortcut the consumer-zero rule forbids, and it is how
+   the current registry ended up with capabilities no external caller can reach.
+
+1. **Declaration reader plus template derivation, on one profile.** Item `loot`, the simplest mapped profile.
+   Derive the JSON template from the declaration and diff it against today's hand-built one. Nothing else
+   changes and nothing switches over.
+   **Verify:** a harness check asserts the derived template parses and carries every declared authorable
+   field with its default; the diff against the current template is empty or every difference is
+   deliberate and listed.
+
+2. **Validation derivation for the same profile, in shadow.** Run the derived validator alongside the
+   existing one and report divergence without acting on it. Any disagreement is a bug in the declaration,
+   found while nothing depends on it.
+   **Verify:** every fixture in `testing/data/import-json/` that is a loot payload produces identical
+   verdicts from both validators; a deliberately malformed payload produces a `code` and `path` from the
+   derived one where the current one produces a bare message.
+
+3. **Construction derivation, and switch `loot` over.** First profile live on the declared path.
+   **Verify:** `item-import-loot.json` imports and the created Item is field-for-field identical to one
+   imported before the switch, including flags and `source`.
+
+4. **The remaining seven Item profiles.** Weapon last, because it exercises every rule in the cross-field
+   vocabulary; equipment brings nested `passiveEffects`, `const`, `generated` and the ancestor default chain;
+   feature and spell bring the `consumption` transform.
+   **Verify:** all six item fixtures import unchanged, and the Artificer flag block still round-trips --
+   which is also when Artificer's prompt parts leave `prompts/` and Artificer declares them.
+
+5. **Guide and prompt derivation.** After construction, not before: the field guidance sentences are only
+   proven once the fields themselves are.
+   **Verify:** a field added to a declaration appears in the template, the guide and the prompt with no
+   other edit. That single check is the whole point of the model.
+
+6. **Roll Table.** Second-simplest mapped kind; adds rule scoping and ordered array derivation, and moves
+   `missingDocumentPolicy` from the payload to an import option with the payload form kept as an alias.
+
+7. **Actor.** The passthrough form, and the move out of `blacksmith.js` into
+   `registry-json-import-actors.js`. The `_`-prefixed scratch fields go away with converting once.
+
+8. **Journal.** The rendered form, plus the passthrough seam items already have -- which is what lets
+   Blacksmith construct a foreign subtype and what today's hardcoded `type: "text"` prevents. Folder
+   destination and the in-place duplicate policy become declared rather than incidental.
+
+9. **Fragments: `tags`, then `links`.** Both confirmed by more than one kind. `tags` first -- one applier
+   call, and a wrong tag does not corrupt a document.
+
+10. **Export derivation and the three completeness layers** (owner precondition, type-registration
+    precondition, invalid-document refusal). This is what closes the import/export section below.
+
+11. **`tools/check-importer-parity.mjs`, and only then a consumer.** Librarian's codex is a mapped profile
+    and can be declared as soon as step 5 lands; their quest cannot until their own data model work does.
+
+**Two verifications outstanding before step 10:** that invalid-document tracking is reachable on an embedded
+collection (a journal's pages) rather than only on world collections, and whether Librarian's quest data
+model lands before or after this.
 
 **How to verify:** all four Blacksmith kinds are declarations registered through the public path, and
 `node tools/check-importer-parity.mjs` passes. Every fixture in `testing/data/import-json/` still imports.
@@ -158,8 +220,12 @@ Confirmed in the source 2026-08-23. The double-conversion defect is absent here 
   model wholesale. That is also its publish gate.
 
 - **No automated coverage at all** -- no suite, no check, no testing doc, against 12 fixtures already in
-  `testing/data/import-json/`. At minimum: a harness suite running each fixture through validate-only and
-  asserting the envelope shape, plus `check-importer-parity.mjs` above.
+  `testing/data/import-json/`. **Do not build a suite against the callback importer.** It would assert a
+  contract being replaced, which is the failure the harness header warns about: a harness asserting a stale
+  contract manufactures confidence. `suite-importer-declarations.js` arrives with step 1 of the build
+  sequence above and grows with each step, which is why coverage is listed here as a defect but scheduled
+  there rather than fixed on its own. The current importer stays unasserted for the length of the migration;
+  that is deliberate, and its existing fixtures are the migration's regression evidence instead.
 
 The export half has its own section below (**Import/export and module-owned document subtypes**). Its
 constraints are unchanged and the declaration model is what finally makes them enforceable: export inverts

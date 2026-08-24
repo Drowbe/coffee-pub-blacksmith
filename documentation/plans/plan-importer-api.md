@@ -88,6 +88,378 @@ Item filters include item type, rarity, magical status, and name. Actor filters 
 
 Roll Table authoring exposes only `text` and `document`. For a Document result, callers provide the exact catalog name, canonical document type, and optionally the selected source id. They do not provide a UUID. Blacksmith resolves the friendly reference through `api.compendiums.resolve(..., { exact: true, sources })` during import and writes Foundry's document collection/id fields.
 
+## The declaration
+
+A profile is declared as data. Blacksmith derives the JSON template, the authoring guide, the prompt, the
+validation, the document, the result envelope and the export from it. Nothing below is code a module writes.
+
+Derived bottom-up from Blacksmith's own Item kind (`scripts/parsers/parse-item.js`, eight profiles), which
+is the reference implementation because it is the one kind already built the intended way.
+
+### Field
+
+```javascript
+{
+  name: 'itemRarity',                 // the friendly authoring key
+  path: 'system.rarity',              // MANDATORY target on the document
+  type: 'string',
+  required: false,
+  default: 'common',
+  values: ['common', 'uncommon', 'rare', 'very rare', 'legendary'],
+  aliases: { 'veryrare': 'very rare' },
+  guidance: 'How hard this item is to come by.'
+}
+```
+
+**`path` is mandatory and never inferred from `name`.** Proven by a real collision: a Foundry v13
+`JournalEntryPage` has a native `category`, and Librarian's codex data model has `system.category`. The name
+alone is ambiguous, so the declaration must say which.
+
+**`guidance` is one sentence and is used twice** -- it becomes the authoring guide's line for this field and
+the prompt's line for this field. One source means the two cannot drift, which is the failure that produced
+differently-shaped prompts per module.
+
+**`values` plus `aliases` replaces the hand-written lookup tables.** `WEAPON_TYPES`, `WEAPON_PROPERTIES`,
+`RECOVERY_PERIODS`, `SPELL_SCHOOLS` and `FEATURE_TYPES` in `parse-item.js` are already exactly this shape --
+canonical values with accepted spellings mapping onto them (`"simple melee"` and `"simplem"` both reach
+`simpleM`).
+
+Additional field forms the Item kind requires:
+
+- **`const`** -- emitted, never authored. `disabled: false`, `transfer: true`, `changes: []` and the null
+  duration block on a passive effect are fixed output, not fields a user fills in. They belong in the
+  declaration so the created document is fully described by it, but they never appear in a template.
+- **`generated`** -- a Blacksmith-owned generator rather than an author value. `_id` uses
+  `foundry.utils.randomID()` in three places today. Declared as `generated: 'id'`; modules never generate.
+- **`default` as a fallback chain**, including ancestor paths. A passive effect's image is
+  `effect.img || <the item's img> || 'icons/svg/aura.svg'`.
+- **`fields` nested, recursively.** `passiveEffects` and `activities` are arrays of objects with their own
+  declared fields. A field's type may be `object` or `array<object>` carrying its own `fields` block.
+
+### Cross-field rules
+
+Validation that spans fields comes from a **closed vocabulary**, never an arbitrary predicate:
+
+| Rule | Example from the Item kind |
+|---|---|
+| `requiresTogether` | Weapon `ver` property and `weaponVersatileDamageFormula` -- supplying either alone is an error |
+| `mutuallyExclusive` | Weapon cannot be both `ver` and `two` |
+| `impliedBy` | `itemIsMagical` true implies the `mgc` property, and `mgc` implies `itemIsMagical` |
+| `requires` | `weaponMagicalBonus` greater than zero requires `itemIsMagical` |
+| `mustBeEmpty` | Weapon `activities` must be `[]`; Blacksmith generates the standard Attack activity |
+| `requiresWhen` | A passive effect's `equippedAndAttuned` activation requires the parent item to be magical with attunement required |
+
+**Closed is the point.** From `requiresTogether: ['ver', 'weaponVersatileDamageFormula']` Blacksmith emits
+the validation, the guide line and the prompt sentence -- identically for every module. A module supplying
+its own predicate gives us validation we cannot describe to a generator, which is the "every module handed
+users a differently shaped prompt" problem returning by another route.
+
+Rules address fields by path and may reference an ancestor, because `requiresWhen` above spans a nesting
+level. They never execute module code.
+
+**The structured error envelope falls out of this.** A declared field that fails its declared type already
+knows its own `path`; a named rule already knows its own `code`. The `code` / `stage` / `path` / `details`
+shape specified later in this document stops being something a kind has to opt into by throwing richly, and
+becomes a property of the engine.
+
+### Transforms
+
+Some values are converted rather than mapped: a price string into `{value, denomination}`, a name into a
+slug identifier, uses and recovery into dnd5e's structure, a damage formula into a damage part.
+
+**Transforms are named and Blacksmith-owned.** A declaration selects one; it never supplies one. This is
+deliberate: Blacksmith owns compatibility with Foundry and dnd5e, so a system-shaped derivation is ours by
+definition. The library grows as kinds need it.
+
+**The one genuine gap, named rather than papered over:** `_activityBase` derives `consumptionTargets` from
+whether the activity declares its own uses *or* the parent item does. That is not validation and not a field
+mapping -- it is output structure derived from input presence. It becomes a named transform (`consumption`)
+rather than an escape hatch, for the same reason as above.
+
+### Where negotiation actually remains
+
+The goal is that a module never negotiates with Blacksmith about its **shape**, and the declaration delivers
+that: a module adds a field and gets a template entry, a guide line, a prompt line, validation and an export
+field with no Blacksmith change.
+
+Negotiation remains in exactly two narrow places, and both are Blacksmith-owned libraries rather than
+per-module code:
+
+1. **Transforms** -- a module needing one that does not exist asks for it.
+2. **Fragments** -- the shared parts backed by a Blacksmith subsystem (`tags`, `xp`, `links`, `gmNotes`).
+
+Both are small, closed and shared. That is a far narrower surface than five callbacks per kind, and it is
+honest to say so rather than claiming the negotiation is gone entirely.
+
+### What a declaration cannot express
+
+Two things, which keep narrowly-scoped hooks:
+
+- **Computed content** -- a generated HTML body, an assembled journal page. A transform over already-declared
+  data, run before construction.
+- **Cross-entry work** -- pins referencing entries, embedded documents linked after creation. A post-create
+  hook.
+
+Neither substitutes for construction. **A module may shape its own data and may never call `create`.**
+
+### Profile forms: mapped, rendered, passthrough
+
+Expressing Blacksmith's Journal kind after the Item kind produced the first structural extension the model
+needs. **Not every profile maps fields onto document paths.** A third form, passthrough, follows from the
+Actor kind below.
+
+An Item profile is **mapped**: `itemRarity` lands at `system.rarity`, `itemQuantity` at `system.quantity`.
+Every authored field has a target, which is why `path` is mandatory.
+
+A Journal profile is **rendered**: `area`, `scenetitle` and the `blocks` envelope do not land anywhere
+individually. They are template data. `createAreaJournalEntry` (`utility-common.js:439`) compiles
+`templates/journal-area.hbs`, normalises the result, and the entire authored payload arrives at the document
+as **one HTML string** at `pages[].text.content`. Encounter and Location do the same through
+`journal-encounter.hbs` and `journal-location.hbs` (`const.js:49-52`).
+
+Both are declarations; only construction differs, and both constructions are Blacksmith's:
+
+```javascript
+// mapped
+{ form: 'mapped', fields: [ { name: 'itemRarity', path: 'system.rarity', ... } ] }
+
+// rendered
+{
+  form: 'rendered',
+  template: 'journal-area',
+  output: { path: 'pages[].text.content', format: 'HTML' },
+  fields: [ { name: 'scenetitle', type: 'string', guidance: '...' } ]   // no path; template data
+}
+```
+
+A rendered profile's fields are still declared -- they still produce the JSON template, the authoring guide,
+the prompt lines and the validation. They simply have no individual destination, so `path` is required on
+mapped profiles and absent on rendered ones.
+
+**This is why the Journal kind never migrated while the Item kind did.** Items decompose into paths;
+journals decompose into a template. The callback registry hid that difference behind `onImportEntry` instead
+of resolving it, so nobody had to notice the two kinds were shaped differently.
+
+**Librarian's codex is mapped, not rendered.** Its data model exposes `summary`, `category`, `plotHook`,
+`location`, `links`, `related`, `tags`, `img` and `discoveredBy` as `system` fields, so the codex profile
+takes the simpler of the two forms. Their quest profile needs checking against the same question before the
+contract is sent.
+
+### What the Journal kind surfaces beyond the forms
+
+- **Destination is currently a side effect of construction.** `createJournalEntry` (`utility-common.js:54`)
+  finds or creates a `Folder` by name before dispatching to a profile builder. That is destination handling,
+  which the declaration model makes Blacksmith's responsibility explicitly -- it already is Blacksmith code,
+  but it is tangled into the builder rather than declared. Folder-by-name becomes a declared destination
+  rule, shared with every kind rather than reimplemented per profile.
+
+- **Duplicate policy is hardcoded and differs per kind, undeclared.** The Area profile finds an existing
+  entry by name and folder and updates the page in place (`utility-common.js:465-487`), while every Item
+  profile always creates. Two different policies in one module, neither of them declared, and the plan's
+  `duplicatePolicy` option describes a choice that already exists implicitly. Note the in-place update is a
+  merge, so flags outside the payload -- including `gmNotes` -- do survive today; the exposure is that
+  nothing states the policy or guarantees it.
+
+- **Compendium link resolution is hand-rolled per profile.** The Encounter profile splits free text on
+  commas or `<li>` tags and resolves each fragment through `buildCompendiumLinkItem`
+  (`utility-common.js:97-120`). That is the `links` fragment, implemented once here and again in Librarian,
+  with its own heuristics. It is the second-strongest fragment candidate after `tags`.
+
+- **`playSound` fires inside document construction** (`utility-common.js:463`). A side effect in a builder,
+  not declarable, and not obviously wanted there. Decide during migration whether import feedback belongs in
+  the engine's reporting rather than in a profile's create path.
+
+### Field forms the first consumer's mappings forced
+
+Derived from Librarian's codex and quest mappings, supplied 2026-08-23
+(`coffee-pub-librarian/documents/plans/declaration-field-mappings.md`). Each is a real case in shipped
+content, not a hypothetical.
+
+- **`authorable: false`** -- a field that is declared but never appears in the JSON template, the guide or
+  the prompt, and is never written from a payload. Codex has three: `system.categoryIcon` (set in the
+  editor), `system.discoveredBy` (written by auto-discovery), and their `codexUuid` flag. **Declaring
+  `discoveredBy` as an ordinary mappable field would wipe discovery state on every re-import**, which is
+  exactly the class of loss `preserveOnReimport` exists to prevent for `gmNotes`. The two are the same
+  mechanism: `authorable: false` generalises the gmNotes preservation path from one hardcoded flag to a
+  declared property any field can carry.
+
+- **Tri-state absence.** Most fields treat an absent value as "apply the default". Codex `expandedDetails`
+  does not: absent or null **preserves** what is on the document, while present-and-empty **replaces** with
+  empty. A field declares which, because the two are indistinguishable in JSON and getting it wrong either
+  destroys hand-edited page text or makes clearing a field impossible.
+
+- **Array merge policy, per field.** Codex `links[]` must **union** on re-import, not replace: links added by
+  hand are unrecoverable from the payload. Identity is name-first with uuid as fallback -- keying on uuid
+  gives one link two identities either side of resolution and emits it twice. Foundry replaces arrays
+  wholesale, so the engine computes the merged array; a merge-update will not do it.
+
+- **Projections.** A quest's `visible` boolean is not stored anywhere; it maps onto `ownership.default`
+  through a transform. That needs no model extension -- it is a mapped field with a `visibility` transform --
+  but the **default is safety-critical**: codex entries are created `{ default: NONE }` deliberately, because
+  they are revealed on purpose. A declaration defaulting to world-visible spoils a campaign on first import.
+  Ownership defaults are declared per profile and never inherited from a kind.
+
+- **Replace-preserving-paths.** Converting a legacy untyped `text` page to a declared subtype means delete
+  and recreate, because an untyped page cannot receive `system` data. Ownership and sort must survive. A
+  profile declares `onReplace: { preserve: [...] }`, which is the same preservation vocabulary as
+  `authorable: false` applied at document rather than field level.
+
+**Aliases resolve after discrimination, never before.** Codex accepts legacy `description` as an alias for
+`summary`, while `description` is the quest's own body field. If aliasing ran first, every legacy codex entry
+would look like a quest. The discriminator sees the raw entry; aliases are a profile's own concern and apply
+only once a profile has claimed it.
+
+**Vocabularies must keep their aliases indefinitely.** Quest `status` normalises to
+`Available | Active | Succeeded | Failed` but must keep accepting `Not Started`, `In Progress` and
+`Complete` -- `Complete` is live in production data. This is the `values` plus `aliases` shape already in the
+field model, and it confirms aliases are permanent compatibility surface rather than a migration convenience.
+
+### Export completeness is an engine invariant, not a declaration
+
+Librarian asked whether a declaration can express "this profile knows how many documents it should have
+found, and refuses to emit a partial". **It can, but it should not have to** -- the guarantee belongs in the
+engine, where it also protects the modules that did not think to ask for it.
+
+The risk is new and real. Today a subtype owner's export is protected by accident: with the owner disabled,
+its pages do not load *and its exporter does not exist*, so nothing runs. A derived exporter changes that --
+Blacksmith's export runs whether or not the owner is present, finds nothing, and reports success. **A file
+that is silently missing every page of a profile looks exactly like a file that had none.** Nobody finds out
+until a restore.
+
+Three layers, all engine behavior:
+
+1. **Owner precondition.** A profile declares its owning module. Export of that profile refuses when the
+   module is absent or disabled, and says which module and why. This is the disabled-Librarian case and it is
+   the dangerous one.
+2. **Type-registration precondition.** The profile's declared document type must have a registered data
+   model. Catches the case where the module is active but its subtype did not register.
+3. **Invalid-document refusal.** Foundry tracks documents it could not construct separately from those it
+   could. Export refuses when the source collection holds any, naming them, rather than emitting the readable
+   subset. On success it reports counts, so the check is visible rather than only firing on failure --
+   Librarian's "N of N" behavior, generalised.
+
+*Verify before building:* that invalid-document tracking is reachable on an **embedded** collection (a
+journal's pages), not only on world collections. If it is not, layer 3 needs a different independent source
+of truth and this section changes.
+
+This is the failure mode already recorded in `TODO.md` under **Import/export and module-owned document
+subtypes** -- "an export would produce a file missing every codex page and report success". It is the same
+one, and the declaration model is what finally makes it enforceable in one place instead of per module.
+
+### Quest is a proposal, not a mapping
+
+Librarian's quest column describes target paths that **do not exist yet**: quests are still plain `text`
+pages with fields regex'd out of generated HTML, and giving them a data model is their own TODO A1. Do not
+build the quest declaration against those paths as though they were real.
+
+The useful consequence is the opposite one: **if the declaration model lands first, it is what A1 should
+build against**, rather than Librarian inventing a third shape that then has to be reconciled. Say so
+explicitly when the contract is sent.
+
+Codex is a mapped profile and can be declared today. Quest cannot, and the two should not be gated on each
+other.
+
+### The third form: passthrough
+
+Expressing the Actor kind produced one more form. The payload is **already document source data**; the
+declaration's job is to describe the small envelope of authoring conveniences layered on top of it, each of
+which is consumed into the document and then removed.
+
+`parseActorJSONToFoundry` (`blacksmith.js:2873`) starts `const data = { ...actorData }` and works in place.
+Four envelope fields are consumed and deleted:
+
+| Envelope field | Consumed into | Then |
+|---|---|---|
+| `sidekick` | `flags.coffee-pub-blacksmith.sidekick` plus `system.traits.important` | deleted |
+| `characterRace` / `characterBackground` / `characterClasses` / `characterSubclasses` | appended to `items[]`, recorded for post-create linking | deleted |
+| `token` | merged into `prototypeToken`, explicit `prototypeToken` values winning | deleted |
+
+So a passthrough profile declares `passthrough: true`, the identity and placement fields to strip, and its
+envelope fields as ordinary declared fields carrying `consumedInto` rather than `path`.
+
+**Passthrough already exists in two kinds, which is why it is a form and not a special case.** The Item
+kind's native branch does the same thing: `isNativeFoundryItemData` detects document-shaped input and
+`prepareNativeItemForCreation` strips `_id`, `folder`, `ownership`, `_stats` and `pack`
+(`parse-item.js:722-747`). It is also the mechanism that lets Blacksmith construct a foreign subtype without
+knowing its data model, so the Journal kind needs it too.
+
+A kind may support more than one form. Item is mapped **or** passthrough depending on the payload; the
+declaration says which shapes it accepts and the engine picks by detection, exactly as the item parser does
+today.
+
+**The `_`-prefixed scratch fields go away.** `_characterFoundations`, `_originalItems`, `_originalSpells`,
+`_originalFeatures` and `_originalCurrency` are stripped by hand before creation (`blacksmith.js:3131`).
+They exist only to carry state from the parse to the create because the two are separate calls over the same
+raw entry. Converting once removes the need; that state is run context, not payload.
+
+### What the Roll Table kind adds
+
+Roll Table is mapped and mostly ordinary -- `tableName` to `name`, `drawWithReplacement` to `replacement`,
+a nested `results[]`. Three things it forces:
+
+- **Ordered derivation across array elements.** A result's range is taken from a running cursor when not
+  supplied, so element N's value depends on element N-1 (`parse-rolltable.js:28-51`). That is not per-field
+  validation and not a per-element transform; it is a transform over the array in order. Named and
+  Blacksmith-owned, like the others.
+
+- **Element-scoped rules.** Ranges must not overlap *between* elements. The cross-field vocabulary as
+  declared holds between siblings in one object; this holds across elements of one array. The vocabulary
+  needs the scope stated on each rule -- `siblings`, `elements`, or `ancestors` -- rather than a fourth rule
+  type.
+
+- **Derived fields reading nested data.** `formula` is emitted as a constant and then recomputed from the
+  highest range across all results. A declared field whose value derives from a nested collection.
+
+**One migration item found here.** `missingDocumentPolicy` (`error` | `text`) is carried **in the payload**
+(`parse-rolltable.js:13`), but it is an import option by the plan's own definition -- it controls what
+happens when a reference cannot be resolved, not what the content is. It belongs on the Import JSON tab.
+Move it, and keep accepting it in the payload as a compatibility alias, because existing authored tables
+carry it.
+
+### Coverage against Blacksmith's own kinds
+
+The model is tested by expressing Blacksmith's own kinds, not a consumer's. Item first, then Journal:
+
+| Profile | Exercises | Gap |
+|---|---|---|
+| Loot | shared fields, `values`, price transform | none |
+| Consumable | shared fields, uses/recovery transforms | none |
+| Tool | shared fields, identifier transform | none |
+| Container | shared fields, capacity fields | none |
+| Equipment | nested `passiveEffects`, `const`, `generated`, `requiresWhen`, ancestor default chain | none |
+| Weapon | every cross-field rule in the vocabulary, alias tables, `mustBeEmpty` | none |
+| Feature | nested `activities`, `values` over feature types | `consumption` transform |
+| Spell | nested `activities`, school enum, level/scaling | `consumption` transform |
+
+Nothing in the eight requires a construct outside the model. The `consumption` transform is the only
+addition the Item survey produced.
+
+| Journal profile | Form | Exercises | Gap |
+|---|---|---|---|
+| Area | rendered | `journal-area.hbs`, blocks envelope, folder destination, in-place duplicate policy | none |
+| Location | rendered | `journal-location.hbs` | none |
+| Encounter | rendered | `journal-encounter.hbs`, inline compendium link resolution | `links` fragment |
+| Injury | rendered | `buildInjuryJournalEntry`, separate construction path | none |
+
+| Actor profile | Form | Exercises | Gap |
+|---|---|---|---|
+| NPC | passthrough | strip identity/placement, `token` envelope | none |
+| Sidekick | passthrough | `sidekick` envelope consumed into flags and system | none |
+| Character Snapshot | passthrough | foundations envelope appended to `items[]`, post-create relationship linking | none |
+
+| Roll Table profile | Form | Exercises | Gap |
+|---|---|---|---|
+| Text | mapped | nested `results[]`, ordered range derivation, element-scoped overlap rule | rule scoping |
+| Document | mapped | the same plus name-to-UUID resolution | `links` fragment |
+
+**Survey complete: four kinds, nineteen profiles, three forms.** Nothing required a construct outside the
+model. What the survey added, in the order it was found: the `consumption` transform (Item); the
+mapped/rendered split (Journal); `authorable: false`, tri-state absence, per-field array merge, projections
+and replace-preserving-paths (Librarian's mappings); the passthrough form (Actor); and rule scoping plus
+ordered array derivation (Roll Table).
+
+Two fragments are confirmed by more than one kind and should be built first: `tags` and `links`.
+
 ## Capability discovery
 
 ### `getCapabilities(request?)`

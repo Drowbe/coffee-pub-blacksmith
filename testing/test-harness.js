@@ -27,6 +27,15 @@
 //   tools/wiki-sync.mjs: what runs should be a decision, not a side effect
 //   of what happens to be on disk.
 //
+//   DO NOT COPY THE CACHE-BUSTER BELOW INTO A SUITE. It is correct here,
+//   where re-importing a suite is the point, and wrong for module code under
+//   scripts/: import() caches by url, but a busted module's own relative
+//   imports are NOT busted. Import `foo.js?v=N` and you get a second instance
+//   of foo while everything foo imports stays shared — so a suite ends up
+//   asserting against private state the module never writes to. That cost a
+//   debugging session on 2026-08-23. Import module code at its plain url and
+//   reload Foundry after editing it, like every other file in scripts/.
+//
 // KEEPING IT HONEST
 //   A harness asserting a stale contract is worse than no harness, because
 //   it manufactures confidence. Update the relevant suite as part of the
@@ -47,6 +56,7 @@ const SUITES = [
     `${BASE}/suite-entity-list.js`,
     `${BASE}/suite-gm-request.js`,
     `${BASE}/suite-hookmanager.js`,
+    `${BASE}/suite-importer-declarations.js`,
     `${BASE}/suite-inventory.js`,
     `${BASE}/suite-notes.js`,
     `${BASE}/suite-quantity-split.js`,
