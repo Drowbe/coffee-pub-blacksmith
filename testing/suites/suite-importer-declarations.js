@@ -323,6 +323,99 @@ export default {
         },
 
         {
+            id: 'construction-parity',
+            label: 'Derived construction matches the parser it replaces',
+            tier: 'headless',
+            group: 'Step 3 - construction derivation',
+            note: 'Builds the same entries both ways and compares the document source data.',
+            run: async ({ expect, log }) => {
+                const { manager } = await loadDeclarations();
+                const parser = await import(`${MODULE_PATH}/parsers/parse-item.js`);
+
+                // buildEnvelope stamps updatedAt from the clock, so two runs of the same
+                // input differ by design. Normalise it rather than exclude the field:
+                // the envelope's presence and its html are exactly what must match.
+                const settle = (data) => {
+                    const clone = foundry.utils.deepClone(data);
+                    const note = clone?.flags?.['coffee-pub-blacksmith']?.gmNotes;
+                    if (note && typeof note === 'object') note.updatedAt = 0;
+                    return clone;
+                };
+
+                const CASES = [
+                    {
+                        id: 'the loot fixture',
+                        entry: {
+                            itemType: 'loot', itemSubType: 'trinket',
+                            itemName: 'Blacksmith Test Trinket',
+                            itemDescription: 'A harmless test trinket.',
+                            itemGMNotes: '<p>GM-only note.</p>',
+                            itemPrice: '5 gp', itemWeight: 1, itemQuantity: 1,
+                            itemRarity: 'common', itemIsMagical: false, itemIdentified: true,
+                            itemImagePath: 'icons/commodities/treasure/token-gold.webp',
+                            itemSource: 'Coffee Pub Test Data', itemLicense: 'Internal Test'
+                        }
+                    },
+                    {
+                        id: 'a magical item with no notes',
+                        entry: {
+                            itemType: 'loot', itemName: 'Glimmering Bauble',
+                            itemIsMagical: true, itemRarity: 'rare',
+                            itemImagePath: 'icons/commodities/gems/gem-faceted-round-blue.webp'
+                        }
+                    },
+                    {
+                        id: 'a module flag namespace riding along',
+                        entry: {
+                            itemType: 'loot', itemName: 'Component',
+                            itemImagePath: 'icons/commodities/flowers/flower-purple.webp',
+                            flags: { 'coffee-pub-artificer': { artificerType: 'Component' } }
+                        }
+                    }
+                ];
+
+                for (const testCase of CASES) {
+                    const derived = settle(await manager.buildDocumentData('item', 'loot', testCase.entry));
+                    const current = settle(await parser.parseFlatItemToFoundry(testCase.entry));
+                    const keys = [...new Set([...Object.keys(derived), ...Object.keys(current)])].sort();
+                    for (const key of keys) {
+                        const same = JSON.stringify(derived[key]) === JSON.stringify(current[key]);
+                        if (!same) {
+                            log(`${testCase.id} differs at ${key}:`);
+                            log(`   derived ${JSON.stringify(derived[key])}`);
+                            log(`   current ${JSON.stringify(current[key])}`);
+                        }
+                    }
+                    expect(`${testCase.id}: derived construction equals the parser`, derived, current);
+                }
+            }
+        },
+
+        {
+            id: 'construction-errors',
+            label: 'A transform failure carries a code and a path',
+            tier: 'headless',
+            group: 'Step 3 - construction derivation',
+            note: 'Closes the one place step 2 was looser than the current validator.',
+            run: async ({ expect }) => {
+                const { manager } = await loadDeclarations();
+                let caught = null;
+                try {
+                    await manager.buildDocumentData('item', 'loot', {
+                        itemName: 'Bad Price', itemPrice: 'a fortune',
+                        itemImagePath: 'icons/svg/item-bag.svg'
+                    });
+                } catch (error) {
+                    caught = error;
+                }
+                expect.ok('an unparseable price fails construction', caught !== null);
+                expect('it carries a stable code', caught?.issue?.code, 'PRICE_UNPARSEABLE');
+                expect('it names the field', caught?.issue?.path, 'itemPrice');
+                expect('it names the convert stage', caught?.issue?.stage, 'convert');
+            }
+        },
+
+        {
             id: 'template-diff',
             label: 'Diff the derived loot template against the current hand-built one',
             tier: 'headless',

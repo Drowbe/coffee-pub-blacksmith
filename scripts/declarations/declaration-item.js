@@ -153,7 +153,10 @@ export const ITEM_LOOT_DECLARATION = {
         },
         {
             name: 'itemSource',
-            path: 'system.source.custom',
+            // Stored twice by the current parser: once where dnd5e reads it and once
+            // in a `coffee-pub` flag. Declared rather than hidden, so the duplication
+            // is visible and can be retired deliberately.
+            path: ['system.source.custom', 'flags.coffee-pub.source'],
             type: 'string',
             default: '',
             example: '[ADD-CAMPAIGN-NAME-HERE]',
@@ -161,7 +164,7 @@ export const ITEM_LOOT_DECLARATION = {
         },
         {
             name: 'itemLicense',
-            path: 'system.source.license',
+            path: ['system.source.license', 'flags.coffee-pub.license'],
             type: 'string',
             default: '',
             example: 'CC BY 4.0',

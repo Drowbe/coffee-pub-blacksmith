@@ -12,6 +12,7 @@
 // ==================================================================
 
 import { getDeclaration } from './registry-declarations.js';
+import { issue } from './utility-import-issues.js';
 
 /**
  * Whether a field appears in authoring output at all.
@@ -130,23 +131,6 @@ export function authorableFieldNames(kindId, profileId, options = {}) {
 // two stages are separate in the pipeline and collapsing them here would
 // re-create the double-conversion the callback importer had.
 // ==================================================================
-
-/** Stages an issue can be raised at, matching the pipeline in plan-importer-api.md. */
-export const ISSUE_STAGES = ['parse', 'normalize', 'validate', 'convert', 'create', 'postProcess'];
-
-/**
- * One structured issue. `code` is stable for programmatic handling; `message`
- * may improve over time, so callers branch on `code` and display `message`.
- * @param {string} code
- * @param {string} path
- * @param {string} message
- * @param {object} [details]
- * @param {string} [stage]
- * @returns {object}
- */
-export function issue(code, path, message, details = {}, stage = 'validate') {
-    return { code, stage, path, message, details };
-}
 
 /**
  * The payload key a field reads, and whether it came from an accepted alias.
@@ -290,4 +274,106 @@ export function validateEntry(kindId, profileId, entry) {
         errors,
         warnings
     };
+}
+
+// ==================================================================
+// ===== CONSTRUCTION ===============================================
+// ==================================================================
+// Declaration plus entry, into document source data. Blacksmith builds
+// the document; a profile shapes its own data and never calls create.
+// That is what makes destination, permissions, rollback, gmNotes
+// preservation and type preservation enforceable in one place.
+// ==================================================================
+
+/**
+ * Write `value` at a dotted path, creating intermediate objects. Arrays are
+ * assigned whole rather than indexed into -- a declared array field owns its
+ * value, and per-element merging is a `merge` policy rather than a path concern.
+ * @param {object} target
+ * @param {string} path
+ * @param {*} value
+ */
+function writePath(target, path, value) {
+    const parts = String(path).split('.');
+    let node = target;
+    for (let index = 0; index < parts.length - 1; index++) {
+        const part = parts[index];
+        if (typeof node[part] !== 'object' || node[part] === null || Array.isArray(node[part])) {
+            node[part] = {};
+        }
+        node = node[part];
+    }
+    node[parts[parts.length - 1]] = value;
+}
+
+/**
+ * Merge module-owned flag namespaces without interpreting any of them. This is
+ * the seam that lets a sibling carry its own data on a Blacksmith-built
+ * document -- Artificer's block rides here, and a declared subtype's would too.
+ * @param {object} target
+ * @param {object} namespaces
+ */
+function mergeNamespaces(target, namespaces) {
+    if (!namespaces || typeof namespaces !== 'object' || Array.isArray(namespaces)) return;
+    target.flags = target.flags || {};
+    for (const [namespace, data] of Object.entries(namespaces)) {
+        if (!namespace || data == null || typeof data !== 'object') continue;
+        target.flags[namespace] = foundry.utils.mergeObject(
+            target.flags[namespace] || {}, data, { inplace: false });
+    }
+}
+
+/**
+ * Build document source data for one entry from its declaration.
+ *
+ * Absent fields fall back to `default`; a field with neither a value nor a
+ * default is OMITTED rather than written as undefined, because dnd5e treats a
+ * missing key and an explicitly-undefined one differently on create.
+ *
+ * @param {string} kindId
+ * @param {string} profileId
+ * @param {object} entry
+ * @returns {Promise<object>} Document source data, ready for create.
+ */
+export async function buildDocumentData(kindId, profileId, entry) {
+    const declaration = getDeclaration(kindId, profileId);
+    if (!declaration) {
+        throw new Error(`No declaration registered for ${kindId}.${profileId}`);
+    }
+    // Imported lazily so template derivation and validation stay free of Foundry:
+    // the transforms reach const.js, which fetches module.json at load. Those two
+    // therefore run headlessly outside Foundry; construction does not, and is
+    // proven by the harness against the parser it replaces.
+    const { applyTransform } = await import('./manager-declaration-transforms.js');
+
+    const data = {};
+    if (declaration.document?.type) data.type = declaration.document.type;
+
+    for (const field of declaration.fields) {
+        if (field.role === 'selector') continue;
+
+        const { key } = sourceKey(field, entry);
+        const supplied = key === null ? undefined : entry[key];
+        const hasValue = supplied !== undefined && supplied !== null;
+
+        // `preserve` means an absent field leaves whatever is on the document
+        // alone, so present-but-empty can still clear it. Nothing to write here.
+        if (!hasValue && field.absentMeans === 'preserve') continue;
+
+        let value = hasValue ? normalizeValue(field, supplied) : field.default;
+
+        if (field.transform) {
+            value = await applyTransform(field.transform, value, { entry, field, declaration });
+        }
+        if (value === undefined) continue;
+
+        if (field.merge === 'mergeNamespaces') {
+            mergeNamespaces(data, value);
+            continue;
+        }
+        for (const path of Array.isArray(field.path) ? field.path : [field.path]) {
+            if (path) writePath(data, path, value);
+        }
+    }
+    return data;
 }

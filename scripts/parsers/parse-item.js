@@ -42,7 +42,7 @@ async function getIconPaths() {
     return paths;
 }
 
-async function guessIconPath(item) {
+export async function guessIconPath(item) {
     if (!game.user.isGM) {
         return '';
     }
