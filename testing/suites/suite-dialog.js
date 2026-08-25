@@ -264,6 +264,56 @@ export default {
                 log(`selection reports: ${JSON.stringify(list.getSelectedIds())} (it started at ["a"])`);
                 log('CHECK: do both match what you set before submitting?');
             }
+        },
+
+        {
+            id: 'pickactor-returns-uuid',
+            tier: 'headless',
+            group: 'pickActor',
+            label: 'pickActor resolves a UUID string, not an entity descriptor',
+            note: 'Covers the autoPickSingle exit; the dialog exit needs the interactive check below.',
+            run: async ({ expect }) => {
+                const api = requireApi('dialog.pickActor');
+                const actor = game.actors.contents[0];
+                expect.ok('a world actor exists to pick', Boolean(actor));
+                if (!actor) return;
+
+                const chosen = await api.dialog.pickActor({
+                    actors: [actor],
+                    autoPickSingle: true
+                });
+                expect('it resolves a string', typeof chosen, 'string');
+                expect('and the string is the actor uuid', chosen, actor.uuid);
+            }
+        },
+
+        {
+            id: 'pickactor-dialog-exit',
+            tier: 'interactive',
+            group: 'pickActor',
+            label: 'pickActor through the dialog resolves the same shape as autoPickSingle',
+            note: 'Needs two actors so the dialog actually opens. Pick either one and Select.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('dialog.pickActor');
+                const actors = game.actors.contents.slice(0, 2);
+                if (actors.length < 2) {
+                    log('SKIPPED: needs two world actors — the dialog is skipped with one.');
+                    return;
+                }
+                const chosen = await api.dialog.pickActor({ title: 'Pick either actor', actors });
+                if (chosen === null) {
+                    log('cancelled — run again and choose an actor.');
+                    return;
+                }
+                log(`resolved: ${JSON.stringify(chosen)}`);
+                // The bug this guards: readFrom yields the caller's descriptor objects,
+                // so this resolved {id, name, img} while the JSDoc promised a UUID. A
+                // consumer comparing it to actor.uuid got a silent no-op, and the
+                // autoPickSingle exit returned a string, so one actor looked correct.
+                expect('the dialog exit resolves a string', typeof chosen, 'string');
+                expect.ok('and it matches one of the offered actors',
+                    actors.some(one => one.uuid === chosen));
+            }
         }
     ]
 };

@@ -56,6 +56,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`api.dialog.pickActor` resolved an entity descriptor while promising a UUID** (`scripts/api-dialog.js:384`). Its `getValue` read the selection with `list.readFrom(root)`, which yields the caller's own entity objects, so the call resolved `{id, name, img}` where the JSDoc says `Promise<string|null>` -- the chosen actor's UUID. A consumer comparing the result against `actor.uuid` got a silent no-op rather than an error. Reported by Merchant, whose "Buying as" control appeared to do nothing at all. `readIdsFrom` is the counterpart that yields ids, and is the one-word fix.
+
+  **The two exits disagreed, which is why it survived.** `autoPickSingle` returns `entries[0].id` -- a string -- while the dialog path returned a descriptor, so a caller testing with a single actor saw the contract honoured and only broke once a second actor made the dialog appear. `pickActor` had no test coverage at all; it now has a headless check on the `autoPickSingle` exit and an interactive one on the dialog exit, because the divergence between them is the thing worth guarding.
+
+  **Verify:** run the harness's Dialog suite. The headless *pickActor resolves a UUID string* check passes, and the interactive *pickActor through the dialog* check -- which needs two world actors, since one skips the dialog -- resolves a string matching one of the offered actors.
+
 - **Every imported item without an explicit source was stamped "Artificer"** (`scripts/parsers/parse-item.js:271`). `_sharedItemSystem` defaulted `system.source.custom` to the literal string `Artificer`, and because it is the shared builder the default reached all eight Item profiles -- weapons, equipment, consumables, loot, tools, containers, features and spells -- not only Artificer content. A sibling module's name was being written into every world that imported an item without filling the field in.
 
   It is a leftover rather than a decision: the JSON template emits `itemSource: "[ADD-CAMPAIGN-NAME-HERE]"` (`scripts/registry-json-import-items.js:198`), so the field's intended meaning is the campaign name. The default is now an empty string. Blacksmith does not invent a source it does not know, and an item authored without one is silently unattributed instead of misattributed.

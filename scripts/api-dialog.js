@@ -378,10 +378,16 @@ async function pickActor({
         // to a string and rebuilds it, so anything attached beforehand is attached to a
         // discarded node.
         controls: list,
-        // `readFrom(root)` rather than the controller's own getter, for the reason its
-        // own docs give: after a rebuild the controller may be reading a detached list.
+        // `readIdsFrom(root)` rather than the controller's own getter, for the reason
+        // its own docs give: after a rebuild the controller may be reading a detached
+        // list. IDS, not descriptors -- `readFrom` yields the caller's entity objects,
+        // so this returned `{id, name, img}` while promising a UUID string. A consumer
+        // comparing the result against `actor.uuid` got a silent no-op, never an error.
+        // The `autoPickSingle` path above already returned `entries[0].id`, so the two
+        // exits disagreed: a caller testing with one actor saw it work and only broke
+        // once a second actor made the dialog appear.
         getValue: (root) => {
-            const selected = list.readFrom(root);
+            const selected = list.readIdsFrom(root);
             return Array.isArray(selected) ? (selected[0] ?? null) : (selected ?? null);
         },
         validate: (chosen) => chosen ? null : 'Choose an actor.',
