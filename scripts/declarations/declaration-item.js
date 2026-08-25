@@ -317,3 +317,143 @@ export const ITEM_WEAPON_DECLARATION = {
 };
 
 registerDeclaration(ITEM_WEAPON_DECLARATION);
+
+// ------------------------------------------------------------------
+// The physical profiles: equipment, tool, container.
+//
+// These three differ from Loot only in where their subtype lands and what
+// each adds on top, so they are declared together rather than one per pass.
+// Every construct they use was proven by Loot and Weapon; nothing here is new,
+// which is the point -- once the model took Weapon, the rest is description.
+// ------------------------------------------------------------------
+
+/** Fields every physical Item profile shares, in the order the template emits them. */
+function physicalItemFields({ subTypePath, subTypeTransform, subTypeDefault, subTypeExample, subTypeGuidance }) {
+    return [
+        { name: 'itemName', path: 'name', type: 'string', required: true, acceptsKeys: ['name'],
+          example: '', guidance: 'The item name as it appears in the sidebar and on a character sheet.' },
+        { name: 'itemDescription', path: 'system.description.value', type: 'string', default: '',
+          guidance: 'The description shown on the item sheet, as HTML or plain prose.' },
+        { name: 'itemDescriptionUnidentified', path: 'system.description.unidentified', type: 'string',
+          default: '', guidance: 'What players see while the item is unidentified.' },
+        { name: 'itemDescriptionChat', path: 'system.description.chat', type: 'string', default: '',
+          guidance: 'A shorter description posted to chat when the item is used.' },
+        { name: 'itemGMNotes', path: 'flags.coffee-pub-blacksmith.gmNotes', type: 'string', default: '',
+          acceptsKeys: ['gmNotes'], transform: 'gmNotes',
+          guidance: 'Private notes for the GM, never shown to players.' },
+        { name: 'itemType', role: 'selector', type: 'string', example: subTypeExample.itemType,
+          guidance: 'Which kind of item this is; it selects the rest of the schema.' },
+        { name: 'itemSubType', path: subTypePath, type: 'string', transform: subTypeTransform,
+          default: subTypeDefault, example: subTypeExample.itemSubType, guidance: subTypeGuidance },
+        { name: 'itemRarity', path: 'system.rarity', type: 'string', default: 'common',
+          values: ['common', 'uncommon', 'rare', 'very rare', 'legendary', 'artifact'],
+          guidance: 'How hard the item is to come by.' },
+        { name: 'itemQuantity', path: 'system.quantity', type: 'integer', default: 1,
+          guidance: 'How many of the item this entry represents.' },
+        { name: 'itemWeight', path: 'system.weight', type: 'number', example: 0,
+          guidance: 'Weight of a single unit, in the system default unit.' },
+        { name: 'itemPrice', path: 'system.price', type: 'string', transform: 'price', default: '0 gp',
+          example: '0 GP', guidance: 'Price as an amount and a coin abbreviation, such as "50 GP".' },
+        { name: 'itemIdentified', path: 'system.identified', type: 'boolean', default: true,
+          guidance: 'Whether players can already see the item for what it is.' },
+        { name: 'itemImagePath', path: 'img', type: 'string', default: '', transform: 'itemIcon',
+          guidance: 'Path to the item artwork; Blacksmith guesses an icon when it is blank.' },
+        { name: 'itemIsMagical', path: 'system.properties', type: 'boolean', default: false,
+          transform: 'magicalProperty',
+          guidance: 'Whether the item is magical, which adds the magical property.' },
+        { name: 'itemSource', path: 'system.source.custom', type: 'string', default: '',
+          example: '[ADD-CAMPAIGN-NAME-HERE]',
+          guidance: 'Where the item comes from, usually the campaign name.' },
+        { name: 'itemLicense', path: 'system.source.license', type: 'string', default: '',
+          example: 'CC BY 4.0', guidance: 'The licence the item content is published under, if any.' },
+        { name: 'flags', path: 'flags', type: 'object', merge: 'mergeNamespaces',
+          requiresOption: 'includeArtificer',
+          guidance: 'Module-owned data, keyed by module id, passed through untouched.' }
+    ];
+}
+
+/**
+ * Equipment: the only one of the three that carries passive effects, and the
+ * reason `attunementIfMagical` exists -- a mundane piece of equipment has no
+ * attunement key at all, where a weapon always has one.
+ */
+export const ITEM_EQUIPMENT_DECLARATION = {
+    kind: 'item',
+    id: 'equipment',
+    label: 'Equipment',
+    schemaVersion: 1,
+    form: 'mapped',
+    document: { documentName: 'Item', type: 'equipment' },
+    derive: ['equippablePassiveEffects'],
+    fields: [
+        ...physicalItemFields({
+            subTypePath: 'system.type.value',
+            subTypeTransform: 'slug',
+            subTypeDefault: 'trinket',
+            subTypeExample: { itemType: 'Equipment', itemSubType: 'Clothing' },
+            subTypeGuidance: 'The equipment category, such as Clothing, Light Armor or Shield.'
+        }),
+        { name: 'magicalAttunementRequired', path: 'system.attunement', type: 'string', default: '',
+          example: '', transform: 'attunementIfMagical',
+          values: ['', 'none', 'not required', 'attunement not required', 'required',
+                   'attunement required', 'optional', 'attunement optional'],
+          guidance: 'Whether attunement is required or optional; only magical equipment stores it.' },
+        { name: 'passiveEffects', role: 'input', type: 'array', default: [], example: [],
+          suppressedByOption: 'includePassiveEffects',
+          guidance: 'Effects applied while the item is equipped, or equipped and attuned.' }
+    ]
+};
+
+/**
+ * Tool: equipment minus the effects, plus dnd5e's ability block, which is fixed
+ * at import and so is declared const rather than authored.
+ */
+export const ITEM_TOOL_DECLARATION = {
+    kind: 'item',
+    id: 'tool',
+    label: 'Tool',
+    schemaVersion: 1,
+    form: 'mapped',
+    document: { documentName: 'Item', type: 'tool' },
+    fields: [
+        ...physicalItemFields({
+            subTypePath: 'system.type.value',
+            subTypeTransform: 'slug',
+            subTypeDefault: 'artisans-tools',
+            subTypeExample: { itemType: 'Tool', itemSubType: "Artisan's Tools" },
+            subTypeGuidance: 'The tool category, such as Artisan\'s Tools or Gaming Set.'
+        }),
+        { name: 'toolAbility', path: 'system.ability.value', const: 'int',
+          guidance: 'The ability a tool check uses.' },
+        { name: 'toolProficient', path: 'system.ability.proficient', const: false,
+          guidance: 'Whether the tool is used proficiently.' }
+    ]
+};
+
+/**
+ * Container: the plainest of the three. Its subtype is stored VERBATIM rather
+ * than slugged -- the parser does not normalise it the way equipment and tools
+ * do, and matching that is what parity means here.
+ */
+export const ITEM_CONTAINER_DECLARATION = {
+    kind: 'item',
+    id: 'container',
+    label: 'Container',
+    schemaVersion: 1,
+    form: 'mapped',
+    document: { documentName: 'Item', type: 'container' },
+    fields: physicalItemFields({
+        subTypePath: 'system.type.value',
+        subTypeTransform: undefined,
+        subTypeDefault: 'other',
+        // The current template emits null here. An empty string is the better
+        // authoring prompt and the parser treats the two identically
+        // (`flat.itemSubType || 'other'`), so this is a listed, deliberate difference.
+        subTypeExample: { itemType: 'Container', itemSubType: '' },
+        subTypeGuidance: 'The container category, such as Backpack or Pouch.'
+    })
+};
+
+registerDeclaration(ITEM_EQUIPMENT_DECLARATION);
+registerDeclaration(ITEM_TOOL_DECLARATION);
+registerDeclaration(ITEM_CONTAINER_DECLARATION);

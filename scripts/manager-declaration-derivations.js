@@ -83,8 +83,53 @@ async function equippablePassiveEffects(data, entry) {
     return data;
 }
 
+/**
+ * Authored activities, and the effects they apply.
+ *
+ * A derivation rather than a field transform for three reasons, each of which
+ * rules a transform out on its own: `_buildActivities` needs the RESOLVED icon,
+ * it needs to know whether the parent item has limited uses (which is itself a
+ * derived field), and it MUTATES the effects array by pushing applied effects
+ * into it -- so activities and effects have to be produced together.
+ *
+ * `parentType` comes from the document rather than a parameter, so one derivation
+ * serves Feature and Spell; dnd5e's own shape differs between them (a spell's
+ * activity consumes a spell slot, a feature's does not).
+ * @param {object} data - Assembled document source data.
+ * @param {object} entry - The authored payload.
+ * @returns {Promise<object>} The same data, with activities and effects attached.
+ */
+async function itemActivities(data, entry) {
+    const { _buildActivities } = await import('./parsers/parse-item.js');
+    const effects = Array.isArray(entry?.effects)
+        ? foundry.utils.deepClone(entry.effects) : [];
+    const hasUses = Boolean(data?.system?.uses?.max);
+    data.system = data.system || {};
+    data.system.activities = _buildActivities(entry?.activities, data.type, hasUses, effects, data.img);
+    data.effects = effects;
+    return data;
+}
+
+/**
+ * dnd5e's slug identifier, derived from the resolved document name.
+ *
+ * A derivation rather than a second path on the name field: it is computed FROM
+ * the name rather than being another place the name is written, and the two would
+ * drift the moment a name transform appeared.
+ * @param {object} data
+ * @returns {Promise<object>}
+ */
+async function slugIdentifier(data) {
+    const { _identifier } = await import('./parsers/parse-item.js');
+    data.system = data.system || {};
+    data.system.identifier = _identifier(data.name);
+    return data;
+}
+
 /** @type {Record<string, Function>} */
-const DERIVATIONS = { weaponAttackActivity, equippablePassiveEffects };
+const DERIVATIONS = {
+    weaponAttackActivity, equippablePassiveEffects, itemActivities, slugIdentifier
+};
 
 /**
  * Whether a named derivation exists, so a declaration selecting one that does not

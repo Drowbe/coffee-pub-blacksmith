@@ -18,9 +18,12 @@
 
 import { GMNotesManager } from './manager-gmnotes.js';
 import {
-    guessIconPath, _damagePart, _emptyDamagePart, _attunementValue,
+    guessIconPath, _damagePart, _emptyDamagePart, _attunementValue, _uses,
     WEAPON_TYPES, WEAPON_PROPERTIES
 } from './parsers/parse-item.js';
+
+/** Helpers the transforms borrow from the parser, named so the reuse is visible. */
+const TRANSFORM_DEPS = { _uses };
 import { issue } from './utility-import-issues.js';
 
 /**
@@ -201,8 +204,67 @@ function weaponRange(value, { field }) {
     return range;
 }
 
+/**
+ * A subtype token as dnd5e stores it: lowercase, spaces to hyphens.
+ * @param {*} value
+ * @returns {string}
+ */
+function slug(value) {
+    return String(value ?? '').trim().toLowerCase().replace(/\s+/g, '-');
+}
+
+/**
+ * Attunement, written ONLY for a magical item.
+ *
+ * Distinct from `attunement` above, which always writes and is what a weapon
+ * wants. Equipment and tools assign the key inside a magical-only branch, so a
+ * mundane one carries no attunement key at all rather than an empty string --
+ * and returning undefined is how a transform says write nothing.
+ * @param {*} value
+ * @param {{entry: object}} context
+ * @returns {string|undefined}
+ */
+function attunementIfMagical(value, { entry }) {
+    return entry?.itemIsMagical ? _attunementValue(value) : undefined;
+}
+
+/**
+ * dnd5e's limited-uses block, from the max plus the separately authored spent
+ * count and recovery period.
+ *
+ * Three authored fields land here, which is the same shape as the weapon damage
+ * pair: the field owning the path reads its siblings, and they are declared
+ * `role: 'input'`. The recovery period is validated by the underlying helper,
+ * so an unsupported one fails at convert with the field named.
+ * @param {*} value
+ * @param {{entry: object, field: object}} context
+ * @returns {object}
+ */
+function limitedUses(value, { entry, field, declaration }) {
+    const { _uses } = TRANSFORM_DEPS;
+    // Read siblings through their OWN declarations so their key aliases are honoured.
+    // The parser reads `flat.featureUsesSpent ?? flat.usesSpent`, and reaching into
+    // the entry by one name would silently drop the short form.
+    const read = (name) => {
+        if (!name) return undefined;
+        if (Object.prototype.hasOwnProperty.call(entry, name)) return entry[name];
+        const sibling = declaration?.fields?.find(one => one.name === name);
+        for (const alias of sibling?.acceptsKeys ?? []) {
+            if (Object.prototype.hasOwnProperty.call(entry, alias)) return entry[alias];
+        }
+        return undefined;
+    };
+    try {
+        return _uses(value, read(field.spentFrom), read(field.periodFrom), read(field.formulaFrom));
+    } catch (error) {
+        throw new TransformError('RECOVERY_PERIOD_UNSUPPORTED',
+            field.periodFrom ?? field.name, error.message);
+    }
+}
+
 /** @type {Record<string, Function>} */
 const TRANSFORMS = {
+    slug, attunementIfMagical, limitedUses,
     price, gmNotes, itemIcon, magicalProperty,
     weaponType, weaponProperties, damagePart, versatileDamage, attunement, weaponRange
 };

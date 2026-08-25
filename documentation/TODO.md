@@ -181,6 +181,24 @@ Confirmed in the source 2026-08-23. The double-conversion defect is absent here 
   **How to verify:** import a roll table fixture with `results` deleted; the row names a specific code and
   the offending path.
 
+- **The result screen reads as a failure when nothing failed** (`scripts/window-json-import.js`, the summary
+  line and its status banner). An entry that imports with warnings shows
+  `1 processed - 0 succeeded - 1 warnings - 0 failed` under a **WARNING** banner. Every number is correct --
+  the counts split success from warning, per the status rules in `plans/plan-importer-api.md` -- but
+  "0 succeeded" beside a warning banner reads as "nothing worked", and on 2026-08-25 that stopped a live
+  import of `testing/data/import-json/item-import-equipment-passive.json` that would have succeeded.
+
+  **The trigger has been fixed and the presentation has not.** The nine warnings that prompted it were
+  template residue reported one per field, now collapsed to a single line. But any entry importing with a
+  genuine warning still reads the same way, so this is about the summary rather than about what produced it.
+
+  Deliberately not touched during step 4: it is the shared result screen every kind renders, and five Item
+  profiles are being verified against it right now. Fix it once the Item profiles are done, before the window
+  moves to derived templates in step 5.
+
+  **How to verify:** import an entry that produces one warning and no errors. The summary makes clear that
+  the entry imported, and the banner does not claim otherwise.
+
 - **Validation is parallel and import is sequential.** `Promise.all` at `registry-json-import.js:181` against
   the `for` loop at `:191`, so a validator touching shared resolver state can behave differently under
   Validate than under Import. Make validation sequential unless there is a measured reason not to.

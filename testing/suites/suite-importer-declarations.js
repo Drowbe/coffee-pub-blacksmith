@@ -261,7 +261,22 @@ export default {
 
                 const unknown = run({ itemName: 'X', itemDescriptionn: 'typo' });
                 expect('an undeclared key warns rather than failing', unknown.status, 'warning');
-                expect('the typo is named', unknown.warnings[0]?.path, 'itemDescriptionn');
+                expect('undeclared keys are one warning, not one each',
+                    unknown.warnings.filter(one => one.code === 'UNKNOWN_FIELDS').length, 1);
+                expect('and the offending key is named in it',
+                    unknown.warnings.find(one => one.code === 'UNKNOWN_FIELDS')?.details?.fields,
+                    ['itemDescriptionn']);
+
+                // A stock fixture carries eight template fields loot does not read.
+                // One line, not eight, or the result screen reads as a failure.
+                const residue = run({
+                    itemName: 'X', itemSubTypeNuance: '', itemImageTerms: [], itemImageNuance: '',
+                    itemLimitedUses: 1, limitedUsesSpent: 0, limitedUsesMax: 1,
+                    destroyOnEmpty: false, itemRecoveryPeriod: 'none'
+                });
+                expect('template residue produces exactly one warning', residue.warnings.length, 1);
+                expect('naming every field it covers',
+                    residue.warnings[0]?.details?.fields?.length, 8);
 
                 const legacyKey = run({ name: 'Legacy' });
                 expect('a legacy key is accepted', legacyKey.status, 'warning');
@@ -408,6 +423,39 @@ export default {
                             weaponAmmunitionType: 'arrow', itemIsMagical: true, weaponMagicalBonus: 1,
                             magicalAttunementRequired: 'required', itemRarity: 'rare',
                             itemImagePath: 'icons/weapons/bows/bow-recurve-yellow.webp'
+                        }
+                    },
+                    {
+                        id: 'a piece of equipment with attunement',
+                        profile: 'equipment',
+                        entry: {
+                            itemType: 'equipment', itemSubType: 'Light Armor', itemName: 'Test Leather',
+                            itemIsMagical: true, magicalAttunementRequired: 'required', itemRarity: 'uncommon',
+                            itemImagePath: 'icons/equipment/chest/breastplate-leather-brown.webp'
+                        }
+                    },
+                    {
+                        id: 'mundane equipment, which stores no attunement key at all',
+                        profile: 'equipment',
+                        entry: {
+                            itemType: 'equipment', itemSubType: 'Clothing', itemName: 'Test Cloak',
+                            itemImagePath: 'icons/equipment/back/cape-layered-red.webp'
+                        }
+                    },
+                    {
+                        id: 'a tool',
+                        profile: 'tool',
+                        entry: {
+                            itemType: 'tool', itemSubType: "Artisan's Tools", itemName: 'Test Smith Tools',
+                            itemImagePath: 'icons/tools/smithing/hammer-menacing-steel.webp'
+                        }
+                    },
+                    {
+                        id: 'a container',
+                        profile: 'container',
+                        entry: {
+                            itemType: 'container', itemSubType: 'backpack', itemName: 'Test Pack',
+                            itemImagePath: 'icons/containers/bags/pack-simple-leather.webp'
                         }
                     },
                     {
@@ -606,24 +654,28 @@ export default {
                 // Fields the shared template emits for every profile that the loot parser
                 // never reads. Removing them is the point of declaring per profile, so
                 // they are listed here rather than treated as a regression.
-                const KNOWN_DROPPED = {
-                    // Emitted for every Item profile by the shared builder, and read by
-                    // the loot parser for none of them.
-                    loot: [
-                        'itemSubTypeNuance', 'magicalAttunementRequired', 'itemLimitedUses',
-                        'limitedUsesSpent', 'limitedUsesMax', 'destroyOnEmpty',
-                        'itemRecoveryPeriod', 'activities', 'itemImageTerms', 'itemImageNuance'
-                    ],
-                    // Weapon reads far more of the shared set, so only the consumable
-                    // uses block and the image-generation hints fall away.
-                    weapon: [
-                        'itemSubTypeNuance', 'itemLimitedUses', 'limitedUsesSpent',
-                        'limitedUsesMax', 'destroyOnEmpty', 'itemRecoveryPeriod',
-                        'itemImageTerms', 'itemImageNuance'
-                    ]
-                    // passiveEffects is NOT dropped: weapon supports them, and omitting
-                    // it from the declaration was the omission this check caught.
+                // `buildItemJsonTemplate` emits ONE field set for all eight Item
+                // profiles, so every profile is handed fields its parser never reads.
+                // These are the ones no profile uses -- the consumable limited-uses
+                // block, the nuance field, and two hints belonging to image generation
+                // rather than to import.
+                const DROPPED_BY_EVERY_PROFILE = [
+                    'itemSubTypeNuance', 'itemLimitedUses', 'limitedUsesSpent',
+                    'limitedUsesMax', 'destroyOnEmpty', 'itemRecoveryPeriod',
+                    'itemImageTerms', 'itemImageNuance'
+                ];
+                // Beyond that, a profile drops what it does not declare. Weapon keeps
+                // both extras; equipment keeps attunement; the rest keep neither.
+                const ALSO_DROPPED = {
+                    loot: ['magicalAttunementRequired', 'activities'],
+                    weapon: [],
+                    equipment: ['activities'],
+                    tool: ['magicalAttunementRequired', 'activities'],
+                    container: ['magicalAttunementRequired', 'activities']
                 };
+                const allowedDrops = (profileId) => [
+                    ...DROPPED_BY_EVERY_PROFILE, ...(ALSO_DROPPED[profileId] ?? [])
+                ];
 
                 const derivedKeys = Object.keys(derived);
                 const currentKeys = Object.keys(current);
@@ -635,14 +687,23 @@ export default {
                 log(`${profile} added:   ${added.join(', ') || 'none'}`);
 
                 expect(`${profile}: every dropped field is a listed, deliberate drop`,
-                    dropped.filter(key => !(KNOWN_DROPPED[profile] ?? []).includes(key)), []);
+                    dropped.filter(key => !allowedDrops(profile).includes(key)), []);
                 expect(`${profile}: the derived template adds no field the current one lacks`, added, []);
+
+                // Listed starter-value differences, per profile. A value difference is a
+                // change to what an author is handed, so it is named here or it fails.
+                const KNOWN_VALUE_DIFFS = {
+                    // null is a poor authoring prompt for "leave blank", and the parser
+                    // reads null and '' identically.
+                    container: ['itemSubType']
+                };
 
                 // itemSource is excluded: the current path substitutes the campaign name
                 // into its placeholder after stringifying, so the two differ by delivery
                 // rather than by shape. Placeholder substitution stays a delivery step.
+                const allowedDiffs = new Set(['itemSource', ...(KNOWN_VALUE_DIFFS[profile] ?? [])]);
                 const differing = derivedKeys
-                    .filter(key => currentKeys.includes(key) && key !== 'itemSource')
+                    .filter(key => currentKeys.includes(key) && !allowedDiffs.has(key))
                     .filter(key => JSON.stringify(derived[key]) !== JSON.stringify(current[key]));
                 for (const key of differing) {
                     log(`${profile} value differs at ${key}: derived ${JSON.stringify(derived[key])}`

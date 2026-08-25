@@ -11,7 +11,7 @@
 // declaration reaches every output with no edit here.
 // ==================================================================
 
-import { getDeclaration, fieldAccepts } from './registry-declarations.js';
+import { getDeclaration, getDeclarationsForKind, fieldAccepts } from './registry-declarations.js';
 import { issue } from './utility-import-issues.js';
 import { evaluateRules } from './manager-declaration-rules.js';
 
@@ -261,14 +261,25 @@ export function validateEntry(kindId, profileId, entry) {
         errors.push(...evaluateRules(declaration, entry));
     }
 
-    // Anything the profile does not declare is reported rather than dropped in
-    // silence. The current importer ignores unknown keys entirely, so an author
-    // who misspells a field gets a successful import that did nothing.
-    for (const key of Object.keys(entry)) {
-        if (!claimed.has(key)) {
-            warnings.push(issue('UNKNOWN_FIELD', key,
-                `${key} is not part of the ${declaration.label} schema and is ignored.`));
-        }
+    // Every undeclared key, in ONE warning rather than one warning each.
+    //
+    // `buildItemJsonTemplate` emits a single field set for all eight Item profiles,
+    // so every payload authored from a template -- our own shipped fixtures included
+    // -- carries fields its profile does not read. Reporting them individually
+    // produced nine warnings on a stock Equipment fixture and read as a failure.
+    //
+    // An earlier attempt split them by whether a sibling profile declared the field.
+    // That was too clever: it made the message depend on which profiles happened to
+    // be declared yet, and two of the fields (the image-generation hints) belong to
+    // no profile at all and never will. One line names them all, a typo included,
+    // and the noise goes away for good at step 5 when templates are derived per
+    // profile and the residue stops being generated.
+    const undeclared = Object.keys(entry).filter(key => !claimed.has(key));
+    if (undeclared.length) {
+        warnings.push(issue('UNKNOWN_FIELDS', '',
+            `${undeclared.length} field${undeclared.length === 1 ? '' : 's'} not part of the `
+            + `${declaration.label} schema, ignored: ${undeclared.join(', ')}.`,
+            { fields: undeclared }));
     }
 
     return {

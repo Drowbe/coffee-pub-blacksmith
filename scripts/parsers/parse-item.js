@@ -288,7 +288,7 @@ const RECOVERY_PERIODS = {
 
 const FRIENDLY_ACTIVITY_TYPES = new Set(['attack', 'damage', 'heal', 'save', 'utility']);
 const SPELL_SCHOOLS = new Set(['abj', 'con', 'div', 'enc', 'evo', 'ill', 'nec', 'trs']);
-const FEATURE_TYPES = new Set(['background', 'class', 'monster', 'race', 'enchantment', 'feat', 'supernaturalGift', 'vehicle']);
+export const FEATURE_TYPES = new Set(['background', 'class', 'monster', 'race', 'enchantment', 'feat', 'supernaturalGift', 'vehicle']);
 export const WEAPON_TYPES = {
     'simple melee': 'simpleM', simplem: 'simpleM',
     'simple ranged': 'simpleR', simpler: 'simpleR',
@@ -309,7 +309,7 @@ export const WEAPON_PROPERTIES = {
 export const WEAPON_MASTERIES = new Set(['', 'cleave', 'graze', 'nick', 'push', 'sap', 'slow', 'topple', 'vex']);
 export const WEAPON_ABILITIES = new Set(['', 'str', 'dex', 'int', 'wis', 'cha', 'spellcasting', 'none']);
 
-function _identifier(value) {
+export function _identifier(value) {
     return String(value || 'imported-item')
         .normalize('NFKD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -326,7 +326,7 @@ function _recovery(value, formula = '') {
     return [{ period, type: 'recoverAll', formula: period === 'recharge' ? String(formula || '6') : '' }];
 }
 
-function _uses(max, spent = 0, recoveryPeriod = 'none', recoveryFormula = '') {
+export function _uses(max, spent = 0, recoveryPeriod = 'none', recoveryFormula = '') {
     return {
         spent: Number.isFinite(Number(spent)) ? Number(spent) : 0,
         max: max == null || max === '' ? '' : String(max),
@@ -577,7 +577,7 @@ function _buildAppliedEffects(activity, activityIndex, effectDocuments, defaultI
     });
 }
 
-function _buildActivities(activities, parentType, parentHasUses = false, effectDocuments = [], defaultImg = '') {
+export function _buildActivities(activities, parentType, parentHasUses = false, effectDocuments = [], defaultImg = '') {
     if (activities == null) return {};
     if (!Array.isArray(activities)) throw new Error('activities must be an array');
     const result = {};
@@ -621,7 +621,7 @@ function _descriptionSystem(flat) {
     return {
         description: { value: flat.itemDescription || '', chat: flat.itemDescriptionChat || '' },
         identifier: _identifier(flat.itemName),
-        source: { custom: flat.itemSource || 'Blacksmith Import', license: flat.itemLicense || '' }
+        source: { custom: flat.itemSource || '', license: flat.itemLicense || '' }
     };
 }
 
