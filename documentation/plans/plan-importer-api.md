@@ -333,14 +333,27 @@ Three layers, all engine behavior:
    the dangerous one.
 2. **Type-registration precondition.** The profile's declared document type must have a registered data
    model. Catches the case where the module is active but its subtype did not register.
-3. **Invalid-document refusal.** Foundry tracks documents it could not construct separately from those it
-   could. Export refuses when the source collection holds any, naming them, rather than emitting the readable
-   subset. On success it reports counts, so the check is visible rather than only firing on failure --
-   Librarian's "N of N" behavior, generalised.
+3. **Invalid-document refusal, from two independent sources.** Export refuses when the source collection
+   holds documents Foundry could not construct, and on success reports counts so the check is visible rather
+   than only firing on failure -- Librarian's "N of N" behavior, generalised.
 
-*Verify before building:* that invalid-document tracking is reachable on an **embedded** collection (a
-journal's pages), not only on world collections. If it is not, layer 3 needs a different independent source
-of truth and this section changes.
+   **Verified 2026-08-24** by Librarian on Foundry 13.351: `invalidDocumentIds` *is* populated on an
+   **embedded** collection, not only on world collections, through
+   `EmbeddedCollection.initialize` to `_initializeDocument` to `createDocument` throwing to
+   `_handleInvalidDocument`. Their probe is at `coffee-pub-librarian/testing/macro-invalid-page-probe.js`.
+
+   Use **both** available sources, because they fail differently. `invalidDocumentIds` carries ids, so an
+   export can name which documents are missing rather than only counting them -- which matters when a GM is
+   looking at hundreds of entries. Comparing `_source.length` against the collection size is the cross-check
+   and is the more robust of the two, because it needs no knowledge of *why* a document failed.
+
+*Two traps if we write our own probe for this*, both of which cost Librarian a wrong first result that
+reported EMPTY. `_initializeDocument` short-circuits on `this.get(data._id)`, so a document already in the
+collection is re-initialised in place and construction never runs -- the source row must be dropped with
+`delete(id, { modifySource: false })` first. And passing `{ strict: false }` to `initialize()` sets the
+fallback path in `DocumentTypeField._validateType`, which explicitly permits unrecognised types. The tell
+that their first probe was wrong: the "broken" page came back carrying an undeclared type *and* an intact
+system object, which a failed construction cannot produce.
 
 This is the failure mode already recorded in `TODO.md` under **Import/export and module-owned document
 subtypes** -- "an export would produce a file missing every codex page and report success". It is the same

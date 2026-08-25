@@ -156,9 +156,11 @@ and to the parser when one does not, so each remaining profile moves simply by b
 11. **`tools/check-importer-parity.mjs`, and only then a consumer.** Librarian's codex is a mapped profile
     and can be declared as soon as step 5 lands; their quest cannot until their own data model work does.
 
-**Two verifications outstanding before step 10:** that invalid-document tracking is reachable on an embedded
-collection (a journal's pages) rather than only on world collections, and whether Librarian's quest data
-model lands before or after this.
+**Both verifications that were outstanding are now discharged (2026-08-24).** Invalid-document tracking *is*
+populated on an embedded collection, so the export completeness guarantee has its independent source and step
+10 needs no redesign; use `invalidDocumentIds` for the ids and a source-versus-collection count as the
+cross-check. And Librarian will build quests against declarations rather than giving them their own data
+model first, so step 8 is not waiting on them and their timeline does not shape ours.
 
 **How to verify:** all four Blacksmith kinds are declarations registered through the public path, and
 `node tools/check-importer-parity.mjs` passes. Every fixture in `testing/data/import-json/` still imports.

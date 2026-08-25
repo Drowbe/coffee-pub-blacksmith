@@ -17,7 +17,10 @@
 // ==================================================================
 
 import { GMNotesManager } from './manager-gmnotes.js';
-import { guessIconPath } from './parsers/parse-item.js';
+import {
+    guessIconPath, _damagePart, _emptyDamagePart, _attunementValue,
+    WEAPON_TYPES, WEAPON_PROPERTIES
+} from './parsers/parse-item.js';
 import { issue } from './utility-import-issues.js';
 
 /**
@@ -92,8 +95,117 @@ function magicalProperty(value) {
     return value ? ['mgc'] : [];
 }
 
+/**
+ * The weapon subtype, as dnd5e's canonical code.
+ * `values` on the field could not do this alone: the canonical form (`simpleM`) is
+ * not what anyone authors, so the accepted spellings ARE the schema and the codes
+ * are an implementation detail the author never sees.
+ * @param {*} value
+ * @param {{field: object}} context
+ * @returns {string}
+ */
+function weaponType(value, { field }) {
+    const token = String(value ?? 'Simple Melee').trim().toLowerCase();
+    const resolved = WEAPON_TYPES[token];
+    if (!resolved) {
+        throw new TransformError('WEAPON_TYPE_UNSUPPORTED', field.name,
+            `Unsupported ${field.name} "${value}".`, { actual: value });
+    }
+    return resolved;
+}
+
+/**
+ * The weapon property list, folding in the magical flag.
+ *
+ * TWO authored fields land here -- `weaponProperties` and `itemIsMagical` -- which
+ * is why the second is declared `role: 'input'` and this transform reads the entry
+ * rather than only its own value. The rule vocabulary separately enforces that the
+ * two agree, so by the time this runs they cannot contradict each other.
+ * @param {*} value
+ * @param {{entry: object, field: object}} context
+ * @returns {string[]}
+ */
+function weaponProperties(value, { entry, field }) {
+    if (value != null && !Array.isArray(value)) {
+        throw new TransformError('TYPE_MISMATCH', field.name, `${field.name} must be an array.`);
+    }
+    const properties = [];
+    for (const raw of value ?? []) {
+        const key = WEAPON_PROPERTIES[String(raw ?? '').trim().toLowerCase()];
+        if (!key) {
+            throw new TransformError('WEAPON_PROPERTY_UNSUPPORTED', field.name,
+                `Unsupported weapon property "${raw}".`, { actual: raw });
+        }
+        if (!properties.includes(key)) properties.push(key);
+    }
+    if (entry?.itemIsMagical && !properties.includes('mgc')) properties.push('mgc');
+    return properties;
+}
+
+/**
+ * Base damage, from the formula plus the separately authored damage type.
+ * @param {*} value
+ * @param {{entry: object}} context
+ * @returns {object}
+ */
+function damagePart(value, { entry }) {
+    return _damagePart(value, entry?.weaponDamageType);
+}
+
+/**
+ * Versatile damage, or dnd5e's empty part when the weapon is not versatile.
+ * @param {*} value
+ * @param {{entry: object}} context
+ * @returns {object}
+ */
+function versatileDamage(value, { entry }) {
+    const formula = String(value ?? '').trim();
+    return formula ? _damagePart(formula, entry?.weaponDamageType) : _emptyDamagePart();
+}
+
+/**
+ * Attunement, which dnd5e stores only for magical items.
+ * @param {*} value
+ * @param {{entry: object}} context
+ * @returns {string}
+ */
+function attunement(value, { entry }) {
+    return entry?.itemIsMagical ? _attunementValue(value) : '';
+}
+
+/**
+ * The range block, with every bound normalised to a number or null.
+ * @param {*} value
+ * @param {{field: object}} context
+ * @returns {object}
+ */
+function weaponRange(value, { field }) {
+    const source = value ?? {};
+    if (typeof source !== 'object' || Array.isArray(source)) {
+        throw new TransformError('TYPE_MISMATCH', field.name, `${field.name} must be an object.`);
+    }
+    const range = { units: String(source.units || 'ft') };
+    for (const key of ['value', 'long', 'reach']) {
+        const raw = source[key];
+        if (raw == null || raw === '') {
+            range[key] = null;
+            continue;
+        }
+        const number = Number(raw);
+        if (!Number.isFinite(number) || number < 0) {
+            throw new TransformError('RANGE_INVALID', `${field.name}.${key}`,
+                `${field.name}.${key} must be a non-negative number or null.`, { actual: raw });
+        }
+        range[key] = number;
+    }
+    return range;
+}
+
 /** @type {Record<string, Function>} */
-const TRANSFORMS = { price, gmNotes, itemIcon, magicalProperty };
+const TRANSFORMS = {
+    price, gmNotes, itemIcon, magicalProperty,
+    weaponType, weaponProperties, damagePart, versatileDamage, attunement, weaponRange
+};
 
 /**
  * Whether a named transform exists. Used by the registry so a declaration naming

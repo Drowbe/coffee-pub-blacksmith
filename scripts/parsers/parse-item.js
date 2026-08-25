@@ -214,7 +214,7 @@ function _physicalItemProperties(flat) {
     return flat.itemIsMagical ? ['mgc'] : [];
 }
 
-function _attunementValue(value) {
+export function _attunementValue(value) {
     const token = String(value || '').trim().toLowerCase();
     if (!token || ['none', 'not required', 'attunement not required'].includes(token)) return '';
     if (['required', 'attunement required'].includes(token)) return 'required';
@@ -289,7 +289,7 @@ const RECOVERY_PERIODS = {
 const FRIENDLY_ACTIVITY_TYPES = new Set(['attack', 'damage', 'heal', 'save', 'utility']);
 const SPELL_SCHOOLS = new Set(['abj', 'con', 'div', 'enc', 'evo', 'ill', 'nec', 'trs']);
 const FEATURE_TYPES = new Set(['background', 'class', 'monster', 'race', 'enchantment', 'feat', 'supernaturalGift', 'vehicle']);
-const WEAPON_TYPES = {
+export const WEAPON_TYPES = {
     'simple melee': 'simpleM', simplem: 'simpleM',
     'simple ranged': 'simpleR', simpler: 'simpleR',
     'martial melee': 'martialM', martialm: 'martialM',
@@ -297,8 +297,8 @@ const WEAPON_TYPES = {
     natural: 'natural', improvised: 'improv', improv: 'improv',
     'siege weapon': 'siege', siege: 'siege'
 };
-const WEAPON_ATTACK_TYPES = { simpleM: 'melee', simpleR: 'ranged', martialM: 'melee', martialR: 'ranged', natural: 'melee', improv: 'melee', siege: 'ranged' };
-const WEAPON_PROPERTIES = {
+export const WEAPON_ATTACK_TYPES = { simpleM: 'melee', simpleR: 'ranged', martialM: 'melee', martialR: 'ranged', natural: 'melee', improv: 'melee', siege: 'ranged' };
+export const WEAPON_PROPERTIES = {
     adamantine: 'ada', ada: 'ada', ammunition: 'amm', amm: 'amm', finesse: 'fin', fin: 'fin',
     firearm: 'fir', fir: 'fir', focus: 'foc', foc: 'foc', heavy: 'hvy', hvy: 'hvy',
     light: 'lgt', lgt: 'lgt', loading: 'lod', lod: 'lod', magical: 'mgc', mgc: 'mgc',
@@ -306,8 +306,8 @@ const WEAPON_PROPERTIES = {
     silvered: 'sil', sil: 'sil', special: 'spc', spc: 'spc', thrown: 'thr', thr: 'thr',
     'two-handed': 'two', twohanded: 'two', two: 'two', versatile: 'ver', ver: 'ver'
 };
-const WEAPON_MASTERIES = new Set(['', 'cleave', 'graze', 'nick', 'push', 'sap', 'slow', 'topple', 'vex']);
-const WEAPON_ABILITIES = new Set(['', 'str', 'dex', 'int', 'wis', 'cha', 'spellcasting', 'none']);
+export const WEAPON_MASTERIES = new Set(['', 'cleave', 'graze', 'nick', 'push', 'sap', 'slow', 'topple', 'vex']);
+export const WEAPON_ABILITIES = new Set(['', 'str', 'dex', 'int', 'wis', 'cha', 'spellcasting', 'none']);
 
 function _identifier(value) {
     return String(value || 'imported-item')
@@ -334,7 +334,7 @@ function _uses(max, spent = 0, recoveryPeriod = 'none', recoveryFormula = '') {
     };
 }
 
-function _damagePart(formula, damageType) {
+export function _damagePart(formula, damageType) {
     const raw = String(formula || '').trim();
     const type = String(damageType || '').trim().toLowerCase();
     const simple = raw.match(/^(\d+)d(\d+)(?:\s*([+-])\s*(.+))?$/i);
@@ -358,7 +358,7 @@ function _damagePart(formula, damageType) {
     };
 }
 
-function _emptyDamagePart() {
+export function _emptyDamagePart() {
     return {
         number: null, denomination: null, bonus: '', types: [],
         custom: { enabled: false, formula: '' },
@@ -472,7 +472,7 @@ function _weaponData(flat, img) {
     };
 }
 
-function _activityBase(activity, index, parentType, parentHasUses) {
+export function _activityBase(activity, index, parentType, parentHasUses) {
     const type = String(activity.activityType || 'utility').trim().toLowerCase();
     if (type === 'use') {
         throw new Error(`Activity ${index + 1}: "Use" is not a dnd5e activity type; use "Utility"`);

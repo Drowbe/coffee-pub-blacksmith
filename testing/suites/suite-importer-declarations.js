@@ -351,14 +351,65 @@ export default {
                 // buildEnvelope stamps updatedAt from the clock, so two runs of the same
                 // input differ by design. Normalise it rather than exclude the field:
                 // the envelope's presence and its html are exactly what must match.
+                // Two sources of deliberate nondeterminism have to be normalised, and
+                // neither can simply be excluded: their PRESENCE is what must match.
+                //   - buildEnvelope stamps updatedAt from the clock
+                //   - activities and effects carry a randomID, and the activity id is
+                //     also the KEY it is stored under, so both sides must be renamed
                 const settle = (data) => {
                     const clone = foundry.utils.deepClone(data);
                     const note = clone?.flags?.['coffee-pub-blacksmith']?.gmNotes;
                     if (note && typeof note === 'object') note.updatedAt = 0;
+
+                    const activities = clone?.system?.activities;
+                    if (activities && typeof activities === 'object') {
+                        clone.system.activities = Object.fromEntries(
+                            Object.values(activities).map((activity, index) => {
+                                const settled = { ...activity, _id: `activity-${index}` };
+                                return [`activity-${index}`, settled];
+                            }));
+                    }
+                    if (Array.isArray(clone?.effects)) {
+                        clone.effects = clone.effects.map((effect, index) =>
+                            ({ ...effect, _id: `effect-${index}` }));
+                    }
                     return clone;
                 };
 
                 const CASES = [
+                    {
+                        id: 'a plain melee weapon',
+                        profile: 'weapon',
+                        entry: {
+                            itemType: 'weapon', itemSubType: 'Simple Melee', itemName: 'Test Club',
+                            weaponDamageFormula: '1d4', weaponDamageType: 'bludgeoning',
+                            itemImagePath: 'icons/weapons/clubs/club-simple.webp'
+                        }
+                    },
+                    {
+                        id: 'a versatile weapon',
+                        profile: 'weapon',
+                        entry: {
+                            itemType: 'weapon', itemSubType: 'Martial Melee', itemName: 'Test Longsword',
+                            weaponDamageFormula: '1d8', weaponDamageType: 'slashing',
+                            weaponProperties: ['versatile'], weaponVersatileDamageFormula: '1d10',
+                            weaponMastery: 'sap', weaponAbility: 'str',
+                            itemImagePath: 'icons/weapons/swords/sword-broad-steel.webp'
+                        }
+                    },
+                    {
+                        id: 'a magical ranged weapon with attunement',
+                        profile: 'weapon',
+                        entry: {
+                            itemType: 'weapon', itemSubType: 'Martial Ranged', itemName: 'Test Longbow +1',
+                            weaponDamageFormula: '1d8', weaponDamageType: 'piercing',
+                            weaponProperties: ['two-handed', 'ammunition', 'magical'],
+                            weaponRange: { value: 150, long: 600, reach: null, units: 'ft' },
+                            weaponAmmunitionType: 'arrow', itemIsMagical: true, weaponMagicalBonus: 1,
+                            magicalAttunementRequired: 'required', itemRarity: 'rare',
+                            itemImagePath: 'icons/weapons/bows/bow-recurve-yellow.webp'
+                        }
+                    },
                     {
                         id: 'the loot fixture',
                         entry: {
@@ -415,7 +466,8 @@ export default {
                 }))?.flags?.['coffee-pub'], undefined);
 
                 for (const testCase of CASES) {
-                    const derived = dropLegacyFlag(settle(await manager.buildDocumentData('item', 'loot', testCase.entry)));
+                    const profile = testCase.profile ?? 'loot';
+                    const derived = dropLegacyFlag(settle(await manager.buildDocumentData('item', profile, testCase.entry)));
                     const current = dropLegacyFlag(settle(await parser.parseFlatItemToFoundry(testCase.entry)));
                     // Stable key order before stringifying: object key order is an artefact
                     // of insertion, and reporting it as a difference cries wolf. The
@@ -435,6 +487,79 @@ export default {
                     }
                     expect(`${testCase.id}: derived construction equals the parser`, derived, current);
                 }
+            }
+        },
+
+        {
+            id: 'weapon-rules',
+            label: 'Every cross-field rule kind fires, in both directions',
+            tier: 'headless',
+            group: 'Step 4 - the rule vocabulary',
+            note: 'Weapon is declared before the simpler profiles because it is what tests the model.',
+            run: async ({ expect }) => {
+                const { manager } = await loadDeclarations();
+                const base = { itemName: 'X', weaponDamageFormula: '1d8', weaponDamageType: 'slashing' };
+                const code = (extra) => {
+                    const outcome = manager.validateEntry('item', 'weapon', { ...base, ...extra });
+                    return outcome.errors[0]?.code ?? outcome.status;
+                };
+
+                expect('a plain melee weapon is clean', code({}), 'success');
+
+                // requiresTogether, and it must fire from either side.
+                expect('versatile without a versatile formula fails',
+                    code({ weaponProperties: ['versatile'] }), 'RULE_REQUIRESTOGETHER');
+                expect('a versatile formula without the property fails',
+                    code({ weaponVersatileDamageFormula: '1d10' }), 'RULE_REQUIRESTOGETHER');
+                expect('both together are clean',
+                    code({ weaponProperties: ['versatile'], weaponVersatileDamageFormula: '1d10' }), 'success');
+
+                expect('versatile and two-handed cannot combine',
+                    code({ weaponProperties: ['versatile', 'two-handed'], weaponVersatileDamageFormula: '1d10' }),
+                    'RULE_MUTUALLYEXCLUSIVE');
+
+                // impliedBy is bidirectional: either half alone is a contradiction.
+                expect('magical without the magical property fails',
+                    code({ itemIsMagical: true }), 'RULE_IMPLIEDBY');
+                expect('the magical property without the flag fails',
+                    code({ weaponProperties: ['magical'] }), 'RULE_IMPLIEDBY');
+                expect('both together are clean',
+                    code({ itemIsMagical: true, weaponProperties: ['magical'] }), 'success');
+
+                expect('a magical bonus requires a magical weapon',
+                    code({ weaponMagicalBonus: 1 }), 'RULE_REQUIRES');
+                expect('authored activities are refused',
+                    code({ activities: [{ activityType: 'Attack' }] }), 'RULE_MUSTBEEMPTY');
+
+                // The named rule: ranged-ness is derived from the subtype, not authored.
+                expect('a ranged weapon without a range fails',
+                    code({ itemSubType: 'Martial Ranged' }), 'WEAPON_RANGE_REQUIRED');
+                expect('a thrown melee weapon without a range fails',
+                    code({ weaponProperties: ['thrown'] }), 'WEAPON_RANGE_REQUIRED');
+                expect('a ranged weapon with a range is clean',
+                    code({ itemSubType: 'Martial Ranged', weaponRange: { value: 120, long: 480 } }), 'success');
+
+                expect('an unknown mastery is refused',
+                    code({ weaponMastery: 'whirl' }), 'VALUE_NOT_ALLOWED');
+            }
+        },
+
+        {
+            id: 'weapon-sentences',
+            label: 'Each rule states its own sentence, for the guide and the prompt',
+            tier: 'headless',
+            group: 'Step 4 - the rule vocabulary',
+            note: 'One source for the validation message, the guide line and the prompt line.',
+            run: async ({ expect }) => {
+                const { registry } = await loadDeclarations();
+                const rules = await import(`${MODULE_PATH}/manager-declaration-rules.js`);
+                const weapon = registry.getDeclaration('item', 'weapon');
+                const sentences = rules.ruleSentences(weapon);
+
+                expect('every rule produces a sentence', sentences.length, weapon.rules.length);
+                expect('none is blank', sentences.filter(one => !one.trim()), []);
+                expect.ok('the named rule contributes its own wording',
+                    sentences.some(one => one.includes('Ranged and Thrown')));
             }
         },
 
@@ -469,20 +594,34 @@ export default {
             group: 'Step 1 - template derivation',
             note: 'Differences are expected and listed. This check fails only on an UNLISTED difference.',
             run: async ({ expect, log }) => {
-                const { manager } = await loadDeclarations();
+                const { manager, registry } = await loadDeclarations();
                 const legacy = await import(`${MODULE_PATH}/registry-json-import-items.js`);
+                const profiles = registry.getDeclarationsForKind('item').map(one => one.id);
+                expect.ok('at least one Item profile is declared', profiles.length > 0);
 
-                const derived = manager.buildTemplateObject('item', 'loot');
-                const current = JSON.parse(await legacy.buildItemJsonTemplate('loot'));
+                for (const profile of profiles) {
+                const derived = manager.buildTemplateObject('item', profile);
+                const current = JSON.parse(await legacy.buildItemJsonTemplate(profile));
 
                 // Fields the shared template emits for every profile that the loot parser
                 // never reads. Removing them is the point of declaring per profile, so
                 // they are listed here rather than treated as a regression.
-                const KNOWN_DROPPED = [
-                    'itemSubTypeNuance', 'magicalAttunementRequired', 'itemLimitedUses',
-                    'limitedUsesSpent', 'limitedUsesMax', 'destroyOnEmpty',
-                    'itemRecoveryPeriod', 'activities', 'itemImageTerms', 'itemImageNuance'
-                ];
+                const KNOWN_DROPPED = {
+                    // Emitted for every Item profile by the shared builder, and read by
+                    // the loot parser for none of them.
+                    loot: [
+                        'itemSubTypeNuance', 'magicalAttunementRequired', 'itemLimitedUses',
+                        'limitedUsesSpent', 'limitedUsesMax', 'destroyOnEmpty',
+                        'itemRecoveryPeriod', 'activities', 'itemImageTerms', 'itemImageNuance'
+                    ],
+                    // Weapon reads far more of the shared set, so only the consumable
+                    // uses block and the image-generation hints fall away.
+                    weapon: [
+                        'itemSubTypeNuance', 'itemLimitedUses', 'limitedUsesSpent',
+                        'limitedUsesMax', 'destroyOnEmpty', 'itemRecoveryPeriod',
+                        'itemImageTerms', 'itemImageNuance'
+                    ]
+                };
 
                 const derivedKeys = Object.keys(derived);
                 const currentKeys = Object.keys(current);
@@ -490,12 +629,12 @@ export default {
                 const dropped = currentKeys.filter(key => !derivedKeys.includes(key));
                 const added = derivedKeys.filter(key => !currentKeys.includes(key));
 
-                log(`dropped: ${dropped.join(', ') || 'none'}`);
-                log(`added:   ${added.join(', ') || 'none'}`);
+                log(`${profile} dropped: ${dropped.join(', ') || 'none'}`);
+                log(`${profile} added:   ${added.join(', ') || 'none'}`);
 
-                expect('every dropped field is a listed, deliberate drop',
-                    dropped.filter(key => !KNOWN_DROPPED.includes(key)), []);
-                expect('the derived template adds no field the current one lacks', added, []);
+                expect(`${profile}: every dropped field is a listed, deliberate drop`,
+                    dropped.filter(key => !(KNOWN_DROPPED[profile] ?? []).includes(key)), []);
+                expect(`${profile}: the derived template adds no field the current one lacks`, added, []);
 
                 // itemSource is excluded: the current path substitutes the campaign name
                 // into its placeholder after stringifying, so the two differ by delivery
@@ -504,10 +643,11 @@ export default {
                     .filter(key => currentKeys.includes(key) && key !== 'itemSource')
                     .filter(key => JSON.stringify(derived[key]) !== JSON.stringify(current[key]));
                 for (const key of differing) {
-                    log(`value differs at ${key}: derived ${JSON.stringify(derived[key])}`
+                    log(`${profile} value differs at ${key}: derived ${JSON.stringify(derived[key])}`
                         + ` vs current ${JSON.stringify(current[key])}`);
                 }
-                expect('shared fields carry identical starter values', differing, []);
+                expect(`${profile}: shared fields carry identical starter values`, differing, []);
+                }
             }
         }
     ]

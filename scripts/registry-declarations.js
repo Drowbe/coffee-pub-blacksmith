@@ -26,6 +26,9 @@
  *                             another field's transform; `envelope` is consumed into the document
  *                             (passthrough form). None of the three lands on a path of its own.
  * @property {string} [type] - 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object'.
+ * @property {boolean} [nullable=false] - Whether null is a real value for this field rather than an
+ *                             absence. dnd5e uses it that way: a null `proficient` means "follow the
+ *                             character", and a null range bound means "no such bound".
  * @property {boolean} [required=false]
  * @property {boolean} [authorable=true] - False means declared but never in the template, guide or
  *                             prompt, never written from a payload, and preserved across re-import.
@@ -58,12 +61,14 @@
  * @property {string} [module] - Owning module id. Absent means Blacksmith.
  * @property {object} document - { documentName, type }.
  * @property {DeclarationField[]} fields
- * @property {object[]} [rules] - Cross-field rules from the closed vocabulary.
+ * @property {object[]} [rules] - Cross-field rules: a closed vocabulary kind, or a named rule.
+ * @property {string[]} [derive] - Named derivations run over the assembled document data.
  * @property {object} [ownership] - Per-profile ownership defaults. Never inherited from the kind:
  *                             a profile whose content is revealed deliberately must say so.
  */
 
 import { RULE_KINDS, hasNamedRule } from './manager-declaration-rules.js';
+import { hasDerivation } from './manager-declaration-derivations.js';
 
 /**
  * Whether a value matches a declared type. Lives here rather than beside the
@@ -85,6 +90,17 @@ export function matchesType(type, value) {
         case 'object': return typeof value === 'object' && value !== null && !Array.isArray(value);
         default: return true;
     }
+}
+
+/**
+ * Whether a field accepts a value, honouring its declared type and nullability.
+ * @param {object} field
+ * @param {*} value
+ * @returns {boolean}
+ */
+export function fieldAccepts(field, value) {
+    if (value === null) return field?.nullable === true;
+    return matchesType(field?.type, value);
 }
 
 const FORMS = new Set(['mapped', 'rendered', 'passthrough']);
@@ -165,7 +181,7 @@ function validateField(field, form, where) {
     // a default, so a default already in converted shape gets converted twice.
     if (field.type) {
         for (const slot of ['default', 'example']) {
-            if (field[slot] !== undefined && !matchesType(field.type, field[slot])) {
+            if (field[slot] !== undefined && !fieldAccepts(field, field[slot])) {
                 throw new Error(`${at}: ${slot} must match the declared type ${field.type};`
                     + ` both are in authored shape, before any transform runs`);
             }
@@ -277,6 +293,16 @@ export function registerDeclaration(declaration) {
     }
     validateFields(declaration.fields, declaration.form, where);
     validateRules(declaration, where);
+    if (declaration.derive !== undefined) {
+        if (!Array.isArray(declaration.derive)) {
+            throw new Error(`${where}: derive must be an array of named derivations`);
+        }
+        for (const name of declaration.derive) {
+            if (!hasDerivation(name)) {
+                throw new Error(`${where}: no derivation named "${name}" is registered`);
+            }
+        }
+    }
 
     const key = keyFor(kind, id);
     if (declarations.has(key)) {

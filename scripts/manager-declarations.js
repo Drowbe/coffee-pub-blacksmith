@@ -11,7 +11,7 @@
 // declaration reaches every output with no edit here.
 // ==================================================================
 
-import { getDeclaration, matchesType } from './registry-declarations.js';
+import { getDeclaration, fieldAccepts } from './registry-declarations.js';
 import { issue } from './utility-import-issues.js';
 import { evaluateRules } from './manager-declaration-rules.js';
 
@@ -225,9 +225,12 @@ export function validateEntry(kindId, profileId, entry) {
         }
 
         const raw = entry[key];
-        if (raw === null || raw === undefined) continue;
+        if (raw === undefined) continue;
+        // null is only skipped when the field does not treat it as a value; a
+        // nullable field validates it like anything else.
+        if (raw === null && field.nullable !== true) continue;
 
-        if (field.type && !matchesType(field.type, raw)) {
+        if (field.type && !fieldAccepts(field, raw)) {
             errors.push(issue('TYPE_MISMATCH', key,
                 `${key} must be of type ${field.type}.`,
                 { expected: field.type, actual: Array.isArray(raw) ? 'array' : typeof raw }));
@@ -365,6 +368,14 @@ export async function buildDocumentData(kindId, profileId, entry) {
             continue;
         }
         if (field.path) writePath(data, field.path, value);
+    }
+
+    // After every field, never before: a derivation reads what construction
+    // produced -- the guessed icon, the normalised range units -- none of which
+    // exists while the raw entry is all there is.
+    if (declaration.derive?.length) {
+        const { applyDerivations } = await import('./manager-declaration-derivations.js');
+        return await applyDerivations(declaration.derive, data, entry);
     }
     return data;
 }
