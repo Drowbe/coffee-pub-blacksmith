@@ -56,6 +56,10 @@ export class TagsAPI {
         return TagManager.getRecordsByTag(contextKey, tag);
     }
 
+    static getTagCounts(contextKey) {
+        return TagManager.getTagCounts(contextKey);
+    }
+
     // ============================================================
     // Registry management (GM only for mutations)
     // ============================================================

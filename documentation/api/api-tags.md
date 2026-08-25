@@ -296,6 +296,27 @@ await tags.deleteRecordTags('coffee-pub-librarian.quest', deletedQuest.id);
 
 ---
 
+#### `tags.getTagCounts(contextKey)`
+
+How many records in one context carry each tag. One pass over that context.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `contextKey` | `string` | The context to count within |
+
+Returns `Record<string, number>` -- tag to record count. An unknown context returns `{}`.
+
+**Only tags in use appear.** A taxonomy tag nobody has applied is absent, not present with `0`: this
+reports assignments, while `getChoices` reports suggestions. Treating an unused suggestion as a stale
+entry is the mistake this distinction exists to prevent.
+
+Use it to scope a vocabulary to your own records -- `getRegistry()` is world-wide and undifferentiated,
+so sizing a tag cloud from it means one `getRecordsByTag` call per registry entry.
+
+Whether a registry entry is accounted for **anywhere** is a different question, needing every context key
+and the declared taxonomy across all of them. That is not on this surface: no consumer can assemble it
+without hardcoding keys it does not own. Blacksmith answers it in `utilities/audit-tag-registry.js`.
+
 #### `tags.getRecordsByTag(contextKey, tag)`
 
 Get all record IDs in a context that currently have a specific tag. Useful for building filter views.

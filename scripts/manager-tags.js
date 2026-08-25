@@ -525,6 +525,33 @@ export class TagManager {
         return (await this._mutate('purgeRecords', { records })) ?? 0;
     }
 
+    /**
+     * How many records in one context carry each tag.
+     *
+     * The vocabulary a consumer actually needs: `getRegistry()` is world-wide and
+     * undifferentiated, so scoping a tag cloud to your own records previously meant calling
+     * `getRecordsByTag` once per registry entry -- 452 scans of the same bucket for
+     * Librarian's codex. This is one pass over one context.
+     *
+     * Only tags in USE appear. A declared taxonomy tag nobody has applied is absent rather
+     * than present with 0, because this reports assignments and `getChoices` reports
+     * suggestions; conflating them is what made an unused suggestion look like an orphan.
+     *
+     * @param {string} contextKey
+     * @returns {Record<string, number>} tag to record count, empty when the context has none
+     */
+    static getTagCounts(contextKey) {
+        if (!contextKey) return {};
+        const ctx = this._getAssignments()[contextKey];
+        if (!ctx) return {};
+        const counts = {};
+        for (const tags of Object.values(ctx)) {
+            if (!Array.isArray(tags)) continue;
+            for (const tag of tags) counts[tag] = (counts[tag] ?? 0) + 1;
+        }
+        return counts;
+    }
+
     static getRecordsByTag(contextKey, tag) {
         if (!contextKey || !tag) return [];
         const k = normalizeTag(tag);

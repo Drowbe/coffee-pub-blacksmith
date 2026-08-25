@@ -505,6 +505,41 @@ export default {
             }
         },
         {
+            id: 'tag-counts-are-scoped-and-usage-only',
+            label: 'getTagCounts counts one context, and only tags in use',
+            tier: 'headless',
+            group: 'Store shape',
+            note: 'A declared-but-unused tag is absent, not zero. Conflating the two is what read as an orphan.',
+            run: async ({ api, expect }) => {
+                if (!game.user?.isGM) throw new Error('GM only -- cleanup requires GM.');
+                requireApi('tags.setTags', 'tags.getTagCounts');
+
+                const here      = probeScope();
+                const elsewhere = probeScope();
+                const shared    = here.tag('shared');
+                const lonely    = here.tag('lonely');
+
+                try {
+                    await api.tags.setTags(here.contextKey, here.record(0), [shared, lonely]);
+                    await api.tags.setTags(here.contextKey, here.record(1), [shared]);
+                    await api.tags.setTags(here.contextKey, here.record(2), [shared]);
+                    // Same tag, different context -- must not be counted here.
+                    await api.tags.setTags(elsewhere.contextKey, elsewhere.record(0), [shared]);
+
+                    const counts = api.tags.getTagCounts(here.contextKey);
+                    expect('the shared tag counts only this context', counts[shared], 3);
+                    expect('a single-record tag counts once', counts[lonely], 1);
+                    expect('exactly the tags in use are reported', Object.keys(counts).sort(), [shared, lonely].sort());
+
+                    expect('an unknown context is empty, not an error',
+                        api.tags.getTagCounts('zz-harness-tags.nothing-here'), {});
+                } finally {
+                    await restore(api, here, [shared, lonely]);
+                    await restore(api, elsewhere, []);
+                }
+            }
+        },
+        {
             id: 'store-left-clean',
             label: 'No probe data survives a full suite run',
             tier: 'headless',
