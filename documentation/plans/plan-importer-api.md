@@ -157,10 +157,46 @@ users a differently shaped prompt" problem returning by another route.
 Rules address fields by path and may reference an ancestor, because `requiresWhen` above spans a nesting
 level. They never execute module code.
 
+**Closed is also what makes the vocabulary self-correcting, which was not the argument for
+it.** Artificer, 2026-08-25, on why they filed a bug rather than requesting a feature: their
+rules needed a scalar equality test, adding an operator would have been easy, and *because
+extending the set is deliberately expensive they wrote down why they wanted one first* --
+at which point it was obvious the existing `field:value` notation already meant that and
+was only half-implemented. A cheap extension point would have got an `=` operator bolted
+beside a rule that could never fire, and the never-firing rule would have survived. Keep
+extension expensive; the friction is doing work.
+
 **The structured error envelope falls out of this.** A declared field that fails its declared type already
 knows its own `path`; a named rule already knows its own `code`. The `code` / `stage` / `path` / `details`
 shape specified later in this document stops being something a kind has to opt into by throwing richly, and
 becomes a property of the engine.
+
+### Dynamic vocabularies: three cases, two shapes
+
+A field's `values` list is fixed at declaration time. Three consumer fields are not, and
+they are not all the same problem -- which is why the mechanism gets designed against all
+three rather than against the first one to arrive.
+
+| Field | Where the values come from | Shape |
+|---|---|---|
+| Artificer `skill` | a user-configurable mapping JSON read at runtime; differs per world | runtime set |
+| Artificer `artificerFamily` | selected by the value of `artificerType` | conditional set |
+| Librarian codex `category` | user-extensible: a GM types a new one and it exists | runtime set, **members carry data** |
+
+The third is the one that breaks a naive design. A codex category is the grouping key for
+their whole browser, and `categoryIcon` travels with it -- creating a category means
+choosing an icon for it. So a member is not just an allowed string; it is a string with an
+associated value, and `categoryIcon` is declared non-authorable precisely because it is
+derived from the category rather than typed.
+
+A mechanism that only answers "is this value allowed" covers two of the three. Do not
+design it against the runtime-set cases alone and discover the third at step 8.
+
+**Reported by Librarian 2026-08-25, correcting their own earlier answer.** Their field
+mappings described codex `category` as "free text, no fixed vocabulary", which reads as an
+absence of constraint rather than a vocabulary that is populated at runtime. Worth noting
+as a reporting hazard: an unconstrained field and a dynamically-constrained one look
+identical in a field table.
 
 ### Absent and blank are different, everywhere
 

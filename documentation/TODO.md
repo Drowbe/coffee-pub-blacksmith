@@ -238,10 +238,19 @@ the same declaration, so `type` preservation and round-trip equivalence become a
 
 ## Tags: the surface Librarian hits first (opened 2026-08-25)
 
-**Raised by Librarian, holding their H2 adoption pending answers.** They are the first real consumer of
-`api.tags` outside pins and the first consumer of `TagWidget` at all, so these are gaps found by use rather
-than by review. **Do not build them speculatively** -- each one waits until Librarian hits it and says what
-shape it needs. Recorded here so the answer is not re-derived.
+**Librarian's codex adoption shipped 2026-08-25** -- 342 entries migrated, `system.tags` cleared, verified
+across browser cards, tag cloud, search, editor, and journal page view and edit. `api.tags` therefore has a
+real external consumer, and `TagWidget` has its first consumer at all. **Quests have not migrated**; they
+are still parsed out of HTML and move when Librarian's Journal kind lands, so treat "Librarian uses
+`api.tags`" as true of codex and false of quests until told otherwise.
+
+These are the gaps that adoption exposed. **Do not build them speculatively** -- each waits until a consumer
+hits it and says what shape it needs. Recorded here so the answer is not re-derived.
+
+Everything found in this work was found by exercise, not by review: concurrent writes losing each other, a
+player's whole-object write clobbering the store, orphan pin rows in a consumer's bucket, and a rename
+refusing in silence. All four were readable in the source the entire time. Expect a comparable crop when
+quests migrate, and do not read a clean review of that path as evidence it is sound.
 
 - **`moveRecord(contextKey, oldRecordId, newRecordId)`.** Tags are keyed by an opaque `recordId`. Where a
   consumer's own conversion path replaces a document -- Librarian's legacy-codex re-import deletes the page

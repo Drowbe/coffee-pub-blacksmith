@@ -262,9 +262,115 @@ function limitedUses(value, { entry, field, declaration }) {
     }
 }
 
+/**
+ * Spell preparation, authored as a word and stored as a number.
+ * Not an alias: an alias maps one spelling onto another spelling of the same
+ * value, and these are different types, which makes it a conversion.
+ * @param {*} value
+ * @param {{field: object}} context
+ * @returns {number}
+ */
+function spellPreparation(value, { field }) {
+    const stored = { unprepared: 0, prepared: 1, always: 2 }[String(value ?? 'prepared').toLowerCase()];
+    if (stored == null) {
+        throw new TransformError('SPELL_PREPARATION_UNSUPPORTED', field.name,
+            `Unsupported ${field.name} "${value}".`, { actual: value });
+    }
+    return stored;
+}
+
+/**
+ * Casting time into dnd5e's activation block. The authored `units` is the action
+ * type, which reads oddly but is what the system stores.
+ * @param {*} value
+ * @returns {object}
+ */
+function castingActivation(value) {
+    const casting = value ?? {};
+    return {
+        type: casting.units || 'action',
+        value: casting.value ?? 1,
+        condition: casting.condition || ''
+    };
+}
+
+/**
+ * A spell's range block.
+ * @param {*} value
+ * @returns {object}
+ */
+function spellRange(value) {
+    const range = value ?? {};
+    return {
+        value: range.value ?? '',
+        units: range.units || 'self',
+        special: range.special || ''
+    };
+}
+
+/**
+ * A spell's duration block.
+ * @param {*} value
+ * @returns {object}
+ */
+function spellDuration(value) {
+    const duration = value ?? {};
+    return {
+        value: duration.value ?? '',
+        units: duration.units || 'inst',
+        special: duration.special || ''
+    };
+}
+
+/**
+ * A spell's target block. Narrower than an activity's: dnd5e stores no width,
+ * height or prompt here, and writing them would invent structure the system
+ * does not read.
+ * @param {*} value
+ * @returns {object}
+ */
+function spellTarget(value) {
+    const target = value ?? {};
+    return {
+        template: {
+            count: target.templateCount ?? '',
+            contiguous: !!target.contiguous,
+            type: target.templateType || '',
+            size: target.templateSize ?? '',
+            width: '',
+            height: '',
+            units: target.units || 'ft'
+        },
+        affects: {
+            count: target.affectsCount ?? '',
+            type: target.affectsType || '',
+            choice: !!target.choice,
+            special: target.special || ''
+        }
+    };
+}
+
+/**
+ * Spell materials, from the description plus the separately authored cost and
+ * consumed flag. `supply` is always zero at import -- it tracks what a character
+ * actually carries, which is world state rather than a property of the spell.
+ * @param {*} value
+ * @param {{entry: object}} context
+ * @returns {object}
+ */
+function spellMaterials(value, { entry }) {
+    return {
+        value: typeof value === 'string' ? value : '',
+        consumed: !!entry?.materialConsumed,
+        cost: Number(entry?.materialCost) || 0,
+        supply: 0
+    };
+}
+
 /** @type {Record<string, Function>} */
 const TRANSFORMS = {
     slug, attunementIfMagical, limitedUses,
+    spellPreparation, castingActivation, spellRange, spellDuration, spellTarget, spellMaterials,
     price, gmNotes, itemIcon, magicalProperty,
     weaponType, weaponProperties, damagePart, versatileDamage, attunement, weaponRange
 };

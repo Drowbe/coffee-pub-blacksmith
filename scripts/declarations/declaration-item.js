@@ -683,3 +683,84 @@ export const ITEM_FEATURE_DECLARATION = {
 };
 
 registerDeclaration(ITEM_FEATURE_DECLARATION);
+
+/**
+ * Spell: Feature's shape plus dnd5e's casting block.
+ *
+ * The only structural note is `spellPreparation`, which is authored as a word and
+ * stored as a number. `values` plus a transform rather than `aliases`, because
+ * aliases map one spelling onto another spelling of the SAME value -- here the
+ * authored form and the stored form are different types, which is a conversion.
+ */
+export const ITEM_SPELL_DECLARATION = {
+    kind: 'item',
+    id: 'spell',
+    label: 'Spell',
+    schemaVersion: 1,
+    form: 'mapped',
+    document: { documentName: 'Item', type: 'spell' },
+    derive: ['slugIdentifier', 'itemActivities'],
+    fields: [
+        ...describedItemFields('Spell'),
+        { name: 'spellLevel', path: 'system.level', type: 'integer', required: true, example: 1,
+          values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+          guidance: 'The spell level, 0 for a cantrip through 9.' },
+        { name: 'spellSchool', path: 'system.school', type: 'string', required: true, example: 'evo',
+          values: ['abj', 'con', 'div', 'enc', 'evo', 'ill', 'nec', 'trs'],
+          aliases: {
+              abjuration: 'abj', conjuration: 'con', divination: 'div', enchantment: 'enc',
+              evocation: 'evo', illusion: 'ill', necromancy: 'nec', transmutation: 'trs'
+          },
+          guidance: 'The school of magic, as its three-letter code or full name.' },
+        { name: 'spellPreparation', path: 'system.prepared', type: 'string', default: 'prepared',
+          example: 'prepared', values: ['unprepared', 'prepared', 'always'],
+          transform: 'spellPreparation',
+          guidance: 'Whether the spell is unprepared, prepared, or always prepared.' },
+        { name: 'spellAbility', path: 'system.ability', type: 'string', default: '', example: '',
+          guidance: 'The casting ability; blank follows the character.' },
+        { name: 'spellSourceClass', path: 'system.sourceClass', type: 'string', default: '', example: '',
+          guidance: 'The class this spell comes from, if it matters.' },
+        { name: 'spellProperties', path: 'system.properties', type: 'array',
+          default: [], example: ['vocal', 'somatic'],
+          guidance: 'Components and tags: vocal, somatic, material, concentration, ritual.' },
+        { name: 'castingTime', path: 'system.activation', type: 'object',
+          transform: 'castingActivation',
+          example: { value: 1, units: 'action' },
+          guidance: 'How long the spell takes to cast.' },
+        { name: 'spellRange', path: 'system.range', type: 'object', transform: 'spellRange',
+          example: { value: 60, units: 'ft' },
+          guidance: 'How far the spell reaches.' },
+        { name: 'spellDuration', path: 'system.duration', type: 'object', transform: 'spellDuration',
+          example: { value: null, units: 'inst' },
+          guidance: 'How long the spell lasts once cast.' },
+        { name: 'spellTarget', path: 'system.target', type: 'object', transform: 'spellTarget',
+          example: {
+              affectsType: 'creature', affectsCount: 1,
+              templateType: '', templateSize: null, units: 'ft'
+          },
+          guidance: 'What the spell targets, and any measured template.' },
+        // Materials: the description owns the path, cost and consumed feed it.
+        { name: 'materialDescription', path: 'system.materials', type: 'string', default: '', example: '',
+          transform: 'spellMaterials',
+          guidance: 'The material components, described as text.' },
+        { name: 'materialCost', role: 'input', type: 'number', default: 0, example: 0,
+          guidance: 'What the materials cost, in gold.' },
+        { name: 'materialConsumed', role: 'input', type: 'boolean', default: false, example: false,
+          guidance: 'Whether casting consumes the materials.' },
+        // The uses block, on the short key names the spell parser reads.
+        { name: 'usesMax', path: 'system.uses', nullable: true, default: null, example: null,
+          transform: 'limitedUses',
+          spentFrom: 'usesSpent', periodFrom: 'recoveryPeriod',
+          guidance: 'How many times it can be cast before recovery; blank for unlimited.' },
+        { name: 'usesSpent', role: 'input', type: 'integer', default: 0, example: 0,
+          guidance: 'How many of those uses are already spent.' },
+        { name: 'recoveryPeriod', role: 'input', type: 'string', default: 'none', example: 'none',
+          values: ['none', 'long rest', 'short rest', 'day', 'dawn', 'dusk',
+                   'initiative', 'start of turn', 'end of turn', 'recharge'],
+          guidance: 'When spent uses come back.' },
+        { name: 'method', path: 'system.method', const: '',
+          guidance: 'The casting method; never set at import.' }
+    ]
+};
+
+registerDeclaration(ITEM_SPELL_DECLARATION);
