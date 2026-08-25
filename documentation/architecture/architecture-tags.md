@@ -125,6 +125,15 @@ Note the payload key on `changed` is `tags`, not `flags`.
 
 ## Relationship to Pins
 
-Pins predates this system and carried its own tag vocabulary in the `pinTagRegistry` world setting. The canonical store is now `tagRegistry` via this system, with a legacy fallback to `pinTagRegistry` retained during migration, and `_loadPinTaxonomyCompat()` folds `pin-taxonomy.json` entries into the builtin registry under `{moduleId}.{type}` context keys. Pins is therefore a consumer of the Tags system rather than a parallel implementation, but the fallback path is still present — do not assume `pinTagRegistry` is dead when touching either side.
+Pins predates this system and carried its own tag vocabulary in the `pinTagRegistry` world setting. The canonical store is now `tagRegistry`, with a legacy fallback to `pinTagRegistry` retained during migration, and `_loadPinTaxonomyCompat()` folds `pin-taxonomy.json` entries into the builtin registry under `{moduleId}.{type}` context keys. Do not assume `pinTagRegistry` is dead when touching either side.
 
-Pins also writes tag *assignments* into the central store: `_mirrorTagsForPin` (`manager-pins.js:593`) calls `setTags` under `${pin.moduleId}.${pin.type || 'default'}`, and `_clearTagsForPin` removes them on delete. A module whose pin types match its data types therefore shares one context key between its pins and its own records — a codex pin and a codex entry land in `coffee-pub-librarian.codex` together, and see the same suggestion vocabulary. A pin type has assignments in the store whether or not `tag-taxonomy.json` declares a matching context.
+**Pins contributes tags to the registry and stores no assignments.** `_contributeTagsToRegistry` (`manager-pins.js:612`) calls `addRegistryTags`, so a pin's tags join the shared vocabulary and appear as suggestions. The tags themselves live in pin data, which is where pins reads them from -- `normalizePinTags(pin.tags)`, never the central store.
+
+It used to write assignment rows as well, keyed by `pin.id` under `{moduleId}.{type}`, putting a module's pins in the same bucket as that module's own records. Two facts killed that:
+
+- **Nothing read them.** No code in Blacksmith reads a tag assignment back, and pins filters off pin data. The rows were write-only, and visible to the one module that does read the store.
+- **The pin id is the caller's.** The schema defaults it to `''` (`manager-pins-schema.js:333`) and nothing in pins generates one, so its shape is whatever the consuming module chose. A bucket holding two kinds of id from two namespaces, told apart only by a format Blacksmith does not define, cannot be given a contract -- a consumer can only guess, and guess silently wrong.
+
+Librarian found this by migrating 342 codex entries into a bucket that then held 344 rows. A context key's bucket now holds only what its owner put there.
+
+`PinManager.purgeLegacyTagRows()` removes the rows already written, once per world, by enumerating every pin and deleting its row by exact key -- so nothing a module authored is touched. It runs at `ready` after the tag migration and is guarded by the `pinTagRowsPurged` sentinel.

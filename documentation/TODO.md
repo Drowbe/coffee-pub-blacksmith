@@ -251,7 +251,7 @@ shape it needs. Recorded here so the answer is not re-derived.
 
 - **Per-context enumeration, probably `getTagCounts(contextKey)`.** `getRegistry()` is world-wide, so a
   consumer scoping a tag cloud to its own records must call `getRecordsByTag` once per registry tag.
-  Librarian's codex tag cloud is the forcing case.
+  Librarian's codex tag cloud is the forcing case. Now that a bucket holds only its owner's records, a count means one thing -- build it on that assumption, and do not reintroduce mixed row kinds to make some other feature convenient.
 
 - **A bulk assignment write.** A migration of N records is N full read-modify-write cycles of the whole
   setting. Correct since the write path was serialised, but O(N) settings writes; Librarian's codex

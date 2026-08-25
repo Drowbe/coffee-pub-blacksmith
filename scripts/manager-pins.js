@@ -589,16 +589,70 @@ export class PinManager {
         return [...this._getTagRegistry()];
     }
 
-    /** Mirror a pin's current tags into the central tagAssignments store. Best-effort; never throws. */
-    static _mirrorTagsForPin(pin) {
+    /**
+     * Contribute a pin's tags to the shared registry. Best-effort; never throws.
+     *
+     * THIS DOES NOT WRITE AN ASSIGNMENT ROW, deliberately. It used to: every pin write put
+     * `{moduleId}.{type} -> {pinId: tags}` into `tagAssignments`, so a module's pins landed
+     * in the same bucket as its own records. Nothing ever read those rows -- not pins, which
+     * filters off `pin.tags` in pin data, and not any other module -- while they were visible
+     * to the one consumer that does read the store. Librarian migrated 342 codex entries and
+     * found 344 rows, the extra two being their own placed pins, and had to tell the kinds
+     * apart by sniffing id formats.
+     *
+     * That sniffing could never be made safe, because THE PIN ID IS THE CALLER'S. The schema
+     * defaults it to `''` (`manager-pins-schema.js:333`) and nothing here generates one, so
+     * its shape is whatever the consuming module chose and Blacksmith cannot promise anything
+     * about it. A bucket holding two kinds of id from two namespaces, distinguishable only by
+     * a format we do not define, is not a contract worth documenting -- so the rows are gone
+     * instead, and the bucket holds only what its owner put there.
+     *
+     * What the mirror actually achieved was the registry side effect, which is what remains.
+     */
+    static _contributeTagsToRegistry(pin) {
         if (!pin?.id || !pin?.moduleId) return Promise.resolve();
-        return TagManager.setTags(`${pin.moduleId}.${pin.type || 'default'}`, pin.id, pin.tags ?? []).catch(() => {});
+        const tags = pin.tags ?? [];
+        if (!tags.length) return Promise.resolve();
+        return TagManager.addRegistryTags(tags).catch(() => {});
     }
 
-    /** Remove a pin's tag assignments from the central store on delete. Best-effort; never throws. */
-    static _clearTagsForPin(pin) {
-        if (!pin?.id || !pin?.moduleId) return Promise.resolve();
-        return TagManager.deleteRecordTags(`${pin.moduleId}.${pin.type || 'default'}`, pin.id).catch(() => {});
+    /**
+     * One-time removal of the assignment rows the old mirror wrote.
+     *
+     * Every pin in the world is enumerated and its row deleted by exact key, so nothing a
+     * module authored itself is touched -- only rows at a pin's own id under that pin's own
+     * context. One write for the lot. GM only; the sentinel makes it idempotent.
+     */
+    static async purgeLegacyTagRows() {
+        if (!game.user?.isGM) return 0;
+        try {
+            if (game.settings.get(MODULE.ID, 'pinTagRowsPurged')) return 0;
+
+            const rows = [];
+            const collect = (pin) => {
+                if (!pin?.id || !pin?.moduleId) return;
+                rows.push({ contextKey: `${pin.moduleId}.${pin.type || 'default'}`, recordId: pin.id });
+            };
+            for (const scene of game.scenes ?? []) {
+                for (const pin of this._getScenePins(scene)) collect(pin);
+            }
+            for (const pin of this._getUnplacedPins()) collect(pin);
+
+            const removed = await TagManager.purgeRecords(rows);
+            await game.settings.set(MODULE.ID, 'pinTagRowsPurged', true);
+            if (removed > 0) {
+                postConsoleAndNotification(
+                    MODULE.NAME,
+                    `BLACKSMITH | PINS Removed ${removed} legacy pin tag assignment row(s) from the central store.`,
+                    '', false, false
+                );
+            }
+            return removed;
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Legacy pin tag row purge failed.',
+                err?.message || err, false, false);
+            return 0;
+        }
     }
 
     static async _addTagsToRegistry(tags) {
@@ -643,7 +697,7 @@ export class PinManager {
             for (const pin of updated) {
                 if (normalizePinTags(pin.tags).includes(key)) continue;
                 const original = pins.find(p => p.id === pin.id);
-                if (original && normalizePinTags(original.tags).includes(key)) await this._mirrorTagsForPin(pin);
+                if (original && normalizePinTags(original.tags).includes(key)) await this._contributeTagsToRegistry(pin);
             }
         }
         await this._addTagsToRegistry([key]);
@@ -670,7 +724,7 @@ export class PinManager {
             });
             if (!changedPins.length) continue;
             await scene.setFlag(MODULE.ID, 'pins', updated);
-            for (const pin of changedPins) await this._mirrorTagsForPin(pin);
+            for (const pin of changedPins) await this._contributeTagsToRegistry(pin);
         }
 
         const unplacedPins = this._getUnplacedPins();
@@ -685,7 +739,7 @@ export class PinManager {
         });
         if (changedUnplaced.length) {
             await this._setUnplacedPins(updatedUnplaced);
-            for (const pin of changedUnplaced) await this._mirrorTagsForPin(pin);
+            for (const pin of changedUnplaced) await this._contributeTagsToRegistry(pin);
         }
 
         await this._addTagsToRegistry([key]);
@@ -1786,7 +1840,7 @@ export class PinManager {
             }
             const next = [...unplaced, foundry.utils.deepClone(pin)];
             await this._setUnplacedPins(next);
-            this._mirrorTagsForPin(pin);
+            this._contributeTagsToRegistry(pin);
             const apiPin = this._clonePinForApi(pin);
             this._callLifecycleHook('blacksmith.pins.created', { pinId: pin.id, moduleId: pin.moduleId, placement: 'unplaced', pin: apiPin });
             this._invokeRegisteredHandlers('created', {
@@ -1811,7 +1865,7 @@ export class PinManager {
         const next = [...pins, foundry.utils.deepClone(pin)];
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
         this._addTagsToRegistry(pin.tags).catch(() => {});
-        this._mirrorTagsForPin(pin);
+        this._contributeTagsToRegistry(pin);
         const apiPin = this._clonePinForApi(pin, scene.id);
         this._callLifecycleHook('blacksmith.pins.created', { pinId: pin.id, sceneId: scene.id, moduleId: pin.moduleId, placement: 'placed', pin: apiPin });
         this._invokeRegisteredHandlers('created', {
@@ -1880,7 +1934,7 @@ export class PinManager {
                 const scenePins = this._getScenePins(scene);
                 const next = [...scenePins, foundry.utils.deepClone(placed)];
                 await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
-                this._mirrorTagsForPin(placed);
+                this._contributeTagsToRegistry(placed);
                 const apiPin = this._clonePinForApi(placed, scene.id);
                 this._callLifecycleHook('blacksmith.pins.placed', { pinId, sceneId: scene.id, moduleId: placed.moduleId, type: placed.type ?? 'default', pin: apiPin });
                 this._invokeRegisteredHandlers('placed', {
@@ -1908,7 +1962,7 @@ export class PinManager {
             const unplaced = this._getUnplacedPins();
             const next = unplaced.map((p) => (p.id === pinId ? foundry.utils.deepClone(updated) : p));
             await this._setUnplacedPins(next);
-            this._mirrorTagsForPin(updated);
+            this._contributeTagsToRegistry(updated);
             const apiPin = this._clonePinForApi(updated);
             this._callLifecycleHook('blacksmith.pins.updated', { pinId, sceneId: null, moduleId: updated.moduleId, type: updated.type ?? 'default', patch, pin: apiPin });
             this._invokeRegisteredHandlers('updated', {
@@ -1960,7 +2014,7 @@ export class PinManager {
         next[idx] = foundry.utils.deepClone(updated);
         await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
         this._addTagsToRegistry(updated.tags).catch(() => {});
-        this._mirrorTagsForPin(updated);
+        this._contributeTagsToRegistry(updated);
         const apiPin = this._clonePinForApi(updated, scene.id);
         this._callLifecycleHook('blacksmith.pins.updated', { pinId, sceneId: scene.id, moduleId: updated.moduleId ?? existing.moduleId, type: updated.type ?? existing.type, patch, pin: apiPin });
         this._invokeRegisteredHandlers('updated', {
@@ -2256,11 +2310,9 @@ export class PinManager {
         if (loc.location === 'unplaced') {
             const next = this._getUnplacedPins().filter((p) => p.id !== pinId);
             await this._setUnplacedPins(next);
-            this._clearTagsForPin(existing);
         } else {
             const pins = this._getScenePins(loc.scene).filter((p) => p.id !== pinId);
             await loc.scene.setFlag(MODULE.ID, this.FLAG_KEY, pins);
-            this._clearTagsForPin(existing);
             if (loc.scene.id === canvas?.scene?.id) {
                 import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
                     PinRenderer.removePin(pinId);

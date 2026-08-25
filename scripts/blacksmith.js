@@ -766,6 +766,9 @@ Hooks.once('ready', async () => {
         await TagManager.ensureTaxonomyLoaded();
         TagManager.registerGMProxy().catch(() => {});
         TagManager.runMigration().catch(() => {});
+        // Removes the assignment rows the old pin tag mirror wrote. Runs after the tag
+        // migration so it operates on the final store, and is a no-op once its sentinel is set.
+        PinManager.purgeLegacyTagRows().catch(() => {});
         PinManager.backfillFlagAssignments().catch(() => {});
 
         // JOURNAL TOOLS

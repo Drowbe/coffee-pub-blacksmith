@@ -405,6 +405,34 @@ export default {
             }
         },
         {
+            id: 'registry-contribution-creates-no-row',
+            label: 'A registry contribution adds no assignment row',
+            tier: 'headless',
+            group: 'Store shape',
+            note: 'How pin tags reach the vocabulary without occupying a row in a module\'s bucket.',
+            run: async ({ api, expect }) => {
+                if (!game.user?.isGM) throw new Error('GM only -- cleanup requires GM.');
+
+                const scope = probeScope();
+                const tag   = scope.tag('registry-only');
+                const before = assignmentsSnapshot();
+
+                try {
+                    const { TagManager } = await import(
+                        '/modules/coffee-pub-blacksmith/scripts/manager-tags.js');
+                    await TagManager.addRegistryTags([tag]);
+
+                    expect.ok('the tag is in the registry', api.tags.getRegistry().includes(tag));
+
+                    const after = assignmentsSnapshot();
+                    expect('no assignment row was created anywhere',
+                        JSON.stringify(after), JSON.stringify(before));
+                } finally {
+                    await restore(api, scope, [tag]);
+                }
+            }
+        },
+        {
             id: 'store-left-clean',
             label: 'No probe data survives a full suite run',
             tier: 'headless',

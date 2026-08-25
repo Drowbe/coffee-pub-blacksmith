@@ -40,7 +40,13 @@ observe this - it needs two, and it needs them out of step.
   the old code destroyed.
 - [ ] **Player write with no GM online fails cleanly.** `_requestGM` throws "No GM is currently online".
   Expect a refusal, not a silent no-op and not a partial write.
-- [ ] **Bulk pin tag strip mirrors completely.** As GM, strip a tag from a scene holding several pins that
+- [ ] **A pin write leaves no assignment row.** Create a tagged pin, then read
+  `tagAssignments` for `{moduleId}.{type}`: the bucket must not gain a row, and the tag must
+  appear in `api.tags.getRegistry()`. The harness asserts the primitive; this proves the caller.
+- [ ] **The legacy purge runs once and removes only pin rows.** Note the row count for a
+  context holding both entities and pins, reload, and confirm only the pin rows went. Reload
+  again: the sentinel makes it a no-op, and nothing further disappears.
+- [ ] **Bulk pin tag strip is clean.** As GM, strip a tag from a scene holding several pins that
   carry it. Every stripped pin's central assignment must be gone, not just the last one's. This is the
   original report; the suite proves the primitive, this proves the caller.
 

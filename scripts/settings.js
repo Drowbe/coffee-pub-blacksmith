@@ -1572,6 +1572,16 @@ export const registerSettings = () => {
 	});
 
 	// One-time migration sentinel: set true after pinTagRegistry is seeded into tagRegistry
+	// One-time sentinel: set true after the assignment rows written by the old pin tag
+	// mirror have been removed. Pin tags live in pin data and contribute to the registry;
+	// they no longer occupy a row in tagAssignments. See architecture-tags.md.
+	game.settings.register(MODULE.ID, 'pinTagRowsPurged', {
+		scope: 'world',
+		config: false,
+		type: Boolean,
+		default: false
+	});
+
 	game.settings.register(MODULE.ID, 'tagsMigrationComplete', {
 		scope: 'world',
 		config: false,

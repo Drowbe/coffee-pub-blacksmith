@@ -162,6 +162,40 @@ knows its own `path`; a named rule already knows its own `code`. The `code` / `s
 shape specified later in this document stops being something a kind has to opt into by throwing richly, and
 becomes a property of the engine.
 
+### Absent and blank are different, everywhere
+
+Three independent instances in three modules, which is what makes it a rule rather
+than a quirk:
+
+- Librarian's codex `expandedDetails`: absent PRESERVES the page text, present-and-empty
+  REPLACES it with empty. Indistinguishable in JSON without saying which is meant.
+- Blacksmith's field model: `absentMeans: 'default' | 'preserve'`, which exists for
+  exactly that.
+- Artificer's recipe parser (found 2026-08-25): a modern page with a blank `Apparatus:`
+  label and a legacy page with NO `Apparatus:` label are different documents. The legacy
+  page predates the field split, so its container genuinely is the apparatus. Their code
+  tested the parsed value, which cannot tell blank from absent, and so applied the legacy
+  reading to modern pages.
+
+**Testing a parsed value cannot answer the question.** Whether a key, a label or a field
+was *present* has to be tracked separately from what it contained, at the point of
+reading, or the two collapse and one of them silently takes the other's behaviour. A
+declaration says which it means; a reader has to record it.
+
+### A conversion inherits every defect of the reader that feeds it
+
+Contributed by Artificer 2026-08-25 while sequencing their own text-to-subtype migration.
+
+Converting untyped pages to a declared subtype means reading them with the existing
+parser and writing the result into the new schema. **Any bug in that reader stops being
+a bug and becomes data**, permanently, at the moment of conversion -- it is no longer
+something a later parser fix can correct, because the source it was derived from is gone.
+
+So a reader defect must be fixed before conversion, not merely before the profile is
+declared. It applies to every consumer taking this path, and the exposure scales with how
+much the reader infers: Artificer's parser matches bolded labels, Librarian's is a regex
+over generated HTML.
+
 ### Defaults may supply a zero, never an attribution
 
 Contributed by Librarian 2026-08-25, after the same class of bug was found three

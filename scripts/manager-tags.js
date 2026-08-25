@@ -339,6 +339,7 @@ export class TagManager {
             case 'mergeRecordTags':  return this._applyMergeRecordTags(params);
             case 'deleteRecordTags': return this._applyDeleteRecordTags(params);
             case 'addRegistryTags':  return this._applyAddRegistryTags(params);
+            case 'purgeRecords':     return this._applyPurgeRecords(params);
             case 'adoptLegacyStore': return this._applyAdoptLegacyStore(params);
             case 'renameTag':        return this._applyRenameTag(params);
             case 'deleteTag':        return this._applyDeleteTag(params);
@@ -422,6 +423,33 @@ export class TagManager {
         return { tags: written, changed: true };
     }
 
+    /**
+     * Drop many records in one cycle.
+     *
+     * One write, not one per record: purging N rows through `deleteRecordTags` would be
+     * N full read-modify-writes of the whole setting, which for a world with hundreds of
+     * pins is the cost this write path exists to make unnecessary.
+     *
+     * @param {{records: Array<{contextKey: string, recordId: string}>}} params
+     * @returns {Promise<number>} how many rows were actually present and removed
+     */
+    static async _applyPurgeRecords({ records }) {
+        if (!Array.isArray(records) || records.length === 0) return 0;
+        const assignments = foundry.utils.deepClone(this._getAssignments());
+        const touched = new Set();
+        let removed = 0;
+        for (const { contextKey, recordId } of records) {
+            if (!contextKey || !recordId) continue;
+            if (!assignments[contextKey]?.[recordId]) continue;
+            delete assignments[contextKey][recordId];
+            touched.add(contextKey);
+            removed++;
+        }
+        if (removed === 0) return 0;
+        await this._putAssignments(assignments, [...touched]);
+        return removed;
+    }
+
     static async _applyDeleteRecordTags({ contextKey, recordId }) {
         const assignments = foundry.utils.deepClone(this._getAssignments());
         if (!assignments[contextKey]?.[recordId]) return false;
@@ -467,6 +495,28 @@ export class TagManager {
     static async deleteRecordTags(contextKey, recordId) {
         if (!contextKey || !recordId) return;
         await this._mutate('deleteRecordTags', { contextKey, recordId });
+    }
+
+    /**
+     * Contribute tags to the world registry WITHOUT attaching them to a record.
+     *
+     * For a caller whose tags are worth offering as suggestions but whose records are not
+     * the assignment store's business -- pins, whose tags live in pin data and are read
+     * from there. See the Pins note in architecture-tags.md.
+     */
+    static async addRegistryTags(tagArray) {
+        const tags = normalizeTagArray(tagArray);
+        if (tags.length === 0) return;
+        await this._mutate('addRegistryTags', { tags });
+    }
+
+    /**
+     * Remove many records at once. Takes `[{contextKey, recordId}]` and costs one write.
+     * @returns {Promise<number>} rows actually removed
+     */
+    static async purgeRecords(records) {
+        if (!Array.isArray(records) || records.length === 0) return 0;
+        return (await this._mutate('purgeRecords', { records })) ?? 0;
     }
 
     static getRecordsByTag(contextKey, tag) {
