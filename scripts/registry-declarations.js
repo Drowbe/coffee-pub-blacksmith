@@ -132,7 +132,7 @@ function keyFor(kindId, profileId) {
  * @param {string} form
  * @param {string} where
  */
-function validateField(field, form, where) {
+function validateField(field, form, where, nested = false) {
     if (!field || typeof field !== 'object') {
         throw new Error(`${where}: each field must be an object`);
     }
@@ -145,9 +145,11 @@ function validateField(field, form, where) {
     if (field.role !== undefined && !ROLES.has(field.role)) {
         throw new Error(`${at}: role must be one of ${[...ROLES].join(', ')}`);
     }
-    // A mapped profile lands every field somewhere. The exceptions are explicit:
-    // a selector picks the profile, an envelope is consumed by a transform.
-    if (form === 'mapped' && !field.path && !field.role && !Array.isArray(field.fields)) {
+    // A mapped profile lands every top-level field somewhere. The exceptions are
+    // explicit: a selector picks the profile, an envelope is consumed by a transform.
+    // A NESTED field is exempt -- its parent owns the document path and the nesting
+    // describes the shape of the value, not another place to write.
+    if (!nested && form === 'mapped' && !field.path && !field.role && !Array.isArray(field.fields)) {
         throw new Error(`${at}: a mapped profile requires a path, a role, or nested fields`);
     }
     if (field.absentMeans !== undefined && !ABSENT_MEANS.has(field.absentMeans)) {
@@ -203,7 +205,7 @@ function validateField(field, form, where) {
         throw new Error(`${at}: a non-authorable field cannot carry a template example`);
     }
     if (Array.isArray(field.fields)) {
-        validateFields(field.fields, form, at);
+        validateFields(field.fields, form, at, true);
     }
 }
 
@@ -212,13 +214,13 @@ function validateField(field, form, where) {
  * @param {string} form
  * @param {string} where
  */
-function validateFields(fields, form, where) {
+function validateFields(fields, form, where, nested = false) {
     if (!Array.isArray(fields)) {
         throw new Error(`${where}: fields must be an array`);
     }
     const seen = new Set();
     for (const field of fields) {
-        validateField(field, form, where);
+        validateField(field, form, where, nested);
         const name = String(field.name).trim();
         if (seen.has(name)) {
             throw new Error(`${where}: duplicate field name "${name}"`);

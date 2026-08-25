@@ -457,3 +457,106 @@ export const ITEM_CONTAINER_DECLARATION = {
 registerDeclaration(ITEM_EQUIPMENT_DECLARATION);
 registerDeclaration(ITEM_TOOL_DECLARATION);
 registerDeclaration(ITEM_CONTAINER_DECLARATION);
+
+// ------------------------------------------------------------------
+// The described profiles: feature and spell.
+//
+// These two share almost nothing with the physical items above. They carry no
+// rarity, weight, price, quantity or identified state, and they do carry an
+// identifier slug and authored activities. `_descriptionSystem` in the parser
+// is the seam: physical items use `_sharedItemSystem`, these use the other one.
+// ------------------------------------------------------------------
+
+/** Fields both described profiles share, in the order the template emits them. */
+function describedItemFields(itemTypeExample) {
+    return [
+        { name: 'itemName', path: 'name', type: 'string', required: true, acceptsKeys: ['name'],
+          example: '', guidance: 'The name as it appears in the sidebar and on a character sheet.' },
+        { name: 'itemDescription', path: 'system.description.value', type: 'string', default: '',
+          guidance: 'The description shown on the sheet, as HTML or plain prose.' },
+        { name: 'itemDescriptionChat', path: 'system.description.chat', type: 'string', default: '',
+          guidance: 'A shorter description posted to chat when it is used.' },
+        { name: 'itemGMNotes', path: 'flags.coffee-pub-blacksmith.gmNotes', type: 'string', default: '',
+          acceptsKeys: ['gmNotes'], transform: 'gmNotes',
+          guidance: 'Private notes for the GM, never shown to players.' },
+        { name: 'itemType', role: 'selector', type: 'string', example: itemTypeExample,
+          guidance: 'Which kind of item this is; it selects the rest of the schema.' },
+        { name: 'itemImagePath', path: 'img', type: 'string', default: '', transform: 'itemIcon',
+          guidance: 'Path to the artwork; Blacksmith guesses an icon when it is blank.' },
+        // Read by the itemActivities derivation, which produces both system.activities
+        // and effects together -- _buildActivities pushes applied effects into the array.
+        { name: 'activities', role: 'input', type: 'array', default: [], example: [],
+          guidance: 'Activities this grants: attack, damage, heal, save or utility.' },
+        { name: 'effects', role: 'input', type: 'array', default: [], example: [],
+          guidance: 'Active Effects carried alongside the activities.' },
+        { name: 'itemSource', path: 'system.source.custom', type: 'string', default: '',
+          example: '[ADD-CAMPAIGN-NAME-HERE]',
+          guidance: 'Where this comes from, usually the campaign name.' },
+        { name: 'itemLicense', path: 'system.source.license', type: 'string', default: '',
+          example: 'CC BY 4.0', guidance: 'The licence the content is published under, if any.' },
+        { name: 'flags', path: 'flags', type: 'object', merge: 'mergeNamespaces',
+          requiresOption: 'includeArtificer',
+          guidance: 'Module-owned data, keyed by module id, passed through untouched.' }
+    ];
+}
+
+/**
+ * Feature: the first profile whose activities are AUTHORED rather than generated.
+ *
+ * A weapon's attack activity is derived and authoring one is refused; here the
+ * author writes them and Blacksmith converts. Same derivation position, opposite
+ * relationship to the author -- which is why `activities` is `role: 'input'` in
+ * both places but carries a `mustBeEmpty` rule in only one.
+ */
+export const ITEM_FEATURE_DECLARATION = {
+    kind: 'item',
+    id: 'feature',
+    label: 'Feature',
+    schemaVersion: 1,
+    form: 'mapped',
+    document: { documentName: 'Item', type: 'feat' },
+    derive: ['slugIdentifier', 'itemActivities'],
+    fields: [
+        ...describedItemFields('Feature'),
+        { name: 'featureType', path: 'system.type.value', type: 'string', default: 'monster',
+          example: 'monster',
+          values: ['background', 'class', 'monster', 'race', 'enchantment', 'feat',
+                   'supernaturalGift', 'vehicle'],
+          guidance: 'What kind of feature this is: a class feature, a monster trait, a feat.' },
+        { name: 'featureSubtype', path: 'system.type.subtype', type: 'string', default: '', example: '',
+          guidance: 'A narrower category within the feature type, if the system defines one.' },
+        { name: 'featureRequirements', path: 'system.requirements', type: 'string', nullable: true,
+          default: null, example: '',
+          guidance: 'What must be true to have this feature, as free text.' },
+        { name: 'featureProperties', path: 'system.properties', type: 'array', default: [], example: [],
+          guidance: 'System properties the feature carries.' },
+        // The uses block: max owns the path, the other three feed it. The parser reads
+        // each of them under a short alias too, and the transform honours those.
+        { name: 'featureUsesMax', path: 'system.uses', nullable: true, default: null, example: null,
+          acceptsKeys: ['usesMax'], transform: 'limitedUses',
+          spentFrom: 'featureUsesSpent', periodFrom: 'featureRecoveryPeriod',
+          formulaFrom: 'featureRecoveryFormula',
+          guidance: 'How many times it can be used before recovery; leave blank for unlimited.' },
+        { name: 'featureUsesSpent', role: 'input', type: 'integer', default: 0, example: 0,
+          acceptsKeys: ['usesSpent'], guidance: 'How many uses are already spent.' },
+        { name: 'featureRecoveryPeriod', role: 'input', type: 'string', default: 'none', example: 'none',
+          acceptsKeys: ['recoveryPeriod'],
+          values: ['none', 'long rest', 'short rest', 'day', 'dawn', 'dusk',
+                   'initiative', 'start of turn', 'end of turn', 'recharge'],
+          guidance: 'When spent uses come back.' },
+        { name: 'featureRecoveryFormula', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'For a recharge period, the die that recharges it.' },
+        // dnd5e expects all five on a feat and none is an import-time decision.
+        { name: 'advancement', path: 'system.advancement', const: [],
+          guidance: 'Advancement steps; never set at import.' },
+        { name: 'cover', path: 'system.cover', const: null, guidance: 'Cover granted; never set at import.' },
+        { name: 'crewed', path: 'system.crewed', const: false, guidance: 'Vehicle crewing state.' },
+        { name: 'enchant', path: 'system.enchant', const: { max: '', period: '' },
+          guidance: 'Enchantment limits; never set at import.' },
+        { name: 'prerequisites', path: 'system.prerequisites',
+          const: { items: [], level: null, repeatable: false },
+          guidance: 'Structured prerequisites; never set at import.' }
+    ]
+};
+
+registerDeclaration(ITEM_FEATURE_DECLARATION);

@@ -63,8 +63,19 @@ function isShown(field, options) {
  */
 function templateValue(field) {
     if (field.example !== undefined) return field.example;
+    // Nested fields come BEFORE `default`: a declared shape produces one worked
+    // element, which is a far better starting point than an empty array. The old
+    // builder hand-maintained a 30-field example activity for exactly this reason;
+    // deriving it means the example cannot drift from what validation accepts.
+    if (Array.isArray(field.fields)) {
+        const element = {};
+        for (const nested of field.fields) {
+            if (!isAuthorable(nested)) continue;
+            element[nested.name] = templateValue(nested);
+        }
+        return field.type === 'array' ? [element] : element;
+    }
     if (field.default !== undefined) return field.default;
-    if (Array.isArray(field.fields)) return field.type === 'array' ? [] : {};
     switch (field.type) {
         case 'array': return [];
         case 'object': return {};
