@@ -255,7 +255,16 @@ shape it needs. Recorded here so the answer is not re-derived.
 
 - **A bulk assignment write.** A migration of N records is N full read-modify-write cycles of the whole
   setting. Correct since the write path was serialised, but O(N) settings writes; Librarian's codex
-  migration is 342. Wait and see whether it is actually too slow before adding surface.
+  migration was 342. Wait and see whether it is actually too slow before adding surface.
+
+- **A bulk rename is NOT wanted, on current evidence.** Recorded because the opposite is easy to assume
+  from the vocabulary size. Librarian's codex holds 452 distinct tags with 264 used exactly once, and the
+  singletons are legitimate one-off descriptors -- `baker`, `tanner`, `stablemaster` -- each accurately
+  describing one entry. They make a tag cloud long, not wrong, and there is nothing to merge them into.
+  Their actual curation is about ten merges and two deletions. **Do not read a singleton count as a rename
+  count**; that inference was made here once and Librarian corrected it. Roughly ten serialized writes and
+  ten `blacksmith.tags.renamed` events trouble nothing, so the volume argument for bulk rename has no
+  evidence behind it yet.
 
 **`TagWidget` `mode: 'filter'` is declared and inert** -- `activate()` returns immediately because the
 filter branch renders no `input[data-tag-value]` (`widget-tags.js:88`), so the toggles are wired to nothing.
