@@ -236,6 +236,35 @@ The export half has its own section below (**Import/export and module-owned docu
 constraints are unchanged and the declaration model is what finally makes them enforceable: export inverts
 the same declaration, so `type` preservation and round-trip equivalence become assertions rather than hopes.
 
+## Tags: the surface Librarian hits first (opened 2026-08-25)
+
+**Raised by Librarian, holding their H2 adoption pending answers.** They are the first real consumer of
+`api.tags` outside pins and the first consumer of `TagWidget` at all, so these are gaps found by use rather
+than by review. **Do not build them speculatively** -- each one waits until Librarian hits it and says what
+shape it needs. Recorded here so the answer is not re-derived.
+
+- **`moveRecord(contextKey, oldRecordId, newRecordId)`.** Tags are keyed by an opaque `recordId`. Where a
+  consumer's own conversion path replaces a document -- Librarian's legacy-codex re-import deletes the page
+  and creates a new one -- the id changes and the assignment orphans silently. The consumer can already
+  carry it across in three calls (`getTags` / `setTags` / `deleteRecordTags`) at the point of replacement,
+  which is the advice given. This exists only if hand-rolling that turns out to recur across consumers.
+
+- **Per-context enumeration, probably `getTagCounts(contextKey)`.** `getRegistry()` is world-wide, so a
+  consumer scoping a tag cloud to its own records must call `getRecordsByTag` once per registry tag.
+  Librarian's codex tag cloud is the forcing case.
+
+- **A bulk assignment write.** A migration of N records is N full read-modify-write cycles of the whole
+  setting. Correct since the write path was serialised, but O(N) settings writes; Librarian's codex
+  migration is 342. Wait and see whether it is actually too slow before adding surface.
+
+**`TagWidget` `mode: 'filter'` is declared and inert** -- `activate()` returns immediately because the
+filter branch renders no `input[data-tag-value]` (`widget-tags.js:88`), so the toggles are wired to nothing.
+Decide one of two things, and do not leave it as it is: implement it, or delete the branch and the
+`filterItems` half of `prepareData`. **It is not a record filter** -- it toggles `tagVisibility`, a per-user
+display preference, so it is not the thing a consumer building a tag cloud wants and should not be sold as
+one. That is worth saying in `api-tags.md` whichever way the decision goes.
+
+
 ## Importer: the shared parts are ours, and they are declared by reference (opened 2026-08-23)
 
 **The overlap between modules is not coincidence.** Comparing Librarian's codex and quest payloads against

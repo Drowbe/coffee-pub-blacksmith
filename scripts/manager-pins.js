@@ -591,14 +591,14 @@ export class PinManager {
 
     /** Mirror a pin's current tags into the central tagAssignments store. Best-effort; never throws. */
     static _mirrorTagsForPin(pin) {
-        if (!pin?.id || !pin?.moduleId) return;
-        TagManager.setTags(`${pin.moduleId}.${pin.type || 'default'}`, pin.id, pin.tags ?? []).catch(() => {});
+        if (!pin?.id || !pin?.moduleId) return Promise.resolve();
+        return TagManager.setTags(`${pin.moduleId}.${pin.type || 'default'}`, pin.id, pin.tags ?? []).catch(() => {});
     }
 
     /** Remove a pin's tag assignments from the central store on delete. Best-effort; never throws. */
     static _clearTagsForPin(pin) {
-        if (!pin?.id || !pin?.moduleId) return;
-        TagManager.deleteRecordTags(`${pin.moduleId}.${pin.type || 'default'}`, pin.id).catch(() => {});
+        if (!pin?.id || !pin?.moduleId) return Promise.resolve();
+        return TagManager.deleteRecordTags(`${pin.moduleId}.${pin.type || 'default'}`, pin.id).catch(() => {});
     }
 
     static async _addTagsToRegistry(tags) {
@@ -643,7 +643,7 @@ export class PinManager {
             for (const pin of updated) {
                 if (normalizePinTags(pin.tags).includes(key)) continue;
                 const original = pins.find(p => p.id === pin.id);
-                if (original && normalizePinTags(original.tags).includes(key)) this._mirrorTagsForPin(pin);
+                if (original && normalizePinTags(original.tags).includes(key)) await this._mirrorTagsForPin(pin);
             }
         }
         await this._addTagsToRegistry([key]);
@@ -670,7 +670,7 @@ export class PinManager {
             });
             if (!changedPins.length) continue;
             await scene.setFlag(MODULE.ID, 'pins', updated);
-            for (const pin of changedPins) this._mirrorTagsForPin(pin);
+            for (const pin of changedPins) await this._mirrorTagsForPin(pin);
         }
 
         const unplacedPins = this._getUnplacedPins();
@@ -685,7 +685,7 @@ export class PinManager {
         });
         if (changedUnplaced.length) {
             await this._setUnplacedPins(updatedUnplaced);
-            for (const pin of changedUnplaced) this._mirrorTagsForPin(pin);
+            for (const pin of changedUnplaced) await this._mirrorTagsForPin(pin);
         }
 
         await this._addTagsToRegistry([key]);

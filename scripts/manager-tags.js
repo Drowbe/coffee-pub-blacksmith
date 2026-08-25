@@ -281,6 +281,73 @@ export class TagManager {
     }
 
     // ============================================================
+    // Serialized write path
+    // ============================================================
+    //
+    // Every mutation of `tagAssignments` or `tagRegistry` is a read-modify-write of
+    // the WHOLE setting: read the object, clone it, change one key, write it back.
+    // That is only safe if exactly one such cycle is in flight at a time, and two
+    // things used to break that guarantee:
+    //
+    //   1. Concurrent callers on one client. Two un-awaited `setTags` calls -- a loop
+    //      of pin mirrors, or a consumer's `Promise.all` -- each cloned the same stale
+    //      snapshot, so the last write silently discarded every earlier one.
+    //   2. Players. A non-GM used to compute the entire assignments object locally and
+    //      ship it to the GM, who wrote it verbatim. A player holding a snapshot from
+    //      before a GM edit did not merely lose a race -- they overwrote every context
+    //      key for every module with their stale copy.
+    //
+    // Both are fixed here. `_mutate` is the single entry point for every write: on the
+    // GM it queues the cycle behind any cycle already running, and on a player it sends
+    // the DELTA (what changed, not the resulting object) so the GM performs its own
+    // read-modify-write against current data -- also queued, since several players'
+    // requests can land together.
+    //
+    // The invariant to preserve: nothing outside `_applyMutation` may call
+    // `game.settings.set` on either key, and `_applyMutation` runs only inside `_enqueue`.
+
+    /** Tail of the serialized write chain. Never rejects, so one failure cannot stall the queue. */
+    static _writeChain = Promise.resolve();
+
+    /**
+     * Run a read-modify-write cycle after all previously queued cycles have settled.
+     * @param {() => Promise<any>} task
+     * @returns {Promise<any>} the task's own result, rejecting as the task rejects
+     */
+    static _enqueue(task) {
+        const run = this._writeChain.then(() => task());
+        this._writeChain = run.then(() => {}, () => {});
+        return run;
+    }
+
+    /**
+     * Single entry point for every tag mutation.
+     * GM: queue it locally. Player: send the delta to the GM, who queues it there.
+     */
+    static async _mutate(action, params) {
+        if (game.user?.isGM) return this._enqueue(() => this._applyMutation(action, params));
+        return this._requestGM(action, params);
+    }
+
+    /**
+     * Perform one mutation against current setting data. GM-side only, and only ever
+     * called from inside `_enqueue`.
+     */
+    static async _applyMutation(action, params) {
+        switch (action) {
+            case 'setRecordTags':    return this._applySetRecordTags(params);
+            case 'mergeRecordTags':  return this._applyMergeRecordTags(params);
+            case 'deleteRecordTags': return this._applyDeleteRecordTags(params);
+            case 'addRegistryTags':  return this._applyAddRegistryTags(params);
+            case 'adoptLegacyStore': return this._applyAdoptLegacyStore(params);
+            case 'renameTag':        return this._applyRenameTag(params);
+            case 'deleteTag':        return this._applyDeleteTag(params);
+            default:
+                throw new Error(`Unknown tags mutation: ${action}`);
+        }
+    }
+
+    // ============================================================
     // Central assignment store
     // ============================================================
 
@@ -289,17 +356,38 @@ export class TagManager {
         return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
     }
 
-    static async _writeAssignments(data) {
-        if (game.user?.isGM) {
-            await game.settings.set(MODULE.ID, TAG_ASSIGNMENTS_KEY, data);
-        } else {
-            await this._requestGM('writeAssignments', { data });
+    /**
+     * Write assignments, pruning context buckets left with no records.
+     *
+     * `pruneContexts` NAMES WHAT THIS WRITE TOUCHED, and pruning is confined to it.
+     * Sweeping the whole object instead would be tidier and is wrong: a write to one
+     * context would then also edit unrelated contexts, which destroys the one property
+     * worth asserting about this path -- that a write changes nothing outside its own
+     * scope. That assertion is the guard against a stale client overwriting the store,
+     * so it has to stay sharp. A caller that genuinely visits every context (rename,
+     * delete, legacy adoption) passes `null` to mean all of them.
+     *
+     * Empty buckets left elsewhere by older versions are inert and are cleaned when
+     * their own context is next written.
+     *
+     * Inside `_enqueue` only.
+     *
+     * @param {object} assignments
+     * @param {string[]|null} pruneContexts context keys this write touched, or null for all
+     */
+    static async _putAssignments(assignments, pruneContexts) {
+        const scope = pruneContexts === null ? Object.keys(assignments) : (pruneContexts ?? []);
+        for (const contextKey of scope) {
+            const records = assignments[contextKey];
+            if (records && typeof records === 'object' && Object.keys(records).length === 0) {
+                delete assignments[contextKey];
+            }
         }
+        await game.settings.set(MODULE.ID, TAG_ASSIGNMENTS_KEY, assignments);
     }
 
-    static async setTags(contextKey, recordId, tagArray) {
-        if (!contextKey || !recordId) return;
-        const normalized = normalizeTagArray(tagArray);
+    static async _applySetRecordTags({ contextKey, recordId, tags }) {
+        const normalized  = normalizeTagArray(tags);
         const assignments = foundry.utils.deepClone(this._getAssignments());
         if (!assignments[contextKey]) assignments[contextKey] = {};
         if (normalized.length > 0) {
@@ -307,9 +395,38 @@ export class TagManager {
         } else {
             delete assignments[contextKey][recordId];
         }
-        await this._writeAssignments(assignments);
-        if (normalized.length > 0) await this._addToRegistry(normalized);
-        Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: normalized });
+        await this._putAssignments(assignments, [contextKey]);
+        if (normalized.length > 0) await this._applyAddRegistryTags({ tags: normalized });
+        return normalized;
+    }
+
+    /**
+     * Add or remove tags on a record, resolved against current data rather than against
+     * a snapshot the caller read earlier. This is why `addTags` / `removeTags` are their
+     * own delta operations instead of a read followed by `setTags`.
+     */
+    static async _applyMergeRecordTags({ contextKey, recordId, tags, op }) {
+        const delta   = normalizeTagArray(tags);
+        const current = this.getTags(contextKey, recordId);
+        const next = op === 'remove'
+            ? current.filter(t => !delta.includes(t))
+            : [...current, ...delta.filter(t => !current.includes(t))];
+        if (next.length === current.length) return current;
+        return this._applySetRecordTags({ contextKey, recordId, tags: next });
+    }
+
+    static async _applyDeleteRecordTags({ contextKey, recordId }) {
+        const assignments = foundry.utils.deepClone(this._getAssignments());
+        if (!assignments[contextKey]?.[recordId]) return false;
+        delete assignments[contextKey][recordId];
+        await this._putAssignments(assignments, [contextKey]);
+        return true;
+    }
+
+    static async setTags(contextKey, recordId, tagArray) {
+        if (!contextKey || !recordId) return;
+        const tags = await this._mutate('setRecordTags', { contextKey, recordId, tags: tagArray });
+        Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: tags ?? [] });
     }
 
     static getTags(contextKey, recordId) {
@@ -321,25 +438,24 @@ export class TagManager {
     }
 
     static async addTags(contextKey, recordId, tagArray) {
-        const current = this.getTags(contextKey, recordId);
-        const toAdd   = normalizeTagArray(tagArray).filter(f => !current.includes(f));
+        if (!contextKey || !recordId) return;
+        const toAdd = normalizeTagArray(tagArray);
         if (toAdd.length === 0) return;
-        await this.setTags(contextKey, recordId, [...current, ...toAdd]);
+        const tags = await this._mutate('mergeRecordTags', { contextKey, recordId, tags: toAdd, op: 'add' });
+        Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: tags ?? [] });
     }
 
     static async removeTags(contextKey, recordId, tagArray) {
-        const remove  = new Set(normalizeTagArray(tagArray));
-        const current = this.getTags(contextKey, recordId).filter(f => !remove.has(f));
-        await this.setTags(contextKey, recordId, current);
+        if (!contextKey || !recordId) return;
+        const toRemove = normalizeTagArray(tagArray);
+        if (toRemove.length === 0) return;
+        const tags = await this._mutate('mergeRecordTags', { contextKey, recordId, tags: toRemove, op: 'remove' });
+        Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: tags ?? [] });
     }
 
     static async deleteRecordTags(contextKey, recordId) {
         if (!contextKey || !recordId) return;
-        const assignments = foundry.utils.deepClone(this._getAssignments());
-        if (!assignments[contextKey]?.[recordId]) return;
-        delete assignments[contextKey][recordId];
-        if (Object.keys(assignments[contextKey]).length === 0) delete assignments[contextKey];
-        await this._writeAssignments(assignments);
+        await this._mutate('deleteRecordTags', { contextKey, recordId });
     }
 
     static getRecordsByTag(contextKey, tag) {
@@ -361,25 +477,87 @@ export class TagManager {
         return Array.isArray(raw) ? raw : [];
     }
 
-    static async _writeRegistry(tags) {
-        if (game.user?.isGM) {
-            await game.settings.set(MODULE.ID, TAG_REGISTRY_KEY, tags);
-        } else {
-            await this._requestGM('writeRegistry', { tags });
-        }
-    }
-
     static getRegistry() {
         return [...this._getRegistry()];
     }
 
-    static async _addToRegistry(tags) {
+    static async _applyAddRegistryTags({ tags }) {
         const normalized = normalizeTagArray(tags).filter(Boolean);
-        if (normalized.length === 0) return;
+        if (normalized.length === 0) return [];
         const current = this._getRegistry();
         const toAdd   = normalized.filter(f => !current.includes(f));
-        if (toAdd.length === 0) return;
-        await this._writeRegistry([...current, ...toAdd].sort());
+        if (toAdd.length === 0) return current;
+        const next = [...current, ...toAdd].sort();
+        await game.settings.set(MODULE.ID, TAG_REGISTRY_KEY, next);
+        return next;
+    }
+
+    /**
+     * Adopt a whole legacy blob into a store that is still empty -- the one case where
+     * writing a complete object is correct rather than a stale-snapshot overwrite.
+     *
+     * The emptiness check is re-done HERE, inside the queued unit, not by the caller.
+     * A caller checking first and writing second is the exact read-modify-write split
+     * this whole path exists to close.
+     */
+    static async _applyAdoptLegacyStore({ registry, assignments }) {
+        if (Array.isArray(registry) && registry.length > 0 && this._getRegistry().length === 0) {
+            await game.settings.set(MODULE.ID, TAG_REGISTRY_KEY, [...registry]);
+        }
+        if (assignments && typeof assignments === 'object'
+            && Object.keys(assignments).length > 0
+            && Object.keys(this._getAssignments()).length === 0) {
+            await this._putAssignments(foundry.utils.deepClone(assignments), null);
+        }
+    }
+
+    /**
+     * Rewrite one tag across every assignment and the registry.
+     *
+     * Assignments and registry are two settings, so this is two writes and cannot be
+     * atomic -- but running as one queued unit means no other mutation interleaves
+     * between them, which is what previously let a concurrent `setTags` reintroduce
+     * the old tag after the sweep had passed its record.
+     */
+    static async _applyRenameTag({ oldTag, newTag }) {
+        const assignments = foundry.utils.deepClone(this._getAssignments());
+        let updated = 0;
+        for (const ctx of Object.values(assignments)) {
+            for (const [recordId, tags] of Object.entries(ctx)) {
+                if (!Array.isArray(tags) || !tags.includes(oldTag)) continue;
+                ctx[recordId] = [...new Set(tags.map(f => f === oldTag ? newTag : f))];
+                updated++;
+            }
+        }
+        await this._putAssignments(assignments, null);
+
+        const registry = this._getRegistry();
+        await game.settings.set(
+            MODULE.ID,
+            TAG_REGISTRY_KEY,
+            [...new Set(registry.map(f => f === oldTag ? newTag : f))].sort()
+        );
+        return { updated };
+    }
+
+    static async _applyDeleteTag({ tag }) {
+        const assignments = foundry.utils.deepClone(this._getAssignments());
+        let removed = 0;
+        for (const ctx of Object.values(assignments)) {
+            for (const [recordId, tags] of Object.entries(ctx)) {
+                if (!Array.isArray(tags) || !tags.includes(tag)) continue;
+                const next = tags.filter(f => f !== tag);
+                // Deleting a record's last tag deletes the record. Leaving `[]` behind
+                // would be residue every other write path prunes.
+                if (next.length > 0) ctx[recordId] = next;
+                else delete ctx[recordId];
+                removed++;
+            }
+        }
+        await this._putAssignments(assignments, null);
+
+        await game.settings.set(MODULE.ID, TAG_REGISTRY_KEY, this._getRegistry().filter(f => f !== tag));
+        return { removed };
     }
 
     static async rename(oldTag, newTag) {
@@ -395,21 +573,7 @@ export class TagManager {
             return null;
         }
 
-        const assignments = foundry.utils.deepClone(this._getAssignments());
-        let updated = 0;
-        for (const ctx of Object.values(assignments)) {
-            for (const [recordId, tags] of Object.entries(ctx)) {
-                if (!Array.isArray(tags) || !tags.includes(oldNorm)) continue;
-                ctx[recordId] = [...new Set(tags.map(f => f === oldNorm ? newNorm : f))];
-                updated++;
-            }
-        }
-        await this._writeAssignments(assignments);
-
-        const registry = this._getRegistry();
-        const updatedRegistry = [...new Set(registry.map(f => f === oldNorm ? newNorm : f))].sort();
-        await this._writeRegistry(updatedRegistry);
-
+        const { updated } = await this._mutate('renameTag', { oldTag: oldNorm, newTag: newNorm });
         Hooks.callAll('blacksmith.tags.renamed', { oldTag: oldNorm, newTag: newNorm, updated });
         return { updated };
     }
@@ -426,20 +590,10 @@ export class TagManager {
             return null;
         }
 
-        const assignments = foundry.utils.deepClone(this._getAssignments());
-        let removed = 0;
-        for (const ctx of Object.values(assignments)) {
-            for (const [recordId, tags] of Object.entries(ctx)) {
-                if (!Array.isArray(tags) || !tags.includes(k)) continue;
-                ctx[recordId] = tags.filter(f => f !== k);
-                removed++;
-            }
-        }
-        await this._writeAssignments(assignments);
+        const { removed } = await this._mutate('deleteTag', { tag: k });
 
-        const registry = this._getRegistry().filter(f => f !== k);
-        await this._writeRegistry(registry);
-
+        // Visibility is user-scope, so it is this client's own data and never contends
+        // with the shared write chain.
         const vis = { ...this._getVisibilityMap() };
         let visChanged = false;
         for (const key of Object.keys(vis)) {
@@ -452,14 +606,14 @@ export class TagManager {
     }
 
     static async seedRegistry(contextKey, existingTagArrays) {
-        // No GM guard: the write below routes through _writeRegistry, which proxies to the GM for
-        // non-GM clients. Guarding here only stopped a player-client first-run seed from happening.
+        // No GM guard: the write routes through _mutate, which proxies to the GM for
+        // non-GM clients. Guarding here only stopped a player-client first-run seed.
         if (!Array.isArray(existingTagArrays)) return;
         const all = [];
         for (const arr of existingTagArrays) {
             for (const f of normalizeTagArray(arr)) all.push(f);
         }
-        if (all.length > 0) await this._addToRegistry(all);
+        if (all.length > 0) await this._mutate('addRegistryTags', { tags: all });
     }
 
     // ============================================================
@@ -509,15 +663,10 @@ export class TagManager {
         if (alreadyDone) {
             // If done under old key name, copy existing data to new keys and set new sentinel
             if (!getSettingSafely(MODULE.ID, TAG_MIGRATION_KEY, false)) {
-                const oldRegistry = getSettingSafely(MODULE.ID, 'flagRegistry', []);
-                if (Array.isArray(oldRegistry) && oldRegistry.length > 0 && this._getRegistry().length === 0) {
-                    await this._writeRegistry(oldRegistry);
-                }
-                const oldAssignments = getSettingSafely(MODULE.ID, 'flagAssignments', {});
-                if (typeof oldAssignments === 'object' && Object.keys(oldAssignments).length > 0
-                    && Object.keys(this._getAssignments()).length === 0) {
-                    await this._writeAssignments(oldAssignments);
-                }
+                await this._mutate('adoptLegacyStore', {
+                    registry:    getSettingSafely(MODULE.ID, 'flagRegistry', []),
+                    assignments: getSettingSafely(MODULE.ID, 'flagAssignments', {})
+                });
                 await game.settings.set(MODULE.ID, TAG_MIGRATION_KEY, true);
             }
             return;
@@ -526,7 +675,7 @@ export class TagManager {
         try {
             const pinRegistry = getSettingSafely(MODULE.ID, 'pinTagRegistry', []);
             if (Array.isArray(pinRegistry) && pinRegistry.length > 0) {
-                await this._addToRegistry(pinRegistry);
+                await this._mutate('addRegistryTags', { tags: pinRegistry });
             }
             await game.settings.set(MODULE.ID, TAG_MIGRATION_KEY, true);
         } catch (err) {
@@ -575,17 +724,16 @@ export class TagManager {
         }
     }
 
+    /**
+     * Execute a proxied mutation GM-side.
+     *
+     * The payload is a DELTA, never a finished settings object: the GM reads current
+     * data and applies the change itself, so a player's stale snapshot can no longer
+     * overwrite concurrent edits. Queued for the same reason local writes are --
+     * several players' requests can arrive together.
+     */
     static async _executeGMAction(action, params) {
-        switch (action) {
-            case 'writeAssignments':
-                await game.settings.set(MODULE.ID, TAG_ASSIGNMENTS_KEY, params.data);
-                return;
-            case 'writeRegistry':
-                await game.settings.set(MODULE.ID, TAG_REGISTRY_KEY, params.tags);
-                return;
-            default:
-                throw new Error(`Unknown tags GM proxy action: ${action}`);
-        }
+        return this._enqueue(() => this._applyMutation(action, params));
     }
 
     static async registerGMProxy() {

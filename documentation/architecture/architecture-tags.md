@@ -33,7 +33,7 @@ All tag data lives in Blacksmith settings; consuming modules do not store tags i
 | `tagTaxonomyOverrideJson` | world | String | Path to a GM-supplied override taxonomy |
 | `tagsMigrationComplete` | world | Boolean | Migration sentinel |
 
-Assignment writes normalize first, then prune: `setTags()` (`:300`) deletes the record's entry entirely when the resulting array is empty, so an emptied record leaves no residue in the store.
+Assignment writes normalize first, then prune: emptying a record deletes its entry, and emptying a context deletes the context bucket, so neither leaves residue in the store. See the write path below for how a write reaches these settings -- nothing outside `_applyMutation()` may set them.
 
 ## Taxonomy sources
 
@@ -70,14 +70,40 @@ Three static methods carry the whole component:
 
 The partial must receive its context positionally; passing it as a hash adds a key rather than replacing the context, and the partial reads `contextKey` / `isFullMode` / `chips` off the root — the failure mode is a silent empty div.
 
-## Write path and the GM proxy
+## Write path: one queue, and deltas over the wire
 
-Tag data lives in world settings, which only a GM can write. Rather than refusing player writes, `TagManager` routes them:
+Every mutation is a read-modify-write of a whole setting: read `tagAssignments` (or `tagRegistry`), clone it, change one key, write it back. That is correct only while exactly one cycle is in flight, and the write path is built around holding that guarantee in two places at once.
 
-- `_writeAssignments()` (`:292`) and `_writeRegistry()` (`:364`) check `game.user.isGM`. A GM writes directly; a player calls `_requestGM(action, payload)`, which goes over the socket handler named `blacksmith-tags-gm-proxy` (`:22`) and is executed GM-side by `_handleGMProxy` / `_executeGMAction`.
-- So `setTags`, `addTags`, `removeTags`, and `deleteRecordTags` all work for players.
+**One entry point.** `_mutate(action, params)` (`manager-tags.js:325`) is the only route to a tag write; `setTags`, `addTags`, `removeTags`, `deleteRecordTags`, `rename`, `delete` and `seedRegistry` all go through it. On a GM it wraps the cycle in `_enqueue()`, which chains it behind any cycle already running. On a player it sends the action to the GM instead.
 
-Three methods are genuinely GM-only and return early for players: `rename()` (`:386`), `delete()` (`:418`), and `seedRegistry()` (`:455`). The first two are world-wide mutations that should stay GM-gated. The guard on `seedRegistry` is not required by the write path — seeding routes through the same proxy — and it returns silently, so a player-client first-run seed simply does not happen.
+**The payload is a delta, never a finished object.** A player sends what changed -- `{contextKey, recordId, tags}` -- and the GM reads current data and applies it, queued on the GM's own chain because several players' requests can land together. This is the load-bearing property: a client that ships a complete settings object is shipping its snapshot of *every* context key for *every* module, so a stale one overwrites whatever was edited since it was read.
+
+`_applyMutation()` (`:337`) is the sole place `game.settings.set` touches either key, and it runs only inside `_enqueue`. Preserve that invariant -- a write added anywhere else reintroduces the race in a form no test here will see, because a single awaited call always looks correct.
+
+The dispatch table:
+
+| Action | Applies |
+|---|---|
+| `setRecordTags` | replace a record's tags (empty array deletes the record) |
+| `mergeRecordTags` | add or remove tags, resolved against current data |
+| `deleteRecordTags` | drop a record |
+| `addRegistryTags` | union tags into the registry |
+| `renameTag` / `deleteTag` | sweep every assignment plus the registry |
+| `adoptLegacyStore` | take a whole legacy blob into a store still empty -- the one correct whole-object write, with emptiness re-checked inside the queued unit |
+
+`addTags` and `removeTags` are their own delta actions rather than a `getTags` followed by `setTags`. A read-then-write split across two queued units is still a race: the read happens outside the cycle that consumes it.
+
+Assignment writes prune as they go, and **pruning is confined to the contexts the write touched**. `_putAssignments()` takes those context keys explicitly; a caller that genuinely visits every context -- `renameTag`, `deleteTag`, `adoptLegacyStore` -- passes `null` for all of them.
+
+Sweeping the whole object on every write is tidier and is wrong. It makes a write to one context edit unrelated contexts, which destroys the only property worth asserting about this path: that a write changes nothing outside its own scope. That assertion is the guard against a stale client overwriting the store, so it has to stay sharp -- worth more than opportunistically tidying buckets nothing reads. Empty buckets left by older versions are inert and get cleaned when their own context is next written.
+
+Records follow the same rule: emptying a record deletes it, including when `deleteTag` removes a record's last tag. So `setTags(ctx, id, [])`, `deleteRecordTags(ctx, id)` and a sweep that empties a record all leave the store in the same shape.
+
+The socket handler is named `blacksmith-tags-gm-proxy` (`:22`), dispatched by `_handleGMProxy` / `_executeGMAction`. Both ends ship in this module, so the payload shape is internal.
+
+Two methods are GM-only and return early for players: `rename()` and `delete()`, both world-wide mutations. `seedRegistry()` is not gated -- it routes through `_mutate` like everything else, so a player-client first-run seed works.
+
+Concurrency is asserted by `testing/suites/suite-tags.js`, which fires writes through `Promise.all` on purpose. Awaiting each call individually passes whatever the write path does, which is why the suite does not.
 
 ## Normalization
 
