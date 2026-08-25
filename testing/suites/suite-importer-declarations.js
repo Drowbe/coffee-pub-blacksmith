@@ -621,6 +621,8 @@ export default {
                         'limitedUsesMax', 'destroyOnEmpty', 'itemRecoveryPeriod',
                         'itemImageTerms', 'itemImageNuance'
                     ]
+                    // passiveEffects is NOT dropped: weapon supports them, and omitting
+                    // it from the declaration was the omission this check caught.
                 };
 
                 const derivedKeys = Object.keys(derived);

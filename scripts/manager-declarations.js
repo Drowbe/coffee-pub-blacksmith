@@ -23,6 +23,10 @@ import { evaluateRules } from './manager-declaration-rules.js';
  * @returns {boolean}
  */
 function isAuthorable(field) {
+    // A const field is emitted, never typed. It belongs in the declaration so the
+    // created document is fully described by it, but it is not part of the schema
+    // an author fills in.
+    if (field?.const !== undefined) return false;
     return field?.authorable !== false;
 }
 
@@ -38,8 +42,12 @@ function isAuthorable(field) {
  * @returns {boolean}
  */
 function isShown(field, options) {
-    if (!field?.requiresOption) return true;
-    return Boolean(options?.[field.requiresOption]);
+    // Opt-in: an option that must be truthy, such as a module's flag namespace.
+    if (field?.requiresOption) return Boolean(options?.[field.requiresOption]);
+    // Opt-out: present unless explicitly switched off. Passive effects behave this
+    // way -- the current builder emits them unless includePassiveEffects === false.
+    if (field?.suppressedByOption) return options?.[field.suppressedByOption] !== false;
+    return true;
 }
 
 /**
@@ -344,6 +352,10 @@ export async function buildDocumentData(kindId, profileId, entry) {
     if (declaration.document?.type) data.type = declaration.document.type;
 
     for (const field of declaration.fields) {
+        if (field.const !== undefined) {
+            if (field.path) writePath(data, field.path, foundry.utils.deepClone(field.const));
+            continue;
+        }
         // A selector picks the profile; an input is read by another field's transform.
         // Neither lands, and both are still authored, validated and templated.
         if (field.role === 'selector' || field.role === 'input') continue;

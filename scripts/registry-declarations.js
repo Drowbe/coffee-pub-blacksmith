@@ -47,6 +47,10 @@
  * @property {DeclarationField[]} [fields] - Nested declaration for object / array-of-object fields.
  * @property {string} [requiresOption] - Option id that must be truthy for this field to appear
  *                             in authoring output.
+ * @property {string} [suppressedByOption] - Option id that removes this field when explicitly false.
+ *                             The opt-out counterpart to `requiresOption`.
+ * @property {*} [const] - A fixed value always written at `path` and never authored. Not part of
+ *                             the template, the guide or the prompt.
  * @property {string} [guidance] - ONE sentence. Used for both the guide line and the prompt line,
  *                             so the two cannot drift.
  */
@@ -185,6 +189,14 @@ function validateField(field, form, where) {
                 throw new Error(`${at}: ${slot} must match the declared type ${field.type};`
                     + ` both are in authored shape, before any transform runs`);
             }
+        }
+    }
+    if (field.const !== undefined) {
+        if (field.example !== undefined || field.default !== undefined) {
+            throw new Error(`${at}: a const field cannot carry a default or an example`);
+        }
+        if (!field.path) {
+            throw new Error(`${at}: a const field requires a path`);
         }
     }
     if (field.authorable === false && field.example !== undefined) {

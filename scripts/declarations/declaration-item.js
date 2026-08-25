@@ -213,7 +213,7 @@ export const ITEM_WEAPON_DECLARATION = {
     schemaVersion: 1,
     form: 'mapped',
     document: { documentName: 'Item', type: 'weapon' },
-    derive: ['weaponAttackActivity'],
+    derive: ['weaponAttackActivity', 'equippablePassiveEffects'],
     fields: [
         { name: 'itemName', path: 'name', type: 'string', required: true, acceptsKeys: ['name'],
           example: '', guidance: 'The weapon name as it appears in the sidebar and on a sheet.' },
@@ -270,10 +270,12 @@ export const ITEM_WEAPON_DECLARATION = {
         { name: 'weaponMastery', path: 'system.mastery', type: 'string', default: '', example: '',
           values: ['', 'cleave', 'graze', 'nick', 'push', 'sap', 'slow', 'topple', 'vex'],
           guidance: 'The dnd5e 2024 mastery property, if the weapon has one.' },
-        { name: 'weaponAbility', path: 'system.ability', type: 'string', default: '', example: '',
+        // Both feed the generated Attack activity rather than the document: dnd5e
+        // stores them at activity.attack.*, and giving them system paths wrote them twice.
+        { name: 'weaponAbility', role: 'input', type: 'string', default: '', example: '',
           values: ['', 'str', 'dex', 'int', 'wis', 'cha', 'spellcasting', 'none'],
           guidance: 'The ability the attack uses; blank lets dnd5e choose from the properties.' },
-        { name: 'weaponAttackBonus', path: 'system.attackBonus', type: 'string', default: '', example: '',
+        { name: 'weaponAttackBonus', role: 'input', type: 'string', default: '', example: '',
           guidance: 'A flat bonus added to the attack roll, as a formula.' },
         { name: 'weaponMagicalBonus', path: 'system.magicalBonus', type: 'integer', default: 0, example: 0,
           guidance: 'The plus on a magical weapon, such as 1 for a +1 longsword.' },
@@ -284,6 +286,17 @@ export const ITEM_WEAPON_DECLARATION = {
           example: '', guidance: 'The ammunition a Ranged weapon consumes, if any.' },
         { name: 'activities', role: 'input', type: 'array', default: [], example: [],
           guidance: 'Leave empty. Blacksmith generates the standard Attack activity.' },
+        // Emitted by the equippablePassiveEffects derivation, which needs the resolved
+        // icon. Present in authoring output unless the option switches it off.
+        { name: 'passiveEffects', role: 'input', type: 'array', default: [], example: [],
+          suppressedByOption: 'includePassiveEffects',
+          guidance: 'Effects applied while the weapon is equipped, or equipped and attuned.' },
+        // Always emitted, never authored: dnd5e expects both on a weapon and neither
+        // is a decision an author makes at import time.
+        { name: 'attuned', path: 'system.attuned', const: false,
+          guidance: 'Whether the weapon is currently attuned.' },
+        { name: 'equipped', path: 'system.equipped', const: false,
+          guidance: 'Whether the weapon is currently equipped.' },
         { name: 'itemSource', path: 'system.source.custom', type: 'string', default: '',
           example: '[ADD-CAMPAIGN-NAME-HERE]',
           guidance: 'Where the weapon comes from, usually the campaign name.' },

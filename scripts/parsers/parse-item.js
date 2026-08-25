@@ -222,7 +222,7 @@ export function _attunementValue(value) {
     throw new Error(`Unsupported magicalAttunementRequired "${value}"`);
 }
 
-function _buildEquippablePassiveEffects(flat, img) {
+export function _buildEquippablePassiveEffects(flat, img) {
     if (flat.passiveEffects == null) return [];
     if (!Array.isArray(flat.passiveEffects)) throw new Error('passiveEffects must be an array');
     const attunement = _attunementValue(flat.magicalAttunementRequired);

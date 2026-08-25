@@ -67,8 +67,24 @@ async function weaponAttackActivity(data, entry) {
     return data;
 }
 
+/**
+ * Equippable passive effects, as Active Effect documents.
+ *
+ * A derivation rather than a field transform for the same reason the attack
+ * activity is one: each effect falls back to the item's artwork, and that is the
+ * GUESSED icon, which does not exist until construction has resolved it.
+ * @param {object} data - Assembled document source data.
+ * @param {object} entry - The authored payload.
+ * @returns {Promise<object>} The same data, with effects attached.
+ */
+async function equippablePassiveEffects(data, entry) {
+    const { _buildEquippablePassiveEffects } = await import('./parsers/parse-item.js');
+    data.effects = _buildEquippablePassiveEffects(entry, data.img);
+    return data;
+}
+
 /** @type {Record<string, Function>} */
-const DERIVATIONS = { weaponAttackActivity };
+const DERIVATIONS = { weaponAttackActivity, equippablePassiveEffects };
 
 /**
  * Whether a named derivation exists, so a declaration selecting one that does not
