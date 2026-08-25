@@ -282,6 +282,26 @@ quests migrate, and do not read a clean review of that path as evidence it is so
   Note the ordering the sequence depends on: the delete comes last, so an interruption orphans nothing --
   it duplicates, which is recoverable. A `moveRecord` must preserve that, not "optimise" it into a rename.
 
+- **BLOCKING A SHIPPED CONSUMER. Nothing can be enumerated, and that is three requests wearing one face.** `getChoices` needs a
+  context key you already know, `getRegistry` is world-wide and undifferentiated, and there is no way to
+  list context keys or to ask what the declared taxonomy holds across all of them. So a consumer cannot:
+  scope a tag cloud to its own records, count usage per context, or tell an unused tag apart from a
+  foreign one.
+
+  **The forcing case is an orphan check, and it currently cannot be written.** Librarian wants "registry
+  entries that are neither another context's nor a declared taxonomy suggestion" -- the leftover being the
+  only interesting set. They can exclude their own taxonomy via `getChoices` on their own key. They cannot
+  exclude Artificer's contexts or ours without hardcoding a list of keys they do not own, which rots the
+  moment a module adds a context. They arrived at the right question and our surface has no answer to it.
+
+  **Librarian has stopped rather than worked around it** (2026-08-25), declining to hardcode a context-key
+  list because it would pass today and mis-flag when any module adds a context. That is the right call and
+  it means nothing moves here until we act -- unlike the other two items in this section, which have working
+  if inelegant workarounds. **This is the one that has actually earned building.**
+
+  Whatever gets built should answer all three from one shape rather than accreting three accessors. It needs
+  a plan first: it is new public surface on the hub, so per the workflow it does not skip that step.
+
 - **Per-context enumeration, probably `getTagCounts(contextKey)`.** `getRegistry()` is world-wide, so a
   consumer scoping a tag cloud to its own records must call `getRecordsByTag` once per registry tag.
   Librarian's codex tag cloud is the forcing case. Now that a bucket holds only its owner's records, a count means one thing -- build it on that assumption, and do not reintroduce mixed row kinds to make some other feature convenient.

@@ -46,6 +46,24 @@ function someTarget() {
     return game.actors?.contents?.[0] ?? game.scenes?.contents?.[0] ?? null;
 }
 
+/**
+ * Remove tags this suite put in the SHARED WORLD REGISTRY.
+ *
+ * Deleting the note clears its assignments; it does not touch `tagRegistry`, which is
+ * world-wide and is what every consumer's suggestion UI draws its vocabulary from. A
+ * fixture left there is offered to a GM tagging a real document forever after. Librarian
+ * found three of ours sitting alongside their codex vocabulary.
+ *
+ * GM-only, like `tags.delete` itself; a player run leaves the registry entries and there
+ * is nothing this can do about that.
+ */
+async function purgeHarnessTags(api, tags) {
+    if (!game.user?.isGM) return;
+    for (const tag of tags) {
+        try { await api.tags.delete(tag); } catch (_) { /* never reached the registry */ }
+    }
+}
+
 export default {
     id: 'notes',
     label: 'Notes',
@@ -346,20 +364,25 @@ export default {
                     return;
                 }
 
+                const nonce = foundry.utils.randomID(6).toLowerCase();
+                const alpha = `zz-harness-${nonce}-alpha`;
+                const beta  = `zz-harness-${nonce}-beta`;
+
                 const note = await api.notes.createNote({
-                    title: `ZZ Tags ${foundry.utils.randomID(6)}`,
-                    tags: ['harness-alpha', 'harness-beta']
+                    title: `ZZ Tags ${nonce}`,
+                    tags: [alpha, beta]
                 });
                 if (!expect.ok('note created', !!note)) return;
 
                 try {
                     const tags = api.notes.getNoteTags(note);
-                    expect.ok('both tags read back', tags.includes('harness-alpha') && tags.includes('harness-beta'));
+                    expect.ok('both tags read back', tags.includes(alpha) && tags.includes(beta));
                     expect.ok('and they are in the Tags store, not a page flag',
-                        (api.tags.getTags(api.notes.TAG_CONTEXT, note.id) ?? []).includes('harness-alpha'));
+                        (api.tags.getTags(api.notes.TAG_CONTEXT, note.id) ?? []).includes(alpha));
                     expect('no tags flag on the page', note.getFlag('coffee-pub-blacksmith', 'tags'), undefined);
                 } finally {
                     await api.notes.deleteNote(note);
+                    await purgeHarnessTags(api, [alpha, beta]);
                 }
             }
         },
@@ -376,16 +399,23 @@ export default {
                     return;
                 }
 
+                const nonce  = foundry.utils.randomID(6).toLowerCase();
+                const orphan = `zz-harness-${nonce}-orphan`;
+
                 const note = await api.notes.createNote({
-                    title: `ZZ Orphan ${foundry.utils.randomID(6)}`,
-                    tags: ['harness-orphan']
+                    title: `ZZ Orphan ${nonce}`,
+                    tags: [orphan]
                 });
                 if (!expect.ok('note created', !!note)) return;
 
-                const pageId = note.id;
-                await api.notes.deleteNote(note);
-                expect('no assignments left behind',
-                    (api.tags.getTags(api.notes.TAG_CONTEXT, pageId) ?? []).length, 0);
+                try {
+                    const pageId = note.id;
+                    await api.notes.deleteNote(note);
+                    expect('no assignments left behind',
+                        (api.tags.getTags(api.notes.TAG_CONTEXT, pageId) ?? []).length, 0);
+                } finally {
+                    await purgeHarnessTags(api, [orphan]);
+                }
             }
         },
 
