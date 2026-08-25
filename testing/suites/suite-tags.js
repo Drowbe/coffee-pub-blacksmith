@@ -433,6 +433,70 @@ export default {
             }
         },
         {
+            id: 'rename-onto-an-existing-tag-merges',
+            label: 'Renaming onto a tag a record already has merges, not duplicates',
+            tier: 'headless',
+            group: 'Sweeps',
+            note: 'The shape of a vocabulary cleanup: many near-duplicates collapsed onto one canonical tag.',
+            run: async ({ api, expect }) => {
+                if (!game.user?.isGM) throw new Error('GM only -- rename is GM-gated.');
+                requireApi('tags.setTags', 'tags.rename', 'tags.getTags');
+
+                const scope     = probeScope();
+                const canonical = scope.tag('canonical');
+                const variant   = scope.tag('variant');
+
+                try {
+                    // A record carrying both the canonical tag and the variant being folded in.
+                    await api.tags.setTags(scope.contextKey, scope.record(0), [canonical, variant]);
+                    await api.tags.setTags(scope.contextKey, scope.record(1), [variant]);
+
+                    const result = await api.tags.rename(variant, canonical);
+                    expect('both records reported as updated', result?.updated, 2);
+
+                    expect('the record holding both ends up with one',
+                        api.tags.getTags(scope.contextKey, scope.record(0)), [canonical]);
+                    expect('the record holding only the variant is converted',
+                        api.tags.getTags(scope.contextKey, scope.record(1)), [canonical]);
+
+                    const registry = api.tags.getRegistry();
+                    expect('the variant left the registry', registry.filter(t => t === variant), []);
+                    expect('the canonical tag appears once', registry.filter(t => t === canonical).length, 1);
+                } finally {
+                    await restore(api, scope, [canonical, variant]);
+                }
+            }
+        },
+        {
+            id: 'rename-refusals-are-reported',
+            label: 'A refused rename returns null rather than reporting success',
+            tier: 'headless',
+            group: 'Sweeps',
+            note: 'A batch pass must be able to tell "already canonical" from "renamed".',
+            run: async ({ api, expect }) => {
+                if (!game.user?.isGM) throw new Error('GM only -- rename is GM-gated.');
+                requireApi('tags.rename');
+
+                const scope = probeScope();
+                const tag   = scope.tag('refusal');
+
+                try {
+                    await api.tags.setTags(scope.contextKey, scope.record(0), [tag]);
+
+                    // The common cleanup case: the "new" name is what the tag already normalizes to.
+                    expect('renaming a tag to itself is refused', await api.tags.rename(tag, tag), null);
+                    expect('an unnormalized no-op is refused too',
+                        await api.tags.rename(tag, tag.toUpperCase().replace(/-/g, ' ')), null);
+                    expect('a rename to an empty name is refused', await api.tags.rename(tag, '   '), null);
+
+                    expect('the tag is untouched by the refusals',
+                        api.tags.getTags(scope.contextKey, scope.record(0)), [tag]);
+                } finally {
+                    await restore(api, scope, [tag]);
+                }
+            }
+        },
+        {
             id: 'store-left-clean',
             label: 'No probe data survives a full suite run',
             tier: 'headless',

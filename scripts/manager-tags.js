@@ -628,7 +628,25 @@ export class TagManager {
         }
         const oldNorm = normalizeTag(oldTag);
         const newNorm = normalizeTag(newTag);
-        if (!oldNorm || !newNorm || oldNorm === newNorm) return null;
+
+        // Every refusal says why. These two used to return null in silence while the
+        // other two logged, which is survivable one rename at a time and not at volume:
+        // a curation pass over hundreds of tags gets null back and cannot tell "already
+        // correct" from "refused", so a batch that did nothing looks like a batch that
+        // worked. `already-canonical` is the common one, because normalizing the old and
+        // new names is exactly what a cleanup pass is doing.
+        if (!oldNorm || !newNorm) {
+            postConsoleAndNotification(MODULE.NAME,
+                `BLACKSMITH | TAGS rename() ignored: "${oldTag}" -> "${newTag}" normalizes to an empty tag.`,
+                '', false, false);
+            return null;
+        }
+        if (oldNorm === newNorm) {
+            postConsoleAndNotification(MODULE.NAME,
+                `BLACKSMITH | TAGS rename() ignored: "${oldTag}" and "${newTag}" both normalize to "${oldNorm}".`,
+                '', false, false);
+            return null;
+        }
         if (this._isProtected(oldNorm)) {
             postConsoleAndNotification(MODULE.NAME, `BLACKSMITH | TAGS Cannot rename protected tag "${oldNorm}".`, '', false, false);
             return null;
