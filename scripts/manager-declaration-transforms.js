@@ -367,9 +367,46 @@ function spellMaterials(value, { entry }) {
     };
 }
 
+/**
+ * A consumable's uses block: the standard one plus dnd5e's autoDestroy flag,
+ * which lives inside uses rather than beside it.
+ * @param {*} value
+ * @param {object} context
+ * @returns {object}
+ */
+function consumableUses(value, context) {
+    return { ...limitedUses(value, context), autoDestroy: !!context.entry?.destroyOnEmpty };
+}
+
+/**
+ * The consume block, from whether the item is destroyed when empty.
+ * @param {*} value
+ * @returns {object}
+ */
+function consumeOnEmpty(value) {
+    return { type: value ? 'destroy' : 'none', target: null, amount: null };
+}
+
+/**
+ * The recharge block dnd5e keeps alongside uses. Written from the recovery
+ * fields rather than authored, which is why the field carrying it is declared
+ * non-authorable.
+ * @param {*} _value
+ * @param {{entry: object}} context
+ * @returns {object}
+ */
+function consumableRecharge(_value, { entry }) {
+    const period = entry?.itemRecoveryPeriod ?? entry?.recoveryPeriod;
+    return {
+        value: period || 'none',
+        formula: entry?.recoveryAmount || 'recover all uses'
+    };
+}
+
 /** @type {Record<string, Function>} */
 const TRANSFORMS = {
     slug, attunementIfMagical, limitedUses,
+    consumableUses, consumeOnEmpty, consumableRecharge,
     spellPreparation, castingActivation, spellRange, spellDuration, spellTarget, spellMaterials,
     price, gmNotes, itemIcon, magicalProperty,
     weaponType, weaponProperties, damagePart, versatileDamage, attunement, weaponRange

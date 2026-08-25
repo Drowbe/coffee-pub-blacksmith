@@ -398,6 +398,14 @@ export default {
 
                     await api.tags.addTags(scope.contextKey, record, [scope.tag('second')]);
                     expect('a real add fired', fired, 2);
+
+                    // The two paths that empty a record produce the same store state, so
+                    // they must announce the same way.
+                    await api.tags.deleteRecordTags(scope.contextKey, record);
+                    expect('deleteRecordTags fired', fired, 3);
+
+                    await api.tags.deleteRecordTags(scope.contextKey, record);
+                    expect('deleting an absent record fired nothing', fired, 3);
                 } finally {
                     Hooks.off('blacksmith.tags.changed', hookId);
                     await restore(api, scope, [tag, scope.tag('second'), scope.tag('never-applied')]);

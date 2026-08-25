@@ -252,11 +252,35 @@ player's whole-object write clobbering the store, orphan pin rows in a consumer'
 refusing in silence. All four were readable in the source the entire time. Expect a comparable crop when
 quests migrate, and do not read a clean review of that path as evidence it is sound.
 
-- **`moveRecord(contextKey, oldRecordId, newRecordId)`.** Tags are keyed by an opaque `recordId`. Where a
-  consumer's own conversion path replaces a document -- Librarian's legacy-codex re-import deletes the page
-  and creates a new one -- the id changes and the assignment orphans silently. The consumer can already
-  carry it across in three calls (`getTags` / `setTags` / `deleteRecordTags`) at the point of replacement,
-  which is the advice given. This exists only if hand-rolling that turns out to recur across consumers.
+- **Tag changes are not announced to other clients.** All three hooks -- `blacksmith.tags.changed`,
+  `.renamed`, `.deleted` -- fire with `Hooks.callAll` on the client that made the call and nowhere else
+  (`manager-tags.js:464`, `:656`, `:683`). Nothing emits. The *data* reaches every client, because Foundry
+  pushes the world setting and fires `updateSetting`, but no other client is told a tag changed, so a UI
+  built on the hooks goes stale until something else re-renders it.
+
+  **This matters because tags are player-visible.** Librarian's codex is read by players with per-entry
+  ownership, so a GM renaming a tag leaves every player's tag cloud showing the old vocabulary. That is the
+  failure mode least likely to be reported -- a player sees wrong tags and assumes it is their own view.
+
+  A consumer can work around it today by listening to Foundry's `updateSetting` for `tagAssignments` and
+  `tagRegistry`, which does reach every client. That is the advice given, and it is a workaround: the hooks
+  we document should be the thing that works. If we fix it, the payload has to survive the socket, which
+  means the GM announcing after `_applyMutation` rather than each caller announcing locally.
+
+- **`moveRecord(contextKey, oldRecordId, newRecordId)`. Confirmed in use, hand-rolled, by one consumer.**
+  Tags are keyed by an opaque `recordId`, so where a consumer's conversion path replaces a document the id
+  changes and the assignment orphans silently. Librarian's legacy-codex conversion hits this -- a text page
+  is replaced by a typed one, the uuid changes -- and they carry tags across in three calls
+  (`getTags` / `setTags` / `deleteRecordTags` on the old id) at the point of replacement, which is the
+  advice we gave and it works.
+
+  **Still do not build it on one caller.** The bar was always whether hand-rolling recurs across consumers,
+  and one shipped consumer doing it correctly is not that. What has changed is that this is no longer
+  hypothetical: the sequence exists in Librarian and any bug in it is a silent tag loss during a conversion.
+  A second consumer needing the same three calls is the trigger.
+
+  Note the ordering the sequence depends on: the delete comes last, so an interruption orphans nothing --
+  it duplicates, which is recoverable. A `moveRecord` must preserve that, not "optimise" it into a rename.
 
 - **Per-context enumeration, probably `getTagCounts(contextKey)`.** `getRegistry()` is world-wide, so a
   consumer scoping a tag cloud to its own records must call `getRecordsByTag` once per registry tag.

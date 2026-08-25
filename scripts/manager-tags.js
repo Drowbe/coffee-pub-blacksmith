@@ -494,7 +494,13 @@ export class TagManager {
 
     static async deleteRecordTags(contextKey, recordId) {
         if (!contextKey || !recordId) return;
-        await this._mutate('deleteRecordTags', { contextKey, recordId });
+        // Announce, like every other mutator. `setTags(ctx, id, [])` and this produce the
+        // identical store state, so a consumer hearing about one and not the other is an
+        // asymmetry rather than a design -- and this was the silent one.
+        const removed = await this._mutate('deleteRecordTags', { contextKey, recordId });
+        if (removed) {
+            Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: [] });
+        }
     }
 
     /**

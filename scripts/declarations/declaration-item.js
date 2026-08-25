@@ -764,3 +764,79 @@ export const ITEM_SPELL_DECLARATION = {
 };
 
 registerDeclaration(ITEM_SPELL_DECLARATION);
+
+/**
+ * Consumable: a physical item that also carries activities and limited uses.
+ *
+ * This profile is where the two activity implementations in the parser get
+ * reconciled. The inline builder in `parseFlatItemToFoundry` emitted
+ * `type: 'util'` (not a dnd5e activity type), the legacy array-of-arrays damage
+ * format, and empty range and target blocks. It is not carried forward; this
+ * profile uses the same `itemActivities` derivation as Feature and Spell, so
+ * there is one converter rather than two disagreeing.
+ *
+ * Agreed with Artificer 2026-08-25, whose item type this is. Their seventeen
+ * packs contain one `"activities":{}` and nothing else, no live prompt asks a
+ * generator to produce consumable activities, and no fixture covered them -- the
+ * path was dead, which is how it rotted unnoticed.
+ *
+ * `system.consumableType` is NOT declared. dnd5e reads it in one place, a
+ * migration shim, into a variable named `oldType`; what it reads at runtime is
+ * `type.value`. Artificer's fallback that reads it stays for the items we already
+ * wrote, and goes inert for new ones.
+ */
+export const ITEM_CONSUMABLE_DECLARATION = {
+    kind: 'item',
+    id: 'consumable',
+    label: 'Consumable',
+    schemaVersion: 1,
+    form: 'mapped',
+    document: { documentName: 'Item', type: 'consumable' },
+    derive: ['itemActivities'],
+    fields: [
+        ...physicalItemFields({
+            subTypePath: 'system.type.value',
+            subTypeTransform: 'slug',
+            subTypeDefault: 'potion',
+            subTypeExample: { itemType: 'Consumable', itemSubType: 'Potion' },
+            subTypeGuidance: 'The consumable category, such as Potion, Scroll, Ammunition or Food.'
+        }),
+        { name: 'itemSubTypeNuance', path: 'system.type.subtype', type: 'string', default: '', example: '',
+          guidance: 'A narrower category within the consumable type, such as the food kind.' },
+        { name: 'magicalAttunementRequired', path: 'system.attunement', type: 'string', default: '',
+          example: '', transform: 'attunementIfMagical',
+          values: ['', 'none', 'not required', 'attunement not required', 'required',
+                   'attunement required', 'optional', 'attunement optional'],
+          guidance: 'Whether attunement is required or optional; only magical consumables store it.' },
+        // The uses block. `limitedUsesMax` owns the path; the parser also reads it
+        // under the older `itemLimitedUses` spelling, so that is a key alias.
+        { name: 'limitedUsesMax', path: 'system.uses', nullable: true, default: 1, example: 1,
+          acceptsKeys: ['itemLimitedUses'], transform: 'consumableUses',
+          spentFrom: 'limitedUsesSpent', periodFrom: 'itemRecoveryPeriod',
+          formulaFrom: 'recoveryAmount',
+          guidance: 'How many times it can be used before recovery.' },
+        { name: 'limitedUsesSpent', role: 'input', type: 'integer', default: 0, example: 0,
+          guidance: 'How many of those uses are already spent.' },
+        { name: 'itemRecoveryPeriod', role: 'input', type: 'string', default: 'none', example: 'none',
+          acceptsKeys: ['recoveryPeriod'],
+          values: ['none', 'long rest', 'short rest', 'day', 'dawn', 'dusk',
+                   'initiative', 'start of turn', 'end of turn', 'recharge'],
+          guidance: 'When spent uses come back.' },
+        { name: 'recoveryAmount', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'For a recharge period, the die that recharges it.' },
+        { name: 'destroyOnEmpty', path: 'system.consume', type: 'boolean', default: false, example: true,
+          transform: 'consumeOnEmpty',
+          guidance: 'Whether the item is destroyed once its last use is spent.' },
+        // Written from the recovery fields, never authored on its own, so it is
+        // declared non-authorable rather than given a role: it DOES land.
+        { name: 'recharge', path: 'system.recharge', authorable: false,
+          transform: 'consumableRecharge',
+          guidance: 'The recharge block dnd5e keeps alongside uses.' },
+        { name: 'activities', role: 'input', type: 'array', fields: ACTIVITY_FIELDS,
+          guidance: 'Activities this grants: attack, damage, heal, save or utility.' },
+        { name: 'effects', role: 'input', type: 'array', default: [], example: [],
+          guidance: 'Active Effects carried alongside the activities.' }
+    ]
+};
+
+registerDeclaration(ITEM_CONSUMABLE_DECLARATION);

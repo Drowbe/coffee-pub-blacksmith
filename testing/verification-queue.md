@@ -28,31 +28,59 @@ readouts checks are reading the bar. A tab passing on its own proves less than i
 
 ## Tags write path - two clients, cannot be automated (opened 2026-08-25)
 
-The `Tags` suite passes **17/17** and covers every concurrency case reachable from one client. What it cannot
-reach is the case the fix was mostly for: a **player** writing tags while a **GM** edits others. Before the
-fix the player shipped their whole snapshot of the store and the GM wrote it verbatim, so a stale player
-overwrote every context key for every module. One player creating a pin was enough. A single client cannot
-observe this - it needs two, and it needs them out of step.
+The `Tags` suite passes 32/32 and covers every case reachable from one client. Four of the five live items
+here passed on 2026-08-25: the no-GM-online refusal, a pin write leaving no row, the legacy purge running
+once, and the bulk pin strip. **One remains, and it is the one the write-path fix was mostly for.**
 
-- [ ] **Player write does not clobber concurrent GM edits.** GM tags something in context A. Without
-  reloading, the player tags something in context B. Reload the GM: **both** must be present. Doing it with
-  the player's client left open for a while first is the point - the longer their snapshot is stale, the more
-  the old code destroyed.
-- [ ] **Player write with no GM online fails cleanly.** `_requestGM` throws "No GM is currently online".
-  Expect a refusal, not a silent no-op and not a partial write.
-- [ ] **A pin write leaves no assignment row.** Create a tagged pin, then read
-  `tagAssignments` for `{moduleId}.{type}`: the bucket must not gain a row, and the tag must
-  appear in `api.tags.getRegistry()`. The harness asserts the primitive; this proves the caller.
-- [ ] **The legacy purge runs once and removes only pin rows.** Note the row count for a
-  context holding both entities and pins, reload, and confirm only the pin rows went. Reload
-  again: the sentinel makes it a no-op, and nothing further disappears.
-- [ ] **Bulk pin tag strip is clean.** As GM, strip a tag from a scene holding several pins that
-  carry it. Every stripped pin's central assignment must be gone, not just the last one's. This is the
-  original report; the suite proves the primitive, this proves the caller.
+Before the fix a player computed the entire `tagAssignments` object locally and shipped it to the GM, who
+wrote it verbatim, so a player holding a stale copy overwrote every context key for every module.
 
-**Run the harness whole for this one.** The Tags suite writes `tagAssignments` and `tagRegistry` - world
-settings - while every other suite runs, which is exactly the order-dependence noted at the top of this file.
-A green Tags tab on its own proves less than it looks.
+**Sequencing the two clients by hand does NOT test this.** Foundry pushes a world setting change to every
+connected client and fires `updateSetting`, so a player who simply waits ends up with a FRESHER copy, not a
+staler one. Run the naive version - GM tags, then player tags, then compare - and it passes against the
+broken code as well, which is worse than not running it. The window has to be forced.
+
+- [ ] **A player write does not destroy a GM edit the player has not yet seen.** Force the window by
+  blocking the player's main thread, so the socket message carrying the GM's change cannot be processed
+  until after the player's write is composed.
+
+  1. GM: `await api.tags.setTags('zz-clobber.gm', 'g1', ['before'])`
+  2. Player: run the blocking macro below. It logs what it can see, spins for 20 seconds, logs again, then
+     writes.
+  3. GM, while the player is spinning: `await api.tags.setTags('zz-clobber.gm', 'g2', ['during-block'])`
+  4. Wait for the player's macro to finish.
+  5. GM: read `tagAssignments`. `zz-clobber.gm` must hold **both** `g1` and `g2`, and `zz-clobber.player`
+     must hold `p1`.
+
+  **The second log line is the control.** It must still show only `g1`. If it shows `g2`, the block did not
+  hold, the player's copy was never stale, and the run proves nothing - redo it with a longer spin.
+
+  Player macro:
+  ```js
+  const api = game.modules.get('coffee-pub-blacksmith').api;
+  const read = () => JSON.stringify(
+      game.settings.get('coffee-pub-blacksmith', 'tagAssignments')['zz-clobber.gm'] ?? null);
+  console.log('BEFORE block, player sees:', read());
+  const until = Date.now() + 20000;
+  while (Date.now() < until) { /* block the event loop; the GM's update cannot be applied */ }
+  console.log('AFTER block, player still sees:', read(), '<- must NOT contain g2');
+  await api.tags.setTags('zz-clobber.player', 'p1', ['player-tag']);
+  console.log('player write done');
+  ```
+
+  Cleanup, as GM:
+  ```js
+  const api = game.modules.get('coffee-pub-blacksmith').api;
+  await api.tags.deleteRecordTags('zz-clobber.gm', 'g1');
+  await api.tags.deleteRecordTags('zz-clobber.gm', 'g2');
+  await api.tags.deleteRecordTags('zz-clobber.player', 'p1');
+  await api.tags.delete('before'); await api.tags.delete('during-block'); await api.tags.delete('player-tag');
+  ```
+
+  A cheaper positive check, if the timing proves awkward: log the proxy payload on the player client and
+  confirm it carries `{contextKey, recordId, tags}` for the one record and no other module's context keys.
+  A delta cannot clobber, so the payload shape is the property; the run above is what proves it end to end.
+
 
 ## Inventory - live, cannot be automated
 

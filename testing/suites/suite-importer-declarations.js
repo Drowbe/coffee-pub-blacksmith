@@ -459,6 +459,52 @@ export default {
                         }
                     },
                     {
+                        id: 'a feature with uses and an activity',
+                        profile: 'feature',
+                        entry: {
+                            itemType: 'feature', itemName: 'Test Breath Weapon',
+                            itemDescription: '<p>A gout of flame.</p>',
+                            featureType: 'monster', featureUsesMax: 1,
+                            featureRecoveryPeriod: 'short rest',
+                            itemImagePath: 'icons/magic/fire/breath-jet-stream-red.webp',
+                            activities: [{
+                                activityType: 'Save', activityName: 'Breath',
+                                saveAbility: 'dex', onSave: 'half',
+                                damageFormula: '4d6', damageType: 'fire'
+                            }]
+                        }
+                    },
+                    {
+                        id: 'a spell with a template and materials',
+                        profile: 'spell',
+                        entry: {
+                            itemType: 'spell', itemName: 'Test Fireball',
+                            spellLevel: 3, spellSchool: 'evo',
+                            spellProperties: ['vocal', 'somatic', 'material'],
+                            materialDescription: 'a tiny ball of bat guano',
+                            materialCost: 0, materialConsumed: false,
+                            castingTime: { value: 1, units: 'action' },
+                            spellRange: { value: 150, units: 'ft' },
+                            spellDuration: { value: null, units: 'inst' },
+                            spellTarget: { affectsType: 'creature', templateType: 'sphere', templateSize: 20, units: 'ft' },
+                            itemImagePath: 'icons/magic/fire/explosion-fireball-large-orange.webp',
+                            activities: [{
+                                activityType: 'Save', saveAbility: 'dex', onSave: 'half',
+                                damageFormula: '8d6', damageType: 'fire'
+                            }]
+                        }
+                    },
+                    {
+                        id: 'a consumable with uses that destroys when empty',
+                        profile: 'consumable',
+                        entry: {
+                            itemType: 'consumable', itemSubType: 'Potion', itemName: 'Test Healing Potion',
+                            limitedUsesMax: 1, limitedUsesSpent: 0, destroyOnEmpty: true,
+                            itemRecoveryPeriod: 'none', itemPrice: '50 gp',
+                            itemImagePath: 'icons/consumables/potions/bottle-round-corked-red.webp'
+                        }
+                    },
+                    {
                         id: 'the loot fixture',
                         entry: {
                             itemType: 'loot', itemSubType: 'trinket',
@@ -499,6 +545,27 @@ export default {
                     const clone = foundry.utils.deepClone(data);
                     delete clone?.flags?.['coffee-pub'];
                     if (clone.flags && !Object.keys(clone.flags).length) delete clone.flags;
+                    // A second retired duplicate, Consumable's. dnd5e reads it in one
+                    // place -- a migration shim, into a variable named `oldType` -- and
+                    // reads `type.value` at runtime. Dropped for the same reason as the
+                    // flag above, and normalised here so the rest still compares.
+                    delete clone?.system?.consumableType;
+                    // The parser wrote NO activities key when none were authored; the
+                    // shared builder writes {}. Artificer confirmed {} is what dnd5e
+                    // expects, so the derived side is right and the parser side is
+                    // normalised up to it rather than the reverse.
+                    if (clone?.system && Object.keys(clone.system.activities ?? {}).length === 0) {
+                        delete clone.system.activities;
+                    }
+                    // The same difference on the effects side, and the same reasoning.
+                    // Consumable's parser branch never set `effects`; the shared
+                    // derivation always does, because a consumable's activities can now
+                    // apply effects where the old inline builder passed no array at all.
+                    // An empty embedded collection and an absent one are equivalent at
+                    // creation, so this normalises the shape rather than the behaviour.
+                    if (Array.isArray(clone?.effects) && !clone.effects.length) {
+                        delete clone.effects;
+                    }
                     return clone;
                 };
 
@@ -666,12 +733,42 @@ export default {
                 ];
                 // Beyond that, a profile drops what it does not declare. Weapon keeps
                 // both extras; equipment keeps attunement; the rest keep neither.
+                // Feature and Spell are not physical items: no rarity, weight, price,
+                // quantity, identified state or subtype. The shared template hands them
+                // all of it anyway.
+                const NOT_A_PHYSICAL_ITEM = [
+                    'itemDescriptionUnidentified', 'itemSubType', 'itemRarity', 'itemQuantity',
+                    'itemWeight', 'itemPrice', 'itemIdentified', 'itemIsMagical',
+                    'magicalAttunementRequired'
+                ];
                 const ALSO_DROPPED = {
                     loot: ['magicalAttunementRequired', 'activities'],
                     weapon: [],
                     equipment: ['activities'],
                     tool: ['magicalAttunementRequired', 'activities'],
-                    container: ['magicalAttunementRequired', 'activities']
+                    container: ['magicalAttunementRequired', 'activities'],
+                    feature: NOT_A_PHYSICAL_ITEM,
+                    spell: NOT_A_PHYSICAL_ITEM,
+                    // itemLimitedUses is not gone: it is a key alias of limitedUsesMax,
+                    // so it is accepted on input and not offered as its own field.
+                    consumable: ['itemLimitedUses']
+                };
+
+                // Fields the derived template ADDS. Every one is a field the parser has
+                // always read and the shared template never offered, so an author had no
+                // way to supply it. Additions are listed as deliberately as drops.
+                const KNOWN_ADDED = {
+                    // _featureData and _spellData both clone flat.effects.
+                    feature: ['effects'],
+                    // Plus the three uses keys _spellData actually reads. The template
+                    // offered itemLimitedUses / limitedUsesSpent / limitedUsesMax /
+                    // itemRecoveryPeriod instead, which the spell parser ignores entirely
+                    // -- so limited uses on a spell silently did nothing.
+                    spell: ['effects', 'spellSourceClass', 'usesMax', 'usesSpent', 'recoveryPeriod'],
+                    // recoveryAmount is the recharge formula the parser reads. effects is
+                    // new behaviour: the old inline activity builder never passed an
+                    // effects array, so a consumable's activities could not apply effects.
+                    consumable: ['recoveryAmount', 'effects']
                 };
                 const allowedDrops = (profileId) => [
                     ...DROPPED_BY_EVERY_PROFILE, ...(ALSO_DROPPED[profileId] ?? [])
@@ -688,14 +785,22 @@ export default {
 
                 expect(`${profile}: every dropped field is a listed, deliberate drop`,
                     dropped.filter(key => !allowedDrops(profile).includes(key)), []);
-                expect(`${profile}: the derived template adds no field the current one lacks`, added, []);
+                expect(`${profile}: every added field is a listed, deliberate addition`,
+                    added.filter(key => !(KNOWN_ADDED[profile] ?? []).includes(key)), []);
 
                 // Listed starter-value differences, per profile. A value difference is a
                 // change to what an author is handed, so it is named here or it fails.
                 const KNOWN_VALUE_DIFFS = {
                     // null is a poor authoring prompt for "leave blank", and the parser
                     // reads null and '' identically.
-                    container: ['itemSubType']
+                    container: ['itemSubType'],
+                    // The shared builder gave Feature and Spell a worked example activity
+                    // and Consumable an empty array, though all three accept activities.
+                    // The derived example comes from the declared activity shape, so it
+                    // cannot drift from what validation accepts.
+                    consumable: ['activities'],
+                    feature: ['activities'],
+                    spell: ['activities']
                 };
 
                 // itemSource is excluded: the current path substitutes the campaign name
