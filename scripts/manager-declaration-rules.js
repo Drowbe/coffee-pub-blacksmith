@@ -51,10 +51,11 @@ function valueOf(entry, declaration, name) {
 }
 
 /**
- * Whether a reference is satisfied. A reference is either a field name, or a
- * field name plus one value that field's array must contain -- `weaponProperties:ver`.
- * That second form is what the Weapon rules need and it is the only shape beyond
- * a plain name, so it stays a notation rather than becoming an operator set.
+ * Whether a reference is satisfied. A reference is either a field name -- meaning
+ * "supplied and non-empty" -- or `field:value`, meaning "this field has this value".
+ * The second form covers a list containing the value and a scalar equalling it, which
+ * is one idea rather than two, so it stays a notation rather than becoming an
+ * operator set.
  * @param {object} entry
  * @param {object} declaration
  * @param {string} reference
@@ -64,7 +65,16 @@ function isPresent(entry, declaration, reference) {
     const [name, member] = String(reference).split(':');
     const value = valueOf(entry, declaration, name);
     if (member !== undefined) {
-        return Array.isArray(value) && value.includes(member);
+        // `field:value` reads as "this field has this value", and that is true of a
+        // scalar as much as of a list. It was array-only until Artificer's group,
+        // whose rules all turn on a string equalling a value -- so `artificerType:Component`
+        // parsed correctly and then evaluated `includes` against a string, and was
+        // false forever. Nothing caught it because both existing uses happen to fit
+        // the two supported shapes: itemIsMagical is a boolean, weaponProperties is
+        // an array. A silently-never-true rule reads as enforced and is not.
+        if (Array.isArray(value)) return value.includes(member);
+        if (value === undefined || value === null) return false;
+        return String(value).trim().toLowerCase() === String(member).trim().toLowerCase();
     }
     if (value === undefined || value === null) return false;
     if (typeof value === 'string') return value.trim() !== '';
