@@ -411,8 +411,15 @@ export class TagManager {
         const next = op === 'remove'
             ? current.filter(t => !delta.includes(t))
             : [...current, ...delta.filter(t => !current.includes(t))];
-        if (next.length === current.length) return current;
-        return this._applySetRecordTags({ contextKey, recordId, tags: next });
+
+        // `changed` travels back to the caller -- across the socket for a player -- because
+        // only this side knows it. `blacksmith.tags.changed` must not fire for adding a tag
+        // a record already carries: a consumer re-rendering on the hook would do the work
+        // for nothing, and the pre-delta `addTags` did not fire it either.
+        if (next.length === current.length) return { tags: current, changed: false };
+
+        const written = await this._applySetRecordTags({ contextKey, recordId, tags: next });
+        return { tags: written, changed: true };
     }
 
     static async _applyDeleteRecordTags({ contextKey, recordId }) {
@@ -441,16 +448,20 @@ export class TagManager {
         if (!contextKey || !recordId) return;
         const toAdd = normalizeTagArray(tagArray);
         if (toAdd.length === 0) return;
-        const tags = await this._mutate('mergeRecordTags', { contextKey, recordId, tags: toAdd, op: 'add' });
-        Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: tags ?? [] });
+        const result = await this._mutate('mergeRecordTags', { contextKey, recordId, tags: toAdd, op: 'add' });
+        if (result?.changed) {
+            Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: result.tags ?? [] });
+        }
     }
 
     static async removeTags(contextKey, recordId, tagArray) {
         if (!contextKey || !recordId) return;
         const toRemove = normalizeTagArray(tagArray);
         if (toRemove.length === 0) return;
-        const tags = await this._mutate('mergeRecordTags', { contextKey, recordId, tags: toRemove, op: 'remove' });
-        Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: tags ?? [] });
+        const result = await this._mutate('mergeRecordTags', { contextKey, recordId, tags: toRemove, op: 'remove' });
+        if (result?.changed) {
+            Hooks.callAll('blacksmith.tags.changed', { contextKey, recordId, tags: result.tags ?? [] });
+        }
     }
 
     static async deleteRecordTags(contextKey, recordId) {

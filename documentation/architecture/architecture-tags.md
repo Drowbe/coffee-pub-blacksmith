@@ -91,7 +91,7 @@ The dispatch table:
 | `renameTag` / `deleteTag` | sweep every assignment plus the registry |
 | `adoptLegacyStore` | take a whole legacy blob into a store still empty -- the one correct whole-object write, with emptiness re-checked inside the queued unit |
 
-`addTags` and `removeTags` are their own delta actions rather than a `getTags` followed by `setTags`. A read-then-write split across two queued units is still a race: the read happens outside the cycle that consumes it.
+`addTags` and `removeTags` are their own delta actions rather than a `getTags` followed by `setTags`. A read-then-write split across two queued units is still a race: the read happens outside the cycle that consumes it. They return `{tags, changed}` rather than the array, because whether anything actually changed is known only on the applying side -- across the socket, for a player -- and `blacksmith.tags.changed` fires only when `changed` is true. Adding a tag a record already carries is silent.
 
 Assignment writes prune as they go, and **pruning is confined to the contexts the write touched**. `_putAssignments()` takes those context keys explicitly; a caller that genuinely visits every context -- `renameTag`, `deleteTag`, `adoptLegacyStore` -- passes `null` for all of them.
 

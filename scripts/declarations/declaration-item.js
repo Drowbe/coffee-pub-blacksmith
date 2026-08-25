@@ -458,6 +458,129 @@ registerDeclaration(ITEM_EQUIPMENT_DECLARATION);
 registerDeclaration(ITEM_TOOL_DECLARATION);
 registerDeclaration(ITEM_CONTAINER_DECLARATION);
 
+
+/**
+ * The authored shape of one activity, declared once.
+ *
+ * Feature, Spell and Consumable all accept authored activities and all convert
+ * them through `_buildActivities`. Declaring the shape here rather than in each
+ * profile means the worked example in the JSON template, the guide lines, the
+ * prompt lines and the validation all come from one place -- the old builder
+ * hand-maintained a thirty-field example next to a parser that accepted
+ * something slightly different, and the two had no way to stay in step.
+ *
+ * These are NESTED fields: they carry no `path`, because the parent field owns
+ * the document path and this describes the shape of its value.
+ *
+ * `activityType` is deliberately narrow. dnd5e defines more types than this, but
+ * `_activityBase` converts exactly these five and refuses the rest by name --
+ * including a specific message for "Use", which is not a dnd5e type at all.
+ * Declaring the five it converts is honest; listing the ones it rejects would be
+ * a schema promising what the converter cannot deliver.
+ */
+export const ACTIVITY_FIELDS = [
+    { name: 'activityType', type: 'string', required: true, example: 'Save',
+      values: ['attack', 'damage', 'heal', 'save', 'utility'],
+      aliases: { Attack: 'attack', Damage: 'damage', Heal: 'heal', Save: 'save', Utility: 'utility' },
+      guidance: 'What the activity does: attack, damage, heal, save or utility.' },
+    { name: 'activityName', type: 'string', default: '', example: '',
+      guidance: 'Display name; falls back to the activity type.' },
+    { name: 'activityIcon', type: 'string', default: '', example: '',
+      guidance: 'Icon path; falls back to the item artwork.' },
+    { name: 'activityFlavorText', type: 'string', default: '', example: '',
+      guidance: 'Text shown in chat when the activity is used.' },
+    { name: 'activationType', type: 'string', default: 'action', example: 'action',
+      guidance: 'The action cost: action, bonus, reaction, minute, hour or special.' },
+    { name: 'activationValue', type: 'integer', nullable: true, default: 1, example: 1,
+      guidance: 'How many of the activation unit are needed.' },
+    { name: 'activationCondition', type: 'string', default: '', example: '',
+      guidance: 'A condition that must hold before it can be used.' },
+    { name: 'damageFormula', type: 'string', default: '', example: '',
+      acceptsKeys: ['activityFormula'],
+      guidance: 'Damage dice, such as 2d6 or 1d8 + 2.' },
+    { name: 'damageType', type: 'string', default: '', example: '',
+      acceptsKeys: ['activityEffectType'],
+      guidance: 'The damage type dealt, such as fire or piercing.' },
+    { name: 'healingFormula', type: 'string', default: '', example: '',
+      guidance: 'Healing dice, for a heal activity.' },
+    { name: 'healingType', type: 'string', default: '', example: '',
+      guidance: 'Either healing or temphp.' },
+    { name: 'saveAbility', type: 'string', default: 'wis', example: 'wis',
+      values: ['str', 'dex', 'con', 'int', 'wis', 'cha'],
+      guidance: 'Which ability the target saves with.' },
+    { name: 'saveDC', type: 'integer', nullable: true, default: null, example: null,
+      guidance: 'A fixed save DC; leave blank to let dnd5e calculate it.' },
+    { name: 'onSave', type: 'string', default: 'none', example: 'none',
+      values: ['none', 'half', 'full'],
+      guidance: 'How much effect a successful save avoids.' },
+    { name: 'attackType', type: 'string', default: '', example: '',
+      guidance: 'Melee or ranged, for an attack activity.' },
+    { name: 'attackAbility', type: 'string', default: '', example: '',
+      guidance: 'The ability the attack uses; blank lets dnd5e choose.' },
+    { name: 'rollFormula', type: 'string', default: '', example: '',
+      guidance: 'A formula rolled by a utility activity.' },
+    { name: 'activityUsesMax', type: 'string', nullable: true, default: null, example: null,
+      guidance: 'Uses of this activity specifically, separate from the item.' },
+    { name: 'activityUsesSpent', type: 'integer', default: 0, example: 0,
+      guidance: 'How many of those uses are already spent.' },
+    { name: 'activityRecoveryPeriod', type: 'string', default: 'none', example: 'none',
+      values: ['none', 'long rest', 'short rest', 'day', 'dawn', 'dusk',
+               'initiative', 'start of turn', 'end of turn', 'recharge'],
+      guidance: 'When this activity\'s own uses come back.' },
+    { name: 'activityRecoveryFormula', type: 'string', default: '', example: '',
+      guidance: 'For a recharge period, the die that recharges it.' },
+    { name: 'activityDuration', type: 'object', fields: [
+        { name: 'value', type: 'integer', nullable: true, default: null, example: null,
+          guidance: 'How long it lasts.' },
+        { name: 'units', type: 'string', default: 'inst', example: 'inst',
+          guidance: 'The unit of duration; inst means instantaneous.' },
+        { name: 'special', type: 'string', default: '', example: '',
+          guidance: 'A duration the units cannot express.' },
+        { name: 'concentration', type: 'boolean', default: false, example: false,
+          guidance: 'Whether maintaining it requires concentration.' }
+      ], guidance: 'How long the activity lasts once used.' },
+    { name: 'activityRange', type: 'object', fields: [
+        { name: 'value', type: 'integer', nullable: true, default: null, example: null,
+          guidance: 'The reach or range.' },
+        { name: 'units', type: 'string', default: 'self', example: 'self',
+          guidance: 'The unit the range is measured in.' },
+        { name: 'special', type: 'string', default: '', example: '',
+          guidance: 'A range the units cannot express.' }
+      ], guidance: 'How far the activity reaches.' },
+    { name: 'activityTarget', type: 'object', fields: [
+        { name: 'affectsType', type: 'string', default: 'creature', example: 'creature',
+          guidance: 'What it affects: creature, ally, enemy, object or space.' },
+        // Deliberately untyped: dnd5e stores '' for unset and a number otherwise
+        // (`count: target.affectsCount ?? ''`). A union type for two fields would
+        // cost more than it buys, and declaring `integer` would reject the empty
+        // form the system itself writes.
+        { name: 'affectsCount', default: null, example: '',
+          guidance: 'How many targets; blank means any number.' },
+        { name: 'choice', type: 'boolean', default: false, example: false,
+          guidance: 'Whether the user chooses the affected type.' },
+        { name: 'special', type: 'string', default: '', example: '',
+          guidance: 'A targeting rule the fields cannot express.' },
+        { name: 'templateType', type: 'string', default: '', example: '',
+          guidance: 'A measured template shape, such as cone or sphere.' },
+        { name: 'templateSize', type: 'integer', nullable: true, default: null, example: null,
+          guidance: 'The template size.' },
+        { name: 'templateWidth', type: 'integer', nullable: true, default: null, example: null,
+          guidance: 'The template width, where the shape uses one.' },
+        { name: 'templateHeight', type: 'integer', nullable: true, default: null, example: null,
+          guidance: 'The template height, where the shape uses one.' },
+        { name: 'templateCount', default: null, example: '',
+          guidance: 'How many templates are placed.' },
+        { name: 'contiguous', type: 'boolean', default: false, example: false,
+          guidance: 'Whether multiple templates must touch.' },
+        { name: 'units', type: 'string', default: 'ft', example: 'ft',
+          guidance: 'The unit template sizes are measured in.' },
+        { name: 'prompt', type: 'boolean', default: false, example: false,
+          guidance: 'Whether to prompt for template placement.' }
+      ], guidance: 'What the activity targets, and any measured template.' },
+    { name: 'appliedEffects', type: 'array', default: [], example: [],
+      guidance: 'Names of effects from this item applied by the activity.' }
+];
+
 // ------------------------------------------------------------------
 // The described profiles: feature and spell.
 //
@@ -485,7 +608,7 @@ function describedItemFields(itemTypeExample) {
           guidance: 'Path to the artwork; Blacksmith guesses an icon when it is blank.' },
         // Read by the itemActivities derivation, which produces both system.activities
         // and effects together -- _buildActivities pushes applied effects into the array.
-        { name: 'activities', role: 'input', type: 'array', default: [], example: [],
+        { name: 'activities', role: 'input', type: 'array', fields: ACTIVITY_FIELDS,
           guidance: 'Activities this grants: attack, damage, heal, save or utility.' },
         { name: 'effects', role: 'input', type: 'array', default: [], example: [],
           guidance: 'Active Effects carried alongside the activities.' },

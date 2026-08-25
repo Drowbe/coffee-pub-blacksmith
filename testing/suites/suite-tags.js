@@ -368,6 +368,43 @@ export default {
             }
         },
         {
+            id: 'changed-hook-fires-only-on-a-real-change',
+            label: 'blacksmith.tags.changed does not fire for a no-op add',
+            tier: 'headless',
+            group: 'Hooks',
+            note: 'A consumer re-rendering on the hook must not be woken by an add that changed nothing.',
+            run: async ({ api, expect }) => {
+                if (!game.user?.isGM) throw new Error('GM only -- cleanup requires GM.');
+                requireApi('tags.setTags', 'tags.addTags', 'tags.removeTags');
+
+                const scope  = probeScope();
+                const tag    = scope.tag('hooked');
+                const record = scope.record(0);
+
+                let fired = 0;
+                const hookId = Hooks.on('blacksmith.tags.changed', (payload) => {
+                    if (payload?.contextKey === scope.contextKey) fired++;
+                });
+
+                try {
+                    await api.tags.setTags(scope.contextKey, record, [tag]);
+                    expect('setTags fired once', fired, 1);
+
+                    await api.tags.addTags(scope.contextKey, record, [tag]);
+                    expect('re-adding the same tag fired nothing', fired, 1);
+
+                    await api.tags.removeTags(scope.contextKey, record, [scope.tag('never-applied')]);
+                    expect('removing an absent tag fired nothing', fired, 1);
+
+                    await api.tags.addTags(scope.contextKey, record, [scope.tag('second')]);
+                    expect('a real add fired', fired, 2);
+                } finally {
+                    Hooks.off('blacksmith.tags.changed', hookId);
+                    await restore(api, scope, [tag, scope.tag('second'), scope.tag('never-applied')]);
+                }
+            }
+        },
+        {
             id: 'store-left-clean',
             label: 'No probe data survives a full suite run',
             tier: 'headless',

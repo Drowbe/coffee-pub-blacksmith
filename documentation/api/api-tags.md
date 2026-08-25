@@ -604,7 +604,7 @@ The Tags system fires the following Foundry hooks:
 | `blacksmith.tags.registered` | A taxonomy is registered (JSON load or runtime) | `{ contextKey, taxonomy }` |
 | `blacksmith.tags.renamed` | A tag is renamed globally (GM only) | `{ oldTag, newTag, updated: number }` |
 | `blacksmith.tags.deleted` | A tag is deleted globally (GM only) | `{ tag, removed: number }` |
-| `blacksmith.tags.changed` | Tags are set/added/removed on a record | `{ contextKey, recordId, tags: string[] }` |
+| `blacksmith.tags.changed` | A record's tags actually changed. `addTags` with a tag the record already carries, or `removeTags` with one it does not, is silent. | `{ contextKey, recordId, tags: string[] }` |
 
 ---
 
