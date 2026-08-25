@@ -26,6 +26,28 @@ switched off, and the XP reload case.
 were green while the full run was red, because the inventory and XP suites churn actors and combats while the
 readouts checks are reading the bar. A tab passing on its own proves less than it looks.
 
+## Tags write path - two clients, cannot be automated (opened 2026-08-25)
+
+The `Tags` suite passes **17/17** and covers every concurrency case reachable from one client. What it cannot
+reach is the case the fix was mostly for: a **player** writing tags while a **GM** edits others. Before the
+fix the player shipped their whole snapshot of the store and the GM wrote it verbatim, so a stale player
+overwrote every context key for every module. One player creating a pin was enough. A single client cannot
+observe this - it needs two, and it needs them out of step.
+
+- [ ] **Player write does not clobber concurrent GM edits.** GM tags something in context A. Without
+  reloading, the player tags something in context B. Reload the GM: **both** must be present. Doing it with
+  the player's client left open for a while first is the point - the longer their snapshot is stale, the more
+  the old code destroyed.
+- [ ] **Player write with no GM online fails cleanly.** `_requestGM` throws "No GM is currently online".
+  Expect a refusal, not a silent no-op and not a partial write.
+- [ ] **Bulk pin tag strip mirrors completely.** As GM, strip a tag from a scene holding several pins that
+  carry it. Every stripped pin's central assignment must be gone, not just the last one's. This is the
+  original report; the suite proves the primitive, this proves the caller.
+
+**Run the harness whole for this one.** The Tags suite writes `tagAssignments` and `tagRegistry` - world
+settings - while every other suite runs, which is exactly the order-dependence noted at the top of this file.
+A green Tags tab on its own proves less than it looks.
+
 ## Inventory - live, cannot be automated
 
 - [ ] **Two clients loot one corpse simultaneously.** Total received must equal total removed. The mutex is

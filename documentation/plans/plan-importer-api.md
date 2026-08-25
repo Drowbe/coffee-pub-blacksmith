@@ -162,6 +162,31 @@ knows its own `path`; a named rule already knows its own `code`. The `code` / `s
 shape specified later in this document stops being something a kind has to opt into by throwing richly, and
 becomes a property of the engine.
 
+### Defaults may supply a zero, never an attribution
+
+Contributed by Librarian 2026-08-25, after the same class of bug was found three
+times in Blacksmith's own parser and four times in Artificer's.
+
+**A default that supplies a zero value is fine; a default that invents an attribution
+is not.** A quest status defaulting to its initial state is a state machine's starting
+point, not a claim about the world. `source.custom ?? 'Artificer'` asserts who made the
+thing. The first is a schema default; the second is fabricated data wearing a default's
+clothes.
+
+The distinction is what makes the failure so hard to see. An empty category is
+*visibly* absent -- it groups under "No Category" and a reader notices. An invented
+source is *invisibly wrong*: the field looks filled in, plausibly, and nothing ever
+flags it. Blacksmith shipped two of these (`'Artificer'` on every sourceless item,
+`'Blacksmith Import'` on every feature and spell) and neither was noticed until
+something diffed the output against a declaration.
+
+Applied to a declaration: a `default` states what the field holds when the author
+says nothing, and for anything describing provenance -- source, author, creator,
+licence -- that value is empty. A profile wanting to stamp its own name is describing
+an authoring tool's behaviour, not an import default, and belongs wherever that tool
+creates the document rather than in the schema. Artificer's authoring window stamping
+its own items is the legitimate form of this and stays.
+
 ### Transforms
 
 Some values are converted rather than mapped: a price string into `{value, denomination}`, a name into a
