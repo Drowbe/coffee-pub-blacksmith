@@ -179,7 +179,51 @@ knows its own `path`; a named rule already knows its own `code`. The `code` / `s
 shape specified later in this document stops being something a kind has to opt into by throwing richly, and
 becomes a property of the engine.
 
-### Dynamic vocabularies: three cases, two shapes
+### onReplace: the four paths, answered from a real conversion
+
+Artificer converted 266 recipe pages from `text` to a declared subtype 2026-08-26. A page's
+type cannot be changed by update, so every one was deleted and recreated. What
+`onReplace: { preserve: [...] }` had to hold:
+
+| Path | Why |
+|---|---|
+| `_id` | **The one that matters most and is easiest to skip.** Without `keepId`, every `@UUID` link a GM wrote to that page breaks silently -- no error, just a link that stops resolving. The *journal* id survives regardless, so a document-level check looks clean. |
+| `sort` | A mixed journal must not reorder. |
+| `ownership` | A hidden entry must not become visible. |
+| `title` | `{ show, level }` is per-page display state nothing else carries; losing it silently changes how the page renders. |
+
+Two rules for the conversion runner itself, both learned by running it:
+
+- **Verify before deleting, and stop the whole journal on the first mismatch.** A converter
+  getting one page wrong is probably getting others wrong. Read the recreated page back and
+  compare before moving on; continuing turns one bad page into thirty.
+- **Under-convert rather than over-convert, and split the skipped bucket.** A page converts
+  only if the reader parses it and the result validates, so unrelated pages fall out
+  naturally. But "did not parse" and "is not one of these" both return nothing, which makes
+  "skipped" a bucket holding two very different meanings. A shape check separates them, so a
+  page carrying the right markers that still failed to parse is reported rather than left
+  behind unnoticed.
+
+### Conditional FIELDS, not conditional values
+
+Artificer's Process family, 2026-08-26. Four fields -- level positions with names and colours,
+a named animation, a sound, and whether full intensity destabilises -- exist only when
+`artificerFamily` is `Process` and are meaningless on anything else.
+
+This is one step past the conditional-vocabulary case: there the field always exists and its
+allowed values vary; here **the field itself should not appear in the template, guide or prompt
+unless another field's value calls for it.** `requiresOption` is close but gates on an import
+option a person ticks, not on a field's value.
+
+The notation already exists: `field:value` references in the rule vocabulary mean exactly
+"this field has this value", and that reference gained scalar support when Artificer found it
+was array-only. A field-level `requiresWhen: 'artificerFamily:Process'` would reuse it rather
+than inventing a second way to say the same thing.
+
+Not blocking -- the fields are declared, optional and defaulted, so they are simply blank on
+every non-Process item. A worse authoring experience, not a correctness problem.
+
+### Dynamic vocabularies: four cases, three shapes
 
 A field's `values` list is fixed at declaration time. Three consumer fields are not, and
 they are not all the same problem -- which is why the mechanism gets designed against all
@@ -190,6 +234,7 @@ three rather than against the first one to arrive.
 | Artificer `skill` | a user-configurable mapping JSON read at runtime; differs per world | runtime set |
 | Artificer `artificerFamily` | selected by the value of `artificerType` | conditional set |
 | Librarian codex `category` | user-extensible: a GM types a new one and it exists | runtime set, **members carry data** |
+| Artificer `artificerProcessAnimation` | a manifest an art pack extends by shipping CSS plus an entry | runtime set, third-party source |
 
 The third is the one that breaks a naive design. A codex category is the grouping key for
 their whole browser, and `categoryIcon` travels with it -- creating a category means
