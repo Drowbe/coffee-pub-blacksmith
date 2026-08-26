@@ -110,6 +110,35 @@ of Blacksmith's own kinds -- nineteen profiles -- against the model rather than 
 That survey is what the three previous attempts skipped. Three profile forms came out of it (mapped,
 rendered, passthrough) and nothing in nineteen profiles needed a construct outside the model.
 
+**Steps 0 to 4 are implemented and recorded in `CHANGELOG.md`; they are removed from this list.** All
+eight Item profiles -- loot, weapon, equipment, tool, container, feature, spell and consumable -- are
+declared, with construction asserted equivalent to the parser across thirteen cases.
+`testing/suites/suite-importer-declarations.js` stands at 107 assertions.
+
+**It is gated off and is not running.** `registry-json-import-items.js` has the declaration import
+commented out, so nothing registers and every entry routes to the parser. That was deliberate: the
+importer is not being leveraged in production yet and must not silently change what a GM's import
+produces. Uncommenting one line is the whole switch, because routing is by declaration presence.
+
+### Turn the declaration engine on
+
+Its own item because it is a decision rather than a step, and because the sequence below reads as
+though the engine were already live otherwise.
+
+Everything needed is built and asserted. What is NOT yet proven is behaviour in a running world:
+thirteen parity cases compare document *source data*, not what Foundry stores once a document is
+created. Before uncommenting, import each fixture in `testing/data/import-json/` and confirm the
+created document -- particularly the generated weapon activity, equipment passive effects, and a
+spell's template and materials.
+
+Expect two visible changes on the day it goes on, both intended and both listed in `CHANGELOG.md`:
+imports get stricter (an invalid `itemRarity` or a non-numeric `itemQuantity` now fail, naming the
+field), and the retired `coffee-pub` flag and `system.consumableType` stop being written.
+
+**How to verify:** `api.importer.listDeclarations()` returns eight profiles rather than `[]`, every
+fixture imports, and a deliberately malformed payload fails naming the offending field instead of
+reporting a blanket validation failure.
+
 ### Build sequence
 
 **Vertical slices, never a horizontal layer.** Each step leaves the module working, is verifiable on its
@@ -118,19 +147,7 @@ with no world state, so most of it is assertable in `testing/suites/` -- which i
 the importer has been. Add `suite-importer-declarations.js` in step 1 and grow it with each step; the
 long-standing "no automated coverage" defect is fixed by the re-founding rather than alongside it.
 
-**Steps 0 to 3 are done and verified live (2026-08-23); they are recorded in `CHANGELOG.md` and removed
-from this list.** What exists now: the public registration path, a declaration registry that rejects a
-malformed declaration at registration, derivation of the JSON template, shape validation and a dry
-conversion check, the named transform library, document construction, and the Item `loot` profile live on
-all of it. The Item importer routes an entry to the derived path when a declaration exists for its profile
-and to the parser when one does not, so each remaining profile moves simply by being declared.
-`testing/suites/suite-importer-declarations.js` grows with each step and stands at 55 assertions.
-
-4. **The remaining seven Item profiles.** Weapon last, because it exercises every rule in the cross-field
-   vocabulary; equipment brings nested `passiveEffects`, `const`, `generated` and the ancestor default chain;
-   feature and spell bring the `consumption` transform.
-   **Verify:** all six item fixtures import unchanged, and the Artificer flag block still round-trips --
-   which is also when Artificer's prompt parts leave `prompts/` and Artificer declares them.
+Steps 0-4 are done. What remains:
 
 5. **Guide and prompt derivation.** After construction, not before: the field guidance sentences are only
    proven once the fields themselves are.

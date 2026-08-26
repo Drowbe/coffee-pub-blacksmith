@@ -6,10 +6,20 @@ import { registerJsonImportKind } from './registry-json-import.js';
 import { parseFlatItemToFoundry, isNativeFoundryItemData } from './parsers/parse-item.js';
 import { getDeclaration } from './registry-declarations.js';
 import { validateEntryDeep, buildDocumentData } from './manager-declarations.js';
-// Side-effect import: registers the declared Item profiles. This is what puts
-// the declaration in the load path -- step 3 of the build sequence in
-// documentation/TODO.md. Removing it silently returns every profile to the parser.
-import './declarations/declaration-item.js';
+// THE DECLARATION ENGINE IS GATED OFF, DELIBERATELY.
+//
+// All eight Item profiles are declared and asserted equivalent to the parser
+// across thirteen construction cases, but the importer is not being leveraged in
+// production yet, so it must not silently change what a GM's import produces.
+// Without this import nothing registers, `declaredProfileFor` finds no profile,
+// and every entry routes to the parser exactly as before.
+//
+// The harness imports the declarations itself, so the suite still exercises the
+// engine in full while the live path is untouched.
+//
+// TO TURN IT ON: uncomment the line below. That is the whole switch -- routing is
+// by declaration presence, so registering the profiles is what activates them.
+// import './declarations/declaration-item.js';
 import {
     fetchPromptText,
     composePrompt,
