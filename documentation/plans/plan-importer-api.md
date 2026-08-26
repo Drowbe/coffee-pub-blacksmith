@@ -1,12 +1,14 @@
 # Plan: the Importer API
 
-**Status: Implemented through step 1 of 11.** Steps 0 and 1 shipped 2026-08-25 -- the public
-registration path (`registerDeclaration`, `getDeclaration`, `getDeclarationsForKind`,
-`listDeclarations`, `getJsonTemplate`, `getJsonTemplateObject`) and template derivation for the Item
-`loot` profile, asserted by `testing/suites/suite-importer-declarations.js`. **Nothing has switched
-over**: no declaration module is in the load path and the existing parser is still the only thing
-that creates an Item. Steps 2-11 are unstarted. Live scaffolding -- delete it when the migration
-completes and its content has been distributed.
+**Status: Implemented through step 4 of 11.** All eight Item profiles -- loot, weapon, equipment,
+tool, container, feature, spell and consumable -- are declared and **live**: the Item importer routes
+an entry to the derived path when a declaration exists for its profile, and every one now does.
+Construction is asserted equivalent to the parser it replaces across thirteen cases in
+`testing/suites/suite-importer-declarations.js`. The parser's per-profile builders are retained
+deliberately as the comparison baseline and become deletable when the remaining kinds move.
+Steps 5-11 -- guide and prompt derivation, Roll Table, Actor, Journal, fragments, export, and the
+parity check -- are unstarted. Live scaffolding; delete this file when the migration is complete and
+its content has been distributed.
 
 **Scope changed 2026-08-23.** This was written as a *wider* contract layered on top of the shipped
 callback registry. It is now the contract for a **re-founding of the importer**: a kind registers a

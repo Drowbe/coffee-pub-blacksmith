@@ -16,15 +16,34 @@
 // description, not just the blank path it is replacing.
 // ==================================================================
 
-import { GMNotesManager } from './manager-gmnotes.js';
-import {
-    guessIconPath, _damagePart, _emptyDamagePart, _attunementValue, _uses,
-    WEAPON_TYPES, WEAPON_PROPERTIES
-} from './parsers/parse-item.js';
-
-/** Helpers the transforms borrow from the parser, named so the reuse is visible. */
-const TRANSFORM_DEPS = { _uses };
 import { issue } from './utility-import-issues.js';
+
+// Foundry-dependent helpers, bound LAZILY rather than imported at load.
+//
+// Nothing Foundry-touching may be a top-level import here. The registry imports
+// this file to check that a declaration names a transform that exists, and
+// `parsers/parse-item.js` reaches `const.js`, which fetches `module.json` while it
+// loads -- a static import would drag Foundry into registration and cost the
+// declaration layer the headless testability that is half its value. The
+// derivations module already works this way, for the same reason.
+//
+// Bound as bare names so the transform bodies below read normally; `applyTransform`
+// resolves them once before dispatching, so a transform can never observe them unset.
+let GMNotesManager, guessIconPath, _damagePart, _emptyDamagePart, _attunementValue, _uses,
+    WEAPON_TYPES, WEAPON_PROPERTIES;
+let depsLoaded = false;
+
+async function loadDeps() {
+    if (depsLoaded) return;
+    const [notes, parser] = await Promise.all([
+        import('./manager-gmnotes.js'),
+        import('./parsers/parse-item.js')
+    ]);
+    ({ GMNotesManager } = notes);
+    ({ guessIconPath, _damagePart, _emptyDamagePart, _attunementValue, _uses,
+       WEAPON_TYPES, WEAPON_PROPERTIES } = parser);
+    depsLoaded = true;
+}
 
 /**
  * Thrown by a transform so the failure reaches the result envelope with a code
@@ -241,7 +260,6 @@ function attunementIfMagical(value, { entry }) {
  * @returns {object}
  */
 function limitedUses(value, { entry, field, declaration }) {
-    const { _uses } = TRANSFORM_DEPS;
     // Read siblings through their OWN declarations so their key aliases are honoured.
     // The parser reads `flat.featureUsesSpent ?? flat.usesSpent`, and reaching into
     // the entry by one name would silently drop the short form.
@@ -430,6 +448,7 @@ export function hasTransform(name) {
  * @returns {Promise<*>}
  */
 export async function applyTransform(name, value, context) {
+    await loadDeps();
     const transform = TRANSFORMS[name];
     if (!transform) {
         throw new TransformError('UNKNOWN_TRANSFORM', context?.field?.name ?? '',
@@ -438,7 +457,3 @@ export async function applyTransform(name, value, context) {
     return transform(value, context);
 }
 
-/** Every registered transform name, for capability reporting. */
-export function transformNames() {
-    return Object.keys(TRANSFORMS);
-}

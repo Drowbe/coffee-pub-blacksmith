@@ -28,5 +28,11 @@ export const ISSUE_STAGES = ['parse', 'normalize', 'validate', 'convert', 'creat
  * @returns {{code: string, stage: string, path: string, message: string, details: object}}
  */
 export function issue(code, path, message, details = {}, stage = 'validate') {
+    // The stage list existed and validated nothing, which made it documentation
+    // wearing a constant's clothes. A typo'd stage would reach a consumer branching
+    // on it and simply never match.
+    if (!ISSUE_STAGES.includes(stage)) {
+        throw new Error(`Unknown issue stage "${stage}"; expected one of ${ISSUE_STAGES.join(', ')}`);
+    }
     return { code, stage, path, message, details };
 }

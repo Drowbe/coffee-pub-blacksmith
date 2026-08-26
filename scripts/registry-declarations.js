@@ -73,6 +73,7 @@
 
 import { RULE_KINDS, hasNamedRule } from './manager-declaration-rules.js';
 import { hasDerivation } from './manager-declaration-derivations.js';
+import { hasTransform } from './manager-declaration-transforms.js';
 
 /**
  * Whether a value matches a declared type. Lives here rather than beside the
@@ -173,6 +174,13 @@ function validateField(field, form, where, nested = false) {
     }
     if (field.path !== undefined && typeof field.path !== 'string') {
         throw new Error(`${at}: path must be a string`);
+    }
+    // A transform name that does not exist is a declaration bug, and catching it at
+    // registration is the difference between a clear error and a failure surfacing
+    // from construction three steps later. Derivations were already checked here;
+    // transforms were not, which was an inconsistency rather than a decision.
+    if (field.transform !== undefined && !hasTransform(field.transform)) {
+        throw new Error(`${at}: no transform named "${field.transform}" is registered`);
     }
     if (field.acceptsKeys !== undefined) {
         if (!Array.isArray(field.acceptsKeys)) {
