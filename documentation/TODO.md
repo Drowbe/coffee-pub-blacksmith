@@ -287,7 +287,10 @@ quests migrate, and do not read a clean review of that path as evidence it is so
   migration was 342. Wait and see whether it is actually too slow before adding surface.
 
 - **A bulk rename is NOT wanted, on current evidence.** Recorded because the opposite is easy to assume
-  from the vocabulary size. Librarian's codex holds 452 distinct tags with 264 used exactly once, and the
+  from the vocabulary size. Librarian's codex measured 452 distinct tags with 264 used exactly once -- but
+  **that was their development world, and they later corrected it as partly their own test noise**, so read
+  it as an upper bound rather than a vocabulary. Production has not migrated yet. Whatever the real number,
+  the
   singletons are legitimate one-off descriptors -- `baker`, `tanner`, `stablemaster` -- each accurately
   describing one entry. They make a tag cloud long, not wrong, and there is nothing to merge them into.
   Their actual curation is about ten merges and two deletions. **Do not read a singleton count as a rename

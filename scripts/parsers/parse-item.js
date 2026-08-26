@@ -178,25 +178,6 @@ export async function guessIconPath(item) {
     return 'icons/commodities/treasure/mask-jeweled-gold.webp';
 }
 
-export async function getAvailableSynonyms() {
-    try {
-        const response = await fetch(`modules/${MODULE.ID}/resources/taxonomy.json`);
-        const mapping = await response.json();
-        return Object.keys(mapping).sort();
-    } catch (error) {
-        console.warn('BLACKSMITH | Item Import | Could not load synonym mapping for debugging');
-        return [];
-    }
-}
-
-export async function testImageGuessing(itemName, itemDescription = '') {
-    return guessIconPath({
-        itemName,
-        itemDescription,
-        itemSubType: 'treasure'
-    });
-}
-
 function parseItemPrice(itemPrice) {
     if (itemPrice == null || String(itemPrice).trim() === '') return { value: 0, denomination: 'gp' };
     const s = String(itemPrice).trim();

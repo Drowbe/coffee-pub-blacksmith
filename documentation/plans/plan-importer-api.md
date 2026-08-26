@@ -1,6 +1,12 @@
 # Plan: the Importer API
 
-**Status: Planned.** Nothing in this document is implemented.
+**Status: Implemented through step 1 of 11.** Steps 0 and 1 shipped 2026-08-25 -- the public
+registration path (`registerDeclaration`, `getDeclaration`, `getDeclarationsForKind`,
+`listDeclarations`, `getJsonTemplate`, `getJsonTemplateObject`) and template derivation for the Item
+`loot` profile, asserted by `testing/suites/suite-importer-declarations.js`. **Nothing has switched
+over**: no declaration module is in the load path and the existing parser is still the only thing
+that creates an Item. Steps 2-11 are unstarted. Live scaffolding -- delete it when the migration
+completes and its content has been distributed.
 
 **Scope changed 2026-08-23.** This was written as a *wider* contract layered on top of the shipped
 callback registry. It is now the contract for a **re-founding of the importer**: a kind registers a
@@ -212,6 +218,14 @@ than a quirk:
   page predates the field split, so its container genuinely is the apparatus. Their code
   tested the parsed value, which cannot tell blank from absent, and so applied the legacy
   reading to modern pages.
+- Librarian's quest reader (2026-08-26): **four instances in one file** -- a writer
+  skipping a field for `''` as for `undefined`, a reader whose "nothing found" fallback
+  fired on an empty value and discarded the whole document, an extractor defaulting status
+  to a truthy literal so re-import could never change it, and a participant parser that
+  had this exact bug *in the helper written to fix it*.
+
+Four occurrences in one file is what moves this from a pattern to something worth
+checking for mechanically rather than remembering.
 
 **Testing a parsed value cannot answer the question.** Whether a key, a label or a field
 was *present* has to be tracked separately from what it contained, at the point of
@@ -231,6 +245,19 @@ So a reader defect must be fixed before conversion, not merely before the profil
 declared. It applies to every consumer taking this path, and the exposure scales with how
 much the reader infers: Artificer's parser matches bolded labels, Librarian's is a regex
 over generated HTML.
+
+**The stronger form, from Librarian 2026-08-26 after auditing their own reader: a
+conversion must read with the parser and write to the schema DIRECTLY, never round-trip
+through the writer.** Fixing known reader defects only addresses the ones you found.
+Removing the writer from the conversion path removes the entire class, because a writer
+that cannot express what the reader can read will silently flatten every value it has no
+form for -- and it does so uniformly, so the result looks consistent rather than broken.
+
+Their measurement is the argument: their writer emitted tasks as bare `<li>` while their
+reader decodes `<s>`, `<code>` and `<em>` for task state. Had their conversion run before
+the audit, **all thirty production quests would have been permanently rewritten to active
+with zero progress**, with the source gone. Every task in the world, uniformly, with
+nothing to compare against afterwards.
 
 ### Defaults may supply a zero, never an attribution
 
