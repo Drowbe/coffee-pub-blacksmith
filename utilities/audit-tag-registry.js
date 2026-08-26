@@ -105,6 +105,12 @@
     }
 
     console.log(`\nScanned ${contextKeys.size} context(s): every one holding assignments, `
-        + 'plus every one any taxonomy declares. A tag can only reach UNACCOUNTED by being '
-        + 'used nowhere and offered by nothing.');
+        + 'plus every one any taxonomy declares.');
+    console.log('A tag reaches UNACCOUNTED by being used nowhere and offered by nothing. The registry is '
+        + 'append-only apart from an explicit delete(), so a tag whose every record was later removed '
+        + 'stays here forever. That is ordinary sediment, not a fault.');
+    console.log('CAVEAT: a taxonomy registered at RUNTIME through api.tags.register() only counts if that '
+        + 'module has registered by the time this runs. No sibling does so today, which is why the list '
+        + 'above is currently complete. If one starts, run this late in the session and check unfamiliar '
+        + 'entries against that module before deleting anything.');
 })();
