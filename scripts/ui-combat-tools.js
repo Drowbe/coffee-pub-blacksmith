@@ -3,7 +3,8 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely, getPortraitImage } from './api-core.js';
+import { broadcastToast } from './api-toast.js';
 import { HookManager } from './manager-hooks.js';
 
 /**
@@ -197,6 +198,29 @@ Hooks.once('ready', () => {
                     _id: draggedId,
                     initiative: newInitiative
                 }]);
+
+                // The same announcement the combat bar's drag makes
+                // (`manager-combatbar.js`), because it is the same event: the order
+                // everyone is playing to just changed, and only the GM who dragged
+                // saw it happen. Which control they used is not something the table
+                // should be able to tell from whether they were told.
+                //
+                // Read the position AFTER the await -- `updateEmbeddedDocuments`
+                // resolves once `setupTurns()` has re-sorted, so `turns` is the new
+                // order here and the old one anywhere earlier.
+                const moved = game.combat.combatants.get(draggedId);
+                const position = game.combat.turns.findIndex(t => t.id === draggedId) + 1;
+                if (moved && position > 0) {
+                    await broadcastToast({
+                        title: `${moved.name} moved to position ${position} of ${game.combat.turns.length}`,
+                        subtitle: `Initiative ${Math.round(newInitiative * 100) / 100}`,
+                        icon: 'fa-solid fa-list-ol',
+                        image: moved.actor ? (getPortraitImage(moved.actor) || null) : null,
+                        duration: 3,
+                        stackKey: 'blacksmith-initiative-drag',
+                        moduleId: 'blacksmith-core'
+                    });
+                }
             });
         });
         } // End GM-only drag and drop section

@@ -463,6 +463,50 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
+## CRITICAL BUG - a player could not target an NPC on their own turn (opened 2026-08-27)
+
+Seen live 2026-08-26. A player, on their turn, intermittently could not target an NPC. They own more than
+one token, and the suspicion at the table was that something had the wrong one in mind. The turn indicator
+on the canvas was showing the correct combatant throughout, so whatever failed was not the turn itself.
+
+**Ruled out already, by reading the code rather than by testing:**
+
+- **Nothing in Blacksmith sets or clears targets on its own.** There are exactly two calls to
+  `canvas.tokens.setTargets([], {mode: 'replace'})` -- the Clear All Targets tool
+  (`manager-toolbar.js:553`) and the same item on the combat bar's token menu
+  (`manager-combatbar.js:4190`) -- and both are a button someone presses. No hook of ours touches
+  `game.user.targets`; `manager-token-indicators.js:121` only *watches* `targetToken` to draw a ring.
+- **Owning several tokens is not part of core's targeting logic at all.** `Token#setTarget`
+  (`client/canvas/placeables/token.mjs:3393`) consults no ownership, no combat, and no turn -- it calls
+  `canvas.tokens.setTargets` and nothing else. So the "it thought I was the other character" theory has
+  nothing to attach to on the targeting path. Where that theory *does* have purchase is movement:
+  `token-movement.js:718` compares the moved token against `combat.current.tokenId` exactly, so under
+  combat-movement a player with two tokens can only move the one whose turn it literally is. If what was
+  actually blocked was movement rather than targeting, that line is the answer and this is not a bug.
+
+**The two gates core does apply**, either of which produces exactly this symptom with no error shown:
+
+1. **The token is secret.** `TokenDocument#isSecret` is disposition SECRET without OBSERVER permission
+   (`client/documents/token.mjs:188`), and both targeting paths return silently on it -- the target tool
+   (`token.mjs:4299-4306`) and double-right-click (`:4336`). A GM setting an NPC's disposition to Secret
+   makes it untargetable by players while remaining perfectly visible to them.
+2. **The gesture.** The target tool must be the active tool for left-click to target; otherwise it is
+   double-right-click, and on a token the player *owns* double-right-click opens configuration instead.
+   A player switching between their two tokens is more likely than most to have the wrong tool active.
+
+**What to do at the table when it recurs**, in this order -- the first three cost nothing and separate the
+three candidates outright:
+
+- Ask what they actually could not do: place a target, or move. They are different failures with different
+  causes and this report does not distinguish them.
+- Check that NPC's disposition on the token, not the prototype. Secret is the single most likely answer.
+- Have them press the target tool explicitly and click, rather than double-right-clicking.
+- If it still fails, `game.user.targets` in their console before and after the click says whether the
+  target was never set or was set and then released -- and only the second one implicates a module.
+
+Do not build anything until that fork is closed. Every fix for the wrong branch is a fix that makes the
+real one harder to see.
+
 ## Two drag-to-reorder implementations, and they do not agree (opened 2026-08-27)
 
 Initiative can be reordered by dragging in two places, and the two share no code.

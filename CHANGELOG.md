@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A reorder made in the combat tracker announced nothing** (`scripts/ui-combat-tools.js`). Dragging a portrait on the combat bar broadcasts a toast naming who moved and where to; the identical gesture in the tracker was silent, so whether the table found out depended on which control the GM happened to use. It broadcasts the same toast now, with the same `stackKey`, so the two cannot stack up as separate notices. The position is read after the update resolves, which is the point at which `combat.turns` holds the new order rather than the old one.
+
+  **Verify live:** drag a row in the combat tracker and confirm every client sees one toast naming the combatant and its new position, matching what the same move on the bar produces.
+
 - **A drag in the combat tracker died silently if anything re-rendered the tracker while you were holding the mouse down** (`scripts/ui-combat-tools.js`). Intermittent by nature, and it looked like the feature simply going unresponsive.
 
   The tracker's drag is ours -- core Foundry's combat tracker has no drag-to-reorder at all -- and its drop zones are `li.drop-target` rows that stand 2px tall until `.dragging-active` lands on the tracker element, at which point they open to 16px (`styles/combat-tools.css:23-37`). The tracker is an ApplicationV2 whose `tracker` part element is replaced wholesale on every render, and a live combat re-renders it constantly: a hit point change, an effect, another client's turn. When that happened mid-drag the class went out with the old element, every drop zone on the new one collapsed back to a 2px strip, and the drop landed on nothing. The drag was still perfectly live; there was just nothing left to drop onto.
