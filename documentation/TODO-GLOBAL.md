@@ -365,6 +365,7 @@ Uses today: `openRequestRollDialog`, `api.compendiums` (awareness / quick encoun
 - [ ] Replace or supplement `requestRollComplete` handlers where classification fields are needed (`isCritical`, `success`, `dc`)
 - [ ] Wire auto-injury / massive-damage rules to hooks (moves "Auto-Roll Injury" out of Blacksmith `TODO.md` BACKLOG)
 - [ ] Verify blind/private rolls do not leak outcomes to players
+- [ ] **Initiative nat-20, once Blacksmith emits it.** Blacksmith is adding initiative as a rolls kind so a house-rule toast/card can fire on a natural 20 (`documentation/TODO.md`, opened 2026-08-27). Do not detect initiative locally — that is the second detection site `api-rolls` exists to stop. Subscribe when the kind ships; until then there is nothing to adopt.
 
 ### Regent
 
@@ -439,6 +440,64 @@ wants a timer currently writes its own, and Blacksmith alone has five.
 **The one thing that will not change:** world time and wall time stay separate calls. World time is
 server-authoritative, moves in jumps, and runs backwards when a GM rewinds. Blacksmith has now made the
 two-clock split twice internally (note reminders, calendar events) and will not collapse it in the API.
+
+## Scene geography — Artificer and Minstrel (raised 2026-08-27)
+
+Blacksmith is pulling scene-level location and geography into Scene Config. The Blacksmith-side work is
+in its `TODO.md` (opened 2026-08-27) and `plans/plan-scene-geography.md`. **Nothing to adopt yet**; this
+entry exists so the handoff is named before the injector is built.
+
+Environment (habitat / biome) currently lives in Artificer's scene flags
+(`flags.coffee-pub-artificer.scene.habitats`) and Minstrel reads that flag raw, gated on Artificer being
+installed. Habitat-conditioned playlists therefore do nothing unless a harvesting module is present —
+that is the ownership problem, and a raw cross-module flag read rather than an API call.
+
+**Blacksmith has to ship the injector and the API first.** The last module to inject into
+`renderSceneConfig` lost its tab between reloads to a render race against Foundry's `_replaceHTML`, so
+there will be one injector that both Blacksmith's geography and Artificer's harvest tab use.
+
+### Artificer
+
+- Keep the twelve harvest-specific keys on its own flag (`componentTypes`, `harvestingSkills`, `enabled`,
+  `profile`, DCs, gather spots, discovery). Those encode what Artificer is for.
+- Hand `habitats` to Blacksmith's scene geography once the API exists. The vocabulary is currently a
+  closed twelve-value enum (`OFFICIAL_BIOMES`); whether Blacksmith keeps it closed or makes a registry
+  is an open question in the plan, and Artificer has to say what an unknown environment does to harvest
+  tables — nothing, a default table, or ignore while Minstrel still uses it.
+- Register the harvest tab through Blacksmith's Scene Config injector rather than its own
+  `renderSceneConfig`. That is what makes the race one problem instead of two.
+
+### Minstrel
+
+- Stop reading `flags.coffee-pub-artificer.scene`. Call Blacksmith's scene environment API.
+  Habitat-conditioned automation must fire with Artificer disabled — that is the regression this move
+  exists to fix, so test it explicitly.
+- Canonical case is Blacksmith's. Today Artificer stores `MOUNTAIN` and Minstrel lowercases on every
+  read; pick one form, normalize on write, and stop guessing.
+
+**How to verify, when it ships:** on a world with existing Artificer habitats, gather still yields the
+same component families after migration. With Artificer disabled entirely, Minstrel's habitat automation
+still fires. Export a migrated scene to a compendium, re-import it, and confirm environment survives.
+
+## Librarian — tag API follow-ups (Blacksmith 13.20.0 shipped)
+
+Three asks arrived as one gap and shipped as two things, on purpose. Librarian was right not to hardcode
+context keys they do not own.
+
+- **`api.tags.getTagCounts(contextKey)`** is the consumer surface: usage counts for one context, only
+  tags that are in use. Build the codex tag cloud on it. A declared-but-unapplied taxonomy tag is
+  absent, not present with `0` — that is `getChoices`, not this.
+- **`utilities/audit-tag-registry.js`** is the GM housekeeping that is deliberately *not* on the API.
+  Run it from a script macro; it sorts the registry into in-use, declared-but-unused, and unaccounted,
+  and prints the delete command rather than running it. Do not build a consumer-side orphan check.
+
+The pin-tag assignment rows that used to share Librarian's context buckets are gone as of the same
+release. A production `getTagCounts('coffee-pub-librarian.codex')` should no longer need to sniff ids
+to tell a pin row from a codex page.
+
+**How to verify:** after the production tag migration, `getTagCounts('coffee-pub-librarian.codex')`
+returns only codex-page assignments, and the audit utility's unaccounted list is empty or named
+campaign tags rather than pin ids.
 
 ## Sibling deprecation warnings (spotted 2026-07-24)
 

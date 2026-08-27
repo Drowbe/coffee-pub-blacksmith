@@ -142,6 +142,7 @@ import { GMRequestAPI } from './api-gm-request.js';
 import { PartyAPI } from './api-party.js';
 import { registerHandlebarsHelpers } from './utility-handlebars.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
+import { DefeatedManager } from './manager-defeated.js';
 import { extractActiveD20, classifyCritFumble } from './utility-roll-classification.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import {
@@ -640,6 +641,11 @@ Hooks.once('ready', async () => {
         // Initialize XP manager
         LoadingProgressManager.logActivity("Initializing XP system...");
         XpManager.initialize();
+
+        // One answer to "is this combatant dead": marks an NPC defeated when its hit
+        // points reach zero, so core's own Skip Defeated does the skipping. After
+        // XpManager, which reads `defeated` as the verdict this now writes.
+        DefeatedManager.initialize();
 
         // Notes: builds the annotation index from journal page flags. After
         // HookManager.initialize() above, since it registers hooks to stay current.

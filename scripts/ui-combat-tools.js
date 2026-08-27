@@ -6,6 +6,29 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 
+/**
+ * The combatant being dragged in the tracker, or null. Module-level rather than a
+ * closure variable because the drag has to survive a re-render: the tracker is an
+ * ApplicationV2 whose `tracker` part element is REPLACED wholesale on every render
+ * (`client/applications/sidebar/tabs/combat-tracker.mjs:41-52`), and a live combat
+ * re-renders it constantly -- a hit point change, an effect, another client's turn.
+ *
+ * Losing the drag that way is silent and looks exactly like the feature breaking.
+ * The drop zones are 2px tall until `.dragging-active` sits on the tracker element
+ * (`styles/combat-tools.css:23-37`), so when the element under the class is thrown
+ * away mid-drag the zones collapse to a 2px strip on the NEW element, the pointer
+ * misses every one of them, and the drop does nothing. Re-applying the class on
+ * render is what keeps a drag alive across it.
+ */
+let trackerDragCombatantId = null;
+
+/** Put `.dragging-active` back on the tracker, whichever element is currently it. */
+const markTrackerDragging = (html, active) => {
+    const tracker = html.querySelector('.combat-tracker') || html.querySelector('#combat-tracker');
+    if (!tracker) return;
+    tracker.classList.toggle('dragging-active', active);
+};
+
 // Register hooks after settings are initialized
 Hooks.once('ready', () => {
     postConsoleAndNotification(MODULE.NAME, "CombatTools | Ready", "", true, false);
@@ -86,21 +109,26 @@ Hooks.once('ready', () => {
                 
                 ev.dataTransfer.setData('text/plain', combatantId);
                 combatantElement.classList.add('dragging');
-                
-                // v13: Find combat tracker by class or ID
-                const combatTracker = html.querySelector('.combat-tracker') || html.querySelector('#combat-tracker');
-                if (combatTracker) combatTracker.classList.add('dragging-active');
+                trackerDragCombatantId = combatantId;
+                markTrackerDragging(html, true);
             });
 
             element.addEventListener('dragend', (ev) => {
                 ev.currentTarget.classList.remove('dragging');
                 html.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-                
-                // v13: Find combat tracker by class or ID
-                const combatTracker = html.querySelector('.combat-tracker') || html.querySelector('#combat-tracker');
-                if (combatTracker) combatTracker.classList.remove('dragging-active');
+                trackerDragCombatantId = null;
+                markTrackerDragging(html, false);
             });
         });
+
+        // A drag that began before this render is still live -- the pointer never went
+        // up. Its `dragging` element and `dragging-active` class went out with the old
+        // part element, so both are restored here or the drop lands on nothing. The
+        // dragstart listener cannot do this: it has already run.
+        if (trackerDragCombatantId) {
+            markTrackerDragging(html, true);
+            html.querySelector(`.combatant[data-combatant-id="${trackerDragCombatantId}"]`)?.classList.add('dragging');
+        }
 
         // Add drop handlers to drop targets (v13: native DOM)
         html.querySelectorAll('.drop-target').forEach((element) => {
@@ -163,6 +191,8 @@ Hooks.once('ready', () => {
                 }
 
                 // Update the initiative
+                trackerDragCombatantId = null;
+
                 await game.combat.updateEmbeddedDocuments("Combatant", [{
                     _id: draggedId,
                     initiative: newInitiative
@@ -433,23 +463,6 @@ const updatePortrait = (element) => {
             img.setAttribute('src', portraitPath);
         }
     }
-};
-
-// Function to calculate new initiative value
-const calculateNewInitiative = (combatants, dropIndex, draggedId) => {
-    const above = combatants[dropIndex - 1];
-    const below = combatants[dropIndex];
-    
-    // If dropping at the top
-    if (!above) {
-        return below.initiative + 2;
-    }
-    // If dropping at the bottom
-    if (!below) {
-        return above.initiative - 1;
-    }
-    // Drop between two combatants
-    return above.initiative - ((above.initiative - below.initiative) / 2);
 };
 
 // ================================================================== 

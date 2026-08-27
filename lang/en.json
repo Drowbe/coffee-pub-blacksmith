@@ -284,6 +284,8 @@
 			"combatTrackerSetFirstTurn-Label": "Set First Turn",
 				"combatTrackerSetFirstTurn-Hint": "Set the first combatant as the current combatant at the start of the combat after all inititives have been rolled.",
 
+				"combatAutoMarkDefeated-Label": "Mark the Dead as Defeated",
+				"combatAutoMarkDefeated-Hint": "When an NPC in a combat drops to zero hit points, mark it defeated and apply the defeated status, exactly as the combat tracker's skull button does. Foundry then skips it in the turn order, provided Skip Defeated Combatants is on in the combat tracker settings. Player characters are never marked this way, since a character at zero is making death saves. Healing an NPC above zero removes a mark this setting applied; a mark you applied yourself is left alone.",
 				"combatTrackerRollInitiativeNonPlayer-Label": "Roll NPC Initiative",
 				"combatTrackerRollInitiativeNonPlayer-Hint": "Roll initiative for all NPCs automatically each round.",
 

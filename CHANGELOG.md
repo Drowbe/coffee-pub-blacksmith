@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **NPCs are marked defeated when they reach zero hit points, so Foundry stops giving them turns** (`scripts/manager-defeated.js`, `scripts/settings.js`, `scripts/blacksmith.js`). Six summoned berserkers, dead, kept taking turns. Ownership had nothing to do with it, and neither did anything already in this module.
+
+  Turn skipping is entirely core's: `Combat#nextTurn` skips a combatant only when Skip Defeated Combatants is on and `Combatant#isDefeated` is true, and that getter reads the `defeated` field or the DEFEATED special status (`client/documents/combatant.mjs:116`). dnd5e 5.3.3 never sets either -- `preUpdateHP` and `onUpdateHP` reset death saves and fire the damage hook and nothing else (`dnd5e.mjs:26269-26302`). So an NPC at zero is defeated only because a GM pressed the skull. A GM presses it for the monsters they run and nobody presses it for a player's summons, which is why player-owned NPCs are where a table sees this first.
+
+  Underneath was **two answers to one question**. Ours -- `CombatBarManager.isCombatantDead` and the same test in `ui-combat-tracker.js` -- counts an NPC dead at zero hit points, so the bar filed the berserkers in the Graveyard while core kept handing them turns. `DefeatedManager` collapses the two by making ours true: an NPC combatant reaching zero gets `defeated` and the DEFEATED status, the same two writes the tracker's button makes, and core does the skipping everywhere from then on -- its Next Turn, ours, the keybinding, any other module. Player characters are never marked; a character at zero is making death saves.
+
+  **It records its own marks with a combatant flag and will not remove anyone else's.** `defeated` is read elsewhere as the GM's verdict rather than as a hit point reading -- XP awards (`manager-xp.js`) and adversary statistics (`stats-adversaries.js`) both do -- so a GM who marks a fleeing NPC defeated at full health keeps that mark through any later healing, while a mark this manager placed comes off when the creature is healed above zero. Only the active GM writes, or every connected client would race to issue the same update. Every combat is synced rather than only the active one, since the same creature in a second fight would otherwise put the two back into disagreement.
+
+  New world setting **Mark the Dead as Defeated** (`combatAutoMarkDefeated`, default on) under Combat Tracker Tools. World scope is not negotiable: this decides the turn order, and a turn order that differs per client is not one.
+
+  **Verify live:** with Skip Defeated Combatants on in the combat tracker settings, take an NPC in combat to zero -- it gains the skull overlay, shows defeated in the tracker, and Next Turn passes over it. Heal it above zero and the mark comes off. Mark a healthy NPC defeated by hand, damage it without reaching zero, and confirm your mark survives. Take a player character to zero and confirm nothing is marked. Repeat the first case with a second GM connected and confirm one set of updates, not two.
+
+### Fixed
+
+- **A drag in the combat tracker died silently if anything re-rendered the tracker while you were holding the mouse down** (`scripts/ui-combat-tools.js`). Intermittent by nature, and it looked like the feature simply going unresponsive.
+
+  The tracker's drag is ours -- core Foundry's combat tracker has no drag-to-reorder at all -- and its drop zones are `li.drop-target` rows that stand 2px tall until `.dragging-active` lands on the tracker element, at which point they open to 16px (`styles/combat-tools.css:23-37`). The tracker is an ApplicationV2 whose `tracker` part element is replaced wholesale on every render, and a live combat re-renders it constantly: a hit point change, an effect, another client's turn. When that happened mid-drag the class went out with the old element, every drop zone on the new one collapsed back to a 2px strip, and the drop landed on nothing. The drag was still perfectly live; there was just nothing left to drop onto.
+
+  The dragged combatant's id is now module-level state rather than a closure variable, and the render handler puts `.dragging-active` and `.dragging` back when it finds a drag still in flight -- the dragstart listener cannot, having already run. Also removed `calculateNewInitiative`, which was defined and never called; the drop handler has always inlined its own arithmetic.
+
+  **Verify live:** start dragging a combatant in the tracker and, without letting go, have a second client damage a token or advance the turn -- the drop zones stay open and the drop still applies. Check the reorder is correct afterwards, since the tracker re-rendered underneath it.
+
+- **The combat bar rendered the turn order as it was BEFORE the write that changed it** (`scripts/manager-combatbar.js`). Dragging a portrait to reorder initiative left the portraits where they were, and a reorder made in the combat tracker did not reach the bar either; both corrected themselves at the next turn change, which is what made it look like a refresh problem rather than an ordering one.
+
+  It was an ordering one. `Hooks.callAll("updateCombatant")` fires from the per-document callback loop in `client/data/client-backend.mjs:296-301`, and `Combat#setupTurns()` does not run until `_onUpdateDescendantDocuments` -> `#onModifyCombatants` a few lines later (`client/documents/combat.mjs:689-720`). There is no `await` between them, so the two are in the same synchronous task and every handler on that hook reads a `combat.turns` that has not been re-sorted yet. `getCombatData` reads exactly that array, deliberately, so the bar rebuilt itself with the old sequence and then had no reason to rebuild again. Nothing was wrong with the drag, the write, or the hook registration -- the bar was told at the only moment the answer was stale.
+
+  `CombatBarManager.afterTurnOrder()` defers the rebuild by a microtask, which runs once that synchronous block yields: after `setupTurns()`, before any paint. The `updateCombatant`, `createCombatant` and `deleteCombatant` handlers all go through it, since all three fire from the same loop and all three read the turn order.
+
+  **Verify live:** in a combat with four or more combatants, drag a portrait on the combat bar to a new slot and let go -- the portraits reorder immediately, without waiting for a turn to pass, and the position in the toast matches where it landed. Then drag a row in the core combat tracker and confirm the bar follows at once. Repeat both as a player on a second client. Adding and removing a combatant mid-fight should still update the bar.
+
 ## [13.20.0]
 
 ### Added

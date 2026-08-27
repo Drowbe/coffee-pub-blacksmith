@@ -2170,6 +2170,19 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 	
+	// -- Mark NPCs Defeated at Zero Hit Points --
+	// World scope, and not negotiable: this decides the turn order, and a turn order
+	// that differs per client is not a turn order.
+	game.settings.register(MODULE.ID, 'combatAutoMarkDefeated', {
+		name: MODULE.ID + '.combatAutoMarkDefeated-Label',
+		hint: MODULE.ID + '.combatAutoMarkDefeated-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Roll Initiative for Monstars and NPCs --
 	game.settings.register(MODULE.ID, 'combatTrackerRollInitiativeNonPlayer', {
 		name: MODULE.ID + '.combatTrackerRollInitiativeNonPlayer-Label',

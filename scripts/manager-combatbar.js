@@ -1979,6 +1979,33 @@ export class CombatBarManager {
         });
     }
 
+    /**
+     * Re-render the bar once Foundry has re-sorted the turn order.
+     *
+     * `updateCombatant` fires from the per-document callback loop
+     * (`client-backend.mjs:296-301`), and `Combat#setupTurns()` does not run until
+     * `_onUpdateDescendantDocuments` -> `#onModifyCombatants` a few lines later
+     * (`combat.mjs:689-720`) -- both in the same synchronous task, with no await
+     * between them. So a handler that reads `combat.turns` during the hook sees the
+     * order the combat had BEFORE the write, renders it, and nothing renders again
+     * until the next turn change. That is why a drag-to-reorder on the bar and a
+     * reorder made in the tracker both left the portraits in their old order until
+     * a turn passed.
+     *
+     * A microtask is exactly the right amount of deferral: it runs once that
+     * synchronous block yields, which is after `setupTurns()` and before any paint.
+     * A timeout would work too and would also let a frame through.
+     */
+    static afterTurnOrder(callback) {
+        queueMicrotask(() => {
+            try {
+                callback();
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Bar: Error refreshing after turn order rebuild', error, false, false);
+            }
+        });
+    }
+
     static registerCombatHooks(menuBar) {
         const combatUpdateHookId = HookManager.registerHook({
             name: 'updateCombat',
@@ -2016,8 +2043,12 @@ export class CombatBarManager {
                 if (combatant.combat.combatants.size === 1) {
                     const shouldShowCombatBar = game.settings.get(MODULE.ID, 'menubarCombatShow');
                     if (shouldShowCombatBar) CombatBarManager.openCombatBar(menuBar);
-                } else if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
-                    CombatBarManager.updateCombatBar(menuBar);
+                } else {
+                    CombatBarManager.afterTurnOrder(() => {
+                        if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                            CombatBarManager.updateCombatBar(menuBar);
+                        }
+                    });
                 }
             }
         });
@@ -2029,10 +2060,12 @@ export class CombatBarManager {
             priority: 3,
             callback: (_combatant, updateData) => {
                 const initiativeUpdated = updateData.initiative !== undefined;
-                if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
-                    CombatBarManager.updateCombatBar(menuBar);
-                    if (initiativeUpdated) menuBar.renderMenubar();
-                }
+                CombatBarManager.afterTurnOrder(() => {
+                    if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                        CombatBarManager.updateCombatBar(menuBar);
+                        if (initiativeUpdated) menuBar.renderMenubar();
+                    }
+                });
                 void CombatBarManager.refreshCombatantPopoutCardsForCombatant(menuBar, _combatant?.id);
             }
         });
@@ -2044,9 +2077,11 @@ export class CombatBarManager {
             priority: 3,
             callback: (combatant) => {
                 CombatBarManager.handleDeletedCombatantPopouts(menuBar, combatant?.id);
-                if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
-                    CombatBarManager.updateCombatBar(menuBar);
-                }
+                CombatBarManager.afterTurnOrder(() => {
+                    if (menuBar.secondaryBar.isOpen && menuBar.secondaryBar.type === 'combat') {
+                        CombatBarManager.updateCombatBar(menuBar);
+                    }
+                });
             }
         });
 

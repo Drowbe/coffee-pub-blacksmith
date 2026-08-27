@@ -463,6 +463,122 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
+## Two drag-to-reorder implementations, and they do not agree (opened 2026-08-27)
+
+Initiative can be reordered by dragging in two places, and the two share no code.
+
+- The **combat bar** uses a pointer trio with injected dropzones and a ghost portrait
+  (`manager-combatbar.js:4856-5010`), defers its own re-renders while a drag is live, and computes the new
+  initiative as the midpoint between neighbours, `right + 1` past the top, `left - 1` past the bottom.
+- The **combat tracker** uses HTML5 drag and drop with injected `li.drop-target` rows
+  (`ui-combat-tools.js`), and computes the midpoint between neighbours, `first + 2` at the top, `last - 1`
+  at the bottom. Core Foundry's tracker has no drag of its own -- this is entirely ours.
+
+So the identical gesture in the two places can produce different numbers, and the top of the list is the
+case where it reliably does. Neither is more correct; they were written apart.
+
+One initiative-for-this-slot helper, called by both, is the small half and worth doing on its own. Merging
+the two drag *interactions* is the larger half and may not be worth it -- one is a strip of portraits and
+the other is a list of rows, and they are already styled and hit-tested apart.
+
+While there: the tracker's drop handler returns silently in three places (`!game.combat`, no
+`draggedId`, `draggedIndex === -1`) and the third is reachable, since `game.combat` is `ui.combat.viewed`
+and need not be the combat whose rows are on screen. A silent return is indistinguishable from the
+feature being broken, which is what made the last one hard to place.
+
+## Announce a critical initiative roll (opened 2026-08-27)
+
+House rule: a natural 20 on initiative lets that player move someone on the stack, so the table has to
+notice it happened. Wanted as a toast, a chat card, or both, chosen by setting.
+
+**It has to be caught at the roll, not at the combatant update.** By the time `updateCombatant` carries an
+`initiative` value the dice are gone and only the total remains, and a total of 20 is not a natural 20.
+
+The roll classification utilities already exist and already know what a natural 20 is (`classifyCritFumble`,
+`extractActiveD20` in `scripts/utility-roll-classification.js`), but `classify()` recognises only attacks and
+our own skill-check cards -- initiative is not a kind it emits, and `RollOutcomesManager` never sees one. So
+this is either a new kind on the rolls surface or a narrow detection of its own; prefer the former if the
+shape fits, since a second detection site is exactly what `api-rolls` exists to stop. Sibling adoption
+(Bibliosoph must not detect initiative locally) is in `TODO-GLOBAL.md`.
+
+Broadcast through `broadcastToast` -- the drag-to-reorder announcement at `manager-combatbar.js:4941` is the
+pattern -- rather than opening a second cross-client path, and build any card from the `cards-*.js` parts.
+
+## Macro windows: more than one, and holding more than macros (opened 2026-08-27)
+
+Two related asks against `scripts/window-macros.js`, which today is a single window over a single list.
+
+**Multiple windows.** A GM wants a Soundboard, a Combat set, and so on, each its own window, open at the same
+time. The blockers are structural rather than cosmetic: `MacrosWindow.activeWindow` is one static slot, so
+the menubar tool raises the existing window instead of opening a second; `DEFAULT_OPTIONS.id` is the fixed
+string `blacksmith-macros-window`, and ApplicationV2 keys its instance registry on that; and the contents
+live in one `userMacros` setting rather than one per window. So: named sets, each with its own id and its own
+stored list, and a way to create, open and manage them. `userMacros` is `user` scope and `userFavoriteMacros`
+is `client` scope (`settings.js:5504-5520`) -- decide deliberately which of those a set follows, and migrate
+the existing single list into a default set rather than stranding it.
+
+**Anything with a UUID, not just macros.** Items, journals, actors, roll tables, scenes -- a slot should hold
+a document reference and do the sensible thing with it (run a macro, open a sheet, show a journal page, draw
+from a table). Entries are `{id, name, img}` pointers to Macro documents today; a UUID plus a resolved label
+and image generalises that while keeping the property the current list already has and must not lose, which
+is that the document is never copied. The drop handler, the run action and the empty-slot rendering are the
+three places that assume Macro.
+
+## Foundry v14: the defects we have actually seen (opened 2026-08-27)
+
+`documentation/plans/migration-v14.md` is the migration guidance and covers the whole suite. This is the
+narrower list: v14 breakage observed in a running world, which the plan does not carry. `module.json`
+declares `maximum: 14`, so these are ours.
+
+- **The world clock's darkness control does not change darkness in v14.** The driver writes
+  `{ environment: { darknessLevel: target } }` with an animation duration onto the scene
+  (`scripts/manager-darkness.js:250-252`) and returns early on `scene.environment.darknessLock` (`:234`).
+  Establish which of those v14 changed -- the field, the animation option, or the permission -- before
+  changing any of them, and keep the v13 path working: `minimum` is still 13.
+
+## More control over what shows in the left menubar zone versus the hamburger (opened 2026-08-27)
+
+Tools are placed by `zone` at registration (`registerToolbarTool`), and the left start menu -- the hamburger
+-- is overflow the user cannot influence. A user should be able to decide which tools sit as icons on the bar
+and which live inside the menu, without a module changing its registration.
+
+Per user, not per world: it is a preference about one person's screen. Note the trap in
+`api-menubar.js:3057-3110` while doing it -- the toolbar layout signature is what decides whether a rebuild
+happens at all, so anything that moves a tool between zones has to change that signature or the move will
+not render.
+
+## Find something on the canvas by name (opened 2026-08-27)
+
+A GM should be able to type a name and be taken to it, or browse what is on the scene and pick from a list.
+On a crowded map the only way to find one token today is to look for it.
+
+Two behaviours, and it is worth building both since they share everything but the input: **search**, where
+typing narrows a result list, and **browse**, where the list is simply what is on the scene, grouped so it
+can be read -- by disposition, or by whether it is in the fight. Choosing a result selects the token and pans
+to it; `canvas.animatePan({x, y})` is what the combat bar's Pan to Token already does
+(`manager-combatbar.js:3895`, `:4671`), so the destination behaviour exists and should not be rewritten.
+
+Open question before it is built: **name means what?** A token's own name, the actor's, or the name a player
+sees. Those differ deliberately -- token naming rewrites the first (`scripts/utility-token-naming.js`) and a
+hidden or unidentified token may show a different one to a player than to the GM. Searching a name the
+searcher cannot see is a leak if this is ever offered to players, so decide the audience first: GM-only makes
+it a straightforward tool, player-facing makes visibility part of the query.
+
+Not only tokens, if it is cheap: notes, pins and tiles are also things a GM loses on a map.
+
+## Statistics: a round view and a combat view (opened 2026-08-27)
+
+The end-of-round chat card offers **View Details**, and the action opens `StatsWindow.show()` with no
+arguments (`blacksmith.js:750`, `cards-stats.js:30`) -- the lifetime window. So a button that reads as
+"details of this round" answers with everything ever recorded. Either the label is wrong or the view is
+missing, and the view is the one worth having.
+
+The real question underneath it is what we are willing to store. A per-round record for every combat grows
+without bound, and the statistics system is already the part of this module most in need of not growing (see
+the two statistics sections further down this file). Settle that first -- what is kept, for how long, pruned
+by what -- and then build the view against it. A round view that needs a new store is a larger decision than
+the button that prompted it.
+
 ## Something writes an invalid `properties` value onto items created on NPCs (opened 2026-08-21)
 
 Noticed while fixing the inventory merge predicate, and left open because that fix does not depend on it.
