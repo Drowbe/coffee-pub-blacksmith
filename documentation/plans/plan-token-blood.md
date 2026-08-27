@@ -64,3 +64,29 @@ removed immediately; perf monitor shows no idle cost.
 
 On completion: tiers/settings/mechanism into `architecture-blacksmith.md` or a token-indicators
 architecture doc section; the feature entry into `CHANGELOG.md`; TODO item deleted; this file deleted.
+
+
+---
+
+## Moved from `TODO.md` (2026-08-27): remaining work
+
+The Health Indicators system (Blood Damage pools, Blood Hit bursts with damage/attack triggers and sound, cleanup timer, visibility gating, Remove/Restore All Blood toolbar buttons) shipped in `CHANGELOG.md` [13.11.0]; each entry there carries its own live-verification steps. Open:
+- **Finish the live-verification pass**: core flows (pools per tier, bursts on both triggers, attack-mode fix, player-client rendering) were exercised during development on 2026-07-22; still unverified: GM Only visibility on a player client, the Blood Cleanup slider, Remove/Restore All Blood across two clients, the hit sound, unlinked NPCs at every tier, and the perf-monitor idle check. Steps are in the [13.11.0] entries. When this passes, dismantle `documentation/plans/plan-token-blood.md` per the plans rule.
+- **Optional authored splatter art**: replace or augment the procedural texture with bundled webp splatter assets — a drop-in swap at the texture-build step in `manager-token-indicators.js`; tiers, seeding, placement, and visibility all stay as-is.
+- **Rewire the combat bar onto `utility-health.js`** so the HP-percent math has one home (it currently computes its own; the helper's 'hurt' tier maps to its "healthy" bucket — see the helper's JSDoc).
+
+Next round (author, 2026-07-22). Note the shared design question for the first and last items: today all blood is *derived* from HP and redrawn from scratch — nothing is stored. Hand-drawn blood and trails left behind by movement are real data that must live somewhere (scene flags, most likely) with their own cleanup story, which is a genuine design shift, not another tier row:
+- **Draw blood on the canvas**: a GM paint tool to stamp splatter directly on the ground (click or click-drag), independent of any token's HP. Decide persistence (scene-flag storage vs session-only), whether Remove All Blood clears it, and whether it reuses the procedural drawer at a chosen size.
+- **Burst style options**: alternative hit-burst treatments beyond blood — old-school comic "POW"/"BAM"-style graphics and other animation styles — selectable via a burst-style setting alongside the existing trigger/sound settings. The burst pipeline (spawn, animate, destroy) is style-agnostic; only the texture generator varies.
+- **Blood color by creature type**: for Blood Damage pools, map dnd5e creature type to blood color (e.g. undead ichor, construct oil, ooze slime) with a sensible default for the rest. Decide where the mapping lives (constants vs setting vs taxonomy JSON) and whether Blood Hit bursts follow the same color.
+- **Gore level setting**: one global intensity dial scaling pool sizes, splat counts, and opacity across all tiers (subtle table → full Tarantino), multiplying the existing `_BLOOD_TIERS` values rather than adding new tiers.
+- **Blood trails on movement**: optionally leave some blood behind when a wounded token moves — droplets along the drag path, heavier at worse tiers. Interacts with the persistence question above and with Blood Cleanup (trails likely want their own, shorter lifetime).
+- **Investigation (2026-07-22) — most of the plumbing already exists; LOE ~1 focused day for v1 plus art**:
+  - `scripts/manager-token-indicators.js` already runs per-token PIXI overlays on `canvas.interface` (turn indicator, targeted rings, portrait stacks via `PIXI.Sprite.from`) with movement tracking, delete cleanup, `canvasReady` refresh, and HookManager wiring. Blood is one more indicator type in that framework, not a new system.
+  - HP % and the exact severity steps are already computed in `manager-combatbar.js:536-566` (healthy >=75 / injured >=50 / bloodied >=25 / critical), with a cross-system HP path watch list at `:652-663`. First step: extract a shared `getHealthPercent(actor)` + severity helper so blood is the second consumer rather than another copy.
+  - Quick View's hatch (`utility-quickview.js:542-568`) proves the token-conforming overlay pattern (scaled to `token.w/h`, rotation-aware, non-interactive); `images/overlays/overlay-pattern-*.webp` establishes the bundled overlay-texture pattern.
+  - Genuinely new: 3-4 alpha webp splatter textures (or one greyscale splatter tinted/scaled per tier); an `updateActor` hook alongside the existing `updateToken` one (linked actors vs unlinked-token actor deltas both need live testing); an enable setting plus a visibility-scope setting (everyone / GM-only / own-tokens-plus-GM — blood on canvas broadcasts enemy HP state to players, the one real design decision). Phase 2: damage-taken flash reusing the manager's existing PIXI animation pattern. No sockets — each client derives the overlay from actor data it already has; no per-frame work, so §9B-clean by construction.
+- **Ownership (resolved by the investigation): Blacksmith.** This is canvas indicator UX driven by HP data, both of which live here; it does not need the rolls-classification event surface (it reacts to HP deltas, not crits). Injury *mechanics* stay in the sibling module.
+- **Status**: PENDING — needs a plan first (feature, so per the workflow it gets a `documentation/plans/` entry before code: visual approach, thresholds, settings, dead-state treatment — ties into the "Hide Dead" menubar item below).
+- **How to verify**: damage a linked and an unlinked token past each threshold → splatter tier updates on all clients; heal → it recedes; visibility-scope setting hides it from players when set; no per-frame cost when idle (check with the perf monitor); disabled setting → no hooks registered.
+- **Priority**: Medium

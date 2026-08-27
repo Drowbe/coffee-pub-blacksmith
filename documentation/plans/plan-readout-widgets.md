@@ -166,3 +166,40 @@ the value-patch path and the reasoning about identity versus affordance belong i
 `documentation/architecture/architecture-menubar.md`; which statistic uses which widget belongs in the Party
 statistics section of `documentation/architecture/architecture-encounter.md`; the history belongs in
 `CHANGELOG.md`.
+
+
+---
+
+## Moved from `TODO.md` (2026-08-27): display-only items are not first-class
+
+## Make display-only secondary bar items first-class
+
+The item vocabulary is four kinds: `button` (the default), `info`, `progressbar`, and `balancebar`. Three of
+those are display-only, but `.secondary-bar-item` styles every item as a button — fill, border, 6px radius,
+pointer cursor, hover lift, and a square `min-width`. Any bar showing a readout therefore strips that
+locally, which the combat bar does today. The stripping belongs in the shared stylesheet, keyed on the
+display-only kinds. A hover lift on a number that cannot be clicked is an affordance that lies.
+
+Ordered by value against risk:
+
+1. **Display-only styling, centrally** (`styles/menubar.css`): strip button chrome for `info`, `progressbar`,
+   and `balancebar`, and delete the combat bar's local override. Small and clearly correct. **Check the party
+   bar before and after** — its health `progressbar` (`api-menubar.js:709`) and reputation `balancebar`
+   (`manager-reputation.js:178`) are the other consumers, so their appearance changes with this.
+2. **State-driven colour** — the real capability gap. `progressColor` is a single static value, but a timer's
+   colour is a function of its remaining time and a health bar's arguably should be too. Today the only way
+   is to write a state class and clear the inline colour the partial emits, which is exactly what the combat
+   bar's timers do. A data-shaped mapping (thresholds, or state-to-colour) rather than a callback: some item
+   paths cross the socket boundary, so a function will not survive every route.
+3. **Label placement** — the left/right labels are positioned for a current/max idiom; a timer wants one
+   caption centred over the bar, which today means overriding position. A `labelPosition` option covers it.
+4. **Sizing basis** — items size from `--blacksmith-menubar-secondary-height`, the height of the whole bar.
+   That assumption is why the combat bar's two rows each redeclare five variables, and it is the most
+   fragile part of that stylesheet. If items sized from a `--secondary-bar-item-basis` defaulting to the bar
+   height, a container could override it once and every per-row redeclaration would disappear. Fixes the
+   general case rather than one bar's case.
+
+Worth doing now rather than later: real-time stats are going into the combat bar's middle zone, so the
+readout vocabulary is about to get considerably more use and the cost of it being second-class compounds
+from here. Update `documentation/api/api-menubar.md` with whatever surface (2) and (3) add. Verify: the
+combat bar renders readouts correctly with no bar-local appearance overrides left.

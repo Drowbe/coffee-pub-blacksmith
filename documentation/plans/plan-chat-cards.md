@@ -417,3 +417,200 @@ Tracked here so the cleanup is not quietly dropped:
 
 None outstanding. Decisions 1 through 9 are settled; what remains is verification during implementation --
 the enrichment pop-in named in decision 9, and the per-step live checks carried on each `TODO.md` item.
+
+
+---
+
+## Material moved from `TODO.md` (2026-08-27)
+
+Moved here verbatim when `TODO.md` was restructured into a stack-ranked list. It is design and
+rationale, which is plan material; the work items it implies live in `TODO.md` as short entries
+pointing back at this file. Reconcile it into the sections above when this plan is next worked on --
+some of it restates what is already here.
+
+### Chat Cards: parts system (supersedes the old posting-API entry)
+
+Design is settled in `documentation/plans/plan-chat-cards.md` (decisions 1-9). That plan is the reference for
+*why*; the items below are the work. Steps run in order and each is verified in a live world before the next
+begins. Sibling migration is step 7 and lives in `TODO-GLOBAL.md`, not here.
+
+Steps 1 to 3 are built and are in `CHANGELOG.md` under Unreleased -- the parts library and renderer, the
+action dispatcher, and Blacksmith's simple cards. **None of it has been verified in a running world yet**;
+the verification steps travelled with the work and are the first thing to do before step 4.
+
+**The gate for every item**: if a consuming module still writes card HTML, the item is not done.
+
+#### Tooltip convention sweep
+- **Work**: `CLAUDE.md` now requires `data-tooltip` and forbids a bare `title=` or both on one element (an element carrying both shows two tooltips -- Foundry's styled one and the browser's native one). **139 `title=` attributes remain across Blacksmith's templates**, all pre-dating the convention. The new chat-card parts are already clean.
+- **Not a blanket replace.** Some sites may want `title` deliberately, and some elements may already carry both, where the fix is to delete one rather than convert. Judge per site.
+- **Location**: `templates/*.hbs` (windows, menubar, toolbars); zero in `templates/parts/`
+- **How to verify**: hover a converted element and confirm exactly one tooltip appears, styled as Foundry's. Grep for elements carrying both attributes first -- those are the visible bugs; the rest is consistency.
+
+#### Card style extraction — done reading, gaps below
+
+All three source stylesheets and Bibliosoph's have been read end to end (2026-08-13). Values that were
+clearly part values are applied; what remains is listed here because each needs either a new part or a
+judgement call. **Read this before steps 4 and 5** — it is the reason those steps exist in this order.
+
+**Applied from the read**: large band sized against the card rather than against the band (the source
+subheader is 1.3em of the card; compounding against the band's own 0.9em had shipped it at 1.17em); a
+`cover` thumbnail variant, because portraits crop square and token art must not; and the XP card's player
+portraits switched to it.
+
+**Gaps needing a new part.** None of these compose today:
+
+- **Clickable row.** `.cpb-roll-result.pending-roll` makes the whole row a button, not a row with a trailing
+  button. It is how an unrolled skill check invites the click, and it is a different affordance from
+  `rows`' trailing action. Needed by step 5.
+- **Gauge -- a scale you read a position off.** Distinct from `meter`, which is one value against a maximum
+  with the colour as emphasis. A gauge's colour *is* the data, so the caller supplies it: either a gradient
+  of stops or a set of segments, plus one or more markers positioned along the range. Three real instances,
+  all different: Squire's party reputation (gradient, one marker, a midpoint tick,
+  `coffee-pub-squire/styles/panel-party.css:546-620`), Blacksmith's own balance bar (two solid segments, two
+  markers), and `.damage-ratio-bar` in `cards-stats.css` (equal segments split red/green with a triangular
+  marker positioned by a CSS variable). Build it to cover all three rather than one at a time. A theme may
+  offer a palette; the module always overrides -- see the amendment to decision 5 in the plan.
+- **Segmented comparison bar.** Folded into the gauge above. `.damage-ratio-bar` in `cards-stats.css`: a track of equal segments split
+  red/green with a triangular marker positioned by a CSS variable. It is not `meter` — `meter` is one value
+  against a maximum, this is a ratio between two quantities with a pointer. Needed by step 4 unless the
+  stats simplification drops it.
+- **Corner ribbon.** `.blacksmith-mvp-ribbon` is absolutely positioned, rotated 25 degrees, and overflows
+  its container. Genuinely new, and worth confirming it survives step 4 before building a part for it.
+
+**Judgement calls, not gaps:**
+
+- **Trailing text has two legitimate treatments.** The roll card's `.cpb-roll-total` is 1.2em roboto-slab
+  because the number is the point; the XP card's `.xp-gained` is 0.85em/900 sans because the name is. The
+  parts system currently ships the roll treatment as the only one, so migrated XP awards render larger and
+  in a different face than they did. Decide whether the default flips and roll cards opt in, or a variant
+  is added.
+- **Two section-header treatments exist.** Generic `.section-header` versus `.cpb-card-section-header`
+  (900, uppercase, `#481515`). The roll cards have always looked different here. Unify or keep both.
+- **Sub-line colour.** `.total-xp` is a strong `rgba(62, 18, 18, 0.9)`; the generic row sub-line is muted
+  grey. The XP card reads quieter than it did.
+- **Level-up marker.** `.level-up` is orange with a text-shadow. There is no tone for it, and inventing a
+  `celebration` tone for one card is the naming mistake this system already made once.
+- **Bordered band with a tone.** `.cpb-roll-requested-mode` is a band with a dotted border whose colour
+  changes for advantage, disadvantage, and locked. `band` tints fills, not borders.
+
+**Dead in the source, do not carry across**: `.legend-items`, `.resolution-type`, `.monster-name`,
+`.monster-xp` in `cards-xp.css` — none appear in any template.
+
+**How to verify**: post each migrated card beside a screenshot of the original and compare padding,
+weights, and colours. The Chat Cards suite in `testing/test-harness.js` posts one card per button.
+
+**Priority**: the three gaps are prerequisites for steps 4 and 5. The judgement calls are not blocking, but
+the trailing-text one is already visible on a shipped card.
+
+#### 4. Stats simplification
+- **Work**: Collapse round and combat summaries to a key-data card plus a "View Details" button opening a
+  dashboard window; combat is the aggregate of round. Retires 8 templates and `styles/cards-stats.css`.
+- **Location**: `templates/card-stats-*.hbs` (deleted), `styles/cards-stats.css` (deleted),
+  `scripts/stats-cards.js`, new window
+- **How to verify**: run a combat to completion. The round card and the combat card each show key data and a
+  working button; the dashboard opens with the same numbers the old cards showed. Compare against a
+  screenshot of the old cards for parity of the underlying stats.
+
+#### 5. Blacksmith's interactive cards
+- **Work**: Migrate skill check and vote to compositions and the action dispatcher. Retires the legacy
+  `.cpb-chat-card` root and `templates/vote-card.hbs`, and removes the per-card `renderChatMessageHTML`
+  plumbing in `blacksmith.js` and `manager-vote.js`.
+- **Location**: `window-skillcheck.js`, `manager-vote.js`, `blacksmith.js`, `templates/card-skill-check.hbs`,
+  `templates/vote-card.hbs`
+- **How to verify**: run a skill check with several actors -- confirm non-owners see disabled rows, owners can
+  roll, and results fill in. Open a vote, cast from two player clients, confirm the tally updates on both and
+  the GM cannot vote. Close the vote and confirm the result renders.
+
+#### 5b. Skill check migration -- UNVERIFIED IN A LIVE WORLD (2026-08-14)
+
+The card is composed from parts (`scripts/cards-skill-check.js`), `templates/card-skill-check.hbs` is
+deleted, and all three render sites go through `skillCheckMessageData()`. **Nothing has been run in
+Foundry.** This is the largest untested change in the card work; treat every item below as owed.
+
+- **How to verify**: request a roll for two actors. The card must show a header, a "Requested Rolls"
+  section and one clickable row per actor. Click a row: it rolls, and that row becomes a result. Then a
+  contested roll (two groups), a group roll with a DC, and a roll with no DC.
+- **Two clients**: a `blindroll` must show the total to the GM and a veil to the player, on the same
+  message at the same time. A player's own row must stay clickable in every mode -- the card is public on
+  purpose.
+- **Rows a player cannot roll** get `.blacksmith-row-not-yours` at render, dimmed. The permission itself
+  is checked in `SkillCheckDialog.handleRollAction`.
+
+#### 5c. Stats cards migrated -- CSS NOT YET SAFE TO DELETE (2026-08-14)
+
+Round and combat now post ONE card each (`scripts/cards-stats.js`), replacing four messages apiece.
+Nine templates deleted: the eight `card-stats-*` and the orphaned `templates/stats-combat.hbs`, which
+nothing had rendered in a long time. **Unverified in a live world.**
+
+- **How to verify**: end a round with the stats settings on -- expect exactly ONE card, not four:
+  header, MVP ribbon and portrait, three tiles (Damage / Kills / Healing), a Party section with one
+  subject per actor carrying the red-to-green ratio bar, and a "View the details" button that opens the
+  stats window. Then end a combat for the aggregated version. Then a round where nothing happened, to
+  confirm the ribbon and MVP block drop out rather than render empty.
+- **`styles/cards-stats.css` is deleted (2026-08-14).** The caution recorded here was based on two false
+  positives: `stat-label` matches inside `combat-hover-stat-label`, which is what the combat bar
+  actually emits, and a bare class NAME appearing in a live template says nothing about whether its
+  RULE can match. Re-audited with whole-token matching and a self-check: of 58 classes, six appear in
+  live markup, and every one of their rules is a compound selector needing a dead ancestor
+  (`.mvp-info .player-name`, `.status-tag.rank`, `.turn-time.expired`, `.mvp-stat-card h4 .fas`,
+  `.party-timing-stats .timing-stat .label`). Nothing in the file could match anything.
+
+#### 5d. Vote card -- MIGRATED, verified live (2026-08-15)
+
+Composed from parts (`scripts/cards-vote.js`); `templates/vote-card.hbs` deleted and the card rules
+split out of what is now `styles/window-vote.css`, renamed because it holds only the window's rules. The confirmed leak is closed: the card
+re-renders per client, and the voter detail is not on it at all.
+
+Verified with two clients: only the GM sees Close Vote, the count updates as votes arrive, a player's
+own choice highlights with a tick on their screen alone, and the GM sees "Waiting on" shrink.
+
+**Do not put the voter detail back on this card.** A veiled value is presentation privacy -- the value
+still travels to every client -- and a ballot a player can read from the flags is not a ballot. The
+count is fine, and "who has not voted yet" is fine, because a name there says only that someone has yet
+to act. If the detail is ever wanted on the card, the honest mechanism is a whisper.
+
+**Still owed**: headless harness assertions for `composeVoteCard`, matching the ones for the skill
+check and stats composers. It is pure, so every branch -- active, closed, no options, a winner, the
+GM-only parts -- is assertable without a vote happening.
+
+#### 5e. Imported journal pages need their own styling (2026-08-15)
+
+`styles/overrides-foundry.css` was deleted. It restyled `.journal-page-content` -- Foundry's own journal
+body -- for EVERY journal in the world: core content, compendium pages, and anything Cartographer,
+Scribe or a third-party module writes. Not gated behind a setting; the file itself said "These are not
+in Settings yet".
+
+**Four of its five rules were not taste. They fixed OUR import output**, and that problem comes back
+with the deletion. Recorded here so it is not rediscovered from scratch:
+
+    /* Breathing room between stacked JSON-import sections
+       (themes often collapse margins) */
+    .journal-page-content ul + h2,
+    .journal-page-content ul + h3,
+    .journal-page-content blockquote + h2,
+    .journal-page-content blockquote + h3 { margin-top: 1.1em; }
+    .journal-page-content h2 + h3          { margin-top: 0.85em; }
+
+    /* Taste, not a fix -- emphasis on journal headings */
+    .journal-page-content h2 { font-weight: 700; font-size: 1.9em; }
+    .journal-page-content h4 { font-weight: 900; font-size: 1.25em; }
+    section.journal-page-content img { border-radius: 4px; }
+
+**Do this as part of the Scribe / import / cards effort, not before it.** Scoping these rules now would
+be scoping a hack we are about to replace: we got here by styling CORE elements to bend them into shape,
+and the direction of travel is that our content carries its own elements. An imported page should be
+recognisable as ours -- a class the importer stamps, or a custom element -- and styled through that,
+so the fix reaches our pages and no one else's.
+
+- **Where**: whatever stamps imported journal pages (the JSON import registry), plus a scoped stylesheet.
+- **How to verify**: import a page with stacked lists and blockquotes; the spacing holds. Then open a
+  core compendium journal and confirm it renders exactly as Foundry draws it, with nothing of ours on it.
+
+#### 6. CSS consolidation
+- **Work**: Collapse the five card CSS files to one layout file and one theme file. Delete the `theme-default`
+  render-time rewrite hook in `blacksmith.js` -- the world default is resolved at post time as of step 1.
+  No legacy CSS is preserved for old chat history (decision 8).
+- **Location**: `styles/cards-*.css`, `styles/default.css` (imports), `scripts/blacksmith.js`
+- **How to verify**: post one card of every type in each of the 9 themes and confirm none has lost styling.
+  Confirm a new CSS file added without an `@import` in `default.css` is silently unstyled -- so check the
+  import chain explicitly. Run `node tools/check-design-tokens.mjs`.

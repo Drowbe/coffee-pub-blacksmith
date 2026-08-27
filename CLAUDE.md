@@ -122,7 +122,7 @@ other four are permanent. See the two scaffolding sections below.
 | Kind | Where | Audience | Rule |
 |---|---|---|---|
 | **Overview** | `README.md` (users), Home (devs) | README: someone deciding whether to *use* the module. Overview: a developer building *against* it. | Neither mentions architecture or internals. |
-| **TODO** | `documentation/TODO.md` | us | **Single source of truth for what we will do.** When it's done, it is **deleted** from here and lives only in `CHANGELOG.md`. Never keep a done item "for reference". |
+| **TODO** | `documentation/TODO.md` | us | **Single source of truth for what we will do.** When it's done, it is **deleted** from here and lives only in `CHANGELOG.md`. Never keep a done item "for reference". **Two conditions, not one:** the CHANGELOG entry exists AND anything durable the item carried has landed in architecture or API, in context. A TODO deleted while it was the only place a design decision was written loses it. **And an entry is short** — title, what and why, the file it touches, how it will be verified. If it needs more, the extra is design and belongs in a plan; link it and keep the entry short. |
 | **CHANGELOG** | `CHANGELOG.md` | everyone | What we did and fixed. Keep-a-Changelog + SemVer; long prose entries citing file paths. Match the existing style. **Code changes are the priority — be rigorous there.** Doc changes are nice to note but not the point: the docs themselves are what matter, and a reader can just go read them. A one-line mention beats a paragraph reconstructing the doc. **Never add to a version that has already shipped** — see the section rule below. |
 
 **Never write into a released version's section.** A section is open only until its `BUILD x.y.z` commit
@@ -156,6 +156,14 @@ dismantled into the five kinds above: work → `TODO.md`, design → architectur
    overstayed — move that content to its real home.
 3. **Complete means delete.** Not archive, not "keep for reference". Distribute the content, then remove the
    file. Anything already landed in a TODO or an architecture doc must be *removed from the plan*.
+   **Implemented is not the trigger; absorbed is.** A plan whose code has shipped but whose design still
+   lives only in the plan is not finished — it is a source of truth wearing scaffolding's label, which is
+   rule 2. Distribute first, then delete.
+
+**Clean documentation is critical, and it is the part that rots without anyone noticing.** Code that is
+wrong breaks; a doc that is wrong is believed. The three deletions above — plan, TODO item, testing item —
+are what keep the permanent four trustworthy, and every one of them is a step somebody has to actually take.
+Take it in the same change, not "later".
 
 ### Testing docs are scaffolding too
 
@@ -224,7 +232,8 @@ Name the outcome first — **bug fix / feature / performance / refactor** — be
    `TODO.md` items are removed (step 11), not left checked-off.
 9. **Final doc pass** when the whole plan/bug is done — architecture and API fully reconciled to shipped code.
 10. **Update `CHANGELOG.md`** for the next release — code changes first, per the CHANGELOG rule.
-11. **Delete completed TODOs.** They live in the CHANGELOG now. Never keep a done item "for reference."
+11. **Delete completed TODOs.** They live in the CHANGELOG now, and their durable content lives in
+    architecture or API (step 8). Never keep a done item "for reference."
 12. **Version bump + BUILD commit — author, after final tests.** The author bumps `module.json` and makes the
     BUILD commit, which bundles the final docs, `CHANGELOG.md`, and the todo deletions with the bump. See
     the BUILD rule in Git for the exact shape.

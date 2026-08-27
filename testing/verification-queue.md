@@ -121,3 +121,67 @@ Curator callers:
   drop the party CR. That asymmetry is deliberate and is the one most likely to be reported as a bug.
   ```
 
+
+
+---
+
+## Moved from `TODO.md` (2026-08-27)
+
+Three lists of verification owed that had been filed as work items. They are not work -- the code has
+shipped -- so they belong here, under the same rule as everything above: remove an item when it passes
+rather than ticking it.
+
+## Live-verify the compendium mapping simplification
+
+Shipped unverified, and it touches settings storage, so worth a careful pass in a world that already has mappings.
+
+- **Existing mappings survive.** Load a world configured before this change and confirm each type's Priority Slots slider reads the number it actually had configured, and that the dropdowns below hold the same compendiums in the same order.
+- **Lowering the slider hides rather than deletes.** Drop a type from 8 to 3, reload, confirm slots 4-8 are gone from the UI; raise it back to 8, reload, confirm the original picks return.
+- **The dropdowns are complete.** Confirm a journal compendium that used to be missing — one that failed the old "primary journal" heuristic — now appears in the JournalEntry dropdowns. That is the specific regression this change exists to fix.
+- **What you pick is what gets searched.** Map a compendium that the old build would have vetoed, then resolve a name from it and confirm it resolves.
+- **Scene mappings.** If Scene was mapped, confirm it now shows per-pack dropdowns and re-pick; the old `source:` values are skipped.
+- Confirm the Included Sources section and the Auto-map checkbox are gone entirely, with no orphaned headings left behind.
+
+## Live-verify the Compendium Search tool window
+
+`api.compendiums.search()` itself is verified — 57/57 headless assertions, grouping proven across 10 sources (`testing/suites/suite-compendiums.js`). The palette built on it is not. There are three ways in — the Blacksmith scene-controls toolbar (Utilities zone, `fa-book-atlas`), the menubar left zone (magnifying glass, beside menu/settings/refresh), and Ctrl+Space. Confirm all three reach the same single window rather than opening duplicates, then check:
+
+- **Drag lands on a character sheet.** Drag an Item row onto an open dnd5e character sheet and confirm the item is added. Then drag an Actor row onto the canvas and confirm a token is placed. Both ride Foundry's native `{type, uuid}` drop contract, so a failure here means the payload is wrong, not the sheet.
+- **Drag as a player.** Log in as a player who owns a character and repeat. The tool is not GM-only, and a player sees only the packs they have permission on.
+- **All types is the default.** Confirm the selector opens on All, that a query returns a mix (an Actor, an Item, a Journal entry) grouped by compendium, and that nothing appears twice — the dedup case is a pack mapped to both Item and Spell, where a spell would otherwise be listed once per type. Confirm the subtype filter is hidden in All mode and returns when a single type is chosen.
+- **Type switching.** Switching type re-renders (the subtype list belongs to the type) — confirm focus returns to the search field and the subtype list is the new type's. Synthetic types (Spell, Feature, Class) should show no subtype selector at all, since their subtype is already fixed by the mapping.
+- **All-types cost.** Time the first keystroke of a 3-character query in All mode with every type mapped — it warms every configured pack index at once, which is the worst case this window has. If it stalls the client, the fix is a higher minimum or a smaller default scope, not a spinner.
+- **Themes.** Cycle Light / Dark / Glass from the title-bar menu and check, in each: the search box and both selects take a theme-appropriate surface rather than the old black box; placeholder text is legible; the focus ring appears on tab; an **opened** dropdown's rows are readable (that popup is drawn by the OS and inherits nothing, so it is the one that regresses independently); and the sticky source headers hide the rows scrolling under them.
+  This is a shell-level fix in `styles/window-tool.css`, so also spot-check one other Tool consumer with a form — the same rules now apply to every Tool window, and a regression there would not show up on this palette.
+- **Long lists.** Search a single letter with `minLength` reached (e.g. "ar") and scroll. Confirm sticky headers behave and the window's fixed 620px height with `resizable: true` is sensible.
+- **Group headers.** Confirm each header shows the pack's own name on the left and its package quietly on the right, with no counts and no "Package: Pack" run-on. Search something that hits two different packages' "Equipment" packs and confirm the two headers are distinguishable.
+- **Truncation status.** Search a broad query that exceeds the window's 100-result cap and confirm the footer says "more available, N compendiums not searched" in the accent color. Then search something narrow and confirm the message is absent — it must not appear merely because a count is round.
+- **Reload indexes.** The title-bar refresh action calls `clearCache()`. Edit a compendium item's name, hit refresh, confirm the new name appears.
+- **Ctrl+Space.** Confirm it opens the palette, and that pressing it again with the window already open focuses it rather than opening a second. Confirm it appears in Configure Controls under Blacksmith so it can be rebound — Ctrl+Space is the keyboard-layout switcher on some Windows and macOS setups, and on such a machine the OS will eat it. Also confirm it does *not* fire while you are typing in a chat box or another text field.
+- **Menubar toggle.** Turn off Compendium Search in Menubar (Manage Content settings group) and confirm the menubar button disappears while the toolbar tool and keybinding still work.
+
+Also confirm a JSON character import still works — the only consumer of the changed index shape (`_getPackIndex()` entries gained `img`) that the harness suite does not exercise.
+
+Once the drag path is confirmed, update the Squire row in `TODO-GLOBAL.md`.
+
+## Live-verify the expanded encounter bar readouts
+
+Seventeen chips now share the middle zone — ten out of combat, seven in one — where six shared it before.
+Shipped unverified.
+
+- **Both sets read correctly.** Out of combat, check each of the ten against the Party Statistics window;
+  the two consume the same aggregate, so any disagreement is a bug in the chip's write rather than in the
+  numbers. In combat, check the seven against the end-of-combat card once the fight ends.
+- **The ranking is the feature.** Narrow the window until chips start dropping and confirm they go in the
+  order `READOUT_SUPPRESSION_ORDER` declares — campaign-scale figures first, the three originals last. If
+  the wrong ones survive at a typical width, the fix is the ranking, not the set.
+- **Fewest misses reads as a credit.** Hover it and confirm the tooltip says "Fewest misses on record".
+  The aggregate ranks that measure low-is-best, so the bare number is misleading without the wording.
+- **Portraits and totals stay distinguishable.** Per-person standings show a face; party totals show a
+  number and no face. Confirm a six-figure lifetime total renders as `8.4k` with the exact figure in the
+  tooltip.
+- **Players see what the GM sees.** On a player client, confirm both sets render. The live figures arrive
+  through the combat flag every client reads, so three blanks there would mean the mirror is broken.
+- **Nothing regressed at the far end of the bar.** The suppression list grew from ten entries to
+  twenty-one; confirm party health, monster health, and both timers still survive a narrow bar, since they
+  rank after every statistic.
