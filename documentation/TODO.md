@@ -463,49 +463,178 @@ Every window shipped against the current contract is another copy of the frame t
 **Audit every module.** Minstrel and Artificer are the most complex by leaps and should be surveyed FIRST,
 not last: a frame validated only on simple windows will fail on them after everything else has moved.
 
-## CRITICAL BUG - a player could not target an NPC on their own turn (opened 2026-08-27)
+## CRITICAL BUG - "T" over an enemy targeted nothing, on the player's own turn (opened 2026-08-27)
 
-Seen live 2026-08-26. A player, on their turn, intermittently could not target an NPC. They own more than
-one token, and the suspicion at the table was that something had the wrong one in mind. The turn indicator
-on the canvas was showing the correct combatant throughout, so whatever failed was not the turn itself.
+Seen live 2026-08-26. A player on their turn moused over an enemy, pressed **T**, and nothing was
+targeted. No error, no notification. They own more than one token. The turn indicator on the canvas was on
+the correct token throughout, so the turn itself was right.
 
-**Ruled out already, by reading the code rather than by testing:**
+**The "T" path is entirely core's, and dnd5e does not touch it.** `ClientKeybindings.#onTarget`
+(`client/helpers/interaction/client-keybindings.mjs:720-728`) is four gates, each a silent `return false`:
 
-- **Nothing in Blacksmith sets or clears targets on its own.** There are exactly two calls to
-  `canvas.tokens.setTargets([], {mode: 'replace'})` -- the Clear All Targets tool
-  (`manager-toolbar.js:553`) and the same item on the combat bar's token menu
-  (`manager-combatbar.js:4190`) -- and both are a button someone presses. No hook of ours touches
-  `game.user.targets`; `manager-token-indicators.js:121` only *watches* `targetToken` to draw a ring.
-- **Owning several tokens is not part of core's targeting logic at all.** `Token#setTarget`
-  (`client/canvas/placeables/token.mjs:3393`) consults no ownership, no combat, and no turn -- it calls
-  `canvas.tokens.setTargets` and nothing else. So the "it thought I was the other character" theory has
-  nothing to attach to on the targeting path. Where that theory *does* have purchase is movement:
-  `token-movement.js:718` compares the moved token against `combat.current.tokenId` exactly, so under
-  combat-movement a player with two tokens can only move the one whose turn it literally is. If what was
-  actually blocked was movement rather than targeting, that line is the answer and this is not a bug.
+1. `canvas.ready`
+2. **`canvas.activeLayer instanceof TokenLayer`**
+3. **`canvas.tokens.hover` is set** -- the token the pointer is actually over, as the layer understands it
+4. `!hovered.document.isSecret` -- disposition SECRET without OBSERVER (`client/documents/token.mjs:188`)
 
-**The two gates core does apply**, either of which produces exactly this symptom with no error shown:
+Then `Token#setTarget` (`token.mjs:3393`) calls `canvas.tokens.setTargets` and consults nothing else -- no
+ownership, no combat, no turn. dnd5e 5.3.3 registers no keybindings and never overrides `setTarget`,
+verified by grep over `dnd5e.mjs`. So nothing in the *targeting* code reads which token you control. What
+does read it is everything that gets you into the state gates 2 and 3 describe, which is where to look.
 
-1. **The token is secret.** `TokenDocument#isSecret` is disposition SECRET without OBSERVER permission
-   (`client/documents/token.mjs:188`), and both targeting paths return silently on it -- the target tool
-   (`token.mjs:4299-4306`) and double-right-click (`:4336`). A GM setting an NPC's disposition to Secret
-   makes it untargetable by players while remaining perfectly visible to them.
-2. **The gesture.** The target tool must be the active tool for left-click to target; otherwise it is
-   double-right-click, and on a token the player *owns* double-right-click opens configuration instead.
-   A player switching between their two tokens is more likely than most to have the wrong tool active.
+Gate 3 has a property worth knowing: **hover is established by a pointer ENTERING a token**, and it is
+cleared when a token is deleted or the layer deactivates (`placeable-object.mjs:558-566`, `:643-644`). It
+is not recomputed from where the mouse happens to be sitting. Anything that moves the world under a
+stationary pointer -- a pan, a token moving, a redraw -- can leave `hover` null or pointing at the wrong
+token while the pointer looks like it is over the enemy. `combatTrackerPanToCombatant` and
+`combatTrackerAutoSelectToken` both move the world at the start of a turn, which is exactly when this
+happened.
 
-**What to do at the table when it recurs**, in this order -- the first three cost nothing and separate the
-three candidates outright:
+**Gate 2 was investigated and cleared.** Blacksmith registers a scene control group whose layer is not an
+`InteractionLayer`, which is genuinely wrong and is filed separately below, but it cannot produce this
+symptom: our control group's `onChange` is empty (`manager-toolbar.js:1076-1079`), so selecting it never
+activates our layer and never deactivates the token layer. `canvas.activeLayer` stays `TokenLayer` and
+"T" keeps working. Selecting it does disable token dragging, since `Token#_canDrag` requires
+`game.activeTool === "select"` (`token.mjs:4264-4269`), but that is true of every control group in Foundry
+and is not a defect of ours.
 
-- Ask what they actually could not do: place a target, or move. They are different failures with different
-  causes and this report does not distinguish them.
-- Check that NPC's disposition on the token, not the prototype. Secret is the single most likely answer.
-- Have them press the target tool explicitly and click, rather than double-right-clicking.
-- If it still fails, `game.user.targets` in their console before and after the click says whether the
-  target was never set or was set and then released -- and only the second one implicates a module.
+**The decisive diagnostic, at the moment it fails.** Two lines in the player's console, before touching
+anything else:
 
-Do not build anything until that fork is closed. Every fix for the wrong branch is a fix that makes the
-real one harder to see.
+```js
+canvas.activeLayer?.constructor.name   // expect "TokenLayer"
+canvas.tokens.hover?.name              // expect the enemy's name
+```
+
+That splits the whole problem in one shot: wrong layer is gate 2, null hover is gate 3, correct on both
+means the gate is `isSecret` or something is releasing the target after it is set (`game.user.targets`
+before and after answers that). Do not build anything before this is run -- each branch has a different
+fix and three of the four are not in this module.
+
+## The pin context menu offers no note actions (opened 2026-08-27)
+
+Right-clicking a pin that stands for a note gives pin actions only -- access, and Delete Pin, which deletes
+the pin and leaves the note. Nothing offers to delete, edit or open the note itself, which is the thing the
+pin is *for*.
+
+**The extension point already exists and has no callers.** `api.pins.registerContextMenuItem`
+(`api-pins.js:314`, `manager-pins.js:1646`) feeds the menu's `module` zone, and the renderer already builds
+that zone and renders it alongside `core` and `gm` (`manager-pins-renderer.js:1355-1360`). Grep finds no
+call to it anywhere -- not from Notes, not from any sibling. So the zone is always empty and every pin menu
+in the world is pin actions only.
+
+That makes it a **consumer-zero** failure of the kind this repo keeps finding: we shipped the registration
+API and then did not use it for our own feature. Notes are Blacksmith's, so Notes should be the first
+caller, and whatever it needs from the API is what a sibling would have needed too.
+
+Decide one thing while building it: **what Delete Pin should mean for a note pin.** Today it deletes the
+pin only, silently leaving an unpinned note. Either that stays and a separate "Delete Note" appears beside
+it -- two items whose difference has to be legible from their labels alone -- or deleting the pin offers to
+take the note with it. Do not leave a menu where two adjacent items differ by which document they destroy
+and nothing on screen says so.
+
+## The Blacksmith canvas layer is empty, and pins are not on it (opened 2026-08-27)
+
+Found while establishing why "T" could fail to target. **It is not the cause of that bug** -- see the
+targeting entry above -- but what turned up is worth more than the search was.
+
+**The intent** (author, 2026-08-27): one Blacksmith-owned canvas surface for things that belong to the
+scene but are not a token, a wall or a tile, so we can draw on the canvas without fighting core's layers or
+another module's. Pins were meant to be the first tenant. Cartographer's player map -- a live sketch of
+where the party has been, currently living in a window -- was a candidate for the second, as an overlay or
+a scaled-down HUD.
+
+**None of that is what is running.** Three facts, each checked:
+
+1. **`BlacksmithLayer` never renders anything.** It has no `addChild` call anywhere
+   (`manager-canvas-layer.js`). It has been an empty PIXI container since it was written; its `_draw()`
+   exists solely to call `PinRenderer.initialize()`, so the layer is being used as a lifecycle hook rather
+   than as a place to draw.
+2. **Pins are DOM, not canvas.** `PinRenderer.initialize()` creates `<div id="blacksmith-pins-overlay">`
+   and inserts it as a sibling of `#board` (`manager-pins-renderer.js:79-96`); each pin is a `<div
+   class="blacksmith-pin">` appended to it (`:277-288`), positioned by listening to `canvasPan` and
+   recomputing screen coordinates (`:99-104`). Nothing about a pin touches the PIXI scene graph.
+3. **Nothing needs the layer to be active.** Pins are placed by `dropCanvasData` (`blacksmith.js:950`),
+   which fires on a drop anywhere on the canvas regardless of which layer is active. There is no
+   click-to-place mode, so there is nothing for an `InteractionLayer` to interact with.
+
+So the layer is an empty container, its control group is a group whose layer can never be active, and the
+system it was built to host chose a different surface without the layer being retired.
+
+**The distinction that actually matters, and which the two implementations straddle.** These are two
+surfaces, not one, and which one a feature wants is decided by a single question -- does it live in *scene*
+coordinates or *screen* coordinates?
+
+- **PIXI, on a canvas layer.** Scales, rotates and pans with the map because it is *in* the map. Can be
+  occluded, can be hit-tested by Foundry's interaction manager, obeys layer ordering, can respect fog and
+  vision. Right for anything anchored to a place on the map.
+- **DOM, over the board.** Stays screen-sized at any zoom, is written in HTML and styled with the design
+  system, gets real text rendering and tooltips for free. Right for anything that is furniture rather than
+  terrain. Foundry's own token HUD is DOM for exactly this reason.
+
+Pins picked DOM, and for pins that is defensible -- they carry images and text, they should stay legible at
+any zoom, and they want our CSS. The cost is the part to know before adding a second tenant: DOM cannot be
+occluded by a token or a tile, does not participate in canvas hit-testing, and needs `canvasPan` bookkeeping
+to stay glued to the map, which is what `_scheduleUpdate` is.
+
+Cartographer's map splits on the same question. **As a HUD or minimap it is DOM** and should join the pins
+overlay. **As a sketch drawn onto the map in scene coordinates** it is PIXI and is the first real tenant the
+layer would ever have had.
+
+**Pins stay DOM.** The requirement that decides it (author, 2026-08-27): a pin must be usable *while the
+GM is working with tokens*, never behind a trip to the Coffee Pub toolbar. DOM satisfies that with no
+mechanism at all -- an element over the board is clickable whatever the canvas is doing.
+
+**That requirement does not by itself rule out PIXI, and it is worth knowing why.** Core solves the same
+problem for door controls: `ControlsLayer` extends `InteractionLayer` but overrides `_deactivate()` to set
+`interactiveChildren = true` (`client/canvas/layers/controls.mjs:222-224`), so its children keep receiving
+pointer events after the layer is deactivated. That is precisely why a door icon is clickable while the
+Tokens layer is active, and a Blacksmith layer could do the same. So the choice is a real trade rather than
+a constraint.
+
+What PIXI would actually buy, measured against what pins do today:
+
+- **Sight and fog.** A canvas object can be masked by vision for free. Pin visibility today is entirely
+  permission-based -- `blacksmithVisibility`, `blacksmithAccess`, ownership -- with no sight test anywhere
+  in the renderer, so a player-visible pin shows through unexplored map.
+- **Scene-scaled size**, so a pin marking an area could *be* that area rather than a fixed screen size.
+- **Z-order among canvas content**, so a pin could sit under tokens rather than above everything.
+- **No per-pan bookkeeping.** The `canvasPan` -> `_scheduleUpdate` loop exists only because DOM does not
+  move with the map.
+
+What it would cost: HTML text rendering, tooltips and the design system; hand-built hit-testing;
+accessibility, since PIXI is not focusable or readable; and a rewrite of a system that works. The hover card
+and context menu are DOM regardless (`UIContextMenu`), so PIXI pins would be a hybrid either way.
+
+**Only the first of those changes what a GM can do, and it does not need a rewrite.** A
+`canvas.visibility.testVisibility(pin.center)` check inside the update that already runs on every pan would
+give sight-gated pins on the DOM path, for tens of pins, at a fraction of the cost. Do that if pins showing
+through fog is wrong; leave it if a GM marking a pin visible is meant to be final.
+
+**So the open question is not about pins at all -- it is whether the empty PIXI layer earns its keep.**
+Settle it on Cartographer's behalf, since that is the only candidate tenant: a minimap or HUD is DOM and
+should join the pins overlay; a sketch drawn into the map in scene coordinates is PIXI and would be the
+layer's first real contents ever. If nothing is going to draw in scene coordinates, delete the layer and
+the control group's `layer` property, and name the DOM overlay what it is -- the Blacksmith canvas overlay,
+a shared surface a sibling can register into. If something is, make the layer a real `InteractionLayer`
+**and land its first tenant in the same change**: a layer with no contents cannot be validated and will
+drift again exactly as this one did.
+
+Three things are wrong today and stay wrong until this is settled:
+
+
+
+1. `activate()` and `deactivate()` (`manager-canvas-layer.js:17`, `:41`) wear the names of a lifecycle they
+   are not part of -- core never calls them, since our control group's `onChange` is empty
+   (`manager-toolbar.js:1076-1079`). `deactivate()`, and the `PinRenderer.clear()` inside it, is reached by
+   nothing at all.
+2. `CanvasLayer` has no `active`, so every `!layer.active` guard is a no-op: `blacksmith.js:892`,
+   `blacksmith.js:940` and `api-pins.js:715` re-activate on every call, and `api-pins.js` reports
+   `layerActive: false` unconditionally.
+3. `activateBlacksmithLayer()` (`manager-toolbar.js:1431`) is dead -- defined, never called.
+
+Whatever is decided, this belongs in an architecture doc when it lands -- the DOM-versus-PIXI question is
+exactly the kind of thing the next person will otherwise re-derive by reading the pin renderer.
 
 ## Two drag-to-reorder implementations, and they do not agree (opened 2026-08-27)
 

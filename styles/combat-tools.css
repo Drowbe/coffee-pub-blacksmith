@@ -149,24 +149,6 @@ body:not(.gm) #combat-tracker .combatant {
     stroke: rgba(247, 243, 232, 0.3);
 }
 
-.token-initiative {
-    position: relative;
-}
-
-.portrait-dead-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 20px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8),
-                -1px -1px 2px rgba(0,0,0,0.8),
-                1px -1px 2px rgba(0,0,0,0.8),
-                -1px 1px 2px rgba(0,0,0,0.8);
-    pointer-events: none;
-}
-
 .portrait-dead .token-image {
     filter: brightness(90%) sepia(50%) saturate(300%) hue-rotate(-30deg);
     transition: filter 0.3s ease-in-out;

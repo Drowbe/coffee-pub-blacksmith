@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A dead combatant was marked dead three times on one tracker row** (`scripts/ui-combat-tools.js`, `styles/combat-tools.css`). Core dims the row and reddens the name via the `defeated` class it puts on the `<li>` (`client/applications/sidebar/tabs/combat/tracker.hbs`, `combat-tracker.mjs:294`), and lights its own skull button. On top of that we drew a large skull into the initiative column. A third mark is not emphasis, and it became a fourth the moment NPCs started being marked defeated automatically rather than only when a GM pressed the button.
+
+  Our skull and its stylesheet rule are gone. The portrait keeps its tint, because that lands on the round portrait, which is ours and which core knows nothing about. The two branches deciding what counts as dead are unchanged and still deliberately ask different questions: with a real health ring the hit points are on screen, so zero of them is the honest test; with the solid ring the viewer cannot see hit points at all, so the only thing they are entitled to know is what the GM has declared.
+
+  **Verify live:** with portraits on, take an NPC to zero and confirm the row shows core's dimmed styling, its lit skull button and our tinted portrait -- and no skull in the initiative column.
+
 - **A reorder made in the combat tracker announced nothing** (`scripts/ui-combat-tools.js`). Dragging a portrait on the combat bar broadcasts a toast naming who moved and where to; the identical gesture in the tracker was silent, so whether the table found out depended on which control the GM happened to use. It broadcasts the same toast now, with the same `stackKey`, so the two cannot stack up as separate notices. The position is read after the update resolves, which is the point at which `combat.turns` holds the new order rather than the old one.
 
   **Verify live:** drag a row in the combat tracker and confirm every client sees one toast naming the combatant and its new position, matching what the same move on the bar produces.

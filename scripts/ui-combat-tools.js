@@ -416,43 +416,33 @@ Hooks.once('ready', () => {
                     container.appendChild(svg);
                 }
 
-                // Add dead class and skull overlay if HP is 0 or less (v13: native DOM)
+                // Tint the portrait when the combatant is dead -- and NOTHING more.
+                //
+                // There used to be a skull drawn into the initiative column as well.
+                // Core already says dead twice on the same row: it puts `defeated` on
+                // the <li> (`combat-tracker.mjs:294`), which dims it and reddens the
+                // name, and it lights its own skull button. A third mark on one row is
+                // not emphasis, it is noise -- and it became a fourth once NPCs started
+                // being marked defeated automatically rather than only when a GM
+                // pressed the button. The tint stays because it lands on the round
+                // portrait, which is ours and which core knows nothing about.
+                //
+                // Both branches ask a different question deliberately. With a real
+                // health ring the hit points are on screen, so zero of them is the
+                // honest test. With the solid ring the viewer cannot see hit points at
+                // all, so the only thing they are entitled to know is what the GM has
+                // declared -- `isDefeated`.
+                const showsPortrait = getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false);
+                let readsAsDead;
                 if (showHealthRing) {
                     // Optional for the same reason as above -- an actor with no hit
                     // points cannot be at zero of them, so it is never marked dead.
-                    const hp = actor.system?.attributes?.hp;
-                    const currentHP = Number(hp?.value);
-                    if (Number.isFinite(currentHP) && currentHP <= 0 && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
-                        element.classList.add('portrait-dead');
-                        // Add skull overlay to the initiative div if it doesn't exist
-                        const initiativeDiv = element.querySelector('.token-initiative');
-                        if (initiativeDiv && !initiativeDiv.querySelector('.portrait-dead-overlay')) {
-                            const skullOverlay = document.createElement('i');
-                            skullOverlay.className = 'fas fa-skull portrait-dead-overlay';
-                            initiativeDiv.appendChild(skullOverlay);
-                        }
-                    } else {
-                        element.classList.remove('portrait-dead');
-                        const overlay = element.querySelector('.portrait-dead-overlay');
-                        if (overlay) overlay.remove();
-                    }
+                    const currentHP = Number(actor.system?.attributes?.hp?.value);
+                    readsAsDead = Number.isFinite(currentHP) && currentHP <= 0;
                 } else {
-                    // For solid rings (NPCs when health is hidden), check if combatant is defeated
-                    if (combatant.isDefeated && getSettingSafely(MODULE.ID, 'combatTrackerShowPortraits', false)) {
-                        element.classList.add('portrait-dead');
-                        // Add skull overlay to the initiative div if it doesn't exist
-                        const initiativeDiv = element.querySelector('.token-initiative');
-                        if (initiativeDiv && !initiativeDiv.querySelector('.portrait-dead-overlay')) {
-                            const skullOverlay = document.createElement('i');
-                            skullOverlay.className = 'fas fa-skull portrait-dead-overlay';
-                            initiativeDiv.appendChild(skullOverlay);
-                        }
-                    } else {
-                        element.classList.remove('portrait-dead');
-                        const overlay = element.querySelector('.portrait-dead-overlay');
-                        if (overlay) overlay.remove();
-                    }
+                    readsAsDead = combatant.isDefeated === true;
                 }
+                element.classList.toggle('portrait-dead', readsAsDead && showsPortrait);
             }
         });
         },
