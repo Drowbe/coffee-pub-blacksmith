@@ -1,0 +1,68 @@
+{{!--
+  Fullscreen Application V2 template -- a viewport-covering, blocking surface.
+  Rendered inside the frameless application element; see window-fullscreen-base.js.
+
+  Zone names match the standard window contract so the mental model carries over:
+  headerIcon, windowTitle, subtitle, headerRight, toolsContent, bodyContent,
+  actionBarLeft, actionBarRight, with showHeader / showTools / showActionBar.
+  There is no option bar -- a filter strip has no meaning over a cutscene.
+
+  The root carries no id: the application element already has one, and a second
+  element repeating it would put a duplicate id in the document.
+--}}
+
+<div class="blacksmith-window-fullscreen-root" data-layout="{{fullscreenLayout}}">
+
+    {{!-- BACKDROP: its own layer, so opacity dims the image and not the content. --}}
+    <div class="blacksmith-window-fullscreen-backdrop" aria-hidden="true"></div>
+
+    {{#if showCloseButton}}
+    <button type="button"
+            class="blacksmith-window-fullscreen-close"
+            data-action="blacksmith-fullscreen-close"
+            data-tooltip="{{closeLabel}}"
+            aria-label="{{closeLabel}}">
+        <i class="fa-solid fa-xmark"></i>
+    </button>
+    {{/if}}
+
+    <div class="blacksmith-window-fullscreen-panel">
+
+        {{#if showHeader}}
+        <header class="blacksmith-window-fullscreen-header">
+            {{#if headerIcon}}
+            <div class="blacksmith-window-fullscreen-header-icon"><i class="{{headerIcon}}"></i></div>
+            {{/if}}
+            <div class="blacksmith-window-fullscreen-header-title-block">
+                {{#if windowTitle}}<div class="blacksmith-window-fullscreen-header-title">{{windowTitle}}</div>{{/if}}
+                {{#if subtitle}}<div class="blacksmith-window-fullscreen-header-subtitle">{{subtitle}}</div>{{/if}}
+            </div>
+            {{#if headerRight}}
+            <div class="blacksmith-window-fullscreen-header-right">{{{headerRight}}}</div>
+            {{/if}}
+        </header>
+        {{/if}}
+
+        {{#if showTools}}
+        <div class="blacksmith-window-fullscreen-tools">
+            {{#if toolsContent}}{{{toolsContent}}}{{/if}}
+        </div>
+        {{/if}}
+
+        <div class="blacksmith-window-fullscreen-body">
+            {{#if bodyContent}}{{{bodyContent}}}{{/if}}
+        </div>
+
+        {{#if showActionBar}}
+        <section class="blacksmith-window-fullscreen-action-bar">
+            <div class="blacksmith-window-fullscreen-action-left">
+                {{#if actionBarLeft}}{{{actionBarLeft}}}{{/if}}
+            </div>
+            <div class="blacksmith-window-fullscreen-action-right">
+                {{#if actionBarRight}}{{{actionBarRight}}}{{/if}}
+            </div>
+        </section>
+        {{/if}}
+
+    </div>
+</div>

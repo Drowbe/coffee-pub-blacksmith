@@ -517,7 +517,9 @@ class SocketManager {
             postConsoleAndNotification(MODULE.NAME, "SocketManager: Received closeCinematicOverlay", data, false, false);
             // Import and call the skill check dialog method
             import('./window-skillcheck.js').then(({ SkillCheckDialog }) => {
-                SkillCheckDialog._hideCinematicDisplay();
+                // Close locally, never _hideCinematicDisplay: that one broadcasts, so a second
+                // GM receiving this would echo the same close back to everyone.
+                SkillCheckDialog._closeCinematicDisplay();
             }).catch(error => {
                 postConsoleAndNotification(MODULE.NAME, "SocketManager: Error importing SkillCheckDialog for closeCinematicOverlay", error, true, false);
             });

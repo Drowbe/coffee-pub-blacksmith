@@ -41,12 +41,17 @@
 // inherits no new delay -- but the import is not free of a round trip.
 
 export { BlacksmithWindowBaseV2 } from '../scripts/window-base.js';
+export { BLACKSMITH_WINDOW_STYLES } from '../scripts/window-styles.js';
 export {
     BlacksmithToolWindowBaseV2,
-    BLACKSMITH_WINDOW_STYLES,
     BLACKSMITH_TOOL_TITLEBARS,
     BLACKSMITH_TOOL_THEMES
 } from '../scripts/window-tool-base.js';
+export {
+    BlacksmithFullscreenWindowBaseV2,
+    BLACKSMITH_FULLSCREEN_LAYOUTS,
+    BLACKSMITH_FULLSCREEN_FITS
+} from '../scripts/window-fullscreen-base.js';
 
 // ==================================================================
 // ===== CORE API CLASS =============================================

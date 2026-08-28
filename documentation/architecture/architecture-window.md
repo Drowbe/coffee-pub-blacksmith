@@ -8,12 +8,13 @@ This document describes the Application V2 window system: the zone contract, the
 
 ## 1. Overview
 
-Blacksmith's own windows use Foundry Application V2 (v13+), and Blacksmith provides a window API so other modules can open consistent, well-behaved windows. The design mirrors the toolbar API: modules register window types with Blacksmith; Blacksmith provides two presentation contracts and shared infrastructure. Consumers keep full control of their content.
+Blacksmith's own windows use Foundry Application V2 (v13+), and Blacksmith provides a window API so other modules can open consistent, well-behaved windows. The design mirrors the toolbar API: modules register window types with Blacksmith; Blacksmith provides three presentation contracts and shared infrastructure. Consumers keep full control of their content.
 
 Design principles:
 
 - **Standard contract** — five zones (title bar, option bar, header, body, action bar) for forms, editors, and larger workflows.
 - **Tool contract** — a compact native title bar plus optional toolbar, body, and footer for persistent canvas utilities and palettes.
+- **Fullscreen contract** — a frameless, viewport-covering, blocking surface for handouts, cutscenes, and reveals.
 - **Registration** — `registerWindow(windowId, descriptor)` and `openWindow(windowId, options)` so toolbars, macros, and other modules can open windows by id without knowing the implementing class.
 - **Consumer-owned content** — the module that registers a window owns the Application V2 class, Handlebars template, `getData`, and actions.
 
@@ -105,6 +106,36 @@ There is no module-unload cleanup hook. `unloadModule` is a dead name (see [api-
 - The combatant pop-out card dogfoods the tool base; its Follow Combat control is a tool header action rather than custom draggable DOM.
 - Full/Micro switching, controls-menu actions, persisted mode preference, and the frozen-options-safe runtime state were live-verified through that combatant consumer on 2026-07-28.
 - **Consumer responsibility:** extend the base, supply template path, `getData`, and action handlers; the template follows the zone contract (include only the zones the window needs).
+- **`BlacksmithFullscreenWindowBaseV2`** (`scripts/window-fullscreen-base.js`) extends the same lifecycle with a frameless, unpositioned, viewport-covering presentation. See section 3.2a.
+
+**Zone defaults are a class property.** `BlacksmithWindowBaseV2.ZONE_DEFAULTS` (`window-base.js`) supplies the `show*` flags `getData()` did not, and `_prepareContext` reads it off `this.constructor`. It is a property rather than four literals in that method because a subclass whose template has no option bar cannot otherwise change the default: by the time it sees the merged context the parent has already filled every key, and nothing distinguishes a consumer's `true` from the parent's. The fullscreen base narrows it; the standard and tool bases inherit it unchanged.
+
+### 3.2a Fullscreen base
+
+`scripts/window-fullscreen-base.js`, `templates/window-fullscreen-template.hbs`, `styles/window-fullscreen.css`. It is a `BlacksmithWindowBaseV2` subclass, exactly as the tool base is, so `ACTION_HANDLERS` delegation, scroll save/restore, and the registry all apply unchanged.
+
+**It renders frameless and unpositioned** — `window: { frame: false, positioned: false }` — and four consequences of that follow from Foundry's own code (`client/applications/api/application.mjs`, verified against the installed v13):
+
+- `_renderFrame` returns a bare `div` carrying only the id and classes, and `#content === #element` (`:492`). The application element is the surface; there is no `.window-content` wrapper.
+- Foundry skips its own `application` class for a frameless app (`:407`), so `blacksmith-window-fullscreen` is the only hook the stylesheet has. The base adds it in `_onFirstRender` as well as through `DEFAULT_OPTIONS.classes`, because `mergeObject` overwrites arrays and any subclass declaring its own `classes` would otherwise drop it — the same trap `_applyWindowSizeConstraints` documents for its own marker class.
+- `bringToFront()` early-returns without a frame (`:1088`), so no inline `z-index` is ever written and CSS decides the stacking with no `!important`. The pinned value is `calc(var(--z-index-tooltip) - 10)`: above every window (`_maxZ` starts at `--z-index-window: 100` and increments once per focus) and below tooltips and notifications.
+- `setPosition()` early-returns when `positioned` is false (`:893`), so no inline geometry competes with the stylesheet.
+
+**Escape is handled here and swallowed.** The same early-return that keeps the element clean also means the window never becomes `ui.activeWindow`, so Foundry's dismiss chain cannot reach it. The base installs a capture-phase `keydown` on `document` in `_onFirstRender` and removes it in `_onClose` — the one listener that does not die with the element. Swallowing the keypress is correct precisely because the surface is modal: letting it through would dismiss something the viewer cannot see.
+
+**`close()` forces `animate: false`.** Foundry's closing animation stamps the measured width and height onto the element as inline position and then collapses it with `max-height: 0` (`:826-836`). On a `position: fixed; inset: 0` surface that is a snap to nothing, and the inline geometry is exactly what `positioned: false` exists to prevent. The fade the window does want runs in `_preClose`, which removes the open-state class and waits out `fullscreenTransitionMs`.
+
+**Dismissal is separated from closing.** Escape, the close control, and a backdrop click all call the overridable `onDismiss(reason)`; everything else -- timers, sockets, consumer code -- calls `close()`. The split exists because on-the-way-out behaviour is almost always about the viewer having asked: the cinematic broadcasts a close when a GM dismisses it, and must not when the same window closes because the rolls finished, which every client reaches independently.
+
+**One at a time, shared across subclasses.** A single static holds the open window, unlike the tool base's per-subclass registry. `_preFirstRender` closes whatever was open before claiming the slot. Two viewport-covering surfaces stacked is not a layout — the second hides the first completely.
+
+**The backdrop image is its own element.** Opacity applied to the surface would fade the content with it, so the image layer sits behind the panel while the colour wash sits on the surface. That is the only way to express a translucent image over a colour.
+
+**Layouts are a closed set of four** (`centered`, `bar`, `split`, `full`), reaching the template as `data-layout` and implemented purely in CSS. Not a layout engine, deliberately: features are moving out of this module, not accumulating in it.
+
+**Consumer zero** is Request a Roll's Cinematic mode (`CinematicOverlay` in `scripts/window-skillcheck.js`), which uses the `bar` layout. It keeps the id `cpb-cinematic-overlay` and its band markup because `manager-rolls.js` reaches into that DOM by selector to reveal results, append the group banner, and end the sequence. The band is consumer content; only the shell is the base's.
+
+---
 
 ### 3.3 Migration status
 
@@ -121,7 +152,7 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 
 ### 4.2 API exposure
 
-- **`module.api`** (in `blacksmith.js`) exposes the registry, both base classes and getters, `windowStyles` (`STANDARD` / `TOOL`), and `toolTitlebars` (`FULL` / `MICRO`).
+- **`module.api`** (in `blacksmith.js`) exposes the registry, all three base classes and their getters, `windowStyles` (`STANDARD` / `TOOL` / `FULLSCREEN`), `toolTitlebars` (`FULL` / `MICRO`), `toolThemes`, `fullscreenLayouts`, and `fullscreenFits`. The style identifiers live in `scripts/window-styles.js` rather than inside one of the presentations, since each base needs the whole set.
 - **`api/blacksmith-api.js`** is the external bridge, providing timing-safe access to `module.api` for other modules.
 
 ### 4.3 Documentation and assets
@@ -143,5 +174,9 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 | **scripts/window-tool-base.js** | Compact tool/palette Application V2 base and stable style identifiers. |
 | **templates/window-tool-template.hbs** | Lightweight tool template: optional toolbar, body, optional footer. |
 | **styles/window-tool.css** | Compact native-frame and tool-layout presentation. |
+| **scripts/window-styles.js** | The stable window-style identifiers, shared by all three bases. |
+| **scripts/window-fullscreen-base.js** | Frameless viewport-covering base: singleton, Escape, backdrop, layouts. |
+| **templates/window-fullscreen-template.hbs** | Fullscreen template: backdrop layer, close control, header, tools, body, action bar. |
+| **styles/window-fullscreen.css** | Fullscreen shell and the four layouts. |
 | **documentation/applicationv2-window/README.md** | Quick start for the example. |
 | **documentation/api/api-window.md** | Public API for registering and opening windows. |

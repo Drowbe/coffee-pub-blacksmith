@@ -32,6 +32,22 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
      */
     static _ref = null;
 
+    /**
+     * Zone visibility applied to the render context when `getData()` did not say.
+     *
+     * A class property rather than four hard-coded lines in `_prepareContext`, because a
+     * subclass whose template has no option bar cannot otherwise change the default: by the
+     * time it could inspect the merged context, the parent has already filled every key in,
+     * and the only way to tell "the consumer chose true" from "the parent defaulted to true"
+     * would be to call `getData()` a second time. window-fullscreen-base.js narrows this.
+     */
+    static ZONE_DEFAULTS = {
+        showOptionBar: true,
+        showHeader: true,
+        showTools: true,
+        showActionBar: true
+    };
+
     _getRoot() {
         const byId = document.getElementById(this.id);
         if (byId) return byId;
@@ -43,11 +59,10 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
         const base = await super._prepareContext?.(options) ?? {};
         const data = await this.getData(options);
         const merged = foundry.utils.mergeObject(base, data);
-        // Default zone visibility to true so template shows option bar, header, action bar when not specified
-        if (merged.showOptionBar === undefined) merged.showOptionBar = true;
-        if (merged.showHeader === undefined) merged.showHeader = true;
-        if (merged.showTools === undefined) merged.showTools = true;
-        if (merged.showActionBar === undefined) merged.showActionBar = true;
+        // Zone visibility the consumer did not state. See ZONE_DEFAULTS.
+        for (const [key, value] of Object.entries(this.constructor.ZONE_DEFAULTS ?? {})) {
+            if (merged[key] === undefined) merged[key] = value;
+        }
         return merged;
     }
 

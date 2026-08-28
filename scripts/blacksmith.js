@@ -147,10 +147,15 @@ import { extractActiveD20, classifyCritFumble } from './utility-roll-classificat
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import {
     BlacksmithToolWindowBaseV2,
-    BLACKSMITH_WINDOW_STYLES,
     BLACKSMITH_TOOL_TITLEBARS,
     BLACKSMITH_TOOL_THEMES
 } from './window-tool-base.js';
+import { BLACKSMITH_WINDOW_STYLES } from './window-styles.js';
+import {
+    BlacksmithFullscreenWindowBaseV2,
+    BLACKSMITH_FULLSCREEN_LAYOUTS,
+    BLACKSMITH_FULLSCREEN_FITS
+} from './window-fullscreen-base.js';
 import './ui-sidebar-combat.js';
 import './ui-combat-tools.js';
 
@@ -166,9 +171,13 @@ try {
         _bsMod.api.getWindowBaseV2 = () => BlacksmithWindowBaseV2;
         _bsMod.api.BlacksmithToolWindowBaseV2 = BlacksmithToolWindowBaseV2;
         _bsMod.api.getToolWindowBaseV2 = () => BlacksmithToolWindowBaseV2;
+        _bsMod.api.BlacksmithFullscreenWindowBaseV2 = BlacksmithFullscreenWindowBaseV2;
+        _bsMod.api.getFullscreenWindowBaseV2 = () => BlacksmithFullscreenWindowBaseV2;
         _bsMod.api.windowStyles = BLACKSMITH_WINDOW_STYLES;
         _bsMod.api.toolTitlebars = BLACKSMITH_TOOL_TITLEBARS;
         _bsMod.api.toolThemes = BLACKSMITH_TOOL_THEMES;
+        _bsMod.api.fullscreenLayouts = BLACKSMITH_FULLSCREEN_LAYOUTS;
+        _bsMod.api.fullscreenFits = BLACKSMITH_FULLSCREEN_FITS;
     }
 } catch {
     /* non-Foundry / test */
@@ -1154,9 +1163,13 @@ Hooks.once('init', async function() {
         getWindowBaseV2: () => BlacksmithWindowBaseV2,
         BlacksmithToolWindowBaseV2,
         getToolWindowBaseV2: () => BlacksmithToolWindowBaseV2,
+        BlacksmithFullscreenWindowBaseV2,
+        getFullscreenWindowBaseV2: () => BlacksmithFullscreenWindowBaseV2,
         windowStyles: BLACKSMITH_WINDOW_STYLES,
         toolTitlebars: BLACKSMITH_TOOL_TITLEBARS,
         toolThemes: BLACKSMITH_TOOL_THEMES,
+        fullscreenLayouts: BLACKSMITH_FULLSCREEN_LAYOUTS,
+        fullscreenFits: BLACKSMITH_FULLSCREEN_FITS,
         registerMenubarTool: null,
         unregisterMenubarTool: null,
         getRegisteredMenubarTools: null,

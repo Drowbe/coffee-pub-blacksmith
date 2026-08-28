@@ -34,9 +34,10 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 | **Registry** (`registerWindow`, `openWindow`, `unregisterWindow`, …) | Register an **id** and an **opener** so toolbars, macros, and other modules can open your window **without importing your class**. | n/a — the registry does not own presentation |
 | **Standard base** (`BlacksmithWindowBaseV2`, or `getWindowBaseV2()`) | **Subclass** Blacksmith's full Application V2 base for editors, forms, and other windows that use the five-zone template. | Yes — `windowSizeConstraints` are published as custom properties and zeroed while minimised |
 | **Tool base** (`BlacksmithToolWindowBaseV2`, or `getToolWindowBaseV2()`) | **Subclass** the compact Application V2 presentation for lightweight, persistent canvas tools and palettes. | Yes — same mechanism, inherited from the standard base |
+| **Fullscreen base** (`BlacksmithFullscreenWindowBaseV2`, or `getFullscreenWindowBaseV2()`) | **Subclass** the viewport-covering, blocking presentation for handouts, cutscenes, and reveals. | n/a — the window has no frame and cannot be minimised |
 
 - Use the **registry** when something else (Blacksmith toolbar, another module, a macro) should call `openWindow('your-id')`.
-- Use **`api.BlacksmithWindowBaseV2`** for standard windows and **`api.BlacksmithToolWindowBaseV2`** for compact tools.
+- Use **`api.BlacksmithWindowBaseV2`** for standard windows, **`api.BlacksmithToolWindowBaseV2`** for compact tools, and **`api.BlacksmithFullscreenWindowBaseV2`** for a surface that takes over the screen.
 
 ### A class you `extends` comes in by import, not from `module.api`
 
@@ -47,19 +48,20 @@ Import the base class from the API bridge, which is a real ES module and therefo
 ```javascript
 import {
     BlacksmithWindowBaseV2,
-    BlacksmithToolWindowBaseV2
+    BlacksmithToolWindowBaseV2,
+    BlacksmithFullscreenWindowBaseV2
 } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 
 export class MyWindow extends BlacksmithWindowBaseV2 { }
 ```
 
-`BLACKSMITH_WINDOW_STYLES`, `BLACKSMITH_TOOL_TITLEBARS`, and `BLACKSMITH_TOOL_THEMES` are exported from the same path, and are the same objects as `api.windowStyles`, `api.toolTitlebars`, and `api.toolThemes`.
+`BLACKSMITH_WINDOW_STYLES`, `BLACKSMITH_TOOL_TITLEBARS`, `BLACKSMITH_TOOL_THEMES`, `BLACKSMITH_FULLSCREEN_LAYOUTS`, and `BLACKSMITH_FULLSCREEN_FITS` are exported from the same path, and are the same objects as `api.windowStyles`, `api.toolTitlebars`, `api.toolThemes`, `api.fullscreenLayouts`, and `api.fullscreenFits`.
 
 The bridge is the supported path for this one purpose. Do not deep-link anything under `scripts/` — those paths are not the stable contract.
 
 **Availability timing**
 
-- **Both base classes, getters, and style constants** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, `windowStyles`, `toolTitlebars`, and `toolThemes` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). This is for code that runs after `game` exists — a class body evaluated at module top level cannot use it; import the class instead, as above.
+- **All three base classes, their getters, and the style constants** — `BlacksmithWindowBaseV2`, `BlacksmithToolWindowBaseV2`, `BlacksmithFullscreenWindowBaseV2`, `getWindowBaseV2()`, `getToolWindowBaseV2()`, `getFullscreenWindowBaseV2()`, `windowStyles`, `toolTitlebars`, `toolThemes`, `fullscreenLayouts`, and `fullscreenFits` are patched on `module.api` **as soon as Blacksmith's module script has finished loading** (before `init` / `ready`), as long as your module loads **after** `coffee-pub-blacksmith` in the manifest (or depends on it). This is for code that runs after `game` exists — a class body evaluated at module top level cannot use it; import the class instead, as above.
 - **Window registry** (`registerWindow`, `openWindow`, …) — Placeholders are cleared when the **api-windows** dynamic import completes during Blacksmith's **`init`** (after `await addToolbarButton()`). Prefer calling **`registerWindow`** / **`openWindow`** from **`ready`** or after **`await BlacksmithAPI.waitForReady()`** so the rest of the stack is consistent.
 - **Most other `module.api` members** — The **public shell** (`registerModule`, `utils`, `HookManager`, menubar bindings, etc.) is assigned **synchronously at the start of Blacksmith's `init`** (before any `await` there). **Asset-backed** fields (`assetLookup`, merged `BLACKSMITH` constants) finish during Blacksmith's **`ready`**; use **`BlacksmithAPI.waitForReady()`** if you need that data. See **documentation/architecture/architecture-blacksmith.md** §3.2–3.3.
 
@@ -281,7 +283,7 @@ class MyCanvasTool extends ToolBase {
 
 Tool windows remember their last position per user by default. Set `rememberPosition: false` for transient instances, or set `windowPositionKey` when several instances should share one saved position. The same options also work on the standard base.
 
-`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`) and `TOOL` (`"tool"`) for consumers that store or exchange a style choice. `api.toolTitlebars` exposes `FULL` (`"full"`) and `MICRO` (`"micro"`), while `api.toolThemes` exposes `LIGHT` (`"light"`), `DARK` (`"dark"`), and `GLASS` (`"glass"`). The registry remains presentation-agnostic: any style, Tool title-bar mode, and Tool theme can be registered and opened through `registerWindow` / `openWindow`.
+`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`), `TOOL` (`"tool"`), and `FULLSCREEN` (`"fullscreen"`) for consumers that store or exchange a style choice. `api.toolTitlebars` exposes `FULL` (`"full"`) and `MICRO` (`"micro"`), while `api.toolThemes` exposes `LIGHT` (`"light"`), `DARK` (`"dark"`), and `GLASS` (`"glass"`). `api.fullscreenLayouts` exposes `CENTERED`, `BAR`, `SPLIT`, and `FULL`, and `api.fullscreenFits` exposes `COVER`, `CONTAIN`, and `TILE`. The registry remains presentation-agnostic: any style, Tool title-bar mode, Tool theme, and fullscreen layout can be registered and opened through `registerWindow` / `openWindow`.
 
 Consumers may control mode switching and persistence with:
 
@@ -332,6 +334,171 @@ than registering under a key nothing can look up again.
 **Registries are per subclass.** A Loot window and a Shop window opened against the same token do not evict
 each other. `this.registryKey` reports the key an instance is registered under, or null for one built
 directly with `new`.
+
+## Fullscreen surface
+
+Use `BlacksmithFullscreenWindowBaseV2` for anything that should take over the screen: a handout, a
+cutscene, a reveal, a scoreboard at the end of a fight. It covers the entire viewport -- canvas, sidebar,
+hotbar, and any open window -- and it blocks: nothing underneath receives a pointer event while it is
+open. Escape closes it, and so does the close control in the upper right.
+
+It is an Application V2 like the other two, so the registry, `ACTION_HANDLERS`, and scroll restoration all
+behave the same. What differs is that it renders **frameless and unpositioned**: Foundry writes no title
+bar, no inline geometry, and no inline `z-index`, and the stylesheet owns the layout. Consequently
+`resizable`, `minimizable`, `position`, and `windowSizeConstraints` have no effect here, and position is
+never persisted.
+
+```javascript
+import {
+    BlacksmithFullscreenWindowBaseV2,
+    BLACKSMITH_FULLSCREEN_LAYOUTS
+} from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
+
+class HandoutWindow extends BlacksmithFullscreenWindowBaseV2 {
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: 'my-module-handout',
+            fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.CENTERED,
+            fullscreenBackdrop: {
+                image: 'modules/my-module/images/parchment.webp',
+                color: 'rgba(0, 0, 0, 0.8)',
+                opacity: 0.35,
+                blur: 8,
+                fit: 'cover'
+            }
+        }
+    );
+
+    async getData() {
+        return {
+            appId: this.id,
+            headerIcon: 'fa-solid fa-scroll',
+            windowTitle: 'The Letter',
+            subtitle: 'Found in the reliquary',
+            bodyContent: '<p>...</p>'
+        };
+    }
+}
+
+await new HandoutWindow().render(true);
+```
+
+### One at a time
+
+The registry of open fullscreen windows is **shared across every subclass**, unlike the tool base's
+per-subclass one. Rendering a fullscreen window closes whichever one was already open. Two viewport-
+covering surfaces stacked is not a layout: the second hides the first completely and nothing can reach it
+again.
+
+| Member | Purpose |
+|--------|---------|
+| `BlacksmithFullscreenWindowBaseV2.current` | The fullscreen window open on this client, or null. |
+| `BlacksmithFullscreenWindowBaseV2.closeCurrent()` | Close it, whatever it is. |
+
+### Layouts
+
+Set `fullscreenLayout` in `DEFAULT_OPTIONS` or at construction. The value reaches the template as
+`data-layout` on the root and is implemented entirely in CSS. An unknown value falls back to `centered`.
+
+| Value | Constant | Shape |
+|-------|----------|-------|
+| `"centered"` | `api.fullscreenLayouts.CENTERED` | Default. A width-capped panel centred in the viewport, with a background, border, and shadow; the body scrolls. |
+| `"bar"` | `api.fullscreenLayouts.BAR` | A full-width horizontal band, vertically centred, with no panel chrome and no clipping. Request a Roll's Cinematic mode uses this. |
+| `"split"` | `api.fullscreenLayouts.SPLIT` | A panel whose body is two equal columns -- its two child elements. Collapses to one column below 900px. |
+| `"full"` | `api.fullscreenLayouts.FULL` | Edge to edge, no panel chrome. You own the whole surface. |
+
+Four, and closed. Anything richer belongs inside your own `bodyContent`; Blacksmith is not the suite's
+layout engine.
+
+### Backdrop
+
+`fullscreenBackdrop` describes what is behind your content. Every key is optional.
+
+| Key | Type | Effect |
+|-----|------|--------|
+| `image` | string | Background image, rendered on its own layer behind the panel. Give it an ordinary Foundry path (`modules/my-module/images/thing.webp`) -- the base makes it root-absolute and applies the server's route prefix. An absolute path, a `data:` URI, and a full URL are all passed through untouched. |
+| `color` | string | A CSS colour washed over the whole surface, behind the image. Defaults to a dark scrim. |
+| `opacity` | number | 0 to 1, applied to the **image layer only**, so an image can sit at partial strength over the colour. Content is never dimmed by it. |
+| `blur` | number or string | Blur applied to everything showing through from behind the surface -- the canvas and windows underneath. A number is pixels. |
+| `imageBlur` | number or string | Blur applied to the image layer itself, which turns a detailed image into texture that content stays readable over. Not the same as `blur`, and they compose. |
+| `fit` | string | `api.fullscreenFits.COVER` (default), `CONTAIN`, or `TILE`. |
+| `position` | string | Any `background-position` value. |
+
+These resolve to custom properties on the window element, so a consumer stylesheet can override any one
+of them with ordinary specificity.
+
+### Zones
+
+The zone names match the standard window contract -- `headerIcon`, `windowTitle`, `subtitle`,
+`headerRight`, `toolsContent`, `bodyContent`, `actionBarLeft`, `actionBarRight` -- so what you know from
+one carries to the other. Two differences:
+
+- **There is no option bar.** A filter strip has no meaning over a cutscene.
+- **The defaults differ.** The header is on; tools and the action bar are off until you return
+  `showTools: true` or `showActionBar: true`. Return `showHeader: false` for a surface that carries its
+  own titling, as the Cinematic band does.
+
+### Appearance
+
+Everything the shell draws is a CSS custom property, following the Tool shell's precedent. Scope any
+override to your own application class, and reach for these rather than picking a colour:
+
+| Property | Purpose |
+|----------|---------|
+| `--blacksmith-fullscreen-z-index` | Stacking. Defaults above every window and below tooltips and notifications. |
+| `--blacksmith-fullscreen-backdrop-image-filter` | The image layer's filter, which `imageBlur` sets. Take it directly for a tint, a desaturation, or anything else `filter` does. |
+| `--blacksmith-fullscreen-panel-background` / `-border` / `-radius` / `-shadow` / `-padding` | The panel, in the layouts that draw one. |
+| `--blacksmith-fullscreen-max-width` / `-max-height` | Panel size caps. |
+| `--blacksmith-fullscreen-gap` | Spacing between zones. |
+| `--blacksmith-fullscreen-text` / `-text-muted` / `-accent` / `-divider` | Content tones. |
+| `--blacksmith-fullscreen-close-size` / `-color` / `-color-hover` / `-background` | The close control. |
+| `--blacksmith-fullscreen-transition` | Fade duration. |
+
+These are **component properties of the fullscreen shell, not design tokens.** Global tokens live in
+`styles/vars.css` and carry one fixed value each; these describe one component and belong with it.
+
+An id selector outranks the shell's class selectors, so a rule written against your window's id silently
+takes the shell over -- including the parts that make it cover and block. Style your content, not the
+cover.
+
+### Options
+
+| Option | Default | Purpose |
+|--------|---------|---------|
+| `fullscreenLayout` | `"centered"` | The layout, from the table above. |
+| `fullscreenBackdrop` | `{}` | The backdrop, from the table above. |
+| `showCloseButton` | `true` | Render the close control in the upper right. |
+| `dismissOnEscape` | `true` | Escape closes the surface. |
+| `dismissOnBackdrop` | `false` | A click landing on the backdrop rather than the content closes the surface. |
+| `fullscreenTransitionMs` | `220` | Fade duration in milliseconds. `0` disables the fade. |
+
+The three dismissal options above only decide which routes exist. What a dismissal *does* is `onDismiss`.
+
+Escape is handled by the base and **swallowed**, rather than left to Foundry's dismiss chain. A frameless
+application never becomes `ui.activeWindow`, so that chain would not reach this window at all -- it would
+dismiss whatever is behind the surface, which the viewer cannot see.
+
+### `onDismiss(reason)` -- the viewer asked, as opposed to anything else
+
+All three dismissal routes call `onDismiss(reason)`, where `reason` is `"escape"`, `"close-button"`, or
+`"backdrop"`. The default implementation closes the window; override it to confirm first, save, broadcast,
+or decline.
+
+It is deliberately not `close()`. Every other route -- a timer, a socket, your own code -- reaches
+`close()` too, and the things a window wants to do on the way out are usually specific to the viewer
+having asked. Request a Roll's cinematic is the case in point: a GM dismissing it ends the scene for the
+whole table, while the same window closing because the rolls finished must **not** broadcast, since every
+client reaches that point on its own and would send the same message.
+
+```javascript
+async onDismiss(reason) {
+    if (this.hasUnsavedWork && !(await this.confirmDiscard())) return;  // decline
+    await this.close();
+}
+```
+
+---
 
 ## Template data contract (core template)
 

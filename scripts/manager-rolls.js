@@ -420,11 +420,26 @@ export async function deliverRollResults(rollResults, context) {
             await handleSkillRollUpdate(rollDataForSocket);
         }
         
-        // Cinema overlay updates are now handled by the new system
-        if (rollData.cinemaMode) {
-            postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Cinema mode detected, calling updateCinemaOverlay`, null, true, false);
+        // Two different questions, and one flag was answering both.
+        //
+        // `rollData.cinemaMode` says what THIS client is doing -- it is set only by the
+        // cinematic overlay's own dice buttons -- and that is the right thing to ask when
+        // deciding which sound to play, because the cinema flow plays its own.
+        //
+        // Whether anyone's overlay is WAITING for this result is a different question, and
+        // the answer lives on the request: `isCinematic` in the message flags. A player who
+        // closes the cinematic and rolls from the chat card or the tray is exactly the case
+        // where the two answers differ, and gating the broadcast on the first one left every
+        // other client's overlay showing an hourglass that never resolved.
+        const requestWasCinematic = Boolean(rollData.cinemaMode)
+            || Boolean(game.messages.get(messageId)?.flags?.[MODULE.ID]?.isCinematic);
+
+        if (requestWasCinematic) {
+            postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Cinematic request, calling updateCinemaOverlay`, { cinemaMode: rollData.cinemaMode }, true, false);
+            // A no-op on a client with no overlay -- including this one, when the roller
+            // closed theirs and rolled from the card.
             await updateCinemaOverlay(rollResults, context);
-            
+
             // Other clients only — roller already ran updateCinemaOverlay above (avoids double timers / races)
             const socket = SocketManager.getSocket();
             const cinemaPayload = {
@@ -440,10 +455,12 @@ export async function deliverRollResults(rollResults, context) {
             } else if (socket?.executeForEveryone) {
                 await socket.executeForEveryone("updateCinemaOverlay", cinemaPayload);
             }
-        } else {
-            postConsoleAndNotification(MODULE.NAME, `deliverRollResults: Not cinema mode, rollData.cinemaMode:`, rollData.cinemaMode, true, false);
-            
-            // Play sound for normal window mode (same as cinema mode)
+        }
+
+        if (!rollData.cinemaMode) {
+            // The individual result sound belongs to the roller's own presentation, so it
+            // follows this client's mode rather than the request's. Rolling from the card
+            // during a cinematic request still sounds like rolling from the card.
             await _playRollResultSound(roll);
         }
         
@@ -1879,8 +1896,10 @@ async function showCinemaOverlay(rollData) {
             isCinematic: true
         };
         
-        // Show the cinematic display using the existing method
-        SkillCheckDialog._showCinematicDisplay(messageData, rollData.messageId);
+        // Awaited: the surface is an Application, so it is on screen only once the render
+        // resolves. Without this the duplicate guard in orchestrateRoll could look for the
+        // overlay before the previous call had put it in the document.
+        await SkillCheckDialog._showCinematicDisplay(messageData, rollData.messageId);
         
         postConsoleAndNotification(MODULE.NAME, `showCinemaOverlay: Cinema overlay displayed successfully`, null, true, false);
         
@@ -1986,15 +2005,15 @@ export async function updateCinemaOverlay(rollResults, context) {
             });
             
             if (allComplete) {
+                // The surface is an Application now, so it is closed rather than removed:
+                // detaching the element by hand would leave the instance registered and the
+                // fullscreen base still holding it as the open surface, and the next roll
+                // would find a live window that is no longer on screen.
                 const fadeOutAndRemove = (delayMs) => {
                     setTimeout(() => {
                         overlay.style.transition = 'opacity 1s';
                         overlay.style.opacity = '0';
-                        setTimeout(() => {
-                            if (overlay.parentNode) {
-                                overlay.remove();
-                            }
-                        }, 1000);
+                        setTimeout(() => SkillCheckDialog._closeCinematicDisplay(), 1000);
                     }, delayMs);
                 };
 

@@ -6,14 +6,10 @@
 // BlacksmithWindowBaseV2 lifecycle and public Window API.
 
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { BLACKSMITH_WINDOW_STYLES } from './window-styles.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-
-export const BLACKSMITH_WINDOW_STYLES = Object.freeze({
-    STANDARD: 'standard',
-    TOOL: 'tool'
-});
 
 export const BLACKSMITH_TOOL_TITLEBARS = Object.freeze({
     FULL: 'full',

@@ -5,7 +5,66 @@ import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './utility-theme-request-roll.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
+import {
+    BlacksmithFullscreenWindowBaseV2,
+    BLACKSMITH_FULLSCREEN_LAYOUTS
+} from './window-fullscreen-base.js';
 import { skillCheckMessageData } from './cards-skill-check.js';
+
+/**
+ * The Cinematic mode surface for Request a Roll.
+ *
+ * The shell -- viewport cover, backdrop, pinned stacking, Escape, close button, one-at-a-time --
+ * is the fullscreen base's. The band inside it is this feature's own content, unchanged, because
+ * manager-rolls.js reaches into that markup by selector to reveal results, append the group
+ * banner, and fade the surface out. The element keeps its historical id for the same reason.
+ */
+export class CinematicOverlay extends BlacksmithFullscreenWindowBaseV2 {
+    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
+        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {
+            id: 'cpb-cinematic-overlay',
+            classes: ['blacksmith-window-fullscreen', 'cpb-cinematic'],
+            fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.BAR,
+            fullscreenBackdrop: {
+                image: 'modules/coffee-pub-blacksmith/images/backgrounds/background-skull-red.webp',
+                color: 'rgba(0, 0, 0, 0.7)',
+                opacity: 0.5,
+                // `blur` softens the table showing through; `imageBlur` softens the skulls
+                // themselves, so they read as texture rather than competing with the band.
+                blur: 5,
+                imageBlur: 6,
+                fit: 'cover'
+            }
+        }
+    );
+
+    constructor({ bodyContent = '', ...options } = {}) {
+        super(options);
+        this._cinematicBody = bodyContent;
+    }
+
+    /**
+     * Escape and the close control route through `_hideCinematicDisplay`, which broadcasts
+     * only when a GM is the one dismissing.
+     *
+     * That asymmetry is the point. A player closing the cinematic is getting it out of their
+     * way so they can roll from the chat card or the tray -- their roll still lands, and
+     * everyone else's cinematic still updates -- so it must not end the scene for the table.
+     * A GM closing it is ending the scene.
+     */
+    async onDismiss(reason) {
+        await SkillCheckDialog._hideCinematicDisplay();
+    }
+
+    async getData() {
+        return {
+            appId: this.id,
+            showHeader: false,
+            bodyContent: this._cinematicBody
+        };
+    }
+}
 
 
 export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
@@ -2641,12 +2700,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         rollDetailsHtml += `</div>`;
 
         const containerClass = `cpb-cinematic-actors-container ${messageData.hasMultipleGroups ? 'contested' : ''}`;
-        // v13: Create overlay using native DOM instead of jQuery
-        const overlay = document.createElement('div');
-        overlay.id = 'cpb-cinematic-overlay';
-        overlay.dataset.messageId = messageId;
-        overlay.innerHTML = `
-            <button class="cpb-cinematic-close-btn"><i class="fas fa-times"></i></button>
+        const bodyContent = `
             <div id="cpb-cinematic-bar" style="background-image: url('${backgroundImage}');">
                 ${rollDetailsHtml}
                 <div class="${containerClass}">
@@ -2655,13 +2709,14 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             </div>
         `;
 
-        document.body.appendChild(overlay);
-
-        // Attach click handler for the close button (v13: native DOM)
-        const closeBtn = overlay.querySelector('.cpb-cinematic-close-btn');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this._hideCinematicDisplay());
-        }
+        // The shell comes from the fullscreen base: cover, backdrop, stacking, Escape, close
+        // button, and the guarantee that a second cinematic replaces this one rather than
+        // burying it. `overlay` below is the application element, which keeps the historical
+        // id, so every selector manager-rolls.js uses against it still resolves.
+        const app = new CinematicOverlay({ bodyContent });
+        await app.render(true);
+        const overlay = app.element;
+        if (!overlay) return;
 
         // Attach click handlers to the new roll buttons (v13: native DOM)
         const rollButtons = overlay.querySelectorAll('.cpb-cinematic-roll-btn, .cpb-cinematic-roll-mod-btn');
@@ -2754,13 +2809,6 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             }
             });
         });
-
-        // Use a timeout to allow the element to be added to the DOM before adding the class for transition (v13: native DOM)
-        setTimeout(() => {
-            if (overlay) {
-                overlay.classList.add('visible');
-            }
-        }, 50);
     }
 
     // OLD SYSTEM DELETED - Cinema updates now handled by new system in manager-rolls.js
@@ -2769,10 +2817,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
      * Hides the cinematic display.
      */
     static async _hideCinematicDisplay() {
-        // v13: Use native DOM instead of jQuery
-        const overlay = document.getElementById('cpb-cinematic-overlay');
-        if (!overlay) return;
-        
+        const app = foundry.applications.instances.get('cpb-cinematic-overlay');
+        if (!app) return;
+
         if (game.user.isGM) {
             const socket = SocketManager.getSocket();
             if (socket) {
@@ -2781,8 +2828,20 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 });
             }
         }
-        overlay.classList.remove('visible');
-        setTimeout(() => overlay.remove(), 500); // Remove from DOM after transition
+        await app.close();
+    }
+
+    /**
+     * Close the cinematic surface on this client only.
+     *
+     * Separate from `_hideCinematicDisplay` because that one broadcasts. Every client runs
+     * `updateCinemaOverlay` and reaches the end of the sequence on its own, so a broadcast
+     * there would be one close message per connected user for a decision each had already
+     * made independently.
+     */
+    static async _closeCinematicDisplay() {
+        const app = foundry.applications.instances.get('cpb-cinematic-overlay');
+        if (app) await app.close();
     }
 
 

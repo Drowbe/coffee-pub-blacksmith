@@ -1,29 +1,12 @@
-/* OVERLAY */
+/* OVERLAY
 
-#cpb-cinematic-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(5px);
-    opacity: 0;
-    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-    pointer-events: none;
-    flex-direction: column;
-    transform: translateY(-100vh);
-}
-
-#cpb-cinematic-overlay.visible {
-    opacity: 1;
-    pointer-events: all;
-    transform: translateY(0);
-}
+   The shell -- the viewport cover, the dimmed and blurred backdrop, the stacking,
+   the close button, Escape, and the fade -- belongs to the fullscreen window base
+   (scripts/window-fullscreen-base.js, styles/window-fullscreen.css). The surface is
+   #cpb-cinematic-overlay because that is the application's id, and it uses the `bar`
+   layout. Nothing about the cover is declared here on purpose: an id selector outranks
+   the shell's class selectors, so a rule here would silently take the shell over. What
+   remains below is the band itself, which is this feature's own content. */
 
 /* CINEMATIC BAR */
 
@@ -49,7 +32,9 @@
     transition: transform 0.5s ease-in-out;
 }
 
-#cpb-cinematic-overlay.visible #cpb-cinematic-bar {
+/* The band slides up as the shell fades in. `blacksmith-window-fullscreen-open` is the
+   base's open state, added a frame after render and removed again before close. */
+.blacksmith-window-fullscreen-open #cpb-cinematic-bar {
     transform: translateY(0);
 }
 
@@ -477,33 +462,4 @@
 }
 
 
-/* OVERLAY CLOSE BUTTON */
-
-.cpb-cinematic-close-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(0,0,0,0.5);
-    border: 2px solid #fff;
-    color: #fff;
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    min-height: 30px;
-    border-radius: 50%;
-    box-sizing: border-box;
-    aspect-ratio: 1;
-    font-size: 1.5em;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 10000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.cpb-cinematic-close-btn:hover {
-    background: #fff;
-    color: #000;
-}
 

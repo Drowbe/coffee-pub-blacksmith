@@ -1,0 +1,352 @@
+/* ==================================================================
+   FULLSCREEN WINDOW SHELL
+   ==================================================================
+   The third window presentation: a viewport-covering, blocking surface.
+   Paired with scripts/window-fullscreen-base.js and
+   templates/window-fullscreen-template.hbs.
+
+   The variables below are COMPONENT PROPERTIES of this shell, not design
+   tokens. They do not belong in vars.css and are not checked by
+   check-design-tokens.mjs. A consumer overrides them scoped to its own
+   application class, the same way the tool shell is overridden.
+
+   The application element carries no inline geometry or z-index: the base
+   renders frameless and unpositioned, so Foundry writes neither, and every
+   rule here wins with ordinary specificity.
+   ================================================================== */
+
+.blacksmith-window-fullscreen {
+
+    /* --- Stacking ------------------------------------------------
+       Above every Application V2 window (Foundry starts _maxZ at
+       --z-index-window: 100 and increments once per focus) and below
+       tooltips and notifications, which must stay reachable over a
+       blocking surface. */
+    --blacksmith-fullscreen-z-index: calc(var(--z-index-tooltip, 9999) - 10);
+
+    /* --- Backdrop ------------------------------------------------
+       The colour washes the whole surface; the image rides its own layer
+       so its opacity does not touch the content. */
+    --blacksmith-fullscreen-backdrop-color: rgba(0, 0, 0, 0.78);
+    --blacksmith-fullscreen-backdrop-image: none;
+    --blacksmith-fullscreen-backdrop-opacity: 1;
+    --blacksmith-fullscreen-backdrop-blur: 6px;
+    --blacksmith-fullscreen-backdrop-image-filter: none;
+    --blacksmith-fullscreen-backdrop-size: cover;
+    --blacksmith-fullscreen-backdrop-position: center;
+    --blacksmith-fullscreen-backdrop-repeat: no-repeat;
+
+    /* --- Panel --------------------------------------------------- */
+    --blacksmith-fullscreen-panel-background: rgba(18, 18, 20, 0.92);
+    --blacksmith-fullscreen-panel-border: 1px solid rgba(255, 255, 255, 0.14);
+    --blacksmith-fullscreen-panel-radius: 8px;
+    --blacksmith-fullscreen-panel-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
+    --blacksmith-fullscreen-panel-padding: 24px;
+    --blacksmith-fullscreen-max-width: 1100px;
+    --blacksmith-fullscreen-max-height: calc(100vh - 96px);
+    --blacksmith-fullscreen-gap: 16px;
+
+    /* --- Content ------------------------------------------------- */
+    --blacksmith-fullscreen-text: #f2efe8;
+    --blacksmith-fullscreen-text-muted: rgba(242, 239, 232, 0.65);
+    --blacksmith-fullscreen-accent: #d9b26a;
+    --blacksmith-fullscreen-divider: rgba(255, 255, 255, 0.14);
+
+    /* --- Close control ------------------------------------------- */
+    --blacksmith-fullscreen-close-size: 40px;
+    --blacksmith-fullscreen-close-color: rgba(255, 255, 255, 0.62);
+    --blacksmith-fullscreen-close-color-hover: #ffffff;
+    --blacksmith-fullscreen-close-background: rgba(0, 0, 0, 0.35);
+
+    /* --- Motion -------------------------------------------------- */
+    --blacksmith-fullscreen-transition: 220ms;
+
+    position: fixed;
+    inset: 0;
+    z-index: var(--blacksmith-fullscreen-z-index);
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: var(--blacksmith-fullscreen-backdrop-color);
+    backdrop-filter: blur(var(--blacksmith-fullscreen-backdrop-blur));
+    -webkit-backdrop-filter: blur(var(--blacksmith-fullscreen-backdrop-blur));
+    color: var(--blacksmith-fullscreen-text);
+    overflow: hidden;
+
+    /* The surface is modal: it takes every pointer event that reaches it, which
+       is what stops the canvas, sidebar, and hotbar underneath from responding. */
+    pointer-events: all;
+
+    opacity: 0;
+    transition: opacity var(--blacksmith-fullscreen-transition) ease-out;
+}
+
+.blacksmith-window-fullscreen.blacksmith-window-fullscreen-open {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .blacksmith-window-fullscreen {
+        transition: none;
+    }
+}
+
+/* ===== ROOT ====================================================== */
+
+.blacksmith-window-fullscreen-root {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* ===== BACKDROP IMAGE LAYER ======================================
+   Behind the panel, in front of the colour wash. Its own element rather
+   than a background on the root, because opacity applied to the root
+   would fade the content with it. */
+
+.blacksmith-window-fullscreen-backdrop {
+    position: absolute;
+
+    /* A blur samples past the element's edges and finds nothing there, so a blurred image
+       fades out into a soft border all the way round. Oversizing the layer pushes those
+       edges off screen; the root clips the overhang. Harmless when the filter is none. */
+    inset: -40px;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--blacksmith-fullscreen-backdrop-image);
+    background-size: var(--blacksmith-fullscreen-backdrop-size);
+    background-position: var(--blacksmith-fullscreen-backdrop-position);
+    background-repeat: var(--blacksmith-fullscreen-backdrop-repeat);
+    opacity: var(--blacksmith-fullscreen-backdrop-opacity);
+    filter: var(--blacksmith-fullscreen-backdrop-image-filter);
+}
+
+/* ===== CLOSE ===================================================== */
+
+.blacksmith-window-fullscreen-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 3;
+    width: var(--blacksmith-fullscreen-close-size);
+    height: var(--blacksmith-fullscreen-close-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--blacksmith-fullscreen-close-background);
+    color: var(--blacksmith-fullscreen-close-color);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 120ms ease-out, background-color 120ms ease-out;
+}
+
+.blacksmith-window-fullscreen-close:hover,
+.blacksmith-window-fullscreen-close:focus-visible {
+    color: var(--blacksmith-fullscreen-close-color-hover);
+    background: rgba(0, 0, 0, 0.55);
+    box-shadow: none;
+}
+
+.blacksmith-window-fullscreen-close > i {
+    margin: 0;
+}
+
+/* ===== PANEL ===================================================== */
+
+.blacksmith-window-fullscreen-panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-fullscreen-gap);
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ===== ZONES ===================================================== */
+
+.blacksmith-window-fullscreen-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+    min-width: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--blacksmith-fullscreen-divider);
+}
+
+.blacksmith-window-fullscreen-header-icon {
+    flex: 0 0 auto;
+    font-size: 26px;
+    color: var(--blacksmith-fullscreen-accent);
+}
+
+.blacksmith-window-fullscreen-header-title-block {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blacksmith-window-fullscreen-header-title {
+    font-family: var(--font-primary);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--blacksmith-fullscreen-text);
+}
+
+.blacksmith-window-fullscreen-header-subtitle {
+    margin-top: 2px;
+    font-size: 14px;
+    color: var(--blacksmith-fullscreen-text-muted);
+}
+
+.blacksmith-window-fullscreen-header-right {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.blacksmith-window-fullscreen-tools {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.blacksmith-window-fullscreen-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.blacksmith-window-fullscreen-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex: 0 0 auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--blacksmith-fullscreen-divider);
+}
+
+.blacksmith-window-fullscreen-action-left,
+.blacksmith-window-fullscreen-action-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ==================================================================
+   LAYOUTS
+   ==================================================================
+   A closed set of four, selected by data-layout on the root. Anything
+   richer belongs inside the consumer's own body content.
+   ================================================================== */
+
+/* --- centered: width-capped panel in the middle; the body scrolls. --- */
+
+.blacksmith-window-fullscreen-root[data-layout="centered"] {
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+}
+
+.blacksmith-window-fullscreen-root[data-layout="centered"] .blacksmith-window-fullscreen-panel {
+    width: 100%;
+    max-width: var(--blacksmith-fullscreen-max-width);
+    max-height: var(--blacksmith-fullscreen-max-height);
+    padding: var(--blacksmith-fullscreen-panel-padding);
+    background: var(--blacksmith-fullscreen-panel-background);
+    border: var(--blacksmith-fullscreen-panel-border);
+    border-radius: var(--blacksmith-fullscreen-panel-radius);
+    box-shadow: var(--blacksmith-fullscreen-panel-shadow);
+}
+
+/* --- bar: a full-width horizontal band, vertically centred. --------
+   The cinematic shape. No side padding and no radius: the band is meant
+   to run edge to edge. */
+
+.blacksmith-window-fullscreen-root[data-layout="bar"] {
+    align-items: center;
+    justify-content: center;
+}
+
+.blacksmith-window-fullscreen-root[data-layout="bar"] .blacksmith-window-fullscreen-panel {
+    width: 100%;
+    max-height: var(--blacksmith-fullscreen-max-height);
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* A band is meant to bleed: clipping it would cut off the drop shadow and any
+   border it draws against the backdrop, which is most of what makes it read as a
+   band rather than a panel. The consumer's content owns its own height here. */
+.blacksmith-window-fullscreen-root[data-layout="bar"] .blacksmith-window-fullscreen-panel,
+.blacksmith-window-fullscreen-root[data-layout="bar"] .blacksmith-window-fullscreen-body {
+    overflow: visible;
+}
+
+/* --- split: two equal columns; the body's children are the columns. --- */
+
+.blacksmith-window-fullscreen-root[data-layout="split"] {
+    align-items: stretch;
+    justify-content: center;
+    padding: 32px;
+}
+
+.blacksmith-window-fullscreen-root[data-layout="split"] .blacksmith-window-fullscreen-panel {
+    flex: 1 1 auto;
+    max-width: var(--blacksmith-fullscreen-max-width);
+    padding: var(--blacksmith-fullscreen-panel-padding);
+    background: var(--blacksmith-fullscreen-panel-background);
+    border: var(--blacksmith-fullscreen-panel-border);
+    border-radius: var(--blacksmith-fullscreen-panel-radius);
+    box-shadow: var(--blacksmith-fullscreen-panel-shadow);
+}
+
+.blacksmith-window-fullscreen-root[data-layout="split"] .blacksmith-window-fullscreen-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--blacksmith-fullscreen-gap);
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .blacksmith-window-fullscreen-root[data-layout="split"] .blacksmith-window-fullscreen-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- full: edge to edge; the consumer owns the whole surface. ------- */
+
+.blacksmith-window-fullscreen-root[data-layout="full"] {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+}
+
+.blacksmith-window-fullscreen-root[data-layout="full"] .blacksmith-window-fullscreen-panel {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    padding: var(--blacksmith-fullscreen-panel-padding);
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
