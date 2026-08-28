@@ -7,7 +7,7 @@
             "id": "cinematic-banner-skill-check",
             "value": "",
             "constantname": "BACKSKILLCHECK",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-02.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-08.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -21,7 +21,7 @@
             "id": "cinematic-banner-ability-check",
             "value": "",
             "constantname": "BACKABILITYCHECK",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-03.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-10.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -35,7 +35,7 @@
             "id": "cinematic-banner-saving-throw",
             "value": "",
             "constantname": "BACKSAVINGTHROW",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-04.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-09.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -49,7 +49,7 @@
             "id": "cinematic-banner-dice-roll",
             "value": "",
             "constantname": "BACKDICEROLL",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-05.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-06.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -63,7 +63,7 @@
             "id": "cinematic-banner-tool-check",
             "value": "",
             "constantname": "BACKTOOLCHECK",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-06.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-15.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -77,7 +77,7 @@
             "id": "cinematic-banner-contested-roll",
             "value": "",
             "constantname": "BACKCONTESTEDROLL",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-07.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-11.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -91,7 +91,7 @@
             "id": "cinematic-banner-contested-result-draw",
             "value": "",
             "constantname": "BACKCONTESTDRAW",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-14.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -107,7 +107,7 @@
             "id": "cinematic-banner-contested-result-challengers",
             "value": "",
             "constantname": "BACKCONTESTCHALLENGERS",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-13.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -123,7 +123,7 @@
             "id": "cinematic-banner-contested-result-defenders",
             "value": "",
             "constantname": "BACKCONTESTDEFENDERS",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-12.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -139,7 +139,7 @@
             "id": "cinematic-banner-group-result-success",
             "value": "",
             "constantname": "BACKGROUPSUCCESS",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-13.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",
@@ -155,7 +155,7 @@
             "id": "cinematic-banner-group-result-failure",
             "value": "",
             "constantname": "BACKGROUPFAILURE",
-            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-01.webp",
+            "path": "modules/coffee-pub-blacksmith/themes/request-roll/images/panel-12.webp",
             "tags": [
                 "cinematic-banner",
                 "request-roll",

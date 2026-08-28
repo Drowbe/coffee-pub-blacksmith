@@ -18,11 +18,32 @@
 .blacksmith-window-fullscreen {
 
     /* --- Stacking ------------------------------------------------
-       Above every Application V2 window (Foundry starts _maxZ at
-       --z-index-window: 100 and increments once per focus) and below
-       tooltips and notifications, which must stay reachable over a
-       blocking surface. */
-    --blacksmith-fullscreen-z-index: calc(var(--z-index-tooltip, 9999) - 10);
+       A literal, not `calc(var(--z-index-tooltip) - 10)`. Deriving it read well
+       and was wrong twice over: a custom property can be redefined closer to the
+       element than `body`, so the surface's stacking could change without anything
+       here changing, and Foundry's scale is not the one that matters. Blacksmith's
+       own is, and it goes far higher:
+
+         999999  .context-menu-above-dialogs   (menu-context-global.css)
+         100000  .blacksmith-pin-placement-preview (pins.css)
+          10002  .combat-initiative-drag-ghost (menubar-combatbar.css)
+          10001  a toast
+          10000  toast container, loading progress
+          99999  Foundry --z-index-notification
+           9999  Foundry --z-index-tooltip
+            100  Foundry --z-index-window, and every Application V2 window
+
+       This surface BLOCKS, so it has to sit above anything a viewer could
+       otherwise see or reach through it -- a pin preview or a drag ghost floating
+       over a cutscene is the tell that the number was chosen against the wrong
+       scale. It stays below the global context menu, which a fullscreen window may
+       open for itself.
+
+       The trade this makes: Foundry's own notifications (99999) now sit BEHIND the
+       surface. No value satisfies both, because the pin preview at 100000 already
+       sits above notifications independently of this window. Blocking wins. Raise
+       or lower this one property if a consumer needs the other answer. */
+    --blacksmith-fullscreen-z-index: 200000;
 
     /* --- Backdrop ------------------------------------------------
        The colour washes the whole surface; the image rides its own layer
@@ -31,6 +52,14 @@
     --blacksmith-fullscreen-backdrop-image: none;
     --blacksmith-fullscreen-backdrop-opacity: 1;
     --blacksmith-fullscreen-backdrop-blur: 6px;
+    --blacksmith-fullscreen-backdrop-saturate: 115%;
+    /* Composed so `blur` and `saturate` stay simple knobs while a consumer that wants
+       something else -- a brightness lift, a hue shift -- can replace the whole filter.
+       The saturate is not decoration: it is what stops a heavy blur reading as grey fog
+       instead of glass, and it matches the Tool shell's glass theme (window-tool.css). */
+    --blacksmith-fullscreen-backdrop-filter:
+        blur(var(--blacksmith-fullscreen-backdrop-blur))
+        saturate(var(--blacksmith-fullscreen-backdrop-saturate));
     --blacksmith-fullscreen-backdrop-image-filter: none;
     --blacksmith-fullscreen-backdrop-size: cover;
     --blacksmith-fullscreen-backdrop-position: center;
@@ -69,8 +98,8 @@
     border: none;
     border-radius: 0;
     background: var(--blacksmith-fullscreen-backdrop-color);
-    backdrop-filter: blur(var(--blacksmith-fullscreen-backdrop-blur));
-    -webkit-backdrop-filter: blur(var(--blacksmith-fullscreen-backdrop-blur));
+    backdrop-filter: var(--blacksmith-fullscreen-backdrop-filter);
+    -webkit-backdrop-filter: var(--blacksmith-fullscreen-backdrop-filter);
     color: var(--blacksmith-fullscreen-text);
     overflow: hidden;
 
@@ -90,6 +119,17 @@
     .blacksmith-window-fullscreen {
         transition: none;
     }
+}
+
+/* ===== DOCUMENT SCROLL LOCK ======================================
+   Set on <body> by the base while a surface is open. Two reasons, and the
+   second is the one that shows: a blocking modal must not let the page
+   scroll behind it, and a document scrollbar shrinks the viewport that
+   `position: fixed; inset: 0` resolves against -- so the surface stops short
+   of the physical screen edge and the scrollbar track shows beside it. */
+
+body.blacksmith-fullscreen-scroll-lock {
+    overflow: hidden;
 }
 
 /* ===== ROOT ====================================================== */
@@ -294,10 +334,30 @@
 
 /* A band is meant to bleed: clipping it would cut off the drop shadow and any
    border it draws against the backdrop, which is most of what makes it read as a
-   band rather than a panel. The consumer's content owns its own height here. */
+   band rather than a panel. The consumer's content owns its own height here.
+
+   The width declarations are belt and braces, and they earn it. A band that stops
+   short of the screen edges reads as a mistake rather than a band, and several
+   ordinary things inset it by accident: a margin on the consumer's own content, a
+   `max-width` meant for the panel layouts, or the body's `overflow-y: auto`
+   reserving a scrollbar gutter. Stating all three here means none of them can. */
 .blacksmith-window-fullscreen-root[data-layout="bar"] .blacksmith-window-fullscreen-panel,
 .blacksmith-window-fullscreen-root[data-layout="bar"] .blacksmith-window-fullscreen-body {
     overflow: visible;
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* The band's own content, whatever the consumer put in the body, gets the same
+   guarantee: a direct child of the body in this layout spans the full width. */
+.blacksmith-window-fullscreen-root[data-layout="bar"] .blacksmith-window-fullscreen-body > * {
+    margin-left: 0;
+    margin-right: 0;
+    max-width: none;
 }
 
 /* --- split: two equal columns; the body's children are the columns. --- */

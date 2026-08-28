@@ -421,6 +421,7 @@ layout engine.
 | `color` | string | A CSS colour washed over the whole surface, behind the image. Defaults to a dark scrim. |
 | `opacity` | number | 0 to 1, applied to the **image layer only**, so an image can sit at partial strength over the colour. Content is never dimmed by it. |
 | `blur` | number or string | Blur applied to everything showing through from behind the surface -- the canvas and windows underneath. A number is pixels. |
+| `saturate` | number or string | Saturation applied alongside `blur` on that same pass. A number is a percentage. A heavy blur averages colour towards grey, so a translucent backdrop without this reads as fog; `115` is what the Tool shell's glass theme uses and is a sensible starting point. |
 | `imageBlur` | number or string | Blur applied to the image layer itself, which turns a detailed image into texture that content stays readable over. Not the same as `blur`, and they compose. |
 | `fit` | string | `api.fullscreenFits.COVER` (default), `CONTAIN`, or `TILE`. |
 | `position` | string | Any `background-position` value. |
@@ -446,8 +447,9 @@ override to your own application class, and reach for these rather than picking 
 
 | Property | Purpose |
 |----------|---------|
-| `--blacksmith-fullscreen-z-index` | Stacking. Defaults above every window and below tooltips and notifications. |
+| `--blacksmith-fullscreen-z-index` | Stacking. Defaults above everything the viewer could otherwise see or reach through a blocking surface -- windows, the sidebar, Blacksmith's menubar, toasts, and pin previews -- and below Blacksmith's global context menu, which the surface may open for itself. Foundry's notifications sit behind it; blocking wins. |
 | `--blacksmith-fullscreen-backdrop-image-filter` | The image layer's filter, which `imageBlur` sets. Take it directly for a tint, a desaturation, or anything else `filter` does. |
+| `--blacksmith-fullscreen-backdrop-filter` | The whole surface `backdrop-filter`, composed from `blur` and `saturate`. Replace it outright for a brightness lift, a hue shift, or anything else. |
 | `--blacksmith-fullscreen-panel-background` / `-border` / `-radius` / `-shadow` / `-padding` | The panel, in the layouts that draw one. |
 | `--blacksmith-fullscreen-max-width` / `-max-height` | Panel size caps. |
 | `--blacksmith-fullscreen-gap` | Spacing between zones. |

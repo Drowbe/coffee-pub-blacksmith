@@ -34,8 +34,13 @@ Delete each item as it passes. Delete the file when it is empty, and delete
 - [ ] It covers the **canvas, sidebar, hotbar, players list, and any open window**. Open a character sheet
       first, then the probe, and confirm the sheet is behind it.
 - [ ] It **blocks**: clicking where a token is selects nothing, and clicking a sidebar tab does nothing.
-- [ ] A Foundry tooltip and a `ui.notifications.warn(...)` fired while it is open both render **above** it.
-      This is what the pinned z-index is for.
+- [ ] Nothing renders above it and nothing is reachable through it: the Foundry sidebar, the scene
+      navigation, the hotbar, the Blacksmith menubar and combat bar are all covered and dimmed. This is
+      what the pinned z-index is for, and the failure looks like one panel staying bright and sharp while
+      everything else dims.
+- [ ] A Blacksmith toast and a pin-placement preview fired while it is open are **behind** it, as is a
+      Foundry `ui.notifications.warn(...)`. That is the deliberate trade -- blocking wins. A Blacksmith
+      context menu opened by the surface itself is still **above** it.
 - [ ] It fades in rather than appearing instantly, and fades out on close.
 - [ ] Open the probe, then open it again without closing: the first is replaced, not buried, and there is
       exactly one `#bs-fs-probe` in the DOM afterwards.
@@ -50,7 +55,9 @@ Delete each item as it passes. Delete the file when it is empty, and delete
 
 - [ ] `centered` — panel is width-capped and centred, and a long body scrolls inside it rather than
       growing the panel past the viewport.
-- [ ] `bar` — a full-width band, vertically centred, with its drop shadow **not** clipped.
+- [ ] `bar` — the band reaches the **left and right screen edges** with no backdrop showing beside it, is
+      vertically centred, and its drop shadow is not clipped. If it is inset, run the width probe in the
+      note at the bottom of this file rather than guessing which element did it.
 - [ ] `split` — the body's two children sit side by side, and collapse to one column when the window is
       narrowed below 900px.
 - [ ] `full` — content runs edge to edge with no panel chrome.
@@ -119,3 +126,32 @@ This is the workflow the whole separation exists for. Two players and a GM.
       message is broadcast — watch for a double-close or a console error on the second client.
 - [ ] Run two cinematic requests back to back without closing the first. The second replaces the first.
 - [ ] A player who owns none of the requested actors sees the hourglass, not roll buttons.
+
+---
+
+## Probes
+
+Paste these into the console with the surface open. Both are single lines on purpose -- a multi-line
+paste is fine, but pasting a **result** back in is not: console output starting with `{` is parsed as a
+block, so the first `"key":` throws `Unexpected token ':'`. That error means a result got pasted, not
+that anything is wrong.
+
+### Stacking -- "something is showing through the surface"
+
+Lists every element painting at or above the surface. A correct run reports nothing.
+
+```js
+(()=>{const a=document.querySelector('.blacksmith-window-fullscreen');if(!a)return console.warn('No fullscreen surface open.');const az=parseInt(getComputedStyle(a).zIndex,10)||0;const r=a.getBoundingClientRect();console.log(`surface z-index ${az} | rect ${Math.round(r.width)}x${Math.round(r.height)} @ ${Math.round(r.left)},${Math.round(r.top)} | viewport ${innerWidth}x${innerHeight}`);const above=[...document.querySelectorAll('body *')].filter(e=>{if(e===a||a.contains(e))return false;const s=getComputedStyle(e);if(s.position==='static'||s.zIndex==='auto')return false;if((parseInt(s.zIndex,10)||0)<az)return false;const b=e.getBoundingClientRect();return b.width>0&&b.height>0&&s.visibility!=='hidden'&&s.display!=='none'}).map(e=>({el:'#'+(e.id||'')+'.'+(typeof e.className==='string'?e.className.split(' ')[0]:''),z:getComputedStyle(e).zIndex}));console.table(above.length?above:[{el:'nothing paints above the surface',z:'-'}]);})()
+```
+
+### Width -- "the band does not reach the edges"
+
+The first row narrower than the viewport is the element that introduced the inset; everything below it is
+inheriting.
+
+```js
+(()=>{const a=document.querySelector('.blacksmith-window-fullscreen');if(!a)return console.warn('No fullscreen surface open.');const rows=[['viewport',innerWidth,0,'-','-','-','-']];const w=(el,label)=>{if(!el)return;const r=el.getBoundingClientRect(),c=getComputedStyle(el);rows.push([label,Math.round(r.width),Math.round(r.left),c.maxWidth,c.marginLeft,c.paddingLeft,c.overflowX])};w(a,'app element');w(a.querySelector('.blacksmith-window-fullscreen-root'),'root');w(a.querySelector('.blacksmith-window-fullscreen-panel'),'panel');w(a.querySelector('.blacksmith-window-fullscreen-body'),'body');w(a.querySelector('.blacksmith-window-fullscreen-body > *'),'content');console.table(rows)})()
+```
+
+Worth ruling out before reading too much into either: Blacksmith's own world CSS editor
+(`updateCSS` in `scripts/manager-sockets.js`) can inject rules that reach these elements.

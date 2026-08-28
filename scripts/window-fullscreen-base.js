@@ -46,6 +46,16 @@ const CLOSE_ACTION = 'blacksmith-fullscreen-close';
 const OPEN_CLASS = 'blacksmith-window-fullscreen-open';
 
 /**
+ * Put on <body> while a fullscreen surface is open, so the document cannot scroll behind it.
+ *
+ * A blocking modal that leaves the page scrollable is wrong on its own terms, but the visible
+ * symptom is subtler than that: a scrollbar on the document shrinks the viewport that
+ * `position: fixed; inset: 0` resolves against, so the surface stops short of the physical
+ * screen edge and the scrollbar track shows beside it as a pale stripe.
+ */
+const BODY_LOCK_CLASS = 'blacksmith-fullscreen-scroll-lock';
+
+/**
  * Turn a caller-supplied path into a CSS `url()` that resolves where the caller meant.
  *
  * Two things happen here, and both are the base's job rather than the consumer's.
@@ -207,7 +217,7 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         const element = this.element;
         if (!element?.style) return;
 
-        const { image, color, opacity, blur, imageBlur, fit, position } = this.fullscreenBackdrop;
+        const { image, color, opacity, blur, saturate, imageBlur, fit, position } = this.fullscreenBackdrop;
         const set = (property, value) => {
             if (value == null || value === '') element.style.removeProperty(property);
             else element.style.setProperty(property, value);
@@ -221,8 +231,14 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         // on the surface, so it softens the table showing through from behind. `imageBlur`
         // is a filter on the image layer itself, which is what turns a detailed background
         // image into a texture that content stays readable over.
+        //
+        // `saturate` rides with `blur` on the surface filter. A heavy blur averages colour
+        // towards grey, so a glassy backdrop without it reads as fog; putting the saturation
+        // back is what makes the same blur read as glass.
         set('--blacksmith-fullscreen-backdrop-blur',
             Number.isFinite(blur) ? `${blur}px` : (typeof blur === 'string' ? blur : null));
+        set('--blacksmith-fullscreen-backdrop-saturate',
+            Number.isFinite(saturate) ? `${saturate}%` : (typeof saturate === 'string' ? saturate : null));
         set('--blacksmith-fullscreen-backdrop-image-filter',
             Number.isFinite(imageBlur) ? `blur(${imageBlur}px)`
                 : (typeof imageBlur === 'string' ? `blur(${imageBlur})` : null));
@@ -299,6 +315,8 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
             document.addEventListener('keydown', this.#onFullscreenKeyDown, true);
         }
 
+        document.body?.classList.add(BODY_LOCK_CLASS);
+
         // One frame later, so the browser has a pre-transition state to animate from.
         requestAnimationFrame(() => this.element?.classList.add(OPEN_CLASS));
     }
@@ -341,6 +359,12 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         document.removeEventListener('keydown', this.#onFullscreenKeyDown, true);
         if (BlacksmithFullscreenWindowBaseV2.#current === this) {
             BlacksmithFullscreenWindowBaseV2.#current = null;
+        }
+        // Only once nothing is holding it. Surfaces replace each other rather than stacking,
+        // but the replacement renders before the replaced one finishes closing, so an
+        // unconditional removal here would unlock the document under the new surface.
+        if (!BlacksmithFullscreenWindowBaseV2.#current) {
+            document.body?.classList.remove(BODY_LOCK_CLASS);
         }
         return super._onClose?.(options);
     }

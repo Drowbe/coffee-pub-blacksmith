@@ -28,11 +28,16 @@ export class CinematicOverlay extends BlacksmithFullscreenWindowBaseV2 {
             fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.BAR,
             fullscreenBackdrop: {
                 image: 'modules/coffee-pub-blacksmith/images/backgrounds/background-skull-red.webp',
-                color: 'rgba(0, 0, 0, 0.7)',
-                opacity: 0.5,
-                // `blur` softens the table showing through; `imageBlur` softens the skulls
-                // themselves, so they read as texture rather than competing with the band.
-                blur: 5,
+                // Glassy rather than a blackout: a light wash so the table still reads
+                // through, and a heavy blur plus the suite's glass saturation so what
+                // reads through is texture instead of a legible second screen. The band
+                // carries its own opaque banner, so nothing here has to keep text legible.
+                color: 'rgba(0, 0, 0, 0.42)',
+                blur: 12,
+                saturate: 115,
+                // `imageBlur` softens the skulls themselves, so they sit behind the band
+                // rather than competing with it.
+                opacity: 0.4,
                 imageBlur: 6,
                 fit: 'cover'
             }
@@ -2613,13 +2618,18 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             const challengerCards = challengers.map(createActorCardHtml).join('');
             const defenderCards = defenders.map(createActorCardHtml).join('');
 
+            // The side modifiers carry which way each group packs: the challengers fill
+            // toward the divider from the left, the defenders from the right, so the two
+            // sides meet at the VS however lopsided the contest is. Named classes rather
+            // than :first-child / :last-child, because the ordering that would rely on is
+            // an accident of this template and nothing would fail loudly if it changed.
             actorCardsHtml = `
-                <div class="cpb-cinematic-actor-group">
+                <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-challengers">
                     <h3 class="cpb-cinematic-group-title">Challengers</h3>
                     <div class="cpb-cinematic-card-grid">${challengerCards}</div>
                 </div>
                 <div class="cpb-cinematic-vs-divider">VS</div>
-                <div class="cpb-cinematic-actor-group">
+                <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-defenders">
                     <h3 class="cpb-cinematic-group-title">Defenders</h3>
                     <div class="cpb-cinematic-card-grid">${defenderCards}</div>
                 </div>

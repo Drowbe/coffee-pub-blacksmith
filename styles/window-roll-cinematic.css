@@ -22,7 +22,10 @@
     box-sizing: border-box;
     width: 100%;
     min-height: 300px;
-    background-image: url('../images/banners/banners-damage-fire-6.webp');
+    /* No background-image here on purpose. The banner is chosen per roll type by
+       resolveRequestRollCinematicBanner() and written as an inline style, which an
+       author reading this file needs to know -- a declaration here could never win
+       against that, so one would only ever mislead. */
     background-size: cover;
     background-position: center;
     border-top: 12px solid rgba(0,0,0,0.8);
@@ -108,12 +111,34 @@
     align-items: stretch;
 }
 
+/* Each side owns exactly half the band, which is what keeps the VS on the centre
+   line no matter how lopsided the contest is. What changes per side is which way
+   the group packs inside its half: both fill toward the divider, so the two sides
+   meet in the middle instead of drifting to the outer edges.
+
+       [           X X X X X X ]  VS  [ X X X            ]
+
+   Centring each side within its own half -- the obvious reading of "centred", and
+   what this did before -- is what produced a gulf between the VS and the smaller
+   side, so the two groups read as unrelated rather than as facing each other.
+
+   `min-width: 0` keeps the inner card grid free to wrap when a large contest runs
+   out of half-band; without it the flex item refuses to shrink below its content
+   and the cards overflow instead. */
 .cpb-cinematic-actor-group {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 0.5rem;
+}
+
+.cpb-cinematic-actor-group-challengers {
+    align-items: flex-end;
+}
+
+.cpb-cinematic-actor-group-defenders {
+    align-items: flex-start;
 }
 
 .cpb-cinematic-group-title {
@@ -132,6 +157,17 @@
     flex-wrap: wrap;
     gap: 16px;
     justify-content: center;
+}
+
+/* When a side wraps to a second row, the rows stack toward the divider too --
+   otherwise a wrapped row would centre itself and break the edge the cards line
+   up against. */
+.cpb-cinematic-actor-group-challengers .cpb-cinematic-card-grid {
+    justify-content: flex-end;
+}
+
+.cpb-cinematic-actor-group-defenders .cpb-cinematic-card-grid {
+    justify-content: flex-start;
 }
 
 .cpb-cinematic-vs-divider {
