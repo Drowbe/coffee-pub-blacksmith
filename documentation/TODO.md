@@ -331,6 +331,33 @@ see is a leak if this is ever offered to players.
 Core extension is implemented. Remaining: optional first-party Actor read-card placement, and
 module-owned Journal and JournalPage sheets mounting the shared component.
 
+### Token shadows on drop, as an option in the Dropped Tokens section (opened 2026-08-27)
+
+Give a dropped token a drop shadow, switched on beside the overrides that already exist -- rotation lock,
+token ring, scale, image fit mode -- under the **Dropped Tokens** heading (`settings.js:5018`), world scope
+like its neighbours.
+
+**Understand the mechanism before writing the setting, because it is not the same kind of thing as its
+neighbours.** All four existing overrides write to `tokenData` at `preCreateToken`
+(`manager-canvas.js:87-130`, re-applied at `:155` and `:216`) and persist as token document properties. A
+shadow is not a document property in Foundry -- it is a render-time effect -- so it cannot be applied the
+same way, and the setting cannot simply join the list.
+
+That makes the first question the real one: is this **per token**, written as a flag on drop and rendered by
+us for tokens that carry it, or a **scene-wide render option** that has nothing to do with dropping at all?
+Only the first belongs in the Dropped Tokens section; the second is a display setting that happens to have
+been noticed while dropping.
+
+**Prefer a sprite beneath the token over a PIXI filter.** `manager-token-indicators.js` already runs
+per-token overlays on `canvas.interface` with `eventMode = 'none'`, and Quick View's hatch proves the
+token-conforming pattern -- scaled to `token.w/h`, rotation-aware. A drop-shadow filter is per-object
+expensive and would have to coexist with the dynamic ring shader, which the existing `disableTokenRing`
+setting says this table already turns off.
+
+**Verify:** drop a token with the option on and off; confirm the shadow appears beneath the token and not
+above it, follows the token on move and rotate, renders identically on a player client, and does not appear
+on tokens dropped while the option was off.
+
 ### Token blood: remaining work
 
 Plan: **`documentation/plans/plan-token-blood.md`**, which now carries the remaining list -- the live
@@ -625,6 +652,31 @@ The real fix, and why automatic mapping and the source checkboxes were removed r
 of numbered dropdowns is the wrong control for an ordered list. One panel per type, drag-and-drop ordering,
 add and remove, no slot count. Two things to carry over: the ordinary settings page keeps working for anyone
 who does not open the panel, and the panel needs the full unfiltered `getAllPacks(type)`.
+
+### A play button beside every sound choice in settings (opened 2026-08-27)
+
+Fourteen settings pick a sound from `BLACKSMITH.arrSoundChoices` (built by `getSoundChoices()`,
+`settings.js:751`), and choosing one today means saving, triggering the feature, and listening. A play
+button beside the select lets a GM audition instead.
+
+**Find them generically, not by a list.** Key off the settings that use `arrSoundChoices` so a sound setting
+added later gets the button without anyone remembering to add it. The choice *value* is the file path, so
+playing it is one call.
+
+**Play locally, always.** `playSoundLocalWithDuration` (`api-core.js:847`) rather than the broadcast
+variants -- a GM browsing settings must not fire sounds at the whole table. Play the value currently
+selected in the control, not the saved setting, since the point is auditioning before saving, and disable
+the button on `sound-none`.
+
+**The injection is the risky part and there is a recorded lesson about it.** An earlier build drew a
+checklist into the settings form with a `renderSettingsConfig` hook and got it wrong -- the markup landed
+inside `.form-fields` and shared one flex cell with the control (`api-toast.js:145-152`), which is why
+toast channels became ordinary Boolean settings instead. A button beside a select is a much smaller
+injection than that was, but it is the same hook and the same trap.
+
+**Verify:** every sound setting shows the button, it plays the selected entry before saving, changing the
+select and pressing again plays the new one, `sound-none` is inert, nothing reaches a second connected
+client, and the settings form's layout is unchanged with the button present.
 
 ### Asset sources: let a module supply the image library
 
