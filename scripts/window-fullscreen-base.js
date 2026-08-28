@@ -34,6 +34,41 @@ export const BLACKSMITH_FULLSCREEN_LAYOUTS = Object.freeze({
     FULL: 'full'
 });
 
+/**
+ * Entrance and exit presets. Each names one animation per stage; the stage chain in
+ * styles/window-fullscreen.css carries the timings.
+ *
+ * Presets rather than a per-stage matrix on purpose: four stages times N options is a
+ * configuration screen nobody wants to fill in, and the interesting choices are whole
+ * moods rather than individual curves. A consumer that genuinely needs one stage
+ * different overrides that stage's custom properties.
+ */
+export const BLACKSMITH_FULLSCREEN_ANIMATIONS = Object.freeze({
+    /** No motion at all. What `prefers-reduced-motion` collapses to. */
+    NONE: 'none',
+    /** A quiet fade and lift. The default. */
+    SUBTLE: 'subtle',
+    /** Letterbox bars drive in, then the content between them. */
+    BARS: 'bars',
+    /** Hard scale-down with an overshoot settle. Fighting-game round start. */
+    SLAM: 'slam'
+});
+
+/**
+ * The stages, in the order they play. A consumer marks its own elements with
+ * `data-fs-stage="content"` or `data-fs-stage="items"`; the surface and the panel are
+ * the base's own elements and need no marking.
+ *
+ * `items` rather than `cards`: cards are the cinematic's word for the repeated thing
+ * that arrives last. A shop's are goods, a quest log's are entries.
+ */
+export const BLACKSMITH_FULLSCREEN_STAGES = Object.freeze({
+    SURFACE: 'surface',
+    PANEL: 'panel',
+    CONTENT: 'content',
+    ITEMS: 'items'
+});
+
 /** Background sizing for a backdrop image. */
 export const BLACKSMITH_FULLSCREEN_FITS = Object.freeze({
     COVER: 'cover',
@@ -136,6 +171,7 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
             rememberPosition: false,
             fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.CENTERED,
             fullscreenBackdrop: {},
+            fullscreenAnimation: BLACKSMITH_FULLSCREEN_ANIMATIONS.SUBTLE,
             showCloseButton: true,
             dismissOnEscape: true,
             dismissOnBackdrop: false,
@@ -324,6 +360,77 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
     async _onRender(context, options) {
         await super._onRender?.(context, options);
         this._applyFullscreenBackdrop();
+        this._applyFullscreenAnimation();
+        this._indexStagedItems();
+    }
+
+    // ==============================================================
+    // ===== STAGED ENTRANCE ========================================
+    // ==============================================================
+
+    /** The resolved preset, falling back to `subtle` for an unknown value. */
+    get fullscreenAnimation() {
+        const requested = this.options?.fullscreenAnimation;
+        return Object.values(BLACKSMITH_FULLSCREEN_ANIMATIONS).includes(requested)
+            ? requested
+            : BLACKSMITH_FULLSCREEN_ANIMATIONS.SUBTLE;
+    }
+
+    /**
+     * Name the preset on the element so the stylesheet can select it.
+     *
+     * `data-fs-entered` is the other half, and it is what keeps a re-render from
+     * replaying the entrance: a consumer that re-renders on a filter change, or appends
+     * to a list, would otherwise have its whole surface fly in again every time. It is
+     * set once the sequence has run and never cleared, so anything arriving later is
+     * simply present.
+     */
+    _applyFullscreenAnimation() {
+        const element = this.element;
+        if (!element) return;
+        element.dataset.fsAnimation = this.fullscreenAnimation;
+        if (element.dataset.fsEntered) return;
+        window.setTimeout(() => {
+            if (this.element) this.element.dataset.fsEntered = 'true';
+        }, this.fullscreenEntranceMs);
+    }
+
+    /**
+     * Number the staged items so each can offset its own delay.
+     *
+     * Done here rather than asked of the consumer: hand-numbering is the kind of thing
+     * that is correct once and wrong after the first list change, and the consumer has
+     * no way to know its own position when the markup is built from a loop anyway.
+     */
+    _indexStagedItems() {
+        const element = this.element;
+        const items = element?.querySelectorAll?.(
+            `[data-fs-stage="${BLACKSMITH_FULLSCREEN_STAGES.ITEMS}"]`
+        );
+        if (!items) return;
+        items.forEach((item, index) => item.style.setProperty('--fs-index', String(index)));
+        // The chain needs the count to work out when the last item lands, and only the
+        // rendered DOM knows it.
+        element.style.setProperty('--fs-stage-item-count', String(Math.max(0, items.length - 1)));
+    }
+
+    /**
+     * How long the whole entrance runs, read from the stage chain rather than guessed.
+     *
+     * The stylesheet declares each stage's duration and derives every delay from the one
+     * before, so the total is a value the CSS already knows. Reading it back means a
+     * preset can be retimed in the stylesheet alone and nothing here needs touching --
+     * which is the entire reason the delays are chained instead of hand-summed.
+     */
+    get fullscreenEntranceMs() {
+        const element = this.element;
+        if (!element) return 0;
+        const raw = getComputedStyle(element).getPropertyValue('--fs-stage-total').trim();
+        if (!raw) return 0;
+        const ms = raw.endsWith('ms') ? parseFloat(raw)
+            : raw.endsWith('s') ? parseFloat(raw) * 1000
+                : parseFloat(raw);
+        return Number.isFinite(ms) ? ms : 0;
     }
 
     /**

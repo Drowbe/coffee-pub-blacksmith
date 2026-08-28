@@ -121,6 +121,100 @@
     }
 }
 
+/* ==================================================================
+   THE STAGE CHAIN
+   ==================================================================
+   Four stages play in order: the surface arrives, then the panel it
+   carries, then the content on the panel, then the items -- the repeated
+   things, staggered.
+
+   ONLY DURATIONS ARE DECLARED. Every delay is a calc() of the stage before
+   it, so retiming one stage cascades correctly instead of forcing you to
+   re-sum every delay downstream by hand. That hand-summing is the failure
+   this shape exists to prevent: it is right the day it is written and
+   silently drifts on the first change, and the drift shows as a gap or an
+   overlap that looks like a rendering bug rather than a stale number.
+
+   `--fs-stage-total` falls out of the same chain, and the base reads it back
+   to know when the entrance has finished -- so a preset can be retimed here
+   alone, with no matching constant in the JS.
+
+   CONSUMERS: mark your own elements and nothing else.
+
+       <h2 data-fs-stage="content">Gilded Flagon</h2>
+       <div class="shop-item" data-fs-stage="items">...</div>
+
+   The surface and panel are this shell's own elements and need no marking.
+   Mark nothing and those two still animate, which is a reasonable default on
+   its own. The base assigns `--fs-index` to each item, so never hand-number.
+
+   ONE RULE FOR A STAGED ELEMENT: it must rest in its FINAL, VISIBLE state.
+   Do not give it `opacity: 0` or an offset transform and rely on the stage to
+   reveal it. The stage holds the end state through `animation-fill-mode`, and
+   three ordinary things drop that fill -- the entrance finishing and setting
+   `data-fs-entered`, `prefers-reduced-motion`, and the `none` preset. Any of
+   them then leaves your element at its resting state, so a hidden resting
+   state means content that flashes and disappears. The entrance borrows the
+   element's appearance and hands it back; it never grants it.
+   ================================================================== */
+
+.blacksmith-window-fullscreen {
+    /* Durations -- the only numbers a preset sets. */
+    --fs-stage-surface-duration: 220ms;
+    --fs-stage-panel-duration: 0ms;
+    --fs-stage-content-duration: 0ms;
+    --fs-stage-item-duration: 0ms;
+    --fs-stage-item-stagger: 0ms;
+    --fs-stage-item-count: 0;
+
+    /* Delays -- derived, never authored. */
+    --fs-stage-surface-delay: 0ms;
+    --fs-stage-panel-delay: var(--fs-stage-surface-duration);
+    --fs-stage-content-delay:
+        calc(var(--fs-stage-panel-delay) + var(--fs-stage-panel-duration));
+    --fs-stage-items-delay:
+        calc(var(--fs-stage-content-delay) + var(--fs-stage-content-duration));
+
+    /* The last item starts after every stagger step before it, so the total has to
+       count them rather than assume one. */
+    --fs-stage-total:
+        calc(var(--fs-stage-items-delay)
+             + var(--fs-stage-item-stagger) * var(--fs-stage-item-count)
+             + var(--fs-stage-item-duration));
+}
+
+/* Each element's own delay. The animations themselves come from the presets below;
+   these two rules are what put every stage on the chain. */
+.blacksmith-window-fullscreen [data-fs-stage="content"] {
+    animation-delay: var(--fs-stage-content-delay);
+    animation-fill-mode: both;
+}
+
+.blacksmith-window-fullscreen [data-fs-stage="items"] {
+    animation-delay:
+        calc(var(--fs-stage-items-delay)
+             + var(--fs-index, 0) * var(--fs-stage-item-stagger));
+    animation-fill-mode: both;
+}
+
+/* Once the entrance has run, nothing animates again. A consumer that re-renders on a
+   filter change, or appends to a list, must not have its surface fly in a second time. */
+.blacksmith-window-fullscreen[data-fs-entered] [data-fs-stage],
+.blacksmith-window-fullscreen[data-fs-entered] .blacksmith-window-fullscreen-panel,
+.blacksmith-window-fullscreen[data-fs-entered] .blacksmith-window-fullscreen-root {
+    animation: none;
+}
+
+/* A screen-filling slam is exactly what this setting exists for. Every preset
+   collapses to the plain fade the surface already does. */
+@media (prefers-reduced-motion: reduce) {
+    .blacksmith-window-fullscreen [data-fs-stage],
+    .blacksmith-window-fullscreen .blacksmith-window-fullscreen-panel,
+    .blacksmith-window-fullscreen .blacksmith-window-fullscreen-root {
+        animation: none;
+    }
+}
+
 /* ===== DOCUMENT SCROLL LOCK ======================================
    Set on <body> by the base while a surface is open. Two reasons, and the
    second is the one that shows: a blocking modal must not let the page
@@ -409,4 +503,204 @@ body.blacksmith-fullscreen-scroll-lock {
     border: none;
     border-radius: 0;
     box-shadow: none;
+}
+
+/* ==================================================================
+   ANIMATION PRESETS
+   ==================================================================
+   Each preset sets the stage DURATIONS and names the keyframes per stage.
+   It never sets a delay -- the chain above derives those. Adding a preset
+   means adding one block here and one entry to
+   BLACKSMITH_FULLSCREEN_ANIMATIONS in window-fullscreen-base.js.
+
+   `perspective` lives on the container, not the item. On the item itself it
+   does nothing, which is the usual reason a 3D entrance renders flat.
+   ================================================================== */
+
+/* --- none: the surface appears. Nothing else moves. ---------------- */
+
+.blacksmith-window-fullscreen[data-fs-animation="none"] {
+    --fs-stage-surface-duration: 0ms;
+    --blacksmith-fullscreen-transition: 0ms;
+}
+
+/* --- subtle: the default. A fade, and content that lifts. ---------- */
+
+.blacksmith-window-fullscreen[data-fs-animation="subtle"] {
+    --fs-stage-surface-duration: 220ms;
+    --fs-stage-panel-duration: 260ms;
+    --fs-stage-content-duration: 240ms;
+    --fs-stage-item-duration: 320ms;
+    --fs-stage-item-stagger: 60ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="subtle"].blacksmith-window-fullscreen-open
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-rise var(--fs-stage-panel-duration) ease-out var(--fs-stage-panel-delay) both;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="subtle"].blacksmith-window-fullscreen-open
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-rise;
+    animation-duration: var(--fs-stage-content-duration);
+    animation-timing-function: ease-out;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="subtle"].blacksmith-window-fullscreen-open
+    [data-fs-stage="items"] {
+    animation-name: bs-fs-rise;
+    animation-duration: var(--fs-stage-item-duration);
+    animation-timing-function: ease-out;
+}
+
+/* --- bars: letterbox bars drive in, then what sits between them. ---
+   Built for a band that already draws its own top and bottom borders --
+   the panel scales open vertically as though the bars pushed it apart. */
+
+.blacksmith-window-fullscreen[data-fs-animation="bars"] {
+    --fs-stage-surface-duration: 180ms;
+    --fs-stage-panel-duration: 420ms;
+    --fs-stage-content-duration: 260ms;
+    --fs-stage-item-duration: 340ms;
+    --fs-stage-item-stagger: 70ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="bars"].blacksmith-window-fullscreen-open
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-bars var(--fs-stage-panel-duration)
+               cubic-bezier(0.16, 1, 0.3, 1) var(--fs-stage-panel-delay) both;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="bars"].blacksmith-window-fullscreen-open
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-rise;
+    animation-duration: var(--fs-stage-content-duration);
+    animation-timing-function: ease-out;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="bars"].blacksmith-window-fullscreen-open
+    [data-fs-stage="items"] {
+    animation-name: bs-fs-rise;
+    animation-duration: var(--fs-stage-item-duration);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- slam: gratuitous. Items hurtle in from behind the viewer, spinning,
+       overshoot their resting size, squash, and settle -- and the whole stage
+       kicks when the first one lands.
+
+       Three things decide whether this reads as impact or as a nudge:
+
+       PERSPECTIVE DISTANCE. The apparent start size is p / (p - z), so it is the
+       RATIO that matters, not the translateZ alone. 1400px against 780px is 3x;
+       900px against 780px is 7.5x. Tightening the perspective does far more than
+       pushing the item further away.
+
+       WHEN OPACITY ARRIVES. Fading from 0 across the whole flight hides the part
+       worth seeing -- the item is invisible precisely while it is huge and far,
+       and only resolves once it is nearly home. Opacity lands by 10%.
+
+       A LANDING BEAT. Easing overshoot on a single from/to reads as a soft
+       settle. The squash and rebound have to be real keyframes. */
+
+.blacksmith-window-fullscreen[data-fs-animation="slam"] {
+    --fs-stage-surface-duration: 120ms;
+    --fs-stage-panel-duration: 300ms;
+    --fs-stage-content-duration: 380ms;
+    --fs-stage-item-duration: 620ms;
+    --fs-stage-item-stagger: 95ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slam"].blacksmith-window-fullscreen-open
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-slam-panel var(--fs-stage-panel-duration)
+               cubic-bezier(0.16, 1, 0.3, 1) var(--fs-stage-panel-delay) both;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slam"].blacksmith-window-fullscreen-open
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-slam-content;
+    animation-duration: var(--fs-stage-content-duration);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The container carries the perspective so items have depth to arrive through.
+   On the item itself it does nothing, which is the usual reason a 3D entrance
+   renders flat. */
+.blacksmith-window-fullscreen[data-fs-animation="slam"] .blacksmith-window-fullscreen-body {
+    perspective: 900px;
+    perspective-origin: 50% 45%;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slam"].blacksmith-window-fullscreen-open
+    [data-fs-stage="items"] {
+    animation-name: bs-fs-slam-item;
+    animation-duration: var(--fs-stage-item-duration);
+    animation-timing-function: cubic-bezier(0.12, 0.72, 0.16, 1);
+}
+
+/* The kick, on the root rather than the panel: the panel is already animating its
+   own transform for the panel stage, and two animations on one transform do not
+   compose -- the later simply wins. The root is free, and shaking it moves the
+   whole stage, which is what sells the weight.
+
+   6px of travel stays well inside the backdrop layer's 40px overhang, so the shake
+   never reveals an edge. */
+.blacksmith-window-fullscreen[data-fs-animation="slam"].blacksmith-window-fullscreen-open
+    .blacksmith-window-fullscreen-root {
+    animation: bs-fs-slam-kick 460ms ease-out var(--fs-stage-items-delay) both;
+}
+
+/* ===== KEYFRAMES ================================================== */
+
+@keyframes bs-fs-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes bs-fs-drop {
+    from { opacity: 0; transform: translateY(-28px) scale(1.08); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Scales open from the centre line, as though the bars pushed the panel apart. */
+@keyframes bs-fs-bars {
+    from { opacity: 0; transform: scaleY(0.02); }
+    60%  { opacity: 1; }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes bs-fs-slam-panel {
+    0%   { opacity: 0; transform: scaleY(0.4) scaleX(1.25); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* The title rushes the viewer and stops dead. */
+@keyframes bs-fs-slam-content {
+    0%   { opacity: 0; transform: scale(2.6); }
+    45%  { opacity: 1; }
+    68%  { transform: scale(0.93); }
+    84%  { transform: scale(1.03); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* From behind the viewer at ~7.5x, spinning most of a turn, past its resting size,
+   squash, rebound, settle. Opacity is done by 10% so the flight is visible. */
+@keyframes bs-fs-slam-item {
+    0%   { opacity: 0; transform: translateZ(780px) translateY(-60px) rotate(-155deg); }
+    10%  { opacity: 1; }
+    58%  { transform: translateZ(0) translateY(0) rotate(5deg) scale(1.22); }
+    72%  { transform: rotate(-2deg) scale(0.9); }
+    86%  { transform: rotate(1deg) scale(1.06); }
+    100% { opacity: 1; transform: none; }
+}
+
+/* The whole stage jolts as the first item lands, then rings down. */
+@keyframes bs-fs-slam-kick {
+    0%, 100% { transform: none; }
+    10%      { transform: translate3d(-7px, 5px, 0); }
+    26%      { transform: translate3d(6px, -4px, 0); }
+    42%      { transform: translate3d(-5px, 3px, 0); }
+    60%      { transform: translate3d(4px, -2px, 0); }
+    78%      { transform: translate3d(-2px, 1px, 0); }
 }

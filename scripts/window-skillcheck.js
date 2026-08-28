@@ -7,7 +7,8 @@ import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './ut
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import {
     BlacksmithFullscreenWindowBaseV2,
-    BLACKSMITH_FULLSCREEN_LAYOUTS
+    BLACKSMITH_FULLSCREEN_LAYOUTS,
+    BLACKSMITH_FULLSCREEN_ANIMATIONS
 } from './window-fullscreen-base.js';
 import { skillCheckMessageData } from './cards-skill-check.js';
 
@@ -26,6 +27,7 @@ export class CinematicOverlay extends BlacksmithFullscreenWindowBaseV2 {
             id: 'cpb-cinematic-overlay',
             classes: ['blacksmith-window-fullscreen', 'cpb-cinematic'],
             fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.BAR,
+            fullscreenAnimation: BLACKSMITH_FULLSCREEN_ANIMATIONS.SLAM,
             fullscreenBackdrop: {
                 image: 'modules/coffee-pub-blacksmith/images/backgrounds/background-skull-red.webp',
                 // Glassy rather than a blackout: a light wash so the table still reads
@@ -2544,13 +2546,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             existingOverlay.remove();
         }
 
-        const createActorCardHtml = (actor, index) => {
+        const createActorCardHtml = (actor) => {
             const token = canvas.tokens.get(actor.id) || canvas.tokens.placeables.find(t => t.actor?.id === actor.actorId);
             const actorDocument = token?.actor || game.actors.get(actor.actorId);
             const actorImg = actorDocument?.img || 'icons/svg/mystery-man.svg';
             const actorName = actor.name;
             const result = actor.result;
-            const animationDelay = (index * 0.1) + 0.3; // Staggered delay
 
             // Always check ownership on the base actor. An unlinked token's synthetic actor
             // evaluates token-document ownership, not base-actor ownership — causing a false
@@ -2602,7 +2603,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             }
 
             return `
-                <div class="cpb-cinematic-card" data-token-id="${actor.id}" style="animation-delay: ${animationDelay}s;">
+                <div class="cpb-cinematic-card" data-fs-stage="items" data-token-id="${actor.id}">
                     <img src="${actorImg}" alt="${actorName}">
                     <div class="cpb-cinematic-actor-name">${actorName}</div>
                     ${rollAreaHtml}
@@ -2625,12 +2626,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             // an accident of this template and nothing would fail loudly if it changed.
             actorCardsHtml = `
                 <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-challengers">
-                    <h3 class="cpb-cinematic-group-title">Challengers</h3>
+                    <h3 class="cpb-cinematic-group-title" data-fs-stage="content">Challengers</h3>
                     <div class="cpb-cinematic-card-grid">${challengerCards}</div>
                 </div>
-                <div class="cpb-cinematic-vs-divider">VS</div>
+                <div class="cpb-cinematic-vs-divider" data-fs-stage="content">VS</div>
                 <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-defenders">
-                    <h3 class="cpb-cinematic-group-title">Defenders</h3>
+                    <h3 class="cpb-cinematic-group-title" data-fs-stage="content">Defenders</h3>
                     <div class="cpb-cinematic-card-grid">${defenderCards}</div>
                 </div>
             `;
@@ -2666,7 +2667,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
 
         // Create roll details text with separate title and subtitle
-        let rollDetailsHtml = `<div class="cpb-cinematic-roll-details">`;
+        let rollDetailsHtml = `<div class="cpb-cinematic-roll-details" data-fs-stage="content">`;
         
         // 1. Roll Title (always separate and prominent)
         const rollTitle = messageData.rollTitle || messageData.skillName;

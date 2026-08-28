@@ -429,6 +429,47 @@ layout engine.
 These resolve to custom properties on the window element, so a consumer stylesheet can override any one
 of them with ordinary specificity.
 
+### Staged entrance
+
+The surface arrives in four stages: the **surface** itself, then the **panel** it carries, then the
+**content** on the panel, then the **items** -- the repeated things, staggered. Pick a preset with
+`fullscreenAnimation` (`api.fullscreenAnimations`): `subtle` (default), `bars`, `slam`, or `none`.
+
+The base owns the first two stages, because they are its own elements. For the other two you mark your
+own DOM and write no animation code:
+
+```html
+<h2 data-fs-stage="content">Gilded Flagon</h2>
+<div class="shop-filters" data-fs-stage="content">...</div>
+
+<div class="shop-item" data-fs-stage="items">...</div>
+<div class="shop-item" data-fs-stage="items">...</div>
+```
+
+The active preset supplies the keyframes and the stage chain supplies the delays. Mark nothing and the
+surface and panel still animate, which is a reasonable floor. Never hand-number the items -- the base
+sets `--fs-index` on each one at render, and publishes the count so the chain knows when the last one
+lands.
+
+**A staged element must rest in its final, visible state.** Do not give it `opacity: 0` or an offset
+transform expecting the stage to reveal it. The stage holds the end state through `animation-fill-mode`,
+and three ordinary things drop that fill: the entrance finishing, `prefers-reduced-motion`, and the
+`none` preset. Any of them leaves the element at its resting state, so a hidden resting state is content
+that flashes and disappears. The entrance borrows an element's appearance and hands it back.
+
+Entrances play once. The base sets `data-fs-entered` when the sequence completes, so a re-render -- a
+filter change, an appended row -- does not fly the whole surface in again.
+
+**Retiming.** Only durations are authored; every delay is a `calc()` of the stage before it, and
+`--fs-stage-total` falls out of the same chain. The base reads that total back, so a preset is retimed in
+`styles/window-fullscreen.css` alone with no matching constant in JavaScript.
+
+| Property | Purpose |
+|----------|---------|
+| `--fs-stage-surface-duration` / `-panel-` / `-content-` / `-item-duration` | Per-stage durations. The only values a preset sets. |
+| `--fs-stage-item-stagger` | Gap between consecutive items. |
+| `--fs-stage-*-delay`, `--fs-stage-total` | Derived. Read them if you are animating something yourself and want to stay in time; do not author them. |
+
 ### Zones
 
 The zone names match the standard window contract -- `headerIcon`, `windowTitle`, `subtitle`,
