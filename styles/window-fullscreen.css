@@ -889,14 +889,32 @@ body.blacksmith-fullscreen-scroll-lock {
     100% { opacity: 1; transform: none; }
 }
 
-/* From behind the viewer at ~7.5x, spinning most of a turn, past its resting size,
-   squash, rebound, settle. Opacity is done by 10% so the flight is visible. */
+/* From behind the viewer at ~7.5x AND from its own side, spinning most of a turn, past
+   its resting size, squash, rebound, settle. Opacity is done by 10% so the flight is
+   visible.
+
+   Everything lateral is signed by `--fs-enter-x`, including the SPIN and the landing
+   overshoot -- so the two sides of a contest mirror each other rather than both arcing
+   the same way, which is the tell that a "directional" entrance is only directional in
+   its start position. The lateral offset is a percentage of the item, magnified by the
+   perspective at that depth, so it scales with the card instead of needing a separate
+   distance for every card size. */
 @keyframes bs-fs-slam-item {
-    0%   { opacity: 0; transform: translateZ(780px) translateY(-60px) rotate(-155deg); }
+    0%   {
+        opacity: 0;
+        transform: translateZ(780px)
+                   translateX(calc(var(--fs-enter-x, -1) * 70%))
+                   translateY(-60px)
+                   rotate(calc(var(--fs-enter-x, -1) * 155deg));
+    }
     10%  { opacity: 1; }
-    58%  { transform: translateZ(0) translateY(0) rotate(5deg) scale(1.22); }
-    72%  { transform: rotate(-2deg) scale(0.9); }
-    86%  { transform: rotate(1deg) scale(1.06); }
+    58%  {
+        transform: translateZ(0) translateX(0) translateY(0)
+                   rotate(calc(var(--fs-enter-x, -1) * -5deg))
+                   scale(1.22);
+    }
+    72%  { transform: rotate(calc(var(--fs-enter-x, -1) * 2deg)) scale(0.9); }
+    86%  { transform: rotate(calc(var(--fs-enter-x, -1) * -1deg)) scale(1.06); }
     100% { opacity: 1; transform: none; }
 }
 
@@ -1084,10 +1102,15 @@ body.blacksmith-fullscreen-scroll-lock {
 }
 
 /* Away from the viewer rather than back the way it came -- items that retreat read
-   as the scene releasing them, where reversing the arrival reads as a rewind. */
+   as the scene releasing them, where reversing the arrival reads as a rewind. The spin
+   is signed so each side turns out the way it turned in. */
 @keyframes bs-fs-slam-item-out {
     from { opacity: 1; transform: none; }
-    to   { opacity: 0; transform: translateZ(-520px) translateY(70px) rotate(28deg); }
+    to   {
+        opacity: 0;
+        transform: translateZ(-520px) translateY(70px)
+                   rotate(calc(var(--fs-enter-x, -1) * -28deg));
+    }
 }
 
 /* ==================================================================
