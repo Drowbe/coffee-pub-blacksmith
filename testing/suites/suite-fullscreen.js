@@ -302,7 +302,8 @@ export default {
                     typeof api.BlacksmithFullscreenWindowBaseV2 === 'function');
                 expect.ok('getFullscreenWindowBaseV2() returns it',
                     api.getFullscreenWindowBaseV2?.() === api.BlacksmithFullscreenWindowBaseV2);
-                for (const key of ['fullscreenLayouts', 'fullscreenFits', 'fullscreenAnimations', 'fullscreenStages']) {
+                for (const key of ['fullscreenLayouts', 'fullscreenFits', 'fullscreenAnimations',
+                    'fullscreenStages', 'fullscreenFrom']) {
                     expect.ok(`api.${key} is present`, !!api[key] && typeof api[key] === 'object');
                 }
                 expect.ok('windowStyles carries FULLSCREEN', api.windowStyles?.FULLSCREEN === 'fullscreen');
@@ -323,6 +324,7 @@ export default {
                 expect.ok('BLACKSMITH_FULLSCREEN_STAGES exported', !!bridge.BLACKSMITH_FULLSCREEN_STAGES);
                 expect.ok('BLACKSMITH_FULLSCREEN_LAYOUTS exported', !!bridge.BLACKSMITH_FULLSCREEN_LAYOUTS);
                 expect.ok('BLACKSMITH_FULLSCREEN_FITS exported', !!bridge.BLACKSMITH_FULLSCREEN_FITS);
+                expect.ok('BLACKSMITH_FULLSCREEN_FROM exported', !!bridge.BLACKSMITH_FULLSCREEN_FROM);
             }
         },
         {

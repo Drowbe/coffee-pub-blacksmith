@@ -156,7 +156,8 @@ import {
     BLACKSMITH_FULLSCREEN_LAYOUTS,
     BLACKSMITH_FULLSCREEN_FITS,
     BLACKSMITH_FULLSCREEN_ANIMATIONS,
-    BLACKSMITH_FULLSCREEN_STAGES
+    BLACKSMITH_FULLSCREEN_STAGES,
+    BLACKSMITH_FULLSCREEN_FROM
 } from './window-fullscreen-base.js';
 import './ui-sidebar-combat.js';
 import './ui-combat-tools.js';
@@ -182,6 +183,7 @@ try {
         _bsMod.api.fullscreenFits = BLACKSMITH_FULLSCREEN_FITS;
         _bsMod.api.fullscreenAnimations = BLACKSMITH_FULLSCREEN_ANIMATIONS;
         _bsMod.api.fullscreenStages = BLACKSMITH_FULLSCREEN_STAGES;
+        _bsMod.api.fullscreenFrom = BLACKSMITH_FULLSCREEN_FROM;
     }
 } catch {
     /* non-Foundry / test */
@@ -1176,6 +1178,7 @@ Hooks.once('init', async function() {
         fullscreenFits: BLACKSMITH_FULLSCREEN_FITS,
         fullscreenAnimations: BLACKSMITH_FULLSCREEN_ANIMATIONS,
         fullscreenStages: BLACKSMITH_FULLSCREEN_STAGES,
+        fullscreenFrom: BLACKSMITH_FULLSCREEN_FROM,
         registerMenubarTool: null,
         unregisterMenubarTool: null,
         getRegisteredMenubarTools: null,

@@ -429,14 +429,29 @@ layout engine.
 These resolve to custom properties on the window element, so a consumer stylesheet can override any one
 of them with ordinary specificity.
 
-### Staged entrance
+### Staged entrance and exit
 
-The surface arrives in four stages: the **surface** itself, then the **panel** it carries, then the
-**content** on the panel, then the **items** -- the repeated things, staggered. Pick a preset with
-`fullscreenAnimation` (`api.fullscreenAnimations`): `subtle` (default), `bars`, `slam`, or `none`.
+A surface arrives in four stages -- the **surface**, then the **panel** it carries, then the **content**
+on the panel, then the **items**, staggered -- and leaves in the reverse order. Pick a preset with
+`fullscreenAnimation` (`api.fullscreenAnimations`):
 
-The base owns the first two stages, because they are its own elements. For the other two you mark your
-own DOM and write no animation code:
+| Preset | Arrival |
+|--------|---------|
+| `fade` | A clean crossfade. The default, and the floor. |
+| `slide` | Items travel in from their own side, overshoot, rebound, and pop into place. |
+| `drop` | The same arrival, from above. |
+| `bars` | Letterbox bars drive in, then the content between them. |
+| `slam` | Items hurled in from behind the viewer, spinning, landing hard, with a kick on the stage. |
+| `random` | One of the above, drawn once when the window opens. |
+
+There is no `none`. A preset that animates nothing is a preset that does nothing; set the durations to
+zero if you want stillness.
+
+`random` resolves to a concrete preset **before anything renders** and is remembered for the life of the
+window, so `data-fs-animation` always names a real preset and the exit matches the entrance that played.
+
+The base owns the first two stages, because they are its own elements. For the other two you mark your own
+DOM and write no animation code:
 
 ```html
 <h2 data-fs-stage="content">Gilded Flagon</h2>
@@ -446,29 +461,70 @@ own DOM and write no animation code:
 <div class="shop-item" data-fs-stage="items">...</div>
 ```
 
-The active preset supplies the keyframes and the stage chain supplies the delays. Mark nothing and the
-surface and panel still animate, which is a reasonable floor. Never hand-number the items -- the base
-sets `--fs-index` on each one at render, and publishes the count so the chain knows when the last one
-lands.
+Mark nothing and the surface and panel still animate, which is a reasonable floor.
 
 **A staged element must rest in its final, visible state.** Do not give it `opacity: 0` or an offset
 transform expecting the stage to reveal it. The stage holds the end state through `animation-fill-mode`,
-and three ordinary things drop that fill: the entrance finishing, `prefers-reduced-motion`, and the
-`none` preset. Any of them leaves the element at its resting state, so a hidden resting state is content
-that flashes and disappears. The entrance borrows an element's appearance and hands it back.
+and three ordinary things drop that fill: the entrance finishing, `prefers-reduced-motion`, and a preset
+with a zero duration. Any of them leaves the element at its resting state, so a hidden resting state is
+content that flashes and disappears. The entrance borrows an element's appearance and hands it back.
 
-Entrances play once. The base sets `data-fs-entered` when the sequence completes, so a re-render -- a
-filter change, an appended row -- does not fly the whole surface in again.
+**Anything that must keep running -- an ambient loop, a pulse -- belongs on an inner element or a
+pseudo-element, never on the staged element itself.** The base sets `animation: none` on every
+`[data-fs-stage]` once the entrance completes, and a stage already owns that element's `transform`; two
+animations on one property do not compose, the later simply wins.
 
-**Retiming.** Only durations are authored; every delay is a `calc()` of the stage before it, and
-`--fs-stage-total` falls out of the same chain. The base reads that total back, so a preset is retimed in
-`styles/window-fullscreen.css` alone with no matching constant in JavaScript.
+Entrances play once. `data-fs-entered` is set when the sequence completes, so a re-render -- a filter
+change, an appended row -- does not fly the whole surface in again.
+
+### Direction: `data-fs-from`
+
+`slide` and `drop` need to know which edge an item travels in from. Put `data-fs-from` on the item or on
+any ancestor, and a whole group inherits it (`api.fullscreenFrom`: `left`, `right`, `top`, `bottom`).
+Unmarked items arrive from the left and above.
+
+```html
+<div class="challengers" data-fs-from="left">  ...items... </div>
+<div class="defenders"   data-fs-from="right"> ...items... </div>
+```
+
+It does two jobs, and the second is not obvious:
+
+- **Which way an item travels.** One keyframe set serves every edge by multiplying the distance by a sign,
+  so directions cannot drift apart the way four near-identical keyframe sets would.
+- **How items are numbered.** Items are staggered within their `data-fs-from` group, not across the whole
+  surface -- so two opposing groups arrive *in step* rather than one after the other. Within a group they
+  are filled **away from the edge they enter through**: a group entering from the left fills its rightmost
+  slot first, so each arrival stops short of the ones already placed instead of flying over them.
+
+The base assigns two custom properties to every staged item; never set them yourself:
 
 | Property | Purpose |
 |----------|---------|
-| `--fs-stage-surface-duration` / `-panel-` / `-content-` / `-item-duration` | Per-stage durations. The only values a preset sets. |
+| `--fs-index` | Position within its `data-fs-from` group, for the stagger. |
+| `--fs-random` | A stable 0-1 seed, assigned once, for ambient effects that should not march in step. Vary a duration as well as a delay with it, or items keep a fixed relative order forever. |
+
+### Retiming
+
+Only durations are authored; every delay is a `calc()` of the stage before it, for both chains. Retiming
+one stage cascades instead of forcing you to re-sum everything downstream by hand.
+
+| Property | Purpose |
+|----------|---------|
+| `--fs-stage-surface-duration` / `-panel-` / `-content-` / `-item-duration` | Entrance durations. |
 | `--fs-stage-item-stagger` | Gap between consecutive items. |
-| `--fs-stage-*-delay`, `--fs-stage-total` | Derived. Read them if you are animating something yourself and want to stay in time; do not author them. |
+| `--fs-exit-item-duration` / `-content-` / `-panel-` / `-surface-duration`, `--fs-exit-item-stagger` | The same for the exit. |
+| `--fs-stage-*-delay`, `--fs-exit-*-delay` | Derived. Read them to stay in time with a stage; do not author them. |
+| `--fs-stage-total`, `--fs-exit-total` | Derived, and read back by the base to know how long to wait. |
+
+The two totals are **registered** with `@property { syntax: "<time>" }` in `styles/window-fullscreen.css`,
+and that registration is load-bearing. An unregistered custom property has no computed value, so
+`getPropertyValue` returns the specified token stream -- the literal text `calc(calc(120ms + 300ms) ...)` --
+and every parse of it is `NaN`. Registration is what makes the browser resolve the chain before the base
+reads it. If you add a total, register it.
+
+Timings are judged rather than asserted, so the harness carries a tuner: **Fullscreen Window -> Open the
+tuner** gives sliders for every dial and a Copy CSS button.
 
 ### Zones
 

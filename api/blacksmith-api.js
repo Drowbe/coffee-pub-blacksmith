@@ -52,7 +52,8 @@ export {
     BLACKSMITH_FULLSCREEN_LAYOUTS,
     BLACKSMITH_FULLSCREEN_FITS,
     BLACKSMITH_FULLSCREEN_ANIMATIONS,
-    BLACKSMITH_FULLSCREEN_STAGES
+    BLACKSMITH_FULLSCREEN_STAGES,
+    BLACKSMITH_FULLSCREEN_FROM
 } from '../scripts/window-fullscreen-base.js';
 
 // ==================================================================

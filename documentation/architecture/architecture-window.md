@@ -137,6 +137,22 @@ There is no module-unload cleanup hook. `unloadModule` is a dead name (see [api-
 
 ---
 
+### 3.2b The stage chain
+
+`styles/window-fullscreen.css` plus `_indexStagedItems` / `_applyFullscreenAnimation` in the base. Two chains -- entrance and exit -- each running its stages in order, the exit reversed.
+
+**Only durations are authored; every delay is a `calc()` of the stage before it,** and the two totals fall out of the same arithmetic. Hand-summed delays are right the day they are written and drift on the first change, and the drift shows as a gap or an overlap that reads as a rendering bug rather than a stale number.
+
+**The totals are registered with `@property { syntax: "<time>" }`, and that is load-bearing.** An unregistered custom property has no computed value, so `getPropertyValue` hands back the specified token stream -- the literal text of the `calc()` -- and every parse of it is `NaN`. The base reads both totals back, so without registration the entrance timer fires immediately and the exit ignores its own chain. See `_readCssMs`.
+
+**Order in `_onRender` is load-bearing for the same reason.** `_indexStagedItems` publishes `--fs-stage-item-count`, which the entrance total is a calc over; reading the total first computes it as if there were no items. Too short a total lands `data-fs-entered` -- which sets `animation: none` on every staged element -- while later items are still travelling, so the first item animates and the rest snap into place.
+
+**Consumers mark, they do not describe.** `data-fs-stage="content"` / `"items"` on a consumer's own DOM is the whole contract; the active preset supplies the keyframes. `data-fs-from` names the edge an item enters through and does two jobs: it signs the travel distance, so one keyframe set serves every direction, and it groups items for numbering. Groups are numbered independently, so opposing sides arrive in step, and each group fills **away from its entry edge**, so an arrival stops short of the items already placed rather than flying over them.
+
+**A staged element must rest in its final, visible state**, and anything ambient must live on an inner element or pseudo-element. Both follow from the same fact: a stage owns its element's `transform` and has its `animation` cleared once the entrance ends.
+
+---
+
 ### 3.3 Migration status
 
 The Application V2 migration is complete — `grep -rE 'extends (Application|FormApplication)\b' scripts/` returns zero results, and every window extends `BlacksmithWindowBaseV2`. Registering a window with the registry is the optional part: a window can be registered (e.g. `registerWindow('request-roll', { open: (opts) => new SkillCheckDialog(opts) })`) so `openWindow('request-roll')` works, or a toolbar tool can instantiate the class directly.
