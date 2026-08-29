@@ -391,6 +391,7 @@ export default {
                             (mirrored ? g[g.length - 1] : g[0]) === '0');
                     }
 
+                    const seeds = [...items].map((el) => el.style.getPropertyValue('--fs-random'));
                     expect.ok('every item has --fs-random', seeds.every((v) => v !== ''));
                     expect.ok('seeds are not all identical', new Set(seeds).size > 1);
                     expect.ok('--fs-stage-item-count is published',
@@ -444,12 +445,17 @@ export default {
                     // The window the base actually waits for has to cover the last item's
                     // delay plus its flight, or `data-fs-entered` truncates it.
                     const el = surfaceEl();
-                    const cs = getComputedStyle(el);
-                    const last = el.querySelector('[data-fs-stage="items"]:last-of-type');
-                    const lastDelay = parseFloat(getComputedStyle(last).animationDelay) * 1000;
-                    const itemMs = parseFloat(cs.getPropertyValue('--fs-stage-item-duration')) || 0;
-                    log(`last item starts ${Math.round(lastDelay)}ms, runs ${itemMs}ms, total ${many}ms`);
-                    expect.ok('the total outlasts the last item', many >= lastDelay + itemMs - 1);
+                    // The latest arrival across every item, not `:last-of-type` -- with
+                    // mirrored groups the highest index is not the last element in the DOM,
+                    // and with several groups there is no single "last" one at all.
+                    const finishes = [...el.querySelectorAll('[data-fs-stage="items"]')].map((item) => {
+                        const ics = getComputedStyle(item);
+                        return (parseFloat(ics.animationDelay) || 0) * 1000
+                            + (parseFloat(ics.animationDuration) || 0) * 1000;
+                    });
+                    const lastFinish = Math.max(0, ...finishes);
+                    log(`total ${Math.round(many)}ms; last item finishes ${Math.round(lastFinish)}ms`);
+                    expect.ok('the total outlasts the last item', many + 1 >= lastFinish);
                 } finally {
                     await closeSurface();
                     state.cards = previous.cards;
