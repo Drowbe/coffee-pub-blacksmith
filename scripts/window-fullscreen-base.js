@@ -53,8 +53,21 @@ export const BLACKSMITH_FULLSCREEN_ANIMATIONS = Object.freeze({
     /** Letterbox bars drive in, then the content between them. */
     BARS: 'bars',
     /** Hurled in from behind the viewer, spinning, landing hard. */
-    SLAM: 'slam'
+    SLAM: 'slam',
+    /**
+     * Pick one of the above, once, when the window opens.
+     *
+     * Not a look of its own -- it resolves to a real preset before anything renders, so
+     * `data-fs-animation` always names something the stylesheet can select and the exit
+     * matches the entrance that actually played.
+     */
+    RANDOM: 'random'
 });
+
+/** The presets that are a look, rather than an instruction to choose one. */
+const CONCRETE_ANIMATIONS = Object.freeze(
+    Object.values(BLACKSMITH_FULLSCREEN_ANIMATIONS).filter((v) => v !== 'random')
+);
 
 /**
  * Which edge a staged item travels in from, set by a consumer with `data-fs-from` on
@@ -396,10 +409,22 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
     // ===== STAGED ENTRANCE ========================================
     // ==============================================================
 
-    /** The resolved preset, falling back to `subtle` for an unknown value. */
+    /**
+     * The resolved preset, falling back to `fade` for an unknown value.
+     *
+     * `random` is drawn ONCE and remembered on the instance. Rolling per call would let
+     * a re-render change the look halfway through a window's life, and would give the
+     * exit a different preset from the entrance -- cards that slid in from the sides
+     * dropping out through the floor.
+     */
     get fullscreenAnimation() {
         const requested = this.options?.fullscreenAnimation;
-        return Object.values(BLACKSMITH_FULLSCREEN_ANIMATIONS).includes(requested)
+        if (requested === BLACKSMITH_FULLSCREEN_ANIMATIONS.RANDOM) {
+            this._resolvedAnimation ??=
+                CONCRETE_ANIMATIONS[Math.floor(Math.random() * CONCRETE_ANIMATIONS.length)];
+            return this._resolvedAnimation;
+        }
+        return CONCRETE_ANIMATIONS.includes(requested)
             ? requested
             : BLACKSMITH_FULLSCREEN_ANIMATIONS.FADE;
     }

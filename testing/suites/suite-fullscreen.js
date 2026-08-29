@@ -257,7 +257,7 @@ function buildPanel(animations, log) {
                     `\n}`;
                 const css = [
                     block('stage', 'styles/window-fullscreen.css',
-                        `.blacksmith-window-fullscreen[data-fs-animation="${state.preset}"]`),
+                        `.blacksmith-window-fullscreen[data-fs-animation="${surfaceEl()?.dataset.fsAnimation ?? state.preset}"]`),
                     block('band', 'styles/window-roll-cinematic.css', '#cpb-cinematic-bar')
                 ].join('\n\n');
                 await navigator.clipboard.writeText(css);
@@ -338,16 +338,16 @@ export default {
                 probe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:10px;height:10px';
                 document.body.appendChild(probe);
                 try {
-                    for (const preset of Object.values(api.fullscreenAnimations)) {
+                    const concrete = Object.values(api.fullscreenAnimations)
+                        .filter((p) => p !== api.fullscreenAnimations.RANDOM);
+                    for (const preset of concrete) {
                         probe.dataset.fsAnimation = preset;
                         const cs = getComputedStyle(probe);
                         const entrance = cs.getPropertyValue('--fs-stage-total').trim();
                         const exit = cs.getPropertyValue('--fs-exit-total').trim();
                         expect.ok(`${preset}: entrance total resolves`, entrance !== '');
                         expect.ok(`${preset}: exit total resolves`, exit !== '');
-                        if (preset !== 'none') {
-                            expect.ok(`${preset}: entrance is non-zero`, parseFloat(entrance) > 0);
-                        }
+                        expect.ok(`${preset}: entrance is non-zero`, parseFloat(entrance) > 0);
                         log(`${preset}: in ${entrance || '?'}, out ${exit || '?'}`);
                     }
                 } finally {
@@ -415,6 +415,34 @@ export default {
                     }
                 } finally {
                     await closeSurface();
+                }
+            }
+        },
+        {
+            id: 'random-resolves-once',
+            label: 'random resolves to a real preset, and keeps it',
+            tier: 'headless',
+            group: 'Stage chain',
+            note: 'a preset that changed mid-life would exit differently from how it entered',
+            run: async ({ expect, log }) => {
+                const api = requireApi();
+                const previous = state.preset;
+                state.preset = api.fullscreenAnimations.RANDOM;
+                try {
+                    await openSurface();
+                    const app = foundry.applications.instances.get(SURFACE_ID);
+                    const first = surfaceEl()?.dataset.fsAnimation;
+                    expect.ok('resolved to a concrete preset',
+                        !!first && first !== 'random'
+                        && Object.values(api.fullscreenAnimations).includes(first));
+                    expect.ok('the getter agrees with the attribute', app.fullscreenAnimation === first);
+                    // Read repeatedly: a fresh draw each time is the bug.
+                    expect.ok('stable across reads',
+                        app.fullscreenAnimation === first && app.fullscreenAnimation === first);
+                    log(`random drew "${first}" this time`);
+                } finally {
+                    await closeSurface();
+                    state.preset = previous;
                 }
             }
         },
