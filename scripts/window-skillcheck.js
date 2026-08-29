@@ -2626,12 +2626,10 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             // an accident of this template and nothing would fail loudly if it changed.
             actorCardsHtml = `
                 <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-challengers">
-                    <h3 class="cpb-cinematic-group-title" data-fs-stage="content">Challengers</h3>
                     <div class="cpb-cinematic-card-grid">${challengerCards}</div>
                 </div>
                 <div class="cpb-cinematic-vs-divider" data-fs-stage="content">VS</div>
                 <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-defenders">
-                    <h3 class="cpb-cinematic-group-title" data-fs-stage="content">Defenders</h3>
                     <div class="cpb-cinematic-card-grid">${defenderCards}</div>
                 </div>
             `;
@@ -2666,26 +2664,30 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         }
 
 
-        // Create roll details text with separate title and subtitle
-        let rollDetailsHtml = `<div class="cpb-cinematic-roll-details" data-fs-stage="content">`;
-        
-        // 1. Roll Title (always separate and prominent)
+        // Title and details are PLATES, straddling the band's top and bottom edges rather
+        // than stacking inside it. The band then carries only the cards and the VS, which
+        // is what stops a contested roll competing with its own heading for the same
+        // vertical space.
+        //
+        // Each plate sits in a positioning SLOT. The slot owns the placement transform and
+        // the plate owns appearance -- because the plate is the `content` stage's animation
+        // target, and a stage animates `transform`. Centre the plate with a transform of
+        // its own and the entrance keyframes overwrite it, dropping the plate off-centre
+        // the moment the animation ends. Two transforms on one element never compose.
         const rollTitle = messageData.rollTitle || messageData.skillName;
-        rollDetailsHtml += `<h2 class="cpb-cinematic-roll-title">${rollTitle}</h2>`;
-        
-        // 2. Subtitle with skill info and additional details
+
         const subtitleParts = [];
-        
+
         // Contested roll info (skill vs skill)
         if (messageData.hasMultipleGroups) {
             subtitleParts.push(`${messageData.skillName} vs ${messageData.defenderSkillName}`);
         }
-        
+
         // DC info
         if (messageData.showDC && messageData.dc) {
             subtitleParts.push(`DC ${messageData.dc}`);
         }
-        
+
         // Group roll info
         if (messageData.isGroupRoll && !messageData.hasMultipleGroups) {
             subtitleParts.push(`Group Roll`);
@@ -2698,25 +2700,33 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             subtitleParts.push(messageData.lockRollAdvantage ? `${label} (required)` : `${label} (requested)`);
         }
 
-        // Add subtitle if we have any parts
-        if (subtitleParts.length > 0) {
-            rollDetailsHtml += `<p class="cpb-cinematic-roll-subtext">${subtitleParts.join(' • ')}</p>`;
-        }
+        const titlePlateHtml = rollTitle
+            ? `<div class="cpb-cinematic-plate-slot cpb-cinematic-plate-slot-title">
+                   <div class="cpb-cinematic-plate cpb-cinematic-plate-title" data-fs-stage="content" style="background-image: url('${backgroundImage}');">${rollTitle}</div>
+               </div>`
+            : '';
 
-        // Requester-authored explanation
-        if (messageData.explanation) {
-            rollDetailsHtml += `<p class="cpb-cinematic-roll-explanation">${foundry.utils.escapeHTML(String(messageData.explanation))}</p>`;
-        }
-
-        rollDetailsHtml += `</div>`;
+        const detailLine = subtitleParts.join(' • ');
+        const explanation = messageData.explanation
+            ? `<span class="cpb-cinematic-plate-explanation">${foundry.utils.escapeHTML(String(messageData.explanation))}</span>`
+            : '';
+        const detailPlateHtml = (detailLine || explanation)
+            ? `<div class="cpb-cinematic-plate-slot cpb-cinematic-plate-slot-detail">
+                   <div class="cpb-cinematic-plate cpb-cinematic-plate-detail" data-fs-stage="content" style="background-image: url('${backgroundImage}');">
+                       ${detailLine ? `<span class="cpb-cinematic-plate-detail-line">${detailLine}</span>` : ''}
+                       ${explanation}
+                   </div>
+               </div>`
+            : '';
 
         const containerClass = `cpb-cinematic-actors-container ${messageData.hasMultipleGroups ? 'contested' : ''}`;
         const bodyContent = `
             <div id="cpb-cinematic-bar" style="background-image: url('${backgroundImage}');">
-                ${rollDetailsHtml}
+                ${titlePlateHtml}
                 <div class="${containerClass}">
                     ${actorCardsHtml}
                 </div>
+                ${detailPlateHtml}
             </div>
         `;
 

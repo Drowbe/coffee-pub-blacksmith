@@ -18,7 +18,18 @@
     align-items: center;
     justify-content: center;
     gap: 1rem;
-    padding: 1rem;
+    /* The band's frame, declared once. The plates reuse it so their border is the same
+       object rather than a lookalike, and the slots offset themselves by half of it --
+       change this and both follow. */
+    --cpb-band-border-width: 12px;
+    --cpb-band-border-color: rgba(0, 0, 0, 0.8);
+    /* How far each plate dips into the band. One number, used by both slots, so the
+       top and bottom always sit the same distance in -- nudging them apart by hand
+       is how they end up a pixel or two out of symmetry. */
+    --cpb-plate-overlap: 12px;
+    /* The plates now sit almost entirely outside the band, so the cards need only
+       ordinary breathing room rather than clearance for an overhang. */
+    padding: 1.5rem 1rem;
     box-sizing: border-box;
     width: 100%;
     min-height: 300px;
@@ -28,8 +39,8 @@
        against that, so one would only ever mislead. */
     background-size: cover;
     background-position: center;
-    border-top: 12px solid rgba(0,0,0,0.8);
-    border-bottom: 12px solid rgba(0,0,0,0.8);
+    border-top: var(--cpb-band-border-width) solid var(--cpb-band-border-color);
+    border-bottom: var(--cpb-band-border-width) solid var(--cpb-band-border-color);
     box-shadow: 0 0 30px rgba(0,0,0,0.8);
 }
 
@@ -55,41 +66,101 @@
 }
 
 
-/* CINEMATIC TITLE AND ROLL DETAILS */
+/* CINEMATIC TITLE AND DETAIL PLATES
 
-.cpb-cinematic-roll-details {
+   Both straddle the band's edges rather than stacking inside it, so the band
+   carries only the cards and the VS. A contested roll then stops competing with
+   its own heading for the same vertical space.
+
+   SLOT owns placement, PLATE owns appearance -- and that split is load-bearing,
+   not tidiness. The plate is the `content` stage's animation target, and a stage
+   animates `transform`. Centre the plate with a transform of its own and the
+   entrance keyframes overwrite it, dropping it off-centre the moment the
+   animation ends. Two transforms on one element never compose; the later wins. */
+
+.cpb-cinematic-plate-slot {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    /* The band beneath stays clickable through the gaps around the plate. */
+    pointer-events: none;
+    /* Under #cpb-cinematic-results-bar (z-index 10), which is a full takeover. */
+    z-index: 5;
+}
+
+/* Offset by HALF the band's border, not by a percentage of the plate.
+   `top: 0` is the band's padding-box edge, so its border sits in the 12px just
+   outside that. Landing the plate's bottom edge mid-border overlaps the two frames
+   by 6px, which is enough for the black to merge into one shape and little enough
+   that the plate still reads as a tab on the band rather than a box on top of it.
+   A percentage would drift every time a plate's text wrapped to two lines. */
+/* A real overlap: the plate's lower edge dips past the band's frame and into its
+   interior. Offsetting by a fixed distance rather than a percentage of the plate
+   keeps it constant when the detail text wraps to two lines. */
+.cpb-cinematic-plate-slot-title {
+    top: 0;
+    transform: translateY(calc(-100% + var(--cpb-plate-overlap)));
+}
+
+.cpb-cinematic-plate-slot-detail {
+    bottom: 0;
+    transform: translateY(calc(100% - var(--cpb-plate-overlap)));
+}
+
+.cpb-cinematic-plate {
+    max-width: min(88%, 1000px);
+    padding: 18px 52px;
+    box-sizing: border-box;
     text-align: center;
     color: #fff;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
-    margin-bottom: 12px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+    /* The band's frame continued, and the band's ART continued: the plate carries the
+       same banner image, set inline alongside the band's own. Cut from the same cloth
+       rather than a black box parked against it -- filling it with the border colour
+       collapsed frame and fill into one flat slab.
+
+       The inset shadow is a full-bleed scrim over that art. A `background-color` cannot
+       do this: colour paints BEHIND the image, so it would never darken it. */
+    background-size: cover;
+    background-position: center;
+    border: var(--cpb-band-border-width) solid var(--cpb-band-border-color);
+    border-radius: 10px;
+    box-shadow:
+        inset 0 0 0 999px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(0, 0, 0, 0.8);
+    pointer-events: auto;
 }
-.cpb-cinematic-roll-title {
+
+.cpb-cinematic-plate-title {
     font-family: var(--font-primary);
-    font-size: 3.5em;
+    font-size: 4.2em;
     font-weight: 900;
-    margin: 0;
-    padding: 0;
+    line-height: 1.05;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    border-bottom: 3px solid rgba(245, 245, 245, 0.9);
+    letter-spacing: 2px;
 }
 
-.cpb-cinematic-roll-subtext {
-    font-size: 1.5em;
-    margin: 0;
-    padding: 0px 0px 0px 0px ;
-    opacity: 0.9;
-    font-weight: 900;
-    margin-top: 10px;
+.cpb-cinematic-plate-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 1.35em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 14px 44px;
 }
 
-/* Requester-authored explanation (options.explanation) */
-.cpb-cinematic-roll-explanation {
-    font-size: 1.0em;
-    margin: 6px 0 0 0;
-    padding: 0;
-    opacity: 0.85;
+.cpb-cinematic-plate-detail-line {
+    letter-spacing: 0.5px;
+}
+
+.cpb-cinematic-plate-explanation {
+    font-size: 0.85em;
     font-weight: 400;
+    opacity: 0.85;
     max-width: 60ch;
 }
 
@@ -137,17 +208,6 @@
 
 .cpb-cinematic-actor-group-defenders {
     align-items: flex-start;
-}
-
-.cpb-cinematic-group-title {
-    color: #fff;
-    text-transform: uppercase;
-    font-size: 1.2em;
-    letter-spacing: 1px;
-    margin: 0 0 0.5rem 0;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.7);
-    border-bottom: 2px solid rgba(255,255,255,0.5);
-    padding-bottom: 4px;
 }
 
 .cpb-cinematic-card-grid {
