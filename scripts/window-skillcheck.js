@@ -2628,7 +2628,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-challengers">
                     <div class="cpb-cinematic-card-grid">${challengerCards}</div>
                 </div>
-                <div class="cpb-cinematic-vs-divider" data-fs-stage="content">VS</div>
+                <div class="cpb-cinematic-vs-divider" data-fs-stage="content"><span class="cpb-cinematic-vs-flame">VS</span></div>
                 <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-defenders">
                     <div class="cpb-cinematic-card-grid">${defenderCards}</div>
                 </div>
@@ -2702,7 +2702,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
         const titlePlateHtml = rollTitle
             ? `<div class="cpb-cinematic-plate-slot cpb-cinematic-plate-slot-title">
-                   <div class="cpb-cinematic-plate cpb-cinematic-plate-title" data-fs-stage="content" style="background-image: url('${backgroundImage}');">${rollTitle}</div>
+                   <div class="cpb-cinematic-plate cpb-cinematic-plate-title" data-fs-stage="content" style="background-image: url('${backgroundImage}');"><span class="cpb-cinematic-plate-text">${rollTitle}</span></div>
                </div>`
             : '';
 

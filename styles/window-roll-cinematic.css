@@ -193,6 +193,53 @@
     letter-spacing: 2px;
 }
 
+/* The same idea as the VS -- stacked shadows breathing -- deliberately detuned so the
+   two read as related rather than duplicated:
+
+     VS       2.4s, scales as it burns, red-hot core.
+     TITLE    3.9s, never scales, gold rather than fire.
+
+   No scale because the title is a long word: pulsing it drags the eye across the whole
+   plate, while the VS is two letters and pulsing them reads as a heartbeat. Different
+   period so the two never fall into step, which is what would make them look like one
+   effect applied twice.
+
+   The dark drop stays as the first layer in both states -- the glow sits on top of it,
+   so the letters keep their edge against whatever the banner art is doing underneath. */
+.cpb-cinematic-plate-title .cpb-cinematic-plate-text {
+    display: inline-block;
+    color: #fff;
+    animation: cpb-title-glow var(--cpb-title-glow-duration, 3.9s) ease-in-out infinite;
+}
+
+@keyframes cpb-title-glow {
+    0%, 100% {
+        text-shadow:
+            0 2px 6px rgba(0, 0, 0, 0.95),
+            0 0 8px rgba(255, 255, 255, 0.5),
+            0 0 22px rgba(255, 214, 130, 0.42),
+            0 0 46px rgba(255, 160, 40, 0.25);
+    }
+    50% {
+        text-shadow:
+            0 2px 6px rgba(0, 0, 0, 0.95),
+            0 0 13px rgba(255, 255, 255, 0.95),
+            0 0 36px rgba(255, 228, 165, 0.85),
+            0 0 76px rgba(255, 178, 62, 0.55),
+            0 0 124px rgba(255, 132, 20, 0.3);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cpb-cinematic-plate-title .cpb-cinematic-plate-text {
+        animation: none;
+        text-shadow:
+            0 2px 6px rgba(0, 0, 0, 0.95),
+            0 0 10px rgba(255, 255, 255, 0.7),
+            0 0 28px rgba(255, 214, 130, 0.6);
+    }
+}
+
 .cpb-cinematic-plate-detail {
     display: flex;
     flex-direction: column;
@@ -279,13 +326,59 @@
     justify-content: flex-start;
 }
 
+/* Outer element owns the ENTRANCE, inner span owns the AMBIENT burn.
+
+   Two reasons they cannot be one element. The outer carries
+   `data-fs-stage="content"`, so the stage animates its `transform` -- and a second
+   animation on the same property does not compose, the later just wins. And the
+   base sets `animation: none` on every `[data-fs-stage]` once the entrance has run,
+   which would kill an ambient loop the moment the surface finished opening. The
+   inner span carries no stage attribute, so its fire burns for as long as the
+   cinematic is up. Same split as the plate slots. */
 .cpb-cinematic-vs-divider {
-    font-size: 5.0em;
+    font-size: 7.5em;
     font-weight: 900;
-    color: rgba(255, 255, 255, 0.95);
-    text-shadow: 0 0 10px #ff5555;
+    line-height: 1;
     align-self: center;
-    margin: 0 1rem;
+    margin: 0 1.25rem;
+}
+
+.cpb-cinematic-vs-flame {
+    display: inline-block;
+    color: #fff;
+    animation: cpb-vs-flare var(--cpb-vs-flare-duration, 2.4s) ease-in-out infinite;
+}
+
+/* Four shadows stacked from tight-and-white to wide-and-red: the near layers read as
+   heat on the letterform, the far ones as the glow it throws. One big soft shadow
+   gives a halo; the stack gives fire. */
+@keyframes cpb-vs-flare {
+    0%, 100% {
+        transform: scale(1);
+        text-shadow:
+            0 0 6px rgba(255, 255, 255, 0.9),
+            0 0 18px rgba(255, 170, 60, 0.9),
+            0 0 34px rgba(255, 90, 20, 0.8),
+            0 0 62px rgba(255, 40, 0, 0.55);
+    }
+    50% {
+        transform: scale(1.07);
+        text-shadow:
+            0 0 10px rgba(255, 255, 255, 1),
+            0 0 28px rgba(255, 195, 95, 1),
+            0 0 56px rgba(255, 110, 30, 0.95),
+            0 0 100px rgba(255, 50, 0, 0.72);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cpb-cinematic-vs-flame {
+        animation: none;
+        text-shadow:
+            0 0 8px rgba(255, 255, 255, 0.95),
+            0 0 22px rgba(255, 170, 60, 0.9),
+            0 0 44px rgba(255, 90, 20, 0.8);
+    }
 }
 
 
@@ -386,6 +479,53 @@
 
 .cpb-cinematic-card:hover {
     transform: scale(1.05);
+}
+
+/* A gloss that sweeps the card like light across a foil trading card.
+
+   On a pseudo-element, not the card: the card carries `data-fs-stage="items"`, so its
+   own animation is the entrance and the base switches it off once that finishes.
+   Pseudo-elements carry no stage attribute, so this keeps running.
+
+   DESYNCED BY REUSING `--fs-index`. The base already numbers every staged item for the
+   entrance stagger, so the same variable offsets each card's gloss -- with a NEGATIVE
+   delay, which starts each card part-way into its own cycle rather than making it wait.
+   Six cards glinting in unison reads as a screen effect; six glinting at their own
+   moments reads as six objects catching the light. The 1.37s step is deliberately not a
+   round fraction of the duration, so the cards never drift back into phase. */
+.cpb-cinematic-card::after {
+    content: "";
+    position: absolute;
+    /* Oversized so the diagonal band clears the corners; the card clips it. */
+    inset: -25%;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+        104deg,
+        transparent 42%,
+        rgba(255, 255, 255, 0.06) 47%,
+        rgba(255, 255, 255, 0.32) 50%,
+        rgba(255, 255, 255, 0.06) 53%,
+        transparent 58%
+    );
+    transform: translateX(-150%);
+    animation: cpb-card-gloss var(--cpb-card-gloss-duration, 7s) ease-in-out infinite;
+    animation-delay: calc(var(--fs-index, 0) * -1.37s);
+}
+
+/* The sweep takes the first fifth of the cycle and the card rests for the other four --
+   a periodic glint rather than something permanently sliding across the portrait. */
+@keyframes cpb-card-gloss {
+    0%   { transform: translateX(-150%); }
+    20%  { transform: translateX(150%); }
+    100% { transform: translateX(150%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cpb-cinematic-card::after {
+        animation: none;
+        opacity: 0;
+    }
 }
 
 .cpb-cinematic-card img {
