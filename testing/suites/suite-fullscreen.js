@@ -419,6 +419,27 @@ export default {
             }
         },
         {
+            id: 'theme-setting',
+            label: 'The theme can choose the cinematic entrance',
+            tier: 'headless',
+            group: 'Theme',
+            note: 'CINEMATICANIMATION in theme-requestroll.json',
+            run: async ({ expect, log }) => {
+                const api = requireApi();
+                const { resolveRequestRollSetting, getRequestRollThemeJson } =
+                    await import('/modules/coffee-pub-blacksmith/scripts/utility-theme-request-roll.js');
+                const json = await getRequestRollThemeJson();
+                expect.ok('the theme declares a settings section', Array.isArray(json?.settings));
+                const value = await resolveRequestRollSetting('CINEMATICANIMATION');
+                expect.ok('CINEMATICANIMATION resolves to a value', value !== '');
+                expect.ok('and names a preset the base knows',
+                    Object.values(api.fullscreenAnimations).includes(value));
+                expect.ok('an unknown constant resolves empty, not undefined',
+                    (await resolveRequestRollSetting('NO_SUCH_SETTING')) === '');
+                log(`theme entrance: ${value}`);
+            }
+        },
+        {
             id: 'random-resolves-once',
             label: 'random resolves to a real preset, and keeps it',
             tier: 'headless',

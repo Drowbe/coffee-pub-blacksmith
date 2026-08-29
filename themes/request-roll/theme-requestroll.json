@@ -167,6 +167,134 @@
             "category": "request-roll"
         }
     ],
+    "settings": [
+        {
+            "name": "Skill Check Animation",
+            "id": "cinematic-animation-skill-check",
+            "value": "slide",
+            "constantname": "ANIMSKILLCHECK",
+            "choices": [
+                "fade",
+                "slide",
+                "drop",
+                "bars",
+                "slam",
+                "random"
+            ],
+            "tags": [
+                "cinematic-animation",
+                "request-roll",
+                "skill-check"
+            ],
+            "type": "choice",
+            "category": "request-roll"
+        },
+        {
+            "name": "Ability Check Animation",
+            "id": "cinematic-animation-ability-check",
+            "value": "drop",
+            "constantname": "ANIMABILITYCHECK",
+            "choices": [
+                "fade",
+                "slide",
+                "drop",
+                "bars",
+                "slam",
+                "random"
+            ],
+            "tags": [
+                "cinematic-animation",
+                "request-roll",
+                "ability-check"
+            ],
+            "type": "choice",
+            "category": "request-roll"
+        },
+        {
+            "name": "Saving Throw Animation",
+            "id": "cinematic-animation-saving-throw",
+            "value": "drop",
+            "constantname": "ANIMSAVINGTHROW",
+            "choices": [
+                "fade",
+                "slide",
+                "drop",
+                "bars",
+                "slam",
+                "random"
+            ],
+            "tags": [
+                "cinematic-animation",
+                "request-roll",
+                "saving-throw"
+            ],
+            "type": "choice",
+            "category": "request-roll"
+        },
+        {
+            "name": "Dice Roll Animation",
+            "id": "cinematic-animation-dice-roll",
+            "value": "fade",
+            "constantname": "ANIMDICEROLL",
+            "choices": [
+                "fade",
+                "slide",
+                "drop",
+                "bars",
+                "slam",
+                "random"
+            ],
+            "tags": [
+                "cinematic-animation",
+                "request-roll",
+                "dice-roll"
+            ],
+            "type": "choice",
+            "category": "request-roll"
+        },
+        {
+            "name": "Tool Check Animation",
+            "id": "cinematic-animation-tool-check",
+            "value": "slide",
+            "constantname": "ANIMTOOLCHECK",
+            "choices": [
+                "fade",
+                "slide",
+                "drop",
+                "bars",
+                "slam",
+                "random"
+            ],
+            "tags": [
+                "cinematic-animation",
+                "request-roll",
+                "tool-check"
+            ],
+            "type": "choice",
+            "category": "request-roll"
+        },
+        {
+            "name": "Contested Roll Animation",
+            "id": "cinematic-animation-contested-roll",
+            "value": "slam",
+            "constantname": "ANIMCONTESTEDROLL",
+            "choices": [
+                "fade",
+                "slide",
+                "drop",
+                "bars",
+                "slam",
+                "random"
+            ],
+            "tags": [
+                "cinematic-animation",
+                "request-roll",
+                "contested-roll"
+            ],
+            "type": "choice",
+            "category": "request-roll"
+        }
+    ],
     "sounds": [
         {
             "name": "Request Posted",

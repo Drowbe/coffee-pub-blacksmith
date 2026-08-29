@@ -88,3 +88,30 @@ export async function resolveRequestRollCinematicBanner(constantname) {
         return '';
     }
 }
+
+/**
+ * A theme SETTING -- a plain value rather than an asset path.
+ *
+ * The two resolvers above answer "which file?", and both read `path`. This answers
+ * "which of these?", so it reads `value` and the entry carries no path at all. Kept as
+ * its own section rather than squeezed into `cinematicBanners` with an empty path,
+ * because a reader scanning that list is entitled to assume everything in it is an
+ * image, and a settings entry hiding among them is the kind of thing that survives
+ * exactly until someone writes a loop over it.
+ *
+ * Returns '' when the theme names nothing, so the caller keeps its own default rather
+ * than being handed a value the theme never chose.
+ *
+ * @param {string} constantname
+ * @returns {Promise<string>}
+ */
+export async function resolveRequestRollSetting(constantname) {
+    try {
+        const json = await loadThemeJson();
+        const rec = findByConstantname(json?.settings, constantname)
+            ?? findById(json?.settings, constantname);
+        return String(rec?.value ?? '').trim();
+    } catch {
+        return '';
+    }
+}

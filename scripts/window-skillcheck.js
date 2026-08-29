@@ -3,7 +3,7 @@ import { MODULE } from './const.js';
 import { playSound, postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
-import { resolveRequestRollCinematicBanner, resolveRequestRollSound } from './utility-theme-request-roll.js';
+import { resolveRequestRollCinematicBanner, resolveRequestRollSound, resolveRequestRollSetting } from './utility-theme-request-roll.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import {
     BlacksmithFullscreenWindowBaseV2,
@@ -27,6 +27,8 @@ export class CinematicOverlay extends BlacksmithFullscreenWindowBaseV2 {
             id: 'cpb-cinematic-overlay',
             classes: ['blacksmith-window-fullscreen', 'cpb-cinematic'],
             fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.BAR,
+            // The floor, not the answer. The theme's CINEMATICANIMATION overrides it at
+            // construction; this is what a theme that names nothing falls back to.
             fullscreenAnimation: BLACKSMITH_FULLSCREEN_ANIMATIONS.SLAM,
             fullscreenBackdrop: {
                 image: 'modules/coffee-pub-blacksmith/images/backgrounds/background-skull-red.webp',
@@ -49,6 +51,25 @@ export class CinematicOverlay extends BlacksmithFullscreenWindowBaseV2 {
     constructor({ bodyContent = '', ...options } = {}) {
         super(options);
         this._cinematicBody = bodyContent;
+    }
+
+    /**
+     * The entrance the theme asked for.
+     *
+     * Resolved before construction rather than inside it, because Application V2 freezes
+     * options once the instance exists -- and the theme read is a fetch, so it cannot
+     * happen inside a constructor at all. An unknown or absent value is left alone: the
+     * base validates the name and falls back on its own, so a theme naming a preset that
+     * no longer exists degrades to `fade` rather than throwing.
+     *
+     * @param {object} options
+     * @returns {Promise<CinematicOverlay>}
+     */
+    static async create(options = {}) {
+        const themed = await resolveRequestRollSetting('CINEMATICANIMATION');
+        return new CinematicOverlay(themed
+            ? { ...options, fullscreenAnimation: themed }
+            : options);
     }
 
     /**
@@ -2740,7 +2761,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         // button, and the guarantee that a second cinematic replaces this one rather than
         // burying it. `overlay` below is the application element, which keeps the historical
         // id, so every selector manager-rolls.js uses against it still resolves.
-        const app = new CinematicOverlay({ bodyContent });
+        const app = await CinematicOverlay.create({ bodyContent });
         await app.render(true);
         const overlay = app.element;
         if (!overlay) return;
