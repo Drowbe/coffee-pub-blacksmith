@@ -43,7 +43,7 @@
        surface. No value satisfies both, because the pin preview at 100000 already
        sits above notifications independently of this window. Blocking wins. Raise
        or lower this one property if a consumer needs the other answer. */
-    --blacksmith-fullscreen-z-index: 200000;
+    --blacksmith-fullscreen-z-index: var(--blacksmith-fullscreen-z-base, 200000);
 
     /* --- Backdrop ------------------------------------------------
        The colour washes the whole surface; the image rides its own layer
@@ -213,6 +213,32 @@
     .blacksmith-window-fullscreen .blacksmith-window-fullscreen-root {
         animation: none;
     }
+}
+
+/* ===== ONE NUMBER FOR THE SURFACE'S STACKING ======================
+   Declared on the document so anything that must sit ABOVE the surface can
+   derive from it rather than restate it. Two numbers that have to agree is
+   how a stacking fix survives one change and breaks on the next. */
+
+:root {
+    --blacksmith-fullscreen-z-base: 200000;
+}
+
+/* ===== DICE SO NICE ==============================================
+   A blocking surface should cover the table, but not the dice the table is
+   waiting on -- a cinematic roll where the 3D dice land behind the overlay is
+   the roll's whole payoff happening off screen.
+
+   Scoped to `body.blacksmith-fullscreen-scroll-lock`, so it applies only while
+   a surface is actually open and DSN is left entirely alone otherwise.
+
+   `!important` because Dice So Nice positions its canvas from JavaScript rather
+   than a stylesheet -- there is no rule of its own to outrank, and an inline
+   style beats any selector we could write. This is the case the keyword exists
+   for, and it is deliberately the only one in this file. */
+
+body.blacksmith-fullscreen-scroll-lock #dice-box-canvas {
+    z-index: calc(var(--blacksmith-fullscreen-z-base, 200000) + 10) !important;
 }
 
 /* ===== DOCUMENT SCROLL LOCK ======================================

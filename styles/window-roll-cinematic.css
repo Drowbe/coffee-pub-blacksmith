@@ -146,8 +146,8 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 1.35em;
-    font-weight: 700;
+    font-size: 1.7em;
+    font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 1px;
     padding: 14px 44px;
@@ -340,7 +340,9 @@
 
 .cpb-cinematic-card .cpb-cinematic-actor-name {
     position: absolute;
-    top: 5px;
+    /* Flush to the top edge, mirroring the roll area's flush bottom. The card clips to
+       its own radius, so the band follows the rounded corners. */
+    top: 0;
     width: 100%;
     text-align: center;
     background: rgba(0, 0, 0, 0.6);
