@@ -514,18 +514,18 @@
     animation-timing-function: ease-in-out;
     animation-iteration-count: infinite;
     animation-duration:
-        calc(var(--cpb-card-gloss-duration, 17s)
-             + var(--fs-random, 0) * var(--cpb-card-gloss-spread, 9s));
-    animation-delay: calc(var(--fs-random, 0) * -23s);
+        calc(var(--cpb-card-gloss-duration, 10s)
+             + var(--fs-random, 0) * var(--cpb-card-gloss-spread, 5s));
+    animation-delay: calc(var(--fs-random, 0) * -14s);
 }
 
-/* The sweep occupies the first 7% of the cycle and the card rests for the rest -- so a
-   glint lasts a beat or so and then that card is quiet for the best part of half a
-   minute. Lengthening the cycle alone would have slowed the wipe itself; keeping the
-   sweep short and the cycle long is what makes it rare rather than sluggish. */
+/* The sweep occupies the first 12% of the cycle and the card rests for the rest, so a
+   glint lasts a beat or so and then that card is quiet for ten seconds or more.
+   Shortening the cycle without widening this would have made the wipe itself faster as
+   well as more frequent -- the two are coupled, so they move together. */
 @keyframes cpb-card-gloss {
-    0%  { transform: translateX(-150%); }
-    7%  { transform: translateX(150%); }
+    0%   { transform: translateX(-150%); }
+    12%  { transform: translateX(150%); }
     100% { transform: translateX(150%); }
 }
 
