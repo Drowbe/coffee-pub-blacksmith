@@ -386,9 +386,12 @@ export default {
                             === g.map((_, i) => String(i)).join(',')));
                     for (const [key, g] of byGroup) {
                         if (g.length < 2) continue;
-                        const mirrored = key === 'right' || key === 'bottom';
-                        expect.ok(`${key || 'default'} group counts from its own edge`,
-                            (mirrored ? g[g.length - 1] : g[0]) === '0');
+                        // Filled AWAY from the edge it enters through, so nothing flies
+                        // over a card already parked. From the left, the last slot in the
+                        // DOM is index 0; from the right, the first.
+                        const fillsFromFarEnd = key === 'left' || key === 'top' || key === '';
+                        expect.ok(`${key || 'default'} group fills away from its entry edge`,
+                            (fillsFromFarEnd ? g[g.length - 1] : g[0]) === '0');
                     }
 
                     const seeds = [...items].map((el) => el.style.getPropertyValue('--fs-random'));
@@ -403,12 +406,13 @@ export default {
                     const left = [...surface.querySelectorAll('[data-fs-from="left"] [data-fs-stage="items"]')];
                     const right = [...surface.querySelectorAll('[data-fs-from="right"] [data-fs-stage="items"]')];
                     if (left.length && right.length) {
-                        // The pairing test: outermost card on each side is 0, so they
-                        // travel together. Right counts from its own outer edge, which is
-                        // the LAST element in DOM order.
-                        expect.ok('opposing sides pair up at index 0',
-                            left[0].style.getPropertyValue('--fs-index') === '0'
-                            && right[right.length - 1].style.getPropertyValue('--fs-index') === '0');
+                        // The pairing test: the two INNERMOST cards are both index 0, so
+                        // the confrontation forms at the divider and grows outward. For
+                        // the left group that is the last element in DOM order; for the
+                        // right group, the first.
+                        expect.ok('the innermost cards of each side pair up at index 0',
+                            left[left.length - 1].style.getPropertyValue('--fs-index') === '0'
+                            && right[0].style.getPropertyValue('--fs-index') === '0');
                         expect.ok('item count is the largest side, not the total',
                             Number(surface.style.getPropertyValue('--fs-stage-item-count'))
                             === Math.max(left.length, right.length) - 1);
@@ -420,23 +424,35 @@ export default {
         },
         {
             id: 'theme-setting',
-            label: 'The theme can choose the cinematic entrance',
+            label: 'Every roll type has a banner AND an entrance',
             tier: 'headless',
             group: 'Theme',
-            note: 'CINEMATICANIMATION in theme-requestroll.json',
+            note: 'ANIM<TYPE> mirrors BACK<TYPE> in theme-requestroll.json',
             run: async ({ expect, log }) => {
                 const api = requireApi();
-                const { resolveRequestRollSetting, getRequestRollThemeJson } =
+                const { resolveRequestRollSetting, resolveRequestRollCinematicBanner, getRequestRollThemeJson } =
                     await import('/modules/coffee-pub-blacksmith/scripts/utility-theme-request-roll.js');
+
                 const json = await getRequestRollThemeJson();
                 expect.ok('the theme declares a settings section', Array.isArray(json?.settings));
-                const value = await resolveRequestRollSetting('CINEMATICANIMATION');
-                expect.ok('CINEMATICANIMATION resolves to a value', value !== '');
-                expect.ok('and names a preset the base knows',
-                    Object.values(api.fullscreenAnimations).includes(value));
+
+                // The six that open a band. The results-bar banners have no entrance --
+                // they drop over a surface that is already up.
+                const SUFFIXES = ['SKILLCHECK', 'ABILITYCHECK', 'SAVINGTHROW',
+                    'DICEROLL', 'TOOLCHECK', 'CONTESTEDROLL'];
+                const known = Object.values(api.fullscreenAnimations);
+
+                for (const suffix of SUFFIXES) {
+                    const banner = await resolveRequestRollCinematicBanner(`BACK${suffix}`);
+                    const anim = await resolveRequestRollSetting(`ANIM${suffix}`);
+                    expect.ok(`BACK${suffix} resolves a banner`, banner !== '');
+                    expect.ok(`ANIM${suffix} resolves an entrance`, anim !== '');
+                    expect.ok(`ANIM${suffix} names a preset the base knows`, known.includes(anim));
+                    log(`${suffix}: ${anim} over ${banner.split('/').pop()}`);
+                }
+
                 expect.ok('an unknown constant resolves empty, not undefined',
                     (await resolveRequestRollSetting('NO_SUCH_SETTING')) === '');
-                log(`theme entrance: ${value}`);
             }
         },
         {

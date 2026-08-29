@@ -171,7 +171,7 @@
         {
             "name": "Skill Check Animation",
             "id": "cinematic-animation-skill-check",
-            "value": "slide",
+            "value": "random",
             "constantname": "ANIMSKILLCHECK",
             "choices": [
                 "fade",

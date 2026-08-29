@@ -469,12 +469,15 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         // makes "coordinated opposing sides" fall out with no extra attribute, because
         // the sides ARE the directions.
         //
-        // AND MIRRORED, for groups arriving from the right or the bottom. DOM order runs
-        // left to right through both sides of a contest, so numbering both in that order
-        // makes index 0 the OUTERMOST card on the left and the INNERMOST on the right --
-        // "position 1" meaning opposite things on each side, and the two sides visibly
-        // out of step even though their delays match. Counting from each group's own
-        // edge inward is what makes a mirrored layout arrive as pairs.
+        // AND FILLED AWAY FROM THE EDGE THEY ENTER THROUGH. A group arriving from the
+        // left travels rightward, so the RIGHTMOST slot is numbered 0 and fills first;
+        // one arriving from the right fills its leftmost slot first. Number a group in
+        // the order it happens to sit in the DOM and every later item flies straight
+        // over the ones already parked, which reads as cards being shuffled rather than
+        // dealt. Filling the far end first means each arrival stops short of the last.
+        //
+        // On a contested layout this also lands the two innermost cards together, so the
+        // confrontation forms at the divider and grows outward.
         const groups = new Map();
         const groupOf = (el) => el.closest('[data-fs-from]')?.dataset.fsFrom ?? '';
         for (const item of items) {
@@ -483,9 +486,9 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
             groups.get(key).push(item);
         }
 
-        const MIRRORED = new Set(['right', 'bottom']);
+        const FILLS_FROM_FAR_END = new Set(['left', 'top']);
         for (const [key, list] of groups) {
-            const ordered = MIRRORED.has(key) ? [...list].reverse() : list;
+            const ordered = FILLS_FROM_FAR_END.has(key) ? [...list].reverse() : list;
             ordered.forEach((item, index) => {
                 item.style.setProperty('--fs-index', String(index));
                 // A stable per-item seed, for ambient effects that should not march in

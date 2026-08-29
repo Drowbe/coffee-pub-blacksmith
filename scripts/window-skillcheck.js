@@ -20,6 +20,32 @@ import { skillCheckMessageData } from './cards-skill-check.js';
  * manager-rolls.js reaches into that markup by selector to reveal results, append the group
  * banner, and fade the surface out. The element keeps its historical id for the same reason.
  */
+/**
+ * The theme suffix for a roll, shared by the banner and the entrance.
+ *
+ * Both are per-roll-type and both are chosen from the same fact, so they are chosen
+ * ONCE. Two switch statements over `rollType` would agree today and drift the first
+ * time a roll type was added to one of them -- and the failure is silent, an ability
+ * check wearing a saving throw's banner with the skill check's entrance.
+ *
+ * The theme's constants are `BACK<SUFFIX>` and `ANIM<SUFFIX>`, which is why the two
+ * families are named to line up rather than each reading well on its own.
+ *
+ * @param {object} messageData
+ * @returns {string}
+ */
+function cinematicThemeSuffix(messageData) {
+    if (messageData?.hasMultipleGroups) return 'CONTESTEDROLL';
+    switch (messageData?.rollType) {
+        case 'skill': return 'SKILLCHECK';
+        case 'ability': return 'ABILITYCHECK';
+        case 'save': return 'SAVINGTHROW';
+        case 'tool': return 'TOOLCHECK';
+        case 'dice': return 'DICEROLL';
+        default: return 'CONTESTEDROLL';
+    }
+}
+
 export class CinematicOverlay extends BlacksmithFullscreenWindowBaseV2 {
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
@@ -65,8 +91,8 @@ export class CinematicOverlay extends BlacksmithFullscreenWindowBaseV2 {
      * @param {object} options
      * @returns {Promise<CinematicOverlay>}
      */
-    static async create(options = {}) {
-        const themed = await resolveRequestRollSetting('CINEMATICANIMATION');
+    static async create(options = {}, suffix = 'CONTESTEDROLL') {
+        const themed = await resolveRequestRollSetting(`ANIM${suffix}`);
         return new CinematicOverlay(themed
             ? { ...options, fullscreenAnimation: themed }
             : options);
@@ -2663,32 +2689,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         } else {
             actorCardsHtml = messageData.actors.map(createActorCardHtml).join('');
         }
-        // Determine the background image based on the roll type
-        let backgroundImage;
-
-        if (messageData.hasMultipleGroups) {
-            backgroundImage = await resolveRequestRollCinematicBanner('BACKCONTESTEDROLL');
-        } else {
-            switch (messageData.rollType) {
-                case 'skill':
-                    backgroundImage = await resolveRequestRollCinematicBanner('BACKSKILLCHECK');
-                    break;
-                case 'ability':
-                    backgroundImage = await resolveRequestRollCinematicBanner('BACKABILITYCHECK');
-                    break;
-                case 'save':
-                    backgroundImage = await resolveRequestRollCinematicBanner('BACKSAVINGTHROW');
-                    break;
-                case 'tool':
-                    backgroundImage = await resolveRequestRollCinematicBanner('BACKTOOLCHECK');
-                    break;
-                case 'dice':
-                    backgroundImage = await resolveRequestRollCinematicBanner('BACKDICEROLL');
-                    break;
-                default:
-                    backgroundImage = await resolveRequestRollCinematicBanner('BACKCONTESTEDROLL');
-            }
-        }
+        // The banner and the entrance are both this roll type's, chosen from one decision.
+        const themeSuffix = cinematicThemeSuffix(messageData);
+        const backgroundImage = await resolveRequestRollCinematicBanner(`BACK${themeSuffix}`);
 
 
         // Title and details are PLATES, straddling the band's top and bottom edges rather
@@ -2761,7 +2764,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         // button, and the guarantee that a second cinematic replaces this one rather than
         // burying it. `overlay` below is the application element, which keeps the historical
         // id, so every selector manager-rolls.js uses against it still resolves.
-        const app = await CinematicOverlay.create({ bodyContent });
+        const app = await CinematicOverlay.create({ bodyContent }, themeSuffix);
         await app.render(true);
         const overlay = app.element;
         if (!overlay) return;
