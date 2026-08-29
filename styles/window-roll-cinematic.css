@@ -42,6 +42,57 @@
     border-top: var(--cpb-band-border-width) solid var(--cpb-band-border-color);
     border-bottom: var(--cpb-band-border-width) solid var(--cpb-band-border-color);
     box-shadow: 0 0 30px rgba(0,0,0,0.8);
+
+    /* The banner drifts vertically behind everything. `cover` on a 2.4:1 image in an
+       8:1 band crops hundreds of pixels off the top and bottom, so there is plenty of
+       image to pan through and none of it ever exposes an edge. Slow and small on
+       purpose -- this is meant to be felt rather than watched. */
+    animation: cpb-bar-drift var(--cpb-bar-drift-duration, 24s) ease-in-out infinite;
+}
+
+/* A soft light band sliding across the art, under the cards. Positioned rather than a
+   background layer so it can move independently of the drift underneath it. */
+#cpb-cinematic-bar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        100deg,
+        transparent 28%,
+        rgba(255, 255, 255, 0.14) 46%,
+        rgba(255, 255, 255, 0.03) 58%,
+        transparent 74%
+    );
+    animation: cpb-bar-sheen var(--cpb-bar-sheen-duration, 17s) ease-in-out infinite alternate;
+}
+
+/* The cards need a stacking position of their own, or the sheen -- a positioned child --
+   would paint over them. `z-index: -1` on the sheen is the obvious alternative and the
+   wrong one: `#cpb-cinematic-bar` is `position: relative` with `z-index: auto`, so it
+   creates no stacking context, and a negative child would escape behind the band
+   entirely. */
+.cpb-cinematic-actors-container {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes cpb-bar-drift {
+    0%, 100% { background-position: 50% 43%; }
+    50%      { background-position: 50% 57%; }
+}
+
+@keyframes cpb-bar-sheen {
+    from { transform: translate3d(-14%, 0, 0); opacity: 0.35; }
+    to   { transform: translate3d(14%, 0, 0); opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #cpb-cinematic-bar,
+    #cpb-cinematic-bar::before {
+        animation: none;
+    }
 }
 
 /* The band's arrival is the fullscreen base's `panel` stage now, not a transform of its
@@ -311,10 +362,15 @@
     position: relative;
     width: 150px;
     height: 220px;
-    border: 2px solid #ddd;
+    border: 5px solid #ddd;
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    /* Two shadows doing different jobs: a directional cast that lifts the card off the
+       band, and a tight ambient one that keeps its edge readable wherever the banner
+       art happens to be pale. */
+    box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.85),
+        0 0 14px rgba(0, 0, 0, 0.7);
     transition: all 0.3s ease;
     background: #222;
     /* No resting `opacity: 0` and no animation of its own. The card's arrival is the
