@@ -154,7 +154,9 @@ import { BLACKSMITH_WINDOW_STYLES } from './window-styles.js';
 import {
     BlacksmithFullscreenWindowBaseV2,
     BLACKSMITH_FULLSCREEN_LAYOUTS,
-    BLACKSMITH_FULLSCREEN_FITS
+    BLACKSMITH_FULLSCREEN_FITS,
+    BLACKSMITH_FULLSCREEN_ANIMATIONS,
+    BLACKSMITH_FULLSCREEN_STAGES
 } from './window-fullscreen-base.js';
 import './ui-sidebar-combat.js';
 import './ui-combat-tools.js';
@@ -178,6 +180,8 @@ try {
         _bsMod.api.toolThemes = BLACKSMITH_TOOL_THEMES;
         _bsMod.api.fullscreenLayouts = BLACKSMITH_FULLSCREEN_LAYOUTS;
         _bsMod.api.fullscreenFits = BLACKSMITH_FULLSCREEN_FITS;
+        _bsMod.api.fullscreenAnimations = BLACKSMITH_FULLSCREEN_ANIMATIONS;
+        _bsMod.api.fullscreenStages = BLACKSMITH_FULLSCREEN_STAGES;
     }
 } catch {
     /* non-Foundry / test */
@@ -1170,6 +1174,8 @@ Hooks.once('init', async function() {
         toolThemes: BLACKSMITH_TOOL_THEMES,
         fullscreenLayouts: BLACKSMITH_FULLSCREEN_LAYOUTS,
         fullscreenFits: BLACKSMITH_FULLSCREEN_FITS,
+        fullscreenAnimations: BLACKSMITH_FULLSCREEN_ANIMATIONS,
+        fullscreenStages: BLACKSMITH_FULLSCREEN_STAGES,
         registerMenubarTool: null,
         unregisterMenubarTool: null,
         getRegisteredMenubarTools: null,

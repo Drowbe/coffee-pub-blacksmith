@@ -64,6 +64,7 @@ const SUITES = [
     `${BASE}/suite-stats.js`,
     `${BASE}/suite-tags.js`,
     `${BASE}/suite-time-modes.js`,
+    `${BASE}/suite-fullscreen.js`,
     `${BASE}/suite-window-delegation.js`,
     `${BASE}/suite-xp-record.js`
 ];

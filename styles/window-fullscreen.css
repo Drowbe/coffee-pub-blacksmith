@@ -181,6 +181,52 @@
         calc(var(--fs-stage-items-delay)
              + var(--fs-stage-item-stagger) * var(--fs-stage-item-count)
              + var(--fs-stage-item-duration));
+
+    /* --- THE EXIT CHAIN, WHICH RUNS THE OTHER WAY ---------------------
+       Items leave first, then the content they sat among, then the panel, and the
+       surface last -- the reverse of arrival, because a stage that empties before
+       it closes reads as a scene ending, while one that vanishes whole reads as a
+       crash. Same rule as the entrance: durations authored, delays derived. */
+    --fs-exit-item-duration: 0ms;
+    --fs-exit-item-stagger: 0ms;
+    --fs-exit-content-duration: 0ms;
+    --fs-exit-panel-duration: 0ms;
+    --fs-exit-surface-duration: 180ms;
+
+    --fs-exit-items-delay: 0ms;
+    --fs-exit-content-delay:
+        calc(var(--fs-exit-items-delay)
+             + var(--fs-exit-item-stagger) * var(--fs-stage-item-count)
+             + var(--fs-exit-item-duration));
+    --fs-exit-panel-delay:
+        calc(var(--fs-exit-content-delay) + var(--fs-exit-content-duration));
+    --fs-exit-surface-delay:
+        calc(var(--fs-exit-panel-delay) + var(--fs-exit-panel-duration));
+    --fs-exit-total:
+        calc(var(--fs-exit-surface-delay) + var(--fs-exit-surface-duration));
+}
+
+/* While exiting, the stages run in reverse. The items keep their index so the side
+   that arrived first also leaves first, which reads as the scene unwinding rather
+   than reshuffling. */
+.blacksmith-window-fullscreen[data-fs-exiting] [data-fs-stage="content"] {
+    animation-delay: var(--fs-exit-content-delay);
+    animation-fill-mode: both;
+}
+
+.blacksmith-window-fullscreen[data-fs-exiting] [data-fs-stage="items"] {
+    animation-delay:
+        calc(var(--fs-exit-items-delay)
+             + var(--fs-index, 0) * var(--fs-exit-item-stagger));
+    animation-fill-mode: both;
+}
+
+/* The surface's own fade is driven by the exit chain rather than the open-class
+   transition, so it can wait for the stages above it to clear. */
+.blacksmith-window-fullscreen[data-fs-exiting] {
+    animation: bs-fs-surface-out var(--fs-exit-surface-duration)
+               ease-in var(--fs-exit-surface-delay) both;
+    opacity: 1;
 }
 
 /* Each element's own delay. The animations themselves come from the presets below;
@@ -199,9 +245,9 @@
 
 /* Once the entrance has run, nothing animates again. A consumer that re-renders on a
    filter change, or appends to a list, must not have its surface fly in a second time. */
-.blacksmith-window-fullscreen[data-fs-entered] [data-fs-stage],
-.blacksmith-window-fullscreen[data-fs-entered] .blacksmith-window-fullscreen-panel,
-.blacksmith-window-fullscreen[data-fs-entered] .blacksmith-window-fullscreen-root {
+.blacksmith-window-fullscreen[data-fs-entered]:not([data-fs-exiting]) [data-fs-stage],
+.blacksmith-window-fullscreen[data-fs-entered]:not([data-fs-exiting]) .blacksmith-window-fullscreen-panel,
+.blacksmith-window-fullscreen[data-fs-entered]:not([data-fs-exiting]) .blacksmith-window-fullscreen-root {
     animation: none;
 }
 
@@ -213,6 +259,33 @@
     .blacksmith-window-fullscreen .blacksmith-window-fullscreen-root {
         animation: none;
     }
+}
+
+/* ==================================================================
+   REGISTERED TOTALS
+   ==================================================================
+   The base reads `--fs-stage-total` and `--fs-exit-total` back out of the
+   cascade to know how long to wait. An UNREGISTERED custom property has no
+   computed value -- `getPropertyValue` hands back the specified token stream,
+   so the JS received the literal string "calc(calc(120ms + 300ms) ...)",
+   parsed NaN, and fell back to a default. The entrance timer then fired
+   immediately and the exit ignored its own chain entirely.
+
+   Registering them with a `<time>` syntax makes the browser compute the calc,
+   so the same call returns "1420ms". Only the totals need this; every other
+   variable is consumed as a real property value, where calc resolves anyway.
+   ================================================================== */
+
+@property --fs-stage-total {
+    syntax: "<time>";
+    inherits: false;
+    initial-value: 0ms;
+}
+
+@property --fs-exit-total {
+    syntax: "<time>";
+    inherits: false;
+    initial-value: 0ms;
 }
 
 /* ===== ONE NUMBER FOR THE SURFACE'S STACKING ======================
@@ -543,40 +616,115 @@ body.blacksmith-fullscreen-scroll-lock {
    does nothing, which is the usual reason a 3D entrance renders flat.
    ================================================================== */
 
-/* --- none: the surface appears. Nothing else moves. ---------------- */
+/* --- Direction, as a SIGN rather than a set of per-edge keyframes ----
+   `data-fs-from` on an item or any ancestor sets which edge it travels from.
+   One keyframe set then serves every direction by multiplying the distance by
+   -1 or 1, instead of four near-identical copies that drift apart the first
+   time one of them is retuned.
 
-.blacksmith-window-fullscreen[data-fs-animation="none"] {
-    --fs-stage-surface-duration: 0ms;
-    --blacksmith-fullscreen-transition: 0ms;
+   Defaults are left and above, so a consumer that marks nothing still gets a
+   coherent arrival. */
+
+.blacksmith-window-fullscreen {
+    --fs-enter-x: -1;
+    --fs-enter-y: -1;
+    --fs-enter-distance-x: 62vw;
+    --fs-enter-distance-y: 60vh;
 }
 
-/* --- subtle: the default. A fade, and content that lifts. ---------- */
+.blacksmith-window-fullscreen [data-fs-from="left"]   { --fs-enter-x: -1; }
+.blacksmith-window-fullscreen [data-fs-from="right"]  { --fs-enter-x: 1; }
+.blacksmith-window-fullscreen [data-fs-from="top"]    { --fs-enter-y: -1; }
+.blacksmith-window-fullscreen [data-fs-from="bottom"] { --fs-enter-y: 1; }
 
-.blacksmith-window-fullscreen[data-fs-animation="subtle"] {
-    --fs-stage-surface-duration: 220ms;
-    --fs-stage-panel-duration: 260ms;
-    --fs-stage-content-duration: 240ms;
-    --fs-stage-item-duration: 320ms;
-    --fs-stage-item-stagger: 60ms;
+/* --- fade: a clean crossfade. The default, and the floor. ---------- */
+
+.blacksmith-window-fullscreen[data-fs-animation="fade"] {
+    --fs-stage-surface-duration: 240ms;
+    --fs-stage-panel-duration: 280ms;
+    --fs-stage-content-duration: 300ms;
+    --fs-stage-item-duration: 380ms;
+    --fs-stage-item-stagger: 55ms;
 }
 
-.blacksmith-window-fullscreen[data-fs-animation="subtle"].blacksmith-window-fullscreen-open
+.blacksmith-window-fullscreen[data-fs-animation="fade"].blacksmith-window-fullscreen-open
     .blacksmith-window-fullscreen-panel {
-    animation: bs-fs-rise var(--fs-stage-panel-duration) ease-out var(--fs-stage-panel-delay) both;
+    animation: bs-fs-fade-in var(--fs-stage-panel-duration) ease-out var(--fs-stage-panel-delay) both;
 }
 
-.blacksmith-window-fullscreen[data-fs-animation="subtle"].blacksmith-window-fullscreen-open
+.blacksmith-window-fullscreen[data-fs-animation="fade"].blacksmith-window-fullscreen-open
     [data-fs-stage="content"] {
-    animation-name: bs-fs-rise;
+    animation-name: bs-fs-fade-in;
     animation-duration: var(--fs-stage-content-duration);
     animation-timing-function: ease-out;
 }
 
-.blacksmith-window-fullscreen[data-fs-animation="subtle"].blacksmith-window-fullscreen-open
+.blacksmith-window-fullscreen[data-fs-animation="fade"].blacksmith-window-fullscreen-open
     [data-fs-stage="items"] {
-    animation-name: bs-fs-rise;
+    animation-name: bs-fs-fade-in;
     animation-duration: var(--fs-stage-item-duration);
     animation-timing-function: ease-out;
+}
+
+/* --- slide: in from its own side, overshoot, rebound, pop. ---------
+   The stagger is shorter than the item duration on purpose, so the next card
+   is already moving before the one ahead has landed -- a run of arrivals
+   rather than a queue. */
+
+.blacksmith-window-fullscreen[data-fs-animation="slide"] {
+    --fs-stage-surface-duration: 160ms;
+    --fs-stage-panel-duration: 300ms;
+    --fs-stage-content-duration: 300ms;
+    --fs-stage-item-duration: 620ms;
+    --fs-stage-item-stagger: 130ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slide"].blacksmith-window-fullscreen-open
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-fade-in var(--fs-stage-panel-duration) ease-out var(--fs-stage-panel-delay) both;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slide"].blacksmith-window-fullscreen-open
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-drop;
+    animation-duration: var(--fs-stage-content-duration);
+    animation-timing-function: cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slide"].blacksmith-window-fullscreen-open
+    [data-fs-stage="items"] {
+    animation-name: bs-fs-slide-in;
+    animation-duration: var(--fs-stage-item-duration);
+    animation-timing-function: linear;
+}
+
+/* --- drop: the same arrival, from above. --------------------------- */
+
+.blacksmith-window-fullscreen[data-fs-animation="drop"] {
+    --fs-stage-surface-duration: 160ms;
+    --fs-stage-panel-duration: 300ms;
+    --fs-stage-content-duration: 300ms;
+    --fs-stage-item-duration: 640ms;
+    --fs-stage-item-stagger: 120ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="drop"].blacksmith-window-fullscreen-open
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-fade-in var(--fs-stage-panel-duration) ease-out var(--fs-stage-panel-delay) both;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="drop"].blacksmith-window-fullscreen-open
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-drop;
+    animation-duration: var(--fs-stage-content-duration);
+    animation-timing-function: cubic-bezier(0.2, 1.3, 0.4, 1);
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="drop"].blacksmith-window-fullscreen-open
+    [data-fs-stage="items"] {
+    animation-name: bs-fs-drop-in;
+    animation-duration: var(--fs-stage-item-duration);
+    animation-timing-function: linear;
 }
 
 /* --- bars: letterbox bars drive in, then what sits between them. ---
@@ -679,6 +827,34 @@ body.blacksmith-fullscreen-scroll-lock {
 
 /* ===== KEYFRAMES ================================================== */
 
+@keyframes bs-fs-fade-in {
+    from { opacity: 0; transform: scale(0.985); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Travel, overshoot, rebound, pop. The overshoot values are signed by
+   `--fs-enter-x`, so an item arriving from the right overshoots to the LEFT of its
+   resting place -- flipping only the start position would have both sides overshoot
+   the same way and read as a shunt. Easing is linear because the keyframes carry the
+   whole shape; an eased curve on top of them smears the bounce. */
+@keyframes bs-fs-slide-in {
+    0%   { opacity: 0; transform: translateX(calc(var(--fs-enter-x, -1) * var(--fs-enter-distance-x, 62vw))); }
+    10%  { opacity: 1; }
+    52%  { transform: translateX(calc(var(--fs-enter-x, -1) * -7%)); }
+    70%  { transform: translateX(calc(var(--fs-enter-x, -1) * 4%)); }
+    84%  { transform: translateX(calc(var(--fs-enter-x, -1) * -1.5%)) scale(1.07); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes bs-fs-drop-in {
+    0%   { opacity: 0; transform: translateY(calc(var(--fs-enter-y, -1) * var(--fs-enter-distance-y, 60vh))); }
+    10%  { opacity: 1; }
+    52%  { transform: translateY(calc(var(--fs-enter-y, -1) * -9%)); }
+    70%  { transform: translateY(calc(var(--fs-enter-y, -1) * 5%)); }
+    84%  { transform: translateY(calc(var(--fs-enter-y, -1) * -2%)) scale(1.07); }
+    100% { opacity: 1; transform: none; }
+}
+
 @keyframes bs-fs-rise {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: none; }
@@ -729,4 +905,199 @@ body.blacksmith-fullscreen-scroll-lock {
     42%      { transform: translate3d(-5px, 3px, 0); }
     60%      { transform: translate3d(4px, -2px, 0); }
     78%      { transform: translate3d(-2px, 1px, 0); }
+}
+
+/* ==================================================================
+   EXITS
+   ==================================================================
+   One per preset, reversing its own arrival. Declared after the
+   entrance presets so they win the cascade on equal specificity, and
+   after the `data-fs-entered` rule that would otherwise have silenced
+   them once the surface had settled.
+   ================================================================== */
+
+@keyframes bs-fs-surface-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+/* --- fade: out the way it came in. --------------------------------- */
+
+.blacksmith-window-fullscreen[data-fs-animation="fade"] {
+    --fs-exit-item-duration: 200ms;
+    --fs-exit-item-stagger: 0ms;
+    --fs-exit-content-duration: 180ms;
+    --fs-exit-panel-duration: 200ms;
+    --fs-exit-surface-duration: 240ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="fade"][data-fs-exiting]
+    [data-fs-stage="items"],
+.blacksmith-window-fullscreen[data-fs-animation="fade"][data-fs-exiting]
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-fade-out;
+    animation-duration: var(--fs-exit-item-duration);
+    animation-timing-function: ease-in;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="fade"][data-fs-exiting]
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-fade-out var(--fs-exit-panel-duration) ease-in var(--fs-exit-panel-delay) both;
+}
+
+/* --- slide and drop: back out the edge they arrived through. -------
+   No overshoot on the way out. A bounce is the moment of arrival; leaving is a
+   departure, and rebounding on the way out reads as indecision. */
+
+.blacksmith-window-fullscreen[data-fs-animation="slide"],
+.blacksmith-window-fullscreen[data-fs-animation="drop"] {
+    --fs-exit-item-duration: 280ms;
+    --fs-exit-item-stagger: 45ms;
+    --fs-exit-content-duration: 200ms;
+    --fs-exit-panel-duration: 240ms;
+    --fs-exit-surface-duration: 220ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slide"][data-fs-exiting]
+    [data-fs-stage="items"] {
+    animation-name: bs-fs-slide-out;
+    animation-duration: var(--fs-exit-item-duration);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.85, 0.2);
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="drop"][data-fs-exiting]
+    [data-fs-stage="items"] {
+    animation-name: bs-fs-drop-out;
+    animation-duration: var(--fs-exit-item-duration);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.85, 0.2);
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slide"][data-fs-exiting]
+    [data-fs-stage="content"],
+.blacksmith-window-fullscreen[data-fs-animation="drop"][data-fs-exiting]
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-fade-out;
+    animation-duration: var(--fs-exit-content-duration);
+    animation-timing-function: ease-in;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slide"][data-fs-exiting]
+    .blacksmith-window-fullscreen-panel,
+.blacksmith-window-fullscreen[data-fs-animation="drop"][data-fs-exiting]
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-fade-out var(--fs-exit-panel-duration) ease-in var(--fs-exit-panel-delay) both;
+}
+
+/* --- bars: the letterbox closes on the scene. ---------------------- */
+
+.blacksmith-window-fullscreen[data-fs-animation="bars"] {
+    --fs-exit-item-duration: 160ms;
+    --fs-exit-item-stagger: 30ms;
+    --fs-exit-content-duration: 160ms;
+    --fs-exit-panel-duration: 340ms;
+    --fs-exit-surface-duration: 200ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="bars"][data-fs-exiting]
+    [data-fs-stage="items"],
+.blacksmith-window-fullscreen[data-fs-animation="bars"][data-fs-exiting]
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-sink;
+    animation-duration: var(--fs-exit-item-duration);
+    animation-timing-function: ease-in;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="bars"][data-fs-exiting]
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-bars-out var(--fs-exit-panel-duration)
+               cubic-bezier(0.7, 0, 0.84, 0) var(--fs-exit-panel-delay) both;
+}
+
+/* --- slam: thrown back the way they came, then the stage drops. ---- */
+
+.blacksmith-window-fullscreen[data-fs-animation="slam"] {
+    --fs-exit-item-duration: 300ms;
+    --fs-exit-item-stagger: 55ms;
+    --fs-exit-content-duration: 220ms;
+    --fs-exit-panel-duration: 260ms;
+    --fs-exit-surface-duration: 220ms;
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slam"][data-fs-exiting]
+    [data-fs-stage="items"] {
+    animation-name: bs-fs-slam-item-out;
+    animation-duration: var(--fs-exit-item-duration);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.2);
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slam"][data-fs-exiting]
+    [data-fs-stage="content"] {
+    animation-name: bs-fs-slam-content-out;
+    animation-duration: var(--fs-exit-content-duration);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.2);
+}
+
+.blacksmith-window-fullscreen[data-fs-animation="slam"][data-fs-exiting]
+    .blacksmith-window-fullscreen-panel {
+    animation: bs-fs-slam-panel-out var(--fs-exit-panel-duration)
+               cubic-bezier(0.7, 0, 0.84, 0) var(--fs-exit-panel-delay) both;
+}
+
+/* ===== EXIT KEYFRAMES ============================================= */
+
+@keyframes bs-fs-fade-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: scale(0.985); }
+}
+
+@keyframes bs-fs-slide-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateX(calc(var(--fs-enter-x, -1) * var(--fs-enter-distance-x, 62vw))); }
+}
+
+@keyframes bs-fs-drop-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateY(calc(var(--fs-enter-y, -1) * var(--fs-enter-distance-y, 60vh))); }
+}
+
+@keyframes bs-fs-sink {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateY(14px); }
+}
+
+@keyframes bs-fs-bars-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 1; transform: scaleY(0.02); }
+}
+
+@keyframes bs-fs-slam-panel-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: scaleY(0.35) scaleX(1.2); }
+}
+
+@keyframes bs-fs-slam-content-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: scale(2.2); }
+}
+
+/* Away from the viewer rather than back the way it came -- items that retreat read
+   as the scene releasing them, where reversing the arrival reads as a rewind. */
+@keyframes bs-fs-slam-item-out {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateZ(-520px) translateY(70px) rotate(28deg); }
+}
+
+/* ==================================================================
+   REDUCED MOTION -- last, so it outranks every preset above.
+   Both directions collapse to the surface fade and nothing else.
+   ================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .blacksmith-window-fullscreen [data-fs-stage],
+    .blacksmith-window-fullscreen .blacksmith-window-fullscreen-panel,
+    .blacksmith-window-fullscreen .blacksmith-window-fullscreen-root,
+    .blacksmith-window-fullscreen[data-fs-exiting] [data-fs-stage],
+    .blacksmith-window-fullscreen[data-fs-exiting] .blacksmith-window-fullscreen-panel {
+        animation: none;
+    }
 }

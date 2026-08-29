@@ -2624,12 +2624,18 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             // sides meet at the VS however lopsided the contest is. Named classes rather
             // than :first-child / :last-child, because the ordering that would rely on is
             // an accident of this template and nothing would fail loudly if it changed.
+            //
+            // `data-fs-from` tells the fullscreen base the same thing in ITS vocabulary:
+            // which edge these items travel in from, and -- because the base numbers items
+            // within their from-group -- that the two sides arrive in step rather than one
+            // after the other. Blacksmith's class names mean nothing to the base, and a
+            // shop or a quest log gets directional entrances from the same attribute.
             actorCardsHtml = `
-                <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-challengers">
+                <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-challengers" data-fs-from="left">
                     <div class="cpb-cinematic-card-grid">${challengerCards}</div>
                 </div>
                 <div class="cpb-cinematic-vs-divider" data-fs-stage="content"><span class="cpb-cinematic-vs-flame">VS</span></div>
-                <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-defenders">
+                <div class="cpb-cinematic-actor-group cpb-cinematic-actor-group-defenders" data-fs-from="right">
                     <div class="cpb-cinematic-card-grid">${defenderCards}</div>
                 </div>
             `;

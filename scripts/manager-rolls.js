@@ -2009,12 +2009,14 @@ export async function updateCinemaOverlay(rollResults, context) {
                 // detaching the element by hand would leave the instance registered and the
                 // fullscreen base still holding it as the open surface, and the next roll
                 // would find a live window that is no longer on screen.
+                //
+                // And it is closed WITHOUT a fade of its own. Setting `style.opacity` here
+                // wrote an inline value, which beats any keyframe a preset could declare --
+                // so the exit animation would have been silently half-applied, the surface
+                // fading on this schedule while its stages tried to play on theirs. The
+                // exit belongs to the preset; this only decides when it starts.
                 const fadeOutAndRemove = (delayMs) => {
-                    setTimeout(() => {
-                        overlay.style.transition = 'opacity 1s';
-                        overlay.style.opacity = '0';
-                        setTimeout(() => SkillCheckDialog._closeCinematicDisplay(), 1000);
-                    }, delayMs);
+                    setTimeout(() => SkillCheckDialog._closeCinematicDisplay(), delayMs);
                 };
 
                 const resolveCinematicEnd = async () => {

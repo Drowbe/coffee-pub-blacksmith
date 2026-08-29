@@ -44,14 +44,31 @@ export const BLACKSMITH_FULLSCREEN_LAYOUTS = Object.freeze({
  * different overrides that stage's custom properties.
  */
 export const BLACKSMITH_FULLSCREEN_ANIMATIONS = Object.freeze({
-    /** No motion at all. What `prefers-reduced-motion` collapses to. */
-    NONE: 'none',
-    /** A quiet fade and lift. The default. */
-    SUBTLE: 'subtle',
+    /** A clean crossfade with a whisper of settle. The default, and the floor. */
+    FADE: 'fade',
+    /** Items travel in from their own side, overshoot, rebound, pop into place. */
+    SLIDE: 'slide',
+    /** The same arrival, from above. */
+    DROP: 'drop',
     /** Letterbox bars drive in, then the content between them. */
     BARS: 'bars',
-    /** Hard scale-down with an overshoot settle. Fighting-game round start. */
+    /** Hurled in from behind the viewer, spinning, landing hard. */
     SLAM: 'slam'
+});
+
+/**
+ * Which edge a staged item travels in from, set by a consumer with `data-fs-from` on
+ * the item or on any ancestor -- a whole group inherits one value.
+ *
+ * There is no `none`. A preset that animates nothing is a preset that does nothing,
+ * and `fade` is the honest floor; a consumer wanting stillness sets the durations to
+ * zero rather than picking a name that pretends to be a style.
+ */
+export const BLACKSMITH_FULLSCREEN_FROM = Object.freeze({
+    LEFT: 'left',
+    RIGHT: 'right',
+    TOP: 'top',
+    BOTTOM: 'bottom'
 });
 
 /**
@@ -171,7 +188,7 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
             rememberPosition: false,
             fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.CENTERED,
             fullscreenBackdrop: {},
-            fullscreenAnimation: BLACKSMITH_FULLSCREEN_ANIMATIONS.SUBTLE,
+            fullscreenAnimation: BLACKSMITH_FULLSCREEN_ANIMATIONS.FADE,
             showCloseButton: true,
             dismissOnEscape: true,
             dismissOnBackdrop: false,
@@ -373,7 +390,7 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         const requested = this.options?.fullscreenAnimation;
         return Object.values(BLACKSMITH_FULLSCREEN_ANIMATIONS).includes(requested)
             ? requested
-            : BLACKSMITH_FULLSCREEN_ANIMATIONS.SUBTLE;
+            : BLACKSMITH_FULLSCREEN_ANIMATIONS.FADE;
     }
 
     /**
@@ -408,7 +425,20 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
             `[data-fs-stage="${BLACKSMITH_FULLSCREEN_STAGES.ITEMS}"]`
         );
         if (!items) return;
-        items.forEach((item, index) => {
+
+        // Numbered WITHIN their `data-fs-from` group, not across the whole surface.
+        // A contested roll is two groups facing each other, and one continuous 0..n-1
+        // run would land every challenger before the first defender moved -- the sides
+        // taking turns instead of meeting. Grouping by the direction they travel from
+        // makes "coordinated opposing sides" fall out with no extra attribute, because
+        // the sides ARE the directions.
+        const perGroup = new Map();
+        const groupOf = (el) => el.closest('[data-fs-from]')?.dataset.fsFrom ?? '';
+
+        items.forEach((item) => {
+            const key = groupOf(item);
+            const index = perGroup.get(key) ?? 0;
+            perGroup.set(key, index + 1);
             item.style.setProperty('--fs-index', String(index));
             // A stable per-item seed, for ambient effects that should not march in step.
             // `--fs-index` desyncs things evenly, which still reads as a wave crossing the
@@ -421,9 +451,12 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
                 item.style.setProperty('--fs-random', Math.random().toFixed(3));
             }
         });
-        // The chain needs the count to work out when the last item lands, and only the
-        // rendered DOM knows it.
-        element.style.setProperty('--fs-stage-item-count', String(Math.max(0, items.length - 1)));
+        // The chain needs to know when the LAST item lands. With per-group numbering that
+        // is the largest group, not the total -- groups run concurrently, so counting
+        // every item would have the surface waiting through a sequence that already
+        // finished.
+        const largest = Math.max(0, ...perGroup.values());
+        element.style.setProperty('--fs-stage-item-count', String(Math.max(0, largest - 1)));
     }
 
     /**
@@ -437,12 +470,7 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
     get fullscreenEntranceMs() {
         const element = this.element;
         if (!element) return 0;
-        const raw = getComputedStyle(element).getPropertyValue('--fs-stage-total').trim();
-        if (!raw) return 0;
-        const ms = raw.endsWith('ms') ? parseFloat(raw)
-            : raw.endsWith('s') ? parseFloat(raw) * 1000
-                : parseFloat(raw);
-        return Number.isFinite(ms) ? ms : 0;
+        return this._readCssMs(getComputedStyle(element).getPropertyValue('--fs-stage-total'));
     }
 
     /**
@@ -459,12 +487,53 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         return super.close({ ...options, animate: false });
     }
 
+    /**
+     * How long the exit runs, read from the exit chain the same way the entrance is.
+     *
+     * Falls back to `fullscreenTransitionMs` when a preset declares no exit total, so a
+     * consumer that set only that option keeps working.
+     */
+    get fullscreenExitMs() {
+        const element = this.element;
+        const declared = element
+            ? this._readCssMs(getComputedStyle(element).getPropertyValue('--fs-exit-total'))
+            : 0;
+        if (declared > 0) return declared;
+        const fallback = Number(this.options?.fullscreenTransitionMs);
+        return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
+    }
+
+    /**
+     * Parse a CSS time to milliseconds. `12ms`, `0.4s`, or a bare number.
+     *
+     * This only returns a number because `--fs-stage-total` and `--fs-exit-total` are
+     * REGISTERED with an `@property` rule in styles/window-fullscreen.css. An
+     * unregistered custom property has no computed value, so `getPropertyValue` returns
+     * the specified token stream -- the literal text "calc(calc(120ms + 300ms) ...)" --
+     * and every parse of it is NaN. Registration is what makes the browser resolve the
+     * chain before we read it. A preset whose totals suddenly stop working is the first
+     * thing to check.
+     */
+    _readCssMs(raw) {
+        const value = String(raw ?? '').trim();
+        if (!value) return 0;
+        const ms = value.endsWith('ms') ? parseFloat(value)
+            : value.endsWith('s') ? parseFloat(value) * 1000
+                : parseFloat(value);
+        return Number.isFinite(ms) ? ms : 0;
+    }
+
     async _preClose(options) {
         const element = this.element;
-        const ms = Number(this.options?.fullscreenTransitionMs);
-        if (element && Number.isFinite(ms) && ms > 0) {
+        if (element) {
+            // Both flags, and the order matters. `data-fs-exiting` is what the exit rules
+            // select on; dropping the open class as well returns anything the entrance
+            // left holding a final state, so the exit animates from where things actually
+            // are rather than from an entrance still nominally in force.
+            element.dataset.fsExiting = 'true';
             element.classList.remove(OPEN_CLASS);
-            await new Promise((resolve) => setTimeout(resolve, ms));
+            const ms = this.fullscreenExitMs;
+            if (ms > 0) await new Promise((resolve) => setTimeout(resolve, ms));
         }
         return super._preClose?.(options);
     }
