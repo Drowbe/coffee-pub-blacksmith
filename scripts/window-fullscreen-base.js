@@ -374,11 +374,22 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         requestAnimationFrame(() => this.element?.classList.add(OPEN_CLASS));
     }
 
+    /**
+     * ORDER IS LOAD-BEARING. `_indexStagedItems` publishes `--fs-stage-item-count`, and
+     * `--fs-stage-total` is a calc over it -- so reading the entrance duration before the
+     * count is published reads a total computed with a count of zero.
+     *
+     * That is not a rounding error. The total decides when `data-fs-entered` lands, and
+     * that attribute sets `animation: none` on every staged element. Too short and it
+     * arrives while later items are still in flight: the first card animates, the rest
+     * are cut mid-travel and snap to their resting positions. It looks like only one item
+     * bothered to animate, which points nowhere near the real cause.
+     */
     async _onRender(context, options) {
         await super._onRender?.(context, options);
         this._applyFullscreenBackdrop();
-        this._applyFullscreenAnimation();
         this._indexStagedItems();
+        this._applyFullscreenAnimation();
     }
 
     // ==============================================================
@@ -432,30 +443,44 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         // taking turns instead of meeting. Grouping by the direction they travel from
         // makes "coordinated opposing sides" fall out with no extra attribute, because
         // the sides ARE the directions.
-        const perGroup = new Map();
+        //
+        // AND MIRRORED, for groups arriving from the right or the bottom. DOM order runs
+        // left to right through both sides of a contest, so numbering both in that order
+        // makes index 0 the OUTERMOST card on the left and the INNERMOST on the right --
+        // "position 1" meaning opposite things on each side, and the two sides visibly
+        // out of step even though their delays match. Counting from each group's own
+        // edge inward is what makes a mirrored layout arrive as pairs.
+        const groups = new Map();
         const groupOf = (el) => el.closest('[data-fs-from]')?.dataset.fsFrom ?? '';
-
-        items.forEach((item) => {
+        for (const item of items) {
             const key = groupOf(item);
-            const index = perGroup.get(key) ?? 0;
-            perGroup.set(key, index + 1);
-            item.style.setProperty('--fs-index', String(index));
-            // A stable per-item seed, for ambient effects that should not march in step.
-            // `--fs-index` desyncs things evenly, which still reads as a wave crossing the
-            // row; a random seed reads as objects behaving independently. CSS cannot
-            // produce one, so the base does.
-            //
-            // Assigned once and never reassigned: a re-render would otherwise reshuffle
-            // every seed and make settled content visibly twitch.
-            if (!item.style.getPropertyValue('--fs-random')) {
-                item.style.setProperty('--fs-random', Math.random().toFixed(3));
-            }
-        });
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(item);
+        }
+
+        const MIRRORED = new Set(['right', 'bottom']);
+        for (const [key, list] of groups) {
+            const ordered = MIRRORED.has(key) ? [...list].reverse() : list;
+            ordered.forEach((item, index) => {
+                item.style.setProperty('--fs-index', String(index));
+                // A stable per-item seed, for ambient effects that should not march in
+                // step. `--fs-index` desyncs things evenly, which still reads as a wave
+                // crossing the row; a random seed reads as objects behaving
+                // independently. CSS cannot produce one, so the base does.
+                //
+                // Assigned once and never reassigned: a re-render would otherwise
+                // reshuffle every seed and make settled content visibly twitch.
+                if (!item.style.getPropertyValue('--fs-random')) {
+                    item.style.setProperty('--fs-random', Math.random().toFixed(3));
+                }
+            });
+        }
+
         // The chain needs to know when the LAST item lands. With per-group numbering that
         // is the largest group, not the total -- groups run concurrently, so counting
         // every item would have the surface waiting through a sequence that already
         // finished.
-        const largest = Math.max(0, ...perGroup.values());
+        const largest = Math.max(0, ...[...groups.values()].map((g) => g.length));
         element.style.setProperty('--fs-stage-item-count', String(Math.max(0, largest - 1)));
     }
 

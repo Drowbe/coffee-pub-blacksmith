@@ -676,7 +676,10 @@ body.blacksmith-fullscreen-scroll-lock {
     --fs-stage-panel-duration: 300ms;
     --fs-stage-content-duration: 300ms;
     --fs-stage-item-duration: 620ms;
-    --fs-stage-item-stagger: 130ms;
+    /* Comfortably over a third of the item duration. At 130ms the arrivals ran into one
+       another and read as one mass landing; the eye needs to finish one before the next
+       commits. Still well short of the duration, so they overlap rather than queue. */
+    --fs-stage-item-stagger: 240ms;
 }
 
 .blacksmith-window-fullscreen[data-fs-animation="slide"].blacksmith-window-fullscreen-open
@@ -705,7 +708,7 @@ body.blacksmith-fullscreen-scroll-lock {
     --fs-stage-panel-duration: 300ms;
     --fs-stage-content-duration: 300ms;
     --fs-stage-item-duration: 640ms;
-    --fs-stage-item-stagger: 120ms;
+    --fs-stage-item-stagger: 230ms;
 }
 
 .blacksmith-window-fullscreen[data-fs-animation="drop"].blacksmith-window-fullscreen-open

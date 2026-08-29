@@ -369,9 +369,28 @@ export default {
                     expect.ok('items were rendered', items.length > 0);
                     const indices = [...items].map((el) => el.style.getPropertyValue('--fs-index'));
                     expect.ok('every item has --fs-index', indices.every((v) => v !== ''));
-                    expect.ok('indices are 0..n-1 in order',
-                        indices.join(',') === [...items].map((_, i) => String(i)).join(','));
-                    const seeds = [...items].map((el) => el.style.getPropertyValue('--fs-random'));
+
+                    // Each group carries the full run 0..n-1, but ORDER depends on the
+                    // edge: left and top count with the DOM, right and bottom against it,
+                    // so a mirrored layout arrives as pairs. Asserting DOM order for every
+                    // group would be asserting the bug this replaced.
+                    const byGroup = new Map();
+                    for (const el of items) {
+                        const key = el.closest('[data-fs-from]')?.dataset.fsFrom ?? '';
+                        if (!byGroup.has(key)) byGroup.set(key, []);
+                        byGroup.get(key).push(el.style.getPropertyValue('--fs-index'));
+                    }
+                    expect.ok('each group carries a full 0..n-1 run',
+                        [...byGroup.values()].every((g) =>
+                            [...g].map(Number).sort((a, b) => a - b).join(',')
+                            === g.map((_, i) => String(i)).join(',')));
+                    for (const [key, g] of byGroup) {
+                        if (g.length < 2) continue;
+                        const mirrored = key === 'right' || key === 'bottom';
+                        expect.ok(`${key || 'default'} group counts from its own edge`,
+                            (mirrored ? g[g.length - 1] : g[0]) === '0');
+                    }
+
                     expect.ok('every item has --fs-random', seeds.every((v) => v !== ''));
                     expect.ok('seeds are not all identical', new Set(seeds).size > 1);
                     expect.ok('--fs-stage-item-count is published',
@@ -383,15 +402,58 @@ export default {
                     const left = [...surface.querySelectorAll('[data-fs-from="left"] [data-fs-stage="items"]')];
                     const right = [...surface.querySelectorAll('[data-fs-from="right"] [data-fs-stage="items"]')];
                     if (left.length && right.length) {
-                        expect.ok('each side starts its own numbering at 0',
+                        // The pairing test: outermost card on each side is 0, so they
+                        // travel together. Right counts from its own outer edge, which is
+                        // the LAST element in DOM order.
+                        expect.ok('opposing sides pair up at index 0',
                             left[0].style.getPropertyValue('--fs-index') === '0'
-                            && right[0].style.getPropertyValue('--fs-index') === '0');
+                            && right[right.length - 1].style.getPropertyValue('--fs-index') === '0');
                         expect.ok('item count is the largest side, not the total',
                             Number(surface.style.getPropertyValue('--fs-stage-item-count'))
                             === Math.max(left.length, right.length) - 1);
                     }
                 } finally {
                     await closeSurface();
+                }
+            }
+        },
+        {
+            id: 'entrance-total-tracks-items',
+            label: 'The entrance duration grows with the item count',
+            tier: 'headless',
+            group: 'Stage chain',
+            note: 'a total read before the count is published cuts later items mid-flight',
+            run: async ({ expect, log }) => {
+                const read = () => {
+                    const el = surfaceEl();
+                    return parseFloat(getComputedStyle(el).getPropertyValue('--fs-stage-total')) || 0;
+                };
+                const previous = { cards: state.cards, contested: state.contested };
+                state.contested = false;
+                try {
+                    state.cards = 2;
+                    await openSurface();
+                    const few = read();
+                    state.cards = 8;
+                    await openSurface();
+                    const many = read();
+                    log(`2 items: ${few}ms, 8 items: ${many}ms`);
+                    expect.ok('both totals resolve to a number', few > 0 && many > 0);
+                    expect.ok('more items means a longer entrance', many > few);
+
+                    // The window the base actually waits for has to cover the last item's
+                    // delay plus its flight, or `data-fs-entered` truncates it.
+                    const el = surfaceEl();
+                    const cs = getComputedStyle(el);
+                    const last = el.querySelector('[data-fs-stage="items"]:last-of-type');
+                    const lastDelay = parseFloat(getComputedStyle(last).animationDelay) * 1000;
+                    const itemMs = parseFloat(cs.getPropertyValue('--fs-stage-item-duration')) || 0;
+                    log(`last item starts ${Math.round(lastDelay)}ms, runs ${itemMs}ms, total ${many}ms`);
+                    expect.ok('the total outlasts the last item', many >= lastDelay + itemMs - 1);
+                } finally {
+                    await closeSurface();
+                    state.cards = previous.cards;
+                    state.contested = previous.contested;
                 }
             }
         },
