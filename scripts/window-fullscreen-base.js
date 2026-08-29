@@ -408,7 +408,19 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
             `[data-fs-stage="${BLACKSMITH_FULLSCREEN_STAGES.ITEMS}"]`
         );
         if (!items) return;
-        items.forEach((item, index) => item.style.setProperty('--fs-index', String(index)));
+        items.forEach((item, index) => {
+            item.style.setProperty('--fs-index', String(index));
+            // A stable per-item seed, for ambient effects that should not march in step.
+            // `--fs-index` desyncs things evenly, which still reads as a wave crossing the
+            // row; a random seed reads as objects behaving independently. CSS cannot
+            // produce one, so the base does.
+            //
+            // Assigned once and never reassigned: a re-render would otherwise reshuffle
+            // every seed and make settled content visibly twitch.
+            if (!item.style.getPropertyValue('--fs-random')) {
+                item.style.setProperty('--fs-random', Math.random().toFixed(3));
+            }
+        });
         // The chain needs the count to work out when the last item lands, and only the
         // rendered DOM knows it.
         element.style.setProperty('--fs-stage-item-count', String(Math.max(0, items.length - 1)));

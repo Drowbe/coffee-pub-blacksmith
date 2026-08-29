@@ -487,12 +487,13 @@
    own animation is the entrance and the base switches it off once that finishes.
    Pseudo-elements carry no stage attribute, so this keeps running.
 
-   DESYNCED BY REUSING `--fs-index`. The base already numbers every staged item for the
-   entrance stagger, so the same variable offsets each card's gloss -- with a NEGATIVE
-   delay, which starts each card part-way into its own cycle rather than making it wait.
-   Six cards glinting in unison reads as a screen effect; six glinting at their own
-   moments reads as six objects catching the light. The 1.37s step is deliberately not a
-   round fraction of the duration, so the cards never drift back into phase. */
+   DESYNCED BY `--fs-random`, the per-item seed the base assigns alongside `--fs-index`.
+   Offsetting by the index instead is evenly spaced, which still reads as a wave crossing
+   the row in order. Seeding both the DELAY and the DURATION means no two cards share a
+   period at all, so the pattern never repeats and no card is ever predictably next.
+
+   The delay is negative, which starts each card part-way into its own cycle rather than
+   making it wait its turn. */
 .cpb-cinematic-card::after {
     content: "";
     position: absolute;
@@ -509,15 +510,22 @@
         transparent 58%
     );
     transform: translateX(-150%);
-    animation: cpb-card-gloss var(--cpb-card-gloss-duration, 7s) ease-in-out infinite;
-    animation-delay: calc(var(--fs-index, 0) * -1.37s);
+    animation-name: cpb-card-gloss;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-duration:
+        calc(var(--cpb-card-gloss-duration, 17s)
+             + var(--fs-random, 0) * var(--cpb-card-gloss-spread, 9s));
+    animation-delay: calc(var(--fs-random, 0) * -23s);
 }
 
-/* The sweep takes the first fifth of the cycle and the card rests for the other four --
-   a periodic glint rather than something permanently sliding across the portrait. */
+/* The sweep occupies the first 7% of the cycle and the card rests for the rest -- so a
+   glint lasts a beat or so and then that card is quiet for the best part of half a
+   minute. Lengthening the cycle alone would have slowed the wipe itself; keeping the
+   sweep short and the cycle long is what makes it rare rather than sluggish. */
 @keyframes cpb-card-gloss {
-    0%   { transform: translateX(-150%); }
-    20%  { transform: translateX(150%); }
+    0%  { transform: translateX(-150%); }
+    7%  { transform: translateX(150%); }
     100% { transform: translateX(150%); }
 }
 
