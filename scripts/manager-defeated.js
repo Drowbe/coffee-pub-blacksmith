@@ -52,6 +52,22 @@ export class DefeatedManager {
     static _initialized = false;
 
     /**
+     * Actors with a sync in flight, by uuid.
+     *
+     * `Actor#toggleStatusEffect` reads `this.effects` synchronously to decide
+     * whether the status is already there, then creates with `keepId: true` and the
+     * status's STATIC `_id` (`client/documents/actor.mjs:490-521`). Two overlapping
+     * calls therefore both see nothing and both create `dnd5edead0000000`, and the
+     * second throws "The _id already exists within the parent collection".
+     *
+     * That is reachable without anything unusual: `updateActor` fires more than once
+     * when damage lands in stages, and each firing starts its own async chain, so
+     * awaiting inside one of them serialises nothing. This set is what makes the
+     * second firing wait for the first rather than race it.
+     */
+    static _inFlight = new Set();
+
+    /**
      * Hooks are registered unconditionally and the setting is read inside them,
      * rather than gating registration on it. Two callbacks that leave immediately
      * unless hit points changed in an actual combat are not a cold-path cost worth
@@ -131,10 +147,26 @@ export class DefeatedManager {
      * every hit point change, including the fourteen that do not cross zero.
      */
     static async syncCombatant(combatant) {
+        const actorUuid = combatant?.actor?.uuid ?? null;
+        // Whether THIS invocation is the one holding the guard. Without it the
+        // `finally` below would release a guard this call never took -- the dropped
+        // second caller would clear the first caller's claim while it was still
+        // working, which is the exact race the guard exists to close.
+        let holdsGuard = false;
         try {
             if (!this._isEnabled() || !this._isWriter()) return;
             const actor = combatant?.actor;
             if (!actor || actor.type === 'character') return;
+
+            // One sync per actor at a time. See `_inFlight`. Dropping the second
+            // rather than queueing it is correct: it was triggered by the same hit
+            // points the first is already acting on, so it has nothing new to apply,
+            // and a later change fires its own hook.
+            if (actorUuid && this._inFlight.has(actorUuid)) return;
+            if (actorUuid) {
+                this._inFlight.add(actorUuid);
+                holdsGuard = true;
+            }
 
             const hp = Number(actor.system?.attributes?.hp?.value ?? 0);
             const shouldBeDefeated = hp <= 0;
@@ -161,6 +193,8 @@ export class DefeatedManager {
             );
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Defeated: Error syncing defeated state', error?.message || error, false, false);
+        } finally {
+            if (holdsGuard) this._inFlight.delete(actorUuid);
         }
     }
 
@@ -175,7 +209,20 @@ export class DefeatedManager {
         if (!statusId || !actor) return;
         const existing = actor.effects.find(e => e.statuses?.has(statusId));
         if (active && !existing) {
-            await actor.toggleStatusEffect(statusId, { overlay: true, active: true });
+            try {
+                await actor.toggleStatusEffect(statusId, { overlay: true, active: true });
+            } catch (error) {
+                // The status effect carries a STATIC id, so a second creator hits a
+                // duplicate-id rejection rather than making a second effect. Our own
+                // `_inFlight` guard cannot prevent that on its own: core's tracker
+                // skull button, dnd5e, or another module can create the same effect
+                // at the same moment, and we cannot lock them out. The outcome we
+                // wanted has happened either way, so swallow that one case and let
+                // anything else be reported.
+                const message = String(error?.message ?? '');
+                if (!message.includes('already exists')) throw error;
+                postConsoleAndNotification(MODULE.NAME, 'Defeated: Defeated status was already being applied by something else', '', true, false);
+            }
         } else if (!active && existing) {
             await existing.delete();
         }

@@ -45,6 +45,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A dead NPC could throw `The _id [dnd5edead0000000] already exists` when it was marked defeated** (`scripts/manager-defeated.js`). Seen in a live world on an `ActorDelta` -- an unlinked token actor, which is what summons and most NPCs are.
+
+  `Actor#toggleStatusEffect` decides whether the status is already present by reading `this.effects` **synchronously**, then creates the effect with `keepId: true` and the status's **static** `_id` (`client/documents/actor.mjs:490-521`). Two overlapping calls therefore both see nothing and both try to create the same fixed id, and the second is rejected by the collection. It needs nothing unusual to reach: `updateActor` fires more than once when damage lands in stages, and each firing starts its own async chain, so awaiting inside one of them serialises nothing against the other.
+
+  Two defences, because one is not enough. A per-actor in-flight guard makes our own second call stand down rather than race -- dropping it rather than queueing it, since it was triggered by the same hit points the first is already acting on. And the create is wrapped so a duplicate-id rejection is treated as success, because core's own tracker button, dnd5e, or another module can create that effect at the same moment and we cannot lock them out. Anything that is not a duplicate still reports.
+
+  The effect was applied correctly either way -- the second write failed, it did not corrupt anything -- so this was console noise rather than a broken feature. **Verify:** kill an unlinked NPC token with a damage roll that applies in stages and confirm a clean console, the skull overlay present once, and the combatant skipped.
+
 - **Two colour settings were read with string methods that their values may not have** (`scripts/utility-color.js`, `scripts/manager-token-indicators.js`, `scripts/utility-quickview.js`). Found while adding the settings-sheet controls above, and worth fixing whether or not those landed.
 
   `_getTurnSettings` called `.replace('#', '0x')` directly on the raw setting value, and Quick View's `_sightHighlightColorNumber` guarded with `typeof raw === 'string'` and fell through to an empty string for anything else -- so the same class of value produced a thrown error in one place and a silently ignored user preference in the other. The targeted-indicator path already had a private helper coping with strings, `Color` instances and raw numbers, which is evidence someone had met this before and fixed it in one place only.
