@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 import { getSettingSafely, postConsoleAndNotification, playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { coerceColorToNumber } from './utility-color.js';
 import { getActorHP, getHealthPercent, getHealthSeverity } from './utility-health.js';
 import { resolveAttackMessage } from './utility-message-resolution.js';
 
@@ -318,14 +319,17 @@ export class TokenIndicatorManager {
     }
 
     static _getTurnSettings() {
-        const borderHex = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentBorderColor', '#03c602');
-        const backgroundHex = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentBackgroundColor', '#03c602');
+        // Through the shared coercion, not `.replace`. These settings are
+        // `ColorField`s, so the value is a `foundry.utils.Color` and a string
+        // method on it throws in a render path.
+        const borderRaw = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentBorderColor', '#03c602');
+        const backgroundRaw = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentBackgroundColor', '#03c602');
         const animation = getSettingSafely(MODULE.ID, 'turnIndicatorCurrentAnimation', 'pulse');
         return {
             style: getSettingSafely(MODULE.ID, 'turnIndicatorCurrentStyle', 'solid'),
             animation,
-            color: Number.parseInt(borderHex.replace('#', '0x')),
-            innerColor: Number.parseInt(backgroundHex.replace('#', '0x')),
+            color: coerceColorToNumber(borderRaw, 0x03c602),
+            innerColor: coerceColorToNumber(backgroundRaw, 0x03c602),
             thickness: getSettingSafely(MODULE.ID, 'generalIndicatorsThickness', 10),
             offset: getSettingSafely(MODULE.ID, 'generalIndicatorsOffset', 8),
             pulseMin: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMin', 0.3),
@@ -338,18 +342,16 @@ export class TokenIndicatorManager {
     static _getTargetedSettings(overrides = {}) {
         const borderRaw = getSettingSafely(MODULE.ID, 'targetedIndicatorBorderColor', '#a51214');
         const backgroundRaw = getSettingSafely(MODULE.ID, 'targetedIndicatorBackgroundColor', '#a51214');
-        const borderHex = this._coerceColorSettingToHex(borderRaw, '#a51214');
-        const backgroundHex = this._coerceColorSettingToHex(backgroundRaw, '#a51214');
+        const borderNumber = coerceColorToNumber(borderRaw, 0xa51214);
+        const innerNumber = coerceColorToNumber(backgroundRaw, 0xa51214);
         const animation = getSettingSafely(MODULE.ID, 'targetedIndicatorAnimation', 'pulse');
         const thickRaw = Number(getSettingSafely(MODULE.ID, 'targetedIndicatorBorderThickness', 3));
         const thickness = Math.min(10, Math.max(1, Number.isFinite(thickRaw) ? thickRaw : 3));
-        const borderNum = Number.parseInt(borderHex.replace('#', '0x'), 16);
-        const innerNum = Number.parseInt(backgroundHex.replace('#', '0x'), 16);
         const base = {
             style: getSettingSafely(MODULE.ID, 'targetedIndicatorStyle', 'solid'),
             animation,
-            color: Number.isFinite(borderNum) ? borderNum : 0xa51214,
-            innerColor: Number.isFinite(innerNum) ? innerNum : 0xa51214,
+            color: borderNumber,
+            innerColor: innerNumber,
             thickness,
             offset: getSettingSafely(MODULE.ID, 'generalIndicatorsOffset', 8),
             pulseMin: getSettingSafely(MODULE.ID, 'generalIndicatorsOpacityMin', 0.3),
@@ -358,36 +360,6 @@ export class TokenIndicatorManager {
             pulseSpeed: this._mapSpeedToAnimationSpeed(getSettingSafely(MODULE.ID, 'targetedIndicatorAnimationSpeed', 5), animation)
         };
         return { ...base, ...overrides };
-    }
-
-    /**
-     * Normalize a setting value (string hex, {@link foundry.utils.Color}, number) to #RRGGBB for PIXI parsing.
-     */
-    static _coerceColorSettingToHex(raw, fallbackHex) {
-        if (raw == null || raw === '') return fallbackHex;
-        if (typeof raw === 'string') {
-            const t = raw.trim();
-            if (/^#[0-9a-fA-F]{3}$/.test(t) || /^#[0-9a-fA-F]{6}$/.test(t) || /^#[0-9a-fA-F]{8}$/.test(t)) {
-                return t.length === 4 ? `#${t[1]}${t[1]}${t[2]}${t[2]}${t[3]}${t[3]}` : t.slice(0, 7);
-            }
-            if (/^[0-9a-fA-F]{6}$/.test(t)) return `#${t}`;
-            return fallbackHex;
-        }
-        try {
-            const Color = globalThis.foundry?.utils?.Color;
-            if (Color?.from) {
-                const c = Color.from(raw);
-                if (c != null) {
-                    const n = Number(c);
-                    if (Number.isFinite(n)) {
-                        return `#${(n >>> 0).toString(16).padStart(6, '0')}`;
-                    }
-                }
-            }
-        } catch (_e) {
-            /* use fallback */
-        }
-        return fallbackHex;
     }
 
     /**

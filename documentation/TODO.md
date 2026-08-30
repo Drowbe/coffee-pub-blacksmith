@@ -653,31 +653,6 @@ of numbered dropdowns is the wrong control for an ordered list. One panel per ty
 add and remove, no slot count. Two things to carry over: the ordinary settings page keeps working for anyone
 who does not open the panel, and the panel needs the full unfiltered `getAllPacks(type)`.
 
-### A play button beside every sound choice in settings (opened 2026-08-27)
-
-Fourteen settings pick a sound from `BLACKSMITH.arrSoundChoices` (built by `getSoundChoices()`,
-`settings.js:751`), and choosing one today means saving, triggering the feature, and listening. A play
-button beside the select lets a GM audition instead.
-
-**Find them generically, not by a list.** Key off the settings that use `arrSoundChoices` so a sound setting
-added later gets the button without anyone remembering to add it. The choice *value* is the file path, so
-playing it is one call.
-
-**Play locally, always.** `playSoundLocalWithDuration` (`api-core.js:847`) rather than the broadcast
-variants -- a GM browsing settings must not fire sounds at the whole table. Play the value currently
-selected in the control, not the saved setting, since the point is auditioning before saving, and disable
-the button on `sound-none`.
-
-**The injection is the risky part and there is a recorded lesson about it.** An earlier build drew a
-checklist into the settings form with a `renderSettingsConfig` hook and got it wrong -- the markup landed
-inside `.form-fields` and shared one flex cell with the control (`api-toast.js:145-152`), which is why
-toast channels became ordinary Boolean settings instead. A button beside a select is a much smaller
-injection than that was, but it is the same hook and the same trap.
-
-**Verify:** every sound setting shows the button, it plays the selected entry before saving, changing the
-select and pressing again plays the new one, `sound-none` is inert, nothing reaches a second connected
-client, and the settings form's layout is unchanged with the button present.
-
 ### Asset sources: let a module supply the image library
 
 Image and sound choices in settings should be able to come from Coffee Pub Vault when it is installed and

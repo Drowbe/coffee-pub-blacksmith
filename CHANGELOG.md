@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Sound previews and colour swatches in the settings sheet, and image pickers that open on images** (`scripts/ui-settings-controls.js`, `scripts/utility-color.js`, `styles/settings-controls.css`, `scripts/settings.js`). Choosing a sound meant saving, triggering the feature and listening; choosing a colour meant typing a hex value blind. Three requests, and they wanted three different answers.
+
+  **A play button beside every sound choice.** The twelve settings that pick from the sound list get a preview button that plays the entry currently selected in the control -- not the saved value, since the point is auditioning before saving -- and disables itself on "No Sound". They are found by looking for the list's own `sound-none` entry in a setting's `choices`, not by a list of keys, so a sound setting added later gets its button without anyone remembering to come back. It plays with `broadcast: false`; `playSound` broadcasts by default (`api-core.js:1043`), and a GM browsing settings must not fire every sound they click at the whole table. The volume is a fixed preview level rather than the feature's own, because the settings that carry a volume do not map one-to-one onto the sounds and guessing the pairing would make some previews quieter than what will actually be heard.
+
+  **A colour swatch beside every colour setting**, found the same way -- by the setting's registered default looking like a hex colour. The swatch *drives* the existing text input rather than replacing it, so the input keeps the setting's `name` and stays what the form submits, and a GM who would rather paste a hex value still can. Two-way, since a swatch showing a different colour from the field beside it is worse than no swatch.
+
+  **The colour half is injected rather than declared, and that was not the first attempt.** `foundry.data.fields.ColorField` renders a native picker and is accepted as a setting `type` (`client/applications/settings/config.mjs:76-77`), which makes it the obvious answer -- it was tried here, and reverted, for the second time. It validates on read: `_validateType` throws for anything `isColorString` rejects, `Setting#_castType` runs it on every read (`client/documents/setting.mjs:61-71`), and `registerSettings` runs early in `ready` outside any try/catch. A single world holding a legacy or empty value in one colour key would fail to load, before anything could report why. The warning already in `settings.js` said so and now says why, names both attempts, and points at what to do instead. A swatch driving a text input cannot break world load; its worst case is no swatch.
+
+  **The image half needed no injection at all.** `narrativeDefaultImagePath`, `narrativeDefaultCharacterImagePath` and `encounterDefaultImagePath` already had browse buttons -- they declare `filePicker`, and every free-text image setting in the module already did. What they declared was the bare `true`, which falls through to *every* file category (`client/applications/settings/config.mjs:93-103`), so the picker opened on audio and fonts as readily as on images. They now declare `filePicker: 'image'`. Declaring beats injecting wherever Foundry offers the declaration, which is the rule the three cases were sorted by.
+
+  Styling deliberately does not use our neutral overlay tokens: those are white at low alpha (`styles/vars.css:206-208`) because they were built for our own dark surfaces, and the settings sheet is Foundry's chrome. On its background a white border is invisible, so a control styled with them looks broken rather than themed. These derive from `currentColor` instead and follow whatever the sheet's text colour is.
+
+  **Verify live:** open Settings and check a sound row -- the button plays the selected entry before saving, changing the dropdown and pressing again plays the new one, "No Sound" leaves it inert, and a second connected client hears nothing. Check a colour row -- the swatch opens a picker, choosing a colour updates the text field, typing a hex value updates the swatch, and Save keeps what is shown. Check an image row -- browse opens on image files. Then confirm the sheet's rows are no taller than before and nothing wraps.
+
+### Fixed
+
+- **Two colour settings were read with string methods that their values may not have** (`scripts/utility-color.js`, `scripts/manager-token-indicators.js`, `scripts/utility-quickview.js`). Found while adding the settings-sheet controls above, and worth fixing whether or not those landed.
+
+  `_getTurnSettings` called `.replace('#', '0x')` directly on the raw setting value, and Quick View's `_sightHighlightColorNumber` guarded with `typeof raw === 'string'` and fell through to an empty string for anything else -- so the same class of value produced a thrown error in one place and a silently ignored user preference in the other. The targeted-indicator path already had a private helper coping with strings, `Color` instances and raw numbers, which is evidence someone had met this before and fixed it in one place only.
+
+  That helper is now `coerceColorToHex` / `coerceColorToNumber` in `scripts/utility-color.js`, and all five colour reads go through it. The private copy is deleted. An unreadable value returns the caller's fallback rather than throwing, because a wrong colour is cosmetic and an exception in a render path is not.
+
+  **Verify live:** with a turn indicator and a targeted indicator visible, change all four indicator colours and the Quick View highlight colour and confirm each takes effect; then set one to an empty value and confirm the indicator still draws, in its default colour, with no console error.
+
 ## [13.21.0]
 
 ### Added

@@ -1229,7 +1229,9 @@ export const registerSettings = () => {
 		requiresReload: false,
 		type: String,
 		default: '',
-		filePicker: true,
+		filePicker: 'image',  // 'image' rather than `true`: a bare true falls through to every
+		// file category (client/applications/settings/config.mjs:93-103), so the browse
+		// button opened on audio and fonts as readily as on images.
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
@@ -1242,7 +1244,9 @@ export const registerSettings = () => {
 		requiresReload: false,
 		type: String,
 		default: '',
-		filePicker: true,
+		filePicker: 'image',  // 'image' rather than `true`: a bare true falls through to every
+		// file category (client/applications/settings/config.mjs:93-103), so the browse
+		// button opened on audio and fonts as readily as on images.
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
@@ -1349,7 +1353,9 @@ export const registerSettings = () => {
 		requiresReload: false,
 		type: String,
 		default: '',
-		filePicker: true,  // Enable FilePicker for image file selection
+		filePicker: 'image',  // 'image' rather than `true`: a bare true falls through to every
+		// file category (client/applications/settings/config.mjs:93-103), so the browse
+		// button opened on audio and fonts as readily as on images.
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
@@ -2965,9 +2971,18 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// Use String for color keys — do not use ColorField as `game.settings.register` `type` here:
-	// it can stall or error during world load (registerSettings runs early in `ready`, outside try/catch).
-	// Hex values still work; `_coerceColorSettingToHex` in manager-token-indicators handles reads.
+	// COLOUR SETTINGS ARE `String`, AND THE PICKER IS INJECTED. Do not "fix" this by
+	// registering `foundry.data.fields.ColorField` as the `type`: it renders a native picker,
+	// which is why it keeps being proposed, but it can stall or error during world load --
+	// `registerSettings` runs early in `ready`, outside any try/catch. `ColorField` validates
+	// on read (`_validateType` throws for anything `isColorString` rejects), so ONE world that
+	// already holds an empty or legacy value in one of these keys fails to load, and it fails
+	// before anything that could report it. Tried and reverted twice now: a78c5a0a, and again
+	// 2026-08-29.
+	//
+	// `scripts/ui-settings-controls.js` adds a colour swatch beside each of these instead,
+	// discovering them by their hex default. Injection cannot break world load; a bad value
+	// just means no swatch. Reads go through `coerceColorToHex` in `utility-color.js`.
 
 	// -- Default targeted colors (hex string; Foundry may still render a color control in module settings UI) --
 	game.settings.register(MODULE.ID, 'targetedIndicatorBorderColor', {

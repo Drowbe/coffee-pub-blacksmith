@@ -92,6 +92,12 @@
 /* --- Sidebar Pin ---------------------- */
 @import "sidebar-pin.css";
 
+/* --- Settings form controls ----------------------
+   The sound preview button injected into Foundry's settings sheet by
+   ui-settings-controls.js. Colour pickers and file-browse buttons are Foundry's
+   own and need nothing here. */
+@import "settings-controls.css";
+
 /* --- Sidebar Style ---------------------- */
 @import "sidebar-style.css";
 

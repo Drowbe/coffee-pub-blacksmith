@@ -5,6 +5,7 @@
 import { MODULE } from './const.js';
 import { MenuBar } from './api-menubar.js';
 import { postConsoleAndNotification, getSettingSafely, setSettingSafely } from './api-core.js';
+import { coerceColorToNumber } from './utility-color.js';
 
 /**
  * Quick View Utility - Clarity Mode for GMs
@@ -86,13 +87,18 @@ export class QuickViewUtility {
     return Math.min(1, Math.max(0, baseline * scale));
   }
 
-  /** Hex string (e.g. #ffcc33) to packed RGB for PIXI lineStyle. */
+  /**
+   * The sight highlight colour as the packed RGB PIXI takes for `lineStyle`.
+   *
+   * Read through `coerceColorToNumber` because the setting is a `ColorField` and
+   * hands back a `foundry.utils.Color`, not a string. The previous version
+   * guarded with `typeof raw === 'string'` and fell through to `''` for anything
+   * else, so a Color would silently produce the default -- the user's chosen
+   * colour ignored, with nothing to see in the console.
+   */
   static _sightHighlightColorNumber() {
     const raw = getSettingSafely(MODULE.ID, 'quickViewSightHighlightColor', '#ffcc33');
-    let s = typeof raw === 'string' ? raw.trim() : '';
-    if (!s.startsWith('#')) s = `#${s}`;
-    const n = Number.parseInt(s.slice(1, 7), 16);
-    return Number.isFinite(n) && s.length >= 4 ? n : 0xffcc33;
+    return coerceColorToNumber(raw, 0xffcc33);
   }
 
   /**

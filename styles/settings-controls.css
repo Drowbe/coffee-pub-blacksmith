@@ -1,0 +1,66 @@
+/* ==================================================================
+   SETTINGS FORM CONTROLS
+   ==================================================================
+   The sound preview button and colour swatch injected into Foundry's own
+   settings sheet by scripts/ui-settings-controls.js.
+
+   DELIBERATELY NOT STYLED FROM OUR DESIGN TOKENS. The neutral overlay tokens
+   (--blacksmith-border-subtle, --blacksmith-fill-hint, --blacksmith-fill-subtle)
+   are WHITE at low alpha (styles/vars.css:206-208), because they were built for
+   our own dark surfaces. This sheet is Foundry's chrome, not ours, and on its
+   light background a white border is simply invisible -- the control would look
+   broken rather than themed.
+
+   These derive from `currentColor` instead, so they take their contrast from
+   whatever the sheet's own text colour is and follow it into any theme. That is
+   the right relationship for a control that is a guest in someone else's form.
+   ================================================================== */
+
+.blacksmith-setting-preview,
+.blacksmith-setting-swatch {
+    flex: 0 0 auto;
+    height: 28px;
+    margin: 0 0 0 4px;
+    border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+    border-radius: 3px;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    cursor: pointer;
+}
+
+/* --- Sound preview ---------------------- */
+
+.blacksmith-setting-preview {
+    width: 28px;
+    padding: 0;
+    line-height: 1;
+    color: inherit;
+}
+
+.blacksmith-setting-preview:hover:not(:disabled) {
+    background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* "No Sound" is a legitimate choice, not an error, so the button reads as
+   unavailable rather than as broken. */
+.blacksmith-setting-preview:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.blacksmith-setting-preview i {
+    pointer-events: none;
+}
+
+/* --- Colour swatch ---------------------- */
+
+.blacksmith-setting-swatch {
+    width: 34px;
+    padding: 2px;
+}
+
+/* The text input still carries the setting's name and is still what the form
+   submits, so it must not be crowded out by the control now sitting beside it. */
+.form-fields > .blacksmith-setting-swatch + input[type="text"],
+.form-fields > input[type="text"]:has(~ .blacksmith-setting-swatch) {
+    min-width: 0;
+}
