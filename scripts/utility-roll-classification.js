@@ -186,6 +186,51 @@ export function classify(input, options = {}) {
 }
 
 /**
+ * Whether this chat message is an initiative roll.
+ *
+ * Core stamps `flags.core.initiativeRoll` on every initiative message it creates
+ * (`client/documents/combat.mjs:411`); dnd5e additionally types its own. Both are
+ * checked because either can be the one present, and neither is guaranteed by the
+ * other. There is no flavour-text fallback here on purpose -- flavour is localized
+ * and a table playing in another language would silently stop being announced.
+ *
+ * @param {ChatMessage} message
+ * @returns {boolean}
+ */
+function _isInitiativeMessage(message) {
+    if (message?.flags?.core?.initiativeRoll === true) return true;
+    return message?.flags?.dnd5e?.roll?.type === 'initiative';
+}
+
+/**
+ * The combatant an initiative message belongs to.
+ *
+ * Core writes ONE message per combatant (`combat.mjs:380-413` loops over ids), so
+ * this is a 1:1 lookup rather than a guess. Matched on the speaker's token first
+ * and its actor second, because a scene can hold several tokens of one actor and
+ * only the token identifies which of them rolled.
+ *
+ * @param {ChatMessage} message
+ * @returns {Combatant|null}
+ */
+function _combatantForInitiativeMessage(message) {
+    const tokenId = message?.speaker?.token ?? null;
+    const actorId = message?.speaker?.actor ?? null;
+    for (const combat of game.combats ?? []) {
+        for (const combatant of combat.combatants ?? []) {
+            if (tokenId && combatant.token?.id === tokenId) return combatant;
+        }
+    }
+    if (!actorId) return null;
+    for (const combat of game.combats ?? []) {
+        for (const combatant of combat.combatants ?? []) {
+            if (combatant.actor?.id === actorId) return combatant;
+        }
+    }
+    return null;
+}
+
+/**
  * @param {ChatMessage} message
  * @param {object} options
  * @returns {object|null}
@@ -216,6 +261,49 @@ function _classifyChatMessage(message, options) {
             visibility: _messageVisibility(message),
             critMode: options.critMode
         });
+    }
+
+    // Initiative, before the attack path: an initiative roll is a plain d20 with no
+    // attack flags, so it would fall through to `resolveAttackMessage` and return
+    // null. Recognised by core's own flag rather than by our own marker, since
+    // core sets it on every initiative message it writes (`combat.mjs:411`).
+    //
+    // NOTE THE DELIBERATE OMISSION: this reports the roll and nothing about WHO
+    // rolled it beyond ids. Any rule about which combatants a table cares about --
+    // characters only, player-owned, everyone -- belongs to whatever consumes this,
+    // never here. `classify()` feeds `blacksmith.rolls.*`, and a house rule folded
+    // into it would leave the `initiative` kind reporting less than its name says,
+    // with the next consumer inheriting one table's preference as a fact.
+    if (_isInitiativeMessage(message)) {
+        const initiativeRoll = message.rolls?.[0] ?? null;
+        const initiativeD20 = extractActiveD20(initiativeRoll);
+        // No d20 means a system or module rolled initiative on some other die. That
+        // is legitimate, and there is no natural 20 to speak of, so report nothing
+        // rather than guess.
+        if (initiativeD20 == null) return null;
+        const initiativeNat = classifyCritFumble(initiativeD20, { critMode: options.critMode });
+        const combatant = _combatantForInitiativeMessage(message);
+
+        return {
+            kind: 'initiative',
+            source: 'core.initiative',
+            d20: initiativeD20,
+            total: typeof initiativeRoll?.total === 'number' ? initiativeRoll.total : null,
+            isCritical: initiativeNat.isCritical,
+            isFumble: initiativeNat.isFumble,
+            // Initiative is not measured against a target number, so neither field
+            // has an answer. Present and null beats absent: a consumer reading
+            // `success` gets "not applicable" rather than "undefined property".
+            success: null,
+            dc: null,
+            actorId: combatant?.actor?.id ?? message.speaker?.actor ?? null,
+            tokenId: combatant?.token?.id ?? message.speaker?.token ?? null,
+            combatantId: combatant?.id ?? null,
+            combatId: combatant?.parent?.id ?? null,
+            messageId: message.id,
+            visibility: _messageVisibility(message),
+            critMode: options.critMode
+        };
     }
 
     const attackEvent = resolveAttackMessage(message);

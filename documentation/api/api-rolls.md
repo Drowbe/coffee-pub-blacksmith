@@ -45,13 +45,21 @@ const stop = rolls.on('resolved', (outcome) => {
 
 | `rolls.on()` event | Hook name | When it fires |
 |---|---|---|
-| `'resolved'` | `blacksmith.rolls.resolved` | Any classified roll outcome (skill check or attack — not damage) |
+| `'resolved'` | `blacksmith.rolls.resolved` | Any classified roll outcome (skill check, attack or initiative — not damage) |
 | `'skillCheckResolved'` | `blacksmith.rolls.skillCheckResolved` | Request Roll / skill-check card row completed |
 | `'attackResolved'` | `blacksmith.rolls.attackResolved` | Attack classified — core dnd5e chat (GM) and optional MIDI workflow |
+| `'initiativeResolved'` | `blacksmith.rolls.initiativeResolved` | Initiative rolled and classified — every combatant, including monsters and summons (GM client) |
 | `'damageResolved'` | `blacksmith.rolls.damageResolved` | Damage or healing applied to an actor (dnd5e; GM client) |
 | `'groupResolved'` | `blacksmith.rolls.groupResolved` | Group skill check: all actors finished (GM client) |
 
 You may also use `Hooks.on('blacksmith.rolls.resolved', ...)` directly.
+
+An `initiative` outcome carries `d20`, `total`, `isCritical`, `isFumble`, `actorId`, `tokenId`,
+`combatantId`, `combatId`, `messageId` and `visibility`. `success` and `dc` are present and null:
+initiative is not measured against a target number, so "not applicable" is the honest answer and it beats
+an absent property. It is emitted for **every** combatant that rolls, monsters and player-owned summons
+included — a subscriber that cares about only some of them applies that rule itself, because whose
+initiative matters is a table's preference and not a fact about the roll.
 
 `rolls.on()` returns an idempotent disposer. When an `AbortSignal` is supplied, aborting removes
 both the Foundry hook and Blacksmith's abort listener; calling the disposer does the same.
@@ -265,6 +273,7 @@ if (outcome?.kind === 'attack' && outcome.hitTargets?.length) {
 | `extractActiveD20` | Shipped |
 | `skillCheckResolved` / `groupResolved` hooks from Request Roll | Shipped (GM client) |
 | `attackResolved` hook from core dnd5e chat + optional MIDI | Shipped — `manager-roll-outcomes.js` |
+| `initiativeResolved` hook from core initiative chat messages | Shipped — `manager-roll-outcomes.js` |
 | `damageResolved` hook from dnd5e damage application | Shipped — `manager-roll-outcomes.js` (attacker/item attribution not yet carried) |
 | Internal sites fully migrated off duplicated logic | Phase 2 done — `manager-rolls.js`, `blacksmith.js` |
 

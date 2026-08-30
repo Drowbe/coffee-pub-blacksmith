@@ -2176,6 +2176,50 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 	
+	// -- Announce a Critical Initiative Roll --
+	// The scope is a setting rather than a constant because `character` and
+	// `playerOwned` genuinely disagree: a player's summons are player-owned NPCs, and
+	// a table that wants them counted should not have to patch code.
+	game.settings.register(MODULE.ID, 'initiativeCritAnnounce', {
+		name: MODULE.ID + '.initiativeCritAnnounce-Label',
+		hint: MODULE.ID + '.initiativeCritAnnounce-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'initiativeCritScope', {
+		name: MODULE.ID + '.initiativeCritScope-Label',
+		hint: MODULE.ID + '.initiativeCritScope-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			'character': 'Player characters only',
+			'playerOwned': 'Anything a player owns',
+			'all': 'Everyone, monsters included'
+		},
+		default: 'character',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
+	game.settings.register(MODULE.ID, 'initiativeCritPresentation', {
+		name: MODULE.ID + '.initiativeCritPresentation-Label',
+		hint: MODULE.ID + '.initiativeCritPresentation-Hint',
+		scope: 'world',
+		config: true,
+		type: String,
+		choices: {
+			'toast': 'A toast',
+			'card': 'A chat card',
+			'both': 'Both'
+		},
+		default: 'toast',
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	// -- Mark NPCs Defeated at Zero Hit Points --
 	// World scope, and not negotiable: this decides the turn order, and a turn order
 	// that differs per client is not a turn order.

@@ -144,6 +144,7 @@ import { registerHandlebarsHelpers } from './utility-handlebars.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
 import { DefeatedManager } from './manager-defeated.js';
 import { SettingsControls } from './ui-settings-controls.js';
+import { InitiativeCritManager } from './manager-initiative-crit.js';
 import { extractActiveD20, classifyCritFumble } from './utility-roll-classification.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import {
@@ -666,6 +667,10 @@ Hooks.once('ready', async () => {
         // Settings-form affordances Foundry cannot render on its own. Registers a
         // renderSettingsConfig hook, so it must come after settings exist.
         SettingsControls.initialize();
+
+        // Announces a natural 20 on initiative. A consumer of
+        // blacksmith.rolls.initiativeResolved, so it must come after RollOutcomesManager.
+        InitiativeCritManager.initialize();
 
         // Notes: builds the annotation index from journal page flags. After
         // HookManager.initialize() above, since it registers hooks to stay current.

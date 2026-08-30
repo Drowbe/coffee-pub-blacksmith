@@ -70,6 +70,17 @@ export class RollOutcomesManager {
         if (isMidiIntegrationEnabled() && hasMidiFlags) return;
 
         const outcome = classify(message);
+
+        // Initiative resolves here rather than in the attack path below: it has no
+        // targets, no hit or miss, and none of the provisional-card handling that
+        // path exists for. dnd5e writes an initiative message once, complete.
+        if (outcome?.kind === 'initiative') {
+            if (this._chatDedupe.isDuplicate(`initiative:${message.id}`)) return;
+            this._chatDedupe.markProcessed(`initiative:${message.id}`);
+            RollsAPI.emitResolved(outcome, { trigger: 'initiativeRoll' });
+            return;
+        }
+
         if (!outcome || outcome.kind !== 'attack') return;
 
         // dnd5e creates an activity card before attaching the attack roll, then

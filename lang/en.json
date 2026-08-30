@@ -284,6 +284,12 @@
 			"combatTrackerSetFirstTurn-Label": "Set First Turn",
 				"combatTrackerSetFirstTurn-Hint": "Set the first combatant as the current combatant at the start of the combat after all inititives have been rolled.",
 
+				"initiativeCritAnnounce-Label": "Announce Critical Initiative",
+				"initiativeCritAnnounce-Hint": "When a natural 20 is rolled on initiative, announce it to the table. Useful for the house rule that a critical initiative lets that player move someone on the turn order. Blind and private initiative rolls are never announced.",
+				"initiativeCritScope-Label": "Whose Critical Initiative Counts",
+				"initiativeCritScope-Hint": "Player characters only counts actors with a character sheet, which is what most tables mean. Anything a player owns also counts summons, familiars and companions, since those are player-owned NPCs. Everyone includes monsters.",
+				"initiativeCritPresentation-Label": "How to Announce It",
+				"initiativeCritPresentation-Hint": "A toast appears briefly for everyone; a chat card stays in the log. The toast has its own channel in Notifications, so it can be silenced separately.",
 				"combatAutoMarkDefeated-Label": "Mark the Dead as Defeated",
 				"combatAutoMarkDefeated-Hint": "When an NPC in a combat drops to zero hit points, mark it defeated and apply the defeated status, exactly as the combat tracker's skull button does. Foundry then skips it in the turn order, provided Skip Defeated Combatants is on in the combat tracker settings. Player characters are never marked this way, since a character at zero is making death saves. Healing an NPC above zero removes a mark this setting applied; a mark you applied yourself is left alone.",
 				"combatTrackerRollInitiativeNonPlayer-Label": "Roll NPC Initiative",

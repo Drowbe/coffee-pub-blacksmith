@@ -18,6 +18,7 @@ export const ROLLS_HOOKS = {
     resolved: 'blacksmith.rolls.resolved',
     skillCheckResolved: 'blacksmith.rolls.skillCheckResolved',
     attackResolved: 'blacksmith.rolls.attackResolved',
+    initiativeResolved: 'blacksmith.rolls.initiativeResolved',
     damageResolved: 'blacksmith.rolls.damageResolved',
     groupResolved: 'blacksmith.rolls.groupResolved'
 };
@@ -144,6 +145,8 @@ export class RollsAPI {
                     Hooks.callAll(ROLLS_HOOKS.skillCheckResolved, payload);
                 } else if (outcome.kind === 'attack') {
                     Hooks.callAll(ROLLS_HOOKS.attackResolved, payload);
+                } else if (outcome.kind === 'initiative') {
+                    Hooks.callAll(ROLLS_HOOKS.initiativeResolved, payload);
                 }
             }
         }
