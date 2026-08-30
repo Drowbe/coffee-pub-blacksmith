@@ -39,6 +39,27 @@
 // without that check every connected client races to issue the same two document
 // updates.
 //
+// IT STANDS DOWN WHEN MIDI-QOL IS ALREADY DOING THIS
+//
+// midi-qol applies the same two writes: `setDeadStatus(actor, {useDefeated:
+// configSettings.markNonPlayerDefeated, makeDead})`, gated on its own
+// `addDead !== "none"`. With both running, the two race -- and losing that race is
+// not harmless noise. `Actor#toggleStatusEffect` reads `this.effects`
+// synchronously and then creates with the status's STATIC `_id` and `keepId: true`
+// (`client/documents/actor.mjs:490-521`), so the loser is rejected by the server
+// with "The _id [dnd5edead0000000] already exists". Foundry reports that from its
+// socket ack handler, which means NO try/catch of ours can silence it -- the only
+// cure is not to race.
+//
+// So when midi is installed, enabled, and configured to do this, we do not.
+//
+// **This is not a midi dependency, and the distinction matters.** Nothing here
+// requires midi or works better with it: without midi, or with its dead handling
+// switched off, this manager does the whole job by itself, which is the point of it.
+// What it will not do is be the second module writing the same field in the same
+// instant. Deferring to whoever is already doing a job is the opposite of assuming
+// they will.
+//
 // ==================================================================
 
 import { MODULE } from './const.js';
@@ -117,6 +138,29 @@ export class DefeatedManager {
     }
 
     /**
+     * Whether midi-qol is already marking the dead, in which case we do not.
+     *
+     * Read from midi's own `ConfigSettings` rather than assumed from midi merely
+     * being installed: `addDead` is a three-way choice a GM can set to "none", and a
+     * table that has turned midi's handling off still wants ours.
+     *
+     * Every access is defensive. This reads another module's setting object, whose
+     * shape is theirs to change, and a throw here would leave a dead NPC unmarked --
+     * a worse outcome than a duplicate-id line in the console. Unreadable means "not
+     * handling it", so we do the work ourselves.
+     */
+    static _midiMarksTheDead() {
+        try {
+            if (!game.modules?.get('midi-qol')?.active) return false;
+            const config = game.settings?.get?.('midi-qol', 'ConfigSettings');
+            if (!config || typeof config !== 'object') return false;
+            return config.addDead !== undefined && config.addDead !== 'none';
+        } catch (_e) {
+            return false;
+        }
+    }
+
+    /**
      * Every combatant in every combat backed by this actor. All of them, not just
      * the active combat's: a second fight on another scene holds the same creature
      * at the same hit points, and leaving it unmarked there would put the two
@@ -157,6 +201,11 @@ export class DefeatedManager {
             if (!this._isEnabled() || !this._isWriter()) return;
             const actor = combatant?.actor;
             if (!actor || actor.type === 'character') return;
+
+            // midi-qol is already applying both writes. Two modules setting the same
+            // field in the same instant is how the duplicate-id rejection happens,
+            // and there is nothing left for us to add. See the header.
+            if (this._midiMarksTheDead()) return;
 
             // One sync per actor at a time. See `_inFlight`. Dropping the second
             // rather than queueing it is correct: it was triggered by the same hit
