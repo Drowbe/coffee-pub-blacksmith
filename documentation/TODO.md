@@ -264,10 +264,73 @@ whose rows are on screen. A silent return is indistinguishable from the feature 
 ### Announce a critical initiative roll (opened 2026-08-27)
 
 House rule: a natural 20 on initiative lets that player move someone on the stack, so the table has to
-notice. Toast, chat card, or both, by setting. **Catch it at the roll** -- by the time `updateCombatant`
-carries an initiative value only the total remains, and a total of 20 is not a natural 20.
-`classifyCritFumble` and `extractActiveD20` exist (`utility-roll-classification.js`) but `classify()` emits
-only attacks and skill checks, so this is a new kind on the rolls surface. Broadcast via `broadcastToast`.
+notice it happened. Wanted as a toast, a chat card, or both, chosen by setting.
+
+**Catch it at the roll, not at the combatant update.** By the time `updateCombatant` carries an
+`initiative` value the dice are gone and only the total remains, and a total of 20 is not a natural 20.
+
+**Detect everything; filter at the announcement.** The table only cares about player crits, but that rule
+must NOT live in `classify()`. That function feeds `blacksmith.rolls.*`, which siblings subscribe to, so a
+house rule baked into the classifier would leave the `initiative` kind quietly reporting less than its name
+says, and the next consumer would inherit our table's preference as though it were a fact about initiative.
+Classify every initiative roll; let the announcement decide who it cares about. Same cost either way.
+
+**Who counts is `actor.type === 'character'`, and it is a setting.** The blunt structural rule, not
+`hasPlayerOwner`: a sheet type is a fact and ownership is a guess, and the two diverge exactly where this
+session started -- the summoned berserkers were player-*owned* NPCs, so under `hasPlayerOwner` a crit on a
+summon's initiative would hand a player a stack move for their berserker. Three settings, all world scope
+since they decide what the whole table sees:
+
+- **on/off** for the feature, default off -- it is a house rule, not a default.
+- **scope**: characters only (default), all player-owned, or everyone. The default encodes the paragraph
+  above; the other two exist because a table that wants summons or monsters included should not have to
+  patch code to get it.
+- **presentation**: toast, chat card, or both.
+
+**Detection, and it is smaller than it looks (surveyed 2026-08-30).** Everything needed already exists:
+
+- Core writes `flags: {"core.initiativeRoll": true}` on the message (`client/documents/combat.mjs:411`),
+  and **we already have a helper that recognises one** -- `_isInitiativeRollMessage`
+  (`blacksmith.js:2731`) checks that flag, dnd5e's `flags.dnd5e.roll.type`, and a flavour fallback.
+- Core rolls **one message per combatant** (`combat.mjs:380-413`, a loop over ids), so attribution is 1:1
+  and there is no group case to unpick.
+- `classifyCritFumble` and `extractActiveD20` (`utility-roll-classification.js`) already decide what a
+  natural 20 is.
+- dnd5e fires `dnd5e.rollInitiative` (`dnd5e.mjs:37902`) if actor attribution is ever wanted directly.
+
+What is missing is only that `classify()` emits attacks and skill checks and nothing else, so initiative
+is not a kind. Add the branch in `_classifyChatMessage` and an emission path beside
+`_emitAttackOnce` in `manager-roll-outcomes.js`, which today returns early on anything not `attack`.
+
+**`combatTrackerHideInitiativeRoll` does not block this**, and that is worth knowing before someone
+assumes it does: hidden rolls are still *created* so Dice So Nice can animate them, then deleted
+afterwards by the active GM (`blacksmith.js:1386-1410`). A `createChatMessage` detector sees them.
+
+**Presentation has three working models -- copy, do not invent:**
+
+1. **A badge on the combat bar portrait.** `combat-portrait-dead-overlay` is the pattern exactly:
+   a conditional overlay with an icon and a `data-tooltip`, rendered off a view-model flag built in
+   `getCombatData` (`templates/partials/menubar-combat.hbs:208-213`,
+   `styles/menubar-combatbar.css:1161`). Two differences to decide deliberately: the dead overlay sits
+   dead-centre because a corpse's portrait no longer needs reading, so a crit badge wants a corner and a
+   smaller size; and its lifetime is the combatant's initiative, which means the flag is derivable and
+   needs no store.
+2. **A toast.** `api.toast` was built with this case in mind -- `channel` is documented with `'crit'` as
+   its worked example, and `registerChannel()` gives it its own checkbox in settings
+   (`api-toast.js:337`). `image`, `color`, `sound`, `stackKey` and billboard `size`/`animation` are all
+   already there. Because the house rule grants an *action*, `callToAction` + `onClick` is the fitting
+   shape -- note it renders only on a sized billboard with a function `onClick`, and relayed toasts strip
+   callbacks, so the click must be wired receipt-side.
+3. **The canvas burst.** `manager-token-indicators.js` already celebrates attack crits with a hit burst.
+   If an initiative crit should feel like the other crits, match that vocabulary rather than build beside it.
+
+Broadcast through `broadcastToast` rather than opening a second cross-client path.
+
+**Verify:** roll a natural 20 on initiative for a PC and confirm exactly one announcement on every client,
+naming the right combatant; roll a 20 total that is not a natural 20 and confirm silence; roll a natural 20
+for a player-owned NPC summon and confirm silence at the default scope, then an announcement after widening
+it; roll with `combatTrackerHideInitiativeRoll` on and confirm the announcement still fires though no card
+remains; and confirm a blind or private initiative roll does not announce to players.
 
 ### Hide Dead and Skip Dead: the canvas half
 
