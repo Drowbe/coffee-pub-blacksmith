@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [13.21.1]
 
 ### Added
 
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   The toast declares its own channel, `initiative-crit`, registered at import time so its checkbox lands in Notifications rather than at the bottom of the settings page under whichever heading happens to be last (`api-toast.js:56-73`). The chat card is built from **parts** through `ChatCardsAPI.post` rather than hand-written HTML -- a manager writing its own markup beside a parts library is the consumer-zero failure this repo keeps finding, and prose escaping comes free from the renderer.
 
-  **Verify live:** roll a natural 20 on initiative for a PC -- one announcement on every client, naming the right combatant. Roll a 20 *total* that is not a natural 20 -- silence. Roll a natural 20 for a player-owned NPC summon -- silence at the default scope, then an announcement after widening the scope setting; that is the case the default exists for. Roll with **Hide Initiative Roll Chat Cards** on -- the announcement still fires though no card remains in chat, since hidden rolls are still created for Dice So Nice and deleted afterwards. Confirm a blind or private initiative roll announces to nobody, and that with two GMs connected exactly one toast appears.
+  **Verified 2026-08-30**: the announcement fires on a player's natural 20 and names the right combatant. The scope boundary, the hidden-card case and the multi-GM case below are still owed. **Verify live:** roll a natural 20 on initiative for a PC -- one announcement on every client, naming the right combatant. Roll a 20 *total* that is not a natural 20 -- silence. Roll a natural 20 for a player-owned NPC summon -- silence at the default scope, then an announcement after widening the scope setting; that is the case the default exists for. Roll with **Hide Initiative Roll Chat Cards** on -- the announcement still fires though no card remains in chat, since hidden rolls are still created for Dice So Nice and deleted afterwards. Confirm a blind or private initiative roll announces to nobody, and that with two GMs connected exactly one toast appears.
 
 - **Sound previews and colour swatches in the settings sheet, and image pickers that open on images** (`scripts/ui-settings-controls.js`, `scripts/utility-color.js`, `styles/settings-controls.css`, `scripts/settings.js`). Choosing a sound meant saving, triggering the feature and listening; choosing a colour meant typing a hex value blind. Three requests, and they wanted three different answers.
 
@@ -55,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Two further defences, because deferring to midi cannot cover every case. A per-actor in-flight guard makes our own second call stand down rather than race -- dropping it rather than queueing it, since it was triggered by the same hit points the first is already acting on. And the create is wrapped so a duplicate-id rejection is treated as success, because core's own tracker button, dnd5e, or another module can create that effect at the same moment and we cannot lock them out. Anything that is not a duplicate still reports.
 
-  **Verify:** with midi's Add Dead set to anything but None, kill an NPC -- clean console, midi's skull, and the combatant skipped. Set midi's Add Dead to None and kill another -- our marking takes over, still a clean console. The effect was applied correctly either way -- the second write failed, it did not corrupt anything -- so this was console noise rather than a broken feature. **Verify:** kill an unlinked NPC token with a damage roll that applies in stages and confirm a clean console, the skull overlay present once, and the combatant skipped.
+  **Verified 2026-08-30** in a live world, after a full client restart: killing an NPC with midi's dead handling active produces a clean console where it previously threw on every kill. **Verify:** with midi's Add Dead set to anything but None, kill an NPC -- clean console, midi's skull, and the combatant skipped. Set midi's Add Dead to None and kill another -- our marking takes over, still a clean console. The effect was applied correctly either way -- the second write failed, it did not corrupt anything -- so this was console noise rather than a broken feature. **Verify:** kill an unlinked NPC token with a damage roll that applies in stages and confirm a clean console, the skull overlay present once, and the combatant skipped.
 
 - **Two colour settings were read with string methods that their values may not have** (`scripts/utility-color.js`, `scripts/manager-token-indicators.js`, `scripts/utility-quickview.js`). Found while adding the settings-sheet controls above, and worth fixing whether or not those landed.
 
