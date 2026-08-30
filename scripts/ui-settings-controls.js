@@ -90,7 +90,13 @@ export class SettingsControls {
      */
     static injectControls(element) {
         try {
-            const root = element?.[0] ?? element;
+            // NOT `element?.[0] ?? element`. That is the usual jQuery-compat idiom and it
+            // is WRONG here: this application's root is a `<form>`, and HTMLFormElement is
+            // indexable -- `form[0]` returns its first control. The idiom therefore
+            // narrowed the entire settings sheet down to a single `<input>`, and every
+            // query below found nothing, with no error and a cheerful "decorated 0".
+            // Test for the element first and fall back to unwrapping only if it is not one.
+            const root = element instanceof HTMLElement ? element : (element?.[0] ?? element?.element ?? null);
             if (!root?.querySelectorAll) {
                 postConsoleAndNotification(MODULE.NAME, 'Settings: no form element to decorate', '', true, false);
                 return;
