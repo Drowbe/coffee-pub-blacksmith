@@ -152,17 +152,33 @@ export class InitiativeCritManager {
         }
     }
 
-    /** The toast half. Channelled so it can be silenced on its own. */
+    /**
+     * The toast half. Channelled so it can be silenced on its own.
+     *
+     * PERSISTENT, and NOT stack-keyed. Those two go together and changing one
+     * without the other is a silent fault.
+     *
+     * `duration: 0` means it stays until someone closes it, because the start of a
+     * combat is the noisiest moment at the table -- everyone rolls at once, cards
+     * fill the log, and a toast that fades after six seconds is gone before anyone
+     * looks up. This announcement grants a player an action, so it has to be
+     * acknowledged rather than merely displayed.
+     *
+     * The `stackKey` that used to be here is deliberately gone. A stackKey replaces
+     * the previous toast of the same kind in place, which is right for a transient
+     * notice and WRONG for a persistent one: two players critting in the same round
+     * would leave the second silently erasing the first, and the first player's
+     * reward would vanish before they had seen it. Persistent toasts are also exempt
+     * from stack-cap eviction (`api-toast.js`), so several standing at once is a
+     * legitimate state -- each is a separate reward waiting to be acknowledged.
+     */
     static async _announceToast(name, actor) {
         await broadcastToast({
             title: `${name} rolled a critical initiative`,
             subtitle: 'Move any combatant on the turn order',
             icon: 'fa-solid fa-burst',
             image: actor ? (getPortraitImage(actor) || null) : null,
-            duration: 6,
-            // Replaces rather than stacks: everyone rolls initiative at once, and two
-            // criticals in one round should not push the first off the top of a pile.
-            stackKey: 'blacksmith-initiative-crit',
+            duration: 0,
             channel: CHANNEL,
             moduleId: 'blacksmith-core'
         });
