@@ -3,6 +3,8 @@
 // ==================================================================
 
 import { JsonImportWindow } from './window-json-import.js';
+import { getDeclaration, getDeclarationsForKind, listFieldGroups } from './registry-declarations.js';
+import { buildTemplateText, buildGuideText } from './manager-declarations.js';
 import { prepareJsonImportText } from './utility-json-import-prompts.js';
 
 /** @type {Map<string, object>} */
@@ -42,7 +44,53 @@ export function registerJsonImportKind(kind) {
     if (!id) {
         throw new Error('JSON import kind requires an id');
     }
-    kinds.set(id, kind);
+    kinds.set(id, routeAuthoringToDeclarations(kind));
+}
+
+/**
+ * Return the descriptor with its template and guide builders routed: derived when a
+ * declaration exists for the selected profile, the kind's own builder otherwise.
+ *
+ * WRAPPED AT REGISTRATION, not when the window opens. Routing only at open time meant
+ * the window received derived output while anything reading `getKind(id)` -- a public
+ * path -- got the old builder. Two ways to ask the same question returning different
+ * answers is the exact defect this migration keeps finding, and it does not become
+ * acceptable because we authored it.
+ *
+ * Routing is evaluated per call rather than at registration, so a kind declared after
+ * it registers still routes.
+ *
+ * The PROMPT is deliberately not routed. It carries campaign context and creative
+ * direction that declarations do not describe, so deriving it now would drop them;
+ * template and guide reduce entirely to declared fields.
+ *
+ * @param {JsonImportKind} kind
+ * @returns {JsonImportKind}
+ */
+function routeAuthoringToDeclarations(kind) {
+    const declared = (templateKey) => {
+        const profile = String(templateKey ?? '').trim().toLowerCase();
+        return profile ? getDeclaration(kind.id, profile) : null;
+    };
+    // Object.create rather than a spread: a spread EVALUATES getters, and kinds use
+    // them for choices that must be read when the window opens rather than when the
+    // module loads -- the item kind's promptCheckboxes getter asks whether Artificer
+    // is active, which at registration time it may not yet be. Inheriting leaves every
+    // getter lazy and untouched.
+    return Object.create(kind, {
+        onBuildJsonTemplate: { enumerable: true, value: async (templateKey, promptOptions = {}) => {
+            const declaration = declared(templateKey);
+            return declaration
+                ? buildTemplateText(kind.id, declaration.id, promptOptions)
+                : await kind.onBuildJsonTemplate?.(templateKey, promptOptions) ?? '';
+        } },
+        onBuildAuthoringGuide: { enumerable: true, value: async (templateKey, promptOptions = {}) => {
+            const declaration = declared(templateKey);
+            return declaration
+                ? buildGuideText(kind.id, declaration.id, promptOptions)
+                : await kind.onBuildAuthoringGuide?.(templateKey, promptOptions) ?? '';
+        } }
+    });
 }
 
 /**
@@ -220,6 +268,42 @@ export async function runJsonImport(kind, jsonDataRaw) {
 }
 
 /**
+ * Checkboxes for the options declared by field groups attaching to this kind.
+ *
+ * A group declares the option that gates it; without this nothing renders that
+ * option, and the group's fields are gated by a control the user never sees. It
+ * worked for the first group only because Blacksmith happened to hardcode a
+ * checkbox with the same id -- which is the Artificer-shaped hole this whole
+ * mechanism exists to close.
+ *
+ * A kind's own checkboxes win a duplicate id, so the hardcoded one still governs
+ * until it is removed with the prompt work; a group does not get two checkboxes.
+ *
+ * @param {JsonImportKind} kind
+ * @returns {Array<object>}
+ */
+function groupOptionCheckboxes(kind) {
+    const existing = new Set((kind.promptCheckboxes ?? []).map(one => one.id));
+    const profiles = getDeclarationsForKind(kind.id).map(one => one.id);
+    return listFieldGroups()
+        .filter(group => group.kind === kind.id && !existing.has(group.option.id))
+        .map((group) => {
+            // Scope the checkbox to the profiles the group actually applies to, so a
+            // group covering three of eight does not offer itself on the other five.
+            const scoped = group.appliesTo === '*'
+                ? null
+                : group.appliesTo.filter(one => profiles.includes(one)).join(' ');
+            return {
+                id: group.option.id,
+                label: group.option.label ?? group.option.id,
+                checked: group.option.default === true,
+                authoringModes: 'json prompt',
+                ...(scoped ? { showForTemplate: scoped } : {})
+            };
+        });
+}
+
+/**
  * Open JsonImportWindow for a registered kind.
  * @param {string} kindId
  */
@@ -253,7 +337,7 @@ export function openJsonImportWindow(kindId) {
         onSwitchImporter: openJsonImportWindow,
         position: kind.position ?? { width: 920, height: 680 },
         templateOptions: kind.templateOptions ?? [],
-        promptCheckboxes: kind.promptCheckboxes ?? [],
+        promptCheckboxes: [...(kind.promptCheckboxes ?? []), ...groupOptionCheckboxes(kind)],
         promptFields: kind.promptFields ?? [],
         journalAreaUi: kind.journalAreaUi ?? null,
         journalLocationUi: kind.journalLocationUi ?? null,

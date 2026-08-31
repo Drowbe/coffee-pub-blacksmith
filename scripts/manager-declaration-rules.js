@@ -21,6 +21,25 @@
 // derivable.
 //
 // A module may select either. It supplies neither.
+//
+// ADDING A RULE: construct the case it should REJECT and confirm it does.
+//
+// Not a style preference. Three separate never-firing bugs have shipped in this
+// area -- a `field:value` reference that was array-only and so was false forever
+// against a string, a field group whose rules were composed apart from its fields
+// and so were never evaluated, and a gate naming the wrong field. Every one read
+// as enforced, and every one enforced nothing.
+//
+// They are hard to see for one reason: a rule that fires wrongly announces itself,
+// while a rule that never fires emits NOTHING -- no error, no warning, no log
+// line. It is indistinguishable from a rule with nothing to complain about, and
+// no amount of happy-path testing separates them. All three were found by reading
+// a predicate against the real vocabulary and asking whether it could ever be
+// true.
+//
+// So every rule in `suite-importer-declarations.js` is asserted in both
+// directions: the payload it must reject, and the payload it must accept.
+// Practice contributed by Artificer, 2026-08-30, after finding the third.
 // ==================================================================
 
 import { issue } from './utility-import-issues.js';

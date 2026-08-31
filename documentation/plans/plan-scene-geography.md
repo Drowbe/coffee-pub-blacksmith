@@ -1,7 +1,8 @@
 # Scene Geography and Environment
 
 **Status: Planned — nothing implemented.** Live scaffolding. The open questions in the last section must be
-settled before Workstream 3 begins; Workstream 1 can start immediately.
+settled before Workstream 3 begins; Workstream 1 can start immediately and is tracked in `TODO.md` as
+"One Scene Config tab injector, registered like a toolbar tool".
 
 **On completion:** the data model and API surface fold into `documentation/architecture/` and
 `documentation/api/`, the work items become `TODO.md` entries, the cross-module contract goes to
@@ -98,9 +99,10 @@ denormalized copies of scene fields and can go stale on rename.
 the menubar ([api-menubar.js:17](../../scripts/api-menubar.js#L17)). Making reputation part of a holistic
 scene view means new public surface, not just moved storage.
 
-[TODO.md:145-160](../../documentation/TODO.md#L145) already records the defect: `getPartyReputation` returns 0
-for a scene with no entry, and 0 is also the centre of the -100..+100 scale, so "neutral" and "never set" are
-indistinguishable and any naive aggregate drags toward zero.
+`TODO.md`, "Overall party reputation, for external consumers", records the defect: `getPartyReputation`
+returns 0 for a scene with no entry ([manager-reputation.js:99](../../scripts/manager-reputation.js#L99)), and
+0 is also the centre of the -100..+100 scale, so "neutral" and "never set" are indistinguishable and any naive
+aggregate drags toward zero.
 
 ---
 
@@ -189,9 +191,8 @@ Minstrel are ready to move in the same release window.
 ### 4. Reputation migration
 
 Move `blacksmithPartyData.scenes[sceneId].reputation` onto the scene flag, drop the denormalized `uuid` and
-`title` mirrors, expose `api.reputation` as public surface, and resolve the
-[TODO.md:145](../../documentation/TODO.md#L145) aggregate question — which becomes tractable once absence is
-distinguishable from neutral.
+`title` mirrors, expose `api.reputation` as public surface, and resolve the aggregate question in `TODO.md`
+— which becomes tractable once absence is distinguishable from neutral.
 
 Last, and on its own. This is the only step that can lose real world data, and it needs a real one-way
 migration rather than a dual-read.
@@ -220,8 +221,8 @@ vocabulary questions below are settled, because it is a contract with two other 
    are ever in scope the shape must be `reputation: {partyId: value}` from the start, or reputation should
    stay where it is. Cheap to decide now, expensive to migrate twice.
 5. **What does "overall reputation" mean** — mean of scenes with an entry, or a campaign-level value with
-   scene reputation as local colour? [TODO.md:158](../../documentation/TODO.md#L158) lists the options; this
-   plan does not settle them.
+   scene reputation as local colour? The `TODO.md` reputation entry lists the options; this plan does not
+   settle them.
 
 **Blocking Workstream 2.**
 

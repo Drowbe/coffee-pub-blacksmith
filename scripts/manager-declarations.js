@@ -13,7 +13,7 @@
 
 import { getDeclaration, getDeclarationsForKind, getFieldGroupsFor, fieldAccepts } from './registry-declarations.js';
 import { issue } from './utility-import-issues.js';
-import { evaluateRules, referenceHolds } from './manager-declaration-rules.js';
+import { evaluateRules, referenceHolds, ruleSentences } from './manager-declaration-rules.js';
 
 /**
  * Whether a field appears in authoring output at all.
@@ -531,4 +531,82 @@ export async function validateEntryDeep(kindId, profileId, entry) {
         return { status: 'error', errors: [raised], warnings: shape.warnings };
     }
     return shape;
+}
+
+// ==================================================================
+// ===== AUTHORING GUIDE ============================================
+// ==================================================================
+
+/**
+ * One guide line for a field: its name, what it accepts, and its sentence.
+ * @param {object} field
+ * @returns {string}
+ */
+function guideLine(field) {
+    const notes = [];
+    if (field.required) notes.push('required');
+    if (Array.isArray(field.values) && field.values.length) {
+        notes.push(`one of: ${field.values.map(one => (one === '' ? '""' : String(one))).join(', ')}`);
+    }
+    if (field.acceptsKeys?.length) notes.push(`also accepts: ${field.acceptsKeys.join(', ')}`);
+    if (field.requiresWhen) notes.push(`only when ${field.requiresWhen.replace(':', ' is ')}`);
+    const suffix = notes.length ? ` (${notes.join('; ')})` : '';
+    return `- ${field.name}${suffix}: ${field.guidance ?? ''}`.trimEnd();
+}
+
+/**
+ * The human authoring guide for a profile: the same template, plus what every
+ * field means and every rule requires.
+ *
+ * Derived rather than written, because the hand-written guide it replaces drifted
+ * from the code in both directions -- it documented fields the parser never read,
+ * and omitted rules the parser enforced. A guide and a validator that disagree is
+ * worse than no guide, because the reader believes it.
+ *
+ * @param {string} kindId
+ * @param {string} profileId
+ * @param {Record<string, unknown>} [options]
+ * @returns {string}
+ */
+export function buildGuideText(kindId, profileId, options = {}) {
+    const declaration = getDeclaration(kindId, profileId);
+    if (!declaration) {
+        throw new Error(`No declaration registered for ${kindId}.${profileId}`);
+    }
+    const composed = effectiveDeclaration(declaration);
+    const shown = composed.fields.filter(field => isAuthorable(field) && isShown(field, options));
+
+    const sections = [
+        `BLACKSMITH ${String(declaration.label).toUpperCase()} AUTHORING GUIDE`,
+        '',
+        'The JSON block below is a valid starter template. Edit it, then paste only the',
+        'JSON object into the Import JSON tab. JSON has no comments -- do not add any.',
+        '',
+        buildTemplateText(kindId, profileId, options),
+        '',
+        'Fields',
+        ...shown.map(guideLine)
+    ];
+
+    const sentences = ruleSentences(composed);
+    if (sentences.length) {
+        sections.push('', 'Rules', ...sentences.map(one => `- ${one}`));
+    }
+
+    // A contributing module's profile-level argument, which does not reduce to
+    // per-field guidance. Carrying it here is what lets a module stop hosting
+    // prompt text of its own.
+    const preambles = getFieldGroupsFor(declaration.kind, declaration.id)
+        .filter(group => group.preamble && isShown({ requiresOption: group.option.id }, options))
+        .map(group => group.preamble);
+    if (preambles.length) sections.push('', ...preambles);
+
+    sections.push(
+        '',
+        'Before importing',
+        '- No trailing commas, no duplicate keys.',
+        '- Keep numbers, booleans, null, arrays and objects as their JSON types; do not quote them.',
+        '- Every field above is one this profile reads. Anything else is reported and ignored.'
+    );
+    return sections.join('\n');
 }

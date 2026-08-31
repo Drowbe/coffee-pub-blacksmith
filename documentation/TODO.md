@@ -378,6 +378,19 @@ await a fetch -- so the winner was a race. Our side is namespaced; the condition
 shipped against the current contract is another copy to migrate. **Audit Minstrel and Artificer first**, not
 last: a frame validated only on simple windows fails on them after everything has moved.
 
+### One Scene Config tab injector, registered like a toolbar tool (opened 2026-08-30)
+
+Plan: **`documentation/plans/plan-scene-geography.md`**, workstream 1 -- the only part of it that is
+unblocked. `api.registerSceneConfigTab({id, label, icon, render, save})`, shaped after `registerToolbarTool`
+(`manager-toolbar.js:1331`), with Blacksmith owning the ApplicationV2 render cycle: nav rebuilt every render
+while the body persists, so a naive inject double-adds. Three consumers already want it -- scene geography,
+the clock-driven darkness notice below, and Artificer, which carries two parallel injectors and two guard
+collections re-derived from scratch (`coffee-pub-artificer/scripts/manager-scene.js:105-233`). Build it once.
+
+**Verify:** with only Blacksmith active, the tab appears exactly once; close and reopen the sheet five times
+and it is still once; switch tabs and back and the body persists. With Artificer registered through the API,
+both tabs appear and both save independently.
+
 ### Window presentation is per device and should be per user
 
 Favourites, sorting and window sizes are user settings, remembered across every device a person logs in
@@ -639,6 +652,19 @@ question is per-vote configuration in the Create Vote dialog versus a standing w
 
 Reputation is per-scene and nothing aggregates it. Squire wants an overall value, so this is **API surface,
 not an internal helper** -- get the shape right rather than widening it later.
+
+**Settle the sentinel first, because the aggregate cannot be honest without it.**
+`getPartyReputation` returns `0` for a scene with no entry (`manager-reputation.js:99`, `:105-107`), and `0`
+is also the centre of the -100..+100 scale, so "neutral" and "never set" are the same value and any mean
+drags toward zero. Absence has to be representable -- a missing key, not a number. Storage moves onto the
+scene flag in `plans/plan-scene-geography.md` (workstream 4), which is where the distinction becomes
+possible; whether that lands first or the API is written against the current storage is the open call.
+Also open: whether reputation is party-keyed (`{partyId: value}`) from the start -- cheap now, a second
+migration later -- and whether "overall" means the mean of scenes with an entry or a campaign-level value
+with scene reputation as local colour.
+
+**Verify:** a scene never set reports unset rather than 0; a scene explicitly set to 0 reports neutral; the
+aggregate excludes the unset ones.
 
 ### Compendium mapping wants a custom settings panel
 

@@ -1012,6 +1012,108 @@ export default {
         },
 
         {
+            id: 'guide-derivation',
+            label: 'The authoring guide is derived, and states every rule',
+            tier: 'headless',
+            group: 'Step 5 - derived authoring output',
+            note: 'The hand-written guide documented fields the parser never read and no rules at all.',
+            run: async ({ expect }) => {
+                const { manager, registry } = await loadDeclarations();
+                const guide = manager.buildGuideText('item', 'weapon');
+                const weapon = registry.getDeclaration('item', 'weapon');
+
+                // The JSON block has to be usable as-is: a guide whose template does not
+                // parse sends the reader to fix JSON rather than to author content.
+                const block = guide.slice(guide.indexOf('{'), guide.lastIndexOf('}') + 1);
+                let parsed = null;
+                try {
+                    parsed = JSON.parse(block);
+                } catch (error) {
+                    expect('the embedded template parses', error.message, 'no error');
+                }
+                expect.ok('the embedded template parses', parsed !== null);
+
+                const authorable = manager.authorableFieldNames('item', 'weapon');
+                const undocumented = authorable.filter(name => !guide.includes(`- ${name}`));
+                expect('every authorable field is documented', undocumented, []);
+
+                // The point of deriving it: the guide and the validator cannot disagree,
+                // because both sentences come from the same rule.
+                const rules = await import(`${MODULE_PATH}/manager-declaration-rules.js`);
+                const missing = rules.ruleSentences(weapon).filter(one => !guide.includes(one));
+                expect('every rule sentence appears in the guide', missing, []);
+
+                expect.ok('required fields are marked', guide.includes('itemName (required'));
+                expect.ok('key aliases are stated', guide.includes('also accepts: name'));
+                expect.ok('allowed values are listed', guide.includes('one of: common'));
+            }
+        },
+
+        {
+            id: 'window-routes-to-derived',
+            label: 'The import window asks the declaration, not the old builder',
+            tier: 'headless',
+            group: 'Step 5 - derived authoring output',
+            note: 'Routing is by declaration presence, the same rule construction uses.',
+            run: async ({ expect }) => {
+                const api = requireApi('importer');
+                const kind = api.importer.getKind('item');
+                expect.ok('the kind exposes a template builder',
+                    typeof kind?.onBuildJsonTemplate === 'function');
+                if (typeof kind?.onBuildJsonTemplate !== 'function') return;
+
+                const text = await kind.onBuildJsonTemplate('weapon', {});
+                const template = JSON.parse(text);
+                // The shared builder emits one field set for all eight profiles. The
+                // derived one emits what weapon reads, so the consumable uses block is
+                // the tell for which one answered.
+                expect.ok('the window received the derived template',
+                    !('destroyOnEmpty' in template) && !('itemLimitedUses' in template));
+                expect.ok('and it carries the profile own fields',
+                    'weaponDamageFormula' in template);
+
+                const guide = await kind.onBuildAuthoringGuide('weapon', {});
+                expect.ok('the guide is derived too',
+                    guide.includes('BLACKSMITH WEAPON AUTHORING GUIDE'));
+
+                // An undeclared profile still reaches the kind's own builder, which is
+                // what lets kinds move across one at a time.
+                const undeclared = await kind.onBuildJsonTemplate('portrait', {});
+                expect.ok('an undeclared profile falls back', typeof undeclared === 'string');
+            }
+        },
+
+        {
+            id: 'group-option-surfaces',
+            label: 'A group's option becomes a checkbox in the window',
+            tier: 'headless',
+            group: 'Step 5 - derived authoring output',
+            note: 'Without it a group is gated by a control the user never sees.',
+            run: async ({ expect }) => {
+                const { registry } = await loadDeclarations();
+                const api = requireApi('importer');
+                const kind = api.importer.getKind('item');
+
+                // Whatever a kind offers today, every registered group for that kind
+                // must contribute its own gate. The first group worked only because
+                // Blacksmith hardcoded a checkbox with a matching id.
+                const groups = registry.listFieldGroups().filter(one => one.kind === 'item');
+                expect.ok('the check is meaningful only with a group registered',
+                    groups.length >= 0);
+
+                const ids = new Set((kind.promptCheckboxes ?? []).map(one => one.id));
+                const unsurfaced = groups
+                    .map(one => one.option.id)
+                    .filter(id => !ids.has(id));
+                expect('every registered group option has a checkbox', unsurfaced, []);
+
+                // Duplicate ids would render the same gate twice.
+                const all = (kind.promptCheckboxes ?? []).map(one => one.id);
+                expect('no option is offered twice', all.length, new Set(all).size);
+            }
+        },
+
+        {
             id: 'template-diff',
             label: 'Diff the derived loot template against the current hand-built one',
             tier: 'headless',

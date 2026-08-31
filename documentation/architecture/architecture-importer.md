@@ -85,6 +85,22 @@ The item parser and the authoring template were written apart, so the template o
 
 None of them threw. All were invisible to reading and obvious to diffing, which is why `testing/suites/suite-importer-declarations.js` compares derived construction against the parser it replaces rather than asserting the derived output alone. **Keep that comparison until a kind's parser is deleted**; it is the evidence the migration was faithful, and deleting the baseline first removes the only thing that could show otherwise.
 
+## A rule that never fires emits nothing
+
+Three never-firing bugs have shipped in the rule machinery: a `field:value` reference
+that was array-only and so was false forever against a string, a field group whose rules
+were composed apart from its fields and so were never evaluated, and a gate naming the
+wrong field. Each read as enforced and enforced nothing.
+
+They are hard to see because a rule that fires wrongly announces itself, while one that
+never fires produces no output at all -- indistinguishable from a rule with nothing to
+complain about. No amount of happy-path testing separates them; all three were found by
+reading a predicate against the real vocabulary and asking whether it could ever be true.
+
+**Every rule is therefore asserted in both directions** -- the payload it must reject and
+the payload it must accept. `manager-declaration-rules.js` carries the same note where a
+rule gets added.
+
 ## Errors
 
 Every issue carries `code`, `stage`, `path`, `message` and `details`. `issueFromError` in `registry-json-import.js` has always read the first three off a thrown error, and no kind on the callback path ever supplied them, so every failure surfaced as a blanket `VALIDATE_FAILED` with a blank path. Under declarations they are derived: a field that fails its declared type knows its own path, and a named rule knows its own code.

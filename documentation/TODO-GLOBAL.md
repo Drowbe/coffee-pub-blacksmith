@@ -443,9 +443,10 @@ two-clock split twice internally (note reminders, calendar events) and will not 
 
 ## Scene geography — Artificer and Minstrel (raised 2026-08-27)
 
-Blacksmith is pulling scene-level location and geography into Scene Config. The Blacksmith-side work is
-in its `TODO.md` (opened 2026-08-27) and `plans/plan-scene-geography.md`. **Nothing to adopt yet**; this
-entry exists so the handoff is named before the injector is built.
+Blacksmith is pulling scene-level location and geography into Scene Config. The design is in
+`plans/plan-scene-geography.md`; the injector that unblocks it is tracked in Blacksmith's `TODO.md` as
+"One Scene Config tab injector, registered like a toolbar tool". **Nothing to adopt yet**; this entry exists
+so the handoff is named before the injector is built.
 
 Environment (habitat / biome) currently lives in Artificer's scene flags
 (`flags.coffee-pub-artificer.scene.habitats`) and Minstrel reads that flag raw, gated on Artificer being
