@@ -32,6 +32,14 @@ Register during your module's `ready`. There is no `waitForReady()` on the API r
 | `listFieldGroups()` | Every registered group. |
 | `getJsonTemplate(kindId, profileId, options?)` | The derived authoring template, as formatted JSON text. |
 | `getJsonTemplateObject(kindId, profileId, options?)` | The same template as an object. |
+| `getAuthoringGuide(kindId, profileId, options?)` | The derived guide: every field, every rule, and the template. |
+| `validateEntry(kindId, profileId, entry)` | Shape validation. Pure and synchronous; no world access, nothing created. |
+| `validateEntryDeep(kindId, profileId, entry)` | Shape validation plus a dry conversion. Returns the assembled data on `data`. Nothing created. |
+| `buildDocumentData(kindId, profileId, entry)` | Document source data for one entry, ready for `createDocuments`. Nothing created. |
+
+`buildDocumentData` is the primitive that lets a module stop maintaining its own builder, and it is **not only for JSON import**. Any surface that collects friendly fields -- a form in your own window, a macro, a generator -- can map them to an entry and get the same document data the importer produces, from the same declaration. Declaring a shape once is the point; a second builder beside it is what the model exists to remove.
+
+If you call `createDocuments` yourself, you own what follows. Destination, permissions, rollback and GM-note preservation are promises the **import path** makes, and they do not travel with the data. Use the import path where they matter.
 
 A malformed declaration fails at **registration**, not at import. An unknown transform name, a rule referencing a field the profile does not declare, a default that does not match its own field's type -- all rejected when you register, with the field named.
 

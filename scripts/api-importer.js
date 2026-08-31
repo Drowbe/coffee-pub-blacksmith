@@ -36,7 +36,14 @@ import {
     getFieldGroupsFor,
     listFieldGroups
 } from './registry-declarations.js';
-import { buildTemplateText, buildTemplateObject } from './manager-declarations.js';
+import {
+    buildTemplateText,
+    buildTemplateObject,
+    buildGuideText,
+    validateEntry,
+    validateEntryDeep,
+    buildDocumentData
+} from './manager-declarations.js';
 
 export class ImporterAPI {
 
@@ -96,6 +103,57 @@ export class ImporterAPI {
     /** The same template as a plain object, for callers that would only re-parse it. */
     static getJsonTemplateObject(kindId, profileId, options = {}) {
         return buildTemplateObject(kindId, profileId, options);
+    }
+
+    /** The derived authoring guide for a profile: every field, every rule, and the template. */
+    static getAuthoringGuide(kindId, profileId, options = {}) {
+        return buildGuideText(kindId, profileId, options);
+    }
+
+    // ---------- Validation and construction ----------
+
+    /**
+     * Shape validation for one entry: types, required fields, allowed values, bounds,
+     * nested shapes and cross-field rules. Pure and synchronous -- no world access,
+     * no transforms, nothing created.
+     *
+     * @returns {{status: 'success'|'warning'|'error', errors: object[], warnings: object[]}}
+     */
+    static validateEntry(kindId, profileId, entry) {
+        return validateEntry(kindId, profileId, entry);
+    }
+
+    /**
+     * Shape validation plus a dry conversion, which is what catches a failure a pure
+     * check cannot see -- an unparseable price is well-shaped as a string and only
+     * fails when converted. Nothing is created. The assembled data comes back on
+     * `data` so a caller that wants it need not build twice.
+     *
+     * @returns {Promise<{status: string, errors: object[], warnings: object[], data?: object}>}
+     */
+    static validateEntryDeep(kindId, profileId, entry) {
+        return validateEntryDeep(kindId, profileId, entry);
+    }
+
+    /**
+     * Build document source data for one entry from its profile's declaration, ready
+     * to pass to `createDocuments`. Nothing is created here.
+     *
+     * This is the primitive that lets a module STOP maintaining its own builder. It
+     * is not only for JSON import: any surface that collects friendly fields -- a
+     * form in a module's own window, a macro, a generator -- can map them to an entry
+     * and get the same document data the importer would produce, from the same
+     * declaration. That is the whole point of declaring a shape once.
+     *
+     * A module that calls `createDocuments` itself owns what follows: destination,
+     * permissions, rollback and GM-note preservation are promises the IMPORT path
+     * makes, and they do not travel with the data. Use the import path when they
+     * matter.
+     *
+     * @returns {Promise<object>} Document source data.
+     */
+    static buildDocumentData(kindId, profileId, entry) {
+        return buildDocumentData(kindId, profileId, entry);
     }
 
     // ---------- Kind registry (being replaced) ----------

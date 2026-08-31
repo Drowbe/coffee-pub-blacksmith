@@ -105,11 +105,26 @@ export default {
                 for (const method of [
                     'registerDeclaration', 'getDeclaration', 'getDeclarationsForKind',
                     'listDeclarations', 'getJsonTemplate', 'getJsonTemplateObject',
+                    'getAuthoringGuide',
+                    // Validation and construction. A consumer that cannot reach these
+                    // has to keep its own builder, which is the duplication this whole
+                    // model exists to end -- and Blacksmith reaching them internally
+                    // while a sibling could not was the consumer-zero violation.
+                    'validateEntry', 'validateEntryDeep', 'buildDocumentData',
                     'registerFieldGroup', 'getFieldGroupsFor', 'listFieldGroups'
                 ]) {
                     expect.ok(`api.importer.${method} is a function`,
                         typeof api.importer[method] === 'function');
                 }
+
+                // The public path must BUILD, not merely validate. A sibling's item
+                // window is a second consumer of construction with no JSON in sight,
+                // and it is the case that proves construction belongs on the surface.
+                const built = await api.importer.buildDocumentData('item', 'loot', {
+                    itemName: 'Probe Loot', itemType: 'Loot'
+                });
+                expect('the public path builds a document', built?.name, 'Probe Loot');
+                expect('and types it from the declaration', built?.type, 'loot');
             }
         },
 
