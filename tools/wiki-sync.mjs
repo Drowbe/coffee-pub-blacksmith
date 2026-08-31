@@ -80,6 +80,9 @@ const PUBLISH = [
   'api/api-window.md',
   'api/api-worldclock.md',
   // Primers
+  // User guides
+  'userguides/userguide-getting-started.md',
+  // Primers
   'primers/primer-dnd5e-conditions.md',
   'primers/primer-documentation-standard.md',
   // Architecture
@@ -246,6 +249,9 @@ function buildSidebar() {
     '### Getting started',
     '- [Home](Home)',
     topLevel,
+    '',
+    '### User guides',
+    group('userguides/'),
     '',
     '### Primers',
     group('primers/'),
