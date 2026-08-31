@@ -113,7 +113,7 @@ because it looks right.
 
 ## Documentation — the kinds, and where the rules live
 
-**The suite-wide standard is `documentation/primers/primer-documentation-standard.md`, and it is
+**The suite-wide standard is `documentation/global/global-documentation-standard.md`, and it is
 authoritative for every Coffee Pub module including this one.** It carries the folder layout, naming, the
 document kinds, what publishes, the README product page, and the CHANGELOG / plan / TODO / testing rules.
 Where this section and the standard disagree, the standard wins and this section gets fixed. Two deliberate

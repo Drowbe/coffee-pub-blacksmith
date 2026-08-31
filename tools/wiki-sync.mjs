@@ -82,9 +82,6 @@ const PUBLISH = [
   // Primers
   // User guides
   'userguides/userguide-getting-started.md',
-  // Primers
-  'primers/primer-dnd5e-conditions.md',
-  'primers/primer-documentation-standard.md',
   // Architecture
   'architecture/architecture-ownership.md',
   'architecture/architecture-blacksmith.md',
@@ -122,6 +119,11 @@ const PUBLISH = [
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
+//   Global:       global/* is suite-wide knowledge, authored once here and linked by the satellites,
+//                 so it publishes from the hub only. Both files are held for now:
+//                 global-documentation-standard.md still describes a publisher and a checker that do
+//                 not exist yet, and publishing a spec as if it were built is the failure it warns
+//                 about. Unhold it when it is reconciled to what the tooling actually does.
 //   Also held:    applicationv2-window/guidance-applicationv2.md (needs audit — see TODO.md)
 //   Internal:     TODO.md, TODO-GLOBAL.md, plans/* (not consumer docs)
 //   Out of tree:  testing docs moved to /testing alongside the harness. This script only
@@ -139,9 +141,9 @@ const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
 // Clean sidebar label: strip the api-/architecture- prefix, kebab -> Sentence case.
 function label(rel) {
   if (rel === 'api/api-effects.md') return 'Active Effects';
-  if (rel === 'primers/primer-dnd5e-conditions.md') return 'dnd5e conditions';
+  if (rel === 'global/global-dnd5e-conditions.md') return 'dnd5e conditions';
   if (rel === 'architecture/architecture-ownership.md') return 'Module ownership';
-  const base = pageName(rel).replace(/^(api|architecture|design|primer|userguide)-/, '');
+  const base = pageName(rel).replace(/^(api|architecture|design|global|userguide)-/, '');
   const spaced = base.replace(/-/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -253,8 +255,8 @@ function buildSidebar() {
     '### User guides',
     group('userguides/'),
     '',
-    '### Primers',
-    group('primers/'),
+    '### Global',
+    group('global/'),
     '',
     '### API',
     group('api/'),

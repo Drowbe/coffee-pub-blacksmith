@@ -79,7 +79,7 @@ file. Same rule as `TODO.md`.
 
 ## Suite-wide documentation standard — roll out to all 14 modules
 
-**Decided.** The standard is `primers/primer-documentation-standard.md` — folder layout, naming, the seven
+**Decided.** The standard is `global/global-documentation-standard.md` — folder layout, naming, the seven
 document kinds, what publishes, the README product page, and the CHANGELOG/plan/TODO/testing rules, for the
 whole suite. It supersedes the documentation sections of every module's `CLAUDE.md`. Two changes from what
 Blacksmith does today: **user guides are a new seventh kind** (the largest gap in the suite — no module
