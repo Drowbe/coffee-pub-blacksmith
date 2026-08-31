@@ -90,13 +90,60 @@ The importer's `GEOGRAPHY_SETTING_KEYS` is now built from `GEOGRAPHY_FIELD_LIST`
 fields are derived from the same list; the declaration keeps only the authoring guidance and `breadcrumb`,
 which overrides the derived path and so is not vocabulary.
 
-**No environment field is declared, deliberately.** `ENVIRONMENT_KEYS` is available as a literal and could be
+**No habitat field is declared, deliberately.** `HABITAT_KEYS` is available as a literal and could be
 declared today, but nothing composes it: `parse-journal-area.js` reads realm, region, site, area, scenetitle,
-breadcrumb and blocks, and no template renders an environment. Declaring a field no composer reads is the
+breadcrumb and blocks, and no template renders a habitat. Declaring a field no composer reads is the
 same defect as a rule that can never fire, in the other direction -- offered to an author, and ignored.
-It lands when something renders it, and then its `values` are `ENVIRONMENT_KEYS` and its incoming value goes
-through `normalizeEnvironments`, which drops nulls and dedupes: a checkbox group submits null, and
+It lands when something renders it, and then its `values` are `HABITAT_KEYS` and its incoming value goes
+through `normalizeHabitats`, which drops nulls and dedupes: a checkbox group submits null, and
 `String(null)` is the perfectly good string `"null"` that case folding does not catch.
+
+## The schema exists in four languages, not one
+
+Found 2026-08-31 by counting across FILE TYPES rather than sweeping `.js`, after the geography session
+relayed the same lesson from three separate instances of it in one day. Journal surfaces:
+
+| Type | Files | What they carry |
+|---|---|---|
+| `.js` | 14 | builders, declarations, the importer |
+| `.txt` | 5 | the generation prompts, including a SCHEMA LOCK stating the field list in prose |
+| `.hbs` | 4 | the journal templates, and the import window's geography fields |
+| `.json` | 3 | shipped fixtures and examples |
+| `.css` | 1 | the scene-geography styling |
+
+**Every sweep run while declaring the Journal profiles saw only the 14.** That is the whole finding, and it
+is not abstract: `prompts/prompt-journal-profile-area.txt:34` says `blocks.area.narrative` MUST be an object
+of exactly three strings and explicitly forbids a bare string, and `:36` names `narrativecard`'s four fields
+including `image`. Both are things the declaration got WRONG and that a live import then failed on. The
+contract already said so, in a language nothing was searching.
+
+The rule, in the form worth keeping: **any narrowing performed before you know the total is unsafe** -- a
+head limit, a `grep -v`, a path filter, reading the first screen. Count first, and count across file types,
+because a contract can leave the language you are searching without leaving the repository.
+
+**The consequence for this step:** the prompt files are a THIRD reader of the declaration's contract,
+alongside the guide and the validator. Step 5 derived the guide and deliberately left the prompt
+hand-written, which was defensible when the prompt was the only statement of the schema; it is not
+defensible now that a declaration states the same thing and has already drifted from it in the wrong
+direction. The SCHEMA LOCK sections are the part to derive.
+
+Two smaller items the count surfaced:
+
+- `templates/journal-location.hbs:46-48` renders a `strGeography` section, and
+  `templates/window-json-import-body.hbs:60,133` render the import window's own geography fields. Anyone
+  rebuilding the builders from the `TODO.md` entry alone would never look at either.
+- `examples/example-narrative-multi-card.json` was worse than unvalidated and is **deleted**. It declared
+  `journaltype: "narrative"`, which both the validator and the builder now THROW on, and it used Regent's
+  field spellings throughout -- an example of a format that cannot be imported, shipped as guidance. An
+  archived copy remains at `testing/import-json/archive/journal-import-narrative-legacy.json`, so nothing is
+  lost. `examples/` now holds nothing the importer reads, so the fixture assertion stays scoped to
+  `testing/import-json/`.
+
+- **The count was still too narrow.** Re-run with a PROSE-shaped pattern rather than a code-shaped one --
+  Artificer's addition to the rule, that the pattern has to stop being code-shaped too -- `.js` went from 14
+  to 28 and `.md` appeared with 14 files. A property access cannot match a tooltip, a prompt sentence or a
+  doc table. Counting across file types is half of it; the other half is not searching for the shape the
+  code happens to take.
 
 ## Sequence
 

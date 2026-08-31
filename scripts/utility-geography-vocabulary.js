@@ -89,6 +89,10 @@ export function normalizeHabitat(value) {
  * string "null" once per box -- data that looks populated and matches nothing.
  */
 export function normalizeHabitats(value) {
+    // The string branch is DEFENSIVE, not a shape any writer produces. Artificer confirmed
+    // 2026-08-31 that the only producer is a twelve-box checkbox group, which always yields a
+    // RadioNodeList and therefore an array. It stays for hand-edited flags and future writers,
+    // and is deliberately not documented as a supported input.
     const raw = Array.isArray(value) ? value : (typeof value === 'string' ? value.split(',') : []);
     const seen = new Set();
     for (const entry of raw) {

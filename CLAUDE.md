@@ -89,7 +89,7 @@ behavior:
 
 | Check | Guards |
 |---|---|
-| `node tools/check-design-tokens.mjs` | `styles/vars.css` and `design-system/design-tokens.md` agree, both ways |
+| `node tools/check-design-tokens.mjs` | `styles/vars.css` and `designsystem/design-tokens.md` agree, both ways |
 | `node tools/check-settings-headings.mjs` | no settings heading hides itself from players who can see settings under it |
 | `node tools/check-card-contracts.mjs` | a consumer cannot inject presentation into a chat card: prose is escaped, and caller-supplied colour stays confined to data-visualisation parts |
 | `node tools/check-card-text.mjs` | card copy conventions |

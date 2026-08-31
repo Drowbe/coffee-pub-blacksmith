@@ -70,7 +70,7 @@ const PUBLISH = [
   'api/api-window.md',
   'api/api-worldclock.md',
   // Guides
-  'guides/guide-dnd5e-conditions.md',
+  'resources/guide-dnd5e-conditions.md',
   // Architecture
   'architecture/architecture-ownership.md',
   'architecture/architecture-blacksmith.md',
@@ -101,10 +101,10 @@ const PUBLISH = [
   'architecture/architecture-worldclock.md',
   'architecture/architecture-xp.md',
   // Design system
-  'design-system/design-tokens.md',
-  'design-system/design-components.md',
-  'design-system/design-patterns.md',
-  'design-system/design-extending.md',
+  'designsystem/design-tokens.md',
+  'designsystem/design-components.md',
+  'designsystem/design-patterns.md',
+  'designsystem/design-extending.md',
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
@@ -115,7 +115,7 @@ const PUBLISH = [
 //                 rather than by being left off the PUBLISH list.
 //   Missing doc:  api-flags.md referenced in TODO but not written yet
 
-const HOME_SRC = 'guides/guide-registering-with-blacksmith.md';
+const HOME_SRC = 'resources/guide-registering-with-blacksmith.md';
 
 const pageName = (p) => path.basename(p, '.md');
 const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
@@ -123,7 +123,7 @@ const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
 // Clean sidebar label: strip the api-/architecture- prefix, kebab -> Sentence case.
 function label(rel) {
   if (rel === 'api/api-effects.md') return 'Active Effects';
-  if (rel === 'guides/guide-dnd5e-conditions.md') return 'dnd5e conditions';
+  if (rel === 'resources/guide-dnd5e-conditions.md') return 'dnd5e conditions';
   if (rel === 'architecture/architecture-ownership.md') return 'Module ownership';
   const base = pageName(rel).replace(/^(api|architecture|design|guide)-/, '');
   const spaced = base.replace(/-/g, ' ');
@@ -164,7 +164,13 @@ function siblingWikiUrl(target) {
 
 const LINK = /\[([^\]]+)\]\(([^)]+)\)/g;
 const CODE_LINK = /\.(js|mjs|css|hbs|json|txt|webp|png)(#.*)?$/i;
+// CODE_PATH matches a directory anywhere in the target, so it is deliberately guarded by DOC_LINK
+// below: `resources/` names BOTH a code directory at the repo root and a documentation directory
+// (documentation/resources/, renamed from documentation/guides/). Without the guard every link to a
+// published guide would be downgraded to plain text as if it were source. A `.md` target is always a
+// doc link and is handled by the doc branch; the code branch may only claim non-.md targets.
 const CODE_PATH = /(scripts|styles|templates|resources)\//;
+const DOC_LINK = /\.md(#.+)?$/i;
 
 function rewriteLinks(md, srcRel) {
   const lines = md.split(/\r?\n/);
@@ -180,7 +186,7 @@ function rewriteLinks(md, srcRel) {
       // CODE_PATH entry could otherwise swallow these silently.
       const hub = siblingWikiUrl(target);
       if (hub) return `[${text}](${hub})`;
-      if (CODE_LINK.test(target) || CODE_PATH.test(target)) {         // code / asset -> plain text
+      if (!DOC_LINK.test(target) && (CODE_LINK.test(target) || CODE_PATH.test(target))) {  // code / asset -> plain text
         downgraded.push(`${srcRel}: code -> text  (${target})`);
         return text;
       }
@@ -222,7 +228,7 @@ function buildSidebar() {
     topLevel,
     '',
     '### Guides',
-    group('guides/'),
+    group('resources/'),
     '',
     '### API',
     group('api/'),
@@ -231,7 +237,7 @@ function buildSidebar() {
     group('architecture/'),
     '',
     '### Design system',
-    group('design-system/'),
+    group('designsystem/'),
     '',
   ].join('\n');
 }

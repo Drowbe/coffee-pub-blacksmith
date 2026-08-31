@@ -138,9 +138,9 @@ means delete. **One plan needs dismantling; two are legitimately live** (`migrat
       not just stale but actively misleading, and this is six times the size.
 - [ ] **Rename the two remaining docs whose names lie.** They're named "migration" or version-stamped while
       documenting current, shipped behavior; the stamps make correct docs read as obsolete.
-      - `guides/guide-chat-card-migration.md` — this migration is *ongoing*, not done. Drop the Crier lessons
+      - `resources/guide-chat-card-migration.md` — this migration is *ongoing*, not done. Drop the Crier lessons
         section (4 of its 5 bullets duplicate Best Practices), rename away from "migration".
-      - `guides/developer-note-pin-editing-visibility.md` — drop the "13.7.6" framing; consider merging into
+      - `resources/developer-note-pin-editing-visibility.md` — drop the "13.7.6" framing; consider merging into
         `guide-pins-integration.md`, which it overlaps heavily.
 - [ ] **Audit the rest of `architecture/architecture-blacksmith.md`.** §4.3/§5/§7, its doc links, and the
       new §9A/§9B were verified against the filesystem; the other sections were never checked.
@@ -153,7 +153,7 @@ means delete. **One plan needs dismantling; two are legitimately live** (`migrat
 
 `api/api-tags.md` (22 refs, all textbook), `api/api-sockets.md`, `api/api-create-journal-entry.md`,
 `architecture/architecture-tags.md` (8 refs, all clean), `TODO.md` (image-replacement backlog items are
-correctly hedged as out-of-scope), `guides/guide-registering-with-blacksmith.md`, plus `api-stats.md`,
+correctly hedged as out-of-scope), `resources/guide-registering-with-blacksmith.md`, plus `api-stats.md`,
 `api-campaign.md`, and `architecture-chatcards.md` (zero real sibling references — the `scribe` grep lied).
 
 ---
@@ -205,7 +205,7 @@ have no repo source at all, and one is a duplicate published to the wrong filena
       the manifest or accept it as the one sanctioned wiki-only exception.
 - [ ] **Decide mirror scope — the one decision blocking everything else here.** Most repo docs have no wiki
       page; guides, plans, design-system, and most architecture docs are unmirrored. Folder is a **bad proxy
-      for audience**: `api/` is all consumer, but so are `guides/guide-registering-with-blacksmith.md`
+      for audience**: `api/` is all consumer, but so are `resources/guide-registering-with-blacksmith.md`
       (the integration tutorial), the pins/chat-card guides, `applicationv2-window/`, and
       `design-system.md` (§12 is literally "How Child Modules Extend Blacksmith") — while `architecture/`,
       `plans/`, and `TODO*.md` are contributor-only. So "mirror `api/`" would drop the best consumer docs,
@@ -448,7 +448,7 @@ Blacksmith is pulling scene-level location and geography into Scene Config. The 
 "One Scene Config tab injector, registered like a toolbar tool". **Nothing to adopt yet**; this entry exists
 so the handoff is named before the injector is built.
 
-Environment (habitat / biome) currently lives in Artificer's scene flags
+Habitat currently lives in Artificer's scene flags
 (`flags.coffee-pub-artificer.scene.habitats`) and Minstrel reads that flag raw, gated on Artificer being
 installed. Habitat-conditioned playlists therefore do nothing unless a harvesting module is present —
 that is the ownership problem, and a raw cross-module flag read rather than an API call.
@@ -471,6 +471,15 @@ there will be one injector that both Blacksmith's geography and Artificer's harv
   And the migration is a **hard cut at `ready`** with no read-through fallback, because a fallback would let a
   half-migrated scene report itself configured and gather against stale data.
 
+**A new coupling lands with Artificer's hard cut, and it will look like their bug.** Once Artificer
+refuses to initialise against a degraded Blacksmith, ANY bail-out in Blacksmith's `ready` takes Artificer
+down with it -- visibly, and first in the author's own dev world, because that is where Blacksmith is
+being iterated on. The report will arrive as "Artificer failed to start". It will not be an Artificer
+fault: it is a Blacksmith bail-out surfacing through the consumer that chose to fail loudly rather than
+run degraded. Check `BlacksmithAPI.readyStatus` and `readyFailure` before looking anywhere in Artificer.
+This is the behaviour both sides chose deliberately -- see the readiness contract in `api/api-core.md` --
+and it is recorded here so the first occurrence costs minutes rather than a debugging session.
+
 **What Blacksmith now owes Artificer.** Both follow from the hard cut and are tracked in
 `plans/plan-scene-geography.md`, Workstream 3:
 
@@ -478,7 +487,7 @@ there will be one injector that both Blacksmith's geography and Artificer's harv
   renders the stored form as a user-facing label in three places, and a bare array would show GMs "underdark".
 - **The version floor is `13.22.0`** (named by the author 2026-08-31). Artificer pins
   `relationships.requires[coffee-pub-blacksmith].compatibility.minimum = "13.22.0"`, which its empty
-  `compatibility` block does not carry today, and deletes its `OFFICIAL_BIOMES` fallback once pinned.
+  `compatibility` block does not carry today, and deletes its own biome-vocabulary fallback once pinned.
   **Pin now, release after:** 13.22.0 is an intent until the author tags it, and a module pinning a
   minimum that does not exist yet will not activate against the installed 13.21.1. So the pin can land in
   a branch immediately, and Artificer's release waits on Blacksmith's.
@@ -515,13 +524,47 @@ independently, whenever.
 - Register the harvest tab through Blacksmith's Scene Config injector rather than its own
   `renderSceneConfig`. That is what makes the race one problem instead of two.
 
+**Scope is five read sites across three files, not the fieldset alone** (surveyed by Artificer
+2026-08-31; the site list lives in their TODO and is not duplicated here). Two of the five are off the
+tab entirely -- the gather settings path that feeds every gather, and habitat-based image resolution.
+**Removing the fieldset without those leaves files reading a flag nothing writes any more, and both fail
+silently**: gather finds nothing, the image resolver falls through to its "any" bucket. This is the fact
+that matters for release planning, because it is what makes their side three files rather than one.
+
 ### Minstrel
 
-- Stop reading `flags.coffee-pub-artificer.scene`. Call Blacksmith's scene environment API.
-  Habitat-conditioned automation must fire with Artificer disabled — that is the regression this move
-  exists to fix, so test it explicitly.
-- Canonical case is Blacksmith's. Today Artificer stores `MOUNTAIN` and Minstrel lowercases on every
-  read; pick one form, normalize on write, and stop guessing.
+Their whole change is in one function, `getSceneArtificerHabitats`
+(`coffee-pub-minstrel/scripts/manager-automation.js:79-92`), and it **deletes** more than it adds.
+
+- **Replace the body with `api.geography.getHabitats(scene)`.** The array/string branch becomes our
+  `normalizeHabitats`, the `.toLowerCase()` becomes a no-op because our keys are already lowercase, and
+  the sort is ours. Rename the function too -- it is no longer Artificer's anything.
+- **Delete the `isArtificerAvailable()` gate** (`:81`, helper at `:673-675`). It returns `[]` whenever
+  `coffee-pub-artificer` is not active, so today Minstrel's habitat-conditioned automation does nothing
+  at all unless a harvesting module happens to be installed. **That is the user-visible bug this whole
+  move exists to fix**, and it is the reason Minstrel is in this release window rather than following
+  later.
+- **Canonical case is Blacksmith's, and it is lowercase.** Nothing to negotiate; they already lowercase
+  on read, so this is one more deletion.
+
+**They are not affected by the checkbox-null defect, and should not go looking for it.** Their read is
+`String(entry ?? '').trim().toLowerCase()` then `.filter(Boolean)`, so a `null` becomes `''` and is
+dropped. The `[null, null, "FOREST", ...]` shape passes through cleanly -- no throw, no `"null"` string.
+Verified in their source 2026-08-31, and worth stating because "we found corruption in the flag you read"
+otherwise invites a search that finds nothing.
+
+**VERIFIED 2026-08-31 with Artificer disabled.** `api.geography.getHabitats(canvas.scene)` returned
+`['mountain','coastal','underdark']` on a previously-Artificer-tagged scene with Artificer off, and the
+automation path was confirmed in the UI. Two things in that evidence beyond non-emptiness: the order is
+vocabulary order rather than the alphabetical order their old reader produced, which proves the new
+reader is live rather than a stale path; and all three keys survived the closed-vocabulary filter, which
+proves the migration wrote canonical keys. This is the first live confirmation that the migration
+produces correct data. Minstrel's remaining work is release mechanics only, and their call is
+optional-chained end to end, so their timing is independent of ours.
+
+**How it was tested, and why it had to be: with Artificer DISABLED.** The defect is invisible in any world where Artificer
+is installed, which is presumably every world they have ever tested in. Verifying the change in such a
+world proves nothing, because that world could never have shown the bug.
 
 **How to verify, when it ships:** on a world with existing Artificer habitats, gather still yields the
 same component families after migration. With Artificer disabled entirely, Minstrel's habitat automation

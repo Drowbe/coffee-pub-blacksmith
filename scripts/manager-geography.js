@@ -220,10 +220,18 @@ export class GeographyManager {
 
         let migrated = 0;
         let skipped = 0;
+        let empty = 0;
         for (const scene of game.scenes ?? []) {
             const legacy = scene.getFlag(this.LEGACY_HABITAT_MODULE, this.LEGACY_HABITAT_FLAG);
-            const habitats = normalizeHabitats(legacy?.habitats);
-            if (!habitats.length) continue;
+            if (legacy?.habitats === undefined) continue;
+
+            // Counted, not skipped silently. A legacy key holding only nulls -- a scene whose
+            // checkbox group was submitted with nothing ticked -- normalises to empty and has
+            // genuinely nothing to migrate. Those are precisely the scenes a GM expects the
+            // report to mention, so the totals have to add up over scenes that HAD the key
+            // rather than only over the ones that moved.
+            const habitats = normalizeHabitats(legacy.habitats);
+            if (!habitats.length) { empty++; continue; }
 
             // Anything already carrying its own habitats has been set deliberately since the
             // move and must win: re-running must never overwrite newer data with older.
@@ -233,12 +241,14 @@ export class GeographyManager {
             if (written) migrated++;
         }
 
+        const total = migrated + skipped + empty;
         postConsoleAndNotification(
             MODULE.NAME,
-            `Geography: habitat migration complete (${migrated} scene(s) migrated, ${skipped} already set)`,
+            `Geography: habitat migration complete -- of ${total} scene(s) with legacy habitats, `
+            + `${migrated} migrated, ${skipped} already set, ${empty} had none to migrate`,
             '', false, false
         );
-        return { migrated, skipped };
+        return { migrated, skipped, empty, total };
     }
 
     /**

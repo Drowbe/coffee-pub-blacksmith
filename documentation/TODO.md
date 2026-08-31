@@ -386,7 +386,7 @@ last: a frame validated only on simple windows fails on them after everything ha
 
 ### A declaration cannot take its `values` from another module's API (opened 2026-08-31)
 
-Raised by Artificer while adopting `api.geography.ENVIRONMENTS`. A field group's `values` must be a
+Raised by Artificer while adopting `api.geography.HABITATS`. A field group's `values` must be a
 literal array -- enforced at registration (`registry-declarations.js:177-178`, "values must be an array")
 and consumed as one at `manager-declarations.js:350`, `:743` and `:863`. A consumer whose vocabulary
 comes from an API cannot supply one: the declaration is built at module scope, the API needs `game`, so
@@ -402,10 +402,10 @@ world exists.
 Fix: accept a callable and resolve it at use time, at those three consumption sites, keeping the
 registration guard for everything that is neither array nor function. Note that an INTRA-repo consumer
 needs none of this -- `scripts/utility-geography-vocabulary.js` is a leaf with no `const.js` dependency,
-so a Blacksmith declaration can static-import `ENVIRONMENT_KEYS` and stay headless. This is only for
+so a Blacksmith declaration can static-import `HABITAT_KEYS` and stay headless. This is only for
 consumers who must come through the API.
 
-**Verify:** a field group declaring `values: () => api.geography.ENVIRONMENT_KEYS` validates against the
+**Verify:** a field group declaring `values: () => api.geography.HABITAT_KEYS` validates against the
 live vocabulary, a payload outside it fails naming the field, and `values: 42` still throws at
 registration.
 
@@ -424,12 +424,24 @@ that rewrite and be absorbed by it. **These are requirements on step 8, not sepa
   `applyAreaJournalGeography()` (`:750`) are the substitution points.
 - **The Area importer populates `locationUuid`** when one run creates both a scene and a Location entry.
   That kills the `scenetitle` string match (`:597`) as the only join between the two.
+- **A FOURTH statement of the geography field list, in a file type no sweep covered.**
+  `prompts/prompt-location.txt` states realm/region/site/area three times each -- in the emitted JSON
+  skeleton, in a placeholder template, and as authoritative per-field descriptions (`:45-52`). Three
+  copies were consolidated onto `GEOGRAPHY_FIELD_LIST` on 2026-08-31; this is the one that was missed,
+  because it is prose in a `.txt`. It cannot derive mechanically the way the other three did, but it is
+  the same drift risk, and the prompt is what the AI is told the schema is. Fold it in when step 8
+  derives the SCHEMA LOCK sections -- the geography half should come from the field list, not be
+  re-typed alongside it.
+- **Two template surfaces the line numbers above do not name**: `templates/journal-location.hbs:46-48`
+  renders the Geography section from `strGeography`, and `templates/window-json-import-body.hbs:60`
+  and `:133` iterate the import dialog's geography fields. Neither is a defect; both are the same
+  feature's surface, and a sweep over `.js` alone does not see them.
 - **Environment travels with that write, not into the journal.** Environment is a geography field like
   the other four, so a payload carrying `sceneenvironment` (Regent sends one; nothing here reads it)
   reaches `api.geography.set(scene, {environment})` alongside the rest. It is deliberately not a template
   field, a guide entry or a prompt line -- nothing in the journal path composes it, and declaring a field
   no composer reads offers an author something read by nothing. Pass the payload value through
-  `normalizeEnvironments` rather than trusting it: an inbound array is exactly the untrusted shape that
+  `normalizeHabitats` rather than trusting it: an inbound array is exactly the untrusted shape that
   function exists for.
 
 One edge left open deliberately: an Area import launched with no scene in context records geography

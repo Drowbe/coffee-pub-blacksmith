@@ -122,7 +122,7 @@ Two distinctions worth getting right:
 
 Blacksmith's own `styles/window-compendium-search.css` is the reference: it contains **no colour literals at all** — every surface, tone, and field comes from this family, and the window follows Light, Dark, and Glass with no theme-specific rules of its own.
 
-These are **component properties of the Tool shell, not design tokens.** Global tokens live in `styles/vars.css`, are documented in `design-system/design-tokens.md`, and are enforced by `tools/check-design-tokens.mjs`; they carry one fixed value each and so cannot express something that changes per theme. Do not add theme-varying values to `vars.css`.
+These are **component properties of the Tool shell, not design tokens.** Global tokens live in `styles/vars.css`, are documented in `designsystem/design-tokens.md`, and are enforced by `tools/check-design-tokens.mjs`; they carry one fixed value each and so cannot express something that changes per theme. Do not add theme-varying values to `vars.css`.
 
 ### Form fields follow the theme automatically
 
