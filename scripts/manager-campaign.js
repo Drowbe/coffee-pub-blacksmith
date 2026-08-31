@@ -1,4 +1,5 @@
 import { MODULE } from './const.js';
+import { GeographyManager } from './manager-geography.js';
 import { getSettingSafely } from './api-core.js';
 
 /**
@@ -100,13 +101,22 @@ export class CampaignManager {
         };
     }
 
-    static getGeography() {
-        return {
-            realm: getSettingSafely(MODULE.ID, 'defaultCampaignRealm', '') || '',
-            region: getSettingSafely(MODULE.ID, 'defaultCampaignRegion', '') || '',
-            site: getSettingSafely(MODULE.ID, 'defaultCampaignSite', '') || '',
-            area: getSettingSafely(MODULE.ID, 'defaultCampaignArea', '') || ''
-        };
+    /**
+     * Campaign geography, resolved for a scene when one is given.
+     *
+     * A scene's own flag wins field by field; the four world settings are the seed
+     * for anything it does not set. Called with no scene the world settings are the
+     * whole answer, which is what every caller predating the scene flag expects.
+     *
+     * @param {Scene|null} [scene]
+     */
+    static getGeography(scene = null) {
+        return GeographyManager.getGeography(scene);
+    }
+
+    /** Everything Blacksmith knows about a scene as a place. @see manager-geography.js */
+    static getSceneContext(scene = null) {
+        return GeographyManager.getSceneContext(scene);
     }
 
     static getParty() {

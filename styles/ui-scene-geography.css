@@ -1,0 +1,37 @@
+/* ==================================================================
+   SCENE CONFIG — GEOGRAPHY TAB
+   ==================================================================
+   Injected into Foundry's own Scene Config sheet, so this styles as
+   little as possible: the form rows are core's and should keep looking
+   like core's. Only the environment checkbox grid needs help, because
+   twelve stacked checkboxes would push the Save button off the sheet.
+   ================================================================== */
+
+.blacksmith-geography-environments {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: 0.15rem 0.75rem;
+    width: 100%;
+    margin: 0.25rem 0;
+}
+
+.blacksmith-geography-environment {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-weight: normal;
+    white-space: nowrap;
+}
+
+/* Foundry sizes bare checkboxes inconsistently inside an injected panel;
+   pin it so the twelve boxes line up as a grid rather than drifting. */
+.blacksmith-geography-environment input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.blacksmith-geography-breadcrumb {
+    margin-top: 0.25rem;
+    opacity: 0.85;
+}

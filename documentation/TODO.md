@@ -384,6 +384,25 @@ await a fetch -- so the winner was a race. Our side is namespaced; the condition
 shipped against the current contract is another copy to migrate. **Audit Minstrel and Artificer first**, not
 last: a frame validated only on simple windows fails on them after everything has moved.
 
+### Geography and the journal importer: three changes owed by importer step 8 (opened 2026-08-31)
+
+Scene geography shipped its data model, API and Scene Config tab, but the importer half is deliberately
+NOT done, because every call site sits in `registry-json-import-journals.js` inside the `area` and
+`location` builders that `plans/plan-importer-journal.md` re-founds. Doing it now would conflict with
+that rewrite and be absorbed by it. **These are requirements on step 8, not separate work:**
+
+- **`saveCampaignGeography()` (`:694`) loses its unconditional write-back.** An import records geography
+  onto the scene flag it was launched from; the four world settings are written only by the settings UI.
+  Today every import overwrites them, which is why they describe wherever the last import pointed.
+- **The Area/Location prompt prefills from the active scene**, via `api.geography.get(scene)`, falling
+  back to the campaign defaults when there is no scene in context. `buildLocationPathHint()` (`:731`) and
+  `applyAreaJournalGeography()` (`:750`) are the substitution points.
+- **The Area importer populates `locationUuid`** when one run creates both a scene and a Location entry.
+  That kills the `scenetitle` string match (`:597`) as the only join between the two.
+
+One edge left open deliberately: an Area import launched with no scene in context records geography
+nowhere. Defensible, but silent -- decide during step 8 whether it warrants a notice.
+
 ### A Scene Config button, for a module that wants its own window (opened 2026-08-31)
 
 Asked for by Artificer, who want to own their submit: a tab cannot guard its own fields, because the sheet

@@ -1,6 +1,6 @@
 # Plan: Importer step 8 — Journal
 
-**Status: Planned.** Nothing here has shipped.
+**Status: In progress.** `rendered` is removed and both JSON profiles are declared and derive. Nothing is routed through them yet -- the kind still calls the parser -- so no behaviour has changed for a user.
 
 Scope: move the Journal kind onto the declaration model, and build the subtype seam three siblings are
 waiting on. This plan is scaffolding — when it is implemented its design goes to
@@ -73,9 +73,11 @@ and the satellite case -- `mapped` against a declared subtype -- is simply the o
 
 1. **Verify the injury page-write defect** in a console, and record which of the two failures it is.
 2. ~~Settle `rendered`.~~ Done -- see above. Removed.
-3. **Declare `area` and `location`.** `area` is written and derives; `location` remains. The HTML composition stays in `parsers/parse-journal-area.js` — it is
-   one algorithm over the whole payload, and splitting it per field would be the model driving the code
-   rather than describing it, the same call Roll Table's ranges settled.
+3. ~~Declare `area` and `location`.~~ Done. Both derive template, guide and validation; the Location
+   composer moved to `parsers/parse-journal-location.js` beside its Area counterpart. The HTML composition
+   stays in the parsers — it is one algorithm over the whole payload, and splitting it per field would be
+   the model driving the code rather than describing it, the same call Roll Table's ranges settled.
+   **Not yet routed**: `onImportEntry` still calls the parser, so nothing has changed for a user.
 4. **Unify find-or-create** as one declared behaviour, with folder scoping and page format no longer per
    builder.
 5. **Build the subtype seam**: a profile declares the page type it creates, defaulting to `text`.

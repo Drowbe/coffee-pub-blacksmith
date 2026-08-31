@@ -48,6 +48,7 @@ const PUBLISH = [
   'api/api-core.md',
   'api/api-create-journal-entry.md',
   'api/api-gm-request.md',
+  'api/api-geography.md',
   'api/api-gmnotes.md',
   'api/api-health.md',
   'api/api-hookmanager.md',

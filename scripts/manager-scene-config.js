@@ -239,8 +239,9 @@ export class SceneConfigManager {
         const dataGroup = firstTabWithGroup?.dataset?.group || tabsNav.dataset.group || 'sheet';
         const useButton = tabsNav.firstElementChild?.tagName?.toLowerCase() === 'button';
 
-        const existingTabPanel = form.querySelector('.tab[data-tab]');
-        const tabBodyHost = existingTabPanel?.parentElement ?? form.querySelector('.sheet-body') ?? form;
+        const tabBodyHost = form.querySelector('.tab[data-tab]')?.parentElement
+            ?? form.querySelector('.sheet-body')
+            ?? form;
 
         for (const tab of registeredTabs.values()) {
             // One failing tab must not cost every other tab on the sheet.
@@ -315,7 +316,17 @@ export class SceneConfigManager {
         panel.dataset.tab = tab.id;
         panel.dataset.group = dataGroup;
         panel.innerHTML = content;
-        tabBodyHost.appendChild(panel);
+        // Insert AFTER the last existing tab body, not at the end of the host.
+        //
+        // ApplicationV2 renders SceneConfig's parts as flat siblings in this order: the tab nav,
+        // then one element per tab body, then the footer holding Save
+        // (`client/applications/sheets/scene-config.mjs:38-44`). Appending to the host therefore
+        // lands the panel AFTER the footer, and the sheet renders with Save Changes sitting above
+        // the tab's own content. It looks like a styling problem and is purely an ordering one.
+        const existingPanels = form.querySelectorAll('.tab[data-tab]');
+        const lastPanel = existingPanels[existingPanels.length - 1];
+        if (lastPanel?.parentElement) lastPanel.after(panel);
+        else tabBodyHost.appendChild(panel);
     }
 
     /**

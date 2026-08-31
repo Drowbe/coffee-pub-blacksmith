@@ -236,8 +236,9 @@ async function actorContent(data) {
  */
 async function journalAreaContent(data, entry) {
     const { buildAreaJournalTemplateData } = await import('./parsers/parse-journal-area.js');
-    const { getCachedTemplate, applyJournalHeadingSpacing } = await import('./utility-common.js');
-    const { normalizeFoundryJournalHtml } = await import('./utility-journal-html.js');
+    const { getCachedTemplate } = await import('./blacksmith.js');
+    const { normalizeFoundryJournalHtml, applyJournalHeadingSpacing } =
+        await import('./utility-journal-html.js');
     const { toSentenceCase } = await import('./api-core.js');
     const { BLACKSMITH } = await import('./const.js');
 
@@ -271,9 +272,31 @@ async function journalAreaContent(data, entry) {
     return data;
 }
 
+/**
+ * A Location journal's page content.
+ *
+ * The same call as the Area composer and for the same reason -- one HTML page
+ * built from the whole payload -- but the GROUPING differs, and that difference
+ * is the one worth recording. Area names its entry after the area and holds a
+ * single page; Location files every page into one shared entry, `journalname`,
+ * defaulting to "Locations". A journal profile therefore decides both what its
+ * page says and which entry the page belongs to.
+ *
+ * @param {object} data - Assembled document source data.
+ * @param {object} entry - The authored payload.
+ * @returns {Promise<object>} The same data, with the entry name and its one page.
+ */
+async function journalLocationContent(data, entry) {
+    const { buildLocationJournalPage } = await import('./parsers/parse-journal-location.js');
+    const built = await buildLocationJournalPage(entry);
+    data.name = built.journalName;
+    data.pages = [built.page];
+    return data;
+}
+
 /** @type {Record<string, Function>} */
 const DERIVATIONS = {
-    journalAreaContent,
+    journalAreaContent, journalLocationContent,
     weaponAttackActivity, equippablePassiveEffects, itemActivities, slugIdentifier,
     rollTableResults,
     actorSidekick, actorCharacterFoundations, actorToken, actorContent

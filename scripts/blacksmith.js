@@ -76,6 +76,8 @@ import { JOURNAL_JSON_IMPORT_KIND_ID } from './registry-json-import-journals.js'
 import { XpManager } from './manager-xp.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
+import { GeographyManager, ENVIRONMENTS, ENVIRONMENT_KEYS, normalizeEnvironments } from './manager-geography.js';
+import { initializeSceneGeography } from './ui-scene-geography.js';
 import {
     SceneConfigManager,
     registerSceneConfigTab,
@@ -1065,6 +1067,10 @@ function initializeSettingsDependentFeatures() {
     // at any point after this and the next sheet render picks it up.
     SceneConfigManager.initialize();
 
+    // Blacksmith is consumer zero for the injector: the Geography tab registers through
+    // the same public path a sibling module uses, with no internal shortcut.
+    initializeSceneGeography();
+
 }
 
     // Function to inject BlacksmithLayer into the canvas layers list
@@ -1177,6 +1183,21 @@ Hooks.once('init', async function() {
          * its own `init` finds a callable function instead of `null`.
          * @see documentation/api/api-scene-config.md
          */
+        /**
+         * Scene geography and the canonical environment vocabulary.
+         * @see documentation/api/api-geography.md
+         */
+        geography: {
+            get: (scene = null) => GeographyManager.getGeography(scene),
+            getSceneContext: (scene = null) => GeographyManager.getSceneContext(scene),
+            getEnvironments: (scene) => GeographyManager.getEnvironments(scene),
+            getBreadcrumb: (scene = null) => GeographyManager.getBreadcrumb(scene),
+            set: (scene, data) => GeographyManager.setGeography(scene, data),
+            clear: (scene) => GeographyManager.clearGeography(scene),
+            ENVIRONMENTS,
+            ENVIRONMENT_KEYS,
+            normalizeEnvironments
+        },
         registerSceneConfigTab,
         unregisterSceneConfigTab,
         getRegisteredSceneConfigTabs,

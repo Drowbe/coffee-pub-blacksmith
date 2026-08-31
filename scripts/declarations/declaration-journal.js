@@ -154,4 +154,71 @@ export const JOURNAL_AREA_DECLARATION = {
     ]
 };
 
+/**
+ * Location Narrative: a gazetteer page for a place.
+ *
+ * Flat where Area is nested, and grouped differently: Area names its entry after
+ * the area and holds one page, while Location files every page into one entry --
+ * `journalname`, defaulting to "Locations" -- so a world's places read as a single
+ * document. That difference is why "which document does a journal profile create"
+ * is a per-profile question, and it is the same grouping shape a satellite needs.
+ *
+ * The `acceptsKeys` below are real authored spellings, not speculation: the
+ * composer already reads each pair, and declaring them is what stops the second
+ * spelling being reported as an unknown field.
+ */
+export const JOURNAL_LOCATION_DECLARATION = {
+    kind: 'journal',
+    id: 'location',
+    label: 'Location Narrative',
+    schemaVersion: 1,
+    form: 'mapped',
+    document: { documentName: 'JournalEntry' },
+    derive: ['journalLocationContent'],
+    fields: [
+        { name: 'journaltype', role: 'selector', type: 'string',
+          values: ['location'], example: 'location',
+          guidance: 'Identifies the profile. Keep it exactly "location".' },
+        { name: 'foldername', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'The Journal folder to file this under; defaults to Libraries.' },
+        { name: 'journalname', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'The entry every location page is filed into. Defaults to Locations.' },
+        // The page name falls back through scenetitle and then realm, so a payload
+        // carrying only geography still produces a named page.
+        { name: 'title', role: 'input', type: 'string', default: '', example: '',
+          acceptsKeys: ['scenetitle'],
+          guidance: 'The page name. Falls back to the realm when absent.' },
+        ...GEOGRAPHY_FIELDS.filter(field => field.name !== 'breadcrumb'),
+        { name: 'locationimage', role: 'input', type: 'string', default: '', example: '',
+          acceptsKeys: ['image'],
+          guidance: 'Artwork for the location card.' },
+        { name: 'introduction', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'The opening passage, before the card.' },
+        { name: 'cardimagetitle', role: 'input', type: 'string', default: '', example: '',
+          acceptsKeys: ['imagetitle'],
+          guidance: 'A caption for the card artwork.' },
+        { name: 'carddescriptionprimary', role: 'input', type: 'string', default: '', example: '',
+          acceptsKeys: ['cardintro'],
+          guidance: 'The read-aloud text on the card.' },
+        { name: 'carddescriptionsecondary', role: 'input', type: 'string', default: '', example: '',
+          acceptsKeys: ['cardfacts'],
+          guidance: 'Supporting facts, rendered as a list when comma-separated.' },
+        { name: 'geography', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'Terrain, climate and the shape of the land.' },
+        { name: 'government', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'Who rules, and how.' },
+        { name: 'trade', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'What the place makes, buys and sells.' },
+        { name: 'culture', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'Customs, and how outsiders are treated.' },
+        { name: 'religion', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'What is worshipped here.' },
+        { name: 'history', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'What happened here that still matters.' },
+        { name: 'notablelocations', role: 'input', type: 'string', default: '', example: '',
+          guidance: 'Places within this one that are worth visiting.' }
+    ]
+};
+
 registerDeclaration(JOURNAL_AREA_DECLARATION);
+registerDeclaration(JOURNAL_LOCATION_DECLARATION);
