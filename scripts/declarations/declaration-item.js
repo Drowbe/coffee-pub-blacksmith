@@ -48,28 +48,28 @@ export const ITEM_LOOT_DECLARATION = {
             // different thing from the value aliases on itemRarity below.
             acceptsKeys: ['name'],
             example: '',
-            guidance: 'The item name as it appears in the sidebar and on a character sheet.'
+            guidance: 'The full item name, up to 50 characters.'
         },
         {
             name: 'itemDescription',
             path: 'system.description.value',
             type: 'string',
             default: '',
-            guidance: 'The description shown on the item sheet, as HTML or plain prose.'
+            guidance: 'An HTML narrative describing the look, purpose and history. Use paragraphs, lists, bold and headings as needed.'
         },
         {
             name: 'itemDescriptionUnidentified',
             path: 'system.description.unidentified',
             type: 'string',
             default: '',
-            guidance: 'What players see while the item is unidentified.'
+            guidance: 'An HTML narrative describing the item in vague terms, for while it is unidentified.'
         },
         {
             name: 'itemDescriptionChat',
             path: 'system.description.chat',
             type: 'string',
             default: '',
-            guidance: 'A shorter description posted to chat when the item is used.'
+            guidance: 'A single sentence describing the item, suitable for posting to chat.'
         },
         {
             name: 'itemGMNotes',
@@ -78,7 +78,7 @@ export const ITEM_LOOT_DECLARATION = {
             default: '',
             acceptsKeys: ['gmNotes'],
             transform: 'gmNotes',
-            guidance: 'Private notes for the GM, never shown to players.'
+            guidance: 'Private GM-only notes: secrets, plot hooks, intended use, ties to NPCs or quests. Never shown to players. Use HTML as in the description, and do not restate it. Leave blank when there is nothing worth noting.'
         },
         {
             // Selects which profile the payload belongs to; the created document's
@@ -95,7 +95,7 @@ export const ITEM_LOOT_DECLARATION = {
             type: 'string',
             default: 'trinket',
             example: 'Treasure',
-            guidance: 'The loot category, such as Treasure, Gear, or Trinket.'
+            guidance: 'The loot category: Art Object, Adventuring Gear, Gemstone, Junk, Material, Resource, Trade Good or Treasure.'
         },
         {
             name: 'itemRarity',
@@ -110,14 +110,14 @@ export const ITEM_LOOT_DECLARATION = {
             path: 'system.quantity',
             type: 'integer',
             default: 1,
-            guidance: 'How many of the item this entry represents.'
+            guidance: 'How many the entry represents. Default 1.'
         },
         {
             name: 'itemWeight',
             path: 'system.weight',
             type: 'number',
             example: 0,
-            guidance: 'Weight of a single unit, in the system default unit.'
+            guidance: 'Weight of a single unit as a number, decimals allowed. Never leave it blank.'
         },
         {
             name: 'itemPrice',
@@ -127,14 +127,14 @@ export const ITEM_LOOT_DECLARATION = {
             // Authored shape, not the {value, denomination} the transform produces.
             default: '0 gp',
             example: '0 GP',
-            guidance: 'Price as an amount and a coin abbreviation, such as "50 GP".'
+            guidance: 'Price as an amount and a coin abbreviation, such as "50 GP". Use "0 GP" when truly priceless; never leave it blank.'
         },
         {
             name: 'itemIdentified',
             path: 'system.identified',
             type: 'boolean',
             default: true,
-            guidance: 'Whether players can already see the item for what it is.'
+            guidance: 'Whether players can already see the item for what it is. A boolean, not a string. Default true.'
         },
         {
             name: 'itemImagePath',
@@ -142,7 +142,7 @@ export const ITEM_LOOT_DECLARATION = {
             type: 'string',
             default: '',
             transform: 'itemIcon',
-            guidance: 'Path to the item artwork; Blacksmith guesses an icon when it is blank.'
+            guidance: 'Path to the artwork. Leave blank and Blacksmith chooses an icon from the name and description.'
         },
         {
             name: 'itemIsMagical',
@@ -150,7 +150,7 @@ export const ITEM_LOOT_DECLARATION = {
             type: 'boolean',
             default: false,
             transform: 'magicalProperty',
-            guidance: 'Whether the item is magical, which adds the magical property.'
+            guidance: 'Whether the item has magical properties. A boolean, not a string; it adds the magical property.'
         },
         {
             name: 'itemSource',
@@ -216,21 +216,21 @@ export const ITEM_WEAPON_DECLARATION = {
     derive: ['weaponAttackActivity', 'equippablePassiveEffects'],
     fields: [
         { name: 'itemName', path: 'name', type: 'string', required: true, acceptsKeys: ['name'],
-          example: '', guidance: 'The weapon name as it appears in the sidebar and on a sheet.' },
+          example: '', guidance: 'The full weapon name, up to 50 characters.' },
         { name: 'itemDescription', path: 'system.description.value', type: 'string', default: '',
-          guidance: 'The description shown on the item sheet, as HTML or plain prose.' },
+          guidance: 'An HTML narrative describing the look, purpose and history. Use paragraphs, lists, bold and headings as needed.' },
         { name: 'itemDescriptionUnidentified', path: 'system.description.unidentified', type: 'string',
-          default: '', guidance: 'What players see while the weapon is unidentified.' },
+          default: '', guidance: 'An HTML narrative describing the weapon in vague terms, for while it is unidentified.' },
         { name: 'itemDescriptionChat', path: 'system.description.chat', type: 'string', default: '',
-          guidance: 'A shorter description posted to chat when the weapon is used.' },
+          guidance: 'A single sentence describing the weapon, suitable for posting to chat.' },
         { name: 'itemGMNotes', path: 'flags.coffee-pub-blacksmith.gmNotes', type: 'string', default: '',
           acceptsKeys: ['gmNotes'], transform: 'gmNotes',
-          guidance: 'Private notes for the GM, never shown to players.' },
+          guidance: 'Private GM-only notes: secrets, plot hooks, intended use, ties to NPCs or quests. Never shown to players. Use HTML as in the description, and do not restate it. Leave blank when there is nothing worth noting.' },
         { name: 'itemType', role: 'selector', type: 'string', example: 'Weapon',
           guidance: 'Which kind of item this is; it selects the rest of the schema.' },
         { name: 'itemSubType', path: 'system.type.value', type: 'string', transform: 'weaponType',
           default: 'Simple Melee', example: 'Simple Melee',
-          guidance: 'The weapon category: Simple or Martial, Melee or Ranged, or Natural, Improvised or Siege.' },
+          guidance: 'The weapon category: Simple Melee, Simple Ranged, Martial Melee, Martial Ranged, Natural, Improvised or Siege Weapon.' },
         { name: 'weaponBaseItem', path: 'system.type.baseItem', type: 'string', default: '', example: '',
           guidance: 'The dnd5e base weapon this one derives from, if any.' },
         { name: 'itemRarity', path: 'system.rarity', type: 'string', default: 'common',
@@ -239,15 +239,15 @@ export const ITEM_WEAPON_DECLARATION = {
         { name: 'itemQuantity', path: 'system.quantity', type: 'integer', default: 1,
           guidance: 'How many of the weapon this entry represents.' },
         { name: 'itemWeight', path: 'system.weight', type: 'number', example: 0,
-          guidance: 'Weight of a single unit, in the system default unit.' },
+          guidance: 'Weight of a single unit as a number, decimals allowed. Never leave it blank.' },
         { name: 'itemPrice', path: 'system.price', type: 'string', transform: 'price', default: '0 gp',
-          example: '0 GP', guidance: 'Price as an amount and a coin abbreviation, such as "50 GP".' },
+          example: '0 GP', guidance: 'Price as an amount and a coin abbreviation, such as "50 GP". Use "0 GP" when truly priceless; never leave it blank.' },
         { name: 'itemIdentified', path: 'system.identified', type: 'boolean', default: true,
-          guidance: 'Whether players can already see the weapon for what it is.' },
+          guidance: 'Whether players can already see the weapon for what it is. A boolean, not a string. Default true.' },
         { name: 'itemImagePath', path: 'img', type: 'string', default: '', transform: 'itemIcon',
-          guidance: 'Path to the weapon artwork; Blacksmith guesses an icon when it is blank.' },
+          guidance: 'Path to the artwork. Leave blank and Blacksmith chooses an icon from the name and description.' },
         { name: 'itemIsMagical', role: 'input', type: 'boolean', default: false, example: false,
-          guidance: 'Whether the weapon is magical, which adds the magical property.' },
+          guidance: 'Whether the weapon has magical properties. A boolean, not a string; it adds the magical property.' },
         { name: 'magicalAttunementRequired', path: 'system.attunement', type: 'string', default: '',
           example: '', transform: 'attunement',
           values: ['', 'none', 'not required', 'attunement not required', 'required',
@@ -302,8 +302,13 @@ export const ITEM_WEAPON_DECLARATION = {
           guidance: 'Where the weapon comes from, usually the campaign name.' },
         { name: 'itemLicense', path: 'system.source.license', type: 'string', default: '',
           example: 'CC BY 4.0', guidance: 'The licence the content is published under, if any.' },
+        // Accepted and merged, never offered. A module with a field group gets real
+        // named fields instead; this stays for a hand-authored payload carrying a
+        // namespace no group covers. It was gated on an Artificer-specific option,
+        // which put a sibling's name on a generic field and, once their group
+        // existed, offered an empty object beside their real ones.
         { name: 'flags', path: 'flags', type: 'object', merge: 'mergeNamespaces',
-          requiresOption: 'includeArtificer',
+          authorable: false,
           guidance: 'Module-owned data, keyed by module id, passed through untouched.' }
     ],
     rules: [
@@ -331,16 +336,16 @@ registerDeclaration(ITEM_WEAPON_DECLARATION);
 function physicalItemFields({ subTypePath, subTypeTransform, subTypeDefault, subTypeExample, subTypeGuidance }) {
     return [
         { name: 'itemName', path: 'name', type: 'string', required: true, acceptsKeys: ['name'],
-          example: '', guidance: 'The item name as it appears in the sidebar and on a character sheet.' },
+          example: '', guidance: 'The full item name, up to 50 characters.' },
         { name: 'itemDescription', path: 'system.description.value', type: 'string', default: '',
-          guidance: 'The description shown on the item sheet, as HTML or plain prose.' },
+          guidance: 'An HTML narrative describing the look, purpose and history. Use paragraphs, lists, bold and headings as needed.' },
         { name: 'itemDescriptionUnidentified', path: 'system.description.unidentified', type: 'string',
-          default: '', guidance: 'What players see while the item is unidentified.' },
+          default: '', guidance: 'An HTML narrative describing the item in vague terms, for while it is unidentified.' },
         { name: 'itemDescriptionChat', path: 'system.description.chat', type: 'string', default: '',
-          guidance: 'A shorter description posted to chat when the item is used.' },
+          guidance: 'A single sentence describing the item, suitable for posting to chat.' },
         { name: 'itemGMNotes', path: 'flags.coffee-pub-blacksmith.gmNotes', type: 'string', default: '',
           acceptsKeys: ['gmNotes'], transform: 'gmNotes',
-          guidance: 'Private notes for the GM, never shown to players.' },
+          guidance: 'Private GM-only notes: secrets, plot hooks, intended use, ties to NPCs or quests. Never shown to players. Use HTML as in the description, and do not restate it. Leave blank when there is nothing worth noting.' },
         { name: 'itemType', role: 'selector', type: 'string', example: subTypeExample.itemType,
           guidance: 'Which kind of item this is; it selects the rest of the schema.' },
         { name: 'itemSubType', path: subTypePath, type: 'string', transform: subTypeTransform,
@@ -349,25 +354,30 @@ function physicalItemFields({ subTypePath, subTypeTransform, subTypeDefault, sub
           values: ['common', 'uncommon', 'rare', 'very rare', 'legendary', 'artifact'],
           guidance: 'How hard the item is to come by.' },
         { name: 'itemQuantity', path: 'system.quantity', type: 'integer', default: 1,
-          guidance: 'How many of the item this entry represents.' },
+          guidance: 'How many the entry represents. Default 1.' },
         { name: 'itemWeight', path: 'system.weight', type: 'number', example: 0,
-          guidance: 'Weight of a single unit, in the system default unit.' },
+          guidance: 'Weight of a single unit as a number, decimals allowed. Never leave it blank.' },
         { name: 'itemPrice', path: 'system.price', type: 'string', transform: 'price', default: '0 gp',
-          example: '0 GP', guidance: 'Price as an amount and a coin abbreviation, such as "50 GP".' },
+          example: '0 GP', guidance: 'Price as an amount and a coin abbreviation, such as "50 GP". Use "0 GP" when truly priceless; never leave it blank.' },
         { name: 'itemIdentified', path: 'system.identified', type: 'boolean', default: true,
-          guidance: 'Whether players can already see the item for what it is.' },
+          guidance: 'Whether players can already see the item for what it is. A boolean, not a string. Default true.' },
         { name: 'itemImagePath', path: 'img', type: 'string', default: '', transform: 'itemIcon',
-          guidance: 'Path to the item artwork; Blacksmith guesses an icon when it is blank.' },
+          guidance: 'Path to the artwork. Leave blank and Blacksmith chooses an icon from the name and description.' },
         { name: 'itemIsMagical', path: 'system.properties', type: 'boolean', default: false,
           transform: 'magicalProperty',
-          guidance: 'Whether the item is magical, which adds the magical property.' },
+          guidance: 'Whether the item has magical properties. A boolean, not a string; it adds the magical property.' },
         { name: 'itemSource', path: 'system.source.custom', type: 'string', default: '',
           example: '[ADD-CAMPAIGN-NAME-HERE]',
           guidance: 'Where the item comes from, usually the campaign name.' },
         { name: 'itemLicense', path: 'system.source.license', type: 'string', default: '',
           example: 'CC BY 4.0', guidance: 'The licence the item content is published under, if any.' },
+        // Accepted and merged, never offered. A module with a field group gets real
+        // named fields instead; this stays for a hand-authored payload carrying a
+        // namespace no group covers. It was gated on an Artificer-specific option,
+        // which put a sibling's name on a generic field and, once their group
+        // existed, offered an empty object beside their real ones.
         { name: 'flags', path: 'flags', type: 'object', merge: 'mergeNamespaces',
-          requiresOption: 'includeArtificer',
+          authorable: false,
           guidance: 'Module-owned data, keyed by module id, passed through untouched.' }
     ];
 }
@@ -391,7 +401,7 @@ export const ITEM_EQUIPMENT_DECLARATION = {
             subTypeTransform: 'slug',
             subTypeDefault: 'trinket',
             subTypeExample: { itemType: 'Equipment', itemSubType: 'Clothing' },
-            subTypeGuidance: 'The equipment category, such as Clothing, Light Armor or Shield.'
+            subTypeGuidance: 'The equipment category: Clothing, Ring, Rod, Trinket, Vehicle Equipment, Wand, Wondrous Item, Light Armor, Medium Armor, Heavy Armor, Natural Armor or Shield.'
         }),
         { name: 'magicalAttunementRequired', path: 'system.attunement', type: 'string', default: '',
           example: '', transform: 'attunementIfMagical',
@@ -421,7 +431,7 @@ export const ITEM_TOOL_DECLARATION = {
             subTypeTransform: 'slug',
             subTypeDefault: 'artisans-tools',
             subTypeExample: { itemType: 'Tool', itemSubType: "Artisan's Tools" },
-            subTypeGuidance: 'The tool category, such as Artisan\'s Tools or Gaming Set.'
+            subTypeGuidance: 'The tool category, such as Artisan\'s Tools, Gaming Set or Musical Instrument.'
         }),
         { name: 'toolAbility', path: 'system.ability.value', const: 'int',
           guidance: 'The ability a tool check uses.' },
@@ -450,7 +460,7 @@ export const ITEM_CONTAINER_DECLARATION = {
         // authoring prompt and the parser treats the two identically
         // (`flat.itemSubType || 'other'`), so this is a listed, deliberate difference.
         subTypeExample: { itemType: 'Container', itemSubType: '' },
-        subTypeGuidance: 'The container category, such as Backpack or Pouch.'
+        subTypeGuidance: 'The container category. Containers have no fixed vocabulary; leave it blank unless a specific kind matters.'
     })
 };
 
@@ -594,18 +604,18 @@ export const ACTIVITY_FIELDS = [
 function describedItemFields(itemTypeExample) {
     return [
         { name: 'itemName', path: 'name', type: 'string', required: true, acceptsKeys: ['name'],
-          example: '', guidance: 'The name as it appears in the sidebar and on a character sheet.' },
+          example: '', guidance: 'The full name, up to 50 characters.' },
         { name: 'itemDescription', path: 'system.description.value', type: 'string', default: '',
-          guidance: 'The description shown on the sheet, as HTML or plain prose.' },
+          guidance: 'An HTML narrative describing the look, purpose and history. Use paragraphs, lists, bold and headings as needed.' },
         { name: 'itemDescriptionChat', path: 'system.description.chat', type: 'string', default: '',
-          guidance: 'A shorter description posted to chat when it is used.' },
+          guidance: 'A single sentence describing it, suitable for posting to chat.' },
         { name: 'itemGMNotes', path: 'flags.coffee-pub-blacksmith.gmNotes', type: 'string', default: '',
           acceptsKeys: ['gmNotes'], transform: 'gmNotes',
-          guidance: 'Private notes for the GM, never shown to players.' },
+          guidance: 'Private GM-only notes: secrets, plot hooks, intended use, ties to NPCs or quests. Never shown to players. Use HTML as in the description, and do not restate it. Leave blank when there is nothing worth noting.' },
         { name: 'itemType', role: 'selector', type: 'string', example: itemTypeExample,
           guidance: 'Which kind of item this is; it selects the rest of the schema.' },
         { name: 'itemImagePath', path: 'img', type: 'string', default: '', transform: 'itemIcon',
-          guidance: 'Path to the artwork; Blacksmith guesses an icon when it is blank.' },
+          guidance: 'Path to the artwork. Leave blank and Blacksmith chooses an icon from the name and description.' },
         // Read by the itemActivities derivation, which produces both system.activities
         // and effects together -- _buildActivities pushes applied effects into the array.
         { name: 'activities', role: 'input', type: 'array', fields: ACTIVITY_FIELDS,
@@ -617,8 +627,13 @@ function describedItemFields(itemTypeExample) {
           guidance: 'Where this comes from, usually the campaign name.' },
         { name: 'itemLicense', path: 'system.source.license', type: 'string', default: '',
           example: 'CC BY 4.0', guidance: 'The licence the content is published under, if any.' },
+        // Accepted and merged, never offered. A module with a field group gets real
+        // named fields instead; this stays for a hand-authored payload carrying a
+        // namespace no group covers. It was gated on an Artificer-specific option,
+        // which put a sibling's name on a generic field and, once their group
+        // existed, offered an empty object beside their real ones.
         { name: 'flags', path: 'flags', type: 'object', merge: 'mergeNamespaces',
-          requiresOption: 'includeArtificer',
+          authorable: false,
           guidance: 'Module-owned data, keyed by module id, passed through untouched.' }
     ];
 }
@@ -799,10 +814,10 @@ export const ITEM_CONSUMABLE_DECLARATION = {
             subTypeTransform: 'slug',
             subTypeDefault: 'potion',
             subTypeExample: { itemType: 'Consumable', itemSubType: 'Potion' },
-            subTypeGuidance: 'The consumable category, such as Potion, Scroll, Ammunition or Food.'
+            subTypeGuidance: 'The consumable category: Ammunition, Food, Poison, Potion, Rod, Scroll, Trinket, Wand or Wondrous Item.'
         }),
         { name: 'itemSubTypeNuance', path: 'system.type.subtype', type: 'string', default: '', example: '',
-          guidance: 'A narrower category within the consumable type, such as the food kind.' },
+          guidance: 'The delivery mechanism. For a Poison use contact, ingested, inhaled or injury; leave blank for every other category.' },
         { name: 'magicalAttunementRequired', path: 'system.attunement', type: 'string', default: '',
           example: '', transform: 'attunementIfMagical',
           values: ['', 'none', 'not required', 'attunement not required', 'required',

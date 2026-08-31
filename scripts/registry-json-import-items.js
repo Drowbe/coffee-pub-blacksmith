@@ -5,7 +5,7 @@
 import { registerJsonImportKind } from './registry-json-import.js';
 import { parseFlatItemToFoundry, isNativeFoundryItemData } from './parsers/parse-item.js';
 import { getDeclaration } from './registry-declarations.js';
-import { validateEntryDeep, buildDocumentData } from './manager-declarations.js';
+import { validateEntryDeep, buildDocumentData, buildPromptSchemaText } from './manager-declarations.js';
 // Side-effect import: registers the eight declared Item profiles. This is the
 // switch -- routing is by declaration presence, so registering them is what makes
 // the declaration engine live. Commenting this line out returns every profile to
@@ -20,9 +20,7 @@ import {
 export const ARTIFICER_MODULE_ID = 'coffee-pub-artificer';
 
 export const ITEM_PROMPT_CORE = 'prompt-item-core.txt';
-export const ITEM_PROMPT_PARTIAL_ARTIFICER = 'prompt-item-partial-artificer.txt';
 export const ITEM_PROMPT_PARTIAL_IMAGE_REQUEST = 'prompt-item-partial-image-request.txt';
-export const ITEM_PROMPT_PROFILE_ARTIFICER = 'prompt-item-profile-artificer.txt';
 
 /** @type {Record<string, string>} */
 export const ITEM_PROMPT_PROFILES = {
@@ -132,14 +130,32 @@ export async function buildItemImportPrompt(templateKey, options = {}) {
     const core = await fetchPromptText(ITEM_PROMPT_CORE);
     const parts = [core];
 
-    const profileFile = ITEM_PROMPT_PROFILES[key];
-    if (profileFile) {
-        parts.push(await fetchPromptText(profileFile));
-    }
-
-    if (includeArtificer) {
-        parts.push(await fetchPromptText(ITEM_PROMPT_PARTIAL_ARTIFICER));
-        parts.push(await fetchPromptText(ITEM_PROMPT_PROFILE_ARTIFICER));
+    // The schema half of the prompt is DERIVED when the profile is declared: every
+    // field, its allowed values, and every rule the generator will be rejected for
+    // breaking. It replaces the hand-maintained profile part and any contributing
+    // module's prompt partials, so the two can no longer disagree -- the profile
+    // parts had already drifted, advertising activity types the converter refuses
+    // and uses fields the parser never read.
+    //
+    // The FRAMING above and the creative direction below stay authored: campaign
+    // context, workflow and generation posture are not things a declaration
+    // describes. This is composition, not replacement.
+    // A contributing module's prompt text now travels in its own field group, as
+    // per-field guidance and a preamble. Blacksmith hosted Artificer's two prompt
+    // files for want of anywhere else to put them, which was a module boundary
+    // violation on our side; they are deleted rather than moved.
+    const declared = getDeclaration(ITEM_JSON_IMPORT_KIND_ID, key);
+    if (declared) {
+        parts.push(buildPromptSchemaText(ITEM_JSON_IMPORT_KIND_ID, key, {
+            includeArtificer,
+            artificerItem: includeArtificer,
+            includePassiveEffects: options.includePassiveEffects
+        }));
+    } else {
+        const profileFile = ITEM_PROMPT_PROFILES[key];
+        if (profileFile) {
+            parts.push(await fetchPromptText(profileFile));
+        }
     }
 
     if (options.includeImageRequest) {

@@ -189,8 +189,13 @@ export function buildTemplateObject(kindId, profileId, options = {}) {
     const data = {};
     for (const field of effectiveFields(declaration)) {
         if (!isAuthorable(field) || !isShown(field, options)) continue;
-        // A template has no entry to test, so a value-gated field is offered and
-        // the rules reject it if it turns out not to belong.
+        // A value-gated field is OMITTED from the template. A template is a single
+        // starting point with no entry to test the gate against, so including one
+        // produces a contradictory example -- a Plant component carrying the fields
+        // that only exist on a Process, which the profile's own rules forbid. The
+        // guide and prompt state the condition instead, which is where a condition
+        // can actually be expressed.
+        if (field.requiresWhen) continue;
         data[field.name] = templateValue(field);
     }
     return data;
@@ -538,6 +543,29 @@ export async function validateEntryDeep(kindId, profileId, entry) {
 // ==================================================================
 
 /**
+ * The rules an authoring output should state, given the options in force.
+ *
+ * Authoring is gated by the OPTION a person ticks, while validation is gated by
+ * what the payload engages -- so the two need different rule sets from the same
+ * declaration. Using the validation set for authoring put a contributing module's
+ * rules into a prompt whose fields had been switched off, leaving the generator
+ * told about constraints on fields it was never given. A rule about something
+ * absent is the same defect as a rule that can never fire, in the other direction.
+ *
+ * @param {object} declaration
+ * @param {Record<string, unknown>} options
+ * @returns {string[]}
+ */
+function authoringRuleSentences(declaration, options) {
+    const groups = getFieldGroupsFor(declaration.kind, declaration.id)
+        .filter(group => isShown({ requiresOption: group.option.id }, options));
+    return ruleSentences({
+        ...declaration,
+        rules: [...(declaration.rules ?? []), ...groups.flatMap(group => group.rules ?? [])]
+    });
+}
+
+/**
  * One guide line for a field: its name, what it accepts, and its sentence.
  * @param {object} field
  * @returns {string}
@@ -588,7 +616,7 @@ export function buildGuideText(kindId, profileId, options = {}) {
         ...shown.map(guideLine)
     ];
 
-    const sentences = ruleSentences(composed);
+    const sentences = authoringRuleSentences(declaration, options);
     if (sentences.length) {
         sections.push('', 'Rules', ...sentences.map(one => `- ${one}`));
     }
@@ -608,5 +636,74 @@ export function buildGuideText(kindId, profileId, options = {}) {
         '- Keep numbers, booleans, null, arrays and objects as their JSON types; do not quote them.',
         '- Every field above is one this profile reads. Anything else is reported and ignored.'
     );
+    return sections.join('\n');
+}
+
+/**
+ * The schema section of a generation prompt: every field, every rule, and a
+ * template to fill in.
+ *
+ * The same content as the authoring guide in the register a generator reads --
+ * ALL-CAPS types and explicit requiredness rather than prose. Derived from the
+ * same declaration, so the prompt cannot ask for a shape validation rejects,
+ * which is exactly what the hand-maintained prompt parts had drifted into: a
+ * profile part advertising activity types the converter refuses, and a template
+ * offering a spell four limited-uses fields the parser never read.
+ *
+ * This is the DERIVABLE half of a prompt. Framing, campaign context and creative
+ * direction are not described by a declaration and stay authored; a caller
+ * composes the two.
+ *
+ * @param {string} kindId
+ * @param {string} profileId
+ * @param {Record<string, unknown>} [options]
+ * @returns {string}
+ */
+export function buildPromptSchemaText(kindId, profileId, options = {}) {
+    const declaration = getDeclaration(kindId, profileId);
+    if (!declaration) {
+        throw new Error(`No declaration registered for ${kindId}.${profileId}`);
+    }
+    const composed = effectiveDeclaration(declaration);
+    const shown = composed.fields.filter(field => isAuthorable(field) && isShown(field, options));
+
+    const describe = (field) => {
+        const type = String(field.type ?? 'string').toUpperCase();
+        const required = field.required ? ' (REQUIRED)' : '';
+        const bits = [`${field.name.toUpperCase()}: (${type})${required} ${field.guidance ?? ''}`.trim()];
+        if (Array.isArray(field.values) && field.values.length) {
+            bits.push(`  Allowed: ${field.values.map(one => (one === '' ? '""' : String(one))).join(', ')}.`);
+        }
+        if (field.requiresWhen) {
+            bits.push(`  Include only when ${field.requiresWhen.replace(':', ' is ')}.`);
+        }
+        return bits.join('\n');
+    };
+
+    const sections = [
+        '========================================',
+        `IMPORT PROFILE: ${String(declaration.label).toUpperCase()}`,
+        '========================================',
+        '',
+        'Every field below belongs to this profile. Do not invent field names, and do',
+        'not carry over fields from another profile -- they are ignored on import.',
+        '',
+        'FIELDS',
+        '',
+        ...shown.map(describe)
+    ];
+
+    const sentences = authoringRuleSentences(declaration, options);
+    if (sentences.length) {
+        sections.push('', 'RULES -- output that breaks one of these is rejected on import', '',
+            ...sentences.map(one => `- ${one}`));
+    }
+
+    const preambles = getFieldGroupsFor(declaration.kind, declaration.id)
+        .filter(group => group.preamble && isShown({ requiresOption: group.option.id }, options))
+        .map(group => group.preamble);
+    if (preambles.length) sections.push('', ...preambles);
+
+    sections.push('', 'JSON TEMPLATE', '', buildTemplateText(kindId, profileId, options));
     return sections.join('\n');
 }

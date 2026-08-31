@@ -989,6 +989,7 @@ export default {
                 registry.registerFieldGroup({
                     id: 'gated', module: 'coffee-pub-probe', kind, appliesTo: ['host'],
                     option: { id: 'gatedOption', label: 'Gated' },
+                    rules: [{ kind: 'requires', when: 'gateKey:special', then: ['onlyWhenSpecial'] }],
                     fields: [
                         { name: 'gateKey', path: 'flags.probe.key', type: 'string',
                           values: ['plain', 'special'], example: 'plain', guidance: 'The gate.' },
@@ -1001,7 +1002,36 @@ export default {
                 expect.ok('appliesTo can name profiles rather than all of them',
                     registry.getFieldGroupsFor(kind, 'host').length === 1);
 
+                // A template is a single starting point with no entry to test a gate
+                // against, so a gated field must not appear in one. Including it
+                // produced a contradictory example -- a Plant component carrying the
+                // fields that exist only on a Process, which the rules forbid.
+                const template = manager.buildTemplateObject(kind, 'host', { gatedOption: true });
+                expect.ok('the gate field itself is offered', 'gateKey' in template);
+                expect.ok('the gated field is NOT in the template',
+                    !('onlyWhenSpecial' in template));
+
+                // It is documented instead, with the condition stated, which is where
+                // a condition can actually be expressed.
+                const prompt = manager.buildPromptSchemaText(kind, 'host', { gatedOption: true });
+                expect.ok('but it is documented in the prompt', prompt.includes('ONLYWHENSPECIAL'));
+                expect.ok('with the condition that governs it',
+                    prompt.includes('Include only when gateKey is special'));
+                expect.ok('a contributed RULE is stated when the option is on',
+                    prompt.includes('gateKey "special"'));
+
                 const built = async (entry) => manager.buildDocumentData(kind, 'host', entry);
+
+                // Authoring is gated by the OPTION; validation is gated by what the
+                // payload engages. Using the validation rule set for authoring told a
+                // generator about constraints on fields the prompt had switched off --
+                // a rule about something absent, which is the never-firing defect
+                // pointing the other way.
+                const withGroup = manager.buildPromptSchemaText(kind, 'host', { gatedOption: true });
+                const withoutGroup = manager.buildPromptSchemaText(kind, 'host');
+                expect.ok('a group field appears when its option is on',
+                    withGroup.includes('GATEKEY'));
+                expect.ok('and not when it is off', !withoutGroup.includes('GATEKEY'));
                 const special = await built({ probeName: 'X', gateKey: 'special', onlyWhenSpecial: 'yes' });
                 expect('the gated field lands when the gate holds',
                     special?.flags?.probe?.extra, 'yes');
@@ -1085,7 +1115,7 @@ export default {
 
         {
             id: 'group-option-surfaces',
-            label: 'A group's option becomes a checkbox in the window',
+            label: 'A group option becomes a checkbox in the window',
             tier: 'headless',
             group: 'Step 5 - derived authoring output',
             note: 'Without it a group is gated by a control the user never sees.',
