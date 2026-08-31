@@ -121,7 +121,9 @@ differences from what is written below, both decided rather than drifted:
 
 - **There are seven kinds, not six.** User guides -- how to *use* the module as a player or a GM -- are the
   seventh, and the largest gap in the suite. `documentation/userguides/`, prefix `userguide-`.
-- **The folders are `api/`, `architecture/`, `designsystem/`, `primers/`, `userguides/`, and `plans/`.**
+- **The folders are `api/`, `architecture/`, `designsystem/`, `primers/`, `userguides/`, and `plans/`,
+  plus `assets/` for images.** Images are shared from `assets/` and named for the doc that owns them;
+  product screens take `product-` and must never go in the shipped `images/`, which every user downloads.
   `primers/` has landed and holds what `guides/` used to: everything a developer needs that is *not* this
   module -- Foundry, the game system, a consumer's side of the boundary, the suite's conventions.
   `designsystem/` has landed too; `userguides/` is not written yet, tracked in

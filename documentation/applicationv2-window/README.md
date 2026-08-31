@@ -2,7 +2,7 @@
 
 Minimal window skeleton that includes all **five Blacksmith zones**: **title bar** (Foundry), **option bar** (optional), **header** (optional), **body** (required — inject your content here), **action bar** (optional). Omit the zones you don’t need. No domain content—replace placeholders with your own.
 
-**Zone reference:** See **blacksmith-windows-zones.webp** for the layout. See **window-samples.png** for real windows and which zones they use.
+**Zone reference:** See [primer-applicationv2-zones.webp](../assets/primer-applicationv2-zones.webp) for the layout. See [primer-applicationv2-samples.png](../assets/primer-applicationv2-samples.png) for real windows and which zones they use.
 
 ## Files
 

@@ -38,6 +38,7 @@ wrong breaks. A document that is wrong is believed.
   README.md                       ships in the release zip; the product page
   CHANGELOG.md                    ships in the release zip; what changed, per release
   documentation/                  never ships; the only tree the wiki publisher reads
+    assets/                       images every doc draws on, including the product screens
     home.md                       becomes the wiki Home page
     known-issues.md               published
     TODO.md                       never published
@@ -53,7 +54,6 @@ wrong breaks. A document that is wrong is believed.
       primer-<topic>.md
     userguides/
       userguide-<topic>.md
-      images/                     screenshots, referenced relatively
   testing/                        repo root; never published, by construction
 ```
 
@@ -80,6 +80,7 @@ verification backlog cannot leak to the wiki by accident.
 | `primers/` | `primer-` | The world around the module: the platform, the game system, the suite's own conventions | yes |
 | `userguides/` | `userguide-` | Someone playing or running a game with the module | yes |
 | `plans/` | `plan-` | Us, while the work is in flight | never |
+| `assets/` | named for its owner, see below | Images, not documents | as part of the page that references it |
 | `documentation/` root | `home.md`, `known-issues.md`, `TODO.md` | mixed | home and known-issues only |
 
 This table is the authority. Do not derive the prefix from the folder name -- `designsystem/` takes
@@ -230,11 +231,50 @@ they will not find a feature that is not described in terms of what they can see
 6. **A dependency gets one clause, and no more.** If a behaviour only exists when another Coffee Pub module
    is installed, name that module and stop -- no link, no description of what it does, no instructions for
    it. That module's user guide is its own. This is the one place a user guide may name a sibling at all.
-7. **Screenshots live in `userguides/images/`** and are referenced relatively (`images/combat-timer.webp`),
-   so they render in the repo, in an editor, and -- after the publisher rewrites them -- on the wiki.
+7. **Screenshots live in `documentation/assets/`** and are referenced relatively
+   (`../assets/userguide-combat-timer.webp`), so they render in the repo, in an editor, and -- after the
+   publisher rewrites them -- on the wiki. See the assets section below.
 8. **No design rationale.** Why it works this way is architecture. A user guide says what happens.
 9. **The formatting standard below applies in full.** User guides are the most-read documents in the suite;
    they are not the place to relax it.
+
+---
+
+## Assets
+
+Images live in one folder, `documentation/assets/`, shared by every document that needs them. A screenshot
+used by both a user guide and a primer has one home rather than a copy in each.
+
+**Named for what owns them.** An asset takes the prefix of the document it belongs to --
+`userguide-combat-timer.webp`, `primer-applicationv2-zones.webp` -- so sorting the folder groups them the
+way nesting would have, and an orphan is visible by eye as well as to the checker. The exception is the
+**product screens**, which belong to no single document: the README and `home.md` both draw on them, so they
+take `product-` -- `product-hero.webp`, `product-combat-tracker.webp`.
+
+**Product screens do not go in the module's shipped `images/` folder.** That folder is runtime content and
+ships in the release zip to every user; `documentation/` does not ship, so a product screenshot in
+`assets/` costs a user nothing and still renders on the GitHub landing page and the wiki. Putting them in
+`images/` adds weight to every download for a picture no running module ever loads.
+
+**WebP, not PNG.** The same screenshot is routinely twenty to thirty times larger as a PNG: this repository
+carried one at 3.3 MB alongside two WebP captures of comparable content at 87 KB and 102 KB. Git keeps every
+version of a binary forever, so the cost is permanent and paid by everyone who clones.
+
+**No video files.** Two reasons, and the first is decisive: a GitHub wiki renders a link to a committed
+`.mp4`, not a player, so the file buys nothing on the surface being published to. And an already-compressed
+format does not delta, so each re-recording of a capture is stored whole, permanently, in a history that
+cannot be trimmed without rewriting every repository in the suite. Use an **animated WebP** for a short UI
+loop -- a few hundred kilobytes, and it renders inline like any other image -- and host anything longer
+externally, linked rather than committed.
+
+**An asset that no document references is deleted.** The checker enforces this in both directions, which is
+what makes a shared folder safe: the usual failure is deleting a document and leaving its screenshot behind
+forever, and nobody notices a file that nothing points at.
+
+**Reference assets as links, not as prose.** `[zones](../assets/primer-applicationv2-zones.webp)`, never
+"see **primer-applicationv2-zones.webp**". A filename in bold is not reachable from anywhere -- not in the
+repository, not in an editor, not on the wiki -- and this repository carried 3.5 MB of images referenced
+exactly that way, visible to no reader.
 
 ---
 
@@ -430,7 +470,7 @@ What it does, in order:
 3. **Rewrites links.** A link to another published document becomes a page link. A link to code or an asset
    is downgraded to plain text, so the wiki carries no broken red links. A link to a held or non-existent
    document is likewise downgraded, and becomes a link again automatically the day its target publishes.
-4. **Rewrites image paths** from repo-relative to absolute raw URLs, so screenshots render on the wiki while
+4. **Rewrites `assets/` paths** from repo-relative to absolute raw URLs, so images render on the wiki while
    the source document keeps a relative path that renders everywhere else.
 5. **Enforces the boundary rule in code**, in all three directions -- see below.
 6. **Writes `_Sidebar.md`** with groups in a fixed order: Getting started, User guides, Primers, API,
@@ -476,7 +516,10 @@ reader cannot hold in their head:
 - Every published document has the uniform header.
 - No document anywhere in the repository contains an emoji or dingbat -- the whole tree, not the publish
   set, since the rule is absolute.
-- Every relative image link resolves to a file that is actually committed.
+- Every relative image link resolves to a file that is actually committed, **and every file in `assets/`
+  is referenced by at least one document.** Both directions, because each catches a different rot: a
+  broken link, and an orphan nobody notices after its document is deleted.
+- No video file is committed anywhere under `documentation/`.
 
 Run it after touching documentation. Nothing else runs it -- the release workflow only zips and releases on
 a tag.

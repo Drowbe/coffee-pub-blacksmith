@@ -93,10 +93,16 @@ copies of the hardcoded `THIS_MODULE` trap go out at once.
       `primers/` are both done, the second with the `primer-` prefix so folder and filename agree. Remaining:
       create `userguides/`. Verified by: `node tools/check-design-tokens.mjs` passes and
       `node tools/wiki-sync.mjs build` produces the expected page set.
-- [ ] **Fold `applicationv2-window/` into `primers/`.** Its guidance doc becomes
+- [ ] **Fold `applicationv2-window/` into `primers/`.** Its three images are already in `assets/` and its
+      prose references are now real links. Remaining: the guidance doc becomes
       `primer-applicationv2-windows.md` (still held pending the audit it already owes), its folder README
-      folds into that doc, and its sample `.js`/`.hbs`/image files need a home the standard does not yet
-      name — decide `primers/samples/` or alongside, and write the decision into the standard.
+      folds into that doc, and the `example-window.js`/`.hbs` samples get resolved — the standard's own
+      rule says point at a real window in `scripts/` and a real template in `templates/` rather than
+      keeping a copy; if a minimal teaching example earns its place, it goes in `primers/samples/`, never
+      in `assets/`.
+- [ ] **Convert `assets/primer-applicationv2-samples.png` to WebP.** 3.3 MB against 87 KB and 102 KB for
+      the two WebP captures beside it. No image tooling in this container, so it needs a machine with
+      `cwebp` or equivalent. Verified by: the file is under ~200 KB and still legible at full width.
 - [ ] **Rewrite `tools/wiki-sync.mjs` to the portable contract.** Derive module id and wiki URL from
       `module.json`; publish by folder membership with a HOLD list; rewrite relative image links to raw URLs
       so screenshots render on the wiki; sidebar groups in the standard's order; `Home` from
@@ -108,7 +114,9 @@ copies of the hardcoded `THIS_MODULE` trap go out at once.
       whole repository included. Verified by: it exits
       non-zero on a deliberately misfiled file and zero on the clean tree.
 - [ ] **Rewrite `README.md` as the product page** — what it is, screenshots, requirements, install, links to
-      the wiki. Currently a feature dump. Verified by: read it as someone who has never heard of the module.
+      the wiki. Currently a feature dump with no screenshots at all, only shields.io badges. Needs
+      `product-*` captures in `documentation/assets/`. Verified by: read it as someone who has never heard
+      of the module.
 - [ ] **Write `documentation/home.md`.** Replaces `primer-registering-with-blacksmith.md` as the wiki Home
       source; that document becomes an ordinary published page under `primers/`.
 - [ ] **Write Blacksmith's two required user guides** — `userguide-getting-started.md` and

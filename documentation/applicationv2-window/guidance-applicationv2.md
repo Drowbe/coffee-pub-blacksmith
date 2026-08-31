@@ -5,8 +5,8 @@ This document describes how to build Application V2 windows that modules (e.g. B
 **Audience:** Module authors (e.g. Blacksmith) implementing a window API for other modules to open consistent, well-behaved windows.
 
 **Reference assets:**
-- **blacksmith-windows-zones.webp** — Canonical diagram of the five zones (title bar, option bar, header, body, action bar).
-- **window-samples.png** — Examples of real windows showing which zones are used in different cases (option bar and header optional; action bar optional; body content highly variable).
+- [primer-applicationv2-zones.webp](../assets/primer-applicationv2-zones.webp) — Canonical diagram of the five zones (title bar, option bar, header, body, action bar).
+- [primer-applicationv2-samples.png](../assets/primer-applicationv2-samples.png) — Examples of real windows showing which zones are used in different cases (option bar and header optional; action bar optional; body content highly variable).
 
 ---
 
@@ -22,7 +22,7 @@ Windows that follow the Blacksmith contract use up to **five zones**. Consumers 
 | **Body** | Yes | Scrollable main area. **Consumers inject their content here.** Many layouts are supported: forms, lists, grids, rich text, multi-column (e.g. crafting), keypads, etc. |
 | **Action bar** | Optional | Fixed at bottom. Left = secondary actions (Cancel, Reset, etc.), right = primary action (Save, Apply, Craft, etc.). Omit for display-only or toolbar-style windows. |
 
-See **window-samples.png** for the range of combinations (windows with/without option bar, with/without header, with/without action bar, and very different body content).
+See [primer-applicationv2-samples.png](../assets/primer-applicationv2-samples.png) for the range of combinations (windows with/without option bar, with/without header, with/without action bar, and very different body content).
 
 ---
 
@@ -321,7 +321,7 @@ Below is a **minimal plug-in window** that includes all five zones from the cont
 
 **Copyable files** are in `documentation/applicationv2-window/` (example-window.hbs, example-window.js, README.md).
 
-**Zone diagram:** See **blacksmith-windows-zones.webp** for the canonical layout. **window-samples.png** shows real windows and which zones they use (option bar and header optional; action bar optional; body content varies widely).
+**Zone diagram:** See [primer-applicationv2-zones.webp](../assets/primer-applicationv2-zones.webp) for the canonical layout. [primer-applicationv2-samples.png](../assets/primer-applicationv2-samples.png) shows real windows and which zones they use (option bar and header optional; action bar optional; body content varies widely).
 
 ### 6.1 Template
 
@@ -518,7 +518,7 @@ export class ExampleModuleWindow extends HandlebarsApplicationMixin(ApplicationV
 - Body is the main scrollable area; you control layout inside it (single column, two-column, grid, etc.).
 - Action bar (if used): `flex-shrink: 0` at the bottom.
 
-Reference `styles/window-skills.css` in this repository for a full layout. See **window-samples.png** for the variety of zone combinations and body layouts.
+Reference `styles/window-skills.css` in this repository for a full layout. See [primer-applicationv2-samples.png](../assets/primer-applicationv2-samples.png) for the variety of zone combinations and body layouts.
 
 ---
 
@@ -526,7 +526,7 @@ Reference `styles/window-skills.css` in this repository for a full layout. See *
 
 | Topic | Recommendation |
 |-------|----------------|
-| Zones | Title bar (Foundry) → **Option bar** (optional) → **Header** (optional) → **Body** (required, injectable) → **Action bar** (optional). See blacksmith-windows-zones.webp and window-samples.png. |
+| Zones | Title bar (Foundry) → **Option bar** (optional) → **Header** (optional) → **Body** (required, injectable) → **Action bar** (optional). See [primer-applicationv2-zones.webp](../assets/primer-applicationv2-zones.webp) and [primer-applicationv2-samples.png](../assets/primer-applicationv2-samples.png). |
 | Base class | `HandlebarsApplicationMixin(ApplicationV2)` |
 | Defaults | Always merge into a **copy** of `super.DEFAULT_OPTIONS` |
 | Data | `_prepareContext` → `getData()`; template receives one context object |

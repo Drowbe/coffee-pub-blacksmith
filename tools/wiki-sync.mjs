@@ -29,7 +29,17 @@ import { execFileSync } from 'node:child_process';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DOCS = path.join(ROOT, 'documentation');
 const OUT = path.join(ROOT, 'tools', '.wiki-build');
-const WIKI_URL = process.env.WIKI_URL || 'https://github.com/Drowbe/coffee-pub-blacksmith.wiki.git';
+// Identity comes from module.json so a satellite can copy this file unchanged. `url` is the repo page;
+// the wiki and the raw host are derived from it. (The rest of the portable rewrite is still to come --
+// see TODO-GLOBAL -- but the two values that would silently misbehave in a copied file start here.)
+const MODULE = JSON.parse(fs.readFileSync(path.join(ROOT, 'module.json'), 'utf8'));
+const REPO_URL = (MODULE.url || '').replace(/\/+$/, '');
+const REPO_SLUG = REPO_URL.replace(/^https?:\/\/github\.com\//i, '');
+const WIKI_URL = process.env.WIKI_URL || `${REPO_URL}.wiki.git`;
+// Assets are rewritten to raw.githubusercontent so images render on the wiki, which cannot resolve a
+// repo-relative path. Source docs keep the relative path, which renders in the repo and in an editor.
+const RAW_BASE = `https://raw.githubusercontent.com/${REPO_SLUG}/master/documentation/assets`;
+const ASSET_LINK = /(?:^|\/)assets\/([^/\\)]+)$/i;
 
 // ---- Round-1 publish set. Add held docs here as they are finished and verified clean. ----
 const PUBLISH = [
@@ -187,6 +197,8 @@ function rewriteLinks(md, srcRel) {
       // CODE_PATH entry could otherwise swallow these silently.
       const hub = siblingWikiUrl(target);
       if (hub) return `[${text}](${hub})`;
+      const asset = target.match(ASSET_LINK);                         // documentation/assets -> raw URL
+      if (asset) return `[${text}](${RAW_BASE}/${asset[1]})`;
       if (CODE_LINK.test(target)) {                                   // code / asset -> plain text
         downgraded.push(`${srcRel}: code -> text  (${target})`);
         return text;
