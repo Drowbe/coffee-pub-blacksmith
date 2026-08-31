@@ -1,8 +1,8 @@
 # Scene Geography and Environment
 
-**Status: Planned — nothing implemented.** Live scaffolding. The questions blocking Workstreams 2 and 4 were
-settled 2026-08-31 and are recorded under "Settled" below; what still blocks Workstream 3 is Artificer's to
-answer. Workstream 1 can start immediately and is tracked in `TODO.md` as "One Scene Config tab injector,
+**Status: Planned — nothing implemented.** Live scaffolding. Every question blocking Workstreams 1 through 3
+was settled 2026-08-31 and is recorded under "Settled" below; Artificer and Minstrel have agreed their side.
+Only Workstream 4 still has an open question, and it is last. Workstream 1 can start immediately and is tracked in `TODO.md` as "One Scene Config tab injector,
 registered like a toolbar tool".
 
 **On completion:** the data model and API surface fold into `documentation/architecture/` and
@@ -185,11 +185,29 @@ Artificer reads environment from the API instead of defining it. Minstrel reads 
 `isArtificerAvailable()` gate, which makes its habitat automation work standalone — a user-visible fix, not
 only a refactor.
 
-Needs a one-time migration reading existing `flags.coffee-pub-artificer.scene.habitats` into the new flag, and
-a decision on whether Artificer keeps a read-through fallback for one release.
+Needs a one-time migration reading existing `flags.coffee-pub-artificer.scene.habitats` into the new flag,
+lowercasing as it writes (settled question 2). Artificer takes a hard cut at `ready` with no read-through
+fallback (settled question 3).
+
+**What Blacksmith owes Artificer, because of the hard cut.**
+
+- **A migration-complete signal that a degraded `ready` cannot fake.** Artificer requires the migration to
+  have finished before its own `ready`, and `BlacksmithAPI.waitForReady()` does not provide that.
+  That promise is only ever resolved, never rejected, and `bailOutOfReady`
+  ([blacksmith.js:470-492](../../scripts/blacksmith.js#L470)) deliberately calls `markReadyForConsumers()`
+  after a failure so consumers get a degraded API rather than hanging. So a bail-out before the geography
+  migration runs resolves Artificer's await, hands it a migrated-looking API with no habitats, and the hard
+  cut turns that into silent data loss -- the exact failure the hard cut was chosen to make loud. The signal
+  must distinguish "migration completed" from "Blacksmith marked ready degraded", and this design is part of
+  this workstream, not an afterthought to it.
+- **A version floor to pin.** Artificer's `module.json` carries an empty `compatibility` block, so a new
+  Artificer against an old Blacksmith finds neither API nor flag and habitats are simply gone. The floor is
+  the Blacksmith release that ships this workstream; the number is the author's at BUILD time, and Artificer
+  must not ship the hard cut before it exists.
 
 This is a cross-module contract, so it belongs in `TODO-GLOBAL.md`, and it should not land until Artificer and
-Minstrel are ready to move in the same release window.
+Minstrel are ready to move in the same release window. Artificer's own compendium re-export is **not** part of
+that window -- normalizing at the join makes stored case irrelevant, so the re-export is independent cleanup.
 
 ### 4. Reputation migration
 
@@ -205,26 +223,51 @@ vocabulary questions below are settled, because it is a contract with two other 
 
 ---
 
-## Settled (2026-08-31, by the author)
+## Settled (2026-08-31)
 
 These were the blocking open questions. They are answers now, not options -- the alternatives are gone
-deliberately, so nothing here reads as still up for grabs.
+deliberately, so nothing here reads as still up for grabs. Q1, Q4, Q6 and Q7 were settled by the author; Q2
+and Q3 came back from Artificer the same day, and Q10 is new -- it was not on the original list and Artificer's
+reply raised it.
 
-1. **The environment vocabulary is a closed enum of the twelve.** It matches every consumer that exists, and
+- **Q1. The environment vocabulary is a closed enum of the twelve.** It matches every consumer that exists, and
    it is the safe direction on the API: a constant can become a pre-populated registry later without breaking
    anyone, where a registry cannot be narrowed back to a constant. This also retires the "what does an unknown
    environment do to harvest tables" question -- nothing can be unknown if the list cannot grow. If a world
    with a Feywild forces the issue later, that is a registry proposal with its own plan.
-4. **Reputation is a flat value; absence means unset.** `reputation: -100..100`, key absent means never set.
+- **Q2. Canonical case is lowercase, and every consumer normalizes at the boundary rather than trusting the
+   stored form.** The second half is the load-bearing half, and it came from Artificer. Habitat is not only a
+   display value there: `getEligibleGatherRecords`
+   (`coffee-pub-artificer/scripts/manager-gather.js:224-235`) intersects scene habitats against item biomes
+   with a case-sensitive `Set.has`, and item biomes are uppercase and are **not** moving. A case change on one
+   side alone therefore breaks the join, and breaks it silently -- `:231` returns `true` for any component
+   with no biomes at all, so gather keeps returning results drawn only from untagged components and looks
+   entirely normal.
+
+   Normalizing both sides at the join makes stored case irrelevant, which is what makes lowercase safe to
+   pick. It also covers a case a compendium re-export cannot reach: Artificer's gather pool is built from
+   compendium items **and** `game.items` (`coffee-pub-artificer/scripts/cache/cache-items.js:375-378`), so
+   components a GM imported into their world before the migration keep their old case regardless of what the
+   packs say. Blacksmith normalizes at the API edge for the same reason.
+- **Q3. Hard cut at `ready`. Artificer keeps no read-through fallback.** Artificer's call, and their reasoning is
+   the deciding one: a fallback means two sources with two cases feeding one case-sensitive join during
+   exactly the window when a half-migrated scene exists. Worse, `_hasGatheringConfigured`
+   (`coffee-pub-artificer/scripts/manager-scene.js:470-483`) requires `habitats.length > 0`, so a scene
+   falling back to its stale flag would report itself configured and gather against stale data -- hiding the
+   migration failure. With a hard cut the same failure is loud: zero habitats, and the GM sees it.
+
+   A hard cut puts two obligations on Blacksmith, both under "What Blacksmith owes Artificer" in Workstream 3
+   above.
+- **Q4. Reputation is a flat value; absence means unset.** `reputation: -100..100`, key absent means never set.
    Blacksmith has exactly one party -- numbered `partyMember{N}` settings and a single `partyLeader`
    ([settings.js:1034](../../scripts/settings.js#L1034), [:1084](../../scripts/settings.js#L1084)) -- with no
    party id anywhere, so a `{partyId: value}` map would be an index whose key is always the same invented
    constant. Multi-party is a real feature if it ever arrives, and this would be a small part of its migration.
-6. **`locationUuid` is in the v1 schema; its UI is not.** The nullable key ships with the flag, and the Area
+- **Q6. `locationUuid` is in the v1 schema; its UI is not.** The nullable key ships with the flag, and the Area
    importer populates it when it creates a scene and a Location entry in the same run. The manual picker and
    any backfill of existing worlds are deferred. Reserving the key costs nothing and new content starts
    accumulating real links immediately, instead of more `scenetitle` string matches to clean up later.
-7. **The importer writes the scene, and the world settings become a seed.** An import records geography onto
+- **Q7. The importer writes the scene, and the world settings become a seed.** An import records geography onto
    the scene flag for the scene it was launched from; the four world settings are the seed for a scene with no
    flag, and only the settings UI writes them. This is the split the model exists for -- "record this about
    this place" and "remember this for next time" stop being one action. `saveCampaignGeography()`
@@ -235,29 +278,28 @@ deliberately, so nothing here reads as still up for grabs.
    records geography nowhere, which is defensible but silent. Decide during Workstream 2 whether that
    warrants a notice.
 
+- **Q10. The environment constant exposes `{key, label}` pairs, not bare strings.** Artificer renders the stored
+   form as a user-facing label in three places -- `getBiomeOptions()` returns `{value: b, label: b}` and
+   `getBiomeOptionsForMultiselect()` returns `{name: b}`, the latter being what the gather window actually
+   uses (`coffee-pub-artificer/scripts/window-gather.js:131`). A bare lowercase array would put "underdark"
+   in front of GMs. Labels come from the vocabulary; the key is what is stored and joined on.
+
 ## Open questions
 
-**Blocking Workstream 3.** Both are Artificer's to answer, and are asked in `TODO-GLOBAL.md`.
-
-2. **What is the canonical case?** Artificer stores `MOUNTAIN`; Minstrel lowercases on every read
-   (`coffee-pub-minstrel/scripts/manager-automation.js:80`). Recommendation, absent an objection from
-   Artificer: **lowercase**, normalized on write by the migration. It matches what Minstrel already does, so
-   Minstrel deletes code rather than adding it, and it is the conventional form for an API value. Nothing
-   depends on the display form -- labels come from the vocabulary, not from the stored value.
-3. **Does Artificer keep a read-through fallback for one release, or is the migration hard at ready?**
+Nothing blocks Workstream 3 now. Both questions that did were Artificer's, and both came back 2026-08-31.
 
 **Blocking Workstream 4.**
 
-5. **What does "overall reputation" mean** -- mean of scenes with an entry, or a campaign-level value with
+- **Q5. What does "overall reputation" mean** -- mean of scenes with an entry, or a campaign-level value with
    scene reputation as local colour? The `TODO.md` reputation entry lists the options; this plan does not
    settle them. Not urgent: Workstream 4 is last, and the sentinel fix does not depend on the answer.
 
 **Scope.**
 
-8. **Where does the line sit between Blacksmith and Cartographer?** The data model, the flag, and the API are
+- **Q8. Where does the line sit between Blacksmith and Cartographer?** The data model, the flag, and the API are
    unambiguously hub concerns, and a tab registration API is infrastructure. A map browser or atlas window
    built on this data is a sibling's job. Worth naming now, because scene metadata attracts UI.
-9. **Flat strings or a real hierarchy?** Flat realm/region/site/area matches everything that exists and is
+- **Q9. Flat strings or a real hierarchy?** Flat realm/region/site/area matches everything that exists and is
    trivially backward compatible. Parent-scene references or per-level UUIDs would give a navigable atlas at
    much greater cost, and the stated direction of travel is pulling features out of the hub.
 

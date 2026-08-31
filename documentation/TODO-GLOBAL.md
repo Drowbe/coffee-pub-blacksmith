@@ -465,11 +465,28 @@ there will be one injector that both Blacksmith's geography and Artificer's harv
   stays a closed twelve-value enum**, moved to Blacksmith and exposed as a constant rather than a registry.
   Nothing can be unknown if the list cannot grow, so the harvest-table fallback question is retired and
   Artificer no longer owes an answer on it. A registry, if a world ever forces one, is a later proposal.
-- **Two things Artificer does still owe, and they block the move.** First, the canonical case: Artificer
-  stores `MOUNTAIN`, Minstrel lowercases on every read, and Blacksmith's recommendation is **lowercase**,
-  normalized on write by the migration — say if that breaks something, because nothing on our side reads the
-  stored form for display. Second, whether Artificer keeps a read-through fallback to its own flag for one
-  release or the migration is hard at `ready`. Blacksmith will build to whichever, but not to both.
+- **Both open questions came back 2026-08-31, and both are settled.** Canonical case is **lowercase**, with
+  every consumer normalizing at the boundary rather than trusting the stored form — Artificer's condition, and
+  the right one: habitat is a join key there, not only a label, and item biomes stay uppercase and do not move.
+  And the migration is a **hard cut at `ready`** with no read-through fallback, because a fallback would let a
+  half-migrated scene report itself configured and gather against stale data.
+
+**What Blacksmith now owes Artificer.** Both follow from the hard cut and are tracked in
+`plans/plan-scene-geography.md`, Workstream 3:
+
+- **The environment constant exposes `{key, label}` pairs**, not bare lowercase strings. Confirmed — Artificer
+  renders the stored form as a user-facing label in three places, and a bare array would show GMs "underdark".
+- **A migration-complete signal that a degraded `ready` cannot fake**, and **a version floor to pin**.
+  Artificer's `module.json` `compatibility` block is empty today, and awaiting `BlacksmithAPI.waitForReady()`
+  is not sufficient on its own — see the workstream for why. Artificer must not ship the hard cut before the
+  floor exists.
+
+**One correction to Artificer's plan, and it shrinks their work.** Their compendium re-export is not a
+release-window dependency. Normalizing both sides at the join makes stored case irrelevant, and it covers a
+case the re-export cannot reach at all: the gather pool is built from compendium items **and** `game.items`
+(`coffee-pub-artificer/scripts/cache/cache-items.js:375-378`), so components a GM imported into their world
+before the migration keep their old case whatever the packs say. Normalize at the join first; re-export
+independently, whenever.
 - Register the harvest tab through Blacksmith's Scene Config injector rather than its own
   `renderSceneConfig`. That is what makes the race one problem instead of two.
 

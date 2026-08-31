@@ -10,7 +10,8 @@ when it passes rather than ticking it, and delete this file when it is empty.**
 The Importer Declarations suite passes **214/214** in a running world as of 2026-08-31, Actor group
 included, with no regression in the Item or Roll Table groups. Sidekick and Character were imported and
 their exports checked on 2026-08-31: the envelope is consumed and removed, and a Character's foundations
-link post-create. What remains is everything the harness cannot reach -- construction resolves named
+link post-create. Rollback is proven too -- an unresolvable foundation fails at the link step and leaves no
+Actor behind. What remains is everything the harness cannot reach -- construction resolves named
 items, spells and features against the configured compendiums, and that is where an Actor import has always
 actually failed.
 
@@ -28,9 +29,6 @@ Results go to the **Verified** line of the relevant `CHANGELOG.md` entry, not ba
 - [ ] **Break one on purpose.** Set `sidekick.role` to something outside the three, or `sidekick.level` to
       44, and confirm the failure names the field as `sidekick.role` / `sidekick.level` rather than as a
       blanket validation failure. Nested paths are new and are the point of the change.
-
-- [ ] **Roll back on purpose.** Give the character payload a `characterRace` naming a document no
-      configured source has, and confirm the import fails and leaves **no** Actor behind.
 
 - [ ] **Open the Import Actor window for each of the four profiles.** The JSON template and the authoring
       guide are now composed from the declaration plus a native body; check that the envelope keys appear

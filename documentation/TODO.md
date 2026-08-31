@@ -655,6 +655,20 @@ snapshotted per vote -- and no configuration. **Who can be voted for** has no co
 question is per-vote configuration in the Create Vote dialog versus a standing world setting. The standing
 "not a person" case belongs to the participation list above, which voting should consult.
 
+### A consumer cannot tell a degraded `ready` from a healthy one (opened 2026-08-31)
+
+`BlacksmithAPI.waitForReady()` only ever resolves, and `bailOutOfReady` (`blacksmith.js:470-492`) calls
+`markReadyForConsumers()` after a failure on purpose, so a consumer that fails loudly beats one that hangs
+forever. That part is right. What is missing is the other half: nothing on the public surface says *which*
+resolution a consumer got, so "Blacksmith is up" and "Blacksmith gave up and handed you a half-built API"
+are the same await. A consumer that hard-cuts to our data instead of its own then reads absence as truth.
+
+Raised by Artificer while scoping the scene-geography hard cut (`plans/plan-scene-geography.md`,
+workstream 3), which needs a migration-complete signal built on this. Wider than that plan, so it is here.
+
+**Verify:** force a bail-out (throw in one `ready` stage) and confirm a consumer awaiting readiness can
+distinguish degraded from healthy without reading the console.
+
 ### Overall party reputation, for external consumers
 
 Reputation is per-scene and nothing aggregates it. Squire wants an overall value, so this is **API surface,
