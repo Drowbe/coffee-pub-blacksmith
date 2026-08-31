@@ -79,7 +79,7 @@ file. Same rule as `TODO.md`.
 
 ## Suite-wide documentation standard — roll out to all 14 modules
 
-**Decided.** The standard is `resources/resource-documentation-standard.md` — folder layout, naming, the seven
+**Decided.** The standard is `primers/primer-documentation-standard.md` — folder layout, naming, the seven
 document kinds, what publishes, the README product page, and the CHANGELOG/plan/TODO/testing rules, for the
 whole suite. It supersedes the documentation sections of every module's `CLAUDE.md`. Two changes from what
 Blacksmith does today: **user guides are a new seventh kind** (the largest gap in the suite — no module
@@ -89,12 +89,14 @@ allow-list.
 Rollout order matters: the publisher rewrite (item 2) must land before any satellite copies it, or thirteen
 copies of the hardcoded `THIS_MODULE` trap go out at once.
 
-- [ ] **Conform Blacksmith's tree to the standard.** `git mv documentation/design-system designsystem` and
-      `documentation/guides` → `resources/` with the `resource-` prefix; create `userguides/`; fold
-      `applicationv2-window/` into `resources/` with its sample files. Touches
-      `tools/check-design-tokens.mjs` and `tools/wiki-sync.mjs`, which both name the old paths. Verified by:
-      both checkers pass, and `node tools/wiki-sync.mjs build` produces the same page set apart from the
-      intended renames.
+- [ ] **Finish conforming Blacksmith's tree.** `guides/` → `primers/` is done. Remaining:
+      `git mv documentation/design-system designsystem`, which `tools/check-design-tokens.mjs` and
+      `tools/wiki-sync.mjs` both name by the old path; and create `userguides/`. Verified by: both checkers
+      pass, and `node tools/wiki-sync.mjs build` produces the same page set apart from the intended rename.
+- [ ] **Fold `applicationv2-window/` into `primers/`.** Its guidance doc becomes
+      `primer-applicationv2-windows.md` (still held pending the audit it already owes), its folder README
+      folds into that doc, and its sample `.js`/`.hbs`/image files need a home the standard does not yet
+      name — decide `primers/samples/` or alongside, and write the decision into the standard.
 - [ ] **Rewrite `tools/wiki-sync.mjs` to the portable contract.** Derive module id and wiki URL from
       `module.json`; publish by folder membership with a HOLD list; rewrite relative image links to raw URLs
       so screenshots render on the wiki; sidebar groups in the standard's order; `Home` from
@@ -107,8 +109,8 @@ copies of the hardcoded `THIS_MODULE` trap go out at once.
       non-zero on a deliberately misfiled file and zero on the clean tree.
 - [ ] **Rewrite `README.md` as the product page** — what it is, screenshots, requirements, install, links to
       the wiki. Currently a feature dump. Verified by: read it as someone who has never heard of the module.
-- [ ] **Write `documentation/home.md`.** Replaces `guide-registering-with-blacksmith.md` as the wiki Home
-      source; that document becomes an ordinary published page under `resources/`.
+- [ ] **Write `documentation/home.md`.** Replaces `primer-registering-with-blacksmith.md` as the wiki Home
+      source; that document becomes an ordinary published page under `primers/`.
 - [ ] **Write Blacksmith's two required user guides** — `userguide-getting-started.md` and
       `userguide-settings.md`. The settings guide covers ~286 registered settings; consider generating its
       table from `settings.js` plus `lang/en.json` and checking it, rather than hand-maintaining it.
@@ -198,7 +200,7 @@ means delete. **One plan needs dismantling; two are legitimately live** (`migrat
 
 `api/api-tags.md` (22 refs, all textbook), `api/api-sockets.md`, `api/api-create-journal-entry.md`,
 `architecture/architecture-tags.md` (8 refs, all clean), `TODO.md` (image-replacement backlog items are
-correctly hedged as out-of-scope), `guides/guide-registering-with-blacksmith.md`, plus `api-stats.md`,
+correctly hedged as out-of-scope), `primers/primer-registering-with-blacksmith.md`, plus `api-stats.md`,
 `api-campaign.md`, and `architecture-chatcards.md` (zero real sibling references — the `scribe` grep lied).
 
 ---
@@ -250,7 +252,7 @@ have no repo source at all, and one is a duplicate published to the wrong filena
       the manifest or accept it as the one sanctioned wiki-only exception.
 - [ ] **Decide mirror scope — the one decision blocking everything else here.** Most repo docs have no wiki
       page; guides, plans, design-system, and most architecture docs are unmirrored. Folder is a **bad proxy
-      for audience**: `api/` is all consumer, but so are `guides/guide-registering-with-blacksmith.md`
+      for audience**: `api/` is all consumer, but so are `primers/primer-registering-with-blacksmith.md`
       (the integration tutorial), the pins/chat-card guides, `applicationv2-window/`, and
       `design-system.md` (§12 is literally "How Child Modules Extend Blacksmith") — while `architecture/`,
       `plans/`, and `TODO*.md` are contributor-only. So "mirror `api/`" would drop the best consumer docs,

@@ -113,7 +113,7 @@ because it looks right.
 
 ## Documentation — the kinds, and where the rules live
 
-**The suite-wide standard is `documentation/resources/resource-documentation-standard.md`, and it is
+**The suite-wide standard is `documentation/primers/primer-documentation-standard.md`, and it is
 authoritative for every Coffee Pub module including this one.** It carries the folder layout, naming, the
 document kinds, what publishes, the README product page, and the CHANGELOG / plan / TODO / testing rules.
 Where this section and the standard disagree, the standard wins and this section gets fixed. Two deliberate
@@ -121,9 +121,11 @@ differences from what is written below, both decided rather than drifted:
 
 - **There are seven kinds, not six.** User guides -- how to *use* the module as a player or a GM -- are the
   seventh, and the largest gap in the suite. `documentation/userguides/`, prefix `userguide-`.
-- **The folders are `designsystem/`, `resources/` (was `guides/`), and `userguides/`.** This repo has not
-  been renamed yet; the rename and the rest of the rollout are tracked in `documentation/TODO-GLOBAL.md`
-  under "Suite-wide documentation standard". Until it lands, expect the paths below to name the old folders.
+- **The folders are `api/`, `architecture/`, `designsystem/`, `primers/`, `userguides/`, and `plans/`.**
+  `primers/` has landed and holds what `guides/` used to: everything a developer needs that is *not* this
+  module -- Foundry, the game system, a consumer's side of the boundary, the suite's conventions.
+  `design-system/` still awaits its rename and `userguides/` is not written yet; both are tracked in
+  `documentation/TODO-GLOBAL.md` under "Suite-wide documentation standard".
 
 This repo has repeatedly accumulated plans, migration guides, inventories, and "lessons learned" that
 nobody deletes. **Everything that isn't one of the kinds is noise.** Don't invent a new kind, and don't

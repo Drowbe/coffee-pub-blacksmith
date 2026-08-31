@@ -49,8 +49,8 @@ wrong breaks. A document that is wrong is believed.
       design-<topic>.md
     plans/
       plan-<topic>.md             never published
-    resources/
-      resource-<topic>.md
+    primers/
+      primer-<topic>.md
     userguides/
       userguide-<topic>.md
       images/                     screenshots, referenced relatively
@@ -77,7 +77,7 @@ verification backlog cannot leak to the wiki by accident.
 | `api/` | `api-` | Someone writing code against the module | yes |
 | `architecture/` | `architecture-` | Someone changing the module, and the rest of the suite | yes |
 | `designsystem/` | `design-` | Someone styling against the module | yes |
-| `resources/` | `resource-` | Someone integrating: tutorials, references, worked examples | yes |
+| `primers/` | `primer-` | The world around the module: the platform, the game system, the suite's own conventions | yes |
 | `userguides/` | `userguide-` | Someone playing or running a game with the module | yes |
 | `plans/` | `plan-` | Us, while the work is in flight | never |
 | `documentation/` root | `home.md`, `known-issues.md`, `TODO.md` | mixed | home and known-issues only |
@@ -107,7 +107,7 @@ Nothing that is not one of these seven is documentation; it is noise, and it get
 | **API** | `api/` | The public surface, authoritative; update it when the surface changes | permanent |
 | **Architecture** | `architecture/` | How the module is built and why -- the things you can only learn by reading code | permanent |
 | **Design system** | `designsystem/` | Tokens, components, and patterns another module styles against | permanent |
-| **Resource** | `resources/` | Tutorials, integration walkthroughs, and reference material for module authors | permanent |
+| **Primer** | `primers/` | Everything a developer needs that is not this module: Foundry, the game system, a consumer's side of the boundary, and the suite's conventions | permanent |
 | **CHANGELOG** | `CHANGELOG.md` | What we did and fixed, per release | permanent |
 
 Two kinds are **transitional** -- they exist to be dismantled and deleted, never to accumulate:
@@ -138,7 +138,7 @@ outward; the durable documents never point back. A reader who wants the backlog 
 ## What publishes, and what cannot
 
 **Publication is decided by folder membership, not by a list somebody remembers to update.** Every `.md`
-under `api/`, `architecture/`, `designsystem/`, `resources/`, and `userguides/`, plus `home.md` and
+under `api/`, `architecture/`, `designsystem/`, `primers/`, and `userguides/`, plus `home.md` and
 `known-issues.md`, publishes to the wiki. A new document goes live by existing.
 
 Two escapes, in this order:
@@ -433,16 +433,16 @@ What it does, in order:
 4. **Rewrites image paths** from repo-relative to absolute raw URLs, so screenshots render on the wiki while
    the source document keeps a relative path that renders everywhere else.
 5. **Enforces the boundary rule in code**, in all three directions -- see below.
-6. **Writes `_Sidebar.md`** with groups in a fixed order: Getting started, User guides, Resources, API,
+6. **Writes `_Sidebar.md`** with groups in a fixed order: Getting started, User guides, Primers, API,
    Architecture, Design system. User guides sit directly under Home because they serve the largest audience.
 7. **Writes `Home.md`** from `documentation/home.md`.
 
 **Source documents are never modified.** Every rewrite happens on the way out.
 
-**A `.md` target is resolved as a document before any code-path test is applied.** The order matters
-because `resources/` is also the name of the shipped code folder at every module's root: tested the other
-way round, every link into `documentation/resources/` is silently turned into plain text. Nothing errors;
-the links simply stop being links.
+**A `.md` target is resolved as a document before any code-path test is applied.** A documentation folder
+may share a name with a code folder -- `resources/` nearly did, which is one reason it is not one of the
+five -- and the other ordering downgrades every link into that folder to plain text. Nothing errors; the
+links simply stop being links.
 
 ### The boundary rule, enforced rather than remembered
 

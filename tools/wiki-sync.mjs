@@ -69,10 +69,9 @@ const PUBLISH = [
   'api/api-toolbar.md',
   'api/api-window.md',
   'api/api-worldclock.md',
-  // Guides
-  'guides/guide-dnd5e-conditions.md',
-  // Resources
-  'resources/resource-documentation-standard.md',
+  // Primers
+  'primers/primer-dnd5e-conditions.md',
+  'primers/primer-documentation-standard.md',
   // Architecture
   'architecture/architecture-ownership.md',
   'architecture/architecture-blacksmith.md',
@@ -117,7 +116,9 @@ const PUBLISH = [
 //                 rather than by being left off the PUBLISH list.
 //   Missing doc:  api-flags.md referenced in TODO but not written yet
 
-const HOME_SRC = 'guides/guide-registering-with-blacksmith.md';
+// Until each module has its own documentation/home.md (see the documentation standard), the registration
+// primer stands in as the wiki front door. It is the Home page only -- it is not in PUBLISH as well.
+const HOME_SRC = 'primers/primer-registering-with-blacksmith.md';
 
 const pageName = (p) => path.basename(p, '.md');
 const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
@@ -125,9 +126,9 @@ const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
 // Clean sidebar label: strip the api-/architecture- prefix, kebab -> Sentence case.
 function label(rel) {
   if (rel === 'api/api-effects.md') return 'Active Effects';
-  if (rel === 'guides/guide-dnd5e-conditions.md') return 'dnd5e conditions';
+  if (rel === 'primers/primer-dnd5e-conditions.md') return 'dnd5e conditions';
   if (rel === 'architecture/architecture-ownership.md') return 'Module ownership';
-  const base = pageName(rel).replace(/^(api|architecture|design|guide|resource|userguide)-/, '');
+  const base = pageName(rel).replace(/^(api|architecture|design|primer|userguide)-/, '');
   const spaced = base.replace(/-/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -186,9 +187,9 @@ function rewriteLinks(md, srcRel) {
         downgraded.push(`${srcRel}: code -> text  (${target})`);
         return text;
       }
-      // A .md target is a doc wherever it lives, and this is tested BEFORE CODE_PATH on purpose:
-      // `resources/` names both the shipped code folder and a documentation folder, so the other
-      // ordering downgrades every link into documentation/resources/ to plain text, silently.
+      // A .md target is a doc wherever it lives, and this is tested BEFORE CODE_PATH on purpose: a
+      // documentation folder may share a name with a code folder (documentation/resources/ nearly did),
+      // and the other ordering downgrades every link into it to plain text, silently.
       const m = target.match(/([^/]+)\.md(#.+)?$/i);                 // .md doc link
       if (m) {
         const name = m[1];
@@ -230,11 +231,8 @@ function buildSidebar() {
     '- [Home](Home)',
     topLevel,
     '',
-    '### Guides',
-    group('guides/'),
-    '',
-    '### Resources',
-    group('resources/'),
+    '### Primers',
+    group('primers/'),
     '',
     '### API',
     group('api/'),
