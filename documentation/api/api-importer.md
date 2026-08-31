@@ -77,7 +77,6 @@ A profile declares how its fields reach the document.
 | Form | Meaning |
 |---|---|
 | `mapped` | Each field lands at a declared path. The common case, and what a module-owned document type wants. |
-| `rendered` | Fields feed a template and the whole payload lands as one HTML string. Blacksmith's own journal profiles; not offered to consumers. |
 | `passthrough` | The payload already is document source data, plus declared envelope fields consumed into it. |
 
 On a `passthrough` profile the payload is the seed: every key reaches the document unless a declaration claims it, which is the inverse of `mapped`. Declare only the envelope -- the keys an author writes that are not document data -- and a `role: 'envelope'` field is consumed by a derivation and removed. Undeclared keys are not reported, because on this form they are the content rather than a mistake, and the authoring guide says so rather than saying the opposite.

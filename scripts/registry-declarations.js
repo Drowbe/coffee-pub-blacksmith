@@ -65,7 +65,7 @@
  * @property {string} id - Profile id, unique within the kind.
  * @property {string} label
  * @property {number} schemaVersion
- * @property {'mapped'|'rendered'|'passthrough'} form
+ * @property {'mapped'|'passthrough'} form
  * @property {string} [module] - Owning module id. Absent means Blacksmith.
  * @property {object} document - { documentName, type }.
  * @property {DeclarationField[]} fields
@@ -119,7 +119,14 @@ export function fieldAccepts(field, value) {
     return matchesType(field?.type, value);
 }
 
-const FORMS = new Set(['mapped', 'rendered', 'passthrough']);
+// TWO forms, not three. `rendered` was specified as a third -- fields feed a
+// template and the whole payload becomes one HTML string -- and no profile ever
+// used it. Expressing Blacksmith's Area journal against the model settled it: every
+// field is `role: 'input'` and one derivation composes the HTML, which is exactly
+// what a Roll Table's rows and an Actor's envelope already do under `mapped`.
+// A form present in a registry and a documentation table but in no profile is
+// indistinguishable from a rule that can never fire.
+const FORMS = new Set(['mapped', 'passthrough']);
 const ROLES = new Set(['selector', 'envelope', 'input']);
 const ABSENT_MEANS = new Set(['default', 'preserve']);
 

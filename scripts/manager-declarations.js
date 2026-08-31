@@ -756,7 +756,10 @@ function guideLine(field, prefix = '') {
     // metadata block and then documents only its container tells an author the
     // shape exists without telling them what it is.
     if (Array.isArray(field.fields)) {
-        const inner = field.type === 'array' ? `${field.name}[].` : `${field.name}.`;
+        // The incoming prefix CARRIES, or a third level documents itself as
+        // `preparation.actors` when the field is `blocks.preparation.actors` --
+        // a path that looks right and matches nothing an author can write.
+        const inner = `${prefix}${field.name}${field.type === 'array' ? '[]' : ''}.`;
         lines.push(...field.fields.filter(isAuthorable).map(nested => `  ${guideLine(nested, inner)}`));
     }
     return lines.join('\n');

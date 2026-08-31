@@ -384,18 +384,20 @@ await a fetch -- so the winner was a race. Our side is namespaced; the condition
 shipped against the current contract is another copy to migrate. **Audit Minstrel and Artificer first**, not
 last: a frame validated only on simple windows fails on them after everything has moved.
 
-### One Scene Config tab injector, registered like a toolbar tool (opened 2026-08-30)
+### A Scene Config button, for a module that wants its own window (opened 2026-08-31)
 
-Plan: **`documentation/plans/plan-scene-geography.md`**, workstream 1 -- the only part of it that is
-unblocked. `api.registerSceneConfigTab({id, label, icon, render, save})`, shaped after `registerToolbarTool`
-(`manager-toolbar.js:1331`), with Blacksmith owning the ApplicationV2 render cycle: nav rebuilt every render
-while the body persists, so a naive inject double-adds. Three consumers already want it -- scene geography,
-the clock-driven darkness notice below, and Artificer, which carries two parallel injectors and two guard
-collections re-derived from scratch (`coffee-pub-artificer/scripts/manager-scene.js:105-233`). Build it once.
+Asked for by Artificer, who want to own their submit: a tab cannot guard its own fields, because the sheet
+owns the form. Deliberately **not** an extension of `registerSceneConfigTab` -- Foundry already fires
+`getHeaderControls` with `hookResponse: true` (`client/applications/api/application.mjs:641-644`), so a
+header control needs no DOM surgery and cannot lose a render race. The tab injector exists to survive
+`_replaceHTML`; a button does not have that problem and should not inherit that machinery.
 
-**Verify:** with only Blacksmith active, the tab appears exactly once; close and reopen the sheet five times
-and it is still once; switch tabs and back and the body persists. With Artificer registered through the API,
-both tabs appear and both save independently.
+Shape: `api.registerSceneConfigButton(id, {label, icon, onClick, visible})`, wrapping the hook. Not urgent
+-- Artificer will not build against it until after the environment migration, since habitats are the part
+leaving their tab.
+
+**Verify:** a registered button appears in the Scene Config header, opens the consumer's window, and
+survives the sheet re-rendering; unregistering removes it.
 
 ### Window presentation is per device and should be per user
 

@@ -76,6 +76,13 @@ import { JOURNAL_JSON_IMPORT_KIND_ID } from './registry-json-import-journals.js'
 import { XpManager } from './manager-xp.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
+import {
+    SceneConfigManager,
+    registerSceneConfigTab,
+    unregisterSceneConfigTab,
+    getRegisteredSceneConfigTabs,
+    isSceneConfigTabRegistered
+} from './manager-scene-config.js';
 import { assetLookup, initializeAssetLookupInstance } from './utility-asset-lookup.js';
 import { loadAssetBundlesWithOverrides, loadDefaultAssetBundlesFromJson } from './utility-asset-loader.js';
 import { loadNamingTaxonomy } from './utility-token-naming.js';
@@ -1054,6 +1061,10 @@ function initializeSettingsDependentFeatures() {
     LoadingProgressManager.logActivity("Setting up scene interactions...");
     initializeSceneInteractions();
 
+    // Scene Config tab injector. Registered even with no tabs yet: a consumer can register
+    // at any point after this and the next sheet render picks it up.
+    SceneConfigManager.initialize();
+
 }
 
     // Function to inject BlacksmithLayer into the canvas layers list
@@ -1160,6 +1171,16 @@ Hooks.once('init', async function() {
         HookManager,
         assetLookup,
         uiContextMenu: UIContextMenu,
+        /**
+         * Scene Config tab registry. Assigned for real here rather than as a `null`
+         * placeholder: the module is statically imported, so a consumer registering during
+         * its own `init` finds a callable function instead of `null`.
+         * @see documentation/api/api-scene-config.md
+         */
+        registerSceneConfigTab,
+        unregisterSceneConfigTab,
+        getRegisteredSceneConfigTabs,
+        isSceneConfigTabRegistered,
         registerToolbarTool: null,
         unregisterToolbarTool: null,
         getRegisteredTools: null,

@@ -46,17 +46,18 @@ Destination, permissions, rollback, GM-note preservation and document-type prese
 
 Foundry namespaces a module-declared subtype as `${module.id}.${subtype}`, so Blacksmith cannot *declare* another module's type. It can *create* one -- the registered data model validates whoever calls create, and a partial `system` is completed by the model. Verified against Foundry 13.351: a page created with a foreign subtype comes back with its system data intact. Declaration and construction are separate questions, and only the first is namespaced.
 
-## Three profile forms
+## Two profile forms
 
-Derived by expressing all four of Blacksmith's own kinds -- nineteen profiles -- against the model rather than by specifying it in advance.
+Derived by expressing Blacksmith's own kinds against the model rather than by specifying it in advance -- which is also how the third form was removed.
+
+**There was a `rendered` form, and expressing Journal against the model deleted it.** It was specified as fields feeding a template, the whole payload becoming one HTML string, and no profile ever used it. Area turns out to be `mapped`: every field is `role: 'input'` because none lands at a path on its own, and one derivation composes the HTML -- structurally identical to what a Roll Table's rows and an Actor's envelope already do. A form living in a registry and a documentation table but in no profile is indistinguishable from a rule that can never fire, which is this repo's most common defect shape.
 
 | Form | Fields reach the document by | Used by |
 |---|---|---|
 | `mapped` | landing at a declared path | Item profiles, and every module-owned type |
-| `rendered` | feeding a template; the whole payload becomes one HTML string | Journal profiles (`journal-area.hbs` and siblings) |
 | `passthrough` | already being document source data, plus a declared envelope consumed into it | Actor profiles, and the Item kind's native branch |
 
-**Rendered is Blacksmith-internal.** Every satellite that has asked -- Librarian's codex and quests, Artificer's recipes -- wants `mapped` against its own declared subtype. Rendered exists for Area, Location, Encounter and Injury, which are ours. Designing the satellite path around rendered would have designed it around the thing those modules most want to stop doing.
+Every satellite that has asked -- Librarian's codex and quests, Artificer's recipes, Bibliosoph's injuries -- wants `mapped` against its own declared subtype, which is now simply the ordinary case.
 
 A kind may support more than one form; the Item kind is mapped or passthrough depending on whether the payload is already document-shaped.
 

@@ -61,6 +61,7 @@ const SUITES = [
     `${BASE}/suite-notes.js`,
     `${BASE}/suite-quantity-split.js`,
     `${BASE}/suite-readouts.js`,
+    `${BASE}/suite-scene-config.js`,
     `${BASE}/suite-stats.js`,
     `${BASE}/suite-tags.js`,
     `${BASE}/suite-time-modes.js`,

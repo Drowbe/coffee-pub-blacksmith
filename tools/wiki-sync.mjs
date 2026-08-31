@@ -59,6 +59,7 @@ const PUBLISH = [
   'api/api-pins.md',
   'api/api-requestroll.md',
   'api/api-rolls.md',
+  'api/api-scene-config.md',
   'api/api-sockets.md',
   'api/api-stats.md',
   'api/api-tags.md',

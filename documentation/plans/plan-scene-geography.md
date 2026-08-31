@@ -1,6 +1,7 @@
 # Scene Geography and Environment
 
-**Status: Planned — nothing implemented.** Live scaffolding. Every question blocking Workstreams 1 through 3
+**Status: Workstream 1 implemented (2026-08-31), unverified in a live world. Workstreams 2-4 planned.**
+Live scaffolding. Every question blocking Workstreams 1 through 3
 was settled 2026-08-31 and is recorded under "Settled" below; Artificer and Minstrel have agreed their side.
 Only Workstream 4 still has an open question, and it is last. Workstream 1 can start immediately and is tracked in `TODO.md` as "One Scene Config tab injector,
 registered like a toolbar tool".
@@ -152,12 +153,19 @@ under "When not to use it": classification that drives behavior and does not cha
 Independently valuable, touches no live data, and is the piece Artificer can adopt first. Mirrors the existing
 `registerToolbarTool` shape ([manager-toolbar.js:1331](../../scripts/manager-toolbar.js#L1331)).
 
-Surface, roughly: `api.registerSceneConfigTab({id, label, icon, render, save})` with an unregister and a
-lookup, and Blacksmith owning the ApplicationV2 render-cycle handling that Artificer currently duplicates —
-nav rebuild, body persistence, double-inject guard, form value collection.
+**Shipped.** `scripts/manager-scene-config.js`; surface documented in
+[api-scene-config.md](../api/api-scene-config.md). The signature is `registerSceneConfigTab(tabId, tabData)`,
+two arguments rather than the single object sketched here, to actually match `registerToolbarTool` as this
+workstream intended.
 
-Geography becomes the first tab registered through it. Artificer's becomes the second, and its two injectors
-and both guard collections are deleted.
+**There is no `save` callback.** The sketch assumed one and the reference consumer disproved it: Artificer
+persists twelve scene fields purely by naming its inputs `flags.<moduleId>.<path>`, which Foundry's own Scene
+Config submission writes to the document. Nothing hooks a save. Building the callback anyway would have been
+surface no consumer could exercise.
+
+Geography becomes the first tab registered through it, in Workstream 2 — until then the API ships with no
+Blacksmith-side consumer, which is why the harness suite registers a throwaway tab to exercise it.
+Artificer's becomes the second, and its two injectors and both guard collections are deleted.
 
 This is hub infrastructure rather than a feature, so it belongs here under the module boundary rules. A
 Geography feature living in Blacksmith is more arguable; see open question 8.
@@ -172,6 +180,12 @@ the full holistic view.
 scene flag, and the world settings are written only by the settings UI. Carry `locationUuid` in the schema and
 have the Area importer populate it when one run creates both a scene and a Location entry (settled question 6);
 no picker in v1.
+
+**Environment is a checkbox group, so it carries the trap documented in
+[api-scene-config.md](../api/api-scene-config.md): an unticked box submits `null`, not nothing, and a
+`filter(Boolean)` normalizer turns those into the literal string `"null"`. Filter the environment array
+against the vocabulary, never against truthiness.** This is ours before it is Artificer's -- the geography
+tab owns the habitat checkboxes after the move.
 
 ### 3. Environment ownership move
 

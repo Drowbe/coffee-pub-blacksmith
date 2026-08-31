@@ -216,8 +216,64 @@ async function actorContent(data) {
     return applyActorDefaults(await resolveActorContent(data));
 }
 
+/**
+ * An Area journal's page content: the whole payload composed into one HTML page.
+ *
+ * A derivation rather than per-field paths because nothing here lands on its own.
+ * The breadcrumb's leaf falls back through three fields, actor names resolve to
+ * document links, and a card collapses entirely when every part of it is empty --
+ * none of which a field mapping can express. This is the same call Roll Table's
+ * ranges settled: the declaration owns the SHAPE of the payload, and one composer
+ * owns turning all of it into a document.
+ *
+ * It is also why there is no `rendered` form. Composing a template over the whole
+ * entry IS a derivation; a second mechanism for it would have been a name for
+ * something already built.
+ *
+ * @param {object} data - Assembled document source data.
+ * @param {object} entry - The authored payload.
+ * @returns {Promise<object>} The same data, with the entry name and its one page.
+ */
+async function journalAreaContent(data, entry) {
+    const { buildAreaJournalTemplateData } = await import('./parsers/parse-journal-area.js');
+    const { getCachedTemplate, applyJournalHeadingSpacing } = await import('./utility-common.js');
+    const { normalizeFoundryJournalHtml } = await import('./utility-journal-html.js');
+    const { toSentenceCase } = await import('./api-core.js');
+    const { BLACKSMITH } = await import('./const.js');
+
+    const omitIfNone = (value) => {
+        const text = value == null ? '' : String(value).trim();
+        return !text || text.toLowerCase() === 'none' ? '' : text;
+    };
+    const area = omitIfNone(entry?.area);
+    const sceneTitle = omitIfNone(entry?.scenetitle)
+        ? toSentenceCase(String(entry.scenetitle).trim())
+        : '';
+
+    let content;
+    try {
+        const template = await getCachedTemplate(BLACKSMITH.JOURNAL_AREA_TEMPLATE);
+        content = applyJournalHeadingSpacing(
+            normalizeFoundryJournalHtml(template(await buildAreaJournalTemplateData(entry))));
+    } catch (error) {
+        // The composer reaches templates, campaign settings and the Actor
+        // directory, so a failure here is rarely about the payload. Saying which
+        // half broke beats a bare Handlebars message on the result screen.
+        throw new Error(`Area journal HTML build failed: ${error?.message || String(error)}`);
+    }
+
+    data.name = area || sceneTitle || 'Unnamed Entry';
+    data.pages = [{
+        name: sceneTitle || area || 'Area',
+        type: 'text',
+        text: { content, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
+    }];
+    return data;
+}
+
 /** @type {Record<string, Function>} */
 const DERIVATIONS = {
+    journalAreaContent,
     weaponAttackActivity, equippablePassiveEffects, itemActivities, slugIdentifier,
     rollTableResults,
     actorSidekick, actorCharacterFoundations, actorToken, actorContent

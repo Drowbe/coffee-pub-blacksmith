@@ -541,6 +541,62 @@ to tell a pin row from a codex page.
 returns only codex-page assignments, and the audit utility's unaccounted list is empty or named
 campaign tags rather than pin ids.
 
+## Importer step 8 — Journal, and the three siblings it gates (raised 2026-08-31)
+
+Blacksmith's journal importer is the last kind on a parser. The blocker for everyone is the same: pages are
+created with a hardcoded `type: "text"`, so Blacksmith cannot construct a module-owned `JournalEntryPage`
+subtype. Step 8 builds that seam. **Nothing below starts until it lands** -- the author's decision, so that
+holding does not mean each sibling discovers the dependency separately.
+
+### Bibliosoph — injuries (the seam's first real consumer)
+
+Injury journals move to Bibliosoph. They own injuries as a system, they declare the subtype, and they are the
+only sibling whose reader already ships. Blacksmith then deletes `buildInjuryJournalEntry`,
+`templates/journal-injury.hbs` and its injury profile; theirs appears in Blacksmith's journal importer because
+they registered it.
+
+**The format does not currently match, and that is the point.** `window-injury-picker.js` reads a compendium
+named by its own `injuryCompendium` setting, takes `journal.name` as the category, and requires each page to
+carry `system.severity`, `.image`, `.odds`, `.tick` and `.statuseffect` -- skipping any page without
+`severity`. Blacksmith writes `type: 'text'` pages holding compiled HTML, so **every page our injury import
+creates is skipped by their reader today.** Their `module.json` declares
+`JournalEntryPage: { injury, outcome, inspiration }`.
+
+Two questions worth asking them BEFORE step 8, because both change what gets built:
+
+- Their picker reads a **compendium**; the importer creates in the **world**. Does the injury profile need a
+  compendium destination, or does a GM move them by hand? Undecided by anyone so far.
+- Are the five system fields final? They become the declaration.
+
+### Regent — encounter and narrative generators
+
+**Held until the seam exists.** Regent is the only live consumer of Blacksmith's encounter journal builder,
+through `api.createJournalEntry` on the API root rather than the import window
+(`window-query.js:2009`, `:1598`).
+
+The recommendation is NOT that Regent retires its generators. Their CR arithmetic, party/monster/NPC
+worksheets, canvas drag-drop, difficulty setting, treasure and linked encounters are encounter DESIGN tooling
+that Blacksmith does not do and should not. What Regent should stop owning is the **JSON schema block**, which
+it hand-writes in two places (`window-query.js:2191` and `:2410`) -- replaced by
+`api.importer.getAuthoringGuide('journal', profile)` composed with their own direction, which is the
+`composesOwnAuthoring` pattern Roll Table and Actor already use.
+
+Three defects found in Regent on 2026-08-31 while confirming usage, none yet reported to them:
+
+- Its Narrative Wordsmith instructs the generator to emit `JOURNALTYPE: "Narrative"` (`:2242`), and Blacksmith
+  now THROWS on NARRATIVE. **That path cannot work against current Blacksmith** -- two copies of one schema in
+  two repos, exactly the divergence the importer exists to end.
+- Its `INJURY` branch calls `buildInjuryJournalEntry(journalData)` (`:1603`), which is **imported nowhere in
+  Regent**. A free identifier, so `ReferenceError` on first use. Dead on arrival.
+- `api.createJournalEntry` is a legacy API-root surface Regent depends on. Step 8 either keeps it working or
+  ships Regent a declared replacement in the same release.
+
+### Librarian and Artificer
+
+Already told: Librarian's codex and quests and Artificer's recipes all want `mapped` against their own
+declared subtype, and all three wait on the same seam. Artificer has unblocked item-side work meanwhile
+(`api.importer.buildDocumentData` / `buildDocumentUpdate`).
+
 ## Sibling deprecation warnings (spotted 2026-07-24)
 
 - **Bibliosoph registers the deprecated `renderChatMessage` hook** (`coffee-pub-bibliosoph/scripts/bibliosoph.js`, raw `Hooks.on`): Foundry v13 logs "The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead" on every chat message render; support is removed in v15. Not a rename-only fix — `renderChatMessageHTML` passes an `HTMLElement` where the old hook passed jQuery, so the callback body must drop jQuery calls (or wrap the element itself). Fix belongs in the Bibliosoph repo with its own verification. (Blacksmith is clean: its `HookManager` remaps legacy `renderChatMessage` registrations to `renderChatMessageHTML` automatically, and the module's own `CHAT_MESSAGE_TYPES` uses were removed 2026-07-24 — see Blacksmith `CHANGELOG.md`.)
