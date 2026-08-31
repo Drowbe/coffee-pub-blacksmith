@@ -6,6 +6,8 @@ Quality of life, gameplay frameworks, automation, and aesthetic improvements for
 VTT, and the API hub of the Coffee Pub suite: the other Coffee Pub modules declare Blacksmith as a
 dependency and build on the surfaces documented here.
 
+![Blacksmith in play: the menubar, roll requests, the calendar, status effects, pins, votes, and more](assets/product-overview.webp)
+
 This page routes. Each section points at the document that answers the question rather than answering
 it here.
 

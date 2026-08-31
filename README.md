@@ -12,6 +12,8 @@
 
 Blacksmith is the foundational framework for the entire Coffee Pub module series. It provides the shared design system, window base classes, APIs, and cross-client communication layer that all other Coffee Pub modules depend on. It is also a capable standalone module with GM tools, combat statistics, and UI customization features.
 
+![Blacksmith in play: the menubar, roll requests, the calendar, status effects, pins, votes, and more](documentation/assets/product-overview.webp)
+
 ## Disclaimer
 
 This is a personal project built for my own FoundryVTT games. If you find it useful, feel free to use it — but it comes with no guarantees of stability, compatibility, or support. **Use at your own risk.**
