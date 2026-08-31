@@ -104,7 +104,8 @@ export default {
                 const api = requireApi('importer');
                 for (const method of [
                     'registerDeclaration', 'getDeclaration', 'getDeclarationsForKind',
-                    'listDeclarations', 'getJsonTemplate', 'getJsonTemplateObject'
+                    'listDeclarations', 'getJsonTemplate', 'getJsonTemplateObject',
+                    'registerFieldGroup', 'getFieldGroupsFor', 'listFieldGroups'
                 ]) {
                     expect.ok(`api.importer.${method} is a function`,
                         typeof api.importer[method] === 'function');
@@ -874,6 +875,139 @@ export default {
                 log('  3. Both sheets should open with no console errors.');
                 log('');
                 log('These are LEFT IN THE WORLD on purpose -- you cannot roll a deleted item.');
+            }
+        },
+
+        {
+            id: 'field-group-registration',
+            label: 'A field group registers, and a malformed one is rejected',
+            tier: 'headless',
+            group: 'Step 5 - field groups',
+            note: 'A module contributing fields to profiles it does not own.',
+            run: async ({ expect }) => {
+                const { registry } = await loadDeclarations();
+                const kind = probeKind();
+                registry.registerDeclaration(validDeclaration(kind, { id: 'host' }));
+
+                const group = (overrides = {}) => ({
+                    id: 'probe-group', module: 'coffee-pub-probe', kind, appliesTo: '*',
+                    option: { id: 'probeGroupOption', label: 'Probe Group' },
+                    fields: [{ name: 'probeExtra', path: 'flags.probe.extra', type: 'string',
+                               default: '', example: '', guidance: 'A contributed field.' }],
+                    ...overrides
+                });
+
+                expect('registration returns the kind.id key',
+                    registry.registerFieldGroup(group()), `${kind}.probe-group`);
+                expect.ok('it reads back for a profile of that kind',
+                    registry.getFieldGroupsFor(kind, 'host').length === 1);
+
+                const reject = (label, overrides) => expect.throws(
+                    label, () => registry.registerFieldGroup(group(overrides)));
+                await reject('a missing kind is rejected', { kind: '', id: 'g2' });
+                await reject('a missing id is rejected', { id: '' });
+                // A group exists so a module can contribute to a profile it does not own,
+                // so a failure has to be able to name whose fields are at fault.
+                await reject('a missing owning module is rejected', { id: 'g3', module: '' });
+                await reject('a missing option is rejected', { id: 'g4', option: undefined });
+                await reject('a bad appliesTo is rejected', { id: 'g5', appliesTo: 'everything' });
+                // A contributed field is not a lesser field: same validation as a profile's.
+                await reject('a field with no path or role is rejected',
+                    { id: 'g6', fields: [{ name: 'stray', type: 'string' }] });
+                await reject('an unknown transform is rejected',
+                    { id: 'g7', fields: [{ name: 'x', path: 'flags.p.x', transform: 'notReal' }] });
+                await reject('re-registering the same id is rejected', {});
+            }
+        },
+
+        {
+            id: 'field-group-composition',
+            label: 'Contributed fields reach the template, validation and construction',
+            tier: 'headless',
+            group: 'Step 5 - field groups',
+            note: 'Anything reading a declaration\'s own field list drops the group silently.',
+            run: async ({ expect }) => {
+                const { registry, manager } = await loadDeclarations();
+                const kind = probeKind();
+                registry.registerDeclaration(validDeclaration(kind, { id: 'host' }));
+                registry.registerFieldGroup({
+                    id: 'compose', module: 'coffee-pub-probe', kind, appliesTo: '*',
+                    option: { id: 'composeOption', label: 'Compose' },
+                    fields: [
+                        { name: 'contributedType', path: 'flags.probe.type', type: 'string',
+                          required: true, values: ['alpha', 'beta'], example: 'alpha',
+                          guidance: 'A contributed enum.' },
+                        { name: 'contributedList', path: 'flags.probe.list', type: 'array',
+                          default: [], example: [], guidance: 'A contributed list.' }
+                    ],
+                    rules: [{ kind: 'requires', when: 'contributedType:alpha', then: ['contributedList'] }]
+                });
+
+                const off = Object.keys(manager.buildTemplateObject(kind, 'host'));
+                const on = Object.keys(manager.buildTemplateObject(kind, 'host', { composeOption: true }));
+                expect.ok('the group is absent from the template by default',
+                    !off.includes('contributedType'));
+                expect.ok('and present when its option is on', on.includes('contributedType'));
+                expect.ok('the option gates the whole group, not each field',
+                    on.includes('contributedList'));
+
+                const check = (entry) => manager.validateEntry(kind, 'host', entry);
+
+                // The bug this guards: composing fields WITHOUT rules put the group's
+                // fields in the template while their constraints silently did not exist.
+                expect('a contributed rule fires',
+                    check({ probeName: 'X', contributedType: 'alpha' }).errors[0]?.code,
+                    'RULE_REQUIRES');
+                expect('satisfying it clears',
+                    check({ probeName: 'X', contributedType: 'alpha', contributedList: ['a'] }).status,
+                    'success');
+                expect('contributed values are enforced',
+                    check({ probeName: 'X', contributedType: 'gamma' }).errors[0]?.code,
+                    'VALUE_NOT_ALLOWED');
+
+                // The second bug, and the worse one: a group's `required` field was
+                // demanded of EVERY entry of the kind, so a payload that never mentioned
+                // the group failed for want of a field belonging to someone else.
+                expect('an entry that does not engage the group is unaffected',
+                    check({ probeName: 'X' }).status, 'success');
+                expect('but half a group is a genuine error',
+                    check({ probeName: 'X', contributedList: ['a'] }).errors[0]?.path,
+                    'contributedType');
+            }
+        },
+
+        {
+            id: 'field-group-value-gate',
+            label: 'A field can require another field to have a value',
+            tier: 'headless',
+            group: 'Step 5 - field groups',
+            note: 'requiresWhen reuses the rule vocabulary\'s field:value reference.',
+            run: async ({ expect }) => {
+                const { registry, manager } = await loadDeclarations();
+                const kind = probeKind();
+                registry.registerDeclaration(validDeclaration(kind, { id: 'host' }));
+                registry.registerFieldGroup({
+                    id: 'gated', module: 'coffee-pub-probe', kind, appliesTo: ['host'],
+                    option: { id: 'gatedOption', label: 'Gated' },
+                    fields: [
+                        { name: 'gateKey', path: 'flags.probe.key', type: 'string',
+                          values: ['plain', 'special'], example: 'plain', guidance: 'The gate.' },
+                        { name: 'onlyWhenSpecial', path: 'flags.probe.extra', type: 'string',
+                          default: '', example: '', requiresWhen: 'gateKey:special',
+                          guidance: 'Exists only for the special kind.' }
+                    ]
+                });
+
+                expect.ok('appliesTo can name profiles rather than all of them',
+                    registry.getFieldGroupsFor(kind, 'host').length === 1);
+
+                const built = async (entry) => manager.buildDocumentData(kind, 'host', entry);
+                const special = await built({ probeName: 'X', gateKey: 'special', onlyWhenSpecial: 'yes' });
+                expect('the gated field lands when the gate holds',
+                    special?.flags?.probe?.extra, 'yes');
+
+                const plain = await built({ probeName: 'X', gateKey: 'plain', onlyWhenSpecial: 'yes' });
+                expect('and does not when it does not', plain?.flags?.probe?.extra, undefined);
             }
         },
 

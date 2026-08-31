@@ -84,6 +84,20 @@ function isPresent(entry, declaration, reference) {
     return true;
 }
 
+/**
+ * Whether a reference holds for an entry. The same predicate the rule vocabulary
+ * uses, exposed because field-level gating asks the identical question: a field
+ * that exists only when another field has a given value is `field:value` again,
+ * not a second notation for the same idea.
+ * @param {object} entry
+ * @param {object} declaration
+ * @param {string} reference
+ * @returns {boolean}
+ */
+export function referenceHolds(entry, declaration, reference) {
+    return isPresent(entry, declaration, reference);
+}
+
 /** Human-readable form of a reference, for a message nobody has to write by hand. */
 function label(reference) {
     const [name, member] = String(reference).split(':');

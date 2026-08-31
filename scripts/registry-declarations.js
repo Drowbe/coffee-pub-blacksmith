@@ -362,3 +362,96 @@ export function getDeclarationsForKind(kindId) {
 export function listDeclarations() {
     return [...declarations.values()];
 }
+
+// ==================================================================
+// ===== FIELD GROUPS ===============================================
+// ==================================================================
+// A module contributing fields to profiles it does NOT own.
+//
+// Raised by Artificer 2026-08-25, and it is a real gap rather than a
+// convenience. Their flags are orthogonal to the D&D item type: an Artificer
+// item is a loot, or a consumable, or a tool, WITH their fields added. So there
+// is no profile id they could register under -- `item/artificer` would compete
+// with the eight rather than compose with them, and declaring the block eight
+// times duplicates it and still cannot be opted into per import.
+//
+// A group is therefore its own registry, keyed separately, merged into a host
+// profile's fields when that profile is derived. It never replaces a profile and
+// two groups may attach to the same one.
+// ==================================================================
+
+/**
+ * @typedef {object} FieldGroup
+ * @property {string} id - Unique within the kind.
+ * @property {string} module - Owning module id. Required: a group is by definition
+ *                             contributed by someone other than the profile's owner.
+ * @property {string} kind - The kind whose profiles it attaches to.
+ * @property {string[]|'*'} appliesTo - Profile ids, or '*' for every profile of the kind.
+ * @property {{id: string, label: string, default?: boolean}} option - The import option
+ *                             gating the whole group. Its `id` is payload-visible, so it
+ *                             is not renamed casually.
+ * @property {string} [preamble] - Profile-level prompt text that does not reduce to
+ *                             per-field guidance. Carrying it here is what lets a module
+ *                             stop hosting prompt files anywhere.
+ * @property {DeclarationField[]} fields
+ * @property {object[]} [rules]
+ */
+
+/** @type {Map<string, FieldGroup>} */
+const fieldGroups = new Map();
+
+/**
+ * Register a field group.
+ * @param {FieldGroup} group
+ * @returns {string} The registry key.
+ */
+export function registerFieldGroup(group) {
+    if (!group || typeof group !== 'object') {
+        throw new Error('A field group must be an object');
+    }
+    const kind = String(group.kind || '').trim();
+    const id = String(group.id || '').trim();
+    const module = String(group.module || '').trim();
+    if (!kind) throw new Error('A field group requires a kind');
+    if (!id) throw new Error(`Field group for kind "${kind}" requires an id`);
+    // A group exists so a module can contribute to profiles it does not own, so it
+    // must say who it is. Without it a failure cannot name whose fields are at fault.
+    if (!module) throw new Error(`${kind}.${id}: a field group requires an owning module id`);
+
+    const where = `${kind}.${id}`;
+    if (group.appliesTo !== '*' && !Array.isArray(group.appliesTo)) {
+        throw new Error(`${where}: appliesTo must be an array of profile ids or '*'`);
+    }
+    if (!group.option || typeof group.option !== 'object' || !String(group.option.id || '').trim()) {
+        throw new Error(`${where}: a field group requires an option with an id`);
+    }
+    // Groups are validated exactly as a mapped profile's fields are: same paths,
+    // same transforms, same rejections. A contributed field is not a lesser field.
+    validateFields(group.fields, 'mapped', where);
+    validateRules(group, where);
+
+    const key = `${kind}.${id}`;
+    if (fieldGroups.has(key)) {
+        throw new Error(`${where}: a field group is already registered under this id`);
+    }
+    fieldGroups.set(key, group);
+    return key;
+}
+
+/**
+ * Every group attaching to one profile, in registration order.
+ * @param {string} kindId
+ * @param {string} profileId
+ * @returns {FieldGroup[]}
+ */
+export function getFieldGroupsFor(kindId, profileId) {
+    const kind = String(kindId || '').trim();
+    const profile = String(profileId || '').trim();
+    return [...fieldGroups.values()].filter(group => group.kind === kind
+        && (group.appliesTo === '*' || group.appliesTo.includes(profile)));
+}
+
+/** Every registered field group, in registration order. */
+export function listFieldGroups() {
+    return [...fieldGroups.values()];
+}

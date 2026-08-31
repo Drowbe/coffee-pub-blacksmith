@@ -11,9 +11,9 @@
 // declaration reaches every output with no edit here.
 // ==================================================================
 
-import { getDeclaration, getDeclarationsForKind, fieldAccepts } from './registry-declarations.js';
+import { getDeclaration, getDeclarationsForKind, getFieldGroupsFor, fieldAccepts } from './registry-declarations.js';
 import { issue } from './utility-import-issues.js';
-import { evaluateRules } from './manager-declaration-rules.js';
+import { evaluateRules, referenceHolds } from './manager-declaration-rules.js';
 
 /**
  * Whether a field appears in authoring output at all.
@@ -41,6 +41,71 @@ function isAuthorable(field) {
  * @param {Record<string, unknown>} options
  * @returns {boolean}
  */
+/**
+ * The fields a profile derives from: its own, plus every group attaching to it.
+ *
+ * ONE composed list rather than a profile's own, because a contributed field must
+ * be indistinguishable from a declared one everywhere downstream -- template, guide,
+ * prompt, validation and construction. Anywhere that reads `declaration.fields`
+ * directly is a place a group would be silently dropped.
+ *
+ * A group's fields come last so a profile's own always win a name collision; the
+ * host owns its schema and a contributor cannot redefine it out from under it.
+ * @param {object} declaration
+ * @returns {object[]}
+ */
+export function effectiveFields(declaration) {
+    return effectiveDeclaration(declaration).fields;
+}
+
+/**
+ * The profile as everything downstream should see it: its own fields and rules,
+ * plus every group's.
+ *
+ * Composed as a whole DECLARATION rather than as two lists, because a group's
+ * rules have to be evaluated against a field set that includes the group's fields
+ * -- rule evaluation resolves key aliases by looking a field up by name, so a rule
+ * over a contributed field cannot be checked against the host's fields alone.
+ * Composing fields and rules separately produced exactly that: the group's fields
+ * appeared in the template and its rules silently never fired.
+ * @param {object} declaration
+ * @returns {object}
+ */
+export function effectiveDeclaration(declaration, entry = null) {
+    let groups = getFieldGroupsFor(declaration.kind, declaration.id);
+    // When there is an ENTRY, a group applies only if the payload engages it.
+    //
+    // Authoring gates on an import option a person ticks; validation and
+    // construction see only JSON and have no options to consult. Inferring from the
+    // payload is the only honest answer, and getting this wrong is not subtle: with
+    // every group always in play, a group's `required` field is demanded of every
+    // item of the kind -- a plain weapon failed for want of an Artificer type.
+    //
+    // Engaged means the entry carries at least one of the group's fields. A partial
+    // group is then a genuine error and reported as one, which is the behaviour
+    // wanted: half an Artificer block is a mistake, none of it is not.
+    if (entry) {
+        groups = groups.filter(group => group.fields.some(field =>
+            Object.prototype.hasOwnProperty.call(entry, field.name)
+            || (field.acceptsKeys ?? []).some(alias =>
+                Object.prototype.hasOwnProperty.call(entry, alias))));
+    }
+    if (!groups.length) return declaration;
+    const own = new Set(declaration.fields.map(field => field.name));
+    return {
+        ...declaration,
+        fields: [
+            ...declaration.fields,
+            ...groups.flatMap(group => group.fields
+                .filter(field => !own.has(field.name))
+                // The group's option gates every field it contributes, so a module
+                // declares the gate once rather than repeating it on each field.
+                .map(field => ({ ...field, requiresOption: field.requiresOption ?? group.option.id })))
+        ],
+        rules: [...(declaration.rules ?? []), ...groups.flatMap(group => group.rules ?? [])]
+    };
+}
+
 function isShown(field, options) {
     // Opt-in: an option that must be truthy, such as a module's flag namespace.
     if (field?.requiresOption) return Boolean(options?.[field.requiresOption]);
@@ -48,6 +113,26 @@ function isShown(field, options) {
     // way -- the current builder emits them unless includePassiveEffects === false.
     if (field?.suppressedByOption) return options?.[field.suppressedByOption] !== false;
     return true;
+}
+
+/**
+ * Whether a field's `requiresWhen` gate holds for a given entry.
+ *
+ * Distinct from the option gates above: those key on something a person ticks in
+ * the window, this keys on another FIELD's value. Artificer's Process fields are
+ * the case -- four fields that exist only when `artificerFamily` is `Process` and
+ * are meaningless on anything else.
+ *
+ * It reuses the rule vocabulary's `field:value` reference rather than inventing a
+ * second way to say the same thing.
+ * @param {object} field
+ * @param {object} declaration
+ * @param {object} entry
+ * @returns {boolean}
+ */
+function gateHolds(field, declaration, entry) {
+    if (!field?.requiresWhen) return true;
+    return referenceHolds(entry ?? {}, declaration, field.requiresWhen);
 }
 
 /**
@@ -102,8 +187,10 @@ export function buildTemplateObject(kindId, profileId, options = {}) {
         throw new Error(`No declaration registered for ${kindId}.${profileId}`);
     }
     const data = {};
-    for (const field of declaration.fields) {
+    for (const field of effectiveFields(declaration)) {
         if (!isAuthorable(field) || !isShown(field, options)) continue;
+        // A template has no entry to test, so a value-gated field is offered and
+        // the rules reject it if it turns out not to belong.
         data[field.name] = templateValue(field);
     }
     return data;
@@ -131,7 +218,7 @@ export function buildTemplateText(kindId, profileId, options = {}) {
 export function authorableFieldNames(kindId, profileId, options = {}) {
     const declaration = getDeclaration(kindId, profileId);
     if (!declaration) return [];
-    return declaration.fields
+    return effectiveFields(declaration)
         .filter(field => isAuthorable(field) && isShown(field, options))
         .map(field => field.name);
 }
@@ -217,8 +304,9 @@ export function validateEntry(kindId, profileId, entry) {
         };
     }
 
+    const composed = effectiveDeclaration(declaration, entry);
     const claimed = new Set();
-    for (const field of declaration.fields) {
+    for (const field of composed.fields) {
         const { key, aliased } = sourceKey(field, entry);
         if (key) claimed.add(key);
 
@@ -269,7 +357,7 @@ export function validateEntry(kindId, profileId, entry) {
     // about two fields cannot say anything useful while one of them is the wrong
     // type, and reporting both would bury the cause under the consequence.
     if (!errors.length) {
-        errors.push(...evaluateRules(declaration, entry));
+        errors.push(...evaluateRules(composed, entry));
     }
 
     // Every undeclared key, in ONE warning rather than one warning each.
@@ -373,7 +461,9 @@ export async function buildDocumentData(kindId, profileId, entry) {
     const data = {};
     if (declaration.document?.type) data.type = declaration.document.type;
 
-    for (const field of declaration.fields) {
+    const composed = effectiveDeclaration(declaration, entry);
+    for (const field of composed.fields) {
+        if (!gateHolds(field, composed, entry)) continue;
         if (field.const !== undefined) {
             if (field.path) writePath(data, field.path, foundry.utils.deepClone(field.const));
             continue;

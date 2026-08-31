@@ -31,7 +31,10 @@ import {
     registerDeclaration,
     getDeclaration,
     getDeclarationsForKind,
-    listDeclarations
+    listDeclarations,
+    registerFieldGroup,
+    getFieldGroupsFor,
+    listFieldGroups
 } from './registry-declarations.js';
 import { buildTemplateText, buildTemplateObject } from './manager-declarations.js';
 
@@ -61,6 +64,28 @@ export class ImporterAPI {
     /** Every registered declaration, in registration order. */
     static listDeclarations() {
         return listDeclarations();
+    }
+
+    /**
+     * Register a field group: fields a module contributes to profiles it does not own.
+     *
+     * For content whose fields are orthogonal to the host's type -- an Artificer item is
+     * a loot, or a consumable, or a tool, WITH their fields added. Registering a profile
+     * would compete with the host's rather than compose with it. See the FieldGroup
+     * typedef in registry-declarations.js.
+     */
+    static registerFieldGroup(group) {
+        return registerFieldGroup(group);
+    }
+
+    /** Every group attaching to one profile, in registration order. */
+    static getFieldGroupsFor(kindId, profileId) {
+        return getFieldGroupsFor(kindId, profileId);
+    }
+
+    /** Every registered field group. */
+    static listFieldGroups() {
+        return listFieldGroups();
     }
 
     /** The derived JSON authoring template for a profile, as formatted text. */
