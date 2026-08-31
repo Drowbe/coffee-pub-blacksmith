@@ -1,6 +1,6 @@
 # Plan: Importer step 8 — Journal
 
-**Status: In progress.** `rendered` is removed, both JSON profiles are declared and derive, construction routes through them, find-or-create is unified, and the page-subtype seam is built. Remaining: move the kind out of the parser tail, keep `api.createJournalEntry` working for Regent, and settle encounter and injury.
+**Status: In progress.** `rendered` is removed. Area, Location and Encounter are declared and routing, find-or-create is unified, the page-subtype seam is built, and `api.createJournalEntry` routes a declared profile through the engine for Regent. Remaining: the SCHEMA LOCK derivation, and the injury handover to Bibliosoph.
 
 Scope: move the Journal kind onto the declaration model, and build the subtype seam three siblings are
 waiting on. This plan is scaffolding — when it is implemented its design goes to

@@ -1381,6 +1381,50 @@ export default {
         },
 
         {
+            id: 'journal-encounter-regent',
+            label: 'Encounter accepts the spellings Regent emits instead of dropping them',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'Regent drives this profile through api.createJournalEntry, not the import window.',
+            run: async ({ expect, log }) => {
+                const { manager, registry } = await loadDeclarations();
+                await import(`${MODULE_PATH}/declarations/declaration-journal.js`);
+
+                expect.ok('encounter is declared', Boolean(registry.getDeclaration('journal', 'encounter')));
+
+                // Every Regent encounter imported successfully with its whole breadcrumb
+                // missing, because Blacksmith read none of these names anywhere. They are
+                // `acceptsKeys` now, so the payload works unchanged and is REPORTED.
+                const regent = manager.validateEntry('journal', 'encounter', {
+                    journaltype: 'encounter', scenelocation: 'Moonsea', sceneparent: 'Phlan',
+                    scenearea: 'Goblin Cave', scenetitle: 'Ambush', prepencounter: 'Goblin'
+                });
+                if (regent.errors.length) log(`unexpected: ${JSON.stringify(regent.errors)}`);
+                expect('a Regent payload validates', regent.errors, []);
+                expect('and all three spellings are reported',
+                    regent.warnings.filter(one => one.code === 'DEPRECATED_KEY').length, 3);
+
+                // `sceneenvironment` is deliberately NOT accepted: it is a HABITAT, which
+                // is scene geography with its own vocabulary rather than a breadcrumb step.
+                // Reporting it as unknown is the truth until the scene-geography write lands.
+                const habitat = manager.validateEntry('journal', 'encounter',
+                    { journaltype: 'encounter', sceneenvironment: 'Forest' });
+                expect.ok('sceneenvironment is reported rather than silently mapped',
+                    habitat.warnings.some(one => one.code === 'UNKNOWN_FIELDS'));
+
+                // A nested shape must produce a WORKED element, not an empty array --
+                // setting `example: []` beside declared `fields` silently defeats that,
+                // which it did on three fields until this caught it.
+                const template = manager.buildTemplateObject('journal', 'encounter');
+                expect.ok('the template carries a worked card, not an empty array',
+                    'cardtitle' in (template.sections?.[0]?.cards?.[0] ?? {}));
+                const area = manager.buildTemplateObject('journal', 'area');
+                expect.ok('and so does the area conversations block',
+                    'theyknow' in (area.blocks?.conversations?.[0] ?? {}));
+            }
+        },
+
+        {
             id: 'journal-subtype-seam',
             label: 'A journal profile creates the page subtype it declares',
             tier: 'headless',

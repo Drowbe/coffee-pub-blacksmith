@@ -126,9 +126,9 @@ const PUBLISH = [
 //                 rather than by being left off the PUBLISH list.
 //   Missing doc:  api-flags.md referenced in TODO but not written yet
 
-// Until each module has its own documentation/home.md (see the documentation standard), the registration
-// primer stands in as the wiki front door. It is the Home page only -- it is not in PUBLISH as well.
-const HOME_SRC = 'primers/primer-registering-with-blacksmith.md';
+// The wiki front door. It is the Home page only -- it is not in PUBLISH as well, or it would publish
+// twice under two names.
+const HOME_SRC = 'home.md';
 
 const pageName = (p) => path.basename(p, '.md');
 const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);

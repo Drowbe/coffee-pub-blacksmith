@@ -177,7 +177,7 @@ export const JOURNAL_AREA_DECLARATION = {
                     { name: 'specialconditions', type: 'array', default: [], example: [],
                       guidance: 'Terrain, hazards and other modifiers.' }
                 ] },
-              { name: 'conversations', type: 'array', default: [], example: [],
+              { name: 'conversations', type: 'array', default: [],
                 guidance: 'The people worth talking to, one entry each.',
                 fields: [
                     { name: 'name', type: 'string', required: true, example: '',
@@ -318,12 +318,6 @@ export const JOURNAL_ENCOUNTER_DECLARATION = {
     schemaVersion: 1,
     form: 'mapped',
     document: { documentName: 'JournalEntry' },
-    // NOT REGISTERED YET. The composer it needs is still inside
-    // `utility-common.js`'s encounter branch, and a profile whose derivation cannot
-    // run is worse than one that does not exist: it registers, validates, and then
-    // fails at construction. It registers when `parsers/parse-journal-encounter.js`
-    // does. The field surface below is verified against the composer's CARDDATA and
-    // is the finished half.
     derive: ['journalEncounterContent'],
     fields: [
         { name: 'journaltype', role: 'selector', type: 'string',
@@ -350,7 +344,7 @@ export const JOURNAL_ENCOUNTER_DECLARATION = {
         { name: 'prepsetup', role: 'input', type: 'string', default: '', example: '',
           guidance: 'What the GM should have ready before running it.' },
         ...contextFields('the whole page').map(field => ({ ...field, role: 'input' })),
-        { name: 'sections', role: 'input', type: 'array', default: [], example: [],
+        { name: 'sections', role: 'input', type: 'array', default: [],
           guidance: 'The beats of the encounter, in order.',
           fields: [
               { name: 'sectiontitle', type: 'string', default: '', example: '',
@@ -358,7 +352,7 @@ export const JOURNAL_ENCOUNTER_DECLARATION = {
               { name: 'sectionintro', type: 'string', default: '', example: '',
                 guidance: 'The opening passage for this beat.' },
               ...contextFields('this section'),
-              { name: 'cards', type: 'array', default: [], example: [],
+              { name: 'cards', type: 'array', default: [],
                 guidance: 'Read-aloud cards within this section.',
                 fields: ENCOUNTER_CARD_FIELDS }
           ] },
@@ -368,4 +362,5 @@ export const JOURNAL_ENCOUNTER_DECLARATION = {
 };
 
 registerDeclaration(JOURNAL_AREA_DECLARATION);
+registerDeclaration(JOURNAL_ENCOUNTER_DECLARATION);
 registerDeclaration(JOURNAL_LOCATION_DECLARATION);

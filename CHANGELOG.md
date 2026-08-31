@@ -83,6 +83,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **Verified 2026-08-31** in a running world: `journal-import-area.json` validates and imports through the declared path, and a full Run All Headless passes **1346/1346** across 19 suites with the Importer Declarations suite at 242.
 
+- **Encounter is declared, and Regent's payloads stop losing their geography** (`scripts/parsers/parse-journal-encounter.js`, `scripts/declarations/declaration-journal.js`, `scripts/utility-common.js`). The composer moved out of `utility-common.js` beside its Area and Location counterparts, and the profile now derives its template, guide and validation like the rest.
+
+  Encounter is prompt-only and labelled Legacy in the import window, but it is not dead: Regent drives it through `api.createJournalEntry` on the API root. That path was **silently dropping every geography field it was sent.** Regent's prompts instruct the generator to emit `scenelocation`, `sceneparent`, `scenearea` and `sceneenvironment`; Blacksmith read none of those names anywhere, so an encounter imported successfully with its whole breadcrumb missing -- a success that lost data, which is worse than a failure. The first three are declared as `acceptsKeys`, so a Regent payload now works unchanged and the spellings are reported rather than ignored.
+
+  `sceneenvironment` is deliberately not among them. It is a **habitat** -- a scene-geography field with its own closed vocabulary rather than a step in the breadcrumb -- so it is reported as unknown until the scene-geography write lands, which is the truth about what happens to it.
+
+  `createJournalEntry` itself now routes a declared profile through the engine, whoever calls it. Routing only the import window would have left the single external consumer on the old path.
+
+- **A nested field with `example: []` silently lost its worked example** (`scripts/declarations/declaration-journal.js`). `templateValue` returns `example` before it builds the worked element a nested `fields` declaration implies -- deliberately, since an explicit example should win -- so writing `example: []` beside declared nested fields defeats exactly the behaviour those fields exist to produce. Three fields did it, and an author starting from the Area or Encounter template got an empty array where a filled-in row was intended. Caught by asserting the template's shape rather than by reading it.
+
 - **The page-subtype seam: Blacksmith can build a subtype another module declares** (`scripts/manager-declarations.js`, `scripts/registry-declarations.js`). Every journal builder hardcoded `type: "text"` on the pages it created, which is what has blocked Librarian's codex and quests, Artificer's recipes, and Bibliosoph's injuries. A profile now declares `document.pageType`, defaulting to `text`, and it is stamped on after derivations run so no derivation knows about it and a page naming its own type keeps it.
 
   Foundry namespaces a module-declared subtype as `<module.id>.<subtype>`, but it namespaces the DECLARATION, not the CREATION: the registered data model validates whoever calls create, so Blacksmith can build `coffee-pub-bibliosoph.injury` without declaring it.

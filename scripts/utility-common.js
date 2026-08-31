@@ -52,6 +52,27 @@ import { compendiumManager, parseQuantity, formatLink } from './manager-compendi
  * @returns {Promise<JournalEntry|void>}
  */
 export async function createJournalEntry(journalData) {
+    // A DECLARED profile is built and landed by the declaration engine, whoever
+    // called this. `createJournalEntry` is a public API-root surface and Regent
+    // drives it directly rather than through the import window, so routing only
+    // the window would have left the one external consumer on the old path --
+    // still dropping its geography, still using the find-or-create that disagreed
+    // with the other three.
+    //
+    // Imported lazily to keep this module's load graph free of the declaration
+    // layer, which reaches the parsers, which reach back here.
+    const profile = String(journalData?.journaltype ?? '').trim().toLowerCase();
+    if (profile) {
+        const { getDeclaration } = await import('./registry-declarations.js');
+        await import('./declarations/declaration-journal.js');
+        if (getDeclaration('journal', profile)) {
+            const { buildDocumentData } = await import('./manager-declarations.js');
+            const { upsertJournalEntry } = await import('./utility-journal-destination.js');
+            const data = await buildDocumentData('journal', profile, journalData);
+            return await upsertJournalEntry(data, { folderName: journalData.foldername });
+        }
+    }
+
     var strFolderName = toSentenceCase(journalData.foldername);
     var compiledHtml = "";
     let folder;

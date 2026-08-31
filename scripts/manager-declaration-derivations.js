@@ -296,9 +296,29 @@ async function journalLocationContent(data, entry) {
     return data;
 }
 
+/**
+ * An Encounter journal's page content.
+ *
+ * Delegates to the composer, which resolves monster names to compendium links,
+ * builds journal links between encounters, and carries `linkedEncounters` through
+ * as encoded data the encounter toolbar reads back. None of that is per-field
+ * work and none of it is expressible as a path.
+ *
+ * @param {object} data - Assembled document source data.
+ * @param {object} entry - The authored payload.
+ * @returns {Promise<object>} The same data, with the entry name and its one page.
+ */
+async function journalEncounterContent(data, entry) {
+    const { buildEncounterJournalPage } = await import('./parsers/parse-journal-encounter.js');
+    const built = await buildEncounterJournalPage(entry);
+    data.name = built.journalName;
+    data.pages = [built.page];
+    return data;
+}
+
 /** @type {Record<string, Function>} */
 const DERIVATIONS = {
-    journalAreaContent, journalLocationContent,
+    journalAreaContent, journalLocationContent, journalEncounterContent,
     weaponAttackActivity, equippablePassiveEffects, itemActivities, slugIdentifier,
     rollTableResults,
     actorSidekick, actorCharacterFoundations, actorToken, actorContent
